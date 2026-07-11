@@ -238,6 +238,11 @@ export {
   createCorsMiddleware,
   defineCors
 } from './runtime/cors';
+export {
+  createRateLimitMiddleware,
+  defineRateLimit,
+  createMemoryRateLimitStore
+} from './runtime/rate-limit';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
 export type {
@@ -272,3 +277,4 @@ export type { Peer, WebSocketRoom, WebSocketHooks, WebSocketDefinition, UpgradeR
 export type { SSEMessage, SSEConnection, SSEHandler, SSEOptions } from './runtime/sse';
 export type { InternalRequestOptions, InternalRequestResult } from './runtime/internal-fetch';
 export type { CorsOptions } from './runtime/cors';
+export type { RateLimitOptions, RateLimitInfo, RateLimitStore, RateLimitStoreEntry } from './runtime/rate-limit';

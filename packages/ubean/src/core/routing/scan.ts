@@ -1,10 +1,12 @@
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
+import { readFile } from 'node:fs/promises';
 import { filePathToRoute } from '../../utils/path';
 import { logger } from '../log';
 import { extractDefinePage } from './define-page';
 import { detectHttpExports } from './detect-exports';
-import { HTTP_METHODS, GLOB_SCAN_PATTERN, GLOB_VUE_PATTERN } from './types';
+import { HTTP_METHODS, GLOB_SCAN_PATTERN, GLOB_VUE_PATTERN, GLOB_LAYOUT_PATTERN } from './types';
+import { parseFrontmatter } from '../markdown';
 import type {
   ScanOptions,
   ScanResult,
@@ -174,14 +176,33 @@ async function scanPages(srcDir: string, dirName: string, ignore: string[]): Pro
 
     if (base.startsWith('_')) continue;
 
-    const isReuse = base.endsWith('.reuse');
+    const isMarkdown = ext === '.md' || ext === '.mdx';
+    const isReuse = !isMarkdown && base.endsWith('.reuse');
     const pageBase = isReuse ? base.slice(0, -'.reuse'.length) : base;
     const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
     const fileBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
     const { route } = filePathToRoute(fileBase);
     const name = routeToName(route);
 
-    const pageMeta = await extractDefinePage(fullPath).catch(() => null);
+    let pageMeta = null;
+    let frontmatter: Record<string, unknown> | undefined;
+
+    if (isMarkdown) {
+      try {
+        const content = await readFile(fullPath, 'utf-8');
+        const parsed = parseFrontmatter(content);
+        frontmatter = parsed.data;
+        pageMeta = {
+          name: (frontmatter?.title as string) || name,
+          path: (frontmatter?.path as string) || route,
+          layout: frontmatter?.layout as string | false | undefined
+        };
+      } catch {
+        pageMeta = null;
+      }
+    } else {
+      pageMeta = await extractDefinePage(fullPath).catch(() => null);
+    }
 
     pages.push({
       fullPath,
@@ -193,8 +214,10 @@ async function scanPages(srcDir: string, dirName: string, ignore: string[]): Pro
       path: pageMeta?.path || route,
       layout: pageMeta?.layout,
       isReuse,
+      isMarkdown,
       reuseTarget: pageMeta?.reuse,
-      pageMeta: pageMeta || undefined
+      pageMeta: pageMeta || undefined,
+      frontmatter
     });
   }
 
@@ -203,7 +226,7 @@ async function scanPages(srcDir: string, dirName: string, ignore: string[]): Pro
 
 async function scanLayouts(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedLayout[]> {
   const dir = join(srcDir, dirName);
-  const files = await glob(GLOB_VUE_PATTERN, {
+  const files = await glob(GLOB_LAYOUT_PATTERN, {
     cwd: dir,
     dot: true,
     ignore: [...ignore, '**/_*'],

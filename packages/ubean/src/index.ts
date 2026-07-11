@@ -71,6 +71,20 @@ export type {
   SendOptions
 } from './runtime/queue';
 export {
+  parseMarkdown,
+  parseFrontmatter,
+  markdownToHtml,
+  extractHeadings,
+  extractExcerpt,
+  defineMarkdownPage
+} from './core/markdown';
+export type {
+  MarkdownFrontmatter,
+  ParsedMarkdown,
+  MarkdownHeading,
+  MarkdownOptions
+} from './core/markdown';
+export {
   createRequestIdMiddleware,
   getRequestId,
   generateRequestId,

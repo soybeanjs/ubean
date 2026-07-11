@@ -52,8 +52,10 @@ export interface ScannedPageRoute extends ScannedFile {
   path: string;
   layout?: string | false;
   isReuse: boolean;
+  isMarkdown: boolean;
   reuseTarget?: string;
   pageMeta?: import('./define-page').PageMeta;
+  frontmatter?: Record<string, unknown>;
 }
 
 export interface ScannedLayout extends ScannedFile {
@@ -121,5 +123,5 @@ export interface ScanResult {
 }
 
 export const GLOB_SCAN_PATTERN = '**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}';
-export const GLOB_VUE_PATTERN = '**/*.{vue,ts}';
+export const GLOB_VUE_PATTERN = '**/*.{vue,ts,md,mdx}';
 export const GLOB_LAYOUT_PATTERN = '**/*.{vue,ts}';

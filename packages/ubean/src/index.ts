@@ -201,6 +201,22 @@ export {
   createKV,
   useKV
 } from './runtime/storage';
+export {
+  defineWebSocket,
+  defineRoom,
+  createRoom,
+  getRoom,
+  getRooms,
+  broadcast,
+  registerWebSocket,
+  getWebSocketDefinitions,
+  handleUpgrade,
+  handleMessage,
+  handleClose,
+  handleError,
+  createWebSocketMiddleware,
+  clearWebSocketState
+} from './runtime/websocket';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
 export type {
@@ -231,3 +247,4 @@ export type { Preset } from './core/preset/_utils/preset';
 export type { WranglerConfig, PresetDetectionHints, PresetDetectionResult } from './core/preset';
 export type { CacheEntry, CacheStore, CacheRule } from './runtime/cache';
 export type { StorageDriver, UbeanStorage, KVNamespace, KVOptions } from './runtime/storage';
+export type { Peer, WebSocketRoom, WebSocketHooks, WebSocketDefinition, UpgradeResult } from './runtime/websocket';

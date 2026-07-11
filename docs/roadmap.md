@@ -382,7 +382,7 @@
 | P7-01 | Skills 系统             | ⬜   | P2     | `packages/ubean/skills/ubean/SKILL.md` | Agent 路由定义                        |
 | P7-02 | 内置文档                | ⬜   | P2     | `packages/ubean/skills/ubean/docs/`    | guide/reference/integrations          |
 | P7-03 | AGENT_PROMPT.md         | ⬜   | P2     | `packages/ubean/AGENT_PROMPT.md`       | Agent 提示词                          |
-| P7-04 | ubean init 交互式初始化 | ⬜   | P1     | `src/core/cli/init.ts`                 | 交互式创建项目                        |
+| P7-04 | ubean init 交互式初始化 | ✅   | P1     | `src/core/cli/init.ts`                 | ✅交互式项目初始化向导：支持项目名称/模板(最小/标准/博客)/preset(standard/node/cloudflare)/包管理器选择、非交互式模式(--yes)、目录冲突处理(--force)、自动生成项目结构(配置文件/package.json/目录结构)、git初始化；3种模板(starter含页面/API/布局，minimal仅首页，blog含markdown博客结构)；支持命令行参数(--name/--template/--preset/--pm/--git)；12个测试用例 |
 | P7-05 | 示例项目                | ⬜   | P2     | `examples/`                            | hello-world/api-routes/pages-basic 等 |
 
 ### Phase 8: 发布认证与测试完善 (Week 15-16)

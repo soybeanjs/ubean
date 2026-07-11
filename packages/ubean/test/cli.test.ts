@@ -15,7 +15,7 @@ import {
   renderPluginTemplate,
   createFsOps
 } from '../src/core/cli/shared';
-import { scaffold } from '../src/core/cli/page';
+import { scaffold, deleteScaffold, recoverScaffold } from '../src/core/cli/page';
 
 describe('template rendering', () => {
   it('renders simple variables', () => {
@@ -357,5 +357,132 @@ describe('scaffold', () => {
     const fs = createFsOps(tmpDir);
     const content = await fs.readFile('src/middleware/auth.ts');
     expect(content).toContain('defineMiddleware');
+  });
+
+  it('creates reuse page .reuse.ts file', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'reuse',
+      path: 'users/[id]'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created[0]).toContain('[id].reuse.ts');
+    expect(result.created[0]).toContain('pages');
+
+    const fs = createFsOps(tmpDir);
+    const content = await fs.readFile(result.created[0].replace(tmpDir + '/', ''));
+    expect(content).toContain('definePage');
+    expect(content).toContain("import { definePage } from 'ubean'");
+    expect(content).toContain('UsersId');
+  });
+
+  it('creates reuse index page', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'reuse',
+      path: '/'
+    });
+    expect(result.errors).toHaveLength(0);
+    expect(result.created[0]).toContain('index.reuse.ts');
+  });
+
+  it('deleteScaffold removes file and creates backup by default', async () => {
+    await scaffold({ cwd: tmpDir, type: 'page', path: 'about' });
+    const fs = createFsOps(tmpDir);
+    expect(await fs.exists('src/pages/about.vue')).toBe(true);
+
+    const result = await deleteScaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'about'
+    });
+
+    expect(result.deleted).toHaveLength(1);
+    expect(await fs.exists('src/pages/about.vue')).toBe(false);
+    expect(await fs.exists('src/pages/about.vue.bak')).toBe(true);
+  });
+
+  it('deleteScaffold permanently removes with --force (no backup)', async () => {
+    await scaffold({ cwd: tmpDir, type: 'api', path: 'users' });
+    const fs = createFsOps(tmpDir);
+    expect(await fs.exists('src/api/users.ts')).toBe(true);
+
+    const result = await deleteScaffold({
+      cwd: tmpDir,
+      type: 'api',
+      path: 'users',
+      force: true
+    });
+
+    expect(result.deleted).toHaveLength(1);
+    expect(await fs.exists('src/api/users.ts')).toBe(false);
+    expect(await fs.exists('src/api/users.ts.bak')).toBe(false);
+  });
+
+  it('deleteScaffold returns error for non-existent files', async () => {
+    const result = await deleteScaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'nonexistent'
+    });
+    expect(result.errors.length).toBeGreaterThan(0);
+  });
+
+  it('deleteScaffold dry-run does not delete files', async () => {
+    await scaffold({ cwd: tmpDir, type: 'page', path: 'test' });
+    const fs = createFsOps(tmpDir);
+    const result = await deleteScaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'test',
+      dry: true
+    });
+    expect(result.deleted).toHaveLength(1);
+    expect(await fs.exists('src/pages/test.vue')).toBe(true);
+  });
+
+  it('recoverScaffold restores from backup', async () => {
+    await scaffold({ cwd: tmpDir, type: 'page', path: 'about' });
+    await deleteScaffold({ cwd: tmpDir, type: 'page', path: 'about' });
+
+    const fs = createFsOps(tmpDir);
+    expect(await fs.exists('src/pages/about.vue')).toBe(false);
+    expect(await fs.exists('src/pages/about.vue.bak')).toBe(true);
+
+    const result = await recoverScaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'about'
+    });
+
+    expect(result.restored).toHaveLength(1);
+    expect(await fs.exists('src/pages/about.vue')).toBe(true);
+    expect(await fs.exists('src/pages/about.vue.bak')).toBe(false);
+  });
+
+  it('recoverScaffold returns error when no backup exists', async () => {
+    await scaffold({ cwd: tmpDir, type: 'page', path: 'new' });
+    const result = await recoverScaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'new'
+    });
+    expect(result.errors.length).toBeGreaterThan(0);
+    expect(result.restored).toHaveLength(0);
+  });
+
+  it('recoverScaffold dry-run checks for backup existence', async () => {
+    await scaffold({ cwd: tmpDir, type: 'page', path: 'torecover' });
+    await deleteScaffold({ cwd: tmpDir, type: 'page', path: 'torecover' });
+
+    const result = await recoverScaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'torecover',
+      dry: true
+    });
+    expect(result.restored).toHaveLength(1);
+    expect(result.errors).toHaveLength(0);
   });
 });

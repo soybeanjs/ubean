@@ -1,9 +1,9 @@
 import type { CommandDef } from 'citty';
 import { join, extname } from 'node:path';
 import { createFsOps } from './shared';
-import { renderPageTemplate, renderApiTemplate, toKebabCase, toPascalCase } from './shared';
+import { renderPageTemplate, renderApiTemplate, toKebabCase, toPascalCase, toCamelCase } from './shared';
 
-type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware';
+type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse';
 
 interface ScaffoldOptions {
   cwd?: string;
@@ -16,6 +16,8 @@ interface ScaffoldOptions {
 
 interface ScaffoldResult {
   created: string[];
+  deleted: string[];
+  restored: string[];
   skipped: string[];
   errors: string[];
 }
@@ -28,6 +30,7 @@ function getDirForType(cwd: string, type: ScaffoldType): string {
   const srcDir = getSrcDir(cwd);
   switch (type) {
     case 'page':
+    case 'reuse':
       return join(srcDir, 'pages');
     case 'api':
       return join(srcDir, 'api');
@@ -44,14 +47,28 @@ function resolveTargetPath(baseDir: string, path: string, type: ScaffoldType): s
   let normalizedPath = path.startsWith('/') ? path.slice(1) : path;
 
   if (normalizedPath === '' || normalizedPath === '/') {
-    normalizedPath = type === 'page' ? 'index' : 'index';
+    normalizedPath = type === 'page' || type === 'reuse' ? 'index' : 'index';
   }
 
-  if (type === 'page' || type === 'layout') {
-    if (normalizedPath.endsWith('.vue')) {
+  if (type === 'page' || type === 'layout' || type === 'reuse') {
+    if (type === 'page' || type === 'layout') {
+      if (normalizedPath.endsWith('.vue')) {
+        return join(baseDir, normalizedPath);
+      }
+      const ext = '.vue';
+      if (normalizedPath.endsWith('/') || normalizedPath === '') {
+        return join(baseDir, normalizedPath, `index${ext}`);
+      }
+      return join(baseDir, `${normalizedPath}${ext}`);
+    }
+
+    if (normalizedPath.endsWith('.reuse.ts')) {
       return join(baseDir, normalizedPath);
     }
-    const ext = '.vue';
+    if (normalizedPath.endsWith('.ts')) {
+      return join(baseDir, normalizedPath.replace(/\.ts$/, '.reuse.ts'));
+    }
+    const ext = '.reuse.ts';
     if (normalizedPath.endsWith('/') || normalizedPath === '') {
       return join(baseDir, normalizedPath, `index${ext}`);
     }
@@ -74,39 +91,63 @@ function resolveTargetPath(baseDir: string, path: string, type: ScaffoldType): s
   return join(baseDir, normalizedPath);
 }
 
+function sanitizeNameSegment(seg: string): string {
+  return seg
+    .replace(/^\[\.\.\.(.+)\]$/, 'All$1')
+    .replace(/^\[\[(.+)\]\]$/, '$1Optional')
+    .replace(/^\[(.+)\]$/, '$1')
+    .replace(/[^a-zA-Z0-9$_]/g, '');
+}
+
 function extractNameFromPath(filePath: string, type: ScaffoldType): string {
-  const basename = filePath.split('/').pop() || '';
-  const nameWithoutExt = basename.replace(extname(basename), '');
-
-  if (nameWithoutExt === 'index') {
-    const parts = filePath.split('/');
-    const parentDir = parts[parts.length - 2];
-    return parentDir ? toPascalCase(parentDir) : 'Index';
+  const parts = filePath.split('/');
+  const basename = parts.pop() || '';
+  let nameWithoutExt = basename.replace(extname(basename), '');
+  if (nameWithoutExt.endsWith('.reuse')) {
+    nameWithoutExt = nameWithoutExt.slice(0, -'.reuse'.length);
   }
 
-  if (type === 'page' || type === 'layout') {
-    return toPascalCase(nameWithoutExt);
+  const segments: string[] = [];
+  for (const part of parts) {
+    const cleaned = sanitizeNameSegment(part);
+    if (cleaned) segments.push(toPascalCase(cleaned));
   }
 
-  return toKebabCase(nameWithoutExt);
+  if (nameWithoutExt !== 'index') {
+    segments.push(toPascalCase(sanitizeNameSegment(nameWithoutExt)));
+  } else if (segments.length === 0) {
+    return 'Index';
+  }
+
+  return segments.join('') || 'Index';
 }
 
 function getTemplateContent(type: ScaffoldType, name: string, path: string, method?: string): string {
   switch (type) {
-    case 'page':
+    case 'page': {
+      const routePath = `/${path.replace(/\.vue$/, '').replace(/\/index$/, '')}`;
       return renderPageTemplate({
         name,
-        path: `/${path.replace(/\.vue$/, '').replace(/\/index$/, '')}`,
-        kebabName: '',
-        pascalName: '',
-        camelName: ''
+        path: routePath,
+        kebabName: toKebabCase(name),
+        pascalName: name,
+        camelName: toCamelCase(name)
       });
+    }
+    case 'reuse': {
+      return `import { definePage } from 'ubean';
+
+export default definePage({
+  name: '${name}'
+});
+`;
+    }
     case 'api':
       return renderApiTemplate({
         name,
         method: method || 'GET',
         path: `/api/${path.replace(/\.ts$/, '').replace(/\/index$/, '')}`,
-        kebabName: ''
+        kebabName: toKebabCase(name)
       });
     case 'layout':
       return `<template>
@@ -137,7 +178,7 @@ export default defineMiddleware(async (c, next) => {
 export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult> {
   const cwd = options.cwd || process.cwd();
   const fs = createFsOps(cwd);
-  const result: ScaffoldResult = { created: [], skipped: [], errors: [] };
+  const result: ScaffoldResult = { created: [], deleted: [], restored: [], skipped: [], errors: [] };
 
   try {
     const baseDir = getDirForType(cwd, options.type);
@@ -169,14 +210,96 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   return result;
 }
 
+export async function deleteScaffold(options: {
+  cwd?: string;
+  type: ScaffoldType;
+  path: string;
+  force?: boolean;
+  dry?: boolean;
+}): Promise<ScaffoldResult> {
+  const cwd = options.cwd || process.cwd();
+  const fs = createFsOps(cwd);
+  const result: ScaffoldResult = { created: [], deleted: [], restored: [], skipped: [], errors: [] };
+
+  try {
+    const baseDir = getDirForType(cwd, options.type);
+    const targetPath = resolveTargetPath(baseDir, options.path, options.type);
+    const relativePath = targetPath.replace(cwd + '/', '');
+
+    if (!(await fs.exists(relativePath))) {
+      result.errors.push(`${relativePath} does not exist`);
+      return result;
+    }
+
+    if (options.dry) {
+      result.deleted.push(relativePath);
+      return result;
+    }
+
+    if (options.force) {
+      await fs.remove(relativePath);
+      result.deleted.push(relativePath);
+      return result;
+    }
+
+    await fs.createBackup(relativePath, { removeOriginal: true });
+    result.deleted.push(relativePath);
+  } catch (err) {
+    result.errors.push(err instanceof Error ? err.message : String(err));
+  }
+
+  return result;
+}
+
+export async function recoverScaffold(options: {
+  cwd?: string;
+  type: ScaffoldType;
+  path: string;
+  dry?: boolean;
+}): Promise<ScaffoldResult> {
+  const cwd = options.cwd || process.cwd();
+  const fs = createFsOps(cwd);
+  const result: ScaffoldResult = { created: [], deleted: [], restored: [], skipped: [], errors: [] };
+
+  try {
+    const baseDir = getDirForType(cwd, options.type);
+    const targetPath = resolveTargetPath(baseDir, options.path, options.type);
+    const relativePath = targetPath.replace(cwd + '/', '');
+
+    if (options.dry) {
+      const backupPath = `${relativePath}.bak`;
+      if (await fs.exists(backupPath)) {
+        result.restored.push(relativePath);
+      } else {
+        result.errors.push(`No backup found for ${relativePath}`);
+      }
+      return result;
+    }
+
+    const restored = await fs.restoreBackup(relativePath);
+    if (restored) {
+      result.restored.push(relativePath);
+      await fs.removeBackup(relativePath);
+    } else {
+      result.errors.push(`No backup found for ${relativePath}`);
+    }
+  } catch (err) {
+    result.errors.push(err instanceof Error ? err.message : String(err));
+  }
+
+  return result;
+}
+
 export async function listScaffoldableFiles(cwd: string, type: ScaffoldType): Promise<string[]> {
   const fs = createFsOps(cwd);
   const baseDir = getDirForType(cwd, type);
-  const files = await fs.listFiles(baseDir.replace(cwd + '/', ''));
+  const relativeBase = baseDir.replace(cwd + '/', '');
+  const files = await fs.listFiles(relativeBase);
   return files.map(f => f.replace(cwd + '/', ''));
 }
 
 const scaffoldTypes = ['page', 'api', 'layout', 'middleware'] as const;
+const allTypes = ['page', 'api', 'layout', 'middleware', 'reuse'] as const;
 
 export const pageCommand: CommandDef = {
   meta: {
@@ -220,7 +343,7 @@ export const pageCommand: CommandDef = {
         const { logger } = await import('../log');
         const type = args.type as ScaffoldType;
 
-        if (!scaffoldTypes.includes(type)) {
+        if (!scaffoldTypes.includes(type as any)) {
           logger.error(`Invalid type: ${type}. Must be one of: ${scaffoldTypes.join(', ')}`);
           return;
         }
@@ -246,6 +369,149 @@ export const pageCommand: CommandDef = {
       }
     },
 
+    'add-reuse': {
+      meta: {
+        name: 'add-reuse',
+        description: 'Add a new reusable page component (.reuse.ts)'
+      },
+      args: {
+        path: {
+          type: 'positional',
+          description: 'Reusable page path (e.g., users/[id])'
+        },
+        force: {
+          type: 'boolean',
+          description: 'Overwrite existing files (creates .bak backup)',
+          default: false,
+          alias: 'f'
+        },
+        dry: {
+          type: 'boolean',
+          description: 'Show what would be created without writing files',
+          default: false
+        }
+      },
+      async run({ args }) {
+        const { logger } = await import('../log');
+        const result = await scaffold({
+          cwd: process.cwd(),
+          type: 'reuse',
+          path: args.path as string,
+          force: args.force as boolean,
+          dry: args.dry as boolean
+        });
+
+        for (const file of result.created) {
+          logger.success(`${args.dry ? '[dry-run] Would create' : 'Created'} ${file}`);
+        }
+        for (const file of result.skipped) {
+          logger.warn(`Skipped ${file} (already exists, use --force to overwrite)`);
+        }
+        for (const err of result.errors) {
+          logger.error(err);
+        }
+      }
+    },
+
+    delete: {
+      meta: {
+        name: 'delete',
+        description: 'Delete a scaffold file (creates backup by default)'
+      },
+      args: {
+        path: {
+          type: 'positional',
+          description: 'Path to delete'
+        },
+        type: {
+          type: 'string',
+          description: 'Type: page, api, layout, middleware, reuse',
+          default: 'page'
+        },
+        force: {
+          type: 'boolean',
+          description: 'Delete permanently without creating backup',
+          default: false,
+          alias: 'f'
+        },
+        dry: {
+          type: 'boolean',
+          description: 'Show what would be deleted',
+          default: false
+        }
+      },
+      async run({ args }) {
+        const { logger } = await import('../log');
+        const type = args.type as ScaffoldType;
+
+        if (!allTypes.includes(type as any)) {
+          logger.error(`Invalid type: ${type}. Must be one of: ${allTypes.join(', ')}`);
+          return;
+        }
+
+        const result = await deleteScaffold({
+          cwd: process.cwd(),
+          type,
+          path: args.path as string,
+          force: args.force as boolean,
+          dry: args.dry as boolean
+        });
+
+        for (const file of result.deleted) {
+          logger.success(`${args.dry ? '[dry-run] Would delete' : args.force ? 'Deleted' : 'Deleted (backup created)'} ${file}`);
+        }
+        for (const err of result.errors) {
+          logger.error(err);
+        }
+      }
+    },
+
+    recovery: {
+      meta: {
+        name: 'recovery',
+        description: 'Recover a deleted file from .bak backup'
+      },
+      args: {
+        path: {
+          type: 'positional',
+          description: 'Path to recover'
+        },
+        type: {
+          type: 'string',
+          description: 'Type: page, api, layout, middleware, reuse',
+          default: 'page'
+        },
+        dry: {
+          type: 'boolean',
+          description: 'Check if recovery is possible',
+          default: false
+        }
+      },
+      async run({ args }) {
+        const { logger } = await import('../log');
+        const type = args.type as ScaffoldType;
+
+        if (!allTypes.includes(type as any)) {
+          logger.error(`Invalid type: ${type}. Must be one of: ${allTypes.join(', ')}`);
+          return;
+        }
+
+        const result = await recoverScaffold({
+          cwd: process.cwd(),
+          type,
+          path: args.path as string,
+          dry: args.dry as boolean
+        });
+
+        for (const file of result.restored) {
+          logger.success(`${args.dry ? '[dry-run] Backup exists for' : 'Recovered'} ${file}`);
+        }
+        for (const err of result.errors) {
+          logger.error(err);
+        }
+      }
+    },
+
     list: {
       meta: {
         name: 'list',
@@ -254,7 +520,7 @@ export const pageCommand: CommandDef = {
       args: {
         type: {
           type: 'string',
-          description: 'Type to list: page, api, layout, middleware',
+          description: 'Type to list: page, api, layout, middleware, reuse',
           default: 'page'
         }
       },

@@ -28,11 +28,28 @@ export {
   createLinkHandler,
   extractPageData
 } from './runtime/vue';
-export type { UbeanVueRouter, UbeanVueHead, UbeanVueApp, UbeanVueContext, LinkProps } from './runtime/vue';
+export type {
+  UbeanVueRouter,
+  UbeanVueHead,
+  UbeanVueApp,
+  UbeanVueContext,
+  LinkProps,
+  SubmitOptions,
+  SubmitResult
+} from './runtime/vue';
 export { ubeanVuePlugin } from './core/vue/plugin';
 export { logger } from './core/log';
 export { ubeanPlugin } from './core/build/vite/plugin';
-export { scanProject, filePathToRoute, generateRouteName, UbeanRouter, createUbeanRouter } from './core/routing';
+export {
+  scanProject,
+  filePathToRoute,
+  stripRouteGroups,
+  generateRouteName,
+  UbeanRouter,
+  createUbeanRouter,
+  extractDefinePageFromCode,
+  extractDefineMetaFromCode
+} from './core/routing';
 export { generateTypes } from './core/codegen';
 export { definePreset, resolvePreset, registerPreset } from './core/preset/_utils/preset';
 export { registerBuiltinPresets, resolvePresetByName, standardPreset, nodePreset } from './core/preset';

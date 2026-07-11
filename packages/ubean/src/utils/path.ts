@@ -9,8 +9,15 @@ const DYNAMIC_PARAM_REGEX = /\[([^\]]+)\]/g;
 const CATCH_ALL_REGEX = /\[\.{3}([^\]]+)\]/g;
 const OPTIONAL_PARAM_REGEX = /\[\[([^\]]+)\]\]/g;
 const ROUTE_GROUP_REGEX = /\(([^(/\\]+)\)[/\\]/g;
+const ROUTE_GROUP_TRAILING_REGEX = /\(([^(/\\]+)\)$/;
 
 const INDEX_FILE_REGEX = /\/index$/;
+
+export function stripRouteGroups(path: string): string {
+  let result = path.replace(ROUTE_GROUP_REGEX, '');
+  result = result.replace(ROUTE_GROUP_TRAILING_REGEX, '');
+  return result;
+}
 
 export interface ParsedRoutePath {
   route: string;
@@ -43,7 +50,7 @@ export function filePathToRoute(filePath: string, prefix = '/'): ParsedRoutePath
     }
   }
 
-  route = route.replace(ROUTE_GROUP_REGEX, '');
+  route = stripRouteGroups(route);
 
   route = route.replace(CATCH_ALL_REGEX, (_, p) => `**:${p.replace(/[^\w-]/g, '_')}`);
 

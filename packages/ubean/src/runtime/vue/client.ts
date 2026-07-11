@@ -3,12 +3,30 @@ import type { PageObject, PageHead } from '../pages/protocol';
 export interface UbeanVueRouter {
   current: PageObject;
   navigating: boolean;
+  submitting: boolean;
   prefetch: (url: string) => Promise<void>;
   push: (url: string, opts?: { replace?: boolean }) => Promise<void>;
   replace: (url: string) => Promise<void>;
   back: () => void;
   forward: () => void;
   refresh: () => Promise<void>;
+  submit: (url: string, opts: SubmitOptions) => Promise<SubmitResult>;
+}
+
+export interface SubmitOptions {
+  method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  body?: any;
+  headers?: Record<string, string>;
+  replace?: boolean;
+}
+
+export interface SubmitResult {
+  ok: boolean;
+  redirected?: boolean;
+  url?: string;
+  errors?: Record<string, string> | null;
+  data?: Record<string, unknown>;
+  status: number;
 }
 
 export interface UbeanVueHead {
@@ -40,9 +58,10 @@ export function getInitialPageData<T = Record<string, unknown>>(): PageObject<T>
 export function createUbeanClient() {
   const initial = getInitialPageData() ?? { component: '', props: {}, params: {}, url: '/' };
 
-  const state: { page: PageObject; navigating: boolean } = {
+  const state: { page: PageObject; navigating: boolean; submitting: boolean } = {
     page: initial as PageObject,
-    navigating: false
+    navigating: false,
+    submitting: false
   };
 
   const listeners = new Set<(page: PageObject) => void>();
@@ -96,6 +115,70 @@ export function createUbeanClient() {
     await navigate(_global.location.pathname + _global.location.search, { replace: true });
   }
 
+  async function submit(url: string, opts: SubmitOptions = {}): Promise<SubmitResult> {
+    const { method = 'POST', body, headers = {}, replace: doReplace = false } = opts;
+    state.submitting = true;
+    try {
+      let fetchBody: any;
+      const fetchHeaders: Record<string, string> = {
+        'x-ubeanpages': 'true',
+        ...headers
+      };
+
+      if (body instanceof FormData) {
+        fetchBody = body;
+      } else if (body instanceof URLSearchParams) {
+        fetchHeaders['Content-Type'] = 'application/x-www-form-urlencoded';
+        fetchBody = body;
+      } else if (body && typeof body === 'object') {
+        fetchHeaders['Content-Type'] = 'application/json';
+        fetchBody = JSON.stringify(body);
+      }
+
+      const res = await _global.fetch(url, {
+        method,
+        headers: fetchHeaders,
+        body: fetchBody,
+        redirect: 'manual'
+      });
+
+      const redirectUrl = res.headers.get('X-Ubean-Redirect');
+      if (redirectUrl) {
+        await navigate(redirectUrl, { replace: doReplace });
+        return { ok: true, redirected: true, url: redirectUrl, status: res.status };
+      }
+
+      const contentType = res.headers.get('Content-Type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (data.redirect) {
+          await navigate(data.redirect, { replace: doReplace });
+          return { ok: true, redirected: true, url: data.redirect, status: res.status };
+        }
+        if (data.component) {
+          state.page = data as PageObject;
+          for (const fn of listeners) fn(data as PageObject);
+          if (doReplace) {
+            _global.history.replaceState({}, '', url);
+          }
+          return {
+            ok: res.ok,
+            errors: (data as PageObject).errors ?? null,
+            data: (data as PageObject).props as Record<string, unknown>,
+            status: res.status
+          };
+        }
+        return { ok: res.ok, data, status: res.status };
+      }
+
+      return { ok: res.ok, status: res.status };
+    } catch (err) {
+      return { ok: false, errors: { _error: err instanceof Error ? err.message : String(err) }, status: 0 };
+    } finally {
+      state.submitting = false;
+    }
+  }
+
   if (typeof _global.window !== 'undefined') {
     _global.window.addEventListener('popstate', async () => {
       state.navigating = true;
@@ -116,13 +199,17 @@ export function createUbeanClient() {
     get navigating() {
       return state.navigating;
     },
+    get submitting() {
+      return state.submitting;
+    },
     prefetch,
     push: navigate,
     replace: (url: string) => navigate(url, { replace: true }),
     back,
     forward,
-    refresh
+    refresh,
+    submit
   };
 
-  return { state, subscribe, navigate, prefetch, router };
+  return { state, subscribe, navigate, prefetch, submit, router };
 }

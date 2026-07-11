@@ -160,50 +160,112 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
     }
   }
 
+  async function handlePageRequest(c: Context<UbeanEnv>, page: ScannedPageRoute, method: 'GET' | 'POST') {
+    c.set('route', {
+      meta: { public: page.pageMeta?.public ?? true } as RouteMeta,
+      path: c.req.path,
+      method: c.req.method
+    });
+
+    let loader: (() => Promise<any>) | undefined;
+    let mod: any;
+    let loaderResult: any;
+    let actionResult: any;
+    let actionErrors: Record<string, string> | null = null;
+
+    if (pageLoaders) {
+      loader = pageLoaders[page.relativePath];
+      if (loader) {
+        try {
+          mod = await loader();
+        } catch {
+          // ignore loading errors in dev
+        }
+      }
+    }
+
+    if (method === 'POST' && mod?.action && typeof mod.action === 'function') {
+      try {
+        actionResult = await mod.action(c);
+        if (actionResult instanceof Response) {
+          if (actionResult.status >= 300 && actionResult.status < 400) {
+            const redirectUrl = actionResult.headers.get('Location');
+            if (redirectUrl) {
+              if (isPagesRequest(c)) {
+                return c.json({ redirect: redirectUrl }, { status: 200, headers: { 'X-Ubean-Redirect': redirectUrl } });
+              }
+              return actionResult;
+            }
+          }
+          if (isPagesRequest(c)) {
+            return actionResult;
+          }
+        }
+        if (actionResult && typeof actionResult === 'object' && 'errors' in actionResult) {
+          actionErrors = actionResult.errors as Record<string, string>;
+          actionResult = undefined;
+        }
+      } catch (err) {
+        if (err instanceof Response) {
+          if (err.status >= 300 && err.status < 400) {
+            const redirectUrl = err.headers.get('Location');
+            if (redirectUrl) {
+              if (isPagesRequest(c)) {
+                return c.json({ redirect: redirectUrl }, { status: 200, headers: { 'X-Ubean-Redirect': redirectUrl } });
+              }
+              return err;
+            }
+          }
+          return err;
+        }
+        if (isPagesRequest(c)) {
+          return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
+        }
+        actionErrors = { _error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+
+    if (mod?.loader && typeof mod.loader === 'function') {
+      try {
+        loaderResult = await mod.loader(c);
+        if (loaderResult instanceof Response) return loaderResult;
+      } catch {
+        // ignore loader errors in dev
+      }
+    }
+
+    const props: Record<string, unknown> = loaderResult ?? {};
+    if (actionResult !== undefined) {
+      Object.assign(props as any, actionResult);
+    }
+
+    const pageObj: PageObject = {
+      component: page.name,
+      props,
+      params: c.req.param(),
+      url: c.req.path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
+      layout: page.layout || page.pageMeta?.layout || 'default',
+      errors: actionErrors,
+      head: page.pageMeta?.head
+    };
+
+    if (isPagesRequest(c)) {
+      return pageJsonResponse(pageObj);
+    }
+
+    if (method === 'POST' && actionResult instanceof Response) {
+      return actionResult;
+    }
+
+    const html = await renderPage(pageObj, pageAssetTags ?? {}, pageRenderer ?? null);
+    return c.html(html, method === 'POST' && actionErrors ? { status: 422 } : undefined);
+  }
+
   for (const page of pages) {
     if (page.isReuse) continue;
     const honoPath = convertUbeanRoutePath(page.route);
-    app.on(['GET'], honoPath, async (c: Context<UbeanEnv>, _next: Next) => {
-      c.set('route', {
-        meta: { public: page.pageMeta?.public ?? true } as RouteMeta,
-        path: c.req.path,
-        method: c.req.method
-      });
-
-      let loader: (() => Promise<any>) | undefined;
-      let loaderResult: any;
-      if (pageLoaders) {
-        loader = pageLoaders[page.relativePath];
-        if (loader) {
-          try {
-            const mod = await loader();
-            if (mod.loader && typeof mod.loader === 'function') {
-              loaderResult = await mod.loader(c);
-              if (loaderResult instanceof Response) return loaderResult;
-            }
-          } catch {
-            // ignore loader errors in dev
-          }
-        }
-      }
-
-      const pageObj: PageObject = {
-        component: page.name,
-        props: loaderResult ?? {},
-        params: c.req.param(),
-        url: c.req.path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
-        layout: page.layout || page.pageMeta?.layout || 'default',
-        errors: null,
-        head: page.pageMeta?.head
-      };
-
-      if (isPagesRequest(c)) {
-        return pageJsonResponse(pageObj);
-      }
-
-      const html = await renderPage(pageObj, pageAssetTags ?? {}, pageRenderer ?? null);
-      return c.html(html);
-    });
+    app.on(['GET'], honoPath, (c: Context<UbeanEnv>) => handlePageRequest(c, page, 'GET'));
+    app.on(['POST'], honoPath, (c: Context<UbeanEnv>) => handlePageRequest(c, page, 'POST'));
   }
 }
 

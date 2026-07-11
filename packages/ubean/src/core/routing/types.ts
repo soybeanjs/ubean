@@ -50,19 +50,10 @@ export interface ScannedPageRoute extends ScannedFile {
   name: string;
   route: string;
   path: string;
-  layout?: string;
+  layout?: string | false;
   isReuse: boolean;
   reuseTarget?: string;
-  pageMeta?: {
-    name?: string;
-    path?: string;
-    layout?: string;
-    reuse?: string;
-    meta?: Record<string, unknown>;
-    middleware?: string | string[];
-    public?: boolean;
-    head?: PageHeadMeta;
-  };
+  pageMeta?: import('./define-page').PageMeta;
 }
 
 export interface ScannedLayout extends ScannedFile {

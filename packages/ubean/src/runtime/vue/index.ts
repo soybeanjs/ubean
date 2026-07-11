@@ -7,6 +7,6 @@ export { createUbeanApp, createUbeanSSRApp, usePage, useRouter, useHead, Link, H
 export type { UbeanAppOptions, UbeanAppInstance } from './app';
 export { defineApp, applyAppConfig, createDefaultAppConfig } from './define-app';
 export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
-export { definePage } from './page-macro';
+export { definePage, defineMeta, defineValidator, defineMiddleware } from './page-macro';
 export { resolveRoute, isActiveRoute } from './router-location';
 export type { RouteLocation, RouteLocationRaw, TypedLinkProps } from './router-location';

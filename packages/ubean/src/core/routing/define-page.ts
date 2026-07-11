@@ -17,6 +17,17 @@ export interface DefineMetaResult {
   openAPI?: Record<string, unknown>;
 }
 
+export interface DefineValidatorResult {
+  slots: {
+    json?: boolean;
+    form?: boolean;
+    query?: boolean;
+    param?: boolean;
+    header?: boolean;
+    cookie?: boolean;
+  };
+}
+
 function extractScriptContent(code: string): string | null {
   if (!code.includes('<script')) {
     return code;
@@ -373,4 +384,28 @@ export async function extractDefinePage(filePath: string): Promise<PageMeta | nu
 export async function extractDefineMeta(filePath: string): Promise<DefineMetaResult | null> {
   const code = await readFile(filePath, 'utf-8');
   return extractDefineMetaFromCode(code);
+}
+
+export function extractDefineValidatorFromCode(code: string): DefineValidatorResult | null {
+  const scriptContent = extractScriptContent(code);
+  if (!scriptContent) return null;
+
+  const parsed = extractAndParseCall(scriptContent, 'defineValidator');
+  if (!parsed) return null;
+
+  const result: DefineValidatorResult = { slots: {} };
+
+  const validatorSlots = ['json', 'form', 'query', 'param', 'header', 'cookie'] as const;
+  for (const slot of validatorSlots) {
+    if (slot in parsed) {
+      result.slots[slot] = true;
+    }
+  }
+
+  return result;
+}
+
+export async function extractDefineValidator(filePath: string): Promise<DefineValidatorResult | null> {
+  const code = await readFile(filePath, 'utf-8');
+  return extractDefineValidatorFromCode(code);
 }

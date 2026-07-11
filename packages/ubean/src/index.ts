@@ -60,7 +60,11 @@ export {
   UbeanRouter,
   createUbeanRouter,
   extractDefinePageFromCode,
-  extractDefineMetaFromCode
+  extractDefineMetaFromCode,
+  extractDefineValidatorFromCode,
+  extractDefinePage,
+  extractDefineMeta,
+  extractDefineValidator
 } from './core/routing';
 export { generateTypes } from './core/codegen';
 export { definePreset, resolvePreset, registerPreset } from './core/preset/_utils/preset';

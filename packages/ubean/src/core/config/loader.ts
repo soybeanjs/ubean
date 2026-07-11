@@ -40,6 +40,15 @@ const configDefaults: ResolvedConfig = {
     fallbackLocale: 'en'
   },
   routeRules: {},
+  prerender: {
+    enabled: false,
+    routes: [],
+    ignore: ['/api/**', '/_health'],
+    crawlLinks: true,
+    concurrency: 4,
+    failOnError: false,
+    staticDir: '.output/public'
+  },
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] }
 };
 

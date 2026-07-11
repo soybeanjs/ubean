@@ -52,9 +52,37 @@ export interface UbeanConfig {
     fallbackLocale?: string;
   };
   routeRules?: Record<string, RouteRule>;
+  prerender?: PrerenderConfig;
   scanOptions?: {
     ignore?: string[];
   };
+}
+
+export interface PrerenderConfig {
+  enabled?: boolean;
+  routes?: string[];
+  ignore?: string[];
+  crawlLinks?: boolean;
+  concurrency?: number;
+  failOnError?: boolean;
+  staticDir?: string;
+}
+
+export interface PrerenderRoute {
+  route: string;
+  html?: string;
+  data?: unknown;
+  statusCode?: number;
+  error?: Error;
+  skip?: boolean;
+}
+
+export interface PrerenderResult {
+  routes: PrerenderRoute[];
+  generated: string[];
+  errors: PrerenderRoute[];
+  skipped: string[];
+  duration: number;
 }
 
 export interface RouteRule {
@@ -66,7 +94,7 @@ export interface RouteRule {
   prerender?: boolean;
 }
 
-export interface ResolvedConfig extends Required<Omit<UbeanConfig, 'build' | 'dev'>> {
+export interface ResolvedConfig extends Required<Omit<UbeanConfig, 'build' | 'dev' | 'prerender'>> {
   rootDir: string;
   srcDir: string;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
@@ -76,4 +104,5 @@ export interface ResolvedConfig extends Required<Omit<UbeanConfig, 'build' | 'de
   imports: Required<NonNullable<UbeanConfig['imports']>>;
   components: Required<NonNullable<UbeanConfig['components']>>;
   i18n: Required<NonNullable<UbeanConfig['i18n']>>;
+  prerender: Required<NonNullable<UbeanConfig['prerender']>>;
 }

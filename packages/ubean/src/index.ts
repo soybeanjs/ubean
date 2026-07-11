@@ -189,6 +189,17 @@ export {
   extractDefineValidator
 } from './core/routing';
 export { generateTypes } from './core/codegen';
+export {
+  prerender,
+  collectPrerenderRoutes,
+  extractLinks,
+  shouldIgnoreRoute,
+  routeToFilePath,
+  writePrerenderedFile,
+  resolvePrerenderConfig,
+  definePrerenderRoutes,
+  generatePrerenderManifest
+} from './core/prerender';
 export { definePreset, resolvePreset, registerPreset } from './core/preset/_utils/preset';
 export { registerBuiltinPresets, resolvePresetByName, standardPreset, nodePreset, cloudflarePreset, generateWranglerConfig, serializeWranglerToml, detectPreset, resolvePresetWithDetection, listDetectablePresets } from './core/preset';
 export { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from './runtime/route-rules';
@@ -252,7 +263,7 @@ export {
   createMemoryRateLimitStore
 } from './runtime/rate-limit';
 
-export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
+export type { UbeanConfig, ResolvedConfig, RouteRule, PrerenderConfig, PrerenderRoute, PrerenderResult } from './core/config/types';
 export type {
   UbeanContext,
   UbeanHandler,

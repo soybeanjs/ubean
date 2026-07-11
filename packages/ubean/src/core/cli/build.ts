@@ -5,6 +5,7 @@ import { generateTypes } from '../codegen';
 import { logger } from '../log';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { scanProject } from '../routing/scan';
+import { prerender } from '../prerender';
 
 export const buildCommand: CommandDef = {
   meta: {
@@ -25,6 +26,10 @@ export const buildCommand: CommandDef = {
       type: 'boolean',
       description: 'Generate sourcemaps',
       default: false
+    },
+    prerender: {
+      type: 'boolean',
+      description: 'Pre-render static pages (SSG)'
     },
     cwd: {
       type: 'string',
@@ -58,10 +63,24 @@ export const buildCommand: CommandDef = {
     logger.info('Generating types...');
     await generateTypes(result, { cwd, buildDir: config.build.outputDir });
 
+    const shouldPrerender = args.prerender ?? config.prerender.enabled;
+    if (shouldPrerender) {
+      logger.info('Prerendering static pages...');
+      await prerender({
+        cwd,
+        outputDir: config.build.outputDir,
+        pages: result.pages,
+        routeRules: config.routeRules,
+        prerender: config.prerender
+      });
+    }
+
     logger.success(`Build preparation complete for preset "${preset.name}".`);
-    logger.info(
-      `Note: Full production bundling (Vite SSR build + preset entry generation) ` +
-        `will be activated when Vue SSR renderer is complete in Phase 4.`
-    );
+    if (!shouldPrerender) {
+      logger.info(
+        `Note: Full production bundling (Vite SSR build + preset entry generation) ` +
+          `will be activated when Vue SSR renderer is complete in Phase 4.`
+      );
+    }
   }
 };

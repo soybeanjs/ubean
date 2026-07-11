@@ -107,8 +107,11 @@ const BUILTIN_COMPOSABLES: AutoImport[] = [
   { name: 'sendMessage', from: 'ubean' },
   { name: 'sendMessages', from: 'ubean' },
   { name: 'getQueueStats', from: 'ubean' },
+  { name: 'useDatabase', from: 'ubean' },
+  { name: 'defineDatabase', from: 'ubean' },
   { name: 'useKV', from: 'ubean' },
-  { name: 'createKV', from: 'ubean' }
+  { name: 'createKV', from: 'ubean' },
+  { name: 'useStorage', from: 'ubean' }
 ];
 
 function toPosixPath(p: string): string {

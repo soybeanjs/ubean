@@ -313,6 +313,18 @@ export {
   defineRateLimit,
   createMemoryRateLimitStore
 } from './runtime/rate-limit';
+export {
+  defineDatabase,
+  useDatabase,
+  closeDatabases,
+  getDatabaseHooks,
+  registerDb0Create,
+  migrateDatabase,
+  runMigrations,
+  rawSql,
+  sqlRaw,
+  raw as sqlRawAlias
+} from './runtime/database';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule, PrerenderConfig, PrerenderRoute, PrerenderResult } from './core/config/types';
 export type {
@@ -348,3 +360,12 @@ export type { SSEMessage, SSEConnection, SSEHandler, SSEOptions } from './runtim
 export type { InternalRequestOptions, InternalRequestResult } from './runtime/internal-fetch';
 export type { CorsOptions } from './runtime/cors';
 export type { RateLimitOptions, RateLimitInfo, RateLimitStore, RateLimitStoreEntry } from './runtime/rate-limit';
+export type {
+  Database,
+  DatabaseHooks,
+  DatabaseOptions,
+  DatabaseConnector,
+  DatabaseConnectorInstance,
+  DrizzleConfig
+} from './runtime/database';
+export type { Migration } from './runtime/database';

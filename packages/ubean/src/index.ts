@@ -40,6 +40,14 @@ export {
 export { defineScheduled, getScheduledTasks, runScheduledTask, clearScheduledTasks } from './runtime/cron';
 export type { CronTaskMeta, CronContext, ScheduledTask, CronSchedule } from './runtime/cron';
 export {
+  createMemoryCronScheduler,
+  startCronScheduler,
+  parseCron,
+  validateCron,
+  resetCronRunCounts
+} from './runtime/cron-scheduler';
+export type { CronScheduler, SchedulerOptions } from './runtime/cron-scheduler';
+export {
   createRequestIdMiddleware,
   getRequestId,
   generateRequestId,
@@ -200,6 +208,12 @@ export {
   definePrerenderRoutes,
   generatePrerenderManifest
 } from './core/prerender';
+export {
+  generateAutoImports,
+  getBuiltinComposables,
+  generateImportsTransform
+} from './core/auto-imports';
+export type { AutoImport, AutoImportOptions, AutoImportResult, ComponentInfo } from './core/auto-imports';
 export { definePreset, resolvePreset, registerPreset } from './core/preset/_utils/preset';
 export { registerBuiltinPresets, resolvePresetByName, standardPreset, nodePreset, cloudflarePreset, generateWranglerConfig, serializeWranglerToml, detectPreset, resolvePresetWithDetection, listDetectablePresets } from './core/preset';
 export { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from './runtime/route-rules';

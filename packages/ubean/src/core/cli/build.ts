@@ -61,7 +61,16 @@ export const buildCommand: CommandDef = {
     );
 
     logger.info('Generating types...');
-    await generateTypes(result, { cwd, buildDir: config.build.outputDir });
+    await generateTypes(result, {
+      cwd,
+      srcDir: config.srcDir,
+      buildDir: config.build.outputDir,
+      dirs: config.dir,
+      imports: config.imports,
+      components: config.components,
+      composablesDirs: config.imports.dirs,
+      componentsDirs: config.components.dirs
+    });
 
     const shouldPrerender = args.prerender ?? config.prerender.enabled;
     if (shouldPrerender) {

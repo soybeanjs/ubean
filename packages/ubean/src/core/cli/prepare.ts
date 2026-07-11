@@ -46,7 +46,16 @@ export const prepareCommand: CommandDef = {
     );
 
     logger.info('Generating type definitions...');
-    const codegenResult = await generateTypes(result, { cwd, buildDir });
+    const codegenResult = await generateTypes(result, {
+      cwd,
+      srcDir: config.srcDir,
+      buildDir,
+      dirs: config.dir,
+      imports: config.imports,
+      components: config.components,
+      composablesDirs: config.imports.dirs,
+      componentsDirs: config.components.dirs
+    });
 
     for (const file of codegenResult.generated) {
       logger.success(`Generated ${file.replace(`${cwd}/`, '')}`);

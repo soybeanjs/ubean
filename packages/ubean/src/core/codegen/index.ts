@@ -1,20 +1,24 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'pathe';
 import type { ScanResult } from '../routing/types';
+import { generateAutoImports, type AutoImportOptions } from '../auto-imports';
 
-export interface CodegenOptions {
+export interface CodegenOptions extends Omit<AutoImportOptions, 'cwd' | 'srcDir' | 'buildDir'> {
   cwd: string;
+  srcDir: string;
   buildDir: string;
 }
 
 export interface CodegenResult {
   routeTypesPath: string;
   pageTypesPath: string;
+  autoImportsDtsPath?: string;
+  componentsDtsPath?: string;
   generated: string[];
 }
 
 export async function generateTypes(result: ScanResult, options: CodegenOptions): Promise<CodegenResult> {
-  const { cwd, buildDir } = options;
+  const { cwd, srcDir, buildDir, ...autoImportOptions } = options;
   const outDir = join(cwd, buildDir);
   await mkdir(outDir, { recursive: true });
 
@@ -30,7 +34,21 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
   await writeFile(pageTypesPath, pageTypes, 'utf-8');
   generated.push(pageTypesPath);
 
-  return { routeTypesPath, pageTypesPath, generated };
+  let autoImportsDtsPath: string | undefined;
+  let componentsDtsPath: string | undefined;
+
+  const autoImportsResult = await generateAutoImports(result, {
+    cwd,
+    srcDir,
+    buildDir,
+    ...autoImportOptions
+  });
+
+  autoImportsDtsPath = autoImportsResult.autoImportsDtsPath;
+  componentsDtsPath = autoImportsResult.componentsDtsPath;
+  generated.push(autoImportsDtsPath, componentsDtsPath);
+
+  return { routeTypesPath, pageTypesPath, autoImportsDtsPath, componentsDtsPath, generated };
 }
 
 function generateRouteTypes(result: ScanResult): string {

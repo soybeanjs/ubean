@@ -145,7 +145,16 @@ async function buildApp(cwd: string, config: any) {
   );
 
   logger.info('Generating type definitions...');
-  await generateTypes(result, { cwd, buildDir: '.ubean' });
+  await generateTypes(result, {
+    cwd,
+    srcDir: config.srcDir,
+    buildDir: '.ubean',
+    dirs: config.dir,
+    imports: config.imports,
+    components: config.components,
+    composablesDirs: config.imports.dirs,
+    componentsDirs: config.components.dirs
+  });
 
   const app = createUbeanApp({
     routes: result.apiRoutes,

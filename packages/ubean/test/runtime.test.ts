@@ -115,17 +115,27 @@ describe('codegen', () => {
           }
         ],
         middlewares: [],
-        plugins: []
+        plugins: [],
+        crons: [],
+        queues: [],
+        locales: [],
+        defaultLocale: 'en',
+        appEntry: { shared: { exists: false }, server: { exists: false }, client: { exists: false } }
       },
       {
         cwd: tmpDir,
-        buildDir: '.ubean'
+        srcDir: tmpDir,
+        buildDir: '.ubean',
+        imports: { autoImport: false },
+        components: { autoImport: false }
       }
     );
 
-    expect(result.generated).toHaveLength(2);
+    expect(result.generated).toHaveLength(4);
     expect(existsSync(result.routeTypesPath)).toBe(true);
     expect(existsSync(result.pageTypesPath)).toBe(true);
+    expect(existsSync(result.autoImportsDtsPath!)).toBe(true);
+    expect(existsSync(result.componentsDtsPath!)).toBe(true);
 
     const routeTypes = readFileSync(result.routeTypesPath, 'utf-8');
     expect(routeTypes).toContain('ApiRoutePath');
@@ -147,15 +157,23 @@ describe('codegen', () => {
         pages: [],
         layouts: [],
         middlewares: [],
-        plugins: []
+        plugins: [],
+        crons: [],
+        queues: [],
+        locales: [],
+        defaultLocale: 'en',
+        appEntry: { shared: { exists: false }, server: { exists: false }, client: { exists: false } }
       },
       {
         cwd: tmpDir,
-        buildDir: '.ubean-empty'
+        srcDir: tmpDir,
+        buildDir: '.ubean-empty',
+        imports: { autoImport: false },
+        components: { autoImport: false }
       }
     );
 
-    expect(result.generated).toHaveLength(2);
+    expect(result.generated).toHaveLength(4);
     const pageTypes = readFileSync(result.pageTypesPath, 'utf-8');
     expect(pageTypes).toContain('type RouteName = string');
   });

@@ -335,6 +335,8 @@
 | ----- | --------------------------- | ---- | ------ | --------------------------------- | -------------------------------------------------------- |
 | P5-01 | capability 矩阵与构建期诊断 | ✅   | P0     | `src/core/preset/capabilities.ts` | ✅ 19项能力矩阵定义；diagnoseCapabilities()诊断函数，errors/warnings分级；NODE_CAPABILITIES/STANDARD_CAPABILITIES/WORKER_CAPABILITIES预置；Preset新增capabilities字段；构建期诊断集成待完成 |
 | P5-02 | Cloudflare Workers preset   | ✅   | P1     | `src/core/preset/cloudflare/`     | ✅ cloudflarePreset定义（capability/entry/build/runtime/commands）、generateWranglerConfig配置生成（KV/D1/R2/Queues/vars/assets/observability）、serializeWranglerToml TOML序列化；wrangler.toml实际部署和Pages适配待验证 |
+| P5-03 | Dev 模式 worker runner 集成 | ⬜   | P1     | `src/core/dev/`                   | env-runner、热重载与能力诊断                             |
+| P5-04 | preset 自动检测             | ✅   | P1     | `src/core/preset/_resolve.ts`     | ✅ detectPreset()按优先级检测：explicit显式指定>config-file(wrangler.toml/wrangler.json/wrangler依赖/@cloudflare/workers-types)>environment(CF_WORKERS/WRANGLER env、process.versions.node)>default(standard)；resolvePresetWithDetection/listDetectablePresets辅助函数；检测来源分四档，配置优先不改变显式capability |
 | P5-05 | 平台配置文件生成            | ✅   | P1     | `src/core/preset/cloudflare/`     | ✅ wrangler.toml配置生成和TOML序列化已集成在cloudflare preset中 |
 | P5-06 | 后续平台提案                | ⬜   | P3     | `docs/adr/presets/`               | Bun、Deno、Vercel、Netlify 等先完成能力矩阵和 ADR 再实现 |
 

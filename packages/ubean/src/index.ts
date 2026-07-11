@@ -134,7 +134,7 @@ export {
 } from './core/routing';
 export { generateTypes } from './core/codegen';
 export { definePreset, resolvePreset, registerPreset } from './core/preset/_utils/preset';
-export { registerBuiltinPresets, resolvePresetByName, standardPreset, nodePreset, cloudflarePreset, generateWranglerConfig, serializeWranglerToml } from './core/preset';
+export { registerBuiltinPresets, resolvePresetByName, standardPreset, nodePreset, cloudflarePreset, generateWranglerConfig, serializeWranglerToml, detectPreset, resolvePresetWithDetection, listDetectablePresets } from './core/preset';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
 export type {
@@ -162,4 +162,4 @@ export type {
   RouteMeta
 } from './core/routing/types';
 export type { Preset } from './core/preset/_utils/preset';
-export type { WranglerConfig } from './core/preset';
+export type { WranglerConfig, PresetDetectionHints, PresetDetectionResult } from './core/preset';

@@ -1,10 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   cloudflarePreset,
   generateWranglerConfig,
   serializeWranglerToml,
   resolvePresetByName,
-  registerBuiltinPresets
+  registerBuiltinPresets,
+  detectPreset,
+  resolvePresetWithDetection,
+  listDetectablePresets,
+  nodePreset,
+  standardPreset
 } from '../src/core/preset';
 
 describe('cloudflare preset', () => {
@@ -251,5 +259,170 @@ describe('serializeWranglerToml', () => {
     const config = generateWranglerConfig({ name: 'nl-test' });
     const toml = serializeWranglerToml(config);
     expect(toml.endsWith('\n')).toBe(true);
+  });
+});
+
+describe('detectPreset', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'ubean-preset-detect-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('respects explicit preset override', () => {
+    const result = detectPreset({
+      explicitPreset: 'node',
+      environment: {},
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('node');
+    expect(result.source).toBe('explicit');
+    expect(result.reason).toContain('explicitly');
+  });
+
+  it('respects explicit cloudflare preset', () => {
+    const result = detectPreset({
+      explicitPreset: 'cloudflare',
+      environment: {},
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('cloudflare');
+    expect(result.source).toBe('explicit');
+  });
+
+  it('detects cloudflare by wrangler.toml file', async () => {
+    await writeFile(join(tmpDir, 'wrangler.toml'), 'name = "test"');
+    const result = detectPreset({
+      cwd: tmpDir,
+      environment: {},
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('cloudflare');
+    expect(result.source).toBe('config-file');
+  });
+
+  it('detects cloudflare by wrangler.json file', async () => {
+    await writeFile(join(tmpDir, 'wrangler.json'), JSON.stringify({ name: 'test' }));
+    const result = detectPreset({
+      cwd: tmpDir,
+      environment: {},
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('cloudflare');
+    expect(result.source).toBe('config-file');
+  });
+
+  it('detects cloudflare by wrangler dependency in package.json', async () => {
+    await writeFile(join(tmpDir, 'package.json'), JSON.stringify({
+      name: 'cf-app',
+      devDependencies: { wrangler: '^3.0.0' }
+    }));
+    const result = detectPreset({
+      cwd: tmpDir,
+      environment: {},
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('cloudflare');
+    expect(result.source).toBe('config-file');
+  });
+
+  it('detects cloudflare by @cloudflare/workers-types dependency', async () => {
+    await writeFile(join(tmpDir, 'package.json'), JSON.stringify({
+      name: 'cf-app',
+      devDependencies: { '@cloudflare/workers-types': '^4.0.0' }
+    }));
+    const result = detectPreset({
+      cwd: tmpDir,
+      environment: {},
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('cloudflare');
+  });
+
+  it('detects cloudflare by CF_WORKERS env var', () => {
+    const result = detectPreset({
+      environment: { CF_WORKERS: '1' },
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('cloudflare');
+    expect(result.source).toBe('environment');
+  });
+
+  it('detects cloudflare by WRANGLER env var', () => {
+    const result = detectPreset({
+      environment: { WRANGLER: '1' },
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('cloudflare');
+  });
+
+  it('detects node by process.versions.node in globalThis', () => {
+    const result = detectPreset({
+      environment: {},
+      globalThis: {
+        process: { versions: { node: '20.0.0' } }
+      }
+    });
+    expect(result.preset.name).toBe('node');
+    expect(result.source).toBe('environment');
+  });
+
+  it('falls back to standard preset when nothing detected', () => {
+    const result = detectPreset({
+      environment: {},
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('standard');
+    expect(result.source).toBe('default');
+  });
+
+  it('explicit preset takes priority over config files', async () => {
+    await writeFile(join(tmpDir, 'wrangler.toml'), 'name = "test"');
+    const result = detectPreset({
+      cwd: tmpDir,
+      explicitPreset: 'node',
+      environment: {},
+      globalThis: {}
+    });
+    expect(result.preset.name).toBe('node');
+    expect(result.source).toBe('explicit');
+  });
+
+  it('config file takes priority over environment detection', async () => {
+    await writeFile(join(tmpDir, 'wrangler.toml'), 'name = "test"');
+    const result = detectPreset({
+      cwd: tmpDir,
+      environment: {},
+      globalThis: {
+        process: { versions: { node: '20.0.0' } }
+      }
+    });
+    expect(result.preset.name).toBe('cloudflare');
+    expect(result.source).toBe('config-file');
+  });
+});
+
+describe('resolvePresetWithDetection', () => {
+  it('returns detection result', () => {
+    const result = resolvePresetWithDetection('standard');
+    expect(result.preset.name).toBe('standard');
+    expect(result.source).toBe('explicit');
+  });
+
+  it('works without explicit preset', () => {
+    const result = resolvePresetWithDetection(undefined);
+    expect(result.source === 'default' || result.source === 'environment').toBe(true);
+  });
+});
+
+describe('listDetectablePresets', () => {
+  it('returns all detectable presets', () => {
+    const presets = listDetectablePresets();
+    const names = presets.map(p => p.name).sort();
+    expect(names).toEqual(['cloudflare', 'node', 'standard']);
   });
 });

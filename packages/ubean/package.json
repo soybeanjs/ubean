@@ -53,6 +53,10 @@
     "./vue-runtime/app": {
       "types": "./dist/runtime/vue/app.d.ts",
       "import": "./dist/runtime/vue/app.mjs"
+    },
+    "./vue-runtime/define-app": {
+      "types": "./dist/runtime/vue/define-app.d.ts",
+      "import": "./dist/runtime/vue/define-app.mjs"
     }
   },
   "scripts": {

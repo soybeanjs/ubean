@@ -26,7 +26,10 @@ export {
   getInitialPageData,
   createHeadManager,
   createLinkHandler,
-  extractPageData
+  extractPageData,
+  defineApp,
+  applyAppConfig,
+  definePage
 } from './runtime/vue';
 export type {
   UbeanVueRouter,
@@ -35,7 +38,9 @@ export type {
   UbeanVueContext,
   LinkProps,
   SubmitOptions,
-  SubmitResult
+  SubmitResult,
+  DefineAppOptions,
+  ResolvedAppConfig
 } from './runtime/vue';
 export { ubeanVuePlugin } from './core/vue/plugin';
 export { logger } from './core/log';
@@ -74,6 +79,8 @@ export type {
   ScannedPageRoute,
   ScannedMiddleware,
   ScannedLayout,
+  ScannedAppEntry,
+  AppEntry,
   HttpMethod,
   RouteMeta
 } from './core/routing/types';

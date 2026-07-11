@@ -717,6 +717,8 @@ describe('vue virtual modules', () => {
     expect(code).toContain('createUbeanSSRApp');
     expect(code).toContain('ubean/vue-runtime/app');
     expect(code).toContain('#ubean-pages');
+    expect(code).toContain('defineApp');
+    expect(code).toContain('createApp()');
   });
 
   it('virtual modules register and load through registry', async () => {

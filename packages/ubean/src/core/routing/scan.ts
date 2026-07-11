@@ -11,7 +11,9 @@ import type {
   ScannedMiddleware,
   ScannedPageRoute,
   ScannedLayout,
-  ScannedPlugin
+  ScannedPlugin,
+  ScannedAppEntry,
+  AppEntry
 } from './types';
 
 const DEFAULT_DIRS = {
@@ -40,15 +42,16 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
 
   const srcDir = isAbsolute(options.srcDir) ? options.srcDir : join(options.cwd, options.srcDir);
 
-  const [apiRoutes, middlewares, pages, layouts, plugins] = await Promise.all([
+  const [apiRoutes, middlewares, pages, layouts, plugins, appEntry] = await Promise.all([
     scanApiRoutes(srcDir, dirs.routes, ignore),
     scanMiddlewares(srcDir, dirs.middleware, ignore),
     scanPages(srcDir, dirs.pages, ignore),
     scanLayouts(srcDir, dirs.layouts, ignore),
-    scanPlugins(srcDir, dirs.plugins, ignore)
+    scanPlugins(srcDir, dirs.plugins, ignore),
+    scanAppEntry(srcDir)
   ]);
 
-  return { apiRoutes, middlewares, pages, layouts, plugins };
+  return { apiRoutes, middlewares, pages, layouts, plugins, appEntry };
 }
 
 async function scanApiRoutes(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedApiRoute[]> {
@@ -224,6 +227,44 @@ async function scanPlugins(srcDir: string, dirName: string, ignore: string[]): P
       order
     };
   });
+}
+
+const APP_EXTENSIONS = ['ts', 'js', 'mjs', 'mts'];
+
+async function scanAppEntry(srcDir: string): Promise<ScannedAppEntry> {
+  const result: ScannedAppEntry = {
+    shared: { exists: false },
+    server: { exists: false },
+    client: { exists: false }
+  };
+
+  const findEntry = async (baseName: string): Promise<AppEntry> => {
+    for (const ext of APP_EXTENSIONS) {
+      const fullPath = join(srcDir, `${baseName}.${ext}`);
+      const exists = await fileExists(fullPath);
+      if (exists) {
+        return { exists: true, fullPath, relativePath: `${baseName}.${ext}` };
+      }
+    }
+    return { exists: false };
+  };
+
+  const [shared, server, client] = await Promise.all([
+    findEntry('app'),
+    findEntry('app.server'),
+    findEntry('app.client')
+  ]);
+
+  result.shared = shared;
+  result.server = server;
+  result.client = client;
+
+  return result;
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  const { existsSync } = await import('node:fs');
+  return existsSync(path);
 }
 
 function routeToName(route: string): string {

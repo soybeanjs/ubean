@@ -10,6 +10,7 @@ import {
 } from '../virtual/modules';
 import { scanProject } from '../../routing/scan';
 import { useVirtualRegistry } from '../virtual/registry';
+import { transformMacros } from './macros';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config'];
 const VIRTUAL_PREFIX = '\0ubean:';
@@ -46,6 +47,14 @@ export function ubeanPlugin(options: UbeanPluginOptions): Plugin {
         }
       }
       return undefined;
+    },
+
+    transform(code, id) {
+      const result = transformMacros(code, id);
+      if (result !== null && result !== code) {
+        return { code: result, map: null };
+      }
+      return null;
     },
 
     configureServer(server) {

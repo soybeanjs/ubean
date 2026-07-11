@@ -66,6 +66,18 @@ export interface ScannedPlugin extends ScannedFile {
   order: number;
 }
 
+export interface AppEntry {
+  exists: boolean;
+  fullPath?: string;
+  relativePath?: string;
+}
+
+export interface ScannedAppEntry {
+  shared: AppEntry;
+  server: AppEntry;
+  client: AppEntry;
+}
+
 export interface ScanOptions {
   cwd: string;
   srcDir: string;
@@ -85,6 +97,7 @@ export interface ScanResult {
   pages: ScannedPageRoute[];
   layouts: ScannedLayout[];
   plugins: ScannedPlugin[];
+  appEntry: ScannedAppEntry;
 }
 
 export const GLOB_SCAN_PATTERN = '**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}';

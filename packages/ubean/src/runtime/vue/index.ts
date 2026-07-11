@@ -5,3 +5,6 @@ export { createLinkHandler, extractPageData } from './composables';
 export type { UbeanVueContext, LinkProps } from './composables';
 export { createUbeanApp, createUbeanSSRApp, usePage, useRouter, useHead, Link, Head } from './app';
 export type { UbeanAppOptions, UbeanAppInstance } from './app';
+export { defineApp, applyAppConfig, createDefaultAppConfig } from './define-app';
+export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
+export { definePage } from './page-macro';

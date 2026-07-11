@@ -393,7 +393,7 @@
 | P8-02 | DevTools 单元测试           | ⬜   | P1     | `test/unit/devtools-*.test.ts`      | rpc/hooks/crud/ai 权限边界                        |
 | P8-03 | 集成与浏览器端到端测试      | ⬜   | P0     | `test/integration/`, `test/e2e/`    | build/dev/preview、SSR hydration、导航与 action   |
 | P8-04 | 正式/实验性 preset 测试矩阵 | ⬜   | P1     | `test/integration/preset-*.test.ts` | Node 发布认证；Cloudflare 部署 smoke test         |
-| P8-05 | CI/CD 配置                  | ⬜   | P1     | `.github/workflows/`                | 自 Phase 1 起运行；含 pack 安装与 Node smoke test |
+| P8-05 | CI/CD 配置                  | ✅   | P1     | `.github/workflows/`                | ✅ci.yml工作流：push/PR触发、Node 20.x/22.x矩阵测试、pnpm 11缓存、pnpm install --frozen-lockfile、typecheck、lint(不带--fix)、test、build全流程验证；新增lint:fix脚本分离本地修复与CI检查 |
 | P8-06 | npm scripts 验证            | ✅   | P1     | <br />                              | ✅dev/build/preview/prepare/test/typecheck/lint全部验证通过；修复32个ESLint错误(no-unused-vars/no-shadow/no-shadow-restricted-names)；lint 0 errors 0 warnings；typecheck通过；build成功输出63个文件(910.25 kB)；557个测试全部通过 |
 
 ---

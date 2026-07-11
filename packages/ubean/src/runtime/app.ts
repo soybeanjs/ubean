@@ -13,6 +13,8 @@ import { serveStatic } from './static';
 import { createRequestIdMiddleware } from './observability';
 import { createRouteRulesMiddleware } from './route-rules';
 import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from './cache';
+import { createWebSocketMiddleware } from './websocket';
+import { setInternalFetcher } from './internal-fetch';
 
 export interface UbeanRuntimeHooks {
   'app:created': (app: Hono<UbeanEnv>) => void | Promise<void>;
@@ -92,6 +94,8 @@ export class UbeanApp {
       }
     }
 
+    this.hono.use('*', createWebSocketMiddleware());
+
     this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
       c.set('route', { meta: { public: true } as RouteMeta, path: c.req.path, method: c.req.method });
       await this.hooks.callHook('request:start', c);
@@ -150,6 +154,8 @@ export class UbeanApp {
     }
 
     await this.hooks.callHook('app:after:register', this.hono);
+
+    setInternalFetcher((req: Request) => this.hono.fetch(req));
 
     for (const plugin of this.plugins) {
       if (plugin.ready) {

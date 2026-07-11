@@ -224,8 +224,16 @@ export {
   broadcastSSE,
   closeAllSSE,
   sseHeaders,
-  clearSSEState
+  clearSSEState,
+  formatSSEMessage
 } from './runtime/sse';
+export {
+  callInternal,
+  createRequestSender,
+  setInternalFetcher,
+  getInternalFetcher,
+  clearInternalFetcher
+} from './runtime/internal-fetch';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
 export type {
@@ -258,3 +266,4 @@ export type { CacheEntry, CacheStore, CacheRule } from './runtime/cache';
 export type { StorageDriver, UbeanStorage, KVNamespace, KVOptions } from './runtime/storage';
 export type { Peer, WebSocketRoom, WebSocketHooks, WebSocketDefinition, UpgradeResult } from './runtime/websocket';
 export type { SSEMessage, SSEConnection, SSEHandler, SSEOptions } from './runtime/sse';
+export type { InternalRequestOptions, InternalRequestResult } from './runtime/internal-fetch';

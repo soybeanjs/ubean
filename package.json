@@ -6,6 +6,7 @@
     "build": "pnpm --filter ubean build",
     "commit": "soy git-commit",
     "dev": "pnpm --filter ubean dev",
+    "fmt": "vp fmt",
     "lint": "vp lint --fix && pnpm lint:vue",
     "lint:vue": "eslint . --ext .vue --fix",
     "prepare": "vp config --no-hooks --no-agent",

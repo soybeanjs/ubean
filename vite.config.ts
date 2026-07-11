@@ -6,10 +6,7 @@ export default defineConfig(() => {
     staged: {
       '*': 'vp check --fix'
     },
-    fmt: {
-      ignorePatterns: ['app/typings/components.d.ts', 'app/typings/typed-router.d.ts', 'app/router/_generated'],
-      ...fmt
-    },
+    fmt,
     lint,
     resolve: {
       tsconfigPaths: true

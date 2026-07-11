@@ -1497,4 +1497,70 @@ import { Link } from 'ubean/pages';
 
 类型由自动生成的 `.ubean/pages.d.ts` 中的 `RouteName` 联合类型驱动，CLI/DevTools 添加/删除路由时自动更新。
 
+## 4.23 Icon 图标扩展（官方可选）
+
+参考 Nuxt Icon，ubean 通过独立的 `@ubean/icon` 提供统一、SSR 友好且默认不依赖公网的图标系统。它基于 Iconify 数据格式，但不将任意图标集或 Iconify API 作为核心运行时依赖。
+
+#### 基础 API
+
+安装 `@ubean/icon` 后，Vue 应用可自动使用 `<Icon>` 组件：
+
+```vue
+<template>
+  <Icon name="lucide:search" size="20" aria-label="搜索" />
+  <Icon name="brand:logo" class="brand-logo" />
+  <Icon :name="isDark ? 'lucide:moon' : 'lucide:sun'" />
+</template>
+```
+
+- 默认输出可继承 `currentColor` 的 SVG；`mode: 'css'` 为单色、静态图标提供 CSS mask 输出，`mode: 'svg'` 用于多色或需要 SVG 属性的图标。
+- 默认尺寸为 `1em`，完整透传原生 SVG、ARIA 与 class/style 属性；装饰性图标默认 `aria-hidden="true"`，传入 `aria-label` 或 `title` 时自动输出可访问名称。
+- `name` 使用 `collection:icon` 形式；支持显式 alias，禁止将任意用户输入直接拼接为远程图标 URL。
+- 动态名称不会被静态扫描；必须在 `clientBundle.icons` 显式列出，避免生产环境或测试环境图标缺失。
+
+#### 配置与本地数据集
+
+图标集按需安装，避免全量 `@iconify/json` 显著增加安装、构建和 server bundle 体积：
+
+```bash
+pnpm add -D @iconify-json/lucide @iconify-json/logos
+```
+
+```typescript
+// ubean.config.ts
+export default defineConfig({
+  icon: {
+    mode: 'svg',
+    aliases: {
+      search: 'lucide:search',
+      github: 'logos:github-icon'
+    },
+    customCollections: [{ prefix: 'brand', dir: './assets/icons', recursive: true }],
+    clientBundle: {
+      scan: true,
+      icons: ['lucide:search'],
+      sizeLimitKb: 256
+    },
+    serverBundle: 'auto'
+  }
+});
+```
+
+- `customCollections` 将本地 SVG 转换为 Iconify collection；构建期必须清理 SVG 中的 script、事件属性、外部引用和不安全 URL。
+- 静态扫描只收集 `<Icon name="...">` 与可静态求值的 name；扫描结果生成虚拟模块和 `.ubean/icons.d.ts`，供 client bundle、SSR 与 DevTools 共享。
+- 默认对超出 `clientBundle.sizeLimitKb` 的未压缩 bundle 失败构建，诊断应列出 collection、icon 数量和可改为按需服务的名称。
+
+#### 提供者与平台语义
+
+图标解析的优先级固定为：client bundle -> 本地 collection/server bundle -> 显式配置的远程 provider。生产默认不回退 Iconify 公共 API；开发期远程回退必须显式开启并在终端给出提示。
+
+| 场景                    | 默认策略                                                                          | 不满足条件时的行为                                                  |
+| ----------------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Node SSR                | 本地安装的 collection 按 collection 动态加载，`/_ubean/icon/:collection` 按需服务 | 缺失 collection 返回开发诊断；生产构建失败或使用已配置远程 provider |
+| 静态 SSG / `ssr: false` | 将扫描和显式声明的图标写入 client bundle                                          | 对未声明的动态 icon 进行构建诊断；不得依赖本地 server endpoint      |
+| Edge / serverless       | capability matrix 决定内联、远程 collection CDN 或仅 client bundle                | 不支持动态 JSON import 时必须选定可用策略，禁止静默请求公共 API     |
+| Vitest / 浏览器组件测试 | `provider: 'none'` + client bundle                                                | 测试不得访问网络；漏列的动态名称应使测试配置或断言失败              |
+
+`@ubean/icon` 应暴露 Vite plugin，以便纯 Vite Vue 项目也可复用静态扫描与预打包逻辑；ubean 框架集成仅负责自动注册组件、虚拟模块、SSR endpoint 及 preset capability 诊断。
+
 ---

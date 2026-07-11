@@ -159,7 +159,14 @@ type InferLoaderData<T> = T extends () => Promise<{ data: infer D }> ? D : never
 
 覆盖率用于发现盲区，不作为替代契约测试的发布标准。核心运行时与公开 API 默认纳入统计；仅生成代码、平台不可执行的 shim 和经批准的适配器分支可排除，并在配置旁说明原因。
 
-### 6.4 测试配置
+### 6.4 当前验证基线（2026-07-11）
+
+- `pnpm test`：3 个测试文件、84 个测试通过。
+- `pnpm typecheck`：通过。TypeScript 7 与 `vue-tsc` 的兼容层通过 workspace override `typescript: npm:typescript-native-bridge@0.0.0` 提供；其原生依赖 `koffi` 必须在 `pnpm-workspace.yaml` 的 `allowBuilds` 中显式允许。
+- `pnpm build`：通过。
+- 路线图中标为 ✅ 的任务必须有对应源码、公开调用路径和与风险相称的验证；命令骨架、正则提取或未接通的运行时路径不得作为完整交付标记。
+
+### 6.5 测试配置
 
 ```typescript
 // vitest.config.ts
@@ -188,7 +195,7 @@ export default defineConfig({
 });
 ```
 
-### 6.5 测试示例
+### 6.6 测试示例
 
 ```typescript
 // test/unit/routing.test.ts

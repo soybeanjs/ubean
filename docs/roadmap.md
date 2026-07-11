@@ -4,14 +4,14 @@
 
 阶段按模块组织，但发布决策以纵向里程碑为准；后续能力不得跳过前一里程碑的验收门槛。
 
-| 里程碑            | 可交付能力                                                                | 必须通过的验收                                         |
-| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------ |
-| M0：路由契约      | 配置加载、路由 IR、文件扫描、错误模型与 Node fixture                      | 路径规范化、冲突检测、`404/405/OPTIONS` 单元与集成测试 |
-| M1：API beta      | Hono、命名导出 API、验证、OpenAPI、Fetch client、Node `dev/build/preview` | 真实 Node fixture、类型测试、`pnpm pack` 安装测试      |
-| M2：Vue SSR beta  | Pages、单层 layout、loader、hydrate、页面错误边界                         | 浏览器 SSR hydration、导航与 action 端到端测试         |
-| M3：Node v0.1     | 静态资源、基础 route rules、可观测性与发布文档                            | CI 全绿、Node 部署 smoke test、公开 API 审核           |
-| M4：第二个 preset | 一个实验性 preset 升级为正式支持                                          | 能力矩阵、目标平台 smoke test 与降级诊断               |
-| M5：生态扩展      | DevTools、数据库、队列、WebSocket、i18n 等可选能力                        | 各能力独立 fixture、权限审计与稳定性评估               |
+| 里程碑            | 可交付能力                                                                | 必须通过的验收                                          |
+| ----------------- | ------------------------------------------------------------------------- | ------------------------------------------------------- |
+| M0：路由契约      | 配置加载、路由 IR、文件扫描、错误模型与 Node fixture                      | 路径规范化、冲突检测、`404/405/OPTIONS` 单元与集成测试  |
+| M1：API beta      | Hono、命名导出 API、验证、OpenAPI、Fetch client、Node `dev/build/preview` | 真实 Node fixture、类型测试、`pnpm pack` 安装测试       |
+| M2：Vue SSR beta  | Pages、单层 layout、loader/action 数据协议、hydrate、页面错误边界         | SSR hydration、导航复用、失效与流式 fallback 浏览器测试 |
+| M3：Node v0.1     | 静态资源、基础 route rules、可观测性、SEO metadata 与发布文档             | CI 全绿、Node 部署 smoke test、公开 API 审核            |
+| M4：第二个 preset | 一个实验性 preset 升级为正式支持                                          | 能力矩阵、目标平台 smoke test 与降级诊断                |
+| M5：生态扩展      | DevTools、数据库、队列、WebSocket、i18n 等可选能力                        | 各能力独立 fixture、权限审计与稳定性评估                |
 
 ## 9.2 模块实施阶段
 
@@ -247,59 +247,61 @@
 
 ### Phase 1: 项目骨架 (Week 1-2)
 
-| ID    | 任务                             | 状态 | 优先级 | 产出文件                              | 备注                                    |
-| ----- | -------------------------------- | ---- | ------ | ------------------------------------- | --------------------------------------- |
-| P1-01 | monorepo 初始化 (pnpm + catalog) | ✅   | P0     | `package.json`, `pnpm-workspace.yaml` | 使用 pnpm\@11 catalog 管理版本          |
-| P1-02 | 项目目录结构创建                 | ✅   | P0     | `packages/ubean/src/` 各子目录        | 按 §3 目录结构创建                      |
-| P1-03 | 基础依赖安装与配置               | ✅   | P0     | `packages/ubean/package.json`         | hono/vite-plus/citty/c12/hookable 等    |
-| P1-04 | tsconfig + eslint 配置           | ✅   | P1     | `tsconfig.json`                       | 严格 TS 配置                            |
-| P1-05 | vitest 测试框架搭建              | ✅   | P0     | `vitest.config.ts`, `test/` 目录      | 84 个测试通过                           |
-| P1-06 | CLI 入口框架 (citty)             | ✅   | P0     | `src/core/cli/index.ts`               | dev/build/prepare/preview/init 命令骨架 |
-| P1-07 | 配置加载系统 (c12)               | ✅   | P0     | `src/core/config/loader.ts`           | defineConfig + 默认配置合并             |
-| P1-08 | 日志系统 (consola)               | ✅   | P1     | `src/core/log.ts`                     | 统一日志输出                            |
+| ID    | 任务                             | 状态 | 优先级 | 产出文件                              | 备注                                                   |
+| ----- | -------------------------------- | ---- | ------ | ------------------------------------- | ------------------------------------------------------ |
+| P1-01 | monorepo 初始化 (pnpm + catalog) | ✅   | P0     | `package.json`, `pnpm-workspace.yaml` | 使用 pnpm\@11 catalog 管理版本                         |
+| P1-02 | 项目目录结构创建                 | ✅   | P0     | `packages/ubean/src/` 各子目录        | 按 §3 目录结构创建                                     |
+| P1-03 | 基础依赖安装与配置               | ✅   | P0     | `packages/ubean/package.json`         | hono/vite-plus/citty/c12/hookable 等                   |
+| P1-04 | tsconfig + eslint 配置           | ✅   | P1     | `tsconfig.json`                       | `pnpm typecheck` 已通过（TypeScript Native Bridge）    |
+| P1-05 | vitest 测试框架搭建              | ✅   | P0     | `vitest.config.ts`, `test/` 目录      | 84 个测试通过（2026-07-11 验证）                       |
+| P1-06 | CLI 入口框架 (citty)             | ✅   | P0     | `src/core/cli/index.ts`               | 命令注册骨架完成；真实文件路由装配与生产工作流仍待完成 |
+| P1-07 | 配置加载系统 (c12)               | ✅   | P0     | `src/core/config/loader.ts`           | defineConfig + 默认配置合并                            |
+| P1-08 | 日志系统 (consola)               | ✅   | P1     | `src/core/log.ts`                     | 统一日志输出                                           |
 
 ### Phase 2: 构建核心 (Week 3-4)
 
-| ID     | 任务                                | 状态 | 优先级 | 产出文件                                                         | 备注                                                                      |
-| ------ | ----------------------------------- | ---- | ------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| P2-01  | 文件扫描系统 (tinyglobby)           | ✅   | P0     | `src/core/routing/scan.ts`                                       | routes/pages/layouts/middleware/plugins 扫描                              |
-| P2-02  | HTTP 命名导出 AST 检测              | ✅   | P0     | `src/core/routing/detect-exports.ts`                             | detectHttpExports: GET/POST/PUT/PATCH/DELETE                              |
-| P2-03  | Pages 扫描                          | ✅   | P0     | `src/core/routing/scan.ts` (pages 扫描集成)                      | pages/\*_/_.vue + .reuse.ts 扫描                                          |
-| P2-04  | Layouts 扫描                        | ✅   | P0     | `src/core/routing/scan.ts` (layouts 扫描集成)                    | layouts/\*\*/\*.vue 扫描 + 默认布局推导                                   |
-| P2-04b | Queues 扫描                         | ⬜   | P1     | `src/core/routing/queues.ts`                                     | queues/\*_/_.ts 扫描，提取队列名称与类型                                  |
-| P2-04c | Locales 扫描                        | ⬜   | P1     | `src/core/routing/locales.ts`                                    | locales/\*_/_.ts 扫描，注册语言包                                         |
-| P2-05  | 路由名称推导                        | ✅   | P1     | `src/core/routing/route-name.ts`                                 | 文件名→PascalCase，基础路由路径转换                                       |
-| P2-06  | 路由系统 (rou3)                     | ✅   | P0     | `src/core/routing/router.ts`                                     | 基于 rou3 的路由匹配、路径转换 `[id]`→`:id`                               |
-| P2-07  | 虚拟模块生成框架                    | ✅   | P0     | `src/core/build/virtual/`                                        | VirtualModuleRegistry + defineVirtualModule 注册框架                      |
-| P2-08  | Vite 插件骨架                       | ✅   | P0     | `src/core/build/vite/plugin.ts`                                  | ubeanPlugin 基础（ubean:routes/pages/meta/app-config 虚拟模块）           |
-| P2-09  | Rollup 构建基础                     | ✅   | P0     | `vite.config.ts` (vite-plus pack)                                | 使用 vite-plus pack 打包，ESM 格式输出                                    |
-| P2-10  | Preset 系统                         | ✅   | P0     | `src/core/preset/`                                               | definePreset + \_resolve + standard preset                                |
-| P2-11  | Node.js preset                      | ✅   | P0     | `src/core/preset/node/`                                          | Node.js 平台适配                                                          |
-| P2-12  | defineMeta/defineValidator AST 提取 | 🔄   | P0     | `src/core/routing/define-page.ts` (definePage 已实现)            | definePage 宏已实现；defineMeta/defineValidator 的 AST 提取为基础正则版本 |
-| P2-13  | definePage 宏 AST 提取              | ✅   | P0     | `src/core/routing/define-page.ts`                                | 从 `<script setup>` 和 `.reuse.ts` 中提取（正则实现）                     |
-| P2-14  | 代码生成框架                        | ✅   | P1     | `src/core/codegen/`                                              | route-types.d.ts + pages.d.ts 类型生成                                    |
-| P2-15  | CLI 命令骨架                        | ✅   | P0     | `src/core/cli/dev.ts, build.ts, prepare.ts, preview.ts, init.ts` | 命令注册与执行（init 为模板，prepare/preview 骨架）                       |
+| ID     | 任务                                | 状态 | 优先级 | 产出文件                                                         | 备注                                                                              |
+| ------ | ----------------------------------- | ---- | ------ | ---------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| P2-01  | 文件扫描系统 (tinyglobby)           | ✅   | P0     | `src/core/routing/scan.ts`                                       | routes/pages/layouts/middleware/plugins 扫描                                      |
+| P2-02  | HTTP 命名导出 AST 检测              | ✅   | P0     | `src/core/routing/detect-exports.ts`                             | detectHttpExports: GET/POST/PUT/PATCH/DELETE                                      |
+| P2-03  | Pages 扫描                          | ✅   | P0     | `src/core/routing/scan.ts` (pages 扫描集成)                      | pages/\*_/_.vue + .reuse.ts 扫描                                                  |
+| P2-04  | Layouts 扫描                        | ✅   | P0     | `src/core/routing/scan.ts` (layouts 扫描集成)                    | layouts/\*\*/\*.vue 扫描 + 默认布局推导                                           |
+| P2-04b | Queues 扫描                         | ⬜   | P1     | `src/core/routing/queues.ts`                                     | queues/\*_/_.ts 扫描，提取队列名称与类型                                          |
+| P2-04c | Locales 扫描                        | ⬜   | P1     | `src/core/routing/locales.ts`                                    | locales/\*_/_.ts 扫描，注册语言包                                                 |
+| P2-05  | 路由名称推导                        | ✅   | P1     | `src/core/routing/route-name.ts`                                 | 文件名→PascalCase，基础路由路径转换                                               |
+| P2-06  | 路由系统 (rou3)                     | ✅   | P0     | `src/core/routing/router.ts`                                     | 基于 rou3 的路由匹配、路径转换 `[id]`→`:id`                                       |
+| P2-07  | 虚拟模块生成框架                    | ✅   | P0     | `src/core/build/virtual/`                                        | VirtualModuleRegistry + defineVirtualModule 注册框架                              |
+| P2-08  | Vite 插件骨架                       | ✅   | P0     | `src/core/build/vite/plugin.ts`                                  | ubeanPlugin 基础（ubean:routes/pages/meta/app-config 虚拟模块）                   |
+| P2-09  | Rollup 构建基础                     | ✅   | P0     | `vite.config.ts` (vite-plus pack)                                | 使用 vite-plus pack 打包，ESM 格式输出                                            |
+| P2-10  | Preset 系统                         | ✅   | P0     | `src/core/preset/`                                               | definePreset + \_resolve + standard preset                                        |
+| P2-11  | Node.js preset                      | ✅   | P0     | `src/core/preset/node/`                                          | Node.js 平台适配                                                                  |
+| P2-12  | defineMeta/defineValidator AST 提取 | 🔄   | P0     | `src/core/routing/define-page.ts` (definePage 已实现)            | definePage 宏已实现；defineMeta/defineValidator 的 AST 提取为基础正则版本         |
+| P2-13  | definePage 宏 AST 提取              | 🔄   | P0     | `src/core/routing/define-page.ts`                                | 当前为正则提取；需改为可靠 AST/SFC 解析，并完成 Vite 编译时转换                   |
+| P2-14  | 代码生成框架                        | ✅   | P1     | `src/core/codegen/`                                              | route-types.d.ts + pages.d.ts 类型生成                                            |
+| P2-15  | CLI 命令骨架                        | ✅   | P0     | `src/core/cli/dev.ts, build.ts, prepare.ts, preview.ts, init.ts` | 命令骨架完成；dev 未生成 route/middleware loaders，build/preview 尚非完整生产流程 |
 
 ### Phase 3: 运行时核心 (Week 5-6)
 
-| ID    | 任务                              | 状态 | 优先级 | 产出文件                                            | 备注                                                           |
-| ----- | --------------------------------- | ---- | ------ | --------------------------------------------------- | -------------------------------------------------------------- |
-| P3-01 | Hono 集成与服务端入口             | ✅   | P0     | `src/runtime/app.ts`                                | Hono 实例创建 (createUbeanApp)、插件生命周期、请求分发         |
-| P3-02 | defineHandler 实现                | ✅   | P0     | `src/runtime/handler.ts`                            | 中间件链式组合、defineHandler/defineMiddleware                 |
-| P3-03 | defineMeta/defineValidator 运行时 | 🔄   | P0     | `src/runtime/handler.ts`                            | defineMeta/defineMiddleware 已实现；defineValidator 框架已搭建 |
-| P3-04 | defineMiddleware                  | ✅   | P0     | `src/runtime/handler.ts`                            | 中间件定义函数、保持类型链                                     |
-| P3-05 | Route meta 运行时合并             | ✅   | P0     | `src/runtime/handler.ts`                            | meta 合并到 c.route.meta                                       |
-| P3-06 | 中间件系统                        | ✅   | P0     | `src/runtime/router.ts` (集成)                      | middleware/ 目录扫描、数字前缀排序、全局/路由级中间件执行      |
-| P3-07 | 运行时插件系统 (hookable)         | ✅   | P0     | `src/runtime/app.ts`                                | request:start/request:end/setup/ready hooks                    |
-| P3-08 | 静态资源服务                      | ⬜   | P1     | `src/runtime/static.ts`                             | public/ 目录服务（待实现）                                     |
-| P3-09 | 环境变量系统                      | ✅   | P0     | `src/runtime/env.ts`                                | defineEnv + zod schema 验证 + 服务端 setRuntimeEnv             |
-| P3-10 | 响应工具函数                      | ✅   | P0     | `src/runtime/response.ts`                           | redirect/permanentRedirect/json/html/text                      |
-| P3-11 | 错误处理                          | ✅   | P0     | `src/runtime/error.ts`                              | UbeanError + createError + errorToResponse                     |
-| P3-12 | OpenAPI 运行时                    | ⬜   | P1     | `src/runtime/internal/routes/openapi.ts, scalar.ts` | /\_openapi.json + Scalar UI（待实现）                          |
-| P3-13 | Cron 运行时                       | ⬜   | P1     | `src/runtime/cron.ts, task.ts`                      | defineScheduled + cron 调度（待实现）                          |
-| P3-14 | 类型安全客户端                    | ✅   | P1     | `src/runtime/client.ts`                             | createApiClient (ofetch 风格) + baseURL/params/query           |
-| P3-15 | Context 类型                      | ✅   | P0     | `src/types/handler.ts`                              | UbeanContext/UbeanHandler/UbeanMiddleware 类型                 |
-| P3-16 | i18n 运行时                       | ⬜   | P1     | `src/runtime/i18n.ts`                               | defineLocale/useI18n/t()/locale 检测（待实现）                 |
+| ID    | 任务                              | 状态 | 优先级 | 产出文件                                             | 备注                                                                                            |
+| ----- | --------------------------------- | ---- | ------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| P3-01 | Hono 集成与服务端入口             | ✅   | P0     | `src/runtime/app.ts`                                 | Hono 实例创建 (createUbeanApp)、插件生命周期、请求分发                                          |
+| P3-02 | defineHandler 实现                | ✅   | P0     | `src/runtime/handler.ts`                             | 中间件链式组合、defineHandler/defineMiddleware                                                  |
+| P3-03 | defineMeta/defineValidator 运行时 | 🔄   | P0     | `src/runtime/handler.ts`                             | defineMeta/defineMiddleware 已实现；defineValidator 框架已搭建                                  |
+| P3-04 | defineMiddleware                  | ✅   | P0     | `src/runtime/handler.ts`                             | 中间件定义函数、保持类型链                                                                      |
+| P3-05 | Route meta 运行时合并             | ✅   | P0     | `src/runtime/handler.ts`                             | meta 合并到 c.route.meta                                                                        |
+| P3-06 | 中间件系统                        | 🔄   | P0     | `src/runtime/router.ts` (集成)                       | 数字前缀排序与全局挂载已实现；需根据 `global` 与路由元数据完成路由级挂载                        |
+| P3-07 | 运行时插件系统 (hookable)         | ✅   | P0     | `src/runtime/app.ts`                                 | request:start/request:end/setup/ready hooks                                                     |
+| P3-08 | 静态资源服务                      | ⬜   | P1     | `src/runtime/static.ts`                              | public/ 目录服务（待实现）                                                                      |
+| P3-09 | 环境变量系统                      | ✅   | P0     | `src/runtime/env.ts`                                 | defineEnv + zod schema 验证 + 服务端 setRuntimeEnv                                              |
+| P3-10 | 响应工具函数                      | ✅   | P0     | `src/runtime/response.ts`                            | redirect/permanentRedirect/json/html/text                                                       |
+| P3-11 | 错误处理                          | ✅   | P0     | `src/runtime/error.ts`                               | UbeanError + createError + errorToResponse                                                      |
+| P3-12 | OpenAPI 运行时                    | ⬜   | P1     | `src/runtime/internal/routes/openapi.ts, scalar.ts`  | /\_openapi.json + Scalar UI（待实现）                                                           |
+| P3-13 | Cron 运行时                       | ⬜   | P1     | `src/runtime/cron.ts, task.ts`                       | defineScheduled + cron 调度（待实现）                                                           |
+| P3-14 | 类型安全客户端                    | 🔄   | P1     | `src/runtime/client.ts`, `src/runtime/client-xhr.ts` | 当前为手写 fetch client；需实现 ofetch/OpenAPI normal+flat client、XHR 上传进度与 SSR/edge 诊断 |
+| P3-15 | Context 类型                      | ✅   | P0     | `src/types/handler.ts`                               | UbeanContext/UbeanHandler/UbeanMiddleware 类型                                                  |
+| P3-16 | i18n 运行时                       | ⬜   | P1     | `src/runtime/i18n.ts`                                | defineLocale/useI18n/t()/locale 检测（待实现）                                                  |
+| P3-17 | 可观测性契约                      | ⬜   | P1     | `packages/ubean-observability/`                      | request ID、Hookable spans、错误脱敏与 OpenTelemetry adapter                                    |
+| P3-18 | SEO metadata 与 OG 基础           | ⬜   | P1     | `src/runtime/vue/seo.ts`, `packages/ubean-og/`       | metadata 合并、sitemap/robots/manifest 与可选 OG handler                                        |
 
 ### Phase 4: Vue Pages 系统 (Week 7-8)
 
@@ -325,6 +327,7 @@
 | P4-17  | CLI page 命令                        | ⬜   | P1     | `src/core/cli/page/`                                                    | add/add-reuse/delete/update/recovery/list（待实现）                              |
 | P4-18  | CLI api/env/config/layout 等命令     | ⬜   | P2     | `src/core/cli/{api,env,config,layout,cron,plugin,middleware,devtools}/` | 各子命令（待实现）                                                               |
 | P4-19  | CLI Shared Layer                     | ⬜   | P0     | `src/core/cli/shared/`                                                  | fs-ops/backup/templates 与 DevTools 共享（待实现）                               |
+| P4-20  | 页面数据依赖、失效与流式协议         | ⬜   | P0     | `src/runtime/pages/data.ts`, `src/runtime/vue/client.ts`                | depends/invalidate、action 驱动刷新、internalFetch 继承与 stream capability      |
 
 ### Phase 5: 实验性 Preset (Week 9-10)
 
@@ -339,33 +342,38 @@
 
 ### Phase 6: 高级特性 (Week 11-13)
 
-| ID    | 任务                       | 状态 | 优先级 | 产出文件                                                          | 备注                                                                       |
-| ----- | -------------------------- | ---- | ------ | ----------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| P6-01 | ISR/缓存系统               | ⬜   | P1     | `src/runtime/cache.ts, isr-cache.ts`                              | routeRules cache                                                           |
-| P6-02 | 预渲染/SSG                 | ⬜   | P1     | `src/core/prerender/`                                             | SSG 静态页面生成                                                           |
-| P6-03 | Route Rules                | ⬜   | P1     | `src/core/config/resolvers/route-rules.ts`                        | headers/redirects/rewrites/proxy                                           |
-| P6-04 | Storage (unstorage)        | ⬜   | P1     | `src/runtime/storage.ts, kv.ts`                                   | KV/存储抽象                                                                |
-| P6-05 | 数据库集成 (db0 + Drizzle) | ⬜   | P1     | `src/runtime/database.ts`, `src/core/plugins/drizzle.ts`          | db0 + Drizzle ORM                                                          |
-| P6-06 | WebSocket 支持 (crossws)   | ⬜   | P1     | `src/runtime/websocket.ts, ws-server.ts`                          | defineRoom/defineWebSocket + .ws.ts                                        |
-| P6-07 | SSE 支持                   | ⬜   | P2     | `src/runtime/sse.ts, sse-client.ts`                               | Server-Sent Events                                                         |
-| P6-08 | 服务端 internalFetch       | ⬜   | P2     | `src/runtime/internal-fetch.ts`                                   | 内部路由调用不经过 HTTP                                                    |
-| P6-09 | 自动导入 (unimport)        | ⬜   | P2     | `src/core/plugins/`                                               | 自动导入 composables/utils                                                 |
-| P6-10 | DevTools 基础架构          | ⬜   | P1     | `src/core/devtools/server/`                                       | Vite 插件 + birpc 通信 + iframe 注入 + 浮动按钮                            |
-| P6-11 | DevTools 内置 Tab          | ⬜   | P1     | `src/core/devtools/client/views/`                                 | Overview/Pages/API/Config/Env/Layouts/Middlewares/Cron/Hooks/Virtual Files |
-| P6-12 | DevTools CRUD              | ⬜   | P1     | `src/core/devtools/server/{config,env,pages,api,cron}.ts`         | 复用 CLI Shared Layer                                                      |
-| P6-13 | DevTools Hooks 系统        | ⬜   | P1     | `src/core/devtools/server/hooks.ts`                               | before/after CRUD hooks                                                    |
-| P6-14 | DevTools API Playground    | ⬜   | P2     | `src/core/devtools/client/views/ApiRoutes/`                       | 接口在线测试（集成 CodeMirror 6 编辑器）                                   |
-| P6-15 | DevTools AI Assistant      | ⬜   | P2     | `src/core/devtools/server/ai.ts`                                  | LLM function calling 驱动 CRUD                                             |
-| P6-16 | DevTools 自定义 Tab        | ⬜   | P2     | `src/core/devtools/define-tab.ts`                                 | defineDevToolsTab 插件 API                                                 |
-| P6-17 | Markdown/MDX 页面支持      | ⬜   | P1     | `src/core/plugins/markdown.ts`, `src/core/routing/markdown.ts`    | markdown-exit + @shikijs/markdown-exit 代码高亮 + frontmatter 解析         |
-| P6-18 | Islands 孤岛架构           | ⬜   | P1     | `src/core/plugins/islands.ts`, `src/core/pages/islands-plugin.ts` | client:\* 指令编译转换 + 按需 hydration                                    |
-| P6-19 | Composables 自动导入       | ⬜   | P1     | `src/core/plugins/auto-imports.ts`                                | unimport 驱动 + `.ubean/auto-imports.d.ts` 类型生成                        |
-| P6-20 | Vue 组件自动导入           | ⬜   | P1     | `src/core/plugins/components.ts`                                  | unplugin-vue-components + `.ubean/components.d.ts` 类型生成                |
-| P6-21 | i18n 国际化                | ⬜   | P1     | `src/core/plugins/i18n.ts`, `src/runtime/i18n.ts`                 | locale 检测 + 路由前缀策略 + useI18n composable                            |
-| P6-22 | 跨平台队列(Queues)         | ⬜   | P1     | `src/runtime/queue.ts`, `src/core/plugins/queues.ts`              | defineQueue + 各平台驱动 + `.ubean/queues.d.ts` 类型生成                   |
-| P6-23 | Better Auth 插件           | ⬜   | P2     | `packages/ubean-auth/`                                            | better-auth 集成插件，注册 /api/auth/\*，提供 useAuth()                    |
-| P6-24 | 类型安全 `<Link>` 组件     | ⬜   | P0     | `src/core/vue/Link.ts`, `src/core/plugins/link-typed.ts`          | to 属性类型化为 RouteName，自动处理 i18n locale 前缀                       |
-| P6-25 | DevTools CodeMirror 编辑器 | ⬜   | P1     | `src/core/devtools/client/components/CodeEditor.vue`              | 基于 @codemirror/view 的代码编辑器（JSON/JS/Vue 语法 + One Dark 主题）     |
+| ID    | 任务                       | 状态 | 优先级 | 产出文件                                                          | 备注                                                                                      |
+| ----- | -------------------------- | ---- | ------ | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| P6-01 | ISR/缓存系统               | ⬜   | P1     | `src/runtime/cache.ts, isr-cache.ts`                              | routeRules cache                                                                          |
+| P6-02 | 预渲染/SSG                 | ⬜   | P1     | `src/core/prerender/`                                             | SSG 静态页面生成                                                                          |
+| P6-03 | Route Rules                | ⬜   | P1     | `src/core/config/resolvers/route-rules.ts`                        | headers/redirects/rewrites/proxy                                                          |
+| P6-04 | Storage (unstorage)        | ⬜   | P1     | `src/runtime/storage.ts, kv.ts`                                   | KV/存储抽象                                                                               |
+| P6-05 | 数据库集成 (db0 + Drizzle) | ⬜   | P1     | `src/runtime/database.ts`, `src/core/plugins/drizzle.ts`          | db0 + Drizzle ORM                                                                         |
+| P6-06 | WebSocket 支持 (crossws)   | ⬜   | P1     | `src/runtime/websocket.ts, ws-server.ts`                          | defineRoom/defineWebSocket + .ws.ts                                                       |
+| P6-07 | SSE 支持                   | ⬜   | P2     | `src/runtime/sse.ts, sse-client.ts`                               | Server-Sent Events                                                                        |
+| P6-08 | 服务端 internalFetch       | ⬜   | P2     | `src/runtime/internal-fetch.ts`                                   | 内部路由调用不经过 HTTP                                                                   |
+| P6-09 | 自动导入 (unimport)        | ⬜   | P2     | `src/core/plugins/`                                               | 自动导入 composables/utils                                                                |
+| P6-10 | DevTools 基础架构          | ⬜   | P1     | `src/core/devtools/server/`                                       | Vite 插件 + birpc 通信 + iframe 注入 + 浮动按钮                                           |
+| P6-11 | DevTools 内置 Tab          | ⬜   | P1     | `src/core/devtools/client/views/`                                 | Overview/Pages/API/Config/Env/Layouts/Middlewares/Cron/Hooks/Virtual Files                |
+| P6-12 | DevTools CRUD              | ⬜   | P1     | `src/core/devtools/server/{config,env,pages,api,cron}.ts`         | 复用 CLI Shared Layer                                                                     |
+| P6-13 | DevTools Hooks 系统        | ⬜   | P1     | `src/core/devtools/server/hooks.ts`                               | before/after CRUD hooks                                                                   |
+| P6-14 | DevTools API Playground    | ⬜   | P2     | `src/core/devtools/client/views/ApiRoutes/`                       | 接口在线测试（集成 CodeMirror 6 编辑器）                                                  |
+| P6-15 | DevTools AI Assistant      | ⬜   | P2     | `src/core/devtools/server/ai.ts`                                  | LLM function calling 驱动 CRUD                                                            |
+| P6-16 | DevTools 自定义 Tab        | ⬜   | P2     | `src/core/devtools/define-tab.ts`                                 | defineDevToolsTab 插件 API                                                                |
+| P6-17 | Markdown/MDX 页面支持      | ⬜   | P1     | `src/core/plugins/markdown.ts`, `src/core/routing/markdown.ts`    | markdown-exit + @shikijs/markdown-exit 代码高亮 + frontmatter 解析                        |
+| P6-18 | Islands 孤岛架构           | ⬜   | P1     | `src/core/plugins/islands.ts`, `src/core/pages/islands-plugin.ts` | client:\* 指令编译转换 + 按需 hydration                                                   |
+| P6-19 | Composables 自动导入       | ⬜   | P1     | `src/core/plugins/auto-imports.ts`                                | unimport 驱动 + `.ubean/auto-imports.d.ts` 类型生成                                       |
+| P6-20 | Vue 组件自动导入           | ⬜   | P1     | `src/core/plugins/components.ts`                                  | unplugin-vue-components + `.ubean/components.d.ts` 类型生成                               |
+| P6-21 | i18n 国际化                | ⬜   | P1     | `src/core/plugins/i18n.ts`, `src/runtime/i18n.ts`                 | locale 检测 + 路由前缀策略 + useI18n composable                                           |
+| P6-22 | 跨平台队列(Queues)         | ⬜   | P1     | `src/runtime/queue.ts`, `src/core/plugins/queues.ts`              | defineQueue + 各平台驱动 + `.ubean/queues.d.ts` 类型生成                                  |
+| P6-23 | Better Auth 插件           | ⬜   | P2     | `packages/ubean-auth/`                                            | better-auth 集成插件，注册 /api/auth/\*，提供 useAuth()                                   |
+| P6-24 | 类型安全 `<Link>` 组件     | ⬜   | P0     | `src/core/vue/Link.ts`, `src/core/plugins/link-typed.ts`          | to 属性类型化为 RouteName，自动处理 i18n locale 前缀                                      |
+| P6-25 | DevTools CodeMirror 编辑器 | ⬜   | P1     | `src/core/devtools/client/components/CodeEditor.vue`              | 基于 @codemirror/view 的代码编辑器（JSON/JS/Vue 语法 + One Dark 主题）                    |
+| P6-26 | Icon 图标扩展              | ⬜   | P1     | `packages/ubean-icon/`                                            | Iconify 按需数据集、SVG collection、Vite 静态扫描、SSR/SSG/测试离线模式与 capability 诊断 |
+| P6-27 | Image 图片扩展             | ⬜   | P1     | `packages/ubean-image/`                                           | Nuxt Image 风格 provider、IPX/静态变换、remote allowlist、CLS/LCP 优化                    |
+| P6-28 | Content 内容扩展           | ⬜   | P1     | `packages/ubean-content/`                                         | collection、schema、AST、typed query、renderer 与内容 dump                                |
+| P6-29 | Fonts 字体扩展             | ⬜   | P1     | `packages/ubean-fonts/`                                           | CSS 扫描、local/google provider、构建期自托管、preload 与 metric fallback                 |
+| P6-30 | PWA 扩展                   | ⬜   | P2     | `packages/ubean-pwa/`                                             | opt-in Service Worker、版本化 asset manifest 与显式缓存策略                               |
 
 ### Phase 7: Skills & 文档 (Week 14)
 
@@ -402,3 +410,7 @@
 | TBD-06 | Markdown/MDX 支持       | ✅ 已决策 | **内置** Markdown 页面：`pages/**/*.md` 与 `.vue` 页面混放，`front-matter` 解析 YAML frontmatter，[`markdown-exit`](https://github.com/serkodev/markdown-exit)（markdown-it 的 TS 重写版，原生 async）渲染正文，通过 `@shikijs/markdown-exit` 集成 Shiki 代码高亮，支持嵌入 Vue 组件配合 islands client 指令；MDX 可选开启（`markdown.mdx: true`） | P6-17       |
 | TBD-07 | 组件自动导入            | ✅ 已决策 | **内置**且默认启用，通过配置开关控制：Composables 使用 `unimport` 自动导入（`composables/`目录），Vue 组件使用 `unplugin-vue-components` 自动导入（`components/`目录），自动生成 `.d.ts` 类型文件                                                                                                                                                  | P6-19/P6-20 |
 | TBD-08 | 类型安全 Link 组件      | ✅ 已决策 | **类型化**：`<Link>` 组件的 `to` 属性类型约束为 `RouteName` 联合类型，`:params` 类型推导与路由参数匹配，CLI/DevTools 修改路由时自动更新类型                                                                                                                                                                                                        | P6-24       |
+| TBD-09 | Icon 图标扩展           | ✅ 已决策 | 以 **Nuxt Icon** 为第一参考，实现独立 `@ubean/icon`：基于 Iconify 按需 collection 与本地 SVG collection，默认 SVG 输出，静态扫描/显式声明写入 client bundle；Node SSR 可本地按需服务，SSG、Edge 与测试使用离线 bundle 或明确 remote provider，默认禁止生产环境回退公共 Iconify API                                                                 | P6-26       |
+| TBD-10 | 页面数据协议            | ✅ 已决策 | 参考 SvelteKit：loader 以 `depends()` 声明逻辑依赖，action 以 `invalidate` 精确刷新；同源调用优先 `internalFetch`，非关键数据使用 defer/stream，preset 必须声明 stream 或 buffered fallback 语义                                                                                                                                                   | P4-20       |
+| TBD-11 | 可观测性与 SEO          | ✅ 已决策 | 参考 Next.js：`@ubean/observability` 以 request ID、Hookable spans 与 OpenTelemetry adapter 为边界；Head 管理之上提供结构化 metadata、sitemap/robots/manifest 与可选 OG 图生成                                                                                                                                                                     | P3-17/P3-18 |
+| TBD-12 | Image/Content/Fonts/PWA | ✅ 已决策 | Image、Content、Fonts 分别以 Nuxt Image、Nuxt Content v3、Nuxt Fonts 为第一参考，均为官方可选扩展；PWA 保持 opt-in。详细 API、边界、延后项与验收见 [生态能力演进](ecosystem.md)                                                                                                                                                                    | P6-27~P6-30 |

@@ -97,6 +97,8 @@
   "@codemirror/lang-vue": "^0.x",
   "@codemirror/theme-one-dark": "^6.x",
   "unplugin-vue-components": "^28.x",
+  "@iconify/vue": "^5.x",
+  "@iconify/utils": "^3.x",
   "markdown-exit": "^1.x",
   "@shikijs/markdown-exit": "^4.x",
   "front-matter": "^4.x"
@@ -126,15 +128,17 @@
 
 依赖按运行时边界拆分，核心包不得因为可选功能或单个平台实现而携带额外运行时代码：
 
-| 范围                  | 依赖策略                                                                     | 示例                                        |
-| --------------------- | ---------------------------------------------------------------------------- | ------------------------------------------- |
-| `packages/ubean` 核心 | 仅保留 Node 与 edge 共用的依赖                                               | Hono、Hookable、rou3、Standard Schema 类型  |
-| Vue 集成              | Vue 及 Vue Router 使用 `peerDependencies`；SSR renderer 按 server entry 引入 | `vue`、`vue-router`、`@vue/server-renderer` |
-| preset 包             | 每个平台独立包和 CI；不被核心包静态导入                                      | `@ubean/preset-cloudflare`                  |
-| 浏览器传输适配器      | 仅在浏览器 client entry 打包；不进入 Node、edge 或 SSR bundle                | `ubean/client-xhr`（上传进度）、数据库驱动  |
-| DevTools 与 Auth      | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`            |
+| 范围                  | 依赖策略                                                                     | 示例                                                            |
+| --------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| `packages/ubean` 核心 | 仅保留 Node 与 edge 共用的依赖                                               | Hono、Hookable、rou3、Standard Schema 类型                      |
+| Vue 集成              | Vue 及 Vue Router 使用 `peerDependencies`；SSR renderer 按 server entry 引入 | `vue`、`vue-router`、`@vue/server-renderer`                     |
+| preset 包             | 每个平台独立包和 CI；不被核心包静态导入                                      | `@ubean/preset-cloudflare`                                      |
+| 浏览器传输适配器      | 仅在浏览器 client entry 打包；不进入 Node、edge 或 SSR bundle                | `ubean/client-xhr`（上传进度）、数据库驱动                      |
+| DevTools 与 Auth      | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`                                |
+| 资源与内容扩展        | 独立包；依赖及平台实现按功能拆分，核心不静态引入                             | `@ubean/icon`、`@ubean/image`、`@ubean/content`、`@ubean/fonts` |
 
 - 文档示例若使用 `zod`，必须标记为用户项目依赖；框架核心仅依赖 Standard Schema 规范，不绑定某个验证库。
+- `@ubean/icon` 将 `@iconify/vue` 作为 Vue peer dependency，`@iconify-json/<collection>` 由用户按需安装为开发依赖；禁止将全量 `@iconify/json` 加入框架或应用默认依赖。
 - `rou3`、`env-runner`、`@vue/server-renderer`、`vue-router`、Scalar UI 以及端到端测试工具必须在实现对应功能前写入实际 package manifest，并确定 `dependencies`、`peerDependencies` 或 `devDependencies` 归属。
 - 每个新增依赖需说明目标包、运行时、许可、bundle 影响和替代方案；禁止使用 `latest` 作为发布依赖版本。
 

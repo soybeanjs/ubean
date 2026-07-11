@@ -39,9 +39,28 @@ export {
   defineRobotsConfig,
   defineSitemapConfig,
   formatRobotsTxt,
-  formatSitemapXml
+  formatSitemapXml,
+  useSeoMeta,
+  mergeMetadata,
+  buildMetaTags,
+  buildLinkTags,
+  buildTitle,
+  renderHeadTags,
+  createManifestResponse,
+  defineManifest
 } from './runtime/seo';
-export type { RobotsOptions, SitemapUrl } from './runtime/seo';
+export type {
+  RobotsOptions,
+  SitemapUrl,
+  MetaTag,
+  LinkTag,
+  OpenGraphMeta,
+  OGImage,
+  TwitterMeta,
+  SeoMetadata,
+  ManifestIcon,
+  WebAppManifest
+} from './runtime/seo';
 export type {
   ApiClient,
   ClientOptions,

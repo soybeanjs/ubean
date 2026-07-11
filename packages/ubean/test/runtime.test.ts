@@ -18,7 +18,15 @@ import {
   createRobotsResponse,
   createSitemapResponse,
   formatRobotsTxt,
-  formatSitemapXml
+  formatSitemapXml,
+  mergeMetadata,
+  buildMetaTags,
+  buildLinkTags,
+  buildTitle,
+  renderHeadTags,
+  createManifestResponse,
+  defineManifest,
+  useSeoMeta
 } from '../src/runtime/seo';
 import {
   buildClientOnlyShell,
@@ -1092,5 +1100,227 @@ describe('seo', () => {
     expect(res.headers.get('Content-Type')).toContain('application/xml');
     const body = await res.text();
     expect(body).toContain('<urlset');
+  });
+
+  it('useSeoMeta returns metadata as-is', () => {
+    const meta = { title: 'Test', description: 'Desc' };
+    expect(useSeoMeta(meta)).toBe(meta);
+  });
+
+  it('mergeMetadata merges basic fields with later overriding earlier', () => {
+    const merged = mergeMetadata(
+      { title: 'Default', description: 'Default desc' },
+      { title: 'Page Title' }
+    );
+    expect(merged.title).toBe('Page Title');
+    expect(merged.description).toBe('Default desc');
+  });
+
+  it('mergeMetadata handles null/undefined inputs gracefully', () => {
+    const merged = mergeMetadata(null, undefined, { title: 'Test' }, null);
+    expect(merged.title).toBe('Test');
+  });
+
+  it('mergeMetadata merges openGraph and twitter objects', () => {
+    const merged = mergeMetadata(
+      { openGraph: { title: 'OG Title', type: 'website' } },
+      { openGraph: { description: 'OG Desc' }, twitter: { card: 'summary' } }
+    );
+    expect(merged.openGraph?.title).toBe('OG Title');
+    expect(merged.openGraph?.type).toBe('website');
+    expect(merged.openGraph?.description).toBe('OG Desc');
+    expect(merged.twitter?.card).toBe('summary');
+  });
+
+  it('mergeMetadata concatenates meta and link arrays', () => {
+    const merged = mergeMetadata(
+      { meta: [{ name: 'foo', content: 'bar' }], link: [{ rel: 'icon', href: '/a.ico' }] },
+      { meta: [{ name: 'baz', content: 'qux' }], link: [{ rel: 'icon', href: '/b.ico' }] }
+    );
+    expect(merged.meta).toHaveLength(2);
+    expect(merged.meta?.[0].name).toBe('foo');
+    expect(merged.meta?.[1].name).toBe('baz');
+    expect(merged.link).toHaveLength(2);
+  });
+
+  it('mergeMetadata merges htmlAttrs and bodyAttrs', () => {
+    const merged = mergeMetadata(
+      { htmlAttrs: { lang: 'en' }, bodyAttrs: { class: 'light' } },
+      { htmlAttrs: { dir: 'ltr' }, bodyAttrs: { class: 'dark' } }
+    );
+    expect(merged.htmlAttrs?.lang).toBe('en');
+    expect(merged.htmlAttrs?.dir).toBe('ltr');
+    expect(merged.bodyAttrs?.class).toBe('dark');
+  });
+
+  it('buildMetaTags generates description, keywords, author tags', () => {
+    const tags = buildMetaTags({
+      description: 'My site',
+      keywords: ['a', 'b', 'c'],
+      author: 'John'
+    });
+    const names = tags.map(t => t.name);
+    expect(names).toContain('description');
+    expect(names).toContain('keywords');
+    expect(names).toContain('author');
+    const kwTag = tags.find(t => t.name === 'keywords');
+    expect(kwTag?.content).toBe('a, b, c');
+  });
+
+  it('buildMetaTags supports string keywords', () => {
+    const tags = buildMetaTags({ keywords: 'x, y, z' });
+    expect(tags.find(t => t.name === 'keywords')?.content).toBe('x, y, z');
+  });
+
+  it('buildMetaTags handles robots as string', () => {
+    const tags = buildMetaTags({ robots: 'noindex, nofollow' });
+    expect(tags.find(t => t.name === 'robots')?.content).toBe('noindex, nofollow');
+  });
+
+  it('buildMetaTags handles robots as object with index/follow', () => {
+    const tags = buildMetaTags({ robots: { index: false, follow: true } });
+    expect(tags.find(t => t.name === 'robots')?.content).toBe('noindex, follow');
+  });
+
+  it('buildMetaTags generates OpenGraph tags', () => {
+    const tags = buildMetaTags({
+      openGraph: {
+        title: 'OG Title',
+        description: 'OG Desc',
+        type: 'website',
+        url: 'https://example.com',
+        siteName: 'My Site',
+        locale: 'en_US',
+        localeAlternate: ['fr_FR', 'de_DE'],
+        image: {
+          url: 'https://example.com/og.png',
+          width: 1200,
+          height: 630,
+          alt: 'OG Image',
+          type: 'image/png'
+        }
+      }
+    });
+    const props = Object.fromEntries(tags.filter(t => t.property && !t.property.startsWith('og:locale:alternate')).map(t => [t.property, t.content]));
+    const altLocales = tags.filter(t => t.property === 'og:locale:alternate').map(t => t.content);
+    expect(props['og:title']).toBe('OG Title');
+    expect(props['og:description']).toBe('OG Desc');
+    expect(props['og:type']).toBe('website');
+    expect(props['og:image']).toBe('https://example.com/og.png');
+    expect(props['og:image:width']).toBe('1200');
+    expect(props['og:image:alt']).toBe('OG Image');
+    expect(altLocales).toContain('fr_FR');
+    expect(altLocales).toContain('de_DE');
+  });
+
+  it('buildMetaTags supports string image URL for og:image', () => {
+    const tags = buildMetaTags({ openGraph: { image: 'https://example.com/img.jpg' } });
+    const ogImg = tags.find(t => t.property === 'og:image');
+    expect(ogImg?.content).toBe('https://example.com/img.jpg');
+  });
+
+  it('buildMetaTags generates Twitter card tags', () => {
+    const tags = buildMetaTags({
+      twitter: {
+        card: 'summary_large_image',
+        site: '@example',
+        creator: '@author',
+        title: 'Tw Title',
+        description: 'Tw Desc',
+        image: 'https://example.com/tw.png'
+      }
+    });
+    const names = Object.fromEntries(tags.filter(t => t.name?.startsWith('twitter:')).map(t => [t.name, t.content]));
+    expect(names['twitter:card']).toBe('summary_large_image');
+    expect(names['twitter:title']).toBe('Tw Title');
+    expect(names['twitter:image']).toBe('https://example.com/tw.png');
+  });
+
+  it('buildMetaTags appends custom meta tags', () => {
+    const tags = buildMetaTags({
+      meta: [{ name: 'custom', content: 'value' }, { property: 'fb:app_id', content: '123' }]
+    });
+    expect(tags.find(t => t.name === 'custom')?.content).toBe('value');
+    expect(tags.find(t => t.property === 'fb:app_id')?.content).toBe('123');
+  });
+
+  it('buildLinkTags includes canonical and custom links', () => {
+    const links = buildLinkTags({
+      canonical: 'https://example.com/page',
+      link: [
+        { rel: 'alternate', hreflang: 'fr', href: 'https://example.com/fr' },
+        { rel: 'icon', href: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' }
+      ]
+    });
+    const rels = links.map(l => l.rel);
+    expect(rels).toContain('canonical');
+    expect(rels).toContain('alternate');
+    expect(links.find(l => l.rel === 'canonical')?.href).toBe('https://example.com/page');
+    expect(links.find(l => l.hreflang === 'fr')?.href).toBe('https://example.com/fr');
+  });
+
+  it('buildTitle uses title as-is without template', () => {
+    expect(buildTitle({ title: 'Hello' })).toBe('Hello');
+  });
+
+  it('buildTitle applies string titleTemplate with %s placeholder', () => {
+    expect(buildTitle({ title: 'Home', titleTemplate: '%s | My App' })).toBe('Home | My App');
+  });
+
+  it('buildTitle applies function titleTemplate', () => {
+    const title = buildTitle({ title: 'About', titleTemplate: t => `${t} — Example` });
+    expect(title).toBe('About — Example');
+  });
+
+  it('buildTitle falls back to fallbackTitle when no title', () => {
+    expect(buildTitle({}, 'Fallback')).toBe('Fallback');
+  });
+
+  it('buildTitle does not apply template when no title and fallback is used', () => {
+    expect(buildTitle({ titleTemplate: '%s | App' }, 'Fallback')).toBe('Fallback | App');
+  });
+
+  it('renderHeadTags renders title, meta tags, and link tags', () => {
+    const html = renderHeadTags(
+      {
+        title: 'Test Page',
+        titleTemplate: '%s | Site',
+        description: 'A test page',
+        canonical: 'https://example.com/test'
+      },
+      'Default'
+    );
+    expect(html).toContain('<title>Test Page | Site</title>');
+    expect(html).toContain('<meta name="description" content="A test page">');
+    expect(html).toContain('<link rel="canonical" href="https://example.com/test">');
+  });
+
+  it('renderHeadTags escapes HTML special characters', () => {
+    const html = renderHeadTags({
+      title: 'A & B <C> "D" \'E\'',
+      description: 'Test & <test> "test"'
+    });
+    expect(html).toContain('A &amp; B &lt;C&gt; &quot;D&quot; &apos;E&apos;');
+    expect(html).toContain('Test &amp; &lt;test&gt; &quot;test&quot;');
+  });
+
+  it('createManifestResponse returns correct Content-Type and Cache-Control', async () => {
+    const manifest = defineManifest({
+      name: 'My App',
+      short_name: 'App',
+      start_url: '/',
+      display: 'standalone',
+      background_color: '#ffffff',
+      theme_color: '#000000',
+      icons: [{ src: '/icon.png', sizes: '192x192', type: 'image/png' }]
+    });
+    const res = createManifestResponse(manifest);
+    expect(res.headers.get('Content-Type')).toContain('application/manifest+json');
+    expect(res.headers.get('Cache-Control')).toContain('max-age=86400');
+    const body = await res.json();
+    expect(body.name).toBe('My App');
+    expect(body.display).toBe('standalone');
+    expect(body.icons).toHaveLength(1);
+    expect(body.icons[0].sizes).toBe('192x192');
   });
 });

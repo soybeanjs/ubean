@@ -193,6 +193,14 @@ export {
   invalidateRouteCache,
   resolveRouteCacheRules
 } from './runtime/cache';
+export {
+  createMemoryDriver,
+  createStorage,
+  useStorage,
+  clearGlobalStorage,
+  createKV,
+  useKV
+} from './runtime/storage';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
 export type {
@@ -222,3 +230,4 @@ export type {
 export type { Preset } from './core/preset/_utils/preset';
 export type { WranglerConfig, PresetDetectionHints, PresetDetectionResult } from './core/preset';
 export type { CacheEntry, CacheStore, CacheRule } from './runtime/cache';
+export type { StorageDriver, UbeanStorage, KVNamespace, KVOptions } from './runtime/storage';

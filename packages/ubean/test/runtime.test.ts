@@ -12,6 +12,7 @@ import { createUbeanApp, UbeanApp } from '../src/runtime/app';
 import { createClient } from '../src/runtime/client';
 import { defineEnv, setRuntimeEnv, useRuntimeEnv } from '../src/runtime/env';
 import { defineHandler } from '../src/runtime/handler';
+import { defineLocale, useI18n, t, setLocale, getLocale, clearLocales, getRegisteredLocales } from '../src/runtime/i18n';
 import {
   buildClientOnlyShell,
   buildPageShell,
@@ -773,5 +774,147 @@ describe('vue virtual modules', () => {
 
     const appMod = registry.getModules().find(m => m.id === '#ubean-app');
     expect(appMod).toBeTruthy();
+  });
+});
+
+describe('i18n runtime', () => {
+  beforeEach(() => {
+    clearLocales();
+  });
+
+  it('defines a locale with defineLocale', () => {
+    defineLocale({
+      code: 'en',
+      messages: { hello: 'Hello', welcome: 'Welcome' },
+      isDefault: true
+    });
+
+    expect(getRegisteredLocales()).toContain('en');
+    expect(getLocale()).toBe('en');
+  });
+
+  it('translates keys with t()', () => {
+    defineLocale({
+      code: 'en',
+      messages: { hello: 'Hello', greeting: 'Hello {name}' },
+      isDefault: true
+    });
+
+    expect(t('hello')).toBe('Hello');
+    expect(t('greeting', { name: 'World' })).toBe('Hello World');
+    expect(t('nonexistent')).toBe('nonexistent');
+  });
+
+  it('supports nested message keys', () => {
+    defineLocale({
+      code: 'en',
+      messages: {
+        nav: { home: 'Home', about: 'About' }
+      },
+      isDefault: true
+    });
+
+    expect(t('nav.home')).toBe('Home');
+    expect(t('nav.about')).toBe('About');
+  });
+
+  it('switches locales with setLocale', () => {
+    defineLocale({
+      code: 'en',
+      messages: { hello: 'Hello' },
+      isDefault: true
+    });
+    defineLocale({
+      code: 'zh',
+      messages: { hello: '你好' }
+    });
+
+    expect(t('hello')).toBe('Hello');
+    setLocale('zh');
+    expect(t('hello')).toBe('你好');
+    expect(getLocale()).toBe('zh');
+  });
+
+  it('falls back to default locale when key missing', () => {
+    defineLocale({
+      code: 'en',
+      messages: { hello: 'Hello', goodbye: 'Goodbye' },
+      isDefault: true
+    });
+    defineLocale({
+      code: 'zh',
+      messages: { hello: '你好' }
+    });
+
+    setLocale('zh');
+    expect(t('hello')).toBe('你好');
+    expect(t('goodbye')).toBe('Goodbye');
+  });
+
+  it('useI18n returns working instance', () => {
+    defineLocale({
+      code: 'en',
+      messages: { test: 'Test' },
+      isDefault: true
+    });
+
+    const i18n = useI18n();
+    expect(i18n.locale).toBe('en');
+    expect(i18n.fallbackLocale).toBe('en');
+    expect(i18n.availableLocales).toContain('en');
+    expect(i18n.t('test')).toBe('Test');
+  });
+
+  it('detects locale from Accept-Language header', () => {
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+    defineLocale({ code: 'zh', messages: {} });
+    defineLocale({ code: 'ja', messages: {} });
+
+    const i18n = useI18n();
+
+    expect(i18n.detectLocale('zh-CN,zh;q=0.9,en;q=0.8')).toBe('zh');
+    expect(i18n.detectLocale('ja-JP;q=1.0,en;q=0.5')).toBe('ja');
+    expect(i18n.detectLocale('fr-FR,fr;q=0.9')).toBe('en');
+    expect(i18n.detectLocale(undefined)).toBe('en');
+  });
+
+  it('addLocale adds or merges messages', () => {
+    defineLocale({ code: 'en', messages: { a: 'A' }, isDefault: true });
+
+    const i18n = useI18n();
+    i18n.addLocale('en', { b: 'B' });
+    expect(i18n.t('a')).toBe('A');
+    expect(i18n.t('b')).toBe('B');
+
+    i18n.addLocale('fr', { c: 'C' });
+    expect(i18n.availableLocales).toContain('fr');
+    expect(i18n.t('a')).toBe('A');
+    expect(i18n.t('c')).toBe('c');
+    setLocale('fr');
+    expect(i18n.t('c')).toBe('C');
+    expect(i18n.t('a')).toBe('A');
+  });
+
+  it('mergeLocale merges into existing locale', () => {
+    defineLocale({ code: 'en', messages: { a: 'A' }, isDefault: true });
+
+    const i18n = useI18n();
+    i18n.mergeLocale('en', { b: 'B' });
+    expect(i18n.t('a')).toBe('A');
+    expect(i18n.t('b')).toBe('B');
+
+    i18n.mergeLocale('de', { d: 'D' });
+    expect(i18n.availableLocales).toContain('de');
+  });
+
+  it('handles RTL locale direction', () => {
+    defineLocale({
+      code: 'ar',
+      messages: { hello: 'مرحبا' },
+      dir: 'rtl',
+      isDefault: true
+    });
+
+    expect(t('hello')).toBe('مرحبا');
   });
 });

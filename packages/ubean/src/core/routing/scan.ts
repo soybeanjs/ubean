@@ -15,6 +15,7 @@ import type {
   ScannedPlugin,
   ScannedAppEntry,
   ScannedCronTask,
+  ScannedLocale,
   AppEntry
 } from './types';
 
@@ -24,7 +25,8 @@ const DEFAULT_DIRS = {
   pages: 'pages',
   layouts: 'layouts',
   plugins: 'plugins',
-  crons: 'crons'
+  crons: 'crons',
+  locales: 'locales'
 };
 
 function splitOrderPrefix(name: string): { order: number; cleanName: string } {
@@ -45,13 +47,14 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
 
   const srcDir = isAbsolute(options.srcDir) ? options.srcDir : join(options.cwd, options.srcDir);
 
-  const [apiRoutes, middlewares, pages, layouts, plugins, crons, appEntry] = await Promise.all([
+  const [apiRoutes, middlewares, pages, layouts, plugins, crons, locales, appEntry] = await Promise.all([
     scanApiRoutes(srcDir, dirs.routes, ignore),
     scanMiddlewares(srcDir, dirs.middleware, ignore),
     scanPages(srcDir, dirs.pages, ignore),
     scanLayouts(srcDir, dirs.layouts, ignore),
     scanPlugins(srcDir, dirs.plugins, ignore),
     scanCrons(srcDir, dirs.crons, ignore),
+    scanLocales(srcDir, dirs.locales, ignore),
     scanAppEntry(srcDir)
   ]);
 
@@ -66,7 +69,9 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
     }
   }
 
-  return { apiRoutes, middlewares, pages, layouts, plugins, crons, appEntry };
+  const defaultLocale = locales.find(l => l.isDefault)?.code || locales[0]?.code;
+
+  return { apiRoutes, middlewares, pages, layouts, plugins, crons, locales, defaultLocale, appEntry };
 }
 
 async function scanApiRoutes(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedApiRoute[]> {
@@ -265,6 +270,33 @@ async function scanCrons(srcDir: string, dirName: string, ignore: string[]): Pro
       dirname: dirname(relativePath),
       basename: basename(relativePath),
       name: cleanName
+    };
+  });
+}
+
+const LOCALE_GLOB_PATTERN = '**/*.{json,json5,yaml,yml,js,mjs,cjs,ts,mts,cts}';
+
+async function scanLocales(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedLocale[]> {
+  const dir = join(srcDir, dirName);
+  const files = await glob(LOCALE_GLOB_PATTERN, {
+    cwd: dir,
+    dot: true,
+    ignore: [...ignore, '**/*.vue', '**/_*', '**/index.*'],
+    absolute: true
+  }).catch(() => [] as string[]);
+
+  return files.sort().map(fullPath => {
+    const relativePath = toPosixPath(relative(dir, fullPath));
+    const base = basename(relativePath, extname(relativePath));
+    const { cleanName: code } = splitOrderPrefix(base);
+    const isDefault = code === 'default' || base.startsWith('default.');
+    return {
+      fullPath,
+      relativePath,
+      dirname: dirname(relativePath),
+      basename: basename(relativePath),
+      code: isDefault ? 'default' : code,
+      isDefault
     };
   });
 }

@@ -19,6 +19,10 @@ export type {
   ScannedPageRoute,
   ScannedLayout,
   ScannedPlugin,
+  ScannedCronTask,
+  ScannedLocale,
+  ScannedAppEntry,
+  AppEntry,
   ScanOptions,
   ScanResult
 } from './types';

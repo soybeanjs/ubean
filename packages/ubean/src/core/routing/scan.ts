@@ -15,6 +15,7 @@ import type {
   ScannedPlugin,
   ScannedAppEntry,
   ScannedCronTask,
+  ScannedQueue,
   ScannedLocale,
   AppEntry
 } from './types';
@@ -26,6 +27,7 @@ const DEFAULT_DIRS = {
   layouts: 'layouts',
   plugins: 'plugins',
   crons: 'crons',
+  queues: 'queues',
   locales: 'locales'
 };
 
@@ -47,13 +49,14 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
 
   const srcDir = isAbsolute(options.srcDir) ? options.srcDir : join(options.cwd, options.srcDir);
 
-  const [apiRoutes, middlewares, pages, layouts, plugins, crons, locales, appEntry] = await Promise.all([
+  const [apiRoutes, middlewares, pages, layouts, plugins, crons, queues, locales, appEntry] = await Promise.all([
     scanApiRoutes(srcDir, dirs.routes, ignore),
     scanMiddlewares(srcDir, dirs.middleware, ignore),
     scanPages(srcDir, dirs.pages, ignore),
     scanLayouts(srcDir, dirs.layouts, ignore),
     scanPlugins(srcDir, dirs.plugins, ignore),
     scanCrons(srcDir, dirs.crons, ignore),
+    scanQueues(srcDir, dirs.queues, ignore),
     scanLocales(srcDir, dirs.locales, ignore),
     scanAppEntry(srcDir)
   ]);
@@ -71,7 +74,7 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
 
   const defaultLocale = locales.find(l => l.isDefault)?.code || locales[0]?.code;
 
-  return { apiRoutes, middlewares, pages, layouts, plugins, crons, locales, defaultLocale, appEntry };
+  return { apiRoutes, middlewares, pages, layouts, plugins, crons, queues, locales, defaultLocale, appEntry };
 }
 
 async function scanApiRoutes(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedApiRoute[]> {
@@ -252,6 +255,29 @@ async function scanPlugins(srcDir: string, dirName: string, ignore: string[]): P
 const APP_EXTENSIONS = ['ts', 'js', 'mjs', 'mts'];
 
 async function scanCrons(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedCronTask[]> {
+  const dir = join(srcDir, dirName);
+  const files = await glob(GLOB_SCAN_PATTERN, {
+    cwd: dir,
+    dot: true,
+    ignore: [...ignore, '**/*.vue', '**/_*'],
+    absolute: true
+  }).catch(() => [] as string[]);
+
+  return files.sort().map(fullPath => {
+    const relativePath = toPosixPath(relative(dir, fullPath));
+    const base = basename(relativePath, extname(relativePath));
+    const { cleanName } = splitOrderPrefix(base);
+    return {
+      fullPath,
+      relativePath,
+      dirname: dirname(relativePath),
+      basename: basename(relativePath),
+      name: cleanName
+    };
+  });
+}
+
+async function scanQueues(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedQueue[]> {
   const dir = join(srcDir, dirName);
   const files = await glob(GLOB_SCAN_PATTERN, {
     cwd: dir,

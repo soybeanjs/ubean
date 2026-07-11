@@ -20,6 +20,7 @@ export type {
   ScannedLayout,
   ScannedPlugin,
   ScannedCronTask,
+  ScannedQueue,
   ScannedLocale,
   ScannedAppEntry,
   AppEntry,

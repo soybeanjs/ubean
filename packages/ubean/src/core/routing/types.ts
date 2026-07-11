@@ -70,6 +70,10 @@ export interface ScannedCronTask extends ScannedFile {
   name: string;
 }
 
+export interface ScannedQueue extends ScannedFile {
+  name: string;
+}
+
 export interface ScannedLocale extends ScannedFile {
   code: string;
   isDefault?: boolean;
@@ -97,6 +101,7 @@ export interface ScanOptions {
     layouts?: string;
     plugins?: string;
     crons?: string;
+    queues?: string;
     locales?: string;
   };
   ignore?: string[];
@@ -109,6 +114,7 @@ export interface ScanResult {
   layouts: ScannedLayout[];
   plugins: ScannedPlugin[];
   crons: ScannedCronTask[];
+  queues: ScannedQueue[];
   locales: ScannedLocale[];
   defaultLocale?: string;
   appEntry: ScannedAppEntry;

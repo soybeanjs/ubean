@@ -282,52 +282,52 @@
 
 ### Phase 3: 运行时核心 (Week 5-6)
 
-| ID    | 任务                              | 状态 | 优先级 | 产出文件                                             | 备注                                                                                            |
-| ----- | --------------------------------- | ---- | ------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| P3-01 | Hono 集成与服务端入口             | ✅   | P0     | `src/runtime/app.ts`                                 | Hono 实例创建 (createUbeanApp)、插件生命周期、请求分发                                          |
-| P3-02 | defineHandler 实现                | ✅   | P0     | `src/runtime/handler.ts`                             | 中间件链式组合、defineHandler/defineMiddleware                                                  |
-| P3-03 | defineMeta/defineValidator 运行时 | 🔄   | P0     | `src/runtime/handler.ts`                             | defineMeta/defineMiddleware 已实现；defineValidator 框架已搭建                                  |
-| P3-04 | defineMiddleware                  | ✅   | P0     | `src/runtime/handler.ts`                             | 中间件定义函数、保持类型链                                                                      |
-| P3-05 | Route meta 运行时合并             | ✅   | P0     | `src/runtime/handler.ts`                             | meta 合并到 c.route.meta                                                                        |
-| P3-06 | 中间件系统                        | 🔄   | P0     | `src/runtime/router.ts` (集成)                       | 数字前缀排序与全局挂载已实现；需根据 `global` 与路由元数据完成路由级挂载                        |
-| P3-07 | 运行时插件系统 (hookable)         | ✅   | P0     | `src/runtime/app.ts`                                 | request:start/request:end/setup/ready hooks                                                     |
-| P3-08 | 静态资源服务                      | ⬜   | P1     | `src/runtime/static.ts`                              | public/ 目录服务（待实现）                                                                      |
-| P3-09 | 环境变量系统                      | ✅   | P0     | `src/runtime/env.ts`                                 | defineEnv + zod schema 验证 + 服务端 setRuntimeEnv                                              |
-| P3-10 | 响应工具函数                      | ✅   | P0     | `src/runtime/response.ts`                            | redirect/permanentRedirect/json/html/text                                                       |
-| P3-11 | 错误处理                          | ✅   | P0     | `src/runtime/error.ts`                               | UbeanError + createError + errorToResponse                                                      |
-| P3-12 | OpenAPI 运行时                    | ⬜   | P1     | `src/runtime/internal/routes/openapi.ts, scalar.ts`  | /\_openapi.json + Scalar UI（待实现）                                                           |
-| P3-13 | Cron 运行时                       | ⬜   | P1     | `src/runtime/cron.ts, task.ts`                       | defineScheduled + cron 调度（待实现）                                                           |
-| P3-14 | 类型安全客户端                    | 🔄   | P1     | `src/runtime/client.ts`, `src/runtime/client-xhr.ts` | 当前为手写 fetch client；需实现 ofetch/OpenAPI normal+flat client、XHR 上传进度与 SSR/edge 诊断 |
-| P3-15 | Context 类型                      | ✅   | P0     | `src/types/handler.ts`                               | UbeanContext/UbeanHandler/UbeanMiddleware 类型                                                  |
-| P3-16 | i18n 运行时                       | ⬜   | P1     | `src/runtime/i18n.ts`                                | defineLocale/useI18n/t()/locale 检测（待实现）                                                  |
-| P3-17 | 可观测性契约                      | ⬜   | P1     | `packages/ubean-observability/`                      | request ID、Hookable spans、错误脱敏与 OpenTelemetry adapter                                    |
-| P3-18 | SEO metadata 与 OG 基础           | ⬜   | P1     | `src/runtime/vue/seo.ts`, `packages/ubean-og/`       | metadata 合并、sitemap/robots/manifest 与可选 OG handler                                        |
+| ID    | 任务                              | 状态 | 优先级 | 产出文件                                             | 备注                                                                                                                             |
+| ----- | --------------------------------- | ---- | ------ | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| P3-01 | Hono 集成与服务端入口             | ✅   | P0     | `src/runtime/app.ts`                                 | Hono 实例创建 (createUbeanApp)、插件生命周期、请求分发                                                                           |
+| P3-02 | defineHandler 实现                | ✅   | P0     | `src/runtime/handler.ts`                             | 中间件链式组合、defineHandler/defineMiddleware                                                                                   |
+| P3-03 | defineMeta/defineValidator 运行时 | ✅   | P0     | `src/runtime/handler.ts`                             | defineMeta/defineValidator/defineMiddleware 完整实现，支持 Standard Schema 和 Zod，多 slot 验证（json/form/query/param/header）  |
+| P3-04 | defineMiddleware                  | ✅   | P0     | `src/runtime/handler.ts`                             | 中间件定义函数、保持类型链                                                                                                       |
+| P3-05 | Route meta 运行时合并             | ✅   | P0     | `src/runtime/handler.ts`                             | meta 合并到 c.route.meta                                                                                                         |
+| P3-06 | 中间件系统                        | ✅   | P0     | `src/runtime/router.ts` (集成)                       | 数字前缀排序、global 全局中间件（命名为 global 或 global.\*）和路由级中间件按路径前缀挂载完成                                    |
+| P3-07 | 运行时插件系统 (hookable)         | ✅   | P0     | `src/runtime/app.ts`                                 | request:start/request:end/setup/ready hooks                                                                                      |
+| P3-08 | 静态资源服务                      | ✅   | P1     | `src/runtime/static.ts`                              | public/ 目录服务，支持 ETag/304、MIME 类型、index 文件、Cache-Control 缓存头                                                     |
+| P3-09 | 环境变量系统                      | ✅   | P0     | `src/runtime/env.ts`                                 | defineEnv + zod schema 验证 + 服务端 setRuntimeEnv                                                                               |
+| P3-10 | 响应工具函数                      | ✅   | P0     | `src/runtime/response.ts`                            | redirect/permanentRedirect/json/html/text                                                                                        |
+| P3-11 | 错误处理                          | ✅   | P0     | `src/runtime/error.ts`                               | UbeanError + createError + errorToResponse                                                                                       |
+| P3-12 | OpenAPI 运行时                    | ✅   | P1     | `src/runtime/internal/openapi.ts`                    | /\_openapi.json + Scalar UI（CDN 加载 @scalar/api-reference），路径参数自动推断，支持 meta.openAPI 扩展 tags/summary/description |
+| P3-13 | Cron 运行时                       | ⬜   | P1     | `src/runtime/cron.ts, task.ts`                       | defineScheduled + cron 调度（待实现）                                                                                            |
+| P3-14 | 类型安全客户端                    | 🔄   | P1     | `src/runtime/client.ts`, `src/runtime/client-xhr.ts` | 当前为手写 fetch client；需实现 ofetch/OpenAPI normal+flat client、XHR 上传进度与 SSR/edge 诊断                                  |
+| P3-15 | Context 类型                      | ✅   | P0     | `src/types/handler.ts`                               | UbeanContext/UbeanHandler/UbeanMiddleware 类型                                                                                   |
+| P3-16 | i18n 运行时                       | ⬜   | P1     | `src/runtime/i18n.ts`                                | defineLocale/useI18n/t()/locale 检测（待实现）                                                                                   |
+| P3-17 | 可观测性契约                      | ⬜   | P1     | `packages/ubean-observability/`                      | request ID、Hookable spans、错误脱敏与 OpenTelemetry adapter                                                                     |
+| P3-18 | SEO metadata 与 OG 基础           | ⬜   | P1     | `src/runtime/vue/seo.ts`, `packages/ubean-og/`       | metadata 合并、sitemap/robots/manifest 与可选 OG handler                                                                         |
 
 ### Phase 4: Vue Pages 系统 (Week 7-8)
 
-| ID     | 任务                                 | 状态 | 优先级 | 产出文件                                                                | 备注                                                                             |
-| ------ | ------------------------------------ | ---- | ------ | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| P4-01  | Pages 核心协议                       | ✅   | P0     | `src/runtime/pages/protocol.ts`                                         | Inertia 风格通信协议（PageObject/PageHead/HTML Shell/XSS 安全序列化）            |
-| P4-02  | definePage 编译时宏                  | 🔄   | P0     | `src/core/routing/define-page.ts`                                       | definePage 正则 AST 提取已实现，Vite 编译时转换待完成                            |
-| P4-03  | Layout 系统运行时                    | 🔄   | P0     | `src/runtime/pages/protocol.ts`, `src/runtime/vue/app.ts`               | layouts/ 扫描、默认布局、layout: false 已集成；嵌套布局待实现                    |
-| P4-04  | Reuse 路由处理                       | ⬜   | P1     | `src/core/pages/reuse.ts`                                               | .reuse.ts 文件 + reuse 字段校验（待实现）                                        |
-| P4-05  | 路由组支持                           | ⬜   | P1     | `src/core/routing/pages.ts`                                             | (group)/ 目录不生成路径段（待实现）                                              |
-| P4-06  | ubean:pages 虚拟模块                 | ✅   | P0     | `src/core/build/virtual/modules.ts`                                     | ubean:pages/ubean:routes/ubean:meta/ubean:app-config 虚拟模块                    |
-| P4-06b | #ubean-pages/#ubean-app Vue 虚拟模块 | ✅   | P0     | `src/core/vue/virtual-modules.ts`                                       | Vue 专用虚拟模块（lazy component map + entry 聚合）                              |
-| P4-07  | .ubean/pages.d.ts 类型生成           | ✅   | P0     | `src/core/codegen/index.ts`                                             | pages.d.ts + routes.d.ts 类型生成                                                |
-| P4-08  | Vue 适配器插件                       | ✅   | P0     | `src/core/vue/plugin.ts`                                                | ubeanVue Vite 插件（虚拟模块 resolveId/load + HMR）                              |
-| P4-09  | Vue SSR 渲染器                       | ✅   | P0     | `src/core/vue/renderer.ts`                                              | createVueRenderer + @vue/server-renderer renderToString                          |
-| P4-10  | defineApp 系统                       | 🔄   | P0     | `src/runtime/vue/app.ts`, `#ubean-app` 虚拟模块                         | createUbeanApp/createUbeanSSRApp 工厂已实现；app.ts/app.server.ts 入口扫描待实现 |
-| P4-11  | Vue 客户端运行时                     | ✅   | P0     | `src/runtime/vue/client.ts`, `src/runtime/vue/app.ts`                   | router/navigate/prefetch/Link/usePage/useRouter/useHead                          |
-| P4-12  | Head 管理                            | ✅   | P1     | `src/runtime/vue/head.ts`, `src/runtime/vue/app.ts`                     | createHeadManager（DOM 更新）+ Head 组件占位                                     |
-| P4-13  | Layout 嵌套渲染                      | ⬜   | P0     | `src/core/pages/layout.ts`                                              | 布局嵌套 + slot 渲染（单层 layout 已实现，嵌套待实现）                           |
-| P4-14  | Loader/Action 类型推导               | 🔄   | P0     | `src/runtime/pages/protocol.ts`, `src/runtime/router.ts`                | page loader 已集成运行时调用；Action 和类型推导待实现                            |
-| P4-15  | View Transitions                     | ⬜   | P2     | `src/core/vue/view-transition.ts`                                       | 页面切换动画（待实现）                                                           |
-| P4-16  | Prefetch 预取                        | ✅   | P2     | `src/runtime/vue/client.ts`                                             | 链接悬停预取（prefetch API 已在 client 中实现）                                  |
-| P4-17  | CLI page 命令                        | ⬜   | P1     | `src/core/cli/page/`                                                    | add/add-reuse/delete/update/recovery/list（待实现）                              |
-| P4-18  | CLI api/env/config/layout 等命令     | ⬜   | P2     | `src/core/cli/{api,env,config,layout,cron,plugin,middleware,devtools}/` | 各子命令（待实现）                                                               |
-| P4-19  | CLI Shared Layer                     | ⬜   | P0     | `src/core/cli/shared/`                                                  | fs-ops/backup/templates 与 DevTools 共享（待实现）                               |
-| P4-20  | 页面数据依赖、失效与流式协议         | ⬜   | P0     | `src/runtime/pages/data.ts`, `src/runtime/vue/client.ts`                | depends/invalidate、action 驱动刷新、internalFetch 继承与 stream capability      |
+| ID     | 任务                                 | 状态 | 优先级 | 产出文件                                                                              | 备注                                                                                         |
+| ------ | ------------------------------------ | ---- | ------ | ------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| P4-01  | Pages 核心协议                       | ✅   | P0     | `src/runtime/pages/protocol.ts`                                                       | Inertia 风格通信协议（PageObject/PageHead/HTML Shell/XSS 安全序列化）                        |
+| P4-02  | definePage 编译时宏                  | 🔄   | P0     | `src/core/routing/define-page.ts`                                                     | definePage 正则 AST 提取已实现，Vite 编译时转换待完成                                        |
+| P4-03  | Layout 系统运行时                    | ✅   | P0     | `src/runtime/pages/protocol.ts`, `src/runtime/vue/app.ts`, `src/core/vue/renderer.ts` | layouts/ 扫描、默认布局、layout: false、嵌套布局（基于路径层级自动推导父 layout）            |
+| P4-04  | Reuse 路由处理                       | ⬜   | P1     | `src/core/pages/reuse.ts`                                                             | .reuse.ts 文件 + reuse 字段校验（待实现）                                                    |
+| P4-05  | 路由组支持                           | ⬜   | P1     | `src/core/routing/pages.ts`                                                           | (group)/ 目录不生成路径段（待实现）                                                          |
+| P4-06  | ubean:pages 虚拟模块                 | ✅   | P0     | `src/core/build/virtual/modules.ts`                                                   | ubean:pages/ubean:routes/ubean:meta/ubean:app-config 虚拟模块                                |
+| P4-06b | #ubean-pages/#ubean-app Vue 虚拟模块 | ✅   | P0     | `src/core/vue/virtual-modules.ts`                                                     | Vue 专用虚拟模块（lazy component map + entry 聚合）                                          |
+| P4-07  | .ubean/pages.d.ts 类型生成           | ✅   | P0     | `src/core/codegen/index.ts`                                                           | pages.d.ts + routes.d.ts 类型生成                                                            |
+| P4-08  | Vue 适配器插件                       | ✅   | P0     | `src/core/vue/plugin.ts`                                                              | ubeanVue Vite 插件（虚拟模块 resolveId/load + HMR）                                          |
+| P4-09  | Vue SSR 渲染器                       | ✅   | P0     | `src/core/vue/renderer.ts`                                                            | createVueRenderer + @vue/server-renderer renderToString                                      |
+| P4-10  | defineApp 系统                       | 🔄   | P0     | `src/runtime/vue/app.ts`, `#ubean-app` 虚拟模块                                       | createUbeanApp/createUbeanSSRApp 工厂已实现；app.ts/app.server.ts 入口扫描待实现             |
+| P4-11  | Vue 客户端运行时                     | ✅   | P0     | `src/runtime/vue/client.ts`, `src/runtime/vue/app.ts`                                 | router/navigate/prefetch/Link/usePage/useRouter/useHead                                      |
+| P4-12  | Head 管理                            | ✅   | P1     | `src/runtime/vue/head.ts`, `src/runtime/vue/app.ts`                                   | createHeadManager（DOM 更新）+ Head 组件占位                                                 |
+| P4-13  | Layout 嵌套渲染                      | ✅   | P0     | `src/core/vue/renderer.ts`, `src/runtime/vue/app.ts`                                  | 布局链解析（resolveLayoutChain），从外向内嵌套渲染，支持自定义 resolveLayoutParent，循环检测 |
+| P4-14  | Loader/Action 类型推导               | 🔄   | P0     | `src/runtime/pages/protocol.ts`, `src/runtime/router.ts`                              | page loader 已集成运行时调用；Action 和类型推导待实现                                        |
+| P4-15  | View Transitions                     | ⬜   | P2     | `src/core/vue/view-transition.ts`                                                     | 页面切换动画（待实现）                                                                       |
+| P4-16  | Prefetch 预取                        | ✅   | P2     | `src/runtime/vue/client.ts`                                                           | 链接悬停预取（prefetch API 已在 client 中实现）                                              |
+| P4-17  | CLI page 命令                        | ⬜   | P1     | `src/core/cli/page/`                                                                  | add/add-reuse/delete/update/recovery/list（待实现）                                          |
+| P4-18  | CLI api/env/config/layout 等命令     | ⬜   | P2     | `src/core/cli/{api,env,config,layout,cron,plugin,middleware,devtools}/`               | 各子命令（待实现）                                                                           |
+| P4-19  | CLI Shared Layer                     | ⬜   | P0     | `src/core/cli/shared/`                                                                | fs-ops/backup/templates 与 DevTools 共享（待实现）                                           |
+| P4-20  | 页面数据依赖、失效与流式协议         | ⬜   | P0     | `src/runtime/pages/data.ts`, `src/runtime/vue/client.ts`                              | depends/invalidate、action 驱动刷新、internalFetch 继承与 stream capability                  |
 
 ### Phase 5: 实验性 Preset (Week 9-10)
 

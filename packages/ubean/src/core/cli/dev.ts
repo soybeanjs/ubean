@@ -68,7 +68,12 @@ export const devCommand: CommandDef = {
     const app = createUbeanApp({
       routes: result.apiRoutes,
       middleware: result.middlewares,
-      pages: result.pages
+      pages: result.pages,
+      openAPI: {
+        title: 'UBEAN Dev API',
+        scalarPath: '/_scalar',
+        openAPIPath: '/_openapi.json'
+      }
     });
 
     app.hooks.hook('request:start', c => {
@@ -82,8 +87,10 @@ export const devCommand: CommandDef = {
       onListen({ port: p, host: h }) {
         logger.box(
           `🚀 ubean dev server ready\n\n` +
-            `  → Local:   http://${h}:${p}\n` +
-            `  → Routes:  ${result.apiRoutes.length} API, ${result.pages.length} pages\n` +
+            `  → Local:      http://${h}:${p}\n` +
+            `  → Scalar UI:  http://${h}:${p}/_scalar\n` +
+            `  → OpenAPI:    http://${h}:${p}/_openapi.json\n` +
+            `  → Routes:     ${result.apiRoutes.length} API, ${result.pages.length} pages\n` +
             `  → Press Ctrl+C to stop`
         );
       }

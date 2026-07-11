@@ -13,6 +13,7 @@ export interface UbeanAppOptions {
   resolvePageComponent: (name: string) => Promise<Component>;
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>;
   defaultLayout?: string | null;
+  resolveLayoutParent?: (name: string) => string | null;
   initialPage?: PageObject;
   id?: string;
   head?: ReturnType<typeof createHeadManager>;
@@ -26,6 +27,66 @@ export interface UbeanAppInstance {
   navigate: (url: string, opts?: { replace?: boolean }) => Promise<void>;
 }
 
+function defaultResolveLayoutParent(name: string, defaultLayout: string | null): string | null {
+  if (!name || name === defaultLayout) return null;
+
+  const lastSlash = name.lastIndexOf('/');
+  if (lastSlash > 0) {
+    return name.slice(0, lastSlash);
+  }
+
+  return defaultLayout;
+}
+
+function renderNestedLayouts(
+  pageState: PageObject,
+  PageComp: Component,
+  layoutChain: { name: string; component: Component }[]
+): any {
+  const pageVNode = h(PageComp as ConcreteComponent, {
+    key: pageState.component + pageState.url,
+    ...(pageState.props as any)
+  });
+
+  if (layoutChain.length === 0) {
+    return pageVNode;
+  }
+
+  let vnode: any = pageVNode;
+  for (let i = layoutChain.length - 1; i >= 0; i--) {
+    const layout = layoutChain[i];
+    vnode = h(
+      layout.component as ConcreteComponent,
+      { page: pageState, layoutName: layout.name },
+      { default: () => vnode }
+    );
+  }
+  return vnode;
+}
+
+async function resolveLayoutChain(
+  layoutName: string | false | null | undefined,
+  resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>,
+  resolveParent: (name: string) => string | null
+): Promise<{ name: string; component: Component }[]> {
+  if (layoutName === false || layoutName == null) return [];
+
+  const chain: { name: string; component: Component }[] = [];
+  const visited = new Set<string>();
+  let current: string | null = layoutName;
+
+  while (current && !visited.has(current)) {
+    visited.add(current);
+    const comp = await resolveLayoutComponent(current);
+    if (comp) {
+      chain.push({ name: current, component: markRaw(comp) });
+    }
+    current = resolveParent(current);
+  }
+
+  return chain;
+}
+
 const PageRoot = defineComponent({
   name: 'UbeanPageRoot',
   setup() {
@@ -33,21 +94,13 @@ const PageRoot = defineComponent({
     return () => {
       const pageState = ctx.page as PageObject;
       const PageComp = ctx.resolvedPage.value as Component | null;
-      const LayoutComp = ctx.resolvedLayout.value as Component | null;
+      const layoutChain = ctx.resolvedLayouts.value as { name: string; component: Component }[];
 
       if (!PageComp) {
         return h('div', { 'data-ubean-loading': '' });
       }
 
-      const pageVNode = h(PageComp, {
-        key: pageState.component + pageState.url,
-        ...(pageState.props as any)
-      });
-
-      if (LayoutComp) {
-        return h(LayoutComp as ConcreteComponent, { page: pageState }, { default: () => pageVNode });
-      }
-      return pageVNode;
+      return renderNestedLayouts(pageState, PageComp, layoutChain);
     };
   }
 });
@@ -107,27 +160,30 @@ export function createUbeanApp(options: UbeanAppOptions & { id?: string }): Ubea
       url: '/'
     } as PageObject);
 
+  const resolveParent =
+    options.resolveLayoutParent || ((name: string) => defaultResolveLayoutParent(name, options.defaultLayout || null));
+
   const page = reactive<PageObject>({ ...initial }) as any;
   const resolvedPage = ref<Component | null>(null);
-  const resolvedLayout = ref<Component | null>(null);
+  const resolvedLayouts = ref<{ name: string; component: Component }[]>([]);
   const head = options.head || createHeadManager(initial.head);
 
   const ctx = {
     page,
     resolvedPage,
-    resolvedLayout,
+    resolvedLayouts,
     head,
     client
   };
 
   async function resolveFor(pageData: PageObject) {
     const layoutName = pageData.layout === false ? false : pageData.layout || options.defaultLayout;
-    const [pageComp, layoutComp] = await Promise.all([
+    const [pageComp, layouts] = await Promise.all([
       options.resolvePageComponent(pageData.component),
-      options.resolveLayoutComponent(layoutName)
+      resolveLayoutChain(layoutName, options.resolveLayoutComponent, resolveParent)
     ]);
     resolvedPage.value = markRaw(pageComp);
-    resolvedLayout.value = layoutComp ? markRaw(layoutComp) : null;
+    resolvedLayouts.value = layouts;
   }
 
   async function navigate(url: string, navOpts: { replace?: boolean } = {}) {
@@ -171,15 +227,18 @@ export function createUbeanApp(options: UbeanAppOptions & { id?: string }): Ubea
 }
 
 export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAppOptions, 'initialPage'>): App {
+  const resolveParent =
+    options.resolveLayoutParent || ((name: string) => defaultResolveLayoutParent(name, options.defaultLayout || null));
+
   const resolvedPage = ref<Component | null>(null);
-  const resolvedLayout = ref<Component | null>(null);
+  const resolvedLayouts = ref<{ name: string; component: Component }[]>([]);
   const head = options.head || createHeadManager(initialPage.head);
   const page = reactive<PageObject>({ ...initialPage });
 
   const ctx = {
     page,
     resolvedPage,
-    resolvedLayout,
+    resolvedLayouts,
     head,
     client: null
   };
@@ -196,13 +255,7 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
         if (!resolvedPage.value) {
           return h('div', { 'data-ubean-loading': '' });
         }
-        const pageVNode = h(resolvedPage.value, {
-          ...(initialPage.props as any)
-        });
-        if (resolvedLayout.value) {
-          return h(resolvedLayout.value as ConcreteComponent, { page: initialPage }, { default: () => pageVNode });
-        }
-        return pageVNode;
+        return renderNestedLayouts(initialPage, resolvedPage.value, resolvedLayouts.value);
       };
     }
   });
@@ -210,12 +263,13 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   const app = _createApp(RootComponent);
 
   const layoutName = initialPage.layout === false ? false : initialPage.layout || options.defaultLayout;
-  Promise.all([options.resolvePageComponent(initialPage.component), options.resolveLayoutComponent(layoutName)]).then(
-    ([pc, lc]) => {
-      resolvedPage.value = markRaw(pc);
-      resolvedLayout.value = lc ? markRaw(lc) : null;
-    }
-  );
+  Promise.all([
+    options.resolvePageComponent(initialPage.component),
+    resolveLayoutChain(layoutName, options.resolveLayoutComponent, resolveParent)
+  ]).then(([pc, layouts]) => {
+    resolvedPage.value = markRaw(pc);
+    resolvedLayouts.value = layouts;
+  });
 
   return app;
 }

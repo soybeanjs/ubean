@@ -51,6 +51,19 @@ function convertUbeanRoutePath(path: string): string {
   return honoPath;
 }
 
+function middlewarePathToHonoPath(relativePath: string): string {
+  const noExt = relativePath.replace(/\.(mjs|js|jsx|cjs|ts|tsx|mts|cts)$/i, '');
+  const segments = noExt.split('/');
+
+  if (segments.length === 1) {
+    return '/*';
+  }
+
+  const dirSegments = segments.slice(0, -1);
+  const dirPath = `/${dirSegments.join('/')}`;
+  return `${dirPath}/*`;
+}
+
 export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
   const { routes, middleware, pages, routeLoaders, middlewareLoaders, pageRenderer, pageAssetTags, pageLoaders } =
     options;
@@ -64,7 +77,8 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
       try {
         const mod = await loader();
         if (mod.default) {
-          app.use('*', mod.default as any);
+          const mountPath = mw.global ? '*' : middlewarePathToHonoPath(mw.relativePath);
+          app.use(mountPath, mod.default as any);
         }
       } catch {
         // ignore loading errors in dev

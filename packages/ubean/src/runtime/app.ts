@@ -1,10 +1,14 @@
+import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { createHooks } from 'hookable';
+import { join } from 'pathe';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../core/routing/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '../types/handler';
 import { registerRoutes } from './router';
 import { errorToResponse, isUbeanError, UbeanError } from './error';
+import { registerOpenAPIRoutes } from './internal/openapi';
+import { serveStatic } from './static';
 
 export interface UbeanRuntimeHooks {
   'app:created': (app: Hono<UbeanEnv>) => void | Promise<void>;
@@ -24,14 +28,27 @@ export interface UbeanRuntimeHooks {
 }
 
 export interface UbeanAppOptions {
+  rootDir?: string;
   routes?: ScannedApiRoute[];
   middleware?: ScannedMiddleware[];
   pages?: ScannedPageRoute[];
   plugins?: UbeanAppPlugin[];
   routeLoaders?: Record<string, () => Promise<{ default: ComposedHandler } | Record<string, ComposedHandler>>>;
   middlewareLoaders?: Record<string, () => Promise<{ default: UbeanMiddleware }>>;
+  pageLoaders?: Record<string, () => Promise<any>>;
+  pageRenderer?: import('./pages').PageRenderer | null;
+  pageAssetTags?: import('./pages').PageAssetTags;
   publicDir?: string;
   healthEndpoint?: boolean;
+  openAPI?:
+    | boolean
+    | {
+        title?: string;
+        version?: string;
+        description?: string;
+        scalarPath?: string;
+        openAPIPath?: string;
+      };
 }
 
 export interface UbeanAppPlugin {
@@ -96,8 +113,25 @@ export class UbeanApp {
       middleware: this.options.middleware || [],
       pages: this.options.pages || [],
       routeLoaders: this.options.routeLoaders || {},
-      middlewareLoaders: this.options.middlewareLoaders || {}
+      middlewareLoaders: this.options.middlewareLoaders || {},
+      pageLoaders: this.options.pageLoaders || {},
+      pageRenderer: this.options.pageRenderer ?? null,
+      pageAssetTags: this.options.pageAssetTags ?? {}
     });
+
+    if (this.options.publicDir) {
+      const publicDir = this.options.rootDir
+        ? join(this.options.rootDir, this.options.publicDir)
+        : this.options.publicDir;
+      if (existsSync(publicDir)) {
+        this.hono.use('/*', serveStatic({ publicDir }));
+      }
+    }
+
+    if (this.options.openAPI) {
+      const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};
+      registerOpenAPIRoutes(this.hono, this.options.routes || [], this.options.middleware || [], openAPIOpts);
+    }
 
     await this.hooks.callHook('app:after:register', this.hono);
 

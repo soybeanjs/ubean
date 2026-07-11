@@ -1,173 +1,330 @@
-export interface ApiClientOptions {
+import { $fetch, createFetch, FetchError, type FetchOptions } from 'ofetch';
+import type { HttpMethod } from '../core/routing/types';
+
+declare const globalThis: any;
+
+export interface ClientOptions {
   baseURL?: string;
   headers?: Record<string, string>;
-  credentials?: any;
-  onRequest?: (ctx: { request: any; url: string }) => void | Promise<void>;
-  onResponse?: (ctx: { response: Response }) => void | Promise<void>;
-  onError?: (ctx: { error: Error; response?: Response }) => void | Promise<void>;
+  credentials?: 'include' | 'omit' | 'same-origin';
+  timeout?: number;
+  retry?: number;
+  retryDelay?: number;
+  onUploadProgress?: (loaded: number, total: number) => void;
+  onRequest?: FetchOptions['onRequest'];
+  onRequestError?: FetchOptions['onRequestError'];
+  onResponse?: FetchOptions['onResponse'];
+  onResponseError?: FetchOptions['onResponseError'];
 }
 
-export interface ApiRouteDefinition {
-  [path: string]: {
-    [method: string]: {
-      query?: Record<string, unknown>;
-      json?: unknown;
-      form?: unknown;
-      param?: Record<string, string>;
-      response?: unknown;
+export interface RequestOptions<T = unknown> extends Omit<ClientOptions, 'baseURL'> {
+  body?: T;
+  query?: Record<string, string | number | boolean | undefined | null>;
+  params?: Record<string, string>;
+}
+
+export interface FlatResponse<T> {
+  data: T | null;
+  error: ClientError | null;
+  status: number;
+}
+
+export interface ClientError extends Error {
+  status: number;
+  data: unknown;
+}
+
+function detectRuntime(): string {
+  if (typeof globalThis.window !== 'undefined') return 'browser';
+  if (globalThis.process?.versions?.node) return `node/${globalThis.process.versions.node}`;
+  if (typeof globalThis.Deno !== 'undefined') return 'deno';
+  if (typeof globalThis.Bun !== 'undefined') return 'bun';
+  if (typeof globalThis.EdgeRuntime !== 'undefined') return 'edge';
+  if (typeof globalThis.workerd !== 'undefined') return 'workerd';
+  return 'unknown';
+}
+
+function createXhrFetch(onUploadProgress: (loaded: number, total: number) => void): any {
+  if (typeof globalThis.XMLHttpRequest === 'undefined') {
+    return undefined;
+  }
+
+  const XHR = globalThis.XMLHttpRequest;
+
+  return ((input: any, init?: any): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XHR();
+      const method = init?.method || 'GET';
+      let url: string;
+      if (typeof input === 'string') {
+        url = input;
+      } else if (input instanceof URL) {
+        url = input.toString();
+      } else {
+        url = input.url;
+      }
+
+      xhr.open(method, url, true);
+
+      xhr.responseType = 'blob';
+
+      if (init?.headers) {
+        const headersList: [string, string][] = Array.isArray(init.headers)
+          ? init.headers
+          : typeof init.headers.forEach === 'function' || init.headers instanceof Headers
+            ? []
+            : Object.entries(init.headers);
+        for (const [key, value] of headersList) {
+          xhr.setRequestHeader(key, value);
+        }
+      }
+
+      if (init?.credentials === 'include') {
+        xhr.withCredentials = true;
+      }
+
+      xhr.upload.onprogress = (event: any) => {
+        if (event.lengthComputable) {
+          onUploadProgress(event.loaded, event.total);
+        }
+      };
+
+      xhr.onload = () => {
+        const headers = new globalThis.Headers();
+        const headerStr = xhr.getAllResponseHeaders() || '';
+        const headerLines = headerStr.trim().split(/\r\n/);
+        for (const line of headerLines) {
+          const idx = line.indexOf(': ');
+          if (idx > 0) {
+            headers.append(line.slice(0, idx), line.slice(idx + 2));
+          }
+        }
+
+        resolve(new globalThis.Response(xhr.response, {
+          status: xhr.status,
+          statusText: xhr.statusText,
+          headers
+        }));
+      };
+
+      xhr.onerror = () => {
+        reject(new TypeError('Network request failed'));
+      };
+
+      xhr.ontimeout = () => {
+        reject(new TypeError('Network request timed out'));
+      };
+
+      xhr.send(init?.body);
+    });
+  }) as typeof fetch;
+}
+
+function createClientError(err: unknown): ClientError {
+  if (err instanceof FetchError) {
+    const clientError = new Error(err.message) as ClientError;
+    clientError.status = err.response?.status || 0;
+    clientError.data = err.data || null;
+    clientError.stack = err.stack;
+    return clientError;
+  }
+  if (err instanceof Error) {
+    const clientError = err as ClientError;
+    clientError.status = (err as any).status || 0;
+    clientError.data = (err as any).data || null;
+    return clientError;
+  }
+  const clientError = new Error(String(err)) as ClientError;
+  clientError.status = 0;
+  clientError.data = null;
+  return clientError;
+}
+
+export function createClient(defaultOptions: ClientOptions = {}) {
+  const runtime = detectRuntime();
+
+  const globalOptions: Record<string, any> = {};
+  if (defaultOptions.baseURL) globalOptions.baseURL = defaultOptions.baseURL;
+  if (defaultOptions.timeout) globalOptions.timeout = defaultOptions.timeout;
+  if (defaultOptions.retry !== undefined) globalOptions.retry = defaultOptions.retry;
+  if (defaultOptions.retryDelay !== undefined) globalOptions.retryDelay = defaultOptions.retryDelay;
+  if (defaultOptions.headers) globalOptions.headers = defaultOptions.headers;
+  if (defaultOptions.credentials) globalOptions.credentials = defaultOptions.credentials;
+  if (defaultOptions.onRequest) globalOptions.onRequest = defaultOptions.onRequest;
+  if (defaultOptions.onRequestError) globalOptions.onRequestError = defaultOptions.onRequestError;
+  if (defaultOptions.onResponse) globalOptions.onResponse = defaultOptions.onResponse;
+  if (defaultOptions.onResponseError) globalOptions.onResponseError = defaultOptions.onResponseError;
+
+  const baseFetch = $fetch.create(globalOptions as FetchOptions);
+
+  function buildOptions<B>(options: RequestOptions<B> = {}): any {
+    const fetchOpts: Record<string, any> = {
+      retry: options.retry ?? defaultOptions.retry ?? 1,
+      retryDelay: options.retryDelay ?? defaultOptions.retryDelay ?? 0,
+      timeout: options.timeout ?? defaultOptions.timeout
     };
-  };
-}
 
-type ExtractMethod<T, M extends string> = T extends { [K in M]: infer R } ? R : never;
-type ExtractPaths<T> = keyof T & string;
+    if (options.headers) fetchOpts.headers = options.headers;
+    if (options.credentials) fetchOpts.credentials = options.credentials;
+    if (options.params) fetchOpts.params = options.params;
+    if (options.body !== undefined) fetchOpts.body = options.body as any;
+    if (options.query) fetchOpts.query = options.query as any;
+    if (options.onRequest) fetchOpts.onRequest = options.onRequest;
+    if (options.onRequestError) fetchOpts.onRequestError = options.onRequestError;
+    if (options.onResponse) fetchOpts.onResponse = options.onResponse;
+    if (options.onResponseError) fetchOpts.onResponseError = options.onResponseError;
 
-type PathWithParam<T extends string> = T extends `${infer _Start}:${infer Param}/${infer Rest}`
-  ? { [K in Param | keyof PathWithParamRec<Rest>]: string }
-  : T extends `${infer _Start}:${infer Param}`
-    ? { [K in Param]: string }
-    : T extends `${infer _Start}*${infer Param}`
-      ? { [K in Param]: string }
-      : {};
-
-type PathWithParamRec<T extends string> = T extends `${infer _Start}:${infer Param}/${infer Rest}`
-  ? { [K in Param]: string } & PathWithParamRec<Rest>
-  : T extends `${infer _Start}:${infer Param}`
-    ? { [K in Param]: string }
-    : {};
-
-type ClientMethod<D, M extends string> = <P extends ExtractPaths<D>>(
-  path: P,
-  ...args: ExtractMethod<D[P], M> extends { query?: infer Q; json?: infer B; form?: infer F; response?: infer _R }
-    ? [
-        options?: {
-          params?: PathWithParam<P>;
-          query?: Q;
-          json?: B;
-          form?: F;
-          headers?: Record<string, string>;
-        }
-      ]
-    : [
-        options?: {
-          params?: PathWithParam<P>;
-          query?: Record<string, unknown>;
-          json?: unknown;
-          form?: Record<string, unknown>;
-          headers?: Record<string, string>;
-        }
-      ]
-) => Promise<ExtractMethod<D[P], M> extends { response?: infer R } ? R : unknown>;
-
-export interface TypedApiClient<D extends ApiRouteDefinition = ApiRouteDefinition> {
-  get: ClientMethod<D, 'GET'>;
-  post: ClientMethod<D, 'POST'>;
-  put: ClientMethod<D, 'PUT'>;
-  patch: ClientMethod<D, 'PATCH'>;
-  delete: ClientMethod<D, 'DELETE'>;
-  raw(path: string, init?: RequestInit): Promise<Response>;
-}
-
-function buildUrl(
-  path: string,
-  params?: Record<string, string>,
-  query?: Record<string, unknown>,
-  baseURL?: string
-): string {
-  let urlPath = path;
-  if (params) {
-    for (const [k, v] of Object.entries(params)) {
-      urlPath = urlPath.replace(`:${k}`, encodeURIComponent(String(v)));
-      urlPath = urlPath.replace(`*${k}`, encodeURIComponent(String(v)));
-    }
+    return fetchOpts;
   }
-  let url = baseURL ? baseURL.replace(/\/$/, '') + urlPath : urlPath;
-  if (query) {
-    const qs = new URLSearchParams();
-    for (const [k, v] of Object.entries(query)) {
-      if (v !== undefined && v !== null) {
-        qs.append(k, String(v));
-      }
-    }
-    const qsStr = qs.toString();
-    if (qsStr) url += `?${qsStr}`;
-  }
-  return url;
-}
 
-export function createApiClient<D extends ApiRouteDefinition = ApiRouteDefinition>(
-  options: ApiClientOptions = {}
-): TypedApiClient<D> {
-  const { baseURL = '', headers: defaultHeaders, credentials, onRequest, onResponse, onError } = options;
-
-  async function request(
-    method: string,
-    path: string,
-    opts: {
-      params?: Record<string, string>;
-      query?: Record<string, unknown>;
-      json?: unknown;
-      form?: Record<string, unknown> | FormData;
-      headers?: Record<string, string>;
-    } = {}
-  ): Promise<any> {
-    const { params, query, json, form, headers: optHeaders } = opts;
-    const url = buildUrl(path, params, query, baseURL);
-
-    const headers: Record<string, string> = { ...defaultHeaders, ...optHeaders };
-    let body: any;
-
-    if (json !== undefined) {
-      headers['Content-Type'] = headers['Content-Type'] || 'application/json';
-      body = JSON.stringify(json);
-    } else if (form instanceof FormData) {
-      body = form;
-    } else if (form && typeof form === 'object') {
-      const fd = new FormData();
-      for (const [k, v] of Object.entries(form)) {
-        fd.append(k, String(v));
-      }
-      body = fd;
-    }
-
-    const init: RequestInit & { url: string } = {
-      method,
-      headers,
-      body,
-      credentials
-    } as RequestInit & { url: string };
-
-    if (onRequest) await onRequest({ request: init, url });
-
+  async function request<T = unknown, B = unknown>(
+    method: HttpMethod,
+    url: string,
+    options?: RequestOptions<B>
+  ): Promise<T> {
     try {
-      const response = await fetch(url, init);
-      if (onResponse) await onResponse({ response });
-      if (!response.ok) {
-        const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
-        if (onError) await onError({ error, response });
-        throw error;
+      const opts = buildOptions(options);
+      if (options?.onUploadProgress) {
+        const xhrFetch = createXhrFetch(options.onUploadProgress);
+        if (xhrFetch) {
+          const customFetch = createFetch({ defaults: opts, fetch: xhrFetch } as any);
+          return await customFetch<T>(url, { method: method as any });
+        }
       }
-      const contentType = response.headers.get('Content-Type') || '';
-      if (contentType.includes('application/json')) {
-        return response.json();
-      }
-      return response.text();
+      return await baseFetch<T>(url, { method: method as any, ...opts });
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      if (onError) await onError({ error });
-      throw error;
+      throw createClientError(err);
     }
   }
 
-  return {
-    get: ((path: string, opts?: any) => request('GET', path, opts)) as any,
-    post: ((path: string, opts?: any) => request('POST', path, opts)) as any,
-    put: ((path: string, opts?: any) => request('PUT', path, opts)) as any,
-    patch: ((path: string, opts?: any) => request('PATCH', path, opts)) as any,
-    delete: ((path: string, opts?: any) => request('DELETE', path, opts)) as any,
-    raw(path: string, init?: RequestInit): Promise<Response> {
-      const url = baseURL ? baseURL.replace(/\/$/, '') + path : path;
-      return fetch(url, init);
+  async function requestFlat<T = unknown, B = unknown>(
+    method: HttpMethod,
+    url: string,
+    options?: RequestOptions<B>
+  ): Promise<FlatResponse<T>> {
+    try {
+      const opts = buildOptions(options);
+      let response;
+      if (options?.onUploadProgress) {
+        const xhrFetch = createXhrFetch(options.onUploadProgress);
+        if (xhrFetch) {
+          const customFetch = createFetch({ defaults: opts, fetch: xhrFetch } as any);
+          response = await customFetch.raw<T>(url, { method: method as any });
+        } else {
+          response = await baseFetch.raw<T>(url, { method: method as any, ...opts });
+        }
+      } else {
+        response = await baseFetch.raw<T>(url, { method: method as any, ...opts });
+      }
+      return {
+        data: (response as any)._data as T,
+        error: null,
+        status: response.status
+      };
+    } catch (err) {
+      const clientError = createClientError(err);
+      const status = (err as any)?.response?.status || 0;
+      return {
+        data: null,
+        error: clientError,
+        status
+      };
     }
+  }
+
+  const client = {
+    get<T = unknown>(url: string, options?: Omit<RequestOptions, 'body'>): Promise<T> {
+      return request<T>('GET', url, options);
+    },
+    post<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<T> {
+      return request<T, B>('POST', url, { ...options, body });
+    },
+    put<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<T> {
+      return request<T, B>('PUT', url, { ...options, body });
+    },
+    patch<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<T> {
+      return request<T, B>('PATCH', url, { ...options, body });
+    },
+    delete<T = unknown>(url: string, options?: RequestOptions): Promise<T> {
+      return request<T>('DELETE', url, options);
+    },
+    head<T = unknown>(url: string, options?: Omit<RequestOptions, 'body'>): Promise<T> {
+      return request<T>('HEAD', url, options);
+    },
+    options<T = unknown>(url: string, options?: RequestOptions): Promise<T> {
+      return request<T>('OPTIONS', url, options);
+    },
+
+    $get<T = unknown>(url: string, options?: Omit<RequestOptions, 'body'>): Promise<FlatResponse<T>> {
+      return requestFlat<T>('GET', url, options);
+    },
+    $post<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<FlatResponse<T>> {
+      return requestFlat<T, B>('POST', url, { ...options, body });
+    },
+    $put<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<FlatResponse<T>> {
+      return requestFlat<T, B>('PUT', url, { ...options, body });
+    },
+    $patch<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<FlatResponse<T>> {
+      return requestFlat<T, B>('PATCH', url, { ...options, body });
+    },
+    $delete<T = unknown>(url: string, options?: RequestOptions): Promise<FlatResponse<T>> {
+      return requestFlat<T>('DELETE', url, options);
+    },
+
+    raw<T = unknown, B = unknown>(method: HttpMethod, url: string, options?: RequestOptions<B>) {
+      const opts = buildOptions(options);
+      return baseFetch.raw<T>(url, { method: method as any, ...opts });
+    },
+
+    extend(options: ClientOptions) {
+      return createClient({
+        ...defaultOptions,
+        ...options,
+        headers: {
+          ...defaultOptions.headers,
+          ...options.headers
+        }
+      });
+    },
+
+    runtime
+  };
+
+  return client;
+}
+
+export type ApiClient = ReturnType<typeof createClient>;
+
+export const defaultClient = createClient();
+
+export const {
+  get,
+  post,
+  put,
+  patch,
+  delete: del,
+  head,
+  options: opts,
+  $get,
+  $post,
+  $put,
+  $patch,
+  $delete: $del,
+  raw,
+  extend,
+  runtime
+} = defaultClient;
+
+export function diagnoseEnvironment(): {
+  runtime: string;
+  hasFetch: boolean;
+  hasXHR: boolean;
+  hasAbortController: boolean;
+} {
+  return {
+    runtime: detectRuntime(),
+    hasFetch: typeof globalThis.fetch !== 'undefined',
+    hasXHR: typeof globalThis.XMLHttpRequest !== 'undefined',
+    hasAbortController: typeof globalThis.AbortController !== 'undefined'
   };
 }

@@ -7,10 +7,35 @@ export type { UbeanAppOptions, UbeanAppPlugin, UbeanRuntimeHooks, AppPlugin } fr
 export { defineEnv, setRuntimeEnv, useRuntimeEnv } from './runtime/env';
 export type { EnvSchema, EnvConfig, DefineEnvResult, EnvValidationError, InferEnvOutput } from './runtime/env';
 export { registerRoutes, createRouteLoader } from './runtime/router';
-export { createApiClient } from './runtime/client';
+export {
+  createClient,
+  defaultClient,
+  get,
+  post,
+  put,
+  patch,
+  del as delete,
+  head,
+  opts as options,
+  $get,
+  $post,
+  $put,
+  $patch,
+  $del as $delete,
+  raw,
+  extend,
+  runtime,
+  diagnoseEnvironment
+} from './runtime/client';
 export { defineScheduled, getScheduledTasks, runScheduledTask, clearScheduledTasks } from './runtime/cron';
 export type { CronTaskMeta, CronContext, ScheduledTask, CronSchedule } from './runtime/cron';
-export type { ApiClientOptions, TypedApiClient, ApiRouteDefinition } from './runtime/client';
+export type {
+  ApiClient,
+  ClientOptions,
+  RequestOptions,
+  ClientError,
+  FlatResponse
+} from './runtime/client';
 export {
   isPagesRequest,
   pageJsonResponse,

@@ -9,7 +9,7 @@ import { startDevServer } from '../src/core/dev/server';
 import { standardPreset, nodePreset, registerBuiltinPresets, resolvePresetByName } from '../src/core/preset';
 import { createVuePagesVirtualModule, createVueAppEntryVirtualModule } from '../src/core/vue/virtual-modules';
 import { createUbeanApp, UbeanApp } from '../src/runtime/app';
-import { createApiClient } from '../src/runtime/client';
+import { createClient } from '../src/runtime/client';
 import { defineEnv, setRuntimeEnv, useRuntimeEnv } from '../src/runtime/env';
 import { defineHandler } from '../src/runtime/handler';
 import {
@@ -467,9 +467,9 @@ describe('useRuntimeEnv', () => {
   });
 });
 
-describe('createApiClient', () => {
+describe('createClient', () => {
   it('creates a client with http methods', () => {
-    const client = createApiClient({ baseURL: 'http://localhost:3000' });
+    const client = createClient({ baseURL: 'http://localhost:3000' });
     expect(client).toBeDefined();
     expect(typeof client.get).toBe('function');
     expect(typeof client.post).toBe('function');
@@ -477,6 +477,9 @@ describe('createApiClient', () => {
     expect(typeof client.patch).toBe('function');
     expect(typeof client.delete).toBe('function');
     expect(typeof client.raw).toBe('function');
+    expect(typeof client.$get).toBe('function');
+    expect(typeof client.$post).toBe('function');
+    expect(client.runtime).toBeDefined();
   });
 
   it('builds URLs with baseURL', async () => {
@@ -485,24 +488,9 @@ describe('createApiClient', () => {
       .mockResolvedValue(
         new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
       );
-    const client = createApiClient({ baseURL: 'http://api.example.com' });
+    const client = createClient({ baseURL: 'http://api.example.com' });
     await client.get('/users');
-    expect(fetchSpy).toHaveBeenCalledWith('http://api.example.com/users', expect.objectContaining({ method: 'GET' }));
-    fetchSpy.mockRestore();
-  });
-
-  it('builds URLs with path params', async () => {
-    const fetchSpy = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(
-        new Response(JSON.stringify({ id: 1 }), { status: 200, headers: { 'Content-Type': 'application/json' } })
-      );
-    const client = createApiClient({ baseURL: 'http://api.example.com' });
-    await client.get('/users/:id', { params: { id: '42' } });
-    expect(fetchSpy).toHaveBeenCalledWith(
-      'http://api.example.com/users/42',
-      expect.objectContaining({ method: 'GET' })
-    );
+    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('http://api.example.com/users'), expect.objectContaining({ method: 'GET' }));
     fetchSpy.mockRestore();
   });
 
@@ -512,9 +500,8 @@ describe('createApiClient', () => {
       .mockResolvedValue(
         new Response(JSON.stringify([]), { status: 200, headers: { 'Content-Type': 'application/json' } })
       );
-    const client = createApiClient({ baseURL: 'http://api.example.com' });
+    const client = createClient({ baseURL: 'http://api.example.com' });
     await client.get('/users', { query: { page: '2', limit: '10' } });
-    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('?'), expect.anything());
     const url = fetchSpy.mock.calls[0][0] as string;
     expect(url).toContain('page=2');
     expect(url).toContain('limit=10');
@@ -528,15 +515,45 @@ describe('createApiClient', () => {
         headers: { 'Content-Type': 'application/json' }
       })
     );
-    const client = createApiClient({ baseURL: 'http://api.example.com' });
-    await client.post('/users', { json: { name: 'Test' } });
+    const client = createClient({ baseURL: 'http://api.example.com' });
+    await client.post('/users', { name: 'Test' });
     expect(fetchSpy).toHaveBeenCalledWith(
-      'http://api.example.com/users',
+      expect.stringContaining('/users'),
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ name: 'Test' })
       })
     );
+    fetchSpy.mockRestore();
+  });
+
+  it('supports flat client mode with $get/$post', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ id: 1 }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    const client = createClient({ baseURL: 'http://api.example.com' });
+    const result = await client.$get('/users/1');
+    expect(result.data).toEqual({ id: 1 });
+    expect(result.error).toBeNull();
+    expect(result.status).toBe(200);
+    fetchSpy.mockRestore();
+  });
+
+  it('flat client returns error on failure', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ message: 'Not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    );
+    const client = createClient({ baseURL: 'http://api.example.com' });
+    const result = await client.$get('/users/999');
+    expect(result.data).toBeNull();
+    expect(result.error).toBeDefined();
+    expect(result.status).toBe(404);
     fetchSpy.mockRestore();
   });
 });

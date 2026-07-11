@@ -1,0 +1,26 @@
+{
+  "name": "ubean",
+  "description": "Vue meta framework",
+  "type": "module",
+  "scripts": {
+    "commit": "soy git-commit",
+    "lint": "vp lint --fix && pnpm lint:vue",
+    "lint:vue": "eslint . --ext .vue --fix",
+    "prepare": "vp config",
+    "typecheck": "vue-tsc --noEmit --skipLibCheck",
+    "upkg": "soy ncu"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@soybeanjs/cli": "^1.7.2",
+    "@soybeanjs/eslint-config-vue": "^0.1.1",
+    "@soybeanjs/oxc-config": "^0.2.3",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "eslint": "^10.7.0",
+    "typescript": "^7.0.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vue-tsc": "^3.3.7"
+  },
+  "packageManager": "pnpm@11.11.0"
+}

@@ -1,0 +1,18 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit",
+    "source.fixAll.oxc": "explicit"
+  },
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": true,
+  "editor.formatOnSaveMode": "file",
+  "eslint.validate": ["vue"],
+  "i18n-ally.localesPaths": ["app/i18n/locales"],
+  "i18n-ally.keystyle": "nested",
+  "i18n-ally.displayLanguage": "zh-CN",
+  "oxc.fmt.configPath": "./vite.config.ts",
+  "unocss.root": ["./apps/admin"],
+  "[vue]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
+  }
+}

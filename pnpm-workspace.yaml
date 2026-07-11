@@ -1,0 +1,17 @@
+catalog:
+  vite: npm:@voidzero-dev/vite-plus-core@latest
+  vitest: npm:@voidzero-dev/vite-plus-test@latest
+  vite-plus: ^0.2.4
+overrides:
+  vite: 'catalog:'
+  vitest: 'catalog:'
+  kysely: '0.28.5'
+  markdown-exit: 1.1.0-beta.2
+shamefullyHoist: true
+allowBuilds:
+  esbuild: true
+  sharp: false
+  workerd: true
+minimumReleaseAgeExclude:
+  - eslint@10.7.0
+  - hono@4.12.29

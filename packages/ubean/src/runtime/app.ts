@@ -12,6 +12,7 @@ import { registerOpenAPIRoutes } from './internal/openapi';
 import { serveStatic } from './static';
 import { createRequestIdMiddleware } from './observability';
 import { createRouteRulesMiddleware } from './route-rules';
+import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from './cache';
 
 export interface UbeanRuntimeHooks {
   'app:created': (app: Hono<UbeanEnv>) => void | Promise<void>;
@@ -84,6 +85,11 @@ export class UbeanApp {
 
     if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
       this.hono.use('*', createRouteRulesMiddleware(this.options.routeRules));
+      const cacheRules = resolveRouteCacheRules(this.options.routeRules);
+      if (Object.keys(cacheRules).length > 0) {
+        useCacheStore(createMemoryStore());
+        this.hono.use('*', createCacheMiddleware({ rules: cacheRules }));
+      }
     }
 
     this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {

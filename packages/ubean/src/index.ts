@@ -184,6 +184,15 @@ export { generateTypes } from './core/codegen';
 export { definePreset, resolvePreset, registerPreset } from './core/preset/_utils/preset';
 export { registerBuiltinPresets, resolvePresetByName, standardPreset, nodePreset, cloudflarePreset, generateWranglerConfig, serializeWranglerToml, detectPreset, resolvePresetWithDetection, listDetectablePresets } from './core/preset';
 export { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from './runtime/route-rules';
+export {
+  createMemoryStore,
+  useCacheStore,
+  clearCacheStore,
+  createCacheMiddleware,
+  cachedEventHandler,
+  invalidateRouteCache,
+  resolveRouteCacheRules
+} from './runtime/cache';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
 export type {
@@ -212,3 +221,4 @@ export type {
 } from './core/routing/types';
 export type { Preset } from './core/preset/_utils/preset';
 export type { WranglerConfig, PresetDetectionHints, PresetDetectionResult } from './core/preset';
+export type { CacheEntry, CacheStore, CacheRule } from './runtime/cache';

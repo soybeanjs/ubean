@@ -66,6 +66,10 @@ export interface ScannedPlugin extends ScannedFile {
   order: number;
 }
 
+export interface ScannedCronTask extends ScannedFile {
+  name: string;
+}
+
 export interface AppEntry {
   exists: boolean;
   fullPath?: string;
@@ -87,6 +91,7 @@ export interface ScanOptions {
     pages?: string;
     layouts?: string;
     plugins?: string;
+    crons?: string;
   };
   ignore?: string[];
 }
@@ -97,6 +102,7 @@ export interface ScanResult {
   pages: ScannedPageRoute[];
   layouts: ScannedLayout[];
   plugins: ScannedPlugin[];
+  crons: ScannedCronTask[];
   appEntry: ScannedAppEntry;
 }
 

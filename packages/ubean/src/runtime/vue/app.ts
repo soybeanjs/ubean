@@ -1,8 +1,21 @@
-import { createApp as _createApp, defineComponent, h, ref, reactive, provide, inject, markRaw, watchEffect } from 'vue';
-import type { App, Component, ConcreteComponent } from 'vue';
+import {
+  createApp as _createApp,
+  defineComponent,
+  h,
+  ref,
+  reactive,
+  provide,
+  inject,
+  markRaw,
+  watchEffect,
+  computed
+} from 'vue';
+import type { App, Component, ConcreteComponent, PropType } from 'vue';
 import type { PageObject } from '../pages/protocol';
 import { createUbeanClient, getInitialPageData } from './client';
 import { createHeadManager } from './head';
+import { resolveRoute, isActiveRoute } from './router-location';
+import type { RouteLocation } from './router-location';
 
 const PAGE_KEY = Symbol('ubean-page');
 const ROUTER_KEY = Symbol('ubean-router');
@@ -108,13 +121,28 @@ const PageRoot = defineComponent({
 export const Link = defineComponent({
   name: 'Link',
   props: {
-    href: { type: String, required: true },
+    to: { type: [String, Object] as PropType<RouteLocation>, default: undefined },
+    href: { type: String, default: undefined },
     replace: { type: Boolean, default: false },
     prefetch: { type: Boolean, default: false },
-    as: { type: String, default: 'a' }
+    as: { type: String, default: 'a' },
+    activeClass: { type: String, default: 'router-link-active' },
+    exactActiveClass: { type: String, default: 'router-link-exact-active' },
+    noActiveClass: { type: Boolean, default: false }
   },
   setup(props, { slots, attrs }) {
-    const router = inject(ROUTER_KEY) as { navigate: (url: string, opts?: any) => Promise<void>; client: any };
+    const router = inject(ROUTER_KEY) as {
+      navigate: (url: string, opts?: any) => Promise<void>;
+      client: any;
+      page?: PageObject;
+    };
+    const page = inject(PAGE_KEY, null) as PageObject | null;
+
+    const resolvedHref = computed(() => {
+      if (props.href) return props.href;
+      if (props.to) return resolveRoute(props.to);
+      return '#';
+    });
 
     function onClick(e: any) {
       if (e.defaultPrevented) return;
@@ -123,21 +151,52 @@ export const Link = defineComponent({
       if (e.target && e.target.closest?.('a')?.hasAttribute('target')) return;
 
       e.preventDefault();
-      router.navigate(props.href, { replace: props.replace });
+      router.navigate(resolvedHref.value, { replace: props.replace });
     }
 
     function onPrefetch() {
       if (props.prefetch && router.client?.prefetch) {
-        router.client.prefetch(props.href);
+        router.client.prefetch(resolvedHref.value);
       }
     }
 
-    return () =>
-      h(
+    return () => {
+      const href = resolvedHref.value;
+      const isExternal = href.startsWith('http') || href.startsWith('//');
+      const classes: Record<string, boolean> = {};
+
+      if (!props.noActiveClass && page && !isExternal) {
+        if (props.exactActiveClass) {
+          classes[props.exactActiveClass] = isActiveRoute(page.url, href, true);
+        }
+        if (props.activeClass) {
+          classes[props.activeClass] = isActiveRoute(page.url, href, false);
+        }
+      }
+
+      return h(
         props.as,
-        { ...attrs, href: props.href, onClick, onMouseenter: onPrefetch, 'data-ubean-link': '' },
-        slots.default ? slots.default() : []
+        {
+          ...attrs,
+          href,
+          ...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {}),
+          onClick: isExternal ? undefined : onClick,
+          onMouseenter: isExternal ? undefined : onPrefetch,
+          'data-ubean-link': '',
+          class:
+            Object.keys(classes)
+              .filter(c => classes[c])
+              .join(' ') || undefined
+        },
+        slots.default
+          ? slots.default({
+              isActive: classes[props.activeClass],
+              isExactActive: classes[props.exactActiveClass],
+              href
+            })
+          : []
       );
+    };
   }
 });
 

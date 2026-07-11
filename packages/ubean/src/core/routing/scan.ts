@@ -1,6 +1,7 @@
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
 import { filePathToRoute } from '../../utils/path';
+import { logger } from '../log';
 import { extractDefinePage } from './define-page';
 import { detectHttpExports } from './detect-exports';
 import { HTTP_METHODS, GLOB_SCAN_PATTERN, GLOB_VUE_PATTERN } from './types';
@@ -13,6 +14,7 @@ import type {
   ScannedLayout,
   ScannedPlugin,
   ScannedAppEntry,
+  ScannedCronTask,
   AppEntry
 } from './types';
 
@@ -21,7 +23,8 @@ const DEFAULT_DIRS = {
   middleware: 'middleware',
   pages: 'pages',
   layouts: 'layouts',
-  plugins: 'plugins'
+  plugins: 'plugins',
+  crons: 'crons'
 };
 
 function splitOrderPrefix(name: string): { order: number; cleanName: string } {
@@ -42,16 +45,28 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
 
   const srcDir = isAbsolute(options.srcDir) ? options.srcDir : join(options.cwd, options.srcDir);
 
-  const [apiRoutes, middlewares, pages, layouts, plugins, appEntry] = await Promise.all([
+  const [apiRoutes, middlewares, pages, layouts, plugins, crons, appEntry] = await Promise.all([
     scanApiRoutes(srcDir, dirs.routes, ignore),
     scanMiddlewares(srcDir, dirs.middleware, ignore),
     scanPages(srcDir, dirs.pages, ignore),
     scanLayouts(srcDir, dirs.layouts, ignore),
     scanPlugins(srcDir, dirs.plugins, ignore),
+    scanCrons(srcDir, dirs.crons, ignore),
     scanAppEntry(srcDir)
   ]);
 
-  return { apiRoutes, middlewares, pages, layouts, plugins, appEntry };
+  const reusePageNames = new Set(pages.filter(p => p.isReuse).map(p => p.name));
+
+  for (const page of pages) {
+    if (page.reuseTarget && !reusePageNames.has(page.reuseTarget)) {
+      logger.warn(
+        `Page "${page.name}" references reuse target "${page.reuseTarget}" which does not exist. ` +
+          `Available reuse pages: ${[...reusePageNames].join(', ') || '(none)'}`
+      );
+    }
+  }
+
+  return { apiRoutes, middlewares, pages, layouts, plugins, crons, appEntry };
 }
 
 async function scanApiRoutes(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedApiRoute[]> {
@@ -230,6 +245,29 @@ async function scanPlugins(srcDir: string, dirName: string, ignore: string[]): P
 }
 
 const APP_EXTENSIONS = ['ts', 'js', 'mjs', 'mts'];
+
+async function scanCrons(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedCronTask[]> {
+  const dir = join(srcDir, dirName);
+  const files = await glob(GLOB_SCAN_PATTERN, {
+    cwd: dir,
+    dot: true,
+    ignore: [...ignore, '**/*.vue', '**/_*'],
+    absolute: true
+  }).catch(() => [] as string[]);
+
+  return files.sort().map(fullPath => {
+    const relativePath = toPosixPath(relative(dir, fullPath));
+    const base = basename(relativePath, extname(relativePath));
+    const { cleanName } = splitOrderPrefix(base);
+    return {
+      fullPath,
+      relativePath,
+      dirname: dirname(relativePath),
+      basename: basename(relativePath),
+      name: cleanName
+    };
+  });
+}
 
 async function scanAppEntry(srcDir: string): Promise<ScannedAppEntry> {
   const result: ScannedAppEntry = {

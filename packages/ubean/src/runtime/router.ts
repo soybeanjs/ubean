@@ -239,8 +239,10 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
       Object.assign(props as any, actionResult);
     }
 
+    const pageComponent = page.reuseTarget || page.name;
+
     const pageObj: PageObject = {
-      component: page.name,
+      component: pageComponent,
       props,
       params: c.req.param(),
       url: c.req.path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),

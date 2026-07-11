@@ -8,6 +8,8 @@ export { defineEnv, setRuntimeEnv, useRuntimeEnv } from './runtime/env';
 export type { EnvSchema, EnvConfig, DefineEnvResult, EnvValidationError, InferEnvOutput } from './runtime/env';
 export { registerRoutes, createRouteLoader } from './runtime/router';
 export { createApiClient } from './runtime/client';
+export { defineScheduled, getScheduledTasks, runScheduledTask, clearScheduledTasks } from './runtime/cron';
+export type { CronTaskMeta, CronContext, ScheduledTask, CronSchedule } from './runtime/cron';
 export type { ApiClientOptions, TypedApiClient, ApiRouteDefinition } from './runtime/client';
 export {
   isPagesRequest,
@@ -29,7 +31,9 @@ export {
   extractPageData,
   defineApp,
   applyAppConfig,
-  definePage
+  definePage,
+  resolveRoute,
+  isActiveRoute
 } from './runtime/vue';
 export type {
   UbeanVueRouter,
@@ -40,7 +44,10 @@ export type {
   SubmitOptions,
   SubmitResult,
   DefineAppOptions,
-  ResolvedAppConfig
+  ResolvedAppConfig,
+  RouteLocation,
+  RouteLocationRaw,
+  TypedLinkProps
 } from './runtime/vue';
 export { ubeanVuePlugin } from './core/vue/plugin';
 export { logger } from './core/log';

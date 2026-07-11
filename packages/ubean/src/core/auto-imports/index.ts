@@ -101,7 +101,14 @@ const BUILTIN_COMPOSABLES: AutoImport[] = [
   { name: 'callInternal', from: 'ubean' },
   { name: 'navigateTo', from: 'ubean' },
   { name: 'redirect', from: 'ubean' },
-  { name: 'useRuntimeConfig', from: 'ubean' }
+  { name: 'useRuntimeConfig', from: 'ubean' },
+  { name: 'defineScheduled', from: 'ubean' },
+  { name: 'defineQueue', from: 'ubean' },
+  { name: 'sendMessage', from: 'ubean' },
+  { name: 'sendMessages', from: 'ubean' },
+  { name: 'getQueueStats', from: 'ubean' },
+  { name: 'useKV', from: 'ubean' },
+  { name: 'createKV', from: 'ubean' }
 ];
 
 function toPosixPath(p: string): string {

@@ -48,6 +48,29 @@ export {
 } from './runtime/cron-scheduler';
 export type { CronScheduler, SchedulerOptions } from './runtime/cron-scheduler';
 export {
+  defineQueue,
+  createMemoryQueueDriver,
+  setQueueDriver,
+  useQueueDriver,
+  sendMessage,
+  sendMessages,
+  getQueueDefinitions,
+  clearQueueDefinitions,
+  startQueueWorkers,
+  stopQueueWorkers,
+  getQueueStats,
+  getAllQueueStats
+} from './runtime/queue';
+export type {
+  QueueMessage,
+  QueueHandler,
+  QueueOptions,
+  QueueDefinition,
+  QueueDriver,
+  QueueStats,
+  SendOptions
+} from './runtime/queue';
+export {
   createRequestIdMiddleware,
   getRequestId,
   generateRequestId,

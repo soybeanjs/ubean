@@ -120,9 +120,10 @@ describe('dev watcher', () => {
     });
 
     watcher.start();
+    await new Promise(r => setTimeout(r, 100));
     await writeFile(join(tmpDir, 'src', 'a.ts'), 'export const a = 1;');
     await writeFile(join(tmpDir, 'src', 'b.ts'), 'export const b = 2;');
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 200));
     watcher.stop();
 
     expect(callCount).toBeGreaterThanOrEqual(1);

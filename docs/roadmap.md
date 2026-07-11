@@ -333,7 +333,7 @@
 
 | ID    | 任务                        | 状态 | 优先级 | 产出文件                          | 备注                                                     |
 | ----- | --------------------------- | ---- | ------ | --------------------------------- | -------------------------------------------------------- |
-| P5-01 | capability 矩阵与构建期诊断 | ⬜   | P0     | `src/core/preset/capabilities.ts` | 对缺失能力给出明确构建错误，禁止静默降级                 |
+| P5-01 | capability 矩阵与构建期诊断 | ✅   | P0     | `src/core/preset/capabilities.ts` | ✅ 19项能力矩阵定义；diagnoseCapabilities()诊断函数，errors/warnings分级；NODE_CAPABILITIES/STANDARD_CAPABILITIES/WORKER_CAPABILITIES预置；Preset新增capabilities字段；构建期诊断集成待完成 |
 | P5-02 | Cloudflare Workers preset   | ⬜   | P1     | `src/core/preset/cloudflare/`     | 实验性；Workers + Pages + 远程部署 smoke test            |
 | P5-03 | Dev 模式 worker runner 集成 | ⬜   | P1     | `src/core/dev/`                   | env-runner、热重载与能力诊断                             |
 | P5-04 | preset 自动检测             | ⬜   | P1     | `src/core/preset/_resolve.ts`     | 配置优先；自动检测不改变已声明的 capability 结果         |

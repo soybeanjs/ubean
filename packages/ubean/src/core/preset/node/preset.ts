@@ -1,7 +1,9 @@
 import { definePreset } from '../_utils/preset';
+import { NODE_CAPABILITIES } from '../capabilities';
 
 export const nodePreset = definePreset({
   name: 'node',
+  capabilities: NODE_CAPABILITIES,
   build: {
     outputDir: '.ubean/dist',
     format: 'esm',

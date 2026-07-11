@@ -1,8 +1,12 @@
+import type { CapabilitySet, CapabilityInfo } from '../capabilities';
+
 export interface Preset {
   name: string;
   entry?: string;
   export?: string;
   hooks?: Record<string, (...args: any[]) => any>;
+  capabilities?: Partial<CapabilitySet>;
+  capabilityInfo?: Partial<CapabilityInfo>;
   serve?: {
     host?: string;
     port?: number;

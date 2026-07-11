@@ -2,6 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { defineConfig } from '../src/core/config';
 import { UbeanError, createError, isUbeanError, errorToResponse } from '../src/runtime/error';
 import { defineHandler, defineMeta, defineValidator } from '../src/runtime/handler';
+import {
+  diagnoseCapabilities,
+  requireCapability,
+  createCapabilitySet,
+  STANDARD_CAPABILITIES,
+  NODE_CAPABILITIES,
+  standardPreset,
+  nodePreset
+} from '../src/core/preset';
 
 describe('UbeanError', () => {
   it('should create error with status code', () => {
@@ -117,5 +126,103 @@ describe('defineConfig', () => {
     });
     expect(config.build?.preset).toBe('node');
     expect(config.srcDir).toBe('src');
+  });
+});
+
+describe('capabilities', () => {
+  it('createCapabilitySet provides defaults', () => {
+    const caps = createCapabilitySet();
+    expect(caps.middleware).toBe(true);
+    expect(caps.bodyLimit).toBe(true);
+    expect(caps.streaming).toBe(true);
+    expect(caps.envVars).toBe(true);
+    expect(caps.websocket).toBe(false);
+    expect(caps.nodeCompat).toBe(false);
+  });
+
+  it('createCapabilitySet merges overrides', () => {
+    const caps = createCapabilitySet({ websocket: true, nodeCompat: true });
+    expect(caps.websocket).toBe(true);
+    expect(caps.nodeCompat).toBe(true);
+    expect(caps.middleware).toBe(true);
+  });
+
+  it('NODE_CAPABILITIES has full Node.js support', () => {
+    expect(NODE_CAPABILITIES.nodeCompat).toBe(true);
+    expect(NODE_CAPABILITIES.websocket).toBe(true);
+    expect(NODE_CAPABILITIES.cronTriggers).toBe(true);
+    expect(NODE_CAPABILITIES.queues).toBe(true);
+    expect(NODE_CAPABILITIES.multipart).toBe(true);
+  });
+
+  it('STANDARD_CAPABILITIES has limited support', () => {
+    expect(STANDARD_CAPABILITIES.staticServe).toBe(true);
+    expect(STANDARD_CAPABILITIES.sse).toBe(true);
+    expect(STANDARD_CAPABILITIES.websocket).toBe(false);
+    expect(STANDARD_CAPABILITIES.nodeCompat).toBe(false);
+  });
+
+  it('diagnoseCapabilities returns valid when all requirements met', () => {
+    const result = diagnoseCapabilities('node', NODE_CAPABILITIES, [
+      requireCapability('middleware'),
+      requireCapability('websocket'),
+      requireCapability('cronTriggers')
+    ]);
+    expect(result.valid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings).toHaveLength(0);
+  });
+
+  it('diagnoseCapabilities returns errors for missing required capabilities', () => {
+    const result = diagnoseCapabilities('standard', STANDARD_CAPABILITIES, [
+      requireCapability('websocket', true),
+      requireCapability('nodeCompat', true)
+    ]);
+    expect(result.valid).toBe(false);
+    expect(result.errors.length).toBeGreaterThanOrEqual(2);
+    expect(result.errors[0]).toContain('standard');
+  });
+
+  it('diagnoseCapabilities returns warnings for optional missing capabilities', () => {
+    const result = diagnoseCapabilities('standard', STANDARD_CAPABILITIES, [
+      requireCapability('websocket', false)
+    ]);
+    expect(result.valid).toBe(true);
+    expect(result.warnings).toHaveLength(1);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('requireCapability creates requirement object', () => {
+    const req = requireCapability('kv', true, 'KV storage required');
+    expect(req.capability).toBe('kv');
+    expect(req.required).toBe(true);
+    expect(req.message).toBe('KV storage required');
+  });
+
+  it('diagnoseCapabilities supports custom error messages', () => {
+    const result = diagnoseCapabilities('test', {}, [
+      requireCapability('database', true, 'Custom database error message')
+    ]);
+    expect(result.errors[0]).toContain('Custom database error message');
+  });
+
+  it('standardPreset has capabilities defined', () => {
+    expect(standardPreset.capabilities).toBeDefined();
+    expect(standardPreset.capabilities?.middleware).toBe(true);
+  });
+
+  it('nodePreset has full capabilities defined', () => {
+    expect(nodePreset.capabilities).toBeDefined();
+    expect(nodePreset.capabilities?.nodeCompat).toBe(true);
+  });
+
+  it('diagnostics include supported flag for each requirement', () => {
+    const result = diagnoseCapabilities('test', { websocket: true }, [
+      requireCapability('websocket'),
+      requireCapability('kv')
+    ]);
+    expect(result.diagnostics).toHaveLength(2);
+    expect(result.diagnostics[0].supported).toBe(true);
+    expect(result.diagnostics[1].supported).toBe(false);
   });
 });

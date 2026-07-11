@@ -92,7 +92,11 @@ export {
   applyAppConfig,
   definePage,
   resolveRoute,
-  isActiveRoute
+  isActiveRoute,
+  createDataCacheStore,
+  createUseAsyncData,
+  invalidateCache,
+  clearCache
 } from './runtime/vue';
 export type {
   UbeanVueRouter,
@@ -106,7 +110,10 @@ export type {
   ResolvedAppConfig,
   RouteLocation,
   RouteLocationRaw,
-  TypedLinkProps
+  TypedLinkProps,
+  DataCacheStore,
+  UseAsyncDataOptions,
+  UseAsyncDataReturn
 } from './runtime/vue';
 export { ubeanVuePlugin } from './core/vue/plugin';
 export { logger } from './core/log';

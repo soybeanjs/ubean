@@ -327,7 +327,7 @@
 | P4-17  | CLI page 命令                        | ⬜   | P1     | `src/core/cli/page/`                                                                           | ✅ page add（page/api/layout/middleware脚手架，--force覆盖+备份，--dry空跑）、page list；add-reuse/delete/update/recovery待实现 |
 | P4-18  | CLI api/env/config/layout 等命令     | ⬜   | P2     | `src/core/cli/{api,env,config,layout,cron,plugin,middleware,devtools}/`                        | 各子命令（待实现）                                                                                                                                                                                       |
 | P4-19  | CLI Shared Layer                     | ✅   | P0     | `src/core/cli/shared/`                             | ✅ fs-ops（读写/复制/删除/备份/JSON/目录遍历）+ templates（{{var}}模板渲染、kebab/pascal/camel转换、page/api/middleware/layout/cron/plugin模板）；DevTools共享集成待完成 |
-| P4-20  | 页面数据依赖、失效与流式协议         | ⬜   | P0     | `src/runtime/pages/data.ts`, `src/runtime/vue/client.ts` | ✅ useData缓存/TTL/tag失效、invalidateData/clearDataCache、declareDependencies/withDependencies、getInvalidatedKeysForAction action驱动失效、createInternalFetch上下文继承（cookie/auth/x-request-id等）、createStreamResponse/createSseStream流式响应；Vue客户端集成与stream capability待实现 |
+| P4-20  | 页面数据依赖、失效与流式协议         | ✅   | P0     | `src/runtime/pages/data.ts`, `src/runtime/vue/composables.ts` | ✅ 服务端useData缓存/TTL/tag失效、invalidateData/clearDataCache、declareDependencies、getInvalidatedKeysForAction、createInternalFetch上下文继承、createStreamResponse/createSseStream；Vue端createDataCacheStore响应式缓存+订阅通知、createUseAsyncData(data/error/loading/refresh/invalidate响应式composable)、invalidateCache/clearCache/getInvalidatedKeysForAction；stream capability诊断集成待完善 |
 
 ### Phase 5: 实验性 Preset (Week 9-10)
 

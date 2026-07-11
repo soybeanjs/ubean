@@ -6,7 +6,7 @@ A Vue-first full-stack meta-framework.
 
 Built on Vite-Plus, ubean aims to unite Vue SSR pages, Hono API routes, type-safe clients, and portable deployment presets into a consistent development experience.
 
-> This repository is currently in the design and project-skeleton stage. It has not yet published a framework package suitable for production use. This document describes confirmed direction and the development commands available today. See [PLAN.md](PLAN.md) for the implementation plan.
+> This repository is currently in the design and project-skeleton stage. It has not yet published a framework package suitable for production use. This document describes confirmed direction and the development commands available today. See the [documentation index](docs/README.md) for the implementation plan.
 
 ## Goals
 
@@ -62,7 +62,7 @@ The core implementation follows these boundaries:
 
 ## Planning and Contributions
 
-- See [PLAN.md](PLAN.md) for the complete architecture, directory structure, public API drafts, test strategy, and task tracking.
+- See the [documentation index](docs/README.md) for the complete architecture, directory structure, public API drafts, test strategy, and task tracking.
 - Each feature should include its unit tests, a real fixture, and the applicable `dev`, `build`, `preview`, or browser end-to-end verification.
 - Changes to public APIs, preset capabilities, or generated types must update the plan, tests, and migration guidance together.
 

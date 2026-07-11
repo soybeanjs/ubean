@@ -217,6 +217,15 @@ export {
   createWebSocketMiddleware,
   clearWebSocketState
 } from './runtime/websocket';
+export {
+  createSSEStream,
+  defineSSE,
+  getSSEConnections,
+  broadcastSSE,
+  closeAllSSE,
+  sseHeaders,
+  clearSSEState
+} from './runtime/sse';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
 export type {
@@ -248,3 +257,4 @@ export type { WranglerConfig, PresetDetectionHints, PresetDetectionResult } from
 export type { CacheEntry, CacheStore, CacheRule } from './runtime/cache';
 export type { StorageDriver, UbeanStorage, KVNamespace, KVOptions } from './runtime/storage';
 export type { Peer, WebSocketRoom, WebSocketHooks, WebSocketDefinition, UpgradeResult } from './runtime/websocket';
+export type { SSEMessage, SSEConnection, SSEHandler, SSEOptions } from './runtime/sse';

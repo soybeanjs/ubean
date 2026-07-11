@@ -12,6 +12,21 @@ export {
   SSR_CONTENT_MARKER
 } from './protocol';
 
+export {
+  defineDataKey,
+  useData,
+  invalidateData,
+  invalidateAll,
+  clearDataCache,
+  hasData,
+  declareDependencies,
+  withDependencies,
+  getInvalidatedKeysForAction,
+  createInternalFetch,
+  createStreamResponse,
+  createSseStream
+} from './data';
+
 export type {
   PageHead,
   PageHead as PageHeadMeta,
@@ -20,3 +35,13 @@ export type {
   PageRenderFn,
   PageRenderer
 } from './protocol';
+
+export type {
+  DataKey,
+  DataCacheEntry,
+  UseDataOptions,
+  DataResult,
+  DependencyDeclaration,
+  InternalFetchOptions,
+  StreamHelper
+} from './data';

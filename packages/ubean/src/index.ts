@@ -58,9 +58,30 @@ export {
   renderPage,
   PAGE_DATA_ID,
   PAGE_REQUEST_HEADER,
-  SSR_CONTENT_MARKER
+  SSR_CONTENT_MARKER,
+  defineDataKey,
+  useData,
+  invalidateData,
+  invalidateAll,
+  clearDataCache,
+  hasData,
+  declareDependencies,
+  withDependencies,
+  getInvalidatedKeysForAction,
+  createInternalFetch,
+  createStreamResponse,
+  createSseStream
 } from './runtime/pages';
 export type { PageHead, PageHeadMeta, PageObject, PageAssetTags, PageRenderFn, PageRenderer } from './runtime/pages';
+export type {
+  DataKey,
+  DataCacheEntry,
+  UseDataOptions,
+  DataResult,
+  DependencyDeclaration,
+  InternalFetchOptions,
+  StreamHelper
+} from './runtime/pages';
 export {
   createUbeanClient,
   getInitialPageData,

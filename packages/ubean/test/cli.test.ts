@@ -1,0 +1,212 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+  renderTemplate,
+  toKebabCase,
+  toPascalCase,
+  toCamelCase,
+  renderPageTemplate,
+  renderApiTemplate,
+  renderMiddlewareTemplate,
+  renderLayoutTemplate,
+  renderCronTemplate,
+  renderPluginTemplate,
+  createFsOps
+} from '../src/core/cli/shared';
+
+describe('template rendering', () => {
+  it('renders simple variables', () => {
+    const result = renderTemplate('Hello {{name}}!', { variables: { name: 'World' } });
+    expect(result).toBe('Hello World!');
+  });
+
+  it('renders multiple variables', () => {
+    const result = renderTemplate('{{greeting}} {{name}}!', {
+      variables: { greeting: 'Hi', name: 'there' }
+    });
+    expect(result).toBe('Hi there!');
+  });
+
+  it('supports nested property access', () => {
+    const result = renderTemplate('{{user.name}} - {{user.age}}', {
+      variables: { user: { name: 'Alice', age: 30 } }
+    });
+    expect(result).toBe('Alice - 30');
+  });
+
+  it('leaves undefined variables as-is', () => {
+    const result = renderTemplate('Hello {{name}}, your id is {{id}}', {
+      variables: { name: 'Bob' }
+    });
+    expect(result).toBe('Hello Bob, your id is {{id}}');
+  });
+
+  it('supports custom delimiters', () => {
+    const result = renderTemplate('Hello <% name %>!', {
+      variables: { name: 'World' },
+      delimiters: ['<%', '%>']
+    });
+    expect(result).toBe('Hello World!');
+  });
+
+  it('handles whitespace in variable tags', () => {
+    const result = renderTemplate('{{  name  }}', { variables: { name: 'test' } });
+    expect(result).toBe('test');
+  });
+});
+
+describe('case conversion', () => {
+  it('toKebabCase converts various formats', () => {
+    expect(toKebabCase('HelloWorld')).toBe('hello-world');
+    expect(toKebabCase('hello_world')).toBe('hello-world');
+    expect(toKebabCase('Hello World')).toBe('hello-world');
+    expect(toKebabCase('my-component')).toBe('my-component');
+  });
+
+  it('toPascalCase converts various formats', () => {
+    expect(toPascalCase('hello-world')).toBe('HelloWorld');
+    expect(toPascalCase('hello_world')).toBe('HelloWorld');
+    expect(toPascalCase('hello world')).toBe('HelloWorld');
+    expect(toPascalCase('HelloWorld')).toBe('HelloWorld');
+  });
+
+  it('toCamelCase converts to camelCase', () => {
+    expect(toCamelCase('hello-world')).toBe('helloWorld');
+    expect(toCamelCase('HelloWorld')).toBe('helloWorld');
+  });
+});
+
+describe('template generators', () => {
+  it('renderPageTemplate includes name and kebab case', () => {
+    const result = renderPageTemplate({ name: 'UserProfile', path: '/users/profile', kebabName: '', pascalName: '', camelName: '' });
+    expect(result).toContain('UserProfile');
+    expect(result).toContain('user-profile-page');
+  });
+
+  it('renderApiTemplate includes endpoint name', () => {
+    const result = renderApiTemplate({ name: 'users', method: 'GET', path: '/api/users', kebabName: '' });
+    expect(result).toContain('users');
+    expect(result).toContain('defineHandler');
+  });
+
+  it('renderMiddlewareTemplate includes middleware name', () => {
+    const result = renderMiddlewareTemplate({ name: 'auth', path: '/middleware/auth', global: false });
+    expect(result).toContain('auth');
+    expect(result).toContain('defineMiddleware');
+  });
+
+  it('renderLayoutTemplate includes layout class', () => {
+    const result = renderLayoutTemplate({ name: 'AdminLayout', path: '/layouts/admin', pascalName: '' });
+    expect(result).toContain('admin-layout');
+    expect(result).toContain('definePage');
+  });
+
+  it('renderCronTemplate includes schedule and name', () => {
+    const result = renderCronTemplate({ name: 'dailyCleanup', schedule: '0 0 * * *', kebabName: '' });
+    expect(result).toContain('dailyCleanup');
+    expect(result).toContain('0 0 * * *');
+    expect(result).toContain('defineScheduled');
+  });
+
+  it('renderPluginTemplate includes plugin name', () => {
+    const result = renderPluginTemplate({ name: 'myPlugin', kebabName: '', pascalName: '' });
+    expect(result).toContain('my-plugin');
+    expect(result).toContain('definePlugin');
+  });
+});
+
+describe('fs-ops', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'ubean-cli-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('creates fs-ops instance with cwd', () => {
+    const fs = createFsOps(tmpDir);
+    expect(fs.cwd).toBe(tmpDir);
+  });
+
+  it('resolves paths relative to cwd', () => {
+    const fs = createFsOps(tmpDir);
+    expect(fs.resolve('test.txt')).toBe(join(tmpDir, 'test.txt'));
+    expect(fs.resolve('sub', 'file.ts')).toBe(join(tmpDir, 'sub', 'file.ts'));
+  });
+
+  it('writes and reads files', async () => {
+    const fs = createFsOps(tmpDir);
+    await fs.writeFile('hello.txt', 'Hello World');
+    const content = await fs.readFile('hello.txt');
+    expect(content).toBe('Hello World');
+  });
+
+  it('creates parent directories when writing files', async () => {
+    const fs = createFsOps(tmpDir);
+    await fs.writeFile('deep/nested/dir/file.txt', 'nested content');
+    const content = await fs.readFile('deep/nested/dir/file.txt');
+    expect(content).toBe('nested content');
+  });
+
+  it('checks file existence', async () => {
+    const fs = createFsOps(tmpDir);
+    expect(await fs.exists('missing.txt')).toBe(false);
+    await fs.writeFile('exists.txt', 'yes');
+    expect(await fs.exists('exists.txt')).toBe(true);
+  });
+
+  it('writes and reads JSON', async () => {
+    const fs = createFsOps(tmpDir);
+    const data = { name: 'test', value: 42 };
+    await fs.writeJson('data.json', data);
+    const read = await fs.readJson<typeof data>('data.json');
+    expect(read).toEqual(data);
+  });
+
+  it('creates backup of existing file', async () => {
+    const fs = createFsOps(tmpDir);
+    await fs.writeFile('original.txt', 'original content');
+    const backupPath = await fs.createBackup('original.txt');
+    expect(backupPath).toBeTruthy();
+    expect(await fs.exists('original.txt.bak')).toBe(true);
+    const backupContent = await fs.readFile('original.txt.bak');
+    expect(backupContent).toBe('original content');
+  });
+
+  it('returns null when backing up non-existent file', async () => {
+    const fs = createFsOps(tmpDir);
+    const result = await fs.createBackup('nonexistent.txt');
+    expect(result).toBeNull();
+  });
+
+  it('removes files', async () => {
+    const fs = createFsOps(tmpDir);
+    await fs.writeFile('to-remove.txt', 'delete me');
+    expect(await fs.exists('to-remove.txt')).toBe(true);
+    await fs.remove('to-remove.txt');
+    expect(await fs.exists('to-remove.txt')).toBe(false);
+  });
+
+  it('ensures directories exist', async () => {
+    const fs = createFsOps(tmpDir);
+    await fs.ensureDir('new/sub/dir');
+    expect(await fs.exists('new/sub/dir')).toBe(true);
+  });
+
+  it('sync existence check works', () => {
+    const fs = createFsOps(tmpDir);
+    expect(fs.existsSync('.')).toBe(true);
+  });
+
+  it('copyFile copies content', async () => {
+    const fs = createFsOps(tmpDir);
+    await fs.writeFile('src.txt', 'source');
+    await fs.copyFile('src.txt', 'dest.txt');
+    expect(await fs.readFile('dest.txt')).toBe('source');
+  });
+});

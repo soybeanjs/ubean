@@ -31,8 +31,37 @@ export {
 } from './runtime/client';
 export { defineScheduled, getScheduledTasks, runScheduledTask, clearScheduledTasks } from './runtime/cron';
 export type { CronTaskMeta, CronContext, ScheduledTask, CronSchedule } from './runtime/cron';
-export { createRequestIdMiddleware, getRequestId, generateRequestId, REQUEST_ID_HEADER } from './runtime/observability';
-export type { RequestIdOptions } from './runtime/observability';
+export {
+  createRequestIdMiddleware,
+  getRequestId,
+  generateRequestId,
+  REQUEST_ID_HEADER,
+  createObservabilityTracer,
+  setGlobalTracer,
+  getGlobalTracer,
+  createSpan,
+  startSpan,
+  withSpan,
+  createOpenTelemetryExporter,
+  createConsoleExporter,
+  createTracingMiddleware,
+  getSpan
+} from './runtime/observability';
+export type {
+  RequestIdOptions,
+  Span,
+  SpanStatus,
+  SpanAttributes,
+  SpanContext,
+  SpanEvent,
+  SpanOptions,
+  SpanEndOptions,
+  ObservabilityTracer,
+  ObservabilityConfig,
+  ObservabilityExporter,
+  ObservabilityHooks,
+  TracingMiddlewareOptions
+} from './runtime/observability';
 export {
   createRobotsResponse,
   createSitemapResponse,

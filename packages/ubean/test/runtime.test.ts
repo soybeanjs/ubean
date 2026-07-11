@@ -13,7 +13,20 @@ import { createClient } from '../src/runtime/client';
 import { defineEnv, setRuntimeEnv, useRuntimeEnv } from '../src/runtime/env';
 import { defineHandler } from '../src/runtime/handler';
 import { defineLocale, useI18n, t, setLocale, getLocale, clearLocales, getRegisteredLocales } from '../src/runtime/i18n';
-import { createRequestIdMiddleware, getRequestId, generateRequestId } from '../src/runtime/observability';
+import {
+  createRequestIdMiddleware,
+  getRequestId,
+  generateRequestId,
+  createObservabilityTracer,
+  createSpan,
+  createOpenTelemetryExporter,
+  createConsoleExporter,
+  setGlobalTracer,
+  getGlobalTracer,
+  startSpan,
+  withSpan,
+  createTracingMiddleware
+} from '../src/runtime/observability';
 import {
   createRobotsResponse,
   createSitemapResponse,
@@ -1030,6 +1043,218 @@ describe('observability', () => {
     const res = await app.hono.request('/_health');
     expect(res.headers.get('x-request-id')).toBeTruthy();
     expect(res.status).toBe(200);
+  });
+
+  it('createSpan creates span with name and context', () => {
+    const span = createSpan({ name: 'test-span' });
+    expect(span.name).toBe('test-span');
+    expect(span.context.traceId).toBeTruthy();
+    expect(span.context.spanId).toBeTruthy();
+    expect(span.context.spanId).toHaveLength(16);
+    expect(span.startTime).toBeGreaterThan(0);
+    expect(span.status).toBe('ok');
+    expect(span.isRecording()).toBe(true);
+  });
+
+  it('createSpan supports parent span context inheritance', () => {
+    const parent = createSpan({ name: 'parent' });
+    const child = createSpan({ name: 'child', parent });
+    expect(child.context.traceId).toBe(parent.context.traceId);
+    expect(child.context.parentSpanId).toBe(parent.context.spanId);
+  });
+
+  it('span.end() records end time and duration', () => {
+    const span = createSpan({ name: 'test' });
+    expect(span.duration()).toBeUndefined();
+    span.end();
+    expect(span.endTime).toBeGreaterThanOrEqual(span.startTime);
+    expect(span.duration()).toBeGreaterThanOrEqual(0);
+    expect(span.isRecording()).toBe(false);
+  });
+
+  it('span.end({status,error}) sets status and error', () => {
+    const err = new Error('fail');
+    const span = createSpan({ name: 'test' });
+    span.end({ status: 'error', error: err });
+    expect(span.status).toBe('error');
+    expect(span.error).toBe(err);
+  });
+
+  it('span.setAttribute/setAttributes only work while recording', () => {
+    const span = createSpan({ name: 'test', attributes: { a: 1 } });
+    span.setAttribute('b', 2);
+    expect(span.attributes.b).toBe(2);
+    span.end();
+    span.setAttribute('c', 3);
+    expect(span.attributes.c).toBeUndefined();
+  });
+
+  it('span.addEvent records events with timestamp', () => {
+    const span = createSpan({ name: 'test' });
+    span.addEvent('cache-miss', { key: 'user:1' });
+    expect(span.events).toHaveLength(1);
+    expect(span.events[0].name).toBe('cache-miss');
+    expect(span.events[0].timestamp).toBeGreaterThan(0);
+  });
+
+  it('createObservabilityTracer.startSpan calls hooks on start and end', async () => {
+    const tracer = createObservabilityTracer();
+    const startFn = vi.fn();
+    const endFn = vi.fn();
+    tracer.hooks.hook('span:start', startFn);
+    tracer.hooks.hook('span:end', endFn);
+    const span = tracer.startSpan({ name: 'hooked' });
+    expect(startFn).toHaveBeenCalledWith(span);
+    span.end();
+    await new Promise(r => setTimeout(r, 10));
+    expect(endFn).toHaveBeenCalledWith(span);
+  });
+
+  it('tracer.redactAttributes redacts sensitive keys', () => {
+    const tracer = createObservabilityTracer();
+    const redacted = tracer.redactAttributes({
+      username: 'john',
+      password: 'secret123',
+      token: 'abc123',
+      Authorization: 'Bearer xyz',
+      normal: 'visible'
+    });
+    expect(redacted.username).toBe('john');
+    expect(redacted.password).toBe('[REDACTED]');
+    expect(redacted.token).toBe('[REDACTED]');
+    expect(redacted.Authorization).toBe('[REDACTED]');
+    expect(redacted.normal).toBe('visible');
+  });
+
+  it('tracer.redactAttributes truncates long strings', () => {
+    const tracer = createObservabilityTracer();
+    const long = 'x'.repeat(3000);
+    const redacted = tracer.redactAttributes({ long });
+    expect((redacted.long as string).length).toBeLessThan(3000);
+    expect((redacted.long as string)).toContain('...[truncated]');
+  });
+
+  it('tracer exports spans to registered exporters', async () => {
+    const exported: any[] = [];
+    const exporter = { name: 'test', exportSpan: vi.fn((s: any) => exported.push(s)) };
+    const tracer = createObservabilityTracer({ exporters: [exporter] });
+    const span = tracer.startSpan({ name: 'exp' });
+    span.end();
+    await new Promise(r => setTimeout(r, 10));
+    expect(exporter.exportSpan).toHaveBeenCalled();
+    expect(exported[0].name).toBe('exp');
+  });
+
+  it('tracer.addExporter/removeExporter manages exporters', () => {
+    const tracer = createObservabilityTracer();
+    const ex = { name: 'custom', exportSpan: vi.fn() };
+    tracer.addExporter(ex);
+    tracer.removeExporter('custom');
+    const span = tracer.startSpan({ name: 'x' });
+    span.end();
+    expect(ex.exportSpan).not.toHaveBeenCalled();
+  });
+
+  it('tracer.withSpan wraps function and ends span on success or error', async () => {
+    const tracer = createObservabilityTracer({ enabled: false });
+    let capturedSpan: any;
+    const result = await tracer.withSpan('wrap', span => {
+      capturedSpan = span;
+      return 42;
+    });
+    expect(result).toBe(42);
+    expect(capturedSpan.isRecording()).toBe(false);
+
+    await expect(tracer.withSpan('fail', () => {
+      throw new Error('boom');
+    })).rejects.toThrow('boom');
+  });
+
+  it('withSpan global convenience function works', async () => {
+    const tracer = createObservabilityTracer();
+    setGlobalTracer(tracer);
+    const result = await withSpan('global-test', () => 'ok');
+    expect(result).toBe('ok');
+  });
+
+  it('createConsoleExporter creates an exporter', () => {
+    const ex = createConsoleExporter({ slowThreshold: 100 });
+    expect(ex.name).toBe('console');
+    const span = createSpan({ name: 'con' });
+    span.end();
+    expect(() => ex.exportSpan(span)).not.toThrow();
+  });
+
+  it('createOpenTelemetryExporter batches spans and supports custom fetch', async () => {
+    let capturedBody: string | undefined;
+    const fakeFetch = vi.fn(async (_url: string, init: any) => {
+      capturedBody = init.body;
+      return { ok: true } as Response;
+    });
+    const ex = createOpenTelemetryExporter({
+      url: 'http://localhost:4318/v1/traces',
+      serviceName: 'test-svc',
+      serviceVersion: '1.0.0',
+      fetchImpl: fakeFetch as any
+    });
+    expect(ex.name).toBe('opentelemetry');
+
+    const span = createSpan({ name: 'otel-test', attributes: { 'http.method': 'GET' } });
+    span.end();
+    ex.exportSpan(span);
+
+    await (ex as any).flush();
+    expect(fakeFetch).toHaveBeenCalled();
+    const body = JSON.parse(capturedBody!);
+    expect(body.resourceSpans[0].resource.attributes).toContainEqual(
+      { key: 'service.name', value: { stringValue: 'test-svc' } }
+    );
+    expect(body.resourceSpans[0].scopeSpans[0].spans).toHaveLength(1);
+    expect(body.resourceSpans[0].scopeSpans[0].spans[0].name).toBe('otel-test');
+  });
+
+  it('createTracingMiddleware creates span for request lifecycle', async () => {
+    const tracer = createObservabilityTracer();
+    let capturedSpan: any;
+    const store = new Map<string, unknown>();
+    const c: any = {
+      req: { method: 'GET', path: '/api/test', header: () => undefined },
+      set: (k: string, v: unknown) => store.set(k, v),
+      get: (k: string) => store.get(k),
+      header: vi.fn(),
+      res: { status: 200 }
+    };
+    const next = vi.fn(async () => {
+      capturedSpan = store.get('span');
+      expect(capturedSpan).toBeTruthy();
+      expect(capturedSpan.name).toBe('GET /api/test');
+      expect(capturedSpan.attributes['http.method']).toBe('GET');
+    });
+
+    const mw = createTracingMiddleware({ tracer });
+    await mw(c, next);
+    expect(next).toHaveBeenCalled();
+    expect(capturedSpan.status).toBe('ok');
+    expect(capturedSpan.attributes['http.status_code']).toBe(200);
+  });
+
+  it('createTracingMiddleware marks error status on thrown errors', async () => {
+    const tracer = createObservabilityTracer();
+    const store = new Map<string, unknown>();
+    const c: any = {
+      req: { method: 'POST', path: '/fail', header: () => undefined },
+      set: (k: string, v: unknown) => store.set(k, v),
+      get: (k: string) => store.get(k),
+      header: vi.fn(),
+      res: { status: 500 }
+    };
+    const err = new Error('server error');
+    const next = vi.fn(async () => { throw err; });
+    const mw = createTracingMiddleware({ tracer });
+    await expect(mw(c, next)).rejects.toThrow(err);
+    const span = store.get('span') as any;
+    expect(span.status).toBe('error');
+    expect(span.error).toBe(err);
   });
 });
 

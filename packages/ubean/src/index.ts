@@ -33,6 +33,15 @@ export { defineScheduled, getScheduledTasks, runScheduledTask, clearScheduledTas
 export type { CronTaskMeta, CronContext, ScheduledTask, CronSchedule } from './runtime/cron';
 export { createRequestIdMiddleware, getRequestId, generateRequestId, REQUEST_ID_HEADER } from './runtime/observability';
 export type { RequestIdOptions } from './runtime/observability';
+export {
+  createRobotsResponse,
+  createSitemapResponse,
+  defineRobotsConfig,
+  defineSitemapConfig,
+  formatRobotsTxt,
+  formatSitemapXml
+} from './runtime/seo';
+export type { RobotsOptions, SitemapUrl } from './runtime/seo';
 export type {
   ApiClient,
   ClientOptions,

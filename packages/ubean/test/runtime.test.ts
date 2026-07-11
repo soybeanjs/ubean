@@ -15,6 +15,12 @@ import { defineHandler } from '../src/runtime/handler';
 import { defineLocale, useI18n, t, setLocale, getLocale, clearLocales, getRegisteredLocales } from '../src/runtime/i18n';
 import { createRequestIdMiddleware, getRequestId, generateRequestId } from '../src/runtime/observability';
 import {
+  createRobotsResponse,
+  createSitemapResponse,
+  formatRobotsTxt,
+  formatSitemapXml
+} from '../src/runtime/seo';
+import {
   buildClientOnlyShell,
   buildPageShell,
   insertSsrContent,
@@ -1016,5 +1022,75 @@ describe('observability', () => {
     const res = await app.hono.request('/_health');
     expect(res.headers.get('x-request-id')).toBeTruthy();
     expect(res.status).toBe(200);
+  });
+});
+
+describe('seo', () => {
+  it('formatRobotsTxt generates correct robots.txt for single group', () => {
+    const txt = formatRobotsTxt({
+      userAgent: '*',
+      allow: '/',
+      disallow: ['/admin', '/api/private'],
+      sitemap: 'https://example.com/sitemap.xml'
+    });
+
+    expect(txt).toContain('User-agent: *');
+    expect(txt).toContain('Allow: /');
+    expect(txt).toContain('Disallow: /admin');
+    expect(txt).toContain('Disallow: /api/private');
+    expect(txt).toContain('Sitemap: https://example.com/sitemap.xml');
+  });
+
+  it('formatRobotsTxt supports multiple user agents and crawl-delay', () => {
+    const txt = formatRobotsTxt([
+      { userAgent: 'Googlebot', allow: '/', disallow: '/search', crawlDelay: 1 },
+      { userAgent: '*', disallow: '/admin' }
+    ]);
+
+    expect(txt).toContain('User-agent: Googlebot');
+    expect(txt).toContain('Crawl-delay: 1');
+    expect(txt).toContain('User-agent: *');
+  });
+
+  it('createRobotsResponse returns text/plain response', async () => {
+    const res = createRobotsResponse({ disallow: '/admin' });
+    expect(res.headers.get('Content-Type')).toContain('text/plain');
+    const body = await res.text();
+    expect(body).toContain('Disallow: /admin');
+  });
+
+  it('formatSitemapXml generates valid XML sitemap', () => {
+    const xml = formatSitemapXml([
+      { loc: 'https://example.com/', lastmod: '2024-01-01', changefreq: 'daily', priority: 1.0 },
+      { loc: 'https://example.com/about', changefreq: 'monthly', priority: 0.8 }
+    ]);
+
+    expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
+    expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
+    expect(xml).toContain('<loc>https://example.com/</loc>');
+    expect(xml).toContain('<lastmod>2024-01-01</lastmod>');
+    expect(xml).toContain('<changefreq>daily</changefreq>');
+    expect(xml).toContain('<priority>1.0</priority>');
+    expect(xml).toContain('<loc>https://example.com/about</loc>');
+    expect(xml).toContain('</urlset>');
+  });
+
+  it('formatSitemapXml supports Date objects for lastmod', () => {
+    const date = new Date('2024-06-15T12:00:00Z');
+    const xml = formatSitemapXml([{ loc: 'https://example.com/', lastmod: date }]);
+    expect(xml).toContain('<lastmod>2024-06-15</lastmod>');
+  });
+
+  it('formatSitemapXml escapes special XML characters in URLs', () => {
+    const xml = formatSitemapXml([{ loc: 'https://example.com/search?q=test&lang=en' }]);
+    expect(xml).toContain('&amp;');
+    expect(xml).not.toContain('&lang');
+  });
+
+  it('createSitemapResponse returns application/xml response', async () => {
+    const res = createSitemapResponse([{ loc: 'https://example.com/' }]);
+    expect(res.headers.get('Content-Type')).toContain('application/xml');
+    const body = await res.text();
+    expect(body).toContain('<urlset');
   });
 });

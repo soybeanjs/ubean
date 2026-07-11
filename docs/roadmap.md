@@ -301,7 +301,7 @@
 | P3-15 | Context 类型                      | ✅   | P0     | `src/types/handler.ts`                               | UbeanContext/UbeanHandler/UbeanMiddleware 类型                                                                                           |
 | P3-16 | i18n 运行时                       | ✅   | P1     | `src/runtime/i18n.ts`                                | defineLocale/useI18n/t()/setLocale/getLocale/locale 检测；支持嵌套消息键、参数插值、fallback locale、addLocale/mergeLocale、Accept-Language 解析、RTL 支持 |
 | P3-17 | 可观测性契约                      | ⬜   | P1     | `src/runtime/observability.ts`, `packages/ubean-observability/` | ✅ Request ID 中间件（X-Request-Id 生成/透传/响应头）；Hookable spans、错误脱敏与 OpenTelemetry adapter 待实现 |
-| P3-18 | SEO metadata 与 OG 基础           | ⬜   | P1     | `src/runtime/vue/seo.ts`, `packages/ubean-og/`       | metadata 合并、sitemap/robots/manifest 与可选 OG handler                                                                                 |
+| P3-18 | SEO metadata 与 OG 基础           | ⬜   | P1     | `src/runtime/seo.ts`, `src/runtime/vue/seo.ts`, `packages/ubean-og/` | ✅ robots.txt/sitemap.xml 生成器（createRobotsResponse/createSitemapResponse）；metadata 合并、manifest 与 OG handler 待实现     |
 
 ### Phase 4: Vue Pages 系统 (Week 7-8)
 

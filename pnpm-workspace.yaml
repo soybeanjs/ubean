@@ -1,9 +1,19 @@
+shamefullyHoist: true
+allowBuilds:
+  esbuild: true
+  sharp: false
+  workerd: true
+  koffi: true
+minimumReleaseAgeExclude:
+  - eslint@10.7.0
+  - hono@4.12.29
+
 packages:
   - 'packages/*'
 
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: ^3.2.4
+  vitest: npm:@voidzero-dev/vite-plus-test@latest
   vite-plus: ^0.2.4
   hono: ^4.12.29
   defu: ^6.1.4
@@ -52,14 +62,6 @@ catalog:
 
 overrides:
   vite: 'catalog:'
+  typescript: 'npm:typescript-native-bridge@0.0.0'
   kysely: '0.28.5'
   markdown-exit: 'catalog:'
-
-shamefullyHoist: true
-allowBuilds:
-  esbuild: true
-  sharp: false
-  workerd: true
-minimumReleaseAgeExclude:
-  - eslint@10.7.0
-  - hono@4.12.29

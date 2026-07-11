@@ -1,0 +1,67 @@
+import type { CommandDef } from 'citty';
+import { resolve } from 'pathe';
+import { loadUbeanConfig } from '../config/loader';
+import { generateTypes } from '../codegen';
+import { logger } from '../log';
+import { resolvePresetByName, registerBuiltinPresets } from '../preset';
+import { scanProject } from '../routing/scan';
+
+export const buildCommand: CommandDef = {
+  meta: {
+    name: 'build',
+    description: 'Build the ubean application for production'
+  },
+  args: {
+    preset: {
+      type: 'string',
+      description: 'Deployment preset (node, bun, deno, cloudflare, vercel, netlify, standard)'
+    },
+    minify: {
+      type: 'boolean',
+      description: 'Minify output',
+      default: true
+    },
+    sourcemap: {
+      type: 'boolean',
+      description: 'Generate sourcemaps',
+      default: false
+    },
+    cwd: {
+      type: 'string',
+      description: 'Project root directory',
+      default: '.'
+    }
+  },
+  async run({ args }) {
+    const cwd = resolve(args.cwd || process.cwd());
+    logger.start('Building ubean application...');
+
+    registerBuiltinPresets();
+    const config = await loadUbeanConfig(cwd);
+    const presetName = args.preset || config.build.preset;
+
+    const preset = resolvePresetByName(presetName);
+    logger.info(`Using preset: ${preset.name}`);
+
+    logger.info('Scanning project...');
+    const result = await scanProject({
+      cwd,
+      srcDir: config.srcDir,
+      dirs: config.dir,
+      ignore: config.scanOptions?.ignore
+    });
+
+    logger.info(
+      `Found ${result.apiRoutes.length} API routes, ${result.pages.length} pages, ${result.layouts.length} layouts`
+    );
+
+    logger.info('Generating types...');
+    await generateTypes(result, { cwd, buildDir: config.build.outputDir });
+
+    logger.success(`Build preparation complete for preset "${preset.name}".`);
+    logger.info(
+      `Note: Full production bundling (Vite SSR build + preset entry generation) ` +
+        `will be activated when Vue SSR renderer is complete in Phase 4.`
+    );
+  }
+};

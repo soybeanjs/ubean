@@ -1,25 +1,31 @@
 {
-  "name": "ubean",
-  "description": "Vue meta framework",
+  "name": "ubean-monorepo",
+  "private": true,
   "type": "module",
   "scripts": {
+    "build": "pnpm --filter ubean build",
     "commit": "soy git-commit",
+    "dev": "pnpm --filter ubean dev",
     "lint": "vp lint --fix && pnpm lint:vue",
     "lint:vue": "eslint . --ext .vue --fix",
-    "prepare": "vp config",
-    "typecheck": "vue-tsc --noEmit --skipLibCheck",
+    "prepare": "vp config --no-hooks --no-agent",
+    "test": "pnpm --filter ubean test",
+    "test:watch": "pnpm --filter ubean test:watch",
+    "typecheck": "vue-tsc --noEmit --skipLibCheck -p packages/ubean/tsconfig.json",
     "upkg": "soy ncu"
   },
-  "dependencies": {},
   "devDependencies": {
     "@soybeanjs/cli": "^1.7.2",
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
+    "@types/node": "^22.13.10",
     "@vitejs/plugin-vue": "^6.0.7",
     "eslint": "^10.7.0",
     "typescript": "^7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
+    "vitest": "catalog:",
+    "vue": "^3.5.13",
     "vue-tsc": "^3.3.7"
   },
   "packageManager": "pnpm@11.11.0"

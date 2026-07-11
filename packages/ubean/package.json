@@ -1,0 +1,85 @@
+{
+  "name": "ubean",
+  "version": "0.0.1",
+  "description": "Vue meta framework built on Vite-Plus with Hono",
+  "bin": {
+    "ubean": "./bin/ubean.mjs"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    },
+    "./handler": {
+      "types": "./dist/runtime/handler.d.ts",
+      "import": "./dist/runtime/handler.mjs"
+    },
+    "./config": {
+      "types": "./dist/core/config/index.d.ts",
+      "import": "./dist/core/config/index.mjs"
+    },
+    "./vite": {
+      "types": "./dist/core/build/vite/plugin.d.ts",
+      "import": "./dist/core/build/vite/plugin.mjs"
+    },
+    "./vite-vue": {
+      "types": "./dist/core/vue/plugin.d.ts",
+      "import": "./dist/core/vue/plugin.mjs"
+    },
+    "./vue-ssr": {
+      "types": "./dist/core/vue/renderer.d.ts",
+      "import": "./dist/core/vue/renderer.mjs"
+    },
+    "./routing": {
+      "types": "./dist/core/routing/index.d.ts",
+      "import": "./dist/core/routing/index.mjs"
+    },
+    "./pages": {
+      "types": "./dist/runtime/pages/index.d.ts",
+      "import": "./dist/runtime/pages/index.mjs"
+    },
+    "./vue-runtime": {
+      "types": "./dist/runtime/vue/index.d.ts",
+      "import": "./dist/runtime/vue/index.mjs"
+    },
+    "./vue-runtime/app": {
+      "types": "./dist/runtime/vue/app.d.ts",
+      "import": "./dist/runtime/vue/app.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "test:watch": "vp test --watch"
+  },
+  "dependencies": {
+    "@standard-schema/spec": "catalog:",
+    "c12": "catalog:",
+    "citty": "catalog:",
+    "consola": "catalog:",
+    "defu": "catalog:",
+    "hono": "catalog:",
+    "hookable": "catalog:",
+    "mlly": "catalog:",
+    "pathe": "catalog:",
+    "rou3": "catalog:",
+    "scule": "catalog:",
+    "tinyglobby": "catalog:",
+    "ufo": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

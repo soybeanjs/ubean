@@ -183,6 +183,7 @@ export {
 export { generateTypes } from './core/codegen';
 export { definePreset, resolvePreset, registerPreset } from './core/preset/_utils/preset';
 export { registerBuiltinPresets, resolvePresetByName, standardPreset, nodePreset, cloudflarePreset, generateWranglerConfig, serializeWranglerToml, detectPreset, resolvePresetWithDetection, listDetectablePresets } from './core/preset';
+export { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from './runtime/route-rules';
 
 export type { UbeanConfig, ResolvedConfig, RouteRule } from './core/config/types';
 export type {

@@ -184,3 +184,13 @@ export const WORKER_CAPABILITIES: CapabilitySet = createCapabilitySet({
   middleware: true,
   bodyLimit: true
 });
+
+export const DEV_REQUIREMENTS: CapabilityRequirement[] = [
+  requireCapability('middleware', true, 'Dev server requires middleware support'),
+  requireCapability('streaming', true, 'Dev server requires streaming support for SSE/HMR'),
+  requireCapability('envVars', true, 'Dev server requires environment variable support'),
+  requireCapability('staticServe', false, 'Static file serving is recommended for dev'),
+  requireCapability('nodeCompat', false, 'Node compatibility enables full dev feature set')
+];
+
+export const NODE_REQUIREMENTS: CapabilityRequirement[] = DEV_REQUIREMENTS;

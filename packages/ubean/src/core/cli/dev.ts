@@ -3,9 +3,10 @@ import { resolve } from 'pathe';
 import { loadUbeanConfig } from '../config/loader';
 import { createUbeanApp } from '../../runtime/app';
 import { generateTypes } from '../codegen';
-import { startDevServer } from '../dev/server';
+import { createDevRunner, createDevWatcher, logDiagnostics } from '../dev';
 import { logger } from '../log';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
+import { createCapabilitySet, diagnoseCapabilities, NODE_REQUIREMENTS } from '../preset/capabilities';
 import { scanProject } from '../routing/scan';
 
 export const devCommand: CommandDef = {
@@ -50,55 +51,78 @@ export const devCommand: CommandDef = {
     const preset = resolvePresetByName(config.build.preset);
     logger.info(`Preset: ${preset.name}`);
 
-    logger.info('Scanning project files...');
-    const result = await scanProject({
+    const capabilities = createCapabilitySet(preset.capabilities || {});
+
+    logger.info('Running capability diagnostics...');
+    const diagnostics = diagnoseCapabilities(preset.name, preset.capabilities || {}, NODE_REQUIREMENTS);
+    logDiagnostics(diagnostics);
+
+    if (!diagnostics.valid) {
+      logger.warn('Some capability requirements are not met. Dev server may not function correctly.');
+    }
+
+    let currentApp = await buildApp(cwd, config);
+
+    const runner = await createDevRunner({
       cwd,
       srcDir: config.srcDir,
-      dirs: config.dir,
-      ignore: config.scanOptions?.ignore
-    });
-
-    logger.info(
-      `Found ${result.apiRoutes.length} API routes, ${result.pages.length} pages, ${result.layouts.length} layouts, ${result.middlewares.length} middlewares, ${result.plugins.length} plugins`
-    );
-
-    logger.info('Generating type definitions...');
-    await generateTypes(result, { cwd, buildDir: '.ubean' });
-
-    const app = createUbeanApp({
-      routes: result.apiRoutes,
-      middleware: result.middlewares,
-      pages: result.pages,
-      openAPI: {
-        title: 'UBEAN Dev API',
-        scalarPath: '/_scalar',
-        openAPIPath: '/_openapi.json'
-      }
-    });
-
-    app.hooks.hook('request:start', c => {
-      logger.log(`${c.req.method} ${c.req.path}`);
-    });
-
-    const server = await startDevServer({
       port,
       host,
-      app,
-      onListen({ port: p, host: h }) {
+      preset,
+      capabilities,
+      app: currentApp,
+      onListen({ url, port: p }) {
         logger.box(
           `🚀 ubean dev server ready\n\n` +
-            `  → Local:      http://${h}:${p}\n` +
-            `  → Scalar UI:  http://${h}:${p}/_scalar\n` +
-            `  → OpenAPI:    http://${h}:${p}/_openapi.json\n` +
-            `  → Routes:     ${result.apiRoutes.length} API, ${result.pages.length} pages\n` +
+            `  → Local:      ${url}\n` +
+            `  → Scalar UI:  ${url}/_scalar\n` +
+            `  → OpenAPI:    ${url}/_openapi.json\n` +
+            `  → Port:       ${p}\n` +
             `  → Press Ctrl+C to stop`
         );
+      },
+      onBeforeReload() {
+        logger.info('Reloading...');
+      },
+      onAfterReload() {
+        logger.success('Reloaded');
       }
     });
+
+    await runner.start();
+
+    const watchDirs = ['api', 'pages', 'middleware', 'layouts', 'plugins', 'app'];
+    const watcher = createDevWatcher({
+      cwd,
+      dirs: watchDirs.map(d => `${config.srcDir}/${d}`),
+      ignore: ['**/node_modules/**', '**/.git/**', '**/.ubean/**'],
+      debounceMs: 150,
+      async onChange(events) {
+        const relevantEvents = events.filter(e =>
+          /\.(ts|js|vue|mjs|cjs|json)$/.test(e.relativePath) &&
+          !e.relativePath.includes('.bak')
+        );
+
+        if (relevantEvents.length === 0) return;
+
+        logger.info(`File change detected: ${relevantEvents[0].relativePath}`);
+
+        try {
+          currentApp = await buildApp(cwd, config);
+          runner.updateApp(currentApp);
+          await runner.reload();
+        } catch (err) {
+          logger.error(`Reload failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }
+    });
+
+    watcher.start();
 
     const cleanup = async () => {
       logger.info('\nShutting down...');
-      await server.close();
+      watcher.stop();
+      await runner.stop();
       process.exit(0);
     };
 
@@ -106,3 +130,38 @@ export const devCommand: CommandDef = {
     process.on('SIGTERM', cleanup);
   }
 };
+
+async function buildApp(cwd: string, config: any) {
+  logger.info('Scanning project files...');
+  const result = await scanProject({
+    cwd,
+    srcDir: config.srcDir,
+    dirs: config.dir,
+    ignore: config.scanOptions?.ignore
+  });
+
+  logger.info(
+    `Found ${result.apiRoutes.length} API routes, ${result.pages.length} pages, ${result.layouts.length} layouts, ${result.middlewares.length} middlewares, ${result.plugins.length} plugins`
+  );
+
+  logger.info('Generating type definitions...');
+  await generateTypes(result, { cwd, buildDir: '.ubean' });
+
+  const app = createUbeanApp({
+    routes: result.apiRoutes,
+    middleware: result.middlewares,
+    pages: result.pages,
+    routeRules: config.routeRules || {},
+    openAPI: {
+      title: 'UBEAN Dev API',
+      scalarPath: '/_scalar',
+      openAPIPath: '/_openapi.json'
+    }
+  });
+
+  app.hooks.hook('request:start', c => {
+    logger.log(`${c.req.method} ${c.req.path}`);
+  });
+
+  return app;
+}

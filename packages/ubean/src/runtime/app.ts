@@ -4,12 +4,14 @@ import type { Context, Next, MiddlewareHandler } from 'hono';
 import { createHooks } from 'hookable';
 import { join } from 'pathe';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../core/routing/types';
+import type { RouteRule } from '../core/config/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '../types/handler';
 import { registerRoutes } from './router';
 import { errorToResponse, isUbeanError, UbeanError } from './error';
 import { registerOpenAPIRoutes } from './internal/openapi';
 import { serveStatic } from './static';
 import { createRequestIdMiddleware } from './observability';
+import { createRouteRulesMiddleware } from './route-rules';
 
 export interface UbeanRuntimeHooks {
   'app:created': (app: Hono<UbeanEnv>) => void | Promise<void>;
@@ -33,6 +35,7 @@ export interface UbeanAppOptions {
   routes?: ScannedApiRoute[];
   middleware?: ScannedMiddleware[];
   pages?: ScannedPageRoute[];
+  routeRules?: Record<string, RouteRule>;
   plugins?: UbeanAppPlugin[];
   routeLoaders?: Record<string, () => Promise<{ default: ComposedHandler } | Record<string, ComposedHandler>>>;
   middlewareLoaders?: Record<string, () => Promise<{ default: UbeanMiddleware }>>;
@@ -78,6 +81,10 @@ export class UbeanApp {
 
   private _setupBaseMiddleware() {
     this.hono.use('*', createRequestIdMiddleware());
+
+    if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
+      this.hono.use('*', createRouteRulesMiddleware(this.options.routeRules));
+    }
 
     this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
       c.set('route', { meta: { public: true } as RouteMeta, path: c.req.path, method: c.req.method });

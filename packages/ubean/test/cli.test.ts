@@ -15,6 +15,7 @@ import {
   renderPluginTemplate,
   createFsOps
 } from '../src/core/cli/shared';
+import { scaffold } from '../src/core/cli/page';
 
 describe('template rendering', () => {
   it('renders simple variables', () => {
@@ -208,5 +209,153 @@ describe('fs-ops', () => {
     await fs.writeFile('src.txt', 'source');
     await fs.copyFile('src.txt', 'dest.txt');
     expect(await fs.readFile('dest.txt')).toBe('source');
+  });
+});
+
+describe('scaffold', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'ubean-scaffold-test-'));
+    await mkdir(join(tmpDir, 'src', 'pages'), { recursive: true });
+    await mkdir(join(tmpDir, 'src', 'api'), { recursive: true });
+    await mkdir(join(tmpDir, 'src', 'middleware'), { recursive: true });
+    await mkdir(join(tmpDir, 'src', 'layouts'), { recursive: true });
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('creates a page .vue file', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'about'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created).toHaveLength(1);
+    expect(result.created[0]).toContain('about.vue');
+    expect(result.created[0]).toContain('pages');
+  });
+
+  it('creates a nested page file', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'users/[id]'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created[0]).toContain('[id].vue');
+  });
+
+  it('creates index page for root path', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: '/'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created[0]).toContain('index.vue');
+  });
+
+  it('creates API route .ts file', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'api',
+      path: 'users',
+      method: 'GET'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created[0]).toContain('users.ts');
+    expect(result.created[0]).toContain('api');
+  });
+
+  it('creates middleware file', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'middleware',
+      path: 'auth'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created[0]).toContain('auth.ts');
+    expect(result.created[0]).toContain('middleware');
+  });
+
+  it('creates layout file', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'layout',
+      path: 'default'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created[0]).toContain('default.vue');
+    expect(result.created[0]).toContain('layouts');
+  });
+
+  it('skips existing files without --force', async () => {
+    await scaffold({ cwd: tmpDir, type: 'page', path: 'about' });
+    const result = await scaffold({ cwd: tmpDir, type: 'page', path: 'about' });
+
+    expect(result.skipped).toHaveLength(1);
+    expect(result.created).toHaveLength(0);
+  });
+
+  it('overwrites existing files with --force and creates backup', async () => {
+    await scaffold({ cwd: tmpDir, type: 'page', path: 'about' });
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'about',
+      force: true
+    });
+
+    expect(result.created).toHaveLength(1);
+    expect(result.skipped).toHaveLength(0);
+
+    const fs = createFsOps(tmpDir);
+    expect(await fs.exists('src/pages/about.vue.bak')).toBe(true);
+  });
+
+  it('dry-run does not create files', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'page',
+      path: 'contact',
+      dry: true
+    });
+
+    expect(result.created).toHaveLength(1);
+
+    const fs = createFsOps(tmpDir);
+    expect(await fs.exists('src/pages/contact.vue')).toBe(false);
+  });
+
+  it('generated page content contains definePage', async () => {
+    await scaffold({ cwd: tmpDir, type: 'page', path: 'about' });
+    const fs = createFsOps(tmpDir);
+    const content = await fs.readFile('src/pages/about.vue');
+    expect(content).toContain('definePage');
+    expect(content).toContain('About');
+  });
+
+  it('generated API content contains defineHandler', async () => {
+    await scaffold({ cwd: tmpDir, type: 'api', path: 'users' });
+    const fs = createFsOps(tmpDir);
+    const content = await fs.readFile('src/api/users.ts');
+    expect(content).toContain('defineHandler');
+  });
+
+  it('generated middleware content contains defineMiddleware', async () => {
+    await scaffold({ cwd: tmpDir, type: 'middleware', path: 'auth' });
+    const fs = createFsOps(tmpDir);
+    const content = await fs.readFile('src/middleware/auth.ts');
+    expect(content).toContain('defineMiddleware');
   });
 });

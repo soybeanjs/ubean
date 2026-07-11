@@ -4,6 +4,7 @@ import { devCommand } from './dev';
 import { initCommand } from './init';
 import { prepareCommand } from './prepare';
 import { previewCommand } from './preview';
+import { pageCommand } from './page';
 
 const main = defineCommand({
   meta: {
@@ -16,7 +17,8 @@ const main = defineCommand({
     build: buildCommand,
     prepare: prepareCommand,
     preview: previewCommand,
-    init: initCommand
+    init: initCommand,
+    page: pageCommand
   }
 });
 

@@ -22,8 +22,6 @@ import {
   createOpenTelemetryExporter,
   createConsoleExporter,
   setGlobalTracer,
-  getGlobalTracer,
-  startSpan,
   withSpan,
   createTracingMiddleware
 } from '../src/runtime/observability';
@@ -1402,27 +1400,27 @@ describe('seo', () => {
       keywords: ['a', 'b', 'c'],
       author: 'John'
     });
-    const names = tags.map(t => t.name);
+    const names = tags.map(tag => tag.name);
     expect(names).toContain('description');
     expect(names).toContain('keywords');
     expect(names).toContain('author');
-    const kwTag = tags.find(t => t.name === 'keywords');
+    const kwTag = tags.find(tag => tag.name === 'keywords');
     expect(kwTag?.content).toBe('a, b, c');
   });
 
   it('buildMetaTags supports string keywords', () => {
     const tags = buildMetaTags({ keywords: 'x, y, z' });
-    expect(tags.find(t => t.name === 'keywords')?.content).toBe('x, y, z');
+    expect(tags.find(tag => tag.name === 'keywords')?.content).toBe('x, y, z');
   });
 
   it('buildMetaTags handles robots as string', () => {
     const tags = buildMetaTags({ robots: 'noindex, nofollow' });
-    expect(tags.find(t => t.name === 'robots')?.content).toBe('noindex, nofollow');
+    expect(tags.find(tag => tag.name === 'robots')?.content).toBe('noindex, nofollow');
   });
 
   it('buildMetaTags handles robots as object with index/follow', () => {
     const tags = buildMetaTags({ robots: { index: false, follow: true } });
-    expect(tags.find(t => t.name === 'robots')?.content).toBe('noindex, follow');
+    expect(tags.find(tag => tag.name === 'robots')?.content).toBe('noindex, follow');
   });
 
   it('buildMetaTags generates OpenGraph tags', () => {
@@ -1444,8 +1442,8 @@ describe('seo', () => {
         }
       }
     });
-    const props = Object.fromEntries(tags.filter(t => t.property && !t.property.startsWith('og:locale:alternate')).map(t => [t.property, t.content]));
-    const altLocales = tags.filter(t => t.property === 'og:locale:alternate').map(t => t.content);
+    const props = Object.fromEntries(tags.filter(tag => tag.property && !tag.property.startsWith('og:locale:alternate')).map(tag => [tag.property, tag.content]));
+    const altLocales = tags.filter(tag => tag.property === 'og:locale:alternate').map(tag => tag.content);
     expect(props['og:title']).toBe('OG Title');
     expect(props['og:description']).toBe('OG Desc');
     expect(props['og:type']).toBe('website');
@@ -1458,7 +1456,7 @@ describe('seo', () => {
 
   it('buildMetaTags supports string image URL for og:image', () => {
     const tags = buildMetaTags({ openGraph: { image: 'https://example.com/img.jpg' } });
-    const ogImg = tags.find(t => t.property === 'og:image');
+    const ogImg = tags.find(tag => tag.property === 'og:image');
     expect(ogImg?.content).toBe('https://example.com/img.jpg');
   });
 
@@ -1473,7 +1471,7 @@ describe('seo', () => {
         image: 'https://example.com/tw.png'
       }
     });
-    const names = Object.fromEntries(tags.filter(t => t.name?.startsWith('twitter:')).map(t => [t.name, t.content]));
+    const names = Object.fromEntries(tags.filter(tag => tag.name?.startsWith('twitter:')).map(tag => [tag.name, tag.content]));
     expect(names['twitter:card']).toBe('summary_large_image');
     expect(names['twitter:title']).toBe('Tw Title');
     expect(names['twitter:image']).toBe('https://example.com/tw.png');
@@ -1483,8 +1481,8 @@ describe('seo', () => {
     const tags = buildMetaTags({
       meta: [{ name: 'custom', content: 'value' }, { property: 'fb:app_id', content: '123' }]
     });
-    expect(tags.find(t => t.name === 'custom')?.content).toBe('value');
-    expect(tags.find(t => t.property === 'fb:app_id')?.content).toBe('123');
+    expect(tags.find(tag => tag.name === 'custom')?.content).toBe('value');
+    expect(tags.find(tag => tag.property === 'fb:app_id')?.content).toBe('123');
   });
 
   it('buildLinkTags includes canonical and custom links', () => {
@@ -1511,7 +1509,7 @@ describe('seo', () => {
   });
 
   it('buildTitle applies function titleTemplate', () => {
-    const title = buildTitle({ title: 'About', titleTemplate: t => `${t} — Example` });
+    const title = buildTitle({ title: 'About', titleTemplate: titleChunk => `${titleChunk} — Example` });
     expect(title).toBe('About — Example');
   });
 

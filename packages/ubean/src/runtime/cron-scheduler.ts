@@ -1,4 +1,5 @@
-import { getScheduledTasks, type ScheduledTask, type CronContext } from './cron';
+import { getScheduledTasks } from './cron';
+import type { ScheduledTask, CronContext } from './cron';
 
 export interface CronScheduler {
   start(): Promise<void>;

@@ -7,4 +7,4 @@ export function defineMeta(_meta: Partial<RouteMeta>): DefineMetaResult | void {
 
 export function defineValidator<V extends ValidatorSlots>(_validators: V): DefineValidatorResult | void {}
 
-export function defineMiddleware<I extends Input>(_handler: any): void {}
+export function defineMiddleware<_I extends Input>(_handler: any): void {}

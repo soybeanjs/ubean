@@ -178,7 +178,7 @@ export function getRegisteredRunners(): EnvRunner[] {
   return [...runners];
 }
 
-export async function selectRunner(preset: Preset): Promise<EnvRunner | null> {
+export async function selectRunner(_preset: Preset): Promise<EnvRunner | null> {
   for (const runner of runners) {
     if (await runner.isAvailable()) {
       return runner;

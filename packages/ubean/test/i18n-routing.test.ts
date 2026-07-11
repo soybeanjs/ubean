@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import { defineLocale, clearLocales } from '../src/runtime/i18n';
-import { createI18nMiddleware, localeRoutes, switchLocalePath } from '../src/runtime/i18n-routing';
+import { createI18nMiddleware, localeRoutes } from '../src/runtime/i18n-routing';
 
 describe('i18n routing middleware', () => {
   beforeEach(() => {

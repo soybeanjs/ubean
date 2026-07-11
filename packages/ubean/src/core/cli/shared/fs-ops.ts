@@ -78,7 +78,7 @@ export async function readJson<T = unknown>(path: string): Promise<T> {
 }
 
 export async function writeJson(path: string, data: unknown, indent = 2): Promise<void> {
-  const content = JSON.stringify(data, null, indent) + '\n';
+  const content = `${JSON.stringify(data, null, indent)  }\n`;
   await writeFile(path, content);
 }
 

@@ -143,14 +143,14 @@ export function generateWranglerConfig(options: {
 
   if (options.queuesProducers && options.queuesProducers.length > 0) {
     config.queues = {
-      ...(config.queues || {}),
+      ...config.queues,
       producers: options.queuesProducers
     };
   }
 
   if (options.queuesConsumers && options.queuesConsumers.length > 0) {
     config.queues = {
-      ...(config.queues || {}),
+      ...config.queues,
       consumers: options.queuesConsumers
     };
   }
@@ -295,7 +295,7 @@ export function serializeWranglerToml(config: WranglerConfig): string {
     }
   }
 
-  return lines.join('\n') + '\n';
+  return `${lines.join('\n')  }\n`;
 }
 
 function escapeToml(str: string): string {

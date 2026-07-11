@@ -184,7 +184,7 @@ export function declareDependencies(deps: DependencyDeclaration): DependencyDecl
   return deps;
 }
 
-export function withDependencies<T>(fn: () => T | Promise<T>, deps: DependencyDeclaration): () => Promise<T> {
+export function withDependencies<T>(fn: () => T | Promise<T>, _deps: DependencyDeclaration): () => Promise<T> {
   return async () => {
     return fn();
   };

@@ -153,7 +153,7 @@ async function scanComposablesDir(
     if (name) {
       imports.push({
         name,
-        from: `~/` + relativeToSrc.replace(/\.(ts|js|mts|mjs|cts|cjs)$/, '')
+        from: `~/${  relativeToSrc.replace(/\.(ts|js|mts|mjs|cts|cjs)$/, '')}`
       });
     }
   }
@@ -195,7 +195,7 @@ async function scanComponentsDir(
     components.push({
       name,
       filePath: fullPath,
-      importPath: `~/` + relativeToSrc,
+      importPath: `~/${  relativeToSrc}`,
       pascalName: name
     });
   }

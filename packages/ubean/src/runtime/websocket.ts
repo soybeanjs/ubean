@@ -1,5 +1,4 @@
-import type { Context } from 'hono';
-import type { MiddlewareHandler } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 import type { UbeanEnv } from '../types/handler';
 
 export interface Peer {

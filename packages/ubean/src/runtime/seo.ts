@@ -119,10 +119,10 @@ export function mergeMetadata(...metadatas: (SeoMetadata | undefined | null)[]):
     if (meta.bodyAttrs) result.bodyAttrs = { ...result.bodyAttrs, ...meta.bodyAttrs };
 
     if (meta.openGraph) {
-      result.openGraph = { ...(result.openGraph || {}), ...meta.openGraph };
+      result.openGraph = { ...result.openGraph, ...meta.openGraph };
     }
     if (meta.twitter) {
-      result.twitter = { ...(result.twitter || {}), ...meta.twitter };
+      result.twitter = { ...result.twitter, ...meta.twitter };
     }
 
     if (meta.meta) {
@@ -325,7 +325,7 @@ function formatRobotsTxt(options: RobotsOptions[] | RobotsOptions): string {
     lines.push(`Sitemap: ${sitemap}`);
   }
 
-  return lines.join('\n').trim() + '\n';
+  return `${lines.join('\n').trim()  }\n`;
 }
 
 function escapeXml(str: string): string {

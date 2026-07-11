@@ -19,11 +19,11 @@ function compileRulePath(pattern: string): RegExp {
   const SINGLE = '__SWC__';
 
   let s = pattern;
-  s = s.replace(/\/\*\*/g, '/' + DOUBLE);
+  s = s.replace(/\/\*\*/g, `/${  DOUBLE}`);
   s = s.replace(/\*/g, SINGLE);
   s = s.replace(/[.+^${}()|[\]\\]/g, '\\$&');
   s = s.replace(new RegExp(SINGLE, 'g'), '[^/]*');
-  s = s.replace(new RegExp('/' + DOUBLE, 'g'), '(?:/.*)?');
+  s = s.replace(new RegExp(`/${  DOUBLE}`, 'g'), '(?:/.*)?');
 
   return new RegExp(`^${s}$`);
 }
@@ -47,7 +47,7 @@ export function matchRouteRules(path: string, compiledRules: CompiledRouteRule[]
   for (const { pattern, rule } of compiledRules) {
     if (pattern.test(path)) {
       if (rule.headers) {
-        matched.headers = { ...(matched.headers || {}), ...rule.headers };
+        matched.headers = { ...matched.headers, ...rule.headers };
       }
       if (rule.redirect && !matched.redirect) {
         matched.redirect = rule.redirect;
@@ -56,7 +56,7 @@ export function matchRouteRules(path: string, compiledRules: CompiledRouteRule[]
         matched.rewrite = rule.rewrite;
       }
       if (rule.cache) {
-        matched.cache = { ...(matched.cache || {}), ...rule.cache };
+        matched.cache = { ...matched.cache, ...rule.cache };
       }
       if (rule.prerender !== undefined) {
         matched.prerender = rule.prerender;

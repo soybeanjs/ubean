@@ -37,11 +37,11 @@ async function prompt(question: string, defaultValue?: string): Promise<string> 
     output: process.stdout
   });
 
-  return new Promise(resolve => {
+  return new Promise(resolvePromise => {
     const suffix = defaultValue ? ` (${defaultValue})` : '';
     rl.question(`${question}${suffix}: `, answer => {
       rl.close();
-      resolve(answer.trim() || defaultValue || '');
+      resolvePromise(answer.trim() || defaultValue || '');
     });
   });
 }
@@ -59,17 +59,17 @@ async function select(question: string, options: { value: string; label: string 
     console.log(`  ${i + 1}. ${opt.label}${marker} [${opt.value}]`);
   });
 
-  return new Promise(resolve => {
+  return new Promise(resolvePromise => {
     rl.question('> ', answer => {
       rl.close();
       const idx = parseInt(answer, 10) - 1;
       if (!answer.trim() && defaultValue) {
-        resolve(defaultValue);
+        resolvePromise(defaultValue);
       } else if (idx >= 0 && idx < options.length) {
-        resolve(options[idx].value);
+        resolvePromise(options[idx].value);
       } else {
         const found = options.find(o => o.value === answer.trim());
-        resolve(found ? found.value : defaultValue || options[0].value);
+        resolvePromise(found ? found.value : defaultValue || options[0].value);
       }
     });
   });
@@ -84,14 +84,14 @@ async function confirm(question: string, defaultValue = true): Promise<boolean> 
 
   const suffix = defaultValue ? ' (Y/n)' : ' (y/N)';
 
-  return new Promise(resolve => {
+  return new Promise(resolvePromise => {
     rl.question(`${question}${suffix}: `, answer => {
       rl.close();
       const a = answer.trim().toLowerCase();
       if (!a) {
-        resolve(defaultValue);
+        resolvePromise(defaultValue);
       } else {
-        resolve(a === 'y' || a === 'yes');
+        resolvePromise(a === 'y' || a === 'yes');
       }
     });
   });

@@ -164,7 +164,7 @@ export function useI18n(): I18nInstance {
 
       for (const { code } of requested) {
         for (const registered of registeredLocales.keys()) {
-          if (code === registered.toLowerCase() || code.startsWith(registered.toLowerCase() + '-')) {
+          if (code === registered.toLowerCase() || code.startsWith(`${registered.toLowerCase()  }-`)) {
             return registered;
           }
         }

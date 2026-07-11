@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -371,7 +371,7 @@ describe('scaffold', () => {
     expect(result.created[0]).toContain('pages');
 
     const fs = createFsOps(tmpDir);
-    const content = await fs.readFile(result.created[0].replace(tmpDir + '/', ''));
+    const content = await fs.readFile(result.created[0].replace(`${tmpDir  }/`, ''));
     expect(content).toContain('definePage');
     expect(content).toContain("import { definePage } from 'ubean'");
     expect(content).toContain('UsersId');

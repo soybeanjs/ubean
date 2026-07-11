@@ -1,5 +1,4 @@
-import type { Context } from 'hono';
-import type { MiddlewareHandler } from 'hono';
+import type { Context, MiddlewareHandler } from 'hono';
 import type { UbeanEnv } from '../types/handler';
 
 export interface SSEMessage {
@@ -66,7 +65,7 @@ export function formatSSEMessage(msg: SSEMessage): string {
     }
   }
 
-  return lines.join('\n') + '\n\n';
+  return `${lines.join('\n')  }\n\n`;
 }
 
 class SSEConnectionImpl implements SSEConnection {

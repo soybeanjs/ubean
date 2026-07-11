@@ -121,7 +121,7 @@ describe('createUseAsyncData', () => {
 
   it('uses cached data on subsequent calls', async () => {
     let callCount = 0;
-    const result1 = useAsyncData('cached', async () => {
+    const _result1 = useAsyncData('cached', async () => {
       callCount++;
       return { n: callCount };
     });

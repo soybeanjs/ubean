@@ -1,4 +1,5 @@
-import { createHooks, type Hookable } from 'hookable';
+import { createHooks } from 'hookable';
+import type { Hookable } from 'hookable';
 
 const REQUEST_ID_HEADER = 'x-request-id';
 
@@ -207,7 +208,7 @@ export function createObservabilityTracer(config: ObservabilityConfig = {}) {
       if (sensitiveKeys.has(key.toLowerCase())) {
         result[key] = '[REDACTED]';
       } else if (typeof value === 'string' && value.length > 2048) {
-        result[key] = value.slice(0, 2048) + '...[truncated]';
+        result[key] = `${value.slice(0, 2048)  }...[truncated]`;
       } else {
         result[key] = value;
       }
@@ -215,7 +216,7 @@ export function createObservabilityTracer(config: ObservabilityConfig = {}) {
     return result;
   }
 
-  function startSpan(options: SpanOptions): Span {
+  function startTracedSpan(options: SpanOptions): Span {
     if (!enabled) {
       return createSpan(options);
     }
@@ -250,9 +251,9 @@ export function createObservabilityTracer(config: ObservabilityConfig = {}) {
     return span;
   }
 
-  async function withSpan<T>(options: SpanOptions | string, fn: (span: Span) => T | Promise<T>): Promise<T> {
+  async function tracedWithSpan<T>(options: SpanOptions | string, fn: (span: Span) => T | Promise<T>): Promise<T> {
     const opts: SpanOptions = typeof options === 'string' ? { name: options } : options;
-    const span = startSpan(opts);
+    const span = startTracedSpan(opts);
     try {
       const result = await fn(span);
       span.end();
@@ -278,8 +279,8 @@ export function createObservabilityTracer(config: ObservabilityConfig = {}) {
 
   return {
     hooks,
-    startSpan,
-    withSpan,
+    startSpan: startTracedSpan,
+    withSpan: tracedWithSpan,
     getActiveSpan,
     addExporter,
     removeExporter,

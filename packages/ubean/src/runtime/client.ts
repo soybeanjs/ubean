@@ -1,7 +1,8 @@
-import { $fetch, createFetch, FetchError, type FetchOptions } from 'ofetch';
+import { $fetch, createFetch, FetchError } from 'ofetch';
+import type { FetchOptions } from 'ofetch';
 import type { HttpMethod } from '../core/routing/types';
 
-declare const globalThis: any;
+const g = globalThis as any;
 
 export interface ClientOptions {
   baseURL?: string;
@@ -35,21 +36,21 @@ export interface ClientError extends Error {
 }
 
 function detectRuntime(): string {
-  if (typeof globalThis.window !== 'undefined') return 'browser';
-  if (globalThis.process?.versions?.node) return `node/${globalThis.process.versions.node}`;
-  if (typeof globalThis.Deno !== 'undefined') return 'deno';
-  if (typeof globalThis.Bun !== 'undefined') return 'bun';
-  if (typeof globalThis.EdgeRuntime !== 'undefined') return 'edge';
-  if (typeof globalThis.workerd !== 'undefined') return 'workerd';
+  if (typeof g.window !== 'undefined') return 'browser';
+  if (g.process?.versions?.node) return `node/${g.process.versions.node}`;
+  if (typeof g.Deno !== 'undefined') return 'deno';
+  if (typeof g.Bun !== 'undefined') return 'bun';
+  if (typeof g.EdgeRuntime !== 'undefined') return 'edge';
+  if (typeof g.workerd !== 'undefined') return 'workerd';
   return 'unknown';
 }
 
 function createXhrFetch(onUploadProgress: (loaded: number, total: number) => void): any {
-  if (typeof globalThis.XMLHttpRequest === 'undefined') {
+  if (typeof g.XMLHttpRequest === 'undefined') {
     return undefined;
   }
 
-  const XHR = globalThis.XMLHttpRequest;
+  const XHR = g.XMLHttpRequest;
 
   return ((input: any, init?: any): Promise<any> => {
     return new Promise((resolve, reject) => {
@@ -83,14 +84,14 @@ function createXhrFetch(onUploadProgress: (loaded: number, total: number) => voi
         xhr.withCredentials = true;
       }
 
-      xhr.upload.onprogress = (event: any) => {
+      xhr.upload.addEventListener('progress', (event: any) => {
         if (event.lengthComputable) {
           onUploadProgress(event.loaded, event.total);
         }
-      };
+      });
 
-      xhr.onload = () => {
-        const headers = new globalThis.Headers();
+      xhr.addEventListener('load', () => {
+        const headers = new g.Headers();
         const headerStr = xhr.getAllResponseHeaders() || '';
         const headerLines = headerStr.trim().split(/\r\n/);
         for (const line of headerLines) {
@@ -100,20 +101,20 @@ function createXhrFetch(onUploadProgress: (loaded: number, total: number) => voi
           }
         }
 
-        resolve(new globalThis.Response(xhr.response, {
+        resolve(new g.Response(xhr.response, {
           status: xhr.status,
           statusText: xhr.statusText,
           headers
         }));
-      };
+      });
 
-      xhr.onerror = () => {
+      xhr.addEventListener('error', () => {
         reject(new TypeError('Network request failed'));
-      };
+      });
 
-      xhr.ontimeout = () => {
+      xhr.addEventListener('timeout', () => {
         reject(new TypeError('Network request timed out'));
-      };
+      });
 
       xhr.send(init?.body);
     });
@@ -323,8 +324,8 @@ export function diagnoseEnvironment(): {
 } {
   return {
     runtime: detectRuntime(),
-    hasFetch: typeof globalThis.fetch !== 'undefined',
-    hasXHR: typeof globalThis.XMLHttpRequest !== 'undefined',
-    hasAbortController: typeof globalThis.AbortController !== 'undefined'
+    hasFetch: typeof g.fetch !== 'undefined',
+    hasXHR: typeof g.XMLHttpRequest !== 'undefined',
+    hasAbortController: typeof g.AbortController !== 'undefined'
   };
 }

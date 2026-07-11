@@ -4,7 +4,6 @@ import {
   defineRoom,
   createRoom,
   getRoom,
-  broadcast,
   registerWebSocket,
   getWebSocketDefinitions,
   clearWebSocketState

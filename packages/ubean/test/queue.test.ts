@@ -3,7 +3,6 @@ import {
   defineQueue,
   createMemoryQueueDriver,
   setQueueDriver,
-  useQueueDriver,
   sendMessage,
   sendMessages,
   getQueueDefinitions,

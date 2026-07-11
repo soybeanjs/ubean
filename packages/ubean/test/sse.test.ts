@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { formatSSEMessage } from '../src/runtime/sse';
-import { clearSSEState, getSSEConnections } from '../src/runtime/sse';
+import { formatSSEMessage, clearSSEState, getSSEConnections } from '../src/runtime/sse';
 
 describe('SSE message formatting', () => {
   it('formats simple string data', () => {

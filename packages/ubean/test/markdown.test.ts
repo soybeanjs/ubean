@@ -277,7 +277,7 @@ Rest of content
 
     it('supports custom highlighter', () => {
       const html = markdownToHtml('```js\nhello\n```', {
-        highlighter: (code, lang) => `<span class="hl">${code}</span>`
+        highlighter: (code, _lang) => `<span class="hl">${code}</span>`
       });
       expect(html).toContain('<span class="hl">hello</span>');
     });

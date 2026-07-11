@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import { createRateLimitMiddleware, createMemoryRateLimitStore } from '../src/runtime/rate-limit';
 

@@ -17,9 +17,10 @@ export interface I18nRoutingOptions {
 function getLocaleFromPath(path: string, locales: string[]): { locale: string | null; pathWithoutLocale: string } {
   const segments = path.split('/');
   if (segments.length >= 2 && locales.includes(segments[1])) {
+    const remainingPath = segments.slice(2).join('/');
     return {
       locale: segments[1],
-      pathWithoutLocale: '/' + segments.slice(2).join('/') || '/'
+      pathWithoutLocale: remainingPath ? `/${remainingPath}` : '/'
     };
   }
   return { locale: null, pathWithoutLocale: path };

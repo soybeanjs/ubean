@@ -66,14 +66,14 @@ export function createMemoryDriver(): StorageDriver {
 export function createStorage(options: { driver?: StorageDriver; base?: string } = {}): UbeanStorage {
   const mounts = new Map<string, StorageDriver>();
   const rootDriver = options.driver || createMemoryDriver();
-  const rootBase = options.base ? options.base.replace(/\/$/, '') + ':' : '';
+  const rootBase = options.base ? `${options.base.replace(/\/$/, '')  }:` : '';
 
   function resolveKey(key: string): { driver: StorageDriver; relativeKey: string } {
     const fullKey = rootBase + key;
     let bestMatch = '';
     let bestDriver: StorageDriver = rootDriver;
     for (const [base, driver] of mounts) {
-      if (fullKey.startsWith(base + ':') && base.length > bestMatch.length) {
+      if (fullKey.startsWith(`${base  }:`) && base.length > bestMatch.length) {
         bestMatch = base;
         bestDriver = driver;
       }

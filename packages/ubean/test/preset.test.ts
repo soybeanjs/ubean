@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
+import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
@@ -10,9 +10,7 @@ import {
   registerBuiltinPresets,
   detectPreset,
   resolvePresetWithDetection,
-  listDetectablePresets,
-  nodePreset,
-  standardPreset
+  listDetectablePresets
 } from '../src/core/preset';
 
 describe('cloudflare preset', () => {

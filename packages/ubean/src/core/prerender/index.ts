@@ -1,8 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, dirname, relative } from 'pathe';
 import type { ScannedPageRoute } from '../routing/types';
-import type { RouteRule } from '../config/types';
-import type { PrerenderConfig, PrerenderRoute, PrerenderResult } from '../config/types';
+import type { RouteRule, PrerenderConfig, PrerenderRoute, PrerenderResult } from '../config/types';
 import { logger } from '../log';
 
 const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
@@ -93,8 +92,8 @@ export function collectPrerenderRoutes(
 
 function routePatternMatches(route: string, pattern: string, basePattern: string): boolean {
   if (route === basePattern) return true;
-  if (pattern.endsWith('/**') && route.startsWith(basePattern + '/')) return true;
-  if (pattern.endsWith('/*') && route.startsWith(basePattern + '/') && !route.slice(basePattern.length + 1).includes('/')) return true;
+  if (pattern.endsWith('/**') && route.startsWith(`${basePattern  }/`)) return true;
+  if (pattern.endsWith('/*') && route.startsWith(`${basePattern  }/`) && !route.slice(basePattern.length + 1).includes('/')) return true;
   if (pattern === route) return true;
   return false;
 }
@@ -109,7 +108,7 @@ function normalizePagePath(filePath: string): string {
   path = path.replace(/\\/g, '/');
 
   if (!path.startsWith('/')) {
-    path = '/' + path;
+    path = `/${  path}`;
   }
 
   if (path.length > 1 && path.endsWith('/')) {
@@ -166,7 +165,7 @@ function normalizeHref(href: string, baseUrl: string): string | null {
   if (path.includes('//')) return null;
 
   if (!path.startsWith('/')) {
-    path = '/' + path;
+    path = `/${  path}`;
   }
 
   if (path.length > 1 && path.endsWith('/')) {
@@ -208,7 +207,7 @@ export function shouldIgnoreRoute(route: string, ignorePatterns: string[]): bool
       .replace(/[.+^${}()|[\]\\]/g, '\\$&')
       .replace(/\*/g, '[^/]*')
       .replace(/\*\*/g, '.*');
-    const regex = new RegExp('^' + escaped + '$');
+    const regex = new RegExp(`^${  escaped  }$`);
     if (regex.test(route)) return true;
   }
   return false;
@@ -330,10 +329,10 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
   const duration = Date.now() - startTime;
 
   logger.success(
-    `Prerendered ${generated.length} routes` +
-    (errors.length > 0 ? ` (${errors.length} errors)` : '') +
-    (skipped.length > 0 ? `, skipped ${skipped.length}` : '') +
-    ` in ${duration}ms`
+    `Prerendered ${generated.length} routes${ 
+    errors.length > 0 ? ` (${errors.length} errors)` : '' 
+    }${skipped.length > 0 ? `, skipped ${skipped.length}` : '' 
+    } in ${duration}ms`
   );
 
   return { routes: results, generated, errors, skipped, duration };

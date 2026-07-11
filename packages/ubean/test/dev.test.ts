@@ -56,7 +56,7 @@ describe('dev diagnostics', () => {
 
   it('diagnoseCapabilities reports warnings for missing optional capabilities in WORKER_CAPABILITIES', () => {
     const result = diagnoseCapabilities('worker', WORKER_CAPABILITIES, DEV_REQUIREMENTS);
-    const { errors, warnings } = formatDiagnostics(result);
+    const { errors, warnings: _warnings } = formatDiagnostics(result);
     expect(errors.length).toBe(0);
   });
 

@@ -32,7 +32,7 @@ export function createDevWatcher(options: DevWatcherOptions): DevWatcher {
   function isIgnored(relPath: string): boolean {
     return ignore.some(pattern => {
       if (pattern.includes('*')) {
-        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+        const regex = new RegExp(`^${  pattern.replace(/\*/g, '.*').replace(/\?/g, '.')  }$`);
         return regex.test(relPath);
       }
       return relPath.startsWith(pattern) || relPath === pattern;

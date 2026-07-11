@@ -300,7 +300,7 @@
 | P3-14 | 类型安全客户端                    | ✅   | P1     | `src/runtime/client.ts` | 基于 ofetch v1 重构；支持 normal 模式（throw on error）和 flat 模式（`{ data, error }`）；实现 XHR 上传适配器支持 `onUploadProgress`；添加 `diagnoseEnvironment()` 进行 SSR/edge 运行时诊断；支持 `createClient()`、`extend()`、拦截器、重试、超时、baseURL 等 |
 | P3-15 | Context 类型                      | ✅   | P0     | `src/types/handler.ts`                               | UbeanContext/UbeanHandler/UbeanMiddleware 类型                                                                                           |
 | P3-16 | i18n 运行时                       | ✅   | P1     | `src/runtime/i18n.ts`                                | defineLocale/useI18n/t()/setLocale/getLocale/locale 检测；支持嵌套消息键、参数插值、fallback locale、addLocale/mergeLocale、Accept-Language 解析、RTL 支持 |
-| P3-17 | 可观测性契约                      | ⬜   | P1     | `packages/ubean-observability/`                      | request ID、Hookable spans、错误脱敏与 OpenTelemetry adapter                                                                             |
+| P3-17 | 可观测性契约                      | ⬜   | P1     | `src/runtime/observability.ts`, `packages/ubean-observability/` | ✅ Request ID 中间件（X-Request-Id 生成/透传/响应头）；Hookable spans、错误脱敏与 OpenTelemetry adapter 待实现 |
 | P3-18 | SEO metadata 与 OG 基础           | ⬜   | P1     | `src/runtime/vue/seo.ts`, `packages/ubean-og/`       | metadata 合并、sitemap/robots/manifest 与可选 OG handler                                                                                 |
 
 ### Phase 4: Vue Pages 系统 (Week 7-8)

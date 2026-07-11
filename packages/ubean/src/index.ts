@@ -31,6 +31,8 @@ export {
 } from './runtime/client';
 export { defineScheduled, getScheduledTasks, runScheduledTask, clearScheduledTasks } from './runtime/cron';
 export type { CronTaskMeta, CronContext, ScheduledTask, CronSchedule } from './runtime/cron';
+export { createRequestIdMiddleware, getRequestId, generateRequestId, REQUEST_ID_HEADER } from './runtime/observability';
+export type { RequestIdOptions } from './runtime/observability';
 export type {
   ApiClient,
   ClientOptions,

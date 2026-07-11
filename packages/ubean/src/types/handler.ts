@@ -24,6 +24,7 @@ export interface RouteMeta extends BaseRouteMeta {
 export interface UbeanEnv extends HonoEnv {
   Variables: {
     route: { meta: RouteMeta; path: string; method: string };
+    requestId: string;
     [key: string]: unknown;
   };
   Bindings: Record<string, unknown>;

@@ -9,6 +9,7 @@ import { registerRoutes } from './router';
 import { errorToResponse, isUbeanError, UbeanError } from './error';
 import { registerOpenAPIRoutes } from './internal/openapi';
 import { serveStatic } from './static';
+import { createRequestIdMiddleware } from './observability';
 
 export interface UbeanRuntimeHooks {
   'app:created': (app: Hono<UbeanEnv>) => void | Promise<void>;
@@ -76,6 +77,8 @@ export class UbeanApp {
   }
 
   private _setupBaseMiddleware() {
+    this.hono.use('*', createRequestIdMiddleware());
+
     this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
       c.set('route', { meta: { public: true } as RouteMeta, path: c.req.path, method: c.req.method });
       await this.hooks.callHook('request:start', c);

@@ -13,6 +13,7 @@ import { createClient } from '../src/runtime/client';
 import { defineEnv, setRuntimeEnv, useRuntimeEnv } from '../src/runtime/env';
 import { defineHandler } from '../src/runtime/handler';
 import { defineLocale, useI18n, t, setLocale, getLocale, clearLocales, getRegisteredLocales } from '../src/runtime/i18n';
+import { createRequestIdMiddleware, getRequestId, generateRequestId } from '../src/runtime/observability';
 import {
   buildClientOnlyShell,
   buildPageShell,
@@ -916,5 +917,104 @@ describe('i18n runtime', () => {
     });
 
     expect(t('hello')).toBe('مرحبا');
+  });
+});
+
+describe('observability', () => {
+  it('generateRequestId produces unique IDs', () => {
+    const id1 = generateRequestId();
+    const id2 = generateRequestId();
+    expect(id1).toBeTruthy();
+    expect(id2).toBeTruthy();
+    expect(id1).not.toBe(id2);
+  });
+
+  it('uses crypto.randomUUID when available', () => {
+    const id = generateRequestId();
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
+    }
+  });
+
+  it('createRequestIdMiddleware generates ID when no incoming header', async () => {
+    const mw = createRequestIdMiddleware();
+    let capturedId: string | undefined;
+    const c: any = {
+      req: { header: () => undefined },
+      set: (_k: string, v: string) => { capturedId = v; },
+      get: (k: string) => (k === 'requestId' ? capturedId : undefined),
+      header: vi.fn()
+    };
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await mw(c, next);
+
+    expect(capturedId).toBeTruthy();
+    expect(next).toHaveBeenCalled();
+    expect(c.header).toHaveBeenCalledWith('x-request-id', capturedId);
+  });
+
+  it('createRequestIdMiddleware reuses incoming X-Request-Id', async () => {
+    const mw = createRequestIdMiddleware();
+    let capturedId: string | undefined;
+    const incomingId = 'my-trace-id-123';
+    const c: any = {
+      req: { header: (name: string) => (name === 'x-request-id' ? incomingId : undefined) },
+      set: (_k: string, v: string) => { capturedId = v; },
+      get: (k: string) => (k === 'requestId' ? capturedId : undefined),
+      header: vi.fn()
+    };
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await mw(c, next);
+
+    expect(capturedId).toBe(incomingId);
+    expect(c.header).toHaveBeenCalledWith('x-request-id', incomingId);
+  });
+
+  it('createRequestIdMiddleware supports custom header name', async () => {
+    const mw = createRequestIdMiddleware({ headerName: 'x-trace-id' });
+    let capturedId: string | undefined;
+    const incomingId = 'custom-trace';
+    const c: any = {
+      req: { header: (name: string) => (name === 'x-trace-id' ? incomingId : undefined) },
+      set: (_k: string, v: string) => { capturedId = v; },
+      get: (k: string) => (k === 'requestId' ? capturedId : undefined),
+      header: vi.fn()
+    };
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await mw(c, next);
+
+    expect(capturedId).toBe(incomingId);
+    expect(c.header).toHaveBeenCalledWith('x-trace-id', incomingId);
+  });
+
+  it('createRequestIdMiddleware can skip response header', async () => {
+    const mw = createRequestIdMiddleware({ setResponseHeader: false });
+    const c: any = {
+      req: { header: () => undefined },
+      set: vi.fn(),
+      get: vi.fn(),
+      header: vi.fn()
+    };
+    const next = vi.fn().mockResolvedValue(undefined);
+
+    await mw(c, next);
+
+    expect(c.header).not.toHaveBeenCalled();
+  });
+
+  it('getRequestId retrieves ID from context', () => {
+    const c: any = { get: (k: string) => (k === 'requestId' ? 'test-id-123' : undefined) };
+    expect(getRequestId(c)).toBe('test-id-123');
+  });
+
+  it('app automatically includes x-request-id response header', async () => {
+    const app = createUbeanApp();
+    await app.init();
+    const res = await app.hono.request('/_health');
+    expect(res.headers.get('x-request-id')).toBeTruthy();
+    expect(res.status).toBe(200);
   });
 });

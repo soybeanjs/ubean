@@ -15,6 +15,7 @@ import { createRouteRulesMiddleware } from './route-rules';
 import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from './cache';
 import { createWebSocketMiddleware } from './websocket';
 import { setInternalFetcher } from './internal-fetch';
+import { createDevToolsMiddleware } from '../core/devtools';
 
 export interface UbeanRuntimeHooks {
   'app:created': (app: Hono<UbeanEnv>) => void | Promise<void>;
@@ -47,6 +48,7 @@ export interface UbeanAppOptions {
   pageAssetTags?: import('./pages').PageAssetTags;
   publicDir?: string;
   healthEndpoint?: boolean;
+  devtools?: boolean;
   openAPI?:
     | boolean
     | {
@@ -71,6 +73,7 @@ export class UbeanApp {
   readonly hooks = createHooks<UbeanRuntimeHooks>();
   readonly plugins: UbeanAppPlugin[];
   readonly options: UbeanAppOptions;
+  readonly devtools?: ReturnType<typeof createDevToolsMiddleware>;
   private _ready = false;
 
   constructor(options: UbeanAppOptions = {}) {
@@ -78,12 +81,20 @@ export class UbeanApp {
     this.hono = new Hono<UbeanEnv>();
     this.plugins = options.plugins || [];
 
+    if (options.devtools) {
+      this.devtools = createDevToolsMiddleware();
+    }
+
     this._setupBaseMiddleware();
     this._setupFallback();
   }
 
   private _setupBaseMiddleware() {
     this.hono.use('*', createRequestIdMiddleware());
+
+    if (this.devtools) {
+      this.hono.use('*', (c, next) => this.devtools!.middleware(c, next));
+    }
 
     if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
       this.hono.use('*', createRouteRulesMiddleware(this.options.routeRules));

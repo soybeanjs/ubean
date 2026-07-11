@@ -8,6 +8,7 @@ import { logger } from '../log';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { createCapabilitySet, diagnoseCapabilities, NODE_REQUIREMENTS } from '../preset/capabilities';
 import { scanProject } from '../routing/scan';
+import type { DevToolsRouteInfo, DevToolsPageInfo, DevToolsMiddlewareInfo } from '../devtools/types';
 
 export const devCommand: CommandDef = {
   meta: {
@@ -161,12 +162,47 @@ async function buildApp(cwd: string, config: any) {
     middleware: result.middlewares,
     pages: result.pages,
     routeRules: config.routeRules || {},
+    devtools: true,
     openAPI: {
       title: 'UBEAN Dev API',
       scalarPath: '/_scalar',
       openAPIPath: '/_openapi.json'
     }
   });
+
+  if (app.devtools) {
+    const devRoutes: DevToolsRouteInfo[] = result.apiRoutes.map(r => ({
+      method: r.method || 'GET',
+      path: r.route,
+      filePath: r.relativePath
+    }));
+
+    const devPages: DevToolsPageInfo[] = result.pages
+      .filter(p => !p.isReuse)
+      .map(p => ({
+        path: p.route,
+        name: p.name,
+        filePath: p.relativePath,
+        layout: p.layout === false ? undefined : (p.layout || 'default')
+      }));
+
+    const devMiddlewares: DevToolsMiddlewareInfo[] = result.middlewares.map(m => ({
+      path: m.global ? '*' : m.relativePath,
+      filePath: m.relativePath,
+      global: m.global
+    }));
+
+    app.devtools.rpc.setRoutes(devRoutes);
+    app.devtools.rpc.setPages(devPages);
+    app.devtools.rpc.setMiddlewares(devMiddlewares);
+    app.devtools.rpc.updateInfo({
+      config: {
+        preset: config.build.preset,
+        rootDir: config.rootDir,
+        srcDir: config.srcDir
+      }
+    });
+  }
 
   app.hooks.hook('request:start', c => {
     logger.log(`${c.req.method} ${c.req.path}`);

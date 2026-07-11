@@ -7,7 +7,15 @@ export type { UbeanAppOptions, UbeanAppPlugin, UbeanRuntimeHooks, AppPlugin } fr
 export { defineEnv, setRuntimeEnv, useRuntimeEnv } from './runtime/env';
 export type { EnvSchema, EnvConfig, DefineEnvResult, EnvValidationError, InferEnvOutput } from './runtime/env';
 export { defineLocale, useI18n, t, setLocale, getLocale, getRegisteredLocales, clearLocales, detectBrowserLocale } from './runtime/i18n';
+export {
+  createI18nMiddleware,
+  switchLocalePath,
+  getLocalePath,
+  getPathWithoutLocale,
+  localeRoutes
+} from './runtime/i18n-routing';
 export type { LocaleMessages, LocaleDefinition, I18nInstance } from './runtime/i18n';
+export type { I18nRoutingOptions, I18nRoutingStrategy } from './runtime/i18n-routing';
 export { registerRoutes, createRouteLoader } from './runtime/router';
 export {
   createClient,

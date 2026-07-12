@@ -79,17 +79,22 @@ export function createUbeanClient() {
     return res.json();
   }
 
+  function applyPage(page: PageObject, opts: { replace?: boolean; url?: string } = {}) {
+    state.page = page;
+    const url = opts.url ?? page.url;
+    if (opts.replace) {
+      _global.history.replaceState({}, '', url);
+    } else if (url && url !== _global.location.pathname + _global.location.search) {
+      _global.history.pushState({}, '', url);
+    }
+    for (const fn of listeners) fn(page);
+  }
+
   async function navigate(url: string, opts: { replace?: boolean } = {}) {
     state.navigating = true;
     try {
       const page = await fetchPage(url);
-      state.page = page;
-      if (opts.replace) {
-        _global.history.replaceState({}, '', url);
-      } else {
-        _global.history.pushState({}, '', url);
-      }
-      for (const fn of listeners) fn(page);
+      applyPage(page, { ...opts, url });
     } finally {
       state.navigating = false;
     }
@@ -156,11 +161,7 @@ export function createUbeanClient() {
           return { ok: true, redirected: true, url: data.redirect, status: res.status };
         }
         if (data.component) {
-          state.page = data as PageObject;
-          for (const fn of listeners) fn(data as PageObject);
-          if (doReplace) {
-            _global.history.replaceState({}, '', url);
-          }
+          applyPage(data as PageObject, { replace: doReplace, url });
           return {
             ok: res.ok,
             errors: (data as PageObject).errors ?? null,
@@ -184,8 +185,7 @@ export function createUbeanClient() {
       state.navigating = true;
       try {
         const page = await fetchPage(_global.location.pathname + _global.location.search);
-        state.page = page;
-        for (const fn of listeners) fn(page);
+        applyPage(page);
       } finally {
         state.navigating = false;
       }
@@ -211,5 +211,5 @@ export function createUbeanClient() {
     submit
   };
 
-  return { state, subscribe, navigate, prefetch, submit, router };
+  return { state, subscribe, navigate, fetchPage, applyPage, prefetch, submit, router };
 }

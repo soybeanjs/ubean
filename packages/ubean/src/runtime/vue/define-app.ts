@@ -1,5 +1,6 @@
 import type { App, Component, Plugin } from 'vue';
 import type { PageHead } from '../pages/protocol';
+import type { ViewTransitionOptions } from './view-transitions';
 
 export interface AppPluginConfig {
   plugin: Plugin | [Plugin, ...any[]];
@@ -17,6 +18,7 @@ export interface DefineAppOptions {
   onClientReady?: (app: App) => void | Promise<void>;
   errorComponent?: Component;
   loadingComponent?: Component;
+  viewTransitions?: boolean | ViewTransitionOptions;
 }
 
 export interface ResolvedAppConfig {
@@ -30,6 +32,7 @@ export interface ResolvedAppConfig {
   onClientReady?: (app: App) => void | Promise<void>;
   errorComponent?: Component;
   loadingComponent?: Component;
+  viewTransitions?: boolean | ViewTransitionOptions;
 }
 
 export function defineApp(options: DefineAppOptions): ResolvedAppConfig {
@@ -57,7 +60,8 @@ export function defineApp(options: DefineAppOptions): ResolvedAppConfig {
     onAppCreated: options.onAppCreated,
     onClientReady: options.onClientReady,
     errorComponent: options.errorComponent,
-    loadingComponent: options.loadingComponent
+    loadingComponent: options.loadingComponent,
+    viewTransitions: options.viewTransitions
   };
 }
 

@@ -8,7 +8,8 @@ import {
   inject,
   markRaw,
   watchEffect,
-  computed
+  computed,
+  nextTick
 } from 'vue';
 import type { App, Component, ConcreteComponent, PropType } from 'vue';
 import type { PageObject } from '../pages/protocol';
@@ -16,11 +17,14 @@ import { createUbeanClient, getInitialPageData } from './client';
 import { createHeadManager } from './head';
 import { resolveRoute, isActiveRoute } from './router-location';
 import type { RouteLocation } from './router-location';
+import { withViewTransition, supportsViewTransitions } from './view-transitions';
+import type { ViewTransitionOptions } from './view-transitions';
 
 const PAGE_KEY = Symbol('ubean-page');
 const ROUTER_KEY = Symbol('ubean-router');
 const HEAD_KEY = Symbol('ubean-head');
 const CLIENT_KEY = Symbol('ubean-client');
+const TRANSITION_KEY = Symbol('ubean-transition');
 
 export interface UbeanAppOptions {
   resolvePageComponent: (name: string) => Promise<Component>;
@@ -30,6 +34,7 @@ export interface UbeanAppOptions {
   initialPage?: PageObject;
   id?: string;
   head?: ReturnType<typeof createHeadManager>;
+  viewTransitions?: boolean | ViewTransitionOptions;
 }
 
 export interface UbeanAppInstance {
@@ -37,7 +42,7 @@ export interface UbeanAppInstance {
   client: ReturnType<typeof createUbeanClient>;
   head: ReturnType<typeof createHeadManager>;
   page: Record<string, unknown>;
-  navigate: (url: string, opts?: { replace?: boolean }) => Promise<void>;
+  navigate: (url: string, opts?: { replace?: boolean; transition?: boolean }) => Promise<void>;
 }
 
 function defaultResolveLayoutParent(name: string, defaultLayout: string | null): string | null {
@@ -222,6 +227,13 @@ export function createUbeanApp(options: UbeanAppOptions & { id?: string }): Ubea
   const resolveParent =
     options.resolveLayoutParent || ((name: string) => defaultResolveLayoutParent(name, options.defaultLayout || null));
 
+  const transitionOpts: ViewTransitionOptions =
+    options.viewTransitions === false
+      ? { enabled: false }
+      : options.viewTransitions === true || options.viewTransitions == null
+        ? { enabled: true }
+        : options.viewTransitions;
+
   const page = reactive<PageObject>({ ...initial }) as any;
   const resolvedPage = ref<Component | null>(null);
   const resolvedLayouts = ref<{ name: string; component: Component }[]>([]);
@@ -243,21 +255,52 @@ export function createUbeanApp(options: UbeanAppOptions & { id?: string }): Ubea
     ]);
     resolvedPage.value = markRaw(pageComp);
     resolvedLayouts.value = layouts;
+    await nextTick();
   }
 
-  async function navigate(url: string, navOpts: { replace?: boolean } = {}) {
-    await client.navigate(url, navOpts);
-    const next = client.state.page as PageObject;
+  async function applyPageData(next: PageObject): Promise<void> {
     Object.assign(page, next);
     if (next.head) head.apply(next.head);
     await resolveFor(next);
+  }
+
+  let pendingTransition = false;
+
+  async function navigate(url: string, navOpts: { replace?: boolean; transition?: boolean } = {}) {
+    const useTransition = navOpts.transition !== false && transitionOpts.enabled !== false && supportsViewTransitions();
+
+    client.state.navigating = true;
+    try {
+      const pageData = await client.fetchPage(url);
+
+      if (useTransition) {
+        pendingTransition = true;
+        await withViewTransition(async () => {
+          client.applyPage(pageData, { replace: navOpts.replace, url });
+          await applyPageData(pageData);
+        }, transitionOpts);
+        pendingTransition = false;
+      } else {
+        client.applyPage(pageData, { replace: navOpts.replace, url });
+        await applyPageData(pageData);
+      }
+    } finally {
+      client.state.navigating = false;
+    }
   }
 
   client.subscribe(async () => {
+    if (pendingTransition) return;
     const next = client.state.page as PageObject;
-    Object.assign(page, next);
-    if (next.head) head.apply(next.head);
-    await resolveFor(next);
+    const useTransition = transitionOpts.enabled !== false && supportsViewTransitions();
+
+    if (useTransition) {
+      await withViewTransition(async () => {
+        await applyPageData(next);
+      }, transitionOpts);
+    } else {
+      await applyPageData(next);
+    }
   });
 
   const RootComponent = defineComponent({
@@ -267,6 +310,7 @@ export function createUbeanApp(options: UbeanAppOptions & { id?: string }): Ubea
       provide(PAGE_KEY, page);
       provide(ROUTER_KEY, { navigate, client });
       provide(HEAD_KEY, head);
+      provide(TRANSITION_KEY, transitionOpts);
 
       resolveFor(initial);
 
@@ -280,7 +324,7 @@ export function createUbeanApp(options: UbeanAppOptions & { id?: string }): Ubea
 
   const app = _createApp(RootComponent);
 
-  app.config.globalProperties.$ubean = { page, head, navigate, client };
+  app.config.globalProperties.$ubean = { page, head, navigate, client, viewTransitions: transitionOpts };
 
   return { app, client, head, page: page as any, navigate };
 }
@@ -340,7 +384,10 @@ export function usePage<T = Record<string, unknown>>(): PageObject<T> {
 }
 
 export function useRouter() {
-  const r = inject<{ navigate: (url: string, opts?: { replace?: boolean }) => Promise<void>; client: any }>(ROUTER_KEY);
+  const r = inject<{
+    navigate: (url: string, opts?: { replace?: boolean; transition?: boolean }) => Promise<void>;
+    client: any;
+  }>(ROUTER_KEY);
   if (!r) throw new Error('[ubean] useRouter() must be called inside a ubean Vue app');
   return r;
 }
@@ -349,4 +396,13 @@ export function useHead() {
   const h2 = inject<ReturnType<typeof createHeadManager>>(HEAD_KEY);
   if (!h2) throw new Error('[ubean] useHead() must be called inside a ubean Vue app');
   return h2;
+}
+
+export function useViewTransition() {
+  const opts = inject<ViewTransitionOptions>(TRANSITION_KEY, { enabled: true });
+  return {
+    enabled: opts.enabled !== false && supportsViewTransitions(),
+    supports: supportsViewTransitions(),
+    options: opts
+  };
 }

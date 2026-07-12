@@ -195,7 +195,11 @@ export {
   createDataCacheStore,
   createUseAsyncData,
   invalidateCache,
-  clearCache
+  clearCache,
+  supportsViewTransitions,
+  withViewTransition,
+  useViewTransitionState,
+  getNavigationType
 } from './runtime/vue';
 export type {
   UbeanVueRouter,
@@ -212,7 +216,8 @@ export type {
   TypedLinkProps,
   DataCacheStore,
   UseAsyncDataOptions,
-  UseAsyncDataReturn
+  UseAsyncDataReturn,
+  ViewTransitionOptions
 } from './runtime/vue';
 export { ubeanVuePlugin } from './core/vue/plugin';
 export { logger } from './core/log';

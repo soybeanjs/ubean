@@ -19,7 +19,7 @@ export type {
   UseAsyncDataOptions,
   UseAsyncDataReturn
 } from './composables';
-export { createUbeanApp, createUbeanSSRApp, usePage, useRouter, useHead, Link, Head } from './app';
+export { createUbeanApp, createUbeanSSRApp, usePage, useRouter, useHead, useViewTransition, Link, Head } from './app';
 export type { UbeanAppOptions, UbeanAppInstance } from './app';
 export { defineApp, applyAppConfig, createDefaultAppConfig } from './define-app';
 export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
@@ -28,3 +28,10 @@ export { resolveRoute, isActiveRoute } from './router-location';
 export type { RouteLocation, RouteLocationRaw, TypedLinkProps } from './router-location';
 export { hydrateIslands, collectIslands, hydrateIsland } from './islands';
 export type { IslandHydrateOptions, IslandRecord, HydrateIslandsOptions } from './islands';
+export {
+  supportsViewTransitions,
+  withViewTransition,
+  useViewTransitionState,
+  getNavigationType
+} from './view-transitions';
+export type { ViewTransitionOptions } from './view-transitions';

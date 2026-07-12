@@ -152,6 +152,7 @@ function _mergeAppConfig(base, ...configs) {
     if (cfg.onClientReady) result._onClientReady = cfg.onClientReady;
     if (cfg.errorComponent) result.errorComponent = cfg.errorComponent;
     if (cfg.loadingComponent) result.loadingComponent = cfg.loadingComponent;
+    if (cfg.viewTransitions !== undefined) result.viewTransitions = cfg.viewTransitions;
   }
   return result;
 }
@@ -179,7 +180,8 @@ export function createApp() {
   const instance = createUbeanApp({
     resolvePageComponent,
     resolveLayoutComponent,
-    defaultLayout
+    defaultLayout,
+    viewTransitions: config.viewTransitions
   });
 
   applyAppConfig(instance.app, config, 'client');

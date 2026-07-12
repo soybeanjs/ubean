@@ -510,6 +510,70 @@ describe('defineEnv', () => {
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0].key).toBe('REQUIRED_KEY');
   });
+
+  it('throws on validation failure when mode is throw', () => {
+    const originalEnv = process.env;
+    process.env = {};
+    expect(() =>
+      defineEnv({
+        mode: 'throw',
+        server: {
+          REQUIRED_VAR: { type: String }
+        }
+      })
+    ).toThrow(/Environment validation failed/);
+    process.env = originalEnv;
+  });
+
+  it('parses boolean "1" as true and "false"/"0" as false', () => {
+    const originalEnv = process.env;
+    process.env = { ...originalEnv, BOOL_1: '1', BOOL_0: '0', BOOL_FALSE: 'false', BOOL_TRUE: 'true' };
+    const { env } = defineEnv({
+      server: {
+        BOOL_1: { type: Boolean },
+        BOOL_0: { type: Boolean, required: false },
+        BOOL_FALSE: { type: Boolean, required: false },
+        BOOL_TRUE: { type: Boolean, required: false }
+      }
+    });
+    expect(env.BOOL_1).toBe(true);
+    expect(env.BOOL_0).toBe(false);
+    expect(env.BOOL_FALSE).toBe(false);
+    expect(env.BOOL_TRUE).toBe(true);
+    process.env = originalEnv;
+  });
+
+  it('returns error for invalid number values', () => {
+    const { validate } = defineEnv({
+      mode: 'warn',
+      server: {
+        BAD_NUMBER: { type: Number }
+      }
+    });
+    const result = validate({ BAD_NUMBER: 'not-a-number' });
+    expect(result.success).toBe(false);
+    expect(result.errors[0].message).toContain('must be a number');
+  });
+
+  it('merges public and server schemas', () => {
+    const originalEnv = process.env;
+    process.env = { ...originalEnv, PUB_VAR: 'public-val', SRV_VAR: 'server-val' };
+    const { env } = defineEnv({
+      public: { PUB_VAR: { type: String } },
+      server: { SRV_VAR: { type: String } }
+    });
+    expect(env.PUB_VAR).toBe('public-val');
+    expect(env.SRV_VAR).toBe('server-val');
+    process.env = originalEnv;
+  });
+
+  it('proxy returns undefined for non-string symbol access', () => {
+    const originalEnv = process.env;
+    process.env = { ...originalEnv, MY_VAR: 'val' };
+    const { env } = defineEnv({ server: { MY_VAR: { type: String } } });
+    expect((env as any)[Symbol('test')]).toBeUndefined();
+    process.env = originalEnv;
+  });
 });
 
 describe('useRuntimeEnv', () => {
@@ -517,6 +581,24 @@ describe('useRuntimeEnv', () => {
     setRuntimeEnv({ MY_KEY: 'my-value' });
     expect(useRuntimeEnv('MY_KEY')).toBe('my-value');
     expect(useRuntimeEnv('NONEXISTENT', 'default')).toBe('default');
+  });
+
+  it('merges new env with existing', () => {
+    setRuntimeEnv({ A: '1' });
+    setRuntimeEnv({ B: '2' });
+    expect(useRuntimeEnv('A')).toBe('1');
+    expect(useRuntimeEnv('B')).toBe('2');
+  });
+
+  it('overrides existing keys with later values', () => {
+    setRuntimeEnv({ OVERRIDE: 'first' });
+    setRuntimeEnv({ OVERRIDE: 'second' });
+    expect(useRuntimeEnv('OVERRIDE')).toBe('second');
+  });
+
+  it('returns undefined for missing keys without default', () => {
+    setRuntimeEnv({});
+    expect(useRuntimeEnv('MISSING')).toBeUndefined();
   });
 });
 

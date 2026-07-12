@@ -11,6 +11,7 @@ import {
 } from '../src/core/preset';
 import { UbeanError, createError, isUbeanError, errorToResponse } from '../src/runtime/error';
 import { defineHandler, defineMeta, defineValidator } from '../src/runtime/handler';
+import { redirect, permanentRedirect, html, json, text, setHeader, setHeaders } from '../src/runtime/response';
 
 describe('UbeanError', () => {
   it('should create error with status code', () => {
@@ -222,5 +223,129 @@ describe('capabilities', () => {
     expect(result.diagnostics).toHaveLength(2);
     expect(result.diagnostics[0].supported).toBe(true);
     expect(result.diagnostics[1].supported).toBe(false);
+  });
+});
+
+describe('Response helpers', () => {
+  it('redirect creates 302 response with Location header', () => {
+    const res = redirect('/home');
+    expect(res.status).toBe(302);
+    expect(res.headers.get('Location')).toBe('/home');
+  });
+
+  it('redirect supports custom status code', () => {
+    const res = redirect('/new-url', 307);
+    expect(res.status).toBe(307);
+    expect(res.headers.get('Location')).toBe('/new-url');
+  });
+
+  it('permanentRedirect creates 301 response', () => {
+    const res = permanentRedirect('/permanent');
+    expect(res.status).toBe(301);
+    expect(res.headers.get('Location')).toBe('/permanent');
+  });
+
+  it('html creates text/html response', async () => {
+    const res = html('<h1>Hello</h1>');
+    expect(res.headers.get('Content-Type')).toContain('text/html');
+    expect(await res.text()).toBe('<h1>Hello</h1>');
+  });
+
+  it('html merges custom headers', () => {
+    const res = html('<p>test</p>', { headers: { 'X-Custom': 'yes' } });
+    expect(res.headers.get('Content-Type')).toContain('text/html');
+    expect(res.headers.get('X-Custom')).toBe('yes');
+  });
+
+  it('json creates application/json response', async () => {
+    const res = json({ hello: 'world' });
+    expect(res.headers.get('Content-Type')).toContain('application/json');
+    expect(await res.json()).toEqual({ hello: 'world' });
+  });
+
+  it('json supports custom status code', () => {
+    const res = json({ error: 'bad' }, { status: 400 });
+    expect(res.status).toBe(400);
+  });
+
+  it('text creates text/plain response', async () => {
+    const res = text('plain text');
+    expect(res.headers.get('Content-Type')).toContain('text/plain');
+    expect(await res.text()).toBe('plain text');
+  });
+
+  it('setHeader sets header on context-like object', () => {
+    const headers: Record<string, string> = {};
+    const c = {
+      header: (name: string, val: string) => {
+        headers[name] = val;
+      }
+    };
+    setHeader(c, 'X-Test', 'value');
+    expect(headers['X-Test']).toBe('value');
+  });
+
+  it('setHeaders sets multiple headers', () => {
+    const headers: Record<string, string> = {};
+    const c = {
+      header: (name: string, val: string) => {
+        headers[name] = val;
+      }
+    };
+    setHeaders(c, { 'X-A': '1', 'X-B': '2' });
+    expect(headers['X-A']).toBe('1');
+    expect(headers['X-B']).toBe('2');
+  });
+});
+
+describe('UbeanError edge cases', () => {
+  it('defaults to generic "Error" message for unknown status codes', () => {
+    const err = new UbeanError(418);
+    expect(err.statusMessage).toBe('Error');
+  });
+
+  it('isUbeanError returns false for plain Error', () => {
+    expect(isUbeanError(new Error('plain'))).toBe(false);
+    expect(isUbeanError(null)).toBe(false);
+    expect(isUbeanError(undefined)).toBe(false);
+    expect(isUbeanError('string')).toBe(false);
+    expect(isUbeanError({ statusCode: 500 })).toBe(false);
+  });
+
+  it('createError prefers statusMessage over message', () => {
+    const err = createError({ statusCode: 400, statusMessage: 'Bad Input', message: 'ignored' });
+    expect(err.statusMessage).toBe('Bad Input');
+  });
+
+  it('createError falls back to message when statusMessage not provided', () => {
+    const err = createError({ statusCode: 500, message: 'Something broke' });
+    expect(err.statusMessage).toBe('Something broke');
+  });
+
+  it('errorToResponse converts plain Error to 500 response', async () => {
+    const res = errorToResponse(new Error('boom'));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe('Internal Server Error');
+    expect(body.message).toBe('boom');
+  });
+
+  it('errorToResponse converts string errors', async () => {
+    const res = errorToResponse('string error');
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.message).toBe('string error');
+  });
+
+  it('errorToResponse includes data payload', async () => {
+    const err = new UbeanError(422, 'Validation failed', { fields: ['email'] });
+    const res = errorToResponse(err);
+    const body = await res.json();
+    expect(body.data).toEqual({ fields: ['email'] });
+  });
+
+  it('errorToResponse supports (c, err) two-arg form', async () => {
+    const res = errorToResponse({}, new UbeanError(404));
+    expect(res.status).toBe(404);
   });
 });

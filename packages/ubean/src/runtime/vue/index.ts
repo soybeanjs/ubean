@@ -35,3 +35,20 @@ export {
   getNavigationType
 } from './view-transitions';
 export type { ViewTransitionOptions } from './view-transitions';
+export {
+  useI18n,
+  defineLocale,
+  t,
+  setLocale,
+  getLocale,
+  onLocaleChange,
+  getLocaleDir,
+  getLocaleName,
+  getRegisteredLocales,
+  detectLocale,
+  detectBrowserLocale,
+  addLocale,
+  mergeLocale,
+  clearLocales
+} from './i18n';
+export type { VueI18nInstance } from './i18n';

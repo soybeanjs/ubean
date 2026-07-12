@@ -10,6 +10,8 @@ export interface LocaleDefinition {
   isDefault?: boolean;
 }
 
+export type LocaleChangeCallback = (locale: string) => void;
+
 export interface I18nInstance {
   locale: string;
   fallbackLocale: string;
@@ -20,6 +22,9 @@ export interface I18nInstance {
   addLocale(code: string, messages: LocaleMessages, options?: { name?: string; dir?: 'ltr' | 'rtl' }): void;
   mergeLocale(code: string, messages: LocaleMessages): void;
   detectLocale(acceptLanguage?: string): string;
+  onLocaleChange(callback: LocaleChangeCallback): () => void;
+  getLocaleDir(locale?: string): 'ltr' | 'rtl';
+  getLocaleName(locale?: string): string | undefined;
 }
 
 interface RegisteredLocale {
@@ -33,6 +38,18 @@ interface RegisteredLocale {
 const registeredLocales = new Map<string, RegisteredLocale>();
 let currentLocale = 'en';
 let fallbackLocale = 'en';
+const localeListeners = new Set<LocaleChangeCallback>();
+
+function notifyLocaleChange(locale: string): void {
+  for (const fn of localeListeners) {
+    fn(locale);
+  }
+}
+
+function addLocaleListener(callback: LocaleChangeCallback): () => void {
+  localeListeners.add(callback);
+  return () => localeListeners.delete(callback);
+}
 
 function deepMerge(target: LocaleMessages, source: LocaleMessages): LocaleMessages {
   const result = { ...target };
@@ -127,8 +144,9 @@ export function useI18n(): I18nInstance {
       return interpolate(message, params);
     },
     setLocale(locale: string): void {
-      if (registeredLocales.has(locale)) {
+      if (registeredLocales.has(locale) && locale !== currentLocale) {
         currentLocale = locale;
+        notifyLocaleChange(locale);
       }
     },
     getLocale(): string {
@@ -178,6 +196,17 @@ export function useI18n(): I18nInstance {
       }
 
       return fallbackLocale;
+    },
+    onLocaleChange: addLocaleListener,
+    getLocaleDir(locale?: string): 'ltr' | 'rtl' {
+      const code = locale || currentLocale;
+      const loc = registeredLocales.get(code);
+      return loc?.dir || 'ltr';
+    },
+    getLocaleName(locale?: string): string | undefined {
+      const code = locale || currentLocale;
+      const loc = registeredLocales.get(code);
+      return loc?.name;
     }
   };
 }
@@ -200,8 +229,37 @@ export function getRegisteredLocales(): string[] {
 
 export function clearLocales(): void {
   registeredLocales.clear();
+  localeListeners.clear();
   currentLocale = 'en';
   fallbackLocale = 'en';
+}
+
+export function onLocaleChange(callback: LocaleChangeCallback): () => void {
+  return useI18n().onLocaleChange(callback);
+}
+
+export function getLocaleDir(locale?: string): 'ltr' | 'rtl' {
+  return useI18n().getLocaleDir(locale);
+}
+
+export function getLocaleName(locale?: string): string | undefined {
+  return useI18n().getLocaleName(locale);
+}
+
+export function detectLocale(acceptLanguage?: string): string {
+  return useI18n().detectLocale(acceptLanguage);
+}
+
+export function addLocale(
+  code: string,
+  messages: LocaleMessages,
+  options?: { name?: string; dir?: 'ltr' | 'rtl' }
+): void {
+  useI18n().addLocale(code, messages, options);
+}
+
+export function mergeLocale(code: string, messages: LocaleMessages): void {
+  useI18n().mergeLocale(code, messages);
 }
 
 export function detectBrowserLocale(): string {

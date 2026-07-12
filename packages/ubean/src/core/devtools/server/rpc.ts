@@ -1,4 +1,13 @@
-import type { RpcHandler, RpcRequest, RpcResponse, DevToolsInfo, DevToolsRouteInfo, DevToolsPageInfo, DevToolsMiddlewareInfo } from '../types';
+import type {
+  RpcHandler,
+  RpcRequest,
+  RpcResponse,
+  DevToolsInfo,
+  DevToolsRouteInfo,
+  DevToolsPageInfo,
+  DevToolsMiddlewareInfo,
+  DevToolsCronInfo
+} from '../types';
 
 export function createRpcServer() {
   const handlers = new Map<string, RpcHandler>();
@@ -7,12 +16,16 @@ export function createRpcServer() {
     version: '0.0.1',
     startTime,
     config: {},
+    env: {},
     pages: 0,
     apiRoutes: 0,
     middleware: 0,
+    crons: 0,
+    presets: [],
     routes: [],
     pagesList: [],
-    middlewaresList: []
+    middlewaresList: [],
+    cronsList: []
   };
 
   function registerHandler(name: string, handler: RpcHandler) {
@@ -42,6 +55,19 @@ export function createRpcServer() {
     info.middleware = middlewares.length;
   }
 
+  function setCrons(crons: DevToolsCronInfo[]) {
+    info.cronsList = crons;
+    info.crons = crons.length;
+  }
+
+  function setEnv(env: Record<string, string>) {
+    info.env = { ...env };
+  }
+
+  function setPresets(presets: string[]) {
+    info.presets = [...presets];
+  }
+
   registerHandler('getInfo', () => getInfo());
 
   registerHandler('ping', () => ({ pong: true, time: Date.now() }));
@@ -51,6 +77,24 @@ export function createRpcServer() {
   registerHandler('getPages', () => info.pagesList || []);
 
   registerHandler('getMiddlewares', () => info.middlewaresList || []);
+
+  registerHandler('getCrons', () => info.cronsList || []);
+
+  registerHandler('getEnv', () => {
+    const safeEnv: Record<string, string> = {};
+    const sensitiveKeys = ['KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'AUTH', 'CREDENTIAL'];
+    for (const [key, value] of Object.entries(info.env || {})) {
+      const upperKey = key.toUpperCase();
+      if (sensitiveKeys.some(k => upperKey.includes(k))) {
+        safeEnv[key] = '***';
+      } else {
+        safeEnv[key] = value;
+      }
+    }
+    return safeEnv;
+  });
+
+  registerHandler('getPresets', () => info.presets || []);
 
   async function handleRequest(request: RpcRequest): Promise<RpcResponse> {
     const handler = handlers.get(request.method);
@@ -87,7 +131,10 @@ export function createRpcServer() {
     updateInfo,
     setRoutes,
     setPages,
-    setMiddlewares
+    setMiddlewares,
+    setCrons,
+    setEnv,
+    setPresets
   };
 }
 

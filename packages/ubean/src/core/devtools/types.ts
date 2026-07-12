@@ -31,16 +31,26 @@ export interface DevToolsMiddlewareInfo {
   global: boolean;
 }
 
+export interface DevToolsCronInfo {
+  name: string;
+  schedule: string;
+  filePath?: string;
+}
+
 export interface DevToolsInfo {
   version: string;
   startTime: number;
   config: Record<string, unknown>;
+  env?: Record<string, string>;
   pages: number;
   apiRoutes: number;
   middleware: number;
+  crons?: number;
+  presets?: string[];
   routes?: DevToolsRouteInfo[];
   pagesList?: DevToolsPageInfo[];
   middlewaresList?: DevToolsMiddlewareInfo[];
+  cronsList?: DevToolsCronInfo[];
 }
 
 export interface RpcRequest {

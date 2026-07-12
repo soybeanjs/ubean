@@ -191,7 +191,7 @@ describe('DevTools Client Script', () => {
     const html = await getDevtoolsIframeHtml();
     expect(typeof html).toBe('string');
     expect(html.length).toBeGreaterThan(0);
-    expect(html).toContain('<!DOCTYPE html>');
+    expect(html.toLowerCase()).toContain('<!doctype html>');
     expect(html).toContain('Ubean DevTools');
     expect(html).toContain(DEVTOOLS_RPC_PATH);
   }, 30000);

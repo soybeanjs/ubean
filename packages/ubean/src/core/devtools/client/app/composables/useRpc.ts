@@ -8,22 +8,51 @@ declare global {
   }
 }
 
+export interface DevToolsRouteInfo {
+  method: string;
+  path: string;
+  filePath?: string;
+}
+
+export interface DevToolsPageInfo {
+  path: string;
+  name?: string;
+  filePath?: string;
+  layout?: string;
+}
+
+export interface DevToolsMiddlewareInfo {
+  path: string;
+  filePath?: string;
+  global?: boolean;
+}
+
+export interface DevToolsCronInfo {
+  name: string;
+  schedule: string;
+  filePath?: string;
+}
+
 export interface DevToolsInfo {
   version: string;
   pages: number;
   apiRoutes: number;
   middleware: number;
+  crons: number;
   startTime: number;
-  routes: Array<{ method: string; path: string; filePath?: string }>;
-  pagesList: Array<{ path: string; name?: string; filePath?: string }>;
-  middlewaresList: Array<{ path: string; global?: boolean; filePath?: string }>;
-  config?: Record<string, unknown>;
+  presets: string[];
+  config: Record<string, unknown>;
+  routes: DevToolsRouteInfo[];
+  pagesList: DevToolsPageInfo[];
+  middlewaresList: DevToolsMiddlewareInfo[];
+  cronsList: DevToolsCronInfo[];
 }
 
 export function useRpc() {
   const loading = ref(true);
   const error = ref<string | null>(null);
   const info = ref<DevToolsInfo | null>(null);
+  const env = ref<Record<string, string>>({});
   const uptime = ref(0);
   let interval: ReturnType<typeof setInterval> | null = null;
   let reqId = 0;
@@ -55,6 +84,14 @@ export function useRpc() {
     }
   }
 
+  async function loadEnv() {
+    try {
+      env.value = await rpc<Record<string, string>>('getEnv');
+    } catch {
+      // silent fail
+    }
+  }
+
   function close() {
     window.parent.postMessage({ type: '__ubean_devtools_close' }, '*');
   }
@@ -73,13 +110,27 @@ export function useRpc() {
   }
 
   function fmtVal(v: unknown): string {
+    if (v === null || v === undefined) return '—';
     if (typeof v === 'boolean') return v ? 'true' : 'false';
+    if (typeof v === 'number') return String(v);
+    if (typeof v === 'string') return v;
+    if (Array.isArray(v)) return `[${v.length} items]`;
     if (typeof v === 'object') return JSON.stringify(v);
     return String(v);
   }
 
-  function fileName(p: string): string {
+  function fileName(p?: string): string {
+    if (!p) return '';
     return p.split('/').pop() || p;
+  }
+
+  function filePath(p?: string): string {
+    if (!p) return '';
+    const parts = p.split('/');
+    if (parts.length > 4) {
+      return '.../' + parts.slice(-3).join('/');
+    }
+    return p;
   }
 
   function methodColor(method: string): string {
@@ -87,18 +138,33 @@ export function useRpc() {
       GET: 'success',
       POST: 'info',
       PUT: 'warning',
-      DELETE: 'danger',
-      PATCH: 'accent'
+      DELETE: 'destructive',
+      PATCH: 'accent',
+      ALL: 'muted'
     };
-    return colors[method] || 'secondary';
+    return colors[method] || 'muted';
+  }
+
+  function methodClass(method: string): string {
+    const map: Record<string, string> = {
+      GET: 'method-get',
+      POST: 'method-post',
+      PUT: 'method-put',
+      DELETE: 'method-delete',
+      PATCH: 'method-patch'
+    };
+    return map[method] || 'method-all';
+  }
+
+  function getStatusColor(status: string): string {
+    if (status === 'running') return 'success';
+    return 'muted';
   }
 
   onMounted(() => {
     loadInfo();
+    loadEnv();
     interval = setInterval(() => {
-      if (info.value) {
-        uptime.value = Date.now() - info.value.startTime;
-      }
       loadInfo();
     }, 3000);
   });
@@ -111,12 +177,17 @@ export function useRpc() {
     loading,
     error,
     info,
+    env,
     uptime,
     close,
     fmtUptime,
     fmtTime,
     fmtVal,
     fileName,
-    methodColor
+    filePath,
+    methodColor,
+    methodClass,
+    getStatusColor,
+    refresh: loadInfo
   };
 }

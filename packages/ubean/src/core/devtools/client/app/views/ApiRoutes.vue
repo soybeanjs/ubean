@@ -10,6 +10,10 @@ const props = defineProps<{
   methodClass: (m: string) => string;
 }>();
 
+const emit = defineEmits<{
+  tryRoute: [route: DevToolsRouteInfo];
+}>();
+
 const searchQuery = ref('');
 const activeMethod = ref<string>('ALL');
 
@@ -68,14 +72,25 @@ const filteredRoutes = computed(() => {
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredRoutes.length > 0" class="flex flex-col gap-1">
-        <div v-for="(r, i) in filteredRoutes" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
+        <div
+          v-for="(r, i) in filteredRoutes"
+          :key="i"
+          class="group flex items-center gap-2.5 px-3 py-2 bg-card border border-border/60 rounded-lg text-xs hover:bg-secondary/30 transition-colors"
+        >
           <span
-            class="min-w-[46px] px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-center font-mono"
+            class="min-w-[46px] px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-center font-mono flex-shrink-0"
             :class="methodClass(r.method)"
           >
             {{ r.method }}
           </span>
           <span class="font-mono text-foreground flex-1 text-xs truncate" :title="r.path">{{ r.path }}</span>
+          <button
+            class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-primary rounded transition-all cursor-pointer flex-shrink-0"
+            title="Try in Playground"
+            @click="emit('tryRoute', r)"
+          >
+            <SIcon icon="lucide:play" :size="12" />
+          </button>
           <span v-if="r.filePath" class="file-name" :title="r.filePath">{{ filePath(r.filePath) }}</span>
         </div>
       </div>

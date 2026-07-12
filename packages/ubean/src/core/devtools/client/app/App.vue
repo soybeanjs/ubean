@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { SConfigProvider, SIcon, SButtonIcon } from '@soybeanjs/ui';
 import { useRpc } from './composables/useRpc';
 import ApiDocs from './views/ApiDocs.vue';
+import ApiPlayground from './views/ApiPlayground.vue';
 import ApiRoutes from './views/ApiRoutes.vue';
 import Crons from './views/Crons.vue';
 import DrizzleStudio from './views/DrizzleStudio.vue';
@@ -29,11 +30,14 @@ const {
 
 const activeTab = ref('overview');
 const showCreateMenu = ref(false);
+const playgroundMethod = ref('GET');
+const playgroundPath = ref('/api/');
 
 const tabs = computed(() => {
   const list = [
     { id: 'overview', label: 'Overview', icon: 'lucide:layout-dashboard' },
     { id: 'routes', label: 'Routes', icon: 'lucide:send' },
+    { id: 'playground', label: 'Playground', icon: 'lucide:play' },
     { id: 'pages', label: 'Pages', icon: 'lucide:file-text' },
     { id: 'middlewares', label: 'Middlewares', icon: 'lucide:layers' }
   ];
@@ -64,6 +68,12 @@ function setActiveTab(id: string) {
 
 function toggleCreateMenu() {
   showCreateMenu.value = !showCreateMenu.value;
+}
+
+function tryRoute(route: { method: string; path: string }) {
+  playgroundMethod.value = route.method;
+  playgroundPath.value = route.path;
+  activeTab.value = 'playground';
 }
 </script>
 
@@ -160,17 +170,17 @@ function toggleCreateMenu() {
         </nav>
 
         <main
-          class="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-sm"
+          class="flex-1 overflow-hidden [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-sm"
         >
           <div
             v-if="loading"
-            class="flex flex-col items-center justify-center py-20 px-5 gap-3.5 text-muted-foreground"
+            class="flex flex-col items-center justify-center h-full py-20 px-5 gap-3.5 text-muted-foreground"
           >
             <div class="size-7 border-2 border-muted border-t-primary rounded-full animate-spin"></div>
             <span class="text-sm">Loading DevTools...</span>
           </div>
 
-          <div v-else-if="error" class="p-3.5">
+          <div v-else-if="error" class="p-3.5 overflow-y-auto h-full">
             <div
               class="flex items-start gap-2.5 p-3 rounded-lg text-xs leading-relaxed bg-destructive/10 text-destructive border border-destructive/15"
             >
@@ -184,47 +194,57 @@ function toggleCreateMenu() {
           </div>
 
           <template v-else-if="info">
-            <Overview
-              v-show="activeTab === 'overview'"
-              :info="info"
-              :uptime="uptime"
-              :fmt-uptime="fmtUptime"
-              :fmt-time="fmtTime"
-              :fmt-val="fmtVal"
-            />
+            <div v-show="activeTab === 'overview'" class="h-full overflow-y-auto">
+              <Overview :info="info" :uptime="uptime" :fmt-uptime="fmtUptime" :fmt-time="fmtTime" :fmt-val="fmtVal" />
+            </div>
             <ApiRoutes
               v-show="activeTab === 'routes'"
+              class="h-full"
               :routes="info.routes || []"
               :file-name="fileName"
               :file-path="filePath"
               :method-class="methodClass"
+              @try-route="tryRoute"
+            />
+            <ApiPlayground
+              v-show="activeTab === 'playground'"
+              class="h-full"
+              :routes="info.routes || []"
+              :method-class="methodClass"
+              :initial-method="playgroundMethod"
+              :initial-path="playgroundPath"
             />
             <Pages
               v-show="activeTab === 'pages'"
+              class="h-full"
               :pages="info.pagesList || []"
               :file-name="fileName"
               :file-path="filePath"
             />
             <Middlewares
               v-show="activeTab === 'middlewares'"
+              class="h-full"
               :middlewares="info.middlewaresList || []"
               :file-name="fileName"
               :file-path="filePath"
             />
             <Crons
               v-show="activeTab === 'crons'"
+              class="h-full"
               :crons="info.cronsList || []"
               :file-name="fileName"
               :file-path="filePath"
             />
-            <EnvVars v-show="activeTab === 'env'" :env="env" />
+            <EnvVars v-show="activeTab === 'env'" class="h-full" :env="env" />
             <ApiDocs
               v-show="activeTab === 'api-docs'"
+              class="h-full"
               :enabled="info.openAPI?.enabled"
               :scalar-path="info.openAPI?.scalarPath"
             />
             <DrizzleStudio
               v-show="activeTab === 'drizzle'"
+              class="h-full"
               :available="info.database?.drizzleStudioAvailable"
               :studio-url="info.database?.studioUrl"
             />

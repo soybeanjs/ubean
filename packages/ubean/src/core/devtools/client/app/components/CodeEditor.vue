@@ -26,7 +26,6 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import {
   EditorView,
   keymap,
-  highlightActiveLine,
   highlightActiveLineGutter,
   drawSelection,
   lineNumbers as cmLineNumbers

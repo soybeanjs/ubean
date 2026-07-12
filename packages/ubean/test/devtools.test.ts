@@ -467,3 +467,300 @@ describe('DevTools CRUD RPC Methods (P6-12)', () => {
     expect(env.DB_PASSWORD).toBe('***');
   });
 });
+
+describe('DevTools Hooks - Advanced (P8-02)', () => {
+  it('removeHook removes a registered hook', async () => {
+    const rpc = createRpcServer();
+    let called = false;
+    const handler = () => {
+      called = true;
+    };
+    rpc.hooks.registerHook('beforeCreate', handler);
+    rpc.hooks.removeHook('beforeCreate', handler);
+    await rpc.hooks.runHook('beforeCreate', { type: 'page', path: '/test' });
+    expect(called).toBe(false);
+  });
+
+  it('removeAllHooks clears all hooks for all types', async () => {
+    const rpc = createRpcServer();
+    let createCalled = false;
+    let updateCalled = false;
+    rpc.hooks.registerHook('beforeCreate', () => {
+      createCalled = true;
+    });
+    rpc.hooks.registerHook('beforeUpdate', () => {
+      updateCalled = true;
+    });
+    rpc.hooks.removeAllHooks();
+    await rpc.hooks.runHook('beforeCreate', { type: 'page', path: '/t' });
+    await rpc.hooks.runHook('beforeUpdate', { type: 'env', key: 'X' });
+    expect(createCalled).toBe(false);
+    expect(updateCalled).toBe(false);
+  });
+
+  it('hook errors are caught and propagated', async () => {
+    const rpc = createRpcServer();
+    rpc.hooks.registerHook('afterCreate', () => {
+      throw new Error('hook error');
+    });
+    await expect(rpc.hooks.runHook('afterCreate', { type: 'page', path: '/t' })).rejects.toThrow('hook error');
+  });
+});
+
+describe('DevTools CRUD Error Handling (P8-02)', () => {
+  it('crud:create returns error for unsupported type', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:create',
+      params: { type: 'invalid' as any, path: 'test' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).errors[0]).toContain('Unsupported resource type');
+  });
+
+  it('crud:create returns error for cron with missing path', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:create',
+      params: { type: 'cron' as any }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).errors).toBeDefined();
+  });
+
+  it('crud:read returns error for unsupported type', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:read',
+      params: { type: 'invalid' as any, path: '/some/path' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).error).toContain('Unsupported resource type');
+  });
+
+  it('crud:read returns error when path is missing for file types', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:read',
+      params: { type: 'page' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).error).toContain('Path is required');
+  });
+
+  it('crud:read returns error when file not found', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:read',
+      params: { type: 'page', path: '/nonexistent/file.vue' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).error).toBeDefined();
+  });
+
+  it('crud:update returns error for config type (read-only)', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:update',
+      params: { type: 'config' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).errors[0]).toContain('not supported');
+  });
+
+  it('crud:update returns error for env update without key', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:update',
+      params: { type: 'env', value: 'val' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).errors[0]).toContain('Key is required');
+  });
+
+  it('crud:delete returns error for env delete without key', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:delete',
+      params: { type: 'env' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).errors[0]).toContain('Key is required');
+  });
+
+  it('crud:delete returns error for file type without path', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:delete',
+      params: { type: 'page' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).errors[0]).toContain('Path is required');
+  });
+
+  it('crud:update env adds and deletes keys', async () => {
+    const rpc = createRpcServer();
+    rpc.setEnv({ EXISTING_VAR: 'val' });
+
+    await rpc.handleRequest({
+      id: '1',
+      method: 'crud:update',
+      params: { type: 'env', key: 'NEW_VAR', value: 'new-val' }
+    });
+    let info = rpc.getInfo();
+    expect(info.env.NEW_VAR).toBe('new-val');
+    expect(info.env.EXISTING_VAR).toBe('val');
+
+    await rpc.handleRequest({
+      id: '2',
+      method: 'crud:update',
+      params: { type: 'env', key: 'EXISTING_VAR' }
+    });
+    info = rpc.getInfo();
+    expect(info.env.EXISTING_VAR).toBeUndefined();
+  });
+
+  it('crud:delete env removes key', async () => {
+    const rpc = createRpcServer();
+    rpc.setEnv({ VAR_A: '1', VAR_B: '2' });
+
+    await rpc.handleRequest({
+      id: '1',
+      method: 'crud:delete',
+      params: { type: 'env', key: 'VAR_A' }
+    });
+    const info = rpc.getInfo();
+    expect(info.env.VAR_A).toBeUndefined();
+    expect(info.env.VAR_B).toBe('2');
+  });
+
+  it('crud:restore returns error when no backup exists', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:restore',
+      params: { path: '/nonexistent/path' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(false);
+    expect((response.result as any).errors[0]).toContain('No backup found');
+  });
+});
+
+describe('DevTools Permission Boundaries (P8-02)', () => {
+  it('masks all sensitive env patterns', async () => {
+    const rpc = createRpcServer();
+    rpc.setEnv({
+      API_KEY: 'secret1',
+      CLIENT_SECRET: 'secret2',
+      AUTH_TOKEN: 'secret3',
+      DB_PASSWORD: 'secret4',
+      MY_CREDENTIAL: 'secret5',
+      PUBLIC_INFO: 'visible',
+      NORMAL: 'visible'
+    });
+    const response = await rpc.handleRequest({ id: '1', method: 'getEnv' });
+    const env = response.result as Record<string, string>;
+    expect(env.API_KEY).toBe('***');
+    expect(env.CLIENT_SECRET).toBe('***');
+    expect(env.AUTH_TOKEN).toBe('***');
+    expect(env.DB_PASSWORD).toBe('***');
+    expect(env.MY_CREDENTIAL).toBe('***');
+    expect(env.PUBLIC_INFO).toBe('visible');
+    expect(env.NORMAL).toBe('visible');
+  });
+
+  it('config type is read-only at runtime', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:update',
+      params: { type: 'config', key: 'test', value: 'x' }
+    });
+    expect((response.result as any).success).toBe(false);
+  });
+
+  it('getEnv does not expose real secret values even if they exist internally', async () => {
+    const rpc = createRpcServer();
+    rpc.setEnv({ SECRET_KEY: 'super-secret-value-12345' });
+    const response = await rpc.handleRequest({ id: '1', method: 'getEnv' });
+    const env = response.result as Record<string, string>;
+    expect(env.SECRET_KEY).not.toContain('super-secret');
+    expect(env.SECRET_KEY).toBe('***');
+  });
+});
+
+describe('DevTools RPC - setCrons/setPresets (P8-02)', () => {
+  it('setCrons populates cronsList and crons count', () => {
+    const rpc = createRpcServer();
+    rpc.setCrons([{ name: 'cleanup', schedule: '0 0 * * *', filePath: '/crons/cleanup.ts' }]);
+    const info = rpc.getInfo();
+    expect(info.crons).toBe(1);
+    expect(info.cronsList).toHaveLength(1);
+    expect(info.cronsList![0].name).toBe('cleanup');
+  });
+
+  it('setPresets populates presets list', () => {
+    const rpc = createRpcServer();
+    rpc.setPresets(['standard', 'node']);
+    const info = rpc.getInfo();
+    expect(info.presets).toEqual(['standard', 'node']);
+  });
+
+  it('handles getCrons method', async () => {
+    const rpc = createRpcServer();
+    rpc.setCrons([{ name: 'daily', schedule: '* * * * *', filePath: '/x.ts' }]);
+    const response = await rpc.handleRequest({ id: '1', method: 'getCrons' });
+    expect(Array.isArray(response.result)).toBe(true);
+    expect(response.result as any[]).toHaveLength(1);
+  });
+
+  it('handles getPresets method', async () => {
+    const rpc = createRpcServer();
+    rpc.setPresets(['cloudflare']);
+    const response = await rpc.handleRequest({ id: '1', method: 'getPresets' });
+    expect(Array.isArray(response.result)).toBe(true);
+    expect((response.result as any[])[0]).toBe('cloudflare');
+  });
+});
+
+describe('DevTools Batch Error Handling (P8-02)', () => {
+  it('handles batch with mixed valid/invalid requests', async () => {
+    const rpc = createRpcServer();
+    const responses = await rpc.handleBatch([
+      { id: '1', method: 'ping' },
+      { id: '2', method: 'nonexistent' },
+      { id: '3', method: 'getInfo' }
+    ]);
+    expect(responses).toHaveLength(3);
+    expect(responses[0].error).toBeUndefined();
+    expect((responses[0].result as any).pong).toBe(true);
+    expect(responses[1].error).toBeDefined();
+    expect(responses[1].error).toContain('Method not found');
+    expect(responses[2].error).toBeUndefined();
+  });
+
+  it('handles empty batch', async () => {
+    const rpc = createRpcServer();
+    const responses = await rpc.handleBatch([]);
+    expect(responses).toHaveLength(0);
+  });
+});

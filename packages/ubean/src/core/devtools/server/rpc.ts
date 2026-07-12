@@ -35,7 +35,14 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     setEnv:
       options.setEnv ||
       (env => {
-        envData = env;
+        envData = { ...env };
+        const safeEnv: Record<string, string> = {};
+        const sensitiveKeys = ['KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'AUTH', 'CREDENTIAL'];
+        for (const [key, value] of Object.entries(env)) {
+          const isSensitive = sensitiveKeys.some(k => key.toUpperCase().includes(k));
+          safeEnv[key] = isSensitive ? '***' : value;
+        }
+        info.env = safeEnv;
       }),
     getConfig: options.getConfig,
     onFileChange: options.onFileChange
@@ -91,7 +98,13 @@ export function createRpcServer(options: RpcServerOptions = {}) {
 
   function setEnv(env: Record<string, string>) {
     envData = { ...env };
-    info.env = { ...env };
+    const safeEnv: Record<string, string> = {};
+    const sensitiveKeys = ['KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'AUTH', 'CREDENTIAL'];
+    for (const [key, value] of Object.entries(env)) {
+      const isSensitive = sensitiveKeys.some(k => key.toUpperCase().includes(k));
+      safeEnv[key] = isSensitive ? '***' : value;
+    }
+    info.env = safeEnv;
   }
 
   function setPresets(presets: string[]) {

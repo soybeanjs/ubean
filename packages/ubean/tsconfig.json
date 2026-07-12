@@ -28,5 +28,5 @@
     "rootDir": "src"
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "test"]
+  "exclude": ["node_modules", "dist", "test", "src/core/devtools/client/app", "src/core/devtools/client/uno.config.ts"]
 }

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { createRpcServer } from '../src/core/devtools/server/rpc';
 import { createDevToolsMiddleware } from '../src/core/devtools/server/middleware';
 import { getDevtoolsClientScript, getDevtoolsIframeHtml } from '../src/core/devtools/client';
+import { createRpcServer } from '../src/core/devtools/server/rpc';
 import { DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_MAGIC_KEY } from '../src/core/devtools/types';
 import { createUbeanApp } from '../src/runtime/app';
 
@@ -101,7 +101,7 @@ describe('DevTools RPC Server', () => {
       method: 'getRoutes'
     });
     expect(Array.isArray(response.result)).toBe(true);
-    expect((response.result as any[])).toHaveLength(1);
+    expect(response.result as any[]).toHaveLength(1);
   });
 
   it('handles getPages method', async () => {
@@ -112,7 +112,7 @@ describe('DevTools RPC Server', () => {
       method: 'getPages'
     });
     expect(Array.isArray(response.result)).toBe(true);
-    expect((response.result as any[])).toHaveLength(1);
+    expect(response.result as any[]).toHaveLength(1);
   });
 
   it('handles getMiddlewares method', async () => {
@@ -123,7 +123,7 @@ describe('DevTools RPC Server', () => {
       method: 'getMiddlewares'
     });
     expect(Array.isArray(response.result)).toBe(true);
-    expect((response.result as any[])).toHaveLength(1);
+    expect(response.result as any[]).toHaveLength(1);
   });
 
   it('returns error for unknown method', async () => {
@@ -187,14 +187,14 @@ describe('DevTools Client Script', () => {
     expect(script).toContain('createPanel');
   });
 
-  it('generates iframe HTML', () => {
-    const html = getDevtoolsIframeHtml();
+  it('generates iframe HTML', async () => {
+    const html = await getDevtoolsIframeHtml();
     expect(typeof html).toBe('string');
     expect(html.length).toBeGreaterThan(0);
     expect(html).toContain('<!DOCTYPE html>');
     expect(html).toContain('Ubean DevTools');
     expect(html).toContain(DEVTOOLS_RPC_PATH);
-  });
+  }, 30000);
 });
 
 describe('DevTools Middleware', () => {
@@ -251,11 +251,11 @@ describe('DevTools Integration with App', () => {
     expect(res.headers.get('content-type')).toContain('text/html');
     const html = await res.text();
     expect(html).toContain('Ubean DevTools');
-  });
+  }, 30000);
 
   it('injects devtools script into HTML responses', async () => {
     const app = createUbeanApp({ devtools: true });
-    app.get('/test-html', (c) => {
+    app.get('/test-html', c => {
       return c.html('<html><head></head><body><h1>Test</h1></body></html>');
     });
     await app.init();
@@ -270,7 +270,7 @@ describe('DevTools Integration with App', () => {
 
   it('does not inject into non-HTML responses', async () => {
     const app = createUbeanApp({ devtools: true });
-    app.get('/test-json', (c) => {
+    app.get('/test-json', c => {
       return c.json({ message: 'hello' });
     });
     await app.init();
@@ -295,15 +295,9 @@ describe('DevTools Integration with App', () => {
 
   it('updates devtools info via rpc', async () => {
     const app = createUbeanApp({ devtools: true });
-    app.devtools!.rpc.setRoutes([
-      { method: 'GET', path: '/api/test', filePath: '/test.ts' }
-    ]);
-    app.devtools!.rpc.setPages([
-      { path: '/test', name: 'TestPage' }
-    ]);
-    app.devtools!.rpc.setMiddlewares([
-      { path: '*', global: true, filePath: '/global.ts' }
-    ]);
+    app.devtools!.rpc.setRoutes([{ method: 'GET', path: '/api/test', filePath: '/test.ts' }]);
+    app.devtools!.rpc.setPages([{ path: '/test', name: 'TestPage' }]);
+    app.devtools!.rpc.setMiddlewares([{ path: '*', global: true, filePath: '/global.ts' }]);
     app.devtools!.rpc.updateInfo({
       config: { preset: 'test' }
     });

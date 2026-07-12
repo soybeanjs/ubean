@@ -83,7 +83,9 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@soybeanjs/ui": "^0.29.3",
     "@types/node": "^22.13.10",
+    "@vitejs/plugin-vue": "^6.0.7",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

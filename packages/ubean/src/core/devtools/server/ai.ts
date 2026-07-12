@@ -1,0 +1,651 @@
+import type { DevToolsInfo } from '../types';
+import type { DevToolsCrudServer } from './crud';
+
+export interface AiToolCall {
+  id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+}
+
+export interface AiToolResult {
+  toolCallId: string;
+  result?: unknown;
+  error?: string;
+}
+
+export interface AiChatMessage {
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  toolCalls?: AiToolCall[];
+  toolCallId?: string;
+  timestamp: number;
+}
+
+export interface AiToolDefinition {
+  name: string;
+  description: string;
+  parameters: {
+    type: 'object';
+    properties: Record<string, AiToolParam>;
+    required?: string[];
+  };
+}
+
+export interface AiToolParam {
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
+  description: string;
+  enum?: string[];
+  items?: { type: string };
+}
+
+export interface AiChatOptions {
+  messages: AiChatMessage[];
+  model?: string;
+  apiKey?: string;
+  apiBase?: string;
+}
+
+export interface AiChatResponse {
+  message: AiChatMessage;
+  toolResults?: AiToolResult[];
+}
+
+const SYSTEM_PROMPT = `You are ubean Assistant, an AI developer assistant built into the ubean Vue meta-framework DevTools.
+You help developers scaffold pages, APIs, middleware, layouts, cron jobs, plugins, and manage environment variables.
+You can also inspect the project structure, list resources, and read configuration.
+
+Available resource types for creation: page, api, layout, middleware, cron, plugin
+- page: Vue page component under src/pages/
+- api: API route handler under src/api/
+- layout: Layout component under src/layouts/
+- middleware: Middleware under src/middleware/
+- cron: Scheduled task under src/server/crons/
+- plugin: Plugin under src/plugins/
+
+When creating resources, always use the create_resource tool and confirm the path with the user if ambiguous.
+Be concise and helpful. Use code examples when relevant.`;
+
+let toolCallCounter = 0;
+
+function nextToolId(): string {
+  return `call_${++toolCallCounter}`;
+}
+
+export function createAiServer(crud: DevToolsCrudServer, getInfo: () => DevToolsInfo) {
+  function getToolDefinitions(): AiToolDefinition[] {
+    return [
+      {
+        name: 'list_resources',
+        description: 'List all resources of a given type in the project',
+        parameters: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              description: 'Type of resource to list',
+              enum: ['pages', 'apis', 'layouts', 'middlewares', 'crons', 'all']
+            }
+          },
+          required: ['type']
+        }
+      },
+      {
+        name: 'create_resource',
+        description: 'Create a new resource (page, api, layout, middleware, cron, plugin)',
+        parameters: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              description: 'Type of resource to create',
+              enum: ['page', 'api', 'layout', 'middleware', 'cron', 'plugin']
+            },
+            path: {
+              type: 'string',
+              description: 'Route path (e.g., "about", "users/[id]", "auth")'
+            },
+            method: {
+              type: 'string',
+              description: 'HTTP method for API routes',
+              enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+            },
+            schedule: {
+              type: 'string',
+              description: 'Cron schedule expression (e.g., "0 0 * * *" for daily at midnight)'
+            }
+          },
+          required: ['type', 'path']
+        }
+      },
+      {
+        name: 'delete_resource',
+        description: 'Delete a resource (creates backup by default)',
+        parameters: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              description: 'Type of resource to delete',
+              enum: ['page', 'api', 'layout', 'middleware', 'cron', 'plugin']
+            },
+            path: {
+              type: 'string',
+              description: 'Resource path'
+            },
+            force: {
+              type: 'boolean',
+              description: 'Permanently delete without backup'
+            }
+          },
+          required: ['type', 'path']
+        }
+      },
+      {
+        name: 'get_project_info',
+        description: 'Get project overview information (version, uptime, counts, config)',
+        parameters: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      {
+        name: 'read_resource',
+        description: 'Read the content of a resource file',
+        parameters: {
+          type: 'object',
+          properties: {
+            type: {
+              type: 'string',
+              description: 'Resource type',
+              enum: ['page', 'api', 'layout', 'middleware', 'cron', 'env', 'config']
+            },
+            path: {
+              type: 'string',
+              description: 'Resource path (not needed for env/config)'
+            }
+          },
+          required: ['type']
+        }
+      },
+      {
+        name: 'set_env',
+        description: 'Set or update an environment variable',
+        parameters: {
+          type: 'object',
+          properties: {
+            key: {
+              type: 'string',
+              description: 'Environment variable name'
+            },
+            value: {
+              type: 'string',
+              description: 'Environment variable value'
+            }
+          },
+          required: ['key', 'value']
+        }
+      }
+    ];
+  }
+
+  async function executeToolCall(call: AiToolCall): Promise<AiToolResult> {
+    try {
+      const args = call.arguments;
+
+      switch (call.name) {
+        case 'list_resources': {
+          const type = args.type as string;
+          const info = getInfo();
+          const result: Record<string, unknown> = {};
+
+          if (type === 'pages' || type === 'all') {
+            result.pages = info.pagesList?.map(p => ({ path: p.path, name: p.name, file: p.filePath })) || [];
+          }
+          if (type === 'apis' || type === 'all') {
+            result.apis =
+              info.routes?.filter(r => r.filePath).map(r => ({ method: r.method, path: r.path, file: r.filePath })) ||
+              [];
+          }
+          if (type === 'layouts' || type === 'all') {
+            result.layouts =
+              info.layoutsList?.map(l => ({ name: l.name, path: l.path, default: l.isDefault, file: l.filePath })) ||
+              [];
+          }
+          if (type === 'middlewares' || type === 'all') {
+            result.middlewares =
+              info.middlewaresList?.map(m => ({ path: m.path, global: m.global, file: m.filePath })) || [];
+          }
+          if (type === 'crons' || type === 'all') {
+            result.crons = info.cronsList?.map(c => ({ name: c.name, schedule: c.schedule, file: c.filePath })) || [];
+          }
+
+          return { toolCallId: call.id, result };
+        }
+
+        case 'create_resource': {
+          const result = await crud.create({
+            type: args.type as any,
+            path: args.path as string,
+            method: args.method as string | undefined,
+            schedule: args.schedule as string | undefined,
+            force: false
+          });
+          return { toolCallId: call.id, result };
+        }
+
+        case 'delete_resource': {
+          const result = await crud.delete({
+            type: args.type as any,
+            path: args.path as string,
+            force: (args.force as boolean) || false
+          });
+          return { toolCallId: call.id, result };
+        }
+
+        case 'get_project_info': {
+          const info = getInfo();
+          return {
+            toolCallId: call.id,
+            result: {
+              version: info.version,
+              uptime: Date.now() - info.startTime,
+              pages: info.pages,
+              apiRoutes: info.apiRoutes,
+              middlewares: info.middleware,
+              layouts: info.layouts,
+              crons: info.crons,
+              presets: info.presets
+            }
+          };
+        }
+
+        case 'read_resource': {
+          const result = await crud.read({
+            type: args.type as any,
+            path: args.path as string | undefined
+          });
+          return { toolCallId: call.id, result };
+        }
+
+        case 'set_env': {
+          const result = await crud.update({
+            type: 'env',
+            key: args.key as string,
+            value: args.value as string
+          });
+          return { toolCallId: call.id, result };
+        }
+
+        default:
+          return {
+            toolCallId: call.id,
+            error: `Unknown tool: ${call.name}`
+          };
+      }
+    } catch (err) {
+      return {
+        toolCallId: call.id,
+        error: err instanceof Error ? err.message : String(err)
+      };
+    }
+  }
+
+  function parseCommand(input: string): { toolCalls?: AiToolCall[]; response?: string } | null {
+    const lower = input.trim().toLowerCase();
+
+    const createMatch = input.match(
+      /^(?:create|add|new|make|generate|scaffold|g)\s+(?:a\s+)?(page|api|layout|middleware|cron|plugin)\s+(?:at\s+)?["']?([\w\-/[\].]+)["']?(?:\s+(?:with|using)\s+(?:method\s+)?(GET|POST|PUT|PATCH|DELETE))?(?:\s+(?:schedule|cron)?\s+["']?([*\d/\-,\s]+)["']?)?/i
+    );
+    if (createMatch) {
+      const [, type, path, method, schedule] = createMatch;
+      const params: Record<string, unknown> = { type: type.toLowerCase(), path };
+      if (method) params.method = method.toUpperCase();
+      if (schedule) params.schedule = schedule.trim();
+      return {
+        toolCalls: [{ id: nextToolId(), name: 'create_resource', arguments: params }]
+      };
+    }
+
+    const deleteMatch = input.match(
+      /^(?:delete|remove|rm|del)\s+(?:the\s+)?(page|api|layout|middleware|cron|plugin)\s+(?:at\s+)?["']?([\w\-/[\].]+)["']?/i
+    );
+    if (deleteMatch) {
+      const [, type, path] = deleteMatch;
+      return {
+        toolCalls: [
+          {
+            id: nextToolId(),
+            name: 'delete_resource',
+            arguments: { type: type.toLowerCase(), path, force: lower.includes('force') || lower.includes('permanent') }
+          }
+        ]
+      };
+    }
+
+    const listMatch = input.match(/^(?:list|show|ls|get)\s+(all|pages|apis?|layouts?|middlewares?|crons?)(?:\s*$)/i);
+    if (listMatch) {
+      let type = listMatch[1].toLowerCase();
+      if (type === 'all') type = 'all';
+      else if (type.startsWith('api')) type = 'apis';
+      else if (type.startsWith('layout')) type = 'layouts';
+      else if (type.startsWith('middleware')) type = 'middlewares';
+      else if (type.startsWith('cron')) type = 'crons';
+      else type = 'pages';
+      return {
+        toolCalls: [{ id: nextToolId(), name: 'list_resources', arguments: { type } }]
+      };
+    }
+
+    const infoMatch = /^(?:project\s+)?(?:info|status|overview|stats|about)$/i.test(input.trim());
+    if (infoMatch) {
+      return {
+        toolCalls: [{ id: nextToolId(), name: 'get_project_info', arguments: {} }]
+      };
+    }
+
+    const helpMatch = /^(help|\?|commands|what can you do)/i.test(input.trim());
+    if (helpMatch) {
+      return {
+        response: `I can help you with the following:
+
+**Create resources:**
+- \`create page about\` — Create a new page at /about
+- \`create api users with method POST\` — Create a POST API route
+- \`create cron daily-cleanup schedule "0 0 * * *"\` — Create a daily cron job
+- \`create layout admin\` — Create an admin layout
+
+**Delete resources:**
+- \`delete page about\` — Delete a page (with backup)
+- \`delete api users --force\` — Permanently delete an API
+
+**Inspect project:**
+- \`list pages\` / \`list apis\` / \`list all\` — List resources
+- \`project info\` — Show project overview
+
+**Environment:**
+- \`set env DATABASE_URL=postgres://...\` — Set environment variable
+
+You can also ask me questions in natural language, or configure an OpenAI-compatible API key for more advanced AI assistance.`
+      };
+    }
+
+    const setEnvMatch = input.match(/^(?:set\s+env|env\s+set|add\s+env)\s+(\w+)\s*=\s*(.+)$/i);
+    if (setEnvMatch) {
+      return {
+        toolCalls: [
+          { id: nextToolId(), name: 'set_env', arguments: { key: setEnvMatch[1], value: setEnvMatch[2].trim() } }
+        ]
+      };
+    }
+
+    return null;
+  }
+
+  function formatToolResult(name: string, result: unknown): string {
+    if (name === 'list_resources') {
+      const r = result as Record<string, unknown[]>;
+      const lines: string[] = [];
+      for (const [key, items] of Object.entries(r)) {
+        lines.push(`**${key}** (${items.length}):`);
+        for (const item of items.slice(0, 20)) {
+          const obj = item as Record<string, unknown>;
+          const path = obj.path || obj.name || '';
+          const extra = obj.method ? ` [${obj.method}]` : obj.default ? ' (default)' : '';
+          lines.push(`  - ${path}${extra}`);
+        }
+        if (items.length > 20) lines.push(`  ... and ${items.length - 20} more`);
+        lines.push('');
+      }
+      return lines.join('\n');
+    }
+
+    if (name === 'create_resource') {
+      const r = result as { success?: boolean; created?: string[]; errors?: string[]; skipped?: string[] };
+      if (r.success && r.created?.length) {
+        return `✅ Created successfully:\n${r.created.map(f => `  - ${f}`).join('\n')}`;
+      }
+      if (r.errors?.length) {
+        return `❌ Failed: ${r.errors.join(', ')}`;
+      }
+      if (r.skipped?.length) {
+        return `⚠️ Skipped (already exists, use --force to overwrite):\n${r.skipped.map(f => `  - ${f}`).join('\n')}`;
+      }
+      return JSON.stringify(result, null, 2);
+    }
+
+    if (name === 'delete_resource') {
+      const r = result as { success?: boolean; deleted?: string[]; errors?: string[] };
+      if (r.success && r.deleted?.length) {
+        return `🗑️ Deleted successfully:\n${r.deleted.map(f => `  - ${f}`).join('\n')}`;
+      }
+      if (r.errors?.length) {
+        return `❌ Failed: ${r.errors.join(', ')}`;
+      }
+      return JSON.stringify(result, null, 2);
+    }
+
+    if (name === 'get_project_info') {
+      const r = result as Record<string, unknown>;
+      const uptimeMs = r.uptime as number;
+      const s = Math.floor(uptimeMs / 1000);
+      const m = Math.floor(s / 60);
+      const h = Math.floor(m / 60);
+      const uptime = h > 0 ? `${h}h ${m % 60}m` : m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
+      return `**Project Info:**
+- Version: ${r.version}
+- Uptime: ${uptime}
+- Pages: ${r.pages}
+- API Routes: ${r.apiRoutes}
+- Middlewares: ${r.middlewares}
+- Layouts: ${r.layouts}
+- Cron Jobs: ${r.crons}
+- Presets: ${(r.presets as string[]).join(', ') || 'none'}`;
+    }
+
+    if (name === 'set_env') {
+      const r = result as { success?: boolean; errors?: string[] };
+      if (r.success) return '✅ Environment variable set successfully.';
+      return `❌ Failed: ${r.errors?.join(', ') || 'Unknown error'}`;
+    }
+
+    if (name === 'read_resource') {
+      const r = result as { success?: boolean; content?: string; data?: unknown; error?: string };
+      if (r.error) return `❌ ${r.error}`;
+      if (r.content) return `\`\`\`\n${r.content}\n\`\`\``;
+      if (r.data) return `\`\`\`json\n${JSON.stringify(r.data, null, 2)}\n\`\`\``;
+      return '(empty)';
+    }
+
+    return JSON.stringify(result, null, 2);
+  }
+
+  async function chat(options: AiChatOptions): Promise<AiChatResponse> {
+    const { messages, apiKey, apiBase, model } = options;
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+
+    if (!lastUserMsg) {
+      return {
+        message: {
+          role: 'assistant',
+          content: 'Hello! I am ubean Assistant. Type "help" to see what I can do.',
+          timestamp: Date.now()
+        }
+      };
+    }
+
+    const parsed = parseCommand(lastUserMsg.content);
+
+    if (parsed?.response) {
+      return {
+        message: {
+          role: 'assistant',
+          content: parsed.response,
+          timestamp: Date.now()
+        }
+      };
+    }
+
+    if (parsed?.toolCalls && parsed.toolCalls.length > 0) {
+      const toolResults: AiToolResult[] = [];
+      for (const call of parsed.toolCalls) {
+        const result = await executeToolCall(call);
+        toolResults.push(result);
+      }
+
+      const responseParts: string[] = [];
+      for (let i = 0; i < parsed.toolCalls.length; i++) {
+        const call = parsed.toolCalls[i];
+        const tr = toolResults[i];
+        if (tr.error) {
+          responseParts.push(`❌ Error executing ${call.name}: ${tr.error}`);
+        } else {
+          responseParts.push(formatToolResult(call.name, tr.result));
+        }
+      }
+
+      return {
+        message: {
+          role: 'assistant',
+          content: responseParts.join('\n\n'),
+          toolCalls: parsed.toolCalls,
+          timestamp: Date.now()
+        },
+        toolResults
+      };
+    }
+
+    if (apiKey && apiBase) {
+      try {
+        return await callLlmApi({ messages, apiKey, apiBase, model });
+      } catch (err) {
+        return {
+          message: {
+            role: 'assistant',
+            content: `I didn't understand that command. Type "help" to see available commands.\n\n(LLM API error: ${err instanceof Error ? err.message : String(err)})`,
+            timestamp: Date.now()
+          }
+        };
+      }
+    }
+
+    return {
+      message: {
+        role: 'assistant',
+        content: `I didn't understand that command. Type "help" to see what I can do.\n\nTip: For natural language assistance, configure an OpenAI-compatible API endpoint:\n\n\`\`\`ts\n// ubean.config.ts\nexport default defineConfig({\n  devtools: {\n    ai: {\n      apiKey: process.env.OPENAI_API_KEY,\n      apiBase: 'https://api.openai.com/v1',\n      model: 'gpt-4o-mini'\n    }\n  }\n});\n\`\`\``,
+        timestamp: Date.now()
+      }
+    };
+  }
+
+  async function callLlmApi(options: AiChatOptions): Promise<AiChatResponse> {
+    const { messages, apiKey, apiBase, model } = options;
+    const tools = getToolDefinitions();
+
+    const apiMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        ...(m.toolCalls
+          ? {
+              tool_calls: m.toolCalls.map(tc => ({
+                id: tc.id,
+                type: 'function' as const,
+                function: { name: tc.name, arguments: JSON.stringify(tc.arguments) }
+              }))
+            }
+          : {}),
+        ...(m.toolCallId ? { tool_call_id: m.toolCallId } : {})
+      }))
+    ];
+
+    const res = await fetch(`${apiBase}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: model || 'gpt-4o-mini',
+        messages: apiMessages,
+        tools: tools.map(t => ({
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: t.parameters
+          }
+        }))
+      })
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`API request failed (${res.status}): ${text.slice(0, 200)}`);
+    }
+
+    const data = (await res.json()) as {
+      choices?: Array<{
+        message?: {
+          content?: string;
+          tool_calls?: Array<{
+            id: string;
+            function: { name: string; arguments: string };
+          }>;
+        };
+      }>;
+    };
+    const choice = data.choices?.[0];
+    if (!choice?.message) {
+      throw new Error('Invalid API response');
+    }
+
+    const assistantMsg: AiChatMessage = {
+      role: 'assistant',
+      content: choice.message.content || '',
+      timestamp: Date.now()
+    };
+
+    const toolCalls: AiToolCall[] = [];
+    if (choice.message.tool_calls?.length) {
+      for (const tc of choice.message.tool_calls) {
+        const args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
+        toolCalls.push({ id: tc.id, name: tc.function.name, arguments: args });
+      }
+      assistantMsg.toolCalls = toolCalls;
+    }
+
+    let toolResults: AiToolResult[] | undefined;
+    if (toolCalls.length > 0) {
+      toolResults = [];
+      for (const tc of toolCalls) {
+        const result = await executeToolCall(tc);
+        toolResults.push(result);
+      }
+
+      const followUpMessages = [...messages, assistantMsg];
+      for (const tr of toolResults) {
+        followUpMessages.push({
+          role: 'tool',
+          content: JSON.stringify(tr.result ?? tr.error),
+          toolCallId: tr.toolCallId,
+          timestamp: Date.now()
+        });
+      }
+
+      return chat({ messages: followUpMessages, apiKey, apiBase, model });
+    }
+
+    return { message: assistantMsg, toolResults };
+  }
+
+  return {
+    getToolDefinitions,
+    executeToolCall,
+    chat,
+    parseCommand,
+    formatToolResult
+  };
+}
+
+export type DevToolsAiServer = ReturnType<typeof createAiServer>;

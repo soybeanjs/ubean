@@ -2,6 +2,11 @@ export interface DevToolsOptions {
   enabled?: boolean;
   port?: number;
   host?: string;
+  ai?: {
+    apiKey?: string;
+    apiBase?: string;
+    model?: string;
+  };
 }
 
 export interface DevToolsServer {
@@ -69,6 +74,11 @@ export interface DevToolsInfo {
     drizzleStudioAvailable?: boolean;
     studioUrl?: string;
   };
+  ai?: {
+    enabled: boolean;
+    provider?: string;
+    model?: string;
+  };
   customTabs?: DevToolsCustomTab[];
 }
 
@@ -98,7 +108,7 @@ export interface DevToolsCustomTab {
   sandbox?: string[];
 }
 
-export type CrudResourceType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron';
+export type CrudResourceType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin';
 
 export interface CrudResult {
   success: boolean;
@@ -114,6 +124,7 @@ export interface CreateCrudParams {
   type: CrudResourceType;
   path: string;
   method?: string;
+  schedule?: string;
   content?: string;
   force?: boolean;
 }

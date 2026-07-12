@@ -48,7 +48,7 @@ export function createCrudServer(options: CrudServerOptions) {
   }
 
   async function create(params: CreateCrudParams): Promise<CrudResult> {
-    const { type, path, method, content, force } = params;
+    const { type, path, method, schedule, content, force } = params;
 
     if (hooks) {
       await hooks.runHook('beforeCreate', { type, path, content });
@@ -81,18 +81,42 @@ export function createCrudServer(options: CrudServerOptions) {
         if ((await fs.exists(filePath)) && !force) {
           result = { success: false, skipped: [filePath], errors: ['File already exists'] };
         } else {
+          const cronSchedule = schedule || '* * * * *';
           const cronContent =
             content ||
             `import { defineScheduled } from 'ubean';
 
 export default defineScheduled({
-  schedule: '* * * * *',
+  schedule: '${cronSchedule}',
   async run() {
     console.log('Cron job running');
   }
 });
 `;
           await fs.writeFile(filePath, cronContent);
+          result = { success: true, created: [filePath] };
+        }
+      } else if (type === 'plugin') {
+        const pluginDir = 'src/plugins';
+        const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
+        const fileName = normalizedPath.endsWith('.ts') ? normalizedPath : `${normalizedPath}.ts`;
+        const filePath = join(pluginDir, fileName);
+
+        if ((await fs.exists(filePath)) && !force) {
+          result = { success: false, skipped: [filePath], errors: ['File already exists'] };
+        } else {
+          const pluginContent =
+            content ||
+            `import { definePlugin } from 'ubean';
+
+export default definePlugin({
+  name: '${fileName.replace(/\.ts$/, '').replace(/[^\w]/g, '-')}',
+  setup() {
+    console.log('Plugin loaded');
+  }
+});
+`;
+          await fs.writeFile(filePath, pluginContent);
           result = { success: true, created: [filePath] };
         }
       } else {
@@ -140,7 +164,7 @@ export default defineScheduled({
         return { success: false, error: 'Path is required for file read' };
       }
 
-      if (SCAFFOLD_TYPE_SET.has(type) || type === 'cron') {
+      if (SCAFFOLD_TYPE_SET.has(type) || type === 'cron' || type === 'plugin') {
         const fileExists = await fs.exists(path);
         if (!fileExists) {
           return { success: false, error: `File not found: ${path}` };
@@ -187,7 +211,7 @@ export default defineScheduled({
         result = { success: false, errors: ['Config update is not supported at runtime'] };
       } else if (!path) {
         result = { success: false, errors: ['Path is required for file update'] };
-      } else if (SCAFFOLD_TYPE_SET.has(type) || type === 'cron') {
+      } else if (SCAFFOLD_TYPE_SET.has(type) || type === 'cron' || type === 'plugin') {
         const fileExists = await fs.exists(path);
         if (!fileExists) {
           result = { success: false, errors: [`File not found: ${path}`] };
@@ -248,7 +272,7 @@ export default defineScheduled({
           dry: false
         });
         result = normalizeResult(scaffoldRes);
-      } else if (type === 'cron') {
+      } else if (type === 'cron' || type === 'plugin') {
         const fileExists = await fs.exists(path);
         if (!fileExists) {
           result = { success: false, errors: [`File not found: ${path}`] };

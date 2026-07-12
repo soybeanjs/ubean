@@ -54,6 +54,11 @@ export interface UbeanAppOptions {
     | boolean
     | {
         customTabs?: DevToolsCustomTab[];
+        ai?: {
+          apiKey?: string;
+          apiBase?: string;
+          model?: string;
+        };
       };
   openAPI?:
     | boolean
@@ -88,7 +93,8 @@ export class UbeanApp {
     this.plugins = options.plugins || [];
 
     if (options.devtools) {
-      this.devtools = createDevToolsMiddleware();
+      const dtOpts = typeof options.devtools === 'object' ? options.devtools : {};
+      this.devtools = createDevToolsMiddleware({ ai: dtOpts.ai });
     }
 
     this._setupBaseMiddleware();

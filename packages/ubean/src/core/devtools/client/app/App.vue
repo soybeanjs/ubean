@@ -4,6 +4,7 @@ import { SConfigProvider, SIcon, SButtonIcon } from '@soybeanjs/ui';
 import { useRpc } from './composables/useRpc';
 import type { CrudResourceType } from './composables/useRpc';
 import CreateDialog from './components/CreateDialog.vue';
+import AiAssistant from './views/AiAssistant.vue';
 import ApiDocs from './views/ApiDocs.vue';
 import ApiPlayground from './views/ApiPlayground.vue';
 import ApiRoutes from './views/ApiRoutes.vue';
@@ -31,7 +32,8 @@ const {
   methodClass,
   refresh,
   crudCreate,
-  crudDelete
+  crudDelete,
+  aiChat
 } = useRpc();
 
 const activeTab = ref('overview');
@@ -44,6 +46,7 @@ const createDialogType = ref<CrudResourceType>('page');
 const tabs = computed(() => {
   const list = [
     { id: 'overview', label: 'Overview', icon: 'lucide:layout-dashboard' },
+    { id: 'ai', label: 'AI', icon: 'lucide:sparkles' },
     { id: 'routes', label: 'Routes', icon: 'lucide:send' },
     { id: 'playground', label: 'Playground', icon: 'lucide:play' },
     { id: 'pages', label: 'Pages', icon: 'lucide:file-text' },
@@ -271,6 +274,9 @@ onUnmounted(() => {
           <template v-else-if="info">
             <div v-show="activeTab === 'overview'" class="h-full overflow-y-auto">
               <Overview :info="info" :uptime="uptime" :fmt-uptime="fmtUptime" :fmt-time="fmtTime" :fmt-val="fmtVal" />
+            </div>
+            <div v-show="activeTab === 'ai'" class="h-full">
+              <AiAssistant :info="info" :send-chat="aiChat" :on-refresh="refresh" />
             </div>
             <ApiRoutes
               v-show="activeTab === 'routes'"

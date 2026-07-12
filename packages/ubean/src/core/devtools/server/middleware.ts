@@ -6,6 +6,11 @@ import type { DevToolsRpcServer } from './rpc';
 
 export interface DevToolsMiddlewareOptions {
   enabled?: boolean;
+  ai?: {
+    apiKey?: string;
+    apiBase?: string;
+    model?: string;
+  };
 }
 
 function isHtmlResponse(c: Context): boolean {
@@ -27,7 +32,7 @@ function injectClientScript(html: string, script: string): string {
 
 export function createDevToolsMiddleware(options: DevToolsMiddlewareOptions = {}) {
   const enabled = options.enabled !== false;
-  const rpc = createRpcServer();
+  const rpc = createRpcServer({ ai: options.ai });
   const clientScript = getDevtoolsClientScript();
   let iframeHtmlPromise: Promise<string> | null = null;
 

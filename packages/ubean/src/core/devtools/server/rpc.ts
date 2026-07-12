@@ -12,6 +12,8 @@ import type {
 } from '../types';
 import { createDevToolsHooks } from './hooks';
 import type { DevToolsHooksInstance } from './hooks';
+import { createAiServer } from './ai';
+import type { AiChatMessage } from './ai';
 import { createCrudServer } from './crud';
 import type { DevToolsCrudServer } from './crud';
 
@@ -21,12 +23,41 @@ interface RpcServerOptions {
   setEnv?: (env: Record<string, string>) => void;
   getConfig?: () => Record<string, unknown>;
   onFileChange?: () => void | Promise<void>;
+  ai?: {
+    apiKey?: string;
+    apiBase?: string;
+    model?: string;
+  };
 }
 
 export function createRpcServer(options: RpcServerOptions = {}) {
   const handlers = new Map<string, RpcHandler>();
   const startTime = Date.now();
   let envData: Record<string, string> = {};
+
+  let info: DevToolsInfo = {
+    version: '0.0.1',
+    startTime,
+    config: {},
+    env: {},
+    pages: 0,
+    apiRoutes: 0,
+    middleware: 0,
+    layouts: 0,
+    crons: 0,
+    presets: [],
+    routes: [],
+    pagesList: [],
+    middlewaresList: [],
+    layoutsList: [],
+    cronsList: [],
+    customTabs: [],
+    ai: {
+      enabled: !!(options.ai?.apiKey || process.env.UBEAN_AI_API_KEY || process.env.OPENAI_API_KEY),
+      provider: options.ai?.apiBase?.includes('anthropic') ? 'anthropic' : 'openai',
+      model: options.ai?.model
+    }
+  };
 
   const hooks: DevToolsHooksInstance = createDevToolsHooks();
 
@@ -50,24 +81,7 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     onFileChange: options.onFileChange
   });
 
-  let info: DevToolsInfo = {
-    version: '0.0.1',
-    startTime,
-    config: {},
-    env: {},
-    pages: 0,
-    apiRoutes: 0,
-    middleware: 0,
-    layouts: 0,
-    crons: 0,
-    presets: [],
-    routes: [],
-    pagesList: [],
-    middlewaresList: [],
-    layoutsList: [],
-    cronsList: [],
-    customTabs: []
-  };
+  const ai = createAiServer(crud, () => info);
 
   function registerHandler(name: string, handler: RpcHandler) {
     handlers.set(name, handler);
@@ -172,6 +186,16 @@ export function createRpcServer(options: RpcServerOptions = {}) {
   registerHandler('crud:update', params => crud.update(params as any));
   registerHandler('crud:delete', params => crud.delete(params as any));
   registerHandler('crud:restore', params => crud.restore((params as any).path));
+
+  registerHandler('ai:tools', () => ai.getToolDefinitions());
+  registerHandler('ai:chat', params =>
+    ai.chat({
+      messages: (params as { messages: AiChatMessage[] }).messages,
+      apiKey: (params as { apiKey?: string }).apiKey || options.ai?.apiKey,
+      apiBase: (params as { apiBase?: string }).apiBase || options.ai?.apiBase,
+      model: (params as { model?: string }).model || options.ai?.model
+    })
+  );
 
   async function handleRequest(request: RpcRequest): Promise<RpcResponse> {
     const handler = handlers.get(request.method);

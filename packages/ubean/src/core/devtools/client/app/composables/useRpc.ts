@@ -49,6 +49,25 @@ export interface DevToolsCustomTab {
   sandbox?: string[];
 }
 
+export interface AiToolDefinition {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
+}
+
+export interface AiChatMessage {
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  timestamp?: number;
+  toolCalls?: Array<{ id: string; name: string; arguments: Record<string, unknown> }>;
+  toolResults?: Array<{ toolCallId: string; result?: unknown; error?: string }>;
+}
+
+export interface AiChatResponse {
+  message: AiChatMessage;
+  toolResults?: Array<{ toolCallId: string; result?: unknown; error?: string }>;
+}
+
 export interface DevToolsInfo {
   version: string;
   pages: number;
@@ -73,6 +92,11 @@ export interface DevToolsInfo {
     drizzleStudioAvailable?: boolean;
     studioUrl?: string;
   };
+  ai?: {
+    enabled: boolean;
+    provider?: string;
+    model?: string;
+  };
   customTabs?: DevToolsCustomTab[];
 }
 
@@ -86,7 +110,16 @@ export interface CrudResult {
   errors?: string[];
 }
 
-export type CrudResourceType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'env' | 'config';
+export type CrudResourceType =
+  | 'page'
+  | 'api'
+  | 'layout'
+  | 'middleware'
+  | 'reuse'
+  | 'cron'
+  | 'plugin'
+  | 'env'
+  | 'config';
 
 export function useRpc() {
   const loading = ref(true);
@@ -244,6 +277,26 @@ export function useRpc() {
     }
   }
 
+  async function aiChat(
+    messages: AiChatMessage[],
+    options?: { apiKey?: string; apiBase?: string; model?: string }
+  ): Promise<AiChatResponse> {
+    try {
+      return await rpc<AiChatResponse>('ai:chat', { messages, ...options });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'AI request failed';
+      return { message: { role: 'assistant', content: `Error: ${msg}`, timestamp: Date.now() } };
+    }
+  }
+
+  async function aiGetTools(): Promise<AiToolDefinition[]> {
+    try {
+      return await rpc<AiToolDefinition[]>('ai:tools');
+    } catch {
+      return [];
+    }
+  }
+
   function close() {
     window.parent.postMessage({ type: '__ubean_devtools_close' }, '*');
   }
@@ -350,6 +403,8 @@ export function useRpc() {
     crudUpdate,
     crudDelete,
     crudRestore,
+    aiChat,
+    aiGetTools,
     showToast
   };
 }

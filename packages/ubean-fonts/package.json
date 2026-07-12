@@ -27,7 +27,7 @@
     "build": "vp pack",
     "dev": "vp pack --watch",
     "test": "vp test",
-    "typecheck": "vue-tsc --noEmit --skipLibCheck"
+    "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "defu": "catalog:",
@@ -39,8 +39,7 @@
     "@types/node": "^22.13.10",
     "typescript": "catalog:",
     "vite": "catalog:",
-    "vite-plus": "catalog:",
-    "vue-tsc": "^3.3.7"
+    "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "vite": "^5.0.0 || ^6.0.0"

@@ -41,8 +41,6 @@ catalog:
   zod: ^4.4.3
   typescript: ^7.0.2
   '@standard-schema/spec': ^1.0.0
-  axios: ^1.7.9
-  axios-retry: ^4.5.0
   enquirer: ^2.4.1
   ts-morph: ^28.0.0
   birpc: ^4.0.0
@@ -63,6 +61,5 @@ catalog:
 
 overrides:
   vite: 'catalog:'
-  typescript: 'npm:typescript-native-bridge@0.0.0'
   kysely: '0.28.5'
   markdown-exit: 'catalog:'

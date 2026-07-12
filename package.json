@@ -13,7 +13,7 @@
     "prepare": "vp config --no-hooks --no-agent",
     "test": "pnpm --filter ubean test",
     "test:watch": "pnpm --filter ubean test:watch",
-    "typecheck": "pnpm --filter ubean typecheck",
+    "typecheck": "pnpm -r typecheck",
     "upkg": "soy ncu"
   },
   "devDependencies": {

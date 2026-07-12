@@ -64,7 +64,7 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "test:watch": "vp test --watch",
-    "typecheck": "vue-tsc --noEmit --skipLibCheck"
+    "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "@standard-schema/spec": "catalog:",
@@ -104,7 +104,6 @@
     "typescript": "catalog:",
     "unocss": "^66.7.5",
     "vite-plus": "catalog:",
-    "vue": "^3.5.13",
-    "vue-tsc": "^3.3.7"
+    "vue": "^3.5.13"
   }
 }

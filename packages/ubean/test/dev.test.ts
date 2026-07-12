@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   createDevWatcher,
   formatDiagnostics,
-  nodeRunner,
+  viteNodeRunner,
   getRegisteredRunners,
   registerRunner,
   selectRunner
@@ -20,21 +20,21 @@ import {
 import { standardPreset } from '../src/core/preset/standard/preset';
 
 describe('dev runner', () => {
-  it('nodeRunner is available in Node.js environment', () => {
-    expect(nodeRunner.name).toBe('node');
-    expect(nodeRunner.isAvailable()).toBe(true);
+  it('viteNodeRunner is available in Node.js environment', () => {
+    expect(viteNodeRunner.name).toBe('vite-node');
+    expect(viteNodeRunner.isAvailable()).toBe(true);
   });
 
   it('selectRunner returns an available runner', async () => {
     const runner = await selectRunner(standardPreset);
     expect(runner).not.toBeNull();
-    expect(runner!.name).toBe('node');
+    expect(runner!.name).toBe('vite-node');
   });
 
-  it('getRegisteredRunners returns list including nodeRunner', () => {
+  it('getRegisteredRunners returns list including viteNodeRunner', () => {
     const runners = getRegisteredRunners();
     expect(runners.length).toBeGreaterThanOrEqual(1);
-    expect(runners.some(r => r.name === 'node')).toBe(true);
+    expect(runners.some(r => r.name === 'vite-node')).toBe(true);
   });
 
   it('registerRunner adds runner to front of list', () => {

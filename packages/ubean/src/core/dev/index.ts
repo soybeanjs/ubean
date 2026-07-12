@@ -3,7 +3,7 @@ export {
   selectRunner,
   registerRunner,
   getRegisteredRunners,
-  nodeRunner,
+  viteNodeRunner,
   type DevRunner,
   type DevRunnerOptions,
   type EnvRunner
@@ -12,6 +12,8 @@ export {
 export { createDevWatcher, type DevWatcher, type DevWatcherOptions, type WatchEvent } from './watcher';
 
 export { startDevServer } from './server';
+
+export { createViteDevServer, type ViteDevServerOptions, type ViteDevServerInstance } from './vite-server';
 
 import { logger } from '../log';
 import type { CapabilityDiagnosisResult } from '../preset/capabilities';

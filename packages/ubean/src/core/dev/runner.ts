@@ -1,6 +1,7 @@
 import type { UbeanApp } from '../../runtime/app';
 import type { Preset } from '../preset/_utils/preset';
 import type { CapabilitySet, CapabilityDiagnosisResult } from '../preset/capabilities';
+import type { ResolvedConfig } from '../config/types';
 
 export interface DevRunnerOptions {
   cwd: string;
@@ -9,6 +10,7 @@ export interface DevRunnerOptions {
   host: string;
   preset: Preset;
   app: UbeanApp;
+  config: ResolvedConfig;
   capabilities: CapabilitySet;
   onListen?: (info: { port: number; host: string; url: string }) => void;
   onBeforeReload?: () => void | Promise<void>;
@@ -33,8 +35,8 @@ export interface EnvRunner {
   createRunner(options: DevRunnerOptions): Promise<DevRunner>;
 }
 
-class NodeDevRunner implements DevRunner {
-  private server: import('node:http').Server | null = null;
+class ViteNodeDevRunner implements DevRunner {
+  private viteDevServer: import('./vite-server').ViteDevServerInstance | null = null;
   private currentApp: UbeanApp;
   private readonly options: DevRunnerOptions;
   private _port: number;
@@ -62,117 +64,57 @@ class NodeDevRunner implements DevRunner {
   }
 
   async start(): Promise<void> {
-    const { createServer } = await import('node:http');
+    const { createViteDevServer } = await import('./vite-server');
 
-    this.server = createServer(async (req, res) => {
-      try {
-        await this.currentApp.init();
-        const protocol = (req.socket as any)?.encrypted ? 'https' : 'http';
-        const webReq = await toWebRequest(req, this.options.host, protocol);
-        const webRes = await this.currentApp.fetch(webReq);
-        await sendWebResponse(res, webRes);
-      } catch (err) {
-        res.statusCode = 500;
-        res.end(err instanceof Error ? err.message : 'Internal Server Error');
+    this.viteDevServer = await createViteDevServer({
+      cwd: this.options.cwd,
+      port: this._port,
+      host: this.options.host,
+      config: this.options.config,
+      app: this.currentApp,
+      onListen: ({ port, host, url }) => {
+        this._port = port;
+        this.options.onListen?.({ port, host, url });
       }
     });
 
-    await new Promise<void>((resolve, reject) => {
-      this.server!.on('error', reject);
-      this.server!.listen(this._port, this.options.host, () => {
-        const addr = this.server!.address();
-        this._port = typeof addr === 'object' && addr ? addr.port : this._port;
-        resolve();
-      });
-    });
-
-    this.options.onListen?.({
-      port: this._port,
-      host: this.options.host,
-      url: this.url
-    });
+    await this.viteDevServer.start();
   }
 
   async stop(): Promise<void> {
-    if (this.server) {
-      await new Promise<void>((res, rej) => {
-        this.server!.close(err => (err ? rej(err) : res()));
-      });
-      this.server = null;
+    if (this.viteDevServer) {
+      await this.viteDevServer.stop();
+      this.viteDevServer = null;
     }
   }
 
   async reload(): Promise<void> {
     await this.options.onBeforeReload?.();
+    if (this.viteDevServer) {
+      this.viteDevServer.updateApp(this.currentApp);
+    }
     await this.options.onAfterReload?.();
   }
 
   updateApp(app: UbeanApp): void {
     this.currentApp = app;
-  }
-}
-
-async function toWebRequest(
-  req: import('node:http').IncomingMessage,
-  host: string,
-  protocol: string
-): Promise<Request> {
-  const url = `${protocol}://${req.headers.host || host}${req.url || '/'}`;
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (value) {
-      if (Array.isArray(value)) {
-        for (const v of value) headers.append(key, v);
-      } else {
-        headers.set(key, value);
-      }
+    if (this.viteDevServer) {
+      this.viteDevServer.updateApp(app);
     }
   }
-
-  const method = req.method || 'GET';
-  const body = method === 'GET' || method === 'HEAD' ? undefined : (req as unknown as any);
-
-  return new Request(url, {
-    method,
-    headers,
-    body,
-    duplex: 'half'
-  } as RequestInit);
 }
 
-async function sendWebResponse(res: import('node:http').ServerResponse, webRes: Response): Promise<void> {
-  res.statusCode = webRes.status;
-  res.statusMessage = webRes.statusText;
-  webRes.headers.forEach((value, key) => {
-    res.setHeader(key, value);
-  });
-
-  if (webRes.body) {
-    const reader = webRes.body.getReader();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(value);
-      }
-    } finally {
-      reader.releaseLock();
-    }
-  }
-  res.end();
-}
-
-export const nodeRunner: EnvRunner = {
-  name: 'node',
+export const viteNodeRunner: EnvRunner = {
+  name: 'vite-node',
   isAvailable() {
     return typeof process !== 'undefined' && !!process.versions?.node;
   },
   async createRunner(options) {
-    return new NodeDevRunner(options);
+    return new ViteNodeDevRunner(options);
   }
 };
 
-const runners: EnvRunner[] = [nodeRunner];
+const runners: EnvRunner[] = [viteNodeRunner];
 
 export function registerRunner(runner: EnvRunner): void {
   runners.unshift(runner);

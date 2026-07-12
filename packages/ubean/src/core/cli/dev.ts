@@ -76,6 +76,7 @@ export const devCommand: CommandDef = {
       port,
       host,
       preset,
+      config,
       capabilities,
       app: currentApp,
       onListen({ url, port: p }) {
@@ -84,6 +85,7 @@ export const devCommand: CommandDef = {
             `  → Local:      ${url}\n` +
             `  → Scalar UI:  ${url}/_scalar\n` +
             `  → OpenAPI:    ${url}/_openapi.json\n` +
+            `  → DevTools:   ${url}/_devtools\n` +
             `  → Port:       ${p}\n` +
             `  → Press Ctrl+C to stop`
         );

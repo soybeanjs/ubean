@@ -33,8 +33,15 @@ export interface DevToolsMiddlewareInfo {
 
 export interface DevToolsCronInfo {
   name: string;
-  schedule: string;
+  schedule?: string;
   filePath?: string;
+}
+
+export interface DevToolsLayoutInfo {
+  name: string;
+  path: string;
+  filePath?: string;
+  isDefault: boolean;
 }
 
 export interface DevToolsInfo {
@@ -45,11 +52,13 @@ export interface DevToolsInfo {
   pages: number;
   apiRoutes: number;
   middleware: number;
+  layouts?: number;
   crons?: number;
   presets?: string[];
   routes?: DevToolsRouteInfo[];
   pagesList?: DevToolsPageInfo[];
   middlewaresList?: DevToolsMiddlewareInfo[];
+  layoutsList?: DevToolsLayoutInfo[];
   cronsList?: DevToolsCronInfo[];
   openAPI?: {
     enabled: boolean;

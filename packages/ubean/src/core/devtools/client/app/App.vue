@@ -5,9 +5,11 @@ import { useRpc } from './composables/useRpc';
 import ApiDocs from './views/ApiDocs.vue';
 import ApiPlayground from './views/ApiPlayground.vue';
 import ApiRoutes from './views/ApiRoutes.vue';
+import Config from './views/Config.vue';
 import Crons from './views/Crons.vue';
 import DrizzleStudio from './views/DrizzleStudio.vue';
 import EnvVars from './views/EnvVars.vue';
+import Layouts from './views/Layouts.vue';
 import Middlewares from './views/Middlewares.vue';
 import Overview from './views/Overview.vue';
 import Pages from './views/Pages.vue';
@@ -41,10 +43,14 @@ const tabs = computed(() => {
     { id: 'pages', label: 'Pages', icon: 'lucide:file-text' },
     { id: 'middlewares', label: 'Middlewares', icon: 'lucide:layers' }
   ];
+  if (info.value?.layouts && info.value.layouts > 0) {
+    list.push({ id: 'layouts', label: 'Layouts', icon: 'lucide:layout' });
+  }
   if (info.value?.crons && info.value.crons > 0) {
     list.push({ id: 'crons', label: 'Cron Jobs', icon: 'lucide:clock' });
   }
   list.push({ id: 'env', label: 'Env', icon: 'lucide:terminal' });
+  list.push({ id: 'config', label: 'Config', icon: 'lucide:settings' });
   if (info.value?.openAPI) {
     list.push({ id: 'api-docs', label: 'API Docs', icon: 'lucide:book-open' });
   }
@@ -233,6 +239,13 @@ function tryRoute(route: { method: string; path: string }) {
               :file-name="fileName"
               :file-path="filePath"
             />
+            <Layouts
+              v-show="activeTab === 'layouts'"
+              class="h-full"
+              :layouts="info.layoutsList || []"
+              :file-name="fileName"
+              :file-path="filePath"
+            />
             <Crons
               v-show="activeTab === 'crons'"
               class="h-full"
@@ -241,6 +254,16 @@ function tryRoute(route: { method: string; path: string }) {
               :file-path="filePath"
             />
             <EnvVars v-show="activeTab === 'env'" class="h-full" :env="env" />
+            <Config
+              v-show="activeTab === 'config'"
+              class="h-full"
+              :config="info.config || {}"
+              :info="info"
+              :fmt-uptime="fmtUptime"
+              :fmt-time="fmtTime"
+              :fmt-val="fmtVal"
+              :uptime="uptime"
+            />
             <ApiDocs
               v-show="activeTab === 'api-docs'"
               class="h-full"

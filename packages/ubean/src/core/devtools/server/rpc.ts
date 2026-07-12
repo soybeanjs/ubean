@@ -7,6 +7,7 @@ import type {
   DevToolsPageInfo,
   DevToolsMiddlewareInfo,
   DevToolsCronInfo,
+  DevToolsLayoutInfo,
   DevToolsCustomTab
 } from '../types';
 import { createDevToolsHooks } from './hooks';
@@ -57,11 +58,13 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     pages: 0,
     apiRoutes: 0,
     middleware: 0,
+    layouts: 0,
     crons: 0,
     presets: [],
     routes: [],
     pagesList: [],
     middlewaresList: [],
+    layoutsList: [],
     cronsList: [],
     customTabs: []
   };
@@ -98,6 +101,11 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     info.crons = crons.length;
   }
 
+  function setLayouts(layouts: DevToolsLayoutInfo[]) {
+    info.layoutsList = layouts;
+    info.layouts = layouts.length;
+  }
+
   function setEnv(env: Record<string, string>) {
     envData = { ...env };
     const safeEnv: Record<string, string> = {};
@@ -111,6 +119,10 @@ export function createRpcServer(options: RpcServerOptions = {}) {
 
   function setPresets(presets: string[]) {
     info.presets = [...presets];
+  }
+
+  function setConfig(config: Record<string, unknown>) {
+    info.config = { ...config };
   }
 
   function setOpenAPI(openAPI: DevToolsInfo['openAPI']) {
@@ -136,6 +148,8 @@ export function createRpcServer(options: RpcServerOptions = {}) {
   registerHandler('getMiddlewares', () => info.middlewaresList || []);
 
   registerHandler('getCrons', () => info.cronsList || []);
+
+  registerHandler('getLayouts', () => info.layoutsList || []);
 
   registerHandler('getEnv', () => {
     const safeEnv: Record<string, string> = {};
@@ -196,8 +210,10 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     setPages,
     setMiddlewares,
     setCrons,
+    setLayouts,
     setEnv,
     setPresets,
+    setConfig,
     setOpenAPI,
     setDatabase,
     setCustomTabs,

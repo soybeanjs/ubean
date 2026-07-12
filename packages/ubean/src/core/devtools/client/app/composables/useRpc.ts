@@ -30,8 +30,23 @@ export interface DevToolsMiddlewareInfo {
 
 export interface DevToolsCronInfo {
   name: string;
-  schedule: string;
+  schedule?: string;
   filePath?: string;
+}
+
+export interface DevToolsLayoutInfo {
+  name: string;
+  path: string;
+  filePath?: string;
+  isDefault: boolean;
+}
+
+export interface DevToolsCustomTab {
+  id: string;
+  label: string;
+  icon?: string;
+  src: string;
+  sandbox?: string[];
 }
 
 export interface DevToolsInfo {
@@ -39,6 +54,7 @@ export interface DevToolsInfo {
   pages: number;
   apiRoutes: number;
   middleware: number;
+  layouts: number;
   crons: number;
   startTime: number;
   presets: string[];
@@ -46,7 +62,18 @@ export interface DevToolsInfo {
   routes: DevToolsRouteInfo[];
   pagesList: DevToolsPageInfo[];
   middlewaresList: DevToolsMiddlewareInfo[];
+  layoutsList: DevToolsLayoutInfo[];
   cronsList: DevToolsCronInfo[];
+  openAPI?: {
+    enabled: boolean;
+    scalarPath?: string;
+    openAPIPath?: string;
+  };
+  database?: {
+    drizzleStudioAvailable?: boolean;
+    studioUrl?: string;
+  };
+  customTabs?: DevToolsCustomTab[];
 }
 
 export interface CrudResult {

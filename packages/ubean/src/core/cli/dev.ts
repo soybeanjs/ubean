@@ -4,7 +4,13 @@ import { loadUbeanConfig } from '../config/loader';
 import { createUbeanApp } from '../../runtime/app';
 import { generateTypes } from '../codegen';
 import { createDevRunner, createDevWatcher, logDiagnostics } from '../dev';
-import type { DevToolsRouteInfo, DevToolsPageInfo, DevToolsMiddlewareInfo } from '../devtools/types';
+import type {
+  DevToolsRouteInfo,
+  DevToolsPageInfo,
+  DevToolsMiddlewareInfo,
+  DevToolsLayoutInfo,
+  DevToolsCronInfo
+} from '../devtools/types';
 import { logger } from '../log';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { createCapabilitySet, diagnoseCapabilities, NODE_REQUIREMENTS } from '../preset/capabilities';
@@ -191,9 +197,24 @@ async function buildApp(cwd: string, config: any) {
       global: m.global
     }));
 
+    const devLayouts: DevToolsLayoutInfo[] = result.layouts.map(l => ({
+      name: l.name,
+      path: l.path,
+      filePath: l.relativePath,
+      isDefault: l.isDefault
+    }));
+
+    const devCrons: DevToolsCronInfo[] = (result.crons || []).map(c => ({
+      name: c.name,
+      filePath: c.relativePath
+    }));
+
     app.devtools.rpc.setRoutes(devRoutes);
     app.devtools.rpc.setPages(devPages);
     app.devtools.rpc.setMiddlewares(devMiddlewares);
+    app.devtools.rpc.setLayouts(devLayouts);
+    app.devtools.rpc.setCrons(devCrons);
+    app.devtools.rpc.setPresets([config.build.preset]);
     app.devtools.rpc.updateInfo({
       config: {
         preset: config.build.preset,

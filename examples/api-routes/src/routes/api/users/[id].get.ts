@@ -1,4 +1,4 @@
-import { defineEventHandler } from '@ubean/core';
+import { defineHandler } from 'ubean/handler';
 
 const users = [
   { id: 1, name: 'John Doe', email: 'john@example.com' },
@@ -6,7 +6,7 @@ const users = [
   { id: 3, name: 'Bob Smith', email: 'bob@example.com' }
 ];
 
-export default defineEventHandler(c => {
+export default defineHandler(c => {
   const id = parseInt(c.req.param('id'));
   const user = users.find(u => u.id === id);
 

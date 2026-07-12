@@ -8,11 +8,11 @@
     "preview": "ubean preview"
   },
   "dependencies": {
-    "@ubean/core": "0.0.1",
+    "ubean": "workspace:*",
     "vue": "^3.5.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "^6.0.3"
+    "typescript": "catalog:"
   }
 }

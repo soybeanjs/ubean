@@ -98,6 +98,10 @@ export const VUE_MACROS_PRESET: InlinePreset = {
 export const UBEAN_PRESET: InlinePreset = {
   from: 'ubean',
   imports: [
+    'definePage',
+    'defineMeta',
+    'defineValidator',
+    'defineMiddleware',
     't',
     'useI18n',
     'useSeoMeta',

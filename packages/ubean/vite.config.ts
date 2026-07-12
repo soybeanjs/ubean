@@ -7,7 +7,7 @@ export default defineConfig({
   pack: {
     dts: false,
     clean: true,
-    sourcemap: true,
+    sourcemap: false,
     format: ['esm'],
     outDir: 'dist',
     entry: [
@@ -36,6 +36,7 @@ export default defineConfig({
     ],
     onSuccess: 'tsc --emitDeclarationOnly',
     deps: {
+      onlyBundle: false,
       neverBundle: [
         'hono',
         'c12',
@@ -53,6 +54,16 @@ export default defineConfig({
         'tinyglobby',
         'vue',
         '@vue/server-renderer',
+        'vite',
+        '@vitejs/plugin-vue',
+        'unocss',
+        /^@unocss\//,
+        'chokidar',
+        'jiti',
+        'esbuild',
+        'lightningcss',
+        'rollup',
+        /^@rolldown\//,
         /^node:/
       ]
     }

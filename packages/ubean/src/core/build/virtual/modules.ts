@@ -2,6 +2,10 @@ import type { CompiledRoute, CompiledPage, CompiledLayout, CompiledMiddleware } 
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLocale } from '../../routing/types';
 import { defineVirtualModule } from './registry';
 
+function toVitePath(p: string): string {
+  return p.replace(/\\/g, '/');
+}
+
 export function createRoutingVirtualModule(routes: CompiledRoute[], middlewares: CompiledMiddleware[]) {
   return defineVirtualModule('ubean:routes', () => {
     const routesCode = routes
@@ -55,7 +59,7 @@ export function createAppVirtualModule(
   apiRoutes: ScannedApiRoute[],
   middlewares: ScannedMiddleware[],
   pages: ScannedPageRoute[],
-  _srcDir: string
+  srcDir: string
 ) {
   return defineVirtualModule('ubean:app-config', () => {
     const routesJson = apiRoutes.map(r =>
@@ -83,13 +87,28 @@ export function createAppVirtualModule(
       })
     );
 
-    return `
-const routeModules = import.meta.glob(['/src/routes/**/*.{ts,js,mjs}'], { eager: false });
-const middlewareModules = import.meta.glob(['/src/middleware/**/*.{ts,js,mjs}'], { eager: false });
-const pageModules = import.meta.glob(['/src/pages/**/*.{vue,ts,tsx,js,jsx}'], { eager: false });
+    const viteSrcDir = toVitePath(srcDir);
+    const prefix = viteSrcDir === '/' || viteSrcDir === '' ? '' : viteSrcDir;
+    const routesGlob = JSON.stringify(`${prefix}/routes/**/*.{ts,js,mjs}`);
+    const middlewareGlob = JSON.stringify(`${prefix}/middleware/**/*.{ts,js,mjs}`);
+    const pagesGlob = JSON.stringify(`${prefix}/pages/**/*.{vue,ts,tsx,js,jsx}`);
 
+    return `
+const routeModules = import.meta.glob([${routesGlob}], { eager: false });
+const middlewareModules = import.meta.glob([${middlewareGlob}], { eager: false });
+const pageModules = import.meta.glob([${pagesGlob}], { eager: false });
+
+const _srcPrefix = ${JSON.stringify(prefix)};
 function normalizeKey(p) {
-  return p.replace(/^\\/src\\/(routes|middleware|pages)\\//, '').replace(/^\\/@fs.*\\/src\\/(routes|middleware|pages)\\//, '');
+  const prefixes = ['/routes/', '/middleware/', '/pages/'];
+  for (const pf of prefixes) {
+    const fullPf = _srcPrefix + pf;
+    if (p.includes(fullPf)) {
+      const idx = p.indexOf(fullPf);
+      return p.slice(idx + fullPf.length);
+    }
+  }
+  return p;
 }
 
 export const routeLoaders = {};
@@ -116,16 +135,25 @@ export default { routeLoaders, middlewareLoaders, pageLoaders, apiRoutes, middle
   });
 }
 
-export function createLocalesVirtualModule(_locales: ScannedLocale[], defaultLocale?: string) {
+export function createLocalesVirtualModule(
+  _locales: ScannedLocale[],
+  defaultLocale: string | undefined,
+  srcDir: string = 'src'
+) {
   return defineVirtualModule('ubean:locales', () => {
     const defaultCode = JSON.stringify(defaultLocale);
+    const viteSrcDir = toVitePath(srcDir);
+    const prefix = viteSrcDir === '/' || viteSrcDir === '' ? '' : viteSrcDir;
+    const localesGlob = JSON.stringify(`${prefix}/locales/**/*.{json,json5,yaml,yml,js,mjs,cjs,ts,mts,cts}`);
+    const srcPrefix = JSON.stringify(`${prefix || ''}/locales/`);
+
     return `
 import { defineLocale, setLocale, mergeLocale } from 'ubean/runtime/i18n';
 
-const localeModules = import.meta.glob(['/src/locales/**/*.{json,json5,yaml,yml,js,mjs,cjs,ts,mts,cts}'], { eager: false });
+const localeModules = import.meta.glob([${localesGlob}], { eager: false });
 
 function parseLocalePath(path) {
-  const withoutPrefix = path.replace(/^\\/src\\/locales\\//, '');
+  const withoutPrefix = path.replace(${srcPrefix}, '');
   const lastDot = withoutPrefix.lastIndexOf('.');
   const withoutExt = lastDot > 0 ? withoutPrefix.slice(0, lastDot) : withoutPrefix;
   const parts = withoutExt.split('/');

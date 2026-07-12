@@ -876,7 +876,7 @@ describe('vue virtual modules', () => {
 
     expect(code).toContain('createUbeanApp');
     expect(code).toContain('createUbeanSSRApp');
-    expect(code).toContain('ubean/vue-runtime/app');
+    expect(code).toContain('ubean/runtime/vue');
     expect(code).toContain('#ubean-pages');
     expect(code).toContain('defineApp');
     expect(code).toContain('createApp()');

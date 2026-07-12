@@ -1,4 +1,4 @@
-import { defineEventHandler } from '@ubean/core';
+import { defineEventHandler } from 'ubean';
 
 const users = [
   { id: 1, name: 'John Doe', email: 'john@example.com' },

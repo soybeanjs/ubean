@@ -46,6 +46,15 @@
       "types": "./dist/runtime/pages/index.d.ts",
       "import": "./dist/runtime/pages/index.mjs"
     },
+    "./runtime/app": {
+      "types": "./dist/runtime/app.d.ts",
+      "import": "./dist/runtime/app.mjs"
+    },
+    "./runtime/vue": {
+      "types": "./dist/runtime/vue/index.d.ts",
+      "browser": "./dist/runtime/vue/index.mjs",
+      "import": "./dist/runtime/vue/index.mjs"
+    },
     "./vue-runtime": {
       "types": "./dist/runtime/vue/index.d.ts",
       "import": "./dist/runtime/vue/index.mjs"

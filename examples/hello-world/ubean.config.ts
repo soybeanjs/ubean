@@ -1,5 +1,6 @@
-import { defineConfig } from '@ubean/core';
+import { defineConfig } from 'ubean';
 
 export default defineConfig({
+  srcDir: 'src',
   modules: []
 });

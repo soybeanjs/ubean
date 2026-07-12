@@ -184,13 +184,14 @@ async function buildApp(cwd: string, config: any) {
       filePath: r.relativePath
     }));
 
+    const defaultLayoutName = result.layouts.find(l => l.isDefault)?.name;
     const devPages: DevToolsPageInfo[] = result.pages
       .filter(p => !p.isReuse)
       .map(p => ({
         path: p.route,
         name: p.name,
         filePath: p.relativePath,
-        layout: p.layout === false ? undefined : p.layout || 'default'
+        layout: p.layout === false ? undefined : (p.layout || defaultLayoutName || undefined)
       }));
 
     const devMiddlewares: DevToolsMiddlewareInfo[] = result.middlewares.map(m => ({

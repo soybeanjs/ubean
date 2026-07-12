@@ -96,10 +96,7 @@ function notifyMissingKey(locale: string, key: string): void {
       fn(locale, key);
     }
     if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
-      try {
-        const consola = require('consola');
-        consola.warn(`[i18n] Missing key "${key}" for locale "${locale}"`);
-      } catch {}
+      console.warn(`[i18n] Missing key "${key}" for locale "${locale}"`);
     }
   }
 }

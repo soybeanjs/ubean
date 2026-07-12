@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { join } from 'pathe';
+import { join, relative, resolve } from 'pathe';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../../config/types';
 import { createUbeanRouter } from '../../routing/router';
 import {
@@ -23,6 +23,9 @@ export interface UbeanPluginOptions {
 export function ubeanPlugin(options: UbeanPluginOptions): Plugin {
   const { config: ubeanConfig } = options;
   const virtualRegistry = useVirtualRegistry();
+  const srcDirAbs = resolve(ubeanConfig.rootDir, ubeanConfig.srcDir);
+  const viteSrcDir = relative(ubeanConfig.rootDir, srcDirAbs).replace(/\\/g, '/');
+  const viteSrcPrefix = viteSrcDir ? `/${viteSrcDir}` : '';
 
   return {
     name: 'ubean:core',
@@ -153,9 +156,9 @@ export function ubeanPlugin(options: UbeanPluginOptions): Plugin {
     virtualRegistry.register(createMetaVirtualModule());
 
     virtualRegistry.register(
-      createAppVirtualModule(result.apiRoutes, result.middlewares, result.pages, ubeanConfig.srcDir)
+      createAppVirtualModule(result.apiRoutes, result.middlewares, result.pages, viteSrcPrefix || '/')
     );
 
-    virtualRegistry.register(createLocalesVirtualModule(result.locales, result.defaultLocale));
+    virtualRegistry.register(createLocalesVirtualModule(result.locales, result.defaultLocale, viteSrcPrefix || '/'));
   }
 }

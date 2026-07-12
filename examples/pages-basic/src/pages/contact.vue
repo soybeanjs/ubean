@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { defineAction } from '@ubean/core';
+import { defineAction } from 'ubean';
 
 definePageMeta({
   title: 'Contact'

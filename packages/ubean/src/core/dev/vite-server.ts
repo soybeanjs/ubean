@@ -103,7 +103,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     appType: 'custom',
     plugins,
     optimizeDeps: {
-      exclude: ['ubean', '#ubean-pages', '#ubean-app', '#ubean-client-entry']
+      exclude: ['ubean', 'virtual:ubean-pages.ts', 'virtual:ubean-app.ts', 'virtual:ubean-client-entry.ts', '#ubean-pages', '#ubean-app', '#ubean-client-entry']
     },
     ssr: {
       noExternal: ['ubean']
@@ -147,7 +147,20 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
           const protocol = (req.socket as any)?.encrypted ? 'https' : 'http';
           const webReq = await toWebRequest(req, host, protocol);
           const webRes = await currentApp.fetch(webReq);
-          await sendWebResponse(res, webRes);
+
+          const contentType = webRes.headers.get('content-type') || '';
+          if (contentType.includes('text/html') && webRes.body) {
+            const html = await webRes.text();
+            const transformedHtml = await viteServer!.transformIndexHtml(req.url || '/', html);
+            res.statusCode = webRes.status;
+            res.statusMessage = webRes.statusText;
+            webRes.headers.forEach((value, key) => {
+              res.setHeader(key, value);
+            });
+            res.end(transformedHtml);
+          } else {
+            await sendWebResponse(res, webRes);
+          }
         } catch (err) {
           if (viteServer) {
             viteServer.ssrFixStacktrace(err as Error);

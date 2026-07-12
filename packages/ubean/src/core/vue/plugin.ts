@@ -18,8 +18,16 @@ export interface UbeanVuePluginOptions {
   ssr?: boolean;
 }
 
-const VUE_VIRTUAL_IDS = ['#ubean-pages', '#ubean-app', '#ubean-client-entry'];
-const VUE_VIRTUAL_PREFIX = '\0ubean-vue:';
+const VIRTUAL_PAGES = 'virtual:ubean-pages.ts';
+const VIRTUAL_APP = 'virtual:ubean-app.ts';
+const VIRTUAL_CLIENT = 'virtual:ubean-client-entry.ts';
+const CLIENT_ENTRY_URL = '/@id/virtual:ubean-client-entry.ts';
+
+const HASH_ID_TO_VIRTUAL: Record<string, string> = {
+  '#ubean-pages': VIRTUAL_PAGES,
+  '#ubean-app': VIRTUAL_APP,
+  '#ubean-client-entry': VIRTUAL_CLIENT
+};
 
 export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const { config: ubeanConfig } = _options;
@@ -36,21 +44,14 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const composablesDirs = [join(srcDir, composablesDirName), ...(ubeanConfig.imports.dirs || [])];
   const componentsDirs = [join(srcDir, componentsDirName), ...(ubeanConfig.components.dirs || [])];
 
-  function resolveVirtualId(id: string): string | undefined {
-    if (VUE_VIRTUAL_IDS.includes(id)) {
-      return VUE_VIRTUAL_PREFIX + id;
-    }
-    return undefined;
+  function getVirtualModule(virtualId: string) {
+    return virtualRegistry.getModules().find(m => m.id === virtualId);
   }
 
-  async function loadVirtualId(id: string): Promise<string | undefined> {
-    if (!id.startsWith(VUE_VIRTUAL_PREFIX)) return undefined;
-    const moduleId = id.slice(VUE_VIRTUAL_PREFIX.length);
-    const mod = virtualRegistry.getModules().find(m => m.id === moduleId);
-    if (mod) {
-      return mod.load();
-    }
-    return undefined;
+  async function loadVirtualModule(virtualId: string): Promise<string | undefined> {
+    const mod = getVirtualModule(virtualId);
+    if (!mod) return undefined;
+    return mod.load();
   }
 
   async function scanAndRegister() {
@@ -62,9 +63,12 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     });
 
     virtualRegistry.register(createVuePagesVirtualModule(result.pages, result.layouts));
-    virtualRegistry.register(createVueAppEntryVirtualModule(result.appEntry, ubeanConfig.srcDir));
+    virtualRegistry.register(createVueAppEntryVirtualModule(result.appEntry));
     virtualRegistry.register(createClientEntryVirtualModule());
   }
+
+  const VIRTUAL_IDS = [VIRTUAL_PAGES, VIRTUAL_APP, VIRTUAL_CLIENT];
+  const HASH_IDS = Object.keys(HASH_ID_TO_VIRTUAL);
 
   const corePlugin: Plugin = {
     name: 'ubean:vue',
@@ -75,19 +79,18 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     },
 
     resolveId(id) {
-      const virtual = resolveVirtualId(id);
-      if (virtual) return virtual;
-
-      if (id === '#ubean-pages' || id === '#ubean-app' || id === '#ubean-client-entry') {
-        return VUE_VIRTUAL_PREFIX + id;
+      if (HASH_ID_TO_VIRTUAL[id]) {
+        return HASH_ID_TO_VIRTUAL[id];
       }
-
+      if (VIRTUAL_IDS.includes(id)) {
+        return id;
+      }
       return undefined;
     },
 
     async load(id) {
-      if (id.startsWith(VUE_VIRTUAL_PREFIX)) {
-        return loadVirtualId(id);
+      if (VIRTUAL_IDS.includes(id)) {
+        return loadVirtualModule(id);
       }
       return undefined;
     },
@@ -96,7 +99,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       return {
         appType: 'custom',
         optimizeDeps: {
-          exclude: ['ubean', '#ubean-pages', '#ubean-app', '#ubean-client-entry']
+          exclude: ['ubean', ...HASH_IDS, ...VIRTUAL_IDS]
         },
         ssr: {
           noExternal: ['ubean']
@@ -105,8 +108,8 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     },
 
     transformIndexHtml(html) {
-      if (html.includes('#ubean-client-entry')) return html;
-      return html.replace('</body>', '  <script type="module" src="#ubean-client-entry"></script>\n</body>');
+      if (html.includes(CLIENT_ENTRY_URL) || html.includes(VIRTUAL_CLIENT)) return html;
+      return html.replace('</body>', `  <script type="module" src="${CLIENT_ENTRY_URL}"></script>\n</body>`);
     },
 
     configureServer(server) {
@@ -121,8 +124,8 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         const isAppFile = /^app(\.(server|client))?\.(ts|js|mjs|mts)$/.test(rel);
         if (isAppFile || watchDirs.some(d => rel.startsWith(`${d}/`))) {
           await scanAndRegister();
-          for (const vid of VUE_VIRTUAL_IDS) {
-            const mod = server.moduleGraph.getModuleById(VUE_VIRTUAL_PREFIX + vid);
+          for (const vid of VIRTUAL_IDS) {
+            const mod = server.moduleGraph.getModuleById(vid);
             if (mod) {
               server.moduleGraph.invalidateModule(mod);
             }

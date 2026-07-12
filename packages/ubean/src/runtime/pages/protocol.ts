@@ -124,7 +124,12 @@ function escapeAttr(str: string): string {
   return str.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 }
 
-export function buildPageShell(pageObj: PageObject, assetTags: PageAssetTags, appId = 'app'): string {
+export function buildPageShell(
+  pageObj: PageObject,
+  assetTags: PageAssetTags,
+  preambleScript = '',
+  appId = 'app'
+): string {
   const pageData = serializePageData(pageObj);
   const { htmlAttrs, bodyAttrs, headHtml } = renderHeadTags(pageObj.head);
   const css = assetTags.css ?? '';
@@ -139,6 +144,7 @@ export function buildPageShell(pageObj: PageObject, assetTags: PageAssetTags, ap
 <body${bodyAttrs ? ` ${bodyAttrs}` : ''}>
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
   <div id="${appId}">${SSR_CONTENT_MARKER}</div>
+  ${preambleScript}
   ${bodyTags}
 </body>
 </html>`;
@@ -183,7 +189,8 @@ export async function renderPage(
     return buildClientOnlyShell(pageObj, assetTags, '', appId);
   }
 
-  const shell = buildPageShell(pageObj, assetTags, appId);
+  const preambleScript = renderer.preambleScript ?? '';
+  const shell = buildPageShell(pageObj, assetTags, preambleScript, appId);
   const appHtml = await renderer.render(pageObj, shell, assetTags);
   if (typeof appHtml === 'string' && !shell.includes(appHtml) && !appHtml.includes('<html')) {
     return insertSsrContent(shell, appHtml);

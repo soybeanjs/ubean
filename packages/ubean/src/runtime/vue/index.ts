@@ -26,3 +26,5 @@ export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './def
 export { definePage, defineMeta, defineValidator, defineMiddleware } from './page-macro';
 export { resolveRoute, isActiveRoute } from './router-location';
 export type { RouteLocation, RouteLocationRaw, TypedLinkProps } from './router-location';
+export { hydrateIslands, collectIslands, hydrateIsland } from './islands';
+export type { IslandHydrateOptions, IslandRecord, HydrateIslandsOptions } from './islands';

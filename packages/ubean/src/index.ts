@@ -217,6 +217,8 @@ export type {
 export { ubeanVuePlugin } from './core/vue/plugin';
 export { logger } from './core/log';
 export { ubeanPlugin } from './core/build/vite/plugin';
+export { ubeanIslandsPlugin, getIslandsBootstrapScript } from './core/islands';
+export type { UbeanIslandsPluginOptions } from './core/islands';
 export {
   scanProject,
   filePathToRoute,

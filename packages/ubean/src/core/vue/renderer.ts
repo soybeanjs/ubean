@@ -2,6 +2,7 @@ import { defineComponent, h, markRaw, createSSRApp as _createSSRApp } from 'vue'
 import type { App, Component, ConcreteComponent } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import type { PageObject, PageRenderer, PageAssetTags } from '../../runtime/pages/protocol';
+import { getIslandsBootstrapScript } from '../islands';
 
 export interface VueRendererOptions {
   resolvePageComponent: (name: string) => Promise<Component>;
@@ -95,7 +96,7 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
 
   return {
     render,
-    preambleScript: ''
+    preambleScript: getIslandsBootstrapScript()
   };
 }
 

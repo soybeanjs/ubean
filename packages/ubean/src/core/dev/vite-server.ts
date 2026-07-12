@@ -6,6 +6,7 @@ import type { UbeanApp } from '../../runtime/app';
 import { ubeanPlugin } from '../build/vite/plugin';
 import { ubeanVuePlugin } from '../vue/plugin';
 import { ubeanIslandsPlugin } from '../islands/transform';
+import { resolveModules } from '../modules';
 
 export interface ViteDevServerOptions {
   cwd: string;
@@ -84,12 +85,18 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   let viteServer: ViteDevServer | null = null;
   let actualPort = options.port;
 
-  const plugins: any[] = [
+  const builtinPlugins: any[] = [
     vue(),
     ubeanPlugin({ config }),
     ...ubeanVuePlugin({ config }),
     ubeanIslandsPlugin()
   ];
+
+  const { plugins } = await resolveModules({
+    cwd,
+    config,
+    builtinPlugins
+  });
 
   viteServer = (await createViteServer({
     root: cwd,

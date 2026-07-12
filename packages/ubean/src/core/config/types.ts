@@ -1,6 +1,33 @@
+import type { Plugin as VitePlugin } from 'vite';
+
+export type ModuleConfiguration = string | [ModuleFactory, unknown] | VitePlugin | ModuleDefinition;
+
+export interface ModuleDefinition {
+  name?: string;
+  setup?: (options: unknown, app: unknown) => void | Promise<void>;
+  hooks?: Record<string, (...args: unknown[]) => void | Promise<void>>;
+  dependsOn?: string[];
+  vitePlugin?: VitePlugin | VitePlugin[];
+}
+
+export type ModuleFactory<TOptions = unknown> = (
+  options: TOptions,
+  app: unknown
+) => VitePlugin | VitePlugin[] | ModuleDefinition | Promise<VitePlugin | VitePlugin[] | ModuleDefinition>;
+
+export interface ResolvedModule {
+  name: string;
+  key: string;
+  plugins: VitePlugin[];
+  setup?: (options: unknown, app: unknown) => void | Promise<void>;
+  hooks?: Record<string, (...args: unknown[]) => void | Promise<void>>;
+  dependsOn: string[];
+}
+
 export interface UbeanConfig {
   rootDir?: string;
   srcDir?: string;
+  modules?: ModuleConfiguration[];
   dir?: {
     pages?: string;
     routes?: string;
@@ -97,6 +124,7 @@ export interface RouteRule {
 export interface ResolvedConfig extends Required<Omit<UbeanConfig, 'build' | 'dev' | 'prerender'>> {
   rootDir: string;
   srcDir: string;
+  modules: ModuleConfiguration[];
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   dev: Required<NonNullable<UbeanConfig['dev']>>;
   build: Required<NonNullable<UbeanConfig['build']>>;

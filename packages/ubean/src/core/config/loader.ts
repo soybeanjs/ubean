@@ -6,6 +6,7 @@ import type { UbeanConfig, ResolvedConfig } from './types';
 const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
   srcDir: '.',
+  modules: [],
   dir: {
     pages: 'pages',
     routes: 'routes',

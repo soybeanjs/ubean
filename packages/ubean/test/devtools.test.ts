@@ -886,3 +886,122 @@ describe('DevTools Custom Tabs', () => {
     clearCustomTabs();
   });
 });
+
+describe('DevTools RPC - setLayouts/setConfig/getLayouts', () => {
+  it('setLayouts populates layoutsList and layouts count', () => {
+    const rpc = createRpcServer();
+    rpc.setLayouts([
+      { name: 'default', path: '/', filePath: '/layouts/default.vue', isDefault: true },
+      { name: 'admin', path: '/admin', filePath: '/layouts/admin.vue', isDefault: false }
+    ]);
+    const info = rpc.getInfo();
+    expect(info.layouts).toBe(2);
+    expect(info.layoutsList).toHaveLength(2);
+    expect(info.layoutsList![0].name).toBe('default');
+    expect(info.layoutsList![0].isDefault).toBe(true);
+    expect(info.layoutsList![1].name).toBe('admin');
+  });
+
+  it('setConfig populates config object', () => {
+    const rpc = createRpcServer();
+    rpc.setConfig({ preset: 'standard', rootDir: '/project', srcDir: '/project/src' });
+    const info = rpc.getInfo();
+    expect(info.config).toEqual({ preset: 'standard', rootDir: '/project', srcDir: '/project/src' });
+  });
+
+  it('handles getLayouts RPC method', async () => {
+    const rpc = createRpcServer();
+    rpc.setLayouts([{ name: 'default', path: '/', isDefault: true }]);
+    const response = await rpc.handleRequest({ id: '1', method: 'getLayouts' });
+    expect(response.error).toBeUndefined();
+    const layouts = response.result as any[];
+    expect(layouts).toHaveLength(1);
+    expect(layouts[0].name).toBe('default');
+  });
+
+  it('setOpenAPI populates openAPI info', () => {
+    const rpc = createRpcServer();
+    rpc.setOpenAPI({ enabled: true, scalarPath: '/_scalar', openAPIPath: '/_openapi.json' });
+    const info = rpc.getInfo();
+    expect(info.openAPI).toBeDefined();
+    expect(info.openAPI!.enabled).toBe(true);
+    expect(info.openAPI!.scalarPath).toBe('/_scalar');
+  });
+
+  it('setDatabase populates database info', () => {
+    const rpc = createRpcServer();
+    rpc.setDatabase({ drizzleStudioAvailable: true, studioUrl: '/__drizzle' });
+    const info = rpc.getInfo();
+    expect(info.database).toBeDefined();
+    expect(info.database!.drizzleStudioAvailable).toBe(true);
+    expect(info.database!.studioUrl).toBe('/__drizzle');
+  });
+
+  it('default info has layouts/crons/customTabs initialized', () => {
+    const rpc = createRpcServer();
+    const info = rpc.getInfo();
+    expect(info.layouts).toBe(0);
+    expect(info.crons).toBe(0);
+    expect(info.customTabs).toEqual([]);
+    expect(info.layoutsList).toEqual([]);
+    expect(info.cronsList).toEqual([]);
+    expect(info.config).toEqual({});
+    expect(info.presets).toEqual([]);
+  });
+});
+
+describe('DevTools Middleware HTTP Integration', () => {
+  it('injects devtools script into HTML responses', async () => {
+    const app = createUbeanApp({ devtools: true });
+    await app.init();
+
+    app.hono.get('/', c => c.html('<html><head></head><body>Hello</body></html>'));
+
+    const res = await app.fetch(new Request('http://localhost/'));
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toContain(DEVTOOLS_MAGIC_KEY);
+    expect(text).toContain('__ubean_devtools');
+  });
+
+  it('serves RPC endpoint and returns info', async () => {
+    const app = createUbeanApp({ devtools: true });
+    await app.init();
+
+    const res = await app.fetch(
+      new Request(`http://localhost${DEVTOOLS_RPC_PATH}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: '1', method: 'getInfo' })
+      })
+    );
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.error).toBeUndefined();
+    expect(data.result.version).toBe('0.0.1');
+  });
+
+  it('does not inject script into non-HTML responses', async () => {
+    const app = createUbeanApp({ devtools: true });
+    await app.init();
+
+    app.hono.get('/api/data', c => c.json({ hello: 'world' }));
+
+    const res = await app.fetch(new Request('http://localhost/api/data'));
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).not.toContain(DEVTOOLS_MAGIC_KEY);
+    expect(text).toContain('hello');
+  });
+
+  it('does not inject script when devtools is disabled', async () => {
+    const app = createUbeanApp({ devtools: false });
+    await app.init();
+
+    app.hono.get('/', c => c.html('<html><body>No devtools</body></html>'));
+
+    const res = await app.fetch(new Request('http://localhost/'));
+    const text = await res.text();
+    expect(text).not.toContain(DEVTOOLS_MAGIC_KEY);
+  });
+});

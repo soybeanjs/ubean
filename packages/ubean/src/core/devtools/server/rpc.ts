@@ -111,6 +111,14 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     info.presets = [...presets];
   }
 
+  function setOpenAPI(openAPI: DevToolsInfo['openAPI']) {
+    info.openAPI = openAPI;
+  }
+
+  function setDatabase(database: DevToolsInfo['database']) {
+    info.database = database;
+  }
+
   registerHandler('getInfo', () => getInfo());
 
   registerHandler('ping', () => ({ pong: true, time: Date.now() }));
@@ -184,6 +192,8 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     setCrons,
     setEnv,
     setPresets,
+    setOpenAPI,
+    setDatabase,
     hooks,
     crud
   };

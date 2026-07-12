@@ -147,9 +147,24 @@ export function registerOpenAPIRoutes(
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>${options.title || 'API Reference'}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; overflow: hidden; }
+    body { background: #0f0f12; }
+  </style>
 </head>
 <body>
-  <script id="api-reference" data-url="${openAPIPath}"></script>
+  <script
+    id="api-reference"
+    data-url="${openAPIPath}"
+    data-configuration='{
+      "theme": "purple",
+      "darkMode": true,
+      "layout": "modern",
+      "hideClientButton": false,
+      "defaultHttpClient": { "targetKey": "shell", "clientKey": "curl" }
+    }'
+  ></script>
   <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
 </body>
 </html>`;

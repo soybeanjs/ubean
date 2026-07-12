@@ -162,6 +162,15 @@ export class UbeanApp {
     if (this.options.openAPI) {
       const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};
       registerOpenAPIRoutes(this.hono, this.options.routes || [], this.options.middleware || [], openAPIOpts);
+      if (this.devtools) {
+        this.devtools.rpc.setOpenAPI({
+          enabled: true,
+          scalarPath: openAPIOpts.scalarPath || '/_scalar',
+          openAPIPath: openAPIOpts.openAPIPath || '/_openapi.json'
+        });
+      }
+    } else if (this.devtools) {
+      this.devtools.rpc.setOpenAPI({ enabled: false });
     }
 
     await this.hooks.callHook('app:after:register', this.hono);

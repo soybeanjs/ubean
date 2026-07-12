@@ -51,6 +51,15 @@ export interface DevToolsInfo {
   pagesList?: DevToolsPageInfo[];
   middlewaresList?: DevToolsMiddlewareInfo[];
   cronsList?: DevToolsCronInfo[];
+  openAPI?: {
+    enabled: boolean;
+    scalarPath?: string;
+    openAPIPath?: string;
+  };
+  database?: {
+    drizzleStudioAvailable?: boolean;
+    studioUrl?: string;
+  };
 }
 
 export interface RpcRequest {

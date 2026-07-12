@@ -2,8 +2,10 @@
 import { ref, computed } from 'vue';
 import { SConfigProvider, SIcon, SButtonIcon } from '@soybeanjs/ui';
 import { useRpc } from './composables/useRpc';
+import ApiDocs from './views/ApiDocs.vue';
 import ApiRoutes from './views/ApiRoutes.vue';
 import Crons from './views/Crons.vue';
+import DrizzleStudio from './views/DrizzleStudio.vue';
 import EnvVars from './views/EnvVars.vue';
 import Middlewares from './views/Middlewares.vue';
 import Overview from './views/Overview.vue';
@@ -39,6 +41,12 @@ const tabs = computed(() => {
     list.push({ id: 'crons', label: 'Cron Jobs', icon: 'lucide:clock' });
   }
   list.push({ id: 'env', label: 'Env', icon: 'lucide:terminal' });
+  if (info.value?.openAPI) {
+    list.push({ id: 'api-docs', label: 'API Docs', icon: 'lucide:book-open' });
+  }
+  if (info.value?.database) {
+    list.push({ id: 'drizzle', label: 'Database', icon: 'lucide:database' });
+  }
   return list;
 });
 
@@ -175,6 +183,16 @@ function toggleCreateMenu() {
               :file-path="filePath"
             />
             <EnvVars v-show="activeTab === 'env'" :env="env" />
+            <ApiDocs
+              v-show="activeTab === 'api-docs'"
+              :enabled="info.openAPI?.enabled"
+              :scalar-path="info.openAPI?.scalarPath"
+            />
+            <DrizzleStudio
+              v-show="activeTab === 'drizzle'"
+              :available="info.database?.drizzleStudioAvailable"
+              :studio-url="info.database?.studioUrl"
+            />
           </template>
         </main>
       </div>

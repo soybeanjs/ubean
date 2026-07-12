@@ -27,7 +27,11 @@ function isSecret(key: string): boolean {
   <div class="flex flex-col h-full">
     <div class="px-3.5 py-2 border-b border-border bg-card flex items-center gap-2 flex-shrink-0">
       <div class="relative flex-1 max-w-xs">
-        <SIcon icon="lucide:search" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <SIcon
+          icon="lucide:search"
+          :size="14"
+          class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+        />
         <input
           v-model="searchQuery"
           type="text"

@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import { scaffold, deleteScaffold, recoverScaffold } from '../../cli/page';
 import { createFsOps } from '../../cli/shared/fs-ops';
+import { scaffold, deleteScaffold, recoverScaffold } from '../../cli/page';
 import type {
   CrudResult,
   CreateCrudParams,
@@ -81,7 +81,9 @@ export function createCrudServer(options: CrudServerOptions) {
         if ((await fs.exists(filePath)) && !force) {
           result = { success: false, skipped: [filePath], errors: ['File already exists'] };
         } else {
-          const cronContent = content || `import { defineScheduled } from 'ubean';
+          const cronContent =
+            content ||
+            `import { defineScheduled } from 'ubean';
 
 export default defineScheduled({
   schedule: '* * * * *',
@@ -114,7 +116,9 @@ export default defineScheduled({
     }
   }
 
-  async function read(params: ReadCrudParams): Promise<{ success: boolean; content?: string; data?: unknown; error?: string }> {
+  async function read(
+    params: ReadCrudParams
+  ): Promise<{ success: boolean; content?: string; data?: unknown; error?: string }> {
     const { type, path } = params;
 
     try {

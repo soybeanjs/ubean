@@ -128,7 +128,11 @@ export function useRpc() {
     }
   }
 
-  async function crudCreate(type: CrudResourceType, path: string, options?: { method?: string; content?: string; force?: boolean }): Promise<CrudResult> {
+  async function crudCreate(
+    type: CrudResourceType,
+    path: string,
+    options?: { method?: string; content?: string; force?: boolean }
+  ): Promise<CrudResult> {
     try {
       const result = await rpc<CrudResult>('crud:create', { type, path, ...options });
       if (result.success) {
@@ -145,7 +149,10 @@ export function useRpc() {
     }
   }
 
-  async function crudRead(type: CrudResourceType, path?: string): Promise<{ success: boolean; content?: string; data?: unknown; error?: string }> {
+  async function crudRead(
+    type: CrudResourceType,
+    path?: string
+  ): Promise<{ success: boolean; content?: string; data?: unknown; error?: string }> {
     try {
       return await rpc('crud:read', { type, path });
     } catch (e) {
@@ -153,7 +160,10 @@ export function useRpc() {
     }
   }
 
-  async function crudUpdate(type: CrudResourceType, options: { path?: string; key?: string; content?: string; value?: string }): Promise<CrudResult> {
+  async function crudUpdate(
+    type: CrudResourceType,
+    options: { path?: string; key?: string; content?: string; value?: string }
+  ): Promise<CrudResult> {
     try {
       const result = await rpc<CrudResult>('crud:update', { type, ...options });
       if (result.success) {
@@ -170,7 +180,10 @@ export function useRpc() {
     }
   }
 
-  async function crudDelete(type: CrudResourceType, options: { path?: string; key?: string; force?: boolean }): Promise<CrudResult> {
+  async function crudDelete(
+    type: CrudResourceType,
+    options: { path?: string; key?: string; force?: boolean }
+  ): Promise<CrudResult> {
     try {
       const result = await rpc<CrudResult>('crud:delete', { type, ...options });
       if (result.success) {
@@ -240,7 +253,7 @@ export function useRpc() {
     if (!p) return '';
     const parts = p.split('/');
     if (parts.length > 4) {
-      return '.../' + parts.slice(-3).join('/');
+      return `.../${parts.slice(-3).join('/')}`;
     }
     return p;
   }

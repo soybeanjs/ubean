@@ -343,7 +343,7 @@ describe('DevTools Hooks System (P6-13)', () => {
     let hookCalled = false;
     let hookCtx: any = null;
 
-    rpc.hooks.registerHook('beforeCreate', (ctx) => {
+    rpc.hooks.registerHook('beforeCreate', ctx => {
       hookCalled = true;
       hookCtx = ctx;
     });
@@ -358,9 +358,15 @@ describe('DevTools Hooks System (P6-13)', () => {
     const rpc = createRpcServer();
     const order: string[] = [];
 
-    rpc.hooks.registerHook('afterCreate', () => { order.push('1'); });
-    rpc.hooks.registerHook('afterCreate', () => { order.push('2'); });
-    rpc.hooks.registerHook('afterCreate', () => { order.push('3'); });
+    rpc.hooks.registerHook('afterCreate', () => {
+      order.push('1');
+    });
+    rpc.hooks.registerHook('afterCreate', () => {
+      order.push('2');
+    });
+    rpc.hooks.registerHook('afterCreate', () => {
+      order.push('3');
+    });
 
     await rpc.hooks.runHook('afterCreate', { type: 'api', path: '/test' });
     expect(order).toEqual(['1', '2', '3']);

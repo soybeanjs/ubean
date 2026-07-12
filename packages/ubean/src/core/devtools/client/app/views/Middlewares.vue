@@ -37,7 +37,11 @@ const routeCount = computed(() => props.middlewares.filter(m => !m.global).lengt
   <div class="flex flex-col h-full">
     <div class="px-3.5 py-2 border-b border-border bg-card flex items-center gap-2 flex-shrink-0">
       <div class="relative flex-1 max-w-xs">
-        <SIcon icon="lucide:search" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <SIcon
+          icon="lucide:search"
+          :size="14"
+          class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+        />
         <input
           v-model="searchQuery"
           type="text"
@@ -48,21 +52,33 @@ const routeCount = computed(() => props.middlewares.filter(m => !m.global).lengt
       <div class="flex gap-1">
         <button
           class="px-2.5 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="filterGlobal === 'ALL' ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'"
+          :class="
+            filterGlobal === 'ALL'
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+          "
           @click="filterGlobal = 'ALL'"
         >
           All ({{ middlewares.length }})
         </button>
         <button
           class="px-2.5 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="filterGlobal === 'GLOBAL' ? 'bg-warning/15 text-warning' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'"
+          :class="
+            filterGlobal === 'GLOBAL'
+              ? 'bg-warning/15 text-warning'
+              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+          "
           @click="filterGlobal = 'GLOBAL'"
         >
           Global ({{ globalCount }})
         </button>
         <button
           class="px-2.5 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="filterGlobal === 'ROUTE' ? 'bg-info/15 text-info' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'"
+          :class="
+            filterGlobal === 'ROUTE'
+              ? 'bg-info/15 text-info'
+              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+          "
           @click="filterGlobal = 'ROUTE'"
         >
           Route ({{ routeCount }})

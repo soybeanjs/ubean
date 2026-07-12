@@ -111,7 +111,13 @@ export interface DeleteCrudParams {
   force?: boolean;
 }
 
-export type CrudHookType = 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete';
+export type CrudHookType =
+  | 'beforeCreate'
+  | 'afterCreate'
+  | 'beforeUpdate'
+  | 'afterUpdate'
+  | 'beforeDelete'
+  | 'afterDelete';
 
 export interface CrudHookContext {
   type: CrudResourceType | 'env' | 'config';

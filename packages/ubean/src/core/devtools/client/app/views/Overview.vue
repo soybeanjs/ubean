@@ -37,7 +37,7 @@ const presetColors = ['primary', 'success', 'info', 'warning', 'accent'];
   <div class="p-3.5">
     <div class="grid grid-cols-4 gap-2 mb-3">
       <div v-for="(s, i) in statCards" :key="i" class="stat-card">
-        <div :class="['stat-icon-wrap', iconBgMap[s.color]]">
+        <div class="stat-icon-wrap" :class="[iconBgMap[s.color]]">
           <SIcon :icon="s.icon" :size="18" />
         </div>
         <div>
@@ -86,7 +86,8 @@ const presetColors = ['primary', 'success', 'info', 'warning', 'accent'];
             <span
               v-for="(p, i) in info.presets"
               :key="p"
-              :class="['inline-flex items-center px-2.5 py-1 rounded-md text-2xs font-medium', iconBgMap[presetColors[i % presetColors.length]]]"
+              class="inline-flex items-center px-2.5 py-1 rounded-md text-2xs font-medium"
+              :class="[iconBgMap[presetColors[i % presetColors.length]]]"
             >
               {{ p }}
             </span>

@@ -102,7 +102,10 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
-export const hydrationStrategyMeta: Record<ClientDirective, { directive: ClientDirective; requiresMediaQuery?: boolean }> = {
+export const hydrationStrategyMeta: Record<
+  ClientDirective,
+  { directive: ClientDirective; requiresMediaQuery?: boolean }
+> = {
   'client:load': { directive: 'client:load' },
   'client:idle': { directive: 'client:idle' },
   'client:visible': { directive: 'client:visible' },

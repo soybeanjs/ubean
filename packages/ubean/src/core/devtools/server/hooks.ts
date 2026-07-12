@@ -1,5 +1,5 @@
-import type { CrudHookType, CrudHookContext, CrudHookHandler } from '../types';
 import { createHooks } from 'hookable';
+import type { CrudHookType, CrudHookContext, CrudHookHandler } from '../types';
 
 export interface DevToolsHooks {
   beforeCreate: (ctx: CrudHookContext) => void | Promise<void>;

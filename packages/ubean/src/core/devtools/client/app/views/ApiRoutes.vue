@@ -25,7 +25,9 @@ const filteredRoutes = computed(() => {
   }
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase();
-    routes = routes.filter(r => r.path.toLowerCase().includes(q) || (r.filePath && r.filePath.toLowerCase().includes(q)));
+    routes = routes.filter(
+      r => r.path.toLowerCase().includes(q) || (r.filePath && r.filePath.toLowerCase().includes(q))
+    );
   }
   return routes;
 });
@@ -35,7 +37,11 @@ const filteredRoutes = computed(() => {
   <div class="flex flex-col h-full">
     <div class="px-3.5 py-2 border-b border-border bg-card flex items-center gap-2 flex-shrink-0">
       <div class="relative flex-1 max-w-xs">
-        <SIcon icon="lucide:search" :size="14" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+        <SIcon
+          icon="lucide:search"
+          :size="14"
+          class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+        />
         <input
           v-model="searchQuery"
           type="text"
@@ -48,7 +54,11 @@ const filteredRoutes = computed(() => {
           v-for="m in methods"
           :key="m"
           class="px-2.5 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="activeMethod === m ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:text-foreground hover:bg-secondary'"
+          :class="
+            activeMethod === m
+              ? 'bg-primary/15 text-primary'
+              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
+          "
           @click="activeMethod = m"
         >
           {{ m }}
@@ -59,7 +69,7 @@ const filteredRoutes = computed(() => {
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredRoutes.length > 0" class="flex flex-col gap-1">
         <div v-for="(r, i) in filteredRoutes" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
-          <span :class="['method-badge', methodClass(r.method)]">{{ r.method }}</span>
+          <span class="method-badge" :class="[methodClass(r.method)]">{{ r.method }}</span>
           <span class="route-path font-mono" :title="r.path">{{ r.path }}</span>
           <span v-if="r.filePath" class="file-name" :title="r.filePath">{{ filePath(r.filePath) }}</span>
         </div>

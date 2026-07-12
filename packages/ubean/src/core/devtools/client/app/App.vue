@@ -2,14 +2,28 @@
 import { ref, computed } from 'vue';
 import { SConfigProvider, SIcon, SButtonIcon } from '@soybeanjs/ui';
 import { useRpc } from './composables/useRpc';
-import Overview from './views/Overview.vue';
 import ApiRoutes from './views/ApiRoutes.vue';
-import Pages from './views/Pages.vue';
-import Middlewares from './views/Middlewares.vue';
 import Crons from './views/Crons.vue';
 import EnvVars from './views/EnvVars.vue';
+import Middlewares from './views/Middlewares.vue';
+import Overview from './views/Overview.vue';
+import Pages from './views/Pages.vue';
 
-const { loading, error, info, env, uptime, close, fmtUptime, fmtTime, fmtVal, fileName, filePath, methodClass, refresh } = useRpc();
+const {
+  loading,
+  error,
+  info,
+  env,
+  uptime,
+  close,
+  fmtUptime,
+  fmtTime,
+  fmtVal,
+  fileName,
+  filePath,
+  methodClass,
+  refresh
+} = useRpc();
 
 const activeTab = ref('overview');
 const showCreateMenu = ref(false);
@@ -79,26 +93,14 @@ function toggleCreateMenu() {
             title="Refresh"
             @click="refresh"
           />
-          <SButtonIcon
-            icon="lucide:x"
-            size="sm"
-            variant="ghost"
-            color="secondary"
-            class="close-btn"
-            @click="close"
-          />
+          <SButtonIcon icon="lucide:x" size="sm" variant="ghost" color="secondary" class="close-btn" @click="close" />
         </div>
       </header>
 
       <div v-if="showCreateMenu" class="create-menu-popover" @click.self="showCreateMenu = false">
         <div class="create-menu">
           <div class="create-menu-title">Create New</div>
-          <button
-            v-for="opt in createOptions"
-            :key="opt.type"
-            class="create-menu-item"
-            @click="showCreateMenu = false"
-          >
+          <button v-for="opt in createOptions" :key="opt.type" class="create-menu-item" @click="showCreateMenu = false">
             <SIcon :icon="opt.icon" :size="14" />
             <span>{{ opt.label }}</span>
             <span class="create-menu-shortcut">{{ opt.shortcut }}</span>
@@ -172,10 +174,7 @@ function toggleCreateMenu() {
               :file-name="fileName"
               :file-path="filePath"
             />
-            <EnvVars
-              v-show="activeTab === 'env'"
-              :env="env"
-            />
+            <EnvVars v-show="activeTab === 'env'" :env="env" />
           </template>
         </main>
       </div>

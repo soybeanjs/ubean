@@ -9,8 +9,8 @@ import type {
   DevToolsCronInfo
 } from '../types';
 import { createDevToolsHooks } from './hooks';
-import { createCrudServer } from './crud';
 import type { DevToolsHooksInstance } from './hooks';
+import { createCrudServer } from './crud';
 import type { DevToolsCrudServer } from './crud';
 
 interface RpcServerOptions {
@@ -32,7 +32,11 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     cwd: options.cwd || process.cwd(),
     hooks,
     getEnv: options.getEnv || (() => envData),
-    setEnv: options.setEnv || ((env) => { envData = env; }),
+    setEnv:
+      options.setEnv ||
+      (env => {
+        envData = env;
+      }),
     getConfig: options.getConfig,
     onFileChange: options.onFileChange
   });
@@ -122,11 +126,11 @@ export function createRpcServer(options: RpcServerOptions = {}) {
 
   registerHandler('getPresets', () => info.presets || []);
 
-  registerHandler('crud:create', (params) => crud.create(params as any));
-  registerHandler('crud:read', (params) => crud.read(params as any));
-  registerHandler('crud:update', (params) => crud.update(params as any));
-  registerHandler('crud:delete', (params) => crud.delete(params as any));
-  registerHandler('crud:restore', (params) => crud.restore((params as any).path));
+  registerHandler('crud:create', params => crud.create(params as any));
+  registerHandler('crud:read', params => crud.read(params as any));
+  registerHandler('crud:update', params => crud.update(params as any));
+  registerHandler('crud:delete', params => crud.delete(params as any));
+  registerHandler('crud:restore', params => crud.restore((params as any).path));
 
   async function handleRequest(request: RpcRequest): Promise<RpcResponse> {
     const handler = handlers.get(request.method);

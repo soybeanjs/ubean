@@ -6,7 +6,6 @@ import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const props = defineProps<{
   middlewares: DevToolsMiddlewareInfo[];
-  fileName: (p?: string) => string;
   filePath: (p?: string) => string;
 }>();
 

@@ -33,10 +33,6 @@ const props = defineProps<{
   initialPath?: string;
 }>();
 
-const emit = defineEmits<{
-  navigateToRoute: [method: string, path: string];
-}>();
-
 const method = ref(props.initialMethod || 'GET');
 const url = ref(props.initialPath || '/api/');
 const body = ref('');
@@ -75,7 +71,7 @@ const formattedBody = computed(() => {
   return response.value.body;
 });
 
-const responseLanguage = computed(() => {
+const responseLanguage = computed((): 'json' | 'javascript' => {
   if (!response.value) return 'json';
   const ct = response.value.contentType;
   if (ct.includes('json')) return 'json';
@@ -97,7 +93,7 @@ watch(
   }
 );
 
-watch(method, m => {
+watch(method, _m => {
   if (hasBody.value && !body.value) {
     body.value = '{\n  \n}';
   }
@@ -264,16 +260,6 @@ const filteredRoutes = computed(() => {
         >
           Body
         </button>
-        <div class="ml-auto px-2 flex items-center">
-          <button
-            v-if="false"
-            class="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-secondary/50"
-            @click="requestTab = 'routes'"
-          >
-            <SIcon icon="lucide:list" :size="11" />
-            Routes
-          </button>
-        </div>
       </div>
 
       <div v-if="requestTab === 'params'" class="px-3 py-2 max-h-32 overflow-y-auto">
@@ -402,7 +388,7 @@ const filteredRoutes = computed(() => {
         <div v-if="responseTab === 'body'" class="flex-1 overflow-hidden p-2 min-h-0">
           <CodeEditor
             :model-value="formattedBody"
-            :language="responseLanguage as 'json' | 'javascript'"
+            :language="responseLanguage"
             readonly
             :line-numbers="false"
             height="100%"

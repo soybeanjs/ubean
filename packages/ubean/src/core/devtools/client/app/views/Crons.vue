@@ -6,7 +6,6 @@ import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const props = defineProps<{
   crons: DevToolsCronInfo[];
-  fileName: (p?: string) => string;
   filePath: (p?: string) => string;
 }>();
 
@@ -24,7 +23,7 @@ const filteredCrons = computed(() => {
     items = items.filter(
       c =>
         c.name.toLowerCase().includes(q) ||
-        c.schedule.toLowerCase().includes(q) ||
+        c.schedule?.toLowerCase().includes(q) ||
         (c.filePath && c.filePath.toLowerCase().includes(q))
     );
   }

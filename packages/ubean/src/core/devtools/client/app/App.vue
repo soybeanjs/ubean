@@ -27,7 +27,6 @@ const {
   fmtUptime,
   fmtTime,
   fmtVal,
-  fileName,
   filePath,
   methodClass,
   refresh,
@@ -282,7 +281,6 @@ onUnmounted(() => {
               v-show="activeTab === 'routes'"
               class="h-full"
               :routes="info.routes || []"
-              :file-name="fileName"
               :file-path="filePath"
               :method-class="methodClass"
               @try-route="tryRoute"
@@ -300,7 +298,6 @@ onUnmounted(() => {
               v-show="activeTab === 'pages'"
               class="h-full"
               :pages="info.pagesList || []"
-              :file-name="fileName"
               :file-path="filePath"
               @delete="handlePageDelete"
             />
@@ -308,7 +305,6 @@ onUnmounted(() => {
               v-show="activeTab === 'middlewares'"
               class="h-full"
               :middlewares="info.middlewaresList || []"
-              :file-name="fileName"
               :file-path="filePath"
               @delete="handleMiddlewareDelete"
             />
@@ -316,7 +312,6 @@ onUnmounted(() => {
               v-show="activeTab === 'layouts'"
               class="h-full"
               :layouts="info.layoutsList || []"
-              :file-name="fileName"
               :file-path="filePath"
               @delete="handleLayoutDelete"
             />
@@ -324,7 +319,6 @@ onUnmounted(() => {
               v-show="activeTab === 'crons'"
               class="h-full"
               :crons="info.cronsList || []"
-              :file-name="fileName"
               :file-path="filePath"
               @delete="handleCronDelete"
             />

@@ -31,7 +31,6 @@ const props = defineProps<{
   height?: string;
   theme?: 'dark' | 'light';
   lineNumbers?: boolean;
-  indentUnit?: number;
 }>();
 
 const emit = defineEmits<{

@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { defineSlots } from 'vue';
-
 defineSlots<{
-  default: {};
+  default?: () => unknown;
 }>();
 </script>
 

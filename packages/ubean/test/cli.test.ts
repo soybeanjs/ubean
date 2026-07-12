@@ -17,6 +17,23 @@ import {
 } from '../src/core/cli/shared';
 import { scaffold, deleteScaffold, recoverScaffold } from '../src/core/cli/page';
 
+function parseEnvContent(content: string): Array<{ key: string; value: string }> {
+  const vars: Array<{ key: string; value: string }> = [];
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    vars.push({ key, value });
+  }
+  return vars;
+}
+
 describe('template rendering', () => {
   it('renders simple variables', () => {
     const result = renderTemplate('Hello {{name}}!', { variables: { name: 'World' } });
@@ -227,6 +244,8 @@ describe('scaffold', () => {
     await mkdir(join(tmpDir, 'src', 'api'), { recursive: true });
     await mkdir(join(tmpDir, 'src', 'middleware'), { recursive: true });
     await mkdir(join(tmpDir, 'src', 'layouts'), { recursive: true });
+    await mkdir(join(tmpDir, 'src', 'server', 'crons'), { recursive: true });
+    await mkdir(join(tmpDir, 'src', 'plugins'), { recursive: true });
   });
 
   afterEach(async () => {
@@ -490,5 +509,160 @@ describe('scaffold', () => {
     });
     expect(result.restored).toHaveLength(1);
     expect(result.errors).toHaveLength(0);
+  });
+
+  it('creates a cron task .ts file', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'cron',
+      path: 'daily-cleanup',
+      schedule: '0 0 * * *'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created).toHaveLength(1);
+    expect(result.created[0]).toContain('daily-cleanup.ts');
+    expect(result.created[0]).toContain('server');
+    expect(result.created[0]).toContain('crons');
+
+    const fs = createFsOps(tmpDir);
+    const content = await fs.readFile(result.created[0].replace(`${tmpDir}/`, ''));
+    expect(content).toContain('defineScheduled');
+    expect(content).toContain('0 0 * * *');
+    expect(content).toContain('Dailycleanup');
+  });
+
+  it('creates a cron task with default schedule', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'cron',
+      path: 'every-minute'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    const fs = createFsOps(tmpDir);
+    const content = await fs.readFile(result.created[0].replace(`${tmpDir}/`, ''));
+    expect(content).toContain('* * * * *');
+  });
+
+  it('creates a plugin .ts file', async () => {
+    const result = await scaffold({
+      cwd: tmpDir,
+      type: 'plugin',
+      path: 'my-plugin'
+    });
+
+    expect(result.errors).toHaveLength(0);
+    expect(result.created).toHaveLength(1);
+    expect(result.created[0]).toContain('my-plugin.ts');
+    expect(result.created[0]).toContain('plugins');
+
+    const fs = createFsOps(tmpDir);
+    const content = await fs.readFile(result.created[0].replace(`${tmpDir}/`, ''));
+    expect(content).toContain('definePlugin');
+    expect(content).toContain('src-plugins-myplugin');
+    expect(content).toContain('Myplugin');
+  });
+
+  it('deleteScaffold works for cron tasks', async () => {
+    await scaffold({ cwd: tmpDir, type: 'cron', path: 'daily-cleanup' });
+    const fs = createFsOps(tmpDir);
+    expect(await fs.exists('src/server/crons/daily-cleanup.ts')).toBe(true);
+
+    const result = await deleteScaffold({
+      cwd: tmpDir,
+      type: 'cron',
+      path: 'daily-cleanup'
+    });
+
+    expect(result.deleted).toHaveLength(1);
+    expect(await fs.exists('src/server/crons/daily-cleanup.ts')).toBe(false);
+    expect(await fs.exists('src/server/crons/daily-cleanup.ts.bak')).toBe(true);
+  });
+
+  it('deleteScaffold works for plugins', async () => {
+    await scaffold({ cwd: tmpDir, type: 'plugin', path: 'my-plugin' });
+    const fs = createFsOps(tmpDir);
+    expect(await fs.exists('src/plugins/my-plugin.ts')).toBe(true);
+
+    const result = await deleteScaffold({
+      cwd: tmpDir,
+      type: 'plugin',
+      path: 'my-plugin',
+      force: true
+    });
+
+    expect(result.deleted).toHaveLength(1);
+    expect(await fs.exists('src/plugins/my-plugin.ts')).toBe(false);
+  });
+});
+
+describe('env file management', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'ubean-env-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('parses simple KEY=VALUE pairs', () => {
+    const content = 'FOO=bar\nBAZ=qux\n';
+    const vars = parseEnvContent(content);
+    expect(vars).toEqual([
+      { key: 'FOO', value: 'bar' },
+      { key: 'BAZ', value: 'qux' }
+    ]);
+  });
+
+  it('skips comments and empty lines', () => {
+    const content = '# This is a comment\nFOO=bar\n\n# Another comment\nBAZ=qux\n';
+    const vars = parseEnvContent(content);
+    expect(vars).toEqual([
+      { key: 'FOO', value: 'bar' },
+      { key: 'BAZ', value: 'qux' }
+    ]);
+  });
+
+  it('handles quoted values', () => {
+    const content = 'FOO="hello world"\nBAZ=\'single quoted\'\n';
+    const vars = parseEnvContent(content);
+    expect(vars).toEqual([
+      { key: 'FOO', value: 'hello world' },
+      { key: 'BAZ', value: 'single quoted' }
+    ]);
+  });
+
+  it('handles values with equals signs', () => {
+    const content = 'DATABASE_URL=postgres://user:pass@localhost:5432/db\n';
+    const vars = parseEnvContent(content);
+    expect(vars).toEqual([{ key: 'DATABASE_URL', value: 'postgres://user:pass@localhost:5432/db' }]);
+  });
+
+  it('writes and reads env vars via fs-ops', async () => {
+    const fs = createFsOps(tmpDir);
+    const envContent = 'DATABASE_URL=postgres://localhost/mydb\nUBEAN_PUBLIC_API_URL=/api\nSESSION_SECRET=mysecret\n';
+    await fs.writeFile('.env', envContent);
+
+    const readContent = await fs.readFile('.env');
+    const vars = parseEnvContent(readContent);
+    expect(vars).toHaveLength(3);
+    expect(vars[0]).toEqual({ key: 'DATABASE_URL', value: 'postgres://localhost/mydb' });
+    expect(vars[1]).toEqual({ key: 'UBEAN_PUBLIC_API_URL', value: '/api' });
+    expect(vars[2]).toEqual({ key: 'SESSION_SECRET', value: 'mysecret' });
+  });
+
+  it('public env vars are identified by UBEAN_PUBLIC_ prefix', () => {
+    const content = 'UBEAN_PUBLIC_APP_NAME=MyApp\nDATABASE_URL=secret\nVITE_TITLE=Hello\nPUBLIC_FOO=bar\n';
+    const vars = parseEnvContent(content);
+    const publicKeys = vars
+      .filter(v => v.key.startsWith('UBEAN_PUBLIC_') || v.key.startsWith('VITE_') || v.key.startsWith('PUBLIC_'))
+      .map(v => v.key);
+    expect(publicKeys).toContain('UBEAN_PUBLIC_APP_NAME');
+    expect(publicKeys).toContain('VITE_TITLE');
+    expect(publicKeys).toContain('PUBLIC_FOO');
+    expect(publicKeys).not.toContain('DATABASE_URL');
   });
 });

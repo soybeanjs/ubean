@@ -1,14 +1,25 @@
 import { join, extname } from 'node:path';
 import type { CommandDef } from 'citty';
-import { createFsOps, renderPageTemplate, renderApiTemplate, toKebabCase, toPascalCase, toCamelCase } from './shared';
+import {
+  createFsOps,
+  renderPageTemplate,
+  renderApiTemplate,
+  renderLayoutTemplate,
+  renderCronTemplate,
+  renderPluginTemplate,
+  toKebabCase,
+  toPascalCase,
+  toCamelCase
+} from './shared';
 
-type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse';
+type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin';
 
 interface ScaffoldOptions {
   cwd?: string;
   type: ScaffoldType;
   path: string;
   method?: string;
+  schedule?: string;
   force?: boolean;
   dry?: boolean;
 }
@@ -37,6 +48,10 @@ function getDirForType(cwd: string, type: ScaffoldType): string {
       return join(srcDir, 'layouts');
     case 'middleware':
       return join(srcDir, 'middleware');
+    case 'cron':
+      return join(srcDir, 'server', 'crons');
+    case 'plugin':
+      return join(srcDir, 'plugins');
     default:
       return srcDir;
   }
@@ -83,7 +98,10 @@ function resolveTargetPath(baseDir: string, path: string, type: ScaffoldType): s
     return join(baseDir, normalizedPath, `index${ext}`);
   }
 
-  if ((type === 'api' || type === 'middleware') && !normalizedPath.includes('.')) {
+  if (
+    (type === 'api' || type === 'middleware' || type === 'cron' || type === 'plugin') &&
+    !normalizedPath.includes('.')
+  ) {
     return join(baseDir, `${normalizedPath}${ext}`);
   }
 
@@ -121,7 +139,13 @@ function extractNameFromPath(filePath: string, _type: ScaffoldType): string {
   return segments.join('') || 'Index';
 }
 
-function getTemplateContent(type: ScaffoldType, name: string, path: string, method?: string): string {
+function getTemplateContent(
+  type: ScaffoldType,
+  name: string,
+  path: string,
+  method?: string,
+  schedule?: string
+): string {
   switch (type) {
     case 'page': {
       const routePath = `/${path.replace(/\.vue$/, '').replace(/\/index$/, '')}`;
@@ -149,18 +173,11 @@ export default definePage({
         kebabName: toKebabCase(name)
       });
     case 'layout':
-      return `<template>
-  <div class="${toKebabCase(name)}-layout">
-    <slot />
-  </div>
-</template>
-
-<script setup lang="ts">
-definePage({
-  layout: false
-});
-</script>
-`;
+      return renderLayoutTemplate({
+        name,
+        path: `/${path.replace(/\.vue$/, '').replace(/\/index$/, '')}`,
+        pascalName: toPascalCase(name)
+      });
     case 'middleware':
       return `import { defineMiddleware } from 'ubean';
 
@@ -169,6 +186,18 @@ export default defineMiddleware(async (c, next) => {
   await next();
 });
 `;
+    case 'cron':
+      return renderCronTemplate({
+        name,
+        schedule: schedule || '* * * * *',
+        kebabName: toKebabCase(name)
+      });
+    case 'plugin':
+      return renderPluginTemplate({
+        name,
+        kebabName: toKebabCase(name),
+        pascalName: toPascalCase(name)
+      });
     default:
       return '';
   }
@@ -198,7 +227,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
     }
 
     const name = extractNameFromPath(relativePath, options.type);
-    const content = getTemplateContent(options.type, name, options.path, options.method);
+    const content = getTemplateContent(options.type, name, options.path, options.method, options.schedule);
 
     await fs.writeFile(relativePath, content);
     result.created.push(relativePath);
@@ -297,34 +326,39 @@ export async function listScaffoldableFiles(cwd: string, type: ScaffoldType): Pr
   return files.map(f => f.replace(`${cwd}/`, ''));
 }
 
-const scaffoldTypes = ['page', 'api', 'layout', 'middleware'] as const;
-const allTypes = ['page', 'api', 'layout', 'middleware', 'reuse'] as const;
+const scaffoldTypes = ['page', 'api', 'layout', 'middleware', 'cron', 'plugin'] as const;
+const allTypes = ['page', 'api', 'layout', 'middleware', 'reuse', 'cron', 'plugin'] as const;
 
 export const pageCommand: CommandDef = {
   meta: {
     name: 'page',
-    description: 'Scaffold pages, api routes, layouts, and middleware'
+    description: 'Scaffold pages, api routes, layouts, middleware, crons, and plugins'
   },
   subCommands: {
     add: {
       meta: {
         name: 'add',
-        description: 'Add a new page, api route, layout, or middleware'
+        description: 'Add a new page, api route, layout, middleware, cron, or plugin'
       },
       args: {
         path: {
           type: 'positional',
-          description: 'Route path (e.g., users/[id], api/users)'
+          description: 'Route path (e.g., users/[id], api/users, crons/daily)'
         },
         type: {
           type: 'string',
-          description: 'Type: page, api, layout, middleware',
+          description: 'Type: page, api, layout, middleware, cron, plugin',
           default: 'page'
         },
         method: {
           type: 'string',
           description: 'HTTP method for API routes (GET, POST, etc.)',
           default: 'GET'
+        },
+        schedule: {
+          type: 'string',
+          description: 'Cron schedule expression for cron tasks',
+          default: '* * * * *'
         },
         force: {
           type: 'boolean',
@@ -352,6 +386,7 @@ export const pageCommand: CommandDef = {
           type,
           path: args.path as string,
           method: args.method as string,
+          schedule: args.schedule as string,
           force: args.force as boolean,
           dry: args.dry as boolean
         });
@@ -424,7 +459,7 @@ export const pageCommand: CommandDef = {
         },
         type: {
           type: 'string',
-          description: 'Type: page, api, layout, middleware, reuse',
+          description: 'Type: page, api, layout, middleware, reuse, cron, plugin',
           default: 'page'
         },
         force: {
@@ -479,7 +514,7 @@ export const pageCommand: CommandDef = {
         },
         type: {
           type: 'string',
-          description: 'Type: page, api, layout, middleware, reuse',
+          description: 'Type: page, api, layout, middleware, reuse, cron, plugin',
           default: 'page'
         },
         dry: {
@@ -521,7 +556,7 @@ export const pageCommand: CommandDef = {
       args: {
         type: {
           type: 'string',
-          description: 'Type to list: page, api, layout, middleware, reuse',
+          description: 'Type to list: page, api, layout, middleware, reuse, cron, plugin',
           default: 'page'
         }
       },

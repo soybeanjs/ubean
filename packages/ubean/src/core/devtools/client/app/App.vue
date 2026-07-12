@@ -51,6 +51,11 @@ const tabs = computed(() => {
   if (info.value?.database) {
     list.push({ id: 'drizzle', label: 'Database', icon: 'lucide:database' });
   }
+  if (info.value?.customTabs && info.value.customTabs.length > 0) {
+    for (const tab of info.value.customTabs) {
+      list.push({ id: `custom:${tab.id}`, label: tab.label, icon: tab.icon || 'lucide:plugin' });
+    }
+  }
   return list;
 });
 
@@ -248,6 +253,15 @@ function tryRoute(route: { method: string; path: string }) {
               :available="info.database?.drizzleStudioAvailable"
               :studio-url="info.database?.studioUrl"
             />
+            <template v-for="ct in info.customTabs || []" :key="ct.id">
+              <div v-show="activeTab === `custom:${ct.id}`" class="h-full">
+                <iframe
+                  :src="ct.src"
+                  class="w-full h-full border-0"
+                  :sandbox="ct.sandbox?.join(' ') || 'allow-scripts allow-same-origin allow-forms'"
+                />
+              </div>
+            </template>
           </template>
         </main>
       </div>

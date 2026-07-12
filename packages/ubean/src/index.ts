@@ -334,6 +334,8 @@ export {
   sqlRaw,
   raw as sqlRawAlias
 } from './runtime/database';
+export { defineDevToolsTab } from './core/devtools';
+export type { DevToolsCustomTab, DevToolsTabDefinition } from './core/devtools';
 
 export type {
   UbeanConfig,

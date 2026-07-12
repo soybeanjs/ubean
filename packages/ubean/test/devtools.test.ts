@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { createDevToolsMiddleware } from '../src/core/devtools/server/middleware';
 import { getDevtoolsClientScript, getDevtoolsIframeHtml } from '../src/core/devtools/client';
+import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from '../src/core/devtools/define-tab';
 import { createRpcServer } from '../src/core/devtools/server/rpc';
 import { DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_MAGIC_KEY } from '../src/core/devtools/types';
 import { createUbeanApp } from '../src/runtime/app';
@@ -762,5 +763,126 @@ describe('DevTools Batch Error Handling (P8-02)', () => {
     const rpc = createRpcServer();
     const responses = await rpc.handleBatch([]);
     expect(responses).toHaveLength(0);
+  });
+});
+
+describe('DevTools Custom Tabs', () => {
+  beforeEach(() => {
+    clearCustomTabs();
+  });
+
+  it('defines a custom tab', () => {
+    const tab = defineDevToolsTab({
+      id: 'my-tab',
+      label: 'My Tab',
+      icon: 'lucide:star',
+      src: '/__custom_tab__/my-tab'
+    });
+    expect(tab.id).toBe('my-tab');
+    expect(tab.label).toBe('My Tab');
+    expect(tab.icon).toBe('lucide:star');
+    expect(tab.src).toBe('/__custom_tab__/my-tab');
+
+    const tabs = getCustomTabs();
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0].id).toBe('my-tab');
+  });
+
+  it('overwrites tab with same id', () => {
+    defineDevToolsTab({ id: 'test', label: 'First', src: '/a' });
+    defineDevToolsTab({ id: 'test', label: 'Second', src: '/b' });
+
+    const tabs = getCustomTabs();
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0].label).toBe('Second');
+    expect(tabs[0].src).toBe('/b');
+  });
+
+  it('returns a copy of custom tabs', () => {
+    defineDevToolsTab({ id: 't1', label: 'T1', src: '/t1' });
+    const tabs = getCustomTabs();
+    tabs.push({ id: 'fake', label: 'Fake', src: '/fake' });
+    expect(getCustomTabs()).toHaveLength(1);
+  });
+
+  it('clears custom tabs', () => {
+    defineDevToolsTab({ id: 't1', label: 'T1', src: '/t1' });
+    defineDevToolsTab({ id: 't2', label: 'T2', src: '/t2' });
+    expect(getCustomTabs()).toHaveLength(2);
+    clearCustomTabs();
+    expect(getCustomTabs()).toHaveLength(0);
+  });
+
+  it('supports optional icon and sandbox', () => {
+    const tab = defineDevToolsTab({
+      id: 'minimal',
+      label: 'Minimal',
+      src: '/minimal',
+      sandbox: ['allow-scripts']
+    });
+    expect(tab.icon).toBeUndefined();
+    expect(tab.sandbox).toEqual(['allow-scripts']);
+  });
+
+  it('RPC server supports setCustomTabs', () => {
+    const rpc = createRpcServer();
+    rpc.setCustomTabs([{ id: 'plugin-1', label: 'Plugin 1', src: '/p1', icon: 'lucide:puzzle' }]);
+    const info = rpc.getInfo();
+    expect(info.customTabs).toHaveLength(1);
+    expect(info.customTabs![0].id).toBe('plugin-1');
+    expect(info.customTabs![0].icon).toBe('lucide:puzzle');
+  });
+
+  it('app registers custom tabs via defineDevToolsTab', async () => {
+    defineDevToolsTab({
+      id: 'test-plugin',
+      label: 'Test Plugin',
+      icon: 'lucide:flask-conical',
+      src: '/_test_plugin'
+    });
+
+    const app = createUbeanApp({ devtools: true });
+    await app.init();
+
+    expect(app.devtools).toBeDefined();
+    const info = app.devtools!.rpc.getInfo();
+    expect(info.customTabs).toBeDefined();
+    expect(info.customTabs!.some(t => t.id === 'test-plugin')).toBe(true);
+
+    clearCustomTabs();
+  });
+
+  it('app registers custom tabs via devtools option', async () => {
+    const app = createUbeanApp({
+      devtools: {
+        customTabs: [{ id: 'option-tab', label: 'Option Tab', src: '/option' }]
+      }
+    });
+    await app.init();
+
+    const info = app.devtools!.rpc.getInfo();
+    expect(info.customTabs).toBeDefined();
+    expect(info.customTabs!.some(t => t.id === 'option-tab')).toBe(true);
+  });
+
+  it('merges defined tabs with option tabs, option tabs deduplicated by id', async () => {
+    defineDevToolsTab({ id: 'defined', label: 'Defined', src: '/defined' });
+
+    const app = createUbeanApp({
+      devtools: {
+        customTabs: [
+          { id: 'defined', label: 'Overridden', src: '/overridden' },
+          { id: 'option-only', label: 'Option Only', src: '/opt' }
+        ]
+      }
+    });
+    await app.init();
+
+    const info = app.devtools!.rpc.getInfo();
+    expect(info.customTabs).toHaveLength(2);
+    const definedTab = info.customTabs!.find(t => t.id === 'defined');
+    expect(definedTab!.label).toBe('Defined');
+
+    clearCustomTabs();
   });
 });

@@ -5,6 +5,8 @@ import { createHooks } from 'hookable';
 import { join } from 'pathe';
 import type { RouteRule } from '../core/config/types';
 import { createDevToolsMiddleware } from '../core/devtools';
+import { getCustomTabs } from '../core/devtools/define-tab';
+import type { DevToolsCustomTab } from '../core/devtools/types';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../core/routing/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '../types/handler';
 import { registerRoutes } from './router';
@@ -48,7 +50,11 @@ export interface UbeanAppOptions {
   pageAssetTags?: import('./pages').PageAssetTags;
   publicDir?: string;
   healthEndpoint?: boolean;
-  devtools?: boolean;
+  devtools?:
+    | boolean
+    | {
+        customTabs?: DevToolsCustomTab[];
+      };
   openAPI?:
     | boolean
     | {
@@ -171,6 +177,21 @@ export class UbeanApp {
       }
     } else if (this.devtools) {
       this.devtools.rpc.setOpenAPI({ enabled: false });
+    }
+
+    if (this.devtools) {
+      const optionTabs =
+        typeof this.options.devtools === 'object' && this.options.devtools.customTabs
+          ? this.options.devtools.customTabs
+          : [];
+      const definedTabs = getCustomTabs();
+      const allTabs = [...definedTabs];
+      for (const tab of optionTabs) {
+        if (!allTabs.find(t => t.id === tab.id)) {
+          allTabs.push(tab);
+        }
+      }
+      this.devtools.rpc.setCustomTabs(allTabs);
     }
 
     await this.hooks.callHook('app:after:register', this.hono);

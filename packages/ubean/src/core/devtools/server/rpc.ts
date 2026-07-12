@@ -6,7 +6,8 @@ import type {
   DevToolsRouteInfo,
   DevToolsPageInfo,
   DevToolsMiddlewareInfo,
-  DevToolsCronInfo
+  DevToolsCronInfo,
+  DevToolsCustomTab
 } from '../types';
 import { createDevToolsHooks } from './hooks';
 import type { DevToolsHooksInstance } from './hooks';
@@ -61,7 +62,8 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     routes: [],
     pagesList: [],
     middlewaresList: [],
-    cronsList: []
+    cronsList: [],
+    customTabs: []
   };
 
   function registerHandler(name: string, handler: RpcHandler) {
@@ -117,6 +119,10 @@ export function createRpcServer(options: RpcServerOptions = {}) {
 
   function setDatabase(database: DevToolsInfo['database']) {
     info.database = database;
+  }
+
+  function setCustomTabs(tabs: DevToolsCustomTab[]) {
+    info.customTabs = [...tabs];
   }
 
   registerHandler('getInfo', () => getInfo());
@@ -194,6 +200,7 @@ export function createRpcServer(options: RpcServerOptions = {}) {
     setPresets,
     setOpenAPI,
     setDatabase,
+    setCustomTabs,
     hooks,
     crud
   };

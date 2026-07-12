@@ -60,6 +60,7 @@ export interface DevToolsInfo {
     drizzleStudioAvailable?: boolean;
     studioUrl?: string;
   };
+  customTabs?: DevToolsCustomTab[];
 }
 
 export interface RpcRequest {
@@ -78,6 +79,14 @@ export interface DevToolsTab {
   id: string;
   label: string;
   icon?: string;
+}
+
+export interface DevToolsCustomTab {
+  id: string;
+  label: string;
+  icon?: string;
+  src: string;
+  sandbox?: string[];
 }
 
 export type CrudResourceType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron';

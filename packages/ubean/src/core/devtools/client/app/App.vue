@@ -30,7 +30,8 @@ const {
   filePath,
   methodClass,
   refresh,
-  crudCreate
+  crudCreate,
+  crudDelete
 } = useRpc();
 
 const activeTab = ref('overview');
@@ -104,6 +105,10 @@ function tryRoute(route: { method: string; path: string }) {
   playgroundMethod.value = route.method;
   playgroundPath.value = route.path;
   activeTab.value = 'playground';
+}
+
+function handlePageDelete(page: { path: string }) {
+  crudDelete('page', { path: page.path });
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -270,6 +275,7 @@ onUnmounted(() => {
               :pages="info.pagesList || []"
               :file-name="fileName"
               :file-path="filePath"
+              @delete="handlePageDelete"
             />
             <Middlewares
               v-show="activeTab === 'middlewares'"

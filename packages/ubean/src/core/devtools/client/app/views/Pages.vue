@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
 import type { DevToolsPageInfo } from '../composables/useRpc';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const props = defineProps<{
   pages: DevToolsPageInfo[];
@@ -9,7 +10,12 @@ const props = defineProps<{
   filePath: (p?: string) => string;
 }>();
 
+const emit = defineEmits<{
+  (e: 'delete', page: DevToolsPageInfo): void;
+}>();
+
 const searchQuery = ref('');
+const deleteTarget = ref<DevToolsPageInfo | null>(null);
 
 const filteredPages = computed(() => {
   let pages = [...props.pages];
@@ -24,6 +30,22 @@ const filteredPages = computed(() => {
   }
   return pages.sort((a, b) => a.path.localeCompare(b.path));
 });
+
+const deleteMessage = computed(() => {
+  if (!deleteTarget.value) return '';
+  return `Are you sure you want to delete "${deleteTarget.value.path}"? A backup will be created (.bak file).`;
+});
+
+function confirmDelete(page: DevToolsPageInfo) {
+  deleteTarget.value = page;
+}
+
+function handleDelete() {
+  if (deleteTarget.value) {
+    emit('delete', deleteTarget.value);
+    deleteTarget.value = null;
+  }
+}
 </script>
 
 <template>
@@ -46,7 +68,7 @@ const filteredPages = computed(() => {
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredPages.length > 0" class="flex flex-col gap-1">
-        <div v-for="(p, i) in filteredPages" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
+        <div v-for="(p, i) in filteredPages" :key="i" class="list-item group hover:bg-secondary/30 transition-colors">
           <SIcon icon="lucide:file-text" :size="14" class="text-primary flex-shrink-0" />
           <div class="flex flex-col min-w-0 flex-1">
             <span class="font-mono text-primary text-xs" :title="p.path">{{ p.path }}</span>
@@ -56,6 +78,13 @@ const filteredPages = computed(() => {
             </span>
           </div>
           <span v-if="p.filePath" class="file-name" :title="p.filePath">{{ filePath(p.filePath) }}</span>
+          <button
+            class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer flex-shrink-0 ml-1"
+            title="Delete page"
+            @click.stop="confirmDelete(p)"
+          >
+            <SIcon icon="lucide:trash-2" :size="12" />
+          </button>
         </div>
       </div>
       <div v-else class="empty-state">
@@ -68,5 +97,14 @@ const filteredPages = computed(() => {
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      :open="!!deleteTarget"
+      title="Delete Page"
+      :message="deleteMessage"
+      confirm-text="Delete"
+      variant="danger"
+      @confirm="handleDelete"
+      @cancel="deleteTarget = null"
+    />
   </div>
 </template>

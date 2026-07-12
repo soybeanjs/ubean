@@ -1,5 +1,5 @@
 {
-  "name": "ubean-fonts",
+  "name": "@ubean/fonts",
   "version": "0.0.1",
   "description": "Font optimization module for ubean - Google Fonts, local fonts, self-hosting and metrics",
   "files": [

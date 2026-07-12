@@ -1,5 +1,5 @@
 {
-  "name": "ubean-pwa",
+  "name": "@ubean/pwa",
   "version": "0.0.1",
   "description": "PWA module for ubean with Service Worker and Web App Manifest",
   "files": [

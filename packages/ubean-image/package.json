@@ -1,5 +1,5 @@
 {
-  "name": "ubean-image",
+  "name": "@ubean/image",
   "version": "0.0.1",
   "description": "Image optimization and transformation for ubean",
   "files": [

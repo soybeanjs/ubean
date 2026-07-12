@@ -169,7 +169,7 @@ export default authClient;
 
 function generateServerCode(_options: ResolvedAuthOptions): string {
   return `
-export { createAuthHandler, authMiddleware, getUser, getSession, requireAuth, getServerSession, defineAuth } from 'ubean-auth/core';
+export { createAuthHandler, authMiddleware, getUser, getSession, requireAuth, getServerSession, defineAuth } from '@ubean/auth/core';
 `;
 }
 

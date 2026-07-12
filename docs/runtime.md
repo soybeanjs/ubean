@@ -1455,7 +1455,7 @@ interface QueueMap {
 
 ```typescript
 // plugins/auth.ts
-import betterAuth from 'ubean-auth/better-auth';
+import betterAuth from '@ubean/auth/better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 
 export default betterAuth({

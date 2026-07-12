@@ -120,7 +120,7 @@ export function ubeanIconPlugin(userOptions: UbeanIconOptions = {}): Plugin {
     }
 
     return `
-import { registerCollection, registerCollectionLoader } from 'ubean-icon/runtime';
+import { registerCollection, registerCollectionLoader } from '@ubean/icon/runtime';
 
 const collections = ${collectionsJson};
 for (const [prefix, data] of Object.entries(collections)) {

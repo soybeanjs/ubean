@@ -1,11 +1,16 @@
 import type { Context, MiddlewareHandler, Env as HonoEnv } from 'hono';
-import type { ZodSchema } from 'zod';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { RouteMeta as BaseRouteMeta } from '../core/routing/types';
 
 export type ValidatorSlot = 'json' | 'form' | 'query' | 'param' | 'header' | 'cookie';
 
-export type StandardSchema = StandardSchemaV1 | ZodSchema;
+export interface GenericSchema<T = any> {
+  safeParse?(value: unknown): { success: boolean; data?: T; error?: { issues?: unknown[] } };
+  safeParseAsync?(value: unknown): Promise<{ success: boolean; data?: T; error?: { issues?: unknown[] } }>;
+  '~standard'?: { validate: (value: unknown) => { issues?: ReadonlyArray<{ message: string }>; value?: T } | Promise<{ issues?: ReadonlyArray<{ message: string }>; value?: T }> };
+}
+
+export type StandardSchema = StandardSchemaV1 | GenericSchema;
 
 export interface ValidatorSlots {
   json?: StandardSchema;
@@ -34,9 +39,9 @@ export type UbeanContext = Context<UbeanEnv>;
 
 export type InferSchemaOutput<T> = T extends StandardSchemaV1
   ? StandardSchemaV1.InferOutput<T>
-  : T extends ZodSchema<infer O>
+  : T extends GenericSchema<infer O>
     ? O
-    : never;
+    : unknown;
 
 export type ValidatorInput<V extends ValidatorSlots> = {
   [K in keyof V as V[K] extends StandardSchema ? K : never]: InferSchemaOutput<V[K]>;

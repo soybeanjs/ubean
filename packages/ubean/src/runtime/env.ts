@@ -1,17 +1,17 @@
-import type { ZodSchema } from 'zod';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
+import type { GenericSchema } from '../types/handler';
 
 export type EnvSchema = Record<
   string,
   | StandardSchemaV1
-  | ZodSchema
+  | GenericSchema
   | { type: StringConstructor | NumberConstructor | BooleanConstructor; default?: unknown; required?: boolean }
 >;
 
 export type InferEnvOutput<S extends EnvSchema> = {
   [K in keyof S]: S[K] extends StandardSchemaV1
     ? StandardSchemaV1.InferOutput<S[K]>
-    : S[K] extends ZodSchema<infer O>
+    : S[K] extends GenericSchema<infer O>
       ? O
       : S[K] extends { type: StringConstructor }
         ? string

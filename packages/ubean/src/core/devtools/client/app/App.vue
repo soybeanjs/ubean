@@ -60,7 +60,7 @@ function toggleCreateMenu() {
 </script>
 
 <template>
-  <SConfigProvider :theme="{ theme: { primary: 'indigo' }, size: 'sm' }">
+  <SConfigProvider>
     <div class="devtools-root">
       <header class="devtools-header">
         <div class="devtools-header-left">

@@ -1,5 +1,10 @@
 export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'no_prefix';
 
+export type DateTimeFormatStyle = 'short' | 'medium' | 'long' | 'full';
+export type NumberFormatStyle = 'decimal' | 'percent' | 'currency';
+export type ListFormatStyle = 'conjunction' | 'disjunction' | 'unit';
+export type RelativeTimeUnit = 'second' | 'minute' | 'hour' | 'day' | 'week' | 'month' | 'year';
+
 export interface I18nConfig {
   defaultLocale: string;
   strategy: I18nRoutingStrategy;
@@ -19,12 +24,22 @@ export interface LocaleDefinition {
 }
 
 export type LocaleChangeCallback = (locale: string) => void;
+export type MissingKeyHandler = (locale: string, key: string) => void;
+
+export interface NumberFormatOptions extends Intl.NumberFormatOptions {
+  style?: NumberFormatStyle;
+}
 
 export interface I18nInstance {
   locale: string;
   fallbackLocale: string;
   availableLocales: string[];
   t(key: string, params?: Record<string, string | number>): string;
+  d(value: Date | number, style?: DateTimeFormatStyle, options?: Intl.DateTimeFormatOptions): string;
+  n(value: number, style?: NumberFormatStyle, options?: NumberFormatOptions): string;
+  c(value: number, currency: string, options?: Intl.NumberFormatOptions): string;
+  relativeTime(value: number, unit: RelativeTimeUnit, options?: Intl.RelativeTimeFormatOptions): string;
+  list(items: string[], style?: ListFormatStyle, options?: Intl.ListFormatOptions): string;
   setLocale(locale: string): void;
   getLocale(): string;
   addLocale(code: string, messages: LocaleMessages, options?: { name?: string; dir?: 'ltr' | 'rtl' }): void;
@@ -33,6 +48,7 @@ export interface I18nInstance {
   onLocaleChange(callback: LocaleChangeCallback): () => void;
   getLocaleDir(locale?: string): 'ltr' | 'rtl';
   getLocaleName(locale?: string): string | undefined;
+  onMissingKey(handler: MissingKeyHandler): () => void;
 }
 
 interface RegisteredLocale {
@@ -44,9 +60,12 @@ interface RegisteredLocale {
 }
 
 const registeredLocales = new Map<string, RegisteredLocale>();
+const messageCache = new Map<string, Record<string, string>>();
 let currentLocale = 'en';
 let fallbackLocale = 'en';
 const localeListeners = new Set<LocaleChangeCallback>();
+const missingKeyHandlers = new Set<MissingKeyHandler>();
+let missingKeyWarned = new Set<string>();
 let i18nConfig: I18nConfig = {
   defaultLocale: 'en',
   strategy: 'prefix_except_default',
@@ -62,6 +81,31 @@ function notifyLocaleChange(locale: string): void {
 function addLocaleListener(callback: LocaleChangeCallback): () => void {
   localeListeners.add(callback);
   return () => localeListeners.delete(callback);
+}
+
+function addMissingKeyHandler(handler: MissingKeyHandler): () => void {
+  missingKeyHandlers.add(handler);
+  return () => missingKeyHandlers.delete(handler);
+}
+
+function notifyMissingKey(locale: string, key: string): void {
+  const cacheKey = `${locale}:${key}`;
+  if (!missingKeyWarned.has(cacheKey)) {
+    missingKeyWarned.add(cacheKey);
+    for (const fn of missingKeyHandlers) {
+      fn(locale, key);
+    }
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+      try {
+        const consola = require('consola');
+        consola.warn(`[i18n] Missing key "${key}" for locale "${locale}"`);
+      } catch {}
+    }
+  }
+}
+
+function invalidateCache(locale: string): void {
+  messageCache.delete(locale);
 }
 
 function deepMerge(target: LocaleMessages, source: LocaleMessages): LocaleMessages {
@@ -98,20 +142,122 @@ function flattenMessages(messages: LocaleMessages, prefix = ''): Record<string, 
   return result;
 }
 
-function getMessage(locale: string, key: string): string | undefined {
+function getFlatMessages(locale: string): Record<string, string> {
+  const cached = messageCache.get(locale);
+  if (cached) return cached;
+
   const localeData = registeredLocales.get(locale);
-  if (!localeData) return undefined;
+  if (!localeData) return {};
 
   const flat = flattenMessages(localeData.messages);
-  return flat[key];
+  messageCache.set(locale, flat);
+  return flat;
 }
 
-function interpolate(template: string, params?: Record<string, string | number>): string {
-  if (!params) return template;
-  return template.replace(/\{(\w+)\}/g, (_, key) => {
-    const val = params[key];
-    return val !== undefined ? String(val) : `{${key}}`;
+function getPluralCategory(count: number, locale: string): string {
+  try {
+    const pr = new Intl.PluralRules(locale);
+    return pr.select(count);
+  } catch {
+    return count === 0 ? 'zero' : count === 1 ? 'one' : 'other';
+  }
+}
+
+function selectPlural(template: string, count: number, locale: string): string {
+  const parts = template.split('|').map(p => p.trim());
+  if (parts.length === 1) return template;
+
+  for (const part of parts) {
+    const eqMatch = part.match(/^=(\d+)\s*/);
+    if (eqMatch) {
+      const num = parseInt(eqMatch[1], 10);
+      if (num === count) return part.replace(/^=\d+\s*/, '');
+    }
+  }
+
+  const explicitCategories: Array<{ cat: string; text: string }> = [];
+  const plainParts: string[] = [];
+
+  for (const part of parts) {
+    if (/^=\d+\s*/.test(part)) continue;
+    const catMatch = part.match(/^(\w+):\s*/);
+    if (catMatch) {
+      explicitCategories.push({ cat: catMatch[1], text: part.replace(/^\w+:\s*/, '') });
+    } else {
+      plainParts.push(part);
+    }
+  }
+
+  for (const { cat, text } of explicitCategories) {
+    if (cat === 'zero' && count === 0) return text;
+    if (cat === 'one' && count === 1) return text;
+    const pluralCat = getPluralCategory(count, locale);
+    if (cat === pluralCat) return text;
+  }
+
+  if (plainParts.length === 2) {
+    return count === 1 ? plainParts[0] : plainParts[1];
+  }
+
+  if (plainParts.length >= 3) {
+    if (count === 0) return plainParts[0];
+    if (count === 1) return plainParts[1];
+    return plainParts[plainParts.length - 1];
+  }
+
+  if (plainParts.length === 1) {
+    return plainParts[0];
+  }
+
+  const category = getPluralCategory(count, locale);
+  const categoryOrder = ['zero', 'one', 'two', 'few', 'many', 'other'];
+  const categoryIndex = categoryOrder.indexOf(category);
+  if (categoryIndex >= 0 && categoryIndex < parts.length) {
+    return parts[categoryIndex];
+  }
+
+  return parts[parts.length - 1];
+}
+
+function resolveLinkedMessages(template: string, flat: Record<string, string>, visited: Set<string> = new Set()): string {
+  return template.replace(/@(?:\:([\w.]+)|{([\w.]+)})/g, (_match, colonKey, braceKey) => {
+    const key = colonKey || braceKey;
+    if (!key || visited.has(key)) return _match;
+    visited.add(key);
+    const linked = flat[key];
+    if (linked === undefined) return _match;
+    const resolved = resolveLinkedMessages(linked, flat, visited);
+    visited.delete(key);
+    return resolved;
   });
+}
+
+function interpolate(template: string, params?: Record<string, string | number>, locale?: string, flat?: Record<string, string>): string {
+  let result = template;
+
+  if (flat) {
+    result = resolveLinkedMessages(result, flat);
+  }
+
+  if (params && typeof params.count === 'number') {
+    result = selectPlural(result, params.count, locale || 'en');
+  }
+
+  if (params) {
+    result = result.replace(/\{(\w+)\}/g, (_, key) => {
+      const val = params[key];
+      return val !== undefined ? String(val) : `{${key}}`;
+    });
+  }
+
+  return result;
+}
+
+function getMessage(locale: string, key: string, params?: Record<string, string | number>): string | undefined {
+  const flat = getFlatMessages(locale);
+  const msg = flat[key];
+  if (msg === undefined) return undefined;
+  return interpolate(msg, params, locale, flat);
 }
 
 export function defineLocale(definition: LocaleDefinition): LocaleDefinition {
@@ -124,6 +270,7 @@ export function defineLocale(definition: LocaleDefinition): LocaleDefinition {
   };
 
   registeredLocales.set(definition.code, locale);
+  invalidateCache(definition.code);
 
   if (definition.isDefault || registeredLocales.size === 1) {
     fallbackLocale = definition.code;
@@ -210,14 +357,66 @@ export function useI18n(): I18nInstance {
       return Array.from(registeredLocales.keys());
     },
     t(key: string, params?: Record<string, string | number>): string {
-      let message = getMessage(currentLocale, key);
+      let message = getMessage(currentLocale, key, params);
       if (message === undefined && currentLocale !== fallbackLocale) {
-        message = getMessage(fallbackLocale, key);
+        message = getMessage(fallbackLocale, key, params);
       }
       if (message === undefined) {
+        notifyMissingKey(currentLocale, key);
         return key;
       }
-      return interpolate(message, params);
+      return message;
+    },
+    d(value: Date | number, style: DateTimeFormatStyle = 'short', options?: Intl.DateTimeFormatOptions): string {
+      try {
+        const date = value instanceof Date ? value : new Date(value);
+        if (isNaN(date.getTime())) throw new Error('Invalid date');
+        const dtf = new Intl.DateTimeFormat(currentLocale, { dateStyle: style, ...options });
+        return dtf.format(date);
+      } catch {
+        const date = value instanceof Date ? value : new Date(value);
+        if (isNaN(date.getTime())) return String(value);
+        return date.toISOString().split('T')[0];
+      }
+    },
+    n(value: number, style: NumberFormatStyle = 'decimal', options?: NumberFormatOptions): string {
+      try {
+        const nf = new Intl.NumberFormat(currentLocale, { style, ...options });
+        return nf.format(value);
+      } catch {
+        return String(value);
+      }
+    },
+    c(value: number, currency: string, options?: Intl.NumberFormatOptions): string {
+      try {
+        const nf = new Intl.NumberFormat(currentLocale, {
+          style: 'currency',
+          currency,
+          ...options
+        });
+        return nf.format(value);
+      } catch {
+        return `${currency} ${value}`;
+      }
+    },
+    relativeTime(value: number, unit: RelativeTimeUnit, options?: Intl.RelativeTimeFormatOptions): string {
+      try {
+        const rtf = new Intl.RelativeTimeFormat(currentLocale, options);
+        return rtf.format(value, unit);
+      } catch {
+        const suffix = value === 1 ? '' : 's';
+        const prefix = value >= 0 ? 'in ' : '';
+        const postfix = value < 0 ? ' ago' : '';
+        return `${prefix}${Math.abs(value)} ${unit}${suffix}${postfix}`;
+      }
+    },
+    list(items: string[], style: ListFormatStyle = 'conjunction', options?: Intl.ListFormatOptions): string {
+      try {
+        const lf = new Intl.ListFormat(currentLocale, { type: style, ...options });
+        return lf.format(items);
+      } catch {
+        return items.join(', ');
+      }
     },
     setLocale(locale: string): void {
       if (registeredLocales.has(locale) && locale !== currentLocale) {
@@ -242,6 +441,8 @@ export function useI18n(): I18nInstance {
           dir: options?.dir || 'ltr'
         });
       }
+      invalidateCache(code);
+      missingKeyWarned = new Set();
     },
     mergeLocale(code: string, messages: LocaleMessages): void {
       const existing = registeredLocales.get(code);
@@ -250,6 +451,8 @@ export function useI18n(): I18nInstance {
       } else {
         registeredLocales.set(code, { code, messages, dir: 'ltr' });
       }
+      invalidateCache(code);
+      missingKeyWarned = new Set();
     },
     detectLocale(acceptLanguage?: string): string {
       if (!acceptLanguage) return fallbackLocale;
@@ -274,6 +477,7 @@ export function useI18n(): I18nInstance {
       return fallbackLocale;
     },
     onLocaleChange: addLocaleListener,
+    onMissingKey: addMissingKeyHandler,
     getLocaleDir(locale?: string): 'ltr' | 'rtl' {
       const code = locale || currentLocale;
       const loc = registeredLocales.get(code);
@@ -306,6 +510,9 @@ export function getRegisteredLocales(): string[] {
 export function clearLocales(): void {
   registeredLocales.clear();
   localeListeners.clear();
+  missingKeyHandlers.clear();
+  messageCache.clear();
+  missingKeyWarned = new Set();
   currentLocale = 'en';
   fallbackLocale = 'en';
 }
@@ -344,4 +551,24 @@ export function detectBrowserLocale(): string {
     return i18n.detectLocale(navigator.language);
   }
   return fallbackLocale;
+}
+
+export function formatDate(value: Date | number, style?: DateTimeFormatStyle, options?: Intl.DateTimeFormatOptions): string {
+  return useI18n().d(value, style, options);
+}
+
+export function formatNumber(value: number, style?: NumberFormatStyle, options?: NumberFormatOptions): string {
+  return useI18n().n(value, style, options);
+}
+
+export function formatCurrency(value: number, currency: string, options?: Intl.NumberFormatOptions): string {
+  return useI18n().c(value, currency, options);
+}
+
+export function formatRelativeTime(value: number, unit: RelativeTimeUnit, options?: Intl.RelativeTimeFormatOptions): string {
+  return useI18n().relativeTime(value, unit, options);
+}
+
+export function formatList(items: string[], style?: ListFormatStyle, options?: Intl.ListFormatOptions): string {
+  return useI18n().list(items, style, options);
 }

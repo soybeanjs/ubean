@@ -73,10 +73,11 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
 
           for (let i = comps.layouts.length - 1; i >= 0; i--) {
             const layout = comps.layouts[i];
+            const child = vnode;
             vnode = h(
               layout.component as ConcreteComponent,
               { page: pageObj, layoutName: layout.name },
-              { default: () => vnode }
+              { default: () => child }
             );
           }
 

@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { resolveAuthOptions, DEFAULT_AUTH_OPTIONS, createAuthHandler, createAuthClient } from '../src/core';
+import {
+  resolveAuthOptions,
+  createAuthHandler,
+  createAuthClient,
+  defineAuth,
+  authMiddleware,
+  getUser
+} from '../src/core';
 import type { UbeanAuthOptions } from '../src/types';
 
 describe('ubean-auth core', () => {
@@ -10,14 +17,16 @@ describe('ubean-auth core', () => {
       expect(opts.basePath).toBe('/api/auth');
       expect(opts.redirectTo.login).toBe('/login');
       expect(opts.redirectTo.signup).toBe('/signup');
-      expect(opts.session.cookieName).toBe('ubean-auth-session');
+      expect(opts.session.cookieName).toBe('ubean_session');
       expect(opts.session.expiresIn).toBe(60 * 60 * 24 * 7);
+      expect(typeof opts.secret).toBe('string');
     });
 
     it('merges custom options with defaults', () => {
       const custom: UbeanAuthOptions = {
         basePath: '/auth',
         baseURL: 'https://example.com',
+        secret: 'my-secret',
         redirectTo: {
           login: '/signin',
           callback: '/dashboard'
@@ -30,6 +39,7 @@ describe('ubean-auth core', () => {
       const opts = resolveAuthOptions(custom);
       expect(opts.basePath).toBe('/auth');
       expect(opts.baseURL).toBe('https://example.com');
+      expect(opts.secret).toBe('my-secret');
       expect(opts.redirectTo.login).toBe('/signin');
       expect(opts.redirectTo.signup).toBe('/signup');
       expect(opts.redirectTo.callback).toBe('/dashboard');
@@ -43,11 +53,18 @@ describe('ubean-auth core', () => {
     });
   });
 
-  describe('DEFAULT_AUTH_OPTIONS', () => {
-    it('has sensible defaults', () => {
-      expect(DEFAULT_AUTH_OPTIONS.basePath).toBe('/api/auth');
-      expect(DEFAULT_AUTH_OPTIONS.enabled).toBe(true);
-      expect(DEFAULT_AUTH_OPTIONS.session.expiresIn).toBe(7 * 24 * 60 * 60);
+  describe('defineAuth', () => {
+    it('returns plain config object', () => {
+      const config = defineAuth({ basePath: '/custom-auth' });
+      expect(config.basePath).toBe('/custom-auth');
+    });
+
+    it('supports function form with defaults', () => {
+      const config = defineAuth(({ defaults }) => ({
+        ...defaults,
+        basePath: '/fn-auth'
+      }));
+      expect(config.basePath).toBe('/fn-auth');
     });
   });
 
@@ -73,6 +90,9 @@ describe('ubean-auth core', () => {
       expect(signUpData.token).toBeDefined();
       expect(signUpData.user.email).toBe('test@example.com');
       expect(signUpData.user.name).toBe('Test User');
+
+      const setCookie = signUpRes.headers.get('set-cookie');
+      expect(setCookie).toBeTruthy();
 
       const signInReq = new Request('http://localhost/api/auth/sign-in/email', {
         method: 'POST',
@@ -119,15 +139,14 @@ describe('ubean-auth core', () => {
       expect(res.status).toBe(400);
     });
 
-    it('handles session endpoint returning null when not authenticated', async () => {
+    it('handles get-session endpoint returning null when not authenticated', async () => {
       const { handler } = createAuthHandler();
 
-      const req = new Request('http://localhost/api/auth/session');
+      const req = new Request('http://localhost/api/auth/get-session');
       const res = await handler(req);
       expect(res.status).toBe(200);
       const data = await res.json();
-      expect(data.session).toBeNull();
-      expect(data.user).toBeNull();
+      expect(data).toBeNull();
     });
 
     it('handles sign-out', async () => {
@@ -149,15 +168,6 @@ describe('ubean-auth core', () => {
       expect(data.success).toBe(true);
     });
 
-    it('returns ok for health check', async () => {
-      const { handler } = createAuthHandler();
-      const req = new Request('http://localhost/api/auth/ok');
-      const res = await handler(req);
-      expect(res.status).toBe(200);
-      const data = await res.json();
-      expect(data.ok).toBe(true);
-    });
-
     it('returns 404 for unknown routes', async () => {
       const { handler } = createAuthHandler();
       const req = new Request('http://localhost/api/auth/unknown');
@@ -167,19 +177,33 @@ describe('ubean-auth core', () => {
   });
 
   describe('createAuthClient', () => {
-    it('creates a client with auth methods', () => {
+    it('creates a client with nested auth methods', () => {
       const client = createAuthClient('/api/auth');
-      expect(typeof client.signIn).toBe('function');
-      expect(typeof client.signUp).toBe('function');
+      expect(typeof client.signIn.email).toBe('function');
+      expect(typeof client.signIn.social).toBe('function');
+      expect(typeof client.signUp.email).toBe('function');
       expect(typeof client.signOut).toBe('function');
       expect(typeof client.getSession).toBe('function');
-      expect(typeof client.signInSocial).toBe('function');
       expect(typeof client.updateUser).toBe('function');
       expect(typeof client.forgetPassword).toBe('function');
       expect(typeof client.resetPassword).toBe('function');
       expect(typeof client.listSessions).toBe('function');
       expect(typeof client.revokeSession).toBe('function');
       expect(typeof client.revokeSessions).toBe('function');
+      expect(typeof client.$fetch).toBe('function');
+    });
+  });
+
+  describe('server context', () => {
+    it('getUser returns null outside middleware context', () => {
+      expect(getUser()).toBeNull();
+    });
+  });
+
+  describe('authMiddleware', () => {
+    it('creates a Hono-compatible middleware function', () => {
+      const mw = authMiddleware();
+      expect(typeof mw).toBe('function');
     });
   });
 });

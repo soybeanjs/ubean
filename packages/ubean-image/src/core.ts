@@ -137,7 +137,7 @@ export const staticProvider: ImageProvider = {
 
 export const cloudinaryProvider: ImageProvider = {
   name: 'cloudinary',
-  getImage(src, mods, ctx) {
+  getImage(src, mods = {}, ctx) {
     const baseURL = ctx?.options.cloudinary?.baseURL || '';
     const transforms: string[] = [];
 
@@ -162,7 +162,7 @@ export const cloudinaryProvider: ImageProvider = {
 
 export const imgixProvider: ImageProvider = {
   name: 'imgix',
-  getImage(src, mods, ctx) {
+  getImage(src, mods = {}, ctx) {
     const baseURL = ctx?.options.imgix?.baseURL || '';
     const params = new URLSearchParams();
 

@@ -10,10 +10,10 @@ export default defineConfig({
     sourcemap: true,
     format: ['esm'],
     outDir: 'dist',
-    entry: ['src/index.ts', 'src/vite.ts', 'src/runtime.ts'],
+    entry: ['src/index.ts', 'src/core.ts', 'src/vite.ts', 'src/runtime.ts'],
     onSuccess: 'tsc --emitDeclarationOnly',
     deps: {
-      neverBundle: ['vue', 'better-auth', /^node:/]
+      neverBundle: ['vue', 'better-auth', 'hono', /^node:/]
     }
   },
   test: {

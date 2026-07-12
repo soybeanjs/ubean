@@ -2,14 +2,17 @@ export { ubeanAuthPlugin, defineAuthConfig } from './vite';
 
 export {
   createAuthHandler,
-  registerAuthRoutes,
   createAuthClient,
+  authMiddleware,
+  getUser,
+  getSession as getAuthSession,
+  requireAuth,
   getServerSession,
-  resolveAuthOptions,
-  DEFAULT_AUTH_OPTIONS
+  defineAuth,
+  resolveAuthOptions
 } from './core';
 
-export { useAuth, getSessionFromHeaders, protectRoute } from './runtime';
+export { useAuth, useSession, getSessionFromHeaders, protectRoute } from './runtime';
 
 export type {
   UbeanAuthOptions,
@@ -19,6 +22,8 @@ export type {
   AuthClient,
   AuthError,
   UseAuthReturn,
+  AuthUser,
+  AuthState,
   BetterAuthConfig,
   BetterAuthOptions,
   Session,

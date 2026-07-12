@@ -19,7 +19,6 @@ import {
 import type {
   FontFamilyOptions,
   FontModuleOptions,
-  FontStyle,
   GoogleFontsOptions,
   LocalFontOptions,
   ResolvedFontFace
@@ -71,13 +70,13 @@ export function defineFontFamily(options: FontFamilyOptions): FontFamilyOptions 
 
 export function defineLocalFont(options: LocalFontOptions): LocalFontOptions {
   if (!fontsConfig) configureFontsRuntime();
-  fontsConfig.local[options.name] = options;
+  fontsConfig.local![options.name] = options;
   const family: FontFamilyOptions = {
     name: options.name,
     provider: 'local',
     src: options.src,
-    weights: options.weight ? [options.weight as number] : [400],
-    styles: options.style ? [options.style as FontStyle] : ['normal'],
+    weights: options.weights?.length ? options.weights : [400],
+    styles: options.styles?.length ? options.styles : ['normal'],
     preload: options.preload ?? true
   };
   fontsConfig.families.push(family);
@@ -98,7 +97,7 @@ export function generateFontLinks(): { preconnect: string[]; styles: string[]; p
 
   if (
     config.defaults.preconnect &&
-    (config.families.some(f => f.provider === 'google') || Object.keys(config.google.families || {}).length > 0)
+    (config.families.some(f => f.provider === 'google') || Object.keys(config.google?.families || {}).length > 0)
   ) {
     preconnect.push(generatePreconnectLink('https://fonts.googleapis.com'));
     preconnect.push(generatePreconnectLink('https://fonts.gstatic.com'));

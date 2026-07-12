@@ -1,4 +1,5 @@
 import { NuxtImg, NuxtPicture } from './components';
+import { configureImageRuntime } from './runtime';
 
 export { NuxtImg, NuxtPicture };
 export { ubeanImagePlugin } from './vite';

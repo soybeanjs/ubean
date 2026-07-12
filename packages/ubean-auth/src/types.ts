@@ -2,11 +2,30 @@ import type { BetterAuthOptions, Session, User, Account, Verification } from 'be
 
 export type { BetterAuthOptions, Session, User, Account, Verification };
 
+export interface AuthUser {
+  id: string;
+  email: string;
+  emailVerified: boolean;
+  name: string;
+  image?: string | null;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+  [key: string]: unknown;
+}
+
+export interface AuthState {
+  session: Session;
+  user: AuthUser;
+}
+
 export interface UbeanAuthOptions {
   enabled?: boolean;
   basePath?: string;
   baseURL?: string;
-  betterAuth?: Omit<BetterAuthOptions, 'baseURL' | 'basePath' | 'trustedOrigins'>;
+  secret?: string;
+  betterAuth?:
+    | Omit<BetterAuthOptions, 'baseURL' | 'basePath' | 'trustedOrigins'>
+    | ((ctx: { defaults: BetterAuthOptions }) => BetterAuthOptions);
   clientOptions?: {
     fetchOptions?: Record<string, unknown>;
     plugins?: Array<{ id: string; [key: string]: unknown }>;
@@ -22,6 +41,7 @@ export interface UbeanAuthOptions {
     updateAge?: number;
   };
   socialProviders?: Record<string, SocialProviderConfig>;
+  database?: BetterAuthOptions['database'];
 }
 
 export interface SocialProviderConfig {
@@ -31,10 +51,13 @@ export interface SocialProviderConfig {
   [key: string]: unknown;
 }
 
-export interface ResolvedAuthOptions extends Required<Omit<UbeanAuthOptions, 'betterAuth' | 'socialProviders'>> {
+export interface ResolvedAuthOptions extends Required<
+  Omit<UbeanAuthOptions, 'betterAuth' | 'socialProviders' | 'database'>
+> {
   enabled: boolean;
   basePath: string;
   baseURL: string;
+  secret: string;
   clientOptions: {
     fetchOptions: Record<string, unknown>;
     plugins: Array<{ id: string; [key: string]: unknown }>;
@@ -49,7 +72,8 @@ export interface ResolvedAuthOptions extends Required<Omit<UbeanAuthOptions, 'be
     expiresIn: number;
     updateAge: number;
   };
-  betterAuth: BetterAuthOptions;
+  betterAuth?: BetterAuthOptions;
+  database?: BetterAuthOptions['database'];
   socialProviders?: Record<string, SocialProviderConfig>;
 }
 
@@ -59,20 +83,25 @@ export interface AuthSession {
 }
 
 export interface AuthClient {
-  signIn: (
-    email: string,
-    password: string,
-    opts?: { callbackURL?: string }
-  ) => Promise<{ data?: AuthSession; error?: AuthError }>;
-  signUp: (
-    email: string,
-    password: string,
-    name: string,
-    opts?: { callbackURL?: string }
-  ) => Promise<{ data?: AuthSession; error?: AuthError }>;
+  signIn: {
+    email: (credentials: {
+      email: string;
+      password: string;
+      callbackURL?: string;
+      rememberMe?: boolean;
+    }) => Promise<{ data?: AuthSession; error?: AuthError }>;
+    social: (provider: string, opts?: { callbackURL?: string }) => Promise<void>;
+  };
+  signUp: {
+    email: (credentials: {
+      email: string;
+      password: string;
+      name: string;
+      callbackURL?: string;
+    }) => Promise<{ data?: AuthSession; error?: AuthError }>;
+  };
   signOut: () => Promise<{ data?: { success: boolean }; error?: AuthError }>;
   getSession: () => Promise<AuthSession | null>;
-  signInSocial: (provider: string, opts?: { callbackURL?: string }) => Promise<void>;
   sendVerificationEmail: (
     email: string,
     opts?: { callbackURL?: string }
@@ -94,6 +123,7 @@ export interface AuthClient {
   listSessions: () => Promise<{ data?: Session[]; error?: AuthError }>;
   revokeSession: (sessionId: string) => Promise<{ data?: { status: boolean }; error?: AuthError }>;
   revokeSessions: () => Promise<{ data?: { status: boolean }; error?: AuthError }>;
+  $fetch: typeof fetch;
 }
 
 export interface AuthError {
@@ -106,12 +136,27 @@ export interface UseAuthReturn {
   session: import('vue').Ref<AuthSession | null>;
   user: import('vue').ComputedRef<User | null>;
   isLoading: import('vue').Ref<boolean>;
+  isPending: import('vue').Ref<boolean>;
   isAuthenticated: import('vue').ComputedRef<boolean>;
-  signIn: AuthClient['signIn'];
-  signUp: AuthClient['signUp'];
-  signOut: AuthClient['signOut'];
+  error: import('vue').Ref<AuthError | null>;
+  signIn: {
+    email: (credentials: {
+      email: string;
+      password: string;
+      callbackURL?: string;
+    }) => Promise<{ data?: AuthSession; error?: AuthError }>;
+    social: (provider: string, opts?: { callbackURL?: string }) => Promise<void>;
+  };
+  signUp: {
+    email: (credentials: {
+      email: string;
+      password: string;
+      name: string;
+      callbackURL?: string;
+    }) => Promise<{ data?: AuthSession; error?: AuthError }>;
+  };
+  signOut: () => Promise<{ data?: { success: boolean }; error?: AuthError }>;
   getSession: () => Promise<AuthSession | null>;
-  signInSocial: AuthClient['signInSocial'];
   updateUser: AuthClient['updateUser'];
   refreshSession: () => Promise<void>;
 }

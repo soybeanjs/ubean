@@ -1,4 +1,4 @@
-export {
+import {
   parseIconName,
   normalizeIconName,
   registerCollection,
@@ -16,6 +16,25 @@ export {
   scanVueSfcForIcons,
   resolveAlias
 } from './core';
+
+export {
+  parseIconName,
+  normalizeIconName,
+  registerCollection,
+  registerCollectionLoader,
+  loadCollection,
+  getLoadedCollection,
+  getIconData,
+  resolveIconData,
+  generateSvg,
+  escapeHtml,
+  getIcon,
+  getIconSync,
+  listLoadedCollections,
+  clearCollections,
+  scanVueSfcForIcons,
+  resolveAlias
+};
 
 export type {
   IconifyCollection,

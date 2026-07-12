@@ -5,9 +5,12 @@ import type { UbeanAuthOptions, ResolvedAuthOptions } from './types';
 
 const VIRTUAL_AUTH_CLIENT_ID = 'virtual:ubean-auth/client';
 const RESOLVED_VIRTUAL_AUTH_CLIENT_ID = `\0${VIRTUAL_AUTH_CLIENT_ID}`;
+const VIRTUAL_AUTH_SERVER_ID = 'virtual:ubean-auth/server';
+const RESOLVED_VIRTUAL_AUTH_SERVER_ID = `\0${VIRTUAL_AUTH_SERVER_ID}`;
 
 export function ubeanAuthPlugin(userOptions: UbeanAuthOptions = {}): Plugin {
   const options: ResolvedAuthOptions = resolveAuthOptions(userOptions);
+  let authHandlerInstance: ReturnType<typeof import('./core').createAuthHandler> | null = null;
 
   return {
     name: 'ubean:auth',
@@ -15,12 +18,16 @@ export function ubeanAuthPlugin(userOptions: UbeanAuthOptions = {}): Plugin {
 
     resolveId(id) {
       if (id === VIRTUAL_AUTH_CLIENT_ID) return RESOLVED_VIRTUAL_AUTH_CLIENT_ID;
+      if (id === VIRTUAL_AUTH_SERVER_ID) return RESOLVED_VIRTUAL_AUTH_SERVER_ID;
       return null;
     },
 
     load(id) {
       if (id === RESOLVED_VIRTUAL_AUTH_CLIENT_ID) {
         return generateClientCode(options);
+      }
+      if (id === RESOLVED_VIRTUAL_AUTH_SERVER_ID) {
+        return generateServerCode(options);
       }
       return null;
     },
@@ -34,8 +41,11 @@ export function ubeanAuthPlugin(userOptions: UbeanAuthOptions = {}): Plugin {
 
         Promise.resolve()
           .then(async () => {
-            const { createAuthHandler } = await import('./core');
-            const { handler } = createAuthHandler(userOptions);
+            if (!authHandlerInstance) {
+              const { createAuthHandler } = await import('./core');
+              authHandlerInstance = createAuthHandler(userOptions);
+              await authHandlerInstance.resolveAuth();
+            }
 
             const protocol = server.config.server.https ? 'https' : 'http';
             const host = req.headers.host || 'localhost';
@@ -44,11 +54,11 @@ export function ubeanAuthPlugin(userOptions: UbeanAuthOptions = {}): Plugin {
             const request = new Request(fullUrl, {
               method: req.method,
               headers: new Headers(req.headers as Record<string, string>),
-              body: req.method !== 'GET' && req.method !== 'HEAD' ? (req as any) : undefined,
+              body: req.method !== 'GET' && req.method !== 'HEAD' ? (req as unknown as BodyInit) : undefined,
               duplex: 'half'
             } as RequestInit);
 
-            const response = await handler(request);
+            const response = await authHandlerInstance.handler(request);
 
             res.statusCode = response.status;
             response.headers.forEach((value, key) => {
@@ -73,63 +83,93 @@ function generateClientCode(options: ResolvedAuthOptions): string {
   return `
 const BASE_URL = ${JSON.stringify(options.basePath)};
 
-function createApiClient() {
-  async function fetchApi(path, init = {}) {
-    try {
-      const res = await fetch(BASE_URL + '/' + path, {
-        ...init,
-        headers: {
-          'content-type': 'application/json',
-          ...(init.headers || {})
-        },
-        credentials: 'include'
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        return { error: data };
-      }
-      return { data };
-    } catch (err) {
-      return { error: { message: err.message } };
-    }
+async function authFetch(path, init = {}) {
+  const res = await fetch(BASE_URL + path, {
+    credentials: 'include',
+    headers: { 'content-type': 'application/json', ...(init.headers || {}) },
+    ...init
+  });
+  if (!res.ok) {
+    let err = { message: res.statusText };
+    try { err = await res.json(); } catch (_) {}
+    throw err;
   }
-
-  return {
-    signIn(email, password, opts) {
-      return fetchApi('sign-in/email', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, callbackURL: opts?.callbackURL })
-      });
-    },
-    signUp(email, password, name, opts) {
-      return fetchApi('sign-up/email', {
-        method: 'POST',
-        body: JSON.stringify({ email, password, name, callbackURL: opts?.callbackURL })
-      });
-    },
-    async signOut() {
-      return fetchApi('sign-out', { method: 'POST' });
-    },
-    async getSession() {
-      const result = await fetchApi('session');
-      return result.data || null;
-    },
-    signInSocial(provider) {
-      if (typeof window !== 'undefined') {
-        window.location.href = BASE_URL + '/sign-in/social/' + provider;
-      }
-    },
-    async updateUser(data) {
-      return fetchApi('update-user', {
-        method: 'POST',
-        body: JSON.stringify(data)
-      });
-    }
-  };
+  return res.json().catch(() => null);
 }
 
-export const authClient = createApiClient();
+function buildBody(body) {
+  return { method: 'POST', body: body ? JSON.stringify(body) : undefined };
+}
+
+export const authClient = {
+  signIn: {
+    email: async ({ email, password, callbackURL, rememberMe }) => {
+      try {
+        const data = await authFetch('/sign-in/email', buildBody({ email, password, rememberMe }));
+        if (callbackURL && typeof window !== 'undefined') window.location.href = callbackURL;
+        return { data };
+      } catch (error) { return { error }; }
+    },
+    social: (provider, opts) => {
+      if (typeof window === 'undefined') return Promise.resolve();
+      const redirect = opts?.callbackURL || window.location.href;
+      window.location.href = BASE_URL + '/sign-in/social/' + provider + '?callbackURL=' + encodeURIComponent(redirect);
+      return Promise.resolve();
+    }
+  },
+  signUp: {
+    email: async ({ email, password, name, callbackURL }) => {
+      try {
+        const data = await authFetch('/sign-up/email', buildBody({ email, password, name }));
+        if (callbackURL && typeof window !== 'undefined') window.location.href = callbackURL;
+        return { data };
+      } catch (error) { return { error }; }
+    }
+  },
+  signOut: async () => {
+    try { const data = await authFetch('/sign-out', buildBody()); return { data }; }
+    catch (error) { return { error }; }
+  },
+  getSession: async () => {
+    try { return await authFetch('/get-session'); } catch (_) { return null; }
+  },
+  forgetPassword: async (email, opts) => {
+    try { const data = await authFetch('/forget-password', buildBody({ email, ...opts })); return { data }; }
+    catch (error) { return { error }; }
+  },
+  resetPassword: async (newPassword, token) => {
+    try { const data = await authFetch('/reset-password', buildBody({ newPassword, token })); return { data }; }
+    catch (error) { return { error }; }
+  },
+  updateUser: async (data) => {
+    try { const r = await authFetch('/update-user', buildBody(data)); return { data: r.user }; }
+    catch (error) { return { error }; }
+  },
+  changePassword: async (currentPassword, newPassword, revokeOtherSessions) => {
+    try { const data = await authFetch('/change-password', buildBody({ currentPassword, newPassword, revokeOtherSessions })); return { data }; }
+    catch (error) { return { error }; }
+  },
+  listSessions: async () => {
+    try { const d = await authFetch('/list-sessions'); return { data: d.sessions }; }
+    catch (error) { return { error }; }
+  },
+  revokeSession: async (sessionId) => {
+    try { const data = await authFetch('/revoke-session', buildBody({ sessionId })); return { data }; }
+    catch (error) { return { error }; }
+  },
+  revokeSessions: async () => {
+    try { const data = await authFetch('/revoke-sessions', buildBody()); return { data }; }
+    catch (error) { return { error }; }
+  },
+  $fetch: (input, init) => fetch(input, { credentials: 'include', ...init })
+};
 export default authClient;
+`;
+}
+
+function generateServerCode(_options: ResolvedAuthOptions): string {
+  return `
+export { createAuthHandler, authMiddleware, getUser, getSession, requireAuth, getServerSession, defineAuth } from 'ubean-auth/core';
 `;
 }
 

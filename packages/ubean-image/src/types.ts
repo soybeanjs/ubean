@@ -156,10 +156,16 @@ export interface CreateImageOptions {
   densities?: number[];
   format?: ImageFormat[];
   quality?: number;
+  placeholder?: number | false;
+  responsiveSizes?: number[];
   domains?: string[];
   alias?: Record<string, string>;
   provider?: string;
   dir?: string;
   ipx?: Partial<ImageModuleOptions['ipx']>;
   static?: Partial<ImageModuleOptions['static']>;
+  cloudinary?: Partial<ImageModuleOptions['cloudinary']>;
+  imgix?: Partial<ImageModuleOptions['imgix']>;
+  preload?: boolean;
+  intersectOptions?: IntersectionObserverInit;
 }

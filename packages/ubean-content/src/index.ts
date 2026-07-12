@@ -7,8 +7,10 @@ export {
   getCollection,
   listCollections,
   queryCollection,
+  queryCollection as queryContent,
   getContentItem,
   fetchContentNavigation,
+  fetchContentNavigation as fetchNavigation,
   registerContent,
   parseContentFile
 } from './runtime';

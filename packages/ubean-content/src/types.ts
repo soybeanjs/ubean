@@ -134,6 +134,7 @@ export interface ParsedContentMeta {
   _partial: boolean;
   _type: ContentType;
   _extension: string;
+  _empty: boolean;
   title?: string;
   description?: string;
   date?: string;

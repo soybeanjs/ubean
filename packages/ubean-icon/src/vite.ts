@@ -187,6 +187,34 @@ export function getScannedIcons() {
           }
         }
       });
+
+      if (options.iconifyApiEnabled && options.fallbackToApi) {
+        const iconifyHandler = async (req: any, res: any, next: any) => {
+          if (!req.url) return next();
+          try {
+            const url = new URL(req.url, 'http://localhost');
+            const targetPath = url.pathname.replace(/^\//, '');
+            const match = targetPath.match(/^([^/]+)\/(.+)\.svg$/);
+            if (!match) return next();
+
+            const [, prefix, icon] = match;
+            const apiUrl = `${options.iconApiEndpoint}/${prefix}/${icon}.svg`;
+            const apiRes = await fetch(apiUrl);
+            if (!apiRes.ok) return next();
+
+            const svg = await apiRes.text();
+            res.setHeader('Content-Type', 'image/svg+xml');
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+            res.statusCode = 200;
+            res.end(svg);
+          } catch {
+            next();
+          }
+        };
+        server.middlewares.use('/_iconify', (req, res, next) => {
+          Promise.resolve(iconifyHandler(req, res, next)).catch(next);
+        });
+      }
     }
   };
 }

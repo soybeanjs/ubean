@@ -21,6 +21,10 @@
     "./runtime": {
       "types": "./dist/runtime.d.ts",
       "import": "./dist/runtime.mjs"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.mjs"
     }
   },
   "scripts": {
@@ -32,11 +36,11 @@
   "dependencies": {
     "better-auth": "catalog:",
     "consola": "catalog:",
-    "defu": "catalog:",
-    "ofetch": "catalog:"
+    "defu": "catalog:"
   },
   "devDependencies": {
     "@types/node": "^22.13.10",
+    "hono": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
@@ -44,10 +48,14 @@
     "vue-tsc": "^3.3.7"
   },
   "peerDependencies": {
+    "hono": "^4.0.0",
     "vite": "^5.0.0 || ^6.0.0",
     "vue": "^3.0.0"
   },
   "peerDependenciesMeta": {
+    "hono": {
+      "optional": true
+    },
     "vite": {
       "optional": true
     },

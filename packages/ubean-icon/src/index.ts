@@ -7,7 +7,10 @@ import {
   generateSvg,
   fetchIconFromApi,
   resolveIconData,
-  getLoadedCollection
+  getLoadedCollection,
+  getIconConfig,
+  registerCollection,
+  registerCollectionLoader
 } from './runtime';
 import type { IconifyCollection, ResolvedIconData } from './types';
 
@@ -44,6 +47,9 @@ export interface UbeanIconProps {
   ariaLabel?: string;
   title?: string;
   mode?: 'svg' | 'css';
+  flip?: 'horizontal' | 'vertical' | 'both';
+  rotate?: number | string;
+  inline?: boolean;
 }
 
 export const Icon = defineComponent({
@@ -76,6 +82,18 @@ export const Icon = defineComponent({
     mode: {
       type: String as PropType<'svg' | 'css'>,
       default: 'svg'
+    },
+    flip: {
+      type: String as PropType<'horizontal' | 'vertical' | 'both'>,
+      default: undefined
+    },
+    rotate: {
+      type: [String, Number] as PropType<string | number>,
+      default: undefined
+    },
+    inline: {
+      type: Boolean,
+      default: false
     }
   },
   setup(props) {
@@ -85,10 +103,23 @@ export const Icon = defineComponent({
 
     const sizeValue = computed(() => (typeof props.size === 'number' ? `${props.size}px` : props.size));
 
+    const transformStyle = computed(() => {
+      const transforms: string[] = [];
+      if (props.flip === 'horizontal' || props.flip === 'both') transforms.push('scaleX(-1)');
+      if (props.flip === 'vertical' || props.flip === 'both') transforms.push('scaleY(-1)');
+      if (props.rotate !== undefined) {
+        const deg = typeof props.rotate === 'number' ? props.rotate : parseInt(props.rotate, 10);
+        if (!isNaN(deg)) transforms.push(`rotate(${deg}deg)`);
+      }
+      return transforms.length > 0 ? transforms.join(' ') : undefined;
+    });
+
     const sizeStyle = computed(() => ({
       width: sizeValue.value,
       height: sizeValue.value,
-      display: 'inline-block'
+      display: props.inline ? 'inline-block' : 'inline-block',
+      verticalAlign: props.inline ? '-0.125em' : 'middle',
+      transform: transformStyle.value
     }));
 
     const cssClass = computed(() => {

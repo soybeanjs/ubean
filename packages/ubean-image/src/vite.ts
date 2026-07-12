@@ -66,7 +66,7 @@ export default imageConfig;
 
     configureServer(server) {
       if (options.ipxMiddleware) {
-        const ipxHandler = async (req, res, next) => {
+        const ipxHandler = async (req: any, res: any, next: any) => {
           if (!req.url) return next();
 
           const url = new URL(req.url, 'http://localhost');
@@ -92,7 +92,7 @@ export default imageConfig;
             next(err);
           }
         };
-        server.middlewares.use('/_ipx', (req, res, next) => {
+        server.middlewares.use('/_ipx', (req: any, res: any, next: any) => {
           ipxHandler(req, res, next).catch(next);
         });
       }

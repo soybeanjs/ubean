@@ -256,9 +256,9 @@ export function normalizeFontFamily(
     display: family.display || defaults.display,
     preload: family.preload ?? true,
     fallback: family.fallback || [],
-    unicodeRange: family.unicodeRange,
-    selector: family.selector,
-    src: family.src,
+    unicodeRange: family.unicodeRange || '',
+    selector: family.selector || '',
+    src: family.src || '',
     cssVariable: family.cssVariable ?? false
   };
 }

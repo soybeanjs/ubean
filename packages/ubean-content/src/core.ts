@@ -124,7 +124,6 @@ export function parseMarkdown(content: string): ContentBody {
   const toc: ContentTocItem[] = [];
   let excerpt = '';
   let inCodeBlock = false;
-  let _codeFence = '';
   let codeContent = '';
   let paragraphLines: string[] = [];
 
@@ -159,10 +158,8 @@ export function parseMarkdown(content: string): ContentBody {
         });
         inCodeBlock = false;
         codeContent = '';
-        _codeFence = '';
       } else {
         inCodeBlock = true;
-        _codeFence = line.slice(3);
         codeContent = '';
       }
       continue;

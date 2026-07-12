@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
 import type { DevToolsCronInfo } from '../composables/useRpc';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const props = defineProps<{
   crons: DevToolsCronInfo[];
@@ -9,7 +10,12 @@ const props = defineProps<{
   filePath: (p?: string) => string;
 }>();
 
+const emit = defineEmits<{
+  delete: [cron: DevToolsCronInfo];
+}>();
+
 const searchQuery = ref('');
+const deleteTarget = ref<DevToolsCronInfo | null>(null);
 
 const filteredCrons = computed(() => {
   let items = [...props.crons];
@@ -24,6 +30,22 @@ const filteredCrons = computed(() => {
   }
   return items;
 });
+
+const deleteMessage = computed(() => {
+  if (!deleteTarget.value) return '';
+  return `Are you sure you want to delete cron job "${deleteTarget.value.name}"? A backup will be created.`;
+});
+
+function confirmDelete(cron: DevToolsCronInfo) {
+  deleteTarget.value = cron;
+}
+
+function handleDelete() {
+  if (deleteTarget.value) {
+    emit('delete', deleteTarget.value);
+    deleteTarget.value = null;
+  }
+}
 </script>
 
 <template>
@@ -46,12 +68,19 @@ const filteredCrons = computed(() => {
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredCrons.length > 0" class="flex flex-col gap-1">
-        <div v-for="(c, i) in filteredCrons" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
+        <div v-for="(c, i) in filteredCrons" :key="i" class="list-item group hover:bg-secondary/30 transition-colors">
           <SIcon icon="lucide:clock" :size="14" class="text-accent flex-shrink-0" />
           <div class="flex flex-col min-w-0 flex-1">
             <span class="font-mono text-sm font-medium text-foreground">{{ c.name }}</span>
             <span class="font-mono text-2xs text-accent/80">{{ c.schedule }}</span>
           </div>
+          <button
+            class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-destructive rounded transition-all cursor-pointer flex-shrink-0"
+            title="Delete cron job"
+            @click="confirmDelete(c)"
+          >
+            <SIcon icon="lucide:trash-2" :size="12" />
+          </button>
           <span v-if="c.filePath" class="file-name" :title="c.filePath">{{ filePath(c.filePath) }}</span>
         </div>
       </div>
@@ -61,5 +90,14 @@ const filteredCrons = computed(() => {
         <div class="empty-desc">Define scheduled tasks with defineScheduled()</div>
       </div>
     </div>
+    <ConfirmDialog
+      :open="!!deleteTarget"
+      title="Delete Cron Job"
+      :message="deleteMessage"
+      confirm-text="Delete"
+      variant="danger"
+      @confirm="handleDelete"
+      @cancel="deleteTarget = null"
+    />
   </div>
 </template>

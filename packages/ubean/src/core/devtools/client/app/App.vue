@@ -111,6 +111,26 @@ function handlePageDelete(page: { path: string }) {
   crudDelete('page', { path: page.path });
 }
 
+function handleApiRouteDelete(route: { filePath?: string; path: string; method: string }) {
+  if (route.filePath) {
+    crudDelete('api', { path: route.filePath });
+  }
+}
+
+function handleMiddlewareDelete(mw: { path: string }) {
+  crudDelete('middleware', { path: mw.path });
+}
+
+function handleLayoutDelete(layout: { path: string }) {
+  crudDelete('layout', { path: layout.path });
+}
+
+function handleCronDelete(cron: { filePath?: string; name: string }) {
+  if (cron.filePath) {
+    crudDelete('cron', { path: cron.filePath });
+  }
+}
+
 function handleKeydown(e: KeyboardEvent) {
   if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
   if (createDialogOpen.value) return;
@@ -260,6 +280,7 @@ onUnmounted(() => {
               :file-path="filePath"
               :method-class="methodClass"
               @try-route="tryRoute"
+              @delete="handleApiRouteDelete"
             />
             <ApiPlayground
               v-show="activeTab === 'playground'"
@@ -283,6 +304,7 @@ onUnmounted(() => {
               :middlewares="info.middlewaresList || []"
               :file-name="fileName"
               :file-path="filePath"
+              @delete="handleMiddlewareDelete"
             />
             <Layouts
               v-show="activeTab === 'layouts'"
@@ -290,6 +312,7 @@ onUnmounted(() => {
               :layouts="info.layoutsList || []"
               :file-name="fileName"
               :file-path="filePath"
+              @delete="handleLayoutDelete"
             />
             <Crons
               v-show="activeTab === 'crons'"
@@ -297,6 +320,7 @@ onUnmounted(() => {
               :crons="info.cronsList || []"
               :file-name="fileName"
               :file-path="filePath"
+              @delete="handleCronDelete"
             />
             <EnvVars v-show="activeTab === 'env'" class="h-full" :env="env" />
             <Config

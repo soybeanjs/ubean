@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
 import type { DevToolsRouteInfo } from '../composables/useRpc';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const props = defineProps<{
   routes: DevToolsRouteInfo[];
@@ -12,10 +13,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   tryRoute: [route: DevToolsRouteInfo];
+  delete: [route: DevToolsRouteInfo];
 }>();
 
 const searchQuery = ref('');
 const activeMethod = ref<string>('ALL');
+const deleteTarget = ref<DevToolsRouteInfo | null>(null);
 
 const methods = computed(() => {
   const set = new Set(props.routes.map(r => r.method));
@@ -35,6 +38,22 @@ const filteredRoutes = computed(() => {
   }
   return routes;
 });
+
+const deleteMessage = computed(() => {
+  if (!deleteTarget.value) return '';
+  return `Are you sure you want to delete "${deleteTarget.value.method} ${deleteTarget.value.path}"? A backup will be created (.bak file).`;
+});
+
+function confirmDelete(route: DevToolsRouteInfo) {
+  deleteTarget.value = route;
+}
+
+function handleDelete() {
+  if (deleteTarget.value) {
+    emit('delete', deleteTarget.value);
+    deleteTarget.value = null;
+  }
+}
 </script>
 
 <template>
@@ -91,6 +110,13 @@ const filteredRoutes = computed(() => {
           >
             <SIcon icon="lucide:play" :size="12" />
           </button>
+          <button
+            class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-all cursor-pointer flex-shrink-0"
+            title="Delete route"
+            @click.stop="confirmDelete(r)"
+          >
+            <SIcon icon="lucide:trash-2" :size="12" />
+          </button>
           <span v-if="r.filePath" class="file-name" :title="r.filePath">{{ filePath(r.filePath) }}</span>
         </div>
       </div>
@@ -104,5 +130,14 @@ const filteredRoutes = computed(() => {
         </div>
       </div>
     </div>
+    <ConfirmDialog
+      :open="!!deleteTarget"
+      title="Delete API Route"
+      :message="deleteMessage"
+      confirm-text="Delete"
+      variant="danger"
+      @confirm="handleDelete"
+      @cancel="deleteTarget = null"
+    />
   </div>
 </template>

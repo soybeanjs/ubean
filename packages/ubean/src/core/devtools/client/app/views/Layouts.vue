@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
 import type { DevToolsLayoutInfo } from '../composables/useRpc';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const props = defineProps<{
   layouts: DevToolsLayoutInfo[];
@@ -9,7 +10,12 @@ const props = defineProps<{
   filePath: (p?: string) => string;
 }>();
 
+const emit = defineEmits<{
+  delete: [layout: DevToolsLayoutInfo];
+}>();
+
 const searchQuery = ref('');
+const deleteTarget = ref<DevToolsLayoutInfo | null>(null);
 
 const filteredLayouts = computed(() => {
   let lays = [...props.layouts];
@@ -22,6 +28,22 @@ const filteredLayouts = computed(() => {
     return a.name.localeCompare(b.name);
   });
 });
+
+const deleteMessage = computed(() => {
+  if (!deleteTarget.value) return '';
+  return `Are you sure you want to delete layout "${deleteTarget.value.name}"? A backup will be created.`;
+});
+
+function confirmDelete(layout: DevToolsLayoutInfo) {
+  deleteTarget.value = layout;
+}
+
+function handleDelete() {
+  if (deleteTarget.value) {
+    emit('delete', deleteTarget.value);
+    deleteTarget.value = null;
+  }
+}
 </script>
 
 <template>
@@ -44,7 +66,7 @@ const filteredLayouts = computed(() => {
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredLayouts.length > 0" class="flex flex-col gap-1">
-        <div v-for="(l, i) in filteredLayouts" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
+        <div v-for="(l, i) in filteredLayouts" :key="i" class="list-item group hover:bg-secondary/30 transition-colors">
           <SIcon icon="lucide:layout" :size="14" class="text-purple-400 flex-shrink-0" />
           <div class="flex flex-col flex-1 min-w-0">
             <span class="text-xs font-medium text-foreground truncate">{{ l.name }}</span>
@@ -56,6 +78,13 @@ const filteredLayouts = computed(() => {
           >
             DEFAULT
           </span>
+          <button
+            class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-destructive rounded transition-all cursor-pointer flex-shrink-0"
+            title="Delete layout"
+            @click="confirmDelete(l)"
+          >
+            <SIcon icon="lucide:trash-2" :size="12" />
+          </button>
           <span v-if="l.filePath" class="file-name" :title="l.filePath">{{ filePath(l.filePath) }}</span>
         </div>
       </div>
@@ -65,5 +94,14 @@ const filteredLayouts = computed(() => {
         <div class="empty-desc">Add layout files to the layouts/ directory</div>
       </div>
     </div>
+    <ConfirmDialog
+      :open="!!deleteTarget"
+      title="Delete Layout"
+      :message="deleteMessage"
+      confirm-text="Delete"
+      variant="danger"
+      @confirm="handleDelete"
+      @cancel="deleteTarget = null"
+    />
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
 import type { DevToolsMiddlewareInfo } from '../composables/useRpc';
+import ConfirmDialog from '../components/ConfirmDialog.vue';
 
 const props = defineProps<{
   middlewares: DevToolsMiddlewareInfo[];
@@ -9,8 +10,13 @@ const props = defineProps<{
   filePath: (p?: string) => string;
 }>();
 
+const emit = defineEmits<{
+  delete: [middleware: DevToolsMiddlewareInfo];
+}>();
+
 const searchQuery = ref('');
 const filterGlobal = ref<string>('ALL');
+const deleteTarget = ref<DevToolsMiddlewareInfo | null>(null);
 
 const filteredMiddlewares = computed(() => {
   let mws = [...props.middlewares];
@@ -31,6 +37,22 @@ const filteredMiddlewares = computed(() => {
 
 const globalCount = computed(() => props.middlewares.filter(m => m.global).length);
 const routeCount = computed(() => props.middlewares.filter(m => !m.global).length);
+
+const deleteMessage = computed(() => {
+  if (!deleteTarget.value) return '';
+  return `Are you sure you want to delete middleware "${deleteTarget.value.path}"? A backup will be created.`;
+});
+
+function confirmDelete(mw: DevToolsMiddlewareInfo) {
+  deleteTarget.value = mw;
+}
+
+function handleDelete() {
+  if (deleteTarget.value) {
+    emit('delete', deleteTarget.value);
+    deleteTarget.value = null;
+  }
+}
 </script>
 
 <template>
@@ -87,12 +109,23 @@ const routeCount = computed(() => props.middlewares.filter(m => !m.global).lengt
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredMiddlewares.length > 0" class="flex flex-col gap-1">
-        <div v-for="(mw, i) in filteredMiddlewares" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
+        <div
+          v-for="(mw, i) in filteredMiddlewares"
+          :key="i"
+          class="list-item group hover:bg-secondary/30 transition-colors"
+        >
           <SIcon icon="lucide:layers" :size="14" class="text-warning flex-shrink-0" />
           <span class="font-mono text-foreground flex-1 text-xs truncate" :title="mw.path">{{ mw.path }}</span>
           <span v-if="mw.global" class="text-[10px] px-1.5 py-0.5 bg-warning/12 text-warning rounded-md font-semibold">
             GLOBAL
           </span>
+          <button
+            class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-destructive rounded transition-all cursor-pointer flex-shrink-0"
+            title="Delete middleware"
+            @click="confirmDelete(mw)"
+          >
+            <SIcon icon="lucide:trash-2" :size="12" />
+          </button>
           <span v-if="mw.filePath" class="file-name" :title="mw.filePath">{{ filePath(mw.filePath) }}</span>
         </div>
       </div>
@@ -102,5 +135,14 @@ const routeCount = computed(() => props.middlewares.filter(m => !m.global).lengt
         <div class="empty-desc">Add middleware files to intercept requests</div>
       </div>
     </div>
+    <ConfirmDialog
+      :open="!!deleteTarget"
+      title="Delete Middleware"
+      :message="deleteMessage"
+      confirm-text="Delete"
+      variant="danger"
+      @confirm="handleDelete"
+      @cancel="deleteTarget = null"
+    />
   </div>
 </template>

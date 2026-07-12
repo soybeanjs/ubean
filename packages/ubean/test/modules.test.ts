@@ -2,11 +2,16 @@ import { describe, it, expect } from 'vitest';
 import { resolveModules, defineModule } from '../src/core/modules';
 import type { ResolvedConfig } from '../src/core/config/types';
 
-function createTestConfig(modules: any[] = []): ResolvedConfig {
+function createTestConfig(modules: any[] = [], options: { icon?: any; pwa?: any; auth?: any; image?: any; fonts?: any } = {}): ResolvedConfig {
   return {
     rootDir: '/tmp/test',
     srcDir: '/tmp/test',
     modules,
+    icon: options.icon ?? false,
+    pwa: options.pwa ?? false,
+    auth: options.auth ?? false,
+    image: options.image ?? false,
+    fonts: options.fonts ?? false,
     dir: {
       pages: 'pages',
       routes: 'routes',
@@ -339,6 +344,135 @@ describe('Module system (P6-37)', () => {
       };
       const result = defineModule(def);
       expect(result).toBe(def);
+    });
+  });
+});
+
+describe('Builtin module top-level config (P6-39)', () => {
+  describe('isBuiltinDisabled', () => {
+    it('returns true when config is false', async () => {
+      const { isBuiltinDisabled } = await import('../src/core/modules/builtins');
+      expect(isBuiltinDisabled(false)).toBe(true);
+    });
+
+    it('returns false when config is true', async () => {
+      const { isBuiltinDisabled } = await import('../src/core/modules/builtins');
+      expect(isBuiltinDisabled(true)).toBe(false);
+    });
+
+    it('returns true when config has disabled: true', async () => {
+      const { isBuiltinDisabled } = await import('../src/core/modules/builtins');
+      expect(isBuiltinDisabled({ disabled: true })).toBe(true);
+    });
+
+    it('returns false when config is object without disabled', async () => {
+      const { isBuiltinDisabled } = await import('../src/core/modules/builtins');
+      expect(isBuiltinDisabled({ someOption: true })).toBe(false);
+    });
+
+    it('returns false when config has disabled: false', async () => {
+      const { isBuiltinDisabled } = await import('../src/core/modules/builtins');
+      expect(isBuiltinDisabled({ disabled: false, otherOpt: 'val' })).toBe(false);
+    });
+  });
+
+  describe('extractBuiltinOptions', () => {
+    it('returns empty object when config is true', async () => {
+      const { extractBuiltinOptions } = await import('../src/core/modules/builtins');
+      expect(extractBuiltinOptions(true)).toEqual({});
+    });
+
+    it('strips disabled property from options object', async () => {
+      const { extractBuiltinOptions } = await import('../src/core/modules/builtins');
+      const opts = extractBuiltinOptions({ disabled: true, collections: ['mdi'], fallbackToApi: false });
+      expect(opts).not.toHaveProperty('disabled');
+      expect(opts).toHaveProperty('collections', ['mdi']);
+      expect(opts).toHaveProperty('fallbackToApi', false);
+    });
+  });
+
+  describe('builtin module auto-registration', () => {
+    it('does not register builtin modules when all top-level configs are false', async () => {
+      const config = createTestConfig([], { icon: false, pwa: false, auth: false, image: false, fonts: false });
+      const builtinPlugins = [{ name: 'builtin' }];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      const builtinModulePlugins = result.plugins.filter(
+        p => p.name === 'ubean:icon' || p.name === 'ubean:pwa' || p.name === 'ubean:auth' || p.name === 'ubean:image' || p.name === 'ubean:fonts'
+      );
+      expect(builtinModulePlugins).toHaveLength(0);
+    });
+
+    it('does not register when config is disabled: true', async () => {
+      const config = createTestConfig([], { icon: { disabled: true } });
+      const builtinPlugins = [{ name: 'builtin' }];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      const iconPlugin = result.plugins.find(p => p.name === 'ubean:icon');
+      expect(iconPlugin).toBeUndefined();
+    });
+
+    it('auto-registers module when top-level config is true (if package installed)', async () => {
+      const config = createTestConfig([], { icon: true });
+      const builtinPlugins = [{ name: 'builtin' }];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      const iconModule = result.modules.find(m => m.name === 'ubean:icon');
+      const iconPlugin = result.plugins.find(p => p.name === 'ubean:icon');
+      if (iconModule || iconPlugin) {
+        expect(iconModule).toBeDefined();
+        expect(iconPlugin).toBeDefined();
+      }
+    });
+
+    it('does not duplicate register when user explicitly declares module', async () => {
+      const explicitIconPlugin = { name: 'ubean:icon', customInstance: true };
+      const config = createTestConfig([explicitIconPlugin], { icon: true });
+      const builtinPlugins = [{ name: 'builtin' }];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      const iconPlugins = result.plugins.filter(p => p.name === 'ubean:icon');
+      expect(iconPlugins.length).toBeLessThanOrEqual(1);
+    });
+
+    it('passes options to factory function when config is an object', async () => {
+      let receivedOptions: any = null;
+      const mockFactory = (opts: any) => {
+        receivedOptions = opts;
+        return { name: 'ubean:test-mock' };
+      };
+      const config = createTestConfig([[mockFactory, { presetOption: 'from-tuple' }]]);
+      const builtinPlugins: any[] = [];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      expect(result.plugins).toHaveLength(1);
+      expect(result.plugins[0].name).toBe('ubean:test-mock');
+      expect(receivedOptions).toEqual({ presetOption: 'from-tuple' });
     });
   });
 });

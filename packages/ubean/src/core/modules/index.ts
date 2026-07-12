@@ -4,8 +4,13 @@ import type {
   ResolvedModule,
   ResolvedConfig
 } from '../config/types';
+import {
+  BUILTIN_MODULES,
+  isBuiltinDisabled,
+  extractBuiltinOptions
+} from './builtins';
 
-const BUILTIN_MODULE_KEYS = new Set(['__ubean_core__', '__ubean_vue__', '__ubean_islands__']);
+const BUILTIN_CORE_KEYS = new Set(['__ubean_core__', '__ubean_vue__', '__ubean_islands__']);
 
 const MODULE_DEF_KEYS = new Set(['vitePlugin', 'setup', 'hooks', 'dependsOn']);
 
@@ -124,6 +129,57 @@ export interface ResolveModulesResult {
   setupFns: Array<(app: unknown) => void | Promise<void>>;
 }
 
+function userModulesHasBuiltin(userModules: unknown[], builtin: { modulePath: string; pluginName: string }): boolean {
+  for (const mod of userModules) {
+    if (typeof mod === 'string') {
+      if (mod === builtin.modulePath || mod.endsWith(builtin.modulePath)) {
+        return true;
+      }
+    } else if (Array.isArray(mod)) {
+      const [factory] = mod;
+      if (typeof factory === 'function') {
+        if (factory.name === builtin.pluginName.replace(':', '') + 'Plugin') {
+          return true;
+        }
+      }
+    } else if (mod && typeof mod === 'object') {
+      if (isModuleDefinition(mod) && mod.name === builtin.pluginName) {
+        return true;
+      }
+      const plugin = mod as VitePlugin;
+      if (plugin.name === builtin.pluginName) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+async function loadBuiltinModule(
+  builtin: { modulePath: string; factoryExport?: string; pluginName: string; key: string },
+  configValue: unknown
+): Promise<{ plugins: VitePlugin[]; name: string; key: string } | null> {
+  const options = extractBuiltinOptions(configValue);
+  try {
+    const mod = await import(/* @vite-ignore */ builtin.modulePath);
+    const factory = builtin.factoryExport ? mod[builtin.factoryExport] : (mod.default || mod);
+    if (typeof factory === 'function') {
+      const result = await factory(options, null);
+      if (result) {
+        const plugins = extractPlugins(result);
+        return {
+          plugins,
+          name: builtin.pluginName,
+          key: builtin.modulePath
+        };
+      }
+    }
+  } catch {
+    // Module not installed, skip auto-registration
+  }
+  return null;
+}
+
 export async function resolveModules(options: ResolveModulesOptions): Promise<ResolveModulesResult> {
   const { config, builtinPlugins } = options;
   const { modules: userModules = [] } = config;
@@ -140,11 +196,29 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
   };
   resolved.set(builtinModule.key, builtinModule);
 
+  for (const builtin of BUILTIN_MODULES) {
+    const configValue = config[builtin.key as keyof ResolvedConfig];
+    if (isBuiltinDisabled(configValue)) continue;
+    if (userModulesHasBuiltin(userModules, builtin)) continue;
+
+    const loaded = await loadBuiltinModule(builtin, configValue);
+    if (loaded && loaded.plugins.length > 0 && !resolved.has(loaded.key)) {
+      const resolvedMod: ResolvedModule = {
+        name: loaded.name,
+        key: loaded.key,
+        plugins: loaded.plugins,
+        dependsOn: []
+      };
+      resolved.set(loaded.key, resolvedMod);
+      plugins.push(...loaded.plugins);
+    }
+  }
+
   for (let i = 0; i < userModules.length; i++) {
     const mod = userModules[i];
     const key = getModuleKey(mod, i);
 
-    if (resolved.has(key) || BUILTIN_MODULE_KEYS.has(key)) {
+    if (resolved.has(key) || BUILTIN_CORE_KEYS.has(key)) {
       continue;
     }
 
@@ -153,6 +227,7 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
     let hooks: ModuleDefinition['hooks'] | undefined;
     let dependsOn: string[] = [];
     let name = getModuleName(mod, key);
+    let moduleOptions: Record<string, unknown> = {};
 
     if (typeof mod === 'string') {
       try {
@@ -177,6 +252,7 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
       }
     } else if (Array.isArray(mod)) {
       const [factory, factoryOptions] = mod;
+      moduleOptions = (factoryOptions as Record<string, unknown>) || {};
       if (typeof factory === 'function') {
         try {
           const result = await factory(factoryOptions, null);
@@ -216,7 +292,8 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
     plugins.push(...resolvedPlugins);
 
     if (setupFn) {
-      setupFns.push((app: unknown) => setupFn!({}, app));
+      const opts = moduleOptions;
+      setupFns.push((app: unknown) => setupFn!(opts, app));
     }
   }
 

@@ -7,6 +7,11 @@ const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
   srcDir: '.',
   modules: [],
+  icon: false,
+  pwa: false,
+  auth: false,
+  image: false,
+  fonts: false,
   dir: {
     pages: 'pages',
     routes: 'routes',

@@ -24,10 +24,20 @@ export interface ResolvedModule {
   dependsOn: string[];
 }
 
+export interface BuiltinModuleOptions {
+  disabled?: boolean;
+  [key: string]: unknown;
+}
+
 export interface UbeanConfig {
   rootDir?: string;
   srcDir?: string;
   modules?: ModuleConfiguration[];
+  icon?: boolean | BuiltinModuleOptions;
+  pwa?: boolean | BuiltinModuleOptions;
+  auth?: boolean | BuiltinModuleOptions;
+  image?: boolean | BuiltinModuleOptions;
+  fonts?: boolean | BuiltinModuleOptions;
   dir?: {
     pages?: string;
     routes?: string;
@@ -121,10 +131,15 @@ export interface RouteRule {
   prerender?: boolean;
 }
 
-export interface ResolvedConfig extends Required<Omit<UbeanConfig, 'build' | 'dev' | 'prerender'>> {
+export interface ResolvedConfig extends Required<Omit<UbeanConfig, 'build' | 'dev' | 'prerender' | 'icon' | 'pwa' | 'auth' | 'image' | 'fonts'>> {
   rootDir: string;
   srcDir: string;
   modules: ModuleConfiguration[];
+  icon: boolean | BuiltinModuleOptions;
+  pwa: boolean | BuiltinModuleOptions;
+  auth: boolean | BuiltinModuleOptions;
+  image: boolean | BuiltinModuleOptions;
+  fonts: boolean | BuiltinModuleOptions;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   dev: Required<NonNullable<UbeanConfig['dev']>>;
   build: Required<NonNullable<UbeanConfig['build']>>;

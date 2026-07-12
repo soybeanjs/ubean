@@ -56,8 +56,10 @@ export function serializePageData(pageObj: PageObject): string {
 }
 
 export function pageJsonResponse(pageObj: PageObject, headers: Record<string, string> = {}): Response {
-  return Response.json(pageObj, {
+  const safeJson = safeJsonStringify(pageObj);
+  return new Response(safeJson, {
     headers: {
+      'Content-Type': 'application/json',
       'X-UbeanPages': 'true',
       Vary: 'X-UbeanPages',
       ...headers

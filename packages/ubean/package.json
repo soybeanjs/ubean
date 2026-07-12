@@ -95,6 +95,7 @@
     "@codemirror/state": "catalog:",
     "@codemirror/theme-one-dark": "catalog:",
     "@codemirror/view": "catalog:",
+    "@playwright/test": "^1.61.1",
     "@soybeanjs/ui": "^0.29.3",
     "@soybeanjs/unocss-preset": "^0.2.0",
     "@soybeanjs/unocss-shadcn": "^0.29.3",

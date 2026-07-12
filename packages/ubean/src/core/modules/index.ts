@@ -1,3 +1,4 @@
+import { createHooks } from 'hookable';
 import type { Plugin as VitePlugin } from 'vite';
 import type {
   ModuleDefinition,
@@ -9,6 +10,15 @@ import {
   isBuiltinDisabled,
   extractBuiltinOptions
 } from './builtins';
+import {
+  createModuleKitContext,
+  topologicalSort,
+  type ModuleKitContext,
+  type ModuleHooks,
+  type ServerHandlerRegistration,
+  type DevServerHandlerRegistration,
+  type DevToolsCustomTab
+} from './kit';
 
 const BUILTIN_CORE_KEYS = new Set(['__ubean_core__', '__ubean_vue__', '__ubean_islands__']);
 
@@ -117,6 +127,17 @@ function extractDependsOn(mod: unknown): string[] {
   return [];
 }
 
+interface ParsedModule {
+  key: string;
+  name: string;
+  plugins: VitePlugin[];
+  setup?: ModuleDefinition['setup'];
+  hooks?: ModuleDefinition['hooks'];
+  dependsOn: string[];
+  options: Record<string, unknown>;
+  kit: ModuleKitContext;
+}
+
 export interface ResolveModulesOptions {
   cwd: string;
   config: ResolvedConfig;
@@ -126,7 +147,11 @@ export interface ResolveModulesOptions {
 export interface ResolveModulesResult {
   plugins: VitePlugin[];
   modules: ResolvedModule[];
-  setupFns: Array<(app: unknown) => void | Promise<void>>;
+  setupFns: Array<(kit?: ModuleKitContext) => void | Promise<void>>;
+  hooks: ReturnType<typeof createHooks<ModuleHooks>>;
+  serverHandlers: ServerHandlerRegistration[];
+  devServerHandlers: DevServerHandlerRegistration[];
+  devToolsTabs: DevToolsCustomTab[];
 }
 
 function userModulesHasBuiltin(userModules: unknown[], builtin: { modulePath: string; pluginName: string }): boolean {
@@ -158,19 +183,29 @@ function userModulesHasBuiltin(userModules: unknown[], builtin: { modulePath: st
 async function loadBuiltinModule(
   builtin: { modulePath: string; factoryExport?: string; pluginName: string; key: string },
   configValue: unknown
-): Promise<{ plugins: VitePlugin[]; name: string; key: string } | null> {
+): Promise<ParsedModule | null> {
   const options = extractBuiltinOptions(configValue);
+  const kit = createModuleKitContext(builtin.pluginName, options);
   try {
     const mod = await import(/* @vite-ignore */ builtin.modulePath);
     const factory = builtin.factoryExport ? mod[builtin.factoryExport] : (mod.default || mod);
     if (typeof factory === 'function') {
-      const result = await factory(options, null);
+      const result = await factory(options, kit);
       if (result) {
         const plugins = extractPlugins(result);
+        const setup = extractSetup(result);
+        const hooks = extractHooks(result);
+        const dependsOn = extractDependsOn(result);
+        plugins.push(...kit._vitePlugins);
         return {
-          plugins,
+          key: builtin.modulePath,
           name: builtin.pluginName,
-          key: builtin.modulePath
+          plugins,
+          setup,
+          hooks,
+          dependsOn,
+          options,
+          kit
         };
       }
     }
@@ -180,21 +215,102 @@ async function loadBuiltinModule(
   return null;
 }
 
+async function parseUserModule(mod: unknown, index: number): Promise<ParsedModule | null> {
+  const key = getModuleKey(mod, index);
+  const name = getModuleName(mod, key);
+  const options: Record<string, unknown> = {};
+  const kit = createModuleKitContext(name, options);
+
+  let resolvedPlugins: VitePlugin[] = [];
+  let setupFn: ModuleDefinition['setup'] | undefined;
+  let hooks: ModuleDefinition['hooks'] | undefined;
+  let dependsOn: string[] = [];
+
+  if (typeof mod === 'string') {
+    try {
+      const factoryMod = await import(/* @vite-ignore */ mod);
+      const factoryFn = factoryMod.default || factoryMod;
+      if (typeof factoryFn === 'function') {
+        const result = await factoryFn(options, kit);
+        if (result) {
+          if (Array.isArray(result)) {
+            resolvedPlugins = extractPlugins(result);
+          } else {
+            resolvedPlugins = extractPlugins(result);
+            setupFn = extractSetup(result);
+            hooks = extractHooks(result);
+            dependsOn = extractDependsOn(result);
+            if (isModuleDefinition(result) && result.name) {
+              kit.moduleName = result.name;
+            }
+          }
+        }
+      }
+    } catch {
+      // Module not found, skip
+      return null;
+    }
+  } else if (Array.isArray(mod)) {
+    const [factory, factoryOptions] = mod;
+    Object.assign(options, (factoryOptions as Record<string, unknown>) || {});
+    if (typeof factory === 'function') {
+      try {
+        const result = await factory(factoryOptions, kit);
+        if (result) {
+          if (Array.isArray(result)) {
+            resolvedPlugins = extractPlugins(result);
+          } else {
+            resolvedPlugins = extractPlugins(result);
+            setupFn = extractSetup(result);
+            hooks = extractHooks(result);
+            dependsOn = extractDependsOn(result);
+            if (isModuleDefinition(result) && result.name) {
+              kit.moduleName = result.name;
+            }
+          }
+        }
+      } catch {
+        // Factory failed, skip
+        return null;
+      }
+    }
+  } else if (mod && typeof mod === 'object') {
+    resolvedPlugins = extractPlugins(mod);
+    setupFn = extractSetup(mod);
+    hooks = extractHooks(mod);
+    dependsOn = extractDependsOn(mod);
+    if (isModuleDefinition(mod) && mod.name) {
+      kit.moduleName = mod.name;
+    }
+  } else {
+    return null;
+  }
+
+  resolvedPlugins.push(...kit._vitePlugins);
+
+  return {
+    key,
+    name: kit.moduleName || name,
+    plugins: resolvedPlugins,
+    setup: setupFn,
+    hooks,
+    dependsOn,
+    options,
+    kit
+  };
+}
+
 export async function resolveModules(options: ResolveModulesOptions): Promise<ResolveModulesResult> {
   const { config, builtinPlugins } = options;
   const { modules: userModules = [] } = config;
+  const moduleHooks = createHooks<ModuleHooks>();
 
-  const resolved = new Map<string, ResolvedModule>();
+  const parsed: ParsedModule[] = [];
+  const parsedKeys = new Set<string>();
   const plugins: VitePlugin[] = [...builtinPlugins];
-  const setupFns: Array<(app: unknown) => void | Promise<void>> = [];
-
-  const builtinModule: ResolvedModule = {
-    name: 'ubean-core',
-    key: '__ubean_core__',
-    plugins: builtinPlugins,
-    dependsOn: []
-  };
-  resolved.set(builtinModule.key, builtinModule);
+  const serverHandlers: ServerHandlerRegistration[] = [];
+  const devServerHandlers: DevServerHandlerRegistration[] = [];
+  const devToolsTabs: DevToolsCustomTab[] = [];
 
   for (const builtin of BUILTIN_MODULES) {
     const configValue = config[builtin.key as keyof ResolvedConfig];
@@ -202,15 +318,9 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
     if (userModulesHasBuiltin(userModules, builtin)) continue;
 
     const loaded = await loadBuiltinModule(builtin, configValue);
-    if (loaded && loaded.plugins.length > 0 && !resolved.has(loaded.key)) {
-      const resolvedMod: ResolvedModule = {
-        name: loaded.name,
-        key: loaded.key,
-        plugins: loaded.plugins,
-        dependsOn: []
-      };
-      resolved.set(loaded.key, resolvedMod);
-      plugins.push(...loaded.plugins);
+    if (loaded && !BUILTIN_CORE_KEYS.has(loaded.key) && !parsedKeys.has(loaded.key)) {
+      parsedKeys.add(loaded.key);
+      parsed.push(loaded);
     }
   }
 
@@ -218,94 +328,82 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
     const mod = userModules[i];
     const key = getModuleKey(mod, i);
 
-    if (resolved.has(key) || BUILTIN_CORE_KEYS.has(key)) {
-      continue;
+    if (BUILTIN_CORE_KEYS.has(key) || parsedKeys.has(key)) continue;
+
+    const parsedMod = await parseUserModule(mod, i);
+    if (parsedMod) {
+      parsedKeys.add(parsedMod.key);
+      parsed.push(parsedMod);
+    }
+  }
+
+  const keyToIndex = new Map<string, number>();
+  for (let i = 0; i < parsed.length; i++) {
+    keyToIndex.set(parsed[i].key, i);
+  }
+
+  const sorted = topologicalSort(parsed, keyToIndex);
+
+  const resolvedModules: ResolvedModule[] = [];
+
+  const coreModule: ResolvedModule = {
+    name: 'ubean-core',
+    key: '__ubean_core__',
+    plugins: builtinPlugins,
+    dependsOn: []
+  };
+  resolvedModules.push(coreModule);
+
+  for (const mod of sorted) {
+    if (mod.setup) {
+      const setup = mod.setup;
+      const kit = mod.kit;
+      kit.hooks = {
+        hook: ((name: keyof ModuleHooks, fn: any) => moduleHooks.hook(name, fn)) as any,
+        callHook: (async (name: keyof ModuleHooks, ...args: any[]) => { await moduleHooks.callHook(name, ...args as any); }) as any
+      };
+      await setup(mod.options, kit);
     }
 
-    let resolvedPlugins: VitePlugin[] = [];
-    let setupFn: ModuleDefinition['setup'] | undefined;
-    let hooks: ModuleDefinition['hooks'] | undefined;
-    let dependsOn: string[] = [];
-    let name = getModuleName(mod, key);
-    let moduleOptions: Record<string, unknown> = {};
-
-    if (typeof mod === 'string') {
-      try {
-        const factory = await import(/* @vite-ignore */ mod);
-        const factoryFn = factory.default || factory;
-        if (typeof factoryFn === 'function') {
-          const result = await factoryFn({}, null);
-          if (result) {
-            if (Array.isArray(result)) {
-              resolvedPlugins = extractPlugins(result);
-            } else {
-              resolvedPlugins = extractPlugins(result);
-              setupFn = extractSetup(result);
-              hooks = extractHooks(result);
-              dependsOn = extractDependsOn(result);
-              if (isModuleDefinition(result) && result.name) name = result.name;
-            }
-          }
-        }
-      } catch {
-        // Module not found, skip
+    if (mod.hooks) {
+      for (const [hookName, hookFn] of Object.entries(mod.hooks)) {
+        moduleHooks.hook(hookName as keyof ModuleHooks, hookFn as any);
       }
-    } else if (Array.isArray(mod)) {
-      const [factory, factoryOptions] = mod;
-      moduleOptions = (factoryOptions as Record<string, unknown>) || {};
-      if (typeof factory === 'function') {
-        try {
-          const result = await factory(factoryOptions, null);
-          if (result) {
-            if (Array.isArray(result)) {
-              resolvedPlugins = extractPlugins(result);
-            } else {
-              resolvedPlugins = extractPlugins(result);
-              setupFn = extractSetup(result);
-              hooks = extractHooks(result);
-              dependsOn = extractDependsOn(result);
-              if (isModuleDefinition(result) && result.name) name = result.name;
-            }
-          }
-        } catch {
-          // Factory failed, skip
-        }
-      }
-    } else {
-      resolvedPlugins = extractPlugins(mod);
-      setupFn = extractSetup(mod);
-      hooks = extractHooks(mod);
-      dependsOn = extractDependsOn(mod);
-      if (isModuleDefinition(mod) && mod.name) name = mod.name;
     }
 
-    const resolvedMod: ResolvedModule = {
-      name,
-      key,
-      plugins: resolvedPlugins,
-      setup: setupFn,
-      hooks,
-      dependsOn
-    };
+    plugins.push(...mod.plugins);
+    plugins.push(...mod.kit._vitePlugins);
+    serverHandlers.push(...mod.kit._serverHandlers);
+    devServerHandlers.push(...mod.kit._devServerHandlers);
+    devToolsTabs.push(...mod.kit._devToolsTabs);
 
-    resolved.set(key, resolvedMod);
-    plugins.push(...resolvedPlugins);
-
-    if (setupFn) {
-      const opts = moduleOptions;
-      setupFns.push((app: unknown) => setupFn!(opts, app));
-    }
+    resolvedModules.push({
+      name: mod.name,
+      key: mod.key,
+      plugins: [...mod.plugins, ...mod.kit._vitePlugins],
+      options: mod.options,
+      setup: mod.setup,
+      hooks: mod.hooks,
+      dependsOn: mod.dependsOn
+    });
   }
 
   return {
     plugins,
-    modules: Array.from(resolved.values()),
-    setupFns
+    modules: resolvedModules,
+    setupFns: [],
+    hooks: moduleHooks,
+    serverHandlers,
+    devServerHandlers,
+    devToolsTabs
   };
 }
 
 export function defineModule<TOptions = unknown>(
-  def: ModuleDefinition & { setup?: (options: TOptions, app: unknown) => void | Promise<void> }
+  def: ModuleDefinition & { setup?: (options: TOptions, kit: ModuleKitContext) => void | Promise<void> }
 ): ModuleDefinition {
   return def;
 }
+
+export { createModuleKitContext } from './kit';
+export type { ModuleKitContext, ModuleHooks, ServerHandlerRegistration, DevServerHandlerRegistration } from './kit';

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { resolveModules, defineModule } from '../src/core/modules';
 import type { ResolvedConfig } from '../src/core/config/types';
 
@@ -151,7 +151,7 @@ describe('Module system (P6-37)', () => {
       expect(result.plugins[2].name).toBe('plugin-b');
     });
 
-    it('extracts setup function from ModuleDefinition', async () => {
+    it('extracts setup function from ModuleDefinition and calls it during resolution', async () => {
       let setupCalled = false;
       const def = defineModule({
         name: 'setup-module',
@@ -169,8 +169,7 @@ describe('Module system (P6-37)', () => {
         builtinPlugins
       });
 
-      expect(result.setupFns).toHaveLength(1);
-      await result.setupFns[0](null);
+      expect(result.plugins.find(p => p.name === 'setup-plugin')).toBeDefined();
       expect(setupCalled).toBe(true);
     });
 
@@ -473,6 +472,174 @@ describe('Builtin module top-level config (P6-39)', () => {
       expect(result.plugins).toHaveLength(1);
       expect(result.plugins[0].name).toBe('ubean:test-mock');
       expect(receivedOptions).toEqual({ presetOption: 'from-tuple' });
+    });
+  });
+});
+
+describe('Module hooks and kit API (P6-40)', () => {
+  describe('topologicalSort', () => {
+    it('sorts modules by dependencies', async () => {
+      const { topologicalSort } = await import('../src/core/modules/kit');
+      const modules = [
+        { key: 'c', name: 'C', dependsOn: ['b'] },
+        { key: 'a', name: 'A', dependsOn: [] },
+        { key: 'b', name: 'B', dependsOn: ['a'] }
+      ];
+      const keyToIndex = new Map(modules.map((m, i) => [m.key, i]));
+      const sorted = topologicalSort(modules, keyToIndex);
+      expect(sorted.map(m => m.key)).toEqual(['a', 'b', 'c']);
+    });
+
+    it('handles modules with no dependencies', async () => {
+      const { topologicalSort } = await import('../src/core/modules/kit');
+      const modules = [
+        { key: 'x', name: 'X', dependsOn: [] },
+        { key: 'y', name: 'Y', dependsOn: [] },
+        { key: 'z', name: 'Z', dependsOn: [] }
+      ];
+      const keyToIndex = new Map(modules.map((m, i) => [m.key, i]));
+      const sorted = topologicalSort(modules, keyToIndex);
+      expect(sorted).toHaveLength(3);
+    });
+
+    it('handles circular dependencies gracefully', async () => {
+      const { topologicalSort } = await import('../src/core/modules/kit');
+      const modules = [
+        { key: 'a', name: 'A', dependsOn: ['b'] },
+        { key: 'b', name: 'B', dependsOn: ['a'] }
+      ];
+      const keyToIndex = new Map(modules.map((m, i) => [m.key, i]));
+      const sorted = topologicalSort(modules, keyToIndex);
+      expect(sorted).toHaveLength(2);
+    });
+  });
+
+  describe('kit context API', () => {
+    it('setup function receives kit context with addVitePlugin', async () => {
+      const setup = vi.fn();
+      const def = defineModule({
+        name: 'kit-test-module',
+        setup: (options: any, kit: any) => {
+          kit.addVitePlugin({ name: 'added-via-kit' });
+          setup(options, kit);
+        }
+      });
+      const config = createTestConfig([def]);
+      const builtinPlugins: any[] = [];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      expect(setup).toHaveBeenCalled();
+      const addedPlugin = result.plugins.find(p => p.name === 'added-via-kit');
+      expect(addedPlugin).toBeDefined();
+    });
+
+    it('setup function receives kit context with addServerHandler', async () => {
+      const def = defineModule({
+        name: 'handler-test-module',
+        setup: (_options: any, kit: any) => {
+          kit.addServerHandler({ route: '/api/test', handler: () => new Response('ok') });
+        }
+      });
+      const config = createTestConfig([def]);
+      const builtinPlugins: any[] = [];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      expect(result.serverHandlers).toHaveLength(1);
+      expect(result.serverHandlers[0].route).toBe('/api/test');
+    });
+
+    it('setup function receives kit context with addDevServerHandler', async () => {
+      const def = defineModule({
+        name: 'dev-handler-module',
+        setup: (_options: any, kit: any) => {
+          kit.addDevServerHandler({ route: '/_dev/test', handler: () => new Response('dev') });
+        }
+      });
+      const config = createTestConfig([def]);
+      const builtinPlugins: any[] = [];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      expect(result.devServerHandlers).toHaveLength(1);
+      expect(result.devServerHandlers[0].route).toBe('/_dev/test');
+    });
+
+    it('setup function can register hooks via kit', async () => {
+      let hookCalled = false;
+      const def = defineModule({
+        name: 'hook-module',
+        setup: (_options: any, kit: any) => {
+          kit.hooks.hook('app:ready', () => {
+            hookCalled = true;
+          });
+        }
+      });
+      const config = createTestConfig([def]);
+      const builtinPlugins: any[] = [];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      await result.hooks.callHook('app:ready', {} as any);
+      expect(hookCalled).toBe(true);
+    });
+
+    it('setup function receives options', async () => {
+      let receivedOpts: any = null;
+      const factory = (opts: any, kit: any) => {
+        receivedOpts = opts;
+        return { name: 'opts-factory' };
+      };
+      const config = createTestConfig([[factory, { foo: 'bar', count: 42 }]]);
+      const builtinPlugins: any[] = [];
+
+      await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      expect(receivedOpts).toEqual({ foo: 'bar', count: 42 });
+    });
+
+    it('returns hooks instance for module hooks', async () => {
+      const hookFn = vi.fn();
+      const def = defineModule({
+        name: 'hooks-module',
+        hooks: {
+          'app:ready': hookFn
+        },
+        vitePlugin: { name: 'hooks-plugin' }
+      });
+      const config = createTestConfig([def]);
+      const builtinPlugins: any[] = [];
+
+      const result = await resolveModules({
+        cwd: '/tmp/test',
+        config,
+        builtinPlugins
+      });
+
+      expect(result.hooks).toBeDefined();
+      await result.hooks.callHook('app:ready', {} as any);
+      expect(hookFn).toHaveBeenCalled();
     });
   });
 });

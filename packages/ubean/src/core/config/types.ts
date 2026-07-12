@@ -19,6 +19,7 @@ export interface ResolvedModule {
   name: string;
   key: string;
   plugins: VitePlugin[];
+  options?: Record<string, unknown>;
   setup?: (options: unknown, app: unknown) => void | Promise<void>;
   hooks?: Record<string, (...args: unknown[]) => void | Promise<void>>;
   dependsOn: string[];

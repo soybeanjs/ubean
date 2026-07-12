@@ -464,3 +464,59 @@ void runMain(main);
 - 每次发布前使用 `pnpm pack` 安装到独立 fixture，验证所有公开入口、条件导出和类型声明。
 
 ---
+
+## 9. 实现规范与参考资源
+
+### 9.1 UI 组件规范 (DevTools)
+
+DevTools 面板的 UI 实现必须使用 `@soybeanjs/ui` 组件库，遵循以下规范：
+
+1. **组件库选择**：优先使用 `@soybeanjs/ui` 的预样式化 `S*` 组件（如 `SButton`、`SCard`、`STabs`、`STable`、`SInput`、`SModal` 等）
+2. **样式引入**：使用时在入口文件引入样式：
+   ```typescript
+   import '@soybeanjs/ui/styles.css';
+   ```
+3. **自动导入配置**：通过 `unplugin-vue-components` 配合 `UiResolver` 实现自动导入：
+   ```typescript
+   import Components from 'unplugin-vue-components/vite';
+   import { UiResolver } from '@soybeanjs/ui/resolver';
+   
+   Components({
+     resolvers: [UiResolver()]
+   });
+   ```
+4. **主题配置**：使用 `SConfigProvider` 进行全局主题、尺寸、语言配置
+5. **参考文档**：
+   - 本地 Skill: `~/.agents/skills/soybean-ui/`
+   - 在线文档: `https://ui.soybeanjs.cn/`
+   - 组件参考: `https://ui.soybeanjs.cn/llms.txt`
+
+### 9.2 平台适配参考
+
+各平台 (preset) 的适配实现必须优先参考以下开源项目：
+
+1. **Nitro** (`/Users/soybean/Web/Projects/OpenSource/nitro`)
+   - 参考 Nitro 的 preset 架构设计
+   - 参考 Nitro 的平台能力检测与降级策略
+   - 参考 Nitro 的构建输出结构和 runtime 适配
+   - 重点关注：preset 定义、rollup 配置、runtime entry、平台特定 hooks
+
+2. **Hono Vite Plugins** (`https://github.com/honojs/vite-plugins`)
+   - 参考 Hono 官方 Vite 插件实现
+   - 参考 dev server 集成模式
+   - 参考 HMR 和热重载策略
+   - 重点关注：vite-plugin 开发、dev 模式中间件、客户端注入
+
+3. **参考原则**：
+   - 不要直接复制代码，而是学习架构设计和实现模式
+   - 保持 ubean 的 API 设计一致性
+   - 所有适配层必须有对应的测试用例
+   - 平台特定能力必须通过 capability 矩阵声明
+
+### 9.3 依赖安装规范
+
+- 使用 `pnpm` 作为包管理器，遵循 workspace catalog 版本管理
+- UI 相关依赖（@soybeanjs/ui 等）仅在需要时引入，不强制用户安装
+- DevTools 相关依赖作为 devDependencies 或按需动态导入
+
+---

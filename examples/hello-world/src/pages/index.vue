@@ -7,7 +7,7 @@ definePageMeta({
 <template>
   <div class="container">
     <h1>Hello World</h1>
-    <p>Welcome to uBean!</p>
+    <p>Welcome to ubean!</p>
     <p>This is a minimal hello-world example.</p>
   </div>
 </template>

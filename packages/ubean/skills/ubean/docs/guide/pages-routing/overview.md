@@ -1,6 +1,6 @@
 # Pages and Routing Overview
 
-uBean uses a file-based routing system similar to Next.js and Nuxt.
+ubean uses a file-based routing system similar to Next.js and Nuxt.
 
 ## Page Components
 
@@ -98,9 +98,7 @@ Use `definePageMeta` to configure page options:
 definePageMeta({
   layout: 'default',
   title: 'My Page',
-  meta: [
-    { name: 'description', content: 'My page description' }
-  ],
+  meta: [{ name: 'description', content: 'My page description' }],
   public: false
 });
 </script>
@@ -129,10 +127,10 @@ Get current route information:
 
 ```typescript
 const route = useRoute();
-console.log(route.path);      // Current path
-console.log(route.params);    // Route parameters
-console.log(route.query);     // Query parameters
-console.log(route.hash);      // Hash fragment
+console.log(route.path); // Current path
+console.log(route.params); // Route parameters
+console.log(route.query); // Query parameters
+console.log(route.hash); // Hash fragment
 ```
 
 ### navigateTo()
@@ -203,7 +201,7 @@ Middleware runs before page or API routes:
 // src/middleware/auth.ts
 import { defineMiddleware } from '@ubean/core';
 
-export default defineMiddleware((c) => {
+export default defineMiddleware(c => {
   const user = c.get('user');
   if (!user) {
     return c.redirect('/login');

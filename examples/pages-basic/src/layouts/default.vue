@@ -19,7 +19,7 @@ defineSlots<{
       <slot />
     </main>
     <footer>
-      <p>© 2024 uBean</p>
+      <p>© 2024 ubean</p>
     </footer>
   </div>
 </template>

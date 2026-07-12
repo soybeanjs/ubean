@@ -7,12 +7,12 @@ definePageMeta({
 <template>
   <div class="about">
     <h1>About</h1>
-    <p>uBean is a full-stack framework for building modern web applications.</p>
-    
+    <p>ubean is a full-stack framework for building modern web applications.</p>
+
     <div class="about-content">
-      <h2>What is uBean?</h2>
-      <p>uBean combines Vite, Hono, and Vue to provide a powerful development experience.</p>
-      
+      <h2>What is ubean?</h2>
+      <p>ubean combines Vite, Hono, and Vue to provide a powerful development experience.</p>
+
       <h2>Key Features</h2>
       <ul>
         <li>Fast development with Vite</li>

@@ -1,6 +1,6 @@
-# uBean Skill
+# ubean Skill
 
-> uBean is a full-stack framework for building modern web applications. It combines Vite, Hono, and Vue to provide a powerful development experience.
+> ubean is a full-stack framework for building modern web applications. It combines Vite, Hono, and Vue to provide a powerful development experience.
 
 ## Agent Info
 
@@ -11,15 +11,15 @@
 
 ## Commands
 
-| Command | Description | Usage |
-|---------|-------------|-------|
-| init | Initialize a new ubean project | `ubean init [options]` |
-| dev | Start development server | `ubean dev [options]` |
-| build | Build for production | `ubean build [options]` |
-| preview | Preview production build | `ubean preview [options]` |
-| config | Show resolved configuration | `ubean config [options]` |
-| page | Scaffold a new page | `ubean page <name>` |
-| devtools | Open DevTools | `ubean devtools` |
+| Command  | Description                    | Usage                     |
+| -------- | ------------------------------ | ------------------------- |
+| init     | Initialize a new ubean project | `ubean init [options]`    |
+| dev      | Start development server       | `ubean dev [options]`     |
+| build    | Build for production           | `ubean build [options]`   |
+| preview  | Preview production build       | `ubean preview [options]` |
+| config   | Show resolved configuration    | `ubean config [options]`  |
+| page     | Scaffold a new page            | `ubean page <name>`       |
+| devtools | Open DevTools                  | `ubean devtools`          |
 
 ### Command Details
 
@@ -28,6 +28,7 @@
 Initialize a new ubean project with interactive wizard or non-interactive mode.
 
 **Options:**
+
 - `--name, -n`: Project name
 - `--template, -t`: Template (starter, minimal, blog)
 - `--preset, -p`: Preset (standard, node, cloudflare)
@@ -37,6 +38,7 @@ Initialize a new ubean project with interactive wizard or non-interactive mode.
 - `--git`: Initialize git repository
 
 **Examples:**
+
 ```bash
 ubean init
 ubean init --name my-app --template starter --preset node
@@ -48,12 +50,14 @@ ubean init -n blog -t blog -y
 Start the development server with hot module replacement.
 
 **Options:**
+
 - `--port, -p`: Server port (default: 5173)
 - `--host`: Host to listen on
 - `--https`: Enable HTTPS
 - `--open`: Open browser on start
 
 **Examples:**
+
 ```bash
 ubean dev
 ubean dev --port 3000 --host 0.0.0.0
@@ -64,11 +68,13 @@ ubean dev --port 3000 --host 0.0.0.0
 Build the application for production.
 
 **Options:**
+
 - `--preset, -p`: Build preset (standard, node, cloudflare)
 - `--clean`: Clean output directory before build
 - `--sourcemap`: Generate source maps
 
 **Examples:**
+
 ```bash
 ubean build
 ubean build --preset cloudflare
@@ -79,10 +85,12 @@ ubean build --preset cloudflare
 Preview the production build locally.
 
 **Options:**
+
 - `--port, -p`: Preview port (default: 4173)
 - `--host`: Host to listen on
 
 **Examples:**
+
 ```bash
 ubean preview
 ubean preview --port 3000
@@ -93,10 +101,12 @@ ubean preview --port 3000
 Show resolved configuration.
 
 **Options:**
+
 - `--json`: Output as JSON
 - `--env`: Show environment variables
 
 **Examples:**
+
 ```bash
 ubean config
 ubean config --json
@@ -107,9 +117,11 @@ ubean config --json
 Scaffold a new page component.
 
 **Arguments:**
+
 - `<name>`: Page name (e.g., "about", "blog/post")
 
 **Examples:**
+
 ```bash
 ubean page about
 ubean page "blog/post"
@@ -120,6 +132,7 @@ ubean page "blog/post"
 Open the DevTools panel.
 
 **Examples:**
+
 ```bash
 ubean devtools
 ```
@@ -128,10 +141,10 @@ ubean devtools
 
 ### Built-in Routes
 
-| Route | Method | Description |
-|-------|--------|-------------|
-| `/api/_health` | GET | Health check endpoint |
-| `/api/_devtools/rpc` | POST | DevTools RPC endpoint |
+| Route                   | Method              | Description                  |
+| ----------------------- | ------------------- | ---------------------------- |
+| `/api/_health`          | GET                 | Health check endpoint        |
+| `/api/_devtools/rpc`    | POST                | DevTools RPC endpoint        |
 | `/api/_devtools/crud/*` | GET/POST/PUT/DELETE | CRUD operations for DevTools |
 
 ### Custom Routes
@@ -199,10 +212,10 @@ export default defineConfig({
   modules: [
     // Vite plugin instance
     somePlugin(),
-    
+
     // Factory tuple
     [iconFactory, { prefix: 'icon-' }],
-    
+
     // Module definition
     {
       name: 'my-module',
@@ -219,33 +232,39 @@ export default defineConfig({
 ## Key Features
 
 ### 1. Full-Stack Framework
+
 - Server-side rendering (SSR) with Vue
 - Client-side hydration
 - Islands architecture for partial hydration
 
 ### 2. Vite Integration
+
 - Middleware mode for dev server
 - Hot module replacement
 - Virtual modules for framework internals
 
 ### 3. Module System
+
 - Plugin-based architecture
 - Topological dependency resolution
 - Nuxt Kit-style API (addServerHandler, addVitePlugin, etc.)
 
 ### 4. Internationalization
+
 - Built-in i18n support
 - Locale auto-detection
 - Pluralization and Intl formatting
 - SEO-friendly locale routing
 
 ### 5. DevTools
+
 - Real-time inspection
 - API documentation
 - CRUD operations
 - AI assistant
 
 ### 6. Platform Presets
+
 - Standard: Generic fetch handler
 - Node: Node.js HTTP server
 - Cloudflare: Cloudflare Workers

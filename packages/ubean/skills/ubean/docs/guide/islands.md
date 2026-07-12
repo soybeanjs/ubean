@@ -1,6 +1,6 @@
 # Islands Architecture
 
-uBean supports partial hydration with islands architecture.
+ubean supports partial hydration with islands architecture.
 
 ## Overview
 
@@ -88,7 +88,7 @@ import { ref } from 'vue';
 
 defineProps<{
   initial?: number;
-}>(); 
+}>();
 
 const count = ref(0);
 </script>
@@ -147,11 +147,7 @@ import UserProfile from '@/components/UserProfile.client.vue';
 </script>
 
 <template>
-  <UserProfile 
-    client:visible 
-    :user-id="123" 
-    :theme="'dark'" 
-  />
+  <UserProfile client:visible :user-id="123" :theme="'dark'" />
 </template>
 ```
 

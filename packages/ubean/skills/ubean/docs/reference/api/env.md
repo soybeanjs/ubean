@@ -25,13 +25,13 @@ export default defineEnv({
 
 ### Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| type | String \| Number \| Boolean | Variable type |
-| default | any | Default value |
-| required | boolean | Required flag |
-| throw | boolean | Throw error if missing |
-| warn | boolean | Warn if missing |
+| Option   | Type                        | Description            |
+| -------- | --------------------------- | ---------------------- |
+| type     | String \| Number \| Boolean | Variable type          |
+| default  | any                         | Default value          |
+| required | boolean                     | Required flag          |
+| throw    | boolean                     | Throw error if missing |
+| warn     | boolean                     | Warn if missing        |
 
 ### Example
 
@@ -40,20 +40,20 @@ export default defineEnv({
   // String with default
   APP_NAME: {
     type: String,
-    default: 'uBean'
+    default: 'ubean'
   },
-  
+
   // Required number
   PORT: {
     type: Number,
     required: true
   },
-  
+
   // Boolean with validation
   ENABLE_FEATURE: {
     type: Boolean,
     default: false,
-    validate: (value) => {
+    validate: value => {
       return ['true', 'false', '1', '0'].includes(value);
     }
   }
@@ -124,13 +124,13 @@ setRuntimeEnv({ API_URL: 'https://new.com' });
 Variables prefixed with `PUBLIC_` are available on the client:
 
 ```
-PUBLIC_APP_NAME=uBean
+PUBLIC_APP_NAME=ubean
 PUBLIC_API_URL=https://api.example.com
 ```
 
 ```typescript
 const env = useRuntimeEnv();
-console.log(env.PUBLIC_APP_NAME);  // Available on client
+console.log(env.PUBLIC_APP_NAME); // Available on client
 ```
 
 ### Private Variables
@@ -145,7 +145,7 @@ DATABASE_URL=postgres://...
 ```typescript
 // Only available on server
 const env = useRuntimeEnv();
-console.log(env.API_KEY);  // undefined on client
+console.log(env.API_KEY); // undefined on client
 ```
 
 ## .env Files
@@ -155,7 +155,7 @@ console.log(env.API_KEY);  // undefined on client
 Base environment file:
 
 ```
-APP_NAME=uBean
+APP_NAME=ubean
 API_URL=https://api.example.com
 ```
 
@@ -193,7 +193,7 @@ API_URL=http://localhost:3000
 export default defineEnv({
   PORT: {
     type: Number,
-    validate: (value) => {
+    validate: value => {
       const num = parseInt(value);
       return num > 0 && num < 65536;
     }
@@ -207,7 +207,7 @@ export default defineEnv({
 export default defineEnv({
   NODE_ENV: {
     type: String,
-    validate: (value) => {
+    validate: value => {
       return ['development', 'production', 'test'].includes(value);
     }
   }
@@ -238,7 +238,7 @@ export default defineEnv({
   DATABASE_URL: {
     type: String,
     required: true,
-    throw: true  // Throw error if missing
+    throw: true // Throw error if missing
   }
 });
 ```
@@ -250,7 +250,7 @@ export default defineEnv({
   API_KEY: {
     type: String,
     required: true,
-    warn: true  // Warn but continue
+    warn: true // Warn but continue
   }
 });
 ```
@@ -259,7 +259,7 @@ export default defineEnv({
 
 ### Generated Types
 
-uBean generates TypeScript types for environment variables:
+ubean generates TypeScript types for environment variables:
 
 ```typescript
 // .ubean/env.d.ts
@@ -281,7 +281,7 @@ const env = useRuntimeEnv() as UbeanEnv;
 ## Best Practices
 
 1. **Never commit secrets**: Use `.env.local` for secrets
-2. **Use PUBLIC_ prefix**: Only expose necessary variables to client
+2. **Use PUBLIC\_ prefix**: Only expose necessary variables to client
 3. **Validate all variables**: Use `validate` option
 4. **Provide defaults**: Use `default` for optional variables
 5. **Document variables**: Add comments to `defineEnv`

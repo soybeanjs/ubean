@@ -101,7 +101,7 @@ describe('i18n pluralization and message enhancements (P6-34)', () => {
         code: 'en',
         messages: {
           app: {
-            name: 'uBean'
+            name: 'ubean'
           },
           welcome: 'Welcome to @:app.name!'
         },
@@ -109,7 +109,7 @@ describe('i18n pluralization and message enhancements (P6-34)', () => {
       });
 
       const i18n = useI18n();
-      expect(i18n.t('welcome')).toBe('Welcome to uBean!');
+      expect(i18n.t('welcome')).toBe('Welcome to ubean!');
     });
 
     it('resolves @{key} references', () => {

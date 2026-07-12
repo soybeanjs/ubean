@@ -1,6 +1,6 @@
 # Quick Start
 
-Get started with uBean in minutes.
+Get started with ubean in minutes.
 
 ## Prerequisites
 

@@ -6,9 +6,9 @@ definePageMeta({
 
 <template>
   <div class="home">
-    <h1>Welcome to uBean</h1>
+    <h1>Welcome to ubean</h1>
     <p>This is a basic pages example with navigation and layouts.</p>
-    
+
     <div class="features">
       <h2>Features</h2>
       <ul>

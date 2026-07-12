@@ -1,6 +1,62 @@
-# ubean Skill
+---
+name: ubean
+display_name: uBean Framework
+description: Full-stack web framework powered by Vite, Hono, and Vue. Build modern web applications with SSR, file-based routing, islands architecture, and built-in DevTools.
+version: 0.0.1
+author: SoybeanJS
+license: MIT
+category: Web Framework
+repository: https://github.com/SoybeanJS/ubean
+homepage: https://ubean.soybeanjs.cn
+keywords:
+  - vue
+  - vite
+  - hono
+  - full-stack
+  - ssr
+  - ssg
+  - meta-framework
+  - devtools
+---
 
-> ubean is a full-stack framework for building modern web applications. It combines Vite, Hono, and Vue to provide a powerful development experience.
+# uBean Skill
+
+> uBean is a full-stack framework for building modern web applications. It combines Vite, Hono, and Vue to provide a powerful development experience.
+
+## When to Use This Skill
+
+Use this skill when working with uBean framework projects, including:
+
+- Creating new uBean projects with `ubean init`
+- Developing pages with file-based routing
+- Building API routes with Hono
+- Working with data loaders and actions
+- Configuring internationalization (i18n)
+- Using islands architecture for partial hydration
+- Configuring modules and plugins
+- Debugging with uBean DevTools
+- Building for different platforms (Node.js, Cloudflare Workers)
+- Using the built-in icon system
+
+## Quick Start
+
+### Create a New Project
+
+```bash
+# Interactive mode
+pnpm create ubean@latest
+
+# Non-interactive mode
+pnpm create ubean@latest my-app --template starter --preset node -y
+```
+
+### Development Workflow
+
+```bash
+cd my-app
+pnpm install
+pnpm dev
+```
 
 ## Agent Info
 
@@ -197,11 +253,11 @@ export default defineConfig({
   rootDir: '.',
   srcDir: 'src',
   modules: [],
-  icon: false,
-  pwa: false,
-  auth: false,
-  image: false,
-  fonts: false
+  icon: false,       // @ubean/icon: built-in icon system (UbeanIcon), disabled by default, set to true to enable
+  pwa: false,        // @ubean/pwa: PWA support, disabled by default
+  auth: false,       // @ubean/auth: authentication, disabled by default
+  image: false,      // @ubean/image: image optimization, disabled by default
+  fonts: false       // @ubean/fonts: font optimization, disabled by default
 });
 ```
 
@@ -223,11 +279,23 @@ export default defineConfig({
       setup(options, kit) {
         kit.addServerHandler({ route: '/api/hello', handler: () => 'Hello' });
       },
-      dependsOn: ['@ubean/icon']
+      dependsOn: ['icon']
     }
   ]
 });
 ```
+
+### Built-in Module Keys
+
+Use these keys in `dependsOn` for built-in modules:
+
+| Key | Module |
+|-----|--------|
+| `icon` | @ubean/icon (icon system, UbeanIcon component) |
+| `pwa` | @ubean/pwa (PWA support) |
+| `auth` | @ubean/auth (authentication) |
+| `image` | @ubean/image (image optimization) |
+| `fonts` | @ubean/fonts (font optimization) |
 
 ## Key Features
 

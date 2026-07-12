@@ -24,7 +24,7 @@ export default defineConfig({
       setup(_, kit) {
         const client = postgres(process.env.DATABASE_URL);
         const db = drizzle(client);
-        
+
         kit.addVirtualImports({
           '#drizzle/db': () => ({ default: db })
         });
@@ -227,7 +227,7 @@ export default defineConfig({
       name: 'mongoose',
       setup(_, kit) {
         mongoose.connect(process.env.MONGODB_URI);
-        
+
         kit.addVirtualImports({
           '#mongoose': () => ({ default: mongoose })
         });

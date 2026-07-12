@@ -13,13 +13,13 @@ import {
 } from 'vue';
 import type { App, Component, ConcreteComponent, PropType } from 'vue';
 import type { PageObject } from '../pages/protocol';
+import { localizePath } from './i18n';
 import { createUbeanClient, getInitialPageData } from './client';
 import { createHeadManager } from './head';
 import { resolveRoute, isActiveRoute } from './router-location';
 import type { RouteLocation } from './router-location';
 import { withViewTransition, supportsViewTransitions } from './view-transitions';
 import type { ViewTransitionOptions } from './view-transitions';
-import { localizePath } from './i18n';
 
 const PAGE_KEY = Symbol('ubean-page');
 const ROUTER_KEY = Symbol('ubean-router');

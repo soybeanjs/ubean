@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdir, writeFile, rm } from 'node:fs/promises';
-import { join } from 'pathe';
-import { mkdtemp } from 'node:fs/promises';
+import { mkdir, writeFile, rm, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { join } from 'pathe';
 import { scanProject } from '../src/core/routing/scan';
 
 describe('i18n locales auto-loading', () => {
@@ -144,14 +143,8 @@ describe('i18n locales auto-loading', () => {
   });
 
   it('supports numeric order prefixes', async () => {
-    await writeFile(
-      join(testDir, 'src/locales/1.en.json'),
-      JSON.stringify({ hello: 'Hello' })
-    );
-    await writeFile(
-      join(testDir, 'src/locales/2.fr.json'),
-      JSON.stringify({ hello: 'Bonjour' })
-    );
+    await writeFile(join(testDir, 'src/locales/1.en.json'), JSON.stringify({ hello: 'Hello' }));
+    await writeFile(join(testDir, 'src/locales/2.fr.json'), JSON.stringify({ hello: 'Bonjour' }));
 
     const result = await scanProject({
       cwd: testDir,
@@ -164,18 +157,9 @@ describe('i18n locales auto-loading', () => {
   });
 
   it('ignores test and spec files', async () => {
-    await writeFile(
-      join(testDir, 'src/locales/en.json'),
-      JSON.stringify({ hello: 'Hello' })
-    );
-    await writeFile(
-      join(testDir, 'src/locales/en.test.json'),
-      JSON.stringify({ hello: 'Test' })
-    );
-    await writeFile(
-      join(testDir, 'src/locales/en.spec.json'),
-      JSON.stringify({ hello: 'Spec' })
-    );
+    await writeFile(join(testDir, 'src/locales/en.json'), JSON.stringify({ hello: 'Hello' }));
+    await writeFile(join(testDir, 'src/locales/en.test.json'), JSON.stringify({ hello: 'Test' }));
+    await writeFile(join(testDir, 'src/locales/en.spec.json'), JSON.stringify({ hello: 'Spec' }));
 
     const result = await scanProject({
       cwd: testDir,

@@ -1,12 +1,12 @@
 import type { CommandDef } from 'citty';
 import { resolve } from 'pathe';
 import { loadUbeanConfig } from '../config/loader';
+import { buildProduction } from '../build/vite/build';
 import { generateTypes } from '../codegen';
 import { logger } from '../log';
 import { prerender } from '../prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { scanProject } from '../routing/scan';
-import { buildProduction } from '../build/vite/build';
 
 export const buildCommand: CommandDef = {
   meta: {

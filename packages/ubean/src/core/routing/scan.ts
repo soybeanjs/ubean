@@ -369,7 +369,10 @@ function parseSimpleYaml(content: string): Record<string, unknown> {
   return result;
 }
 
-async function loadLocaleFile(fullPath: string, ext: string): Promise<{ messages: Record<string, unknown>; meta?: { name?: string; dir?: 'ltr' | 'rtl'; isDefault?: boolean } }> {
+async function loadLocaleFile(
+  fullPath: string,
+  ext: string
+): Promise<{ messages: Record<string, unknown>; meta?: { name?: string; dir?: 'ltr' | 'rtl'; isDefault?: boolean } }> {
   if (ext === '.json' || ext === '.json5') {
     const content = await readFile(fullPath, 'utf-8');
     const data = JSON.parse(content);
@@ -378,7 +381,10 @@ async function loadLocaleFile(fullPath: string, ext: string): Promise<{ messages
   if (ext === '.yaml' || ext === '.yml') {
     const content = await readFile(fullPath, 'utf-8');
     const data = parseSimpleYaml(content);
-    return { messages: (data.messages as Record<string, unknown>) || data, meta: { name: data.name as string, dir: data.dir as 'ltr' | 'rtl', isDefault: data.isDefault as boolean } };
+    return {
+      messages: (data.messages as Record<string, unknown>) || data,
+      meta: { name: data.name as string, dir: data.dir as 'ltr' | 'rtl', isDefault: data.isDefault as boolean }
+    };
   }
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.ts' || ext === '.mts' || ext === '.cts') {
     const mod = await import(fullPath).catch(() => null);

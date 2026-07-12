@@ -1,12 +1,14 @@
-import { createServer as createHttpServer, type IncomingMessage, type ServerResponse } from 'node:http';
-import { createServer as createViteServer, type ViteDevServer } from 'vite';
+import { createServer as createHttpServer } from 'node:http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createServer as createViteServer } from 'vite';
+import type { ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
-import type { UbeanApp } from '../../runtime/app';
 import { ubeanPlugin } from '../build/vite/plugin';
 import { ubeanVuePlugin } from '../vue/plugin';
-import { ubeanIslandsPlugin } from '../islands/transform';
 import { resolveModules } from '../modules';
+import type { UbeanApp } from '../../runtime/app';
+import { ubeanIslandsPlugin } from '../islands/transform';
 
 export interface ViteDevServerOptions {
   cwd: string;
@@ -27,11 +29,7 @@ export interface ViteDevServerInstance {
   updateApp(app: UbeanApp): void;
 }
 
-async function toWebRequest(
-  req: IncomingMessage,
-  host: string,
-  protocol: string
-): Promise<Request> {
+async function toWebRequest(req: IncomingMessage, host: string, protocol: string): Promise<Request> {
   const url = `${protocol}://${req.headers.host || host}${req.url || '/'}`;
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {
@@ -85,12 +83,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   let viteServer: ViteDevServer | null = null;
   let actualPort = options.port;
 
-  const builtinPlugins: any[] = [
-    vue(),
-    ubeanPlugin({ config }),
-    ...ubeanVuePlugin({ config }),
-    ubeanIslandsPlugin()
-  ];
+  const builtinPlugins: any[] = [vue(), ubeanPlugin({ config }), ...ubeanVuePlugin({ config }), ubeanIslandsPlugin()];
 
   const { plugins } = await resolveModules({
     cwd,

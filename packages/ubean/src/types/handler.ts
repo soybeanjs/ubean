@@ -7,7 +7,13 @@ export type ValidatorSlot = 'json' | 'form' | 'query' | 'param' | 'header' | 'co
 export interface GenericSchema<T = any> {
   safeParse?(value: unknown): { success: boolean; data?: T; error?: { issues?: unknown[] } };
   safeParseAsync?(value: unknown): Promise<{ success: boolean; data?: T; error?: { issues?: unknown[] } }>;
-  '~standard'?: { validate: (value: unknown) => { issues?: ReadonlyArray<{ message: string }>; value?: T } | Promise<{ issues?: ReadonlyArray<{ message: string }>; value?: T }> };
+  '~standard'?: {
+    validate: (
+      value: unknown
+    ) =>
+      | { issues?: ReadonlyArray<{ message: string }>; value?: T }
+      | Promise<{ issues?: ReadonlyArray<{ message: string }>; value?: T }>;
+  };
 }
 
 export type StandardSchema = StandardSchemaV1 | GenericSchema;

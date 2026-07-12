@@ -14,17 +14,17 @@ export default defineEventHandler(() => {
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| data | any | Response data |
-| options | JsonOptions | Response options |
+| Parameter | Type        | Description      |
+| --------- | ----------- | ---------------- |
+| data      | any         | Response data    |
+| options   | JsonOptions | Response options |
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| status | number | 200 | HTTP status code |
-| headers | Record<string, string> | {} | Response headers |
+| Option  | Type                   | Default | Description      |
+| ------- | ---------------------- | ------- | ---------------- |
+| status  | number                 | 200     | HTTP status code |
+| headers | Record<string, string> | {}      | Response headers |
 
 ### Example
 
@@ -46,17 +46,17 @@ export default defineEventHandler(() => {
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| content | string | HTML content |
-| options | HtmlOptions | Response options |
+| Parameter | Type        | Description      |
+| --------- | ----------- | ---------------- |
+| content   | string      | HTML content     |
+| options   | HtmlOptions | Response options |
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| status | number | 200 | HTTP status code |
-| headers | Record<string, string> | {} | Response headers |
+| Option  | Type                   | Default | Description      |
+| ------- | ---------------------- | ------- | ---------------- |
+| status  | number                 | 200     | HTTP status code |
+| headers | Record<string, string> | {}      | Response headers |
 
 ## text()
 
@@ -72,17 +72,17 @@ export default defineEventHandler(() => {
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| content | string | Text content |
-| options | TextOptions | Response options |
+| Parameter | Type        | Description      |
+| --------- | ----------- | ---------------- |
+| content   | string      | Text content     |
+| options   | TextOptions | Response options |
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| status | number | 200 | HTTP status code |
-| headers | Record<string, string> | {} | Response headers |
+| Option  | Type                   | Default | Description      |
+| ------- | ---------------------- | ------- | ---------------- |
+| status  | number                 | 200     | HTTP status code |
+| headers | Record<string, string> | {}      | Response headers |
 
 ## redirect()
 
@@ -98,9 +98,9 @@ export default defineEventHandler(() => {
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| to | string | Target URL |
+| Parameter  | Type   | Description      |
+| ---------- | ------ | ---------------- |
+| to         | string | Target URL       |
 | statusCode | number | HTTP status code |
 
 ### Example
@@ -128,7 +128,7 @@ Set a response header.
 ```typescript
 import { setHeader } from '@ubean/core';
 
-export default defineEventHandler((c) => {
+export default defineEventHandler(c => {
   setHeader(c, 'Content-Type', 'application/json');
   return json({ message: 'Hello' });
 });
@@ -136,11 +136,11 @@ export default defineEventHandler((c) => {
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| context | HonoContext | Request context |
-| name | string | Header name |
-| value | string | Header value |
+| Parameter | Type        | Description     |
+| --------- | ----------- | --------------- |
+| context   | HonoContext | Request context |
+| name      | string      | Header name     |
+| value     | string      | Header value    |
 
 ## setHeaders()
 
@@ -149,7 +149,7 @@ Set multiple response headers.
 ```typescript
 import { setHeaders } from '@ubean/core';
 
-export default defineEventHandler((c) => {
+export default defineEventHandler(c => {
   setHeaders(c, {
     'Content-Type': 'application/json',
     'Cache-Control': 'max-age=3600'
@@ -160,10 +160,10 @@ export default defineEventHandler((c) => {
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| context | HonoContext | Request context |
-| headers | Record<string, string> | Headers object |
+| Parameter | Type                   | Description     |
+| --------- | ---------------------- | --------------- |
+| context   | HonoContext            | Request context |
+| headers   | Record<string, string> | Headers object  |
 
 ## createError()
 
@@ -183,12 +183,12 @@ export default defineEventHandler(() => {
 
 ### Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| statusCode | number | HTTP status code |
-| statusMessage | string | Status message |
-| data | any | Error data |
-| message | string | Error message |
+| Option        | Type   | Description      |
+| ------------- | ------ | ---------------- |
+| statusCode    | number | HTTP status code |
+| statusMessage | string | Status message   |
+| data          | any    | Error data       |
+| message       | string | Error message    |
 
 ## send()
 
@@ -197,7 +197,7 @@ Send a custom response.
 ```typescript
 import { send } from '@ubean/core';
 
-export default defineEventHandler((c) => {
+export default defineEventHandler(c => {
   return send(c, 'Custom response', {
     status: 200,
     headers: { 'Content-Type': 'text/plain' }
@@ -207,11 +207,11 @@ export default defineEventHandler((c) => {
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| context | HonoContext | Request context |
-| body | any | Response body |
-| options | SendOptions | Response options |
+| Parameter | Type        | Description      |
+| --------- | ----------- | ---------------- |
+| context   | HonoContext | Request context  |
+| body      | any         | Response body    |
+| options   | SendOptions | Response options |
 
 ## stream()
 
@@ -220,13 +220,13 @@ Send streaming response.
 ```typescript
 import { stream } from '@ubean/core';
 
-export default defineEventHandler((c) => {
+export default defineEventHandler(c => {
   const encoder = new TextEncoder();
   const iterator = async function* () {
     yield encoder.encode('Hello');
     yield encoder.encode(' World');
   };
-  
+
   return stream(c, iterator());
 });
 ```
@@ -238,18 +238,18 @@ Return download response.
 ```typescript
 import { download } from '@ubean/core';
 
-export default defineEventHandler((c) => {
+export default defineEventHandler(c => {
   return download(c, '/path/to/file.pdf', 'document.pdf');
 });
 ```
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| context | HonoContext | Request context |
-| path | string | File path |
-| filename | string | Download filename |
+| Parameter | Type        | Description       |
+| --------- | ----------- | ----------------- |
+| context   | HonoContext | Request context   |
+| path      | string      | File path         |
+| filename  | string      | Download filename |
 
 ## noContent()
 

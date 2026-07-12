@@ -11,12 +11,12 @@ import { defineAction } from '@ubean/core';
 const { pending, execute } = defineAction(async (formData: FormData) => {
   const name = formData.get('name');
   const email = formData.get('email');
-  
+
   await fetch('/api/submit', {
     method: 'POST',
     body: formData
   });
-  
+
   return { success: true };
 });
 </script>
@@ -36,12 +36,12 @@ The `defineAction` composable returns status information:
 
 ```typescript
 const {
-  pending,        // Boolean: action is executing
-  execute,        // Function: execute the action
-  result,         // Result of the last execution
-  error,          // Error if execution failed
-  reset           // Function: reset state
-} = defineAction(async (data) => {
+  pending, // Boolean: action is executing
+  execute, // Function: execute the action
+  result, // Result of the last execution
+  error, // Error if execution failed
+  reset // Function: reset state
+} = defineAction(async data => {
   // ...
 });
 ```
@@ -61,7 +61,7 @@ interface FormResult {
   message: string;
 }
 
-const { execute } = defineAction<FormInput, FormResult>(async (input) => {
+const { execute } = defineAction<FormInput, FormResult>(async input => {
   // input is typed as FormInput
   return { success: true, message: 'Submitted' };
 });
@@ -93,13 +93,13 @@ Access request information in actions:
 const { execute } = defineAction(async (data, ctx) => {
   // Get current user
   const user = ctx.user;
-  
+
   // Get request headers
   const auth = ctx.headers.get('Authorization');
-  
+
   // Get route params
   const id = ctx.params.id;
-  
+
   // Access environment variables
   const apiUrl = ctx.env.API_URL;
 });
@@ -110,17 +110,17 @@ const { execute } = defineAction(async (data, ctx) => {
 Handle errors in actions:
 
 ```typescript
-const { execute, error } = defineAction(async (formData) => {
+const { execute, error } = defineAction(async formData => {
   const res = await fetch('/api/submit', {
     method: 'POST',
     body: formData
   });
-  
+
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.message);
   }
-  
+
   return { success: true };
 });
 ```
@@ -148,25 +148,28 @@ import { ref } from 'vue';
 const items = ref(['Item 1', 'Item 2']);
 const optimisticItems = useOptimistic(items);
 
-const { execute } = defineAction(async (name: string) => {
-  await fetch('/api/items', {
-    method: 'POST',
-    body: JSON.stringify({ name }),
-    headers: { 'Content-Type': 'application/json' }
-  });
-  
-  // Update real data
-  items.value.push(name);
-}, {
-  onBefore(name) {
-    // Optimistic update
-    optimisticItems.value.push(name);
+const { execute } = defineAction(
+  async (name: string) => {
+    await fetch('/api/items', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // Update real data
+    items.value.push(name);
   },
-  onError() {
-    // Rollback on error
-    optimisticItems.value = [...items.value];
+  {
+    onBefore(name) {
+      // Optimistic update
+      optimisticItems.value.push(name);
+    },
+    onError() {
+      // Rollback on error
+      optimisticItems.value = [...items.value];
+    }
   }
-});
+);
 </script>
 ```
 
@@ -178,7 +181,7 @@ Define actions directly on the server:
 // src/routes/api/submit.post.ts
 import { defineEventHandler } from '@ubean/core';
 
-export default defineEventHandler(async (c) => {
+export default defineEventHandler(async c => {
   const body = await c.req.json();
   // Process submission...
   return { success: true };

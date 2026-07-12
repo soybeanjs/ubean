@@ -1,10 +1,10 @@
 import type { Context, Next } from 'hono';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../core/routing/types';
 import type { ComposedHandler, RouteMeta, UbeanEnv, UbeanMiddleware } from '../types/handler';
+import { getLocale, getLocaleDir } from './i18n';
 import type { UbeanApp } from './app';
 import { isPagesRequest, pageJsonResponse, renderPage } from './pages';
 import type { PageObject, PageRenderer, PageAssetTags, PageRenderContext } from './pages';
-import { getLocale, getLocaleDir } from './i18n';
 
 export interface RegisterOptions {
   routes: ScannedApiRoute[];

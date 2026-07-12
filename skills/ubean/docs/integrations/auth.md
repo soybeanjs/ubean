@@ -50,7 +50,7 @@ export const auth = betterAuth({
 import { defineEventHandler } from '@ubean/core';
 import { auth } from '@/auth';
 
-export default defineEventHandler(async (c) => {
+export default defineEventHandler(async c => {
   return auth.handleRequest(c.req, c.res);
 });
 ```
@@ -114,17 +114,17 @@ export const verifyToken = (token: string) => {
 import { defineEventHandler, json } from '@ubean/core';
 import { signToken } from '@/auth/jwt';
 
-export default defineEventHandler(async (c) => {
+export default defineEventHandler(async c => {
   const body = await c.req.json();
   const { email, password } = body;
-  
+
   // Verify credentials
   const user = await verifyUser(email, password);
-  
+
   if (!user) {
     return json({ error: 'Invalid credentials' }, { status: 401 });
   }
-  
+
   const token = signToken({ userId: user.id });
   return json({ token });
 });
@@ -137,15 +137,15 @@ export default defineEventHandler(async (c) => {
 import { defineMiddleware } from '@ubean/core';
 import { verifyToken } from '@/auth/jwt';
 
-export default defineMiddleware(async (c) => {
+export default defineMiddleware(async c => {
   const authHeader = c.req.header('Authorization');
-  
+
   if (!authHeader) {
     return c.status(401).json({ error: 'Unauthorized' });
   }
-  
+
   const token = authHeader.replace('Bearer ', '');
-  
+
   try {
     const decoded = verifyToken(token);
     c.set('user', decoded);
@@ -209,13 +209,13 @@ export const auth = betterAuth({
 ```typescript
 import { defineEventHandler } from '@ubean/core';
 
-export default defineEventHandler(async (c) => {
+export default defineEventHandler(async c => {
   const user = c.get('user');
-  
+
   if (!user) {
     return c.status(401).json({ error: 'Unauthorized' });
   }
-  
+
   return json({ user });
 });
 ```
@@ -259,9 +259,9 @@ const isValid = await bcrypt.compare('password', hash);
 // src/middleware/admin.ts
 import { defineMiddleware } from '@ubean/core';
 
-export default defineMiddleware(async (c) => {
+export default defineMiddleware(async c => {
   const user = c.get('user');
-  
+
   if (!user || user.role !== 'admin') {
     return c.status(403).json({ error: 'Forbidden' });
   }

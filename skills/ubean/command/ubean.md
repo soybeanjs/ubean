@@ -11,6 +11,7 @@ The ubean CLI provides commands for developing, building, and managing ubean app
 Initialize a new ubean project.
 
 **Usage:**
+
 ```bash
 ubean init [options]
 ```
@@ -27,16 +28,19 @@ ubean init [options]
 | --git | - | Initialize git repository | false |
 
 **Templates:**
+
 - `starter`: Full project with pages, API, and layouts
 - `minimal`: Minimal project with just a homepage
 - `blog`: Blog project with markdown support
 
 **Presets:**
+
 - `standard`: Generic fetch handler for any platform
 - `node`: Node.js HTTP server
 - `cloudflare`: Cloudflare Workers
 
 **Examples:**
+
 ```bash
 # Interactive mode
 ubean init
@@ -53,6 +57,7 @@ ubean init -n my-blog -t blog -y
 Start the development server with hot module replacement.
 
 **Usage:**
+
 ```bash
 ubean dev [options]
 ```
@@ -66,6 +71,7 @@ ubean dev [options]
 | --open | - | Open browser on start | false |
 
 **Examples:**
+
 ```bash
 # Start dev server on default port
 ubean dev
@@ -82,6 +88,7 @@ ubean dev --open
 Build the application for production.
 
 **Usage:**
+
 ```bash
 ubean build [options]
 ```
@@ -94,6 +101,7 @@ ubean build [options]
 | --sourcemap | - | Generate source maps | false |
 
 **Examples:**
+
 ```bash
 # Build with default preset
 ubean build
@@ -110,6 +118,7 @@ ubean build --sourcemap
 Preview the production build locally.
 
 **Usage:**
+
 ```bash
 ubean preview [options]
 ```
@@ -121,6 +130,7 @@ ubean preview [options]
 | --host | - | Host to listen on | localhost |
 
 **Examples:**
+
 ```bash
 # Preview on default port
 ubean preview
@@ -134,6 +144,7 @@ ubean preview --port 3000
 Show resolved configuration.
 
 **Usage:**
+
 ```bash
 ubean config [options]
 ```
@@ -145,6 +156,7 @@ ubean config [options]
 | --env | - | Show environment variables | false |
 
 **Examples:**
+
 ```bash
 # Show config in human-readable format
 ubean config
@@ -161,6 +173,7 @@ ubean config --env
 Scaffold a new page component.
 
 **Usage:**
+
 ```bash
 ubean page <name>
 ```
@@ -171,6 +184,7 @@ ubean page <name>
 | `<name>` | Page name (e.g., "about", "blog/post") |
 
 **Examples:**
+
 ```bash
 # Create simple page
 ubean page about
@@ -187,11 +201,13 @@ ubean page dashboard --layout admin
 Open the DevTools panel.
 
 **Usage:**
+
 ```bash
 ubean devtools
 ```
 
 **Examples:**
+
 ```bash
 # Open DevTools
 ubean devtools
@@ -204,12 +220,14 @@ ubean devtools
 Show help for all commands.
 
 **Usage:**
+
 ```bash
 ubean --help
 ubean <command> --help
 ```
 
 **Examples:**
+
 ```bash
 # Show general help
 ubean --help
@@ -226,6 +244,7 @@ ubean dev --help
 Show current version.
 
 **Usage:**
+
 ```bash
 ubean --version
 ```
@@ -234,25 +253,25 @@ ubean --version
 
 ### Development
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| UBEAN_PORT | Dev server port | 5173 |
-| UBEAN_HOST | Dev server host | localhost |
-| NODE_ENV | Environment | development |
+| Variable   | Description     | Default     |
+| ---------- | --------------- | ----------- |
+| UBEAN_PORT | Dev server port | 5173        |
+| UBEAN_HOST | Dev server host | localhost   |
+| NODE_ENV   | Environment     | development |
 
 ### Production
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| PORT | Server port | 3000 |
+| Variable | Description | Default    |
+| -------- | ----------- | ---------- |
+| PORT     | Server port | 3000       |
 | NODE_ENV | Environment | production |
 
 ## Exit Codes
 
-| Code | Description |
-|------|-------------|
-| 0 | Success |
-| 1 | General error |
-| 2 | Invalid arguments |
-| 3 | Build failed |
-| 4 | Server error |
+| Code | Description       |
+| ---- | ----------------- |
+| 0    | Success           |
+| 1    | General error     |
+| 2    | Invalid arguments |
+| 3    | Build failed      |
+| 4    | Server error      |

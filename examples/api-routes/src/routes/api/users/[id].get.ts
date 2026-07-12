@@ -6,13 +6,13 @@ const users = [
   { id: 3, name: 'Bob Smith', email: 'bob@example.com' }
 ];
 
-export default defineEventHandler((c) => {
+export default defineEventHandler(c => {
   const id = parseInt(c.req.param('id'));
   const user = users.find(u => u.id === id);
-  
+
   if (!user) {
     return c.status(404).json({ error: 'User not found' });
   }
-  
+
   return user;
 });

@@ -50,19 +50,19 @@ Access request information:
 <script setup lang="ts">
 import { defineLoader } from '@ubean/core';
 
-const data = await defineLoader(async (ctx) => {
+const data = await defineLoader(async ctx => {
   // Get route parameters
   const { id } = ctx.params;
-  
+
   // Get query parameters
   const { page } = ctx.query;
-  
+
   // Get request headers
   const auth = ctx.headers.get('Authorization');
-  
+
   // Access runtime environment
   const apiUrl = ctx.env.API_URL;
-  
+
   return { id, page };
 });
 </script>
@@ -96,7 +96,7 @@ Loaders can depend on each other:
 <script setup lang="ts">
 import { defineLoader } from '@ubean/core';
 
-const post = await defineLoader(async (ctx) => {
+const post = await defineLoader(async ctx => {
   const res = await fetch(`/api/posts/${ctx.params.id}`);
   return res.json();
 });
@@ -117,16 +117,16 @@ Handle errors in loaders:
 <script setup lang="ts">
 import { defineLoader, createError } from '@ubean/core';
 
-const data = await defineLoader(async (ctx) => {
+const data = await defineLoader(async ctx => {
   const res = await fetch(`/api/posts/${ctx.params.id}`);
-  
+
   if (!res.ok) {
     throw createError({
       statusCode: res.status,
       statusMessage: 'Post not found'
     });
   }
-  
+
   return res.json();
 });
 </script>
@@ -140,14 +140,17 @@ Cache loader results:
 <script setup lang="ts">
 import { defineLoader } from '@ubean/core';
 
-const data = await defineLoader(async () => {
-  const res = await fetch('/api/posts');
-  return res.json();
-}, {
-  cache: {
-    maxAge: 60 // Cache for 60 seconds
+const data = await defineLoader(
+  async () => {
+    const res = await fetch('/api/posts');
+    return res.json();
+  },
+  {
+    cache: {
+      maxAge: 60 // Cache for 60 seconds
+    }
   }
-});
+);
 </script>
 ```
 

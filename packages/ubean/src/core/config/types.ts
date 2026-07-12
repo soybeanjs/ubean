@@ -132,7 +132,9 @@ export interface RouteRule {
   prerender?: boolean;
 }
 
-export interface ResolvedConfig extends Required<Omit<UbeanConfig, 'build' | 'dev' | 'prerender' | 'icon' | 'pwa' | 'auth' | 'image' | 'fonts'>> {
+export interface ResolvedConfig extends Required<
+  Omit<UbeanConfig, 'build' | 'dev' | 'prerender' | 'icon' | 'pwa' | 'auth' | 'image' | 'fonts'>
+> {
   rootDir: string;
   srcDir: string;
   modules: ModuleConfiguration[];

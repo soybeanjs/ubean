@@ -1,7 +1,7 @@
+import type { ResolvedConfig } from '../config/types';
 import type { UbeanApp } from '../../runtime/app';
 import type { Preset } from '../preset/_utils/preset';
 import type { CapabilitySet, CapabilityDiagnosisResult } from '../preset/capabilities';
-import type { ResolvedConfig } from '../config/types';
 
 export interface DevRunnerOptions {
   cwd: string;

@@ -19,44 +19,23 @@ const message = ref('');
   <div class="contact">
     <h1>Contact</h1>
     <p>Get in touch with us.</p>
-    
+
     <form @submit.prevent="execute" class="contact-form">
       <div class="form-group">
         <label for="name">Name</label>
-        <input 
-          type="text" 
-          id="name" 
-          v-model="name" 
-          name="name"
-          required 
-          placeholder="Your name" 
-        />
+        <input type="text" id="name" v-model="name" name="name" required placeholder="Your name" />
       </div>
-      
+
       <div class="form-group">
         <label for="email">Email</label>
-        <input 
-          type="email" 
-          id="email" 
-          v-model="email" 
-          name="email"
-          required 
-          placeholder="your@email.com" 
-        />
+        <input type="email" id="email" v-model="email" name="email" required placeholder="your@email.com" />
       </div>
-      
+
       <div class="form-group">
         <label for="message">Message</label>
-        <textarea 
-          id="message" 
-          v-model="message" 
-          name="message"
-          required 
-          rows="5" 
-          placeholder="Your message" 
-        ></textarea>
+        <textarea id="message" v-model="message" name="message" required rows="5" placeholder="Your message"></textarea>
       </div>
-      
+
       <button type="submit" :disabled="pending">
         {{ pending ? 'Sending...' : 'Send' }}
       </button>

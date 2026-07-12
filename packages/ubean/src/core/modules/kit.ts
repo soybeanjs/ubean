@@ -1,7 +1,7 @@
 import type { Plugin as VitePlugin } from 'vite';
 import type { MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '../../types/handler';
 import type { UbeanApp } from '../../runtime/app';
+import type { UbeanEnv } from '../../types/handler';
 
 export interface DevToolsCustomTab {
   id: string;
@@ -84,26 +84,26 @@ export function createModuleKitContext(moduleName: string, options: Record<strin
       hook: () => {},
       callHook: async () => {}
     },
-    addServerHandler: (handler) => {
+    addServerHandler: handler => {
       ctx._serverHandlers.push(handler);
     },
-    addDevServerHandler: (handler) => {
+    addDevServerHandler: handler => {
       ctx._devServerHandlers.push(handler);
     },
-    addVitePlugin: (plugin) => {
+    addVitePlugin: plugin => {
       const plugins = Array.isArray(plugin) ? plugin : [plugin];
       ctx._vitePlugins.push(...plugins);
     },
-    addVirtualImports: (imports) => {
+    addVirtualImports: imports => {
       ctx._virtualImports.push(imports);
     },
-    addComponentsDir: (dir) => {
+    addComponentsDir: dir => {
       ctx._componentsDirs.push(dir);
     },
-    addAutoImport: (imports) => {
+    addAutoImport: imports => {
       ctx._autoImports.push(imports);
     },
-    addDevToolsTab: (tab) => {
+    addDevToolsTab: tab => {
       ctx._devToolsTabs.push(tab);
     },
     _vitePlugins: [],

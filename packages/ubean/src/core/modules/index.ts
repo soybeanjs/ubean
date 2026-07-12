@@ -1,23 +1,14 @@
-import { createHooks } from 'hookable';
 import type { Plugin as VitePlugin } from 'vite';
+import { createHooks } from 'hookable';
+import type { ModuleDefinition, ResolvedModule, ResolvedConfig } from '../config/types';
+import { BUILTIN_MODULES, isBuiltinDisabled, extractBuiltinOptions } from './builtins';
+import { createModuleKitContext, topologicalSort } from './kit';
 import type {
-  ModuleDefinition,
-  ResolvedModule,
-  ResolvedConfig
-} from '../config/types';
-import {
-  BUILTIN_MODULES,
-  isBuiltinDisabled,
-  extractBuiltinOptions
-} from './builtins';
-import {
-  createModuleKitContext,
-  topologicalSort,
-  type ModuleKitContext,
-  type ModuleHooks,
-  type ServerHandlerRegistration,
-  type DevServerHandlerRegistration,
-  type DevToolsCustomTab
+  ModuleKitContext,
+  ModuleHooks,
+  ServerHandlerRegistration,
+  DevServerHandlerRegistration,
+  DevToolsCustomTab
 } from './kit';
 
 const BUILTIN_CORE_KEYS = new Set(['__ubean_core__', '__ubean_vue__', '__ubean_islands__']);
@@ -93,7 +84,9 @@ function extractPlugins(mod: unknown): VitePlugin[] {
   if (typeof mod === 'object') {
     if (isModuleDefinition(mod)) {
       if (mod.vitePlugin) {
-        return Array.isArray(mod.vitePlugin) ? mod.vitePlugin.filter(isVitePlugin) : [mod.vitePlugin].filter(isVitePlugin);
+        return Array.isArray(mod.vitePlugin)
+          ? mod.vitePlugin.filter(isVitePlugin)
+          : [mod.vitePlugin].filter(isVitePlugin);
       }
       return [];
     }
@@ -163,7 +156,7 @@ function userModulesHasBuiltin(userModules: unknown[], builtin: { modulePath: st
     } else if (Array.isArray(mod)) {
       const [factory] = mod;
       if (typeof factory === 'function') {
-        if (factory.name === builtin.pluginName.replace(':', '') + 'Plugin') {
+        if (factory.name === `${builtin.pluginName.replace(':', '')}Plugin`) {
           return true;
         }
       }
@@ -188,7 +181,7 @@ async function loadBuiltinModule(
   const kit = createModuleKitContext(builtin.pluginName, options);
   try {
     const mod = await import(/* @vite-ignore */ builtin.modulePath);
-    const factory = builtin.factoryExport ? mod[builtin.factoryExport] : (mod.default || mod);
+    const factory = builtin.factoryExport ? mod[builtin.factoryExport] : mod.default || mod;
     if (typeof factory === 'function') {
       const result = await factory(options, kit);
       if (result) {
@@ -360,7 +353,9 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
       const kit = mod.kit;
       kit.hooks = {
         hook: ((name: keyof ModuleHooks, fn: any) => moduleHooks.hook(name, fn)) as any,
-        callHook: (async (name: keyof ModuleHooks, ...args: any[]) => { await moduleHooks.callHook(name, ...args as any); }) as any
+        callHook: (async (name: keyof ModuleHooks, ...args: any[]) => {
+          await moduleHooks.callHook(name, ...(args as any));
+        }) as any
       };
       await setup(mod.options, kit);
     }

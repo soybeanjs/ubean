@@ -9,7 +9,12 @@ import {
   setLocale,
   getLocale,
   clearLocales,
-  getRegisteredLocales
+  getRegisteredLocales,
+  localizePath,
+  setI18nConfig,
+  getI18nConfig,
+  getDefaultLocale,
+  extractLocaleFromPath
 } from '../src/runtime/i18n';
 import { registerRoutes } from '../src/runtime/router';
 import { resetVirtualRegistry, useVirtualRegistry } from '../src/core/build/virtual/registry';
@@ -45,14 +50,6 @@ import {
   pageJsonResponse,
   isPagesRequest
 } from '../src/runtime/pages';
-import {
-  localizePath,
-  setI18nConfig,
-  getI18nConfig,
-  getDefaultLocale,
-  extractLocaleFromPath,
-  getLocaleDir
-} from '../src/runtime/i18n';
 import {
   createRobotsResponse,
   createSitemapResponse,

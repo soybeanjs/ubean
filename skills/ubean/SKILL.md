@@ -253,11 +253,11 @@ export default defineConfig({
   rootDir: '.',
   srcDir: 'src',
   modules: [],
-  icon: false,       // @ubean/icon: built-in icon system (UbeanIcon), disabled by default, set to true to enable
-  pwa: false,        // @ubean/pwa: PWA support, disabled by default
-  auth: false,       // @ubean/auth: authentication, disabled by default
-  image: false,      // @ubean/image: image optimization, disabled by default
-  fonts: false       // @ubean/fonts: font optimization, disabled by default
+  icon: false, // @ubean/icon: built-in icon system (UbeanIcon), disabled by default, set to true to enable
+  pwa: false, // @ubean/pwa: PWA support, disabled by default
+  auth: false, // @ubean/auth: authentication, disabled by default
+  image: false, // @ubean/image: image optimization, disabled by default
+  fonts: false // @ubean/fonts: font optimization, disabled by default
 });
 ```
 
@@ -289,13 +289,13 @@ export default defineConfig({
 
 Use these keys in `dependsOn` for built-in modules:
 
-| Key | Module |
-|-----|--------|
-| `icon` | @ubean/icon (icon system, UbeanIcon component) |
-| `pwa` | @ubean/pwa (PWA support) |
-| `auth` | @ubean/auth (authentication) |
-| `image` | @ubean/image (image optimization) |
-| `fonts` | @ubean/fonts (font optimization) |
+| Key     | Module                                         |
+| ------- | ---------------------------------------------- |
+| `icon`  | @ubean/icon (icon system, UbeanIcon component) |
+| `pwa`   | @ubean/pwa (PWA support)                       |
+| `auth`  | @ubean/auth (authentication)                   |
+| `image` | @ubean/image (image optimization)              |
+| `fonts` | @ubean/fonts (font optimization)               |
 
 ## Key Features
 

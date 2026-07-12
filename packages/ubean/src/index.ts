@@ -177,7 +177,15 @@ export {
   createStreamResponse,
   createSseStream
 } from './runtime/pages';
-export type { PageHead, PageHeadMeta, PageObject, PageAssetTags, PageRenderFn, PageRenderer, PageRenderContext } from './runtime/pages';
+export type {
+  PageHead,
+  PageHeadMeta,
+  PageObject,
+  PageAssetTags,
+  PageRenderFn,
+  PageRenderer,
+  PageRenderContext
+} from './runtime/pages';
 export type {
   DataKey,
   DataCacheEntry,

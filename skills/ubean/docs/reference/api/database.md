@@ -17,10 +17,7 @@ const db = useDatabase();
 const users = await db.select().from('users');
 
 // Select with conditions
-const activeUsers = await db
-  .select()
-  .from('users')
-  .where('active', true);
+const activeUsers = await db.select().from('users').where('active', true);
 
 // Select with joins
 const postsWithAuthor = await db
@@ -29,11 +26,7 @@ const postsWithAuthor = await db
   .join('users', 'posts.author_id', 'users.id');
 
 // Select with limit/offset
-const paginated = await db
-  .select()
-  .from('posts')
-  .limit(10)
-  .offset(20);
+const paginated = await db.select().from('posts').limit(10).offset(20);
 
 // Count
 const count = await db.count().from('users');
@@ -46,50 +39,38 @@ const total = await db.sum('amount').from('orders');
 
 ```typescript
 // Insert single
-const result = await db
-  .insert('users')
-  .values({ name: 'John', email: 'john@example.com' });
+const result = await db.insert('users').values({ name: 'John', email: 'john@example.com' });
 
 // Insert multiple
-const results = await db
-  .insert('users')
-  .values([
-    { name: 'John', email: 'john@example.com' },
-    { name: 'Jane', email: 'jane@example.com' }
-  ]);
+const results = await db.insert('users').values([
+  { name: 'John', email: 'john@example.com' },
+  { name: 'Jane', email: 'jane@example.com' }
+]);
 ```
 
 ### Update
 
 ```typescript
-const result = await db
-  .update('users')
-  .set({ name: 'John Doe' })
-  .where('id', 1);
+const result = await db.update('users').set({ name: 'John Doe' }).where('id', 1);
 ```
 
 ### Delete
 
 ```typescript
-const result = await db
-  .delete('users')
-  .where('id', 1);
+const result = await db.delete('users').where('id', 1);
 ```
 
 ### Transactions
 
 ```typescript
-const result = await db.transaction(async (tx) => {
-  const user = await tx
-    .insert('users')
-    .values({ name: 'John' })
-    .returning('id');
-  
+const result = await db.transaction(async tx => {
+  const user = await tx.insert('users').values({ name: 'John' }).returning('id');
+
   await tx.insert('profiles').values({
     user_id: user[0].id,
     bio: 'Hello'
   });
-  
+
   return user[0];
 });
 ```
@@ -120,21 +101,21 @@ export default defineDatabase({
 
 ### Connection Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| host | string | Database host |
-| port | number | Database port |
-| user | string | Database user |
-| password | string | Database password |
-| database | string | Database name |
-| ssl | boolean | Enable SSL |
+| Option   | Type    | Description       |
+| -------- | ------- | ----------------- |
+| host     | string  | Database host     |
+| port     | number  | Database port     |
+| user     | string  | Database user     |
+| password | string  | Database password |
+| database | string  | Database name     |
+| ssl      | boolean | Enable SSL        |
 
 ### Migration Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| path | string | Migrations directory |
-| table | string | Migration table name |
+| Option | Type   | Description          |
+| ------ | ------ | -------------------- |
+| path   | string | Migrations directory |
+| table  | string | Migration table name |
 
 ## Migration System
 
@@ -150,8 +131,8 @@ ubean db migrate:create create_users_table
 import { defineMigration } from '@ubean/core';
 
 export default defineMigration({
-  up: async (db) => {
-    await db.schema.createTable('users', (table) => {
+  up: async db => {
+    await db.schema.createTable('users', table => {
       table.increments('id').primary();
       table.string('name').notNullable();
       table.string('email').unique().notNullable();
@@ -159,8 +140,8 @@ export default defineMigration({
       table.timestamp('updated_at').defaultTo(db.fn.now());
     });
   },
-  
-  down: async (db) => {
+
+  down: async db => {
     await db.schema.dropTable('users');
   }
 });
@@ -195,7 +176,7 @@ ubean db seed:create users
 ```typescript
 import { defineSeed } from '@ubean/core';
 
-export default defineSeed(async (db) => {
+export default defineSeed(async db => {
   await db.insert('users').values([
     { name: 'Admin', email: 'admin@example.com' },
     { name: 'User', email: 'user@example.com' }
@@ -258,12 +239,12 @@ export default defineDatabase({
 
 ### Pool Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| min | number | Minimum connections |
-| max | number | Maximum connections |
-| idleTimeoutMillis | number | Idle timeout |
-| connectionTimeoutMillis | number | Connection timeout |
+| Option                  | Type   | Description         |
+| ----------------------- | ------ | ------------------- |
+| min                     | number | Minimum connections |
+| max                     | number | Maximum connections |
+| idleTimeoutMillis       | number | Idle timeout        |
+| connectionTimeoutMillis | number | Connection timeout  |
 
 ## Query Logging
 

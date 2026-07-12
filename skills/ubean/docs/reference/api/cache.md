@@ -48,26 +48,26 @@ export default defineCache({
 
 ### Drivers
 
-| Driver | Description |
-|--------|-------------|
-| memory | In-memory cache (default) |
-| redis | Redis cache |
-| memcached | Memcached cache |
-| file | File-based cache |
+| Driver    | Description               |
+| --------- | ------------------------- |
+| memory    | In-memory cache (default) |
+| redis     | Redis cache               |
+| memcached | Memcached cache           |
+| file      | File-based cache          |
 
 ### Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| driver | string | Cache driver |
-| config | object | Driver configuration |
+| Option     | Type   | Description            |
+| ---------- | ------ | ---------------------- |
+| driver     | string | Cache driver           |
+| config     | object | Driver configuration   |
 | defaultTtl | number | Default TTL in seconds |
 
 ## TTL Configuration
 
 ```typescript
 // Set with TTL
-await cache.set('key', 'value', { ttl: 60 });  // 60 seconds
+await cache.set('key', 'value', { ttl: 60 }); // 60 seconds
 
 // Set with expiration date
 const expires = new Date(Date.now() + 3600000);
@@ -85,15 +85,23 @@ await cache.touch('key', 60);
 ### Set with Tags
 
 ```typescript
-await cache.set('user:1', { name: 'John' }, { 
-  ttl: 3600,
-  tags: ['user', 'user:1']
-});
+await cache.set(
+  'user:1',
+  { name: 'John' },
+  {
+    ttl: 3600,
+    tags: ['user', 'user:1']
+  }
+);
 
-await cache.set('user:2', { name: 'Jane' }, { 
-  ttl: 3600,
-  tags: ['user', 'user:2']
-});
+await cache.set(
+  'user:2',
+  { name: 'Jane' },
+  {
+    ttl: 3600,
+    tags: ['user', 'user:2']
+  }
+);
 ```
 
 ### Invalidate by Tag
@@ -143,11 +151,15 @@ await cache.invalidateGroup('user');
 Get or set cache:
 
 ```typescript
-const user = await cache.remember('user:1', async () => {
-  // This runs if cache miss
-  const res = await fetch('/api/users/1');
-  return res.json();
-}, { ttl: 3600 });
+const user = await cache.remember(
+  'user:1',
+  async () => {
+    // This runs if cache miss
+    const res = await fetch('/api/users/1');
+    return res.json();
+  },
+  { ttl: 3600 }
+);
 ```
 
 ### rememberForever()
@@ -208,8 +220,8 @@ export default defineCache({
 export default defineCache({
   driver: 'memory',
   config: {
-    max: 1000,  // Max items
-    ttl: 3600   // Default TTL
+    max: 1000, // Max items
+    ttl: 3600 // Default TTL
   }
 });
 ```
@@ -233,11 +245,11 @@ export default defineCache({
 ### Subscribe to Events
 
 ```typescript
-cache.on('hit', (key) => {
+cache.on('hit', key => {
   console.log(`Cache hit: ${key}`);
 });
 
-cache.on('miss', (key) => {
+cache.on('miss', key => {
   console.log(`Cache miss: ${key}`);
 });
 
@@ -245,7 +257,7 @@ cache.on('set', (key, value) => {
   console.log(`Cache set: ${key}`);
 });
 
-cache.on('delete', (key) => {
+cache.on('delete', key => {
   console.log(`Cache delete: ${key}`);
 });
 ```

@@ -1,16 +1,11 @@
+import { existsSync } from 'node:fs';
+import { mkdir, writeFile, rm, cp, readFile } from 'node:fs/promises';
 import { build as viteBuild } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { join, resolve, relative } from 'pathe';
-import { mkdir, writeFile, rm, cp, readFile } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
 import type { ResolvedConfig } from '../../config/types';
-import type { ScanResult } from '../../routing/types';
-import { ubeanPlugin } from './plugin';
 import { ubeanVuePlugin } from '../../vue/plugin';
-import { ubeanIslandsPlugin } from '../../islands';
 import { resolveModules } from '../../modules';
-import type { Preset } from '../../preset/_utils/preset';
-import { logger } from '../../log';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -18,7 +13,12 @@ import {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from '../virtual/modules';
+import { ubeanIslandsPlugin } from '../../islands';
+import { logger } from '../../log';
+import type { Preset } from '../../preset/_utils/preset';
+import type { ScanResult } from '../../routing/types';
 import { useVirtualRegistry } from '../virtual/registry';
+import { ubeanPlugin } from './plugin';
 
 export interface BuildOptions {
   cwd: string;
@@ -226,13 +226,7 @@ function getPresetBuildConfig(preset: Preset) {
         format: 'esm' as const,
         target: 'node18',
         entryType: 'node' as const,
-        external: [
-          'hono',
-          'vue',
-          'vue/server-renderer',
-          /^ubean(\/.*)?$/,
-          /^node:/
-        ]
+        external: ['hono', 'vue', 'vue/server-renderer', /^ubean(\/.*)?$/, /^node:/]
       };
     case 'cloudflare':
       return {
@@ -311,12 +305,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   logger.info('Generating virtual modules...');
   await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual);
 
-  const builtinPlugins: any[] = [
-    vue(),
-    ubeanPlugin({ config }),
-    ...ubeanVuePlugin({ config }),
-    ubeanIslandsPlugin()
-  ];
+  const builtinPlugins: any[] = [vue(), ubeanPlugin({ config }), ...ubeanVuePlugin({ config }), ubeanIslandsPlugin()];
 
   const { plugins } = await resolveModules({
     cwd,
@@ -342,9 +331,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
   logger.info('Building client bundle...');
   const clientEntryPath = join(srcDir, 'entry.client.ts');
-  const clientInput = existsSync(clientEntryPath)
-    ? clientEntryPath
-    : join(virtualDir, 'client-entry.mjs');
+  const clientInput = existsSync(clientEntryPath) ? clientEntryPath : join(virtualDir, 'client-entry.mjs');
 
   await viteBuild({
     root: cwd,

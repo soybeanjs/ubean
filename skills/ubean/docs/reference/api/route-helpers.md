@@ -12,21 +12,21 @@ const route = useRoute();
 
 ### Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| path | string | Current path |
-| params | Record<string, string> | Route parameters |
-| query | Record<string, string> | Query parameters |
-| hash | string | Hash fragment |
-| fullPath | string | Full URL path |
+| Property | Type                   | Description      |
+| -------- | ---------------------- | ---------------- |
+| path     | string                 | Current path     |
+| params   | Record<string, string> | Route parameters |
+| query    | Record<string, string> | Query parameters |
+| hash     | string                 | Hash fragment    |
+| fullPath | string                 | Full URL path    |
 
 ### Example
 
 ```typescript
 const route = useRoute();
-console.log(route.path);        // "/users/123"
-console.log(route.params.id);   // "123"
-console.log(route.query.q);     // "search term"
+console.log(route.path); // "/users/123"
+console.log(route.params.id); // "123"
+console.log(route.query.q); // "search term"
 ```
 
 ## navigateTo()
@@ -39,18 +39,18 @@ import { navigateTo } from '@ubean/core';
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| to | string \| RouteLocation | Target path |
-| options | NavigateOptions | Navigation options |
+| Parameter | Type                    | Description        |
+| --------- | ----------------------- | ------------------ |
+| to        | string \| RouteLocation | Target path        |
+| options   | NavigateOptions         | Navigation options |
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| replace | boolean | false | Replace history entry |
-| external | boolean | false | External URL |
-| shallow | boolean | false | Skip full page reload |
+| Option   | Type    | Default | Description           |
+| -------- | ------- | ------- | --------------------- |
+| replace  | boolean | false   | Replace history entry |
+| external | boolean | false   | External URL          |
+| shallow  | boolean | false   | Skip full page reload |
 
 ### Example
 
@@ -78,16 +78,16 @@ import { redirectTo } from '@ubean/core';
 
 ### Parameters
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| to | string | Target path |
-| options | RedirectOptions | Redirect options |
+| Parameter | Type            | Description      |
+| --------- | --------------- | ---------------- |
+| to        | string          | Target path      |
+| options   | RedirectOptions | Redirect options |
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| statusCode | number | 302 | HTTP status code |
+| Option     | Type   | Default | Description      |
+| ---------- | ------ | ------- | ---------------- |
+| statusCode | number | 302     | HTTP status code |
 
 ### Example
 
@@ -111,13 +111,13 @@ const router = useRouter();
 
 ### Methods
 
-| Method | Description |
-|--------|-------------|
-| push(to) | Navigate to path |
+| Method      | Description           |
+| ----------- | --------------------- |
+| push(to)    | Navigate to path      |
 | replace(to) | Replace current route |
-| back() | Go back |
-| forward() | Go forward |
-| go(n) | Navigate n steps |
+| back()      | Go back               |
+| forward()   | Go forward            |
+| go(n)       | Navigate n steps      |
 
 ### Example
 
@@ -187,9 +187,7 @@ Define page metadata.
 definePageMeta({
   layout: 'default',
   title: 'My Page',
-  meta: [
-    { name: 'description', content: 'Description' }
-  ],
+  meta: [{ name: 'description', content: 'Description' }],
   public: false
 });
 </script>
@@ -197,10 +195,10 @@ definePageMeta({
 
 ### Options
 
-| Option | Type | Description |
-|--------|------|-------------|
-| layout | string | Layout name |
-| title | string | Page title |
-| meta | Array | Meta tags |
-| public | boolean | Public page |
+| Option     | Type               | Description      |
+| ---------- | ------------------ | ---------------- |
+| layout     | string             | Layout name      |
+| title      | string             | Page title       |
+| meta       | Array              | Meta tags        |
+| public     | boolean            | Public page      |
 | middleware | string \| string[] | Middleware names |

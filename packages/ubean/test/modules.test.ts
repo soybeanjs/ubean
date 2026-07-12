@@ -1,8 +1,11 @@
 import { describe, it, expect, vi } from 'vitest';
-import { resolveModules, defineModule } from '../src/core/modules';
 import type { ResolvedConfig } from '../src/core/config/types';
+import { resolveModules, defineModule } from '../src/core/modules';
 
-function createTestConfig(modules: any[] = [], options: { icon?: any; pwa?: any; auth?: any; image?: any; fonts?: any } = {}): ResolvedConfig {
+function createTestConfig(
+  modules: any[] = [],
+  options: { icon?: any; pwa?: any; auth?: any; image?: any; fonts?: any } = {}
+): ResolvedConfig {
   return {
     rootDir: '/tmp/test',
     srcDir: '/tmp/test',
@@ -189,11 +192,7 @@ describe('Module system (P6-37)', () => {
     });
 
     it('preserves plugin order: builtins first, then user modules in order', async () => {
-      const config = createTestConfig([
-        { name: 'user-1' },
-        { name: 'user-2' },
-        { name: 'user-3' }
-      ]);
+      const config = createTestConfig([{ name: 'user-1' }, { name: 'user-2' }, { name: 'user-3' }]);
       const builtinPlugins = [{ name: 'builtin-1' }, { name: 'builtin-2' }];
 
       const result = await resolveModules({
@@ -202,13 +201,7 @@ describe('Module system (P6-37)', () => {
         builtinPlugins
       });
 
-      expect(result.plugins.map(p => p.name)).toEqual([
-        'builtin-1',
-        'builtin-2',
-        'user-1',
-        'user-2',
-        'user-3'
-      ]);
+      expect(result.plugins.map(p => p.name)).toEqual(['builtin-1', 'builtin-2', 'user-1', 'user-2', 'user-3']);
     });
 
     it('extracts dependsOn from ModuleDefinition', async () => {
@@ -402,7 +395,12 @@ describe('Builtin module top-level config (P6-39)', () => {
       });
 
       const builtinModulePlugins = result.plugins.filter(
-        p => p.name === 'ubean:icon' || p.name === 'ubean:pwa' || p.name === 'ubean:auth' || p.name === 'ubean:image' || p.name === 'ubean:fonts'
+        p =>
+          p.name === 'ubean:icon' ||
+          p.name === 'ubean:pwa' ||
+          p.name === 'ubean:auth' ||
+          p.name === 'ubean:image' ||
+          p.name === 'ubean:fonts'
       );
       expect(builtinModulePlugins).toHaveLength(0);
     });
@@ -603,7 +601,7 @@ describe('Module hooks and kit API (P6-40)', () => {
 
     it('setup function receives options', async () => {
       let receivedOpts: any = null;
-      const factory = (opts: any, kit: any) => {
+      const factory = (opts: any, _kit: any) => {
         receivedOpts = opts;
         return { name: 'opts-factory' };
       };

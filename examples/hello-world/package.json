@@ -3,8 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "ubean dev",
     "build": "ubean build",
+    "dev": "ubean dev",
     "preview": "ubean preview"
   },
   "dependencies": {

@@ -37,13 +37,13 @@ import { defineConfig } from '@ubean/core';
 
 export default defineConfig({
   icon: {
-    mode: 'svg',            // 'svg' or 'css'
-    collections: ['mdi', 'fa'],  // Iconify collections to preload
+    mode: 'svg', // 'svg' or 'css'
+    collections: ['mdi', 'fa'], // Iconify collections to preload
     aliases: {
-      'home': 'mdi:home',
-      'user': 'fa:user'
+      home: 'mdi:home',
+      user: 'fa:user'
     },
-    fallbackToApi: true,    // Fetch from Iconify API if not locally loaded
+    fallbackToApi: true, // Fetch from Iconify API if not locally loaded
     iconifyApiEnabled: true
   }
 });
@@ -60,13 +60,13 @@ import { Icon } from '@ubean/icon';
 <template>
   <!-- Basic usage -->
   <Icon name="mdi:home" />
-  
+
   <!-- With size and color -->
   <Icon name="mdi:user" :size="24" color="#42b883" />
-  
+
   <!-- CSS mode -->
   <Icon name="mdi:settings" mode="css" />
-  
+
   <!-- Flip and rotate -->
   <Icon name="mdi:arrow-right" flip="horizontal" />
   <Icon name="mdi:refresh" rotate="90" />
@@ -75,18 +75,18 @@ import { Icon } from '@ubean/icon';
 
 ### Icon Props (UbeanIcon)
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| name | string | required | Icon name in `collection:icon` format |
-| size | number \| string | '1em' | Icon size (px number or CSS value) |
-| color | string | undefined | Icon color (CSS color) |
-| className | string | '' | Additional CSS class |
-| ariaLabel | string | undefined | ARIA label for accessibility |
-| title | string | undefined | Hover title |
-| mode | 'svg' \| 'css' | 'svg' | Rendering mode |
-| flip | 'horizontal' \| 'vertical' \| 'both' | undefined | Flip direction |
-| rotate | number \| string | undefined | Rotation degrees |
-| inline | boolean | false | Inline display alignment |
+| Prop      | Type                                 | Default   | Description                           |
+| --------- | ------------------------------------ | --------- | ------------------------------------- |
+| name      | string                               | required  | Icon name in `collection:icon` format |
+| size      | number \| string                     | '1em'     | Icon size (px number or CSS value)    |
+| color     | string                               | undefined | Icon color (CSS color)                |
+| className | string                               | ''        | Additional CSS class                  |
+| ariaLabel | string                               | undefined | ARIA label for accessibility          |
+| title     | string                               | undefined | Hover title                           |
+| mode      | 'svg' \| 'css'                       | 'svg'     | Rendering mode                        |
+| flip      | 'horizontal' \| 'vertical' \| 'both' | undefined | Flip direction                        |
+| rotate    | number \| string                     | undefined | Rotation degrees                      |
+| inline    | boolean                              | false     | Inline display alignment              |
 
 ### Register Custom Icon Collections
 
@@ -144,6 +144,7 @@ const iconDataAsync = await getIcon('mdi:home');
 ### When to Use SIcon
 
 Use `SIcon` when:
+
 - You are building UI with @soybeanjs/ui components
 - You need consistent theming with your application's design system
 - You want preset sizes that match SoybeanUI components
@@ -201,19 +202,19 @@ import { SIcon } from '@soybeanjs/ui';
 <template>
   <!-- Basic usage -->
   <SIcon icon="mdi:home" />
-  
+
   <!-- With preset sizes -->
   <SIcon icon="mdi:user" size="sm" />
   <SIcon icon="mdi:settings" size="lg" />
-  
+
   <!-- With custom size -->
   <SIcon icon="mdi:bell" :size="24" />
-  
+
   <!-- With theme colors -->
   <SIcon icon="mdi:check" color="success" />
   <SIcon icon="mdi:alert" color="error" />
   <SIcon icon="mdi:info" color="primary" />
-  
+
   <!-- In buttons -->
   <SButton>
     <SIcon icon="mdi:plus" class="mr-2" />
@@ -224,31 +225,31 @@ import { SIcon } from '@soybeanjs/ui';
 
 ### SIcon Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| icon | string | required | Icon name (Iconify format: `collection:icon`) |
-| size | 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl' \| number | 'md' | Icon size (preset or px) |
-| color | string | undefined | Theme color token or CSS color |
-| spin | boolean | false | Spinning animation |
-| class | string | '' | Additional CSS class |
+| Prop  | Type                                           | Default   | Description                                   |
+| ----- | ---------------------------------------------- | --------- | --------------------------------------------- |
+| icon  | string                                         | required  | Icon name (Iconify format: `collection:icon`) |
+| size  | 'xs' \| 'sm' \| 'md' \| 'lg' \| 'xl' \| number | 'md'      | Icon size (preset or px)                      |
+| color | string                                         | undefined | Theme color token or CSS color                |
+| spin  | boolean                                        | false     | Spinning animation                            |
+| class | string                                         | ''        | Additional CSS class                          |
 
 ---
 
 ## Key Differences
 
-| Feature | @ubean/icon (UbeanIcon) | @soybeanjs/ui (SIcon) |
-|---------|------------------------|----------------------|
-| Component name | `<Icon>` / `<UbeanIcon>` | `<SIcon>` |
-| Icon prop | `name` (e.g. `name="mdi:home"`) | `icon` (e.g. `icon="mdi:home"`) |
-| Purpose | Build-time + runtime icon engine | UI-styled icon component |
-| Dependencies | None (built-in module, opt-in via `icon: true`) | Requires @soybeanjs/ui |
-| Theming | Raw CSS color support | Integrated with SoybeanUI theme tokens |
-| Size format | CSS values/px numbers | xs/sm/md/lg/xl presets + numbers |
-| Rendering modes | SVG and CSS modes | SVG only (styled) |
-| Transforms | Built-in flip/rotate props | CSS transforms via class/style |
-| API access | Full programmatic API (useIcon, getIcon, etc.) | Component-only |
-| Tree-shaking | Vite SFC scanning + preloading | Depends on unplugin-vue-components |
-| Custom collections | defineIconCollection / defineIconCollectionLoader | Depends on @ubean/icon runtime |
+| Feature            | @ubean/icon (UbeanIcon)                           | @soybeanjs/ui (SIcon)                  |
+| ------------------ | ------------------------------------------------- | -------------------------------------- |
+| Component name     | `<Icon>` / `<UbeanIcon>`                          | `<SIcon>`                              |
+| Icon prop          | `name` (e.g. `name="mdi:home"`)                   | `icon` (e.g. `icon="mdi:home"`)        |
+| Purpose            | Build-time + runtime icon engine                  | UI-styled icon component               |
+| Dependencies       | None (built-in module, opt-in via `icon: true`)   | Requires @soybeanjs/ui                 |
+| Theming            | Raw CSS color support                             | Integrated with SoybeanUI theme tokens |
+| Size format        | CSS values/px numbers                             | xs/sm/md/lg/xl presets + numbers       |
+| Rendering modes    | SVG and CSS modes                                 | SVG only (styled)                      |
+| Transforms         | Built-in flip/rotate props                        | CSS transforms via class/style         |
+| API access         | Full programmatic API (useIcon, getIcon, etc.)    | Component-only                         |
+| Tree-shaking       | Vite SFC scanning + preloading                    | Depends on unplugin-vue-components     |
+| Custom collections | defineIconCollection / defineIconCollectionLoader | Depends on @ubean/icon runtime         |
 
 ## Recommendation
 
@@ -261,16 +262,16 @@ import { SIcon } from '@soybeanjs/ui';
 
 ### Popular Iconify Collections
 
-| Collection | Prefix | Example |
-|------------|--------|---------|
-| Material Design Icons | `mdi` | `mdi:home`, `mdi:menu`, `mdi:settings` |
-| Font Awesome | `fa` | `fa:user`, `fa:home`, `fa:github` |
-| Simple Icons | `simple-icons` | `simple-icons:vuejs`, `simple-icons:react` |
-| Tabler Icons | `tabler` | `tabler:home`, `tabler:user`, `tabler:settings` |
-| Lucide Icons | `lucide` | `lucide:home`, `lucide:search`, `lucide:menu` |
-| Carbon Icons | `carbon` | `carbon:home`, `carbon:user-avatar` |
-| Bootstrap Icons | `bi` | `bi:house`, `bi:person` |
-| Heroicons | `heroicons` | `heroicons:home`, `heroicons:user` |
+| Collection            | Prefix         | Example                                         |
+| --------------------- | -------------- | ----------------------------------------------- |
+| Material Design Icons | `mdi`          | `mdi:home`, `mdi:menu`, `mdi:settings`          |
+| Font Awesome          | `fa`           | `fa:user`, `fa:home`, `fa:github`               |
+| Simple Icons          | `simple-icons` | `simple-icons:vuejs`, `simple-icons:react`      |
+| Tabler Icons          | `tabler`       | `tabler:home`, `tabler:user`, `tabler:settings` |
+| Lucide Icons          | `lucide`       | `lucide:home`, `lucide:search`, `lucide:menu`   |
+| Carbon Icons          | `carbon`       | `carbon:home`, `carbon:user-avatar`             |
+| Bootstrap Icons       | `bi`           | `bi:house`, `bi:person`                         |
+| Heroicons             | `heroicons`    | `heroicons:home`, `heroicons:user`              |
 
 ## Best Practices
 

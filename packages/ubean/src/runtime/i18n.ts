@@ -219,8 +219,12 @@ function selectPlural(template: string, count: number, locale: string): string {
   return parts[parts.length - 1];
 }
 
-function resolveLinkedMessages(template: string, flat: Record<string, string>, visited: Set<string> = new Set()): string {
-  return template.replace(/@(?:\:([\w.]+)|{([\w.]+)})/g, (_match, colonKey, braceKey) => {
+function resolveLinkedMessages(
+  template: string,
+  flat: Record<string, string>,
+  visited: Set<string> = new Set()
+): string {
+  return template.replace(/@(?::([\w.]+)|{([\w.]+)})/g, (_match, colonKey, braceKey) => {
     const key = colonKey || braceKey;
     if (!key || visited.has(key)) return _match;
     visited.add(key);
@@ -232,7 +236,12 @@ function resolveLinkedMessages(template: string, flat: Record<string, string>, v
   });
 }
 
-function interpolate(template: string, params?: Record<string, string | number>, locale?: string, flat?: Record<string, string>): string {
+function interpolate(
+  template: string,
+  params?: Record<string, string | number>,
+  locale?: string,
+  flat?: Record<string, string>
+): string {
   let result = template;
 
   if (flat) {
@@ -317,7 +326,8 @@ export function localizePath(path: string, locale?: string): string {
 
   let pathWithoutPrefix = cleanPath;
   if (isLocalePrefix) {
-    pathWithoutPrefix = '/' + pathParts.slice(1).join('/') || '/';
+    const rest = pathParts.slice(1).join('/');
+    pathWithoutPrefix = rest ? `/${rest}` : '/';
   }
 
   if (strategy === 'prefix_except_default' && targetLocale === defaultLocale) {
@@ -338,7 +348,8 @@ export function extractLocaleFromPath(path: string): { locale: string | null; pa
   const firstSegment = pathParts[0] || '';
 
   if (registeredLocales.has(firstSegment)) {
-    const pathWithoutLocale = '/' + pathParts.slice(1).join('/') || '/';
+    const rest = pathParts.slice(1).join('/');
+    const pathWithoutLocale = rest ? `/${rest}` : '/';
     return { locale: firstSegment, pathWithoutLocale };
   }
 
@@ -553,7 +564,11 @@ export function detectBrowserLocale(): string {
   return fallbackLocale;
 }
 
-export function formatDate(value: Date | number, style?: DateTimeFormatStyle, options?: Intl.DateTimeFormatOptions): string {
+export function formatDate(
+  value: Date | number,
+  style?: DateTimeFormatStyle,
+  options?: Intl.DateTimeFormatOptions
+): string {
   return useI18n().d(value, style, options);
 }
 
@@ -565,7 +580,11 @@ export function formatCurrency(value: number, currency: string, options?: Intl.N
   return useI18n().c(value, currency, options);
 }
 
-export function formatRelativeTime(value: number, unit: RelativeTimeUnit, options?: Intl.RelativeTimeFormatOptions): string {
+export function formatRelativeTime(
+  value: number,
+  unit: RelativeTimeUnit,
+  options?: Intl.RelativeTimeFormatOptions
+): string {
   return useI18n().relativeTime(value, unit, options);
 }
 

@@ -25,9 +25,9 @@ onMounted(async () => {
   <div class="container">
     <h1>API Routes Example</h1>
     <p>This example demonstrates CRUD API routes.</p>
-    
+
     <div v-if="loading" class="loading">Loading...</div>
-    
+
     <div v-else class="users">
       <h2>Users</h2>
       <ul>
@@ -36,12 +36,18 @@ onMounted(async () => {
           <span>{{ user.email }}</span>
         </li>
       </ul>
-      
+
       <div class="endpoints">
         <h2>Available Endpoints</h2>
         <ul>
-          <li><code>GET /api/users</code> - Get all users</li>
-          <li><code>GET /api/users/:id</code> - Get single user</li>
+          <li>
+            <code>GET /api/users</code>
+            - Get all users
+          </li>
+          <li>
+            <code>GET /api/users/:id</code>
+            - Get single user
+          </li>
         </ul>
       </div>
     </div>

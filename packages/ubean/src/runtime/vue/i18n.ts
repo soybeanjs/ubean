@@ -83,8 +83,8 @@ export function useI18n(): VueI18nInstance {
   const localeDir = computed(() => getLocaleDirCore(localeRef.value));
   const localeName = computed(() => getLocaleNameCore(localeRef.value));
 
-  function t(key: string, params?: Record<string, string | number>): string {
-    localeRef.value;
+  function translate(key: string, params?: Record<string, string | number>): string {
+    void localeRef.value;
     return core.t(key, params);
   }
 
@@ -96,7 +96,7 @@ export function useI18n(): VueI18nInstance {
     get availableLocales() {
       return core.availableLocales;
     },
-    t,
+    t: translate,
     setLocale(locale: string) {
       core.setLocale(locale);
     },

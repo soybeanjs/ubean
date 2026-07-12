@@ -1,0 +1,52 @@
+{
+  "name": "ubean-icon",
+  "version": "0.0.1",
+  "description": "Icon module for ubean with Iconify integration",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.mjs"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "vue-tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "consola": "catalog:",
+    "defu": "catalog:",
+    "pathe": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "catalog:",
+    "vite-plus": "catalog:",
+    "vue": "^3.5.13",
+    "vue-tsc": "^3.3.7"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
+  }
+}

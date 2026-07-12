@@ -78,7 +78,10 @@ export interface ScannedQueue extends ScannedFile {
 
 export interface ScannedLocale extends ScannedFile {
   code: string;
+  namespace?: string;
   isDefault?: boolean;
+  name?: string;
+  dir?: 'ltr' | 'rtl';
 }
 
 export interface AppEntry {

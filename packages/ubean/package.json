@@ -57,6 +57,14 @@
     "./vue-runtime/define-app": {
       "types": "./dist/runtime/vue/define-app.d.ts",
       "import": "./dist/runtime/vue/define-app.mjs"
+    },
+    "./runtime/i18n": {
+      "types": "./dist/runtime/i18n.d.ts",
+      "import": "./dist/runtime/i18n.mjs"
+    },
+    "./runtime/i18n-routing": {
+      "types": "./dist/runtime/i18n-routing.d.ts",
+      "import": "./dist/runtime/i18n-routing.mjs"
     }
   },
   "scripts": {

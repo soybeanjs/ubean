@@ -6,13 +6,14 @@ import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
   createMetaVirtualModule,
-  createAppVirtualModule
+  createAppVirtualModule,
+  createLocalesVirtualModule
 } from '../virtual/modules';
 import { scanProject } from '../../routing/scan';
 import { useVirtualRegistry } from '../virtual/registry';
 import { transformMacros } from './macros';
 
-const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config'];
+const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];
 const VIRTUAL_PREFIX = '\0ubean:';
 
 export interface UbeanPluginOptions {
@@ -58,7 +59,7 @@ export function ubeanPlugin(options: UbeanPluginOptions): Plugin {
     },
 
     configureServer(server) {
-      const watchDirs = ['routes', 'middleware', 'pages', 'layouts', 'plugins'];
+      const watchDirs = ['routes', 'middleware', 'pages', 'layouts', 'plugins', 'locales'];
       const srcDir = join(ubeanConfig.rootDir, ubeanConfig.srcDir);
 
       for (const dir of watchDirs) {
@@ -79,7 +80,11 @@ export function ubeanPlugin(options: UbeanPluginOptions): Plugin {
               server.moduleGraph.invalidateModule(module);
             }
           }
-          server.ws.send({ type: 'full-reload' });
+          if (relativePath.startsWith('locales/')) {
+            server.ws.send({ type: 'custom', event: 'ubean:locale-update', data: { file } });
+          } else {
+            server.ws.send({ type: 'full-reload' });
+          }
         }
       }
     }
@@ -150,5 +155,7 @@ export function ubeanPlugin(options: UbeanPluginOptions): Plugin {
     virtualRegistry.register(
       createAppVirtualModule(result.apiRoutes, result.middlewares, result.pages, ubeanConfig.srcDir)
     );
+
+    virtualRegistry.register(createLocalesVirtualModule(result.locales, result.defaultLocale));
   }
 }

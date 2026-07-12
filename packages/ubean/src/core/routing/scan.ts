@@ -325,29 +325,139 @@ async function scanQueues(srcDir: string, dirName: string, ignore: string[]): Pr
 
 const LOCALE_GLOB_PATTERN = '**/*.{json,json5,yaml,yml,js,mjs,cjs,ts,mts,cts}';
 
+function parseSimpleYaml(content: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  const lines = content.split('\n');
+  let currentObj: Record<string, unknown> = result;
+  const stack: Array<{ obj: Record<string, unknown>; indent: number }> = [];
+
+  for (const line of lines) {
+    const trimmed = line.replace(/#.*$/, '').trimEnd();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const indent = line.length - line.trimStart().length;
+    const match = trimmed.match(/^([\w.-]+)\s*:\s*(.*)$/);
+    if (!match) continue;
+
+    const [, key, value] = match;
+
+    while (stack.length > 0 && stack[stack.length - 1].indent >= indent) {
+      stack.pop();
+    }
+
+    currentObj = stack.length > 0 ? (stack[stack.length - 1].obj as Record<string, unknown>) : result;
+
+    if (value === '' || value === undefined) {
+      const newObj: Record<string, unknown> = {};
+      (currentObj as Record<string, unknown>)[key] = newObj;
+      stack.push({ obj: newObj, indent });
+      currentObj = newObj;
+    } else {
+      let parsed: unknown = value;
+      if (value === 'true') parsed = true;
+      else if (value === 'false') parsed = false;
+      else if (value === 'null') parsed = null;
+      else if (/^-?\d+$/.test(value)) parsed = Number.parseInt(value, 10);
+      else if (/^-?\d+\.\d+$/.test(value)) parsed = Number.parseFloat(value);
+      else if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        parsed = value.slice(1, -1);
+      }
+      (currentObj as Record<string, unknown>)[key] = parsed;
+    }
+  }
+
+  return result;
+}
+
+async function loadLocaleFile(fullPath: string, ext: string): Promise<{ messages: Record<string, unknown>; meta?: { name?: string; dir?: 'ltr' | 'rtl'; isDefault?: boolean } }> {
+  if (ext === '.json' || ext === '.json5') {
+    const content = await readFile(fullPath, 'utf-8');
+    const data = JSON.parse(content);
+    return { messages: data.messages || data, meta: { name: data.name, dir: data.dir, isDefault: data.isDefault } };
+  }
+  if (ext === '.yaml' || ext === '.yml') {
+    const content = await readFile(fullPath, 'utf-8');
+    const data = parseSimpleYaml(content);
+    return { messages: (data.messages as Record<string, unknown>) || data, meta: { name: data.name as string, dir: data.dir as 'ltr' | 'rtl', isDefault: data.isDefault as boolean } };
+  }
+  if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.ts' || ext === '.mts' || ext === '.cts') {
+    const mod = await import(fullPath).catch(() => null);
+    if (mod) {
+      const data = mod.default || mod;
+      return { messages: data.messages || data, meta: { name: data.name, dir: data.dir, isDefault: data.isDefault } };
+    }
+  }
+  return { messages: {} };
+}
+
 async function scanLocales(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedLocale[]> {
   const dir = join(srcDir, dirName);
   const files = await glob(LOCALE_GLOB_PATTERN, {
     cwd: dir,
     dot: true,
-    ignore: [...ignore, '**/*.vue', '**/_*', '**/index.*'],
+    ignore: [...ignore, '**/*.vue', '**/_*'],
     absolute: true
   }).catch(() => [] as string[]);
 
-  return files.sort().map(fullPath => {
+  const locales: ScannedLocale[] = [];
+
+  for (const fullPath of files.sort()) {
     const relativePath = toPosixPath(relative(dir, fullPath));
-    const base = basename(relativePath, extname(relativePath));
-    const { cleanName: code } = splitOrderPrefix(base);
-    const isDefault = code === 'default' || base.startsWith('default.');
-    return {
+    const ext = extname(relativePath);
+    const base = basename(relativePath, ext);
+    const { order: _order, cleanName: code } = splitOrderPrefix(base);
+    const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
+
+    let namespace: string | undefined;
+    let finalCode = code;
+    let isDefault = code === 'default' || base.startsWith('default.');
+
+    if (dirPart) {
+      const dirParts = dirPart.split('/');
+      const isIndexFile = code === 'index';
+
+      finalCode = dirParts[0];
+
+      const nsParts: string[] = [];
+      nsParts.push(...dirParts.slice(1));
+      if (!isIndexFile) {
+        nsParts.push(code);
+      }
+      if (nsParts.length > 0) {
+        namespace = nsParts.join('.');
+      }
+    }
+
+    let name: string | undefined;
+    let dirVal: 'ltr' | 'rtl' | undefined;
+
+    try {
+      const { meta } = await loadLocaleFile(fullPath, ext);
+      if (meta?.name) name = meta.name;
+      if (meta?.dir) dirVal = meta.dir;
+      if (meta?.isDefault) isDefault = true;
+    } catch {
+      logger.warn(`Failed to parse locale file: ${relativePath}`);
+    }
+
+    if (isDefault && finalCode === 'default') {
+      finalCode = 'en';
+    }
+
+    locales.push({
       fullPath,
       relativePath,
       dirname: dirname(relativePath),
       basename: basename(relativePath),
-      code: isDefault ? 'default' : code,
-      isDefault
-    };
-  });
+      code: finalCode,
+      namespace,
+      isDefault,
+      name,
+      dir: dirVal
+    });
+  }
+
+  return locales;
 }
 
 async function scanAppEntry(srcDir: string): Promise<ScannedAppEntry> {

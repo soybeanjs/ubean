@@ -1,6 +1,10 @@
 import type { Plugin } from 'vite';
+import Components from 'unplugin-vue-components/vite';
+import AutoImport from 'unplugin-auto-import/vite';
 import { join } from 'pathe';
+import type { InlinePreset } from 'unimport';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
+import { UBEAN_PRESET } from '../auto-imports';
 import { useVirtualRegistry } from '../build/virtual/registry';
 import { scanProject } from '../routing/scan';
 import {
@@ -17,9 +21,20 @@ export interface UbeanVuePluginOptions {
 const VUE_VIRTUAL_IDS = ['#ubean-pages', '#ubean-app', '#ubean-client-entry'];
 const VUE_VIRTUAL_PREFIX = '\0ubean-vue:';
 
-export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin {
+export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const { config: ubeanConfig } = _options;
   const virtualRegistry = useVirtualRegistry();
+  const srcDir = join(ubeanConfig.rootDir, ubeanConfig.srcDir);
+  const dtsDir = join(ubeanConfig.rootDir, '.ubean');
+
+  const autoImportEnabled = ubeanConfig.imports.autoImport !== false;
+  const componentAutoImportEnabled = ubeanConfig.components.autoImport !== false;
+  const directoryAsNamespace = ubeanConfig.components.directoryAsNamespace ?? false;
+
+  const composablesDirName = ubeanConfig.dir.composables || 'composables';
+  const componentsDirName = ubeanConfig.dir.components || 'components';
+  const composablesDirs = [join(srcDir, composablesDirName), ...(ubeanConfig.imports.dirs || [])];
+  const componentsDirs = [join(srcDir, componentsDirName), ...(ubeanConfig.components.dirs || [])];
 
   function resolveVirtualId(id: string): string | undefined {
     if (VUE_VIRTUAL_IDS.includes(id)) {
@@ -51,7 +66,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin {
     virtualRegistry.register(createClientEntryVirtualModule());
   }
 
-  return {
+  const corePlugin: Plugin = {
     name: 'ubean:vue',
     enforce: 'pre',
 
@@ -95,7 +110,6 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin {
     },
 
     configureServer(server) {
-      const srcDir = join(ubeanConfig.rootDir, ubeanConfig.srcDir);
       const watchDirs = ['pages', 'layouts', 'app'];
 
       for (const dir of watchDirs) {
@@ -122,4 +136,32 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin {
       server.watcher.on('change', handleFileChange);
     }
   };
+
+  const plugins: Plugin[] = [corePlugin];
+
+  if (autoImportEnabled) {
+    plugins.push(
+      AutoImport({
+        imports: ['vue', 'vue/macros', UBEAN_PRESET as InlinePreset],
+        dirs: composablesDirs,
+        dts: join(dtsDir, 'auto-imports.d.ts'),
+        vueTemplate: true,
+        eslintrc: { enabled: false }
+      }) as Plugin
+    );
+  }
+
+  if (componentAutoImportEnabled) {
+    plugins.push(
+      Components({
+        dirs: componentsDirs,
+        extensions: ['vue'],
+        directoryAsNamespace,
+        dts: join(dtsDir, 'components.d.ts'),
+        deep: true
+      }) as Plugin
+    );
+  }
+
+  return plugins;
 }

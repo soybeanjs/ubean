@@ -81,6 +81,9 @@
     "scule": "catalog:",
     "tinyglobby": "catalog:",
     "ufo": "catalog:",
+    "unimport": "catalog:",
+    "unplugin-auto-import": "catalog:",
+    "unplugin-vue-components": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

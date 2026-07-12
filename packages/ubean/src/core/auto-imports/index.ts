@@ -1,14 +1,12 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import { join, relative, basename, extname, dirname } from 'pathe';
+import { join, relative, normalize } from 'pathe';
 import { glob } from 'tinyglobby';
+import { createUnimport, toTypeDeclarationFile } from 'unimport';
+import type { Import, InlinePreset } from 'unimport';
 import { logger } from '../log';
 import type { ScanResult } from '../routing/types';
 
-export interface AutoImport {
-  name: string;
-  as?: string;
-  from: string;
-}
+export type { Import, InlinePreset };
 
 export interface AutoImportOptions {
   cwd: string;
@@ -30,89 +28,112 @@ export interface AutoImportOptions {
   };
 }
 
-const BUILTIN_COMPOSABLES: AutoImport[] = [
-  { name: 'ref', from: 'vue' },
-  { name: 'computed', from: 'vue' },
-  { name: 'reactive', from: 'vue' },
-  { name: 'readonly', from: 'vue' },
-  { name: 'watch', from: 'vue' },
-  { name: 'watchEffect', from: 'vue' },
-  { name: 'watchPostEffect', from: 'vue' },
-  { name: 'watchSyncEffect', from: 'vue' },
-  { name: 'onMounted', from: 'vue' },
-  { name: 'onUnmounted', from: 'vue' },
-  { name: 'onBeforeMount', from: 'vue' },
-  { name: 'onBeforeUnmount', from: 'vue' },
-  { name: 'onUpdated', from: 'vue' },
-  { name: 'onBeforeUpdate', from: 'vue' },
-  { name: 'onActivated', from: 'vue' },
-  { name: 'onDeactivated', from: 'vue' },
-  { name: 'onErrorCaptured', from: 'vue' },
-  { name: 'onServerPrefetch', from: 'vue' },
-  { name: 'onRenderTracked', from: 'vue' },
-  { name: 'onRenderTriggered', from: 'vue' },
-  { name: 'provide', from: 'vue' },
-  { name: 'inject', from: 'vue' },
-  { name: 'shallowRef', from: 'vue' },
-  { name: 'shallowReactive', from: 'vue' },
-  { name: 'shallowReadonly', from: 'vue' },
-  { name: 'isRef', from: 'vue' },
-  { name: 'isReactive', from: 'vue' },
-  { name: 'isReadonly', from: 'vue' },
-  { name: 'isProxy', from: 'vue' },
-  { name: 'unref', from: 'vue' },
-  { name: 'toRef', from: 'vue' },
-  { name: 'toRefs', from: 'vue' },
-  { name: 'toRaw', from: 'vue' },
-  { name: 'markRaw', from: 'vue' },
-  { name: 'triggerRef', from: 'vue' },
-  { name: 'customRef', from: 'vue' },
-  { name: 'effectScope', from: 'vue' },
-  { name: 'getCurrentScope', from: 'vue' },
-  { name: 'onScopeDispose', from: 'vue' },
-  { name: 'defineComponent', from: 'vue' },
-  { name: 'defineAsyncComponent', from: 'vue' },
-  { name: 'defineProps', from: 'vue' },
-  { name: 'defineEmits', from: 'vue' },
-  { name: 'defineExpose', from: 'vue' },
-  { name: 'defineOptions', from: 'vue' },
-  { name: 'defineSlots', from: 'vue' },
-  { name: 'defineModel', from: 'vue' },
-  { name: 'useSlots', from: 'vue' },
-  { name: 'useAttrs', from: 'vue' },
-  { name: 'useTemplateRef', from: 'vue' },
-  { name: 'nextTick', from: 'vue' },
-  { name: 'toValue', from: 'vue' },
-  { name: 'useId', from: 'vue' },
-  { name: 'useCssModule', from: 'vue' },
-  { name: 'useCssVars', from: 'vue' },
-  { name: 'useTransitionState', from: 'vue' },
-  { name: '$', from: 'vue/macros' },
-  { name: '$$', from: 'vue/macros' },
-  { name: '$ref', from: 'vue/macros' },
-  { name: '$computed', from: 'vue/macros' },
-  { name: '$shallowRef', from: 'vue/macros' },
-  { name: '$customRef', from: 'vue/macros' },
-  { name: '$toRef', from: 'vue/macros' },
-  { name: 't', from: 'ubean' },
-  { name: 'useI18n', from: 'ubean' },
-  { name: 'useSeoMeta', from: 'ubean' },
-  { name: 'useData', from: 'ubean' },
-  { name: 'callInternal', from: 'ubean' },
-  { name: 'navigateTo', from: 'ubean' },
-  { name: 'redirect', from: 'ubean' },
-  { name: 'useRuntimeConfig', from: 'ubean' },
-  { name: 'defineScheduled', from: 'ubean' },
-  { name: 'defineQueue', from: 'ubean' },
-  { name: 'sendMessage', from: 'ubean' },
-  { name: 'sendMessages', from: 'ubean' },
-  { name: 'getQueueStats', from: 'ubean' },
-  { name: 'useDatabase', from: 'ubean' },
-  { name: 'defineDatabase', from: 'ubean' },
-  { name: 'useKV', from: 'ubean' },
-  { name: 'createKV', from: 'ubean' },
-  { name: 'useStorage', from: 'ubean' }
-];
+export const VUE_PRESET: InlinePreset = {
+  from: 'vue',
+  imports: [
+    'ref',
+    'computed',
+    'reactive',
+    'readonly',
+    'watch',
+    'watchEffect',
+    'watchPostEffect',
+    'watchSyncEffect',
+    'onMounted',
+    'onUnmounted',
+    'onBeforeMount',
+    'onBeforeUnmount',
+    'onUpdated',
+    'onBeforeUpdate',
+    'onActivated',
+    'onDeactivated',
+    'onErrorCaptured',
+    'onServerPrefetch',
+    'onRenderTracked',
+    'onRenderTriggered',
+    'provide',
+    'inject',
+    'shallowRef',
+    'shallowReactive',
+    'shallowReadonly',
+    'isRef',
+    'isReactive',
+    'isReadonly',
+    'isProxy',
+    'unref',
+    'toRef',
+    'toRefs',
+    'toRaw',
+    'markRaw',
+    'triggerRef',
+    'customRef',
+    'effectScope',
+    'getCurrentScope',
+    'onScopeDispose',
+    'defineComponent',
+    'defineAsyncComponent',
+    'defineProps',
+    'defineEmits',
+    'defineExpose',
+    'defineOptions',
+    'defineSlots',
+    'defineModel',
+    'useSlots',
+    'useAttrs',
+    'useTemplateRef',
+    'nextTick',
+    'toValue',
+    'useId',
+    'useCssModule',
+    'useCssVars',
+    'useTransitionState'
+  ]
+};
+
+export const VUE_MACROS_PRESET: InlinePreset = {
+  from: 'vue/macros',
+  imports: ['$', '$$', '$ref', '$computed', '$shallowRef', '$customRef', '$toRef']
+};
+
+export const UBEAN_PRESET: InlinePreset = {
+  from: 'ubean',
+  imports: [
+    't',
+    'useI18n',
+    'useSeoMeta',
+    'useData',
+    'callInternal',
+    'navigateTo',
+    'redirect',
+    'useRuntimeConfig',
+    'defineScheduled',
+    'defineQueue',
+    'sendMessage',
+    'sendMessages',
+    'getQueueStats',
+    'useDatabase',
+    'defineDatabase',
+    'useKV',
+    'createKV',
+    'useStorage'
+  ]
+};
+
+export const BUILTIN_PRESETS: InlinePreset[] = [VUE_PRESET, VUE_MACROS_PRESET, UBEAN_PRESET];
+
+export interface ComponentInfo {
+  name: string;
+  filePath: string;
+  importPath: string;
+  pascalName: string;
+}
+
+export interface AutoImportResult {
+  composablesImports: Import[];
+  components: ComponentInfo[];
+  autoImportsDtsPath: string;
+  componentsDtsPath: string;
+}
 
 function toPosixPath(p: string): string {
   return p.replace(/\\/g, '/');
@@ -127,41 +148,30 @@ function toPascalCase(str: string): string {
   return camel.charAt(0).toUpperCase() + camel.slice(1);
 }
 
-function getExportName(filePath: string): string {
-  const base = basename(filePath, extname(filePath));
-  if (base === 'index') {
-    const dir = basename(dirname(filePath));
-    return toCamelCase(dir);
+function fileBasename(p: string, ext?: string): string {
+  const parts = toPosixPath(p).split('/');
+  let base = parts[parts.length - 1] || '';
+  if (ext && base.endsWith(ext)) {
+    base = base.slice(0, -ext.length);
+  } else if (!ext) {
+    const dotIdx = base.lastIndexOf('.');
+    if (dotIdx > 0) base = base.slice(0, dotIdx);
   }
-  return toCamelCase(base);
+  return base;
 }
 
-async function scanComposablesDir(
-  dir: string,
-  srcDir: string,
-  ignore: string[] = ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts']
-): Promise<AutoImport[]> {
-  const imports: AutoImport[] = [];
+function fileDirname(p: string): string {
+  const parts = toPosixPath(p).split('/');
+  parts.pop();
+  return parts.join('/') || '.';
+}
 
-  const files = await glob('**/*.{ts,js,mts,mjs,cts,cjs}', {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/*.vue'],
-    absolute: true
-  }).catch(() => [] as string[]);
-
-  for (const fullPath of files.sort()) {
-    const relativeToSrc = toPosixPath(relative(srcDir, fullPath));
-    const name = getExportName(relativeToSrc);
-    if (name) {
-      imports.push({
-        name,
-        from: `~/${relativeToSrc.replace(/\.(ts|js|mts|mjs|cts|cjs)$/, '')}`
-      });
-    }
-  }
-
-  return imports;
+function transformImportPath(filePath: string, srcDir: string): string {
+  const posixPath = toPosixPath(normalize(filePath));
+  const posixSrcDir = toPosixPath(normalize(srcDir));
+  const rel = toPosixPath(relative(posixSrcDir, posixPath));
+  const withoutExt = rel.replace(/\.(ts|js|mts|mjs|cts|cjs|tsx|jsx)$/, '');
+  return `~/${withoutExt}`;
 }
 
 async function scanComponentsDir(
@@ -182,12 +192,12 @@ async function scanComponentsDir(
   for (const fullPath of files.sort()) {
     const relativeToSrc = toPosixPath(relative(srcDir, fullPath));
     const relativeToDir = toPosixPath(relative(dir, fullPath));
-    const base = basename(fullPath, extname(fullPath));
+    const base = fileBasename(fullPath);
     if (base.startsWith('_')) continue;
 
     let name: string;
     if (directoryAsNamespace) {
-      const dirPart = dirname(relativeToDir) === '.' ? '' : dirname(relativeToDir);
+      const dirPart = fileDirname(relativeToDir) === '.' ? '' : fileDirname(relativeToDir);
       const parts = dirPart ? dirPart.split('/').filter(Boolean) : [];
       parts.push(base);
       name = parts.map(toPascalCase).join('');
@@ -206,22 +216,8 @@ async function scanComponentsDir(
   return components;
 }
 
-export interface ComponentInfo {
-  name: string;
-  filePath: string;
-  importPath: string;
-  pascalName: string;
-}
-
-export interface AutoImportResult {
-  composablesImports: AutoImport[];
-  components: ComponentInfo[];
-  autoImportsDtsPath: string;
-  componentsDtsPath: string;
-}
-
 export async function generateAutoImports(
-  scanResult: ScanResult,
+  _scanResult: ScanResult,
   options: AutoImportOptions
 ): Promise<AutoImportResult> {
   const {
@@ -245,17 +241,65 @@ export async function generateAutoImports(
   const composablesDir = dirs.composables || 'composables';
   const componentsDir = dirs.components || 'components';
 
-  let composablesImports: AutoImport[] = [];
+  let composablesImports: Import[] = [];
   let components: ComponentInfo[] = [];
 
-  if (autoImportEnabled) {
-    composablesImports = [...BUILTIN_COMPOSABLES];
+  const autoImportsDtsPath = join(outDir, 'auto-imports.d.ts');
+  const componentsDtsPath = join(outDir, 'components.d.ts');
 
+  if (autoImportEnabled) {
     const allComposablesDirs = [join(srcDir, composablesDir), ...composablesDirs];
+
+    const existingDirs: string[] = [];
     for (const dir of allComposablesDirs) {
-      const scanned = await scanComposablesDir(dir, srcDir);
-      composablesImports.push(...scanned);
+      try {
+        const { statSync } = await import('node:fs');
+        if (statSync(dir).isDirectory()) {
+          existingDirs.push(dir);
+        }
+      } catch {
+        // directory doesn't exist, skip
+      }
     }
+
+    const unimport = createUnimport({
+      presets: BUILTIN_PRESETS,
+      dirs: existingDirs,
+      dirsScanOptions: {
+        cwd: srcDir,
+        filePatterns: ['*.{ts,js,mts,mjs,cts,cjs}'],
+        types: false
+      }
+    });
+
+    await unimport.init();
+    const allImports = await unimport.getImports();
+
+    composablesImports = allImports.map(imp => {
+      if (imp.from === 'vue' || imp.from === 'vue/macros' || imp.from === 'ubean' || imp.from.startsWith('ubean/')) {
+        return imp;
+      }
+      return {
+        ...imp,
+        from: transformImportPath(imp.from, srcDir)
+      };
+    });
+
+    const dtsContent = toTypeDeclarationFile(composablesImports, {
+      resolvePath: (imp: Import) => {
+        if (imp.from === 'vue' || imp.from === 'vue/macros' || imp.from === 'ubean' || imp.from.startsWith('ubean/')) {
+          return imp.from;
+        }
+        return transformImportPath(imp.from, srcDir);
+      }
+    });
+    await writeFile(autoImportsDtsPath, dtsContent, 'utf-8');
+  } else {
+    await writeFile(
+      autoImportsDtsPath,
+      '// Auto-generated by ubean - auto-imports disabled\n/* eslint-disable */\n// @ts-nocheck\nexport {}\n',
+      'utf-8'
+    );
   }
 
   if (componentAutoImportEnabled) {
@@ -266,12 +310,7 @@ export async function generateAutoImports(
     }
   }
 
-  const autoImportsDts = generateAutoImportsDts(composablesImports);
-  const autoImportsDtsPath = join(outDir, 'auto-imports.d.ts');
-  await writeFile(autoImportsDtsPath, autoImportsDts, 'utf-8');
-
   const componentsDts = generateComponentsDts(components);
-  const componentsDtsPath = join(outDir, 'components.d.ts');
   await writeFile(componentsDtsPath, componentsDts, 'utf-8');
 
   logger.debug(`Generated auto-imports: ${composablesImports.length} composables, ${components.length} components`);
@@ -282,48 +321,6 @@ export async function generateAutoImports(
     autoImportsDtsPath,
     componentsDtsPath
   };
-}
-
-function generateAutoImportsDts(imports: AutoImport[]): string {
-  const lines: string[] = [
-    '// Auto-generated by ubean - do not edit manually',
-    '/* eslint-disable */',
-    '// @ts-nocheck',
-    '',
-    'export {}',
-    '',
-    'declare global {'
-  ];
-
-  const importGroups = new Map<string, Set<string>>();
-  for (const imp of imports) {
-    if (!importGroups.has(imp.from)) {
-      importGroups.set(imp.from, new Set());
-    }
-    importGroups.get(imp.from)!.add(imp.as ? `${imp.name} as ${imp.as}` : imp.name);
-  }
-
-  const globalDeclarations: string[] = [];
-  const importLines: string[] = [];
-
-  for (const [from, names] of importGroups) {
-    const nameList = Array.from(names);
-    importLines.push(`  import { ${nameList.join(', ')} } from ${JSON.stringify(from)};`);
-
-    for (const nameEntry of nameList) {
-      const localName = nameEntry.includes(' as ') ? nameEntry.split(' as ')[1] : nameEntry;
-      globalDeclarations.push(
-        `  const ${localName}: typeof import(${JSON.stringify(from)})['${nameEntry.includes(' as ') ? nameEntry.split(' as ')[0] : nameEntry}'];`
-      );
-    }
-  }
-
-  lines.push(...importLines);
-  lines.push('');
-  lines.push(...globalDeclarations);
-  lines.push('}');
-
-  return `${lines.join('\n')}\n`;
 }
 
 function generateComponentsDts(components: ComponentInfo[]): string {
@@ -360,17 +357,76 @@ function generateComponentsDts(components: ComponentInfo[]): string {
   return `${lines.join('\n')}\n`;
 }
 
-export function getBuiltinComposables(): AutoImport[] {
-  return [...BUILTIN_COMPOSABLES];
+export function getBuiltinComposables(): Import[] {
+  const imports: Import[] = [];
+  for (const preset of BUILTIN_PRESETS) {
+    for (const name of preset.imports) {
+      if (typeof name === 'string') {
+        imports.push({ name, from: preset.from! });
+      } else if (Array.isArray(name)) {
+        imports.push({ name: name[0], as: name[1], from: preset.from! });
+      }
+    }
+  }
+  return imports;
 }
 
-export function generateImportsTransform(imports: AutoImport[]): { code: string; map?: null } {
+export function getUbeanAutoImportConfig(
+  options: {
+    cwd?: string;
+    srcDir?: string;
+    buildDir?: string;
+    composablesDirs?: string[];
+  } = {}
+) {
+  const cwd = options.cwd || process.cwd();
+  const srcDir = options.srcDir || join(cwd, 'src');
+  const buildDir = options.buildDir || '.ubean';
+  const composablesDirName = 'composables';
+  const composablesDirs = [join(srcDir, composablesDirName), ...(options.composablesDirs || [])];
+
+  return {
+    imports: ['vue', 'vue/macros', UBEAN_PRESET],
+    dirs: composablesDirs,
+    dts: join(cwd, buildDir, 'auto-imports.d.ts'),
+    vueTemplate: true,
+    eslintrc: { enabled: false }
+  };
+}
+
+export function getUbeanComponentsConfig(
+  options: {
+    cwd?: string;
+    srcDir?: string;
+    buildDir?: string;
+    componentsDirs?: string[];
+    directoryAsNamespace?: boolean;
+  } = {}
+) {
+  const cwd = options.cwd || process.cwd();
+  const srcDir = options.srcDir || join(cwd, 'src');
+  const buildDir = options.buildDir || '.ubean';
+  const componentsDirName = 'components';
+  const componentsDirs = [join(srcDir, componentsDirName), ...(options.componentsDirs || [])];
+  const directoryAsNamespace = options.directoryAsNamespace ?? false;
+
+  return {
+    dirs: componentsDirs,
+    extensions: ['vue'],
+    directoryAsNamespace,
+    dts: join(cwd, buildDir, 'components.d.ts'),
+    deep: true
+  };
+}
+
+export function generateImportsTransform(imports: Import[]): { code: string; map?: null } {
   const importGroups = new Map<string, Set<string>>();
   for (const imp of imports) {
     if (!importGroups.has(imp.from)) {
       importGroups.set(imp.from, new Set());
     }
-    importGroups.get(imp.from)!.add(imp.as ? `${imp.name} as ${imp.as}` : imp.name);
+    const namePart = imp.as ? `${imp.name} as ${imp.as}` : imp.name;
+    importGroups.get(imp.from)!.add(namePart);
   }
 
   const importStatements: string[] = [];

@@ -245,8 +245,24 @@ export {
   definePrerenderRoutes,
   generatePrerenderManifest
 } from './core/prerender';
-export { generateAutoImports, getBuiltinComposables, generateImportsTransform } from './core/auto-imports';
-export type { AutoImport, AutoImportOptions, AutoImportResult, ComponentInfo } from './core/auto-imports';
+export {
+  generateAutoImports,
+  getBuiltinComposables,
+  generateImportsTransform,
+  getUbeanAutoImportConfig,
+  getUbeanComponentsConfig,
+  VUE_PRESET,
+  VUE_MACROS_PRESET,
+  UBEAN_PRESET,
+  BUILTIN_PRESETS
+} from './core/auto-imports';
+export type {
+  Import as AutoImport,
+  AutoImportOptions,
+  AutoImportResult,
+  ComponentInfo,
+  InlinePreset
+} from './core/auto-imports';
 export { definePreset, resolvePreset, registerPreset } from './core/preset/_utils/preset';
 export {
   registerBuiltinPresets,

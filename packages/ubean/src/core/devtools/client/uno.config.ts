@@ -45,7 +45,7 @@ export default defineConfig<Theme>({
   },
   shortcuts: [
     {
-      'devtools-root': 'h-full flex flex-col bg-background text-foreground',
+      'devtools-root': 'h-full flex flex-col bg-background text-foreground relative',
       'devtools-header': 'flex items-center justify-between px-3.5 py-2.5 bg-card border-b border-border flex-shrink-0',
       'devtools-header-left': 'flex items-center gap-2.5',
       'devtools-logo': 'size-7 rounded-lg bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center flex-shrink-0',
@@ -54,6 +54,12 @@ export default defineConfig<Theme>({
       'connected-badge': 'inline-flex items-center pl-3.5 pr-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/12 text-success relative',
       'pulse-dot': 'absolute left-1.5 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-success animate-pulse',
       'close-btn': 'text-muted-foreground hover:text-foreground hover:bg-secondary/80 transition-colors',
+      'create-menu-popover': 'absolute top-full left-0 right-0 z-40 flex justify-end pt-1 pr-2',
+      'create-menu': 'bg-popover border border-border rounded-lg shadow-xl py-1 min-w-48 animate-fade-in',
+      'create-menu-title': 'px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border',
+      'create-menu-item': 'w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/50 cursor-pointer transition-colors text-foreground border-none bg-transparent',
+      'create-menu-shortcut': 'ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono',
+      'create-menu-hint': 'px-3 py-1.5 text-[10px] text-muted-foreground border-t border-border text-center',
       'devtools-body': 'flex flex-col flex-1 overflow-hidden',
       'tabs-list': 'flex gap-0.5 px-2.5 py-1.5 bg-card border-b border-border flex-shrink-0 overflow-x-auto',
       'tab-trigger': 'inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border-none rounded-md text-muted-foreground text-xs font-medium cursor-pointer whitespace-nowrap transition-all duration-150 hover:text-foreground data-[active=true]:bg-primary/10 data-[active=true]:text-primary',

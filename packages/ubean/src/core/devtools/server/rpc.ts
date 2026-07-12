@@ -8,10 +8,35 @@ import type {
   DevToolsMiddlewareInfo,
   DevToolsCronInfo
 } from '../types';
+import { createDevToolsHooks } from './hooks';
+import { createCrudServer } from './crud';
+import type { DevToolsHooksInstance } from './hooks';
+import type { DevToolsCrudServer } from './crud';
 
-export function createRpcServer() {
+interface RpcServerOptions {
+  cwd?: string;
+  getEnv?: () => Record<string, string>;
+  setEnv?: (env: Record<string, string>) => void;
+  getConfig?: () => Record<string, unknown>;
+  onFileChange?: () => void | Promise<void>;
+}
+
+export function createRpcServer(options: RpcServerOptions = {}) {
   const handlers = new Map<string, RpcHandler>();
   const startTime = Date.now();
+  let envData: Record<string, string> = {};
+
+  const hooks: DevToolsHooksInstance = createDevToolsHooks();
+
+  const crud: DevToolsCrudServer = createCrudServer({
+    cwd: options.cwd || process.cwd(),
+    hooks,
+    getEnv: options.getEnv || (() => envData),
+    setEnv: options.setEnv || ((env) => { envData = env; }),
+    getConfig: options.getConfig,
+    onFileChange: options.onFileChange
+  });
+
   let info: DevToolsInfo = {
     version: '0.0.1',
     startTime,
@@ -61,6 +86,7 @@ export function createRpcServer() {
   }
 
   function setEnv(env: Record<string, string>) {
+    envData = { ...env };
     info.env = { ...env };
   }
 
@@ -83,7 +109,7 @@ export function createRpcServer() {
   registerHandler('getEnv', () => {
     const safeEnv: Record<string, string> = {};
     const sensitiveKeys = ['KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'AUTH', 'CREDENTIAL'];
-    for (const [key, value] of Object.entries(info.env || {})) {
+    for (const [key, value] of Object.entries(envData)) {
       const upperKey = key.toUpperCase();
       if (sensitiveKeys.some(k => upperKey.includes(k))) {
         safeEnv[key] = '***';
@@ -95,6 +121,12 @@ export function createRpcServer() {
   });
 
   registerHandler('getPresets', () => info.presets || []);
+
+  registerHandler('crud:create', (params) => crud.create(params as any));
+  registerHandler('crud:read', (params) => crud.read(params as any));
+  registerHandler('crud:update', (params) => crud.update(params as any));
+  registerHandler('crud:delete', (params) => crud.delete(params as any));
+  registerHandler('crud:restore', (params) => crud.restore((params as any).path));
 
   async function handleRequest(request: RpcRequest): Promise<RpcResponse> {
     const handler = handlers.get(request.method);
@@ -134,7 +166,9 @@ export function createRpcServer() {
     setMiddlewares,
     setCrons,
     setEnv,
-    setPresets
+    setPresets,
+    hooks,
+    crud
   };
 }
 

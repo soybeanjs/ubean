@@ -329,3 +329,135 @@ describe('DevTools Integration with App', () => {
     expect(res.status).toBe(400);
   });
 });
+
+describe('DevTools Hooks System (P6-13)', () => {
+  it('has hooks instance on RPC server', () => {
+    const rpc = createRpcServer();
+    expect(rpc.hooks).toBeDefined();
+    expect(typeof rpc.hooks.registerHook).toBe('function');
+    expect(typeof rpc.hooks.runHook).toBe('function');
+  });
+
+  it('registers and runs beforeCreate hook', async () => {
+    const rpc = createRpcServer();
+    let hookCalled = false;
+    let hookCtx: any = null;
+
+    rpc.hooks.registerHook('beforeCreate', (ctx) => {
+      hookCalled = true;
+      hookCtx = ctx;
+    });
+
+    await rpc.hooks.runHook('beforeCreate', { type: 'page', path: '/test' });
+    expect(hookCalled).toBe(true);
+    expect(hookCtx.type).toBe('page');
+    expect(hookCtx.path).toBe('/test');
+  });
+
+  it('runs multiple hooks in sequence', async () => {
+    const rpc = createRpcServer();
+    const order: string[] = [];
+
+    rpc.hooks.registerHook('afterCreate', () => { order.push('1'); });
+    rpc.hooks.registerHook('afterCreate', () => { order.push('2'); });
+    rpc.hooks.registerHook('afterCreate', () => { order.push('3'); });
+
+    await rpc.hooks.runHook('afterCreate', { type: 'api', path: '/test' });
+    expect(order).toEqual(['1', '2', '3']);
+  });
+
+  it('supports async hooks', async () => {
+    const rpc = createRpcServer();
+    let asyncHookCalled = false;
+
+    rpc.hooks.registerHook('beforeDelete', async () => {
+      await new Promise(resolve => setTimeout(resolve, 10));
+      asyncHookCalled = true;
+    });
+
+    await rpc.hooks.runHook('beforeDelete', { type: 'page', path: '/test' });
+    expect(asyncHookCalled).toBe(true);
+  });
+});
+
+describe('DevTools CRUD RPC Methods (P6-12)', () => {
+  it('registers crud:create handler', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '1',
+      method: 'crud:create',
+      params: { type: 'page', path: 'test-crud-page' }
+    });
+    expect(response.error).toBeUndefined();
+    expect(response.result).toBeDefined();
+  });
+
+  it('registers crud:read handler', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '2',
+      method: 'crud:read',
+      params: { type: 'env' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(true);
+  });
+
+  it('registers crud:update handler', async () => {
+    const rpc = createRpcServer();
+    const response = await rpc.handleRequest({
+      id: '3',
+      method: 'crud:update',
+      params: { type: 'env', key: 'TEST_KEY', value: 'test-value' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(true);
+  });
+
+  it('registers crud:delete handler for env', async () => {
+    const rpc = createRpcServer();
+    await rpc.handleRequest({
+      id: 'setup',
+      method: 'crud:update',
+      params: { type: 'env', key: 'TO_DELETE', value: 'yes' }
+    });
+    const response = await rpc.handleRequest({
+      id: '4',
+      method: 'crud:delete',
+      params: { type: 'env', key: 'TO_DELETE' }
+    });
+    expect(response.error).toBeUndefined();
+    expect((response.result as any).success).toBe(true);
+  });
+
+  it('crud server is accessible on rpc instance', () => {
+    const rpc = createRpcServer();
+    expect(rpc.crud).toBeDefined();
+    expect(typeof rpc.crud.create).toBe('function');
+    expect(typeof rpc.crud.read).toBe('function');
+    expect(typeof rpc.crud.update).toBe('function');
+    expect(typeof rpc.crud.delete).toBe('function');
+    expect(typeof rpc.crud.restore).toBe('function');
+  });
+
+  it('masks sensitive env vars in getEnv', async () => {
+    const rpc = createRpcServer();
+    rpc.setEnv({
+      PUBLIC_VAR: 'public',
+      SECRET_KEY: 'supersecret',
+      AUTH_TOKEN: 'token123',
+      DB_PASSWORD: 'pass456',
+      NORMAL_VAR: 'normal'
+    });
+    const response = await rpc.handleRequest({
+      id: '5',
+      method: 'getEnv'
+    });
+    const env = response.result as Record<string, string>;
+    expect(env.PUBLIC_VAR).toBe('public');
+    expect(env.NORMAL_VAR).toBe('normal');
+    expect(env.SECRET_KEY).toBe('***');
+    expect(env.AUTH_TOKEN).toBe('***');
+    expect(env.DB_PASSWORD).toBe('***');
+  });
+});

@@ -1,4 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue';
+import { toast } from '@soybeanjs/ui';
 
 declare global {
   interface Window {
@@ -48,6 +49,18 @@ export interface DevToolsInfo {
   cronsList: DevToolsCronInfo[];
 }
 
+export interface CrudResult {
+  success: boolean;
+  created?: string[];
+  deleted?: string[];
+  restored?: string[];
+  updated?: string[];
+  skipped?: string[];
+  errors?: string[];
+}
+
+export type CrudResourceType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'env' | 'config';
+
 export function useRpc() {
   const loading = ref(true);
   const error = ref<string | null>(null);
@@ -58,6 +71,29 @@ export function useRpc() {
   let reqId = 0;
 
   const rpcPath = window.__UBEAN_DEVTOOLS_CONFIG__?.rpcPath || '/__ubean_devtools/rpc';
+
+  function showToast(type: 'success' | 'error' | 'info' | 'warning', message: string) {
+    const options = {
+      duration: 3000,
+      position: 'top-right' as const
+    };
+
+    switch (type) {
+      case 'success':
+        toast.success(message, options);
+        break;
+      case 'error':
+        toast.error(message, options);
+        break;
+      case 'warning':
+        toast.warning(message, options);
+        break;
+      case 'info':
+      default:
+        toast(message, options);
+        break;
+    }
+  }
 
   async function rpc<T = unknown>(method: string, params?: unknown): Promise<T> {
     const id = String(++reqId);
@@ -89,6 +125,82 @@ export function useRpc() {
       env.value = await rpc<Record<string, string>>('getEnv');
     } catch {
       // silent fail
+    }
+  }
+
+  async function crudCreate(type: CrudResourceType, path: string, options?: { method?: string; content?: string; force?: boolean }): Promise<CrudResult> {
+    try {
+      const result = await rpc<CrudResult>('crud:create', { type, path, ...options });
+      if (result.success) {
+        showToast('success', `Created ${type}: ${path}`);
+        await refresh();
+      } else if (result.errors?.length) {
+        showToast('error', result.errors[0]);
+      }
+      return result;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Create failed';
+      showToast('error', msg);
+      return { success: false, errors: [msg] };
+    }
+  }
+
+  async function crudRead(type: CrudResourceType, path?: string): Promise<{ success: boolean; content?: string; data?: unknown; error?: string }> {
+    try {
+      return await rpc('crud:read', { type, path });
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Read failed' };
+    }
+  }
+
+  async function crudUpdate(type: CrudResourceType, options: { path?: string; key?: string; content?: string; value?: string }): Promise<CrudResult> {
+    try {
+      const result = await rpc<CrudResult>('crud:update', { type, ...options });
+      if (result.success) {
+        showToast('success', `Updated ${type}`);
+        await refresh();
+      } else if (result.errors?.length) {
+        showToast('error', result.errors[0]);
+      }
+      return result;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Update failed';
+      showToast('error', msg);
+      return { success: false, errors: [msg] };
+    }
+  }
+
+  async function crudDelete(type: CrudResourceType, options: { path?: string; key?: string; force?: boolean }): Promise<CrudResult> {
+    try {
+      const result = await rpc<CrudResult>('crud:delete', { type, ...options });
+      if (result.success) {
+        showToast('success', `Deleted ${type}`);
+        await refresh();
+      } else if (result.errors?.length) {
+        showToast('error', result.errors[0]);
+      }
+      return result;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Delete failed';
+      showToast('error', msg);
+      return { success: false, errors: [msg] };
+    }
+  }
+
+  async function crudRestore(path: string): Promise<CrudResult> {
+    try {
+      const result = await rpc<CrudResult>('crud:restore', { path });
+      if (result.success) {
+        showToast('success', `Restored: ${path}`);
+        await refresh();
+      } else if (result.errors?.length) {
+        showToast('error', result.errors[0]);
+      }
+      return result;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Restore failed';
+      showToast('error', msg);
+      return { success: false, errors: [msg] };
     }
   }
 
@@ -161,6 +273,10 @@ export function useRpc() {
     return 'muted';
   }
 
+  async function refresh() {
+    await Promise.all([loadInfo(), loadEnv()]);
+  }
+
   onMounted(() => {
     loadInfo();
     loadEnv();
@@ -188,6 +304,12 @@ export function useRpc() {
     methodColor,
     methodClass,
     getStatusColor,
-    refresh: loadInfo
+    refresh,
+    crudCreate,
+    crudRead,
+    crudUpdate,
+    crudDelete,
+    crudRestore,
+    showToast
   };
 }

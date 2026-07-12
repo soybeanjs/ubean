@@ -71,6 +71,58 @@ export interface DevToolsTab {
   icon?: string;
 }
 
+export type CrudResourceType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron';
+
+export interface CrudResult {
+  success: boolean;
+  created?: string[];
+  deleted?: string[];
+  restored?: string[];
+  updated?: string[];
+  skipped?: string[];
+  errors?: string[];
+}
+
+export interface CreateCrudParams {
+  type: CrudResourceType;
+  path: string;
+  method?: string;
+  content?: string;
+  force?: boolean;
+}
+
+export interface ReadCrudParams {
+  type: CrudResourceType | 'env' | 'config';
+  path?: string;
+}
+
+export interface UpdateCrudParams {
+  type: CrudResourceType | 'env' | 'config';
+  path?: string;
+  key?: string;
+  content?: string;
+  value?: string;
+}
+
+export interface DeleteCrudParams {
+  type: CrudResourceType | 'env';
+  path?: string;
+  key?: string;
+  force?: boolean;
+}
+
+export type CrudHookType = 'beforeCreate' | 'afterCreate' | 'beforeUpdate' | 'afterUpdate' | 'beforeDelete' | 'afterDelete';
+
+export interface CrudHookContext {
+  type: CrudResourceType | 'env' | 'config';
+  path?: string;
+  key?: string;
+  content?: string;
+  value?: string;
+}
+
+export type CrudHookHandler = (ctx: CrudHookContext) => void | Promise<void>;
+
 export const DEVTOOLS_MAGIC_KEY = '__ubean_devtools__';
 export const DEVTOOLS_RPC_PATH = '/__ubean_devtools__/rpc';
 export const DEVTOOLS_CLIENT_PATH = '/__ubean_devtools__/client';

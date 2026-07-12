@@ -1,7 +1,5 @@
+import { defineDataKey as _defineDataKey } from '../pages/data';
 import type { PageObject } from '../pages/protocol';
-import {
-  defineDataKey as _defineDataKey
-} from '../pages/data';
 
 const _global = globalThis as any;
 
@@ -148,7 +146,7 @@ export function createUseAsyncData(store: DataCacheStore) {
 
     if (typeof keyOrFetcher === 'string') {
       key = keyOrFetcher;
-      fetcher = (fetcherOrOptions as () => Promise<T>);
+      fetcher = fetcherOrOptions as () => Promise<T>;
       opts = options || {};
     } else {
       fetcher = keyOrFetcher;

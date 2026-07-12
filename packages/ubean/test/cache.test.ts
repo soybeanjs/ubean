@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createMemoryStore, resolveRouteCacheRules, invalidateRouteCache, useCacheStore, clearCacheStore } from '../src/runtime/cache';
+import {
+  createMemoryStore,
+  resolveRouteCacheRules,
+  invalidateRouteCache,
+  useCacheStore,
+  clearCacheStore
+} from '../src/runtime/cache';
 
 describe('memory cache store', () => {
   beforeEach(() => {
@@ -8,12 +14,16 @@ describe('memory cache store', () => {
 
   it('stores and retrieves entries', async () => {
     const store = createMemoryStore();
-    await store.set('key1', {
-      body: new TextEncoder().encode('hello').buffer,
-      headers: { 'Content-Type': 'text/plain' },
-      status: 200,
-      statusText: 'OK'
-    }, 60);
+    await store.set(
+      'key1',
+      {
+        body: new TextEncoder().encode('hello').buffer,
+        headers: { 'Content-Type': 'text/plain' },
+        status: 200,
+        statusText: 'OK'
+      },
+      60
+    );
 
     const entry = await store.get('key1');
     expect(entry).toBeDefined();
@@ -30,12 +40,16 @@ describe('memory cache store', () => {
 
   it('expires entries after ttl', async () => {
     const store = createMemoryStore();
-    await store.set('key1', {
-      body: new TextEncoder().encode('hello').buffer,
-      headers: {},
-      status: 200,
-      statusText: 'OK'
-    }, 0.001);
+    await store.set(
+      'key1',
+      {
+        body: new TextEncoder().encode('hello').buffer,
+        headers: {},
+        status: 200,
+        statusText: 'OK'
+      },
+      0.001
+    );
 
     let entry = await store.get('key1');
     expect(entry).toBeDefined();
@@ -47,12 +61,16 @@ describe('memory cache store', () => {
 
   it('deletes entries', async () => {
     const store = createMemoryStore();
-    await store.set('key1', {
-      body: new ArrayBuffer(0),
-      headers: {},
-      status: 200,
-      statusText: 'OK'
-    }, 60);
+    await store.set(
+      'key1',
+      {
+        body: new ArrayBuffer(0),
+        headers: {},
+        status: 200,
+        statusText: 'OK'
+      },
+      60
+    );
 
     const deleted = await store.delete('key1');
     expect(deleted).toBe(true);
@@ -72,12 +90,16 @@ describe('memory cache store', () => {
   it('evicts oldest entries when max size exceeded', async () => {
     const store = createMemoryStore(5);
     for (let i = 0; i < 10; i++) {
-      await store.set(`key${i}`, {
-        body: new TextEncoder().encode(String(i)).buffer,
-        headers: {},
-        status: 200,
-        statusText: 'OK'
-      }, 60);
+      await store.set(
+        `key${i}`,
+        {
+          body: new TextEncoder().encode(String(i)).buffer,
+          headers: {},
+          status: 200,
+          statusText: 'OK'
+        },
+        60
+      );
     }
 
     expect(await store.get('key0')).toBeUndefined();
@@ -115,18 +137,26 @@ describe('cache key invalidation', () => {
 
   it('invalidates by exact key', async () => {
     const store = useCacheStore();
-    await store.set('GET:/page', {
-      body: new ArrayBuffer(0),
-      headers: {},
-      status: 200,
-      statusText: 'OK'
-    }, 60);
-    await store.set('GET:/other', {
-      body: new ArrayBuffer(0),
-      headers: {},
-      status: 200,
-      statusText: 'OK'
-    }, 60);
+    await store.set(
+      'GET:/page',
+      {
+        body: new ArrayBuffer(0),
+        headers: {},
+        status: 200,
+        statusText: 'OK'
+      },
+      60
+    );
+    await store.set(
+      'GET:/other',
+      {
+        body: new ArrayBuffer(0),
+        headers: {},
+        status: 200,
+        statusText: 'OK'
+      },
+      60
+    );
 
     await invalidateRouteCache('GET:/page');
     expect(await store.get('GET:/page')).toBeUndefined();
@@ -175,10 +205,11 @@ describe('cache middleware', () => {
     } as any;
 
     let responseBody = 'response-1';
-    const makeRes = (body: string) => new Response(body, {
-      status: 200,
-      headers: { 'Content-Type': 'text/plain' }
-    });
+    const makeRes = (body: string) =>
+      new Response(body, {
+        status: 200,
+        headers: { 'Content-Type': 'text/plain' }
+      });
 
     c.res = makeRes(responseBody);
     await mw(c, async () => {

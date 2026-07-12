@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   renderTemplate,
   toKebabCase,
@@ -81,7 +81,13 @@ describe('case conversion', () => {
 
 describe('template generators', () => {
   it('renderPageTemplate includes name and kebab case', () => {
-    const result = renderPageTemplate({ name: 'UserProfile', path: '/users/profile', kebabName: '', pascalName: '', camelName: '' });
+    const result = renderPageTemplate({
+      name: 'UserProfile',
+      path: '/users/profile',
+      kebabName: '',
+      pascalName: '',
+      camelName: ''
+    });
     expect(result).toContain('UserProfile');
     expect(result).toContain('user-profile-page');
   });
@@ -371,7 +377,7 @@ describe('scaffold', () => {
     expect(result.created[0]).toContain('pages');
 
     const fs = createFsOps(tmpDir);
-    const content = await fs.readFile(result.created[0].replace(`${tmpDir  }/`, ''));
+    const content = await fs.readFile(result.created[0].replace(`${tmpDir}/`, ''));
     expect(content).toContain('definePage');
     expect(content).toContain("import { definePage } from 'ubean'");
     expect(content).toContain('UsersId');

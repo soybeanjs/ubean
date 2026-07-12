@@ -46,7 +46,11 @@ async function prompt(question: string, defaultValue?: string): Promise<string> 
   });
 }
 
-async function select(question: string, options: { value: string; label: string }[], defaultValue?: string): Promise<string> {
+async function select(
+  question: string,
+  options: { value: string; label: string }[],
+  defaultValue?: string
+): Promise<string> {
   const readline = await import('node:readline');
   const rl = readline.createInterface({
     input: process.stdin,
@@ -501,7 +505,10 @@ export async function scaffoldProject(options: InitOptions): Promise<void> {
 
   await fs.writeFile('package.json', renderTemplate(PACKAGE_JSON_TEMPLATE, { variables: { name: projectName } }));
   await fs.writeFile('tsconfig.json', TSCONFIG_TEMPLATE);
-  await fs.writeFile('ubean.config.ts', renderTemplate(UBEAN_CONFIG_TEMPLATE, { variables: { preset: options.preset || 'standard' } }));
+  await fs.writeFile(
+    'ubean.config.ts',
+    renderTemplate(UBEAN_CONFIG_TEMPLATE, { variables: { preset: options.preset || 'standard' } })
+  );
   await fs.writeFile('.gitignore', GITIGNORE_TEMPLATE);
   await fs.writeFile('README.md', renderTemplate(README_TEMPLATE, { variables: { name: projectName, pm } }));
   await fs.writeFile('src/app.vue', APP_VUE_TEMPLATE);
@@ -526,8 +533,7 @@ export async function scaffoldProject(options: InitOptions): Promise<void> {
     try {
       const { execSync } = await import('node:child_process');
       execSync('git init', { cwd: targetDir, stdio: 'ignore' });
-    } catch {
-    }
+    } catch {}
   }
 
   console.log('\n✨ ubean project created successfully!\n');
@@ -604,13 +610,13 @@ export const initCommand: CommandDef = {
     logger.info('🚀 ubean project initializer');
 
     if (!nonInteractive) {
-      name = name || await prompt('Project name', args.dir === '.' ? basename(cwd) : args.dir);
+      name = name || (await prompt('Project name', args.dir === '.' ? basename(cwd) : args.dir));
 
-      template = template || await select('Select a template:', TEMPLATES, 'starter');
+      template = template || (await select('Select a template:', TEMPLATES, 'starter'));
 
-      preset = preset || await select('Select a preset:', PRESETS, 'standard');
+      preset = preset || (await select('Select a preset:', PRESETS, 'standard'));
 
-      packageManager = packageManager || await prompt('Package manager (npm/pnpm/yarn/bun)', 'npm');
+      packageManager = packageManager || (await prompt('Package manager (npm/pnpm/yarn/bun)', 'npm'));
 
       if (git === undefined) {
         git = await confirm('Initialize git repository?', true);

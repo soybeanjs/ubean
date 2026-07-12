@@ -65,7 +65,7 @@ export function formatSSEMessage(msg: SSEMessage): string {
     }
   }
 
-  return `${lines.join('\n')  }\n\n`;
+  return `${lines.join('\n')}\n\n`;
 }
 
 class SSEConnectionImpl implements SSEConnection {
@@ -148,18 +148,14 @@ class SSEConnectionImpl implements SSEConnection {
   }
 }
 
-export function createSSEStream(
-  c: Context<UbeanEnv>,
-  handler: SSEHandler,
-  options: SSEOptions = {}
-): Response {
+export function createSSEStream(c: Context<UbeanEnv>, handler: SSEHandler, options: SSEOptions = {}): Response {
   const { readable, writable } = new TransformStream();
   const writer = writable.getWriter();
 
   const headers: Record<string, string> = {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
-    'Connection': 'keep-alive',
+    Connection: 'keep-alive',
     'X-Accel-Buffering': 'no',
     ...options.headers
   };
@@ -206,7 +202,7 @@ export function sseHeaders(): Record<string, string> {
   return {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
-    'Connection': 'keep-alive',
+    Connection: 'keep-alive',
     'X-Accel-Buffering': 'no'
   };
 }

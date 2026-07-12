@@ -186,10 +186,23 @@ export function createObservabilityTracer(config: ObservabilityConfig = {}) {
   const hooks: Hookable<ObservabilityHooks> = createHooks<ObservabilityHooks>();
   const exporters: ObservabilityExporter[] = [...(config.exporters || [])];
   const sensitiveKeys = new Set(
-    (config.sensitiveKeys || [
-      'password', 'passwd', 'secret', 'token', 'authorization', 'api_key', 'apikey',
-      'access_token', 'refresh_token', 'private_key', 'credit_card', 'ssn', 'auth'
-    ]).map(k => k.toLowerCase())
+    (
+      config.sensitiveKeys || [
+        'password',
+        'passwd',
+        'secret',
+        'token',
+        'authorization',
+        'api_key',
+        'apikey',
+        'access_token',
+        'refresh_token',
+        'private_key',
+        'credit_card',
+        'ssn',
+        'auth'
+      ]
+    ).map(k => k.toLowerCase())
   );
   const enabled = config.enabled !== false;
 
@@ -208,7 +221,7 @@ export function createObservabilityTracer(config: ObservabilityConfig = {}) {
       if (sensitiveKeys.has(key.toLowerCase())) {
         result[key] = '[REDACTED]';
       } else if (typeof value === 'string' && value.length > 2048) {
-        result[key] = `${value.slice(0, 2048)  }...[truncated]`;
+        result[key] = `${value.slice(0, 2048)}...[truncated]`;
       } else {
         result[key] = value;
       }
@@ -230,7 +243,7 @@ export function createObservabilityTracer(config: ObservabilityConfig = {}) {
     void hooks.callHook('span:start', span);
 
     const originalEnd = span.end.bind(span);
-    span.end = function(this: Span, opts?: SpanEndOptions) {
+    span.end = function (this: Span, opts?: SpanEndOptions) {
       if (opts?.attributes) {
         opts.attributes = redactAttributes(opts.attributes);
       }
@@ -243,8 +256,7 @@ export function createObservabilityTracer(config: ObservabilityConfig = {}) {
       for (const exporter of exporters) {
         try {
           void exporter.exportSpan(span);
-        } catch {
-        }
+        } catch {}
       }
     };
 
@@ -314,13 +326,15 @@ export function withSpan<T>(options: SpanOptions | string, fn: (span: Span) => T
   return getGlobalTracer().withSpan(options, fn);
 }
 
-export function createOpenTelemetryExporter(options: {
-  url?: string;
-  headers?: Record<string, string>;
-  serviceName?: string;
-  serviceVersion?: string;
-  fetchImpl?: typeof fetch;
-} = {}): ObservabilityExporter {
+export function createOpenTelemetryExporter(
+  options: {
+    url?: string;
+    headers?: Record<string, string>;
+    serviceName?: string;
+    serviceVersion?: string;
+    fetchImpl?: typeof fetch;
+  } = {}
+): ObservabilityExporter {
   const url = options.url || 'http://localhost:4318/v1/traces';
   const headers = options.headers || {};
   const serviceName = options.serviceName || 'ubean-app';
@@ -337,24 +351,33 @@ export function createOpenTelemetryExporter(options: {
       if (v === undefined || v === null) continue;
       attributes.push({
         key: k,
-        value: typeof v === 'string' ? { stringValue: v }
-          : typeof v === 'number' ? { intValue: String(Math.floor(v)) }
-          : typeof v === 'boolean' ? { boolValue: v }
-          : { stringValue: String(v) }
+        value:
+          typeof v === 'string'
+            ? { stringValue: v }
+            : typeof v === 'number'
+              ? { intValue: String(Math.floor(v)) }
+              : typeof v === 'boolean'
+                ? { boolValue: v }
+                : { stringValue: String(v) }
       });
     }
 
     const events = span.events.map(e => ({
       timeUnixNano: (e.timestamp as number) * 1_000_000,
       name: e.name,
-      attributes: e.attributes ? Object.entries(e.attributes)
-        .filter(([, v]) => v !== undefined && v !== null)
-        .map(([k, v]) => ({
-          key: k,
-          value: typeof v === 'string' ? { stringValue: v }
-            : typeof v === 'number' ? { intValue: String(Math.floor(v)) }
-            : { stringValue: String(v) }
-        })) : []
+      attributes: e.attributes
+        ? Object.entries(e.attributes)
+            .filter(([, v]) => v !== undefined && v !== null)
+            .map(([k, v]) => ({
+              key: k,
+              value:
+                typeof v === 'string'
+                  ? { stringValue: v }
+                  : typeof v === 'number'
+                    ? { intValue: String(Math.floor(v)) }
+                    : { stringValue: String(v) }
+            }))
+        : []
     }));
 
     return {
@@ -367,9 +390,10 @@ export function createOpenTelemetryExporter(options: {
       endTimeUnixNano: (span.endTime || Date.now()) * 1_000_000,
       attributes,
       events,
-      status: span.status === 'error'
-        ? { code: 'STATUS_CODE_ERROR', message: span.error?.message || '' }
-        : { code: 'STATUS_CODE_OK' },
+      status:
+        span.status === 'error'
+          ? { code: 'STATUS_CODE_ERROR', message: span.error?.message || '' }
+          : { code: 'STATUS_CODE_OK' },
       droppedAttributesCount: 0,
       droppedEventsCount: 0
     };
@@ -383,22 +407,25 @@ export function createOpenTelemetryExporter(options: {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...headers },
         body: JSON.stringify({
-          resourceSpans: [{
-            resource: {
-              attributes: [
-                { key: 'service.name', value: { stringValue: serviceName } },
-                { key: 'service.version', value: { stringValue: serviceVersion } }
+          resourceSpans: [
+            {
+              resource: {
+                attributes: [
+                  { key: 'service.name', value: { stringValue: serviceName } },
+                  { key: 'service.version', value: { stringValue: serviceVersion } }
+                ]
+              },
+              scopeSpans: [
+                {
+                  scope: { name: 'ubean' },
+                  spans
+                }
               ]
-            },
-            scopeSpans: [{
-              scope: { name: 'ubean' },
-              spans
-            }]
-          }]
+            }
+          ]
         })
       });
-    } catch {
-    }
+    } catch {}
   }
 
   function scheduleFlush() {
@@ -434,10 +461,12 @@ export function createOpenTelemetryExporter(options: {
   };
 }
 
-export function createConsoleExporter(options: {
-  colors?: boolean;
-  slowThreshold?: number;
-} = {}): ObservabilityExporter {
+export function createConsoleExporter(
+  options: {
+    colors?: boolean;
+    slowThreshold?: number;
+  } = {}
+): ObservabilityExporter {
   const slowThreshold = options.slowThreshold ?? 1000;
 
   return {

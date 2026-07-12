@@ -133,20 +133,22 @@ function matchPath(pattern: string, path: string): boolean {
   const DOUBLE = '__DWC__';
   const SINGLE = '__SWC__';
   let s = pattern;
-  s = s.replace(/\/\*\*/g, `/${  DOUBLE}`);
+  s = s.replace(/\/\*\*/g, `/${DOUBLE}`);
   s = s.replace(/\*/g, SINGLE);
   s = s.replace(/[.+^${}()|[\]\\]/g, '\\$&');
   s = s.replace(new RegExp(SINGLE, 'g'), '[^/]*');
-  s = s.replace(new RegExp(`/${  DOUBLE}`, 'g'), '(?:/.*)?');
-  const re = new RegExp(`^${  s  }$`);
+  s = s.replace(new RegExp(`/${DOUBLE}`, 'g'), '(?:/.*)?');
+  const re = new RegExp(`^${s}$`);
   return re.test(path);
 }
 
-export function createCacheMiddleware(options: {
-  store?: CacheStore;
-  rules?: Record<string, CacheRule>;
-  defaultTtl?: number;
-} = {}) {
+export function createCacheMiddleware(
+  options: {
+    store?: CacheStore;
+    rules?: Record<string, CacheRule>;
+    defaultTtl?: number;
+  } = {}
+) {
   const store = options.store || useCacheStore();
 
   function findTtl(path: string): number | null {

@@ -32,23 +32,9 @@ export const cloudflarePreset = definePreset(
       outputDir: '.ubean/dist/cloudflare',
       format: 'esm',
       minify: false,
-      externals: [
-        'hono',
-        'c12',
-        'citty',
-        'consola',
-        'defu',
-        'hookable',
-        'pathe',
-        'ufo',
-        'zod',
-        'cloudflare:workers'
-      ],
+      externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'cloudflare:workers'],
       rollupConfig: {
-        external: [
-          'cloudflare:*',
-          'node:*'
-        ]
+        external: ['cloudflare:*', 'node:*']
       }
     },
     output: {
@@ -75,10 +61,8 @@ export const cloudflarePreset = definePreset(
       deploy: 'npx wrangler deploy'
     },
     hooks: {
-      'build:before': async () => {
-      },
-      'compiled': async () => {
-      }
+      'build:before': async () => {},
+      compiled: async () => {}
     }
   },
   {
@@ -224,14 +208,16 @@ export function serializeWranglerToml(config: WranglerConfig): string {
       } else {
         lines.push(`${prefix}[[${key}]]`);
         for (const item of value) {
-          lines.push(`${prefix}  { ${Object.entries(item as Record<string, unknown>)
-            .filter(([, v]) => v !== undefined && v !== null)
-            .map(([k, v]) => {
-              if (typeof v === 'string') return `${k} = "${escapeToml(v)}"`;
-              if (typeof v === 'boolean') return `${k} = ${v}`;
-              return `${k} = ${v}`;
-            })
-            .join(', ')} }`);
+          lines.push(
+            `${prefix}  { ${Object.entries(item as Record<string, unknown>)
+              .filter(([, v]) => v !== undefined && v !== null)
+              .map(([k, v]) => {
+                if (typeof v === 'string') return `${k} = "${escapeToml(v)}"`;
+                if (typeof v === 'boolean') return `${k} = ${v}`;
+                return `${k} = ${v}`;
+              })
+              .join(', ')} }`
+          );
         }
       }
     } else if (typeof value === 'object') {
@@ -244,10 +230,14 @@ export function serializeWranglerToml(config: WranglerConfig): string {
           lines.push(`${prefix}[[${key}.${k}]]`);
           for (const item of v as Array<Record<string, unknown>>) {
             const itemEntries = Object.entries(item).filter(([, iv]) => iv !== undefined && iv !== null);
-            lines.push(itemEntries.map(([ik, iv]) => {
-              if (typeof iv === 'string') return `${prefix}  ${ik} = "${escapeToml(iv)}"`;
-              return `${prefix}  ${ik} = ${iv}`;
-            }).join('\n'));
+            lines.push(
+              itemEntries
+                .map(([ik, iv]) => {
+                  if (typeof iv === 'string') return `${prefix}  ${ik} = "${escapeToml(iv)}"`;
+                  return `${prefix}  ${ik} = ${iv}`;
+                })
+                .join('\n')
+            );
           }
         } else if (typeof v === 'string') {
           lines.push(`${prefix}${k} = "${escapeToml(v)}"`);
@@ -300,7 +290,8 @@ export function serializeWranglerToml(config: WranglerConfig): string {
       const dbLines: string[] = [`${indent}[[d1_databases]]`];
       if (db.binding) dbLines.push(`${indent}binding = "${escapeToml(db.binding)}"`);
       if (db.database_id) dbLines.push(`${indent}database_id = "${escapeToml(db.database_id)}"`);
-      if (db.preview_database_id) dbLines.push(`${indent}preview_database_id = "${escapeToml(db.preview_database_id)}"`);
+      if (db.preview_database_id)
+        dbLines.push(`${indent}preview_database_id = "${escapeToml(db.preview_database_id)}"`);
       lines.push(dbLines.join('\n'));
     }
   }
@@ -333,7 +324,7 @@ export function serializeWranglerToml(config: WranglerConfig): string {
     }
   }
 
-  return `${lines.join('\n')  }\n`;
+  return `${lines.join('\n')}\n`;
 }
 
 function escapeToml(str: string): string {

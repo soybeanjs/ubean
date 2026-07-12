@@ -2,7 +2,11 @@ import type { Context, Next, MiddlewareHandler } from 'hono';
 import type { UbeanEnv } from '../types/handler';
 
 export interface CorsOptions {
-  origin?: string | string[] | boolean | ((origin: string, c: Context<UbeanEnv>) => boolean | string | undefined | Promise<boolean | string | undefined>);
+  origin?:
+    | string
+    | string[]
+    | boolean
+    | ((origin: string, c: Context<UbeanEnv>) => boolean | string | undefined | Promise<boolean | string | undefined>);
   allowMethods?: string[];
   allowHeaders?: string[];
   exposeHeaders?: string[];
@@ -18,11 +22,7 @@ function isPreflight(c: Context): boolean {
   return c.req.method === 'OPTIONS' && !!c.req.header('origin') && !!c.req.header('access-control-request-method');
 }
 
-function configureOrigin(
-  c: Context,
-  option: CorsOptions['origin'],
-  requestOrigin: string
-): string | undefined | null {
+function configureOrigin(c: Context, option: CorsOptions['origin'], requestOrigin: string): string | undefined | null {
   if (option === true || option === undefined || option === '*') {
     return '*';
   }

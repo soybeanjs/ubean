@@ -3,19 +3,19 @@ import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { createHooks } from 'hookable';
 import { join } from 'pathe';
-import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../core/routing/types';
 import type { RouteRule } from '../core/config/types';
+import { createDevToolsMiddleware } from '../core/devtools';
+import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../core/routing/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '../types/handler';
 import { registerRoutes } from './router';
+import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from './cache';
 import { errorToResponse, isUbeanError, UbeanError } from './error';
+import { setInternalFetcher } from './internal-fetch';
 import { registerOpenAPIRoutes } from './internal/openapi';
-import { serveStatic } from './static';
 import { createRequestIdMiddleware } from './observability';
 import { createRouteRulesMiddleware } from './route-rules';
-import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from './cache';
+import { serveStatic } from './static';
 import { createWebSocketMiddleware } from './websocket';
-import { setInternalFetcher } from './internal-fetch';
-import { createDevToolsMiddleware } from '../core/devtools';
 
 export interface UbeanRuntimeHooks {
   'app:created': (app: Hono<UbeanEnv>) => void | Promise<void>;

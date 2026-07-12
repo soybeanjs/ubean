@@ -60,7 +60,8 @@ describe('data cache', () => {
   it('invalidates data by tag', async () => {
     const key1 = defineDataKey('list');
     const key2 = defineDataKey('detail');
-    let count1 = 0, count2 = 0;
+    let count1 = 0,
+      count2 = 0;
 
     await useData({ key: key1, tags: ['users'], fetcher: async () => ({ n: ++count1 }) });
     await useData({ key: key2, tags: ['users', 'posts'], fetcher: async () => ({ n: ++count2 }) });
@@ -160,10 +161,7 @@ describe('dependencies', () => {
   });
 
   it('withDependencies wraps a function', async () => {
-    const fn = withDependencies(
-      async () => 'result',
-      { keys: [defineDataKey('test')] }
-    );
+    const fn = withDependencies(async () => 'result', { keys: [defineDataKey('test')] });
     expect(await fn()).toBe('result');
   });
 

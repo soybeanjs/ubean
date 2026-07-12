@@ -3,7 +3,7 @@ import type { CapabilitySet, CapabilityInfo } from '../capabilities';
 export type PresetHooks = {
   'build:before'?: (ctx: PresetBuildContext) => void | Promise<void>;
   'build:after'?: (ctx: PresetBuildContext) => void | Promise<void>;
-  'compiled'?: (ctx: PresetBuildContext) => void | Promise<void>;
+  compiled?: (ctx: PresetBuildContext) => void | Promise<void>;
   'dev:setup'?: (ctx: PresetDevContext) => void | Promise<void>;
 };
 

@@ -12,7 +12,7 @@ describe('Rate limit middleware', () => {
   it('allows requests within the limit', async () => {
     const mw = createRateLimitMiddleware({ maxRequests: 5, windowMs: 60000 });
     app.use('*', mw);
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
 
     for (let i = 0; i < 5; i++) {
       const res = await app.request('/test', { headers: { 'x-real-ip': '1.2.3.4' } });
@@ -23,7 +23,7 @@ describe('Rate limit middleware', () => {
   it('blocks requests exceeding the limit', async () => {
     const mw = createRateLimitMiddleware({ maxRequests: 3, windowMs: 60000 });
     app.use('*', mw);
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
 
     for (let i = 0; i < 3; i++) {
       await app.request('/test', { headers: { 'x-real-ip': '5.6.7.8' } });
@@ -40,7 +40,7 @@ describe('Rate limit middleware', () => {
   it('sets standard rate limit headers', async () => {
     const mw = createRateLimitMiddleware({ maxRequests: 10, windowMs: 60000 });
     app.use('*', mw);
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
 
     const res = await app.request('/test', { headers: { 'x-real-ip': '10.0.0.1' } });
     expect(res.headers.get('RateLimit-Limit')).toBe('10');
@@ -49,9 +49,14 @@ describe('Rate limit middleware', () => {
   });
 
   it('sets legacy X-RateLimit headers when enabled', async () => {
-    const mw = createRateLimitMiddleware({ maxRequests: 10, windowMs: 60000, legacyHeaders: true, standardHeaders: false });
+    const mw = createRateLimitMiddleware({
+      maxRequests: 10,
+      windowMs: 60000,
+      legacyHeaders: true,
+      standardHeaders: false
+    });
     app.use('*', mw);
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
 
     const res = await app.request('/test', { headers: { 'x-real-ip': '10.0.0.2' } });
     expect(res.headers.get('X-RateLimit-Limit')).toBe('10');
@@ -61,7 +66,7 @@ describe('Rate limit middleware', () => {
   it('tracks different IPs separately', async () => {
     const mw = createRateLimitMiddleware({ maxRequests: 2, windowMs: 60000 });
     app.use('*', mw);
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
 
     await app.request('/test', { headers: { 'x-real-ip': 'ip-a' } });
     await app.request('/test', { headers: { 'x-real-ip': 'ip-a' } });
@@ -76,11 +81,11 @@ describe('Rate limit middleware', () => {
     const mw = createRateLimitMiddleware({
       maxRequests: 1,
       windowMs: 60000,
-      skip: (c) => c.req.path === '/health'
+      skip: c => c.req.path === '/health'
     });
     app.use('*', mw);
-    app.get('/test', (c) => c.json({ ok: true }));
-    app.get('/health', (c) => c.json({ status: 'ok' }));
+    app.get('/test', c => c.json({ ok: true }));
+    app.get('/health', c => c.json({ status: 'ok' }));
 
     await app.request('/test', { headers: { 'x-real-ip': 'ip-skip' } });
     const blocked = await app.request('/test', { headers: { 'x-real-ip': 'ip-skip' } });
@@ -96,10 +101,10 @@ describe('Rate limit middleware', () => {
     const mw = createRateLimitMiddleware({
       maxRequests: 2,
       windowMs: 60000,
-      keyGenerator: (c) => c.req.header('x-api-key') || 'anonymous'
+      keyGenerator: c => c.req.header('x-api-key') || 'anonymous'
     });
     app.use('*', mw);
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
 
     await app.request('/test', { headers: { 'x-api-key': 'key1' } });
     await app.request('/test', { headers: { 'x-api-key': 'key1' } });
@@ -113,7 +118,7 @@ describe('Rate limit middleware', () => {
   it('sets Retry-After header on 429 response', async () => {
     const mw = createRateLimitMiddleware({ maxRequests: 1, windowMs: 60000 });
     app.use('*', mw);
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
 
     await app.request('/test', { headers: { 'x-real-ip': 'retry-ip' } });
     const res = await app.request('/test', { headers: { 'x-real-ip': 'retry-ip' } });

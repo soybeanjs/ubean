@@ -64,10 +64,7 @@ function generateId(): string {
   return `msg_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 }
 
-export function defineQueue<T = unknown>(
-  options: QueueOptions<T>,
-  handler?: QueueHandler<T>
-): QueueDefinition<T> {
+export function defineQueue<T = unknown>(options: QueueOptions<T>, handler?: QueueHandler<T>): QueueDefinition<T> {
   if (!options.name) {
     throw new Error('[ubean] Queue must have a name');
   }
@@ -160,7 +157,9 @@ export function createMemoryQueueDriver(): QueueDriver {
           q.stats.failed++;
           const dlq = def?.deadLetterQueue;
           if (dlq) {
-            await driver.send(dlq, message.body, { headers: { 'x-error': err instanceof Error ? err.message : String(err) } });
+            await driver.send(dlq, message.body, {
+              headers: { 'x-error': err instanceof Error ? err.message : String(err) }
+            });
           }
         } else {
           await new Promise(resolve => setTimeout(resolve, retryDelay * message.attempts));
@@ -291,11 +290,7 @@ export function setQueueDriver(driver: QueueDriver): void {
   }
 }
 
-export async function sendMessage<T = unknown>(
-  queueName: string,
-  body: T,
-  options?: SendOptions
-): Promise<string> {
+export async function sendMessage<T = unknown>(queueName: string, body: T, options?: SendOptions): Promise<string> {
   const driver = useQueueDriver();
   return driver.send(queueName, body, options);
 }

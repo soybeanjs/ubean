@@ -9,12 +9,7 @@ export {
   type EnvRunner
 } from './runner';
 
-export {
-  createDevWatcher,
-  type DevWatcher,
-  type DevWatcherOptions,
-  type WatchEvent
-} from './watcher';
+export { createDevWatcher, type DevWatcher, type DevWatcherOptions, type WatchEvent } from './watcher';
 
 export { startDevServer } from './server';
 

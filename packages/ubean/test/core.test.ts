@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { defineConfig } from '../src/core/config';
-import { UbeanError, createError, isUbeanError, errorToResponse } from '../src/runtime/error';
-import { defineHandler, defineMeta, defineValidator } from '../src/runtime/handler';
 import {
   diagnoseCapabilities,
   requireCapability,
@@ -11,6 +9,8 @@ import {
   standardPreset,
   nodePreset
 } from '../src/core/preset';
+import { UbeanError, createError, isUbeanError, errorToResponse } from '../src/runtime/error';
+import { defineHandler, defineMeta, defineValidator } from '../src/runtime/handler';
 
 describe('UbeanError', () => {
   it('should create error with status code', () => {
@@ -184,9 +184,7 @@ describe('capabilities', () => {
   });
 
   it('diagnoseCapabilities returns warnings for optional missing capabilities', () => {
-    const result = diagnoseCapabilities('standard', STANDARD_CAPABILITIES, [
-      requireCapability('websocket', false)
-    ]);
+    const result = diagnoseCapabilities('standard', STANDARD_CAPABILITIES, [requireCapability('websocket', false)]);
     expect(result.valid).toBe(true);
     expect(result.warnings).toHaveLength(1);
     expect(result.errors).toHaveLength(0);

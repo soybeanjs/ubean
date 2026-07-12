@@ -1,5 +1,5 @@
-import type { CommandDef } from 'citty';
 import { join, extname } from 'node:path';
+import type { CommandDef } from 'citty';
 import { createFsOps, renderPageTemplate, renderApiTemplate, toKebabCase, toPascalCase, toCamelCase } from './shared';
 
 type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse';
@@ -182,7 +182,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   try {
     const baseDir = getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
-    const relativePath = targetPath.replace(`${cwd  }/`, '');
+    const relativePath = targetPath.replace(`${cwd}/`, '');
 
     if (await fs.exists(relativePath)) {
       if (!options.force) {
@@ -223,7 +223,7 @@ export async function deleteScaffold(options: {
   try {
     const baseDir = getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
-    const relativePath = targetPath.replace(`${cwd  }/`, '');
+    const relativePath = targetPath.replace(`${cwd}/`, '');
 
     if (!(await fs.exists(relativePath))) {
       result.errors.push(`${relativePath} does not exist`);
@@ -263,7 +263,7 @@ export async function recoverScaffold(options: {
   try {
     const baseDir = getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
-    const relativePath = targetPath.replace(`${cwd  }/`, '');
+    const relativePath = targetPath.replace(`${cwd}/`, '');
 
     if (options.dry) {
       const backupPath = `${relativePath}.bak`;
@@ -292,9 +292,9 @@ export async function recoverScaffold(options: {
 export async function listScaffoldableFiles(cwd: string, type: ScaffoldType): Promise<string[]> {
   const fs = createFsOps(cwd);
   const baseDir = getDirForType(cwd, type);
-  const relativeBase = baseDir.replace(`${cwd  }/`, '');
+  const relativeBase = baseDir.replace(`${cwd}/`, '');
   const files = await fs.listFiles(relativeBase);
-  return files.map(f => f.replace(`${cwd  }/`, ''));
+  return files.map(f => f.replace(`${cwd}/`, ''));
 }
 
 const scaffoldTypes = ['page', 'api', 'layout', 'middleware'] as const;
@@ -457,7 +457,9 @@ export const pageCommand: CommandDef = {
         });
 
         for (const file of result.deleted) {
-          logger.success(`${args.dry ? '[dry-run] Would delete' : args.force ? 'Deleted' : 'Deleted (backup created)'} ${file}`);
+          logger.success(
+            `${args.dry ? '[dry-run] Would delete' : args.force ? 'Deleted' : 'Deleted (backup created)'} ${file}`
+          );
         }
         for (const err of result.errors) {
           logger.error(err);

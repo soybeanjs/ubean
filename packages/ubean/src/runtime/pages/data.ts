@@ -224,13 +224,16 @@ const FORWARD_HEADER_DEFAULTS = [
   'referer'
 ];
 
-export function createInternalFetch(c: {
-  req: {
-    raw?: Request;
-    header?: (name: string) => string | undefined;
-    url?: string;
-  };
-}, options: InternalFetchOptions = {}): typeof fetch {
+export function createInternalFetch(
+  c: {
+    req: {
+      raw?: Request;
+      header?: (name: string) => string | undefined;
+      url?: string;
+    };
+  },
+  options: InternalFetchOptions = {}
+): typeof fetch {
   const forwardHeaders = options.forwardHeaders || FORWARD_HEADER_DEFAULTS;
   const incomingHeaders = new Headers();
 
@@ -249,7 +252,10 @@ export function createInternalFetch(c: {
 
   const baseURL = options.baseURL || '';
 
-  return async function internalFetch(input: string | { url: string } | URL, init?: RequestInit & { headers?: unknown }): Promise<Response> {
+  return async function internalFetch(
+    input: string | { url: string } | URL,
+    init?: RequestInit & { headers?: unknown }
+  ): Promise<Response> {
     let url: string;
     if (typeof input === 'string') {
       url = input.startsWith('http') ? input : `${baseURL}${input.startsWith('/') ? '' : '/'}${input}`;
@@ -327,8 +333,8 @@ export function createStreamResponse(
   const response = new Response(stream, {
     ...init,
     headers: {
-      'Content-Type': init?.headers ?
-        (init.headers as Record<string, string>)['Content-Type'] || 'text/event-stream'
+      'Content-Type': init?.headers
+        ? (init.headers as Record<string, string>)['Content-Type'] || 'text/event-stream'
         : 'text/event-stream',
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',

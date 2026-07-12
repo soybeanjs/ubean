@@ -182,20 +182,28 @@ describe('createUseAsyncData', () => {
 
   it('lazy mode does not fetch immediately', () => {
     let fetched = false;
-    const result = useAsyncData('lazy', async () => {
-      fetched = true;
-      return 1;
-    }, { lazy: true });
+    const result = useAsyncData(
+      'lazy',
+      async () => {
+        fetched = true;
+        return 1;
+      },
+      { lazy: true }
+    );
 
     expect(fetched).toBe(false);
     expect(result.loading.value).toBe(false);
   });
 
   it('default provides initial value', async () => {
-    const result = useAsyncData('with-default', async () => {
-      await new Promise(r => setTimeout(r, 20));
-      return 'loaded';
-    }, { default: () => 'initial' });
+    const result = useAsyncData(
+      'with-default',
+      async () => {
+        await new Promise(r => setTimeout(r, 20));
+        return 'loaded';
+      },
+      { default: () => 'initial' }
+    );
 
     expect(result.data.value).toBe('initial');
     await new Promise(r => setTimeout(r, 30));
@@ -203,14 +211,18 @@ describe('createUseAsyncData', () => {
   });
 
   it('transform processes fetched data', async () => {
-    const result = useAsyncData('transform', async () => {
-      return { items: [1, 2, 3] };
-    }, {
-      transform: (raw: unknown) => {
-        const data = raw as { items: number[] };
-        return data.items.length;
+    const result = useAsyncData(
+      'transform',
+      async () => {
+        return { items: [1, 2, 3] };
+      },
+      {
+        transform: (raw: unknown) => {
+          const data = raw as { items: number[] };
+          return data.items.length;
+        }
       }
-    });
+    );
 
     await new Promise(r => setTimeout(r, 10));
     expect(result.data.value).toBe(3);
@@ -251,10 +263,14 @@ describe('invalidation helpers', () => {
     store.set('users-list', [], ['users']);
     store.set('posts-list', [], ['posts']);
 
-    const count = getInvalidatedKeysForAction('createUser', {
-      createUser: ['users'],
-      createPost: ['posts']
-    }, store);
+    const count = getInvalidatedKeysForAction(
+      'createUser',
+      {
+        createUser: ['users'],
+        createPost: ['posts']
+      },
+      store
+    );
 
     expect(count).toBe(1);
     expect(store.has('users-list')).toBe(false);

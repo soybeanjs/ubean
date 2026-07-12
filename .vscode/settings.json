@@ -11,7 +11,7 @@
   "i18n-ally.keystyle": "nested",
   "i18n-ally.displayLanguage": "zh-CN",
   "oxc.fmt.configPath": "./vite.config.ts",
-  "unocss.root": ["./apps/admin"],
+  "unocss.root": ["./packages/ubean/src/core/devtools/client"],
   "[vue]": {
     "editor.defaultFormatter": "oxc.oxc-vscode"
   }

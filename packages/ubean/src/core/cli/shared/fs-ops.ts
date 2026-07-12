@@ -48,7 +48,11 @@ export async function copyFile(src: string, dest: string): Promise<void> {
   await fs.copyFile(src, dest);
 }
 
-export async function copyDir(src: string, dest: string, options?: { filter?: (file: string) => boolean }): Promise<void> {
+export async function copyDir(
+  src: string,
+  dest: string,
+  options?: { filter?: (file: string) => boolean }
+): Promise<void> {
   await ensureDir(dest);
   const entries = await fs.readdir(src, { withFileTypes: true });
 
@@ -78,7 +82,7 @@ export async function readJson<T = unknown>(path: string): Promise<T> {
 }
 
 export async function writeJson(path: string, data: unknown, indent = 2): Promise<void> {
-  const content = `${JSON.stringify(data, null, indent)  }\n`;
+  const content = `${JSON.stringify(data, null, indent)}\n`;
   await writeFile(path, content);
 }
 
@@ -130,7 +134,7 @@ export async function listFiles(dir: string, pattern?: RegExp): Promise<string[]
     for (const entry of entries) {
       const fullPath = join(current, entry.name);
       if (entry.isDirectory()) {
-        if (entry.name === 'node_modules' || entry.name.startsWith('.') && entry.name !== '.ubean') continue;
+        if (entry.name === 'node_modules' || (entry.name.startsWith('.') && entry.name !== '.ubean')) continue;
         await walk(fullPath);
       } else {
         if (!pattern || pattern.test(entry.name)) {
@@ -155,11 +159,13 @@ export function createFsOps(cwd: string) {
     existsSync: (path: string) => existsSync_(resolvePath(cwd, path)),
     readFile: (path: string, enc?: BufferEncoding) => readFile(resolvePath(cwd, path), enc),
     writeFile: (path: string, content: string, enc?: BufferEncoding) => writeFile(resolvePath(cwd, path), content, enc),
-    appendFile: (path: string, content: string, enc?: BufferEncoding) => appendFile(resolvePath(cwd, path), content, enc),
+    appendFile: (path: string, content: string, enc?: BufferEncoding) =>
+      appendFile(resolvePath(cwd, path), content, enc),
     remove: (path: string) => remove(resolvePath(cwd, path)),
     ensureDir: (path: string) => ensureDir(resolvePath(cwd, path)),
     copyFile: (src: string, dest: string) => copyFile(resolvePath(cwd, src), resolvePath(cwd, dest)),
-    copyDir: (src: string, dest: string, opts?: { filter?: (f: string) => boolean }) => copyDir(resolvePath(cwd, src), resolvePath(cwd, dest), opts),
+    copyDir: (src: string, dest: string, opts?: { filter?: (f: string) => boolean }) =>
+      copyDir(resolvePath(cwd, src), resolvePath(cwd, dest), opts),
     readDir: (path: string) => readDir(resolvePath(cwd, path)),
     readJson: <T = unknown>(path: string) => readJson<T>(resolvePath(cwd, path)),
     writeJson: (path: string, data: unknown, indent?: number) => writeJson(resolvePath(cwd, path), data, indent),

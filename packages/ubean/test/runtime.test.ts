@@ -2,6 +2,15 @@ import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { describe, it, expect, beforeAll, afterAll, vi, beforeEach } from 'vitest';
 import { join } from 'pathe';
+import {
+  defineLocale,
+  useI18n,
+  t,
+  setLocale,
+  getLocale,
+  clearLocales,
+  getRegisteredLocales
+} from '../src/runtime/i18n';
 import { registerRoutes } from '../src/runtime/router';
 import { resetVirtualRegistry, useVirtualRegistry } from '../src/core/build/virtual/registry';
 import { generateTypes } from '../src/core/codegen';
@@ -12,7 +21,6 @@ import { createUbeanApp, UbeanApp } from '../src/runtime/app';
 import { createClient } from '../src/runtime/client';
 import { defineEnv, setRuntimeEnv, useRuntimeEnv } from '../src/runtime/env';
 import { defineHandler } from '../src/runtime/handler';
-import { defineLocale, useI18n, t, setLocale, getLocale, clearLocales, getRegisteredLocales } from '../src/runtime/i18n';
 import {
   createRequestIdMiddleware,
   getRequestId,
@@ -25,6 +33,17 @@ import {
   withSpan,
   createTracingMiddleware
 } from '../src/runtime/observability';
+import {
+  buildClientOnlyShell,
+  buildPageShell,
+  insertSsrContent,
+  safeJsonStringify,
+  PAGE_DATA_ID,
+  SSR_CONTENT_MARKER,
+  renderPage,
+  pageJsonResponse,
+  isPagesRequest
+} from '../src/runtime/pages';
 import {
   createRobotsResponse,
   createSitemapResponse,
@@ -39,17 +58,6 @@ import {
   defineManifest,
   useSeoMeta
 } from '../src/runtime/seo';
-import {
-  buildClientOnlyShell,
-  buildPageShell,
-  insertSsrContent,
-  safeJsonStringify,
-  PAGE_DATA_ID,
-  SSR_CONTENT_MARKER,
-  renderPage,
-  pageJsonResponse,
-  isPagesRequest
-} from '../src/runtime/pages';
 
 describe('codegen', () => {
   let tmpDir: string;
@@ -535,7 +543,10 @@ describe('createClient', () => {
       );
     const client = createClient({ baseURL: 'http://api.example.com' });
     await client.get('/users');
-    expect(fetchSpy).toHaveBeenCalledWith(expect.stringContaining('http://api.example.com/users'), expect.objectContaining({ method: 'GET' }));
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining('http://api.example.com/users'),
+      expect.objectContaining({ method: 'GET' })
+    );
     fetchSpy.mockRestore();
   });
 
@@ -984,7 +995,9 @@ describe('observability', () => {
     let capturedId: string | undefined;
     const c: any = {
       req: { header: () => undefined },
-      set: (_k: string, v: string) => { capturedId = v; },
+      set: (_k: string, v: string) => {
+        capturedId = v;
+      },
       get: (k: string) => (k === 'requestId' ? capturedId : undefined),
       header: vi.fn()
     };
@@ -1003,7 +1016,9 @@ describe('observability', () => {
     const incomingId = 'my-trace-id-123';
     const c: any = {
       req: { header: (name: string) => (name === 'x-request-id' ? incomingId : undefined) },
-      set: (_k: string, v: string) => { capturedId = v; },
+      set: (_k: string, v: string) => {
+        capturedId = v;
+      },
       get: (k: string) => (k === 'requestId' ? capturedId : undefined),
       header: vi.fn()
     };
@@ -1021,7 +1036,9 @@ describe('observability', () => {
     const incomingId = 'custom-trace';
     const c: any = {
       req: { header: (name: string) => (name === 'x-trace-id' ? incomingId : undefined) },
-      set: (_k: string, v: string) => { capturedId = v; },
+      set: (_k: string, v: string) => {
+        capturedId = v;
+      },
       get: (k: string) => (k === 'requestId' ? capturedId : undefined),
       header: vi.fn()
     };
@@ -1147,7 +1164,7 @@ describe('observability', () => {
     const long = 'x'.repeat(3000);
     const redacted = tracer.redactAttributes({ long });
     expect((redacted.long as string).length).toBeLessThan(3000);
-    expect((redacted.long as string)).toContain('...[truncated]');
+    expect(redacted.long as string).toContain('...[truncated]');
   });
 
   it('tracer exports spans to registered exporters', async () => {
@@ -1181,9 +1198,11 @@ describe('observability', () => {
     expect(result).toBe(42);
     expect(capturedSpan.isRecording()).toBe(false);
 
-    await expect(tracer.withSpan('fail', () => {
-      throw new Error('boom');
-    })).rejects.toThrow('boom');
+    await expect(
+      tracer.withSpan('fail', () => {
+        throw new Error('boom');
+      })
+    ).rejects.toThrow('boom');
   });
 
   it('withSpan global convenience function works', async () => {
@@ -1222,9 +1241,10 @@ describe('observability', () => {
     await (ex as any).flush();
     expect(fakeFetch).toHaveBeenCalled();
     const body = JSON.parse(capturedBody!);
-    expect(body.resourceSpans[0].resource.attributes).toContainEqual(
-      { key: 'service.name', value: { stringValue: 'test-svc' } }
-    );
+    expect(body.resourceSpans[0].resource.attributes).toContainEqual({
+      key: 'service.name',
+      value: { stringValue: 'test-svc' }
+    });
     expect(body.resourceSpans[0].scopeSpans[0].spans).toHaveLength(1);
     expect(body.resourceSpans[0].scopeSpans[0].spans[0].name).toBe('otel-test');
   });
@@ -1265,7 +1285,9 @@ describe('observability', () => {
       res: { status: 500 }
     };
     const err = new Error('server error');
-    const next = vi.fn(async () => { throw err; });
+    const next = vi.fn(async () => {
+      throw err;
+    });
     const mw = createTracingMiddleware({ tracer });
     await expect(mw(c, next)).rejects.toThrow(err);
     const span = store.get('span') as any;
@@ -1349,10 +1371,7 @@ describe('seo', () => {
   });
 
   it('mergeMetadata merges basic fields with later overriding earlier', () => {
-    const merged = mergeMetadata(
-      { title: 'Default', description: 'Default desc' },
-      { title: 'Page Title' }
-    );
+    const merged = mergeMetadata({ title: 'Default', description: 'Default desc' }, { title: 'Page Title' });
     expect(merged.title).toBe('Page Title');
     expect(merged.description).toBe('Default desc');
   });
@@ -1442,7 +1461,11 @@ describe('seo', () => {
         }
       }
     });
-    const props = Object.fromEntries(tags.filter(tag => tag.property && !tag.property.startsWith('og:locale:alternate')).map(tag => [tag.property, tag.content]));
+    const props = Object.fromEntries(
+      tags
+        .filter(tag => tag.property && !tag.property.startsWith('og:locale:alternate'))
+        .map(tag => [tag.property, tag.content])
+    );
     const altLocales = tags.filter(tag => tag.property === 'og:locale:alternate').map(tag => tag.content);
     expect(props['og:title']).toBe('OG Title');
     expect(props['og:description']).toBe('OG Desc');
@@ -1471,7 +1494,9 @@ describe('seo', () => {
         image: 'https://example.com/tw.png'
       }
     });
-    const names = Object.fromEntries(tags.filter(tag => tag.name?.startsWith('twitter:')).map(tag => [tag.name, tag.content]));
+    const names = Object.fromEntries(
+      tags.filter(tag => tag.name?.startsWith('twitter:')).map(tag => [tag.name, tag.content])
+    );
     expect(names['twitter:card']).toBe('summary_large_image');
     expect(names['twitter:title']).toBe('Tw Title');
     expect(names['twitter:image']).toBe('https://example.com/tw.png');
@@ -1479,7 +1504,10 @@ describe('seo', () => {
 
   it('buildMetaTags appends custom meta tags', () => {
     const tags = buildMetaTags({
-      meta: [{ name: 'custom', content: 'value' }, { property: 'fb:app_id', content: '123' }]
+      meta: [
+        { name: 'custom', content: 'value' },
+        { property: 'fb:app_id', content: '123' }
+      ]
     });
     expect(tags.find(tag => tag.name === 'custom')?.content).toBe('value');
     expect(tags.find(tag => tag.property === 'fb:app_id')?.content).toBe('123');

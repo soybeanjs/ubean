@@ -1,6 +1,6 @@
 import { watch } from 'node:fs';
-import { join, relative } from 'pathe';
 import type { FSWatcher } from 'node:fs';
+import { join, relative } from 'pathe';
 
 export interface WatchEvent {
   type: 'add' | 'change' | 'unlink';
@@ -32,7 +32,7 @@ export function createDevWatcher(options: DevWatcherOptions): DevWatcher {
   function isIgnored(relPath: string): boolean {
     return ignore.some(pattern => {
       if (pattern.includes('*')) {
-        const regex = new RegExp(`^${  pattern.replace(/\*/g, '.*').replace(/\?/g, '.')  }$`);
+        const regex = new RegExp(`^${pattern.replace(/\*/g, '.*').replace(/\?/g, '.')}$`);
         return regex.test(relPath);
       }
       return relPath.startsWith(pattern) || relPath === pattern;

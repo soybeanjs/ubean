@@ -172,14 +172,20 @@ export function createMemoryCronScheduler(options: SchedulerOptions = {}): CronS
         if (taskTimers.has(timerKey)) continue;
         if (runOnStartExecuted.has(task.name)) {
           runOnStartExecuted.delete(task.name);
-          taskTimers.set(timerKey, setTimeout(() => {
-            taskTimers.delete(timerKey);
-          }, 60000));
+          taskTimers.set(
+            timerKey,
+            setTimeout(() => {
+              taskTimers.delete(timerKey);
+            }, 60000)
+          );
           continue;
         }
-        taskTimers.set(timerKey, setTimeout(() => {
-          taskTimers.delete(timerKey);
-        }, 60000));
+        taskTimers.set(
+          timerKey,
+          setTimeout(() => {
+            taskTimers.delete(timerKey);
+          }, 60000)
+        );
         executeTask(task);
       }
     }

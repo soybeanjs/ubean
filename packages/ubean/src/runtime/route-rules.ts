@@ -19,11 +19,11 @@ function compileRulePath(pattern: string): RegExp {
   const SINGLE = '__SWC__';
 
   let s = pattern;
-  s = s.replace(/\/\*\*/g, `/${  DOUBLE}`);
+  s = s.replace(/\/\*\*/g, `/${DOUBLE}`);
   s = s.replace(/\*/g, SINGLE);
   s = s.replace(/[.+^${}()|[\]\\]/g, '\\$&');
   s = s.replace(new RegExp(SINGLE, 'g'), '[^/]*');
-  s = s.replace(new RegExp(`/${  DOUBLE}`, 'g'), '(?:/.*)?');
+  s = s.replace(new RegExp(`/${DOUBLE}`, 'g'), '(?:/.*)?');
 
   return new RegExp(`^${s}$`);
 }
@@ -67,7 +67,10 @@ export function matchRouteRules(path: string, compiledRules: CompiledRouteRule[]
   return matched;
 }
 
-function resolveRedirectUrl(redirect: string | { to: string; statusCode?: number }, currentPath: string): { url: string; statusCode: number } {
+function resolveRedirectUrl(
+  redirect: string | { to: string; statusCode?: number },
+  currentPath: string
+): { url: string; statusCode: number } {
   if (typeof redirect === 'string') {
     return { url: redirect, statusCode: 307 };
   }

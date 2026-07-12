@@ -1,8 +1,8 @@
 import { registerPreset, resolvePreset, getPresetAliases } from './_utils/preset';
 import type { Preset, ResolvedPreset } from './_utils/preset';
+import { cloudflarePreset, cloudflareDevPreset } from './cloudflare/preset';
 import { nodePreset } from './node/preset';
 import { standardPreset } from './standard/preset';
-import { cloudflarePreset, cloudflareDevPreset } from './cloudflare/preset';
 
 export * from './capabilities';
 export { detectPreset, resolvePresetWithDetection, listDetectablePresets } from './_resolve';
@@ -40,7 +40,15 @@ export function resolvePresetByName(name: string): ResolvedPreset {
 }
 
 export { standardPreset, nodePreset, cloudflarePreset, cloudflareDevPreset };
-export type { Preset, ResolvedPreset, PresetMeta, PresetHooks, PresetBuildContext, PresetDevContext, PresetDefinition } from './_utils/preset';
+export type {
+  Preset,
+  ResolvedPreset,
+  PresetMeta,
+  PresetHooks,
+  PresetBuildContext,
+  PresetDevContext,
+  PresetDefinition
+} from './_utils/preset';
 export { definePreset } from './_utils/preset';
 export { generateWranglerConfig, serializeWranglerToml } from './cloudflare/preset';
 export type { WranglerConfig } from './cloudflare/preset';

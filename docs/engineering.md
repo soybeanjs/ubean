@@ -477,14 +477,16 @@ DevTools 面板的 UI 实现必须使用 `@soybeanjs/ui` 组件库，遵循以�
    import '@soybeanjs/ui/styles.css';
    ```
 3. **自动导入配置**：通过 `unplugin-vue-components` 配合 `UiResolver` 实现自动导入：
+
    ```typescript
    import Components from 'unplugin-vue-components/vite';
    import { UiResolver } from '@soybeanjs/ui/resolver';
-   
+
    Components({
      resolvers: [UiResolver()]
    });
    ```
+
 4. **主题配置**：使用 `SConfigProvider` 进行全局主题、尺寸、语言配置
 5. **参考文档**：
    - 本地 Skill: `~/.agents/skills/soybean-ui/`

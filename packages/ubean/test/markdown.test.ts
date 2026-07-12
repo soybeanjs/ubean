@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  parseFrontmatter,
-  parseMarkdown,
-  markdownToHtml,
-  extractHeadings,
-  extractExcerpt
-} from '../src/core/markdown';
+import { parseFrontmatter, parseMarkdown, markdownToHtml, extractHeadings, extractExcerpt } from '../src/core/markdown';
 
 describe('Markdown parser', () => {
   describe('parseFrontmatter', () => {
@@ -174,7 +168,9 @@ Rest of content
     });
 
     it('extracts first short paragraph by default', () => {
-      const excerpt = extractExcerpt('This is a short introductory paragraph that is brief enough.\n\nMore content follows.');
+      const excerpt = extractExcerpt(
+        'This is a short introductory paragraph that is brief enough.\n\nMore content follows.'
+      );
       expect(excerpt).toBe('This is a short introductory paragraph that is brief enough.');
     });
 

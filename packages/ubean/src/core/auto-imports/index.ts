@@ -1,6 +1,6 @@
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join, relative, basename, extname, dirname } from 'pathe';
 import { glob } from 'tinyglobby';
-import { mkdir, writeFile } from 'node:fs/promises';
 import { logger } from '../log';
 import type { ScanResult } from '../routing/types';
 
@@ -156,7 +156,7 @@ async function scanComposablesDir(
     if (name) {
       imports.push({
         name,
-        from: `~/${  relativeToSrc.replace(/\.(ts|js|mts|mjs|cts|cjs)$/, '')}`
+        from: `~/${relativeToSrc.replace(/\.(ts|js|mts|mjs|cts|cjs)$/, '')}`
       });
     }
   }
@@ -198,7 +198,7 @@ async function scanComponentsDir(
     components.push({
       name,
       filePath: fullPath,
-      importPath: `~/${  relativeToSrc}`,
+      importPath: `~/${relativeToSrc}`,
       pascalName: name
     });
   }
@@ -274,9 +274,7 @@ export async function generateAutoImports(
   const componentsDtsPath = join(outDir, 'components.d.ts');
   await writeFile(componentsDtsPath, componentsDts, 'utf-8');
 
-  logger.debug(
-    `Generated auto-imports: ${composablesImports.length} composables, ${components.length} components`
-  );
+  logger.debug(`Generated auto-imports: ${composablesImports.length} composables, ${components.length} components`);
 
   return {
     composablesImports,
@@ -314,7 +312,9 @@ function generateAutoImportsDts(imports: AutoImport[]): string {
 
     for (const nameEntry of nameList) {
       const localName = nameEntry.includes(' as ') ? nameEntry.split(' as ')[1] : nameEntry;
-      globalDeclarations.push(`  const ${localName}: typeof import(${JSON.stringify(from)})['${nameEntry.includes(' as ') ? nameEntry.split(' as ')[0] : nameEntry}'];`);
+      globalDeclarations.push(
+        `  const ${localName}: typeof import(${JSON.stringify(from)})['${nameEntry.includes(' as ') ? nameEntry.split(' as ')[0] : nameEntry}'];`
+      );
     }
   }
 
@@ -332,7 +332,7 @@ function generateComponentsDts(components: ComponentInfo[]): string {
     '/* eslint-disable */',
     '// @ts-nocheck',
     '',
-    'declare module \'vue\' {',
+    "declare module 'vue' {"
   ];
 
   const importLines: string[] = [];

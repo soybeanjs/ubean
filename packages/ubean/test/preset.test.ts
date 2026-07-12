@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   cloudflarePreset,
   generateWranglerConfig,
@@ -98,9 +98,7 @@ describe('generateWranglerConfig', () => {
   it('adds KV namespaces', () => {
     const config = generateWranglerConfig({
       name: 'kv-app',
-      kvNamespaces: [
-        { binding: 'MY_KV', id: 'abc123' }
-      ]
+      kvNamespaces: [{ binding: 'MY_KV', id: 'abc123' }]
     });
     expect(config.kv_namespaces).toHaveLength(1);
     expect(config.kv_namespaces![0].binding).toBe('MY_KV');
@@ -315,10 +313,13 @@ describe('detectPreset', () => {
   });
 
   it('detects cloudflare by wrangler dependency in package.json', async () => {
-    await writeFile(join(tmpDir, 'package.json'), JSON.stringify({
-      name: 'cf-app',
-      devDependencies: { wrangler: '^3.0.0' }
-    }));
+    await writeFile(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({
+        name: 'cf-app',
+        devDependencies: { wrangler: '^3.0.0' }
+      })
+    );
     const result = detectPreset({
       cwd: tmpDir,
       environment: {},
@@ -329,10 +330,13 @@ describe('detectPreset', () => {
   });
 
   it('detects cloudflare by @cloudflare/workers-types dependency', async () => {
-    await writeFile(join(tmpDir, 'package.json'), JSON.stringify({
-      name: 'cf-app',
-      devDependencies: { '@cloudflare/workers-types': '^4.0.0' }
-    }));
+    await writeFile(
+      join(tmpDir, 'package.json'),
+      JSON.stringify({
+        name: 'cf-app',
+        devDependencies: { '@cloudflare/workers-types': '^4.0.0' }
+      })
+    );
     const result = detectPreset({
       cwd: tmpDir,
       environment: {},

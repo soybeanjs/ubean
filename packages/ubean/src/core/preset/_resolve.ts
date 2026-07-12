@@ -1,10 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { standardPreset } from './standard/preset';
-import { nodePreset } from './node/preset';
-import { cloudflarePreset, cloudflareDevPreset } from './cloudflare/preset';
 import { resolvePreset, getPresetAliases } from './_utils/preset';
 import type { Preset, ResolvedPreset, PresetDefinition } from './_utils/preset';
+import { cloudflarePreset, cloudflareDevPreset } from './cloudflare/preset';
+import { nodePreset } from './node/preset';
+import { standardPreset } from './standard/preset';
 
 export interface PresetDetectionHints {
   cwd?: string;
@@ -36,8 +36,7 @@ function detectByConfigFiles(cwd: string): string | null {
       if ('wrangler' in deps || '@cloudflare/workers-types' in deps) {
         return 'cloudflare';
       }
-    } catch {
-    }
+    } catch {}
   }
 
   return null;
@@ -77,7 +76,8 @@ function resolvePresetByNameSafe(name: string): ResolvedPreset | null {
 export function detectPreset(hints: PresetDetectionHints = {}): PresetDetectionResult {
   const cwd = hints.cwd || process.cwd();
   const env = hints.environment || (typeof process !== 'undefined' ? process.env : {});
-  const g = hints.globalThis || (typeof globalThis !== 'undefined' ? globalThis as unknown as Record<string, unknown> : {});
+  const g =
+    hints.globalThis || (typeof globalThis !== 'undefined' ? (globalThis as unknown as Record<string, unknown>) : {});
 
   if (hints.explicitPreset) {
     const explicit = resolvePresetByNameSafe(hints.explicitPreset);
@@ -97,9 +97,10 @@ export function detectPreset(hints: PresetDetectionHints = {}): PresetDetectionR
       return {
         preset,
         source: 'config-file',
-        reason: configDetected === 'cloudflare'
-          ? 'detected wrangler.toml or Cloudflare dependencies'
-          : `detected ${configDetected} configuration`
+        reason:
+          configDetected === 'cloudflare'
+            ? 'detected wrangler.toml or Cloudflare dependencies'
+            : `detected ${configDetected} configuration`
       };
     }
   }
@@ -124,10 +125,7 @@ export function detectPreset(hints: PresetDetectionHints = {}): PresetDetectionR
   };
 }
 
-export function resolvePresetWithDetection(
-  explicitPreset?: string,
-  cwd?: string
-): PresetDetectionResult {
+export function resolvePresetWithDetection(explicitPreset?: string, cwd?: string): PresetDetectionResult {
   return detectPreset({ explicitPreset, cwd });
 }
 

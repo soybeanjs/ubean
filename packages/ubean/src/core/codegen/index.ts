@@ -1,8 +1,8 @@
 import { writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'pathe';
-import type { ScanResult } from '../routing/types';
 import { generateAutoImports } from '../auto-imports';
 import type { AutoImportOptions } from '../auto-imports';
+import type { ScanResult } from '../routing/types';
 
 export interface CodegenOptions extends Omit<AutoImportOptions, 'cwd' | 'srcDir' | 'buildDir'> {
   cwd: string;

@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   createDevWatcher,
   formatDiagnostics,
@@ -38,7 +38,13 @@ describe('dev runner', () => {
   });
 
   it('registerRunner adds runner to front of list', () => {
-    const testRunner = { name: 'test-runner', isAvailable: () => false, createRunner: async () => { throw new Error('not implemented'); } };
+    const testRunner = {
+      name: 'test-runner',
+      isAvailable: () => false,
+      createRunner: async () => {
+        throw new Error('not implemented');
+      }
+    };
     const beforeCount = getRegisteredRunners().length;
     registerRunner(testRunner);
     const after = getRegisteredRunners();

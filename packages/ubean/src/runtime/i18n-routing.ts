@@ -106,7 +106,12 @@ export function createI18nMiddleware(options: I18nRoutingOptions = {}): Middlewa
   };
 }
 
-export function switchLocalePath(c: Context, locale: string, strategy: I18nRoutingStrategy = 'prefix_except_default', defaultLocale?: string): string {
+export function switchLocalePath(
+  c: Context,
+  locale: string,
+  strategy: I18nRoutingStrategy = 'prefix_except_default',
+  defaultLocale?: string
+): string {
   const path = new URL(c.req.url).pathname;
   const i18n = useI18n();
   const resolvedDefault = defaultLocale || i18n.fallbackLocale;
@@ -137,7 +142,11 @@ export function getPathWithoutLocale(c: Context): string {
   return (c.get('pathWithoutLocale') as string) || new URL(c.req.url).pathname;
 }
 
-export function localeRoutes(locales: string[], defaultLocale: string, strategy: I18nRoutingStrategy = 'prefix_except_default'): {
+export function localeRoutes(
+  locales: string[],
+  defaultLocale: string,
+  strategy: I18nRoutingStrategy = 'prefix_except_default'
+): {
   localizePath: (path: string, locale?: string) => string;
   getLocaleFromUrl: (url: string) => string | null;
   getLocalizedPaths: (path: string) => Array<{ locale: string; path: string }>;

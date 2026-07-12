@@ -112,7 +112,11 @@ class NodeDevRunner implements DevRunner {
   }
 }
 
-async function toWebRequest(req: import('node:http').IncomingMessage, host: string, protocol: string): Promise<Request> {
+async function toWebRequest(
+  req: import('node:http').IncomingMessage,
+  host: string,
+  protocol: string
+): Promise<Request> {
   const url = `${protocol}://${req.headers.host || host}${req.url || '/'}`;
   const headers = new Headers();
   for (const [key, value] of Object.entries(req.headers)) {

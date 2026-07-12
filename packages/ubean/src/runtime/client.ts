@@ -101,11 +101,13 @@ function createXhrFetch(onUploadProgress: (loaded: number, total: number) => voi
           }
         }
 
-        resolve(new g.Response(xhr.response, {
-          status: xhr.status,
-          statusText: xhr.statusText,
-          headers
-        }));
+        resolve(
+          new g.Response(xhr.response, {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            headers
+          })
+        );
       });
 
       xhr.addEventListener('error', () => {

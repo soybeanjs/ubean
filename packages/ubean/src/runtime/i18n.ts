@@ -39,7 +39,14 @@ function deepMerge(target: LocaleMessages, source: LocaleMessages): LocaleMessag
   for (const key of Object.keys(source)) {
     const sourceVal = source[key];
     const targetVal = result[key];
-    if (sourceVal && typeof sourceVal === 'object' && !Array.isArray(sourceVal) && targetVal && typeof targetVal === 'object' && !Array.isArray(targetVal)) {
+    if (
+      sourceVal &&
+      typeof sourceVal === 'object' &&
+      !Array.isArray(sourceVal) &&
+      targetVal &&
+      typeof targetVal === 'object' &&
+      !Array.isArray(targetVal)
+    ) {
       result[key] = deepMerge(targetVal as LocaleMessages, sourceVal as LocaleMessages);
     } else {
       result[key] = sourceVal;
@@ -164,7 +171,7 @@ export function useI18n(): I18nInstance {
 
       for (const { code } of requested) {
         for (const registered of registeredLocales.keys()) {
-          if (code === registered.toLowerCase() || code.startsWith(`${registered.toLowerCase()  }-`)) {
+          if (code === registered.toLowerCase() || code.startsWith(`${registered.toLowerCase()}-`)) {
             return registered;
           }
         }

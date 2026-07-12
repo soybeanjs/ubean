@@ -8,10 +8,7 @@ export interface DatabaseHooks {
 }
 
 export interface Database {
-  sql: <T = Record<string, unknown>>(
-    strings: TemplateStringsArray,
-    ...values: unknown[]
-  ) => Promise<{ rows: T[] }>;
+  sql: <T = Record<string, unknown>>(strings: TemplateStringsArray, ...values: unknown[]) => Promise<{ rows: T[] }>;
   exec: (query: string) => Promise<void>;
   close: () => Promise<void>;
 }
@@ -136,9 +133,7 @@ function createInMemoryDatabase(): { sql: RawSqlFn; exec: RawExecFn; close: RawC
 
   function parseCreateTable(query: string): void {
     const ifNotExists = /IF\s+NOT\s+EXISTS/i.test(query);
-    const match = query.match(
-      /CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`]?(\w+)["`]?\s*\(([\s\S]+)\)\s*;?\s*$/i
-    );
+    const match = query.match(/CREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?["`]?(\w+)["`]?\s*\(([\s\S]+)\)\s*;?\s*$/i);
     if (!match) return;
 
     const [, tableName, colsStr] = match;
@@ -151,8 +146,13 @@ function createInMemoryDatabase(): { sql: RawSqlFn; exec: RawExecFn; close: RawC
 
     for (const colDef of colDefs) {
       const upperDef = colDef.toUpperCase().trim();
-      if (upperDef.startsWith('PRIMARY KEY') || upperDef.startsWith('CONSTRAINT') ||
-          upperDef.startsWith('FOREIGN') || upperDef.startsWith('UNIQUE') || upperDef.startsWith('INDEX')) {
+      if (
+        upperDef.startsWith('PRIMARY KEY') ||
+        upperDef.startsWith('CONSTRAINT') ||
+        upperDef.startsWith('FOREIGN') ||
+        upperDef.startsWith('UNIQUE') ||
+        upperDef.startsWith('INDEX')
+      ) {
         continue;
       }
 
@@ -190,9 +190,7 @@ function createInMemoryDatabase(): { sql: RawSqlFn; exec: RawExecFn; close: RawC
     return { table: tableName.toLowerCase(), columns, values };
   }
 
-  function parseSelect(
-    query: string
-  ): { table: string; where?: { col: string; val: unknown } } | null {
+  function parseSelect(query: string): { table: string; where?: { col: string; val: unknown } } | null {
     const simpleMatch = query.match(/SELECT\s+([\s\S]+?)\s+FROM\s+["`]?(\w+)["`]?/i);
     if (!simpleMatch) return null;
 
@@ -319,11 +317,7 @@ function createInMemoryDatabase(): { sql: RawSqlFn; exec: RawExecFn; close: RawC
         const rows = executeRaw(query);
         return { rows: rows as T[] };
       } catch (err) {
-        await dbHooks.callHook(
-          'db:error',
-          err instanceof Error ? err : new Error(String(err)),
-          query
-        );
+        await dbHooks.callHook('db:error', err instanceof Error ? err : new Error(String(err)), query);
         throw err;
       }
     },
@@ -337,11 +331,7 @@ function createInMemoryDatabase(): { sql: RawSqlFn; exec: RawExecFn; close: RawC
           await dbHooks.callHook('db:query', trimmed);
           executeRaw(trimmed);
         } catch (err) {
-          await dbHooks.callHook(
-            'db:error',
-            err instanceof Error ? err : new Error(String(err)),
-            trimmed
-          );
+          await dbHooks.callHook('db:error', err instanceof Error ? err : new Error(String(err)), trimmed);
           throw err;
         }
       }
@@ -499,9 +489,7 @@ export async function runMigrations(
   const tableName = options.table || '_migrations';
   const applied: string[] = [];
 
-  await db.exec(
-    `CREATE TABLE IF NOT EXISTS ${tableName} (name TEXT PRIMARY KEY, applied_at INTEGER)`
-  );
+  await db.exec(`CREATE TABLE IF NOT EXISTS ${tableName} (name TEXT PRIMARY KEY, applied_at INTEGER)`);
 
   const { rows } = await db.sql<{ name: string }>`SELECT name FROM ${rawSql(tableName)}`;
   const appliedNames = new Set(rows.map(r => r.name));

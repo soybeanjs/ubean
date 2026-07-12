@@ -4,11 +4,11 @@ import { loadUbeanConfig } from '../config/loader';
 import { createUbeanApp } from '../../runtime/app';
 import { generateTypes } from '../codegen';
 import { createDevRunner, createDevWatcher, logDiagnostics } from '../dev';
+import type { DevToolsRouteInfo, DevToolsPageInfo, DevToolsMiddlewareInfo } from '../devtools/types';
 import { logger } from '../log';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { createCapabilitySet, diagnoseCapabilities, NODE_REQUIREMENTS } from '../preset/capabilities';
 import { scanProject } from '../routing/scan';
-import type { DevToolsRouteInfo, DevToolsPageInfo, DevToolsMiddlewareInfo } from '../devtools/types';
 
 export const devCommand: CommandDef = {
   meta: {
@@ -99,9 +99,8 @@ export const devCommand: CommandDef = {
       ignore: ['**/node_modules/**', '**/.git/**', '**/.ubean/**'],
       debounceMs: 150,
       async onChange(events) {
-        const relevantEvents = events.filter(e =>
-          /\.(ts|js|vue|mjs|cjs|json)$/.test(e.relativePath) &&
-          !e.relativePath.includes('.bak')
+        const relevantEvents = events.filter(
+          e => /\.(ts|js|vue|mjs|cjs|json)$/.test(e.relativePath) && !e.relativePath.includes('.bak')
         );
 
         if (relevantEvents.length === 0) return;
@@ -183,7 +182,7 @@ async function buildApp(cwd: string, config: any) {
         path: p.route,
         name: p.name,
         filePath: p.relativePath,
-        layout: p.layout === false ? undefined : (p.layout || 'default')
+        layout: p.layout === false ? undefined : p.layout || 'default'
       }));
 
     const devMiddlewares: DevToolsMiddlewareInfo[] = result.middlewares.map(m => ({

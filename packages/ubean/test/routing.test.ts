@@ -2,7 +2,11 @@ import { describe, it, expect } from 'vitest';
 import { filePathToRoute } from '../src/utils/path';
 import { createUbeanRouter } from '../src/core/routing/router';
 import { definePreset, resolvePreset } from '../src/core/preset/_utils/preset';
-import { extractDefinePageFromCode, extractDefineValidatorFromCode, extractDefineMetaFromCode } from '../src/core/routing/define-page';
+import {
+  extractDefinePageFromCode,
+  extractDefineValidatorFromCode,
+  extractDefineMetaFromCode
+} from '../src/core/routing/define-page';
 import { detectHttpExportsFromCode } from '../src/core/routing/detect-exports';
 import { generateRouteName, generateLayoutName } from '../src/core/routing/route-name';
 

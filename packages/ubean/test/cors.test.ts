@@ -17,7 +17,7 @@ describe('CORS middleware', () => {
   it('sets Access-Control-Allow-Origin to * by default', async () => {
     const app = new Hono();
     app.use('*', createCorsMiddleware());
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
     const res = await makeRequest(app, 'GET', '/test', { origin: 'http://example.com' });
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*');
     expect(await res.json()).toEqual({ ok: true });
@@ -26,7 +26,7 @@ describe('CORS middleware', () => {
   it('reflects specific origin when configured', async () => {
     const app = new Hono();
     app.use('*', createCorsMiddleware({ origin: 'http://example.com' }));
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
     const res = await makeRequest(app, 'GET', '/test', { origin: 'http://example.com' });
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('http://example.com');
   });
@@ -34,7 +34,7 @@ describe('CORS middleware', () => {
   it('matches origin from array', async () => {
     const app = new Hono();
     app.use('*', createCorsMiddleware({ origin: ['http://a.com', 'http://b.com'] }));
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
     const res = await makeRequest(app, 'GET', '/test', { origin: 'http://b.com' });
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe('http://b.com');
   });
@@ -42,7 +42,7 @@ describe('CORS middleware', () => {
   it('returns null origin for non-matching array origin', async () => {
     const app = new Hono();
     app.use('*', createCorsMiddleware({ origin: ['http://a.com'] }));
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
     const res = await makeRequest(app, 'GET', '/test', { origin: 'http://other.com' });
     expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
@@ -50,7 +50,7 @@ describe('CORS middleware', () => {
   it('blocks when origin is false', async () => {
     const app = new Hono();
     app.use('*', createCorsMiddleware({ origin: false }));
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
     const res = await makeRequest(app, 'GET', '/test', { origin: 'http://example.com' });
     expect(res.headers.get('Access-Control-Allow-Origin')).toBeNull();
   });
@@ -58,7 +58,7 @@ describe('CORS middleware', () => {
   it('handles preflight OPTIONS requests', async () => {
     const app = new Hono();
     app.use('*', createCorsMiddleware({ origin: '*', maxAge: 86400 }));
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
     const res = await makeRequest(app, 'OPTIONS', '/test', {
       origin: 'http://example.com',
       'access-control-request-method': 'POST'
@@ -73,7 +73,7 @@ describe('CORS middleware', () => {
   it('supports credentials mode', async () => {
     const app = new Hono();
     app.use('*', createCorsMiddleware({ origin: 'http://example.com', credentials: true }));
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
     const res = await makeRequest(app, 'GET', '/test', { origin: 'http://example.com' });
     expect(res.headers.get('Access-Control-Allow-Credentials')).toBe('true');
     expect(res.headers.get('Vary')).toBe('Origin');
@@ -82,7 +82,7 @@ describe('CORS middleware', () => {
   it('sets exposed headers', async () => {
     const app = new Hono();
     app.use('*', createCorsMiddleware({ exposeHeaders: ['X-Custom', 'X-Request-Id'] }));
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.get('/test', c => c.json({ ok: true }));
     const res = await makeRequest(app, 'GET', '/test', { origin: 'http://example.com' });
     expect(res.headers.get('Access-Control-Expose-Headers')).toBe('X-Custom, X-Request-Id');
   });
@@ -99,10 +99,13 @@ describe('CORS middleware', () => {
 
   it('supports function origin', async () => {
     const app = new Hono();
-    app.use('*', createCorsMiddleware({
-      origin: (origin) => origin.endsWith('.trusted.com')
-    }));
-    app.get('/test', (c) => c.json({ ok: true }));
+    app.use(
+      '*',
+      createCorsMiddleware({
+        origin: origin => origin.endsWith('.trusted.com')
+      })
+    );
+    app.get('/test', c => c.json({ ok: true }));
     const res1 = await makeRequest(app, 'GET', '/test', { origin: 'https://app.trusted.com' });
     expect(res1.headers.get('Access-Control-Allow-Origin')).toBe('https://app.trusted.com');
     const res2 = await makeRequest(app, 'GET', '/test', { origin: 'http://evil.com' });

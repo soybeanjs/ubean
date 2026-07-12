@@ -3,9 +3,9 @@ import { resolve } from 'pathe';
 import { loadUbeanConfig } from '../config/loader';
 import { generateTypes } from '../codegen';
 import { logger } from '../log';
+import { prerender } from '../prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { scanProject } from '../routing/scan';
-import { prerender } from '../prerender';
 
 export const buildCommand: CommandDef = {
   meta: {

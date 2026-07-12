@@ -182,9 +182,7 @@ describe('Migrations', () => {
 
   it('does not re-apply already applied migrations', async () => {
     const db = defineDatabase();
-    const migrations = [
-      { name: '001_initial', up: `CREATE TABLE mig_test (id TEXT PRIMARY KEY)` }
-    ];
+    const migrations = [{ name: '001_initial', up: `CREATE TABLE mig_test (id TEXT PRIMARY KEY)` }];
 
     await runMigrations(db, migrations);
     const result = await runMigrations(db, migrations);
@@ -193,9 +191,7 @@ describe('Migrations', () => {
 
   it('apply new migrations added later', async () => {
     const db = defineDatabase();
-    await runMigrations(db, [
-      { name: '001', up: `CREATE TABLE mig_add (id TEXT PRIMARY KEY)` }
-    ]);
+    await runMigrations(db, [{ name: '001', up: `CREATE TABLE mig_add (id TEXT PRIMARY KEY)` }]);
 
     const result = await runMigrations(db, [
       { name: '001', up: `CREATE TABLE mig_add (id TEXT PRIMARY KEY)` },
@@ -209,11 +205,9 @@ describe('Migrations', () => {
 
   it('uses custom migrations table name', async () => {
     const db = defineDatabase();
-    await runMigrations(
-      db,
-      [{ name: '001_custom', up: `CREATE TABLE custom_t (id TEXT PRIMARY KEY)` }],
-      { table: '_schema_migrations' }
-    );
+    await runMigrations(db, [{ name: '001_custom', up: `CREATE TABLE custom_t (id TEXT PRIMARY KEY)` }], {
+      table: '_schema_migrations'
+    });
 
     const { rows } = await db.sql<{ name: string }>`SELECT name FROM ${sqlRaw('_schema_migrations')}`;
     expect(rows.map(r => r.name)).toContain('001_custom');
@@ -252,7 +246,7 @@ describe('Database Hooks', () => {
   it('calls db:query hook on sql execution', async () => {
     const hooks = getDatabaseHooks();
     const queries: string[] = [];
-    hooks.hook('db:query', (q) => {
+    hooks.hook('db:query', q => {
       queries.push(q);
     });
 

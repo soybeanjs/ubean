@@ -2,9 +2,9 @@ import { defineCommand, runMain } from 'citty';
 import { buildCommand } from './build';
 import { devCommand } from './dev';
 import { initCommand } from './init';
+import { pageCommand } from './page';
 import { prepareCommand } from './prepare';
 import { previewCommand } from './preview';
-import { pageCommand } from './page';
 
 const main = defineCommand({
   meta: {

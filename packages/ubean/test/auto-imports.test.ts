@@ -1,12 +1,8 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { join } from 'pathe';
 import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import {
-  generateAutoImports,
-  getBuiltinComposables,
-  generateImportsTransform
-} from '../src/core/auto-imports';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { join } from 'pathe';
+import { generateAutoImports, getBuiltinComposables, generateImportsTransform } from '../src/core/auto-imports';
 import type { ScanResult } from '../src/core/routing/types';
 
 describe('Auto imports', () => {
@@ -146,9 +142,7 @@ describe('Auto imports', () => {
         components: { autoImport: false }
       });
 
-      const customImports = result.composablesImports.filter(
-        i => i.from.startsWith('~/composables/')
-      );
+      const customImports = result.composablesImports.filter(i => i.from.startsWith('~/composables/'));
       expect(customImports.length).toBe(2);
       const importNames = customImports.map(i => i.name);
       expect(importNames).toContain('useCounter');
@@ -215,10 +209,7 @@ describe('Auto imports', () => {
       const srcDir = join(tempDir, 'src');
       const composablesDir = join(srcDir, 'composables');
       await mkdir(composablesDir, { recursive: true });
-      await writeFile(
-        join(composablesDir, 'use-local-storage.ts'),
-        'export function useLocalStorage() {}'
-      );
+      await writeFile(join(composablesDir, 'use-local-storage.ts'), 'export function useLocalStorage() {}');
 
       const result = await generateAutoImports(createEmptyScanResult(), {
         cwd: tempDir,
@@ -229,9 +220,7 @@ describe('Auto imports', () => {
         components: { autoImport: false }
       });
 
-      const customImport = result.composablesImports.find(
-        i => i.from.includes('use-local-storage')
-      );
+      const customImport = result.composablesImports.find(i => i.from.includes('use-local-storage'));
       expect(customImport).toBeDefined();
       expect(customImport!.name).toBe('useLocalStorage');
     });

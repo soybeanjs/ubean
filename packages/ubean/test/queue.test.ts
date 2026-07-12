@@ -288,7 +288,11 @@ describe('Queue system', () => {
     defineQueue({ name: 'headers' }, handler);
     await driver.start();
 
-    await sendMessage('headers', { data: 1 }, { headers: { 'x-trace-id': 'abc123', 'content-type': 'application/json' } });
+    await sendMessage(
+      'headers',
+      { data: 1 },
+      { headers: { 'x-trace-id': 'abc123', 'content-type': 'application/json' } }
+    );
 
     await new Promise(resolve => setTimeout(resolve, 300));
 

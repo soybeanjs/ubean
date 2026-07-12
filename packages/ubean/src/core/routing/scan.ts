@@ -1,12 +1,12 @@
+import { readFile } from 'node:fs/promises';
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
-import { readFile } from 'node:fs/promises';
 import { filePathToRoute } from '../../utils/path';
 import { logger } from '../log';
+import { parseFrontmatter } from '../markdown';
 import { extractDefinePage } from './define-page';
 import { detectHttpExports } from './detect-exports';
 import { HTTP_METHODS, GLOB_SCAN_PATTERN, GLOB_VUE_PATTERN, GLOB_LAYOUT_PATTERN } from './types';
-import { parseFrontmatter } from '../markdown';
 import type {
   ScanOptions,
   ScanResult,

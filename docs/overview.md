@@ -25,24 +25,24 @@
 
 ### 1.3 参考项目融合策略
 
-| 特性           | void                        | nitro                    | ubean 取舍                      |
-| -------------- | --------------------------- | ------------------------ | ------------------------------- |
-| HTTP 框架      | Hono                        | h3                       | ✅ Hono（轻量、现代、类型友好） |
-| 构建工具       | Vite-Plus                   | Vite/Rollup/Rolldown     | ✅ Vite-Plus                    |
-| 页面路由       | Inertia 式 SSR + 框架适配器 | renderer 抽象            | ✅ Inertia 式，仅 Vue 适配器    |
-| API 路由       | 文件式路由 (routes/)        | 文件式路由 (server/api/) | ✅ 文件式路由 (routes/)         |
-| 平台适配       | Cloudflare 为主             | 30+ 平台 preset          | ✅ nitro 风格 preset 系统       |
-| 部署平台       | Void Cloud (自有平台)       | 各平台独立部署           | ❌ 移除，改为通用部署           |
-| 登录认证       | Better Auth 内置            | 无内置                   | ❌ 移除，提供插件接口           |
-| 数据库         | Drizzle ORM + D1/PG         | db0 抽象层               | ✅ Drizzle ORM + 多数据库驱动   |
-| 环境变量       | defineEnv + Schema 验证     | runtimeConfig            | ✅ defineEnv + 类型安全验证     |
-| 缓存/ISR       | KV + Edge Cache             | routeRules 缓存          | ✅ 融合两者                     |
-| Skills 系统    | ✅ Agent 路由               | ❌                       | ✅ 保留并增强                   |
-| 插件系统       | Vite 插件                   | 运行时插件 + 模块系统    | ✅ Vite 插件 + 运行时插件       |
-| Hooks 系统     | Wrangler hooks              | Hookable 生命周期        | ✅ Hookable 完整生命周期        |
-| 类型安全客户端 | typed fetch                 | 无内置                   | ✅ 自动生成类型安全客户端       |
-| OpenAPI 文档   | ❌                          | ✅ Scalar/Swagger UI     | ✅ nitro 风格 OpenAPI 自动生成  |
-| App 实例定制   | ❌ 硬编码入口               | ❌                       | ✅ defineApp 暴露 Vue 实例      |
+| 特性           | void                        | nitro                    | ubean 取舍                                                  |
+| -------------- | --------------------------- | ------------------------ | ----------------------------------------------------------- |
+| HTTP 框架      | Hono                        | h3                       | ✅ Hono（轻量、现代、类型友好）                             |
+| 构建工具       | Vite-Plus                   | Vite/Rollup/Rolldown     | ✅ Vite-Plus                                                |
+| 页面路由       | Inertia 式 SSR + 框架适配器 | renderer 抽象            | ✅ Inertia 式，仅 Vue 适配器                                |
+| API 路由       | 文件式路由 (routes/)        | 文件式路由 (server/api/) | ✅ 文件式路由 (routes/)                                     |
+| 平台适配       | Cloudflare 为主             | 30+ 平台 preset          | ✅ nitro 风格 preset 系统                                   |
+| 部署平台       | Void Cloud (自有平台)       | 各平台独立部署           | ❌ 移除，改为通用部署                                       |
+| 登录认证       | Better Auth 内置            | 无内置                   | ✅ 独立扩展包 `@ubean/auth`（Better Auth集成+内置fallback） |
+| 数据库         | Drizzle ORM + D1/PG         | db0 抽象层               | ✅ Drizzle ORM + 多数据库驱动                               |
+| 环境变量       | defineEnv + Schema 验证     | runtimeConfig            | ✅ defineEnv + 类型安全验证                                 |
+| 缓存/ISR       | KV + Edge Cache             | routeRules 缓存          | ✅ 融合两者                                                 |
+| Skills 系统    | ✅ Agent 路由               | ❌                       | ✅ 保留并增强                                               |
+| 插件系统       | Vite 插件                   | 运行时插件 + 模块系统    | ✅ Vite 插件 + 运行时插件                                   |
+| Hooks 系统     | Wrangler hooks              | Hookable 生命周期        | ✅ Hookable 完整生命周期                                    |
+| 类型安全客户端 | typed fetch                 | 无内置                   | ✅ 自动生成类型安全客户端                                   |
+| OpenAPI 文档   | ❌                          | ✅ Scalar/Swagger UI     | ✅ nitro 风格 OpenAPI 自动生成                              |
+| App 实例定制   | ❌ 硬编码入口               | ❌                       | ✅ defineApp 暴露 Vue 实例                                  |
 
 ---
 
@@ -134,7 +134,7 @@
 | Vue 集成              | Vue 及 Vue Router 使用 `peerDependencies`；SSR renderer 按 server entry 引入 | `vue`、`vue-router`、`@vue/server-renderer`                     |
 | preset 包             | 每个平台独立包和 CI；不被核心包静态导入                                      | `@ubean/preset-cloudflare`                                      |
 | 浏览器传输适配器      | 仅在浏览器 client entry 打包；不进入 Node、edge 或 SSR bundle                | `ubean/client-xhr`（上传进度）、数据库驱动                      |
-| DevTools 与 Auth      | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`                                |
+| DevTools 与 Auth/PWA  | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`、`@ubean/pwa`                  |
 | 资源与内容扩展        | 独立包；依赖及平台实现按功能拆分，核心不静态引入                             | `@ubean/icon`、`@ubean/image`、`@ubean/content`、`@ubean/fonts` |
 
 - 文档示例若使用 `zod`，必须标记为用户项目依赖；框架核心仅依赖 Standard Schema 规范，不绑定某个验证库。

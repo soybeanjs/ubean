@@ -10,24 +10,12 @@
 // app.ts
 import { defineApp } from 'ubean/vue';
 import { createPinia } from 'pinia';
-import { createI18n } from 'vue-i18n';
-import { createHead } from '@unhead/vue';
 import GlobalComponent from './src/components/GlobalComponent.vue';
 
 export default defineApp(({ app, router, ssrContext }) => {
   // 注册插件
   const pinia = createPinia();
   app.use(pinia);
-
-  const i18n = createI18n({
-    legacy: false,
-    locale: 'zh-CN',
-    messages: {
-      'zh-CN': { hello: '你好' },
-      'en-US': { hello: 'Hello' }
-    }
-  });
-  app.use(i18n);
 
   // 全局组件注册
   app.component('GlobalComponent', GlobalComponent);
@@ -1301,7 +1289,9 @@ export default defineConfig({
 
 ## 4.19 i18n 国际化
 
-void 和 nitro 均未内置 i18n，ubean 提供轻量内置国际化支持。
+ubean 提供轻量内置国际化支持（不引入 vue-i18n，保持零额外依赖），包括翻译引擎、路由中间件和文件扫描。
+
+> **当前状态说明**：核心翻译引擎（`t()`/`setLocale()`/`defineLocale()`）和 i18n 路由中间件（三种策略、Accept-Language/cookie检测、自动重定向）已完成。Vue响应式集成、locales文件自动加载、SSR hydration、HTML lang/dir绑定、pluralization和Intl格式化为后续增强任务，详见 roadmap **P6-31~P6-35**。
 
 #### 文件约定
 
@@ -1317,14 +1307,16 @@ locales/
 // locales/zh-CN.ts
 export default defineLocale({
   name: '简体中文',
+  dir: 'ltr', // 文字方向 (ltr|rtl)
   messages: {
     welcome: '欢迎',
     'nav.home': '首页',
-    'user.greeting': '你好，{name}',
-    'items.count': '{count} 个项目 | {count} 个项目' // 复数支持
+    'user.greeting': '你好，{name}'
   }
 });
 ```
+
+> **注意**：pluralization（复数）、日期/数字/货币格式化（Intl）为 P6-34/P6-35 计划功能，当前版本使用参数插值（`{name}`）即可满足大部分场景。
 
 #### Locale 检测与路由策略
 
@@ -1358,10 +1350,13 @@ const { t, locale, locales, setLocale, getLocale } = useI18n();
 
 t('welcome'); // '欢迎'
 t('user.greeting', { name: '张三' }); // '你好，张三'
-t('items.count', { count: 5 }, 5); // '5 个项目'（复数）
 
-// 切换 locale
+// 切换 locale（注意：当前版本切换后组件不会自动重渲染，P6-31 将提供响应式版本）
 setLocale('en');
+
+// 路由工具
+switchLocalePath('en'); // 生成当前路径的 en 版本（如 /about → /en/about）
+const paths = localeRoutes(); // { 'zh-CN': '/about', en: '/en/about', ja: '/ja/about' }
 ```
 
 #### `<Link>` 组件自动处理 locale 前缀
@@ -1449,30 +1444,54 @@ interface QueueMap {
 }
 ```
 
-## 4.21 Better Auth 集成插件
+## 4.21 Better Auth 认证插件（官方可选）
 
-参考 void 的 Better Auth 集成，以官方插件形式提供（非内置核心），遵循 ubean 的 meta.public 中间件鉴权模式。
+基于 [Better Auth](https://better-auth.com) 的认证扩展包 `@ubean/auth`，独立包默认不进入生产 bundle。
 
-```typescript
-// plugins/auth.ts
-import betterAuth from '@ubean/auth/better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+#### 快速启用
 
-export default betterAuth({
-  database: drizzleAdapter(db, { provider: 'pg' }),
-  trustedOrigins: ['http://localhost:3000'],
-  socialProviders: {
-    github: { clientId: env.GITHUB_ID, clientSecret: env.GITHUB_SECRET }
-  }
-});
+```ts
+// vite.config.ts
+import { ubeanAuthPlugin } from '@ubean/auth/vite';
+
+export default {
+  plugins: [
+    ubeanAuthPlugin({
+      enabled: true,
+      basePath: '/api/auth',
+      secret: process.env.AUTH_SECRET,
+      session: {
+        cookieName: 'ubean_session',
+        expiresIn: 60 * 60 * 24 * 7
+      },
+      // 传入 betterAuth 配置即启用完整 Better Auth
+      betterAuth: {
+        emailAndPassword: { enabled: true },
+        socialProviders: {
+          github: { clientId: '...', clientSecret: '...' }
+        }
+      }
+    })
+  ]
+};
 ```
 
-- 插件自动注册 `/api/auth/*` 路由
-- 自动注入 auth 中间件，处理鉴权状态
-- 提供 `useAuth()` composable（服务端/客户端通用）
-- `c.get('user')` / `c.get('session')` 在 handler 中获取当前用户
-- 与 `meta.public` 配合：`public: false` 的路由自动要求登录
-- Vue 客户端导出 `authClient` 实例（参考 void 的 auth-client-vue 模式）
+```vue
+<script setup lang="ts">
+import { useAuth } from '@ubean/auth';
+
+const { user, isAuthenticated, isLoading, signIn, signUp, signOut } = useAuth();
+</script>
+```
+
+#### 设计要点
+
+- **渐进降级**：未安装 `better-auth` 包时自动 fallback 到内置 email/password 实现，保证零配置可用
+- **Vite 插件**：自动在 dev server 挂载 `/api/auth/*` 路由（Hono 中间件），无需手动配置
+- **虚拟模块**：`@ubean/auth/client` 提供类型安全的 auth client，零网络开销导入
+- **`useAuth()` composable**：响应式 `session`/`user`/`isAuthenticated`/`isLoading`，onMounted + focus/visibilitychange 自动刷新
+- **服务端 handler**：`createAuthHandler()` 暴露标准 Hono handler，支持任意框架集成
+- **meta.public 配合**：`public: false` 的路由自动要求登录（需结合路由中间件）
 
 ## 4.22 类型安全 `<Link>` 组件
 
@@ -1518,7 +1537,7 @@ import { Link } from 'ubean/pages';
 - `name` 使用 `collection:icon` 形式；支持显式 alias，禁止将任意用户输入直接拼接为远程图标 URL。
 - 动态名称不会被静态扫描；必须在 `clientBundle.icons` 显式列出，避免生产环境或测试环境图标缺失。
 
-#### 配置与本地数据集
+#### 配置与本地数据集（Custom Local Collections）
 
 图标集按需安装，避免全量 `@iconify/json` 显著增加安装、构建和 server bundle 体积：
 
@@ -1527,28 +1546,45 @@ pnpm add -D @iconify-json/lucide @iconify-json/logos
 ```
 
 ```typescript
-// ubean.config.ts
-export default defineConfig({
-  icon: {
-    mode: 'svg',
-    aliases: {
-      search: 'lucide:search',
-      github: 'logos:github-icon'
-    },
-    customCollections: [{ prefix: 'brand', dir: './assets/icons', recursive: true }],
-    clientBundle: {
-      scan: true,
-      icons: ['lucide:search'],
-      sizeLimitKb: 256
-    },
-    serverBundle: 'auto'
-  }
-});
+// vite.config.ts
+import { ubeanIconPlugin } from '@ubean/icon/vite';
+
+export default {
+  plugins: [
+    ubeanIconPlugin({
+      mode: 'svg',
+      aliases: {
+        search: 'lucide:search',
+        github: 'logos:github-icon'
+      },
+      // Custom Local Collections（对标 @nuxt/icon）
+      customCollections: {
+        // 简写：key 为 prefix，value 为本地 SVG 目录
+        'my-icons': './assets/icons',
+        // 完整对象配置
+        brand: {
+          dir: './assets/brand-svgs',
+          prefix: 'brand',
+          normalizeIconName: name => name.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+        }
+      },
+      clientBundle: {
+        scan: true,
+        icons: ['lucide:search'],
+        sizeLimitKb: 256
+      },
+      serverBundle: 'auto'
+    })
+  ]
+};
 ```
 
-- `customCollections` 将本地 SVG 转换为 Iconify collection；构建期必须清理 SVG 中的 script、事件属性、外部引用和不安全 URL。
-- 静态扫描只收集 `<Icon name="...">` 与可静态求值的 name；扫描结果生成虚拟模块和 `.ubean/icons.d.ts`，供 client bundle、SSR 与 DevTools 共享。
-- 默认对超出 `clientBundle.sizeLimitKb` 的未压缩 bundle 失败构建，诊断应列出 collection、icon 数量和可改为按需服务的名称。
+- `customCollections` 将本地 SVG 目录转换为 Iconify collection；嵌套子目录自动以连字符前缀命名（`auth/login.svg` → `auth-login`）
+- 构建期必须清理 SVG 中的 script、事件属性、外部引用和不安全 URL
+- 静态扫描只收集 `<Icon name="...">` 与可静态求值的 name；扫描结果生成虚拟模块和 `.ubean/icons.d.ts`，供 client bundle、SSR 与 DevTools 共享
+- Dev server `/_iconify` 路由优先查找本地 custom collection（命中则直接返回 SVG），未命中再 fallback 到 Iconify API
+- 默认对超出 `clientBundle.sizeLimitKb` 的未压缩 bundle 失败构建，诊断应列出 collection、icon 数量和可改为按需服务的名称
+- HMR 支持：新增/修改/删除 SVG 文件自动热更新，无需重启 dev server
 
 #### 提供者与平台语义
 
@@ -1562,5 +1598,159 @@ export default defineConfig({
 | Vitest / 浏览器组件测试 | `provider: 'none'` + client bundle                                                | 测试不得访问网络；漏列的动态名称应使测试配置或断言失败              |
 
 `@ubean/icon` 应暴露 Vite plugin，以便纯 Vite Vue 项目也可复用静态扫描与预打包逻辑；ubean 框架集成仅负责自动注册组件、虚拟模块、SSR endpoint 及 preset capability 诊断。
+
+## 4.24 页面切换动画（View Transitions API）
+
+基于浏览器原生 [View Transitions API](https://developer.mozilla.org/en-US/docs/Web/API/View_Transitions_API) 实现页面导航过渡效果，不依赖第三方动画库。
+
+#### 基本用法
+
+```vue
+<script setup lang="ts">
+// 页面内启用 view transition（默认通过 ubean config 全局配置）
+// app.vue 或 layout 中无需额外代码
+</script>
+
+<style>
+/* 自定义过渡动画 */
+::view-transition-old(root) {
+  animation: fade-out 0.2s ease-out;
+}
+::view-transition-new(root) {
+  animation: fade-in 0.3s ease-in;
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+</style>
+```
+
+#### 配置
+
+```typescript
+// ubean.config.ts
+export default defineConfig({
+  viewTransition: {
+    enabled: true // 默认 true，自动检测浏览器支持
+    // 不支持 View Transitions 的浏览器自动 fallback（无动画，不阻塞导航）
+  }
+});
+```
+
+#### 元素级过渡
+
+支持通过 `view-transition-name` CSS 属性给共享元素命名，实现跨页面共享元素过渡（如图片放大转场）：
+
+```vue
+<!-- 列表页 -->
+<article>
+  <img src="/photo.jpg" style="view-transition-name: photo-1" />
+</article>
+
+<!-- 详情页 -->
+<div class="hero">
+  <img src="/photo.jpg" style="view-transition-name: photo-1" />
+</div>
+```
+
+#### 实现要点
+
+- 客户端路由（`<Link>` 导航、`router.push()`）使用 `document.startViewTransition()` 包裹 DOM 更新
+- 浏览器不支持 View Transitions API 时自动降级为普通导航，无 JS 错误
+- SSR 首屏加载不触发过渡动画（仅客户端路由切换触发）
+- 保持页面滚动位置，避免过渡期间布局跳动
+
+## 4.25 PWA 渐进式Web应用（官方可选 `@ubean/pwa`）
+
+提供零配置 Service Worker 注册、Web App Manifest 生成和离线缓存策略，参考 vite-plugin-pwa。
+
+#### 快速启用
+
+```ts
+// vite.config.ts
+import { ubeanPwaPlugin } from '@ubean/pwa/vite';
+
+export default {
+  plugins: [
+    ubeanPwaPlugin({
+      manifest: {
+        name: 'My Ubean App',
+        short_name: 'Ubean',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone'
+      },
+      registerType: 'autoUpdate',
+      workbox: {
+        precacheManifest: true,
+        skipWaiting: true,
+        clientsClaim: true
+      }
+    })
+  ]
+};
+```
+
+#### usePwa() Composable
+
+```vue
+<script setup lang="ts">
+import { usePwa } from '@ubean/pwa';
+
+const {
+  isInstalled, // 是否已安装为 PWA
+  isUpdateAvailable, // 是否有新版本
+  isOfflineReady, // 是否已缓存可离线使用
+  needRefresh, // 需要用户确认刷新
+  registration, // ServiceWorkerRegistration
+  register, // 手动注册 SW
+  updateServiceWorker // 激活新版本
+} = usePwa();
+</script>
+
+<template>
+  <div v-if="needRefresh" class="update-banner">
+    有新版本可用
+    <button @click="updateServiceWorker()">立即刷新</button>
+  </div>
+  <div v-else-if="isOfflineReady" class="offline-badge">可离线使用</div>
+</template>
+```
+
+#### 缓存策略
+
+内置 5 种 runtimeCaching 策略：
+
+| 策略                     | 适用场景                       | 说明                   |
+| ------------------------ | ------------------------------ | ---------------------- |
+| `cache-first`            | 静态资源（图片、字体、JS/CSS） | 缓存优先，后台更新     |
+| `network-first`          | API/HTML                       | 网络优先，离线回退缓存 |
+| `stale-while-revalidate` | 字体、非关键API                | 缓存立即返回+后台更新  |
+| `network-only`           | 支付/认证等                    | 仅网络，失败报错       |
+| `cache-only`             | 预缓存资源                     | 仅缓存，不发请求       |
+
+默认 runtimeCaching 规则自动覆盖：images（`/img/**`, `/assets/**`）、fonts（Google Fonts等）、assets（静态资源）、api（`/api/**` 使用 stale-while-revalidate）、pages（HTML导航使用 network-first）。
+
+#### 设计要点
+
+- 构建时自动生成带 content hash 的 precache manifest，确保版本更新
+- HTML 自动注入 `<link rel="manifest">`、theme-color meta、Apple touch icon
+- 三种注册模式：`autoUpdate`（自动更新）、`prompt`（提示用户确认）、`manual`（手动调用 register()）
+- Service Worker 文件在构建时输出到 `.output/public/sw.js`
+- DevTools 可查看 SW 注册状态和缓存列表
 
 ---

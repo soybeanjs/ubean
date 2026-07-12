@@ -285,6 +285,11 @@ my-ubean-app/
 │   ├── zh-CN.ts
 │   └── ja.ts
 │
+├── assets/icons/              # 自定义图标 SVG（@ubean/icon customCollections）
+│   ├── home.svg
+│   └── auth/
+│       └── login.svg
+│
 ├── middleware/                # 中间件 (按数字前缀排序)
 │   ├── 01.logger.ts
 │   └── 02.auth.ts

@@ -113,16 +113,157 @@ export default defineContentConfig({
 
 ### 4.4 `@ubean/icon`：参考 Nuxt Icon
 
-图标实现详见 [运行时与开发体验](runtime.md)。`@ubean/icon` 基于 Iconify 的按需 collection、本地 SVG collection、静态扫描与离线 client bundle；默认 SVG 输出，生产禁止静默回退公共 Iconify API。
+基于 Iconify 的按需 collection、本地 SVG collection（Custom Local Collections）、静态扫描与离线 client bundle；默认 SVG 输出，生产禁止静默回退公共 Iconify API。
+
+```ts
+// vite.config.ts
+import { ubeanIconPlugin } from '@ubean/icon/vite';
+
+export default {
+  plugins: [
+    ubeanIconPlugin({
+      // 本地自定义图标集合（对标 @nuxt/icon Custom Local Collections）
+      customCollections: {
+        // 简写：key 为 prefix，value 为 SVG 目录路径
+        'my-icons': './assets/icons',
+        // 完整配置：自定义 normalizeIconName
+        brand: {
+          dir: './assets/brand-svgs',
+          prefix: 'brand',
+          normalizeIconName: name => name.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+        }
+      }
+    })
+  ]
+};
+```
+
+- `<Icon name="lucide:home" />` 使用远程 Iconify 集合（需安装对应的 `@iconify-json/lucide`）
+- `<Icon name="my-icons:auth-login" />` 使用本地 SVG（嵌套目录 `assets/icons/auth/login.svg` → 前缀连字符命名）
+- 自动提取 SVG 的 width/height/viewBox 属性，开发期 HMR 支持本地 SVG 增删改
+- Dev server `/_iconify` 路由优先查找本地 custom collection，命中则直接返回 SVG，否则 fallback 到 Iconify API
+- Node SSR 可本地按需服务，SSG/Edge 使用离线 bundle 或明确 remote provider
+
+### 4.5 `@ubean/pwa`：参考 vite-plugin-pwa / Nuxt PWA
+
+提供渐进式 Web 应用支持，包括 Web App Manifest 生成、Service Worker 注册与缓存策略，默认 opt-in。
+
+```ts
+// vite.config.ts
+import { ubeanPwaPlugin } from '@ubean/pwa/vite';
+
+export default {
+  plugins: [
+    ubeanPwaPlugin({
+      enabled: true,
+      manifest: {
+        name: 'My Ubean App',
+        short_name: 'Ubean',
+        description: 'A Ubean PWA',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
+        display: 'standalone',
+        start_url: '/'
+      },
+      registerType: 'autoUpdate', // 'autoUpdate' | 'prompt' | 'manual'
+      workbox: {
+        precacheManifest: true,
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
+        runtimeCaching: [{ urlPattern: /^https:\/\/fonts\.googleapis\.com/, handler: 'stale-while-revalidate' }]
+      }
+    })
+  ]
+};
+```
+
+```vue
+<script setup lang="ts">
+import { usePwa } from '@ubean/pwa';
+
+const { needRefresh, updateServiceWorker, isOfflineReady, isInstalled } = usePwa();
+</script>
+
+<template>
+  <div v-if="needRefresh">
+    有新版本可用
+    <button @click="updateServiceWorker()">刷新</button>
+  </div>
+  <div v-if="isOfflineReady">已可离线使用</div>
+</template>
+```
+
+- 构建时自动生成 `manifest.webmanifest` 和带版本 hash 的 `sw.js`
+- 内置缓存策略：`cache-first`、`network-first`、`stale-while-revalidate`、`network-only`、`cache-only`
+- 默认 runtimeCaching 规则覆盖 images/fonts/assets/api/pages
+- HTML 自动注入 manifest link、theme-color meta、内联注册脚本（inline 模式）或自动注册
+- `usePwa()` 提供响应式状态（isInstalled/isUpdateAvailable/isOfflineReady/needRefresh/registration）
+- Workbox 集成、Prompt UI 组件、dev 模式 SW 调试、更多 manifest 字段（shortcuts/share_target）待后续完善
+
+### 4.6 `@ubean/auth`：参考 Nuxt Auth / Better Auth
+
+基于 [Better Auth](https://better-auth.com) 的认证插件，提供零配置认证方案，内置 email/password fallback 实现。
+
+```ts
+// vite.config.ts
+import { ubeanAuthPlugin } from '@ubean/auth/vite';
+
+export default {
+  plugins: [
+    ubeanAuthPlugin({
+      enabled: true,
+      basePath: '/api/auth',
+      secret: process.env.AUTH_SECRET,
+      trustedOrigins: ['https://example.com'],
+      session: {
+        cookieName: 'ubean_session',
+        expiresIn: 60 * 60 * 24 * 7, // 7 days
+        updateAge: 60 * 60 * 24 // 1 day
+      },
+      // Better Auth 完整配置（可选，不提供则使用内置fallback）
+      betterAuth: {
+        emailAndPassword: { enabled: true },
+        socialProviders: { github: { clientId: '...', clientSecret: '...' } }
+      }
+    })
+  ]
+};
+```
+
+```vue
+<script setup lang="ts">
+import { useAuth } from '@ubean/auth';
+
+const { user, isAuthenticated, isLoading, signIn, signUp, signOut, session } = useAuth();
+</script>
+
+<template>
+  <div v-if="isLoading">加载中...</div>
+  <template v-else-if="isAuthenticated">
+    <span>你好，{{ user?.name }}</span>
+    <button @click="signOut()">退出</button>
+  </template>
+  <button v-else @click="signIn(email, password)">登录</button>
+</template>
+```
+
+- 服务端 `createAuthHandler()` 动态 import `better-auth`，未安装时自动降级到内置 email/password 实现
+- Vite 插件自动在 dev server 挂载 `/api/auth/*` 路由（Hono 中间件）
+- 虚拟模块提供 `ubean/auth/client` 类型安全的 auth client
+- `useAuth()` Vue composable 提供响应式 session/user/isLoading/isAuthenticated 状态
+- 自动注册 fetchSession（onMounted + focus/visibilitychange 监听）
+- 支持 Better Auth 全部特性：OAuth 社交登录、session 管理、账号关联等
 
 ## 5. 延后能力
 
-| 能力                                                 | 决策                | 原因                                                                           |
-| ---------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------ |
-| Partial Prerendering                                 | 暂缓                | 需先验证 loader 失效、streams、Suspense 错误边界、缓存与 hydration 语义        |
-| 通用 Remote Functions/RPC                            | 暂缓                | OpenAPI client 与 Pages action 已覆盖主要需求，避免并行鉴权/缓存模型           |
-| PWA / Service Worker                                 | `@ubean/pwa` opt-in | 仅提供版本化 asset manifest、注册入口和显式 cache strategy；不默认缓存业务数据 |
-| 内容浏览器 SQLite、全文搜索、远程 Git source、Studio | 后续扩展            | 初版优先保证 collection、类型查询、renderer 与静态 dump 的稳定性               |
+| 能力                                                 | 决策                                | 原因                                                                           |
+| ---------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------ |
+| Partial Prerendering                                 | 暂缓                                | 需先验证 loader 失效、streams、Suspense 错误边界、缓存与 hydration 语义        |
+| 通用 Remote Functions/RPC                            | 暂缓                                | OpenAPI client 与 Pages action 已覆盖主要需求，避免并行鉴权/缓存模型           |
+| PWA / Service Worker                                 | ✅ `@ubean/pwa` 已提供 opt-in 扩展  | 仅提供版本化 asset manifest、注册入口和显式 cache strategy；不默认缓存业务数据 |
+| 认证 (Auth)                                          | ✅ `@ubean/auth` 已提供 opt-in 扩展 | Better Auth 集成 + 内置fallback，支持email/password与社交登录                  |
+| 内容浏览器 SQLite、全文搜索、远程 Git source、Studio | 后续扩展                            | 初版优先保证 collection、类型查询、renderer 与静态 dump 的稳定性               |
 
 ## 6. 验收要求
 

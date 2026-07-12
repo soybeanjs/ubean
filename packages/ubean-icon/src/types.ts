@@ -29,6 +29,7 @@ export interface ResolvedIconData {
 
 export interface UbeanIconOptions {
   collections?: Record<string, IconifyCollection | (() => Promise<IconifyCollection>)>;
+  customCollections?: Record<string, string | CustomCollectionDirConfig>;
   fallbackToApi?: boolean;
   iconApiEndpoint?: string;
   ssr?: boolean;
@@ -37,8 +38,23 @@ export interface UbeanIconOptions {
   iconifyApiEnabled?: boolean;
 }
 
-export interface ResolvedUbeanIconOptions extends Required<Omit<UbeanIconOptions, 'collections'>> {
+export interface CustomCollectionDirConfig {
+  dir: string;
+  prefix?: string;
+  normalizeIconName?: (name: string) => string;
+}
+
+export interface ResolvedCustomCollection {
+  prefix: string;
+  dir: string;
+  normalizeIconName: (name: string) => string;
+}
+
+export interface ResolvedUbeanIconOptions extends Required<
+  Omit<UbeanIconOptions, 'collections' | 'customCollections'>
+> {
   collections: Record<string, IconifyCollection | (() => Promise<IconifyCollection>)>;
+  customCollections: Record<string, ResolvedCustomCollection>;
 }
 
 export interface IconCollectionLoader {

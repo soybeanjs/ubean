@@ -14,7 +14,9 @@ import {
   listLoadedCollections,
   clearCollections,
   scanVueSfcForIcons,
-  resolveAlias
+  resolveAlias,
+  parseSvgToIconData,
+  createCollectionFromSvgMap
 } from './core';
 
 export {
@@ -33,7 +35,9 @@ export {
   listLoadedCollections,
   clearCollections,
   scanVueSfcForIcons,
-  resolveAlias
+  resolveAlias,
+  parseSvgToIconData,
+  createCollectionFromSvgMap
 };
 
 export type {
@@ -42,7 +46,9 @@ export type {
   IconifyAlias,
   ResolvedIconData,
   IconCollectionLoader,
-  ScannedIconUsage
+  ScannedIconUsage,
+  CustomCollectionDirConfig,
+  ResolvedCustomCollection
 } from './types';
 
 let config: {

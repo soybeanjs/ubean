@@ -11,7 +11,9 @@ import {
   scanVueSfcForIcons,
   clearCollections,
   resolveAlias,
-  listLoadedCollections
+  listLoadedCollections,
+  parseSvgToIconData,
+  createCollectionFromSvgMap
 } from '../src/core';
 import type { IconifyCollection } from '../src/types';
 
@@ -269,6 +271,68 @@ const other = useIcon('mdi:close');
       const icons = scanVueSfcForIcons(source);
       expect(icons.has('lucide:search')).toBe(true);
       expect(icons.has('mdi:close')).toBe(true);
+    });
+  });
+
+  describe('parseSvgToIconData', () => {
+    it('parses simple SVG with width/height', () => {
+      const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>';
+      const data = parseSvgToIconData(svg);
+      expect(data).not.toBeNull();
+      expect(data!.width).toBe(24);
+      expect(data!.height).toBe(24);
+      expect(data!.viewBox).toBe('0 0 24 24');
+      expect(data!.body).toContain('<path');
+    });
+
+    it('extracts viewBox dimensions when width/height missing', () => {
+      const svg = '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="8"/></svg>';
+      const data = parseSvgToIconData(svg);
+      expect(data).not.toBeNull();
+      expect(data!.width).toBe(32);
+      expect(data!.height).toBe(32);
+    });
+
+    it('returns null for invalid SVG', () => {
+      expect(parseSvgToIconData('not an svg')).toBeNull();
+      expect(parseSvgToIconData('<div>hello</div>')).toBeNull();
+      expect(parseSvgToIconData('')).toBeNull();
+    });
+
+    it('extracts body content between svg tags', () => {
+      const svg = '<svg><g fill="currentColor"><rect x="0" y="0" width="10" height="10"/></g></svg>';
+      const data = parseSvgToIconData(svg);
+      expect(data).not.toBeNull();
+      expect(data!.body).toContain('<g fill="currentColor">');
+      expect(data!.body).toContain('<rect');
+    });
+  });
+
+  describe('createCollectionFromSvgMap', () => {
+    it('creates collection from multiple SVGs', () => {
+      const svgs = {
+        home: '<svg width="24" height="24"><path d="M0 0h24v24H0z"/></svg>',
+        user: '<svg width="24" height="24"><circle cx="12" cy="12" r="10"/></svg>'
+      };
+      const collection = createCollectionFromSvgMap('custom', svgs);
+      expect(collection.prefix).toBe('custom');
+      expect(Object.keys(collection.icons)).toHaveLength(2);
+      expect(collection.icons.home).toBeDefined();
+      expect(collection.icons.user).toBeDefined();
+      expect(collection.icons.home.body).toContain('<path');
+      expect(collection.width).toBe(24);
+      expect(collection.height).toBe(24);
+    });
+
+    it('skips invalid SVGs', () => {
+      const svgs = {
+        good: '<svg><path d="M0 0"/></svg>',
+        bad: 'not svg at all'
+      };
+      const collection = createCollectionFromSvgMap('custom', svgs);
+      expect(Object.keys(collection.icons)).toHaveLength(1);
+      expect(collection.icons.good).toBeDefined();
     });
   });
 });

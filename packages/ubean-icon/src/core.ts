@@ -222,3 +222,84 @@ export function scanVueSfcForIcons(source: string): Set<string> {
 
   return icons;
 }
+
+const SVG_TAG_RE = /<svg([^>]*)>([\s\S]*?)<\/svg>/i;
+const SVG_ATTR_RE = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^"'<>`\s]+))/g;
+
+export function parseSvgToIconData(svg: string): IconifyIconData | null {
+  const match = SVG_TAG_RE.exec(svg);
+  if (!match) return null;
+
+  const attrs = match[1];
+  const body = match[2].trim();
+
+  if (!body) return null;
+
+  const attrMap: Record<string, string> = {};
+  let attrMatch: RegExpExecArray | null;
+  SVG_ATTR_RE.lastIndex = 0;
+  while ((attrMatch = SVG_ATTR_RE.exec(attrs)) !== null) {
+    const name = attrMatch[1].toLowerCase();
+    const value = attrMatch[2] ?? attrMatch[3] ?? attrMatch[4] ?? '';
+    attrMap[name] = value;
+  }
+
+  const result: IconifyIconData = { body };
+
+  const width = parseNumber(attrMap.width);
+  const height = parseNumber(attrMap.height);
+  if (width) result.width = width;
+  if (height) result.height = height;
+
+  const viewBox = attrMap.viewbox;
+  if (viewBox) {
+    result.viewBox = viewBox;
+    const parts = viewBox
+      .split(/[\s,]+/)
+      .map(Number)
+      .filter(n => !Number.isNaN(n));
+    if (parts.length === 4 && (!width || !height)) {
+      const vbWidth = parts[2];
+      const vbHeight = parts[3];
+      if (!width && vbWidth) result.width = vbWidth;
+      if (!height && vbHeight) result.height = vbHeight;
+    }
+  }
+
+  const rootAttrs: string[] = [];
+  for (const attr of ['fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'stroke-miterlimit']) {
+    if (attrMap[attr]) {
+      rootAttrs.push(`${attr}="${escapeHtml(attrMap[attr])}"`);
+    }
+  }
+
+  return result;
+}
+
+function parseNumber(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const n = parseFloat(value);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+export function createCollectionFromSvgMap(prefix: string, icons: Record<string, string>): IconifyCollection {
+  const iconData: Record<string, IconifyIconData> = {};
+  let collectionWidth: number | undefined;
+  let collectionHeight: number | undefined;
+  let viewBoxSet = false;
+
+  for (const [name, svg] of Object.entries(icons)) {
+    const data = parseSvgToIconData(svg);
+    if (data) {
+      iconData[name] = data;
+      if (data.width && !collectionWidth && !viewBoxSet) collectionWidth = data.width;
+      if (data.height && !collectionHeight && !viewBoxSet) collectionHeight = data.height;
+    }
+  }
+
+  const collection: IconifyCollection = { prefix, icons: iconData };
+  if (collectionWidth) collection.width = collectionWidth;
+  if (collectionHeight) collection.height = collectionHeight;
+
+  return collection;
+}

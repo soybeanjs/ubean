@@ -35,9 +35,19 @@ export {
   configureIconRuntime,
   getIconConfig,
   fetchIconFromApi,
-  buildIconCssIcon
+  buildIconCssIcon,
+  parseSvgToIconData,
+  createCollectionFromSvgMap
 } from './runtime';
-export type { IconifyCollection, IconifyIconData, IconifyAlias, ResolvedIconData, IconCollectionLoader } from './types';
+export type {
+  IconifyCollection,
+  IconifyIconData,
+  IconifyAlias,
+  ResolvedIconData,
+  IconCollectionLoader,
+  CustomCollectionDirConfig,
+  ResolvedCustomCollection
+} from './types';
 
 export interface UbeanIconProps {
   name: string;

@@ -20,15 +20,15 @@ const message = ref('');
     <h1>Contact</h1>
     <p>Get in touch with us.</p>
 
-    <form @submit.prevent="execute" class="contact-form">
+    <form class="contact-form" @submit.prevent="execute">
       <div class="form-group">
         <label for="name">Name</label>
-        <input type="text" id="name" v-model="name" name="name" required placeholder="Your name" />
+        <input id="name" v-model="name" type="text" name="name" required placeholder="Your name" />
       </div>
 
       <div class="form-group">
         <label for="email">Email</label>
-        <input type="email" id="email" v-model="email" name="email" required placeholder="your@email.com" />
+        <input id="email" v-model="email" type="email" name="email" required placeholder="your@email.com" />
       </div>
 
       <div class="form-group">

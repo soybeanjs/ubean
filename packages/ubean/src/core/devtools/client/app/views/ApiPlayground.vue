@@ -266,9 +266,9 @@ const filteredRoutes = computed(() => {
         </button>
         <div class="ml-auto px-2 flex items-center">
           <button
+            v-if="false"
             class="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 cursor-pointer px-2 py-1 rounded transition-colors hover:bg-secondary/50"
             @click="requestTab = 'routes'"
-            v-if="false"
           >
             <SIcon icon="lucide:list" :size="11" />
             Routes
@@ -279,7 +279,7 @@ const filteredRoutes = computed(() => {
       <div v-if="requestTab === 'params'" class="px-3 py-2 max-h-32 overflow-y-auto">
         <div class="flex flex-col gap-1">
           <div v-for="(p, i) in params" :key="i" class="flex items-center gap-1.5">
-            <input type="checkbox" v-model="p.enabled" class="size-3.5 accent-primary cursor-pointer" />
+            <input v-model="p.enabled" type="checkbox" class="size-3.5 accent-primary cursor-pointer" />
             <input
               v-model="p.key"
               type="text"
@@ -312,7 +312,7 @@ const filteredRoutes = computed(() => {
       <div v-else-if="requestTab === 'headers'" class="px-3 py-2 max-h-32 overflow-y-auto">
         <div class="flex flex-col gap-1">
           <div v-for="(h, i) in headers" :key="i" class="flex items-center gap-1.5">
-            <input type="checkbox" v-model="h.enabled" class="size-3.5 accent-primary cursor-pointer" />
+            <input v-model="h.enabled" type="checkbox" class="size-3.5 accent-primary cursor-pointer" />
             <input
               v-model="h.key"
               type="text"

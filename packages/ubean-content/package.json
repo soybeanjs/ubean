@@ -35,7 +35,7 @@
     "scule": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^22.13.10",
+    "@types/node": "^26.1.1",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"
@@ -47,5 +47,6 @@
     "vite": {
       "optional": true
     }
-  }
+  },
+  "optionalDependencies": {}
 }

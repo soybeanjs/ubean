@@ -1,30 +1,3 @@
-<template>
-  <div
-    ref="editorContainer"
-    class="flex flex-col border border-border/50 rounded-lg overflow-hidden bg-[#1e1e2e] transition-colors"
-    :class="{ 'border-primary ring-2 ring-primary/15': focused, 'is-readonly': readonly }"
-  >
-    <div
-      v-if="label"
-      class="flex items-center justify-between px-3 py-1.5 text-[11px] text-muted-foreground bg-[#1e1e2e]/80 border-b border-border/40 uppercase tracking-wider font-semibold"
-    >
-      <span>{{ label }}</span>
-      <span
-        v-if="language"
-        class="text-primary bg-primary/15 px-1.5 py-0.5 rounded text-[10px] tracking-normal font-medium"
-      >
-        {{ languageTag }}
-      </span>
-    </div>
-    <div
-      ref="editorEl"
-      class="flex-1 min-h-[100px] overflow-auto"
-      @focusin="handleFocusIn"
-      @focusout="handleFocusOut"
-    ></div>
-  </div>
-</template>
-
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch, shallowRef } from 'vue';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
@@ -223,6 +196,33 @@ defineExpose({
   getValue: () => view.value?.state.doc.toString() ?? ''
 });
 </script>
+
+<template>
+  <div
+    ref="editorContainer"
+    class="flex flex-col border border-border/50 rounded-lg overflow-hidden bg-[#1e1e2e] transition-colors"
+    :class="{ 'border-primary ring-2 ring-primary/15': focused, 'is-readonly': readonly }"
+  >
+    <div
+      v-if="label"
+      class="flex items-center justify-between px-3 py-1.5 text-[11px] text-muted-foreground bg-[#1e1e2e]/80 border-b border-border/40 uppercase tracking-wider font-semibold"
+    >
+      <span>{{ label }}</span>
+      <span
+        v-if="language"
+        class="text-primary bg-primary/15 px-1.5 py-0.5 rounded text-[10px] tracking-normal font-medium"
+      >
+        {{ languageTag }}
+      </span>
+    </div>
+    <div
+      ref="editorEl"
+      class="flex-1 min-h-[100px] overflow-auto"
+      @focusin="handleFocusIn"
+      @focusout="handleFocusOut"
+    ></div>
+  </div>
+</template>
 
 <style scoped>
 .is-readonly :deep(.cm-cursor) {

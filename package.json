@@ -20,9 +20,9 @@
     "@soybeanjs/cli": "^1.7.2",
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
-    "@types/node": "^22.13.10",
+    "@types/node": "^26.1.1",
     "eslint": "^10.7.0",
     "vite-plus": "catalog:"
   },
-  "packageManager": "pnpm@11.11.0"
+  "packageManager": "pnpm@11.12.0"
 }

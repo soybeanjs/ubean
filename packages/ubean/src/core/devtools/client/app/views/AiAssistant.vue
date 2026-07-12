@@ -214,7 +214,7 @@ onMounted(() => {
 
     <div ref="messagesEl" class="flex-1 overflow-y-auto px-3 py-3 space-y-3">
       <template v-for="(msg, idx) in messages" :key="idx">
-        <div :class="['flex gap-2', msg.role === 'user' ? 'justify-end' : 'justify-start']">
+        <div class="flex gap-2" :class="[msg.role === 'user' ? 'justify-end' : 'justify-start']">
           <div
             v-if="msg.role !== 'user'"
             class="size-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5"
@@ -223,8 +223,7 @@ onMounted(() => {
           </div>
           <div class="max-w-[85%] space-y-1.5">
             <div
-              :class="[
-                'px-3 py-2 rounded-lg text-xs leading-relaxed',
+              class="px-3 py-2 rounded-lg text-xs leading-relaxed" :class="[
                 msg.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-tr-sm'
                   : 'bg-card border border-border/60 text-foreground rounded-tl-sm'

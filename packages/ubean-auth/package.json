@@ -39,12 +39,12 @@
     "defu": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^22.13.10",
+    "@types/node": "^26.1.1",
     "hono": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.13"
+    "vue": "^3.5.39"
   },
   "peerDependencies": {
     "hono": "^4.0.0",
@@ -61,5 +61,6 @@
     "vue": {
       "optional": true
     }
-  }
+  },
+  "optionalDependencies": {}
 }

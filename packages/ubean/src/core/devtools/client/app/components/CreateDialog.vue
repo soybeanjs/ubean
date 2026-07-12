@@ -102,7 +102,7 @@ async function handleSubmit() {
           </button>
         </div>
 
-        <form @submit.prevent="handleSubmit" class="p-4 space-y-4">
+        <form class="p-4 space-y-4" @submit.prevent="handleSubmit">
           <div>
             <label class="block text-[11px] font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
               Resource Type

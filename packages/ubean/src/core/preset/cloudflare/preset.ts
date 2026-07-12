@@ -23,48 +23,86 @@ const CLOUDFLARE_CAPABILITIES = createCapabilitySet({
   rpc: false
 });
 
-export const cloudflarePreset = definePreset({
-  name: 'cloudflare',
-  capabilities: CLOUDFLARE_CAPABILITIES,
-  entry: 'worker',
-  build: {
-    outputDir: '.ubean/dist/cloudflare',
-    format: 'esm',
-    externals: [
-      'hono',
-      'c12',
-      'citty',
-      'consola',
-      'defu',
-      'hookable',
-      'pathe',
-      'ufo',
-      'zod',
-      'cloudflare:workers'
-    ],
-    rollupConfig: {
-      external: [
-        'cloudflare:*',
-        'node:*'
-      ]
+export const cloudflarePreset = definePreset(
+  {
+    capabilities: CLOUDFLARE_CAPABILITIES,
+    entry: 'worker',
+    exportConditions: ['workerd', 'worker'],
+    build: {
+      outputDir: '.ubean/dist/cloudflare',
+      format: 'esm',
+      minify: false,
+      externals: [
+        'hono',
+        'c12',
+        'citty',
+        'consola',
+        'defu',
+        'hookable',
+        'pathe',
+        'ufo',
+        'zod',
+        'cloudflare:workers'
+      ],
+      rollupConfig: {
+        external: [
+          'cloudflare:*',
+          'node:*'
+        ]
+      }
+    },
+    output: {
+      dir: '.ubean/dist/cloudflare',
+      serverDir: '.ubean/dist/cloudflare',
+      publicDir: '.ubean/dist/cloudflare/public'
+    },
+    runtime: {
+      entry: 'worker/index.mjs',
+      handler: 'fetch',
+      compatibilityDate: '2024-09-01',
+      compatibilityFlags: ['nodejs_compat']
+    },
+    wasm: {
+      lazy: false,
+      esmImport: true
+    },
+    serve: {
+      host: 'localhost',
+      port: 8787
+    },
+    commands: {
+      preview: 'npx wrangler dev',
+      deploy: 'npx wrangler deploy'
+    },
+    hooks: {
+      'build:before': async () => {
+      },
+      'compiled': async () => {
+      }
     }
   },
-  runtime: {
-    entry: 'worker/index.mjs',
-    handler: 'fetch',
-    compatibilityDate: '2024-09-01',
-    compatibilityFlags: ['nodejs_compat']
-  },
-  nitro: {},
-  serve: {
-    host: 'localhost',
-    port: 8787
-  },
-  commands: {
-    preview: 'npx wrangler dev',
-    deploy: 'npx wrangler deploy'
+  {
+    name: 'cloudflare',
+    aliases: ['cloudflare-pages', 'cloudflare-module', 'cf', 'wrangler', 'workers'],
+    stdName: 'cloudflare_workers',
+    dev: true,
+    compatibilityDate: '2024-09-01'
   }
-});
+);
+
+export const cloudflareDevPreset = definePreset(
+  {
+    extends: 'cloudflare',
+    devServer: {
+      runner: 'miniflare'
+    }
+  },
+  {
+    name: 'cloudflare-dev',
+    aliases: ['cf-dev', 'wrangler-dev'],
+    dev: true
+  }
+);
 
 export interface WranglerConfig {
   name?: string;

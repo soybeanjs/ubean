@@ -259,7 +259,9 @@ describe('UbeanRouter', () => {
 
 describe('definePreset', () => {
   it('registers and resolves presets', () => {
-    const preset = definePreset({ name: 'test-preset' });
-    expect(resolvePreset('test-preset')).toBe(preset);
+    definePreset({ name: 'test-preset' });
+    const resolved = resolvePreset('test-preset');
+    expect(resolved).toBeDefined();
+    expect(resolved?.name).toBe('test-preset');
   });
 });

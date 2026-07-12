@@ -421,6 +421,6 @@ describe('listDetectablePresets', () => {
   it('returns all detectable presets', () => {
     const presets = listDetectablePresets();
     const names = presets.map(p => p.name).sort();
-    expect(names).toEqual(['cloudflare', 'node', 'standard']);
+    expect(names).toEqual(['cloudflare', 'cloudflare-dev', 'node', 'standard']);
   });
 });

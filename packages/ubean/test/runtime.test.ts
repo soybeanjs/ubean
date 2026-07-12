@@ -39,11 +39,20 @@ import {
   insertSsrContent,
   safeJsonStringify,
   PAGE_DATA_ID,
+  LOCALE_DATA_ID,
   SSR_CONTENT_MARKER,
   renderPage,
   pageJsonResponse,
   isPagesRequest
 } from '../src/runtime/pages';
+import {
+  localizePath,
+  setI18nConfig,
+  getI18nConfig,
+  getDefaultLocale,
+  extractLocaleFromPath,
+  getLocaleDir
+} from '../src/runtime/i18n';
 import {
   createRobotsResponse,
   createSitemapResponse,
@@ -1053,6 +1062,133 @@ describe('i18n runtime', () => {
     });
 
     expect(t('hello')).toBe('مرحبا');
+  });
+
+  it('setI18nConfig updates config', () => {
+    clearLocales();
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+    defineLocale({ code: 'zh', messages: {} });
+
+    setI18nConfig({ strategy: 'prefix' });
+    const config = getI18nConfig();
+    expect(config.strategy).toBe('prefix');
+    expect(config.locales).toContain('en');
+    expect(config.locales).toContain('zh');
+  });
+
+  it('getDefaultLocale returns the default locale', () => {
+    clearLocales();
+    defineLocale({ code: 'zh', messages: {}, isDefault: true });
+    defineLocale({ code: 'en', messages: {} });
+
+    expect(getDefaultLocale()).toBe('zh');
+  });
+
+  it('localizePath adds locale prefix for prefix_except_default strategy', () => {
+    clearLocales();
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+    defineLocale({ code: 'zh', messages: {} });
+    setI18nConfig({ strategy: 'prefix_except_default' });
+
+    setLocale('en');
+    expect(localizePath('/about')).toBe('/about');
+    expect(localizePath('/')).toBe('/');
+
+    setLocale('zh');
+    expect(localizePath('/about')).toBe('/zh/about');
+    expect(localizePath('/')).toBe('/zh');
+  });
+
+  it('localizePath adds locale prefix for prefix strategy', () => {
+    clearLocales();
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+    defineLocale({ code: 'zh', messages: {} });
+    setI18nConfig({ strategy: 'prefix' });
+
+    setLocale('en');
+    expect(localizePath('/about')).toBe('/en/about');
+    expect(localizePath('/')).toBe('/en');
+
+    setLocale('zh');
+    expect(localizePath('/about')).toBe('/zh/about');
+  });
+
+  it('localizePath does not add prefix for no_prefix strategy', () => {
+    clearLocales();
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+    defineLocale({ code: 'zh', messages: {} });
+    setI18nConfig({ strategy: 'no_prefix' });
+
+    setLocale('zh');
+    expect(localizePath('/about')).toBe('/about');
+    expect(localizePath('/')).toBe('/');
+  });
+
+  it('localizePath can accept explicit locale parameter', () => {
+    clearLocales();
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+    defineLocale({ code: 'zh', messages: {} });
+    setI18nConfig({ strategy: 'prefix_except_default' });
+
+    expect(localizePath('/about', 'zh')).toBe('/zh/about');
+    expect(localizePath('/about', 'en')).toBe('/about');
+  });
+
+  it('extractLocaleFromPath extracts locale and remaining path', () => {
+    clearLocales();
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+    defineLocale({ code: 'zh', messages: {} });
+
+    let result = extractLocaleFromPath('/zh/about');
+    expect(result.locale).toBe('zh');
+    expect(result.pathWithoutLocale).toBe('/about');
+
+    result = extractLocaleFromPath('/about');
+    expect(result.locale).toBeNull();
+    expect(result.pathWithoutLocale).toBe('/about');
+
+    result = extractLocaleFromPath('/');
+    expect(result.locale).toBeNull();
+    expect(result.pathWithoutLocale).toBe('/');
+  });
+
+  it('buildPageShell injects locale data script and html lang/dir attributes', () => {
+    clearLocales();
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+    defineLocale({ code: 'ar', messages: {}, dir: 'rtl' });
+
+    const pageObj: any = {
+      component: 'pages/index',
+      props: {},
+      params: {},
+      url: '/',
+      head: { title: 'Test' }
+    };
+
+    const htmlEn = buildPageShell(pageObj, {}, '', 'app', { locale: 'en', localeDir: 'ltr' });
+    expect(htmlEn).toContain('<html lang="en" dir="ltr"');
+    expect(htmlEn).toContain(`id="${LOCALE_DATA_ID}"`);
+    expect(htmlEn).toContain('"locale":"en"');
+
+    const htmlAr = buildPageShell(pageObj, {}, '', 'app', { locale: 'ar', localeDir: 'rtl' });
+    expect(htmlAr).toContain('<html lang="ar" dir="rtl"');
+    expect(htmlAr).toContain('"locale":"ar"');
+    expect(htmlAr).toContain('"dir":"rtl"');
+  });
+
+  it('buildPageShell without renderContext does not inject locale script', () => {
+    clearLocales();
+    defineLocale({ code: 'en', messages: {}, isDefault: true });
+
+    const pageObj: any = {
+      component: 'pages/index',
+      props: {},
+      params: {},
+      url: '/'
+    };
+
+    const html = buildPageShell(pageObj, {});
+    expect(html).not.toContain(LOCALE_DATA_ID);
   });
 });
 

@@ -13,14 +13,54 @@ import {
   detectBrowserLocale as detectBrowserLocaleCore,
   addLocale as addLocaleCore,
   mergeLocale as mergeLocaleCore,
-  clearLocales as clearLocalesCore
+  clearLocales as clearLocalesCore,
+  getI18nConfig as getI18nConfigCore,
+  setI18nConfig as setI18nConfigCore,
+  localizePath as localizePathCore,
+  switchLocalePath as switchLocalePathCore,
+  getDefaultLocale as getDefaultLocaleCore,
+  extractLocaleFromPath as extractLocaleFromPathCore
 } from '../i18n';
-import type { LocaleMessages, LocaleDefinition, LocaleChangeCallback } from '../i18n';
+import type { LocaleMessages, LocaleDefinition, LocaleChangeCallback, I18nConfig } from '../i18n';
+import { LOCALE_DATA_ID } from '../pages/protocol';
+
+const _global = globalThis as any;
+
+function hydrateLocale(): { locale: string | null; dir: 'ltr' | 'rtl' } {
+  if (typeof _global.document === 'undefined') return { locale: null, dir: 'ltr' };
+  const el = _global.document.getElementById(LOCALE_DATA_ID);
+  if (!el) return { locale: null, dir: 'ltr' };
+  try {
+    const data = JSON.parse(el.textContent || 'null');
+    if (data && typeof data.locale === 'string') {
+      return { locale: data.locale, dir: data.dir === 'rtl' ? 'rtl' : 'ltr' };
+    }
+  } catch {
+    return { locale: null, dir: 'ltr' };
+  }
+  return { locale: null, dir: 'ltr' };
+}
+
+function syncHtmlLang(locale: string, dir: 'ltr' | 'rtl'): void {
+  if (typeof _global.document === 'undefined') return;
+  const html = _global.document.documentElement;
+  if (html) {
+    html.setAttribute('lang', locale);
+    html.setAttribute('dir', dir);
+  }
+}
+
+const { locale: hydratedLocale, dir: hydratedDir } = hydrateLocale();
+if (hydratedLocale) {
+  setLocaleCore(hydratedLocale);
+  syncHtmlLang(hydratedLocale, hydratedDir);
+}
 
 const localeRef = ref(getLocaleCore());
 
 onLocaleChangeCore((newLocale: string) => {
   localeRef.value = newLocale;
+  syncHtmlLang(newLocale, getLocaleDirCore(newLocale));
 });
 
 export interface VueI18nInstance {
@@ -134,4 +174,41 @@ export function mergeLocale(code: string, messages: LocaleMessages): void {
 export function clearLocales(): void {
   clearLocalesCore();
   localeRef.value = getLocaleCore();
+}
+
+export function getI18nConfig(): I18nConfig {
+  return getI18nConfigCore();
+}
+
+export function setI18nConfig(config: Partial<I18nConfig>): void {
+  setI18nConfigCore(config);
+}
+
+export function localizePath(path: string, locale?: string): string {
+  return localizePathCore(path, locale);
+}
+
+export function switchLocalePath(newLocale: string, currentPath?: string): string {
+  return switchLocalePathCore(newLocale, currentPath);
+}
+
+export function getDefaultLocale(): string {
+  return getDefaultLocaleCore();
+}
+
+export function extractLocaleFromPath(path: string): { locale: string | null; pathWithoutLocale: string } {
+  return extractLocaleFromPathCore(path);
+}
+
+export function useSwitchLocalePath() {
+  return computed(() => (newLocale: string) => {
+    const path = typeof _global.window !== 'undefined' ? _global.window.location.pathname : '/';
+    return switchLocalePathCore(newLocale, path);
+  });
+}
+
+export function useLocalePath() {
+  return computed(() => (path: string, locale?: string) => {
+    return localizePathCore(path, locale || localeRef.value);
+  });
 }

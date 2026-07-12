@@ -49,6 +49,14 @@ export {
   detectBrowserLocale,
   addLocale,
   mergeLocale,
-  clearLocales
+  clearLocales,
+  getI18nConfig,
+  setI18nConfig,
+  localizePath,
+  switchLocalePath,
+  getDefaultLocale,
+  extractLocaleFromPath,
+  useSwitchLocalePath,
+  useLocalePath
 } from './i18n';
 export type { VueI18nInstance } from './i18n';

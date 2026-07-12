@@ -19,6 +19,7 @@ import { resolveRoute, isActiveRoute } from './router-location';
 import type { RouteLocation } from './router-location';
 import { withViewTransition, supportsViewTransitions } from './view-transitions';
 import type { ViewTransitionOptions } from './view-transitions';
+import { localizePath } from './i18n';
 
 const PAGE_KEY = Symbol('ubean-page');
 const ROUTER_KEY = Symbol('ubean-router');
@@ -144,9 +145,12 @@ export const Link = defineComponent({
     const page = inject(PAGE_KEY, null) as PageObject | null;
 
     const resolvedHref = computed(() => {
-      if (props.href) return props.href;
-      if (props.to) return resolveRoute(props.to);
-      return '#';
+      let href = '#';
+      if (props.href) href = props.href;
+      else if (props.to) href = resolveRoute(props.to);
+      const isExternal = href.startsWith('http') || href.startsWith('//') || href.startsWith('#');
+      if (isExternal) return href;
+      return localizePath(href);
     });
 
     function onClick(e: any) {

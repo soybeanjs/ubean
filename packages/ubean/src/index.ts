@@ -14,7 +14,12 @@ export {
   getLocale,
   getRegisteredLocales,
   clearLocales,
-  detectBrowserLocale
+  detectBrowserLocale,
+  getI18nConfig,
+  setI18nConfig,
+  localizePath,
+  getDefaultLocale,
+  extractLocaleFromPath
 } from './runtime/i18n';
 export {
   createI18nMiddleware,
@@ -23,7 +28,7 @@ export {
   getPathWithoutLocale,
   localeRoutes
 } from './runtime/i18n-routing';
-export type { LocaleMessages, LocaleDefinition, I18nInstance } from './runtime/i18n';
+export type { LocaleMessages, LocaleDefinition, I18nInstance, I18nConfig } from './runtime/i18n';
 export type { I18nRoutingOptions, I18nRoutingStrategy } from './runtime/i18n-routing';
 export { registerRoutes, createRouteLoader } from './runtime/router';
 export {
@@ -156,6 +161,7 @@ export {
   insertSsrContent,
   renderPage,
   PAGE_DATA_ID,
+  LOCALE_DATA_ID,
   PAGE_REQUEST_HEADER,
   SSR_CONTENT_MARKER,
   defineDataKey,
@@ -171,7 +177,7 @@ export {
   createStreamResponse,
   createSseStream
 } from './runtime/pages';
-export type { PageHead, PageHeadMeta, PageObject, PageAssetTags, PageRenderFn, PageRenderer } from './runtime/pages';
+export type { PageHead, PageHeadMeta, PageObject, PageAssetTags, PageRenderFn, PageRenderer, PageRenderContext } from './runtime/pages';
 export type {
   DataKey,
   DataCacheEntry,

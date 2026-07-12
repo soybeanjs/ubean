@@ -23,6 +23,11 @@ export interface PageAssetTags {
   body?: string;
 }
 
+export interface PageRenderContext {
+  locale?: string;
+  localeDir?: 'ltr' | 'rtl';
+}
+
 export type PageRenderFn = (
   pageObj: PageObject,
   shellHtml: string,
@@ -35,6 +40,7 @@ export interface PageRenderer {
 }
 
 export const PAGE_DATA_ID = '__UBEAN_PAGE_DATA__';
+export const LOCALE_DATA_ID = '__UBEAN_LOCALE__';
 export const PAGE_REQUEST_HEADER = 'x-ubeanpages';
 export const SSR_CONTENT_MARKER = '<!--UBEAN_SSR_CONTENT-->';
 
@@ -130,7 +136,8 @@ export function buildPageShell(
   pageObj: PageObject,
   assetTags: PageAssetTags,
   preambleScript = '',
-  appId = 'app'
+  appId = 'app',
+  renderContext?: PageRenderContext
 ): string {
   const pageData = serializePageData(pageObj);
   const { htmlAttrs, bodyAttrs, headHtml } = renderHeadTags(pageObj.head);
@@ -138,18 +145,45 @@ export function buildPageShell(
   const preloads = assetTags.preloads ?? '';
   const bodyTags = assetTags.body ?? '';
 
+  const locale = renderContext?.locale;
+  const localeDir = renderContext?.localeDir || 'ltr';
+  const localeScript = locale
+    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir })}</script>`
+    : '';
+
+  const mergedHtmlAttrs = {
+    ...(locale ? { lang: locale } : {}),
+    ...(locale ? { dir: localeDir } : {}),
+    ...parseAttrs(htmlAttrs)
+  };
+
+  const finalHtmlAttrs = Object.entries(mergedHtmlAttrs)
+    .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
+    .join(' ');
+
   return `<!doctype html>
-<html${htmlAttrs ? ` ${htmlAttrs}` : ''}>
+<html${finalHtmlAttrs ? ` ${finalHtmlAttrs}` : ''}>
 <head>
     ${headHtml}${css}${preloads}
 </head>
 <body${bodyAttrs ? ` ${bodyAttrs}` : ''}>
+  ${localeScript}
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
   <div id="${appId}">${SSR_CONTENT_MARKER}</div>
   ${preambleScript}
   ${bodyTags}
 </body>
 </html>`;
+}
+
+function parseAttrs(attrStr: string): Record<string, string> {
+  if (!attrStr) return {};
+  const result: Record<string, string> = {};
+  const matches = attrStr.matchAll(/(\w+)="([^"]*)"/g);
+  for (const match of matches) {
+    result[match[1]] = match[2];
+  }
+  return result;
 }
 
 export function insertSsrContent(shell: string, appHtml: string): string {
@@ -160,7 +194,8 @@ export function buildClientOnlyShell(
   pageObj: PageObject,
   assetTags: PageAssetTags,
   preambleScript = '',
-  appId = 'app'
+  appId = 'app',
+  renderContext?: PageRenderContext
 ): string {
   const pageData = serializePageData(pageObj);
   const { htmlAttrs, bodyAttrs, headHtml } = renderHeadTags(pageObj.head);
@@ -168,12 +203,29 @@ export function buildClientOnlyShell(
   const preloads = assetTags.preloads ?? '';
   const bodyTags = assetTags.body ?? '';
 
+  const locale = renderContext?.locale;
+  const localeDir = renderContext?.localeDir || 'ltr';
+  const localeScript = locale
+    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir })}</script>`
+    : '';
+
+  const mergedHtmlAttrs = {
+    ...(locale ? { lang: locale } : {}),
+    ...(locale ? { dir: localeDir } : {}),
+    ...parseAttrs(htmlAttrs)
+  };
+
+  const finalHtmlAttrs = Object.entries(mergedHtmlAttrs)
+    .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
+    .join(' ');
+
   return `<!doctype html>
-<html${htmlAttrs ? ` ${htmlAttrs}` : ''}>
+<html${finalHtmlAttrs ? ` ${finalHtmlAttrs}` : ''}>
 <head>
     ${headHtml}${preambleScript}${css}${preloads}
 </head>
 <body${bodyAttrs ? ` ${bodyAttrs}` : ''}>
+  ${localeScript}
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
   <div id="${appId}" data-ubean-ssr="false"></div>
   ${bodyTags}
@@ -185,14 +237,15 @@ export async function renderPage(
   pageObj: PageObject,
   assetTags: PageAssetTags,
   renderer: PageRenderer | null,
-  appId = 'app'
+  appId = 'app',
+  renderContext?: PageRenderContext
 ): Promise<string> {
   if (!renderer) {
-    return buildClientOnlyShell(pageObj, assetTags, '', appId);
+    return buildClientOnlyShell(pageObj, assetTags, '', appId, renderContext);
   }
 
   const preambleScript = renderer.preambleScript ?? '';
-  const shell = buildPageShell(pageObj, assetTags, preambleScript, appId);
+  const shell = buildPageShell(pageObj, assetTags, preambleScript, appId, renderContext);
   const appHtml = await renderer.render(pageObj, shell, assetTags);
   if (typeof appHtml === 'string' && !shell.includes(appHtml) && !appHtml.includes('<html')) {
     return insertSsrContent(shell, appHtml);

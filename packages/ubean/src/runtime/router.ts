@@ -3,7 +3,8 @@ import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../co
 import type { ComposedHandler, RouteMeta, UbeanEnv, UbeanMiddleware } from '../types/handler';
 import type { UbeanApp } from './app';
 import { isPagesRequest, pageJsonResponse, renderPage } from './pages';
-import type { PageObject, PageRenderer, PageAssetTags } from './pages';
+import type { PageObject, PageRenderer, PageAssetTags, PageRenderContext } from './pages';
+import { getLocale, getLocaleDir } from './i18n';
 
 export interface RegisterOptions {
   routes: ScannedApiRoute[];
@@ -259,7 +260,13 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
       return actionResult;
     }
 
-    const html = await renderPage(pageObj, pageAssetTags ?? {}, pageRenderer ?? null);
+    const currentLocale = (c.get('locale') as string) || getLocale();
+    const renderContext: PageRenderContext = {
+      locale: currentLocale,
+      localeDir: getLocaleDir(currentLocale)
+    };
+
+    const html = await renderPage(pageObj, pageAssetTags ?? {}, pageRenderer ?? null, 'app', renderContext);
     return c.html(html, method === 'POST' && actionErrors ? { status: 422 } : undefined);
   }
 

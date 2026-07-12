@@ -8,6 +8,7 @@ export {
   insertSsrContent,
   renderPage,
   PAGE_DATA_ID,
+  LOCALE_DATA_ID,
   PAGE_REQUEST_HEADER,
   SSR_CONTENT_MARKER
 } from './protocol';
@@ -33,7 +34,8 @@ export type {
   PageObject,
   PageAssetTags,
   PageRenderFn,
-  PageRenderer
+  PageRenderer,
+  PageRenderContext
 } from './protocol';
 
 export type {

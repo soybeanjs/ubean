@@ -1,8 +1,9 @@
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import type { UbeanEnv } from '../types/handler';
 import { useI18n } from './i18n';
+import type { I18nRoutingStrategy } from './i18n';
 
-export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'no_prefix';
+export type { I18nRoutingStrategy } from './i18n';
 
 export interface I18nRoutingOptions {
   strategy?: I18nRoutingStrategy;

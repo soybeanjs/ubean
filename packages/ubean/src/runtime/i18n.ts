@@ -1,3 +1,11 @@
+export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'no_prefix';
+
+export interface I18nConfig {
+  defaultLocale: string;
+  strategy: I18nRoutingStrategy;
+  locales: string[];
+}
+
 export interface LocaleMessages {
   [key: string]: string | LocaleMessages;
 }
@@ -39,6 +47,11 @@ const registeredLocales = new Map<string, RegisteredLocale>();
 let currentLocale = 'en';
 let fallbackLocale = 'en';
 const localeListeners = new Set<LocaleChangeCallback>();
+let i18nConfig: I18nConfig = {
+  defaultLocale: 'en',
+  strategy: 'prefix_except_default',
+  locales: []
+};
 
 function notifyLocaleChange(locale: string): void {
   for (const fn of localeListeners) {
@@ -120,6 +133,69 @@ export function defineLocale(definition: LocaleDefinition): LocaleDefinition {
   }
 
   return definition;
+}
+
+export function setI18nConfig(config: Partial<I18nConfig>): void {
+  i18nConfig = { ...i18nConfig, ...config };
+  if (config.defaultLocale) {
+    fallbackLocale = config.defaultLocale;
+  }
+}
+
+export function getI18nConfig(): I18nConfig {
+  return { ...i18nConfig, locales: Array.from(registeredLocales.keys()) };
+}
+
+export function getDefaultLocale(): string {
+  for (const [code, loc] of registeredLocales) {
+    if (loc.isDefault) return code;
+  }
+  return i18nConfig.defaultLocale;
+}
+
+export function localizePath(path: string, locale?: string): string {
+  const targetLocale = locale || currentLocale;
+  const defaultLocale = getDefaultLocale();
+  const strategy = i18nConfig.strategy;
+
+  const cleanPath = path.replace(/^\/+/, '/').replace(/\/+$/, '') || '/';
+
+  if (strategy === 'no_prefix') {
+    return cleanPath;
+  }
+
+  const pathParts = cleanPath.split('/').filter(Boolean);
+  const firstSegment = pathParts[0] || '';
+  const isLocalePrefix = registeredLocales.has(firstSegment);
+
+  let pathWithoutPrefix = cleanPath;
+  if (isLocalePrefix) {
+    pathWithoutPrefix = '/' + pathParts.slice(1).join('/') || '/';
+  }
+
+  if (strategy === 'prefix_except_default' && targetLocale === defaultLocale) {
+    return pathWithoutPrefix;
+  }
+
+  return `/${targetLocale}${pathWithoutPrefix === '/' ? '' : pathWithoutPrefix}`;
+}
+
+export function switchLocalePath(newLocale: string, currentPath?: string): string {
+  const _global = globalThis as any;
+  const path = currentPath || (typeof _global.window !== 'undefined' ? _global.window.location.pathname : '/');
+  return localizePath(path, newLocale);
+}
+
+export function extractLocaleFromPath(path: string): { locale: string | null; pathWithoutLocale: string } {
+  const pathParts = path.split('/').filter(Boolean);
+  const firstSegment = pathParts[0] || '';
+
+  if (registeredLocales.has(firstSegment)) {
+    const pathWithoutLocale = '/' + pathParts.slice(1).join('/') || '/';
+    return { locale: firstSegment, pathWithoutLocale };
+  }
+
+  return { locale: null, pathWithoutLocale: path };
 }
 
 export function useI18n(): I18nInstance {

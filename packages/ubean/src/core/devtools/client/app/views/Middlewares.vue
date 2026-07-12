@@ -89,8 +89,10 @@ const routeCount = computed(() => props.middlewares.filter(m => !m.global).lengt
       <div v-if="filteredMiddlewares.length > 0" class="flex flex-col gap-1">
         <div v-for="(mw, i) in filteredMiddlewares" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
           <SIcon icon="lucide:layers" :size="14" class="text-warning flex-shrink-0" />
-          <span class="route-path font-mono flex-1" :title="mw.path">{{ mw.path }}</span>
-          <span v-if="mw.global" class="global-badge">GLOBAL</span>
+          <span class="font-mono text-foreground flex-1 text-xs truncate" :title="mw.path">{{ mw.path }}</span>
+          <span v-if="mw.global" class="text-[10px] px-1.5 py-0.5 bg-warning/12 text-warning rounded-md font-semibold">
+            GLOBAL
+          </span>
           <span v-if="mw.filePath" class="file-name" :title="mw.filePath">{{ filePath(mw.filePath) }}</span>
         </div>
       </div>

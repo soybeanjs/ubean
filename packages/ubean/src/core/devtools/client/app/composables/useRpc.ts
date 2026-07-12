@@ -272,13 +272,13 @@ export function useRpc() {
 
   function methodClass(method: string): string {
     const map: Record<string, string> = {
-      GET: 'method-get',
-      POST: 'method-post',
-      PUT: 'method-put',
-      DELETE: 'method-delete',
-      PATCH: 'method-patch'
+      GET: 'bg-success/12 text-success',
+      POST: 'bg-info/12 text-info',
+      PUT: 'bg-warning/12 text-warning',
+      DELETE: 'bg-destructive/12 text-destructive',
+      PATCH: 'bg-purple-500/12 text-purple-400'
     };
-    return map[method] || 'method-all';
+    return map[method] || 'bg-secondary text-muted-foreground';
   }
 
   function getStatusColor(status: string): string {

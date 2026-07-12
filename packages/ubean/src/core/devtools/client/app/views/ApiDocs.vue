@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { SIcon } from '@soybeanjs/ui';
 
 const props = defineProps<{
   scalarPath?: string;
@@ -10,90 +11,25 @@ const iframeSrc = computed(() => props.scalarPath || '/_scalar');
 </script>
 
 <template>
-  <div class="api-docs-container">
-    <div v-if="enabled === false" class="docs-unavailable">
-      <div class="docs-empty-icon">
-        <svg
-          width="40"
-          height="40"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.5"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="9" y1="15" x2="15" y2="15" />
-        </svg>
-      </div>
-      <div class="docs-empty-title">API Docs Not Enabled</div>
-      <div class="docs-empty-desc">
+  <div class="w-full h-full relative bg-background">
+    <div
+      v-if="enabled === false"
+      class="flex flex-col items-center justify-center h-full text-muted-foreground gap-3 px-10 py-10 text-center"
+    >
+      <SIcon icon="lucide:file-text" :size="40" class="text-muted-foreground/50" />
+      <div class="text-[15px] font-semibold text-foreground">API Docs Not Enabled</div>
+      <div class="text-xs leading-relaxed max-w-80">
         Set
-        <code>openAPI: true</code>
+        <code class="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono text-primary">openAPI: true</code>
         in your ubean config to enable Scalar API reference.
       </div>
     </div>
     <iframe
       v-else
       :src="iframeSrc"
-      class="api-docs-iframe"
+      class="w-full h-full border-none bg-white"
       title="API Reference"
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
     />
   </div>
 </template>
-
-<style scoped>
-.api-docs-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
-  background: var(--dt-bg, #0f0f12);
-}
-
-.api-docs-iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-  background: #fff;
-}
-
-.docs-unavailable {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  color: var(--dt-text-secondary, #6b6b78);
-  gap: 12px;
-  padding: 40px;
-  text-align: center;
-}
-
-.docs-empty-icon {
-  color: var(--dt-text-muted, #3f3f46);
-}
-
-.docs-empty-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--dt-text, #e4e4e7);
-}
-
-.docs-empty-desc {
-  font-size: 13px;
-  line-height: 1.6;
-  max-width: 320px;
-}
-
-.docs-empty-desc code {
-  background: var(--dt-bg-elevated, #27272a);
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-family: var(--dt-font-mono, ui-monospace, monospace);
-  color: var(--dt-accent, #818cf8);
-}
-</style>

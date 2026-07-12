@@ -69,16 +69,27 @@ function toggleCreateMenu() {
 
 <template>
   <SConfigProvider>
-    <div class="devtools-root">
-      <header class="devtools-header">
-        <div class="devtools-header-left">
-          <div class="devtools-logo">
+    <div class="h-full flex flex-col bg-background text-foreground relative">
+      <header class="flex items-center justify-between px-3.5 py-2.5 bg-card border-b border-border flex-shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div
+            class="size-7 rounded-lg bg-gradient-to-br from-primary to-purple-500 flex items-center justify-center flex-shrink-0"
+          >
             <SIcon icon="lucide:layers" :size="16" class="text-white" />
           </div>
-          <span class="devtools-title">Ubean DevTools</span>
-          <span v-if="info" class="version-badge">v{{ info.version }}</span>
-          <span class="connected-badge">
-            <span class="pulse-dot"></span>
+          <span class="text-sm font-semibold">Ubean DevTools</span>
+          <span
+            v-if="info"
+            class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-primary/10 text-primary"
+          >
+            v{{ info.version }}
+          </span>
+          <span
+            class="inline-flex items-center pl-3.5 pr-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/12 text-success relative"
+          >
+            <span
+              class="absolute left-1.5 top-1/2 -translate-y-1/2 size-1.5 rounded-full bg-success animate-pulse"
+            ></span>
             Connected
           </span>
         </div>
@@ -105,24 +116,41 @@ function toggleCreateMenu() {
         </div>
       </header>
 
-      <div v-if="showCreateMenu" class="create-menu-popover" @click.self="showCreateMenu = false">
-        <div class="create-menu">
-          <div class="create-menu-title">Create New</div>
-          <button v-for="opt in createOptions" :key="opt.type" class="create-menu-item" @click="showCreateMenu = false">
+      <div
+        v-if="showCreateMenu"
+        class="absolute top-full left-0 right-0 z-40 flex justify-end pt-1 pr-2"
+        @click.self="showCreateMenu = false"
+      >
+        <div class="bg-popover border border-border rounded-lg shadow-xl py-1 min-w-48 animate-fade-in">
+          <div
+            class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border"
+          >
+            Create New
+          </div>
+          <button
+            v-for="opt in createOptions"
+            :key="opt.type"
+            class="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/50 cursor-pointer transition-colors text-foreground border-none bg-transparent"
+            @click="showCreateMenu = false"
+          >
             <SIcon :icon="opt.icon" :size="14" />
             <span>{{ opt.label }}</span>
-            <span class="create-menu-shortcut">{{ opt.shortcut }}</span>
+            <span class="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono">
+              {{ opt.shortcut }}
+            </span>
           </button>
-          <div class="create-menu-hint">CRUD UI coming soon (P6-12)</div>
+          <div class="px-3 py-1.5 text-[10px] text-muted-foreground border-t border-border text-center">
+            CRUD UI coming soon (P6-12)
+          </div>
         </div>
       </div>
 
-      <div class="devtools-body">
-        <nav class="tabs-list">
+      <div class="flex flex-col flex-1 overflow-hidden">
+        <nav class="flex gap-0.5 px-2.5 py-1.5 bg-card border-b border-border flex-shrink-0 overflow-x-auto">
           <button
             v-for="t in tabs"
             :key="t.id"
-            class="tab-trigger"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border-none rounded-md text-muted-foreground text-xs font-medium cursor-pointer whitespace-nowrap transition-all duration-150 hover:text-foreground data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
             :data-active="activeTab === t.id"
             @click="setActiveTab(t.id)"
           >
@@ -131,14 +159,21 @@ function toggleCreateMenu() {
           </button>
         </nav>
 
-        <main class="tab-content-area">
-          <div v-if="loading" class="loading-wrap">
-            <div class="spinner"></div>
-            <span class="loading-text">Loading DevTools...</span>
+        <main
+          class="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-muted [&::-webkit-scrollbar-thumb]:rounded-sm"
+        >
+          <div
+            v-if="loading"
+            class="flex flex-col items-center justify-center py-20 px-5 gap-3.5 text-muted-foreground"
+          >
+            <div class="size-7 border-2 border-muted border-t-primary rounded-full animate-spin"></div>
+            <span class="text-sm">Loading DevTools...</span>
           </div>
 
           <div v-else-if="error" class="p-3.5">
-            <div class="alert-error">
+            <div
+              class="flex items-start gap-2.5 p-3 rounded-lg text-xs leading-relaxed bg-destructive/10 text-destructive border border-destructive/15"
+            >
               <SIcon icon="lucide:alert-circle" :size="16" class="flex-shrink-0 mt-0.5" />
               <div>
                 <strong>Connection failed</strong>

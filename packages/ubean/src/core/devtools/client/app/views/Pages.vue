@@ -49,7 +49,7 @@ const filteredPages = computed(() => {
         <div v-for="(p, i) in filteredPages" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
           <SIcon icon="lucide:file-text" :size="14" class="text-primary flex-shrink-0" />
           <div class="flex flex-col min-w-0 flex-1">
-            <span class="page-path font-mono text-primary" :title="p.path">{{ p.path }}</span>
+            <span class="font-mono text-primary text-xs" :title="p.path">{{ p.path }}</span>
             <span v-if="p.layout" class="text-2xs text-muted-foreground flex items-center gap-1 mt-0.5">
               <SIcon icon="lucide:layout" :size="11" />
               {{ p.layout }}

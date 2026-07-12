@@ -69,8 +69,13 @@ const filteredRoutes = computed(() => {
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredRoutes.length > 0" class="flex flex-col gap-1">
         <div v-for="(r, i) in filteredRoutes" :key="i" class="list-item hover:bg-secondary/30 transition-colors">
-          <span class="method-badge" :class="[methodClass(r.method)]">{{ r.method }}</span>
-          <span class="route-path font-mono" :title="r.path">{{ r.path }}</span>
+          <span
+            class="min-w-[46px] px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-center font-mono"
+            :class="methodClass(r.method)"
+          >
+            {{ r.method }}
+          </span>
+          <span class="font-mono text-foreground flex-1 text-xs truncate" :title="r.path">{{ r.path }}</span>
           <span v-if="r.filePath" class="file-name" :title="r.filePath">{{ filePath(r.filePath) }}</span>
         </div>
       </div>

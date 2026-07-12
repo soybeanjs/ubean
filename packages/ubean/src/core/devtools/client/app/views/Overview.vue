@@ -36,13 +36,17 @@ const presetColors = ['primary', 'success', 'info', 'warning', 'accent'];
 <template>
   <div class="p-3.5">
     <div class="grid grid-cols-4 gap-2 mb-3">
-      <div v-for="(s, i) in statCards" :key="i" class="stat-card">
-        <div class="stat-icon-wrap" :class="[iconBgMap[s.color]]">
+      <div
+        v-for="(s, i) in statCards"
+        :key="i"
+        class="flex items-center gap-2.5 px-3 py-2.5 bg-card border border-border/60 rounded-lg"
+      >
+        <div class="size-9 rounded-lg flex items-center justify-center flex-shrink-0" :class="[iconBgMap[s.color]]">
           <SIcon :icon="s.icon" :size="18" />
         </div>
         <div>
-          <div class="stat-value">{{ s.val }}</div>
-          <div class="stat-label">{{ s.label }}</div>
+          <div class="text-lg font-semibold text-foreground leading-tight">{{ s.val }}</div>
+          <div class="text-[11px] text-muted-foreground">{{ s.label }}</div>
         </div>
       </div>
     </div>
@@ -56,8 +60,10 @@ const presetColors = ['primary', 'success', 'info', 'warning', 'accent'];
         <div class="section-body">
           <div class="info-row">
             <span class="info-key">Status</span>
-            <span class="running-badge">
-              <span class="status-dot"></span>
+            <span
+              class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/12 text-success"
+            >
+              <span class="size-1.5 rounded-full bg-success animate-pulse"></span>
               Running
             </span>
           </div>

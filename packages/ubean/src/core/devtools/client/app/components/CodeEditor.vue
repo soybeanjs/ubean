@@ -1,10 +1,27 @@
 <template>
-  <div ref="editorContainer" class="ubean-code-editor" :class="{ 'is-readonly': readonly, 'is-focused': focused }">
-    <div v-if="label" class="ubean-code-editor__label">
+  <div
+    ref="editorContainer"
+    class="flex flex-col border border-border/50 rounded-lg overflow-hidden bg-[#1e1e2e] transition-colors"
+    :class="{ 'border-primary ring-2 ring-primary/15': focused, 'is-readonly': readonly }"
+  >
+    <div
+      v-if="label"
+      class="flex items-center justify-between px-3 py-1.5 text-[11px] text-muted-foreground bg-[#1e1e2e]/80 border-b border-border/40 uppercase tracking-wider font-semibold"
+    >
       <span>{{ label }}</span>
-      <span v-if="language" class="ubean-code-editor__lang">{{ languageTag }}</span>
+      <span
+        v-if="language"
+        class="text-primary bg-primary/15 px-1.5 py-0.5 rounded text-[10px] tracking-normal font-medium"
+      >
+        {{ languageTag }}
+      </span>
     </div>
-    <div ref="editorEl" class="ubean-code-editor__content" @focusin="handleFocusIn" @focusout="handleFocusOut"></div>
+    <div
+      ref="editorEl"
+      class="flex-1 min-h-[100px] overflow-auto"
+      @focusin="handleFocusIn"
+      @focusout="handleFocusOut"
+    ></div>
   </div>
 </template>
 
@@ -208,60 +225,15 @@ defineExpose({
 </script>
 
 <style scoped>
-.ubean-code-editor {
-  display: flex;
-  flex-direction: column;
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 8px;
-  overflow: hidden;
-  background: #1e1e2e;
-  transition: border-color 0.15s ease;
+.is-readonly :deep(.cm-cursor) {
+  display: none;
 }
 
-.ubean-code-editor.is-focused {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
-}
-
-.ubean-code-editor__label {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 12px;
-  font-size: 11px;
-  color: #94a3b8;
-  background: rgba(30, 30, 46, 0.8);
-  border-bottom: 1px solid rgba(148, 163, 184, 0.15);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-}
-
-.ubean-code-editor__lang {
-  color: #818cf8;
-  background: rgba(99, 102, 241, 0.15);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-size: 10px;
-  letter-spacing: 0;
-  font-weight: 500;
-}
-
-.ubean-code-editor__content {
-  flex: 1;
-  min-height: 100px;
-  overflow: auto;
-}
-
-.ubean-code-editor__content :deep(.cm-editor) {
+:deep(.cm-editor) {
   height: 100%;
 }
 
-.ubean-code-editor__content :deep(.cm-focused) {
+:deep(.cm-focused) {
   outline: none;
-}
-
-.ubean-code-editor.is-readonly .ubean-code-editor__content :deep(.cm-cursor) {
-  display: none;
 }
 </style>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { SConfigProvider, SIcon, SButtonIcon } from '@soybeanjs/ui';
 import { useRpc } from './composables/useRpc';
+import type { CrudResourceType } from './composables/useRpc';
+import CreateDialog from './components/CreateDialog.vue';
 import ApiDocs from './views/ApiDocs.vue';
 import ApiPlayground from './views/ApiPlayground.vue';
 import ApiRoutes from './views/ApiRoutes.vue';
@@ -27,13 +29,16 @@ const {
   fileName,
   filePath,
   methodClass,
-  refresh
+  refresh,
+  crudCreate
 } = useRpc();
 
 const activeTab = ref('overview');
 const showCreateMenu = ref(false);
 const playgroundMethod = ref('GET');
 const playgroundPath = ref('/api/');
+const createDialogOpen = ref(false);
+const createDialogType = ref<CrudResourceType>('page');
 
 const tabs = computed(() => {
   const list = [
@@ -66,12 +71,20 @@ const tabs = computed(() => {
 });
 
 const createOptions = computed(() => [
-  { type: 'page', label: 'Page', icon: 'lucide:file-text', shortcut: 'P' },
-  { type: 'api', label: 'API Route', icon: 'lucide:send', shortcut: 'A' },
-  { type: 'middleware', label: 'Middleware', icon: 'lucide:layers', shortcut: 'M' },
-  { type: 'layout', label: 'Layout', icon: 'lucide:layout', shortcut: 'L' },
-  { type: 'cron', label: 'Cron Job', icon: 'lucide:clock', shortcut: 'C' }
+  { type: 'page' as const, label: 'Page', icon: 'lucide:file-text', shortcut: 'P' },
+  { type: 'api' as const, label: 'API Route', icon: 'lucide:send', shortcut: 'A' },
+  { type: 'middleware' as const, label: 'Middleware', icon: 'lucide:layers', shortcut: 'M' },
+  { type: 'layout' as const, label: 'Layout', icon: 'lucide:layout', shortcut: 'L' },
+  { type: 'cron' as const, label: 'Cron Job', icon: 'lucide:clock', shortcut: 'C' }
 ]);
+
+const shortcutMap: Record<string, CrudResourceType> = {
+  P: 'page',
+  A: 'api',
+  M: 'middleware',
+  L: 'layout',
+  C: 'cron'
+};
 
 function setActiveTab(id: string) {
   activeTab.value = id;
@@ -81,11 +94,40 @@ function toggleCreateMenu() {
   showCreateMenu.value = !showCreateMenu.value;
 }
 
+function openCreateDialog(type: CrudResourceType) {
+  createDialogType.value = type;
+  createDialogOpen.value = true;
+  showCreateMenu.value = false;
+}
+
 function tryRoute(route: { method: string; path: string }) {
   playgroundMethod.value = route.method;
   playgroundPath.value = route.path;
   activeTab.value = 'playground';
 }
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  if (createDialogOpen.value) return;
+
+  const key = e.key.toUpperCase();
+  if (key === 'N' && (e.metaKey || e.ctrlKey)) {
+    e.preventDefault();
+    openCreateDialog('page');
+    return;
+  }
+  if (shortcutMap[key]) {
+    openCreateDialog(shortcutMap[key]);
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown);
+});
 </script>
 
 <template>
@@ -152,7 +194,7 @@ function tryRoute(route: { method: string; path: string }) {
             v-for="opt in createOptions"
             :key="opt.type"
             class="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/50 cursor-pointer transition-colors text-foreground border-none bg-transparent"
-            @click="showCreateMenu = false"
+            @click="openCreateDialog(opt.type)"
           >
             <SIcon :icon="opt.icon" :size="14" />
             <span>{{ opt.label }}</span>
@@ -160,9 +202,6 @@ function tryRoute(route: { method: string; path: string }) {
               {{ opt.shortcut }}
             </span>
           </button>
-          <div class="px-3 py-1.5 text-[10px] text-muted-foreground border-t border-border text-center">
-            CRUD UI coming soon (P6-12)
-          </div>
         </div>
       </div>
 
@@ -288,6 +327,13 @@ function tryRoute(route: { method: string; path: string }) {
           </template>
         </main>
       </div>
+
+      <CreateDialog
+        :open="createDialogOpen"
+        :initial-type="createDialogType"
+        :on-create="crudCreate"
+        @close="createDialogOpen = false"
+      />
     </div>
   </SConfigProvider>
 </template>

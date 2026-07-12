@@ -50,6 +50,11 @@ export class VirtualModuleRegistry {
   getModules(): VirtualModule[] {
     return [...this.modules.values()];
   }
+
+  clear(): void {
+    this.modules.clear();
+    this.invalidated.clear();
+  }
 }
 
 let _registry: VirtualModuleRegistry | null = null;

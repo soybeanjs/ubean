@@ -6,6 +6,7 @@ import { logger } from '../log';
 import { prerender } from '../prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { scanProject } from '../routing/scan';
+import { buildProduction } from '../build/vite/build';
 
 export const buildCommand: CommandDef = {
   meta: {
@@ -72,6 +73,27 @@ export const buildCommand: CommandDef = {
       componentsDirs: config.components.dirs
     });
 
+    const resolvedPreset = preset as { name: string; hooks?: Record<string, (ctx: any) => void | Promise<void>> };
+
+    if (resolvedPreset.hooks?.['build:before']) {
+      await resolvedPreset.hooks['build:before']({
+        cwd,
+        outputDir: config.build.outputDir,
+        preset: resolvedPreset,
+        config: config as unknown as Record<string, unknown>
+      });
+    }
+
+    logger.info('Building with Vite...');
+    const manifest = await buildProduction({
+      cwd,
+      config,
+      preset: resolvedPreset as any,
+      scanResult: result,
+      minify: args.minify as boolean,
+      sourcemap: args.sourcemap as boolean
+    });
+
     const shouldPrerender = args.prerender ?? config.prerender.enabled;
     if (shouldPrerender) {
       logger.info('Prerendering static pages...');
@@ -84,12 +106,19 @@ export const buildCommand: CommandDef = {
       });
     }
 
-    logger.success(`Build preparation complete for preset "${preset.name}".`);
-    if (!shouldPrerender) {
-      logger.info(
-        `Note: Full production bundling (Vite SSR build + preset entry generation) ` +
-          `will be activated when Vue SSR renderer is complete in Phase 4.`
-      );
+    if (resolvedPreset.hooks?.['build:after']) {
+      await resolvedPreset.hooks['build:after']({
+        cwd,
+        outputDir: config.build.outputDir,
+        preset: resolvedPreset,
+        config: config as unknown as Record<string, unknown>,
+        manifest
+      });
     }
+
+    logger.success(`Build complete for preset "${resolvedPreset.name}"!`);
+    logger.info(`  Output directory: ${resolve(cwd, config.build.outputDir)}`);
+    logger.info(`  Server entry: ${manifest.entry}`);
+    logger.info(`  Client assets: ${manifest.assets.length} files`);
   }
 };

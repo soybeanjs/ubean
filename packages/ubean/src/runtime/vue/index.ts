@@ -24,6 +24,8 @@ export type { UbeanAppOptions, UbeanAppInstance } from './app';
 export { defineApp, applyAppConfig, createDefaultAppConfig } from './define-app';
 export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
 export { definePage, defineMeta, defineMiddleware } from './page-macro';
+export { useSeoMeta } from '../seo';
+export type { SeoMetadata, MetaTag, LinkTag } from '../seo';
 export { resolveRoute, isActiveRoute } from './router-location';
 export type { RouteLocation, RouteLocationRaw, TypedLinkProps } from './router-location';
 export { hydrateIslands, collectIslands, hydrateIsland } from './islands';

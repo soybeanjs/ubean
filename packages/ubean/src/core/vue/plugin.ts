@@ -5,7 +5,7 @@ import AutoImport from 'unplugin-auto-import/vite';
 import { join } from 'pathe';
 import type { InlinePreset } from 'unimport';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
-import { UBEAN_PRESET } from '../auto-imports';
+import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '../auto-imports';
 import { useVirtualRegistry } from '../build/virtual/registry';
 import { scanProject } from '../routing/scan';
 import {
@@ -21,19 +21,19 @@ export interface UbeanVuePluginOptions {
 
 export const VUE_PLUGIN_INCLUDE = [/\.vue$/, /\.md$/];
 
-const VIRTUAL_CLIENT = '#ubean-client-entry';
-const RESOLVED_VIRTUAL_PREFIX = '\0virtual:ubean:';
-const CLIENT_ENTRY_URL = `/@id/${encodeURIComponent(VIRTUAL_CLIENT)}`;
+const VIRTUAL_PAGES = 'virtual:ubean-pages.ts';
+const VIRTUAL_APP = 'virtual:ubean-app.ts';
+const VIRTUAL_CLIENT = 'virtual:ubean-client-entry.ts';
+const CLIENT_ENTRY_URL = `/@id/${VIRTUAL_CLIENT}`;
 
-const RESOLVED_IDS: Record<string, string> = {
-  '#ubean-pages': `${RESOLVED_VIRTUAL_PREFIX}pages`,
-  '#ubean-app': `${RESOLVED_VIRTUAL_PREFIX}app`,
-  '#ubean-client-entry': `${RESOLVED_VIRTUAL_PREFIX}client-entry`
+const VIRTUAL_IDS = [VIRTUAL_PAGES, VIRTUAL_APP, VIRTUAL_CLIENT];
+
+// 兼容旧 ID 映射
+const HASH_ID_TO_VIRTUAL: Record<string, string> = {
+  '#ubean-pages': VIRTUAL_PAGES,
+  '#ubean-app': VIRTUAL_APP,
+  '#ubean-client-entry': VIRTUAL_CLIENT
 };
-
-const RESOLVED_TO_HASH: Record<string, string> = Object.fromEntries(
-  Object.entries(RESOLVED_IDS).map(([k, v]) => [v, k])
-);
 
 export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const { config: ubeanConfig } = _options;
@@ -55,12 +55,12 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
 
   const mdExtensions = mdxEnabled ? ['md', 'mdx'] : ['md'];
 
-  function getVirtualModule(hashId: string) {
-    return virtualRegistry.getModules().find(m => m.id === hashId);
+  function getVirtualModule(virtualId: string) {
+    return virtualRegistry.getModules().find(m => m.id === virtualId);
   }
 
-  async function loadVirtualModule(hashId: string): Promise<string | undefined> {
-    const mod = getVirtualModule(hashId);
+  async function loadVirtualModule(virtualId: string): Promise<string | undefined> {
+    const mod = getVirtualModule(virtualId);
     if (!mod) return undefined;
     return mod.load();
   }
@@ -78,7 +78,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     virtualRegistry.register(createClientEntryVirtualModule());
   }
 
-  const HASH_IDS = Object.keys(RESOLVED_IDS);
+  const HASH_IDS = Object.keys(HASH_ID_TO_VIRTUAL);
 
   const corePlugin: Plugin = {
     name: 'ubean:vue',
@@ -89,19 +89,20 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     },
 
     resolveId(id) {
-      if (RESOLVED_IDS[id]) {
-        return RESOLVED_IDS[id];
+      // 兼容旧 #ubean-xxx ID
+      if (HASH_ID_TO_VIRTUAL[id]) {
+        return HASH_ID_TO_VIRTUAL[id];
       }
-      if (RESOLVED_TO_HASH[id]) {
+      // 新 virtual:ubean-xxx.ts ID
+      if (VIRTUAL_IDS.includes(id)) {
         return id;
       }
       return undefined;
     },
 
     async load(id) {
-      const hashId = RESOLVED_TO_HASH[id];
-      if (hashId) {
-        return loadVirtualModule(hashId);
+      if (VIRTUAL_IDS.includes(id)) {
+        return loadVirtualModule(id);
       }
       return undefined;
     },
@@ -110,7 +111,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       return {
         appType: 'custom',
         optimizeDeps: {
-          exclude: ['ubean', ...HASH_IDS]
+          exclude: ['ubean', ...VIRTUAL_IDS, ...HASH_IDS]
         },
         ssr: {
           noExternal: ['ubean']
@@ -136,8 +137,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         const isMarkdownFile = new RegExp(`\\.(${mdExtensions.join('|')})$`).test(rel);
         if (isAppFile || watchDirs.some(d => rel.startsWith(`${d}/`)) || isMarkdownFile) {
           await scanAndRegister();
-          const resolvedIds = Object.values(RESOLVED_IDS);
-          for (const vid of resolvedIds) {
+          for (const vid of VIRTUAL_IDS) {
             const mod = server.moduleGraph.getModuleById(vid);
             if (mod) {
               server.moduleGraph.invalidateModule(mod);
@@ -172,7 +172,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   if (autoImportEnabled) {
     plugins.push(
       AutoImport({
-        imports: [UBEAN_PRESET as InlinePreset],
+        imports: [UBEAN_CLIENT_PRESET as InlinePreset, UBEAN_SERVER_PRESET as InlinePreset],
         dirs: composablesDirs,
         dts: join(dtsDir, 'auto-imports.d.ts'),
         vueTemplate: true,

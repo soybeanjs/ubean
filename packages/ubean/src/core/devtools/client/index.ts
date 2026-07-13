@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
 import { dirname, resolve } from 'pathe';
 import { DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH } from '../types';
-import { createDevtoolsViteConfig } from './vite.config';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CLIENT_APP_DIR = resolve(__dirname, 'app');
@@ -171,6 +170,10 @@ async function buildDevtoolsClient(): Promise<string> {
   mkdirSync(outDir, { recursive: true });
 
   try {
+    // Dynamic import to keep unocss out of the main app's module graph.
+    // The devtools vite config (and its unocss dependency) is only loaded
+    // when the devtools iframe is first requested, not at server startup.
+    const { createDevtoolsViteConfig } = await import('./vite.config');
     await build({
       ...createDevtoolsViteConfig(CLIENT_APP_DIR),
       logLevel: 'warn'

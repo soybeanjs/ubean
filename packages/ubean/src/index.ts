@@ -270,6 +270,8 @@ export {
   VUE_PRESET,
   VUE_MACROS_PRESET,
   UBEAN_PRESET,
+  UBEAN_CLIENT_PRESET,
+  UBEAN_SERVER_PRESET,
   BUILTIN_PRESETS
 } from './core/auto-imports';
 export type {

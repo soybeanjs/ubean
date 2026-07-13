@@ -343,7 +343,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="#ubean-client-entry"></script>
+  <script type="module" src="virtual:ubean-client-entry.ts"></script>
 </body>
 </html>`;
   await writeFile(join(virtualDir, 'index.html'), htmlEntry, 'utf-8');

@@ -95,19 +95,33 @@ export const VUE_MACROS_PRESET: InlinePreset = {
   imports: ['$', '$$', '$ref', '$computed', '$shallowRef', '$customRef', '$toRef']
 };
 
-export const UBEAN_PRESET: InlinePreset = {
-  from: 'ubean',
+/**
+ * Client-safe symbols that are available in `ubean/runtime/vue`.
+ * These are safe to auto-import in Vue components (browser-side) because
+ * `ubean/runtime/vue` does not transitively import `vite` or other build tools.
+ */
+export const UBEAN_CLIENT_PRESET: InlinePreset = {
+  from: 'ubean/runtime/vue',
   imports: [
     'definePage',
-    'defineHandlerMeta',
     'defineMiddleware',
     't',
     'useI18n',
-    'useSeoMeta',
+    'useSeoMeta'
+  ]
+};
+
+/**
+ * Server-only symbols that come from the main `ubean` package.
+ * These import the full ubean entry (which includes build tools like `vite`),
+ * so they must only be used in server-side files (API routes, middleware, etc.).
+ */
+export const UBEAN_SERVER_PRESET: InlinePreset = {
+  from: 'ubean',
+  imports: [
+    'defineHandlerMeta',
     'useData',
     'callInternal',
-    'navigateTo',
-    'useRuntimeConfig',
     'defineScheduled',
     'defineQueue',
     'sendMessage',
@@ -121,12 +135,15 @@ export const UBEAN_PRESET: InlinePreset = {
   ]
 };
 
+/** @deprecated Use UBEAN_CLIENT_PRESET + UBEAN_SERVER_PRESET instead */
+export const UBEAN_PRESET: InlinePreset = UBEAN_SERVER_PRESET;
+
 export const HONO_OPENAPI_PRESET: InlinePreset = {
   from: 'hono-openapi',
   imports: ['validator', 'describeRoute']
 };
 
-export const BUILTIN_PRESETS: InlinePreset[] = [UBEAN_PRESET, HONO_OPENAPI_PRESET];
+export const BUILTIN_PRESETS: InlinePreset[] = [UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET, HONO_OPENAPI_PRESET];
 
 export interface ComponentInfo {
   name: string;
@@ -393,7 +410,7 @@ export function getUbeanAutoImportConfig(
   const composablesDirs = [join(srcDir, composablesDirName), ...(options.composablesDirs || [])];
 
   return {
-    imports: [UBEAN_PRESET, HONO_OPENAPI_PRESET],
+    imports: [UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET, HONO_OPENAPI_PRESET],
     dirs: composablesDirs,
     dts: join(cwd, buildDir, 'auto-imports.d.ts'),
     vueTemplate: true,

@@ -1,6 +1,6 @@
 import type { CommandDef } from 'citty';
+import { green, cyan, dim, bold } from 'kolorist';
 import { resolve } from 'pathe';
-import { green, cyan, dim, bold, yellow } from 'kolorist';
 import { loadUbeanConfig } from '../config/loader';
 import { createUbeanApp } from '../../runtime/app';
 import { generateTypes } from '../codegen';
@@ -87,7 +87,7 @@ export const devCommand: CommandDef = {
       capabilities,
       app: currentApp,
       layouts: currentLayouts,
-      onListen({ url, port: p }) {
+      onListen({ url }) {
         const label = (text: string) => dim(text);
         logger.box(
           `${green(bold('🚀 ubean dev server ready'))}\n\n` +
@@ -95,7 +95,6 @@ export const devCommand: CommandDef = {
             `  → ${label('Scalar UI:')}  ${cyan(`${url}/_scalar`)}\n` +
             `  → ${label('OpenAPI:')}    ${cyan(`${url}/_openapi.json`)}\n` +
             `  → ${label('DevTools:')}   ${cyan(`${url}/_devtools`)}\n` +
-            `  → ${label('Port:')}       ${yellow(String(p))}\n` +
             `  → ${dim('Press Ctrl+C to stop')}`
         );
       },

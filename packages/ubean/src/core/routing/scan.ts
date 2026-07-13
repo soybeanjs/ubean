@@ -385,7 +385,7 @@ async function loadLocaleFile(
     };
   }
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.ts' || ext === '.mts' || ext === '.cts') {
-    const mod = await import(fullPath).catch(() => null);
+    const mod = await import(/* @vite-ignore */ fullPath).catch(() => null);
     if (mod) {
       const data = mod.default || mod;
       return { messages: data.messages || data, meta: { name: data.name, dir: data.dir, isDefault: data.isDefault } };

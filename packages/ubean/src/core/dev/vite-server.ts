@@ -124,7 +124,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     if (err?.code === 'EADDRINUSE') {
       throw new Error(
         `Port ${requestedPort} is already in use${host ? ` on ${host}` : ''}. ` +
-          `Try a different port or remove the --strictPort flag.`
+          `Try a different port or remove the --strictPort flag.`, { cause: err }
       );
     }
     throw err;
@@ -266,7 +266,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
           const webRes = await currentApp.fetch(webReq);
 
           const contentType = webRes.headers.get('content-type') || '';
-          if (contentType.includes('text/html') && webRes.body) {
+          // The DevTools client serves a pre-built SPA with separate static
+          // assets. Vite's transformIndexHtml would break the pre-built module
+          // references and import-analysis. Skip transform for all devtools
+          // paths (client SPA root, assets, and legacy iframe alias).
+          const skipTransform = (req.url || '').startsWith('/__ubean_devtools__');
+          if (contentType.includes('text/html') && webRes.body && !skipTransform) {
             const html = await webRes.text();
             const transformedHtml = await viteServer!.transformIndexHtml(req.url || '/', html);
             res.statusCode = webRes.status;

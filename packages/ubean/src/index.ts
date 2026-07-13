@@ -352,8 +352,23 @@ export {
   sqlRaw,
   raw as sqlRawAlias
 } from './runtime/database';
-export { defineDevToolsTab } from './core/devtools';
-export type { DevToolsCustomTab, DevToolsTabDefinition } from './core/devtools';
+export { defineDevToolsTab, getCustomTabs, clearCustomTabs } from './core/devtools/define-tab';
+export type { DevToolsTabDefinition } from './core/devtools/define-tab';
+export type {
+  DevToolsCustomTab,
+  DevToolsInfo,
+  DevToolsRouteInfo,
+  DevToolsPageInfo,
+  DevToolsMiddlewareInfo,
+  DevToolsLayoutInfo,
+  DevToolsCronInfo,
+  DevToolsOptions
+} from './core/devtools/types';
+export { DEVTOOLS_MAGIC_KEY, DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_CLIENT_PATH } from './core/devtools/types';
+export { createFsOps } from './core/cli/shared/fs-ops';
+export type { FsOps, FsOpsOptions, BackupOptions } from './core/cli/shared/fs-ops';
+export { scaffold, deleteScaffold, recoverScaffold, listScaffoldableFiles } from './core/cli/page';
+export type { ScaffoldOptions, ScaffoldResult, ScaffoldType } from './core/cli/page';
 
 export type {
   UbeanConfig,

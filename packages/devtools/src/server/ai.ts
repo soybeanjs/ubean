@@ -224,7 +224,7 @@ export function createAiServer(crud: DevToolsCrudServer, getInfo: () => DevTools
 
         case 'create_resource': {
           const result = await crud.create({
-            type: args.type as any,
+            type: args.type as never,
             path: args.path as string,
             method: args.method as string | undefined,
             schedule: args.schedule as string | undefined,
@@ -235,7 +235,7 @@ export function createAiServer(crud: DevToolsCrudServer, getInfo: () => DevTools
 
         case 'delete_resource': {
           const result = await crud.delete({
-            type: args.type as any,
+            type: args.type as never,
             path: args.path as string,
             force: (args.force as boolean) || false
           });
@@ -261,7 +261,7 @@ export function createAiServer(crud: DevToolsCrudServer, getInfo: () => DevTools
 
         case 'read_resource': {
           const result = await crud.read({
-            type: args.type as any,
+            type: args.type as never,
             path: args.path as string | undefined
           });
           return { toolCallId: call.id, result };

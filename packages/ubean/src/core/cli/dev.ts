@@ -194,6 +194,10 @@ async function buildApp(cwd: string, config: any) {
     }
   });
 
+  // Wait for the lazy `@ubean/devtools` import to resolve before seeding the
+  // RPC server with scanned route/page/middleware/layout/cron data.
+  await app.ensureDevtools();
+
   if (app.devtools) {
     const devRoutes: DevToolsRouteInfo[] = result.apiRoutes.map(r => ({
       method: r.method || 'GET',

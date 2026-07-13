@@ -1,0 +1,65 @@
+{
+  "name": "@ubean/devtools",
+  "version": "0.0.1",
+  "description": "DevTools for the ubean framework — server middleware, RPC, and the iframe SPA client",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "pnpm run build:server && pnpm run build:client",
+    "build:server": "vp pack",
+    "build:client": "node scripts/build-client.mjs",
+    "dev:server": "vp pack --watch",
+    "dev:client": "vite client --config client/vite.config.ts",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "hookable": "catalog:",
+    "pathe": "catalog:"
+  },
+  "devDependencies": {
+    "@codemirror/commands": "catalog:",
+    "@codemirror/lang-javascript": "catalog:",
+    "@codemirror/lang-json": "catalog:",
+    "@codemirror/lang-vue": "catalog:",
+    "@codemirror/language": "catalog:",
+    "@codemirror/state": "catalog:",
+    "@codemirror/theme-one-dark": "catalog:",
+    "@codemirror/view": "catalog:",
+    "@soybeanjs/ui": "^0.29.3",
+    "@soybeanjs/unocss-preset": "^0.2.0",
+    "@soybeanjs/unocss-shadcn": "^0.29.3",
+    "@types/node": "^26.1.1",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "hono": "catalog:",
+    "typescript": "catalog:",
+    "unocss": "^66.7.5",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vue": "^3.5.39"
+  },
+  "peerDependencies": {
+    "hono": "^4.0.0",
+    "ubean": "workspace:*",
+    "vue": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "hono": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  }
+}

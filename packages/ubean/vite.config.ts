@@ -63,6 +63,7 @@ export default defineConfig({
         'lightningcss',
         'rollup',
         /^@rolldown\//,
+        '@ubean/devtools',
         /^node:/
       ]
     }

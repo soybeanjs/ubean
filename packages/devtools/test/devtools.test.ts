@@ -2,12 +2,18 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createDevToolsMiddleware } from '../src/core/devtools/server/middleware';
-import { getDevtoolsClientScript, getDevtoolsIframeHtml } from '../src/core/devtools/client';
-import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from '../src/core/devtools/define-tab';
-import { createRpcServer } from '../src/core/devtools/server/rpc';
-import { DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_MAGIC_KEY } from '../src/core/devtools/types';
-import { createUbeanApp } from '../src/runtime/app';
+import {
+  createDevToolsMiddleware,
+  createRpcServer,
+  getDevtoolsClientScript,
+  getDevtoolsIframeHtml,
+  DEVTOOLS_RPC_PATH,
+  DEVTOOLS_IFRAME_PATH,
+  DEVTOOLS_CLIENT_PATH,
+  DEVTOOLS_MAGIC_KEY
+} from '../src';
+import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from 'ubean';
+import { createUbeanApp } from 'ubean';
 
 describe('DevTools RPC Server', () => {
   it('creates an RPC server with default info', () => {
@@ -185,7 +191,7 @@ describe('DevTools Client Script', () => {
     expect(typeof script).toBe('string');
     expect(script.length).toBeGreaterThan(0);
     expect(script).toContain(DEVTOOLS_RPC_PATH);
-    expect(script).toContain(DEVTOOLS_IFRAME_PATH);
+    expect(script).toContain(DEVTOOLS_CLIENT_PATH);
     expect(script).toContain('__ubeanDevtoolsInstalled');
     expect(script).toContain('createButton');
     expect(script).toContain('createPanel');
@@ -225,6 +231,7 @@ describe('DevTools Middleware', () => {
 describe('DevTools Integration with App', () => {
   it('creates app with devtools enabled', async () => {
     const app = createUbeanApp({ devtools: true });
+    await app.ensureDevtools();
     expect(app.devtools).toBeDefined();
     expect(app.devtools?.rpc).toBeDefined();
   });
@@ -256,6 +263,39 @@ describe('DevTools Integration with App', () => {
     const html = await res.text();
     expect(html).toContain('Ubean DevTools');
   }, 30000);
+
+  it('handles client SPA root endpoint', async () => {
+    const app = createUbeanApp({ devtools: true });
+    const req = new Request(`http://localhost${DEVTOOLS_CLIENT_PATH}`);
+    const res = await app.fetch(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/html');
+    const html = await res.text();
+    expect(html).toContain('Ubean DevTools');
+    expect(html).toContain(DEVTOOLS_RPC_PATH);
+  }, 30000);
+
+  it('handles client SPA root with trailing slash', async () => {
+    const app = createUbeanApp({ devtools: true });
+    const req = new Request(`http://localhost${DEVTOOLS_CLIENT_PATH}/`);
+    const res = await app.fetch(req);
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/html');
+  }, 30000);
+
+  it('returns 404 for non-existent client assets', async () => {
+    const app = createUbeanApp({ devtools: true });
+    const req = new Request(`http://localhost${DEVTOOLS_CLIENT_PATH}/assets/nonexistent.js`);
+    const res = await app.fetch(req);
+    expect(res.status).toBe(404);
+  });
+
+  it('blocks path traversal in client assets', async () => {
+    const app = createUbeanApp({ devtools: true });
+    const req = new Request(`http://localhost${DEVTOOLS_CLIENT_PATH}/../../../etc/passwd`);
+    const res = await app.fetch(req);
+    expect(res.status).toBe(404);
+  });
 
   it('injects devtools script into HTML responses', async () => {
     const app = createUbeanApp({ devtools: true });
@@ -299,6 +339,7 @@ describe('DevTools Integration with App', () => {
 
   it('updates devtools info via rpc', async () => {
     const app = createUbeanApp({ devtools: true });
+    await app.ensureDevtools();
     app.devtools!.rpc.setRoutes([{ method: 'GET', path: '/api/test', filePath: '/test.ts' }]);
     app.devtools!.rpc.setPages([{ path: '/test', name: 'TestPage' }]);
     app.devtools!.rpc.setMiddlewares([{ path: '*', global: true, filePath: '/global.ts' }]);

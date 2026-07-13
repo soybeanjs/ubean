@@ -1,16 +1,4 @@
-import { existsSync, readFileSync, mkdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { build } from 'vite';
-import { dirname, resolve } from 'pathe';
-import { DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH } from '../types';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const CLIENT_APP_DIR = resolve(__dirname, 'app');
-const PROJECT_ROOT = resolve(__dirname, '../../../../../../');
-const BUILT_HTML_PATH = resolve(PROJECT_ROOT, 'dist/devtools-client/index.html');
-
-let cachedHtml: string | null = null;
-let buildPromise: Promise<string> | null = null;
+import { DEVTOOLS_RPC_PATH, DEVTOOLS_CLIENT_PATH } from '../types';
 
 export function getDevtoolsClientScript(): string {
   return `(function() {
@@ -18,7 +6,7 @@ export function getDevtoolsClientScript(): string {
   window.__ubeanDevtoolsInstalled = true;
 
   const RPC_PATH = ${JSON.stringify(DEVTOOLS_RPC_PATH)};
-  const IFRAME_PATH = ${JSON.stringify(DEVTOOLS_IFRAME_PATH)};
+  const IFRAME_PATH = ${JSON.stringify(DEVTOOLS_CLIENT_PATH)};
 
   let isOpen = false;
   let panel = null;
@@ -135,80 +123,4 @@ export function getDevtoolsClientScript(): string {
 
   window.__ubeanDevtools = { toggle: togglePanel };
 })();`;
-}
-
-function getFallbackHtml(): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ubean DevTools</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; overflow: hidden; background: #0f0f12; color: #fafafa; font-family: system-ui, -apple-system, sans-serif; }
-  #app { height: 100%; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; }
-  .loading-spinner { width: 32px; height: 32px; border: 3px solid #222228; border-top-color: #6366f1; border-radius: 50%; animation: spin 0.8s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { color: #6b6b78; font-size: 13px; }
-</style>
-</head>
-<body>
-<div id="app">
-  <div class="loading-spinner"></div>
-  <div class="loading-text">Building DevTools...</div>
-</div>
-<script>
-  window.__UBEAN_DEVTOOLS_CONFIG__ = { rpcPath: ${JSON.stringify(DEVTOOLS_RPC_PATH)} };
-</script>
-</body>
-</html>`;
-}
-
-async function buildDevtoolsClient(): Promise<string> {
-  const outDir = resolve(PROJECT_ROOT, 'dist/devtools-client');
-  mkdirSync(outDir, { recursive: true });
-
-  try {
-    // Dynamic import to keep unocss out of the main app's module graph.
-    // The devtools vite config (and its unocss dependency) is only loaded
-    // when the devtools iframe is first requested, not at server startup.
-    const { createDevtoolsViteConfig } = await import('./vite.config');
-    await build({
-      ...createDevtoolsViteConfig(CLIENT_APP_DIR),
-      logLevel: 'warn'
-    });
-
-    if (existsSync(BUILT_HTML_PATH)) {
-      return readFileSync(BUILT_HTML_PATH, 'utf-8');
-    }
-  } catch (err) {
-    console.error('[ubean] DevTools client build failed:', err);
-  }
-
-  return getFallbackHtml();
-}
-
-export async function getDevtoolsIframeHtml(): Promise<string> {
-  if (cachedHtml) {
-    return cachedHtml.replace('__RPC_PATH_PLACEHOLDER__', DEVTOOLS_RPC_PATH);
-  }
-
-  if (existsSync(BUILT_HTML_PATH)) {
-    try {
-      cachedHtml = readFileSync(BUILT_HTML_PATH, 'utf-8');
-      return cachedHtml.replace('__RPC_PATH_PLACEHOLDER__', DEVTOOLS_RPC_PATH);
-    } catch {}
-  }
-
-  if (!buildPromise) {
-    buildPromise = buildDevtoolsClient().then(html => {
-      cachedHtml = html;
-      buildPromise = null;
-      return html;
-    });
-  }
-
-  const html = await buildPromise;
-  return html.replace('__RPC_PATH_PLACEHOLDER__', DEVTOOLS_RPC_PATH);
 }

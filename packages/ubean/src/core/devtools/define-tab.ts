@@ -1,14 +1,11 @@
-export interface DevToolsTabDefinition {
-  id: string;
-  label: string;
-  icon?: string;
-  src: string;
-  sandbox?: string[];
-}
+import type { DevToolsCustomTab } from './types';
 
-const customTabs: DevToolsTabDefinition[] = [];
+/** Alias kept for backward compatibility — the canonical type is {@link DevToolsCustomTab}. */
+export type DevToolsTabDefinition = DevToolsCustomTab;
 
-export function defineDevToolsTab(tab: DevToolsTabDefinition): DevToolsTabDefinition {
+const customTabs: DevToolsCustomTab[] = [];
+
+export function defineDevToolsTab(tab: DevToolsCustomTab): DevToolsCustomTab {
   const exists = customTabs.findIndex(t => t.id === tab.id);
   if (exists !== -1) {
     customTabs[exists] = tab;
@@ -18,7 +15,7 @@ export function defineDevToolsTab(tab: DevToolsTabDefinition): DevToolsTabDefini
   return tab;
 }
 
-export function getCustomTabs(): DevToolsTabDefinition[] {
+export function getCustomTabs(): DevToolsCustomTab[] {
   return [...customTabs];
 }
 

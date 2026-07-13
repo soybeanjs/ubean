@@ -12,9 +12,9 @@ import {
   toCamelCase
 } from './shared';
 
-type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin';
+export type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin';
 
-interface ScaffoldOptions {
+export interface ScaffoldOptions {
   cwd?: string;
   type: ScaffoldType;
   path: string;
@@ -24,7 +24,7 @@ interface ScaffoldOptions {
   dry?: boolean;
 }
 
-interface ScaffoldResult {
+export interface ScaffoldResult {
   created: string[];
   deleted: string[];
   restored: string[];

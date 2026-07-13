@@ -10,6 +10,7 @@ import type {
   DevToolsLayoutInfo,
   DevToolsCustomTab
 } from '../types';
+import { maskSensitiveEnv } from '../shared/env';
 import { createDevToolsHooks } from './hooks';
 import type { DevToolsHooksInstance } from './hooks';
 import { createAiServer } from './ai';
@@ -69,13 +70,7 @@ export function createRpcServer(options: RpcServerOptions = {}) {
       options.setEnv ||
       (env => {
         envData = { ...env };
-        const safeEnv: Record<string, string> = {};
-        const sensitiveKeys = ['KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'AUTH', 'CREDENTIAL'];
-        for (const [key, value] of Object.entries(env)) {
-          const isSensitive = sensitiveKeys.some(k => key.toUpperCase().includes(k));
-          safeEnv[key] = isSensitive ? '***' : value;
-        }
-        info.env = safeEnv;
+        info.env = maskSensitiveEnv(envData);
       }),
     getConfig: options.getConfig,
     onFileChange: options.onFileChange
@@ -122,13 +117,7 @@ export function createRpcServer(options: RpcServerOptions = {}) {
 
   function setEnv(env: Record<string, string>) {
     envData = { ...env };
-    const safeEnv: Record<string, string> = {};
-    const sensitiveKeys = ['KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'AUTH', 'CREDENTIAL'];
-    for (const [key, value] of Object.entries(env)) {
-      const isSensitive = sensitiveKeys.some(k => key.toUpperCase().includes(k));
-      safeEnv[key] = isSensitive ? '***' : value;
-    }
-    info.env = safeEnv;
+    info.env = maskSensitiveEnv(envData);
   }
 
   function setPresets(presets: string[]) {
@@ -165,27 +154,15 @@ export function createRpcServer(options: RpcServerOptions = {}) {
 
   registerHandler('getLayouts', () => info.layoutsList || []);
 
-  registerHandler('getEnv', () => {
-    const safeEnv: Record<string, string> = {};
-    const sensitiveKeys = ['KEY', 'SECRET', 'TOKEN', 'PASSWORD', 'AUTH', 'CREDENTIAL'];
-    for (const [key, value] of Object.entries(envData)) {
-      const upperKey = key.toUpperCase();
-      if (sensitiveKeys.some(k => upperKey.includes(k))) {
-        safeEnv[key] = '***';
-      } else {
-        safeEnv[key] = value;
-      }
-    }
-    return safeEnv;
-  });
+  registerHandler('getEnv', () => maskSensitiveEnv(envData));
 
   registerHandler('getPresets', () => info.presets || []);
 
-  registerHandler('crud:create', params => crud.create(params as any));
-  registerHandler('crud:read', params => crud.read(params as any));
-  registerHandler('crud:update', params => crud.update(params as any));
-  registerHandler('crud:delete', params => crud.delete(params as any));
-  registerHandler('crud:restore', params => crud.restore((params as any).path));
+  registerHandler('crud:create', params => crud.create(params as never));
+  registerHandler('crud:read', params => crud.read(params as never));
+  registerHandler('crud:update', params => crud.update(params as never));
+  registerHandler('crud:delete', params => crud.delete(params as never));
+  registerHandler('crud:restore', params => crud.restore((params as { path: string }).path));
 
   registerHandler('ai:tools', () => ai.getToolDefinitions());
   registerHandler('ai:chat', params =>

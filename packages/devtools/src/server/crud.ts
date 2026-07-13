@@ -1,6 +1,6 @@
 import { join } from 'node:path';
-import { createFsOps } from '../../cli/shared/fs-ops';
-import { scaffold, deleteScaffold, recoverScaffold } from '../../cli/page';
+import { createFsOps, scaffold, deleteScaffold, recoverScaffold } from 'ubean';
+import type { ScaffoldType } from 'ubean';
 import type {
   CrudResult,
   CreateCrudParams,
@@ -10,8 +10,6 @@ import type {
   CrudResourceType
 } from '../types';
 import type { DevToolsHooksInstance } from './hooks';
-
-type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse';
 
 const SCAFFOLD_TYPES: CrudResourceType[] = ['page', 'api', 'layout', 'middleware', 'reuse'];
 const SCAFFOLD_TYPE_SET = new Set<string>(SCAFFOLD_TYPES);

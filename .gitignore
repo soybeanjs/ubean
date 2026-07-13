@@ -46,4 +46,5 @@ coverage
 .codegraph
 .kunsdd
 .ubean
+.trae
 *.tsbuildinfo

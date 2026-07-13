@@ -9,6 +9,7 @@ export interface DevRunnerOptions {
   srcDir: string;
   port: number;
   host: string;
+  strictPort?: boolean;
   preset: Preset;
   app: UbeanApp;
   layouts?: ScannedLayout[];
@@ -74,6 +75,7 @@ class ViteNodeDevRunner implements DevRunner {
       cwd: this.options.cwd,
       port: this._port,
       host: this.options.host,
+      strictPort: this.options.strictPort,
       config: this.options.config,
       app: this.currentApp,
       layouts: this.currentLayouts,

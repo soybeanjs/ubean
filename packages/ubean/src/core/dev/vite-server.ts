@@ -1,5 +1,6 @@
 import { createServer as createHttpServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
+import { createServer as createNetServer } from 'node:net';
 import { createServer as createViteServer } from 'vite';
 import type { ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
@@ -11,15 +12,41 @@ import type { UbeanApp } from '../../runtime/app';
 import { ubeanIslandsPlugin } from '../islands/transform';
 import type { ScannedLayout } from '../routing/types';
 import { createVueRenderer } from '../vue/renderer';
+import { logger } from '../log';
 
 export interface ViteDevServerOptions {
   cwd: string;
   port: number;
   host?: string;
+  strictPort?: boolean;
   config: UbeanResolvedConfig;
   app: UbeanApp;
   layouts?: ScannedLayout[];
   onListen?: (info: { port: number; host: string; url: string }) => void;
+}
+
+/**
+ * Tries to listen on `port` at `host`. If the port is already in use and
+ * `strictPort` is false, recursively tries `port + 1` until an available
+ * port is found (mirrors Vite's behaviour).
+ */
+async function findAvailablePort(port: number, host: string, strictPort: boolean): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createNetServer();
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      if (err.code === 'EADDRINUSE' && !strictPort) {
+        server.close();
+        resolve(findAvailablePort(port + 1, host, false));
+      } else {
+        reject(err);
+      }
+    });
+    server.listen(port, host, () => {
+      const addr = server.address();
+      const actual = typeof addr === 'object' && addr ? addr.port : port;
+      server.close(() => resolve(actual));
+    });
+  });
 }
 
 export interface ViteDevServerInstance {
@@ -81,11 +108,30 @@ async function sendWebResponse(res: ServerResponse, webRes: Response): Promise<v
 export async function createViteDevServer(options: ViteDevServerOptions): Promise<ViteDevServerInstance> {
   const { cwd, config, app: initialApp, layouts: initialLayouts = [] } = options;
   const host = options.host || 'localhost';
+  const strictPort = options.strictPort ?? false;
   let currentApp = initialApp;
   let currentLayouts = initialLayouts;
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let viteServer: ViteDevServer | null = null;
-  let actualPort = options.port;
+
+  // Resolve the actual port before creating the Vite server so that the HMR
+  // config and the HTTP server use the same port.
+  const requestedPort = options.port;
+  let actualPort: number;
+  try {
+    actualPort = await findAvailablePort(requestedPort, host, strictPort);
+  } catch (err: any) {
+    if (err?.code === 'EADDRINUSE') {
+      throw new Error(
+        `Port ${requestedPort} is already in use${host ? ` on ${host}` : ''}. ` +
+          `Try a different port or remove the --strictPort flag.`
+      );
+    }
+    throw err;
+  }
+  if (actualPort !== requestedPort) {
+    logger.warn(`Port ${requestedPort} is in use, trying ${actualPort} instead.`);
+  }
 
   const builtinPlugins: any[] = [
     vue({ include: VUE_PLUGIN_INCLUDE }),
@@ -262,13 +308,28 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
       viteServer!.httpServer = httpServer as any;
 
+      // Listen with auto-increment as a safety net. The probe above already
+      // resolved the port in the common case; this retry only fires if someone
+      // grabbed the port between the probe and this listen call, mirroring
+      // Vite's "never throw on port conflict" behaviour (unless strictPort).
       await new Promise<void>((resolve, reject) => {
-        httpServer!.on('error', reject);
-        httpServer!.listen(actualPort, host, () => {
-          const addr = httpServer!.address();
-          actualPort = typeof addr === 'object' && addr ? addr.port : actualPort;
-          resolve();
-        });
+        const tryListen = (port: number) => {
+          httpServer!.removeAllListeners('error');
+          httpServer!.once('error', (err: NodeJS.ErrnoException) => {
+            if (err.code === 'EADDRINUSE' && !strictPort) {
+              logger.warn(`Port ${port} is in use, trying ${port + 1} instead.`);
+              tryListen(port + 1);
+            } else {
+              reject(err);
+            }
+          });
+          httpServer!.listen(port, host, () => {
+            const addr = httpServer!.address();
+            actualPort = typeof addr === 'object' && addr ? addr.port : port;
+            resolve();
+          });
+        };
+        tryListen(actualPort);
       });
 
       options.onListen?.({

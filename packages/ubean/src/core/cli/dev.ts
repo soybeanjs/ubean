@@ -1,5 +1,6 @@
 import type { CommandDef } from 'citty';
 import { resolve } from 'pathe';
+import { green, cyan, dim, bold, yellow } from 'kolorist';
 import { loadUbeanConfig } from '../config/loader';
 import { createUbeanApp } from '../../runtime/app';
 import { generateTypes } from '../codegen';
@@ -31,6 +32,11 @@ export const devCommand: CommandDef = {
       type: 'string',
       description: 'Host to listen on',
       default: 'localhost'
+    },
+    strictPort: {
+      type: 'boolean',
+      description: 'Exit if the port is already in use, instead of auto-incrementing',
+      default: false
     },
     open: {
       type: 'boolean',
@@ -75,20 +81,22 @@ export const devCommand: CommandDef = {
       srcDir: config.srcDir,
       port,
       host,
+      strictPort: args.strictPort,
       preset,
       config,
       capabilities,
       app: currentApp,
       layouts: currentLayouts,
       onListen({ url, port: p }) {
+        const label = (text: string) => dim(text);
         logger.box(
-          `🚀 ubean dev server ready\n\n` +
-            `  → Local:      ${url}\n` +
-            `  → Scalar UI:  ${url}/_scalar\n` +
-            `  → OpenAPI:    ${url}/_openapi.json\n` +
-            `  → DevTools:   ${url}/_devtools\n` +
-            `  → Port:       ${p}\n` +
-            `  → Press Ctrl+C to stop`
+          `${green(bold('🚀 ubean dev server ready'))}\n\n` +
+            `  → ${label('Local:')}      ${cyan(url)}\n` +
+            `  → ${label('Scalar UI:')}  ${cyan(`${url}/_scalar`)}\n` +
+            `  → ${label('OpenAPI:')}    ${cyan(`${url}/_openapi.json`)}\n` +
+            `  → ${label('DevTools:')}   ${cyan(`${url}/_devtools`)}\n` +
+            `  → ${label('Port:')}       ${yellow(String(p))}\n` +
+            `  → ${dim('Press Ctrl+C to stop')}`
         );
       },
       onBeforeReload() {
@@ -99,7 +107,12 @@ export const devCommand: CommandDef = {
       }
     });
 
-    await runner.start();
+    try {
+      await runner.start();
+    } catch (err: any) {
+      logger.error(err?.message || String(err));
+      process.exit(1);
+    }
 
     const watchDirs = ['api', 'pages', 'middleware', 'layouts', 'plugins', 'app', 'routes'];
     const watcher = createDevWatcher({

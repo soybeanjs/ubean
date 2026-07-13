@@ -2,6 +2,7 @@ import type { ResolvedConfig } from '../config/types';
 import type { UbeanApp } from '../../runtime/app';
 import type { Preset } from '../preset/_utils/preset';
 import type { CapabilitySet, CapabilityDiagnosisResult } from '../preset/capabilities';
+import type { ScannedLayout } from '../routing/types';
 
 export interface DevRunnerOptions {
   cwd: string;
@@ -10,6 +11,7 @@ export interface DevRunnerOptions {
   host: string;
   preset: Preset;
   app: UbeanApp;
+  layouts?: ScannedLayout[];
   config: ResolvedConfig;
   capabilities: CapabilitySet;
   onListen?: (info: { port: number; host: string; url: string }) => void;
@@ -26,7 +28,7 @@ export interface DevRunner {
   start(): Promise<void>;
   stop(): Promise<void>;
   reload(): Promise<void>;
-  updateApp(app: UbeanApp): void;
+  updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void;
 }
 
 export interface EnvRunner {
@@ -38,12 +40,14 @@ export interface EnvRunner {
 class ViteNodeDevRunner implements DevRunner {
   private viteDevServer: import('./vite-server').ViteDevServerInstance | null = null;
   private currentApp: UbeanApp;
+  private currentLayouts: ScannedLayout[];
   private readonly options: DevRunnerOptions;
   private _port: number;
 
   constructor(options: DevRunnerOptions) {
     this.options = options;
     this.currentApp = options.app;
+    this.currentLayouts = options.layouts || [];
     this._port = options.port;
   }
 
@@ -72,6 +76,7 @@ class ViteNodeDevRunner implements DevRunner {
       host: this.options.host,
       config: this.options.config,
       app: this.currentApp,
+      layouts: this.currentLayouts,
       onListen: ({ port, host, url }) => {
         this._port = port;
         this.options.onListen?.({ port, host, url });
@@ -91,15 +96,16 @@ class ViteNodeDevRunner implements DevRunner {
   async reload(): Promise<void> {
     await this.options.onBeforeReload?.();
     if (this.viteDevServer) {
-      this.viteDevServer.updateApp(this.currentApp);
+      this.viteDevServer.updateApp(this.currentApp, this.currentLayouts);
     }
     await this.options.onAfterReload?.();
   }
 
-  updateApp(app: UbeanApp): void {
+  updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void {
     this.currentApp = app;
+    if (layouts) this.currentLayouts = layouts;
     if (this.viteDevServer) {
-      this.viteDevServer.updateApp(app);
+      this.viteDevServer.updateApp(app, this.currentLayouts);
     }
   }
 }

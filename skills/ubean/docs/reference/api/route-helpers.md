@@ -178,13 +178,13 @@ switchLocalePath('en');
 switchLocalePath('zh-CN');
 ```
 
-## definePageMeta()
+## definePage()
 
 Define page metadata.
 
 ```vue
 <script setup lang="ts">
-definePageMeta({
+definePage({
   layout: 'default',
   title: 'My Page',
   meta: [{ name: 'description', content: 'Description' }],

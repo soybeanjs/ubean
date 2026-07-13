@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { defineAction } from 'ubean';
 
-definePageMeta({
-  title: 'Contact'
-});
-
-const { pending, execute } = defineAction(async (formData: FormData) => {
-  console.log('Form submitted:', Object.fromEntries(formData));
+definePage({
+  meta: {
+    title: 'Contact'
+  }
 });
 
 const name = ref('');
 const email = ref('');
 const message = ref('');
+
+function handleSubmit() {
+  console.log('Form submitted:', { name: name.value, email: email.value, message: message.value });
+  alert('Thank you for your message!');
+}
 </script>
 
 <template>
@@ -20,7 +22,7 @@ const message = ref('');
     <h1>Contact</h1>
     <p>Get in touch with us.</p>
 
-    <form class="contact-form" @submit.prevent="execute">
+    <form class="contact-form" @submit.prevent="handleSubmit">
       <div class="form-group">
         <label for="name">Name</label>
         <input id="name" v-model="name" type="text" name="name" required placeholder="Your name" />
@@ -36,9 +38,7 @@ const message = ref('');
         <textarea id="message" v-model="message" name="message" required rows="5" placeholder="Your message"></textarea>
       </div>
 
-      <button type="submit" :disabled="pending">
-        {{ pending ? 'Sending...' : 'Send' }}
-      </button>
+      <button type="submit">Send</button>
     </form>
   </div>
 </template>

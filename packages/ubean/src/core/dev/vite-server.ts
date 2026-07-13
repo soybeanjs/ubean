@@ -9,6 +9,8 @@ import { ubeanVuePlugin } from '../vue/plugin';
 import { resolveModules } from '../modules';
 import type { UbeanApp } from '../../runtime/app';
 import { ubeanIslandsPlugin } from '../islands/transform';
+import type { ScannedLayout } from '../routing/types';
+import { createVueRenderer } from '../vue/renderer';
 
 export interface ViteDevServerOptions {
   cwd: string;
@@ -16,6 +18,7 @@ export interface ViteDevServerOptions {
   host?: string;
   config: UbeanResolvedConfig;
   app: UbeanApp;
+  layouts?: ScannedLayout[];
   onListen?: (info: { port: number; host: string; url: string }) => void;
 }
 
@@ -26,7 +29,7 @@ export interface ViteDevServerInstance {
   readonly viteServer: ViteDevServer;
   start(): Promise<void>;
   stop(): Promise<void>;
-  updateApp(app: UbeanApp): void;
+  updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void;
 }
 
 async function toWebRequest(req: IncomingMessage, host: string, protocol: string): Promise<Request> {
@@ -76,9 +79,10 @@ async function sendWebResponse(res: ServerResponse, webRes: Response): Promise<v
 }
 
 export async function createViteDevServer(options: ViteDevServerOptions): Promise<ViteDevServerInstance> {
-  const { cwd, config, app: initialApp } = options;
+  const { cwd, config, app: initialApp, layouts: initialLayouts = [] } = options;
   const host = options.host || 'localhost';
   let currentApp = initialApp;
+  let currentLayouts = initialLayouts;
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let viteServer: ViteDevServer | null = null;
   let actualPort = options.port;
@@ -103,12 +107,65 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     appType: 'custom',
     plugins,
     optimizeDeps: {
-      exclude: ['ubean', 'virtual:ubean-pages.ts', 'virtual:ubean-app.ts', 'virtual:ubean-client-entry.ts', '#ubean-pages', '#ubean-app', '#ubean-client-entry']
+      exclude: [
+        'ubean',
+        'virtual:ubean-pages.ts',
+        'virtual:ubean-app.ts',
+        'virtual:ubean-client-entry.ts',
+        '#ubean-pages',
+        '#ubean-app',
+        '#ubean-client-entry'
+      ]
     },
     ssr: {
       noExternal: ['ubean']
     }
   } as any)) as ViteDevServer;
+
+  function enhanceAppWithVite(app: UbeanApp, layouts: ScannedLayout[] = []) {
+    const routeLoaders: Record<string, () => Promise<any>> = {};
+    for (const route of app.options.routes || []) {
+      const fullPath = route.fullPath;
+      routeLoaders[route.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
+    }
+    app.options.routeLoaders = routeLoaders;
+
+    const pageLoaders: Record<string, () => Promise<any>> = {};
+    for (const page of app.options.pages || []) {
+      const fullPath = page.fullPath;
+      pageLoaders[page.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
+    }
+    app.options.pageLoaders = pageLoaders;
+
+    const layoutMap = new Map<string, string>();
+    for (const layout of layouts) {
+      layoutMap.set(layout.name, layout.fullPath);
+    }
+
+    const defaultLayout = layouts.find(l => l.isDefault)?.name || null;
+
+    app.options.pageRenderer = createVueRenderer({
+      async resolvePageComponent(name: string) {
+        const page = (app.options.pages || []).find((p: any) => p.name === name);
+        if (!page) throw new Error(`Page not found: ${name}`);
+        const fullPath = page.fullPath;
+        const mod = await viteServer!.ssrLoadModule(fullPath);
+        return mod.default || mod;
+      },
+      async resolveLayoutComponent(name: string | false | null | undefined) {
+        if (name === false || name == null) return null;
+        const fullPath = layoutMap.get(name);
+        if (!fullPath) return null;
+        const mod = await viteServer!.ssrLoadModule(fullPath);
+        return mod.default || mod;
+      },
+      defaultLayout
+    });
+
+    app.resetInit();
+  }
+
+  enhanceAppWithVite(currentApp, currentLayouts);
 
   const getUrl = () => `http://${host}:${actualPort}`;
 
@@ -220,8 +277,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       }
     },
 
-    updateApp(app: UbeanApp) {
+    updateApp(app: UbeanApp, layouts?: ScannedLayout[]) {
       currentApp = app;
+      if (layouts) currentLayouts = layouts;
+      enhanceAppWithVite(app, currentLayouts);
     }
   };
 

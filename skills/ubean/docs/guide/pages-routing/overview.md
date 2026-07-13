@@ -81,7 +81,7 @@ Specify a layout per page:
 
 ```vue
 <script setup lang="ts">
-definePageMeta({
+definePage({
   layout: 'admin'
 });
 </script>
@@ -91,11 +91,11 @@ Create `src/layouts/admin.vue` for the admin layout.
 
 ## Page Metadata
 
-Use `definePageMeta` to configure page options:
+Use `definePage` to configure page options:
 
 ```vue
 <script setup lang="ts">
-definePageMeta({
+definePage({
   layout: 'default',
   title: 'My Page',
   meta: [{ name: 'description', content: 'My page description' }],

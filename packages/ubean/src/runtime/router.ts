@@ -247,7 +247,7 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
       props,
       params: c.req.param(),
       url: c.req.path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
-      layout: page.layout === false ? false : (page.layout || page.pageMeta?.layout || undefined),
+      layout: page.layout === false ? false : page.layout || page.pageMeta?.layout || 'default',
       errors: actionErrors,
       head: page.pageMeta?.head
     };

@@ -74,10 +74,11 @@ function renderNestedLayouts(
   let vnode: any = pageVNode;
   for (let i = layoutChain.length - 1; i >= 0; i--) {
     const layout = layoutChain[i];
+    const child = vnode;
     vnode = h(
       layout.component as ConcreteComponent,
       { page: pageState, layoutName: layout.name },
-      { default: () => vnode }
+      { default: () => child }
     );
   }
   return vnode;

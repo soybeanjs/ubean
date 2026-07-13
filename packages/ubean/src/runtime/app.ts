@@ -224,6 +224,11 @@ export class UbeanApp {
     return this._lazyInitPromise;
   }
 
+  resetInit(): void {
+    this._ready = false;
+    this._lazyInitPromise = null;
+  }
+
   private _setupFallback() {
     this.hono.notFound((c: Context<UbeanEnv>) => {
       return c.json({ error: 'Not Found', path: c.req.path, method: c.req.method }, 404);

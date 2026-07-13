@@ -18,16 +18,19 @@ export interface UbeanVuePluginOptions {
   ssr?: boolean;
 }
 
-const VIRTUAL_PAGES = 'virtual:ubean-pages.ts';
-const VIRTUAL_APP = 'virtual:ubean-app.ts';
-const VIRTUAL_CLIENT = 'virtual:ubean-client-entry.ts';
-const CLIENT_ENTRY_URL = '/@id/virtual:ubean-client-entry.ts';
+const VIRTUAL_CLIENT = '#ubean-client-entry';
+const RESOLVED_VIRTUAL_PREFIX = '\0virtual:ubean:';
+const CLIENT_ENTRY_URL = `/@id/${encodeURIComponent(VIRTUAL_CLIENT)}`;
 
-const HASH_ID_TO_VIRTUAL: Record<string, string> = {
-  '#ubean-pages': VIRTUAL_PAGES,
-  '#ubean-app': VIRTUAL_APP,
-  '#ubean-client-entry': VIRTUAL_CLIENT
+const RESOLVED_IDS: Record<string, string> = {
+  '#ubean-pages': `${RESOLVED_VIRTUAL_PREFIX}pages`,
+  '#ubean-app': `${RESOLVED_VIRTUAL_PREFIX}app`,
+  '#ubean-client-entry': `${RESOLVED_VIRTUAL_PREFIX}client-entry`
 };
+
+const RESOLVED_TO_HASH: Record<string, string> = Object.fromEntries(
+  Object.entries(RESOLVED_IDS).map(([k, v]) => [v, k])
+);
 
 export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const { config: ubeanConfig } = _options;
@@ -44,12 +47,12 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const composablesDirs = [join(srcDir, composablesDirName), ...(ubeanConfig.imports.dirs || [])];
   const componentsDirs = [join(srcDir, componentsDirName), ...(ubeanConfig.components.dirs || [])];
 
-  function getVirtualModule(virtualId: string) {
-    return virtualRegistry.getModules().find(m => m.id === virtualId);
+  function getVirtualModule(hashId: string) {
+    return virtualRegistry.getModules().find(m => m.id === hashId);
   }
 
-  async function loadVirtualModule(virtualId: string): Promise<string | undefined> {
-    const mod = getVirtualModule(virtualId);
+  async function loadVirtualModule(hashId: string): Promise<string | undefined> {
+    const mod = getVirtualModule(hashId);
     if (!mod) return undefined;
     return mod.load();
   }
@@ -67,8 +70,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     virtualRegistry.register(createClientEntryVirtualModule());
   }
 
-  const VIRTUAL_IDS = [VIRTUAL_PAGES, VIRTUAL_APP, VIRTUAL_CLIENT];
-  const HASH_IDS = Object.keys(HASH_ID_TO_VIRTUAL);
+  const HASH_IDS = Object.keys(RESOLVED_IDS);
 
   const corePlugin: Plugin = {
     name: 'ubean:vue',
@@ -79,18 +81,19 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     },
 
     resolveId(id) {
-      if (HASH_ID_TO_VIRTUAL[id]) {
-        return HASH_ID_TO_VIRTUAL[id];
+      if (RESOLVED_IDS[id]) {
+        return RESOLVED_IDS[id];
       }
-      if (VIRTUAL_IDS.includes(id)) {
+      if (RESOLVED_TO_HASH[id]) {
         return id;
       }
       return undefined;
     },
 
     async load(id) {
-      if (VIRTUAL_IDS.includes(id)) {
-        return loadVirtualModule(id);
+      const hashId = RESOLVED_TO_HASH[id];
+      if (hashId) {
+        return loadVirtualModule(hashId);
       }
       return undefined;
     },
@@ -99,7 +102,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       return {
         appType: 'custom',
         optimizeDeps: {
-          exclude: ['ubean', ...HASH_IDS, ...VIRTUAL_IDS]
+          exclude: ['ubean', ...HASH_IDS]
         },
         ssr: {
           noExternal: ['ubean']
@@ -124,7 +127,8 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         const isAppFile = /^app(\.(server|client))?\.(ts|js|mjs|mts)$/.test(rel);
         if (isAppFile || watchDirs.some(d => rel.startsWith(`${d}/`))) {
           await scanAndRegister();
-          for (const vid of VIRTUAL_IDS) {
+          const resolvedIds = Object.values(RESOLVED_IDS);
+          for (const vid of resolvedIds) {
             const mod = server.moduleGraph.getModuleById(vid);
             if (mod) {
               server.moduleGraph.invalidateModule(mod);

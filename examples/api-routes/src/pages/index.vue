@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
-definePageMeta({
+definePage({
   title: 'API Routes Example'
 });
 

@@ -68,7 +68,7 @@ export const devCommand: CommandDef = {
       logger.warn('Some capability requirements are not met. Dev server may not function correctly.');
     }
 
-    let currentApp = await buildApp(cwd, config);
+    let { app: currentApp, layouts: currentLayouts } = await buildApp(cwd, config);
 
     const runner = await createDevRunner({
       cwd,
@@ -79,6 +79,7 @@ export const devCommand: CommandDef = {
       config,
       capabilities,
       app: currentApp,
+      layouts: currentLayouts,
       onListen({ url, port: p }) {
         logger.box(
           `🚀 ubean dev server ready\n\n` +
@@ -100,7 +101,7 @@ export const devCommand: CommandDef = {
 
     await runner.start();
 
-    const watchDirs = ['api', 'pages', 'middleware', 'layouts', 'plugins', 'app'];
+    const watchDirs = ['api', 'pages', 'middleware', 'layouts', 'plugins', 'app', 'routes'];
     const watcher = createDevWatcher({
       cwd,
       dirs: watchDirs.map(d => `${config.srcDir}/${d}`),
@@ -116,8 +117,10 @@ export const devCommand: CommandDef = {
         logger.info(`File change detected: ${relevantEvents[0].relativePath}`);
 
         try {
-          currentApp = await buildApp(cwd, config);
-          runner.updateApp(currentApp);
+          const { app: newApp, layouts: newLayouts } = await buildApp(cwd, config);
+          currentApp = newApp;
+          currentLayouts = newLayouts;
+          runner.updateApp(currentApp, currentLayouts);
           await runner.reload();
         } catch (err) {
           logger.error(`Reload failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -165,10 +168,12 @@ async function buildApp(cwd: string, config: any) {
   });
 
   const app = createUbeanApp({
+    rootDir: cwd,
     routes: result.apiRoutes,
     middleware: result.middlewares,
     pages: result.pages,
     routeRules: config.routeRules || {},
+    publicDir: config.dir.public,
     devtools: true,
     openAPI: {
       title: 'UBEAN Dev API',
@@ -191,7 +196,7 @@ async function buildApp(cwd: string, config: any) {
         path: p.route,
         name: p.name,
         filePath: p.relativePath,
-        layout: p.layout === false ? undefined : (p.layout || defaultLayoutName || undefined)
+        layout: p.layout === false ? undefined : p.layout || defaultLayoutName || undefined
       }));
 
     const devMiddlewares: DevToolsMiddlewareInfo[] = result.middlewares.map(m => ({
@@ -231,5 +236,5 @@ async function buildApp(cwd: string, config: any) {
     logger.log(`${c.req.method} ${c.req.path}`);
   });
 
-  return app;
+  return { app, layouts: result.layouts };
 }

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-definePageMeta({
-  title: 'About'
+definePage({
+  meta: {
+    title: 'About'
+  }
 });
 </script>
 

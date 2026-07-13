@@ -116,7 +116,7 @@ pnpm dev
 ```vue
 <!-- src/pages/about.vue -->
 <script setup lang="ts">
-definePageMeta({
+definePage({
   title: 'About'
 });
 </script>

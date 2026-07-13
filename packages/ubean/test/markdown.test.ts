@@ -221,7 +221,7 @@ Rest of content
 
     it('converts strikethrough', () => {
       const html = markdownToHtml('~~old text~~');
-      expect(html).toContain('<del>old text</del>');
+      expect(html).toContain('<s>old text</s>');
     });
 
     it('converts links', () => {
@@ -251,7 +251,9 @@ Rest of content
 
     it('converts blockquotes', () => {
       const html = markdownToHtml('> This is a quote');
-      expect(html).toContain('<blockquote>This is a quote</blockquote>');
+      expect(html).toContain('<blockquote>');
+      expect(html).toContain('This is a quote');
+      expect(html).toContain('</blockquote>');
     });
 
     it('converts code blocks', () => {

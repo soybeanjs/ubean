@@ -1,8 +1,12 @@
+import { createMarkdownExit } from 'markdown-exit';
+import type { MarkdownExit } from 'markdown-exit';
+
 export interface MarkdownFrontmatter {
   title?: string;
   description?: string;
   date?: string;
-  layout?: string;
+  layout?: string | false;
+  path?: string;
   seo?: Record<string, unknown>;
   meta?: Record<string, unknown>;
   head?: Record<string, unknown>;
@@ -24,6 +28,10 @@ export interface MarkdownHeading {
 }
 
 export interface MarkdownOptions {
+  html?: boolean;
+  linkify?: boolean;
+  breaks?: boolean;
+  typographer?: boolean;
   excerpt?: boolean;
   excerptSeparator?: string;
   headingIds?: boolean;
@@ -72,8 +80,8 @@ function parseYamlSimple(yaml: string): MarkdownFrontmatter {
       const num = Number(value);
       if (isFinite(num)) value = num;
     } else if (
-      (typeof value === 'string' && value.startsWith('"') && value.endsWith('"')) ||
-      (typeof value === 'string' && value.startsWith("'") && value.endsWith("'"))
+      typeof value === 'string' &&
+      ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
     ) {
       value = value.slice(1, -1);
     } else if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
@@ -106,39 +114,99 @@ function parseYamlSimple(yaml: string): MarkdownFrontmatter {
   return result as MarkdownFrontmatter;
 }
 
-export function extractHeadings(markdown: string): MarkdownHeading[] {
-  const headings: MarkdownHeading[] = [];
-  const lines = markdown.split('\n');
-  let inCodeBlock = false;
-
-  for (const line of lines) {
-    if (line.startsWith('```')) {
-      inCodeBlock = !inCodeBlock;
-      continue;
-    }
-
-    if (inCodeBlock) continue;
-
-    const match = line.match(/^(#{1,6})\s+(.+)$/);
-    if (match) {
-      const level = match[1].length;
-      const text = match[2].trim();
-      const id = slugify(text);
-      headings.push({ level, text, id });
-    }
-  }
-
-  return headings;
-}
-
 function slugify(text: string): string {
   return text
     .toLowerCase()
     .replace(/<[^>]*>/g, '')
-    .replace(/[^\w\s-]/g, '')
+    .replace(/[^\w\s\u4e00-\u9fa5-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
+}
+
+function applyHeadingIds(md: MarkdownExit): void {
+  const headingOpenRule = md.renderer.rules.heading_open;
+  md.renderer.rules.heading_open = (tokens, idx, options, env, self) => {
+    const token = tokens[idx];
+    const nextToken = tokens[idx + 1];
+    if (nextToken && nextToken.type === 'inline') {
+      const text =
+        nextToken.children
+          ?.filter(t => t.type === 'text' || t.type === 'code_inline')
+          .map(t => t.content)
+          .join('') || '';
+      token.attrSet('id', slugify(text));
+    }
+    if (headingOpenRule) {
+      return headingOpenRule(tokens, idx, options, env, self);
+    }
+    return self.renderToken(tokens, idx, options);
+  };
+}
+
+function createInstance(options: MarkdownOptions): MarkdownExit {
+  const md = createMarkdownExit({
+    html: options.html ?? false,
+    linkify: options.linkify ?? true,
+    breaks: options.breaks ?? false,
+    typographer: options.typographer ?? false,
+    highlight: options.highlighter
+      ? (str: string, lang: string) => {
+          const result = options.highlighter!(str.trimEnd(), lang);
+          if (result.startsWith('<pre')) return result;
+          return `<pre><code class="language-${lang}">${result}</code></pre>`;
+        }
+      : undefined
+  });
+
+  if (options.headingIds !== false) {
+    applyHeadingIds(md);
+  }
+
+  return md;
+}
+
+export function markdownToHtml(markdown: string, options: MarkdownOptions = {}): string {
+  const md = createInstance(options);
+  return md.render(markdown).trim();
+}
+
+export function extractHeadings(markdown: string): MarkdownHeading[] {
+  const headings: MarkdownHeading[] = [];
+  const md = createMarkdownExit({ html: false });
+  const tokens = md.parse(markdown, {});
+
+  function walkTokenList(tokenList: any[]) {
+    for (let i = 0; i < tokenList.length; i++) {
+      const token = tokenList[i];
+      if (token.type === 'heading_open') {
+        const level = parseInt(token.tag.slice(1), 10);
+        const inlineToken = tokenList[i + 1];
+        if (inlineToken && inlineToken.type === 'inline') {
+          const text = extractTextFromTokens(inlineToken.children || []);
+          headings.push({ level, text, id: slugify(text) });
+        }
+      }
+      if (token.children) {
+        walkTokenList(token.children);
+      }
+    }
+  }
+
+  walkTokenList(tokens);
+  return headings;
+}
+
+function extractTextFromTokens(tokens: any[]): string {
+  let text = '';
+  for (const token of tokens) {
+    if (token.type === 'text' || token.type === 'code_inline') {
+      text += token.content;
+    } else if (token.children) {
+      text += extractTextFromTokens(token.children);
+    }
+  }
+  return text;
 }
 
 export function extractExcerpt(markdown: string, separator = '<!-- more -->'): string | undefined {
@@ -160,174 +228,6 @@ export function extractExcerpt(markdown: string, separator = '<!-- more -->'): s
   }
 
   return undefined;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function renderInline(text: string): string {
-  let html = escapeHtml(text);
-  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1">');
-  html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/__([^_]+)__/g, '<strong>$1</strong>');
-  html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-  html = html.replace(/_([^_]+)_/g, '<em>$1</em>');
-  html = html.replace(/~~([^~]+)~~/g, '<del>$1</del>');
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-  return html;
-}
-
-export function markdownToHtml(markdown: string, options: MarkdownOptions = {}): string {
-  const lines = markdown.split('\n');
-  const html: string[] = [];
-
-  let inCodeBlock = false;
-  let codeLang = '';
-  let codeContent: string[] = [];
-  let inList = false;
-  let listType: 'ul' | 'ol' | null = null;
-  let inBlockquote = false;
-  let blockquoteContent: string[] = [];
-  let paragraph: string[] = [];
-
-  function flushParagraph() {
-    if (paragraph.length > 0) {
-      html.push(`<p>${renderInline(paragraph.join(' '))}</p>`);
-      paragraph = [];
-    }
-  }
-
-  function flushList() {
-    if (inList && listType) {
-      html.push(`</${listType}>`);
-      inList = false;
-      listType = null;
-    }
-  }
-
-  function flushBlockquote() {
-    if (inBlockquote && blockquoteContent.length > 0) {
-      html.push(`<blockquote>${renderInline(blockquoteContent.join(' '))}</blockquote>`);
-      blockquoteContent = [];
-      inBlockquote = false;
-    }
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    if (line.startsWith('```')) {
-      flushParagraph();
-      flushList();
-      flushBlockquote();
-
-      if (inCodeBlock) {
-        const code = codeContent.join('\n');
-        const highlighted = options.highlighter ? options.highlighter(code, codeLang) : escapeHtml(code);
-        if (codeLang) {
-          html.push(`<pre><code class="language-${escapeHtml(codeLang)}">${highlighted}</code></pre>`);
-        } else {
-          html.push(`<pre><code>${highlighted}</code></pre>`);
-        }
-        codeContent = [];
-        codeLang = '';
-        inCodeBlock = false;
-      } else {
-        inCodeBlock = true;
-        codeLang = line.slice(3).trim();
-      }
-      continue;
-    }
-
-    if (inCodeBlock) {
-      codeContent.push(line);
-      continue;
-    }
-
-    if (line.startsWith('---') && line.trim() === '---' && i > 0) {
-      flushParagraph();
-      flushList();
-      flushBlockquote();
-      html.push('<hr>');
-      continue;
-    }
-
-    const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    if (headingMatch) {
-      flushParagraph();
-      flushList();
-      flushBlockquote();
-      const level = headingMatch[1].length;
-      const text = headingMatch[2].trim();
-      const id = options.headingIds !== false ? ` id="${slugify(text)}"` : '';
-      html.push(`<h${level}${id}>${renderInline(text)}</h${level}>`);
-      continue;
-    }
-
-    if (line.startsWith('> ')) {
-      flushParagraph();
-      flushList();
-      inBlockquote = true;
-      blockquoteContent.push(line.slice(2));
-      continue;
-    } else if (inBlockquote && line.trim() === '') {
-      flushBlockquote();
-      continue;
-    } else if (inBlockquote) {
-      blockquoteContent.push(line);
-      continue;
-    }
-
-    const ulMatch = line.match(/^[\s]*[-*+]\s+(.+)$/);
-    const olMatch = line.match(/^[\s]*\d+\.\s+(.+)$/);
-
-    if (ulMatch || olMatch) {
-      flushParagraph();
-      flushBlockquote();
-      const currentType: 'ul' | 'ol' = ulMatch ? 'ul' : 'ol';
-      const content = ulMatch ? ulMatch[1] : olMatch![1];
-
-      if (!inList || listType !== currentType) {
-        flushList();
-        html.push(`<${currentType}>`);
-        inList = true;
-        listType = currentType;
-      }
-
-      html.push(`<li>${renderInline(content.trim())}</li>`);
-      continue;
-    } else if (inList && line.trim() === '') {
-      flushList();
-      continue;
-    }
-
-    if (line.trim() === '') {
-      flushParagraph();
-      flushList();
-      flushBlockquote();
-      continue;
-    }
-
-    paragraph.push(line.trim());
-  }
-
-  flushParagraph();
-  flushList();
-  flushBlockquote();
-
-  if (inCodeBlock && codeContent.length > 0) {
-    const code = codeContent.join('\n');
-    html.push(`<pre><code>${escapeHtml(code)}</code></pre>`);
-  }
-
-  return html.join('\n');
 }
 
 export function parseMarkdown(source: string, options: MarkdownOptions = {}): ParsedMarkdown {

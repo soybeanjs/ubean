@@ -94,7 +94,6 @@ export {
 } from './core/markdown';
 export type { MarkdownFrontmatter, ParsedMarkdown, MarkdownHeading, MarkdownOptions } from './core/markdown';
 export {
-  createRequestIdMiddleware,
   getRequestId,
   generateRequestId,
   REQUEST_ID_HEADER,
@@ -369,7 +368,9 @@ export type {
   ComposedHandler,
   RouteMeta as HandlerRouteMeta,
   Input,
-  UbeanEnv
+  UbeanEnv,
+  UbeanVariables,
+  UbeanBindings
 } from './types/handler';
 export type {
   ScanOptions,

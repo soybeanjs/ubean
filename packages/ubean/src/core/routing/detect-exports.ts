@@ -6,7 +6,7 @@ const EXPORT_NAMED_REGEX = /export\s+(?:async\s+)?(?:function\s+|const\s+|let\s+
 const EXPORT_LIST_REGEX = /export\s*\{([^}]+)\}/g;
 const EXPORT_DEFINE_META_REGEX = /defineHandlerMeta\s*\(/;
 const EXPORT_CONST_META_REGEX = /export\s+const\s+meta\s*=\s*(\{[\s\S]*?\})(?:\s*;|\s*$)/m;
-const META_PUBLIC_REGEX = /public\s*:\s*(true|false)/;
+const META_REQUIRES_AUTH_REGEX = /requiresAuth\s*:\s*(true|false)/;
 
 export interface DetectExportsResult {
   exports: string[];
@@ -75,9 +75,9 @@ function extractFileMeta(code: string): RouteMeta | undefined {
   const metaBlock = match[1];
   const meta: RouteMeta = {};
 
-  const publicMatch = metaBlock.match(META_PUBLIC_REGEX);
-  if (publicMatch) {
-    meta.public = publicMatch[1] === 'true';
+  const requiresAuthMatch = metaBlock.match(META_REQUIRES_AUTH_REGEX);
+  if (requiresAuthMatch) {
+    meta.requiresAuth = requiresAuthMatch[1] === 'true';
   }
 
   return Object.keys(meta).length > 0 ? meta : undefined;

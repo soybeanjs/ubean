@@ -27,7 +27,6 @@ import { createClient } from '../src/runtime/client';
 import { defineEnv, setRuntimeEnv, useRuntimeEnv } from '../src/runtime/env';
 import { defineHandler } from '../src/runtime/handler';
 import {
-  createRequestIdMiddleware,
   getRequestId,
   generateRequestId,
   createObservabilityTracer,
@@ -365,11 +364,23 @@ describe('registerRoutes', () => {
     expect(body.id).toBe('123');
   });
 
-  it('registers global middleware in order', async () => {
+  it('registers route middleware in order and has access to route meta', async () => {
     const order: number[] = [];
+    let capturedRequiresAuth: boolean | undefined;
     const app = createUbeanApp();
     await registerRoutes(app, {
-      routes: [],
+      routes: [
+        {
+          fullPath: '/src/routes/api/test.get.ts',
+          relativePath: 'api/test.get.ts',
+          dirname: 'api',
+          basename: 'test.get.ts',
+          route: '/api/test',
+          method: 'GET',
+          exports: ['GET'],
+          hasMeta: true
+        }
+      ],
       middleware: [
         {
           fullPath: '/src/middleware/10-second.ts',
@@ -389,11 +400,16 @@ describe('registerRoutes', () => {
         }
       ],
       pages: [],
-      routeLoaders: {},
+      routeLoaders: {
+        'api/test.get.ts': async () => ({
+          GET: (c: any) => c.json({ ok: true })
+        })
+      },
       middlewareLoaders: {
         '10-second.ts': async () => ({
-          default: (async (_c: any, next: any) => {
+          default: (async (c: any, next: any) => {
             order.push(10);
+            capturedRequiresAuth = c.get('route').meta.requiresAuth;
             return next();
           }) as any
         }),
@@ -405,10 +421,11 @@ describe('registerRoutes', () => {
         })
       }
     });
-    app.get('/mw-test', () => 'ok');
-    const req = new Request('http://localhost/mw-test');
-    await app.fetch(req);
+    const req = new Request('http://localhost/api/test');
+    const res = await app.fetch(req);
+    expect(res.status).toBe(200);
     expect(order).toEqual([1, 10]);
+    expect(capturedRequiresAuth).toBe(true);
   });
 
   it('registers page routes returning HTML for browser requests', async () => {
@@ -1211,81 +1228,6 @@ describe('observability', () => {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
       expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
     }
-  });
-
-  it('createRequestIdMiddleware generates ID when no incoming header', async () => {
-    const mw = createRequestIdMiddleware();
-    let capturedId: string | undefined;
-    const c: any = {
-      req: { header: () => undefined },
-      set: (_k: string, v: string) => {
-        capturedId = v;
-      },
-      get: (k: string) => (k === 'requestId' ? capturedId : undefined),
-      header: vi.fn()
-    };
-    const next = vi.fn().mockResolvedValue(undefined);
-
-    await mw(c, next);
-
-    expect(capturedId).toBeTruthy();
-    expect(next).toHaveBeenCalled();
-    expect(c.header).toHaveBeenCalledWith('x-request-id', capturedId);
-  });
-
-  it('createRequestIdMiddleware reuses incoming X-Request-Id', async () => {
-    const mw = createRequestIdMiddleware();
-    let capturedId: string | undefined;
-    const incomingId = 'my-trace-id-123';
-    const c: any = {
-      req: { header: (name: string) => (name === 'x-request-id' ? incomingId : undefined) },
-      set: (_k: string, v: string) => {
-        capturedId = v;
-      },
-      get: (k: string) => (k === 'requestId' ? capturedId : undefined),
-      header: vi.fn()
-    };
-    const next = vi.fn().mockResolvedValue(undefined);
-
-    await mw(c, next);
-
-    expect(capturedId).toBe(incomingId);
-    expect(c.header).toHaveBeenCalledWith('x-request-id', incomingId);
-  });
-
-  it('createRequestIdMiddleware supports custom header name', async () => {
-    const mw = createRequestIdMiddleware({ headerName: 'x-trace-id' });
-    let capturedId: string | undefined;
-    const incomingId = 'custom-trace';
-    const c: any = {
-      req: { header: (name: string) => (name === 'x-trace-id' ? incomingId : undefined) },
-      set: (_k: string, v: string) => {
-        capturedId = v;
-      },
-      get: (k: string) => (k === 'requestId' ? capturedId : undefined),
-      header: vi.fn()
-    };
-    const next = vi.fn().mockResolvedValue(undefined);
-
-    await mw(c, next);
-
-    expect(capturedId).toBe(incomingId);
-    expect(c.header).toHaveBeenCalledWith('x-trace-id', incomingId);
-  });
-
-  it('createRequestIdMiddleware can skip response header', async () => {
-    const mw = createRequestIdMiddleware({ setResponseHeader: false });
-    const c: any = {
-      req: { header: () => undefined },
-      set: vi.fn(),
-      get: vi.fn(),
-      header: vi.fn()
-    };
-    const next = vi.fn().mockResolvedValue(undefined);
-
-    await mw(c, next);
-
-    expect(c.header).not.toHaveBeenCalled();
   });
 
   it('getRequestId retrieves ID from context', () => {

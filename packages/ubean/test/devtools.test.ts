@@ -1,4 +1,7 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createDevToolsMiddleware } from '../src/core/devtools/server/middleware';
 import { getDevtoolsClientScript, getDevtoolsIframeHtml } from '../src/core/devtools/client';
 import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from '../src/core/devtools/define-tab';
@@ -388,8 +391,18 @@ describe('DevTools Hooks System (P6-13)', () => {
 });
 
 describe('DevTools CRUD RPC Methods (P6-12)', () => {
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(join(tmpdir(), 'ubean-devtools-crud-'));
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
   it('registers crud:create handler', async () => {
-    const rpc = createRpcServer();
+    const rpc = createRpcServer({ cwd: tmpDir });
     const response = await rpc.handleRequest({
       id: '1',
       method: 'crud:create',
@@ -397,6 +410,7 @@ describe('DevTools CRUD RPC Methods (P6-12)', () => {
     });
     expect(response.error).toBeUndefined();
     expect(response.result).toBeDefined();
+    expect((response.result as any).success).toBe(true);
   });
 
   it('registers crud:read handler', async () => {

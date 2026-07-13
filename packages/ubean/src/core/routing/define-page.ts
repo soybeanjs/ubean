@@ -7,13 +7,13 @@ export interface PageMeta {
   reuse?: string;
   meta?: Record<string, unknown>;
   middleware?: string | string[];
-  public?: boolean;
+  requiresAuth?: boolean;
   head?: Record<string, unknown>;
 }
 
 export interface DefineMetaResult {
   meta?: Record<string, unknown>;
-  public?: boolean;
+  requiresAuth?: boolean;
 }
 
 function extractScriptContent(code: string): string | null {
@@ -327,7 +327,7 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
     result.layout = parsed.layout as string | false;
   if (typeof parsed.reuse === 'string') result.reuse = parsed.reuse;
   if (parsed.meta && typeof parsed.meta === 'object') result.meta = parsed.meta as Record<string, unknown>;
-  if (typeof parsed.public === 'boolean') result.public = parsed.public;
+  if (typeof parsed.requiresAuth === 'boolean') result.requiresAuth = parsed.requiresAuth;
   if (parsed.head && typeof parsed.head === 'object') result.head = parsed.head as Record<string, unknown>;
   if (typeof parsed.middleware === 'string') {
     result.middleware = parsed.middleware;
@@ -346,11 +346,11 @@ export function extractDefineMetaFromCode(code: string): DefineMetaResult | null
   if (!parsed) return null;
 
   const result: DefineMetaResult = {};
-  if (typeof parsed.public === 'boolean') result.public = parsed.public;
+  if (typeof parsed.requiresAuth === 'boolean') result.requiresAuth = parsed.requiresAuth;
   if (parsed.meta && typeof parsed.meta === 'object') {
     result.meta = parsed.meta as Record<string, unknown>;
   } else {
-    const knownKeys = new Set(['public', 'meta']);
+    const knownKeys = new Set(['requiresAuth', 'meta']);
     const extra: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(parsed)) {
       if (!knownKeys.has(key)) extra[key] = val;

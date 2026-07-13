@@ -3,7 +3,7 @@ export const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'O
 export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 export interface RouteMeta {
-  public?: boolean;
+  requiresAuth?: boolean;
   [key: string]: unknown;
 }
 

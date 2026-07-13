@@ -97,7 +97,7 @@ describe('detectHttpExportsFromCode', () => {
   it('detects defineHandlerMeta usage', () => {
     const code = `
       import { defineHandler, defineHandlerMeta } from 'ubean';
-      export default defineHandler(defineHandlerMeta({ public: true }), () => new Response('ok'));
+      export default defineHandler(defineHandlerMeta({ requiresAuth: false }), () => new Response('ok'));
     `;
     const result = detectHttpExportsFromCode(code);
     expect(result.hasMeta).toBe(true);
@@ -112,10 +112,10 @@ describe('extractDefinePageFromCode', () => {
     expect(meta?.name).toBe('Home');
   });
 
-  it('extracts public flag', () => {
-    const code = `definePage({ public: false })`;
+  it('extracts requiresAuth flag', () => {
+    const code = `definePage({ requiresAuth: false })`;
     const meta = extractDefinePageFromCode(code);
-    expect(meta?.public).toBe(false);
+    expect(meta?.requiresAuth).toBe(false);
   });
 
   it('returns null when no definePage', () => {
@@ -125,10 +125,10 @@ describe('extractDefinePageFromCode', () => {
 });
 
 describe('extractDefineMetaFromCode', () => {
-  it('extracts public flag', () => {
-    const code = `defineHandlerMeta({ public: false })`;
+  it('extracts requiresAuth flag', () => {
+    const code = `defineHandlerMeta({ requiresAuth: false })`;
     const result = extractDefineMetaFromCode(code);
-    expect(result?.public).toBe(false);
+    expect(result?.requiresAuth).toBe(false);
   });
 
   it('extracts extra fields as meta', () => {

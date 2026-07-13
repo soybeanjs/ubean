@@ -103,7 +103,7 @@ export function defineHandler(...handlers: any[]): MiddlewareHandler[] {
     }
   }
 
-  const routeMeta: RouteMeta = Object.assign({ public: true }, ...metaList) as RouteMeta;
+  const routeMeta: RouteMeta = Object.assign({ requiresAuth: true }, ...metaList) as RouteMeta;
 
   const wrappedFinal: MiddlewareHandler = async (c: any) => {
     const result = await finalHandler(c, async () => {});
@@ -126,7 +126,7 @@ export function isHandlerChain(obj: unknown): obj is MiddlewareHandler[] {
 }
 
 export function extractRouteMeta(handlers: MiddlewareHandler[]): RouteMeta {
-  return (handlers as any).__routeMeta ?? { public: true };
+  return (handlers as any).__routeMeta ?? { requiresAuth: true };
 }
 
 export function defineHandlerMeta(meta: Partial<RouteMeta>) {
@@ -135,6 +135,6 @@ export function defineHandlerMeta(meta: Partial<RouteMeta>) {
   return fn;
 }
 
-export function defineMiddleware(handler: MiddlewareHandler) {
+export function defineMiddleware(handler: MiddlewareHandler<UbeanEnv>) {
   return handler;
 }

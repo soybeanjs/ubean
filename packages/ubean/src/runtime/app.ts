@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
+import { requestId } from 'hono/request-id';
 import { createHooks } from 'hookable';
 import { join } from 'pathe';
 import type { RouteRule } from '../core/config/types';
@@ -14,7 +15,6 @@ import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMem
 import { errorToResponse, isUbeanError, UbeanError } from './error';
 import { setInternalFetcher } from './internal-fetch';
 import { registerOpenAPIRoutes } from './internal/openapi';
-import { createRequestIdMiddleware } from './observability';
 import { createRouteRulesMiddleware } from './route-rules';
 import { serveStatic } from './static';
 import { createWebSocketMiddleware } from './websocket';
@@ -108,7 +108,7 @@ export class UbeanApp {
   }
 
   private _setupBaseMiddleware() {
-    this.hono.use('*', createRequestIdMiddleware());
+    this.hono.use('*', requestId());
 
     if (this.devtools) {
       this.hono.use('*', (c, next) => this.devtools!.middleware(c, next));
@@ -126,7 +126,7 @@ export class UbeanApp {
     this.hono.use('*', createWebSocketMiddleware());
 
     this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
-      c.set('route', { meta: { public: true } as RouteMeta, path: c.req.path, method: c.req.method });
+      c.set('route', { meta: { requiresAuth: true } as RouteMeta, path: c.req.path, method: c.req.method });
       await this.hooks.callHook('request:start', c);
       try {
         await next();

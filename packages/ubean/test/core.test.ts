@@ -49,16 +49,16 @@ describe('UbeanError', () => {
 });
 
 describe('defineHandlerMeta', () => {
-  it('should return a meta middleware with public flag', () => {
-    const meta = defineHandlerMeta({ public: true });
+  it('should return a meta middleware with requiresAuth flag', () => {
+    const meta = defineHandlerMeta({ requiresAuth: false });
     expect(typeof meta).toBe('function');
-    expect((meta as any).meta.public).toBe(true);
+    expect((meta as any).meta.requiresAuth).toBe(false);
     expect((meta as any).__brand).toBe('meta');
   });
 
   it('should return meta with cache config', () => {
     const meta = defineHandlerMeta({
-      public: false,
+      requiresAuth: true,
       cache: {
         ttl: 60,
         swr: true
@@ -92,13 +92,13 @@ describe('defineHandler', () => {
   });
 
   it('should merge meta from defineHandlerMeta', () => {
-    const def = defineHandler(defineHandlerMeta({ public: false }), () => new Response('ok'));
-    expect((def as any).__routeMeta.public).toBe(false);
+    const def = defineHandler(defineHandlerMeta({ requiresAuth: false }), () => new Response('ok'));
+    expect((def as any).__routeMeta.requiresAuth).toBe(false);
   });
 
-  it('should default meta.public to true', () => {
+  it('should default meta.requiresAuth to true', () => {
     const def = defineHandler(() => new Response('ok'));
-    expect((def as any).__routeMeta.public).toBe(true);
+    expect((def as any).__routeMeta.requiresAuth).toBe(true);
   });
 
   it('should throw when no handlers provided', () => {

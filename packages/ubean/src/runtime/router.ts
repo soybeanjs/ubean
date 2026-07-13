@@ -55,6 +55,15 @@ function middlewarePathToHonoPath(relativePath: string): string {
   return `${dirPath}/*`;
 }
 
+function matchMiddlewarePath(mountPath: string, routePath: string): boolean {
+  if (mountPath === '*' || mountPath === '/*') return true;
+  if (mountPath.endsWith('/*')) {
+    const prefix = mountPath.slice(0, -1);
+    return routePath === prefix.slice(0, -1) || routePath.startsWith(prefix);
+  }
+  return routePath === mountPath;
+}
+
 function resolveRouteExport(mod: Record<string, unknown>, method: Method): MiddlewareHandler[] | Function | null {
   const namedHandler = mod[method];
   if (isHandlerChain(namedHandler)) return namedHandler;
@@ -87,6 +96,13 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
 
   const sortedMiddleware = [...middleware].sort((a, b) => a.order - b.order);
 
+  interface LoadedMiddleware {
+    mountPath: string;
+    handler: MiddlewareHandler<UbeanEnv>;
+  }
+
+  const loadedUserMiddleware: LoadedMiddleware[] = [];
+
   for (const mw of sortedMiddleware) {
     await app.hooks.callHook('middleware:register', mw);
     const loader = middlewareLoaders[mw.relativePath];
@@ -95,12 +111,16 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
         const mod = await loader();
         if (mod.default) {
           const mountPath = mw.global ? '*' : middlewarePathToHonoPath(mw.relativePath);
-          app.use(mountPath, mod.default as any);
+          loadedUserMiddleware.push({ mountPath, handler: mod.default as MiddlewareHandler<UbeanEnv> });
         }
       } catch {
         // ignore loading errors in dev
       }
     }
+  }
+
+  function getMatchingMiddleware(routePath: string): MiddlewareHandler<UbeanEnv>[] {
+    return loadedUserMiddleware.filter(mw => matchMiddlewarePath(mw.mountPath, routePath)).map(mw => mw.handler);
   }
 
   interface RouteEntry {
@@ -155,6 +175,7 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
   for (const [honoPath, pathMethods] of routesByPath) {
     for (const [method, entry] of pathMethods) {
       const { definition, fileMeta } = entry;
+      const matchingMiddleware = getMatchingMiddleware(honoPath);
 
       if (isHandlerChain(definition)) {
         const routeMeta = { ...extractRouteMeta(definition) } as RouteMeta;
@@ -174,11 +195,17 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
           await next();
         };
 
-        const honoHandlers = [metaMiddleware, ...definition];
+        const honoHandlers = [metaMiddleware, ...matchingMiddleware, ...definition];
         (app as any)[honoMethod(method)](honoPath, ...honoHandlers);
       } else {
-        const wrapper = async (c: Context<UbeanEnv>, _next: Next) => {
-          c.set('route', { meta: { public: true, ...fileMeta } as RouteMeta, path: c.req.path, method: c.req.method });
+        const routeMeta = { requiresAuth: true, ...fileMeta } as RouteMeta;
+
+        const metaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
+          c.set('route', { meta: routeMeta, path: c.req.path, method: c.req.method });
+          await next();
+        };
+
+        const handlerWrapper = async (c: Context<UbeanEnv>) => {
           const result = await (definition as Function)(c);
           if (result instanceof Response) return result;
           if (typeof result === 'string') {
@@ -193,17 +220,18 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
           method,
           path: honoPath,
           handler: definition,
-          meta: { public: true, ...fileMeta }
+          meta: routeMeta
         });
 
-        (app as any)[honoMethod(method)](honoPath, wrapper);
+        const honoHandlers = [metaMiddleware, ...matchingMiddleware, handlerWrapper];
+        (app as any)[honoMethod(method)](honoPath, ...honoHandlers);
       }
     }
   }
 
   async function handlePageRequest(c: Context<UbeanEnv>, page: ScannedPageRoute, method: 'GET' | 'POST') {
     c.set('route', {
-      meta: { public: page.pageMeta?.public ?? true } as RouteMeta,
+      meta: { requiresAuth: page.pageMeta?.requiresAuth ?? true } as RouteMeta,
       path: c.req.path,
       method: c.req.method
     });
@@ -314,8 +342,18 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
   for (const page of pages) {
     if (page.isReuse) continue;
     const honoPath = convertUbeanRoutePath(page.route);
-    app.on(['GET'], honoPath, (c: Context<UbeanEnv>) => handlePageRequest(c, page, 'GET'));
-    app.on(['POST'], honoPath, (c: Context<UbeanEnv>) => handlePageRequest(c, page, 'POST'));
+    const matchingMiddleware = getMatchingMiddleware(honoPath);
+    const pageMeta = { requiresAuth: page.pageMeta?.requiresAuth ?? true } as RouteMeta;
+
+    const metaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
+      c.set('route', { meta: pageMeta, path: c.req.path, method: c.req.method });
+      await next();
+    };
+
+    const pageHandler = (method: 'GET' | 'POST') => async (c: Context<UbeanEnv>) => handlePageRequest(c, page, method);
+
+    app.on(['GET'], honoPath, metaMiddleware, ...matchingMiddleware, pageHandler('GET'));
+    app.on(['POST'], honoPath, metaMiddleware, ...matchingMiddleware, pageHandler('POST'));
   }
 }
 

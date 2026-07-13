@@ -210,6 +210,9 @@ importers:
       hookable:
         specifier: 'catalog:'
         version: 6.1.1
+      markdown-exit:
+        specifier: 1.1.0-beta.2
+        version: 1.1.0-beta.2
       mlly:
         specifier: 'catalog:'
         version: 1.8.2

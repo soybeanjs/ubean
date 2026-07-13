@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getIslandsBootstrapScript } from '../../src/core/islands';
 import { createUbeanApp } from '../../src/runtime/app';
 import { defineCors } from '../../src/runtime/cors';
-import { html, redirect, permanentRedirect, setHeader, setHeaders } from '../../src/runtime/response';
+import { redirect, permanentRedirect } from '../../src/runtime/response';
 
 describe('Integration: CORS middleware', () => {
   it('adds CORS headers to responses with defineCors', async () => {
@@ -203,7 +203,7 @@ describe('Integration: Response helpers in real app context', () => {
   it('html() sets correct content-type and includes body', async () => {
     const app = createUbeanApp({ preset: 'node', dev: false });
 
-    app.hono.get('/page', () => html('<h1>Hello</h1>'));
+    app.hono.get('/page', c => c.html('<h1>Hello</h1>'));
 
     const res = await app.fetch(new Request('http://localhost/page'));
     expect(res.status).toBe(200);
@@ -230,8 +230,9 @@ describe('Integration: Response helpers in real app context', () => {
     const app = createUbeanApp({ preset: 'node', dev: false });
 
     app.hono.get('/headers', c => {
-      setHeader(c, 'X-Custom', 'value1');
-      setHeaders(c, { 'X-Multi': 'value2', 'Cache-Control': 'no-cache' });
+      c.header('X-Custom', 'value1');
+      c.header('X-Multi', 'value2');
+      c.header('Cache-Control', 'no-cache');
       return c.json({ ok: true });
     });
 

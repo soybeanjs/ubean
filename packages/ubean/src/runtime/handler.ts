@@ -5,7 +5,8 @@ import type {
   UbeanHandler,
   UbeanMiddleware,
   ValidatorSlots,
-  ValidatorInput
+  ValidatorInput,
+  UbeanContext
 } from '../types/handler';
 
 function isResponse(value: unknown): value is Response {
@@ -14,12 +15,13 @@ function isResponse(value: unknown): value is Response {
 
 function convertReturnValue(value: unknown): Response {
   if (isResponse(value)) return value;
-  if (typeof value === 'string') return new Response(value, { headers: { 'Content-Type': 'text/plain' } });
-  return new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json' } });
+  if (typeof value === 'string')
+    return new Response(value, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+  return new Response(JSON.stringify(value), { headers: { 'Content-Type': 'application/json; charset=utf-8' } });
 }
 
 async function runValidator(
-  c: any,
+  c: UbeanContext,
   validators: ValidatorSlots
 ): Promise<{ ok: boolean; response?: Response; data?: Record<string, unknown> }> {
   const data: Record<string, unknown> = {};
@@ -55,10 +57,7 @@ async function runValidator(
       if (!result.success) {
         return {
           ok: false,
-          response: new Response(JSON.stringify({ error: 'Validation failed', slot, issues: result.issues }), {
-            status: 400,
-            headers: { 'Content-Type': 'application/json' }
-          })
+          response: c.json({ error: 'Validation failed', slot, issues: result.issues }, 400)
         };
       }
       data[slot] = result.data;
@@ -66,10 +65,7 @@ async function runValidator(
   } catch (err) {
     return {
       ok: false,
-      response: new Response(
-        JSON.stringify({ error: 'Invalid request', message: err instanceof Error ? err.message : String(err) }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
+      response: c.json({ error: 'Invalid request', message: err instanceof Error ? err.message : String(err) }, 400)
     };
   }
 
@@ -77,19 +73,19 @@ async function runValidator(
 }
 
 async function parseSchema(
-  schema: any,
+  schema: NonNullable<ValidatorSlots[keyof ValidatorSlots]>,
   value: unknown
 ): Promise<{ success: boolean; data?: unknown; issues?: unknown[] }> {
   if (!schema) return { success: true, data: value };
 
   if ('~standard' in schema && typeof schema['~standard'] === 'object' && schema['~standard']) {
-    const result = await (schema as any)['~standard'].validate(value);
-    if (result.issues) return { success: false, issues: result.issues };
+    const result = await schema['~standard'].validate(value);
+    if (result.issues) return { success: false, issues: result.issues as unknown[] };
     return { success: true, data: result.value };
   }
 
-  if (typeof schema.safeParse === 'function') {
-    const result = await schema.safeParseAsync(value);
+  if (typeof (schema as { safeParse?: Function }).safeParse === 'function') {
+    const result = await (schema as { safeParseAsync: Function }).safeParseAsync(value);
     if (!result.success) return { success: false, issues: result.error.issues };
     return { success: true, data: result.data };
   }
@@ -98,11 +94,11 @@ async function parseSchema(
 }
 
 function isMetaHandler(h: unknown): h is { __brand: 'meta'; meta: RouteMeta } {
-  return typeof h === 'function' && (h as any).__brand === 'meta';
+  return typeof h === 'function' && (h as { __brand?: string }).__brand === 'meta';
 }
 
 function isValidatorHandler(h: unknown): h is { __brand: 'validator'; validators: ValidatorSlots } {
-  return typeof h === 'function' && (h as any).__brand === 'validator';
+  return typeof h === 'function' && (h as { __brand?: string }).__brand === 'validator';
 }
 
 function defineHandlerImpl(...handlers: Function[]): ComposedHandler {
@@ -112,71 +108,77 @@ function defineHandlerImpl(...handlers: Function[]): ComposedHandler {
 
   const metaList: Partial<RouteMeta>[] = [];
   const validatorList: ValidatorSlots[] = [];
-  const middlewares: Function[] = [];
-  let finalHandler: Function = handlers[handlers.length - 1];
+  const middlewares: UbeanMiddleware<Input>[] = [];
+  let finalHandler: UbeanHandler<Input> = handlers[handlers.length - 1] as UbeanHandler<Input>;
 
   for (let i = 0; i < handlers.length; i++) {
-    const h = handlers[i];
+    const h = handlers[i] as UbeanMiddleware<Input> | UbeanHandler<Input>;
     if (isMetaHandler(h)) {
       metaList.push(h.meta);
       continue;
     }
     if (isValidatorHandler(h)) {
       validatorList.push(h.validators);
-      middlewares.push(h);
+      middlewares.push(h as unknown as UbeanMiddleware<Input>);
       continue;
     }
     if (i === handlers.length - 1) {
-      finalHandler = h;
+      finalHandler = h as UbeanHandler<Input>;
     } else {
-      middlewares.push(h);
+      middlewares.push(h as UbeanMiddleware<Input>);
     }
   }
 
   const mergedMeta: RouteMeta = Object.assign({ public: true }, ...metaList);
   const mergedValidators: ValidatorSlots = Object.assign({}, ...validatorList);
 
-  const composed = async (c: any, next?: any) => {
-    (c as any)._validatedData = (c as any)._validatedData || {};
+  const composed: ComposedHandler = async (c: UbeanContext, next) => {
+    const ctx = c as UbeanContext & { _validatedData: Record<string, unknown> };
+    ctx._validatedData = ctx._validatedData || {};
     c.set('route', { meta: mergedMeta, path: c.req.path, method: c.req.method });
     Object.defineProperty(c.req, 'valid', {
-      value(slot: string) {
-        return (c as any)._validatedData[slot];
+      value<T extends keyof Input>(slot: T): Input[T] {
+        return ctx._validatedData[slot as string] as Input[T];
       },
       configurable: true
     });
 
     const validationResult =
-      validatorList.length > 0 ? await runValidator(c, mergedValidators) : { ok: true, data: {} };
+      validatorList.length > 0 ? await runValidator(c, mergedValidators) : { ok: true as const, data: {} };
 
     if (!validationResult.ok) return validationResult.response;
 
-    Object.assign((c as any)._validatedData, validationResult.data || {});
+    Object.assign(ctx._validatedData, validationResult.data || {});
 
     let index = 0;
-    const dispatch = async (): Promise<unknown> => {
+    const dispatch = async (): Promise<Response | undefined> => {
       if (index < middlewares.length) {
         const mw = middlewares[index++];
         if (isValidatorHandler(mw)) return dispatch();
-        const result = await mw(c, dispatch);
+        const result = await mw(
+          c as UbeanContext & { req: { valid: <K extends keyof Input>(slot: K) => Input[K] } },
+          dispatch
+        );
         if (isResponse(result)) return result;
-        if (result !== undefined && !(c as any).res) {
+        if (result !== undefined && !(c as unknown as { res: unknown }).res) {
           return convertReturnValue(result);
         }
         return undefined;
       }
-      const result = await finalHandler(c);
+      const result = await finalHandler(
+        c as UbeanContext & { req: { valid: <K extends keyof Input>(slot: K) => Input[K] } }
+      );
       return convertReturnValue(result);
     };
 
     const result = await dispatch();
     if (isResponse(result)) return result;
     if (next) return next();
-    return c.res || result;
+    return (c as unknown as { res?: Response }).res || result;
   };
 
   Object.assign(composed, { __ubeanHandler: true, __meta: mergedMeta, __validators: mergedValidators });
-  return composed as ComposedHandler;
+  return composed;
 }
 
 export function defineHandler(handler: UbeanHandler<Input>): ComposedHandler;
@@ -200,16 +202,14 @@ export function defineHandler(...handlers: Function[]): ComposedHandler {
 }
 
 export function defineMeta(meta: Partial<RouteMeta>) {
-  const fn: any = async (_c: any, next: () => Promise<any>) => next();
-  fn.__brand = 'meta';
-  fn.meta = meta;
+  const fn = async (_c: UbeanContext, next: () => Promise<unknown>) => next();
+  Object.assign(fn, { __brand: 'meta' as const, meta });
   return fn;
 }
 
 export function defineValidator<V extends ValidatorSlots>(validators: V) {
-  const fn: any = async (_c: any, next: () => Promise<any>) => next();
-  fn.__brand = 'validator';
-  fn.validators = validators;
+  const fn = async (_c: UbeanContext, next: () => Promise<unknown>) => next();
+  Object.assign(fn, { __brand: 'validator' as const, validators });
   return fn as unknown as UbeanMiddleware<ValidatorInput<V>>;
 }
 

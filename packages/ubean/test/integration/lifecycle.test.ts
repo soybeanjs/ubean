@@ -3,7 +3,7 @@ import { registerRoutes } from '../../src/runtime/router';
 import { createUbeanApp } from '../../src/runtime/app';
 import { createError } from '../../src/runtime/error';
 import { defineHandler } from '../../src/runtime/handler';
-import { permanentRedirect, html, json } from '../../src/runtime/response';
+import { permanentRedirect } from '../../src/runtime/response';
 
 describe('Integration: Full request lifecycle', () => {
   it('processes GET API requests through full middleware chain in correct order', async () => {
@@ -81,15 +81,10 @@ describe('Integration: Full request lifecycle', () => {
       pages: [],
       routeLoaders: {
         'api/users.post.ts': async () => ({
-          POST: defineHandler(async (c: any) => {
+          POST: defineHandler(async c => {
             const body = await c.req.json();
-            return json(
-              { id: body.id, name: body.name },
-              {
-                status: 201,
-                headers: { Location: `/api/users/${body.id}` }
-              }
-            );
+            c.header('Location', `/api/users/${body.id}`);
+            return c.json({ id: body.id, name: body.name }, 201);
           }) as any
         })
       },
@@ -168,7 +163,7 @@ describe('Integration: Full request lifecycle', () => {
       pages: [],
       routeLoaders: {
         'api/orgs/[orgId]/users/[userId].get.ts': async () => ({
-          GET: defineHandler((c: any) => ({
+          GET: defineHandler(c => ({
             orgId: c.req.param('orgId'),
             userId: c.req.param('userId')
           })) as any
@@ -219,9 +214,9 @@ describe('Integration: Full request lifecycle', () => {
           GET: defineHandler(() => ({ posts: ['a', 'b'] })) as any
         }),
         'api/posts.post.ts': async () => ({
-          POST: defineHandler(async (c: any) => {
+          POST: defineHandler(async c => {
             const body = await c.req.json();
-            return json({ created: true, title: body.title }, { status: 201 });
+            return c.json({ created: true, title: body.title }, 201);
           }) as any
         })
       },
@@ -301,7 +296,7 @@ describe('Integration: Redirects and response helpers', () => {
       pages: [],
       routeLoaders: {
         'api/page.get.ts': async () => ({
-          GET: defineHandler(() => html('<h1>Hello</h1>')) as any
+          GET: defineHandler(c => c.html('<h1>Hello</h1>')) as any
         })
       },
       middlewareLoaders: {}
@@ -335,9 +330,9 @@ describe('Integration: Redirects and response helpers', () => {
       pages: [],
       routeLoaders: {
         'api/created.post.ts': async () => ({
-          POST: defineHandler(async (c: any) => {
+          POST: defineHandler(async c => {
             const body = await c.req.json();
-            return json({ ok: true, id: body.id }, { status: 201 });
+            return c.json({ ok: true, id: body.id }, 201);
           }) as any
         })
       },
@@ -487,7 +482,7 @@ describe('Integration: Query parameters', () => {
       pages: [],
       routeLoaders: {
         'api/search.get.ts': async () => ({
-          GET: defineHandler((c: any) => ({
+          GET: defineHandler(c => ({
             q: c.req.query('q'),
             page: c.req.query('page') || '1'
           })) as any
@@ -526,9 +521,10 @@ describe('Integration: Request headers via Response return', () => {
       pages: [],
       routeLoaders: {
         'api/echo.get.ts': async () => ({
-          GET: defineHandler((c: any) =>
-            json({ received: c.req.header('x-send') }, { headers: { 'X-Echo': c.req.header('x-send') || 'none' } })
-          ) as any
+          GET: defineHandler(c => {
+            c.header('X-Echo', c.req.header('x-send') || 'none');
+            return c.json({ received: c.req.header('x-send') });
+          }) as any
         })
       },
       middlewareLoaders: {}

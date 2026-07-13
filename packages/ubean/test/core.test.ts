@@ -11,7 +11,7 @@ import {
 } from '../src/core/preset';
 import { UbeanError, createError, isUbeanError, errorToResponse } from '../src/runtime/error';
 import { defineHandler, defineMeta, defineValidator } from '../src/runtime/handler';
-import { redirect, permanentRedirect, html, json, text, setHeader, setHeaders } from '../src/runtime/response';
+import { redirect, permanentRedirect } from '../src/runtime/response';
 
 describe('UbeanError', () => {
   it('should create error with status code', () => {
@@ -243,58 +243,6 @@ describe('Response helpers', () => {
     const res = permanentRedirect('/permanent');
     expect(res.status).toBe(301);
     expect(res.headers.get('Location')).toBe('/permanent');
-  });
-
-  it('html creates text/html response', async () => {
-    const res = html('<h1>Hello</h1>');
-    expect(res.headers.get('Content-Type')).toContain('text/html');
-    expect(await res.text()).toBe('<h1>Hello</h1>');
-  });
-
-  it('html merges custom headers', () => {
-    const res = html('<p>test</p>', { headers: { 'X-Custom': 'yes' } });
-    expect(res.headers.get('Content-Type')).toContain('text/html');
-    expect(res.headers.get('X-Custom')).toBe('yes');
-  });
-
-  it('json creates application/json response', async () => {
-    const res = json({ hello: 'world' });
-    expect(res.headers.get('Content-Type')).toContain('application/json');
-    expect(await res.json()).toEqual({ hello: 'world' });
-  });
-
-  it('json supports custom status code', () => {
-    const res = json({ error: 'bad' }, { status: 400 });
-    expect(res.status).toBe(400);
-  });
-
-  it('text creates text/plain response', async () => {
-    const res = text('plain text');
-    expect(res.headers.get('Content-Type')).toContain('text/plain');
-    expect(await res.text()).toBe('plain text');
-  });
-
-  it('setHeader sets header on context-like object', () => {
-    const headers: Record<string, string> = {};
-    const c = {
-      header: (name: string, val: string) => {
-        headers[name] = val;
-      }
-    };
-    setHeader(c, 'X-Test', 'value');
-    expect(headers['X-Test']).toBe('value');
-  });
-
-  it('setHeaders sets multiple headers', () => {
-    const headers: Record<string, string> = {};
-    const c = {
-      header: (name: string, val: string) => {
-        headers[name] = val;
-      }
-    };
-    setHeaders(c, { 'X-A': '1', 'X-B': '2' });
-    expect(headers['X-A']).toBe('1');
-    expect(headers['X-B']).toBe('2');
   });
 });
 

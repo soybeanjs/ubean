@@ -1,7 +1,7 @@
 export { defineHandler, defineMeta, defineValidator, defineMiddleware } from './runtime/handler';
 export { defineConfig, loadUbeanConfig, getConfig } from './core/config';
 export { UbeanError, createError, isUbeanError, errorToResponse } from './runtime/error';
-export { redirect, permanentRedirect, html, json, text, setHeader, setHeaders } from './runtime/response';
+export { redirect, permanentRedirect } from './runtime/response';
 export { createUbeanApp, UbeanApp } from './runtime/app';
 export type { UbeanAppOptions, UbeanAppPlugin, UbeanRuntimeHooks, AppPlugin } from './runtime/app';
 export { defineEnv, setRuntimeEnv, useRuntimeEnv } from './runtime/env';

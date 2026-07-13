@@ -25,7 +25,7 @@ Planned capabilities include:
 
 - `routes/` API file routing with named `GET`, `POST`, and `PATCH` exports.
 - `pages/` Vue SSR pages, layouts, loaders/actions, and typed navigation.
-- `defineValidator`, `defineMeta`, OpenAPI 3.1, and generated `paths` types.
+- `defineValidator`, `defineHandlerMeta`, OpenAPI 3.1, and generated `paths` types.
 - An `ofetch` typed client, flat client, and the browser-only `ubean/client-xhr` upload-progress adapter.
 - Future optional features such as route rules, prerendering, storage, databases, queues, WebSockets, and DevTools.
 

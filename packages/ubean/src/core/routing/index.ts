@@ -6,9 +6,7 @@ export {
   extractDefinePage,
   extractDefinePageFromCode,
   extractDefineMeta,
-  extractDefineMetaFromCode,
-  extractDefineValidator,
-  extractDefineValidatorFromCode
+  extractDefineMetaFromCode
 } from './define-page';
 export { UbeanRouter, useRouter, createUbeanRouter } from './router';
 export type {
@@ -28,4 +26,4 @@ export type {
   ScanResult
 } from './types';
 export type { CompiledRoute, CompiledMiddleware, CompiledPage, CompiledLayout } from './router';
-export type { PageMeta, DefineMetaResult, DefineValidatorResult } from './define-page';
+export type { PageMeta, DefineMetaResult } from './define-page';

@@ -1,31 +1,6 @@
-import type { Context, MiddlewareHandler, Env as HonoEnv } from 'hono';
-import type { StandardSchemaV1 } from '@standard-schema/spec';
+import type { Context, MiddlewareHandler, Env as HonoEnv, Handler } from 'hono';
+import type { Input as HonoInput, HandlerResponse } from 'hono/types';
 import type { RouteMeta as BaseRouteMeta } from '../core/routing/types';
-
-export type ValidatorSlot = 'json' | 'form' | 'query' | 'param' | 'header' | 'cookie';
-
-export interface GenericSchema<T = any> {
-  safeParse?(value: unknown): { success: boolean; data?: T; error?: { issues?: unknown[] } };
-  safeParseAsync?(value: unknown): Promise<{ success: boolean; data?: T; error?: { issues?: unknown[] } }>;
-  '~standard'?: {
-    validate: (
-      value: unknown
-    ) =>
-      | { issues?: ReadonlyArray<{ message: string }>; value?: T }
-      | Promise<{ issues?: ReadonlyArray<{ message: string }>; value?: T }>;
-  };
-}
-
-export type StandardSchema = StandardSchemaV1 | GenericSchema;
-
-export interface ValidatorSlots {
-  json?: StandardSchema;
-  form?: StandardSchema;
-  query?: StandardSchema;
-  param?: StandardSchema;
-  header?: StandardSchema;
-  cookie?: StandardSchema;
-}
 
 export interface RouteMeta extends BaseRouteMeta {
   rateLimit?: { maxRequests: number; windowSeconds: number };
@@ -43,38 +18,21 @@ export interface UbeanEnv extends HonoEnv {
 
 export type UbeanContext = Context<UbeanEnv>;
 
-export type InferSchemaOutput<T> = T extends StandardSchemaV1
-  ? StandardSchemaV1.InferOutput<T>
-  : T extends GenericSchema<infer O>
-    ? O
-    : unknown;
+export type Input = HonoInput;
 
-export type ValidatorInput<V extends ValidatorSlots> = {
-  [K in keyof V as V[K] extends StandardSchema ? K : never]: InferSchemaOutput<V[K]>;
-};
+export interface GenericSchema<O = unknown> {
+  safeParse?(value: unknown): { success: boolean; data?: O; error?: { issues?: Array<{ message?: string }> } };
+  parse?(value: unknown): O;
+  _output?: O;
+}
 
-export type Input = {
-  json?: unknown;
-  form?: unknown;
-  query?: unknown;
-  param?: unknown;
-  header?: unknown;
-  cookie?: unknown;
-};
+export type UbeanMiddleware<I extends Input = {}> = MiddlewareHandler<UbeanEnv, any, I>;
 
-export type IntersectNonAnyTypes<T extends unknown[]> = T extends [infer First, ...infer Rest]
-  ? First extends any
-    ? IntersectNonAnyTypes<Rest>
-    : First & IntersectNonAnyTypes<Rest>
-  : unknown;
-
-export type UbeanMiddleware<I extends Input = {}> = (
-  c: UbeanContext & { req: { valid: <K extends keyof I>(slot: K) => I[K] } },
-  next: () => Promise<unknown>
-) => unknown | Response | Promise<unknown | Response>;
-
-export type UbeanHandler<I extends Input = {}, R = unknown> = (
-  c: UbeanContext & { req: { valid: <K extends keyof I>(slot: K) => I[K] } }
-) => R | Response | Promise<R | Response>;
+export type UbeanHandler<I extends Input = {}, R extends HandlerResponse<any> = HandlerResponse<any>> = Handler<
+  UbeanEnv,
+  any,
+  I,
+  R
+>;
 
 export type ComposedHandler = MiddlewareHandler<UbeanEnv>;

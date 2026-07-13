@@ -1,4 +1,4 @@
-const MACRO_NAMES = ['definePage', 'defineMeta', 'defineValidator', 'defineMiddleware'] as const;
+const MACRO_NAMES = ['definePage'] as const;
 
 function findBalancedCall(code: string, funcName: string, startSearch = 0): { start: number; end: number } | null {
   const pattern = new RegExp(`\\b${funcName}\\s*\\(`, 'g');

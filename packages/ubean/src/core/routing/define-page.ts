@@ -14,18 +14,6 @@ export interface PageMeta {
 export interface DefineMetaResult {
   meta?: Record<string, unknown>;
   public?: boolean;
-  openAPI?: Record<string, unknown>;
-}
-
-export interface DefineValidatorResult {
-  slots: {
-    json?: boolean;
-    form?: boolean;
-    query?: boolean;
-    param?: boolean;
-    header?: boolean;
-    cookie?: boolean;
-  };
 }
 
 function extractScriptContent(code: string): string | null {
@@ -354,16 +342,15 @@ export function extractDefineMetaFromCode(code: string): DefineMetaResult | null
   const scriptContent = extractScriptContent(code);
   if (!scriptContent) return null;
 
-  const parsed = extractAndParseCall(scriptContent, 'defineMeta');
+  const parsed = extractAndParseCall(scriptContent, 'defineHandlerMeta');
   if (!parsed) return null;
 
   const result: DefineMetaResult = {};
   if (typeof parsed.public === 'boolean') result.public = parsed.public;
-  if (parsed.openAPI && typeof parsed.openAPI === 'object') result.openAPI = parsed.openAPI as Record<string, unknown>;
   if (parsed.meta && typeof parsed.meta === 'object') {
     result.meta = parsed.meta as Record<string, unknown>;
   } else {
-    const knownKeys = new Set(['public', 'openAPI', 'meta']);
+    const knownKeys = new Set(['public', 'meta']);
     const extra: Record<string, unknown> = {};
     for (const [key, val] of Object.entries(parsed)) {
       if (!knownKeys.has(key)) extra[key] = val;
@@ -384,28 +371,4 @@ export async function extractDefinePage(filePath: string): Promise<PageMeta | nu
 export async function extractDefineMeta(filePath: string): Promise<DefineMetaResult | null> {
   const code = await readFile(filePath, 'utf-8');
   return extractDefineMetaFromCode(code);
-}
-
-export function extractDefineValidatorFromCode(code: string): DefineValidatorResult | null {
-  const scriptContent = extractScriptContent(code);
-  if (!scriptContent) return null;
-
-  const parsed = extractAndParseCall(scriptContent, 'defineValidator');
-  if (!parsed) return null;
-
-  const result: DefineValidatorResult = { slots: {} };
-
-  const validatorSlots = ['json', 'form', 'query', 'param', 'header', 'cookie'] as const;
-  for (const slot of validatorSlots) {
-    if (slot in parsed) {
-      result.slots[slot] = true;
-    }
-  }
-
-  return result;
-}
-
-export async function extractDefineValidator(filePath: string): Promise<DefineValidatorResult | null> {
-  const code = await readFile(filePath, 'utf-8');
-  return extractDefineValidatorFromCode(code);
 }

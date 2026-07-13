@@ -12,18 +12,19 @@
 
 #### defineHandler API 设计
 
-参考 hono-ssr 的 `createDefineRoute` 类型推导模式，`defineHandler` 默认接受**多个 handler 组成的中间件链**（单个 handler 是链长度为 1 的特例）。`defineMeta` 和 `defineValidator` 作为独立的 handler 函数导出，直接传入 `defineHandler` 链中，不再使用 `defineHandler.withMeta()`/`defineHandler.withValidator()` 的柯里化形式。
+参考 hono-ssr 的 `createDefineRoute` 类型推导模式，`defineHandler` 默认接受**多个 handler 组成的中间件链**（单个 handler 是链长度为 1 的特例）。`defineHandlerMeta` 作为独立的 handler 函数导出，直接传入 `defineHandler` 链中；请求验证和 OpenAPI 文档定义使用 hono-openapi 提供的 `validator` 和 `describeRoute` 中间件（从 ubean 直接重导出），不再使用自定义的 `defineValidator`，`defineHandlerMeta` 也不再接收 `{ openAPI: {...} }` 形式的配置。
 
 **核心设计原则**：
 
 - 所有 handler（包括 meta、validator、业务逻辑）在调用形式上统一为 `defineHandler(h1, h2, ..., finalHandler)`
-- 类型从左到右累积：`defineValidator` 定义的 params/query/body/json 类型会流向后续所有 handler
-- `defineMeta` 运行时是透传中间件（`(c, next) => next()`），仅在构建时被 AST 提取
-- `defineValidator` 运行时执行验证并将验证后的数据挂载到 `c.req.valid(target)`，类型通过泛型链推导
+- 类型由 hono-openapi 的 `validator` 中间件自动推导：`validator(target, schema)` 定义的 param/query/json/form/header/cookie 类型自动流向后续所有 handler，通过 `c.req.valid(target)` 获取
+- `describeRoute` 中间件用于定义 OpenAPI 文档元数据（tags、summary、description、operationId、deprecated、responses），由 hono-openapi 自动收集
+- `defineHandlerMeta` 运行时是透传中间件（`(c, next) => next()`），仅在构建时被 AST 提取，用于 ubean 特有的元数据（`public`、`cache`、`rateLimit` 及自定义扩展字段）
+- 响应直接使用 Hono Context 方法：`c.json()`、`c.html()`、`c.text()`、`c.redirect()`、`c.header()`
 
 ```typescript
 // routes/users/[id].ts
-import { defineHandler, defineMeta, defineValidator, defineMiddleware } from 'ubean/handler';
+import { defineHandler, defineHandlerMeta, defineMiddleware, validator, describeRoute, resolver } from 'ubean';
 import { z } from 'zod';
 
 // 权限中间件示例
@@ -34,27 +35,33 @@ const requireAdmin = defineMiddleware(async (c, next) => {
   await next();
 });
 
+const userSchema = z.object({ id: z.string(), name: z.string(), email: z.string().email() });
+const userUpdateSchema = z.object({ name: z.string().optional(), email: z.string().email().optional() });
+const idParamSchema = z.object({ id: z.string() });
+const includeQuerySchema = z.object({ include: z.string().optional() });
+
 // GET /users/:id — 获取用户详情
-// defineMeta 和 defineValidator 作为 handler 链的一部分传入
+// describeRoute、validator、defineHandlerMeta 作为 handler 链的一部分传入
 export const GET = defineHandler(
-  defineMeta({
-    public: false,
-    cache: { ttl: 60 },
-    rateLimit: { max: 100, window: 60 },
-    openAPI: {
-      tags: ['Users'],
-      summary: 'Get user by ID',
-      description: 'Retrieve a single user by their unique ID',
-      responses: {
-        200: { description: 'User found' },
-        404: { description: 'User not found' }
-      }
+  describeRoute({
+    tags: ['Users'],
+    summary: 'Get user by ID',
+    description: 'Retrieve a single user by their unique ID',
+    responses: {
+      200: {
+        description: 'User found',
+        content: { 'application/json': { schema: resolver(z.object({ user: userSchema })) } }
+      },
+      404: { description: 'User not found' }
     }
   }),
-  defineValidator({
-    params: z.object({ id: z.string() }),
-    query: z.object({ include: z.string().optional() })
+  defineHandlerMeta({
+    public: false,
+    cache: { ttl: 60 },
+    rateLimit: { max: 100, window: 60 }
   }),
+  validator('param', idParamSchema),
+  validator('query', includeQuerySchema),
   async c => {
     // ✅ 类型推导: c.req.valid('param') → { id: string }
     // ✅ 类型推导: c.req.valid('query') → { include?: string }
@@ -68,19 +75,19 @@ export const GET = defineHandler(
 
 // PATCH /users/:id — 更新用户（需要管理员权限）
 export const PATCH = defineHandler(
-  defineMeta({
-    public: false,
-    openAPI: {
-      tags: ['Users'],
-      summary: 'Update user',
-      requestBody: { content: { 'application/json': { schema: { $ref: '#/components/schemas/UserUpdate' } } } },
-      responses: { 200: { description: 'Updated' } }
+  describeRoute({
+    tags: ['Users'],
+    summary: 'Update user',
+    responses: {
+      200: {
+        description: 'Updated',
+        content: { 'application/json': { schema: resolver(z.object({ success: z.boolean() })) } }
+      }
     }
   }),
-  defineValidator({
-    params: z.object({ id: z.string() }),
-    json: z.object({ name: z.string().optional(), email: z.string().email().optional() })
-  }),
+  defineHandlerMeta({ public: false }),
+  validator('param', idParamSchema),
+  validator('json', userUpdateSchema),
   async c => {
     // ✅ c.req.valid('param') → { id: string }
     // ✅ c.req.valid('json') → { name?: string; email?: string }
@@ -93,10 +100,18 @@ export const PATCH = defineHandler(
 
 // DELETE /users/:id — 删除用户（管理员 + 中间件链 + 类型推导）
 export const DELETE = defineHandler(
-  defineMeta({
-    openAPI: { tags: ['Users'], summary: 'Delete user', responses: { 200: { description: 'Deleted' } } }
+  describeRoute({
+    tags: ['Users'],
+    summary: 'Delete user',
+    responses: {
+      200: {
+        description: 'Deleted',
+        content: { 'application/json': { schema: resolver(z.object({ success: z.boolean() })) } }
+      }
+    }
   }),
-  defineValidator({ params: z.object({ id: z.string() }) }),
+  defineHandlerMeta({}),
+  validator('param', idParamSchema),
   requireAdmin, // 自定义中间件在 validator 之后，可以访问 c.req.valid('param')
   async c => {
     // ✅ requireAdmin 中也可以使用 c.req.valid('param') 获取 id
@@ -107,51 +122,52 @@ export const DELETE = defineHandler(
 );
 ```
 
-> **设计要点**：`defineMeta` 和 `defineValidator` 位置灵活——通常放在链的最前面（meta 用于 AST 提取，validator 尽早验证失败快），但也可以放在特定中间件之后。运行时按链顺序执行，类型按链顺序累积。
+> **设计要点**：`describeRoute`、`validator`、`defineHandlerMeta` 位置灵活——通常放在链的最前面（describeRoute 用于 OpenAPI 收集，validator 尽早验证失败快，defineHandlerMeta 用于 AST 提取），但也可以放在特定中间件之后。运行时按链顺序执行，类型由 hono-openapi 的 validator 中间件自动从左到右累积。
 
 #### 文件级共享 meta（可选 export const meta）
 
-当同一文件内多个方法共享相同 meta（如 tags、`$global` components）时，可通过顶层 `export const meta` 定义文件级默认值，`defineMeta` 中同名字段深度覆盖：
+当同一文件内多个方法共享相同的 ubean 特有 meta（如 `public`、`cache`、`rateLimit` 及自定义扩展字段）时，可通过顶层 `export const meta` 定义文件级默认值，`defineHandlerMeta` 中同名字段深度覆盖：
 
 ```typescript
 // routes/users/[id].ts
-import { defineHandler, defineMeta } from 'ubean/handler';
+import { defineHandler, defineHandlerMeta } from 'ubean';
 
 export const meta = {
-  openAPI: {
-    tags: ['Users'],
-    $global: {
-      components: {
-        schemas: { User: { type: 'object', properties: { id: { type: 'string' }, name: { type: 'string' } } } }
-      }
-    }
-  }
+  cache: { ttl: 60 }
 };
 
-// GET 继承文件级 tags + $global，defineMeta 补充 per-method 字段
+// GET 继承文件级 cache，defineHandlerMeta 补充 per-method 字段
 export const GET = defineHandler(
-  defineMeta({ public: true, openAPI: { summary: 'Get user', responses: { 200: { description: 'OK' } } } }),
+  describeRoute({ tags: ['Users'], summary: 'Get user', responses: { 200: { description: 'OK' } } }),
+  defineHandlerMeta({ public: true }),
   async c => {
     /* ... */
   }
 );
 ```
 
+> **注意**：文件级 `meta` 仅包含 ubean 特有的元数据字段，不包含 OpenAPI 文档定义。OpenAPI 元数据通过 `describeRoute` 中间件在每个 handler 链中定义。
+
 #### 公开路由示例（无需鉴权）
 
 ```typescript
 // routes/auth/login.ts
-import { defineHandler, defineMeta, defineValidator } from 'ubean/handler';
+import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean';
 import { z } from 'zod';
 
+const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
+const tokenResponseSchema = z.object({ token: z.string() });
+
 export const POST = defineHandler(
-  defineMeta({
-    public: true, // auth middleware 跳过此路由
-    openAPI: { tags: ['Auth'], summary: 'User login' }
+  describeRoute({
+    tags: ['Auth'],
+    summary: 'User login',
+    responses: {
+      200: { description: 'Success', content: { 'application/json': { schema: resolver(tokenResponseSchema) } } }
+    }
   }),
-  defineValidator({
-    json: z.object({ email: z.string().email(), password: z.string().min(6) })
-  }),
+  defineHandlerMeta({ public: true }), // auth middleware 跳过此路由
+  validator('json', loginSchema),
   async c => {
     const { email, password } = c.req.valid('json');
     return c.json({ token: '...' });
@@ -159,63 +175,48 @@ export const POST = defineHandler(
 );
 ```
 
-#### defineHandler 完整 API 与类型推导
+#### defineHandler 与 hono-openapi 集成
 
-类型推导参考 hono-ssr 的多重重载模式：通过 1\~10 个 handler 的函数重载，每个 handler 的 `Input` 类型（即 `c.req.valid()` 可用的 key）通过 `IntersectNonAnyTypes` 从左到右累积，确保 validator 定义的类型可以流向后续所有 handler。
+ubean 复用 hono-openapi 生态，`validator`、`describeRoute`、`resolver` 从 hono-openapi 重导出，类型推导由 hono-openapi 通过 Hono 的中间件链机制自动完成：
 
 ```typescript
-// src/runtime/handler.ts
+// 从 ubean 导入（实际重导出自 hono-openapi）
+import { validator, describeRoute, resolver } from 'ubean';
 
-// Validator 插槽类型（支持 Standard Schema v1 兼容库: zod/valibot/arktype 等）
-interface ValidatorSlots {
-  params?: StandardSchemaV1;
-  query?: StandardSchemaV1;
-  json?: StandardSchemaV1;
-  form?: StandardSchemaV1;
-  header?: StandardSchemaV1;
-  cookie?: StandardSchemaV1;
-}
+// validator: 验证指定 target 的数据，验证后通过 c.req.valid(target) 获取
+// target: 'json' | 'form' | 'query' | 'param' | 'header' | 'cookie'
+function validator<T extends Target, S extends StandardSchemaV1>(target: T, schema: S): MiddlewareHandler;
 
-// 从 ValidatorSlots 推导 validated input 类型
-type ValidatedInput<V extends ValidatorSlots> = {
-  [K in keyof V as V[K] extends StandardSchemaV1 ? K : never]: V[K] extends StandardSchemaV1
-    ? StandardSchemaV1.InferOutput<V[K]>
-    : never;
-};
+// describeRoute: 定义 OpenAPI Operation 元数据
+function describeRoute(route: {
+  tags?: string[];
+  summary?: string;
+  description?: string;
+  operationId?: string;
+  deprecated?: boolean;
+  responses?: Record<
+    string,
+    { description: string; content?: Record<string, { schema: ReturnType<typeof resolver> }> }
+  >;
+}): MiddlewareHandler;
 
-// defineMeta: 运行时透传中间件，构建时 AST 提取 meta
-function defineMeta<M extends RouteMeta>(meta: M): UbeanMiddleware<{}, { __meta: M }>;
-
-// defineValidator: 运行时验证中间件，类型上累积 validated input
-function defineValidator<V extends ValidatorSlots>(
-  validators: V
-): UbeanMiddleware<ValidatedInput<V>, { __validators: V }>;
-
-// defineHandler: 1~N 个 handler 链，类型从左到右累积
-// 1 个 handler（最简形式）
-function defineHandler<H extends UbeanHandler<{}>>(handler: H): ComposedHandler;
-// 2 个 handlers (middleware + final)
-function defineHandler<I1 extends Input = {}, I2 extends Input = I1>(
-  h1: UbeanMiddleware<I1>,
-  h2: UbeanHandler<I1 & I2>
-): ComposedHandler;
-// 3~10 个 handlers 类似重载，通过 IntersectNonAnyTypes 累积 Input
-// ... (最多 10 层重载，足够覆盖绝大多数场景)
-// 超过 10 个时退化为 rest 参数 + 基础类型（无完整推导但不报错）
-function defineHandler(...handlers: UbeanHandlerLike[]): ComposedHandler;
+// resolver: 包装 Standard Schema 用于 OpenAPI responses 定义
+function resolver<S extends StandardSchemaV1>(schema: S): { schema: S };
 ```
 
 **类型推导关键点**：
 
-1. `defineValidator({ params: z.object({ id: z.string() }) })` 返回的 middleware 携带 `Input = { param: { id: string } }` 类型
-2. 当该 middleware 传入 `defineHandler` 后，后续 handler 的 `c` 参数自动获得 `c.req.valid('param')` 的完整类型
-3. 多个 `defineValidator` 的 Input 类型通过交叉类型（`&`）合并，实现类型累积
-4. 自定义中间件若需要访问 validated data，应使用 `defineMiddleware` 包装以保持类型链不断裂
-5. `defineMeta` 的 `__meta` 属性是 phantom type（仅类型层面存在），运行时通过函数属性挂载供 AST 提取
+1. `validator('json', userSchema)` 返回的 middleware 被 hono-openapi 处理后，后续 handler 的 `c` 参数自动获得 `c.req.valid('json')` 的完整类型
+2. 多个 `validator` 的类型通过 Hono 的中间件链 Input 类型交叉合并，实现类型累积
+3. 自定义中间件若需要访问 validated data，应使用 `defineMiddleware` 包装以保持类型链不断裂
+4. `describeRoute` 不影响运行时类型，仅在 OpenAPI 文档生成时被收集
+5. `defineHandlerMeta` 的 ubean 特有元数据在运行时通过 `c.route.meta` 访问，构建时通过 AST 提取
 
-**meta 合并优先级**：`defineMeta` 中定义的 meta > 文件级 `export const meta` > 全局默认值。合并策略为深度 merge（数组替换而非拼接）。构建时 AST 扫描从链中第一个 `defineMeta()` 调用提取 meta。
+**meta 合并优先级**：`defineHandlerMeta` 中定义的 meta > 文件级 `export const meta` > 全局默认值。合并策略为深度 merge（数组替换而非拼接）。构建时 AST 扫描从链中第一个 `defineHandlerMeta()` 调用提取 meta。
 
 #### RouteMeta 类型设计
+
+`defineHandlerMeta` 仅用于 ubean 特有的元数据，不再包含 OpenAPI 字段：
 
 ```typescript
 // src/types/handler.ts
@@ -248,13 +249,6 @@ export interface RouteMeta {
   disabled?: boolean;
 
   /**
-   * OpenAPI 文档定义（per-method）
-   */
-  openAPI?: OperationObject & {
-    $global?: Pick<OpenAPI3, 'components'> & Extensable;
-  };
-
-  /**
    * 允许用户通过 TypeScript 模块扩展自定义 meta
    */
   [key: string]: unknown;
@@ -267,7 +261,7 @@ export interface RouteMeta {
 
 ```typescript
 // middleware/02.auth.ts
-import { defineMiddleware } from 'ubean/handler';
+import { defineMiddleware } from 'ubean';
 
 export default defineMiddleware(async (c, next) => {
   const meta = c.route.meta;
@@ -294,14 +288,13 @@ export default defineMiddleware(async (c, next) => {
 
 #### OpenAPI 自动生成
 
-- 构建时通过 AST 扫描提取各 handler 链中 `defineMeta({ openAPI: {...} })` 调用，以及文件级 `export const meta`
-- `defineValidator` 使用的 Standard Schema 是请求参数的唯一可推导来源；响应 body 必须通过 `openAPI.responses` 显式声明 schema
-- AST 仅支持字面量对象、可静态解析的导入和受限的 `$global.components` 合并；动态表达式、变量展开或无法解析的调用必须发出构建诊断，不能生成不完整文档
+- 构建时通过 hono-openapi 的机制自动从 `describeRoute` 中间件收集 OpenAPI Operation 定义
+- `validator` 使用的 Standard Schema 是请求参数的唯一可推导来源；响应 body 通过 `describeRoute` 的 `responses` 中使用 `resolver(schema)` 声明 schema
+- AST 扫描仅需提取 `defineHandlerMeta` 中的 ubean 特有元数据（`public`/`cache`/`rateLimit`/自定义字段），OpenAPI 文档由 hono-openapi 在运行时自动处理
 - 自动生成 OpenAPI 3.1 规范 JSON，端点默认 `/_openapi.json`
 - 自动推导路由参数（`:param` → `{param}`, `**` → catch-all）
 - 自动将方法名映射为 OpenAPI operation（GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD）
 - 自动按路径前缀分类 tags：`/api/**` → "API Routes", `/_*` → "Internal"
-- `$global.components` 在所有方法间共享（schema 去重）
 - 内置 Scalar UI（默认 `/_scalar`）和 Swagger UI 支持
 - 生产模式支持 runtime（运行时生成）和 prerender（构建时预渲染）两种策略
 
@@ -352,7 +345,7 @@ API 路由和 Pages 路由由同一个已规范化的路由清单驱动。构建
 ```vue
 <!-- pages/users/[id].vue -->
 <script setup lang="ts">
-import { definePage } from 'ubean/pages';
+import { definePage } from 'ubean';
 import type { loader } from './[id].server';
 
 definePage({
@@ -481,7 +474,7 @@ layouts/
 ```vue
 <!-- layouts/default.vue -->
 <script setup lang="ts">
-import { usePage } from 'ubean/pages';
+import { usePage } from 'ubean/vue-runtime';
 
 const page = usePage();
 </script>
@@ -513,7 +506,7 @@ const page = usePage();
 ```typescript
 // pages/users/detail.reuse.ts
 // 此文件创建后，ubean 会自动注册路由 /users/detail，复用 UserDetail 页面组件
-import { definePage } from 'ubean/pages';
+import { definePage } from 'ubean';
 
 export default definePage({
   // reuse: 指定复用的已定义路由 name（类型化，自动从所有页面路由名推导）
@@ -572,7 +565,7 @@ const router = createRouter({
 // layouts = { default: () => import('/layouts/default.vue'), admin: () => import('/layouts/admin/index.vue'), ... }
 
 // routeNames: 所有路由名称的类型联合
-type RouteName = (typeof routeNames)[number]; // 'Home' | 'About' | 'UsersId' | ...
+type RouteName = (typeof routeNames)[number]; // 'Home' | 'About' | 'Users' | 'UserDetail' | 'Login' | ...
 ```
 
 生成的 `.ubean/pages.d.ts` 包含完整类型：
@@ -654,3 +647,5 @@ declare module 'ubean:pages' {
 | CLI 路由管理 | 无                                | `ubean page/api/env/config/cron/layout/middleware *` 全面 CLI |
 | 虚拟路由模块 | 无                                | `ubean:pages` 暴露全量路由数据                                |
 | 类型安全     | 部分                              | 布局名、路由名、reuse 目标全类型化                            |
+| 请求验证     | 自定义 `defineValidator`          | 使用 hono-openapi 的 `validator` 中间件（Standard Schema）    |
+| OpenAPI 文档 | 不支持                            | 使用 hono-openapi 的 `describeRoute` + `resolver`             |

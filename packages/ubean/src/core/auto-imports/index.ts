@@ -99,8 +99,7 @@ export const UBEAN_PRESET: InlinePreset = {
   from: 'ubean',
   imports: [
     'definePage',
-    'defineMeta',
-    'defineValidator',
+    'defineHandlerMeta',
     'defineMiddleware',
     't',
     'useI18n',
@@ -108,7 +107,6 @@ export const UBEAN_PRESET: InlinePreset = {
     'useData',
     'callInternal',
     'navigateTo',
-    'redirect',
     'useRuntimeConfig',
     'defineScheduled',
     'defineQueue',
@@ -123,7 +121,12 @@ export const UBEAN_PRESET: InlinePreset = {
   ]
 };
 
-export const BUILTIN_PRESETS: InlinePreset[] = [UBEAN_PRESET];
+export const HONO_OPENAPI_PRESET: InlinePreset = {
+  from: 'hono-openapi',
+  imports: ['validator', 'describeRoute']
+};
+
+export const BUILTIN_PRESETS: InlinePreset[] = [UBEAN_PRESET, HONO_OPENAPI_PRESET];
 
 export interface ComponentInfo {
   name: string;
@@ -390,7 +393,7 @@ export function getUbeanAutoImportConfig(
   const composablesDirs = [join(srcDir, composablesDirName), ...(options.composablesDirs || [])];
 
   return {
-    imports: [UBEAN_PRESET],
+    imports: [UBEAN_PRESET, HONO_OPENAPI_PRESET],
     dirs: composablesDirs,
     dts: join(cwd, buildDir, 'auto-imports.d.ts'),
     vueTemplate: true,

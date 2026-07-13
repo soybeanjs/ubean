@@ -10,7 +10,6 @@ import {
   PAGE_DATA_ID
 } from '../../src/runtime/pages/protocol';
 import type { PageObject } from '../../src/runtime/pages/protocol';
-import { redirect } from '../../src/runtime/response';
 
 function createTestRenderer(pageComponents: Record<string, any>, layoutComponents: Record<string, any> = {}) {
   return createVueRenderer({
@@ -120,7 +119,7 @@ describe('Integration: Action form submission protocol', () => {
     app.hono.post('/api/login', async c => {
       const body = await c.req.parseBody();
       if (body.username === 'admin' && body.password === 'secret') {
-        return redirect('/dashboard');
+        return c.redirect('/dashboard');
       }
       const pageObj: PageObject = {
         component: 'pages/login.vue',
@@ -179,7 +178,7 @@ describe('Integration: Action form submission protocol', () => {
         return pageJsonResponse(pageObj, { 'X-UbeanError': 'true' });
       }
 
-      return redirect('/posts/1');
+      return c.redirect('/posts/1');
     });
 
     const res = await app.fetch(
@@ -213,7 +212,7 @@ describe('Integration: Action form submission protocol', () => {
           }
         });
       }
-      return redirect('/');
+      return c.redirect('/');
     });
 
     const spaRes = await app.fetch(

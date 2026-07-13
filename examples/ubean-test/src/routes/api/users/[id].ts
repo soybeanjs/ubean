@@ -1,4 +1,4 @@
-import { defineHandler } from 'ubean';
+import { defineHandler, defineHandlerMeta, describeRoute } from 'ubean';
 
 const users = [
   { id: 1, name: '张三', email: 'zhangsan@example.com', role: 'admin' },
@@ -6,16 +6,32 @@ const users = [
   { id: 3, name: '王五', email: 'wangwu@example.com', role: 'user' }
 ];
 
-export const GET = defineHandler(c => {
-  const id = parseInt(c.req.param('id')!, 10);
-  const user = users.find(u => u.id === id);
+export const GET = defineHandler(
+  defineHandlerMeta({ public: true }),
+  describeRoute({
+    summary: 'Get user by ID',
+    description: 'Returns a single user by their ID.',
+    tags: ['Users'],
+    responses: {
+      200: {
+        description: 'The requested user'
+      },
+      404: {
+        description: 'User not found'
+      }
+    }
+  }),
+  c => {
+    const id = parseInt(c.req.param('id')!, 10);
+    const user = users.find(u => u.id === id);
 
-  if (!user) {
-    return c.json(
-      { error: 'User Not Found', statusCode: 404, data: { id, message: `User with id ${id} not found` } },
-      404
-    );
+    if (!user) {
+      return c.json(
+        { error: 'User Not Found', statusCode: 404, data: { id, message: `User with id ${id} not found` } },
+        404
+      );
+    }
+
+    return c.json(user);
   }
-
-  return c.json(user);
-});
+);

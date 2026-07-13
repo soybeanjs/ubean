@@ -4,17 +4,14 @@ import type { HttpMethod, RouteMeta } from './types';
 
 const EXPORT_NAMED_REGEX = /export\s+(?:async\s+)?(?:function\s+|const\s+|let\s+|var\s+)?(\w+)/g;
 const EXPORT_LIST_REGEX = /export\s*\{([^}]+)\}/g;
-const EXPORT_DEFINE_META_REGEX = /defineMeta\s*\(/;
-const EXPORT_DEFINE_VALIDATOR_REGEX = /defineValidator\s*\(/;
+const EXPORT_DEFINE_META_REGEX = /defineHandlerMeta\s*\(/;
 const EXPORT_CONST_META_REGEX = /export\s+const\s+meta\s*=\s*(\{[\s\S]*?\})(?:\s*;|\s*$)/m;
 const META_PUBLIC_REGEX = /public\s*:\s*(true|false)/;
-const META_OPENAPI_REGEX = /openAPI\s*:/;
 
 export interface DetectExportsResult {
   exports: string[];
   httpMethods: Lowercase<HttpMethod>[];
   hasMeta: boolean;
-  hasValidator: boolean;
   fileMeta?: RouteMeta;
 }
 
@@ -60,7 +57,6 @@ export function detectHttpExportsFromCode(code: string): DetectExportsResult {
   }
 
   const hasDefineMeta = EXPORT_DEFINE_META_REGEX.test(code);
-  const hasValidator = EXPORT_DEFINE_VALIDATOR_REGEX.test(code);
   const fileMeta = extractFileMeta(code);
   const hasMeta = hasDefineMeta || !!fileMeta;
 
@@ -68,7 +64,6 @@ export function detectHttpExportsFromCode(code: string): DetectExportsResult {
     exports: [...exports],
     httpMethods,
     hasMeta,
-    hasValidator,
     fileMeta
   };
 }
@@ -83,10 +78,6 @@ function extractFileMeta(code: string): RouteMeta | undefined {
   const publicMatch = metaBlock.match(META_PUBLIC_REGEX);
   if (publicMatch) {
     meta.public = publicMatch[1] === 'true';
-  }
-
-  if (META_OPENAPI_REGEX.test(metaBlock)) {
-    meta.openAPI = {};
   }
 
   return Object.keys(meta).length > 0 ? meta : undefined;

@@ -14,7 +14,6 @@ export default defineConfig({
       'src/index.ts',
       'src/runtime/handler.ts',
       'src/runtime/error.ts',
-      'src/runtime/response.ts',
       'src/runtime/app.ts',
       'src/runtime/router.ts',
       'src/runtime/env.ts',

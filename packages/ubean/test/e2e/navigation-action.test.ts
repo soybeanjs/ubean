@@ -129,7 +129,7 @@ describe('E2E: Full navigation and action protocol over HTTP', () => {
             }
           });
         }
-        return redirect('/dashboard');
+        return c.redirect('/dashboard');
       }
       const pageObj: PageObject = {
         component: 'pages/login.vue',

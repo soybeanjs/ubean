@@ -4,14 +4,6 @@ export type HttpMethod = (typeof HTTP_METHODS)[number];
 
 export interface RouteMeta {
   public?: boolean;
-  openAPI?: {
-    tags?: string[];
-    summary?: string;
-    description?: string;
-    operationId?: string;
-    deprecated?: boolean;
-    responses?: Record<string | number, unknown>;
-  };
   [key: string]: unknown;
 }
 
@@ -28,7 +20,6 @@ export interface ScannedApiRoute extends ScannedFile {
   env?: 'dev' | 'prod' | 'prerender';
   exports: string[];
   hasMeta: boolean;
-  hasValidator: boolean;
   fileMeta?: RouteMeta;
 }
 

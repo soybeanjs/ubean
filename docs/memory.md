@@ -9,12 +9,13 @@
 ### Routing & API
 
 - API routes use void-style named exports (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`OPTIONS`/`HEAD`) in a single file, no method suffix
-- `defineHandler` supports middleware chains, custom `meta` (including `public?: boolean` for auth), and accumulates validated types across chain via `c.req.valid()`
-- `defineValidator` supports 6 slots: `params`/`query`/`json`/`form`/`header`/`cookie` (Standard Schema v1)
+- `defineHandler` supports middleware chains; request validation uses hono-openapi's `validator(target, schema)` (re-exported from ubean) with 6 targets: `'json'`|`'form'`|`'query'`|`'param'`|`'header'`|`'cookie'` (Standard Schema v1); validated data accessed via `c.req.valid(target)` with automatic type inference from hono-openapi
+- OpenAPI documentation uses hono-openapi's `describeRoute({ tags, summary, description, operationId, deprecated, responses })` middleware (re-exported from ubean); response schemas use `resolver(schema)`; OpenAPI definitions are auto-collected by hono-openapi at runtime
+- `defineHandlerMeta` is used only for ubean-specific metadata: `public?: boolean` (for auth bypass), `cache`, `rateLimit`, and custom extension fields `[key: string]: unknown`; it is a pass-through middleware at runtime and extracted via AST at build time
 - Page routes use `definePage()` macro for meta, layout, path/name override; layouts in `layouts/` (xx.vue or xx/index.vue); reuse files use `.reuse.ts`/`.reuse.vue`
 - Middleware: `global`/`global.*` → `/*`; others mounted by directory prefix (e.g., `middleware/admin/auth.ts` → `/admin/*`)
 - `public/` static files served with ETag/MIME/Cache-Control, skipping `/_` and `/api/`
-- OpenAPI enabled by default in dev: `/_openapi.json` + `/_scalar` UI; defined via `defineRouteMeta({ openAPI })`
+- OpenAPI enabled by default in dev: `/_openapi.json` + `/_scalar` UI; auto-generated from hono-openapi's `describeRoute` + `validator` middleware
 
 ### UI & Styling
 
@@ -52,10 +53,12 @@
 
 ### Routing & Data
 
-- Type-safe fetch client: axios-based, OpenAPI-generated types from `.ubean/routes.d.ts`
+- Type-safe fetch client: ofetch-based, OpenAPI-generated types from `.ubean/routes.d.ts` (from hono-openapi's describeRoute + validator)
 - Cron jobs in `crons/` via `defineScheduled()`, numeric prefix ordering
 - Route groups: `(group-name)/` directories don't contribute to URL segments
-- `defineMeta` returns pass-through middleware with `.__meta` for AST extraction
+- `defineHandlerMeta` returns pass-through middleware with `.__meta` for AST extraction (only ubean-specific fields: public/cache/rateLimit/custom)
+- Request validation: use hono-openapi's `validator(target, schema)` middleware (re-exported from ubean); `defineValidator` has been removed
+- OpenAPI docs: use hono-openapi's `describeRoute()` and `resolver(schema)` for response schemas (re-exported from ubean)
 - Layout chain: SSR/client both resolve via path hierarchy (admin/dashboard → admin → default), supports `resolveLayoutParent`
 - Route rules: `*` single-segment wildcard, `**` multi-segment recursive; processed redirect > rewrite > headers (merged); cache rules → `Cache-Control` headers
 
@@ -75,7 +78,7 @@
 ## Lessons Learned
 
 - **Void's hardcoded App.vue SSR entry** limits plugin registration → use `defineApp()` to expose Vue instance/context
-- **Void's withValidator** has incomplete type inference → use hono-ssr's `createDefineRoute` pattern with overloads and Input accumulation
+- **Custom validator implementation** is unnecessary → use battle-tested `hono-openapi` library's `validator`/`describeRoute`/`resolver` (re-exported from ubean) instead of custom `defineValidator`; it provides better type inference, standard schema support, and automatic OpenAPI collection
 - **Direct code copying** from reference projects causes API inconsistency → learn architecture patterns instead
 - **Vue SSR `renderer.ts` layout loop**: `vnode` captured by slot closure causes infinite recursion ("Maximum call stack size exceeded") → use `const child = vnode` in block scope to capture the value
 - **Vite dev server async middleware** (Express/Connect) must be wrapped in `Promise.resolve().then().catch()` — never pass async functions directly to `server.middlewares.use()` or unhandled rejections will crash the dev server

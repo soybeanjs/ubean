@@ -14,14 +14,14 @@
 
 ### 1.2 本地参考项目
 
-| 项目                   | 本地路径                                                                                                            | 参考内容                                                                                                                                                                                                                 |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **void**               | [/Users/soybean/Web/Projects/OpenSource/void](file:///Users/soybean/Web/Projects/OpenSource/void)                   | 主要参考对象：文件式路由、defineHandler/defineValidator 模式、Islands 架构、Markdown 页面、Better Auth 集成、Queues Proxy 动态绑定、Cron Jobs、Skills/Agent 系统、DevTools 风格、Vite-Plus 构建、Inertia 式 SSR 页面渲染 |
-| **@void/vue**          | [/Users/soybean/Web/Projects/OpenSource/void](file:///Users/soybean/Web/Projects/OpenSource/void-vue)               | void针专属vue插件                                                                                                                                                                                                        |
-| **nitro**              | [/Users/soybean/Web/Projects/OpenSource/nitro](file:///Users/soybean/Web/Projects/OpenSource/nitro)                 | 多平台 preset 系统（30+ 部署平台）、routeRules（缓存/headers/重定向/代理）、OpenAPI 自动生成（Scalar UI）、Storage 层（unstorage）、Database 层（db0）、预渲染/SSG、运行时插件生命周期                                   |
-| **hono-ssr**           | [/Users/soybean/Web/Projects/SoybeanJS/hono-ssr](file:///Users/soybean/Web/Projects/SoybeanJS/hono-ssr)             | `createDefineRoute` 多重重载类型推导模式，中间件链 Input 类型通过 `IntersectNonAnyTypes` 从左到右累积，确保 validator 定义的 params/query/json 类型流向后续 handler                                                      |
-| **elegant-router**     | [/Users/soybean/Web/Projects/SoybeanJS/elegant-router](file:///Users/soybean/Web/Projects/SoybeanJS/elegant-router) | 类型化路由名称（RouteName 联合类型）、reuse 路由（`xxx.reuse.ts` 复用页面组件）、CLI 路由增删改（交互式命令）、虚拟模块暴露全量路由数据、路由组命名转换                                                                  |
-| **@soybeanjs/request** | [/Users/soybean/Web/Projects/SoybeanJS/request](file:///Users/soybean/Web/Projects/SoybeanJS/request)               | 基于 axios 的类型安全 fetch client 设计，标准模式（throw on error）与 flat 模式（`{ data, error }`）双模式，基于 openapi-typescript 生成的 paths 类型推导请求/响应类型                                                   |
+| 项目                   | 本地路径                                                                                                            | 参考内容                                                                                                                                                                                                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **void**               | [/Users/soybean/Web/Projects/OpenSource/void](file:///Users/soybean/Web/Projects/OpenSource/void)                   | 主要参考对象：文件式路由、defineHandler 中间件链模式、Islands 架构、Markdown 页面、Better Auth 集成、Queues Proxy 动态绑定、Cron Jobs、Skills/Agent 系统、DevTools 风格、Vite-Plus 构建、Inertia 式 SSR 页面渲染（请求验证改用 hono-openapi 的 validator/describeRoute） |
+| **@void/vue**          | [/Users/soybean/Web/Projects/OpenSource/void](file:///Users/soybean/Web/Projects/OpenSource/void-vue)               | void针专属vue插件                                                                                                                                                                                                                                                        |
+| **nitro**              | [/Users/soybean/Web/Projects/OpenSource/nitro](file:///Users/soybean/Web/Projects/OpenSource/nitro)                 | 多平台 preset 系统（30+ 部署平台）、routeRules（缓存/headers/重定向/代理）、OpenAPI 自动生成（Scalar UI）、Storage 层（unstorage）、Database 层（db0）、预渲染/SSG、运行时插件生命周期                                                                                   |
+| **hono-ssr**           | [/Users/soybean/Web/Projects/SoybeanJS/hono-ssr](file:///Users/soybean/Web/Projects/SoybeanJS/hono-ssr)             | `createDefineRoute` 多重重载类型推导模式，中间件链 Input 类型通过 `IntersectNonAnyTypes` 从左到右累积，确保 validator 定义的 params/query/json 类型流向后续 handler                                                                                                      |
+| **elegant-router**     | [/Users/soybean/Web/Projects/SoybeanJS/elegant-router](file:///Users/soybean/Web/Projects/SoybeanJS/elegant-router) | 类型化路由名称（RouteName 联合类型）、reuse 路由（`xxx.reuse.ts` 复用页面组件）、CLI 路由增删改（交互式命令）、虚拟模块暴露全量路由数据、路由组命名转换                                                                                                                  |
+| **@soybeanjs/request** | [/Users/soybean/Web/Projects/SoybeanJS/request](file:///Users/soybean/Web/Projects/SoybeanJS/request)               | 基于 axios 的类型安全 fetch client 设计，标准模式（throw on error）与 flat 模式（`{ data, error }`）双模式，基于 openapi-typescript 生成的 paths 类型推导请求/响应类型                                                                                                   |
 
 ### 1.3 参考项目融合策略
 
@@ -292,7 +292,7 @@ ubean/
 │       │   │   │   │   ├── server-main.ts
 │       │   │   │   │   ├── sourcemap-min.ts
 │       │   │   │   │   ├── virtual.ts
-│       │   │   │   │   ├── route-meta.ts   # 路由 meta 提取 (defineMeta/export const meta AST 解析)
+│       │   │   │   │   ├── route-meta.ts   # 路由 meta 提取 (defineHandlerMeta/export const meta AST 解析)
 │       │   │   │   │   └── app-entry.ts    # defineApp 入口生成
 │       │   │   │   ├── virtual/        # 虚拟模块生成
 │       │   │   │   │   ├── app.ts
@@ -424,7 +424,7 @@ ubean/
 │       │   │   │
 │       │   │   ├── runtime/            # 运行时模块
 │       │   │   │   ├── app.ts          # 运行时应用实例
-│       │   │   │   ├── handler.ts      # 请求处理器 (defineHandler, defineMeta, defineValidator, defineMiddleware)
+│       │   │   │   ├── handler.ts      # 请求处理器 (defineHandler, defineHandlerMeta, defineMiddleware; validator/describeRoute/resolver 从 hono-openapi 重导出)
 │       │   │   │   ├── response.ts     # 响应工具
 │       │   │   │   ├── client.ts       # axios 类型安全客户端 (createClient)
 │       │   │   │   ├── client-flat.ts  # 扁平模式客户端 (createFlatClient)

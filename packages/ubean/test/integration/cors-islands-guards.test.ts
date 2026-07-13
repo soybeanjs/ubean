@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { getIslandsBootstrapScript } from '../../src/core/islands';
 import { createUbeanApp } from '../../src/runtime/app';
 import { defineCors } from '../../src/runtime/cors';
-import { redirect, permanentRedirect } from '../../src/runtime/response';
 
 describe('Integration: CORS middleware', () => {
   it('adds CORS headers to responses with defineCors', async () => {
@@ -214,8 +213,8 @@ describe('Integration: Response helpers in real app context', () => {
   it('redirect() sets Location header and status', async () => {
     const app = createUbeanApp({ preset: 'node', dev: false });
 
-    app.hono.get('/old', () => redirect('/new'));
-    app.hono.get('/legacy', () => permanentRedirect('/current'));
+    app.hono.get('/old', c => c.redirect('/new'));
+    app.hono.get('/legacy', c => c.redirect('/current', 301));
 
     const tempRes = await app.fetch(new Request('http://localhost/old', { redirect: 'manual' }));
     expect(tempRes.status).toBe(302);

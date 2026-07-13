@@ -8,7 +8,9 @@
     "preview": "ubean preview"
   },
   "dependencies": {
+    "@valibot/to-json-schema": "^1.7.1",
     "ubean": "workspace:*",
+    "valibot": "^1.4.2",
     "vue": "^3.5.0"
   },
   "devDependencies": {

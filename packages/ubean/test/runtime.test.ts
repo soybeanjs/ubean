@@ -88,8 +88,7 @@ describe('codegen', () => {
             route: '/users',
             method: 'GET',
             exports: ['GET'],
-            hasMeta: false,
-            hasValidator: false
+            hasMeta: false
           },
           {
             fullPath: '/project/routes/users.post.ts',
@@ -99,8 +98,7 @@ describe('codegen', () => {
             route: '/users',
             method: 'POST',
             exports: ['POST'],
-            hasMeta: true,
-            hasValidator: false
+            hasMeta: true
           }
         ],
         pages: [
@@ -320,8 +318,7 @@ describe('registerRoutes', () => {
           route: '/api/users',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -351,8 +348,7 @@ describe('registerRoutes', () => {
           route: '/api/users/[id]',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],

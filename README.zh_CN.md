@@ -25,7 +25,7 @@ v0.1 的正式目标平台为 Node.js（`node-server`）。Cloudflare Workers �
 
 - `routes/` API 文件路由与 `GET`、`POST`、`PATCH` 等命名导出。
 - `pages/` Vue SSR 页面、layout、loader/action 与类型化导航。
-- `defineValidator`、`defineMeta`、OpenAPI 3.1 与生成的 `paths` 类型。
+- `defineValidator`、`defineHandlerMeta`、OpenAPI 3.1 与生成的 `paths` 类型。
 - `ofetch` typed client、flat client，以及仅浏览器可用的 `ubean/client-xhr` 上传进度适配器。
 - route rules、预渲染、存储、数据库、队列、WebSocket、DevTools 等后续可选能力。
 

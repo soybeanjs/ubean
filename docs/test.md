@@ -38,13 +38,16 @@
 - [ ] 基于文件系统的 API 路由自动扫描（`routes/api/` 目录）
 - [ ] HTTP 方法导出（GET/POST/PUT/PATCH/DELETE/HEAD/OPTIONS）
 - [ ] `defineHandler` 定义处理器
-- [ ] `defineMeta` 路由元数据
-- [ ] `defineValidator` 请求验证（Standard Schema）
-  - [ ] JSON body 验证
-  - [ ] Query 参数验证
-  - [ ] Path 参数验证
-  - [ ] Header 验证
-  - [ ] Cookie 验证
+- [ ] `defineHandlerMeta` 路由元数据（ubean特有：public/cache/rateLimit/自定义扩展）
+- [ ] `describeRoute` OpenAPI 文档定义（from hono-openapi，tags/summary/description/responses）
+- [ ] `validator` 请求验证（from hono-openapi，Standard Schema）
+  - [ ] JSON body 验证（`validator('json', schema)`）
+  - [ ] Query 参数验证（`validator('query', schema)`）
+  - [ ] Path 参数验证（`validator('param', schema)`）
+  - [ ] Form 验证（`validator('form', schema)`）
+  - [ ] Header 验证（`validator('header', schema)`）
+  - [ ] Cookie 验证（`validator('cookie', schema)`）
+- [ ] `resolver` 响应 schema 定义（from hono-openapi）
 - [ ] 动态路由 `[id].ts` 参数解析
 - [ ] 嵌套路由目录结构
 - [ ] 路由组 `(group)` 目录不影响 URL
@@ -128,14 +131,16 @@
 
 ## 四、响应工具
 
-### 4.1 响应助手
+### 4.1 响应助手 (Hono Context 方法)
 
-- [ ] `json()` JSON 响应
-- [ ] `text()` 文本响应
-- [ ] `html()` HTML 响应
-- [ ] `redirect()` 临时重定向 (302)
-- [ ] `permanentRedirect()` 永久重定向 (301)
-- [ ] `setHeader()`/`setHeaders()` 设置响应头
+以下方法均为 Hono Context (`c`) 上的方法，在 `defineHandler` 中直接通过 `c` 调用：
+
+- [ ] `c.json(data, status?)` JSON 响应
+- [ ] `c.text(data, status?)` 文本响应
+- [ ] `c.html(data, status?)` HTML 响应
+- [ ] `c.redirect(url)` 临时重定向 (302)
+- [ ] `c.redirect(url, 301)` 永久重定向 (301)
+- [ ] `c.header(name, value)` 设置响应头
 
 ### 4.2 错误处理
 

@@ -101,7 +101,6 @@ async function scanApiRoutes(srcDir: string, dirName: string, ignore: string[]):
       exports: [] as string[],
       httpMethods: [] as Lowercase<(typeof HTTP_METHODS)[number]>[],
       hasMeta: false,
-      hasValidator: false,
       fileMeta: undefined
     }));
 
@@ -125,7 +124,6 @@ async function scanApiRoutes(srcDir: string, dirName: string, ignore: string[]):
         env: parsed.env as 'dev' | 'prod' | 'prerender' | undefined,
         exports: detected.exports,
         hasMeta: detected.hasMeta,
-        hasValidator: detected.hasValidator,
         fileMeta: detected.fileMeta
       });
     }

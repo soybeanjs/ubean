@@ -1,9 +1,9 @@
-export { defineHandler, defineMeta, defineValidator, defineMiddleware } from './runtime/handler';
+export { defineHandler, defineHandlerMeta, defineMiddleware } from './runtime/handler';
 export { defineConfig, loadUbeanConfig, getConfig } from './core/config';
 export { UbeanError, createError, isUbeanError, errorToResponse } from './runtime/error';
-export { redirect, permanentRedirect } from './runtime/response';
 export { createUbeanApp, UbeanApp } from './runtime/app';
 export type { UbeanAppOptions, UbeanAppPlugin, UbeanRuntimeHooks, AppPlugin } from './runtime/app';
+export { validator, describeRoute, resolver, openAPIRouteHandler } from 'hono-openapi';
 export { defineEnv, setRuntimeEnv, useRuntimeEnv } from './runtime/env';
 export type { EnvSchema, EnvConfig, DefineEnvResult, EnvValidationError, InferEnvOutput } from './runtime/env';
 export {
@@ -247,10 +247,8 @@ export {
   createUbeanRouter,
   extractDefinePageFromCode,
   extractDefineMetaFromCode,
-  extractDefineValidatorFromCode,
   extractDefinePage,
-  extractDefineMeta,
-  extractDefineValidator
+  extractDefineMeta
 } from './core/routing';
 export { generateTypes } from './core/codegen';
 export {
@@ -370,10 +368,7 @@ export type {
   UbeanMiddleware,
   ComposedHandler,
   RouteMeta as HandlerRouteMeta,
-  ValidatorSlots,
-  ValidatorInput,
   Input,
-  StandardSchema,
   UbeanEnv
 } from './types/handler';
 export type {

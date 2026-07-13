@@ -45,7 +45,7 @@ describe('Auto imports', () => {
       expect(names).toContain('useSeoMeta');
       expect(names).toContain('useData');
       expect(names).toContain('definePage');
-      expect(names).toContain('defineMeta');
+      expect(names).toContain('defineHandlerMeta');
     });
 
     it('does not include Vue core APIs', () => {

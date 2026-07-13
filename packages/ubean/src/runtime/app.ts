@@ -29,7 +29,7 @@ export interface UbeanRuntimeHooks {
   'route:register': (route: {
     method: string;
     path: string;
-    handler: ComposedHandler;
+    handler: MiddlewareHandler[] | ComposedHandler | Function;
     meta?: RouteMeta;
   }) => void | Promise<void>;
   'middleware:register': (mw: ScannedMiddleware) => void | Promise<void>;
@@ -44,7 +44,12 @@ export interface UbeanAppOptions {
   layouts?: ScannedLayout[];
   routeRules?: Record<string, RouteRule>;
   plugins?: UbeanAppPlugin[];
-  routeLoaders?: Record<string, () => Promise<{ default: ComposedHandler } | Record<string, ComposedHandler>>>;
+  routeLoaders?: Record<
+    string,
+    () => Promise<
+      { default?: ComposedHandler | MiddlewareHandler[] } | Record<string, ComposedHandler | MiddlewareHandler[]>
+    >
+  >;
   middlewareLoaders?: Record<string, () => Promise<{ default: UbeanMiddleware }>>;
   pageLoaders?: Record<string, () => Promise<any>>;
   pageRenderer?: import('./pages').PageRenderer | null;
@@ -175,7 +180,7 @@ export class UbeanApp {
 
     if (this.options.openAPI) {
       const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};
-      registerOpenAPIRoutes(this.hono, this.options.routes || [], this.options.middleware || [], openAPIOpts);
+      registerOpenAPIRoutes(this.hono, openAPIOpts);
       if (this.devtools) {
         this.devtools.rpc.setOpenAPI({
           enabled: true,

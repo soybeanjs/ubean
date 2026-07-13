@@ -8,7 +8,7 @@
 
 ```typescript
 // app.ts
-import { defineApp } from 'ubean/vue';
+import { defineApp } from 'ubean';
 import { createPinia } from 'pinia';
 import GlobalComponent from './src/components/GlobalComponent.vue';
 
@@ -49,7 +49,7 @@ export default defineApp(({ app, router, ssrContext }) => {
 
 ```typescript
 // app.server.ts — 仅在 SSR 时执行
-import { defineApp } from 'ubean/vue';
+import { defineApp } from 'ubean';
 
 export default defineApp(({ app, ssrContext }) => {
   // SSR 特有逻辑，如注入 SSR 状态
@@ -57,7 +57,7 @@ export default defineApp(({ app, ssrContext }) => {
 });
 
 // app.client.ts — 仅在客户端水合时执行
-import { defineApp } from 'ubean/vue';
+import { defineApp } from 'ubean';
 
 export default defineApp(({ app, router }) => {
   // 客户端特有逻辑，如 PWA 注册、客户端分析埋点等
@@ -134,7 +134,7 @@ export function defineApp(fn: DefineApp): DefineApp;
 
 ```typescript
 // src/api/client.ts
-import { createClient } from 'ubean/client';
+import { createClient } from 'ubean';
 import type { paths } from '../../.ubean/routes'; // ubean 自动生成
 
 // 标准客户端（抛异常模式）
@@ -226,12 +226,12 @@ export interface UbeanRequestOptions {
 
 ```typescript
 // routes/users.ts
-import { defineHandler } from 'ubean/handler';
-import { internalFetch } from 'ubean/internal';
+import { defineHandler, createInternalFetch } from 'ubean';
 
 export const GET = defineHandler(async c => {
   // 服务端直接调用内部路由，无需经过 HTTP
-  const result = await internalFetch(c).get('/api/health');
+  const internalFetch = createInternalFetch(c);
+  const result = await internalFetch('/api/health').then(r => r.json());
   return c.json(result);
 });
 ```
@@ -240,8 +240,10 @@ export const GET = defineHandler(async c => {
 
 ubean 在构建/开发时扫描 `routes/` 目录，自动生成 `.ubean/routes.d.ts`：
 
-- 从 `defineMeta({ openAPI: { ... } })` 和文件级 `export const meta` 提取 OpenAPI Operation 定义
-- 从 handler 的 TypeScript 类型推导参数和响应类型（辅助）
+- OpenAPI Operation 定义由 hono-openapi 自动从 `describeRoute` 中间件收集
+- 从 `validator(target, schema)` 使用的 Standard Schema 推导请求参数类型
+- 从 `describeRoute` 的 `responses` 中通过 `resolver(schema)` 推导响应类型
+- 从文件级 `export const meta` 和 `defineHandlerMeta()` 提取 ubean 特有元数据（`public`/`cache`/`rateLimit`）
 - 生成符合 OpenAPI 3.1 `paths` 结构的类型文件
 - 兼容 `openapi-typescript` 生成的格式，可直接被 `ubean/client` 的 ofetch/XHR typed client 消费
 - 开发模式下 HMR 自动更新类型
@@ -287,7 +289,7 @@ export interface paths {
 
 ```typescript
 // crons/daily-cleanup.ts
-import { defineScheduled } from 'ubean/cron';
+import { defineScheduled } from 'ubean';
 import { db } from 'ubean/database';
 
 export const cron = '0 0 * * *'; // 每天凌晨执行
@@ -321,7 +323,7 @@ export default defineConfig({
 
 ```typescript
 // env.ts
-import { defineEnv, string, number, boolean, url } from 'ubean/env';
+import { defineEnv, string, number, boolean, url } from 'ubean';
 
 export const env = defineEnv({
   // 服务端密钥
@@ -537,7 +539,7 @@ interface CreatePageInput {
 ```vue
 <!-- DevTools 创建 pages/users/[id].vue 时生成 -->
 <script setup lang="ts">
-import { definePage } from 'ubean/pages';
+import { definePage } from 'ubean';
 
 definePage({
   layout: 'default',
@@ -581,8 +583,8 @@ interface ApiRouteInfo {
 interface CreateApiInput {
   path: string; // '/users'
   methods: string[]; // ['GET', 'POST']
-  withOpenAPI?: boolean; // 是否生成 OpenAPI 文档骨架
-  withValidator?: boolean; // 是否生成 defineValidator 骨架
+  withOpenAPI?: boolean; // 是否生成 describeRoute + resolver OpenAPI 文档骨架
+  withValidator?: boolean; // 是否生成 validator 中间件骨架
 }
 ```
 
@@ -590,14 +592,18 @@ API 创建时自动生成 handler 文件：
 
 ```typescript
 // DevTools 创建 routes/users.ts 时生成
-import { defineHandler, defineMeta } from 'ubean/handler';
+import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean';
+import { z } from 'zod';
 
 export const GET = defineHandler(
-  defineMeta({
-    openAPI: {
-      tags: ['Users'],
-      summary: 'List users',
-      responses: { 200: { description: 'OK' } }
+  describeRoute({
+    tags: ['Users'],
+    summary: 'List users',
+    responses: {
+      200: {
+        description: 'OK',
+        content: { 'application/json': { schema: resolver(z.array(z.object({ id: z.string(), name: z.string() }))) } }
+      }
     }
   }),
   async c => {
@@ -605,16 +611,23 @@ export const GET = defineHandler(
   }
 );
 
+const createUserSchema = z.object({ name: z.string(), email: z.string().email() });
+
 export const POST = defineHandler(
-  defineMeta({
-    openAPI: {
-      tags: ['Users'],
-      summary: 'Create user'
+  describeRoute({
+    tags: ['Users'],
+    summary: 'Create user',
+    responses: {
+      201: {
+        description: 'Created',
+        content: { 'application/json': { schema: resolver(z.object({ id: z.string() }).merge(createUserSchema)) } }
+      }
     }
   }),
+  validator('json', createUserSchema),
   async c => {
-    const body = await c.req.json();
-    return c.json({ success: true }, 201);
+    const body = c.req.valid('json');
+    return c.json({ id: '1', ...body }, 201);
   }
 );
 ```
@@ -627,7 +640,7 @@ DevTools 所有操作前后触发 hookable 事件，用户可以注册钩子将�
 
 ```typescript
 // app.ts 或 plugins/devtools-hooks.ts
-import { defineApp } from 'ubean/vue';
+import { defineApp } from 'ubean';
 import { useDevToolsHooks } from 'ubean/devtools';
 
 export default defineApp(({ app }) => {
@@ -932,7 +945,7 @@ DevTools 客户端（iframe 内的 Vue 应用）使用 **`@soybeanjs/ui`** **+**
 
 ```typescript
 // plugins/my-devtools-tab.ts
-import { defineDevToolsTab } from 'ubean/devtools';
+import { defineDevToolsTab } from 'ubean';
 
 export default defineDevToolsTab({
   name: 'my-feature',
@@ -1389,7 +1402,7 @@ export const loader = defineLoader(c => {
 
 ```typescript
 // queues/email.ts
-import { defineQueue } from 'ubean/queue';
+import { defineQueue } from 'ubean';
 
 export interface EmailJob {
   to: string;
@@ -1413,7 +1426,12 @@ export const emailQueue = defineQueue<EmailJob>(
 
 ```typescript
 // routes/api/signup.ts
-export const POST = defineHandler(defineValidator({ json: z.object({ email: z.string().email() }) }), async c => {
+import { defineHandler, validator } from 'ubean';
+import { z } from 'zod';
+
+const signupSchema = z.object({ email: z.string().email() });
+
+export const POST = defineHandler(validator('json', signupSchema), async c => {
   const { email } = c.req.valid('json');
   // ... 创建用户
   await emailQueue.send({ to: email, subject: 'Welcome', body: '...' });
@@ -1499,7 +1517,7 @@ const { user, isAuthenticated, isLoading, signIn, signUp, signOut } = useAuth();
 
 ```vue
 <script setup lang="ts">
-import { Link } from 'ubean/pages';
+import { Link } from 'ubean/vue-runtime';
 </script>
 
 <template>

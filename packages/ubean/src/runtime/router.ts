@@ -1,8 +1,9 @@
-import type { Context, Next } from 'hono';
+import type { Context, Next, MiddlewareHandler } from 'hono';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '../core/routing/types';
-import type { ComposedHandler, RouteMeta, UbeanEnv, UbeanMiddleware } from '../types/handler';
+import type { RouteMeta, UbeanEnv, UbeanMiddleware } from '../types/handler';
 import { getLocale, getLocaleDir } from './i18n';
 import type { UbeanApp } from './app';
+import { extractRouteMeta, isHandlerChain } from './handler';
 import { isPagesRequest, pageJsonResponse, renderPage } from './pages';
 import type { PageObject, PageRenderer, PageAssetTags, PageRenderContext } from './pages';
 
@@ -11,19 +12,7 @@ export interface RegisterOptions {
   middleware: ScannedMiddleware[];
   pages: ScannedPageRoute[];
   layouts?: ScannedLayout[];
-  routeLoaders: Record<
-    string,
-    () => Promise<{
-      default?: ComposedHandler;
-      GET?: ComposedHandler;
-      POST?: ComposedHandler;
-      PUT?: ComposedHandler;
-      PATCH?: ComposedHandler;
-      DELETE?: ComposedHandler;
-      HEAD?: ComposedHandler;
-      OPTIONS?: ComposedHandler;
-    }>
-  >;
+  routeLoaders: Record<string, () => Promise<Record<string, unknown>>>;
   middlewareLoaders: Record<string, () => Promise<{ default?: UbeanMiddleware }>>;
   pageRenderer?: PageRenderer | null;
   pageAssetTags?: PageAssetTags;
@@ -66,6 +55,21 @@ function middlewarePathToHonoPath(relativePath: string): string {
   return `${dirPath}/*`;
 }
 
+function resolveRouteExport(mod: Record<string, unknown>, method: Method): MiddlewareHandler[] | Function | null {
+  const namedHandler = mod[method];
+  if (isHandlerChain(namedHandler)) return namedHandler;
+  if (typeof namedHandler === 'function') return namedHandler as Function;
+
+  const lowerHandler = mod[method.toLowerCase()];
+  if (isHandlerChain(lowerHandler)) return lowerHandler;
+  if (typeof lowerHandler === 'function') return lowerHandler as Function;
+
+  if (isHandlerChain(mod.default)) return mod.default as MiddlewareHandler[];
+  if (typeof mod.default === 'function') return mod.default as Function;
+
+  return null;
+}
+
 export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
   const {
     routes,
@@ -99,7 +103,12 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
     }
   }
 
-  const routesByPath = new Map<string, { methods: Map<Method, ComposedHandler>; meta?: RouteMeta }>();
+  interface RouteEntry {
+    definition: MiddlewareHandler[] | Function;
+    fileMeta?: Record<string, unknown>;
+  }
+
+  const routesByPath = new Map<string, Map<Method, RouteEntry>>();
 
   const routeFileGroups = new Map<string, ScannedApiRoute[]>();
   for (const route of routes) {
@@ -118,14 +127,11 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
 
     const first = routeGroup[0];
     const honoPath = convertUbeanRoutePath(first.route);
-    let entry = routesByPath.get(honoPath);
-    if (!entry) {
-      entry = { methods: new Map() };
-      routesByPath.set(honoPath, entry);
-    }
 
-    if (first.fileMeta) {
-      entry.meta = { public: true, ...entry.meta, ...first.fileMeta };
+    let pathMethods = routesByPath.get(honoPath);
+    if (!pathMethods) {
+      pathMethods = new Map();
+      routesByPath.set(honoPath, pathMethods);
     }
 
     let mod: any;
@@ -139,37 +145,59 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
       const method = normalizeMethod(route.method);
       if (!method) continue;
 
-      const namedHandler = mod[method];
-      if (namedHandler && typeof namedHandler === 'function') {
-        entry.methods.set(method, namedHandler as ComposedHandler);
-        continue;
-      }
-      const lowerHandler = mod[method.toLowerCase()];
-      if (lowerHandler && typeof lowerHandler === 'function') {
-        entry.methods.set(method, lowerHandler as ComposedHandler);
-        continue;
-      }
-      if (mod.default && typeof mod.default === 'function') {
-        entry.methods.set(method, mod.default as ComposedHandler);
+      const resolved = resolveRouteExport(mod, method);
+      if (resolved) {
+        pathMethods.set(method, { definition: resolved, fileMeta: first.fileMeta });
       }
     }
   }
 
-  for (const [honoPath, entry] of routesByPath) {
-    for (const [method, handler] of entry.methods) {
-      await app.hooks.callHook('route:register', {
-        method,
-        path: honoPath,
-        handler,
-        meta: entry.meta
-      });
-      const wrapper = async (c: Context<UbeanEnv>, _next: Next) => {
-        if (entry.meta) {
-          c.set('route', { meta: entry.meta, path: c.req.path, method: c.req.method });
+  for (const [honoPath, pathMethods] of routesByPath) {
+    for (const [method, entry] of pathMethods) {
+      const { definition, fileMeta } = entry;
+
+      if (isHandlerChain(definition)) {
+        const routeMeta = { ...extractRouteMeta(definition) } as RouteMeta;
+        if (fileMeta) {
+          Object.assign(routeMeta, fileMeta);
         }
-        return (handler as any)(c);
-      };
-      (app as any)[honoMethod(method)](honoPath, wrapper);
+
+        await app.hooks.callHook('route:register', {
+          method,
+          path: honoPath,
+          handler: definition,
+          meta: routeMeta
+        });
+
+        const metaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
+          c.set('route', { meta: routeMeta, path: c.req.path, method: c.req.method });
+          await next();
+        };
+
+        const honoHandlers = [metaMiddleware, ...definition];
+        (app as any)[honoMethod(method)](honoPath, ...honoHandlers);
+      } else {
+        const wrapper = async (c: Context<UbeanEnv>, _next: Next) => {
+          c.set('route', { meta: { public: true, ...fileMeta } as RouteMeta, path: c.req.path, method: c.req.method });
+          const result = await (definition as Function)(c);
+          if (result instanceof Response) return result;
+          if (typeof result === 'string') {
+            return new Response(result, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } });
+          }
+          return new Response(JSON.stringify(result), {
+            headers: { 'Content-Type': 'application/json; charset=utf-8' }
+          });
+        };
+
+        await app.hooks.callHook('route:register', {
+          method,
+          path: honoPath,
+          handler: definition,
+          meta: { public: true, ...fileMeta }
+        });
+
+        (app as any)[honoMethod(method)](honoPath, wrapper);
+      }
     }
   }
 

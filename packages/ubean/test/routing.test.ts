@@ -2,11 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { filePathToRoute } from '../src/utils/path';
 import { createUbeanRouter } from '../src/core/routing/router';
 import { definePreset, resolvePreset } from '../src/core/preset/_utils/preset';
-import {
-  extractDefinePageFromCode,
-  extractDefineValidatorFromCode,
-  extractDefineMetaFromCode
-} from '../src/core/routing/define-page';
+import { extractDefinePageFromCode, extractDefineMetaFromCode } from '../src/core/routing/define-page';
 import { detectHttpExportsFromCode } from '../src/core/routing/detect-exports';
 import { generateRouteName, generateLayoutName } from '../src/core/routing/route-name';
 
@@ -98,22 +94,13 @@ describe('detectHttpExportsFromCode', () => {
     expect(result.httpMethods).toContain('post');
   });
 
-  it('detects defineMeta usage', () => {
+  it('detects defineHandlerMeta usage', () => {
     const code = `
-      import { defineHandler, defineMeta } from 'ubean';
-      export default defineHandler(defineMeta({ public: true }), () => new Response('ok'));
+      import { defineHandler, defineHandlerMeta } from 'ubean';
+      export default defineHandler(defineHandlerMeta({ public: true }), () => new Response('ok'));
     `;
     const result = detectHttpExportsFromCode(code);
     expect(result.hasMeta).toBe(true);
-  });
-
-  it('detects defineValidator usage', () => {
-    const code = `
-      import { defineHandler, defineValidator } from 'ubean';
-      export default defineHandler(defineValidator({}), () => new Response('ok'));
-    `;
-    const result = detectHttpExportsFromCode(code);
-    expect(result.hasValidator).toBe(true);
   });
 });
 
@@ -139,71 +126,21 @@ describe('extractDefinePageFromCode', () => {
 
 describe('extractDefineMetaFromCode', () => {
   it('extracts public flag', () => {
-    const code = `defineMeta({ public: false })`;
+    const code = `defineHandlerMeta({ public: false })`;
     const result = extractDefineMetaFromCode(code);
     expect(result?.public).toBe(false);
   });
 
-  it('extracts openAPI config', () => {
-    const code = `defineMeta({ openAPI: { tags: ['users'], summary: 'Get user' } })`;
-    const result = extractDefineMetaFromCode(code);
-    expect(result?.openAPI).toBeDefined();
-    expect((result?.openAPI as any)?.tags).toContain('users');
-  });
-
   it('extracts extra fields as meta', () => {
-    const code = `defineMeta({ rateLimit: { maxRequests: 100, windowSeconds: 60 } })`;
+    const code = `defineHandlerMeta({ rateLimit: { maxRequests: 100, windowSeconds: 60 } })`;
     const result = extractDefineMetaFromCode(code);
     expect(result?.meta).toBeDefined();
     expect((result?.meta as any)?.rateLimit).toBeDefined();
   });
 
-  it('returns null when no defineMeta', () => {
+  it('returns null when no defineHandlerMeta', () => {
     const code = `const x = 1;`;
     expect(extractDefineMetaFromCode(code)).toBeNull();
-  });
-});
-
-describe('extractDefineValidatorFromCode', () => {
-  it('detects json validator slot', () => {
-    const code = `defineValidator({ json: createSchema })`;
-    const result = extractDefineValidatorFromCode(code);
-    expect(result?.slots.json).toBe(true);
-    expect(result?.slots.form).toBeUndefined();
-  });
-
-  it('detects multiple validator slots', () => {
-    const code = `defineValidator({ json: jsonSchema, query: querySchema, param: paramSchema })`;
-    const result = extractDefineValidatorFromCode(code);
-    expect(result?.slots.json).toBe(true);
-    expect(result?.slots.query).toBe(true);
-    expect(result?.slots.param).toBe(true);
-    expect(result?.slots.form).toBeUndefined();
-    expect(result?.slots.header).toBeUndefined();
-  });
-
-  it('detects all validator slots', () => {
-    const code = `defineValidator({ json: j, form: f, query: q, param: p, header: h, cookie: c })`;
-    const result = extractDefineValidatorFromCode(code);
-    expect(result?.slots.json).toBe(true);
-    expect(result?.slots.form).toBe(true);
-    expect(result?.slots.query).toBe(true);
-    expect(result?.slots.param).toBe(true);
-    expect(result?.slots.header).toBe(true);
-    expect(result?.slots.cookie).toBe(true);
-  });
-
-  it('works in <script setup>', () => {
-    const code = `<script setup>
-    defineValidator({ json: userSchema })
-    </script>`;
-    const result = extractDefineValidatorFromCode(code);
-    expect(result?.slots.json).toBe(true);
-  });
-
-  it('returns null when no defineValidator', () => {
-    const code = `const x = 1;`;
-    expect(extractDefineValidatorFromCode(code)).toBeNull();
   });
 });
 
@@ -218,8 +155,7 @@ describe('UbeanRouter', () => {
       route: '/users',
       method: 'get',
       exports: ['GET'],
-      hasMeta: false,
-      hasValidator: false
+      hasMeta: false
     });
     const matched = router.matchApi('GET', '/users');
     expect(matched).toBeDefined();

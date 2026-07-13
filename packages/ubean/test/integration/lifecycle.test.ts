@@ -3,7 +3,6 @@ import { registerRoutes } from '../../src/runtime/router';
 import { createUbeanApp } from '../../src/runtime/app';
 import { createError } from '../../src/runtime/error';
 import { defineHandler } from '../../src/runtime/handler';
-import { permanentRedirect } from '../../src/runtime/response';
 
 describe('Integration: Full request lifecycle', () => {
   it('processes GET API requests through full middleware chain in correct order', async () => {
@@ -20,8 +19,7 @@ describe('Integration: Full request lifecycle', () => {
           route: '/api/hello',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [
@@ -73,8 +71,7 @@ describe('Integration: Full request lifecycle', () => {
           route: '/api/users',
           method: 'POST',
           exports: ['POST'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -119,8 +116,7 @@ describe('Integration: Full request lifecycle', () => {
           route: '/api/fail',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -155,8 +151,7 @@ describe('Integration: Full request lifecycle', () => {
           route: '/api/orgs/[orgId]/users/[userId]',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -192,8 +187,7 @@ describe('Integration: Full request lifecycle', () => {
           route: '/api/posts',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         },
         {
           fullPath: '/src/routes/api/posts.post.ts',
@@ -203,8 +197,7 @@ describe('Integration: Full request lifecycle', () => {
           route: '/api/posts',
           method: 'POST',
           exports: ['POST'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -256,15 +249,14 @@ describe('Integration: Redirects and response helpers', () => {
           route: '/api/old',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
       pages: [],
       routeLoaders: {
         'api/old.get.ts': async () => ({
-          GET: defineHandler(() => permanentRedirect('/api/new')) as any
+          GET: defineHandler(c => c.redirect('/api/new', 301)) as any
         })
       },
       middlewareLoaders: {}
@@ -288,8 +280,7 @@ describe('Integration: Redirects and response helpers', () => {
           route: '/api/page',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -322,8 +313,7 @@ describe('Integration: Redirects and response helpers', () => {
           route: '/api/created',
           method: 'POST',
           exports: ['POST'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -396,8 +386,7 @@ describe('Integration: Plugin hooks with routes', () => {
           route: '/api/ping',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -434,8 +423,7 @@ describe('Integration: Health and metadata endpoints', () => {
           route: '/api/data',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -474,8 +462,7 @@ describe('Integration: Query parameters', () => {
           route: '/api/search',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],
@@ -513,8 +500,7 @@ describe('Integration: Request headers via Response return', () => {
           route: '/api/echo',
           method: 'GET',
           exports: ['GET'],
-          hasMeta: false,
-          hasValidator: false
+          hasMeta: false
         }
       ],
       middleware: [],

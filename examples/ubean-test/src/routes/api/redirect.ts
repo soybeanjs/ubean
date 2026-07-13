@@ -1,5 +1,5 @@
-import { defineHandler, redirect } from 'ubean';
+import { defineHandler } from 'ubean';
 
-export const GET = defineHandler(() => {
-  return redirect('/api/hello');
+export const GET = defineHandler(c => {
+  return c.redirect('/api/hello');
 });

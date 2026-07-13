@@ -10,8 +10,7 @@ import {
   nodePreset
 } from '../src/core/preset';
 import { UbeanError, createError, isUbeanError, errorToResponse } from '../src/runtime/error';
-import { defineHandler, defineMeta, defineValidator } from '../src/runtime/handler';
-import { redirect, permanentRedirect } from '../src/runtime/response';
+import { defineHandler, defineHandlerMeta } from '../src/runtime/handler';
 
 describe('UbeanError', () => {
   it('should create error with status code', () => {
@@ -49,46 +48,36 @@ describe('UbeanError', () => {
   });
 });
 
-describe('defineMeta', () => {
+describe('defineHandlerMeta', () => {
   it('should return a meta middleware with public flag', () => {
-    const meta = defineMeta({ public: true });
+    const meta = defineHandlerMeta({ public: true });
     expect(typeof meta).toBe('function');
     expect((meta as any).meta.public).toBe(true);
     expect((meta as any).__brand).toBe('meta');
   });
 
-  it('should return meta with openapi', () => {
-    const meta = defineMeta({
+  it('should return meta with cache config', () => {
+    const meta = defineHandlerMeta({
       public: false,
-      openapi: {
-        tags: ['users'],
-        summary: 'Get user',
-        description: 'Get a user by ID'
+      cache: {
+        ttl: 60,
+        swr: true
       }
     });
-    expect((meta as any).meta.openapi?.tags).toEqual(['users']);
-    expect((meta as any).meta.openapi?.summary).toBe('Get user');
-  });
-});
-
-describe('defineValidator', () => {
-  it('should return a validator middleware function', () => {
-    const v = defineValidator({});
-    expect(v).toBeDefined();
-    expect(typeof v).toBe('function');
-    expect((v as any).__brand).toBe('validator');
+    expect((meta as any).meta.cache?.ttl).toBe(60);
+    expect((meta as any).meta.cache?.swr).toBe(true);
   });
 });
 
 describe('defineHandler', () => {
-  it('should create handler with single function', () => {
-    const handler = defineHandler(() => new Response('ok'));
-    expect(handler).toBeInstanceOf(Function);
-    expect((handler as any).__ubeanHandler).toBe(true);
+  it('should create route definition with single function', () => {
+    const def = defineHandler(() => new Response('ok'));
+    expect(Array.isArray(def)).toBe(true);
+    expect(def.length).toBe(1);
   });
 
   it('should compose multiple handlers', () => {
-    const handler = defineHandler(
+    const def = defineHandler(
       async (c, next) => {
         c.set('user', { id: 1 });
         await next();
@@ -98,18 +87,18 @@ describe('defineHandler', () => {
         return new Response(`User: ${user.id}`);
       }
     );
-    expect(handler).toBeInstanceOf(Function);
-    expect((handler as any).__ubeanHandler).toBe(true);
+    expect(Array.isArray(def)).toBe(true);
+    expect(def.length).toBe(2);
   });
 
-  it('should merge meta from defineMeta', () => {
-    const handler = defineHandler(defineMeta({ public: false }), () => new Response('ok'));
-    expect((handler as any).__meta.public).toBe(false);
+  it('should merge meta from defineHandlerMeta', () => {
+    const def = defineHandler(defineHandlerMeta({ public: false }), () => new Response('ok'));
+    expect((def as any).__routeMeta.public).toBe(false);
   });
 
   it('should default meta.public to true', () => {
-    const handler = defineHandler(() => new Response('ok'));
-    expect((handler as any).__meta.public).toBe(true);
+    const def = defineHandler(() => new Response('ok'));
+    expect((def as any).__routeMeta.public).toBe(true);
   });
 
   it('should throw when no handlers provided', () => {
@@ -223,26 +212,6 @@ describe('capabilities', () => {
     expect(result.diagnostics).toHaveLength(2);
     expect(result.diagnostics[0].supported).toBe(true);
     expect(result.diagnostics[1].supported).toBe(false);
-  });
-});
-
-describe('Response helpers', () => {
-  it('redirect creates 302 response with Location header', () => {
-    const res = redirect('/home');
-    expect(res.status).toBe(302);
-    expect(res.headers.get('Location')).toBe('/home');
-  });
-
-  it('redirect supports custom status code', () => {
-    const res = redirect('/new-url', 307);
-    expect(res.status).toBe(307);
-    expect(res.headers.get('Location')).toBe('/new-url');
-  });
-
-  it('permanentRedirect creates 301 response', () => {
-    const res = permanentRedirect('/permanent');
-    expect(res.status).toBe(301);
-    expect(res.headers.get('Location')).toBe('/permanent');
   });
 });
 

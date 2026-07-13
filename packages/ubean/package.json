@@ -100,7 +100,8 @@
     "ufo": "catalog:",
     "unimport": "catalog:",
     "unplugin-auto-import": "catalog:",
-    "unplugin-vue-components": "catalog:"
+    "unplugin-vue-components": "catalog:",
+    "unplugin-vue-markdown": "catalog:"
   },
   "devDependencies": {
     "@codemirror/commands": "catalog:",

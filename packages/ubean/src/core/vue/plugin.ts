@@ -1,5 +1,6 @@
 import type { Plugin } from 'vite';
 import Components from 'unplugin-vue-components/vite';
+import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import { join } from 'pathe';
 import type { InlinePreset } from 'unimport';
@@ -17,6 +18,8 @@ export interface UbeanVuePluginOptions {
   config: UbeanResolvedConfig;
   ssr?: boolean;
 }
+
+export const VUE_PLUGIN_INCLUDE = [/\.vue$/, /\.md$/];
 
 const VIRTUAL_CLIENT = '#ubean-client-entry';
 const RESOLVED_VIRTUAL_PREFIX = '\0virtual:ubean:';
@@ -38,14 +41,19 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const srcDir = join(ubeanConfig.rootDir, ubeanConfig.srcDir);
   const dtsDir = join(ubeanConfig.rootDir, '.ubean');
 
+  const markdownEnabled = ubeanConfig.markdown?.enabled !== false;
+  const mdxEnabled = ubeanConfig.markdown?.mdx === true;
   const autoImportEnabled = ubeanConfig.imports.autoImport !== false;
   const componentAutoImportEnabled = ubeanConfig.components.autoImport !== false;
+  const markdownComponentsAutoImport = ubeanConfig.markdown?.components?.autoImport !== false;
   const directoryAsNamespace = ubeanConfig.components.directoryAsNamespace ?? false;
 
   const composablesDirName = ubeanConfig.dir.composables || 'composables';
   const componentsDirName = ubeanConfig.dir.components || 'components';
   const composablesDirs = [join(srcDir, composablesDirName), ...(ubeanConfig.imports.dirs || [])];
   const componentsDirs = [join(srcDir, componentsDirName), ...(ubeanConfig.components.dirs || [])];
+
+  const mdExtensions = mdxEnabled ? ['md', 'mdx'] : ['md'];
 
   function getVirtualModule(hashId: string) {
     return virtualRegistry.getModules().find(m => m.id === hashId);
@@ -125,7 +133,8 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       async function handleFileChange(file: string) {
         const rel = file.replace(`${srcDir}/`, '');
         const isAppFile = /^app(\.(server|client))?\.(ts|js|mjs|mts)$/.test(rel);
-        if (isAppFile || watchDirs.some(d => rel.startsWith(`${d}/`))) {
+        const isMarkdownFile = new RegExp(`\\.(${mdExtensions.join('|')})$`).test(rel);
+        if (isAppFile || watchDirs.some(d => rel.startsWith(`${d}/`)) || isMarkdownFile) {
           await scanAndRegister();
           const resolvedIds = Object.values(RESOLVED_IDS);
           for (const vid of resolvedIds) {
@@ -146,6 +155,20 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
 
   const plugins: Plugin[] = [corePlugin];
 
+  if (markdownEnabled) {
+    const markdownOptions = {
+      ...ubeanConfig.markdown?.markdownExit,
+      html: true
+    };
+
+    plugins.push(
+      Markdown({
+        markdownOptions,
+        wrapperClasses: 'markdown-body'
+      }) as Plugin
+    );
+  }
+
   if (autoImportEnabled) {
     plugins.push(
       AutoImport({
@@ -159,10 +182,20 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   }
 
   if (componentAutoImportEnabled) {
+    const extensions = ['vue'];
+    const includePatterns = [/\.vue$/, /\.vue\?vue/];
+
+    if (markdownEnabled && markdownComponentsAutoImport) {
+      extensions.push(...mdExtensions);
+      includePatterns.push(/\.md$/);
+      if (mdxEnabled) includePatterns.push(/\.mdx$/);
+    }
+
     plugins.push(
       Components({
         dirs: componentsDirs,
-        extensions: ['vue'],
+        extensions,
+        include: includePatterns,
         directoryAsNamespace,
         dts: join(dtsDir, 'components.d.ts'),
         deep: true

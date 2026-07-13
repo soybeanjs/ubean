@@ -4,12 +4,7 @@ import { build as viteBuild } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { join, resolve, relative } from 'pathe';
 import type { ResolvedConfig } from '../../config/types';
-import { ubeanVuePlugin } from '../../vue/plugin';
-import {
-  createVuePagesVirtualModule,
-  createVueAppEntryVirtualModule,
-  createClientEntryVirtualModule
-} from '../../vue/virtual-modules';
+import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '../../vue/plugin';
 import { resolveModules } from '../../modules';
 import {
   createRoutingVirtualModule,
@@ -22,6 +17,11 @@ import { ubeanIslandsPlugin } from '../../islands';
 import { logger } from '../../log';
 import type { Preset } from '../../preset/_utils/preset';
 import type { ScanResult } from '../../routing/types';
+import {
+  createVuePagesVirtualModule,
+  createVueAppEntryVirtualModule,
+  createClientEntryVirtualModule
+} from '../../vue/virtual-modules';
 import { useVirtualRegistry } from '../virtual/registry';
 import { ubeanPlugin } from './plugin';
 
@@ -298,7 +298,12 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   logger.info('Generating virtual modules...');
   await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual);
 
-  const builtinPlugins: any[] = [vue(), ubeanPlugin({ config }), ...ubeanVuePlugin({ config }), ubeanIslandsPlugin()];
+  const builtinPlugins: any[] = [
+    vue({ include: VUE_PLUGIN_INCLUDE }),
+    ubeanPlugin({ config }),
+    ...ubeanVuePlugin({ config }),
+    ubeanIslandsPlugin()
+  ];
 
   const { plugins } = await resolveModules({
     cwd,
@@ -369,7 +374,15 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     plugins: [...plugins],
     resolve: commonResolve,
     optimizeDeps: {
-      exclude: ['ubean', 'virtual:ubean-pages.ts', 'virtual:ubean-app.ts', 'virtual:ubean-client-entry.ts', '#ubean-pages', '#ubean-app', '#ubean-client-entry']
+      exclude: [
+        'ubean',
+        'virtual:ubean-pages.ts',
+        'virtual:ubean-app.ts',
+        'virtual:ubean-client-entry.ts',
+        '#ubean-pages',
+        '#ubean-app',
+        '#ubean-client-entry'
+      ]
     }
   });
 

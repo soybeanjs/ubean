@@ -5,7 +5,7 @@ import type { ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
 import { ubeanPlugin } from '../build/vite/plugin';
-import { ubeanVuePlugin } from '../vue/plugin';
+import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '../vue/plugin';
 import { resolveModules } from '../modules';
 import type { UbeanApp } from '../../runtime/app';
 import { ubeanIslandsPlugin } from '../islands/transform';
@@ -87,7 +87,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   let viteServer: ViteDevServer | null = null;
   let actualPort = options.port;
 
-  const builtinPlugins: any[] = [vue(), ubeanPlugin({ config }), ...ubeanVuePlugin({ config }), ubeanIslandsPlugin()];
+  const builtinPlugins: any[] = [
+    vue({ include: VUE_PLUGIN_INCLUDE }),
+    ubeanPlugin({ config }),
+    ...ubeanVuePlugin({ config }),
+    ubeanIslandsPlugin()
+  ];
 
   const { plugins } = await resolveModules({
     cwd,
@@ -138,6 +143,13 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       pageLoaders[page.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
     }
     app.options.pageLoaders = pageLoaders;
+
+    const middlewareLoaders: Record<string, () => Promise<any>> = {};
+    for (const mw of app.options.middleware || []) {
+      const fullPath = mw.fullPath;
+      middlewareLoaders[mw.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
+    }
+    app.options.middlewareLoaders = middlewareLoaders;
 
     const layoutMap = new Map<string, string>();
     for (const layout of layouts) {

@@ -65,7 +65,7 @@ export const buildCommand: CommandDef = {
     await generateTypes(result, {
       cwd,
       srcDir: config.srcDir,
-      buildDir: config.build.outputDir,
+      buildDir: '.ubean',
       dirs: config.dir,
       imports: config.imports,
       components: config.components,

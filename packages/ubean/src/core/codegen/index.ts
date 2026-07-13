@@ -155,7 +155,7 @@ function generatePageTypes(result: ScanResult): string {
     lines.push(layoutNames.map(n => `    | ${n}`).join('\n'));
     lines.push('  ;');
   } else {
-    lines.push('  export type LayoutName = "default" | string;');
+    lines.push('  export type LayoutName = string;');
   }
 
   lines.push('');

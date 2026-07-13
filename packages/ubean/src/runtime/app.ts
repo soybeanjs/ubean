@@ -7,7 +7,7 @@ import type { RouteRule } from '../core/config/types';
 import { createDevToolsMiddleware } from '../core/devtools';
 import { getCustomTabs } from '../core/devtools/define-tab';
 import type { DevToolsCustomTab } from '../core/devtools/types';
-import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../core/routing/types';
+import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '../core/routing/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '../types/handler';
 import { registerRoutes } from './router';
 import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from './cache';
@@ -41,6 +41,7 @@ export interface UbeanAppOptions {
   routes?: ScannedApiRoute[];
   middleware?: ScannedMiddleware[];
   pages?: ScannedPageRoute[];
+  layouts?: ScannedLayout[];
   routeRules?: Record<string, RouteRule>;
   plugins?: UbeanAppPlugin[];
   routeLoaders?: Record<string, () => Promise<{ default: ComposedHandler } | Record<string, ComposedHandler>>>;
@@ -155,6 +156,7 @@ export class UbeanApp {
       routes: this.options.routes || [],
       middleware: this.options.middleware || [],
       pages: this.options.pages || [],
+      layouts: this.options.layouts || [],
       routeLoaders: this.options.routeLoaders || {},
       middlewareLoaders: this.options.middlewareLoaders || {},
       pageLoaders: this.options.pageLoaders || {},

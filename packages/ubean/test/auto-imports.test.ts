@@ -36,19 +36,6 @@ describe('Auto imports', () => {
   }
 
   describe('getBuiltinComposables', () => {
-    it('returns Vue core APIs', () => {
-      const builtins = getBuiltinComposables();
-      const names = builtins.map(i => i.name);
-
-      expect(names).toContain('ref');
-      expect(names).toContain('computed');
-      expect(names).toContain('reactive');
-      expect(names).toContain('watch');
-      expect(names).toContain('onMounted');
-      expect(names).toContain('defineProps');
-      expect(names).toContain('defineEmits');
-    });
-
     it('returns ubean composables', () => {
       const builtins = getBuiltinComposables();
       const names = builtins.map(i => i.name);
@@ -57,14 +44,29 @@ describe('Auto imports', () => {
       expect(names).toContain('useI18n');
       expect(names).toContain('useSeoMeta');
       expect(names).toContain('useData');
+      expect(names).toContain('definePage');
+      expect(names).toContain('defineMeta');
     });
 
-    it('includes Vue macros', () => {
+    it('does not include Vue core APIs', () => {
       const builtins = getBuiltinComposables();
       const names = builtins.map(i => i.name);
 
-      expect(names).toContain('$ref');
-      expect(names).toContain('$computed');
+      expect(names).not.toContain('ref');
+      expect(names).not.toContain('computed');
+      expect(names).not.toContain('reactive');
+      expect(names).not.toContain('watch');
+      expect(names).not.toContain('onMounted');
+      expect(names).not.toContain('defineProps');
+      expect(names).not.toContain('defineEmits');
+    });
+
+    it('does not include Vue macros', () => {
+      const builtins = getBuiltinComposables();
+      const names = builtins.map(i => i.name);
+
+      expect(names).not.toContain('$ref');
+      expect(names).not.toContain('$computed');
     });
   });
 

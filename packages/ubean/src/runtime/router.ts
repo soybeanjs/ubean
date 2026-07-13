@@ -1,5 +1,5 @@
 import type { Context, Next } from 'hono';
-import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute } from '../core/routing/types';
+import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '../core/routing/types';
 import type { ComposedHandler, RouteMeta, UbeanEnv, UbeanMiddleware } from '../types/handler';
 import { getLocale, getLocaleDir } from './i18n';
 import type { UbeanApp } from './app';
@@ -10,6 +10,7 @@ export interface RegisterOptions {
   routes: ScannedApiRoute[];
   middleware: ScannedMiddleware[];
   pages: ScannedPageRoute[];
+  layouts?: ScannedLayout[];
   routeLoaders: Record<
     string,
     () => Promise<{
@@ -66,8 +67,19 @@ function middlewarePathToHonoPath(relativePath: string): string {
 }
 
 export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
-  const { routes, middleware, pages, routeLoaders, middlewareLoaders, pageRenderer, pageAssetTags, pageLoaders } =
-    options;
+  const {
+    routes,
+    middleware,
+    pages,
+    layouts = [],
+    routeLoaders,
+    middlewareLoaders,
+    pageRenderer,
+    pageAssetTags,
+    pageLoaders
+  } = options;
+
+  const hasDefaultLayout = layouts.some(l => l.isDefault);
 
   const sortedMiddleware = [...middleware].sort((a, b) => a.order - b.order);
 
@@ -247,7 +259,8 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
       props,
       params: c.req.param(),
       url: c.req.path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
-      layout: page.layout === false ? false : page.layout || page.pageMeta?.layout || 'default',
+      layout:
+        page.layout === false ? false : page.layout || page.pageMeta?.layout || (hasDefaultLayout ? 'default' : false),
       errors: actionErrors,
       head: page.pageMeta?.head
     };

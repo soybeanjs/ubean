@@ -149,7 +149,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   if (autoImportEnabled) {
     plugins.push(
       AutoImport({
-        imports: ['vue', 'vue/macros', UBEAN_PRESET as InlinePreset],
+        imports: [UBEAN_PRESET as InlinePreset],
         dirs: composablesDirs,
         dts: join(dtsDir, 'auto-imports.d.ts'),
         vueTemplate: true,

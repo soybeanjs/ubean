@@ -123,7 +123,7 @@ export const UBEAN_PRESET: InlinePreset = {
   ]
 };
 
-export const BUILTIN_PRESETS: InlinePreset[] = [VUE_PRESET, VUE_MACROS_PRESET, UBEAN_PRESET];
+export const BUILTIN_PRESETS: InlinePreset[] = [UBEAN_PRESET];
 
 export interface ComponentInfo {
   name: string;
@@ -390,7 +390,7 @@ export function getUbeanAutoImportConfig(
   const composablesDirs = [join(srcDir, composablesDirName), ...(options.composablesDirs || [])];
 
   return {
-    imports: ['vue', 'vue/macros', UBEAN_PRESET],
+    imports: [UBEAN_PRESET],
     dirs: composablesDirs,
     dts: join(cwd, buildDir, 'auto-imports.d.ts'),
     vueTemplate: true,

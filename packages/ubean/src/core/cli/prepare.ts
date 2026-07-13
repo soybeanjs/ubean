@@ -30,8 +30,8 @@ export const prepareCommand: CommandDef = {
     logger.start(`Preparing ubean project at ${cwd}...`);
 
     const config = await loadUbeanConfig(cwd);
-    const buildDir = config.build.outputDir || '.ubean';
-    await ensureBuildDir(cwd, buildDir);
+    const typesDir = '.ubean';
+    await ensureBuildDir(cwd, typesDir);
 
     logger.info('Scanning project files...');
     const result = await scanProject({
@@ -49,7 +49,7 @@ export const prepareCommand: CommandDef = {
     const codegenResult = await generateTypes(result, {
       cwd,
       srcDir: config.srcDir,
-      buildDir,
+      buildDir: typesDir,
       dirs: config.dir,
       imports: config.imports,
       components: config.components,

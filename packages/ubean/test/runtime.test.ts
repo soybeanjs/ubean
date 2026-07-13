@@ -462,6 +462,16 @@ describe('registerRoutes', () => {
           isReuse: false
         }
       ],
+      layouts: [
+        {
+          fullPath: '/src/layouts/default.vue',
+          relativePath: 'default.vue',
+          dirname: '.',
+          basename: 'default.vue',
+          name: 'default',
+          isDefault: true
+        }
+      ],
       routeLoaders: {},
       middlewareLoaders: {}
     });
@@ -859,7 +869,7 @@ describe('vue virtual modules', () => {
     expect(code).toContain('/src/layouts/default.vue');
     expect(code).toContain('/src/layouts/blank.vue');
     expect(code).toContain('Page component not found');
-    expect(code).toContain('Layout component not found');
+    expect(code).not.toContain('Layout component not found');
   });
 
   it('createVuePagesVirtualModule handles empty pages/layouts', async () => {
@@ -867,7 +877,9 @@ describe('vue virtual modules', () => {
     const code = await mod.load();
 
     expect(code).toContain('defaultLayout = null');
-    expect(code).toContain('RouteName = string');
+    expect(code).toContain('as const');
+    expect(code).toContain('(typeof pageNames)[number]');
+    expect(code).toContain('(typeof layoutNames)[number]');
   });
 
   it('createVueAppEntryVirtualModule re-exports from ubean packages', async () => {

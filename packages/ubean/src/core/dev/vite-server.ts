@@ -123,6 +123,8 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   } as any)) as ViteDevServer;
 
   function enhanceAppWithVite(app: UbeanApp, layouts: ScannedLayout[] = []) {
+    app.options.layouts = layouts;
+
     const routeLoaders: Record<string, () => Promise<any>> = {};
     for (const route of app.options.routes || []) {
       const fullPath = route.fullPath;

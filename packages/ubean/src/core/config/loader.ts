@@ -5,7 +5,7 @@ import type { UbeanConfig, ResolvedConfig } from './types';
 
 const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
-  srcDir: '.',
+  srcDir: 'src',
   modules: [],
   icon: false,
   pwa: false,
@@ -18,8 +18,8 @@ const configDefaults: ResolvedConfig = {
     layouts: 'layouts',
     middleware: 'middleware',
     plugins: 'plugins',
-    composables: 'src/composables',
-    components: 'src/components',
+    composables: 'composables',
+    components: 'components',
     public: 'public',
     crons: 'crons',
     queues: 'queues',
@@ -35,8 +35,8 @@ const configDefaults: ResolvedConfig = {
     headings: { anchorLinks: true },
     components: { autoImport: true }
   },
-  imports: { autoImport: true, dirs: ['composables', 'src/composables'], global: false },
-  components: { autoImport: true, dirs: ['src/components', 'components'], directoryAsNamespace: false },
+  imports: { autoImport: true, dirs: [], global: false },
+  components: { autoImport: true, dirs: [], directoryAsNamespace: false },
   i18n: {
     defaultLocale: 'en',
     locales: ['en'],

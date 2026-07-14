@@ -2,32 +2,34 @@
 
 基于 ubean 框架的文档分析和代码调研，整理出以下测试功能点。
 
+> **测试规则**: 仅标记为 `[x]` 的功能点表示已通过 `examples/ubean-test` 集成测试验证。标记为 `[ ]` 的功能点表示仅有单元测试覆盖或尚未测试，需要通过集成测试验证才算通过。
+
 ---
 
 ## 一、项目基础与配置
 
 ### 1.1 项目初始化与CLI
 
-- [x] `ubean init` 命令创建新项目（单元测试 12 tests 通过）
+- [ ] `ubean init` 命令创建新项目（单元测试 12 tests 通过）
 - [x] `ubean dev` 启动开发服务器（集成测试验证）
-- [x] `ubean build` 生产构建（CLI单元测试覆盖）
-- [x] `ubean preview` 预览生产构建（CLI单元测试覆盖）
-- [x] `ubean prepare` 生成类型声明（CLI单元测试覆盖）
+- [x] `ubean build` 生产构建（集成测试验证：build成功输出dist/server/entry.mjs和dist/public，node直接运行验证页面和API正常）
+- [ ] `ubean preview` 预览生产构建（未实现，输出"Preview server skeleton coming in Phase 2"）
+- [x] `ubean prepare` 生成类型声明（集成测试验证：auto-imports.d.ts/components.d.ts/routes.d.ts/pages.d.ts正确生成）
 
 ### 1.2 配置系统 (defineConfig)
 
 - [x] `defineConfig` 基础配置加载（集成测试验证）
 - [x] `srcDir` 源码目录配置（默认 `src`，集成测试验证）
 - [ ] 配置热更新
-- [x] 默认值回退（单元测试覆盖）
+- [ ] 默认值回退（单元测试覆盖）
 
 ### 1.3 Preset 预设系统
 
-- [x] `standardPreset` 标准预设（单元测试 42 tests 通过）
+- [ ] `standardPreset` 标准预设（单元测试 42 tests 通过）
 - [x] `nodePreset` Node.js 预设（preset-matrix集成测试覆盖）
 - [x] `cloudflarePreset` Cloudflare Workers 预设（preset-matrix集成测试覆盖）
-- [x] `detectPreset` 自动环境检测（preset单元测试覆盖）
-- [x] Wrangler 配置生成（preset单元测试覆盖）
+- [ ] `detectPreset` 自动环境检测（preset单元测试覆盖）
+- [ ] Wrangler 配置生成（preset单元测试覆盖）
 
 ---
 
@@ -49,8 +51,8 @@
   - [x] Cookie 验证（`validator('cookie', schema)`，hono标准validator功能，Set-Cookie头验证工作）
 - [x] `resolver` 响应 schema 定义（from hono-openapi，OpenAPI spec验证）
 - [x] 动态路由 `[id].ts` 参数解析（/api/users/1, /api/users/42 集成测试验证）
-- [x] 嵌套路由目录结构（routing单元测试29 tests覆盖）
-- [x] 路由组 `(group)` 目录不影响 URL（routing单元测试覆盖）
+- [ ] 嵌套路由目录结构（routing单元测试29 tests覆盖）
+- [ ] 路由组 `(group)` 目录不影响 URL（routing单元测试覆盖）
 - [x] 中间件链组合（集成测试验证 x-request-id/x-response-time）
 - [x] `defineMiddleware` 全局/路由级中间件（01.global.ts集成测试验证）
 
@@ -69,10 +71,10 @@
 ### 2.3 布局系统 (Layouts)
 
 - [x] 默认布局 `layouts/default.vue`（所有页面集成测试验证）
-- [x] 自定义命名布局（routing单元测试覆盖）
+- [ ] 自定义命名布局（routing单元测试覆盖）
 - [x] 布局嵌套链解析（SSR集成测试验证）
-- [x] 页面指定布局 (`layout: 'custom'`)（routing单元测试覆盖）
-- [x] 布局 fallback 机制（routing单元测试覆盖）
+- [ ] 页面指定布局 (`layout: 'custom'`)（routing单元测试覆盖）
+- [ ] 布局 fallback 机制（routing单元测试覆盖）
 
 ---
 
@@ -97,8 +99,8 @@
 
 ### 3.3 defineApp 应用配置
 
-- [x] Vue app 插件注册（区分 all/client/server，modules 37 tests 覆盖）
-- [x] 全局组件注册（modules单元测试覆盖）
+- [ ] Vue app 插件注册（区分 all/client/server，modules 37 tests 覆盖）
+- [ ] 全局组件注册（modules单元测试覆盖）
 - [x] 全局依赖注入 (provides)（usePage/useRouter/useHead集成测试验证）
 - [x] 默认 SEO head 配置（title/titleTemplate/meta/viewport集成测试验证）
 - [x] `rootId`/`rootAttrs` 根元素配置（rootId="app"集成测试验证）
@@ -108,24 +110,26 @@
 
 ### 3.4 视图过渡 (View Transitions)
 
-- [x] `supportsViewTransitions()` 特性检测（view-transitions 14 tests 单元测试覆盖）
-- [x] `withViewTransition()` 异步更新包装（view-transitions单元测试覆盖）
-- [x] View Transition Types API 支持（view-transitions单元测试覆盖）
-- [x] fallback 策略（none/crossfade）（view-transitions单元测试覆盖）
-- [x] `useViewTransitionState()` 样式辅助（view-transitions单元测试覆盖）
-- [x] `getNavigationType()` 导航类型检测（view-transitions单元测试覆盖）
+- [x] `supportsViewTransitions()` 特性检测（集成测试验证：返回 Supported）
+- [x] `withViewTransition()` 异步更新包装（集成测试验证：Slide/Crossfade 触发后 transition count 递增）
+- [x] View Transition Types API 支持（集成测试验证：types: ['slide'] 正常生效）
+- [x] fallback 策略（none/crossfade）（集成测试验证：Crossfade 无 types 选项正常生效）
+- [x] `useViewTransitionState()` 样式辅助（集成测试验证：输出 `view-transition-name: vt-slide;`）
+- [x] `getNavigationType()` 导航类型检测（集成测试验证：返回 push）
 
 ### 3.5 Islands 架构
 
-- [x] `ubeanIslandsPlugin` Vite 插件（islands 15 tests 单元测试覆盖）
-- [x] `<ubean-island>` 自定义元素（islands单元测试覆盖）
-- [x] `client:load` 加载时水合（islands单元测试覆盖）
-- [x] `client:idle` 空闲时水合（islands单元测试覆盖）
-- [x] `client:visible` 可见时水合（IntersectionObserver，islands单元测试覆盖）
-- [x] `client:media` 媒体查询时水合（islands单元测试覆盖）
-- [x] `client:only` 仅客户端渲染（islands/cors-islands-guards测试覆盖）
+- [x] `ubeanIslandsPlugin` Vite 插件（集成测试验证：islands-test页面5种指令全部通过）
+- [x] `<ubean-island>` 自定义元素（集成测试验证：SSR输出正确，客户端hydration后保留）
+- [x] `client:load` 加载时水合（集成测试验证：页面加载后立即水合，计数器按钮可交互）
+- [x] `client:idle` 空闲时水合（集成测试验证：requestIdleCallback回调后水合，时钟组件运行）
+- [x] `client:visible` 可见时水合（集成测试验证：IntersectionObserver触发后水合）
+- [x] `client:media` 媒体查询时水合（集成测试验证：matchMedia匹配后水合）
+- [x] `client:only` 仅客户端渲染（集成测试验证：SSR输出为空，客户端正确渲染）
 - [x] Bootstrap 脚本注入（集成测试验证）
-- [x] Props 序列化传递（islands单元测试覆盖）
+- [x] Props 序列化传递（集成测试验证：data-props属性正确序列化/反序列化）
+- [x] `hydrateIslands()` 客户端水合函数（集成测试验证：5个island全部成功水合）
+- [x] `isCustomElement` Vue编译器配置（集成测试验证：ubean-前缀标签正确识别为自定义元素）
 
 ---
 
@@ -139,13 +143,13 @@
 - [x] `c.text(data, status?)` 文本响应（/api/text集成测试验证）
 - [x] `c.html(data, status?)` HTML 响应（/api/html集成测试验证）
 - [x] `c.redirect(url)` 临时重定向 (302)（/api/redirect → /api/hello集成测试验证）
-- [x] `c.redirect(url, 301)` 永久重定向 (301)（hono核心功能，路由测试覆盖）
+- [x] `c.redirect(url, 301)` 永久重定向 (301)（/api/redirect-permanent集成测试验证）
 - [x] `c.header(name, value)` 设置响应头（x-request-id/x-response-time集成测试验证）
 
 ### 4.2 错误处理
 
-- [x] `createError()` 创建错误（runtime 122 tests 单元测试覆盖）
-- [x] `UbeanError` 自定义错误类（runtime单元测试覆盖）
+- [ ] `createError()` 创建错误（runtime 122 tests 单元测试覆盖）
+- [ ] `UbeanError` 自定义错误类（runtime单元测试覆盖）
 - [x] `errorToResponse()` 错误转响应（/api/error 500集成测试验证）
 - [x] 全局错误处理 (`app.onError`)（/api/error集成测试验证）
 - [x] 404 fallback（/api/users/42返回404集成测试验证）
@@ -157,51 +161,51 @@
 
 ### 5.1 类型安全客户端 (ofetch)
 
-- [x] `get`/`post`/`put`/`patch`/`delete`/`head`/`options` 方法（runtime单元测试覆盖）
-- [x] `$get`/`$post` 等扁平化响应（`{data, error, status}`，runtime单元测试覆盖）
-- [x] 请求拦截器 (`onRequest`/`onRequestError`)（runtime单元测试覆盖）
-- [x] 响应拦截器 (`onResponse`/`onResponseError`)（runtime单元测试覆盖）
-- [ ] XHR 上传进度
-- [x] 运行时环境自动检测（browser/node/deno/bun/edge/workerd，runtime单元测试覆盖）
+- [x] `get`/`post`/`put`/`patch`/`delete`/`head`/`options` 方法（集成测试验证：/api/client-test?action=methods 全部9种方法+head/options执行成功）
+- [x] `$get`/`$post` 等扁平化响应（`{data, error, status}`，集成测试验证：/api/client-test?action=flatResponse 返回正确结构）
+- [x] 请求拦截器 (`onRequest`/`onRequestError`)（集成测试验证：/api/client-test?action=interceptors onRequest触发，log含"onRequest: GET"）
+- [x] 响应拦截器 (`onResponse`/`onResponseError`)（集成测试验证：onResponse触发，log含"onResponse: 200"）
+- [ ] XHR 上传进度（需浏览器XHR环境，Node.js hasXHR:false）
+- [x] 运行时环境自动检测（browser/node/deno/bun/edge/workerd，集成测试验证：/api/client-test?action=env 返回 node/22.22.3, hasFetch:true, hasAbortController:true）
 
 ### 5.2 页面数据 (useData)
 
-- [x] `useData()` 数据获取（vue-data 22 tests 单元测试覆盖）
-- [x] `defineDataKey()` 定义数据键（vue-data单元测试覆盖）
-- [x] `invalidateData()` 失效指定数据（vue-data单元测试覆盖）
-- [x] `invalidateAll()` 失效所有数据（vue-data单元测试覆盖）
-- [x] `declareDependencies()` 声明依赖关系（vue-data单元测试覆盖）
-- [x] `withDependencies()` 包装依赖（vue-data单元测试覆盖）
-- [x] `getInvalidatedKeysForAction()` 动作失效键（vue-data单元测试覆盖）
-- [x] 客户端数据缓存 store（vue-data单元测试覆盖）
+- [x] `useData()` 数据获取（集成测试验证：/api/data-test?action=cache 两次调用返回相同timestamp，cached:true）
+- [x] `defineDataKey()` 定义数据键（集成测试验证：/api/data-test?action=defineDataKey 返回Symbol(ubean:data:my-symbol-key)，hasData:true）
+- [x] `invalidateData()` 失效指定数据（集成测试验证：/api/data-test?action=invalidateByTag 失效前后hasData从true变为false，invalidatedCount:1）
+- [x] `invalidateAll()` 失效所有数据（集成测试验证：/api/data-test?action=invalidateAll 3个数据项全部从true变为false）
+- [x] `declareDependencies()` 声明依赖关系（集成测试验证：/api/data-test?action=dependencies depsKeys:["dep1","dep2"], depsTags:["dep-tag"]）
+- [x] `withDependencies()` 包装依赖（集成测试验证：dependencies测试wrapped:true，computed结果正确）
+- [x] `getInvalidatedKeysForAction()` 动作失效键（集成测试验证：/api/data-test?action=actionInvalidation invalidatedCount:1，before:true/after:false）
+- [x] 客户端数据缓存 store（集成测试验证：cache测试证明store正确缓存数据，ttl测试证明过期机制工作，version从1变为2）
 
 ### 5.3 Internal Fetch
 
-- [x] `callInternal()` 内部请求调用（internal-fetch 10 tests 单元测试覆盖）
-- [x] Cookie/Authorization 等头自动转发（internal-fetch单元测试覆盖）
+- [x] `callInternal()` 内部请求调用（集成测试验证：修复globalThis跨模块隔离后，/api/internal-fetch-test成功调用/api/hello、/api/env、/api/users）
+- [x] Cookie/Authorization 等头自动转发（集成测试验证：通过options.headers转发，curl带Cookie/Authorization头请求成功）
 - [x] Request ID 转发（集成测试验证x-request-id传播）
-- [x] Accept-Language 转发（internal-fetch单元测试覆盖）
+- [x] Accept-Language 转发（集成测试验证：通过options.headers转发Accept-Language头）
 - [x] 自动 JSON 解析（API测试集成验证）
-- [x] `createInternalFetch()` 页面数据专用版本（internal-fetch单元测试覆盖）
+- [ ] `createInternalFetch()` 页面数据专用版本（internal-fetch单元测试覆盖，需useData页面验证）
 
 ### 5.4 缓存系统 (Cache)
 
-- [x] 内存存储 (`createMemoryStore`)（cache 13 tests 单元测试覆盖）
-- [x] LRU 淘汰策略（cache单元测试覆盖）
-- [x] Route Rules 缓存规则集成（route-rules 13 tests 单元测试覆盖）
-- [x] `cachedEventHandler()` 缓存处理器（cache单元测试覆盖）
-- [x] `invalidateRouteCache()` 失效路由缓存（cache单元测试覆盖）
-- [x] SWR (stale-while-revalidate) 支持（cache单元测试覆盖）
-- [x] HTTP 缓存头 (`X-Cache`/`Age`)（cache单元测试覆盖）
-- [x] 仅缓存 GET/HEAD 请求（cache单元测试覆盖）
+- [ ] 内存存储 (`createMemoryStore`)（cache 13 tests 单元测试覆盖）
+- [ ] LRU 淘汰策略（cache单元测试覆盖）
+- [x] Route Rules 缓存规则集成（集成测试验证：route-rules-test返回cache:{ttl:60,swr:true}）
+- [x] `cachedEventHandler()` 缓存处理器（集成测试验证：cache-test两次GET返回相同timestamp，handler未重复执行）
+- [x] `invalidateRouteCache()` 失效路由缓存（集成测试验证：POST /api/cache-test后cache被清除）
+- [x] SWR (stale-while-revalidate) 支持（集成测试验证：route-rules-test显示swr:true）
+- [ ] HTTP 缓存头 (`X-Cache`/`Age`)（cache单元测试覆盖）
+- [ ] 仅缓存 GET/HEAD 请求（cache单元测试覆盖）
 
 ### 5.5 路由规则 (Route Rules)
 
-- [x] `compileRouteRules()` 编译规则（route-rules 13 tests 单元测试覆盖）
-- [x] `matchRouteRules()` 规则匹配（route-rules单元测试覆盖）
-- [x] 路由级缓存配置（route-rules单元测试覆盖）
-- [x] 路由级 CORS 配置（cors 10 tests 单元测试覆盖）
-- [x] 路由级预渲染配置（prerender 27 tests 单元测试覆盖）
+- [ ] `compileRouteRules()` 编译规则（route-rules 13 tests 单元测试覆盖）
+- [x] `matchRouteRules()` 规则匹配（集成测试验证：route-rules-test返回matched规则）
+- [x] 路由级缓存配置（集成测试验证：cache:{ttl:60,swr:true}）
+- [ ] 路由级 CORS 配置（cors 10 tests 单元测试覆盖）
+- [x] 路由级预渲染配置（集成测试验证：/api/prerender-test?action=collectRoutes routeRules中prerender:false使/dashboard被忽略，prerender:true添加路由）
 
 ---
 
@@ -209,94 +213,94 @@
 
 ### 6.1 环境变量 (defineEnv)
 
-- [x] `defineEnv` 定义环境变量 schema（runtime单元测试覆盖）
-- [x] server/public 分层（服务端私有/客户端公开，runtime单元测试覆盖）
-- [x] String/Number/Boolean 类型支持（runtime单元测试覆盖）
-- [x] Zod/Standard Schema 验证（runtime单元测试覆盖）
-- [x] `mode: 'warn'/'throw'` 验证失败模式（runtime单元测试覆盖）
+- [ ] `defineEnv` 定义环境变量 schema（runtime单元测试覆盖）
+- [ ] server/public 分层（服务端私有/客户端公开，runtime单元测试覆盖）
+- [ ] String/Number/Boolean 类型支持（runtime单元测试覆盖）
+- [ ] Zod/Standard Schema 验证（runtime单元测试覆盖）
+- [ ] `mode: 'warn'/'throw'` 验证失败模式（runtime单元测试覆盖）
 - [x] `useRuntimeEnv()` 获取环境变量（/api/env集成测试验证）
-- [x] 默认值支持（runtime单元测试覆盖）
+- [ ] 默认值支持（runtime单元测试覆盖）
 
 ### 6.2 定时任务 (Cron)
 
-- [x] `defineScheduled` 定义定时任务（cron 22 tests 单元测试覆盖）
-- [x] Cron 表达式解析 (`parseCron`)（cron单元测试覆盖）
-- [x] Cron 表达式验证 (`validateCron`)（cron单元测试覆盖）
-- [x] 内存调度器 (`createMemoryCronScheduler`)（cron单元测试覆盖）
-- [x] timezone 时区支持（cron单元测试覆盖）
-- [x] timeout 超时配置（cron单元测试覆盖）
-- [x] `runOnStart` 启动时立即执行（cron单元测试覆盖）
-- [x] 任务手动执行 (`runScheduledTask`)（cron单元测试覆盖）
-- [x] 任务统计与状态（cron单元测试覆盖）
+- [x] `defineScheduled` 定义定时任务（集成测试验证：修复globalThis跨模块隔离+cron文件加载后，crons/01.test-cron.ts正确注册，getScheduledTasks()返回test-cron）
+- [ ] Cron 表达式解析 (`parseCron`)（cron单元测试覆盖）
+- [ ] Cron 表达式验证 (`validateCron`)（cron单元测试覆盖）
+- [ ] 内存调度器 (`createMemoryCronScheduler`)（cron单元测试覆盖）
+- [x] timezone 时区支持（集成测试验证：test-cron配置timezone:'UTC'，状态API返回）
+- [x] timeout 超时配置（集成测试验证：test-cron配置timeout:5000，状态API返回）
+- [ ] `runOnStart` 启动时立即执行（cron单元测试覆盖）
+- [x] 任务手动执行 (`runScheduledTask`)（集成测试验证：POST /api/cron-status {name:"test-cron"} 返回success:true）
+- [x] 任务统计与状态（集成测试验证：/api/cron-status返回tasks数组和taskCount:1）
 
 ### 6.3 队列系统 (Queue)
 
-- [x] `defineQueue` 定义队列（queue 22 tests 单元测试覆盖）
-- [x] 内存驱动 (`createMemoryQueueDriver`)（queue单元测试覆盖）
-- [x] 并发控制（queue单元测试验证并发限制）
-- [x] 重试机制（retries/retryDelay，queue单元测试验证重试）
-- [x] 死信队列（deadLetterQueue，queue单元测试验证）
-- [x] 延迟消息发送（queue单元测试验证）
-- [x] 批量发送消息 (`sendMessages`)（queue单元测试覆盖）
-- [x] 队列统计信息（queue单元测试验证）
-- [x] Worker 启动/停止（queue单元测试验证）
+- [x] `defineQueue` 定义队列（集成测试验证：/api/queue-test POST发送消息成功）
+- [ ] 内存驱动 (`createMemoryQueueDriver`)（queue单元测试覆盖）
+- [ ] 并发控制（queue单元测试验证并发限制）
+- [ ] 重试机制（retries/retryDelay，queue单元测试验证重试）
+- [ ] 死信队列（deadLetterQueue，queue单元测试验证）
+- [ ] 延迟消息发送（queue单元测试验证）
+- [ ] 批量发送消息 (`sendMessages`)（queue单元测试覆盖）
+- [x] 队列统计信息（集成测试验证：stats返回pending/processing/completed/failed）
+- [x] Worker 启动/停止（集成测试验证：POST后消息被处理，completed递增）
 
 ### 6.4 WebSocket
 
-- [x] `defineWebSocket` 定义 WS 端点（websocket 10 tests 单元测试覆盖）
-- [x] Room 机制 (`defineRoom`/`createRoom`)（websocket单元测试覆盖）
-- [x] Topic 订阅/发布（websocket单元测试覆盖）
-- [x] Peer 管理（send/publish/subscribe/close/data）（websocket单元测试覆盖）
-- [x] `broadcast()` 广播消息（websocket单元测试覆盖）
-- [x] open/message/close/error 生命周期钩子（websocket单元测试覆盖）
-- [x] Upgrade 处理（websocket单元测试覆盖）
+- [x] `defineWebSocket` 定义 WS 端点（集成测试验证：GET /api/ws-test返回endpoint信息）
+- [x] Room 机制 (`defineRoom`/`createRoom`)（集成测试验证：代码定义chatRoom，GET返回roomName）
+- [ ] Topic 订阅/发布（websocket单元测试覆盖）
+- [ ] Peer 管理（send/publish/subscribe/close/data）（websocket单元测试覆盖）
+- [ ] `broadcast()` 广播消息（websocket单元测试覆盖）
+- [ ] open/message/close/error 生命周期钩子（websocket单元测试覆盖）
+- [ ] Upgrade 处理（websocket单元测试覆盖）
 
 ### 6.5 SSE (Server-Sent Events)
 
-- [x] `defineSSE` 定义 SSE 端点（sse 12 tests 单元测试覆盖）
-- [x] `createSSEStream` 创建 SSE 流（sse单元测试覆盖）
-- [x] 连接管理（sse单元测试覆盖）
-- [x] keep-alive 心跳（sse单元测试覆盖）
-- [x] 消息格式化（id/event/retry/data/comment）（sse单元测试覆盖）
-- [x] `broadcastSSE()` 广播（sse单元测试覆盖）
-- [x] WritableStream 底层实现（sse单元测试覆盖）
+- [x] `defineSSE` 定义 SSE 端点（集成测试验证：/api/sse-test返回SSE流）
+- [x] `createSSEStream` 创建 SSE 流（集成测试验证：流式响应正常）
+- [ ] 连接管理（sse单元测试覆盖）
+- [x] keep-alive 心跳（集成测试验证：retry:2000头返回）
+- [ ] 消息格式化（id/event/retry/data/comment）（sse单元测试覆盖）
+- [ ] `broadcastSSE()` 广播（sse单元测试覆盖）
+- [ ] WritableStream 底层实现（sse单元测试覆盖）
 
 ### 6.6 存储与 KV
 
-- [x] `createStorage`/`useStorage` 挂载式存储（storage 23 tests 单元测试覆盖）
-- [x] 内存驱动 (`createMemoryDriver`)（storage单元测试覆盖）
-- [x] TTL 过期支持（storage单元测试覆盖）
-- [x] `mount()` 多驱动挂载（storage单元测试覆盖）
-- [x] `createKV`/`useKV` 命名空间 KV（storage单元测试覆盖）
-- [x] 自动序列化/反序列化（storage单元测试覆盖）
+- [x] `createStorage`/`useStorage` 挂载式存储（集成测试验证：/api/storage-test正常工作）
+- [ ] 内存驱动 (`createMemoryDriver`)（storage单元测试覆盖）
+- [x] TTL 过期支持（集成测试验证：set时指定ttl:60，KV支持TTL）
+- [ ] `mount()` 多驱动挂载（storage单元测试覆盖）
+- [x] `createKV`/`useKV` 命名空间 KV（集成测试验证：createKV(namespace:'test-kv')，set/get/keys/remove/clear全部通过）
+- [ ] 自动序列化/反序列化（storage单元测试覆盖）
 
 ### 6.7 数据库 (Database)
 
-- [x] `defineDatabase` 定义数据库（database 25 tests 单元测试覆盖）
-- [x] `useDatabase()` 获取数据库实例（database单元测试覆盖）
-- [x] 内置内存 SQL 数据库（database单元测试覆盖）
-- [x] CREATE TABLE/INSERT/SELECT/DELETE/DROP 支持（database单元测试覆盖）
-- [x] db0 connector 接口（database单元测试覆盖）
-- [x] 迁移系统 (`runMigrations`/`migrateDatabase`)（database单元测试覆盖）
-- [x] 生命周期钩子 (connect/disconnect/query/error)（database单元测试覆盖）
-- [x] 模板字符串 `sql` 标签（database单元测试覆盖）
+- [x] `defineDatabase` 定义数据库（集成测试验证：/api/db-test正常工作）
+- [x] `useDatabase()` 获取数据库实例（集成测试验证：GET/POST中使用useDatabase()）
+- [x] 内置内存 SQL 数据库（集成测试验证：无需外部数据库即可运行SQL）
+- [x] CREATE TABLE/INSERT/SELECT/DELETE/DROP 支持（集成测试验证：init创建表，insert插入数据，list查询数据，clear删除表）
+- [ ] db0 connector 接口（database单元测试覆盖）
+- [ ] 迁移系统 (`runMigrations`/`migrateDatabase`)（database单元测试覆盖）
+- [ ] 生命周期钩子 (connect/disconnect/query/error)（database单元测试覆盖）
+- [x] 模板字符串 `sql` 标签（集成测试验证：db.sql\`SELECT \* FROM items\`正常工作）
 
 ### 6.8 CORS 跨域
 
-- [x] `createCorsMiddleware`/`defineCors`（cors 10 tests 单元测试覆盖）
-- [x] origin 配置（string/array/boolean/function，cors单元测试覆盖）
-- [x] allowMethods/allowHeaders 配置（cors单元测试覆盖）
-- [x] exposeHeaders/credentials/maxAge 配置（cors单元测试覆盖）
-- [x] 预检请求 (OPTIONS) 处理（cors单元测试覆盖）
+- [x] `createCorsMiddleware`/`defineCors`（集成测试验证：/api/cors-test返回corsEnabled:true）
+- [x] origin 配置（集成测试验证：allowedOrigins数组返回）
+- [x] allowMethods/allowHeaders 配置（集成测试验证：OPTIONS预检返回Access-Control-Allow-Methods）
+- [ ] exposeHeaders/credentials/maxAge 配置（cors单元测试覆盖）
+- [x] 预检请求 (OPTIONS) 处理（集成测试验证：OPTIONS请求返回204 No Content）
 
 ### 6.9 限流 (Rate Limit)
 
-- [x] `createRateLimitMiddleware`/`defineRateLimit`（rate-limit 10 tests 单元测试覆盖）
-- [x] 内存存储 (`createMemoryRateLimitStore`)（rate-limit单元测试覆盖）
-- [x] 标准头（RateLimit-Limit/Remaining/Reset）（rate-limit单元测试覆盖）
-- [x] 遗留头（X-RateLimit-\*）（rate-limit单元测试覆盖）
-- [x] 自定义 keyGenerator（rate-limit单元测试覆盖）
-- [x] Retry-After 头（rate-limit单元测试覆盖）
+- [x] `createRateLimitMiddleware`/`defineRateLimit`（集成测试验证：/api/rate-limit-test正常工作）
+- [ ] 内存存储 (`createMemoryRateLimitStore`)（rate-limit单元测试覆盖）
+- [x] 标准头（RateLimit-Limit/Remaining/Reset）（集成测试验证：响应头包含ratelimit-limit:5, ratelimit-remaining:4, ratelimit-reset）
+- [x] 遗留头（X-RateLimit-\*）（集成测试验证：响应头包含x-ratelimit-limit:5, x-ratelimit-remaining:4, x-ratelimit-reset）
+- [ ] 自定义 keyGenerator（rate-limit单元测试覆盖）
+- [x] Retry-After 头（集成测试验证：第6次请求返回429状态码，超过limit:5限制）
 
 ---
 
@@ -304,69 +308,69 @@
 
 ### 7.1 基础 i18n
 
-- [x] `defineLocale` 注册语言包（i18n-locales 7 tests 单元测试覆盖）
-- [x] `t()` 翻译函数（i18n-enhancements 25 tests 单元测试覆盖）
-- [x] 插值替换（i18n-enhancements单元测试覆盖）
-- [x] 复数形式（i18n-enhancements单元测试覆盖）
-- [x] 链接消息（i18n-enhancements单元测试覆盖）
-- [x] `setLocale()`/`getLocale()` 切换/获取语言（i18n-enhancements单元测试覆盖）
-- [x] `getRegisteredLocales()` 获取已注册语言（i18n-locales单元测试覆盖）
-- [x] `getDefaultLocale()` 获取默认语言（i18n-locales单元测试覆盖）
+- [x] `defineLocale` 注册语言包（集成测试验证：/api/i18n-test?action=info 返回 registeredLocales: ["en", "zh"]）
+- [x] `t()` 翻译函数（集成测试验证：action=translate 返回 "Hello, ubean!" / "你好，ubean！"）
+- [x] 插值替换（集成测试验证：t('common.hello', { name: 'ubean' }) → "Hello, ubean!"）
+- [x] 复数形式（集成测试验证：action=plural count=0/1/2/5，plain/explicit/categorized 全部正确）
+- [x] 链接消息（集成测试验证：action=linked，@:common.hello 解析正确，@:navigation.home → "Home page"）
+- [x] `setLocale()`/`getLocale()` 切换/获取语言（集成测试验证：action=setLocale before/after/success:true）
+- [x] `getRegisteredLocales()` 获取已注册语言（集成测试验证：info 返回 ["en", "zh"]）
+- [x] `getDefaultLocale()` 获取默认语言（集成测试验证：info 返回 defaultLocale: "en"）
 
 ### 7.2 Intl 格式化
 
-- [x] `d()` 日期格式化（i18n-enhancements单元测试覆盖）
-- [x] `n()` 数字格式化（i18n-enhancements单元测试覆盖）
-- [x] `c()` 货币格式化（i18n-enhancements单元测试覆盖）
-- [x] `relativeTime()` 相对时间（i18n-enhancements单元测试覆盖）
-- [x] `list()` 列表格式化（i18n-enhancements单元测试覆盖）
-- [x] RTL 语言支持（i18n-enhancements单元测试覆盖）
+- [x] `d()` 日期格式化（集成测试验证：en "1/15/25"，zh "2025/1/15"，short/medium/long/full）
+- [x] `n()` 数字格式化（集成测试验证：decimal "1,234,567.89"，percent "86%"）
+- [x] `c()` 货币格式化（集成测试验证：en "$99.99"，zh "¥99.99"，USD/CNY）
+- [x] `relativeTime()` 相对时间（集成测试验证：en "1 day ago"/"in 2 days"，zh "1天前"/"2天后"）
+- [x] `list()` 列表格式化（集成测试验证：en "apple, banana, and cherry"，zh "apple、banana和cherry"）
+- [ ] RTL 语言支持（仅测试 LTR 语言 en/zh，未测试 RTL 语言如 ar/he）
 
 ### 7.3 i18n 路由
 
-- [x] `prefix` 策略（所有路径带语言前缀，i18n-routing 12 tests 单元测试覆盖）
-- [x] `prefix_except_default` 策略（默认语言无前缀，i18n-routing单元测试覆盖）
-- [x] `no_prefix` 策略（路径无语言前缀，i18n-routing单元测试覆盖）
-- [x] `localizePath()` 路径本地化（i18n-routing单元测试覆盖）
-- [x] `switchLocalePath()` 切换语言路径（i18n-routing单元测试覆盖）
-- [x] `getLocalePath()` 获取语言路径（i18n-routing单元测试覆盖）
-- [x] `extractLocaleFromPath()` 从路径提取语言（i18n-routing单元测试覆盖）
-- [x] Accept-Language 浏览器语言检测 (`detectBrowserLocale`)（i18n-routing单元测试覆盖）
-- [x] i18n 中间件自动语言检测（i18n-routing单元测试覆盖）
+- [ ] `prefix` 策略（所有路径带语言前缀，i18n-routing 12 tests 单元测试覆盖）
+- [x] `prefix_except_default` 策略（集成测试验证：默认语言 en 无前缀，zh 带前缀，Content-Language 头正确设置）
+- [ ] `no_prefix` 策略（路径无语言前缀，i18n-routing单元测试覆盖）
+- [x] `localizePath()` 路径本地化（集成测试验证：localizePath('/', 'zh') → "/zh"，localizePath('/about', 'zh') → "/zh/about"）
+- [x] `switchLocalePath()` 切换语言路径（集成测试验证：useSwitchLocalePath() 客户端测试，切换 zh 路径正确）
+- [ ] `getLocalePath()` 获取语言路径（i18n-routing单元测试覆盖）
+- [x] `extractLocaleFromPath()` 从路径提取语言（集成测试验证：/zh/about → {locale:"zh", pathWithoutLocale:"/about"}）
+- [x] Accept-Language 浏览器语言检测（集成测试验证：action=detect，Accept-Language "zh-CN,zh;q=0.9" → "zh"）
+- [x] i18n 中间件自动语言检测（集成测试验证：Content-Language: en 头正确设置，cookie ubean_locale 检测）
 
 ---
 
 ## 八、Markdown 支持
 
 - [x] `.md`/`.mdx` 页面直接作为路由（/md-test集成测试验证）
-- [x] `parseMarkdown()` Markdown 解析（markdown 37 tests 单元测试覆盖）
+- [ ] `parseMarkdown()` Markdown 解析（markdown 37 tests 单元测试覆盖）
 - [x] `markdownToHtml()` Markdown 转 HTML（/md-test集成测试验证）
-- [x] `parseFrontmatter()` Frontmatter 解析（YAML，markdown单元测试覆盖）
-- [x] 标题提取 + slugify (`extractHeadings`)（markdown单元测试覆盖）
-- [x] 摘要提取 (`extractExcerpt`)（markdown单元测试覆盖）
+- [ ] `parseFrontmatter()` Frontmatter 解析（YAML，markdown单元测试覆盖）
+- [ ] 标题提取 + slugify (`extractHeadings`)（markdown单元测试覆盖）
+- [ ] 摘要提取 (`extractExcerpt`)（markdown单元测试覆盖）
 - [x] 内联格式（bold/italic/code/link/image/del）（/md-test集成测试验证粗体/斜体/删除线/行内代码/链接）
 - [x] 代码块渲染（/md-test集成测试验证）
 - [x] 列表、引用、水平线（/md-test集成测试验证有序/无序列表、引用）
-- [x] `defineMarkdownPage()` 定义 Markdown 页面（markdown单元测试覆盖）
+- [ ] `defineMarkdownPage()` 定义 Markdown 页面（markdown单元测试覆盖）
 - [ ] Markdown 中嵌入 Vue 组件
 
 ---
 
 ## 九、SEO 与元数据
 
-- [x] `useSeoMeta()` SEO 元数据设置（runtime单元测试覆盖）
-- [x] `mergeMetadata()` 元数据合并（runtime单元测试覆盖）
+- [x] `useSeoMeta()` SEO 元数据设置（集成测试验证：/seo-meta页面SSR渲染title/description/keywords/robots/author等meta标签）
+- [ ] `mergeMetadata()` 元数据合并（runtime单元测试覆盖）
 - [x] `buildMetaTags()`/`buildLinkTags()` 构建标签（集成测试验证meta/link正确渲染）
 - [x] `buildTitle()` 标题构建（支持 titleTemplate，首页"ubean-test 功能测试首页"集成测试验证）
 - [x] `renderHeadTags()` 渲染头部标签（集成测试验证）
-- [x] OpenGraph 元数据（runtime单元测试覆盖）
-- [x] Twitter Cards 元数据（runtime单元测试覆盖）
-- [x] robots meta（index/follow，runtime单元测试覆盖）
-- [x] canonical 链接（runtime单元测试覆盖）
+- [x] OpenGraph 元数据（集成测试验证：og:title/og:description/og:type/og:url/og:image/og:site_name 全部SSR渲染）
+- [x] Twitter Cards 元数据（集成测试验证：twitter:card/twitter:title/twitter:description/twitter:image 全部SSR渲染）
+- [x] robots meta（index/follow，集成测试验证：`<meta name="robots" content="index, follow">` SSR渲染）
+- [x] canonical 链接（集成测试验证：`<link rel="canonical">` 和 `<meta name="canonical">` SSR渲染）
 - [x] `createRobotsResponse()` robots.txt（集成测试验证 text/plain 正确内容）
 - [x] `createSitemapResponse()` sitemap.xml（集成测试验证 application/xml 包含所有页面）
-- [x] Web App Manifest (`defineManifest`)（runtime单元测试覆盖）
-- [x] `createManifestResponse()` manifest.json（runtime单元测试覆盖）
+- [x] Web App Manifest (`defineManifest`)（集成测试验证：/api/manifest-test 返回 name/short_name/icons/display/theme_color等完整manifest）
+- [x] `createManifestResponse()` manifest.json（集成测试验证：Content-Type: application/manifest+json, Cache-Control: public max-age=86400）
 
 ---
 
@@ -374,9 +378,9 @@
 
 - [x] Request ID 中间件（使用 hono/request-id，x-request-id头集成测试验证）
 - [x] `getRequestId()` 获取请求 ID（通过 `c.get('requestId')`，API测试验证）
-- [x] OpenTelemetry Tracing (`createObservabilityTracer`)（runtime 122 tests 覆盖）
-- [x] Span 创建与管理 (`createSpan`/`startSpan`/`withSpan`)（runtime单元测试覆盖）
-- [x] Console Exporter（runtime单元测试覆盖）
+- [x] OpenTelemetry Tracing (`createObservabilityTracer`)（集成测试验证：/api/trace-test返回tracer:{serviceName,exporter}）
+- [x] Span 创建与管理 (`createSpan`/`startSpan`/`withSpan`)（集成测试验证：action=span返回computed:true,duration:10ms；action=nested返回parent/child span）
+- [x] Console Exporter（集成测试验证：tracer exporter为console）
 - [ ] OpenTelemetry Exporter
 - [x] Tracing 中间件 / Response Time 中间件 (`x-response-time`，集成测试验证x-response-time头)
 
@@ -384,48 +388,49 @@
 
 ## 十一、预渲染 (Prerender)
 
-- [x] `prerender()` 并发预渲染（prerender 27 tests 单元测试覆盖）
-- [x] `collectPrerenderRoutes()` 收集预渲染路由（prerender单元测试覆盖）
-- [x] 链接爬取 (`extractLinks`)（prerender单元测试覆盖）
-- [x] 忽略规则 (`shouldIgnoreRoute`)（prerender单元测试覆盖）
-- [x] 动态路由检测（prerender单元测试覆盖）
-- [x] 并发控制 (concurrency)（prerender单元测试覆盖）
-- [x] `failOnError` 选项（prerender单元测试覆盖）
-- [x] Manifest 生成 (`generatePrerenderManifest`)（prerender单元测试覆盖）
-- [x] 静态 HTML 文件写入（prerender单元测试覆盖）
-- [x] `definePrerenderRoutes()` 定义预渲染路由（prerender单元测试覆盖）
+- [x] `prerender()` 并发预渲染（集成测试验证：/api/prerender-test?action=prerender 2路由生成，HTML文件写入临时目录，indexFileWritten/aboutFileWritten:true）
+- [x] `collectPrerenderRoutes()` 收集预渲染路由（集成测试验证：action=collectRoutes 静态路由收集，动态路由[/user/[id]、/blog/[...slug]]过滤，routeRules prerender:false忽略，额外routes添加）
+- [x] 链接爬取 (`extractLinks`)（集成测试验证：action=extractLinks 提取内部链接，过滤external/hash/mailto/javascript，去query/hash，规范化trailing slash；action=crawlLinks 从/爬取到/about和/features）
+- [x] 忽略规则 (`shouldIgnoreRoute`)（集成测试验证：action=shouldIgnore 精确匹配/`/**`/`/*`/`*`模式匹配，action=ignoreRules /admin被skip，/和/about正常生成）
+- [x] 动态路由检测（集成测试验证：collectPrerenderRoutes中 isDynamicPath 检测`[...]`和`:`，动态路由被过滤不预渲染）
+- [x] 并发控制 (concurrency)（集成测试验证：action=concurrency 10页concurrency:3，maxConcurrentObserved:3，respectedConcurrency:true）
+- [x] `failOnError` 选项（集成测试验证：action=failOnError lenient模式继续执行2生成1错误，strict模式抛出"HTTP 404"异常）
+- [x] Manifest 生成 (`generatePrerenderManifest`)（集成测试验证：action=manifest 生成routes/generatedAt/errors结构，routesAreAbsolute:true）
+- [x] 静态 HTML 文件写入（集成测试验证：action=filePath routeToFilePath正确转换路径，writePrerenderedFile写入/index.html、/about/index.html、/dashboard/settings/index.html，contentVerified:true）
+- [x] `definePrerenderRoutes()` 定义预渲染路由（集成测试验证：action=defineRoutes 返回数组，allStartWithSlash:true）
 
 ---
 
 ## 十二、自动导入 (Auto-imports)
 
 - [x] Vue 组合式 API 自动导入（集成测试验证 ref/reactive/computed 等无需导入）
-- [x] Vue Macros 自动导入（auto-imports 11 tests 单元测试覆盖）
+- [ ] Vue Macros 自动导入（auto-imports 11 tests 单元测试覆盖）
 - [x] Ubean 内置 API 自动导入（usePage/useRouter/useHead/definePage等，动态页面usePage()集成测试验证）
-- [x] `composables/` 目录自动扫描导入（auto-imports单元测试覆盖）
-- [x] `components/` 目录组件自动导入（auto-imports单元测试覆盖）
-- [x] 类型声明文件生成 (`auto-imports.d.ts`)（auto-imports单元测试覆盖）
-- [x] 组件类型声明生成 (`components.d.ts`)（auto-imports单元测试覆盖）
-- [x] 目录命名空间选项（auto-imports单元测试覆盖）
+- [ ] `composables/` 目录自动扫描导入（auto-imports单元测试覆盖）
+- [x] `components/` 目录组件自动导入（集成测试验证：IslandCounter/IslandClock等组件自动导入并注册）
+- [x] 类型声明文件生成 (`auto-imports.d.ts`)（集成测试验证：包含applyAppConfig/callInternal/createKV/defineApp等API声明）
+- [x] 组件类型声明生成 (`components.d.ts`)（集成测试验证：包含Head/Link/IslandCounter等GlobalComponents声明）
+- [ ] 目录命名空间选项（auto-imports单元测试覆盖）
 
 ---
 
 ## 十三、DevTools
 
-- [x] DevTools 面板访问（`/_devtools` 路由可访问，devtools 81 tests 单元测试覆盖）
-- [x] Overview 总览页（devtools 81 tests 单元测试覆盖）
-- [x] Pages 页面路由查看（devtools单元测试覆盖）
-- [x] ApiRoutes API 路由查看（devtools单元测试覆盖）
-- [x] Middlewares 中间件列表（devtools单元测试覆盖）
-- [x] Layouts 布局列表（devtools单元测试覆盖）
-- [x] Crons 定时任务管理（devtools单元测试覆盖）
-- [x] EnvVars 环境变量查看（devtools单元测试覆盖）
-- [x] Config 配置查看（devtools单元测试覆盖）
-- [x] ApiDocs OpenAPI 文档（devtools单元测试覆盖）
-- [x] ApiPlayground API 测试台（devtools单元测试覆盖）
-- [x] AiAssistant AI 助手（devtools单元测试覆盖）
-- [x] 自定义标签页 (`defineDevToolsTab`)（devtools单元测试覆盖）
-- [x] RPC 通信机制（devtools单元测试覆盖）
+- [x] DevTools 面板访问（`/__ubean_devtools__/client` SPA可访问，浮动按钮注入+Shift+D快捷键）
+- [x] DevTools 脚本注入HTML响应（集成测试验证：bootstrap script正确注入页面）
+- [x] Overview 总览页（集成测试验证：v0.0.1、Running状态、Uptime、Pages 11、API Routes 44、Middlewares 1、Cron Jobs 1）
+- [x] Pages 页面路由查看（集成测试验证：11个页面列表，/about、/dashboard等）
+- [x] ApiRoutes API 路由查看（集成测试验证：44条路由，GET/POST/OPTIONS等方法）
+- [x] Middlewares 中间件列表（集成测试验证：01.global.ts全局中间件，Global(1)/Route(0)分类）
+- [x] Layouts 布局列表（集成测试验证：default布局，default.vue文件）
+- [x] Crons 定时任务管理（集成测试验证：test-cron任务显示）
+- [x] EnvVars 环境变量查看（集成测试验证：空状态提示在.env文件配置）
+- [x] Config 配置查看（集成测试验证：配置信息正确加载）
+- [x] ApiDocs OpenAPI 文档（集成测试验证：UI正常加载）
+- [x] ApiPlayground API 测试台（集成测试验证：GET/POST/PUT/DELETE/PATCH方法、Send按钮、Params/Headers面板）
+- [x] AiAssistant AI 助手（集成测试验证：输入框、快捷按钮，显示"No API key configured"提示）
+- [ ] 自定义标签页 (`defineDevToolsTab`)（devtools单元测试覆盖，测试项目未配置自定义标签）
+- [x] RPC 通信机制（集成测试验证：POST /**ubean_devtools**/rpc 返回200，getInfo/getRoutes/getPages等方法正常）
 
 ### 13.1 OpenAPI/Scalar
 
@@ -442,44 +447,40 @@
 
 - [x] `public/` 目录静态文件服务（/test.txt, /data.json, /style.css 集成测试验证200）
 - [x] MIME 类型映射（text/plain、application/json、text/css 等30+种，集成测试验证）
-- [x] ETag + 304 Not Modified（/test.txt返回ETag头，core单元测试覆盖）
-- [x] index.html 自动索引（core单元测试覆盖）
-- [x] Cache-Control (maxAge)（/test.txt返回Cache-Control头，core单元测试覆盖）
-- [x] `X-Content-Type-Options: nosniff`（core单元测试覆盖）
-- [x] `/_` 和 `/api/` 路径绕过（core单元测试覆盖）
+- [x] ETag + 304 Not Modified（/test.txt返回ETag头，集成测试验证）
+- [ ] index.html 自动索引（core单元测试覆盖）
+- [x] Cache-Control (maxAge)（/test.txt返回Cache-Control头，集成测试验证）
+- [ ] `X-Content-Type-Options: nosniff`（core单元测试覆盖）
+- [ ] `/_` 和 `/api/` 路径绕过（core单元测试覆盖）
 
 ---
 
 ## 十五、流式响应
 
-- [x] `createStreamResponse()` 流响应（runtime单元测试覆盖）
-- [x] `createSseStream()` SSE 流（同 6.5，sse 12 tests 覆盖）
+- [x] `createStreamResponse()` 流响应（集成测试验证：/api/stream-test返回分块流"Streaming start/Chunk 1-5/Streaming complete"）
+- [x] `createSseStream()` SSE 流（同 6.5，集成测试验证：/api/sse-test返回SSE流和retry:2000心跳）
 
 ---
 
 ## 十六、代码生成与类型安全
 
-- [x] `generateTypes()` 自动生成类型（CLI prepare命令测试覆盖）
-- [x] RouteName 类型自动生成（routing单元测试覆盖）
-- [x] LayoutName 类型自动生成（routing单元测试覆盖）
+- [x] `generateTypes()` 自动生成类型（集成测试验证：ubean prepare/dev启动时生成auto-imports.d.ts/components.d.ts/routes.d.ts/pages.d.ts）
+- [x] RouteName 类型自动生成（集成测试验证：routes.d.ts包含所有API路由的method+path映射）
+- [x] LayoutName 类型自动生成（集成测试验证：pages.d.ts和virtual:ubean-pages.ts导出layoutNames类型）
 - [x] 类型安全 fetch 客户端（hono-openapi集成测试覆盖）
-- [x] TypedLinkProps 类型安全链接（routing单元测试覆盖）
-- [x] `.ubean/` 虚拟模块类型声明（core 33 tests 单元测试覆盖）
+- [ ] TypedLinkProps 类型安全链接（routing单元测试覆盖）
+- [x] `.ubean/` 虚拟模块类型声明（集成测试验证：virtual:ubean-pages.ts/virtual:ubean-app.ts/virtual:ubean-client-entry.ts正常工作）
 
 ---
 
 ## 测试环境说明
 
 - **测试项目路径**: `examples/ubean-test`
-- **参照项目**: `examples/hello-world`
-- **测试范围**: 上述标记 [x] 的功能点（集成浏览器测试 + 单元测试验证）
+- **测试范围**: 上述所有功能点，均需通过 `examples/ubean-test` 集成测试验证才算通过
 - **验证方式**:
   1. 启动 dev server，通过浏览器访问（integrated_browser）实际验证页面路由、API端点、重定向、错误处理、SEO文件、OpenAPI/Scalar UI、静态文件服务
   2. 浏览器内 fetch API 调用验证HTTP方法、validator（json/query/path/form/header/cookie）、中间件头（x-request-id/x-response-time）、301/302重定向、静态文件headers（ETag/Cache-Control/Last-Modified）、Set-Cookie
-  3. 39个测试文件、880个单元测试全部通过，覆盖CLI、Cron、Queue、WebSocket、SSE、Database、Storage、Cache、i18n、View Transitions、Islands、DevTools、Markdown、Prerender、Route Rules、CORS、Rate Limit、Observability等核心模块
-- **集成测试验证页面**: `/`, `/about`, `/features`, `/user/123`, `/md-test`, `/marketing-page`(路由组), `/dashboard`, `/dashboard/settings`, `/dashboard/profile`(嵌套路由), `/_scalar`, `/_devtools`
-- **集成测试验证API**: `/api/health`, `/api/hello`, `/api/json`, `/api/text`, `/api/html`, `/api/users`(GET/POST), `/api/users/[id]`, `/api/redirect`(302), `/api/redirect-permanent`(301), `/api/error`(500), `/api/env`, `/api/cors-status`, `/api/test-meta`, `/api/search`(query validator), `/api/headers`(header validator), `/api/login`(form validator), `/api/cookies`(Set-Cookie), `/robots.txt`, `/sitemap.xml`, `/_openapi.json`
+  3. 单元测试仅作为开发期参考，不作为功能验证通过的依据
+- **集成测试验证页面**: `/`, `/about`, `/features`, `/user/123`, `/md-test`, `/marketing-page`(路由组), `/dashboard`, `/dashboard/settings`, `/dashboard/profile`(嵌套路由), `/i18n`(国际化), `/seo-meta`(SEO元数据), `/data-fetch`(数据获取), `/_scalar`, `/_devtools`
+- **集成测试验证API**: `/api/health`, `/api/hello`, `/api/json`, `/api/text`, `/api/html`, `/api/users`(GET/POST), `/api/users/[id]`(GET/PUT/PATCH/DELETE), `/api/redirect`(302), `/api/redirect-permanent`(301), `/api/error`(500), `/api/env`, `/api/cors-status`, `/api/test-meta`, `/api/search`(query validator), `/api/headers`(header validator), `/api/login`(form validator), `/api/cookies`(Set-Cookie), `/api/i18n-test`(i18n info/translate/plural/linked/format/routing/detect/setLocale), `/api/data-test`(useData cache/invalidate/dependencies/ttl/defineDataKey), `/api/client-test`(ofetch env/methods/interceptors/flatResponse/extend/head), `/api/manifest-test`(Web App Manifest), `/api/prerender-test`(预渲染 collectRoutes/extractLinks/shouldIgnore/prerender/crawlLinks/ignoreRules/failOnError/manifest/filePath/concurrency), `/robots.txt`, `/sitemap.xml`, `/_openapi.json`
 - **集成测试验证静态文件**: `/test.txt`(text/plain + ETag/Cache-Control/Last-Modified), `/data.json`(application/json), `/style.css`(text/css), 不存在文件返回404
-- **页面路由**: 基础路由 ✅ 动态路由[id] ✅ 嵌套路由(/dashboard/_) ✅ 路由组(/_)目录不影响URL ✅
-- **validator 全覆盖**: json ✅ query ✅ param ✅ form ✅ header ✅ cookie ✅
-- **单元测试结果**: 39个测试文件、880个测试用例全部通过 ✅

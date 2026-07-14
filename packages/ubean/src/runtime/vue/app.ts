@@ -36,6 +36,7 @@ export interface UbeanAppOptions {
   initialPage?: PageObject;
   head?: VueHeadClient;
   viewTransitions?: boolean | ViewTransitionOptions;
+  hydrate?: boolean;
 }
 
 export interface UbeanAppInstance {
@@ -218,7 +219,7 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
 
   const RootComponent = createRootComponent(LayoutWrapper, page as any, transitionOpts, false);
 
-  const app = _createApp(RootComponent);
+  const app = options.hydrate ? _createSSRApp(RootComponent) : _createApp(RootComponent);
   app.use(head);
   app.use(router);
   app.component('Link', Link);

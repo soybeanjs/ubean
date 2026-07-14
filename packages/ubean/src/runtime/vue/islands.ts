@@ -97,9 +97,6 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
       continue;
     }
 
-    const MutationObserverCtor: any =
-      typeof (globalThis as any).MutationObserver !== 'undefined' ? (globalThis as any).MutationObserver : null;
-
     const doHydrate = () => {
       const comp = resolveComponent(record.componentName, components, getComponent);
       if (comp) {
@@ -107,10 +104,15 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
       }
     };
 
+    // If the bootstrap script already set data-hydrating, hydrate immediately
     if (record.el.getAttribute('data-hydrating') === 'true' && !record.el.hasAttribute('data-hydrated')) {
       doHydrate();
       continue;
     }
+
+    // Also set up MutationObserver as fallback (for bootstrap script triggers)
+    const MutationObserverCtor: any =
+      typeof (globalThis as any).MutationObserver !== 'undefined' ? (globalThis as any).MutationObserver : null;
 
     if (MutationObserverCtor) {
       const observer = new MutationObserverCtor(() => {
@@ -120,6 +122,67 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
         }
       });
       observer.observe(record.el, { attributes: true, attributeFilter: ['data-hydrating'] });
+    }
+
+    // Directly implement directive-based hydration strategies
+    // (in case the bootstrap script doesn't run or runs too late)
+    const directive = record.directive;
+
+    if (directive === 'client:load') {
+      doHydrate();
+    } else if (directive === 'client:idle') {
+      const ric = (globalThis as any).requestIdleCallback;
+      if (typeof ric === 'function') {
+        ric(() => doHydrate(), { timeout: 2000 });
+      } else {
+        setTimeout(doHydrate, 200);
+      }
+    } else if (directive === 'client:visible') {
+      const IOCtor = (globalThis as any).IntersectionObserver;
+      if (typeof IOCtor === 'function') {
+        const io = new IOCtor(
+          (entries: any[]) => {
+            entries.forEach((entry: any) => {
+              if (entry.isIntersecting) {
+                io.disconnect();
+                doHydrate();
+              }
+            });
+          },
+          { rootMargin: '200px' }
+        );
+        io.observe(record.el);
+      } else {
+        doHydrate();
+      }
+    } else if (directive === 'client:media' && record.mediaQuery) {
+      const mql = (globalThis as any).window?.matchMedia?.(record.mediaQuery);
+      if (mql) {
+        if (mql.matches) {
+          doHydrate();
+        } else {
+          const fn = (e: any) => {
+            if (e.matches) {
+              doHydrate();
+              if (mql.removeEventListener) {
+                mql.removeEventListener('change', fn);
+              } else if (mql.removeListener) {
+                mql.removeListener(fn);
+              }
+            }
+          };
+          if (mql.addEventListener) {
+            mql.addEventListener('change', fn);
+          } else if (mql.addListener) {
+            mql.addListener(fn);
+          }
+        }
+      } else {
+        doHydrate();
+      }
+    } else {
+      // Default: hydrate immediately
+      doHydrate();
     }
   }
 }

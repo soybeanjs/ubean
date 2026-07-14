@@ -184,6 +184,7 @@ async function buildApp(cwd: string, config: any) {
     routes: result.apiRoutes,
     middleware: result.middlewares,
     pages: result.pages,
+    crons: result.crons,
     routeRules: config.routeRules || {},
     publicDir: config.dir.public,
     devtools: true,

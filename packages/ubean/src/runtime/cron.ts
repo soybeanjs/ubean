@@ -27,8 +27,22 @@ export interface ScheduledTask {
   meta: Omit<CronTaskMeta, 'name' | 'schedule'>;
 }
 
-const scheduledTasks = new Map<string, ScheduledTask>();
-let taskRunCount = 0;
+const SCHEDULED_TASKS_KEY = '__ubean_scheduled_tasks__';
+const TASK_RUN_COUNT_KEY = '__ubean_task_run_count__';
+
+function getTaskMap(): Map<string, ScheduledTask> {
+  if (!(globalThis as Record<string, unknown>)[SCHEDULED_TASKS_KEY]) {
+    (globalThis as Record<string, unknown>)[SCHEDULED_TASKS_KEY] = new Map<string, ScheduledTask>();
+  }
+  return (globalThis as Record<string, unknown>)[SCHEDULED_TASKS_KEY] as Map<string, ScheduledTask>;
+}
+
+function getTaskRunCount(): { value: number } {
+  if (!(globalThis as Record<string, unknown>)[TASK_RUN_COUNT_KEY]) {
+    (globalThis as Record<string, unknown>)[TASK_RUN_COUNT_KEY] = { value: 0 };
+  }
+  return (globalThis as Record<string, unknown>)[TASK_RUN_COUNT_KEY] as { value: number };
+}
 
 export function defineScheduled(
   metaOrName: CronTaskMeta | string,
@@ -65,32 +79,32 @@ export function defineScheduled(
     }
   };
 
-  scheduledTasks.set(meta.name, task);
+  getTaskMap().set(meta.name, task);
   return task;
 }
 
 export function getScheduledTasks(): ScheduledTask[] {
-  return Array.from(scheduledTasks.values());
+  return Array.from(getTaskMap().values());
 }
 
 export function clearScheduledTasks(): void {
-  scheduledTasks.clear();
+  getTaskMap().clear();
 }
 
 export async function runScheduledTask(name: string): Promise<{ ok: boolean; duration: number; error?: Error }> {
-  const task = scheduledTasks.get(name);
+  const task = getTaskMap().get(name);
   if (!task) {
     throw new Error(`[ubean] Cron task "${name}" not found`);
   }
 
-  taskRunCount++;
+  const runCount = ++getTaskRunCount().value;
   const start = Date.now();
   try {
     const ctx: CronContext = {
       name: task.name,
       schedule: task.schedule,
       timestamp: new Date(),
-      runCount: taskRunCount
+      runCount
     };
     await task.handler(ctx);
     return { ok: true, duration: Date.now() - start };
@@ -100,11 +114,11 @@ export async function runScheduledTask(name: string): Promise<{ ok: boolean; dur
 }
 
 export function createCronContext(name: string, schedule: string): CronContext {
-  taskRunCount++;
+  const runCount = ++getTaskRunCount().value;
   return {
     name,
     schedule,
     timestamp: new Date(),
-    runCount: taskRunCount
+    runCount
   };
 }

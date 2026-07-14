@@ -29,9 +29,9 @@ function normalizeMethod(m: string | undefined): Method | undefined {
   return HTTP_METHODS.includes(upper) ? upper : undefined;
 }
 
-function honoMethod(method: Method): 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options' {
-  return method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options';
-}
+// function honoMethod(method: Method): 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options' {
+//   return method.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options';
+// }
 
 function convertUbeanRoutePath(path: string): string {
   let honoPath = path;
@@ -196,7 +196,7 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
         };
 
         const honoHandlers = [metaMiddleware, ...matchingMiddleware, ...definition];
-        (app as any)[honoMethod(method)](honoPath, ...honoHandlers);
+        app.on(method.toLowerCase(), honoPath, ...honoHandlers);
       } else {
         const routeMeta = { requiresAuth: true, ...fileMeta } as RouteMeta;
 
@@ -224,7 +224,7 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
         });
 
         const honoHandlers = [metaMiddleware, ...matchingMiddleware, handlerWrapper];
-        (app as any)[honoMethod(method)](honoPath, ...honoHandlers);
+        app.on(method.toLowerCase(), honoPath, ...honoHandlers);
       }
     }
   }

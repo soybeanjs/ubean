@@ -59,40 +59,62 @@ interface RegisteredLocale {
   isDefault?: boolean;
 }
 
-const registeredLocales = new Map<string, RegisteredLocale>();
-const messageCache = new Map<string, Record<string, string>>();
-let currentLocale = 'en';
-let fallbackLocale = 'en';
-const localeListeners = new Set<LocaleChangeCallback>();
-const missingKeyHandlers = new Set<MissingKeyHandler>();
-let missingKeyWarned = new Set<string>();
-let i18nConfig: I18nConfig = {
-  defaultLocale: 'en',
-  strategy: 'prefix_except_default',
-  locales: []
-};
+interface I18nGlobalState {
+  registeredLocales: Map<string, RegisteredLocale>;
+  messageCache: Map<string, Record<string, string>>;
+  currentLocale: string;
+  fallbackLocale: string;
+  localeListeners: Set<LocaleChangeCallback>;
+  missingKeyHandlers: Set<MissingKeyHandler>;
+  missingKeyWarned: Set<string>;
+  i18nConfig: I18nConfig;
+}
+
+const I18N_STATE_KEY = '__ubean_i18n_state__';
+
+function getI18nState(): I18nGlobalState {
+  const g = globalThis as Record<string, unknown>;
+  if (!g[I18N_STATE_KEY]) {
+    g[I18N_STATE_KEY] = {
+      registeredLocales: new Map<string, RegisteredLocale>(),
+      messageCache: new Map<string, Record<string, string>>(),
+      currentLocale: 'en',
+      fallbackLocale: 'en',
+      localeListeners: new Set<LocaleChangeCallback>(),
+      missingKeyHandlers: new Set<MissingKeyHandler>(),
+      missingKeyWarned: new Set<string>(),
+      i18nConfig: {
+        defaultLocale: 'en',
+        strategy: 'prefix_except_default',
+        locales: []
+      }
+    } as I18nGlobalState;
+  }
+  return g[I18N_STATE_KEY] as I18nGlobalState;
+}
 
 function notifyLocaleChange(locale: string): void {
-  for (const fn of localeListeners) {
+  for (const fn of getI18nState().localeListeners) {
     fn(locale);
   }
 }
 
 function addLocaleListener(callback: LocaleChangeCallback): () => void {
-  localeListeners.add(callback);
-  return () => localeListeners.delete(callback);
+  getI18nState().localeListeners.add(callback);
+  return () => getI18nState().localeListeners.delete(callback);
 }
 
 function addMissingKeyHandler(handler: MissingKeyHandler): () => void {
-  missingKeyHandlers.add(handler);
-  return () => missingKeyHandlers.delete(handler);
+  getI18nState().missingKeyHandlers.add(handler);
+  return () => getI18nState().missingKeyHandlers.delete(handler);
 }
 
 function notifyMissingKey(locale: string, key: string): void {
+  const state = getI18nState();
   const cacheKey = `${locale}:${key}`;
-  if (!missingKeyWarned.has(cacheKey)) {
-    missingKeyWarned.add(cacheKey);
-    for (const fn of missingKeyHandlers) {
+  if (!state.missingKeyWarned.has(cacheKey)) {
+    state.missingKeyWarned.add(cacheKey);
+    for (const fn of state.missingKeyHandlers) {
       fn(locale, key);
     }
     if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
@@ -102,7 +124,7 @@ function notifyMissingKey(locale: string, key: string): void {
 }
 
 function invalidateCache(locale: string): void {
-  messageCache.delete(locale);
+  getI18nState().messageCache.delete(locale);
 }
 
 function deepMerge(target: LocaleMessages, source: LocaleMessages): LocaleMessages {
@@ -140,14 +162,15 @@ function flattenMessages(messages: LocaleMessages, prefix = ''): Record<string, 
 }
 
 function getFlatMessages(locale: string): Record<string, string> {
-  const cached = messageCache.get(locale);
+  const state = getI18nState();
+  const cached = state.messageCache.get(locale);
   if (cached) return cached;
 
-  const localeData = registeredLocales.get(locale);
+  const localeData = state.registeredLocales.get(locale);
   if (!localeData) return {};
 
   const flat = flattenMessages(localeData.messages);
-  messageCache.set(locale, flat);
+  state.messageCache.set(locale, flat);
   return flat;
 }
 
@@ -267,6 +290,7 @@ function getMessage(locale: string, key: string, params?: Record<string, string 
 }
 
 export function defineLocale(definition: LocaleDefinition): LocaleDefinition {
+  const state = getI18nState();
   const locale: RegisteredLocale = {
     code: definition.code,
     messages: definition.messages,
@@ -275,13 +299,13 @@ export function defineLocale(definition: LocaleDefinition): LocaleDefinition {
     isDefault: definition.isDefault
   };
 
-  registeredLocales.set(definition.code, locale);
+  state.registeredLocales.set(definition.code, locale);
   invalidateCache(definition.code);
 
-  if (definition.isDefault || registeredLocales.size === 1) {
-    fallbackLocale = definition.code;
-    if (!currentLocale || currentLocale === 'en') {
-      currentLocale = definition.code;
+  if (definition.isDefault || state.registeredLocales.size === 1) {
+    state.fallbackLocale = definition.code;
+    if (!state.currentLocale || state.currentLocale === 'en') {
+      state.currentLocale = definition.code;
     }
   }
 
@@ -289,27 +313,31 @@ export function defineLocale(definition: LocaleDefinition): LocaleDefinition {
 }
 
 export function setI18nConfig(config: Partial<I18nConfig>): void {
-  i18nConfig = { ...i18nConfig, ...config };
+  const state = getI18nState();
+  state.i18nConfig = { ...state.i18nConfig, ...config };
   if (config.defaultLocale) {
-    fallbackLocale = config.defaultLocale;
+    state.fallbackLocale = config.defaultLocale;
   }
 }
 
 export function getI18nConfig(): I18nConfig {
-  return { ...i18nConfig, locales: Array.from(registeredLocales.keys()) };
+  const state = getI18nState();
+  return { ...state.i18nConfig, locales: Array.from(state.registeredLocales.keys()) };
 }
 
 export function getDefaultLocale(): string {
-  for (const [code, loc] of registeredLocales) {
+  const state = getI18nState();
+  for (const [code, loc] of state.registeredLocales) {
     if (loc.isDefault) return code;
   }
-  return i18nConfig.defaultLocale;
+  return state.i18nConfig.defaultLocale;
 }
 
 export function localizePath(path: string, locale?: string): string {
-  const targetLocale = locale || currentLocale;
+  const state = getI18nState();
+  const targetLocale = locale || state.currentLocale;
   const defaultLocale = getDefaultLocale();
-  const strategy = i18nConfig.strategy;
+  const strategy = state.i18nConfig.strategy;
 
   const cleanPath = path.replace(/^\/+/, '/').replace(/\/+$/, '') || '/';
 
@@ -319,7 +347,7 @@ export function localizePath(path: string, locale?: string): string {
 
   const pathParts = cleanPath.split('/').filter(Boolean);
   const firstSegment = pathParts[0] || '';
-  const isLocalePrefix = registeredLocales.has(firstSegment);
+  const isLocalePrefix = state.registeredLocales.has(firstSegment);
 
   let pathWithoutPrefix = cleanPath;
   if (isLocalePrefix) {
@@ -341,10 +369,11 @@ export function switchLocalePath(newLocale: string, currentPath?: string): strin
 }
 
 export function extractLocaleFromPath(path: string): { locale: string | null; pathWithoutLocale: string } {
+  const state = getI18nState();
   const pathParts = path.split('/').filter(Boolean);
   const firstSegment = pathParts[0] || '';
 
-  if (registeredLocales.has(firstSegment)) {
+  if (state.registeredLocales.has(firstSegment)) {
     const rest = pathParts.slice(1).join('/');
     const pathWithoutLocale = rest ? `/${rest}` : '/';
     return { locale: firstSegment, pathWithoutLocale };
@@ -356,21 +385,22 @@ export function extractLocaleFromPath(path: string): { locale: string | null; pa
 export function useI18n(): I18nInstance {
   return {
     get locale() {
-      return currentLocale;
+      return getI18nState().currentLocale;
     },
     get fallbackLocale() {
-      return fallbackLocale;
+      return getI18nState().fallbackLocale;
     },
     get availableLocales() {
-      return Array.from(registeredLocales.keys());
+      return Array.from(getI18nState().registeredLocales.keys());
     },
     t(key: string, params?: Record<string, string | number>): string {
-      let message = getMessage(currentLocale, key, params);
-      if (message === undefined && currentLocale !== fallbackLocale) {
-        message = getMessage(fallbackLocale, key, params);
+      const state = getI18nState();
+      let message = getMessage(state.currentLocale, key, params);
+      if (message === undefined && state.currentLocale !== state.fallbackLocale) {
+        message = getMessage(state.fallbackLocale, key, params);
       }
       if (message === undefined) {
-        notifyMissingKey(currentLocale, key);
+        notifyMissingKey(state.currentLocale, key);
         return key;
       }
       return message;
@@ -379,7 +409,7 @@ export function useI18n(): I18nInstance {
       try {
         const date = value instanceof Date ? value : new Date(value);
         if (isNaN(date.getTime())) throw new Error('Invalid date');
-        const dtf = new Intl.DateTimeFormat(currentLocale, { dateStyle: style, ...options });
+        const dtf = new Intl.DateTimeFormat(getI18nState().currentLocale, { dateStyle: style, ...options });
         return dtf.format(date);
       } catch {
         const date = value instanceof Date ? value : new Date(value);
@@ -389,7 +419,7 @@ export function useI18n(): I18nInstance {
     },
     n(value: number, style: NumberFormatStyle = 'decimal', options?: NumberFormatOptions): string {
       try {
-        const nf = new Intl.NumberFormat(currentLocale, { style, ...options });
+        const nf = new Intl.NumberFormat(getI18nState().currentLocale, { style, ...options });
         return nf.format(value);
       } catch {
         return String(value);
@@ -397,7 +427,7 @@ export function useI18n(): I18nInstance {
     },
     c(value: number, currency: string, options?: Intl.NumberFormatOptions): string {
       try {
-        const nf = new Intl.NumberFormat(currentLocale, {
+        const nf = new Intl.NumberFormat(getI18nState().currentLocale, {
           style: 'currency',
           currency,
           ...options
@@ -409,7 +439,7 @@ export function useI18n(): I18nInstance {
     },
     relativeTime(value: number, unit: RelativeTimeUnit, options?: Intl.RelativeTimeFormatOptions): string {
       try {
-        const rtf = new Intl.RelativeTimeFormat(currentLocale, options);
+        const rtf = new Intl.RelativeTimeFormat(getI18nState().currentLocale, options);
         return rtf.format(value, unit);
       } catch {
         const suffix = value === 1 ? '' : 's';
@@ -420,29 +450,31 @@ export function useI18n(): I18nInstance {
     },
     list(items: string[], style: ListFormatStyle = 'conjunction', options?: Intl.ListFormatOptions): string {
       try {
-        const lf = new Intl.ListFormat(currentLocale, { type: style, ...options });
+        const lf = new Intl.ListFormat(getI18nState().currentLocale, { type: style, ...options });
         return lf.format(items);
       } catch {
         return items.join(', ');
       }
     },
     setLocale(locale: string): void {
-      if (registeredLocales.has(locale) && locale !== currentLocale) {
-        currentLocale = locale;
+      const state = getI18nState();
+      if (state.registeredLocales.has(locale) && locale !== state.currentLocale) {
+        state.currentLocale = locale;
         notifyLocaleChange(locale);
       }
     },
     getLocale(): string {
-      return currentLocale;
+      return getI18nState().currentLocale;
     },
     addLocale(code: string, messages: LocaleMessages, options?: { name?: string; dir?: 'ltr' | 'rtl' }): void {
-      const existing = registeredLocales.get(code);
+      const state = getI18nState();
+      const existing = state.registeredLocales.get(code);
       if (existing) {
         existing.messages = deepMerge(existing.messages, messages);
         if (options?.name) existing.name = options.name;
         if (options?.dir) existing.dir = options.dir;
       } else {
-        registeredLocales.set(code, {
+        state.registeredLocales.set(code, {
           code,
           messages,
           name: options?.name,
@@ -450,20 +482,22 @@ export function useI18n(): I18nInstance {
         });
       }
       invalidateCache(code);
-      missingKeyWarned = new Set();
+      state.missingKeyWarned = new Set();
     },
     mergeLocale(code: string, messages: LocaleMessages): void {
-      const existing = registeredLocales.get(code);
+      const state = getI18nState();
+      const existing = state.registeredLocales.get(code);
       if (existing) {
         existing.messages = deepMerge(existing.messages, messages);
       } else {
-        registeredLocales.set(code, { code, messages, dir: 'ltr' });
+        state.registeredLocales.set(code, { code, messages, dir: 'ltr' });
       }
       invalidateCache(code);
-      missingKeyWarned = new Set();
+      state.missingKeyWarned = new Set();
     },
     detectLocale(acceptLanguage?: string): string {
-      if (!acceptLanguage) return fallbackLocale;
+      const state = getI18nState();
+      if (!acceptLanguage) return state.fallbackLocale;
 
       const requested = acceptLanguage
         .split(',')
@@ -475,25 +509,27 @@ export function useI18n(): I18nInstance {
         .sort((a, b) => b.quality - a.quality);
 
       for (const { code } of requested) {
-        for (const registered of registeredLocales.keys()) {
+        for (const registered of state.registeredLocales.keys()) {
           if (code === registered.toLowerCase() || code.startsWith(`${registered.toLowerCase()}-`)) {
             return registered;
           }
         }
       }
 
-      return fallbackLocale;
+      return state.fallbackLocale;
     },
     onLocaleChange: addLocaleListener,
     onMissingKey: addMissingKeyHandler,
     getLocaleDir(locale?: string): 'ltr' | 'rtl' {
-      const code = locale || currentLocale;
-      const loc = registeredLocales.get(code);
+      const state = getI18nState();
+      const code = locale || state.currentLocale;
+      const loc = state.registeredLocales.get(code);
       return loc?.dir || 'ltr';
     },
     getLocaleName(locale?: string): string | undefined {
-      const code = locale || currentLocale;
-      const loc = registeredLocales.get(code);
+      const state = getI18nState();
+      const code = locale || state.currentLocale;
+      const loc = state.registeredLocales.get(code);
       return loc?.name;
     }
   };
@@ -512,17 +548,18 @@ export function getLocale(): string {
 }
 
 export function getRegisteredLocales(): string[] {
-  return Array.from(registeredLocales.keys());
+  return Array.from(getI18nState().registeredLocales.keys());
 }
 
 export function clearLocales(): void {
-  registeredLocales.clear();
-  localeListeners.clear();
-  missingKeyHandlers.clear();
-  messageCache.clear();
-  missingKeyWarned = new Set();
-  currentLocale = 'en';
-  fallbackLocale = 'en';
+  const state = getI18nState();
+  state.registeredLocales.clear();
+  state.localeListeners.clear();
+  state.missingKeyHandlers.clear();
+  state.messageCache.clear();
+  state.missingKeyWarned = new Set();
+  state.currentLocale = 'en';
+  state.fallbackLocale = 'en';
 }
 
 export function onLocaleChange(callback: LocaleChangeCallback): () => void {
@@ -558,7 +595,7 @@ export function detectBrowserLocale(): string {
   if (typeof navigator !== 'undefined' && navigator.language) {
     return i18n.detectLocale(navigator.language);
   }
-  return fallbackLocale;
+  return getI18nState().fallbackLocale;
 }
 
 export function formatDate(

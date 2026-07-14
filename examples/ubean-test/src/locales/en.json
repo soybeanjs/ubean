@@ -1,0 +1,31 @@
+{
+  "app": {
+    "title": "Ubean Test",
+    "description": "A test project for ubean framework"
+  },
+  "common": {
+    "hello": "Hello, {name}!",
+    "welcome": "Welcome to ubean",
+    "goodbye": "Goodbye"
+  },
+  "items": {
+    "count": "You have {count} item | You have {count} items",
+    "explicit": "No items | One item | Many items",
+    "categorized": "zero: No items | one: One item | other: {count} items"
+  },
+  "navigation": {
+    "home": "Home",
+    "about": "About",
+    "features": "Features",
+    "dashboard": "Dashboard"
+  },
+  "linked": {
+    "greeting": "Hello, @:common.hello",
+    "nested": "@:navigation.home page"
+  },
+  "messages": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Operation completed successfully"
+  }
+}

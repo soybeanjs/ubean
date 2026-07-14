@@ -15,7 +15,13 @@ import type {
   DevToolsLayoutInfo,
   DevToolsCronInfo
 } from '../core/devtools/types';
-import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '../core/routing/types';
+import type {
+  ScannedApiRoute,
+  ScannedMiddleware,
+  ScannedPageRoute,
+  ScannedLayout,
+  ScannedCronTask
+} from '../core/routing/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '../types/handler';
 import { registerRoutes } from './router';
 import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from './cache';
@@ -49,6 +55,7 @@ export interface UbeanAppOptions {
   middleware?: ScannedMiddleware[];
   pages?: ScannedPageRoute[];
   layouts?: ScannedLayout[];
+  crons?: ScannedCronTask[];
   routeRules?: Record<string, RouteRule>;
   plugins?: UbeanAppPlugin[];
   routeLoaders?: Record<

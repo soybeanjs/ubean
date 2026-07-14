@@ -17,6 +17,8 @@ export default defineConfig({
       'src/runtime/router.ts',
       'src/runtime/env.ts',
       'src/runtime/client.ts',
+      'src/runtime/i18n.ts',
+      'src/runtime/i18n-routing.ts',
       'src/runtime/pages/index.ts',
       'src/runtime/vue/index.ts',
       'src/runtime/vue/app.ts',

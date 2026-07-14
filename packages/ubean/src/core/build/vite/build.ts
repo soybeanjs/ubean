@@ -299,7 +299,14 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual);
 
   const builtinPlugins: any[] = [
-    vue({ include: VUE_PLUGIN_INCLUDE }),
+    vue({
+      include: VUE_PLUGIN_INCLUDE,
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag: string) => tag.startsWith('ubean-')
+        }
+      }
+    }),
     ubeanPlugin({ config }),
     ...ubeanVuePlugin({ config }),
     ubeanIslandsPlugin()

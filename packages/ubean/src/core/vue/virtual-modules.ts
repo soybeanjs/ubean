@@ -231,21 +231,35 @@ export function resolveAppConfig(mode) {
 export function createApp(head) {
   const config = resolveAppConfig('client');
 
+  const initialPage = getInitialPageData();
   const instance = createUbeanApp({
     routes,
     resolveLayoutComponent,
     defaultLayout,
     head,
-    viewTransitions: config.viewTransitions
+    viewTransitions: config.viewTransitions,
+    initialPage: initialPage || undefined,
+    hydrate: !!initialPage
   });
 
   applyAppConfig(instance.app, config, 'client');
 
   if (config._onAppCreated) config._onAppCreated(instance.app);
 
-  instance.app.mount('#' + (config.rootId || 'app'));
+  const mountApp = () => {
+    instance.app.mount('#' + (config.rootId || 'app'));
+    if (config._onClientReady) {
+      config._onClientReady(instance.app);
+    }
+  };
 
-  if (config._onClientReady) config._onClientReady(instance.app);
+  // When hydrating SSR content, must wait for router to be ready before mounting,
+  // otherwise RouterView has no matched route and causes hydration mismatch.
+  if (initialPage) {
+    instance.router.isReady().then(mountApp);
+  } else {
+    mountApp();
+  }
 
   return instance;
 }

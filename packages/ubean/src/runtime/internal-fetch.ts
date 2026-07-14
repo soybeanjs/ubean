@@ -18,14 +18,14 @@ export interface InternalRequestResult<T = unknown> {
 
 type AppFetcher = (request: Request) => Response | Promise<Response>;
 
-let globalFetcher: AppFetcher | null = null;
+const FETCHER_KEY = '__ubean_internal_fetcher__';
 
 export function setInternalFetcher(fetcher: AppFetcher): void {
-  globalFetcher = fetcher;
+  (globalThis as Record<string, unknown>)[FETCHER_KEY] = fetcher;
 }
 
 export function getInternalFetcher(): AppFetcher | null {
-  return globalFetcher;
+  return ((globalThis as Record<string, unknown>)[FETCHER_KEY] as AppFetcher | undefined) || null;
 }
 
 function buildUrl(path: string, query?: Record<string, string | number | boolean | undefined>): string {
@@ -95,7 +95,8 @@ export async function callInternal<T = unknown>(
   path: string,
   options: InternalRequestOptions = {}
 ): Promise<InternalRequestResult<T>> {
-  if (!globalFetcher) {
+  const fetcher = getInternalFetcher();
+  if (!fetcher) {
     throw new Error(
       '[ubean] callInternal: fetcher not registered. Call setInternalFetcher() with your app.fetch first.'
     );
@@ -111,7 +112,7 @@ export async function callInternal<T = unknown>(
   }
 
   const request = new Request(url, { method, headers, body });
-  const response = await globalFetcher(request);
+  const response = await fetcher(request);
 
   let data: T = undefined as T;
   if (options.parseResponse !== false) {
@@ -137,7 +138,8 @@ export function createRequestSender(c: Context<UbeanEnv>) {
     path: string,
     options: Omit<InternalRequestOptions, 'headers'> & { headers?: Record<string, string> | Headers } = {}
   ): Promise<InternalRequestResult<T>> {
-    if (!globalFetcher) {
+    const fetcher = getInternalFetcher();
+    if (!fetcher) {
       throw new Error('[ubean] $request: fetcher not registered.');
     }
 
@@ -151,7 +153,7 @@ export function createRequestSender(c: Context<UbeanEnv>) {
     }
 
     const request = new Request(url, { method, headers, body });
-    const response = await globalFetcher(request);
+    const response = await fetcher(request);
 
     let data: T = undefined as T;
     if (options.parseResponse !== false) {
@@ -174,5 +176,5 @@ export function createRequestSender(c: Context<UbeanEnv>) {
 }
 
 export function clearInternalFetcher(): void {
-  globalFetcher = null;
+  delete (globalThis as Record<string, unknown>)[FETCHER_KEY];
 }

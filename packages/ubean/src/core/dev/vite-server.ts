@@ -135,7 +135,14 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   }
 
   const builtinPlugins: any[] = [
-    vue({ include: VUE_PLUGIN_INCLUDE }),
+    vue({
+      include: VUE_PLUGIN_INCLUDE,
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag: string) => tag.startsWith('ubean-')
+        }
+      }
+    }),
     ubeanPlugin({ config }),
     ...ubeanVuePlugin({ config }),
     ubeanIslandsPlugin()
@@ -197,6 +204,15 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       middlewareLoaders[mw.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
     }
     app.options.middlewareLoaders = middlewareLoaders;
+
+    // Eagerly load cron files so defineScheduled() side effects register tasks
+    // in the same Vite module-graph instance that API routes use.
+    const cronFiles = app.options.crons || [];
+    if (cronFiles.length > 0) {
+      Promise.all(cronFiles.map(c => viteServer!.ssrLoadModule(c.fullPath))).catch(err => {
+        console.error('[ubean] Failed to load cron files:', err);
+      });
+    }
 
     const layoutMap = new Map<string, string>();
     for (const layout of layouts) {

@@ -51,8 +51,8 @@ definePage({
       <div class="test-card">
         <h3>🌍 i18n 国际化</h3>
         <ul>
-          <li><Link to="/en">English</Link></li>
-          <li><Link to="/zh-CN">简体中文</Link></li>
+          <li>English</li>
+          <li>简体中文</li>
         </ul>
       </div>
 

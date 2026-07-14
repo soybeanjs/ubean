@@ -15,11 +15,22 @@ export {
   getRegisteredLocales,
   clearLocales,
   detectBrowserLocale,
+  detectLocale,
   getI18nConfig,
   setI18nConfig,
   localizePath,
   getDefaultLocale,
-  extractLocaleFromPath
+  getLocaleDir,
+  getLocaleName,
+  extractLocaleFromPath,
+  onLocaleChange,
+  addLocale,
+  mergeLocale,
+  formatDate,
+  formatNumber,
+  formatCurrency,
+  formatRelativeTime,
+  formatList
 } from './runtime/i18n';
 export {
   createI18nMiddleware,

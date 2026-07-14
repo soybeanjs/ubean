@@ -79,8 +79,14 @@ definePage({
         <Link to="/about" class="test-btn page">关于 /about</Link>
         <Link to="/user/1" class="test-btn page">动态 /user/[id]</Link>
         <Link to="/md-test" class="test-btn page">Markdown /md-test</Link>
-        <Link to="/en" class="test-btn page">English /en</Link>
-        <Link to="/zh-CN" class="test-btn page">中文 /zh-CN</Link>
+      </div>
+    </div>
+
+    <div class="page-test-section">
+      <h2>🏝️ 客户端功能测试</h2>
+      <div class="test-links">
+        <Link to="/islands-test" class="test-btn island">Islands 架构</Link>
+        <Link to="/view-transitions" class="test-btn island">View Transitions</Link>
       </div>
     </div>
 
@@ -177,6 +183,15 @@ definePage({
 .test-btn.dev {
   background: #eceff1;
   color: #37474f;
+}
+
+.test-btn.island {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.test-btn.island:hover {
+  background: #bae6fd;
 }
 
 .back-link {

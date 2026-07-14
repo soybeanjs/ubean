@@ -140,21 +140,68 @@ async function generateVirtualModulesToDisk(
   const pagesGlob = JSON.stringify(`${viteSrcPrefix}/pages/**/*.{vue,ts,tsx,js,jsx,md,mdx}`);
   const routesGlob = JSON.stringify(`${viteSrcPrefix}/routes/**/*.{ts,js,mjs}`);
   const middlewareGlob = JSON.stringify(`${viteSrcPrefix}/middleware/**/*.{ts,js,mjs}`);
-  const publicDir = toVitePath(join(cwd, 'public'));
+  const layoutsGlob = JSON.stringify(`${viteSrcPrefix}/layouts/**/*.{vue,ts}`);
+  // Point publicDir to the build output (not the source public/) so preview
+  // serves the compiled client assets and copied static files.
+  const outputDir = config.build.outputDir || '.ubean/dist';
+  const publicDir = toVitePath(resolve(cwd, outputDir, 'public'));
+
+  // Serialize scanned route/middleware/page/layout metadata so the production
+  // server entry can pass it to createUbeanApp. registerRoutes() iterates over
+  // these arrays (not the loaders) to know which routes/pages/middleware to
+  // register — without them every request falls through to the 404 handler.
+  const routesJson = JSON.stringify(
+    scanResult.apiRoutes.map(r => ({
+      relativePath: r.relativePath,
+      route: r.route,
+      method: r.method,
+      fileMeta: r.fileMeta
+    }))
+  );
+  const middlewareJson = JSON.stringify(
+    scanResult.middlewares.map(m => ({
+      relativePath: m.relativePath,
+      order: m.order,
+      global: m.global
+    }))
+  );
+  const pagesJson = JSON.stringify(
+    scanResult.pages.map(p => ({
+      relativePath: p.relativePath,
+      name: p.name,
+      route: p.route,
+      layout: p.layout,
+      reuseTarget: p.reuseTarget,
+      isReuse: p.isReuse,
+      pageMeta: p.pageMeta
+    }))
+  );
+  const layoutsJson = JSON.stringify(
+    scanResult.layouts.map(l => ({
+      name: l.name,
+      relativePath: l.relativePath,
+      isDefault: l.isDefault
+    }))
+  );
 
   const serverEntry = `// Auto-generated server entry
 import { createUbeanApp } from 'ubean/runtime/app';
+import { createVueRenderer } from 'ubean/vue-ssr';
 import { loadLocales } from 'ubean:locales';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 export { createUbeanApp };
 
 const routeModules = import.meta.glob(${routesGlob}, { eager: false });
 const middlewareModules = import.meta.glob(${middlewareGlob}, { eager: false });
 const pageModules = import.meta.glob(${pagesGlob}, { eager: false });
+const layoutModules = import.meta.glob(${layoutsGlob}, { eager: false });
 
 const _srcPrefix = ${JSON.stringify(viteSrcPrefix)};
 function normalizeKey(p) {
-  const prefixes = ['/routes/', '/middleware/', '/pages/'];
+  const prefixes = ['/routes/', '/middleware/', '/pages/', '/layouts/'];
   for (const prefix of prefixes) {
     const fullPrefix = _srcPrefix + prefix;
     if (p.includes(fullPrefix)) {
@@ -180,12 +227,82 @@ for (const [key, loader] of Object.entries(pageModules)) {
   pageLoaders[normalizeKey(key)] = loader;
 }
 
+const layoutLoaders = {};
+for (const [key, loader] of Object.entries(layoutModules)) {
+  layoutLoaders[normalizeKey(key)] = loader;
+}
+
+const _routes = ${routesJson};
+const _middleware = ${middlewareJson};
+const _pages = ${pagesJson};
+const _layouts = ${layoutsJson};
+
+// --- SSR renderer setup ---
+const _defaultLayout = _layouts.find(l => l.isDefault)?.name || null;
+
+const _rendererRoutes = _pages.filter(p => !p.isReuse).map(p => ({
+  path: p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'),
+  name: p.name,
+  component: async () => {
+    const loader = pageLoaders[p.relativePath];
+    if (!loader) throw new Error('Page loader not found: ' + p.relativePath);
+    const mod = await loader();
+    return mod.default || mod;
+  },
+  meta: {
+    layout: p.layout === false ? false : p.layout || _defaultLayout,
+    pageName: p.name
+  }
+}));
+
+const _layoutMap = new Map();
+for (const l of _layouts) {
+  _layoutMap.set(l.name, l.relativePath);
+}
+
+const _pageRenderer = createVueRenderer({
+  routes: _rendererRoutes,
+  async resolveLayoutComponent(name) {
+    if (name === false || name == null) return null;
+    const relPath = _layoutMap.get(name);
+    if (!relPath) return null;
+    const loader = layoutLoaders[relPath];
+    if (!loader) return null;
+    const mod = await loader();
+    return mod.default || mod;
+  },
+  defaultLayout: _defaultLayout
+});
+
+// --- Client asset tags from Vite manifest ---
+const __dirname = dirname(fileURLToPath(import.meta.url));
+let _assetTags = { css: '', preloads: '', body: '' };
+try {
+  const manifestPath = join(__dirname, '..', 'public', '.vite', 'manifest.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
+  const entry = Object.values(manifest).find(m => m.isEntry);
+  if (entry) {
+    _assetTags.body = '<script type="module" src="/' + entry.file + '"></script>';
+    if (Array.isArray(entry.css)) {
+      _assetTags.css = entry.css.map(c => '<link rel="stylesheet" href="/' + c + '">').join('\\n');
+    }
+  }
+} catch (e) {
+  console.warn('[ubean] Failed to load client manifest:', e.message || e);
+}
+
 export async function createApp(options = {}) {
   const app = createUbeanApp({
     rootDir: ${JSON.stringify(cwd)},
+    routes: _routes,
+    middleware: _middleware,
+    pages: _pages,
+    layouts: _layouts,
     routeLoaders,
     middlewareLoaders,
     pageLoaders,
+    pageRenderer: _pageRenderer,
+    pageAssetTags: _assetTags,
     publicDir: ${JSON.stringify(publicDir)},
     i18nConfig: ${JSON.stringify(config.i18n)},
     ...options
@@ -244,16 +361,69 @@ function getPresetBuildConfig(preset: Preset) {
 
 function generateNodeServerEntry(): string {
   return `// Auto-generated ubean Node.js server entry
-import { serve } from 'hono/node-server';
+import { createServer } from 'node:http';
 import createFetchHandler from './entry.mjs';
 
-const port = process.env.PORT || 3000;
+const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || '0.0.0.0';
 
 async function main() {
   const fetch = await createFetchHandler();
-  console.log(\`Starting ubean server on http://\${host}:\${port}\`);
-  serve({ fetch, port: Number(port), hostname: host });
+
+  const server = createServer(async (req, res) => {
+    try {
+      const protocol = req.socket?.encrypted ? 'https' : 'http';
+      const url = \`\${protocol}://\${req.headers.host || host}\${req.url || '/'}\`;
+      const headers = new Headers();
+      for (const [key, value] of Object.entries(req.headers)) {
+        if (value) {
+          if (Array.isArray(value)) {
+            for (const v of value) headers.append(key, v);
+          } else {
+            headers.set(key, value);
+          }
+        }
+      }
+      const method = req.method || 'GET';
+      const body = method === 'GET' || method === 'HEAD' ? undefined : req;
+      const webReq = new Request(url, { method, headers, body, duplex: 'half' });
+      const webRes = await fetch(webReq);
+
+      res.statusCode = webRes.status;
+      res.statusMessage = webRes.statusText;
+      webRes.headers.forEach((value, key) => res.setHeader(key, value));
+
+      if (webRes.body) {
+        const reader = webRes.body.getReader();
+        try {
+          while (true) {
+            const { done, value: chunk } = await reader.read();
+            if (done) break;
+            res.write(chunk);
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      }
+      res.end();
+    } catch (err) {
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        res.setHeader('Content-Type', 'text/plain');
+      }
+      res.end(err instanceof Error ? err.message : String(err));
+    }
+  });
+
+  server.listen(port, host, () => {
+    console.log(\`ubean server listening on http://\${host}:\${port}\`);
+  });
+
+  const shutdown = () => {
+    server.close(() => process.exit(0));
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 main();

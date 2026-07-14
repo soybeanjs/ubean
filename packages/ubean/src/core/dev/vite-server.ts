@@ -1,10 +1,10 @@
 import { createServer as createHttpServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createServer as createNetServer } from 'node:net';
 import { createServer as createViteServer } from 'vite';
 import type { ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
+import { findAvailablePort } from '../utils/port';
 import { ubeanPlugin } from '../build/vite/plugin';
 import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '../vue/plugin';
 import { resolveModules } from '../modules';
@@ -23,30 +23,6 @@ export interface ViteDevServerOptions {
   app: UbeanApp;
   layouts?: ScannedLayout[];
   onListen?: (info: { port: number; host: string; url: string }) => void;
-}
-
-/**
- * Tries to listen on `port` at `host`. If the port is already in use and
- * `strictPort` is false, recursively tries `port + 1` until an available
- * port is found (mirrors Vite's behaviour).
- */
-async function findAvailablePort(port: number, host: string, strictPort: boolean): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createNetServer();
-    server.once('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'EADDRINUSE' && !strictPort) {
-        server.close();
-        resolve(findAvailablePort(port + 1, host, false));
-      } else {
-        reject(err);
-      }
-    });
-    server.listen(port, host, () => {
-      const addr = server.address();
-      const actual = typeof addr === 'object' && addr ? addr.port : port;
-      server.close(() => resolve(actual));
-    });
-  });
 }
 
 export interface ViteDevServerInstance {
@@ -119,7 +95,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   const requestedPort = options.port;
   let actualPort: number;
   try {
-    actualPort = await findAvailablePort(requestedPort, host, strictPort);
+    actualPort = await findAvailablePort(requestedPort, { host, strictPort });
   } catch (err: any) {
     if (err?.code === 'EADDRINUSE') {
       throw new Error(

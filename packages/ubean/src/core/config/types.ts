@@ -57,6 +57,11 @@ export interface UbeanConfig {
     host?: string;
     open?: boolean;
   };
+  preview?: {
+    port?: number;
+    host?: string;
+    strictPort?: boolean;
+  };
   build?: {
     preset?: string;
     outputDir?: string;
@@ -133,7 +138,7 @@ export interface RouteRule {
 }
 
 export interface ResolvedConfig extends Required<
-  Omit<UbeanConfig, 'build' | 'dev' | 'prerender' | 'icon' | 'pwa' | 'auth' | 'image' | 'fonts'>
+  Omit<UbeanConfig, 'build' | 'dev' | 'preview' | 'prerender' | 'icon' | 'pwa' | 'auth' | 'image' | 'fonts'>
 > {
   rootDir: string;
   srcDir: string;
@@ -145,6 +150,7 @@ export interface ResolvedConfig extends Required<
   fonts: boolean | BuiltinModuleOptions;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   dev: Required<NonNullable<UbeanConfig['dev']>>;
+  preview: Required<NonNullable<UbeanConfig['preview']>>;
   build: Required<NonNullable<UbeanConfig['build']>>;
   markdown: Required<NonNullable<UbeanConfig['markdown']>>;
   imports: Required<NonNullable<UbeanConfig['imports']>>;

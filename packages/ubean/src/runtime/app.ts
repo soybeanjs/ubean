@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { requestId } from 'hono/request-id';
 import { createHooks } from 'hookable';
-import { join } from 'pathe';
+import { join, isAbsolute } from 'pathe';
 import type { RouteRule } from '../core/config/types';
 import { getCustomTabs } from '../core/devtools/define-tab';
 import type {
@@ -221,9 +221,11 @@ export class UbeanApp {
     });
 
     if (this.options.publicDir) {
-      const publicDir = this.options.rootDir
-        ? join(this.options.rootDir, this.options.publicDir)
-        : this.options.publicDir;
+      const publicDir = isAbsolute(this.options.publicDir)
+        ? this.options.publicDir
+        : this.options.rootDir
+          ? join(this.options.rootDir, this.options.publicDir)
+          : this.options.publicDir;
       if (existsSync(publicDir)) {
         this.hono.use('/*', serveStatic({ publicDir }));
       }

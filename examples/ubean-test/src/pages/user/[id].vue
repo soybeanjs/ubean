@@ -33,7 +33,7 @@ const userId = page.params.id || 'unknown';
       <code>[id].vue</code>
       参数解析正常 (通过 usePage().params 获取)
     </p>
-    <a href="/" class="back-link">← 返回首页</a>
+    <Link to="/" class="back-link">← 返回首页</Link>
   </div>
 </template>
 

@@ -1,5 +1,6 @@
 import {
   createApp as _createApp,
+  createSSRApp as _createSSRApp,
   defineComponent,
   h,
   ref,
@@ -9,202 +10,149 @@ import {
   markRaw,
   watchEffect,
   computed,
-  nextTick
+  shallowRef
 } from 'vue';
 import type { App, Component, ConcreteComponent, PropType } from 'vue';
-import type { PageObject } from '../pages/protocol';
+import { RouterView, RouterLink, useRoute, useRouter as useVueRouter } from 'vue-router';
+import type { RouteRecordRaw } from 'vue-router';
+import type { PageObject, PageHead } from '../pages/protocol';
 import { localizePath } from './i18n';
-import { createUbeanClient, getInitialPageData } from './client';
+import { createUbeanRouter } from './router';
 import { createHeadManager } from './head';
-import { resolveRoute, isActiveRoute } from './router-location';
-import type { RouteLocation } from './router-location';
-import { withViewTransition, supportsViewTransitions } from './view-transitions';
+import { supportsViewTransitions } from './view-transitions';
 import type { ViewTransitionOptions } from './view-transitions';
 
 const PAGE_KEY = Symbol('ubean-page');
-const ROUTER_KEY = Symbol('ubean-router');
 const HEAD_KEY = Symbol('ubean-head');
-const CLIENT_KEY = Symbol('ubean-client');
 const TRANSITION_KEY = Symbol('ubean-transition');
 
 export interface UbeanAppOptions {
-  resolvePageComponent: (name: string) => Promise<Component>;
+  routes: RouteRecordRaw[];
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>;
   defaultLayout?: string | null;
-  resolveLayoutParent?: (name: string) => string | null;
   initialPage?: PageObject;
-  id?: string;
   head?: ReturnType<typeof createHeadManager>;
   viewTransitions?: boolean | ViewTransitionOptions;
 }
 
 export interface UbeanAppInstance {
   app: App;
-  client: ReturnType<typeof createUbeanClient>;
+  router: ReturnType<typeof createUbeanRouter>;
   head: ReturnType<typeof createHeadManager>;
   page: Record<string, unknown>;
-  navigate: (url: string, opts?: { replace?: boolean; transition?: boolean }) => Promise<void>;
 }
 
-function defaultResolveLayoutParent(name: string, defaultLayout: string | null): string | null {
-  if (!name || name === defaultLayout) return null;
-
-  const lastSlash = name.lastIndexOf('/');
-  if (lastSlash > 0) {
-    return name.slice(0, lastSlash);
-  }
-
-  return defaultLayout;
-}
-
-function renderNestedLayouts(
-  pageState: PageObject,
-  PageComp: Component,
-  layoutChain: { name: string; component: Component }[]
-): any {
-  const pageVNode = h(PageComp as ConcreteComponent, {
-    key: pageState.component + pageState.url,
-    ...(pageState.props as any)
-  });
-
-  if (layoutChain.length === 0) {
-    return pageVNode;
-  }
-
-  let vnode: any = pageVNode;
-  for (let i = layoutChain.length - 1; i >= 0; i--) {
-    const layout = layoutChain[i];
-    const child = vnode;
-    vnode = h(
-      layout.component as ConcreteComponent,
-      { page: pageState, layoutName: layout.name },
-      { default: () => child }
-    );
-  }
-  return vnode;
-}
-
-async function resolveLayoutChain(
-  layoutName: string | false | null | undefined,
+// --- Layout wrapper component ---
+// Reads route.meta.layout and wraps RouterView content with the layout component.
+function createLayoutWrapper(
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>,
-  resolveParent: (name: string) => string | null
-): Promise<{ name: string; component: Component }[]> {
-  if (layoutName === false || layoutName == null) return [];
+  defaultLayout: string | null
+) {
+  const layoutCache = new Map<string, Component | null>();
+  const layoutComp = shallowRef<Component | null>(null);
+  const currentLayoutName = ref<string | false | null>(null);
 
-  const chain: { name: string; component: Component }[] = [];
-  const visited = new Set<string>();
-  let current: string | null = layoutName;
-
-  while (current && !visited.has(current)) {
-    visited.add(current);
-    const comp = await resolveLayoutComponent(current);
-    if (comp) {
-      chain.push({ name: current, component: markRaw(comp) });
+  async function loadLayout(name: string | false | null | undefined) {
+    const resolved = name === undefined ? defaultLayout : name;
+    if (resolved === false || resolved == null) {
+      layoutComp.value = null;
+      return;
     }
-    current = resolveParent(current);
+    if (layoutCache.has(resolved)) {
+      layoutComp.value = layoutCache.get(resolved) || null;
+      return;
+    }
+    const comp = await resolveLayoutComponent(resolved);
+    if (comp) {
+      const raw = markRaw(comp);
+      layoutCache.set(resolved, raw);
+      layoutComp.value = raw;
+    } else {
+      layoutCache.set(resolved, null);
+      layoutComp.value = null;
+    }
   }
 
-  return chain;
+  return defineComponent({
+    name: 'UbeanLayoutView',
+    setup() {
+      const route = useRoute();
+
+      watchEffect(() => {
+        const layoutName = route.meta.layout as string | false | undefined;
+        if (layoutName !== currentLayoutName.value) {
+          currentLayoutName.value = layoutName === undefined ? defaultLayout : layoutName;
+          loadLayout(currentLayoutName.value);
+        }
+      });
+
+      return () => {
+        return h(RouterView, null, {
+          default: ({ Component: ViewComponent }: { Component: Component | null }) => {
+            if (!ViewComponent) return null;
+            if (!layoutComp.value) return h(ViewComponent as ConcreteComponent);
+            return h(
+              layoutComp.value as ConcreteComponent,
+              {},
+              { default: () => h(ViewComponent as ConcreteComponent) }
+            );
+          }
+        });
+      };
+    }
+  });
 }
 
-const PageRoot = defineComponent({
-  name: 'UbeanPageRoot',
-  setup() {
-    const ctx = inject(CLIENT_KEY) as any;
-    return () => {
-      const pageState = ctx.page as PageObject;
-      const PageComp = ctx.resolvedPage.value as Component | null;
-      const layoutChain = ctx.resolvedLayouts.value as { name: string; component: Component }[];
-
-      if (!PageComp) {
-        return h('div', { 'data-ubean-loading': '' });
-      }
-
-      return renderNestedLayouts(pageState, PageComp, layoutChain);
-    };
-  }
-});
-
+// --- Link component (wraps RouterLink) ---
 export const Link = defineComponent({
   name: 'Link',
   props: {
-    to: { type: [String, Object] as PropType<RouteLocation>, default: undefined },
+    to: { type: [String, Object] as PropType<string | Record<string, unknown>>, default: undefined },
     href: { type: String, default: undefined },
     replace: { type: Boolean, default: false },
     prefetch: { type: Boolean, default: false },
-    as: { type: String, default: 'a' },
     activeClass: { type: String, default: 'router-link-active' },
     exactActiveClass: { type: String, default: 'router-link-exact-active' },
     noActiveClass: { type: Boolean, default: false }
   },
   setup(props, { slots, attrs }) {
-    const router = inject(ROUTER_KEY) as {
-      navigate: (url: string, opts?: any) => Promise<void>;
-      client: any;
-      page?: PageObject;
-    };
-    const page = inject(PAGE_KEY, null) as PageObject | null;
-
-    const resolvedHref = computed(() => {
-      let href = '#';
-      if (props.href) href = props.href;
-      else if (props.to) href = resolveRoute(props.to);
-      const isExternal = href.startsWith('http') || href.startsWith('//') || href.startsWith('#');
-      if (isExternal) return href;
-      return localizePath(href);
+    const resolvedTo = computed(() => {
+      const path = props.to ?? props.href ?? '';
+      if (typeof path === 'string' && (path.startsWith('http') || path.startsWith('//') || path.startsWith('#'))) {
+        return path;
+      }
+      return localizePath(path as string);
     });
 
-    function onClick(e: any) {
-      if (e.defaultPrevented) return;
-      if (e.button !== undefined && e.button !== 0) return;
-      if (e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return;
-      if (e.target && e.target.closest?.('a')?.hasAttribute('target')) return;
-
-      e.preventDefault();
-      router.navigate(resolvedHref.value, { replace: props.replace });
-    }
-
-    function onPrefetch() {
-      if (props.prefetch && router.client?.prefetch) {
-        router.client.prefetch(resolvedHref.value);
-      }
-    }
+    const isExternal = computed(() => {
+      const path = String(resolvedTo.value);
+      return path.startsWith('http') || path.startsWith('//') || path.startsWith('#');
+    });
 
     return () => {
-      const href = resolvedHref.value;
-      const isExternal = href.startsWith('http') || href.startsWith('//');
-      const classes: Record<string, boolean> = {};
-
-      if (!props.noActiveClass && page && !isExternal) {
-        if (props.exactActiveClass) {
-          classes[props.exactActiveClass] = isActiveRoute(page.url, href, true);
-        }
-        if (props.activeClass) {
-          classes[props.activeClass] = isActiveRoute(page.url, href, false);
-        }
+      if (isExternal.value) {
+        return h(
+          'a',
+          {
+            ...attrs,
+            href: resolvedTo.value,
+            target: '_blank',
+            rel: 'noopener noreferrer'
+          },
+          slots.default ? slots.default() : undefined
+        );
       }
 
       return h(
-        props.as,
+        RouterLink,
         {
           ...attrs,
-          href,
-          ...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {}),
-          onClick: isExternal ? undefined : onClick,
-          onMouseenter: isExternal ? undefined : onPrefetch,
-          'data-ubean-link': '',
-          class:
-            Object.keys(classes)
-              .filter(c => classes[c])
-              .join(' ') || undefined
+          to: resolvedTo.value as any,
+          replace: props.replace,
+          activeClass: props.noActiveClass ? '' : props.activeClass,
+          exactActiveClass: props.noActiveClass ? '' : props.exactActiveClass
         },
         slots.default
-          ? slots.default({
-              isActive: classes[props.activeClass],
-              isExactActive: classes[props.exactActiveClass],
-              href
-            })
-          : []
       );
     };
   }
@@ -217,11 +165,10 @@ export const Head = defineComponent({
   }
 });
 
-export function createUbeanApp(options: UbeanAppOptions & { id?: string }): UbeanAppInstance {
-  const client = createUbeanClient();
+// --- App creation ---
+export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
   const initial =
     options.initialPage ||
-    getInitialPageData() ||
     ({
       component: '',
       props: {},
@@ -229,9 +176,7 @@ export function createUbeanApp(options: UbeanAppOptions & { id?: string }): Ubea
       url: '/'
     } as PageObject);
 
-  const resolveParent =
-    options.resolveLayoutParent || ((name: string) => defaultResolveLayoutParent(name, options.defaultLayout || null));
-
+  const head = options.head || createHeadManager(initial.head);
   const transitionOpts: ViewTransitionOptions =
     options.viewTransitions === false
       ? { enabled: false }
@@ -240,161 +185,117 @@ export function createUbeanApp(options: UbeanAppOptions & { id?: string }): Ubea
         : options.viewTransitions;
 
   const page = reactive<PageObject>({ ...initial }) as any;
-  const resolvedPage = ref<Component | null>(null);
-  const resolvedLayouts = ref<{ name: string; component: Component }[]>([]);
-  const head = options.head || createHeadManager(initial.head);
 
-  const ctx = {
-    page,
-    resolvedPage,
-    resolvedLayouts,
-    head,
-    client
-  };
-
-  async function resolveFor(pageData: PageObject) {
-    const layoutName = pageData.layout === false ? false : pageData.layout || options.defaultLayout;
-    const [pageComp, layouts] = await Promise.all([
-      options.resolvePageComponent(pageData.component),
-      resolveLayoutChain(layoutName, options.resolveLayoutComponent, resolveParent)
-    ]);
-    resolvedPage.value = markRaw(pageComp);
-    resolvedLayouts.value = layouts;
-    await nextTick();
-  }
-
-  async function applyPageData(next: PageObject): Promise<void> {
-    Object.assign(page, next);
-    if (next.head) head.apply(next.head);
-    await resolveFor(next);
-  }
-
-  let pendingTransition = false;
-
-  async function navigate(url: string, navOpts: { replace?: boolean; transition?: boolean } = {}) {
-    const useTransition = navOpts.transition !== false && transitionOpts.enabled !== false && supportsViewTransitions();
-
-    client.state.navigating = true;
-    try {
-      const pageData = await client.fetchPage(url);
-
-      if (useTransition) {
-        pendingTransition = true;
-        await withViewTransition(async () => {
-          client.applyPage(pageData, { replace: navOpts.replace, url });
-          await applyPageData(pageData);
-        }, transitionOpts);
-        pendingTransition = false;
-      } else {
-        client.applyPage(pageData, { replace: navOpts.replace, url });
-        await applyPageData(pageData);
-      }
-    } finally {
-      client.state.navigating = false;
-    }
-  }
-
-  client.subscribe(async () => {
-    if (pendingTransition) return;
-    const next = client.state.page as PageObject;
-    const useTransition = transitionOpts.enabled !== false && supportsViewTransitions();
-
-    if (useTransition) {
-      await withViewTransition(async () => {
-        await applyPageData(next);
-      }, transitionOpts);
-    } else {
-      await applyPageData(next);
-    }
+  const router = createUbeanRouter({
+    routes: options.routes,
+    ssr: false
   });
+
+  const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
 
   const RootComponent = defineComponent({
     name: 'UbeanAppRoot',
     setup() {
-      provide(CLIENT_KEY, ctx);
       provide(PAGE_KEY, page);
-      provide(ROUTER_KEY, { navigate, client });
       provide(HEAD_KEY, head);
       provide(TRANSITION_KEY, transitionOpts);
 
-      resolveFor(initial);
+      // Sync route head to head manager
+      router.afterEach(to => {
+        if (to.meta.head) {
+          head.apply(to.meta.head as PageHead);
+        }
+      });
 
-      if (initial.head) {
-        watchEffect(() => head.apply((page as any).head || null));
-      }
-
-      return () => h(PageRoot);
+      return () => h(LayoutWrapper);
     }
   });
 
   const app = _createApp(RootComponent);
+  app.use(router);
+  app.component('Link', Link);
+  app.component('Head', Head);
+  app.config.globalProperties.$ubean = { page, head, router };
 
-  app.config.globalProperties.$ubean = { page, head, navigate, client, viewTransitions: transitionOpts };
-
-  return { app, client, head, page: page as any, navigate };
+  return { app, router, head, page: page as any };
 }
 
-export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAppOptions, 'initialPage'>): App {
-  const resolveParent =
-    options.resolveLayoutParent || ((name: string) => defaultResolveLayoutParent(name, options.defaultLayout || null));
-
-  const resolvedPage = ref<Component | null>(null);
-  const resolvedLayouts = ref<{ name: string; component: Component }[]>([]);
+// --- SSR App creation ---
+export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAppOptions, 'initialPage'>) {
   const head = options.head || createHeadManager(initialPage.head);
   const page = reactive<PageObject>({ ...initialPage });
 
-  const ctx = {
-    page,
-    resolvedPage,
-    resolvedLayouts,
-    head,
-    client: null
-  };
+  const router = createUbeanRouter({
+    routes: options.routes,
+    ssr: true,
+    initialUrl: initialPage.url
+  });
+
+  const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
 
   const RootComponent = defineComponent({
     name: 'UbeanSSRApp',
     setup() {
-      provide(CLIENT_KEY, ctx);
       provide(PAGE_KEY, page);
-      provide(ROUTER_KEY, { navigate: async () => {}, client: null });
       provide(HEAD_KEY, head);
 
-      return () => {
-        if (!resolvedPage.value) {
-          return h('div', { 'data-ubean-loading': '' });
-        }
-        return renderNestedLayouts(initialPage, resolvedPage.value, resolvedLayouts.value);
-      };
+      return () => h(LayoutWrapper);
     }
   });
 
-  const app = _createApp(RootComponent);
+  const app = _createSSRApp(RootComponent);
+  app.use(router);
+  app.component('Link', Link);
+  app.component('Head', Head);
+  app.config.globalProperties.$ubean = { page, head, router };
 
-  const layoutName = initialPage.layout === false ? false : initialPage.layout || options.defaultLayout;
-  Promise.all([
-    options.resolvePageComponent(initialPage.component),
-    resolveLayoutChain(layoutName, options.resolveLayoutComponent, resolveParent)
-  ]).then(([pc, layouts]) => {
-    resolvedPage.value = markRaw(pc);
-    resolvedLayouts.value = layouts;
-  });
-
-  return app;
+  return { app, router };
 }
 
+// --- Composables ---
 export function usePage<T = Record<string, unknown>>(): PageObject<T> {
-  const p = inject<PageObject<T>>(PAGE_KEY);
-  if (!p) throw new Error('[ubean] usePage() must be called inside a ubean Vue app');
-  return p;
+  const route = useRoute();
+  const pageData = inject<PageObject>(PAGE_KEY, null as any);
+
+  return reactive({
+    url: computed(() => route.fullPath),
+    params: computed(() => route.params),
+    query: computed(() => route.query),
+    meta: computed(() => route.meta),
+    props: computed(() => pageData?.props || {}),
+    component: computed(() => route.meta.pageName || pageData?.component || ''),
+    head: computed(() => pageData?.head || null),
+    errors: computed(() => pageData?.errors || null)
+  }) as any;
 }
 
-export function useRouter() {
-  const r = inject<{
-    navigate: (url: string, opts?: { replace?: boolean; transition?: boolean }) => Promise<void>;
-    client: any;
-  }>(ROUTER_KEY);
-  if (!r) throw new Error('[ubean] useRouter() must be called inside a ubean Vue app');
-  return r;
+export interface UbeanRouter {
+  push: (url: string, opts?: { replace?: boolean }) => Promise<unknown>;
+  replace: (url: string) => Promise<unknown>;
+  back: () => void;
+  forward: () => void;
+  refresh: () => void;
+  readonly current: ReturnType<typeof useVueRouter>['currentRoute']['value'];
+  readonly navigating: boolean;
+  [key: string]: unknown;
+}
+
+export function useRouter(): UbeanRouter {
+  const router = useVueRouter();
+  return {
+    ...router,
+    push: (url: string, opts?: { replace?: boolean }) => (opts?.replace ? router.replace(url) : router.push(url)),
+    replace: (url: string) => router.replace(url),
+    back: () => router.back(),
+    forward: () => router.forward(),
+    refresh: () => router.go(0),
+    get current() {
+      return router.currentRoute.value;
+    },
+    get navigating() {
+      return false;
+    }
+  } as UbeanRouter;
 }
 
 export function useHead() {

@@ -1,3 +1,4 @@
+import { maskSensitiveEnv } from '../shared/env';
 import type {
   RpcHandler,
   RpcRequest,
@@ -10,7 +11,6 @@ import type {
   DevToolsLayoutInfo,
   DevToolsCustomTab
 } from '../types';
-import { maskSensitiveEnv } from '../shared/env';
 import { createDevToolsHooks } from './hooks';
 import type { DevToolsHooksInstance } from './hooks';
 import { createAiServer } from './ai';

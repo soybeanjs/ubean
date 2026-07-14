@@ -21,10 +21,10 @@ definePage({
       <div class="test-card">
         <h3>📄 页面路由</h3>
         <ul>
-          <li><a href="/">首页</a></li>
-          <li><a href="/about">关于页面</a></li>
-          <li><a href="/features">功能列表</a></li>
-          <li><a href="/user/1">动态路由 /user/[id]</a></li>
+          <li><Link to="/">首页</Link></li>
+          <li><Link to="/about">关于页面</Link></li>
+          <li><Link to="/features">功能列表</Link></li>
+          <li><Link to="/user/1">动态路由 /user/[id]</Link></li>
         </ul>
       </div>
 
@@ -51,8 +51,8 @@ definePage({
       <div class="test-card">
         <h3>🌍 i18n 国际化</h3>
         <ul>
-          <li><a href="/en">English</a></li>
-          <li><a href="/zh-CN">简体中文</a></li>
+          <li><Link to="/en">English</Link></li>
+          <li><Link to="/zh-CN">简体中文</Link></li>
         </ul>
       </div>
 
@@ -68,7 +68,7 @@ definePage({
       <div class="test-card">
         <h3>📝 其他测试</h3>
         <ul>
-          <li><a href="/md-test">Markdown 页面</a></li>
+          <li><Link to="/md-test">Markdown 页面</Link></li>
           <li><a href="/robots.txt" target="_blank">robots.txt</a></li>
           <li><a href="/sitemap.xml" target="_blank">sitemap.xml</a></li>
         </ul>

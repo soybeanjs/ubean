@@ -14,6 +14,6 @@ definePage({
       <code>/dashboard/settings</code>
     </p>
     <p>✅ 嵌套路由功能正常</p>
-    <RouterLink to="/dashboard">← 返回控制台</RouterLink>
+    <Link to="/dashboard">← 返回控制台</Link>
   </div>
 </template>

@@ -1,5 +1,4 @@
-export { createUbeanClient, getInitialPageData } from './client';
-export type { UbeanVueRouter, UbeanVueHead, UbeanVueApp, SubmitOptions, SubmitResult } from './client';
+export { getInitialPageData } from './client';
 export { createHeadManager } from './head';
 export {
   createLinkHandler,
@@ -21,6 +20,8 @@ export type {
 } from './composables';
 export { createUbeanApp, createUbeanSSRApp, usePage, useRouter, useHead, useViewTransition, Link, Head } from './app';
 export type { UbeanAppOptions, UbeanAppInstance } from './app';
+export { createUbeanRouter } from './router';
+export type { CreateUbeanRouterOptions } from './router';
 export { defineApp, applyAppConfig, createDefaultAppConfig } from './define-app';
 export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
 export { definePage, defineMeta, defineMiddleware } from './page-macro';

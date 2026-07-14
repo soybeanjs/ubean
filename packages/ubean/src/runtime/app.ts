@@ -297,8 +297,7 @@ export class UbeanApp {
       });
     } catch (err) {
       console.warn(
-        '[ubean] @ubean/devtools is not available — DevTools disabled. ' +
-          'Install `@ubean/devtools` to enable it.',
+        '[ubean] @ubean/devtools is not available — DevTools disabled. Install `@ubean/devtools` to enable it.',
         err instanceof Error ? err.message : err
       );
     }

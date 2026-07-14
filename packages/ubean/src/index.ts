@@ -195,7 +195,6 @@ export type {
   StreamHelper
 } from './runtime/pages';
 export {
-  createUbeanClient,
   getInitialPageData,
   createHeadManager,
   createLinkHandler,
@@ -212,16 +211,12 @@ export {
   supportsViewTransitions,
   withViewTransition,
   useViewTransitionState,
-  getNavigationType
+  getNavigationType,
+  createUbeanRouter
 } from './runtime/vue';
 export type {
-  UbeanVueRouter,
-  UbeanVueHead,
-  UbeanVueApp,
   UbeanVueContext,
   LinkProps,
-  SubmitOptions,
-  SubmitResult,
   DefineAppOptions,
   ResolvedAppConfig,
   RouteLocation,
@@ -230,7 +225,8 @@ export type {
   DataCacheStore,
   UseAsyncDataOptions,
   UseAsyncDataReturn,
-  ViewTransitionOptions
+  ViewTransitionOptions,
+  CreateUbeanRouterOptions
 } from './runtime/vue';
 export { ubeanVuePlugin } from './core/vue/plugin';
 export { logger } from './core/log';
@@ -364,7 +360,12 @@ export type {
   DevToolsCronInfo,
   DevToolsOptions
 } from './core/devtools/types';
-export { DEVTOOLS_MAGIC_KEY, DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_CLIENT_PATH } from './core/devtools/types';
+export {
+  DEVTOOLS_MAGIC_KEY,
+  DEVTOOLS_RPC_PATH,
+  DEVTOOLS_IFRAME_PATH,
+  DEVTOOLS_CLIENT_PATH
+} from './core/devtools/types';
 export { createFsOps } from './core/cli/shared/fs-ops';
 export type { FsOps, FsOpsOptions, BackupOptions } from './core/cli/shared/fs-ops';
 export { scaffold, deleteScaffold, recoverScaffold, listScaffoldableFiles } from './core/cli/page';

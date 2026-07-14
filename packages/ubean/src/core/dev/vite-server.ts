@@ -10,9 +10,9 @@ import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '../vue/plugin';
 import { resolveModules } from '../modules';
 import type { UbeanApp } from '../../runtime/app';
 import { ubeanIslandsPlugin } from '../islands/transform';
+import { logger } from '../log';
 import type { ScannedLayout } from '../routing/types';
 import { createVueRenderer } from '../vue/renderer';
-import { logger } from '../log';
 
 export interface ViteDevServerOptions {
   cwd: string;
@@ -124,7 +124,8 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     if (err?.code === 'EADDRINUSE') {
       throw new Error(
         `Port ${requestedPort} is already in use${host ? ` on ${host}` : ''}. ` +
-          `Try a different port or remove the --strictPort flag.`, { cause: err }
+          `Try a different port or remove the --strictPort flag.`,
+        { cause: err }
       );
     }
     throw err;
@@ -204,14 +205,23 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
     const defaultLayout = layouts.find(l => l.isDefault)?.name || null;
 
-    app.options.pageRenderer = createVueRenderer({
-      async resolvePageComponent(name: string) {
-        const page = (app.options.pages || []).find((p: any) => p.name === name);
-        if (!page) throw new Error(`Page not found: ${name}`);
-        const fullPath = page.fullPath;
-        const mod = await viteServer!.ssrLoadModule(fullPath);
+    // Build vue-router routes for SSR
+    const scannedPages = app.options.pages || [];
+    const routes = scannedPages.map((p: any) => ({
+      path: p.route.replace(/\*\*:(\w[\w-]*)/g, ':$1(.*)*'),
+      name: p.name,
+      component: async () => {
+        const mod = await viteServer!.ssrLoadModule(p.fullPath);
         return mod.default || mod;
       },
+      meta: {
+        layout: p.layout === false ? false : p.layout || defaultLayout,
+        pageName: p.name
+      }
+    }));
+
+    app.options.pageRenderer = createVueRenderer({
+      routes,
       async resolveLayoutComponent(name: string | false | null | undefined) {
         if (name === false || name == null) return null;
         const fullPath = layoutMap.get(name);

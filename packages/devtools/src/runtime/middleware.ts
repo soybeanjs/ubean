@@ -1,15 +1,10 @@
 import type { Context, Next } from 'hono';
-import {
-  DEVTOOLS_RPC_PATH,
-  DEVTOOLS_CLIENT_PATH,
-  DEVTOOLS_IFRAME_PATH,
-  DEVTOOLS_MAGIC_KEY
-} from '../types';
 import { isHtmlResponse, injectScript } from '../shared/html';
 import { getDevtoolsIframeHtml, serveDevtoolsClientAsset } from '../shared/static-serve';
+import { getDevtoolsClientScript } from '../server/client-script';
 import { createRpcServer } from '../server/rpc';
 import type { DevToolsRpcServer } from '../server/rpc';
-import { getDevtoolsClientScript } from '../server/client-script';
+import { DEVTOOLS_RPC_PATH, DEVTOOLS_CLIENT_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_MAGIC_KEY } from '../types';
 
 export interface DevToolsMiddlewareOptions {
   enabled?: boolean;
@@ -39,9 +34,7 @@ export function createDevToolsMiddleware(options: DevToolsMiddlewareOptions = {}
       if (pathname === DEVTOOLS_RPC_PATH && c.req.method === 'POST') {
         try {
           const body = await c.req.json();
-          const response = Array.isArray(body)
-            ? await rpc.handleBatch(body)
-            : await rpc.handleRequest(body);
+          const response = Array.isArray(body) ? await rpc.handleBatch(body) : await rpc.handleRequest(body);
           return c.json(response);
         } catch {
           return c.json({ error: 'Invalid request' }, 400);
@@ -49,12 +42,12 @@ export function createDevToolsMiddleware(options: DevToolsMiddlewareOptions = {}
       }
 
       // Client SPA root → serve index.html
-      if (pathname === DEVTOOLS_CLIENT_PATH || pathname === DEVTOOLS_CLIENT_PATH + '/') {
+      if (pathname === DEVTOOLS_CLIENT_PATH || pathname === `${DEVTOOLS_CLIENT_PATH}/`) {
         return c.html(getDevtoolsIframeHtml());
       }
 
       // Client static assets → serve files from dist/client/
-      if (pathname.startsWith(DEVTOOLS_CLIENT_PATH + '/')) {
+      if (pathname.startsWith(`${DEVTOOLS_CLIENT_PATH}/`)) {
         const subPath = pathname.slice(DEVTOOLS_CLIENT_PATH.length + 1);
         const asset = serveDevtoolsClientAsset(subPath);
         if (asset) {

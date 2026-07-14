@@ -69,7 +69,7 @@ definePage({
       </div>
     </section>
 
-    <a href="/" class="back-link">← 返回首页</a>
+    <Link to="/" class="back-link">← 返回首页</Link>
   </div>
 </template>
 

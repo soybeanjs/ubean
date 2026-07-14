@@ -223,7 +223,8 @@ onMounted(() => {
           </div>
           <div class="max-w-[85%] space-y-1.5">
             <div
-              class="px-3 py-2 rounded-lg text-xs leading-relaxed" :class="[
+              class="px-3 py-2 rounded-lg text-xs leading-relaxed"
+              :class="[
                 msg.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-tr-sm'
                   : 'bg-card border border-border/60 text-foreground rounded-tl-sm'

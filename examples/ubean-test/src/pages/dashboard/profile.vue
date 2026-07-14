@@ -13,6 +13,6 @@ definePage({
       嵌套路由:
       <code>/dashboard/profile</code>
     </p>
-    <RouterLink to="/dashboard">← 返回控制台</RouterLink>
+    <Link to="/dashboard">← 返回控制台</Link>
   </div>
 </template>

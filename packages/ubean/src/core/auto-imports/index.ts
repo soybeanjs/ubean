@@ -105,9 +105,16 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
   imports: [
     'definePage',
     'defineMiddleware',
+    'defineApp',
+    'applyAppConfig',
+    'createDefaultAppConfig',
     't',
     'useI18n',
-    'useSeoMeta'
+    'useSeoMeta',
+    'usePage',
+    'useRouter',
+    'useHead',
+    'useViewTransition'
   ]
 };
 
@@ -358,6 +365,12 @@ function generateComponentsDts(components: ComponentInfo[]): string {
 
   const importLines: string[] = [];
   const componentEntries: string[] = [];
+
+  const BUILTIN_COMPONENTS = ['Link', 'Head'];
+  for (const name of BUILTIN_COMPONENTS) {
+    importLines.push(`  const ${name}: typeof import('ubean/runtime/vue')['${name}'];`);
+    componentEntries.push(`    ${name}: typeof ${name};`);
+  }
 
   for (const comp of components) {
     importLines.push(`  import ${comp.pascalName} from ${JSON.stringify(comp.importPath)};`);

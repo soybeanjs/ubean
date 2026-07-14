@@ -108,7 +108,8 @@
     "unimport": "catalog:",
     "unplugin-auto-import": "catalog:",
     "unplugin-vue-components": "catalog:",
-    "unplugin-vue-markdown": "catalog:"
+    "unplugin-vue-markdown": "catalog:",
+    "vue-router": "^4.5.0"
   },
   "devDependencies": {
     "@codemirror/commands": "catalog:",

@@ -188,6 +188,14 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     );
   }
 
+  const UBEAN_BUILTIN_COMPONENTS = ['Link', 'Head'];
+
+  function ubeanComponentsResolver(componentName: string) {
+    if (UBEAN_BUILTIN_COMPONENTS.includes(componentName)) {
+      return { name: componentName, from: 'ubean/runtime/vue' };
+    }
+  }
+
   if (componentAutoImportEnabled) {
     const extensions = ['vue'];
     const includePatterns = [/\.vue$/, /\.vue\?vue/];
@@ -205,7 +213,15 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         include: includePatterns,
         directoryAsNamespace,
         dts: join(dtsDir, 'components.d.ts'),
-        deep: true
+        deep: true,
+        resolvers: [ubeanComponentsResolver]
+      }) as Plugin
+    );
+  } else {
+    plugins.push(
+      Components({
+        dts: false,
+        resolvers: [ubeanComponentsResolver]
       }) as Plugin
     );
   }

@@ -15,9 +15,9 @@ definePage({
     </p>
     <p>子页面：</p>
     <ul>
-      <li><RouterLink to="/dashboard/settings">设置页面</RouterLink></li>
-      <li><RouterLink to="/dashboard/profile">个人资料</RouterLink></li>
+      <li><Link to="/dashboard/settings">设置页面</Link></li>
+      <li><Link to="/dashboard/profile">个人资料</Link></li>
     </ul>
-    <RouterLink to="/">← 返回首页</RouterLink>
+    <Link to="/">← 返回首页</Link>
   </div>
 </template>

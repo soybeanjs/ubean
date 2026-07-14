@@ -6,7 +6,5 @@ export function isSensitiveKey(key: string): boolean {
 }
 
 export function maskSensitiveEnv(env: Record<string, string>): Record<string, string> {
-  return Object.fromEntries(
-    Object.entries(env).map(([key, value]) => [key, isSensitiveKey(key) ? '***' : value])
-  );
+  return Object.fromEntries(Object.entries(env).map(([key, value]) => [key, isSensitiveKey(key) ? '***' : value]));
 }

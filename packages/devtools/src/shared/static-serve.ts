@@ -81,9 +81,7 @@ export function serveDevtoolsClientAsset(subPath: string): StaticAssetResponse |
   const contentType = MIME_TYPES[ext] || 'application/octet-stream';
   const body = readFileSync(filePath);
   // Hashed assets are immutable; HTML should always revalidate
-  const cacheControl = ext === '.html'
-    ? 'no-cache'
-    : 'public, max-age=31536000, immutable';
+  const cacheControl = ext === '.html' ? 'no-cache' : 'public, max-age=31536000, immutable';
 
   return { body, contentType, cacheControl };
 }

@@ -4,7 +4,7 @@ import type { PageObject } from '../pages/protocol';
 const _global = globalThis as any;
 
 export interface UbeanVueContext {
-  __ubean_client?: ReturnType<typeof import('./client').createUbeanClient>;
+  __ubean_router?: import('vue-router').Router;
   __ubean_data_cache?: DataCacheStore;
 }
 
@@ -215,18 +215,20 @@ export function createLinkHandler(ctx: UbeanVueContext) {
   return {
     getProps: () => ({}),
     async navigate(href: string, opts: { replace?: boolean } = {}) {
-      if (!ctx.__ubean_client) {
+      if (!ctx.__ubean_router) {
         const loc = _global.location;
         if (opts.replace) loc.replace(href);
         else loc.href = href;
         return;
       }
-      await ctx.__ubean_client.navigate(href, opts);
-    },
-    async prefetch(href: string) {
-      if (ctx.__ubean_client) {
-        await ctx.__ubean_client.prefetch(href);
+      if (opts.replace) {
+        await ctx.__ubean_router.replace(href);
+      } else {
+        await ctx.__ubean_router.push(href);
       }
+    },
+    async prefetch(_href: string) {
+      // Prefetch is handled by vue-router's lazy loading
     }
   };
 }

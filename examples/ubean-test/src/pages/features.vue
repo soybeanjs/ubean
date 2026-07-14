@@ -75,12 +75,12 @@ definePage({
     <div class="page-test-section">
       <h2>📄 页面路由测试</h2>
       <div class="test-links">
-        <a href="/" class="test-btn page">首页 /</a>
-        <a href="/about" class="test-btn page">关于 /about</a>
-        <a href="/user/1" class="test-btn page">动态 /user/[id]</a>
-        <a href="/md-test" class="test-btn page">Markdown /md-test</a>
-        <a href="/en" class="test-btn page">English /en</a>
-        <a href="/zh-CN" class="test-btn page">中文 /zh-CN</a>
+        <Link to="/" class="test-btn page">首页 /</Link>
+        <Link to="/about" class="test-btn page">关于 /about</Link>
+        <Link to="/user/1" class="test-btn page">动态 /user/[id]</Link>
+        <Link to="/md-test" class="test-btn page">Markdown /md-test</Link>
+        <Link to="/en" class="test-btn page">English /en</Link>
+        <Link to="/zh-CN" class="test-btn page">中文 /zh-CN</Link>
       </div>
     </div>
 
@@ -93,7 +93,7 @@ definePage({
       </div>
     </div>
 
-    <a href="/" class="back-link">← 返回首页</a>
+    <Link to="/" class="back-link">← 返回首页</Link>
   </div>
 </template>
 

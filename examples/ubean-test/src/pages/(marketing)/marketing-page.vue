@@ -23,6 +23,6 @@ definePage({
       <code>(group)</code>
       功能正常
     </p>
-    <RouterLink to="/">← 返回首页</RouterLink>
+    <Link to="/">← 返回首页</Link>
   </div>
 </template>

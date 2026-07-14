@@ -8,11 +8,11 @@ defineSlots<{
   <div class="layout">
     <header class="header">
       <nav class="nav">
-        <a href="/" class="logo">ubean-test</a>
+        <Link to="/" class="logo">ubean-test</Link>
         <div class="nav-links">
-          <a href="/">首页</a>
-          <a href="/about">关于</a>
-          <a href="/features">功能测试</a>
+          <Link to="/">首页</Link>
+          <Link to="/about">关于</Link>
+          <Link to="/features">功能测试</Link>
         </div>
       </nav>
     </header>

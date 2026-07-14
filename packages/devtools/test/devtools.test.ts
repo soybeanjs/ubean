@@ -2,6 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { defineDevToolsTab, getCustomTabs, clearCustomTabs, createUbeanApp } from 'ubean';
 import {
   createDevToolsMiddleware,
   createRpcServer,
@@ -12,8 +13,6 @@ import {
   DEVTOOLS_CLIENT_PATH,
   DEVTOOLS_MAGIC_KEY
 } from '../src';
-import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from 'ubean';
-import { createUbeanApp } from 'ubean';
 
 describe('DevTools RPC Server', () => {
   it('creates an RPC server with default info', () => {

@@ -6,7 +6,10 @@ export default defineConfig(() => {
     staged: {
       '*': 'vp check --fix'
     },
-    fmt,
+    fmt: {
+      ...fmt,
+      ignorePatterns: ['docs']
+    },
     lint,
     resolve: {
       tsconfigPaths: true

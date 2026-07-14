@@ -196,7 +196,6 @@ export type {
 } from './runtime/pages';
 export {
   getInitialPageData,
-  createHeadManager,
   createLinkHandler,
   extractPageData,
   defineApp,
@@ -239,7 +238,7 @@ export {
   stripRouteGroups,
   generateRouteName,
   UbeanRouter,
-  createUbeanRouter,
+  useRouter,
   extractDefinePageFromCode,
   extractDefineMetaFromCode,
   extractDefinePage,

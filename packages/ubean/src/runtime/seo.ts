@@ -96,9 +96,8 @@ export interface WebAppManifest {
   dir?: 'ltr' | 'rtl' | 'auto';
 }
 
-export function useSeoMeta(meta: SeoMetadata): SeoMetadata {
-  return meta;
-}
+export { useSeoMeta } from '@unhead/vue';
+export type { UseSeoMetaInput } from '@unhead/vue';
 
 export function mergeMetadata(...metadatas: (SeoMetadata | undefined | null)[]): SeoMetadata {
   const result: SeoMetadata = {};

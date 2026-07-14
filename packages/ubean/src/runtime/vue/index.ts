@@ -1,5 +1,6 @@
 export { getInitialPageData } from './client';
-export { createHeadManager } from './head';
+export { useHeadInstance, injectHead } from './head';
+export type { VueHeadClient as HeadClient } from './head';
 export {
   createLinkHandler,
   extractPageData,
@@ -18,14 +19,23 @@ export type {
   UseAsyncDataOptions,
   UseAsyncDataReturn
 } from './composables';
-export { createUbeanApp, createUbeanSSRApp, usePage, useRouter, useHead, useViewTransition, Link, Head } from './app';
-export type { UbeanAppOptions, UbeanAppInstance } from './app';
+export {
+  createUbeanApp,
+  createUbeanSSRApp,
+  usePage,
+  useRouter,
+  useHead,
+  useViewTransition,
+  Link,
+  Head,
+  useSeoMeta
+} from './app';
+export type { UbeanAppOptions, UbeanAppInstance, VueHeadClient } from './app';
 export { createUbeanRouter } from './router';
 export type { CreateUbeanRouterOptions } from './router';
 export { defineApp, applyAppConfig, createDefaultAppConfig } from './define-app';
 export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
 export { definePage, defineMeta, defineMiddleware } from './page-macro';
-export { useSeoMeta } from '../seo';
 export type { SeoMetadata, MetaTag, LinkTag } from '../seo';
 export { resolveRoute, isActiveRoute } from './router-location';
 export type { RouteLocation, RouteLocationRaw, TypedLinkProps } from './router-location';

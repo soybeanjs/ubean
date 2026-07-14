@@ -31,7 +31,8 @@ export interface PageRenderContext {
 export type PageRenderFn = (
   pageObj: PageObject,
   shellHtml: string,
-  assetTags: PageAssetTags
+  assetTags: PageAssetTags,
+  renderContext?: PageRenderContext
 ) => string | Promise<string>;
 
 export interface PageRenderer {
@@ -140,7 +141,6 @@ export function buildPageShell(
   renderContext?: PageRenderContext
 ): string {
   const pageData = serializePageData(pageObj);
-  const { htmlAttrs, bodyAttrs, headHtml } = renderHeadTags(pageObj.head);
   const css = assetTags.css ?? '';
   const preloads = assetTags.preloads ?? '';
   const bodyTags = assetTags.body ?? '';
@@ -151,22 +151,12 @@ export function buildPageShell(
     ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir })}</script>`
     : '';
 
-  const mergedHtmlAttrs = {
-    ...(locale ? { lang: locale } : {}),
-    ...(locale ? { dir: localeDir } : {}),
-    ...parseAttrs(htmlAttrs)
-  };
-
-  const finalHtmlAttrs = Object.entries(mergedHtmlAttrs)
-    .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
-    .join(' ');
-
   return `<!doctype html>
-<html${finalHtmlAttrs ? ` ${finalHtmlAttrs}` : ''}>
+<html>
 <head>
-    ${headHtml}${css}${preloads}
+    ${css}${preloads}
 </head>
-<body${bodyAttrs ? ` ${bodyAttrs}` : ''}>
+<body>
   ${localeScript}
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
   <div id="${appId}">${SSR_CONTENT_MARKER}</div>
@@ -246,7 +236,7 @@ export async function renderPage(
 
   const preambleScript = renderer.preambleScript ?? '';
   const shell = buildPageShell(pageObj, assetTags, preambleScript, appId, renderContext);
-  const appHtml = await renderer.render(pageObj, shell, assetTags);
+  const appHtml = await renderer.render(pageObj, shell, assetTags, renderContext);
   if (typeof appHtml === 'string' && !shell.includes(appHtml) && !appHtml.includes('<html')) {
     return insertSsrContent(shell, appHtml);
   }

@@ -15,35 +15,36 @@ import {
 import type { App, Component, ConcreteComponent, PropType } from 'vue';
 import { RouterView, RouterLink, useRoute, useRouter as useVueRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
+import { useHead as useUnheadHead } from '@unhead/vue';
+import type { VueHeadClient, UseHeadInput } from '@unhead/vue';
+import { Head as UnheadHeadComponent } from '@unhead/vue/components';
 import type { PageObject, PageHead } from '../pages/protocol';
 import { localizePath } from './i18n';
 import { createUbeanRouter } from './router';
-import { createHeadManager } from './head';
 import { supportsViewTransitions } from './view-transitions';
 import type { ViewTransitionOptions } from './view-transitions';
 
 const PAGE_KEY = Symbol('ubean-page');
-const HEAD_KEY = Symbol('ubean-head');
 const TRANSITION_KEY = Symbol('ubean-transition');
+
+export type { VueHeadClient };
 
 export interface UbeanAppOptions {
   routes: RouteRecordRaw[];
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>;
   defaultLayout?: string | null;
   initialPage?: PageObject;
-  head?: ReturnType<typeof createHeadManager>;
+  head?: VueHeadClient;
   viewTransitions?: boolean | ViewTransitionOptions;
 }
 
 export interface UbeanAppInstance {
   app: App;
   router: ReturnType<typeof createUbeanRouter>;
-  head: ReturnType<typeof createHeadManager>;
+  head: VueHeadClient;
   page: Record<string, unknown>;
 }
 
-// --- Layout wrapper component ---
-// Reads route.meta.layout and wraps RouterView content with the layout component.
 function createLayoutWrapper(
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>,
   defaultLayout: string | null
@@ -103,7 +104,6 @@ function createLayoutWrapper(
   });
 }
 
-// --- Link component (wraps RouterLink) ---
 export const Link = defineComponent({
   name: 'Link',
   props: {
@@ -158,15 +158,38 @@ export const Link = defineComponent({
   }
 });
 
-export const Head = defineComponent({
-  name: 'Head',
-  setup() {
-    return () => null;
-  }
-});
+export const Head = UnheadHeadComponent;
 
-// --- App creation ---
+function createRootComponent(
+  LayoutWrapper: Component,
+  page: PageObject,
+  transitionOpts: ViewTransitionOptions,
+  isSSR: boolean
+) {
+  return defineComponent({
+    name: isSSR ? 'UbeanSSRApp' : 'UbeanAppRoot',
+    setup() {
+      provide(PAGE_KEY, page);
+      provide(TRANSITION_KEY, transitionOpts);
+
+      const route = useRoute();
+
+      const routeHead = computed(() => {
+        return (route.meta.head as PageHead) || {};
+      });
+
+      useUnheadHead(routeHead as unknown as UseHeadInput);
+
+      return () => h(LayoutWrapper);
+    }
+  });
+}
+
 export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
+  if (!options.head) {
+    throw new Error('[ubean] createUbeanApp requires a head instance from @unhead/vue/client');
+  }
+
   const initial =
     options.initialPage ||
     ({
@@ -176,7 +199,7 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
       url: '/'
     } as PageObject);
 
-  const head = options.head || createHeadManager(initial.head);
+  const head = options.head;
   const transitionOpts: ViewTransitionOptions =
     options.viewTransitions === false
       ? { enabled: false }
@@ -193,36 +216,23 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
 
   const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
 
-  const RootComponent = defineComponent({
-    name: 'UbeanAppRoot',
-    setup() {
-      provide(PAGE_KEY, page);
-      provide(HEAD_KEY, head);
-      provide(TRANSITION_KEY, transitionOpts);
-
-      // Sync route head to head manager
-      router.afterEach(to => {
-        if (to.meta.head) {
-          head.apply(to.meta.head as PageHead);
-        }
-      });
-
-      return () => h(LayoutWrapper);
-    }
-  });
+  const RootComponent = createRootComponent(LayoutWrapper, page as any, transitionOpts, false);
 
   const app = _createApp(RootComponent);
+  app.use(head);
   app.use(router);
   app.component('Link', Link);
-  app.component('Head', Head);
   app.config.globalProperties.$ubean = { page, head, router };
 
   return { app, router, head, page: page as any };
 }
 
-// --- SSR App creation ---
 export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAppOptions, 'initialPage'>) {
-  const head = options.head || createHeadManager(initialPage.head);
+  if (!options.head) {
+    throw new Error('[ubean] createUbeanSSRApp requires a head instance from @unhead/vue/server');
+  }
+
+  const head = options.head;
   const page = reactive<PageObject>({ ...initialPage });
 
   const router = createUbeanRouter({
@@ -233,26 +243,17 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
 
   const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
 
-  const RootComponent = defineComponent({
-    name: 'UbeanSSRApp',
-    setup() {
-      provide(PAGE_KEY, page);
-      provide(HEAD_KEY, head);
-
-      return () => h(LayoutWrapper);
-    }
-  });
+  const RootComponent = createRootComponent(LayoutWrapper, page as any, { enabled: false }, true);
 
   const app = _createSSRApp(RootComponent);
+  app.use(head);
   app.use(router);
   app.component('Link', Link);
-  app.component('Head', Head);
   app.config.globalProperties.$ubean = { page, head, router };
 
-  return { app, router };
+  return { app, router, head };
 }
 
-// --- Composables ---
 export function usePage<T = Record<string, unknown>>(): PageObject<T> {
   const route = useRoute();
   const pageData = inject<PageObject>(PAGE_KEY, null as any);
@@ -298,11 +299,8 @@ export function useRouter(): UbeanRouter {
   } as UbeanRouter;
 }
 
-export function useHead() {
-  const h2 = inject<ReturnType<typeof createHeadManager>>(HEAD_KEY);
-  if (!h2) throw new Error('[ubean] useHead() must be called inside a ubean Vue app');
-  return h2;
-}
+export { useUnheadHead as useHead };
+export { useSeoMeta } from '@unhead/vue';
 
 export function useViewTransition() {
   const opts = inject<ViewTransitionOptions>(TRANSITION_KEY, { enabled: true });

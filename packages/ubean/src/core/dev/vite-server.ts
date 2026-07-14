@@ -286,6 +286,16 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
             return;
           }
 
+          // Load locales through Vite SSR module graph (supports HMR)
+          try {
+            const localesMod = await viteServer!.ssrLoadModule('ubean:locales');
+            if (localesMod?.loadLocales) {
+              await localesMod.loadLocales();
+            }
+          } catch (err) {
+            logger.warn('[ubean] Failed to load locales:', err);
+          }
+
           await currentApp.init();
           const protocol = (req.socket as any)?.encrypted ? 'https' : 'http';
           const webReq = await toWebRequest(req, host, protocol);

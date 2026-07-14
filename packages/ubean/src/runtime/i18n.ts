@@ -1,4 +1,4 @@
-export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'no_prefix';
+export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
 
 export type DateTimeFormatStyle = 'short' | 'medium' | 'long' | 'full';
 export type NumberFormatStyle = 'decimal' | 'percent' | 'currency';
@@ -355,7 +355,7 @@ export function localizePath(path: string, locale?: string): string {
     pathWithoutPrefix = rest ? `/${rest}` : '/';
   }
 
-  if (strategy === 'prefix_except_default' && targetLocale === defaultLocale) {
+  if ((strategy === 'prefix_except_default' || strategy === 'prefix_and_default') && targetLocale === defaultLocale) {
     return pathWithoutPrefix;
   }
 
@@ -549,6 +549,12 @@ export function getLocale(): string {
 
 export function getRegisteredLocales(): string[] {
   return Array.from(getI18nState().registeredLocales.keys());
+}
+
+export function getLocaleMessages(locale?: string): LocaleMessages | undefined {
+  const state = getI18nState();
+  const code = locale || state.currentLocale;
+  return state.registeredLocales.get(code)?.messages;
 }
 
 export function clearLocales(): void {

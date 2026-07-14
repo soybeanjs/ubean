@@ -144,6 +144,7 @@ async function generateVirtualModulesToDisk(
 
   const serverEntry = `// Auto-generated server entry
 import { createUbeanApp } from 'ubean/runtime/app';
+import { loadLocales } from 'ubean:locales';
 
 export { createUbeanApp };
 
@@ -186,9 +187,11 @@ export async function createApp(options = {}) {
     middlewareLoaders,
     pageLoaders,
     publicDir: ${JSON.stringify(publicDir)},
+    i18nConfig: ${JSON.stringify(config.i18n)},
     ...options
   });
 
+  await loadLocales();
   await app.init();
   return app;
 }

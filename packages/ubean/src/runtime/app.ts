@@ -89,6 +89,11 @@ export interface UbeanAppOptions {
         scalarPath?: string;
         openAPIPath?: string;
       };
+  i18nConfig?: {
+    strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
+    defaultLocale?: string;
+    locales?: string[];
+  };
 }
 
 export interface UbeanAppPlugin {
@@ -131,7 +136,7 @@ export class UbeanApp {
 
   constructor(options: UbeanAppOptions = {}) {
     this.options = options;
-    this.hono = new Hono<UbeanEnv>();
+    this.hono = new Hono<UbeanEnv>({ strict: false });
     this.plugins = options.plugins || [];
 
     // DevTools is loaded lazily via a dynamic import of `@ubean/devtools` so the
@@ -211,7 +216,8 @@ export class UbeanApp {
       middlewareLoaders: this.options.middlewareLoaders || {},
       pageLoaders: this.options.pageLoaders || {},
       pageRenderer: this.options.pageRenderer ?? null,
-      pageAssetTags: this.options.pageAssetTags ?? {}
+      pageAssetTags: this.options.pageAssetTags ?? {},
+      i18nConfig: this.options.i18nConfig
     });
 
     if (this.options.publicDir) {

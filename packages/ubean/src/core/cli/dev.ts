@@ -192,7 +192,8 @@ async function buildApp(cwd: string, config: any) {
       title: 'UBEAN Dev API',
       scalarPath: '/_scalar',
       openAPIPath: '/_openapi.json'
-    }
+    },
+    i18nConfig: config.i18n
   });
 
   // Wait for the lazy `@ubean/devtools` import to resolve before seeding the

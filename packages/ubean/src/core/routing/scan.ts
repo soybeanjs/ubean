@@ -371,24 +371,36 @@ async function loadLocaleFile(
   fullPath: string,
   ext: string
 ): Promise<{ messages: Record<string, unknown>; meta?: { name?: string; dir?: 'ltr' | 'rtl'; isDefault?: boolean } }> {
+  // Helper: only treat `data.messages` as the wrapper payload when the file
+  // also carries locale metadata (`name`/`dir`/`isDefault`). Otherwise the
+  // `messages` key is a regular translation namespace and must be kept.
+  const extract = (
+    data: any
+  ): { messages: Record<string, unknown>; meta?: { name?: string; dir?: 'ltr' | 'rtl'; isDefault?: boolean } } => {
+    const hasMeta =
+      typeof data.name === 'string' || data.dir === 'ltr' || data.dir === 'rtl' || typeof data.isDefault === 'boolean';
+    const isWrapper = hasMeta && typeof data.messages === 'object' && data.messages !== null;
+    return {
+      messages: isWrapper ? data.messages : data,
+      meta: isWrapper ? { name: data.name, dir: data.dir, isDefault: data.isDefault } : undefined
+    };
+  };
+
   if (ext === '.json' || ext === '.json5') {
     const content = await readFile(fullPath, 'utf-8');
     const data = JSON.parse(content);
-    return { messages: data.messages || data, meta: { name: data.name, dir: data.dir, isDefault: data.isDefault } };
+    return extract(data);
   }
   if (ext === '.yaml' || ext === '.yml') {
     const content = await readFile(fullPath, 'utf-8');
     const data = parseSimpleYaml(content);
-    return {
-      messages: (data.messages as Record<string, unknown>) || data,
-      meta: { name: data.name as string, dir: data.dir as 'ltr' | 'rtl', isDefault: data.isDefault as boolean }
-    };
+    return extract(data);
   }
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.ts' || ext === '.mts' || ext === '.cts') {
     const mod = await import(/* @vite-ignore */ fullPath).catch(() => null);
     if (mod) {
       const data = mod.default || mod;
-      return { messages: data.messages || data, meta: { name: data.name, dir: data.dir, isDefault: data.isDefault } };
+      return extract(data);
     }
   }
   return { messages: {} };

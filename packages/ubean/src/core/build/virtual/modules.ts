@@ -203,11 +203,14 @@ export async function loadLocales() {
       const { code, namespace, isDefault } = parseLocalePath(path);
       const mod = await loader();
       const data = mod.default || mod;
-      const messages = data.messages || data;
+      // Only treat as wrapper if data.messages is an object AND metadata is present
+      const hasMeta = typeof data.name === 'string' || data.dir === 'ltr' || data.dir === 'rtl' || typeof data.isDefault === 'boolean';
+      const isWrapper = hasMeta && typeof data.messages === 'object' && data.messages !== null;
+      const messages = isWrapper ? data.messages : data;
       const options = {
-        name: data.name,
-        dir: data.dir || 'ltr',
-        isDefault: isDefault || data.isDefault
+        name: isWrapper ? data.name : undefined,
+        dir: isWrapper ? (data.dir || 'ltr') : 'ltr',
+        isDefault: isDefault || (isWrapper ? data.isDefault : false)
       };
 
       if (!localeData.has(code)) {
@@ -259,7 +262,9 @@ export async function reloadLocale(path) {
       const { code, namespace } = parseLocalePath(path);
       const mod = await loader();
       const data = mod.default || mod;
-      const messages = data.messages || data;
+      const hasMeta = typeof data.name === 'string' || data.dir === 'ltr' || data.dir === 'rtl' || typeof data.isDefault === 'boolean';
+      const isWrapper = hasMeta && typeof data.messages === 'object' && data.messages !== null;
+      const messages = isWrapper ? data.messages : data;
       const merged = {};
       if (namespace) {
         setNestedValue(merged, namespace.split('.'), messages);

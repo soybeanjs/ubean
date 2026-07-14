@@ -26,6 +26,7 @@ export interface PageAssetTags {
 export interface PageRenderContext {
   locale?: string;
   localeDir?: 'ltr' | 'rtl';
+  messages?: Record<string, unknown>;
 }
 
 export type PageRenderFn = (
@@ -147,8 +148,9 @@ export function buildPageShell(
 
   const locale = renderContext?.locale;
   const localeDir = renderContext?.localeDir || 'ltr';
+  const messages = renderContext?.messages;
   const localeScript = locale
-    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir })}</script>`
+    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}) })}</script>`
     : '';
 
   return `<!doctype html>
@@ -195,8 +197,9 @@ export function buildClientOnlyShell(
 
   const locale = renderContext?.locale;
   const localeDir = renderContext?.localeDir || 'ltr';
+  const messages = renderContext?.messages;
   const localeScript = locale
-    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir })}</script>`
+    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}) })}</script>`
     : '';
 
   const mergedHtmlAttrs = {

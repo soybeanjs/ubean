@@ -1,7 +1,7 @@
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '../core/routing/types';
 import type { RouteMeta, UbeanEnv, UbeanMiddleware } from '../types/handler';
-import { getLocale, getLocaleDir } from './i18n';
+import { getLocale, getLocaleDir, getLocaleMessages } from './i18n';
 import type { UbeanApp } from './app';
 import { extractRouteMeta, isHandlerChain } from './handler';
 import { isPagesRequest, pageJsonResponse, renderPage } from './pages';
@@ -17,6 +17,11 @@ export interface RegisterOptions {
   pageRenderer?: PageRenderer | null;
   pageAssetTags?: PageAssetTags;
   pageLoaders?: Record<string, () => Promise<any>>;
+  i18nConfig?: {
+    strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
+    defaultLocale?: string;
+    locales?: string[];
+  };
 }
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
@@ -89,8 +94,31 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
     middlewareLoaders,
     pageRenderer,
     pageAssetTags,
-    pageLoaders
+    pageLoaders,
+    i18nConfig
   } = options;
+
+  // Generate locale-prefixed path variants for i18n prefix strategies.
+  // Returns an array of { locale, path } entries that should be registered
+  // in addition to the original (un-prefixed) path.
+  function getLocalePrefixedPaths(honoPath: string): Array<{ locale: string; path: string }> {
+    if (!i18nConfig) return [];
+    const { strategy, defaultLocale, locales = [] } = i18nConfig;
+    if (strategy === 'no_prefix') return [];
+
+    const result: Array<{ locale: string; path: string }> = [];
+    for (const locale of locales) {
+      // prefix_except_default: skip default locale (it uses the un-prefixed path)
+      // prefix_and_default: ALL locales get a prefixed variant, default ALSO keeps un-prefixed
+      // prefix: ALL locales get prefixed, no un-prefixed variant (but we still register it
+      //   because the original route registration handles it — the i18n middleware redirects)
+      if (strategy === 'prefix_except_default' && locale === defaultLocale) continue;
+
+      const cleanPath = honoPath === '/' ? '' : honoPath;
+      result.push({ locale, path: `/${locale}${cleanPath}` });
+    }
+    return result;
+  }
 
   const hasDefaultLayout = layouts.some(l => l.isDefault);
 
@@ -314,7 +342,9 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
       component: pageComponent,
       props,
       params: c.req.param(),
-      url: c.req.path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
+      url:
+        ((c.get('pathWithoutLocale') as string | undefined) || c.req.path) +
+        (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
       layout:
         page.layout === false ? false : page.layout || page.pageMeta?.layout || (hasDefaultLayout ? 'default' : false),
       errors: actionErrors,
@@ -332,7 +362,8 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
     const currentLocale = (c.get('locale') as string) || getLocale();
     const renderContext: PageRenderContext = {
       locale: currentLocale,
-      localeDir: getLocaleDir(currentLocale)
+      localeDir: getLocaleDir(currentLocale),
+      messages: getLocaleMessages(currentLocale)
     };
 
     const html = await renderPage(pageObj, pageAssetTags ?? {}, pageRenderer ?? null, 'app', renderContext);
@@ -352,8 +383,25 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
 
     const pageHandler = (method: 'GET' | 'POST') => async (c: Context<UbeanEnv>) => handlePageRequest(c, page, method);
 
+    // Register the original (un-prefixed) route — serves the default locale
+    // for prefix_except_default, or handles redirects for prefix strategy.
     app.on(['GET'], honoPath, metaMiddleware, ...matchingMiddleware, pageHandler('GET'));
     app.on(['POST'], honoPath, metaMiddleware, ...matchingMiddleware, pageHandler('POST'));
+
+    // Register locale-prefixed variants (e.g. /zh/, /zh/about) so Hono's
+    // router can match them. The i18n middleware detects the locale from
+    // the URL and sets `pathWithoutLocale` in the context, which
+    // `handlePageRequest` uses for the page URL.
+    for (const { path: localePath } of getLocalePrefixedPaths(honoPath)) {
+      // Middleware should match based on the un-prefixed path so that
+      // middleware mounted at e.g. /users/* also applies to /zh/users/*.
+      const localeMetaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
+        c.set('route', { meta: pageMeta, path: c.req.path, method: c.req.method });
+        await next();
+      };
+      app.on(['GET'], localePath, localeMetaMiddleware, ...matchingMiddleware, pageHandler('GET'));
+      app.on(['POST'], localePath, localeMetaMiddleware, ...matchingMiddleware, pageHandler('POST'));
+    }
   }
 }
 

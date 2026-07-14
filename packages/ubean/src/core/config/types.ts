@@ -84,7 +84,7 @@ export interface UbeanConfig {
   i18n?: {
     defaultLocale?: string;
     locales?: string[];
-    strategy?: 'prefix' | 'prefix_except_default' | 'no_prefix';
+    strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
     detectBrowserLocale?: boolean;
     cookieName?: string;
     fallbackLocale?: string;

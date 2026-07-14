@@ -26,14 +26,18 @@ import { LOCALE_DATA_ID } from '../pages/protocol';
 
 const _global = globalThis as any;
 
-function hydrateLocale(): { locale: string | null; dir: 'ltr' | 'rtl' } {
+function hydrateLocale(): { locale: string | null; dir: 'ltr' | 'rtl'; messages?: Record<string, unknown> } {
   if (typeof _global.document === 'undefined') return { locale: null, dir: 'ltr' };
   const el = _global.document.getElementById(LOCALE_DATA_ID);
   if (!el) return { locale: null, dir: 'ltr' };
   try {
     const data = JSON.parse(el.textContent || 'null');
     if (data && typeof data.locale === 'string') {
-      return { locale: data.locale, dir: data.dir === 'rtl' ? 'rtl' : 'ltr' };
+      return {
+        locale: data.locale,
+        dir: data.dir === 'rtl' ? 'rtl' : 'ltr',
+        messages: data.messages
+      };
     }
   } catch {
     return { locale: null, dir: 'ltr' };
@@ -50,8 +54,16 @@ function syncHtmlLang(locale: string, dir: 'ltr' | 'rtl'): void {
   }
 }
 
-const { locale: hydratedLocale, dir: hydratedDir } = hydrateLocale();
+const { locale: hydratedLocale, dir: hydratedDir, messages: hydratedMessages } = hydrateLocale();
 if (hydratedLocale) {
+  // Auto-register messages from SSR-injected data (no need for manual defineLocale in app.ts)
+  if (hydratedMessages && typeof hydratedMessages === 'object') {
+    defineLocaleCore({
+      code: hydratedLocale,
+      messages: hydratedMessages as LocaleMessages,
+      dir: hydratedDir
+    });
+  }
   setLocaleCore(hydratedLocale);
   syncHtmlLang(hydratedLocale, hydratedDir);
 }

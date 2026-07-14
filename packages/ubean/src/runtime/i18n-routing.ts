@@ -46,12 +46,16 @@ export function createI18nMiddleware(options: I18nRoutingOptions = {}): Middlewa
 
     let detectedLocale = resolvedDefaultLocale;
 
-    if (strategy === 'prefix' || strategy === 'prefix_except_default') {
+    if (strategy === 'prefix' || strategy === 'prefix_except_default' || strategy === 'prefix_and_default') {
       const { locale: pathLocale, pathWithoutLocale } = getLocaleFromPath(path, resolvedLocales);
       if (pathLocale) {
         detectedLocale = pathLocale;
         c.set('locale', pathLocale);
         c.set('pathWithoutLocale', pathWithoutLocale);
+      } else if (strategy === 'prefix_and_default') {
+        // prefix_and_default: unprefixed path also works for default locale (no redirect)
+        detectedLocale = resolvedDefaultLocale;
+        c.set('pathWithoutLocale', path);
       } else if (strategy === 'prefix') {
         const preferredLocale = resolvePreferredLocale();
         if (redirectOnLocaleMismatch && preferredLocale !== resolvedDefaultLocale) {
@@ -126,6 +130,7 @@ export function switchLocalePath(
     case 'prefix':
       return `/${locale}${cleanPath}`;
     case 'prefix_except_default':
+    case 'prefix_and_default':
       if (locale === resolvedDefault) {
         return cleanPath || '/';
       }
@@ -161,6 +166,7 @@ export function localeRoutes(
       case 'prefix':
         return `/${targetLocale}${cleanPath === '/' ? '' : cleanPath}`;
       case 'prefix_except_default':
+      case 'prefix_and_default':
         if (targetLocale === defaultLocale) {
           return cleanPath;
         }

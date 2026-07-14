@@ -17,10 +17,10 @@
   },
   "scripts": {
     "build": "pnpm run build:server && pnpm run build:client",
-    "build:server": "vp pack",
     "build:client": "node scripts/build-client.mjs",
-    "dev:server": "vp pack --watch",
+    "build:server": "vp pack",
     "dev:client": "vite client --config client/vite.config.ts",
+    "dev:server": "vp pack --watch",
     "test": "vp test",
     "typecheck": "tsc --noEmit --skipLibCheck"
   },

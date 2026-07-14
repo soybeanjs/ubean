@@ -1,6 +1,6 @@
-import { defineConfig } from 'vite-plus';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { defineConfig } from 'vite-plus';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -9,13 +9,11 @@ export default defineConfig({
     tsconfigPaths: true
   },
   pack: {
-    dts: false,
+    dts: true,
     clean: true,
-    sourcemap: true,
     format: ['esm'],
     outDir: 'dist',
     entry: ['src/index.ts'],
-    onSuccess: 'tsc --emitDeclarationOnly',
     deps: {
       neverBundle: ['vue', 'hono', 'ubean', 'hookable', 'pathe', /^node:/]
     }

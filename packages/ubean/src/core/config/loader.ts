@@ -83,6 +83,6 @@ export function getConfig(): ResolvedConfig {
   return cachedConfig;
 }
 
-export function defineConfig(config: UbeanConfig): UbeanConfig {
+export function defineConfig(config?: UbeanConfig) {
   return config;
 }

@@ -5,9 +5,8 @@ export default defineConfig({
     tsconfigPaths: true
   },
   pack: {
-    dts: false,
+    dts: true,
     clean: true,
-    sourcemap: false,
     format: ['esm'],
     outDir: 'dist',
     entry: [
@@ -33,9 +32,8 @@ export default defineConfig({
       'src/core/codegen/index.ts',
       'src/core/preset/index.ts'
     ],
-    onSuccess: 'tsc --emitDeclarationOnly',
+    // onSuccess: 'tsc --emitDeclarationOnly',
     deps: {
-      onlyBundle: false,
       neverBundle: [
         'hono',
         'c12',

@@ -62,6 +62,43 @@ export {
   runtime,
   diagnoseEnvironment
 } from './runtime/client';
+export {
+  createTypedClient,
+  createTypedFlatClient,
+  callTypedInternal,
+  createTypedRequestSender,
+  createTypedInternalFetch,
+  replacePathParams,
+  parseContentDisposition
+} from './runtime/typed-client';
+export type {
+  PathsWithMethod,
+  RequiredKeysOf,
+  FilterKeys,
+  OperationRequestBodyContent,
+  IsOperationRequestBodyOptional,
+  SuccessResponse,
+  ErrorResponse,
+  OperationParams,
+  ParamsOption,
+  RequestBodyOption,
+  TypedRequestOptions,
+  ClientPassthroughOptions,
+  ClientMethod,
+  TypedClient,
+  FlatClientMethod,
+  TypedFlatClient,
+  TypedFlatResponse,
+  InternalPassthroughOptions,
+  TypedInternalCaller,
+  TypedRequestSender,
+  PathsRemovedPrefix,
+  ResponseType,
+  FileResponseType,
+  ResponseTypeMap,
+  MappedType,
+  FileResponseData
+} from './runtime/typed-client';
 export { defineScheduled, getScheduledTasks, runScheduledTask, clearScheduledTasks } from './runtime/cron';
 export type { CronTaskMeta, CronContext, ScheduledTask, CronSchedule } from './runtime/cron';
 export {

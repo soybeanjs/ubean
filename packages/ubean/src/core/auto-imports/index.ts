@@ -138,7 +138,12 @@ export const UBEAN_SERVER_PRESET: InlinePreset = {
     'defineDatabase',
     'useKV',
     'createKV',
-    'useStorage'
+    'useStorage',
+    'createTypedClient',
+    'createTypedFlatClient',
+    'callTypedInternal',
+    'createTypedRequestSender',
+    'createTypedInternalFetch'
   ]
 };
 

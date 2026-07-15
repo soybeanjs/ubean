@@ -3,7 +3,7 @@ import { green, cyan, dim, bold } from 'kolorist';
 import { resolve } from 'pathe';
 import { loadUbeanConfig } from '../config/loader';
 import { createUbeanApp } from '../../runtime/app';
-import { generateTypes } from '../codegen';
+import { generateTypes, generateOpenApiTypesFromServer } from '../codegen';
 import { createDevRunner, createDevWatcher, logDiagnostics } from '../dev';
 import type {
   DevToolsRouteInfo,
@@ -97,6 +97,15 @@ export const devCommand: CommandDef = {
             `  → ${label('DevTools:')}   ${cyan(`${url}/_devtools`)}\n` +
             `  → ${dim('Press Ctrl+C to stop')}`
         );
+
+        // 异步生成 OpenAPI 类型声明(不阻塞 server 启动)
+        generateOpenApiTypesFromServer(url, { outDir: resolve(cwd, '.ubean') })
+          .then(filePath => {
+            logger.success(`OpenAPI types generated: ${filePath}`);
+          })
+          .catch(err => {
+            logger.warn(`Failed to generate OpenAPI types: ${err instanceof Error ? err.message : String(err)}`);
+          });
       },
       onBeforeReload() {
         logger.info('Reloading...');

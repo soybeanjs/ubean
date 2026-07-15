@@ -4,6 +4,9 @@ import { generateAutoImports } from '../auto-imports';
 import type { AutoImportOptions } from '../auto-imports';
 import type { ScanResult } from '../routing/types';
 
+export { generateOpenApiTypes, generateOpenApiTypesFromServer } from './openapi-types';
+export type { GenerateOpenApiTypesOptions } from './openapi-types';
+
 export interface CodegenOptions extends Omit<AutoImportOptions, 'cwd' | 'srcDir' | 'buildDir'> {
   cwd: string;
   srcDir: string;

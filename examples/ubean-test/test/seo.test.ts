@@ -1,11 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  mergeMetadata,
-  buildMetaTags,
-  buildLinkTags,
-  buildTitle,
-  type SeoMetadata
-} from 'ubean';
+import { mergeMetadata, buildMetaTags, buildLinkTags, buildTitle } from 'ubean';
+import type { SeoMetadata } from 'ubean';
 import { api } from './helper';
 
 describe('SEO system', () => {
@@ -140,7 +135,7 @@ describe('SEO system', () => {
     it('applies function titleTemplate', () => {
       const title = buildTitle({
         title: 'My Page',
-        titleTemplate: (t) => `${t} - Function Site`
+        titleTemplate: t => `${t} - Function Site`
       });
       expect(title).toBe('My Page - Function Site');
     });

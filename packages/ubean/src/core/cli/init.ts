@@ -308,6 +308,134 @@ export const GET = defineHandler(c => {
 });
 `;
 
+/**
+ * 类型化请求客户端模板 - 浏览器端
+ *
+ * 启动 dev server 后,ubean 会自动生成 .ubean/openapi.d.ts(包含项目所有 API 的 paths 类型)。
+ * 本文件将 paths 类型绑定到 createTypedClient,使浏览器端请求的路径、参数、请求体和返回值都获得类型安全。
+ *
+ * 使用方式:
+ *   import { api } from '../request/client';
+ *   const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
+ */
+const REQUEST_CLIENT_TEMPLATE = `import { createClient, createTypedClient, createTypedFlatClient } from 'ubean';
+import type { paths } from '../../.ubean/openapi';
+
+/**
+ * 底层 HTTP 客户端实例(ofetch 封装)。
+ *
+ * api 和 flatApi 共用同一个 client 实例,共享 baseURL/timeout/headers 等配置。
+ * 调整配置时只需修改此处一处。
+ */
+const client = createClient({
+  // baseURL: '/api',  // 按需设置 API 基础路径
+  // timeout: 10000,
+});
+
+/**
+ * 浏览器端类型化 HTTP 客户端(抛异常模式)
+ *
+ * 路径、参数、请求体和返回值类型均从 OpenAPI schema 自动推断。
+ * 启动 dev server 后类型会自动更新(.ubean/openapi.d.ts)。
+ *
+ * 支持通过 responseType 配置不同的返回类型:
+ * - 'json' (默认): 返回解析后的 JSON 数据
+ * - 'blob': 返回 { file: Blob; filename: string; contentType: string }
+ * - 'text': 返回 string
+ * - 'arraybuffer': 返回 { file: ArrayBuffer; filename: string; contentType: string }
+ *
+ * @example
+ * import { api } from '../request/client';
+ *
+ * // JSON 请求(默认)
+ * const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
+ *
+ * // 文件下载
+ * const file = await api.get('/api/export', { responseType: 'blob' });
+ * // file: { file: Blob; filename: string; contentType: string }
+ *
+ * // 文本
+ * const text = await api.get('/api/readme', { responseType: 'text' });
+ * // text: string
+ */
+export const api = createTypedClient<paths>(client);
+
+/**
+ * 扁平模式类型化 HTTP 客户端(不抛异常,通过返回值判断)
+ *
+ * 返回 { data, error, status } — 成功时 error 为 null,失败时 data 为 null。
+ * 接口与 api 一致,同样支持 responseType。
+ *
+ * @example
+ * import { flatApi } from '../request/client';
+ *
+ * const { data, error } = await flatApi.get('/api/users/{id}', {
+ *   params: { path: { id: 1 } }
+ * });
+ * if (error) {
+ *   console.error('Failed:', error.message);
+ * } else {
+ *   console.log('User:', data);
+ * }
+ */
+export const flatApi = createTypedFlatClient<paths>(client);
+`;
+
+/**
+ * 类型化请求客户端模板 - server 端内部调度
+ *
+ * 在 API 路由或 useData 的 fetcher 中使用,自动转发 cookie/authorization 等请求头。
+ * 与 client.ts 接口一致,但内部通过 createTypedInternalFetch 发起请求(进程内调度)。
+ *
+ * 使用方式:
+ *   import { createServerApi } from '../request/internal';
+ *   export const GET = defineHandler(async (c) => {
+ *     const api = createServerApi(c);
+ *     const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
+ *     return c.json(user);
+ *   });
+ */
+const REQUEST_INTERNAL_TEMPLATE = `import { createTypedInternalFetch } from 'ubean';
+import type { paths } from '../../.ubean/openapi';
+
+/**
+ * server 端类型化内部 fetch
+ *
+ * 在 API 路由或 useData 的 fetcher 中使用,自动转发 cookie/authorization 等请求头。
+ * 与 client.ts 的 api 接口一致,但通过 server 端 fetch 发起请求(自动转发请求头)。
+ *
+ * baseURL 会自动从当前请求的 URL 中推断,无需手动设置。
+ *
+ * @example
+ * // src/routes/api/posts.ts
+ * import { defineHandler } from 'ubean';
+ * import { createServerApi } from '../request/internal';
+ *
+ * export const GET = defineHandler(async (c) => {
+ *   const api = createServerApi(c);
+ *   const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
+ *   return c.json(user);
+ * });
+ *
+ * @example
+ * // 在 useData 中使用
+ * import { useData, defineHandler } from 'ubean';
+ * import { createServerApi } from '../request/internal';
+ *
+ * export const GET = defineHandler(async (c) => {
+ *   const api = createServerApi(c);
+ *   const result = await useData({
+ *     fetcher: async () => api.get('/api/users/{id}', { params: { path: { id: 1 } } })
+ *   });
+ *   return c.json(result.data);
+ * });
+ */
+export function createServerApi(context: Parameters<typeof createTypedInternalFetch>[0]) {
+  // createTypedInternalFetch 会自动从 context.req.url 推断 baseURL
+  return createTypedInternalFetch<paths>(context);
+}
+`;
+
 const DEFAULT_LAYOUT_TEMPLATE = `<template>
   <slot />
 </template>
@@ -365,6 +493,7 @@ A Vue meta-framework project powered by ubean.
 │   ├── middleware/     # Request middleware
 │   ├── crons/          # Scheduled tasks
 │   ├── queues/         # Background jobs
+│   ├── request/        # Typed HTTP client & internal fetch
 │   └── app.vue         # Root app component
 ├── public/             # Static assets
 └── ubean.config.ts     # ubean configuration
@@ -501,6 +630,7 @@ export async function scaffoldProject(options: InitOptions): Promise<void> {
   await fs.ensureDir('src/components');
   await fs.ensureDir('src/composables');
   await fs.ensureDir('src/plugins');
+  await fs.ensureDir('src/request');
   await fs.ensureDir('public');
 
   await fs.writeFile('package.json', renderTemplate(PACKAGE_JSON_TEMPLATE, { variables: { name: projectName } }));
@@ -513,6 +643,8 @@ export async function scaffoldProject(options: InitOptions): Promise<void> {
   await fs.writeFile('README.md', renderTemplate(README_TEMPLATE, { variables: { name: projectName, pm } }));
   await fs.writeFile('src/app.vue', APP_VUE_TEMPLATE);
   await fs.writeFile('src/layouts/default.vue', DEFAULT_LAYOUT_TEMPLATE);
+  await fs.writeFile('src/request/client.ts', REQUEST_CLIENT_TEMPLATE);
+  await fs.writeFile('src/request/internal.ts', REQUEST_INTERNAL_TEMPLATE);
 
   if (options.template === 'minimal') {
     await fs.writeFile('src/pages/index.vue', INDEX_PAGE_TEMPLATE);

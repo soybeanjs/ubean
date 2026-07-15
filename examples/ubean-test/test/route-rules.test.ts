@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  compileRouteRules,
-  matchRouteRules,
-  createRouteRulesMiddleware,
-  type RouteRule
-} from 'ubean';
+import { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from 'ubean';
+import type { RouteRule } from 'ubean';
 import { getJson, api } from './helper';
 
 describe('Route rules system', () => {
@@ -120,7 +116,7 @@ describe('Route rules system', () => {
       const mockCtx = {
         method: 'GET',
         req: { method: 'GET', url: 'http://localhost/api/test', path: '/api/test' },
-        header: (name: string, value: string) => {},
+        header: (_name: string, _value: string) => {},
         res: { headers: new Headers() }
       } as any;
 

@@ -101,6 +101,7 @@
     "markdown-exit": "catalog:",
     "mlly": "catalog:",
     "ofetch": "catalog:",
+    "openapi-typescript": "^7.13.0",
     "pathe": "catalog:",
     "rou3": "catalog:",
     "scule": "catalog:",

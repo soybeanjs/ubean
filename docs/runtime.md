@@ -178,83 +178,179 @@ export function defineApp(options: DefineAppOptions): ResolvedAppConfig;
 | View Transitions  | 不支持                         | `viewTransitions` 选项                  |
 | 错误边界          | 不支持                         | `errorComponent` / `loadingComponent`  |
 
-## 4.8 类型安全 Fetch 客户端 (ofetch + XHR upload adapter)
+## 4.8 类型安全请求客户端
 
-提供以 `ofetch` 为默认传输层、基于标准 Fetch API 语义的强类型 HTTP 客户端，支持两种使用模式：
+ubean 提供分层设计的请求客户端：底层 `createClient` 是无类型的 ofetch 封装，`createTypedClient` / `createTypedFlatClient` / `createTypedInternalFetch` 在其上叠加 OpenAPI `paths` 类型,使路径、参数、请求体和返回值全部类型安全。
 
-**模式 A：直接使用 OpenAPI 生成的 paths 类型**（推荐，零额外类型定义）
-**模式 B：手动创建 request 实例 + 自定义类型映射**
+### 自动类型生成
 
-核心设计：
+dev server 启动时自动从 `/_openapi.json` 获取 schema,用 `openapi-typescript` 生成 `.ubean/openapi.d.ts`:
 
-- 默认通过 `$fetch.create()` 发起请求，兼容浏览器、Node、Deno 与 edge runtime
-- 复用 ofetch 的 `onRequest`、`onResponse`、`onRequestError`、`onResponseError`、超时、重试和响应解析能力
-- 运行时零依赖 OpenAPI spec，仅在 TypeScript 层面消费由 ubean 自动生成的 `./ubean/routes.d.ts` 中的 `paths` 类型
-- 支持标准模式（throw on error）和扁平模式（`{ data, error }` never throws）
-- 自动将路径参数（`{id}`/`:id`）从 params 中提取替换
-- `internalFetch` 直接调度当前 Hono handler，不经过网络
-- 上传请求提供 `onUploadProgress` 时，浏览器客户端自动选择 `XMLHttpRequest.upload` 传输；未提供时始终使用 ofetch
-- XHR 适配器仅支持浏览器环境；在 Node、Deno、edge runtime 或 SSR 中传入 `onUploadProgress` 必须抛出 `UbeanTransportUnsupportedError`，不得静默忽略回调
-- XHR 适配器与 ofetch 共用 URL、query、headers、body、超时、取消、响应解析和 `UbeanFetchError` 契约；`internalFetch` 不支持上传进度
+- OpenAPI Operation 定义由 `hono-openapi` 的 `describeRoute` 中间件收集
+- 从 `validator(target, schema)` 使用的 Standard Schema 推导请求参数类型
+- 从 `describeRoute` 的 `responses` 中通过 `resolver(schema)` 推导响应类型
+- 开发模式下 HMR 自动更新类型
 
 ```typescript
-// src/api/client.ts
-import { createClient } from 'ubean';
-import type { paths } from '../../.ubean/routes'; // ubean 自动生成
-
-// 标准客户端（抛异常模式）
-export const client = createClient<paths>({
-  baseURL: '/api',
-  // ofetch 客户端配置
-  timeout: 10000,
-  // 请求中间件
-  onRequest(config) {
-    // 自动注入 token
-    const token = localStorage.getItem('token');
-    if (token) config.headers.Authorization = `Bearer ${token}`;
-    return config;
-  },
-  onError(error) {
-    if (error.status === 401) {
-      // 跳转到登录页
-    }
-  }
-});
-
-// 扁平客户端（不抛异常，返回 { data, error }）
-export const flatClient = createFlatClient<paths>({ baseURL: '/api' });
+// .ubean/openapi.d.ts (自动生成)
+export interface paths {
+  '/api/users/{id}': {
+    get: {
+      parameters: { path: { id: string } };
+      responses: { 200: { content: { 'application/json': User } } };
+    };
+  };
+}
 ```
 
-#### 使用方式
+### 推荐用法:在 `src/request/` 集中创建 typed client
+
+`ubean init` 会在项目 `src/request/` 下生成两个模板文件,将项目 `paths` 类型绑定到 typed 函数,后续无需重复传递泛型:
 
 ```typescript
-// 在 Vue 组件/composable 中使用
-import { client } from '@/api/client';
+// src/request/client.ts — 浏览器端
+import { createClient, createTypedClient } from 'ubean';
+import type { paths } from '../../.ubean/openapi';
 
-// 路径、参数、请求体、响应类型全部自动推导
-const user = await client.get('/users/{id}', {
+/**
+ * 浏览器端类型化 HTTP 客户端(抛异常模式)
+ * 路径、参数、请求体和返回值类型均从 OpenAPI schema 自动推断。
+ */
+export const api = createTypedClient<paths>(
+  createClient({
+    // baseURL: '/api',
+    // timeout: 10000,
+  })
+);
+```
+
+```typescript
+// src/request/internal.ts — server 端内部 fetch
+import { createTypedInternalFetch } from 'ubean';
+import type { paths } from '../../.ubean/openapi';
+
+/**
+ * server 端类型化内部 fetch
+ * 在 API 路由或 useData 的 fetcher 中使用,自动转发 cookie/authorization 等请求头。
+ * 与 client.ts 的 api 接口一致,但通过 server 端 fetch 发起请求(自动转发请求头)。
+ * baseURL 会自动从当前请求的 URL 中推断,无需手动设置。
+ */
+export function createServerApi(context: Parameters<typeof createTypedInternalFetch>[0]) {
+  // createTypedInternalFetch 会自动从 context.req.url 推断 baseURL
+  return createTypedInternalFetch<paths>(context);
+}
+```
+
+在组件或 API 路由中使用:
+
+```typescript
+// 浏览器端
+import { api } from '../request/client';
+const user = await api.get('/api/users/{id}', {
+  params: { path: { id: '123' }, query: { include: 'posts' } }
+});
+// user 的类型自动从 OpenAPI schema 推导
+
+// server 端
+import { defineHandler } from 'ubean';
+import { createServerApi } from '../request/internal';
+export const GET = defineHandler(async (c) => {
+  const api = createServerApi(c);
+  const user = await api.get('/api/users/{id}', { params: { path: { id: '1' } } });
+  return c.json(user);
+});
+```
+
+### API 速查
+
+| API | 说明 | 返回值 |
+| --- | --- | --- |
+| `createClient(options)` | 底层 HTTP 客户端(ofetch 封装),无类型 | `ApiClient` |
+| `createTypedClient<paths>(client, prefix?)` | 类型化客户端,失败抛异常 | `TypedClient<paths>` |
+| `createTypedFlatClient<paths>(client, prefix?)` | 类型化扁平客户端,返回 `{ data, error, status }` 不抛异常 | `TypedFlatClient<paths>` |
+| `createTypedInternalFetch<paths>(c, options?)` | server 端类型化内部 fetch,自动转发请求头 | `TypedClient<paths>` |
+| `callTypedInternal<paths>()` | 全局类型化进程内调度(无网络请求) | `TypedInternalCaller<paths>` |
+| `createTypedRequestSender<paths>(c)` | 上下文感知的类型化请求发送器 | `TypedRequestSender<paths>` |
+| `parseContentDisposition(header?)` | 从 Content-Disposition 头解析文件名 | `string` |
+
+### 参数结构
+
+参数结构与 `@soybeanjs/request` 一致,`params` 包含 `path`/`query`/`header`:
+
+```typescript
+api.post('/api/users', {
   params: {
-    path: { id: '123' }, // 路径参数
-    query: { include: 'posts' } // query 参数
-  }
+    path: { id: 1 },              // 替换 URL 中的 {id}
+    query: { page: 1 },            // query string
+    header: { Authorization: '' }  // 请求头
+  },
+  body: { name: 'test' }           // 请求体(POST/PUT/PATCH)
 });
-// user 的类型自动从 OpenAPI schema 推导：{ id: string; name: string; email: string }
+```
 
-const result = await client.post('/auth/login', {
-  body: { email: 'user@example.com', password: '123456' } // body 自动类型检查
+### 响应类型与文件下载
+
+通过 `responseType` 配置不同的返回类型,参考 `@soybeanjs/request` 的 `createRequest` 设计:
+
+```typescript
+type ResponseType = 'json' | 'blob' | 'arraybuffer' | 'text' | 'stream';
+```
+
+| `responseType` | 返回值 | 说明 |
+| --- | --- | --- |
+| `'json'` (默认) | `JsonType` | 解析 JSON 响应,类型从 OpenAPI schema 推断 |
+| `'blob'` | `FileResponseData<Blob>` | 文件下载,自动解析文件名 |
+| `'arraybuffer'` | `FileResponseData<ArrayBuffer>` | 二进制下载 |
+| `'stream'` | `FileResponseData<Uint8Array>` | 流式读取为 Uint8Array |
+| `'text'` | `string` | 纯文本响应 |
+
+`FileResponseData` 结构:
+
+```typescript
+interface FileResponseData<T = Blob | ArrayBuffer | Uint8Array> {
+  file: T;            // 文件内容
+  filename: string;   // 从 Content-Disposition 头解析的文件名
+  contentType: string; // 响应头中的内容类型
+}
+```
+
+使用示例:
+
+```typescript
+// 文件下载(自动从 Content-Disposition 解析文件名)
+const file = await api.get('/api/export', { responseType: 'blob' });
+// file: { file: Blob; filename: 'report.pdf'; contentType: 'application/pdf' }
+console.log(file.filename);
+
+// 自定义文件名提取
+const file2 = await api.get('/api/export', {
+  responseType: 'blob',
+  getFileName: (response) => response.headers.get('x-filename') || 'unknown.bin'
 });
 
-const upload = await client.post('/assets', {
-  body: formData,
-  onUploadProgress(event) {
-    // total 可能未知；仅在 lengthComputable 为 true 时计算百分比
-    const percent = event.total ? Math.round((event.loaded / event.total) * 100) : undefined;
-    updateUploadProgress({ loaded: event.loaded, total: event.total, percent });
-  }
-});
+// 文本响应
+const text = await api.get('/api/readme', { responseType: 'text' });
+// text: string
 
-// 扁平模式：不 try-catch，通过返回值判断
-const { data, error } = await flatClient.get('/users/{id}', {
+// 流式响应
+const stream = await api.get('/api/stream', { responseType: 'stream' });
+// stream: { file: Uint8Array; filename: string; contentType: string }
+
+// 二进制响应
+const buf = await api.get('/api/binary', { responseType: 'arraybuffer' });
+// buf: { file: ArrayBuffer; filename: string; contentType: string }
+```
+
+文件下载场景下,文件名默认通过内置的 `parseContentDisposition` 从 `Content-Disposition` 头解析(支持 RFC 5987 编码格式 `filename*=UTF-8''xxx` 和常规格式 `filename="xxx"`)。可通过 `getFileName` 回调自定义。
+
+### 扁平模式
+
+```typescript
+import { createTypedFlatClient } from 'ubean';
+import type { paths } from '../.ubean/openapi';
+
+const flat = createTypedFlatClient<paths>(client);
+const { data, error, status } = await flat.get('/api/users/{id}', {
   params: { path: { id: '123' } }
 });
 if (error) {
@@ -262,84 +358,22 @@ if (error) {
 } else {
   console.log('用户:', data);
 }
-```
 
-#### 浏览器文件上传进度
-
-浏览器标准 Fetch API 仍未提供可互操作的上传进度事件，因此上传进度不能由 ofetch 自身实现。`onUploadProgress` 是显式的传输能力开关：仅该字段存在时由 `ubean/client-xhr` 使用 `XMLHttpRequest.upload.onprogress`；普通 JSON、下载和无进度回调的上传继续使用 ofetch。
-
-```typescript
-export interface UploadProgressEvent {
-  loaded: number;
-  total?: number;
-  lengthComputable: boolean;
-}
-
-export interface UbeanRequestOptions {
-  signal?: AbortSignal;
-  timeout?: number;
-  onUploadProgress?: (event: UploadProgressEvent) => void;
+// 扁平模式同样支持 responseType
+const { data: file, error: fileError } = await flat.get('/api/export', { responseType: 'blob' });
+if (!fileError) {
+  console.log('文件名:', file.filename);
 }
 ```
 
-- `FormData` 直接传给 XHR；适配器不得手动设置 `Content-Type`，以保留浏览器生成的 multipart boundary。
-- XHR 必须实现 `AbortSignal`、timeout、network error、HTTP error、`responseType` 和响应 headers 的映射，并将结果归一为与 ofetch 相同的 `UbeanFetchError` / flat result。
-- XHR 不支持 Fetch 的 `Request`/`Response` 流式 body 语义；传入 `ReadableStream`、Fetch 专属 `dispatcher` 或不可映射选项时必须在调用前诊断。
-- 下载进度不是本期 API；如后续加入，使用独立 `onDownloadProgress` 并明确 XHR 与 Fetch 流读取的兼容范围。
+### 底层客户端
 
-#### 服务端使用 (loader/action 中)
+不使用 OpenAPI 类型时,`createClient` 仍可作为通用 HTTP 客户端:
 
 ```typescript
-// routes/users.ts
-import { defineHandler, createInternalFetch } from 'ubean';
-
-export const GET = defineHandler(async c => {
-  // 服务端直接调用内部路由，无需经过 HTTP
-  const internalFetch = createInternalFetch(c);
-  const result = await internalFetch('/api/health').then(r => r.json());
-  return c.json(result);
-});
-```
-
-#### 自动类型生成
-
-ubean 在构建/开发时扫描 `routes/` 目录，自动生成 `.ubean/routes.d.ts`：
-
-- OpenAPI Operation 定义由 hono-openapi 自动从 `describeRoute` 中间件收集
-- 从 `validator(target, schema)` 使用的 Standard Schema 推导请求参数类型
-- 从 `describeRoute` 的 `responses` 中通过 `resolver(schema)` 推导响应类型
-- 从文件级 `export const meta` 和 `defineHandlerMeta()` 提取 ubean 特有元数据（`public`/`cache`/`rateLimit`）
-- 生成符合 OpenAPI 3.1 `paths` 结构的类型文件
-- 兼容 `openapi-typescript` 生成的格式，可直接被 `ubean/client` 的 ofetch/XHR typed client 消费
-- 开发模式下 HMR 自动更新类型
-
-```typescript
-// .ubean/routes.d.ts (自动生成)
-export interface paths {
-  '/users/{id}': {
-    get: {
-      parameters: {
-        path: { id: string };
-        query?: { include?: string };
-      };
-      responses: {
-        200: { content: { 'application/json': { user: User } } };
-        404: { content: { 'application/json': { error: string } } };
-      };
-    };
-    patch: {
-      parameters: { path: { id: string } };
-      requestBody: { content: { 'application/json': Partial<User> } };
-      responses: { 200: { content: { 'application/json': { success: boolean } } } };
-    };
-  };
-  '/auth/login': {
-    post: {
-      requestBody: { content: { 'application/json': { email: string; password: string } } };
-      responses: { 200: { content: { 'application/json': { token: string } } } };
-    };
-  };
-}
+import { createClient } from 'ubean';
+const client = createClient({ baseURL: '/api', timeout: 10000 });
+const data = await client.get<{ id: string; name: string }>('/users/123');
 ```
 
 ## 4.9 定时任务系统 (Cron Jobs)

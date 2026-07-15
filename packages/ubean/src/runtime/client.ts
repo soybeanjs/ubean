@@ -290,7 +290,10 @@ export function createClient(defaultOptions: ClientOptions = {}) {
       });
     },
 
-    runtime
+    runtime,
+
+    /** 原始配置选项(用于 typed-client 等需要直接访问 baseURL 的场景) */
+    defaults: defaultOptions
   };
 
   return client;

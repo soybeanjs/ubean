@@ -4,7 +4,7 @@ export const GET = defineHandler(c => {
   return createSSEStream(
     c,
     {
-      async onOpen(conn) {
+      async onConnect(conn) {
         conn.send({ event: 'connected', data: { message: 'SSE connection established', time: Date.now() } });
 
         let count = 0;

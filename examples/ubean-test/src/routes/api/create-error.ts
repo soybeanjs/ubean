@@ -4,11 +4,7 @@ export const GET = defineHandler(c => {
   const type = c.req.query('type') || 'generic';
 
   if (type === 'ubean-error') {
-    throw new UbeanError({
-      statusCode: 418,
-      statusMessage: "I'm a teapot",
-      data: { custom: true, class: 'UbeanError' }
-    });
+    throw new UbeanError(418, "I'm a teapot", { custom: true, class: 'UbeanError' });
   }
 
   if (type === 'is-check') {

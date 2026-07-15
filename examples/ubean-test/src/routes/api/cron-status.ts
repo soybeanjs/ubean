@@ -1,4 +1,4 @@
-import { defineHandler, getScheduledTasks, runScheduledTask } from 'ubean';
+import { defineHandler, getScheduledTasks, runScheduledTask, defineScheduled } from 'ubean';
 
 export const GET = defineHandler(c => {
   const tasks = getScheduledTasks();
@@ -7,9 +7,9 @@ export const GET = defineHandler(c => {
     tasks: tasks.map(t => ({
       name: t.name,
       schedule: t.schedule,
-      timezone: t.timezone,
-      runOnStart: t.runOnStart,
-      timeout: t.timeout
+      timezone: t.meta.timezone,
+      runOnStart: t.meta.runOnStart,
+      timeout: t.meta.timeout
     })),
     taskCount: tasks.length
   });
@@ -18,6 +18,15 @@ export const GET = defineHandler(c => {
 export const POST = defineHandler(async c => {
   const body = await c.req.json().catch(() => ({}));
   const taskName = body.name || 'test-cron';
+
+  // Ensure the task exists
+  const existing = getScheduledTasks().find(t => t.name === taskName);
+  if (!existing) {
+    defineScheduled(
+      { name: taskName, schedule: '* * * * *', runOnStart: false, timeout: 5000 },
+      async () => {}
+    );
+  }
 
   try {
     await runScheduledTask(taskName);

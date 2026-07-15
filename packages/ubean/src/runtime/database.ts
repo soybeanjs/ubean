@@ -287,10 +287,25 @@ function createInMemoryDatabase(): { sql: RawSqlFn; exec: RawExecFn; close: RawC
     }
 
     if (upperQuery.startsWith('DELETE FROM')) {
-      const match = query.match(/DELETE\s+FROM\s+["`]?(\w+)["`]?/i);
+      const match = query.match(/DELETE\s+FROM\s+["`]?(\w+)["`]?\s*(?:WHERE\s+(.+))?/i);
       if (match) {
         const table = getTable(match[1]);
-        if (table) table.rows = [];
+        if (table) {
+          const whereStr = match[2];
+          if (whereStr) {
+            const eqIdx = whereStr.indexOf('=');
+            if (eqIdx !== -1) {
+              const col = whereStr.slice(0, eqIdx).trim().replace(/["`]/g, '');
+              const valStr = whereStr.slice(eqIdx + 1).trim();
+              const val = parseSqlValue(valStr);
+              table.rows = table.rows.filter(row => row[col] != val);
+            } else {
+              table.rows = [];
+            }
+          } else {
+            table.rows = [];
+          }
+        }
       }
       return [];
     }

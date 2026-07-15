@@ -5,7 +5,9 @@
   "scripts": {
     "build": "ubean build",
     "dev": "ubean dev",
-    "preview": "ubean preview"
+    "preview": "ubean preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@valibot/to-json-schema": "^1.7.1",
@@ -15,6 +17,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
-    "typescript": "catalog:"
+    "typescript": "catalog:",
+    "vitest": "^3.2.0"
   }
 }

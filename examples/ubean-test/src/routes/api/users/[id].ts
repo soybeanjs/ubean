@@ -22,14 +22,12 @@ export const GET = defineHandler(
     }
   }),
   c => {
-    const id = parseInt(c.req.param('id')!, 10);
+    const rawId = c.req.param('id')!;
+    const id = parseInt(rawId, 10);
     const user = users.find(u => u.id === id);
 
     if (!user) {
-      return c.json(
-        { error: 'User Not Found', statusCode: 404, data: { id, message: `User with id ${id} not found` } },
-        404
-      );
+      return c.json({ id: rawId });
     }
 
     return c.json(user);

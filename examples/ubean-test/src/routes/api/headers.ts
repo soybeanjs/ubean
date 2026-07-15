@@ -1,9 +1,9 @@
-import { object, pipe, string, description } from 'valibot';
+import { object, pipe, string, description, optional } from 'valibot';
 import { defineHandler, describeRoute, validator } from 'ubean';
 
 const headersSchema = object({
-  'x-request-id': pipe(string(), description('Request ID header')),
-  'x-custom-header': pipe(string(), description('A custom test header'))
+  'x-request-id': optional(pipe(string(), description('Request ID header'))),
+  'x-custom-header': optional(pipe(string(), description('A custom test header')))
 });
 
 export const GET = defineHandler(

@@ -1,13 +1,9 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { toast } from '@soybeanjs/ui';
+import { getDevToolsRpcClient } from '@vitejs/devtools-kit/client';
+import type { DevframeRpcClient } from 'devframe';
 
-declare global {
-  interface Window {
-    __UBEAN_DEVTOOLS_CONFIG__?: {
-      rpcPath: string;
-    };
-  }
-}
+// --- Local type definitions (client self-contained; mirrors server types) ---
 
 export interface DevToolsRouteInfo {
   method: string;
@@ -121,23 +117,41 @@ export type CrudResourceType =
   | 'env'
   | 'config';
 
+// --- RPC client singleton ---
+// `getDevToolsRpcClient()` auto-detects the DTK dock connection from the
+// parent window — no explicit URL/setup needed inside the iframe.
+// A timeout is added so the SPA shows a helpful error instead of hanging
+// forever when opened directly (not embedded in the DTK dock shell).
+
+let clientPromise: Promise<DevframeRpcClient> | null = null;
+function getClient(): Promise<DevframeRpcClient> {
+  if (!clientPromise) {
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('DTK connection timeout — open this page via the Vite DevTools dock shell, not directly.')), 5000)
+    );
+    clientPromise = Promise.race([getDevToolsRpcClient(), timeout]);
+  }
+  return clientPromise;
+}
+
+// Untyped call helper — the birpc client is typed server-side via module
+// augmentation; on the client we cast to keep the SPA build self-contained.
+async function rpc<T = unknown>(method: string, ...args: unknown[]): Promise<T> {
+  const client = await getClient();
+  return (client.call as unknown as (m: string, ...a: unknown[]) => Promise<T>)(method, ...args);
+}
+
 export function useRpc() {
   const loading = ref(true);
   const error = ref<string | null>(null);
   const info = ref<DevToolsInfo | null>(null);
   const env = ref<Record<string, string>>({});
   const uptime = ref(0);
-  let interval: ReturnType<typeof setInterval> | null = null;
-  let reqId = 0;
-
-  const rpcPath = window.__UBEAN_DEVTOOLS_CONFIG__?.rpcPath || '/__ubean_devtools/rpc';
+  let uptimeInterval: ReturnType<typeof setInterval> | null = null;
+  let unsubscribe: (() => void) | null = null;
 
   function showToast(type: 'success' | 'error' | 'info' | 'warning', message: string) {
-    const options = {
-      duration: 3000,
-      position: 'top-right' as const
-    };
-
+    const options = { duration: 3000, position: 'top-right' as const };
     switch (type) {
       case 'success':
         toast.success(message, options);
@@ -148,43 +162,48 @@ export function useRpc() {
       case 'warning':
         toast.warning(message, options);
         break;
-      case 'info':
       default:
         toast(message, options);
         break;
     }
   }
 
-  async function rpc<T = unknown>(method: string, params?: unknown): Promise<T> {
-    const id = String(++reqId);
-    const res = await fetch(rpcPath, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, method, params })
-    });
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    return data.result as T;
-  }
-
-  async function loadInfo() {
+  async function init() {
     try {
-      const data = await rpc<DevToolsInfo>('getInfo');
-      info.value = data;
-      uptime.value = Date.now() - data.startTime;
-      error.value = null;
+      const client = await getClient();
+      // Subscribe to the `ubean:info` sharedState — replaces 3s polling.
+      // The server pushes patches on every app rebuild.
+      const state = await client.sharedState.get('ubean:info');
+      const apply = (fullState: DevToolsInfo) => {
+        info.value = fullState;
+      };
+      info.value = state.value() as DevToolsInfo;
+      loading.value = false;
+      unsubscribe = state.on('updated', apply) as unknown as () => void;
+
+      // Load env once (CRUD updates mutate it server-side; refresh re-fetches).
+      env.value = await rpc<Record<string, string>>('ubean:get-env');
+
+      // Local uptime ticker driven by info.startTime.
+      uptimeInterval = setInterval(() => {
+        if (info.value) uptime.value = Date.now() - info.value.startTime;
+      }, 1000);
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to connect';
-    } finally {
       loading.value = false;
     }
   }
 
-  async function loadEnv() {
+  async function refresh() {
     try {
-      env.value = await rpc<Record<string, string>>('getEnv');
+      env.value = await rpc<Record<string, string>>('ubean:get-env');
+      // `info` is kept fresh by the sharedState subscription; fall back to an
+      // explicit fetch if no state has arrived yet.
+      if (!info.value) {
+        info.value = await rpc<DevToolsInfo>('ubean:get-info');
+      }
     } catch {
-      // silent fail
+      // silent
     }
   }
 
@@ -194,7 +213,7 @@ export function useRpc() {
     options?: { method?: string; content?: string; force?: boolean }
   ): Promise<CrudResult> {
     try {
-      const result = await rpc<CrudResult>('crud:create', { type, path, ...options });
+      const result = await rpc<CrudResult>('ubean:crud:create', { type, path, ...options });
       if (result.success) {
         showToast('success', `Created ${type}: ${path}`);
         await refresh();
@@ -214,7 +233,7 @@ export function useRpc() {
     path?: string
   ): Promise<{ success: boolean; content?: string; data?: unknown; error?: string }> {
     try {
-      return await rpc('crud:read', { type, path });
+      return await rpc('ubean:crud:read', { type, path });
     } catch (e) {
       return { success: false, error: e instanceof Error ? e.message : 'Read failed' };
     }
@@ -225,7 +244,7 @@ export function useRpc() {
     options: { path?: string; key?: string; content?: string; value?: string }
   ): Promise<CrudResult> {
     try {
-      const result = await rpc<CrudResult>('crud:update', { type, ...options });
+      const result = await rpc<CrudResult>('ubean:crud:update', { type, ...options });
       if (result.success) {
         showToast('success', `Updated ${type}`);
         await refresh();
@@ -245,7 +264,7 @@ export function useRpc() {
     options: { path?: string; key?: string; force?: boolean }
   ): Promise<CrudResult> {
     try {
-      const result = await rpc<CrudResult>('crud:delete', { type, ...options });
+      const result = await rpc<CrudResult>('ubean:crud:delete', { type, ...options });
       if (result.success) {
         showToast('success', `Deleted ${type}`);
         await refresh();
@@ -262,7 +281,7 @@ export function useRpc() {
 
   async function crudRestore(path: string): Promise<CrudResult> {
     try {
-      const result = await rpc<CrudResult>('crud:restore', { path });
+      const result = await rpc<CrudResult>('ubean:crud:restore', path);
       if (result.success) {
         showToast('success', `Restored: ${path}`);
         await refresh();
@@ -282,7 +301,7 @@ export function useRpc() {
     options?: { apiKey?: string; apiBase?: string; model?: string }
   ): Promise<AiChatResponse> {
     try {
-      return await rpc<AiChatResponse>('ai:chat', { messages, ...options });
+      return await rpc<AiChatResponse>('ubean:ai:chat', { messages, ...options });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'AI request failed';
       return { message: { role: 'assistant', content: `Error: ${msg}`, timestamp: Date.now() } };
@@ -291,14 +310,10 @@ export function useRpc() {
 
   async function aiGetTools(): Promise<AiToolDefinition[]> {
     try {
-      return await rpc<AiToolDefinition[]>('ai:tools');
+      return await rpc<AiToolDefinition[]>('ubean:ai:tools');
     } catch {
       return [];
     }
-  }
-
-  function close() {
-    window.parent.postMessage({ type: '__ubean_devtools_close' }, '*');
   }
 
   function fmtUptime(ms: number): string {
@@ -338,18 +353,6 @@ export function useRpc() {
     return p;
   }
 
-  function methodColor(method: string): string {
-    const colors: Record<string, string> = {
-      GET: 'success',
-      POST: 'info',
-      PUT: 'warning',
-      DELETE: 'destructive',
-      PATCH: 'accent',
-      ALL: 'muted'
-    };
-    return colors[method] || 'muted';
-  }
-
   function methodClass(method: string): string {
     const map: Record<string, string> = {
       GET: 'bg-success/12 text-success',
@@ -361,25 +364,13 @@ export function useRpc() {
     return map[method] || 'bg-secondary text-muted-foreground';
   }
 
-  function getStatusColor(status: string): string {
-    if (status === 'running') return 'success';
-    return 'muted';
-  }
-
-  async function refresh() {
-    await Promise.all([loadInfo(), loadEnv()]);
-  }
-
   onMounted(() => {
-    loadInfo();
-    loadEnv();
-    interval = setInterval(() => {
-      loadInfo();
-    }, 3000);
+    init();
   });
 
   onUnmounted(() => {
-    if (interval) clearInterval(interval);
+    if (unsubscribe) unsubscribe();
+    if (uptimeInterval) clearInterval(uptimeInterval);
   });
 
   return {
@@ -388,15 +379,12 @@ export function useRpc() {
     info,
     env,
     uptime,
-    close,
     fmtUptime,
     fmtTime,
     fmtVal,
     fileName,
     filePath,
-    methodColor,
     methodClass,
-    getStatusColor,
     refresh,
     crudCreate,
     crudRead,

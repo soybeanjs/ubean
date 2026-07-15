@@ -1,0 +1,213 @@
+/// <reference types="@vitejs/devtools-kit" />
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import type { Plugin } from 'vite';
+import type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
+
+import type { DevToolsCustomTab, DevToolsInfo } from '../types';
+import { createDevToolsHooks } from '../server/hooks';
+import { createCrudServer } from '../server/crud';
+import type { DevToolsCrudServer } from '../server/crud';
+import { createAiServer } from '../server/ai';
+import type { DevToolsAiServer } from '../server/ai';
+import { maskSensitiveEnv } from '../shared/env';
+import {
+  buildDevToolsInfo,
+  emptyDevToolsInfo,
+  initSharedState,
+  refreshSharedState,
+  UBEAN_INFO_STATE_KEY,
+  type ScanResultLike,
+  type DevToolsConfigMeta
+} from './state';
+import { createAllRpcFunctions } from './rpc';
+
+export { defineRpcFunction } from '@vitejs/devtools-kit';
+export type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
+export { buildDevToolsInfo, emptyDevToolsInfo, UBEAN_INFO_STATE_KEY };
+export type { ScanResultLike, DevToolsConfigMeta };
+
+/**
+ * Options injected by the ubean dev runner so the DevTools plugin can reach
+ * Hono-runtime data (scanned routes/pages, the Hono app for in-process
+ * playground forwarding) without `@ubean/devtools` statically depending on
+ * `ubean`.
+ */
+export interface UbeanDevtoolsPluginOptions {
+  /** Project root directory (used by the CRUD server for file scaffolding). */
+  getCwd: () => string;
+  /** Accessor for the live Hono app — used by the playground RPC to forward
+   *  HTTP requests in-process without a network round-trip. */
+  getApp?: () => { fetch: (req: Request) => Response | Promise<Response> } | undefined;
+  /** Accessor for the latest project scan result (routes/pages/middleware/...). */
+  getScanResult?: () => ScanResultLike | null;
+  /** Accessor for resolved config metadata shown in the Overview tab. */
+  getConfigMeta?: () => DevToolsConfigMeta | null;
+  /** Accessor for user-defined custom tabs (from `defineDevToolsTab`). */
+  getCustomTabs?: () => DevToolsCustomTab[];
+  /** AI provider configuration forwarded to the AI server. */
+  ai?: {
+    apiKey?: string;
+    apiBase?: string;
+    model?: string;
+  };
+  /**
+   * The dev runner registers a refresh callback here. Whenever the app is
+   * rebuilt (file change), the runner invokes it so the plugin can rebuild
+   * `DevToolsInfo` from the latest scan data and push patches to clients
+   * via sharedState — replacing the old 3s polling pattern.
+   */
+  registerRefresh?: (fn: () => void) => void;
+}
+
+/**
+ * Path to the pre-built client SPA. Resolved relative to the built server
+ * bundle (`dist/index.mjs`), so this points to `dist/client/` at runtime.
+ */
+const CLIENT_DIST = resolve(dirname(fileURLToPath(import.meta.url)), 'client');
+
+/**
+ * Ubean DevTools as a Vite plugin.
+ *
+ * Registers a dock entry (iframe pointing at the pre-built SPA), hosts the
+ * SPA's static assets, and wires up the type-safe RPC + sharedState used by
+ * the SPA. This replaces the previous Hono-middleware-based transport with
+ * the Vite DevTools Kit (DTK) birpc + shared-state machinery.
+ */
+export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getCwd: () => process.cwd() }): Plugin {
+  return {
+    name: 'ubean:devtools',
+    devtools: {
+      async setup(ctx: ViteDevToolsNodeContext) {
+        // eslint-disable-next-line no-console
+        console.log('[ubean:devtools] devtools.setup hook fired — DTK integration active');
+
+        // 1. Host the pre-built SPA static assets (replaces runtime/middleware.ts).
+        ctx.views.hostStatic('/__ubean_devtools__/', CLIENT_DIST);
+
+        // 2. Register dock entries — one per view (or grouped domain).
+        //    Routes + Playground share an iframe to preserve the "try route"
+        //    cross-view interaction; Middlewares + Layouts are grouped as
+        //    "Structure". DTK dock shell provides navigation chrome; the SPA
+        //    renders only the view matching `window.location.hash`.
+        const SPA_BASE = '/__ubean_devtools__/index.html';
+        const dockEntries = [
+          { id: 'ubean:overview', title: 'Overview', icon: 'lucide:layout-dashboard', url: `${SPA_BASE}#/overview`, order: 100 },
+          { id: 'ubean:ai', title: 'AI', icon: 'lucide:sparkles', url: `${SPA_BASE}#/ai`, order: 95 },
+          { id: 'ubean:api', title: 'API', icon: 'lucide:send', url: `${SPA_BASE}#/api`, order: 90 },
+          { id: 'ubean:pages', title: 'Pages', icon: 'lucide:file-text', url: `${SPA_BASE}#/pages`, order: 85 },
+          { id: 'ubean:structure', title: 'Structure', icon: 'lucide:layers', url: `${SPA_BASE}#/structure`, order: 80 },
+          { id: 'ubean:crons', title: 'Crons', icon: 'lucide:clock', url: `${SPA_BASE}#/crons`, order: 75 },
+          { id: 'ubean:env', title: 'Env', icon: 'lucide:terminal', url: `${SPA_BASE}#/env`, order: 70 },
+          { id: 'ubean:config', title: 'Config', icon: 'lucide:settings', url: `${SPA_BASE}#/config`, order: 65 },
+          { id: 'ubean:api-docs', title: 'API Docs', icon: 'lucide:book-open', url: `${SPA_BASE}#/api-docs`, order: 60 },
+          { id: 'ubean:database', title: 'Database', icon: 'lucide:database', url: `${SPA_BASE}#/database`, order: 55 }
+        ];
+        for (const entry of dockEntries) {
+          ctx.docks.register({
+            id: entry.id,
+            title: entry.title,
+            icon: entry.icon,
+            type: 'iframe',
+            url: entry.url,
+            category: 'framework',
+            defaultOrder: entry.order
+          });
+        }
+
+        // 3. Build the initial DevToolsInfo snapshot from scan + config data.
+        const startTime = Date.now();
+        const customTabs = options.getCustomTabs?.() ?? [];
+        const envData = snapshotEnv();
+        const initialInfo = options.getScanResult
+          ? buildDevToolsInfo({
+              scan: options.getScanResult(),
+              configMeta: options.getConfigMeta?.() ?? null,
+              customTabs,
+              ai: options.ai,
+              startTime,
+              envData
+            })
+          : emptyDevToolsInfo(startTime);
+
+        // 3b. Register custom tabs as independent dock entries (each points
+        //     directly to the user-provided src URL, not through the SPA).
+        for (const tab of customTabs) {
+          ctx.docks.register({
+            id: `ubean:custom:${tab.id}`,
+            title: tab.label,
+            icon: tab.icon || 'lucide:plugin',
+            type: 'iframe',
+            url: tab.src,
+            category: 'framework',
+            defaultOrder: 50
+          });
+        }
+
+        // 4. Initialise the shared state — clients subscribe to `ubean:info`
+        //    and receive patches on every refresh (no polling).
+        const state = await initSharedState(ctx, initialInfo);
+
+        // 5. Instantiate the CRUD + AI servers (reused as-is from the old
+        //    server/ modules — only the transport layer changed).
+        const hooks = createDevToolsHooks();
+        const crud: DevToolsCrudServer = createCrudServer({
+          cwd: options.getCwd(),
+          hooks,
+          getEnv: () => envData,
+          setEnv: env => {
+            Object.keys(envData).forEach(k => delete envData[k]);
+            Object.assign(envData, env);
+          },
+          getConfig: () => (options.getConfigMeta?.() ?? {}) as Record<string, unknown>,
+          onFileChange: undefined
+        });
+        const ai: DevToolsAiServer = createAiServer(crud, () => state.value() as DevToolsInfo);
+
+        // 6. Register all RPC functions (info / crud / ai / playground).
+        const fns = createAllRpcFunctions({
+          state,
+          getEnvData: () => envData,
+          crud,
+          ai,
+          getApp: options.getApp
+        });
+        for (const fn of fns) ctx.rpc.register(fn as any);
+
+        // 7. Register the refresh callback so the dev runner can push scan
+        //    updates to all connected clients after an app rebuild.
+        const refresh = () => {
+          const info = options.getScanResult
+            ? buildDevToolsInfo({
+                scan: options.getScanResult(),
+                configMeta: options.getConfigMeta?.() ?? null,
+                customTabs: options.getCustomTabs?.() ?? [],
+                ai: options.ai,
+                startTime,
+                envData
+              })
+            : initialInfo;
+          refreshSharedState(state, info);
+        };
+        options.registerRefresh?.(refresh);
+
+        void ctx;
+      }
+    }
+  };
+}
+
+/** Snapshot `process.env` into a plain string record (filtered to avoid
+ *  leaking internal Node/V8 vars that aren't useful in DevTools). */
+function snapshotEnv(): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (typeof value === 'string' && !key.startsWith('npm_') && !key.startsWith('NODE_')) {
+      env[key] = value;
+    }
+  }
+  return env;
+}
+
+// Re-export env masking helper for consumers that need it.
+export { maskSensitiveEnv };

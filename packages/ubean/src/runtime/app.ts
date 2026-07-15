@@ -5,16 +5,6 @@ import { requestId } from 'hono/request-id';
 import { createHooks } from 'hookable';
 import { join, isAbsolute } from 'pathe';
 import type { RouteRule } from '../core/config/types';
-import { getCustomTabs } from '../core/devtools/define-tab';
-import type {
-  DevToolsCustomTab,
-  DevToolsInfo,
-  DevToolsRouteInfo,
-  DevToolsPageInfo,
-  DevToolsMiddlewareInfo,
-  DevToolsLayoutInfo,
-  DevToolsCronInfo
-} from '../core/devtools/types';
 import type {
   ScannedApiRoute,
   ScannedMiddleware,
@@ -70,16 +60,6 @@ export interface UbeanAppOptions {
   pageAssetTags?: import('./pages').PageAssetTags;
   publicDir?: string;
   healthEndpoint?: boolean;
-  devtools?:
-    | boolean
-    | {
-        customTabs?: DevToolsCustomTab[];
-        ai?: {
-          apiKey?: string;
-          apiBase?: string;
-          model?: string;
-        };
-      };
   openAPI?:
     | boolean
     | {
@@ -109,18 +89,23 @@ export interface UbeanAppPlugin {
  * in `@ubean/devtools`. Defined locally (rather than importing the real return
  * type) so `ubean` has no static dependency on `@ubean/devtools` — the package is
  * loaded via a dynamic `import()` only when DevTools is enabled.
+ *
+ * @deprecated DevTools is now a Vite plugin (`@ubean/devtools`'s
+ * `ubeanDevtoolsPlugin`) loaded by the dev runner. The Hono app no longer
+ * hosts DevTools middleware. This placeholder is kept only for type
+ * compatibility with external consumers that may still reference it.
  */
 export interface DevToolsInstance {
   rpc: {
-    setRoutes(routes: DevToolsRouteInfo[]): void;
-    setPages(pages: DevToolsPageInfo[]): void;
-    setMiddlewares(middlewares: DevToolsMiddlewareInfo[]): void;
-    setLayouts(layouts: DevToolsLayoutInfo[]): void;
-    setCrons(crons: DevToolsCronInfo[]): void;
+    setRoutes(routes: never[]): void;
+    setPages(pages: never[]): void;
+    setMiddlewares(middlewares: never[]): void;
+    setLayouts(layouts: never[]): void;
+    setCrons(crons: never[]): void;
     setPresets(presets: string[]): void;
     setOpenAPI(openAPI: { enabled: boolean; scalarPath?: string; openAPIPath?: string }): void;
-    setCustomTabs(tabs: DevToolsCustomTab[]): void;
-    updateInfo(partial: Partial<DevToolsInfo>): void;
+    setCustomTabs(tabs: never[]): void;
+    updateInfo(partial: Record<string, unknown>): void;
   };
   middleware: (c: Context<UbeanEnv>, next: Next) => Promise<Response | void>;
 }
@@ -130,8 +115,6 @@ export class UbeanApp {
   readonly hooks = createHooks<UbeanRuntimeHooks>();
   readonly plugins: UbeanAppPlugin[];
   readonly options: UbeanAppOptions;
-  readonly devtools?: DevToolsInstance;
-  private _devtoolsPromise: Promise<void> | null = null;
   private _ready = false;
 
   constructor(options: UbeanAppOptions = {}) {
@@ -139,30 +122,12 @@ export class UbeanApp {
     this.hono = new Hono<UbeanEnv>({ strict: false });
     this.plugins = options.plugins || [];
 
-    // DevTools is loaded lazily via a dynamic import of `@ubean/devtools` so the
-    // dependency stays optional. The placeholder middleware registered below
-    // awaits this promise before delegating to the real middleware.
-    if (options.devtools) {
-      this._devtoolsPromise = this._initDevtools();
-    }
-
     this._setupBaseMiddleware();
     this._setupFallback();
   }
 
   private _setupBaseMiddleware() {
     this.hono.use('*', requestId());
-
-    // Placeholder: wait for the lazy DevTools import to resolve, then delegate
-    // to the real middleware. Registered unconditionally when DevTools is opted
-    // in (the middleware instance itself is populated asynchronously).
-    if (this.options.devtools) {
-      this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
-        if (this._devtoolsPromise) await this._devtoolsPromise;
-        if (this.devtools) return this.devtools.middleware(c, next);
-        return next();
-      });
-    }
 
     if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
       this.hono.use('*', createRouteRulesMiddleware(this.options.routeRules));
@@ -231,37 +196,9 @@ export class UbeanApp {
       }
     }
 
-    // Ensure the lazy DevTools import has resolved before seeding its RPC
-    // server with OpenAPI / custom-tab metadata below.
-    if (this._devtoolsPromise) await this._devtoolsPromise;
-
     if (this.options.openAPI) {
       const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};
       registerOpenAPIRoutes(this.hono, openAPIOpts);
-      if (this.devtools) {
-        this.devtools.rpc.setOpenAPI({
-          enabled: true,
-          scalarPath: openAPIOpts.scalarPath || '/_scalar',
-          openAPIPath: openAPIOpts.openAPIPath || '/_openapi.json'
-        });
-      }
-    } else if (this.devtools) {
-      this.devtools.rpc.setOpenAPI({ enabled: false });
-    }
-
-    if (this.devtools) {
-      const optionTabs =
-        typeof this.options.devtools === 'object' && this.options.devtools.customTabs
-          ? this.options.devtools.customTabs
-          : [];
-      const definedTabs = getCustomTabs();
-      const allTabs = [...definedTabs];
-      for (const tab of optionTabs) {
-        if (!allTabs.find(t => t.id === tab.id)) {
-          allTabs.push(tab);
-        }
-      }
-      this.devtools.rpc.setCustomTabs(allTabs);
     }
 
     await this.hooks.callHook('app:after:register', this.hono);
@@ -291,31 +228,6 @@ export class UbeanApp {
   resetInit(): void {
     this._ready = false;
     this._lazyInitPromise = null;
-  }
-
-  /**
-   * Resolves once the lazy DevTools import has settled. Safe to call when
-   * DevTools is disabled (resolves immediately). External callers (e.g. the dev
-   * runner) use this to wait before seeding the RPC server with route/page data.
-   */
-  async ensureDevtools(): Promise<void> {
-    if (this._devtoolsPromise) await this._devtoolsPromise;
-  }
-
-  private async _initDevtools(): Promise<void> {
-    if (!this.options.devtools) return;
-    const dtOpts = typeof this.options.devtools === 'object' ? this.options.devtools : {};
-    try {
-      const { createDevToolsMiddleware } = await import('@ubean/devtools');
-      (this as { devtools?: DevToolsInstance }).devtools = createDevToolsMiddleware({
-        ai: dtOpts.ai
-      });
-    } catch (err) {
-      console.warn(
-        '[ubean] @ubean/devtools is not available — DevTools disabled. Install `@ubean/devtools` to enable it.',
-        err instanceof Error ? err.message : err
-      );
-    }
   }
 
   private _setupFallback() {

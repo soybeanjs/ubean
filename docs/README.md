@@ -13,6 +13,7 @@
 | [工程规范、测试与发布](engineering.md) | TypeScript 函数式规范、测试策略、CLI、导出与公开 API 边界。             |
 | [路线图与决策](roadmap.md)             | 交付里程碑、实施阶段、参考项目差异、技术决策、风险和任务跟踪。          |
 | [生态能力演进](ecosystem.md)           | 元框架调研结论、页面数据协议、可观测性、SEO 与资源/内容扩展的取舍。     |
+| [DevTools 迁移设计](devtools-vite-devtools-migration.md) | 基于 Vite DevTools Kit 重构 `@ubean/devtools` 的可行性分析、目标架构与分阶段计划。 |
 
 ## 文档原则
 

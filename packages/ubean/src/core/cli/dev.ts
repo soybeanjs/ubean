@@ -5,17 +5,12 @@ import { loadUbeanConfig } from '../config/loader';
 import { createUbeanApp } from '../../runtime/app';
 import { generateTypes, generateOpenApiTypesFromServer } from '../codegen';
 import { createDevRunner, createDevWatcher, logDiagnostics } from '../dev';
-import type {
-  DevToolsRouteInfo,
-  DevToolsPageInfo,
-  DevToolsMiddlewareInfo,
-  DevToolsLayoutInfo,
-  DevToolsCronInfo
-} from '../devtools/types';
+import { getCustomTabs } from '../devtools/define-tab';
 import { logger } from '../log';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { createCapabilitySet, diagnoseCapabilities, NODE_REQUIREMENTS } from '../preset/capabilities';
 import { scanProject } from '../routing/scan';
+import type { ScanResult } from '../routing/types';
 
 export const devCommand: CommandDef = {
   meta: {
@@ -74,6 +69,9 @@ export const devCommand: CommandDef = {
       logger.warn('Some capability requirements are not met. Dev server may not function correctly.');
     }
 
+    // Latest scan result — kept mutable so the file-watcher can update it and
+    // the DevTools plugin can read the freshest data via `getScanResult`.
+    let currentScanResult: ScanResult | null = null;
     let { app: currentApp, layouts: currentLayouts } = await buildApp(cwd, config);
 
     const runner = await createDevRunner({
@@ -87,6 +85,24 @@ export const devCommand: CommandDef = {
       capabilities,
       app: currentApp,
       layouts: currentLayouts,
+      // DevTools data accessors — the Vite plugin reads these to build the
+      // `DevToolsInfo` shared state, replacing the old RPC seeding pattern.
+      devtools: {
+        getScanResult: () => currentScanResult,
+        getConfigMeta: () => ({
+          preset: config.build.preset,
+          rootDir: config.rootDir,
+          srcDir: config.srcDir,
+          openAPI: {
+            enabled: true,
+            scalarPath: '/_scalar',
+            openAPIPath: '/_openapi.json'
+          }
+        }),
+        getCustomTabs: () => getCustomTabs()
+        // AI config is sourced from env vars (UBEAN_AI_API_KEY / OPENAI_API_KEY)
+        // inside the plugin's `buildDevToolsInfo`.
+      },
       onListen({ url }) {
         const label = (text: string) => dim(text);
         logger.box(
@@ -138,9 +154,10 @@ export const devCommand: CommandDef = {
         logger.info(`File change detected: ${relevantEvents[0].relativePath}`);
 
         try {
-          const { app: newApp, layouts: newLayouts } = await buildApp(cwd, config);
+          const { app: newApp, layouts: newLayouts, scanResult } = await buildApp(cwd, config);
           currentApp = newApp;
           currentLayouts = newLayouts;
+          currentScanResult = scanResult;
           runner.updateApp(currentApp, currentLayouts);
           await runner.reload();
         } catch (err) {
@@ -163,7 +180,7 @@ export const devCommand: CommandDef = {
   }
 };
 
-async function buildApp(cwd: string, config: any) {
+async function buildApp(cwd: string, config: any): Promise<{ app: ReturnType<typeof createUbeanApp>; layouts: any[]; scanResult: ScanResult }> {
   logger.info('Scanning project files...');
   const result = await scanProject({
     cwd,
@@ -196,7 +213,6 @@ async function buildApp(cwd: string, config: any) {
     crons: result.crons,
     routeRules: config.routeRules || {},
     publicDir: config.dir.public,
-    devtools: true,
     openAPI: {
       title: 'UBEAN Dev API',
       scalarPath: '/_scalar',
@@ -205,63 +221,9 @@ async function buildApp(cwd: string, config: any) {
     i18nConfig: config.i18n
   });
 
-  // Wait for the lazy `@ubean/devtools` import to resolve before seeding the
-  // RPC server with scanned route/page/middleware/layout/cron data.
-  await app.ensureDevtools();
-
-  if (app.devtools) {
-    const devRoutes: DevToolsRouteInfo[] = result.apiRoutes.map(r => ({
-      method: r.method || 'GET',
-      path: r.route,
-      filePath: r.relativePath
-    }));
-
-    const defaultLayoutName = result.layouts.find(l => l.isDefault)?.name;
-    const devPages: DevToolsPageInfo[] = result.pages
-      .filter(p => !p.isReuse)
-      .map(p => ({
-        path: p.route,
-        name: p.name,
-        filePath: p.relativePath,
-        layout: p.layout === false ? undefined : p.layout || defaultLayoutName || undefined
-      }));
-
-    const devMiddlewares: DevToolsMiddlewareInfo[] = result.middlewares.map(m => ({
-      path: m.global ? '*' : m.relativePath,
-      filePath: m.relativePath,
-      global: m.global
-    }));
-
-    const devLayouts: DevToolsLayoutInfo[] = result.layouts.map(l => ({
-      name: l.name,
-      path: l.path,
-      filePath: l.relativePath,
-      isDefault: l.isDefault
-    }));
-
-    const devCrons: DevToolsCronInfo[] = (result.crons || []).map(c => ({
-      name: c.name,
-      filePath: c.relativePath
-    }));
-
-    app.devtools.rpc.setRoutes(devRoutes);
-    app.devtools.rpc.setPages(devPages);
-    app.devtools.rpc.setMiddlewares(devMiddlewares);
-    app.devtools.rpc.setLayouts(devLayouts);
-    app.devtools.rpc.setCrons(devCrons);
-    app.devtools.rpc.setPresets([config.build.preset]);
-    app.devtools.rpc.updateInfo({
-      config: {
-        preset: config.build.preset,
-        rootDir: config.rootDir,
-        srcDir: config.srcDir
-      }
-    });
-  }
-
   app.hooks.hook('request:start', c => {
     logger.log(`${c.req.method} ${c.req.path}`);
   });
 
-  return { app, layouts: result.layouts };
+  return { app, layouts: result.layouts, scanResult: result };
 }

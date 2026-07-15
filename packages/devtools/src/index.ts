@@ -1,13 +1,14 @@
-export { createDevToolsMiddleware } from './runtime/middleware';
-export type { DevToolsMiddlewareOptions } from './runtime/middleware';
-export type { DevToolsRpcServer } from './server/rpc';
+// Vite DevTools Kit (DTK) integration — Vite plugin entry point + state helpers.
+export { ubeanDevtoolsPlugin, defineRpcFunction, buildDevToolsInfo, emptyDevToolsInfo, UBEAN_INFO_STATE_KEY, maskSensitiveEnv } from './node';
+export type { UbeanDevtoolsPluginOptions, ViteDevToolsNodeContext, ScanResultLike, DevToolsConfigMeta } from './node';
 
-export { createRpcServer } from './server/rpc';
+// RPC function aggregator (for testing / custom setups).
+export { createAllRpcFunctions } from './node/rpc';
+
+// Reused server modules (CRUD/AI/hooks — transport-agnostic, used by the RPC layer).
 export { createCrudServer } from './server/crud';
 export { createAiServer } from './server/ai';
 export { createDevToolsHooks } from './server/hooks';
-export { getDevtoolsClientScript } from './server/client-script';
-export { getDevtoolsIframeHtml } from './runtime/middleware';
 
 export type { DevToolsCrudServer } from './server/crud';
 export type { DevToolsAiServer, AiChatMessage, AiChatResponse, AiToolDefinition } from './server/ai';

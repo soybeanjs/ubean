@@ -10,13 +10,13 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)));
  * Standalone build config for the DevTools iframe SPA.
  *
  * Produces separate static files (index.html + assets/*.js + assets/*.css)
- * under `dist/client/`. The server middleware serves these at
- * `/__ubean_devtools__/client/` — no inlining, no `</script>` escaping issues.
+ * under `dist/client/`. The DTK `hostStatic` mount serves these at
+ * `/__ubean_devtools__/` — no inlining, no `</script>` escaping issues.
  * This mirrors the Nuxt DevTools architecture (sirv-based static serving).
  */
 export default defineConfig({
   root,
-  base: '/__ubean_devtools__/client/',
+  base: '/__ubean_devtools__/',
   plugins: [
     Unocss({
       configFile: resolve(root, 'uno.config.ts')

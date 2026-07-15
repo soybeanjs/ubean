@@ -21,9 +21,53 @@ export type {
 } from 'ubean';
 export { DEVTOOLS_MAGIC_KEY, DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_CLIENT_PATH } from 'ubean';
 
-// Local type-only binding for use within package-internal interfaces below.
-// (A pure `export type { X } from ...` re-export does not introduce a usable local name.)
+// Local type-only bindings for use within package-internal interfaces and
+// module augmentation below. (A pure `export type { X } from ...` re-export
+// does not introduce a usable local name.)
 import type { DevToolsInfo } from 'ubean';
+import type { AiToolDefinition, AiChatResponse } from './server/ai';
+import type { PlaygroundInvokeParams, PlaygroundInvokeResult } from './node/rpc/playground';
+
+// ---------------------------------------------------------------------------
+// Module augmentation — registers ubean's RPC functions and shared-state keys
+// with the devframe type system so `getDevToolsRpcClient()` calls are
+// type-safe on both server and client.
+// ---------------------------------------------------------------------------
+
+/** Read-result shape returned by `ubean:crud:read`. */
+export interface CrudReadResult {
+  success: boolean;
+  content?: string;
+  data?: unknown;
+  error?: string;
+}
+
+/** Params for `ubean:ai:chat`. */
+export interface AiChatParams {
+  messages: import('./server/ai').AiChatMessage[];
+  apiKey?: string;
+  apiBase?: string;
+  model?: string;
+}
+
+declare module 'devframe' {
+  interface DevframeRpcServerFunctions {
+    'ubean:get-info': () => Promise<DevToolsInfo>;
+    'ubean:get-env': () => Promise<Record<string, string>>;
+    'ubean:crud:create': (params: CreateCrudParams) => Promise<CrudResult>;
+    'ubean:crud:read': (params: ReadCrudParams) => Promise<CrudReadResult>;
+    'ubean:crud:update': (params: UpdateCrudParams) => Promise<CrudResult>;
+    'ubean:crud:delete': (params: DeleteCrudParams) => Promise<CrudResult>;
+    'ubean:crud:restore': (path: string) => Promise<CrudResult>;
+    'ubean:ai:tools': () => Promise<AiToolDefinition[]>;
+    'ubean:ai:chat': (params: AiChatParams) => Promise<AiChatResponse>;
+    'ubean:playground:invoke': (params: PlaygroundInvokeParams) => Promise<PlaygroundInvokeResult>;
+  }
+
+  interface DevframeRpcSharedStates {
+    'ubean:info': DevToolsInfo;
+  }
+}
 
 // --- Package-internal types (only used inside @ubean/devtools) ---
 

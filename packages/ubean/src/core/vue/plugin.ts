@@ -120,11 +120,9 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     },
 
     transformIndexHtml(html, ctx) {
-      // Don't inject the main app's client entry into DevTools responses —
-      // the DevTools iframe has its own pre-built entry and mounting to
-      // #app would conflict with the main app's router (which can't resolve
-      // the /__ubean_devtools__/* URL, causing "Page component not found").
-      if (ctx?.path?.includes('__ubean_devtools__') || html.includes('__UBEAN_DEVTOOLS_CONFIG__')) {
+      // DevTools SPA is served pre-built via DTK's `hostStatic` and has its
+      // own entry — skip injecting the main app's client entry there.
+      if (ctx?.path?.includes('__ubean_devtools__')) {
         return html;
       }
       if (html.includes(CLIENT_ENTRY_URL) || html.includes(VIRTUAL_CLIENT)) return html;

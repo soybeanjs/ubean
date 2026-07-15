@@ -64,6 +64,12 @@ export default defineConfig({
         'rollup',
         /^@rolldown\//,
         '@ubean/devtools',
+        '@vitejs/devtools',
+        /^@vitejs\/devtools/,
+        '@vitejs/devtools-kit',
+        '@devframes/hub',
+        'devframe',
+        'birpc',
         /^node:/
       ]
     }

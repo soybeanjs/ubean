@@ -13,6 +13,7 @@ import { ubeanIslandsPlugin } from '../islands/transform';
 import { logger } from '../log';
 import type { ScannedLayout } from '../routing/types';
 import { createVueRenderer } from '../vue/renderer';
+import type { DevRunnerDevtoolsOptions } from './runner';
 
 export interface ViteDevServerOptions {
   cwd: string;
@@ -22,6 +23,8 @@ export interface ViteDevServerOptions {
   config: UbeanResolvedConfig;
   app: UbeanApp;
   layouts?: ScannedLayout[];
+  /** DevTools data accessors forwarded to the `@ubean/devtools` Vite plugin. */
+  devtools?: DevRunnerDevtoolsOptions;
   onListen?: (info: { port: number; host: string; url: string }) => void;
 }
 
@@ -89,6 +92,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   let currentLayouts = initialLayouts;
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let viteServer: ViteDevServer | null = null;
+  // Refresh callback registered by the DevTools plugin — invoked from
+  // `updateApp()` so the plugin can rebuild `DevToolsInfo` from the latest
+  // scan data and push patches to connected clients via sharedState.
+  let refreshDevtools: (() => void) | null = null;
 
   // Resolve the actual port before creating the Vite server so that the HMR
   // config and the HTTP server use the same port.
@@ -110,6 +117,47 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     logger.warn(`Port ${requestedPort} is in use, trying ${actualPort} instead.`);
   }
 
+  // DevTools Kit (DTK) integration: load `@ubean/devtools`'s Vite plugin
+  // lazily so `ubean` has no static dependency on it. The plugin's
+  // `devtools.setup` hook fires only when Vite DevTools is enabled below.
+  // Scan/config accessors come from the dev runner; `registerRefresh` lets
+  // `updateApp()` push scan updates to clients without re-polling.
+  let devtoolsPlugin: any = null;
+  try {
+    const { ubeanDevtoolsPlugin } = await import('@ubean/devtools');
+    const devtoolsOpts = options.devtools;
+    devtoolsPlugin = ubeanDevtoolsPlugin({
+      getCwd: () => cwd,
+      getApp: () => currentApp,
+      ...(devtoolsOpts?.getScanResult ? { getScanResult: devtoolsOpts.getScanResult } : {}),
+      ...(devtoolsOpts?.getConfigMeta ? { getConfigMeta: devtoolsOpts.getConfigMeta } : {}),
+      ...(devtoolsOpts?.getCustomTabs ? { getCustomTabs: devtoolsOpts.getCustomTabs } : {}),
+      ...(devtoolsOpts?.ai ? { ai: devtoolsOpts.ai } : {}),
+      ...(devtoolsOpts?.getApp ? { getApp: devtoolsOpts.getApp } : {}),
+      registerRefresh: (fn: () => void) => {
+        refreshDevtools = fn;
+      }
+    } as any);
+  } catch {
+    // @ubean/devtools not installed — DTK integration skipped.
+  }
+
+  // Vite-Plus-Core only loads `DevToolsIntegration` (build-only, `apply: "build"`).
+  // For dev mode, we need `DevTools()` which includes `DevToolsServer()` — the
+  // plugin whose `configureServer` hook calls `createDevToolsContext()` and
+  // invokes each plugin's `devtools.setup(context)`. Without this, the
+  // `devtools.setup` hook never fires during dev.
+  let viteDevtoolsPlugins: any[] = [];
+  try {
+    const { DevTools } = await import('@vitejs/devtools');
+    // builtinDevTools: false skips DevToolsRolldownUI (the built-in Vite DevTools
+    // dock panels) — we only need DevToolsServer (which fires devtools.setup) and
+    // DevToolsInjection (which injects the client bootstrap script).
+    viteDevtoolsPlugins = await DevTools({ builtinDevTools: false });
+  } catch {
+    // @vitejs/devtools not installed — Vite DevTools UI skipped.
+  }
+
   const builtinPlugins: any[] = [
     vue({
       include: VUE_PLUGIN_INCLUDE,
@@ -121,7 +169,9 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     }),
     ubeanPlugin({ config }),
     ...ubeanVuePlugin({ config }),
-    ubeanIslandsPlugin()
+    ubeanIslandsPlugin(),
+    ...viteDevtoolsPlugins,
+    ...(devtoolsPlugin ? [devtoolsPlugin] : [])
   ];
 
   const { plugins } = await resolveModules({
@@ -141,6 +191,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
     appType: 'custom',
     plugins,
+    devtools: { enabled: true },
     optimizeDeps: {
       exclude: [
         'ubean',
@@ -373,6 +424,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       currentApp = app;
       if (layouts) currentLayouts = layouts;
       enhanceAppWithVite(app, currentLayouts);
+      // Push the fresh scan data to DevTools clients via sharedState. The
+      // plugin's refresh callback rebuilds `DevToolsInfo` from `getScanResult`
+      // and emits a patch — no polling involved.
+      refreshDevtools?.();
     }
   };
 

@@ -4,6 +4,19 @@ import type { Preset } from '../preset/_utils/preset';
 import type { CapabilitySet, CapabilityDiagnosisResult } from '../preset/capabilities';
 import type { ScannedLayout } from '../routing/types';
 
+/**
+ * DevTools data accessors passed through to the `@ubean/devtools` Vite plugin.
+ * Defined with loose structural types so `ubean` has no static dependency on
+ * `@ubean/devtools` — the plugin accepts these via `UbeanDevtoolsPluginOptions`.
+ */
+export interface DevRunnerDevtoolsOptions {
+  getScanResult?: () => unknown;
+  getConfigMeta?: () => Record<string, unknown>;
+  getCustomTabs?: () => Array<{ id: string; label: string; icon?: string; src: string; sandbox?: string[] }>;
+  ai?: { apiKey?: string; apiBase?: string; model?: string };
+  getApp?: () => { fetch: (req: Request) => Response | Promise<Response> } | undefined;
+}
+
 export interface DevRunnerOptions {
   cwd: string;
   srcDir: string;
@@ -19,6 +32,8 @@ export interface DevRunnerOptions {
   onBeforeReload?: () => void | Promise<void>;
   onAfterReload?: () => void | Promise<void>;
   onDiagnostics?: (diagnostics: CapabilityDiagnosisResult) => void;
+  /** DevTools data accessors forwarded to the `@ubean/devtools` Vite plugin. */
+  devtools?: DevRunnerDevtoolsOptions;
 }
 
 export interface DevRunner {
@@ -79,6 +94,7 @@ class ViteNodeDevRunner implements DevRunner {
       config: this.options.config,
       app: this.currentApp,
       layouts: this.currentLayouts,
+      devtools: this.options.devtools,
       onListen: ({ port, host, url }) => {
         this._port = port;
         this.options.onListen?.({ port, host, url });

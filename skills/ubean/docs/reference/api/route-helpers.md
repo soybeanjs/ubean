@@ -1,204 +1,208 @@
 # Route Helpers
 
-## useRoute()
-
-Get current route information.
-
-```typescript
-import { useRoute } from '@ubean/core';
-
-const route = useRoute();
-```
-
-### Properties
-
-| Property | Type                   | Description      |
-| -------- | ---------------------- | ---------------- |
-| path     | string                 | Current path     |
-| params   | Record<string, string> | Route parameters |
-| query    | Record<string, string> | Query parameters |
-| hash     | string                 | Hash fragment    |
-| fullPath | string                 | Full URL path    |
-
-### Example
-
-```typescript
-const route = useRoute();
-console.log(route.path); // "/users/123"
-console.log(route.params.id); // "123"
-console.log(route.query.q); // "search term"
-```
-
-## navigateTo()
-
-Programmatic navigation.
-
-```typescript
-import { navigateTo } from '@ubean/core';
-```
-
-### Parameters
-
-| Parameter | Type                    | Description        |
-| --------- | ----------------------- | ------------------ |
-| to        | string \| RouteLocation | Target path        |
-| options   | NavigateOptions         | Navigation options |
-
-### Options
-
-| Option   | Type    | Default | Description           |
-| -------- | ------- | ------- | --------------------- |
-| replace  | boolean | false   | Replace history entry |
-| external | boolean | false   | External URL          |
-| shallow  | boolean | false   | Skip full page reload |
-
-### Example
-
-```typescript
-// Navigate to path
-navigateTo('/about');
-
-// Navigate with query
-navigateTo({ path: '/search', query: { q: 'ubean' } });
-
-// Replace mode
-navigateTo('/about', { replace: true });
-
-// External URL
-navigateTo('https://example.com', { external: true });
-```
-
-## redirectTo()
-
-Redirect with HTTP status code.
-
-```typescript
-import { redirectTo } from '@ubean/core';
-```
-
-### Parameters
-
-| Parameter | Type            | Description      |
-| --------- | --------------- | ---------------- |
-| to        | string          | Target path      |
-| options   | RedirectOptions | Redirect options |
-
-### Options
-
-| Option     | Type   | Default | Description      |
-| ---------- | ------ | ------- | ---------------- |
-| statusCode | number | 302     | HTTP status code |
-
-### Example
-
-```typescript
-// Temporary redirect (302)
-redirectTo('/new-url');
-
-// Permanent redirect (301)
-redirectTo('/new-url', { statusCode: 301 });
-```
+ubean's routing helpers revolve around `useRouter()` (auto-imported from `ubean/runtime/vue`) and the globally-registered `<Link>` component. ubean does **not** provide `useRoute()`, `navigateTo()`, `redirectTo()`, `useRouteParams()`, `useRouteQuery()`, `useLocalePath()`, or `useSwitchLocalePath()`.
 
 ## useRouter()
 
-Access router instance.
+`useRouter()` returns the Vue Router instance extended with `push`/`replace` shortcuts. It is auto-imported (no import needed) in client components:
 
-```typescript
-import { useRouter } from '@ubean/core';
-
+```vue
+<script setup lang="ts">
 const router = useRouter();
+</script>
 ```
 
 ### Methods
 
-| Method      | Description           |
-| ----------- | --------------------- |
-| push(to)    | Navigate to path      |
-| replace(to) | Replace current route |
-| back()      | Go back               |
-| forward()   | Go forward            |
-| go(n)       | Navigate n steps      |
+| Method         | Description                          |
+| -------------- | ------------------------------------ |
+| `push(to)`     | Navigate to a new route              |
+| `replace(to)`  | Replace current route (no history)   |
+| `back()`       | Go back one step                     |
+| `forward()`    | Go forward one step                  |
+| `go(n)`        | Navigate n steps (negative = back)   |
+| `beforeEach`   | Register global beforeEach guard    |
+| `afterEach`    | Register global afterEach hook      |
 
-### Example
+### Reading Current Route
+
+Access `router.currentRoute.value` to inspect the current route:
 
 ```typescript
 const router = useRouter();
+const route = router.currentRoute.value;
+
+console.log(route.path);      // "/users/123"
+console.log(route.params.id); // "123"
+console.log(route.query.q);   // "search term"
+console.log(route.hash);      // "#section"
+console.log(route.fullPath);  // "/users/123?q=...#section"
+console.log(route.name);      // "UserDetail"
+console.log(route.meta);      // Page metadata
+```
+
+For reactive access in templates, use `router.currentRoute` directly or unwrap with a computed:
+
+```vue
+<script setup lang="ts">
+import { computed } from 'vue';
+
+const router = useRouter();
+const currentPath = computed(() => router.currentRoute.value.path);
+const userId = computed(() => router.currentRoute.value.params.id as string);
+</script>
+
+<template>
+  <p>Path: {{ currentPath }}</p>
+  <p>User: {{ userId }}</p>
+</template>
+```
+
+### Programmatic Navigation
+
+```typescript
+const router = useRouter();
+
+// String path
 router.push('/about');
+
+// Object form with name + params
+router.push({ name: 'UserDetail', params: { id: '123' } });
+
+// With query
+router.push({ path: '/search', query: { q: 'ubean' } });
+
+// With hash
+router.push({ path: '/docs', hash: '#section-1' });
+
+// Replace (no history entry)
+router.replace('/login');
+
+// Go back / forward
 router.back();
+router.forward();
+router.go(-2);
 ```
 
-## useRouteParams()
-
-Get reactive route parameters.
+### Navigation Guards
 
 ```typescript
-import { useRouteParams } from '@ubean/core';
+const router = useRouter();
 
-const params = useRouteParams();
-const id = params.id;
+router.beforeEach((to, from) => {
+  if (to.meta.requiresAuth && !isAuthenticated()) {
+    return '/login';
+  }
+});
+
+router.afterEach((to, from) => {
+  // Analytics, scroll-to-top, etc.
+});
 ```
 
-## useRouteQuery()
+## `<Link>` Component (Global)
 
-Get reactive query parameters.
+`<Link>` is globally registered — no import needed. It performs client-side navigation and supports active-class styling.
 
-```typescript
-import { useRouteQuery } from '@ubean/core';
+```vue
+<template>
+  <!-- String path -->
+  <Link to="/about">About</Link>
 
-const query = useRouteQuery();
-const search = query.q;
+  <!-- Named route with params -->
+  <Link :to="{ name: 'UserDetail', params: { id: '123' } }">User</Link>
+
+  <!-- With query -->
+  <Link :to="{ path: '/search', query: { q: 'ubean' } }">Search</Link>
+</template>
 ```
 
-## useLocalePath()
+### Props
 
-Generate localized paths.
+| Prop               | Type                                       | Description                       |
+| ------------------ | ------------------------------------------ | --------------------------------- |
+| `to`               | `string \| { name, params, query, hash }` | Target route                      |
+| `activeClass`      | `string`                                   | Class when link matches current   |
+| `exactActiveClass` | `string`                                   | Class for exact match             |
 
-```typescript
-import { useLocalePath } from '@ubean/core';
+External URLs (starting with `http://`, `https://`, `//`) are automatically detected and rendered as plain `<a>` tags with `target="_blank" rel="noopener"`.
 
-const localePath = useLocalePath();
+### Slot Scope
 
-const enPath = localePath('/about', 'en');
-const zhPath = localePath('/about', 'zh-CN');
+The default slot exposes `isActive` and `isExactActive`:
+
+```vue
+<template>
+  <Link to="/about" v-slot="{ isActive }">
+    <span :class="{ active: isActive }">About</span>
+  </Link>
+</template>
 ```
 
-## useSwitchLocalePath()
+## Page Metadata (definePage)
 
-Generate paths for switching locale.
-
-```typescript
-import { useSwitchLocalePath } from '@ubean/core';
-
-const switchLocalePath = useSwitchLocalePath();
-
-// Switch to English
-switchLocalePath('en');
-
-// Switch to Chinese
-switchLocalePath('zh-CN');
-```
-
-## definePage()
-
-Define page metadata.
+Use the `definePage` macro inside `<script setup>` to set page metadata. It is a compile-time macro, auto-imported:
 
 ```vue
 <script setup lang="ts">
 definePage({
+  name: 'About',
+  path: '/about',                    // Override auto-generated path
   layout: 'default',
-  title: 'My Page',
-  meta: [{ name: 'description', content: 'Description' }],
-  public: false
+  meta: {
+    title: 'About Page',
+    description: 'About our company'
+  },
+  middleware: ['auth'],
+  requiresAuth: true,
+  head: {
+    title: 'About',
+    meta: [{ name: 'description', content: 'About us' }]
+  }
 });
 </script>
 ```
 
-### Options
+### Fields
 
-| Option     | Type               | Description      |
-| ---------- | ------------------ | ---------------- |
-| layout     | string             | Layout name      |
-| title      | string             | Page title       |
-| meta       | Array              | Meta tags        |
-| public     | boolean            | Public page      |
-| middleware | string \| string[] | Middleware names |
+| Field           | Type                  | Description                          |
+| --------------- | --------------------- | ------------------------------------ |
+| `name`          | `string`              | Route name (PascalCase recommended)  |
+| `path`          | `string`              | Override auto-generated URL path     |
+| `layout`        | `string \| false`     | Layout name or `false` to disable    |
+| `reuse`         | `string`              | Reuse route target                   |
+| `meta`          | `object`              | Custom metadata (any shape)          |
+| `middleware`    | `string \| string[]`  | Page-level middleware names         |
+| `requiresAuth`  | `boolean`             | Auth requirement (meta shortcut)     |
+| `head`          | `object`              | Per-page head tags (@unhead/vue)     |
+
+> There is **no top-level `title`** field. Use `meta: { title }` or `head: { title }`.
+
+## Reading Route Params in API Routes
+
+In API route handlers (server-side), use Hono's `c.req.param()`:
+
+```typescript
+// src/routes/api/users/[id].ts
+import { defineHandler } from 'ubean';
+
+export const GET = defineHandler(c => {
+  const id = c.req.param('id');
+  return c.json({ id });
+});
+```
+
+For typed params, use `validator('param', schema)`:
+
+```typescript
+import { defineHandler, validator } from 'ubean';
+import { z } from 'zod';
+
+export const GET = defineHandler(
+  validator('param', z.object({ id: z.string() })),
+  c => {
+    const { id } = c.req.valid('param');
+    return c.json({ id });
+  }
+);
+```

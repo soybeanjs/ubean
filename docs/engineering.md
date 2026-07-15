@@ -244,58 +244,7 @@ describe('route utils', () => {
 
 ## 7. CLI 命令设计
 
-### 7.1 命令列表
-
-```bash
-# 开发
-ubean dev                    # 启动开发服务器
-ubean dev --port 3000        # 指定端口
-ubean dev --host 0.0.0.0     # 指定主机
-
-# 构建
-ubean build                  # 构建生产版本
-ubean build --preset vercel  # 指定 preset 构建
-ubean build --minify         # 压缩构建
-ubean build --sourcemap      # 生成 sourcemap
-
-# 准备/类型生成
-ubean prepare                # 生成类型文件 (.ubean/ 目录)
-ubean prepare --force        # 强制重新生成
-
-# 预览
-ubean preview                # 预览生产构建
-
-# 初始化
-ubean init                   # 在当前目录初始化 ubean 项目
-ubean init my-app            # 创建新项目
-```
-
-### 7.2 CLI 框架使用 citty
-
-```typescript
-// src/cli/index.ts
-import { defineCommand, runMain } from 'citty';
-import { devCommand } from './commands/dev';
-import { buildCommand } from './commands/build';
-import { prepareCommand } from './commands/prepare';
-import { previewCommand } from './commands/preview';
-
-const main = defineCommand({
-  meta: {
-    name: 'ubean',
-    version: version,
-    description: 'Vue meta framework'
-  },
-  subCommands: {
-    dev: devCommand,
-    build: buildCommand,
-    prepare: prepareCommand,
-    preview: previewCommand
-  }
-});
-
-void runMain(main);
-```
+CLI 命令清单与框架实现详见 [运行时与开发体验 §4.13](runtime.md#413-cli-命令系统)。
 
 ---
 

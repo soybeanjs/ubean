@@ -6,7 +6,7 @@ A Vue-first full-stack meta-framework.
 
 Built on Vite-Plus, ubean aims to unite Vue SSR pages, Hono API routes, type-safe clients, and portable deployment presets into a consistent development experience.
 
-> This repository is currently in the design and project-skeleton stage. It has not yet published a framework package suitable for production use. This document describes confirmed direction and the development commands available today. See the [documentation index](docs/README.md) for the implementation plan.
+> ubean is under active development. Core runtime, file-system routing, Vue SSR, Hono API routes, i18n, caching, database/storage layers, queues, cron, WebSocket/SSE, OpenAPI/Scalar, DevTools, and the `@ubean/auth`/`@ubean/icon`/`@ubean/pwa` extension packages are implemented and tested. See the [documentation index](docs/README.md) for architecture decisions and the [skills/ubean/docs](skills/ubean/docs) for usage guides and API references.
 
 ## Goals
 
@@ -19,17 +19,18 @@ Built on Vite-Plus, ubean aims to unite Vue SSR pages, Hono API routes, type-saf
 
 ## Status
 
-The formal v0.1 target is Node.js (`node-server`). Cloudflare Workers will be experimental only after completing its capability matrix and deployment smoke tests. Bun, Deno, Vercel, Netlify, and other platforms are outside the v0.1 support commitment.
+The v0.1 target platforms are Node.js (`node-server`) and Cloudflare Workers. Bun, Deno, Vercel, Netlify, and other platforms are outside the v0.1 support commitment.
 
-Planned capabilities include:
+Implemented capabilities include:
 
-- `routes/` API file routing with named `GET`, `POST`, and `PATCH` exports.
-- `pages/` Vue SSR pages, layouts, loaders/actions, and typed navigation.
-- `defineValidator`, `defineHandlerMeta`, OpenAPI 3.1, and generated `paths` types.
-- An `ofetch` typed client, flat client, and the browser-only `ubean/client-xhr` upload-progress adapter.
-- Future optional features such as route rules, prerendering, storage, databases, queues, WebSockets, and DevTools.
-
-Most of these capabilities have not been implemented. Do not treat them as available APIs.
+- `routes/` API file routing with named `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD` exports wrapped by `defineHandler`.
+- `pages/` Vue SSR pages, layouts, route groups, reuse routes, loaders/actions, and typed navigation.
+- `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`), `validator`/`describeRoute`/`resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation, and generated `paths` types at `.ubean/routes.d.ts`.
+- `defineApp` options-based app customization, `definePage` macro, `defineMiddleware`, `defineLocale`, `defineEnv`, `defineScheduled` (cron), `defineQueue`.
+- Built-in database layer (`defineDatabase`/`useDatabase`), storage (`useStorage`/`useKV`), cache (`useCacheStore`/`cachedEventHandler`), rate limiting, CORS, route rules (redirect/rewrite/headers/cache), and SSG prerendering.
+- WebSocket (`defineWebSocket`), SSE streaming, and `internalFetch` (dispatches framework handlers in-process without a network request).
+- DevTools with RPC, AI assistant, API playground, and CRUD scaffolding.
+- Extension packages: `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`.
 
 ## Development
 

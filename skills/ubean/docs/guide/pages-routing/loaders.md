@@ -1,182 +1,145 @@
-# Data Loaders
+# Data Fetching (useData)
 
-Load data on the server before rendering a page.
+ubean provides `useData()` for declarative data fetching with caching, TTL, dependencies, and invalidation. It is auto-imported from `ubean` (in the `UBEAN_SERVER_PRESET`).
 
-## Basic Loader
+> ubean does **not** provide `defineLoader`. Use `useData()` inside `<script setup>` for server-side or client-side data fetching.
+
+## Basic Usage
 
 ```vue
 <script setup lang="ts">
-import { defineLoader } from '@ubean/core';
-
-const data = await defineLoader(() => {
-  return {
-    posts: [
-      { id: 1, title: 'Getting Started' },
-      { id: 2, title: 'Advanced Topics' }
-    ]
-  };
-});
+// useData is auto-imported
+const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
+  $fetch('/api/posts').then(r => r.json())
+);
 </script>
 
 <template>
-  <ul>
-    <li v-for="post in data.posts" :key="post.id">
-      {{ post.title }}
-    </li>
+  <div v-if="loading">Loading…</div>
+  <div v-else-if="error">Error: {{ error.message }}</div>
+  <ul v-else>
+    <li v-for="post in data.posts" :key="post.id">{{ post.title }}</li>
   </ul>
 </template>
 ```
 
-## Async Loaders
-
-Fetch data from APIs or databases:
+## Async Fetcher
 
 ```vue
 <script setup lang="ts">
-import { defineLoader } from '@ubean/core';
-
-const data = await defineLoader(async () => {
-  const response = await fetch('https://api.example.com/posts');
-  return response.json();
-});
-</script>
-```
-
-## Loader Context
-
-Access request information:
-
-```vue
-<script setup lang="ts">
-import { defineLoader } from '@ubean/core';
-
-const data = await defineLoader(async ctx => {
-  // Get route parameters
-  const { id } = ctx.params;
-
-  // Get query parameters
-  const { page } = ctx.query;
-
-  // Get request headers
-  const auth = ctx.headers.get('Authorization');
-
-  // Access runtime environment
-  const apiUrl = ctx.env.API_URL;
-
-  return { id, page };
-});
-</script>
-```
-
-## Multiple Loaders
-
-Combine multiple loaders:
-
-```vue
-<script setup lang="ts">
-import { defineLoader } from '@ubean/core';
-
-const posts = await defineLoader(async () => {
-  const res = await fetch('/api/posts');
-  return res.json();
-});
-
-const user = await defineLoader(async () => {
+const { data } = await useData('user', async () => {
   const res = await fetch('/api/user');
   return res.json();
 });
 </script>
 ```
 
-## Dependent Loaders
+## Reading Route Params
 
-Loaders can depend on each other:
+Use `useRouter()` to read route params inside the fetcher:
 
 ```vue
 <script setup lang="ts">
-import { defineLoader } from '@ubean/core';
+const router = useRouter();
 
-const post = await defineLoader(async ctx => {
-  const res = await fetch(`/api/posts/${ctx.params.id}`);
-  return res.json();
-});
+const { data: post } = await useData(
+  () => `post-${router.currentRoute.value.params.id}`,
+  () => fetch(`/api/posts/${router.currentRoute.value.params.id}`).then(r => r.json())
+);
+</script>
+```
 
-// This loader depends on the first one
-const comments = await defineLoader(async () => {
-  const res = await fetch(`/api/posts/${post.id}/comments`);
-  return res.json();
+## Multiple Sources
+
+Combine multiple `useData` calls:
+
+```vue
+<script setup lang="ts">
+const { data: posts } = await useData('posts', () =>
+  fetch('/api/posts').then(r => r.json())
+);
+
+const { data: user } = await useData('user', () =>
+  fetch('/api/user').then(r => r.json())
+);
+</script>
+```
+
+## Dependent Data
+
+Use a computed key to refetch when dependencies change:
+
+```vue
+<script setup lang="ts">
+import { computed } from 'vue';
+
+const router = useRouter();
+const postId = computed(() => router.currentRoute.value.params.id as string);
+
+const { data: post } = await useData(
+  () => `post-${postId.value}`,
+  () => fetch(`/api/posts/${postId.value}`).then(r => r.json())
+);
+
+// Comments depend on post being loaded
+const { data: comments } = await useData(
+  () => `comments-${postId.value}`,
+  () => fetch(`/api/posts/${postId.value}/comments`).then(r => r.json())
+);
+</script>
+```
+
+## Caching & TTL
+
+```vue
+<script setup lang="ts">
+const { data } = await useData('config', () => fetch('/api/config').then(r => r.json()), {
+  // Cache key options
+  ttl: 60_000,          // Cache for 60 seconds
+  defineDataKey: true,   // Auto-derive key from function
+  server: true           // Execute on server during SSR
 });
+</script>
+```
+
+## Refresh & Invalidation
+
+```vue
+<script setup lang="ts">
+const { data, refresh, invalidate } = await useData('posts', fetchPosts);
+
+async function handleRefresh() {
+  await refresh();
+}
+
+// Invalidate by key (refetches on next access)
+async function handleInvalidate() {
+  await invalidate('posts');
+}
 </script>
 ```
 
 ## Error Handling
 
-Handle errors in loaders:
-
 ```vue
 <script setup lang="ts">
-import { defineLoader, createError } from '@ubean/core';
-
-const data = await defineLoader(async ctx => {
-  const res = await fetch(`/api/posts/${ctx.params.id}`);
-
+const { data, error } = await useData('posts', async () => {
+  const res = await fetch('/api/posts');
   if (!res.ok) {
-    throw createError({
-      statusCode: res.status,
-      statusMessage: 'Post not found'
-    });
+    throw new Error(`Failed: ${res.status}`);
   }
-
   return res.json();
 });
 </script>
+
+<template>
+  <div v-if="error" class="error">{{ error.message }}</div>
+</template>
 ```
 
-## Caching
+## Client-Side Only Fetching
 
-Cache loader results:
-
-```vue
-<script setup lang="ts">
-import { defineLoader } from '@ubean/core';
-
-const data = await defineLoader(
-  async () => {
-    const res = await fetch('/api/posts');
-    return res.json();
-  },
-  {
-    cache: {
-      maxAge: 60 // Cache for 60 seconds
-    }
-  }
-);
-</script>
-```
-
-## Deferred Loading
-
-Load non-critical data asynchronously:
-
-```vue
-<script setup lang="ts">
-import { defineLoader, defer } from '@ubean/core';
-
-const data = await defineLoader(async () => {
-  return {
-    posts: await fetch('/api/posts').then(res => res.json()),
-    comments: defer(fetch('/api/comments').then(res => res.json()))
-  };
-});
-
-// Access deferred data when needed
-const comments = await data.comments;
-</script>
-```
-
-## Client-Side Data Fetching
-
-For client-only data, use Vue's `onMounted`:
+For data that should only load on the client (after hydration), use Vue's `onMounted`:
 
 ```vue
 <script setup lang="ts">
@@ -185,16 +148,30 @@ import { ref, onMounted } from 'vue';
 const data = ref(null);
 
 onMounted(async () => {
-  const res = await fetch('/api/data');
+  const res = await fetch('/api/analytics');
   data.value = await res.json();
 });
 </script>
 ```
 
+## API Routes
+
+For server-side data, prefer API routes with `defineHandler`:
+
+```typescript
+// src/routes/api/posts.ts
+import { defineHandler } from 'ubean';
+
+export const GET = defineHandler(async c => {
+  const posts = await fetchPostsFromDB();
+  return c.json({ posts });
+});
+```
+
 ## Best Practices
 
-1. **Keep loaders focused**: Each loader should do one thing
-2. **Error handling**: Always handle errors gracefully
-3. **Caching**: Cache expensive operations
-4. **Defer non-critical data**: Use defer for secondary data
-5. **Security**: Never trust user input in loaders
+1. **Stable keys**: Use stable string keys to enable caching across components
+2. **Handle errors**: Always handle the `error` state in templates
+3. **Use TTLs**: Set TTLs for data that changes infrequently
+4. **Invalidate after mutations**: Call `invalidate()` after writes to refetch
+5. **Server execution**: Use `server: true` to fetch during SSR for initial render

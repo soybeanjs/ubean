@@ -1,324 +1,254 @@
 # Response Helpers
 
-## json()
+ubean API routes use **Hono** under the hood, so response helpers come from Hono's context object (`c`). ubean does **not** export standalone `json()`, `html()`, `text()`, `redirect()`, `setHeader()`, `createError()`, `send()`, `stream()`, `download()`, `noContent()`, `notFound()`, etc. — use Hono's context methods instead.
 
-Return JSON response.
+## JSON Response
 
 ```typescript
-import { json } from '@ubean/core';
+// src/routes/api/hello.ts
+import { defineHandler } from 'ubean';
 
-export default defineEventHandler(() => {
-  return json({ message: 'Hello' });
+export const GET = defineHandler(c => {
+  return c.json({ message: 'Hello' });
+});
+
+// With status code
+export const POST = defineHandler(c => {
+  return c.json({ created: true }, 201);
+});
+
+// With headers
+export const PUT = defineHandler(c => {
+  return c.json(
+    { updated: true },
+    200,
+    { 'X-Custom-Header': 'value' }
+  );
 });
 ```
 
-### Parameters
-
-| Parameter | Type        | Description      |
-| --------- | ----------- | ---------------- |
-| data      | any         | Response data    |
-| options   | JsonOptions | Response options |
-
-### Options
-
-| Option  | Type                   | Default | Description      |
-| ------- | ---------------------- | ------- | ---------------- |
-| status  | number                 | 200     | HTTP status code |
-| headers | Record<string, string> | {}      | Response headers |
-
-### Example
+## HTML Response
 
 ```typescript
-return json({ success: true }, { status: 201 });
-```
+import { defineHandler } from 'ubean';
 
-## html()
+export const GET = defineHandler(c => {
+  return c.html('<h1>Hello</h1>');
+});
 
-Return HTML response.
-
-```typescript
-import { html } from '@ubean/core';
-
-export default defineEventHandler(() => {
-  return html('<h1>Hello</h1>');
+// With status
+export const GET_ERROR = defineHandler(c => {
+  return c.html('<h1>Not Found</h1>', 404);
 });
 ```
 
-### Parameters
-
-| Parameter | Type        | Description      |
-| --------- | ----------- | ---------------- |
-| content   | string      | HTML content     |
-| options   | HtmlOptions | Response options |
-
-### Options
-
-| Option  | Type                   | Default | Description      |
-| ------- | ---------------------- | ------- | ---------------- |
-| status  | number                 | 200     | HTTP status code |
-| headers | Record<string, string> | {}      | Response headers |
-
-## text()
-
-Return plain text response.
+## Plain Text Response
 
 ```typescript
-import { text } from '@ubean/core';
+import { defineHandler } from 'ubean';
 
-export default defineEventHandler(() => {
-  return text('Hello World');
+export const GET = defineHandler(c => {
+  return c.text('Hello World');
 });
 ```
 
-### Parameters
-
-| Parameter | Type        | Description      |
-| --------- | ----------- | ---------------- |
-| content   | string      | Text content     |
-| options   | TextOptions | Response options |
-
-### Options
-
-| Option  | Type                   | Default | Description      |
-| ------- | ---------------------- | ------- | ---------------- |
-| status  | number                 | 200     | HTTP status code |
-| headers | Record<string, string> | {}      | Response headers |
-
-## redirect()
-
-Return redirect response.
+## Redirect
 
 ```typescript
-import { redirect } from '@ubean/core';
+import { defineHandler } from 'ubean';
 
-export default defineEventHandler(() => {
-  return redirect('/new-url');
+export const GET = defineHandler(c => {
+  // 302 redirect (default)
+  return c.redirect('/new-url');
+});
+
+// Permanent redirect (301)
+export const GET_PERMANENT = defineHandler(c => {
+  return c.redirect('/new-url', 301);
 });
 ```
 
-### Parameters
-
-| Parameter  | Type   | Description      |
-| ---------- | ------ | ---------------- |
-| to         | string | Target URL       |
-| statusCode | number | HTTP status code |
-
-### Example
+## Setting Headers
 
 ```typescript
-return redirect('/new-url', 301);
-```
+import { defineHandler } from 'ubean';
 
-## permanentRedirect()
-
-Return permanent redirect (301).
-
-```typescript
-import { permanentRedirect } from '@ubean/core';
-
-export default defineEventHandler(() => {
-  return permanentRedirect('/new-url');
+export const GET = defineHandler(c => {
+  c.header('Cache-Control', 'max-age=3600');
+  c.header('X-Custom', 'value');
+  return c.json({ ok: true });
 });
 ```
 
-## setHeader()
-
-Set a response header.
+Append vs set:
 
 ```typescript
-import { setHeader } from '@ubean/core';
+c.header('Set-Cookie', 'session=abc; Path=/');      // Overwrites
+c.header('Set-Cookie', 'tracking=xyz; Path=/', { append: true }); // Appends
+```
 
-export default defineEventHandler(c => {
-  setHeader(c, 'Content-Type', 'application/json');
-  return json({ message: 'Hello' });
+## Setting Status Code
+
+```typescript
+import { defineHandler } from 'ubean';
+
+export const GET = defineHandler(c => {
+  c.status(204);
+  return c.body(null);
+});
+
+// Or pass status to response methods
+export const POST = defineHandler(c => {
+  return c.json({ created: true }, 201);
 });
 ```
 
-### Parameters
-
-| Parameter | Type        | Description     |
-| --------- | ----------- | --------------- |
-| context   | HonoContext | Request context |
-| name      | string      | Header name     |
-| value     | string      | Header value    |
-
-## setHeaders()
-
-Set multiple response headers.
+## No Content (204)
 
 ```typescript
-import { setHeaders } from '@ubean/core';
+import { defineHandler } from 'ubean';
 
-export default defineEventHandler(c => {
-  setHeaders(c, {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'max-age=3600'
-  });
-  return json({ message: 'Hello' });
+export const DELETE = defineHandler(c => {
+  // Delete resource...
+  c.status(204);
+  return c.body(null);
 });
 ```
 
-### Parameters
-
-| Parameter | Type                   | Description     |
-| --------- | ---------------------- | --------------- |
-| context   | HonoContext            | Request context |
-| headers   | Record<string, string> | Headers object  |
-
-## createError()
-
-Create an error response.
+## Not Found (404)
 
 ```typescript
-import { createError } from '@ubean/core';
+import { defineHandler } from 'ubean';
 
-export default defineEventHandler(() => {
-  throw createError({
-    statusCode: 404,
-    statusMessage: 'Not Found',
-    data: { message: 'Resource not found' }
-  });
+export const GET = defineHandler(c => {
+  const user = findUser();
+  if (!user) {
+    c.status(404);
+    return c.json({ error: 'Not found' });
+  }
+  return c.json({ user });
 });
 ```
 
-### Options
+## Error Responses
 
-| Option        | Type   | Description      |
-| ------------- | ------ | ---------------- |
-| statusCode    | number | HTTP status code |
-| statusMessage | string | Status message   |
-| data          | any    | Error data       |
-| message       | string | Error message    |
-
-## send()
-
-Send a custom response.
+Throw an error or return an error response:
 
 ```typescript
-import { send } from '@ubean/core';
+import { defineHandler, defineHandlerMeta } from 'ubean';
 
-export default defineEventHandler(c => {
-  return send(c, 'Custom response', {
-    status: 200,
-    headers: { 'Content-Type': 'text/plain' }
+export const GET = defineHandler(
+  defineHandlerMeta({ requiresAuth: true }),
+  c => {
+    const user = c.get('user');
+    if (!user) {
+      c.status(401);
+      return c.json({ error: 'Unauthorized' });
+    }
+    return c.json({ user });
+  }
+);
+```
+
+Throw `HTTPException` (from Hono):
+
+```typescript
+import { defineHandler } from 'ubean';
+import { HTTPException } from 'hono/http-exception';
+
+export const GET = defineHandler(c => {
+  throw new HTTPException(404, { message: 'Resource not found' });
+});
+```
+
+## Streaming Response (SSE)
+
+```typescript
+import { defineHandler } from 'ubean';
+import { streamSSE } from 'hono/streaming';
+
+export const GET = defineHandler(c => {
+  return streamSSE(c, async stream => {
+    let id = 0;
+    const sendEvent = async () => {
+      await stream.writeSSE({ data: `Event ${id++}`, event: 'update' });
+    };
+    await sendEvent();
+    const interval = setInterval(sendEvent, 1000);
+    stream.onAbort(() => clearInterval(interval));
   });
 });
 ```
 
-### Parameters
-
-| Parameter | Type        | Description      |
-| --------- | ----------- | ---------------- |
-| context   | HonoContext | Request context  |
-| body      | any         | Response body    |
-| options   | SendOptions | Response options |
-
-## stream()
-
-Send streaming response.
+## Streaming Body
 
 ```typescript
-import { stream } from '@ubean/core';
+import { defineHandler } from 'ubean';
+import { stream } from 'hono/streaming';
 
-export default defineEventHandler(c => {
-  const encoder = new TextEncoder();
-  const iterator = async function* () {
-    yield encoder.encode('Hello');
-    yield encoder.encode(' World');
-  };
-
-  return stream(c, iterator());
+export const GET = defineHandler(c => {
+  return stream(c, async stream => {
+    await stream.writeln('Hello');
+    await stream.writeln('World');
+  });
 });
 ```
 
-## download()
-
-Return download response.
+## Cookies
 
 ```typescript
-import { download } from '@ubean/core';
+import { defineHandler } from 'ubean';
 
-export default defineEventHandler(c => {
-  return download(c, '/path/to/file.pdf', 'document.pdf');
+export const POST = defineHandler(c => {
+  // Set cookie
+  c.header('Set-Cookie', 'session=abc; HttpOnly; Path=/; Max-Age=3600');
+
+  // Read cookie
+  const session = c.req.header('Cookie');
+
+  return c.json({ ok: true });
 });
 ```
 
-### Parameters
-
-| Parameter | Type        | Description       |
-| --------- | ----------- | ----------------- |
-| context   | HonoContext | Request context   |
-| path      | string      | File path         |
-| filename  | string      | Download filename |
-
-## noContent()
-
-Return 204 No Content.
+Use `hono/cookie` for typed cookie helpers:
 
 ```typescript
-import { noContent } from '@ubean/core';
+import { defineHandler } from 'ubean';
+import { getCookie, setCookie } from 'hono/cookie';
 
-export default defineEventHandler(() => {
-  return noContent();
+export const GET = defineHandler(c => {
+  const session = getCookie(c, 'session');
+  return c.json({ session });
+});
+
+export const POST = defineHandler(c => {
+  setCookie(c, 'session', 'abc', {
+    httpOnly: true,
+    maxAge: 3600,
+    path: '/'
+  });
+  return c.json({ ok: true });
 });
 ```
 
-## notFound()
-
-Return 404 Not Found.
+## File Download
 
 ```typescript
-import { notFound } from '@ubean/core';
+import { defineHandler } from 'ubean';
 
-export default defineEventHandler(() => {
-  return notFound();
+export const GET = defineHandler(c => {
+  const buffer = readFileBytes();
+  c.header('Content-Disposition', 'attachment; filename="document.pdf"');
+  c.header('Content-Type', 'application/pdf');
+  return c.body(buffer);
 });
 ```
 
-## forbidden()
+## Best Practices
 
-Return 403 Forbidden.
-
-```typescript
-import { forbidden } from '@ubean/core';
-
-export default defineEventHandler(() => {
-  return forbidden();
-});
-```
-
-## unauthorized()
-
-Return 401 Unauthorized.
-
-```typescript
-import { unauthorized } from '@ubean/core';
-
-export default defineEventHandler(() => {
-  return unauthorized();
-});
-```
-
-## badRequest()
-
-Return 400 Bad Request.
-
-```typescript
-import { badRequest } from '@ubean/core';
-
-export default defineEventHandler(() => {
-  return badRequest();
-});
-```
-
-## serverError()
-
-Return 500 Internal Server Error.
-
-```typescript
-import { serverError } from '@ubean/core';
-
-export default defineEventHandler(() => {
-  return serverError();
-});
-```
+1. **Use Hono's context methods**: `c.json()`, `c.html()`, `c.text()`, `c.redirect()`, `c.header()`, `c.status()`
+2. **Validate inputs**: Use `validator()` from `hono-openapi` for type-safe requests
+3. **Document endpoints**: Use `describeRoute()` for OpenAPI metadata
+4. **Handle errors gracefully**: Return appropriate status codes
+5. **Set cache headers**: Use `c.header('Cache-Control', ...)` for static resources
+6. **Use streaming**: For large responses or real-time data, use Hono's streaming helpers

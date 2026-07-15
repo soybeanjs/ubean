@@ -6,7 +6,7 @@ Vue 专属全栈元框架。
 
 ubean 基于 Vite-Plus 构建，目标是将 Vue SSR Pages、Hono API 路由、类型安全客户端和可移植部署预设整合为一套一致的开发体验。
 
-> 当前仓库处于设计与项目骨架阶段，尚未发布可用于生产项目的框架包。本文只描述已确定的方向和当前可用的开发命令；具体实现计划见[文档索引](docs/README.md)。
+> ubean 正在积极开发中。核心运行时、文件式路由、Vue SSR、Hono API 路由、i18n、缓存、数据库/存储层、队列、Cron、WebSocket/SSE、OpenAPI/Scalar、DevTools 以及 `@ubean/auth`/`@ubean/icon`/`@ubean/pwa` 等扩展包均已实现并附带测试。架构决策见[文档索引](docs/README.md)，使用指南与 API 参考见 [skills/ubean/docs](skills/ubean/docs)。
 
 ## 目标
 
@@ -19,17 +19,18 @@ ubean 基于 Vite-Plus 构建，目标是将 Vue SSR Pages、Hono API 路由、�
 
 ## 当前状态
 
-v0.1 的正式目标平台为 Node.js（`node-server`）。Cloudflare Workers 仅在完成独立能力矩阵与部署 smoke test 后以实验性方式提供。Bun、Deno、Vercel、Netlify 等平台不属于 v0.1 承诺范围。
+v0.1 的目标平台为 Node.js（`node-server`）和 Cloudflare Workers。Bun、Deno、Vercel、Netlify 等平台不属于 v0.1 承诺范围。
 
-规划中的功能包括：
+已实现的能力包括：
 
-- `routes/` API 文件路由与 `GET`、`POST`、`PATCH` 等命名导出。
-- `pages/` Vue SSR 页面、layout、loader/action 与类型化导航。
-- `defineValidator`、`defineHandlerMeta`、OpenAPI 3.1 与生成的 `paths` 类型。
-- `ofetch` typed client、flat client，以及仅浏览器可用的 `ubean/client-xhr` 上传进度适配器。
-- route rules、预渲染、存储、数据库、队列、WebSocket、DevTools 等后续可选能力。
-
-这些能力大部分尚未实现，不应作为现有 API 使用。
+- `routes/` API 文件路由，支持 `GET`、`POST`、`PUT`、`PATCH`、`DELETE`、`OPTIONS`、`HEAD` 命名导出，由 `defineHandler` 包装。
+- `pages/` Vue SSR 页面、layouts、路由组、reuse 路由、loader/action 与类型化导航。
+- `defineHandlerMeta` 路由元数据（`requiresAuth`、`cache`、`rateLimit`），来自 `hono-openapi` 的 `validator`/`describeRoute`/`resolver` 用于请求验证与 OpenAPI 3.1 生成，并在 `.ubean/routes.d.ts` 生成 `paths` 类型。
+- `defineApp` 基于选项的应用定制、`definePage` 宏、`defineMiddleware`、`defineLocale`、`defineEnv`、`defineScheduled`（Cron）、`defineQueue`。
+- 内置数据库层（`defineDatabase`/`useDatabase`）、存储（`useStorage`/`useKV`）、缓存（`useCacheStore`/`cachedEventHandler`）、限流、CORS、route rules（重定向/重写/headers/cache）与 SSG 预渲染。
+- WebSocket（`defineWebSocket`）、SSE 流，以及 `internalFetch`（直接在进程内调度框架 handler，不发起网络请求）。
+- DevTools，包含 RPC、AI 助手、API playground 与 CRUD 脚手架。
+- 扩展包：`@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/pwa`、`@ubean/image`、`@ubean/content`、`@ubean/fonts`。
 
 ## 开发
 

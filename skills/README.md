@@ -69,6 +69,11 @@ keywords: [vue, vite, hono, full-stack, ssr]
 
 ## Related Packages
 
-- `@ubean/core`: Core framework package
+- `ubean`: Core framework package (npm name: `ubean`)
+- `@ubean/auth`: Better Auth integration
 - `@ubean/icon`: Built-in icon system (UbeanIcon component)
+- `@ubean/pwa`: PWA manifest + service worker
+- `@ubean/image`: Image optimization
+- `@ubean/content`: Content management
+- `@ubean/fonts`: Font optimization
 - `@soybeanjs/ui`: UI component library (includes SIcon for theme-aware icons)

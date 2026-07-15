@@ -1,292 +1,229 @@
 # Authentication
 
-## Better Auth
+ubean's first-party auth integration lives in the `@ubean/auth` package, which wraps Better Auth with graceful fallback to a built-in email/password implementation when `better-auth` is not installed.
 
-### Installation
+## Installation
 
 ```bash
-pnpm add @better-auth/core @better-auth/react
+pnpm add @ubean/auth
+# Optional but recommended:
+pnpm add better-auth
 ```
 
-### Configuration
+## Configuration
+
+Enable the module in `ubean.config.ts`:
 
 ```typescript
 // ubean.config.ts
-import { defineConfig } from '@ubean/core';
+import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  auth: {
-    providers: ['credentials', 'google', 'github']
-  }
+  auth: true // enable the built-in module with defaults
 });
 ```
 
-### Server Setup
+For full customization, configure `@ubean/auth` directly via its Vite plugin:
 
 ```typescript
-// src/auth/index.ts
-import { betterAuth } from '@better-auth/core';
-import { credentials } from '@better-auth/providers/credentials';
-import { google } from '@better-auth/providers/google';
+// vite.config.ts
+import { defineConfig } from 'vite';
+import { ubeanAuthPlugin } from '@ubean/auth/vite';
 
-export const auth = betterAuth({
-  providers: [
-    credentials(),
-    google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET
+export default defineConfig({
+  plugins: [
+    ubeanAuthPlugin({
+      basePath: '/api/auth',
+      // Better Auth options (forwarded to betterAuth())
+      socialProviders: {
+        google: {
+          clientId: process.env.GOOGLE_CLIENT_ID!,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET!
+        }
+      },
+      // or pass a custom better-auth instance
+      betterAuthOptions: {
+        database: { /* Drizzle / Kysely / ... */ },
+        emailAndPassword: { enabled: true }
+      }
     })
-  ],
-  database: {
-    // Database adapter
-  }
+  ]
 });
 ```
 
-### API Routes
+The plugin mounts the `/api/auth/*` routes automatically in dev and bundles them at build time — **no route files are needed**.
+
+## Server-side access
+
+Use `createAuthHandler()` to mount the auth handler manually (e.g. inside an existing API route or when integrating with a custom server):
 
 ```typescript
-// src/routes/api/auth/[...better-auth].ts
-import { defineEventHandler } from '@ubean/core';
-import { auth } from '@/auth';
+// routes/api/auth/[...all].ts
+import { defineHandler } from 'ubean';
+import { createAuthHandler } from '@ubean/auth';
 
-export default defineEventHandler(async c => {
-  return auth.handleRequest(c.req, c.res);
+const handler = createAuthHandler();
+
+export const ALL = defineHandler(async c => {
+  return handler(c);
 });
 ```
 
-### Client Usage
+Read the session inside any API route:
 
 ```typescript
-// src/composables/useAuth.ts
-import { createAuthClient } from '@better-auth/react';
+// routes/api/me.ts
+import { defineHandler } from 'ubean';
+import { getServerSession } from '@ubean/auth';
 
-export const authClient = createAuthClient({
-  baseURL: '/api/auth'
+export const GET = defineHandler({
+  requiresAuth: true
+}, async c => {
+  const session = await getServerSession(c);
+  return c.json({ user: session?.user });
 });
 ```
+
+### Server helpers
+
+| Function                 | Description                                            |
+| ------------------------ | ------------------------------------------------------ |
+| `createAuthHandler(opts)` | Returns a Hono handler that proxies to Better Auth    |
+| `authMiddleware`         | Middleware that attaches the session to the context    |
+| `getUser(c)`             | Resolve the current user from a request               |
+| `getSession(c)`          | Resolve the full session object                        |
+| `requireAuth(c)`         | Throws `HTTPException` if not authenticated            |
+| `getServerSession(c)`    | Server-only session lookup (works in loaders/actions)  |
+| `protectRoute(c, opts)`   | Programmatic route guard                               |
+
+## Client-side usage
+
+`useAuth()` is a Vue composable that exposes reactive `session`, `user`, `isAuthenticated`, and `signIn`/`signUp`/`signOut` actions:
 
 ```vue
 <script setup lang="ts">
-import { authClient } from '@/composables/useAuth';
+import { useAuth } from '@ubean/auth';
 
-const { signIn, signOut, session } = authClient;
+const {
+  session,
+  user,
+  isAuthenticated,
+  isLoading,
+  signIn,
+  signUp,
+  signOut
+} = useAuth();
 
-const handleSignIn = async () => {
-  await signIn({
-    method: 'credentials',
-    email: 'user@example.com',
-    password: 'password'
-  });
-};
+async function handleLogin(email: string, password: string) {
+  const { error } = await signIn.email({ email, password, callbackURL: '/dashboard' });
+  if (error) console.error(error);
+}
+
+async function handleGoogle() {
+  await signIn.social('google', { callbackURL: '/dashboard' });
+}
+</script>
+
+<template>
+  <div v-if="isLoading">Checking session…</div>
+  <div v-else-if="isAuthenticated">Welcome, {{ user?.name }}</div>
+  <form v-else @submit.prevent="handleLogin(email, password)">…</form>
+</template>
+```
+
+## Protecting routes
+
+### Page-level (via `definePage`)
+
+```vue
+<!-- pages/dashboard.vue -->
+<script setup lang="ts">
+definePage({
+  requiresAuth: true
+});
 </script>
 ```
 
-## JWT Authentication
-
-### Installation
-
-```bash
-pnpm add jsonwebtoken
-```
-
-### Configuration
+### API-level (via `defineHandlerMeta`)
 
 ```typescript
-// src/auth/jwt.ts
-import jwt from 'jsonwebtoken';
+// routes/api/admin/users.ts
+import { defineHandler, defineHandlerMeta } from 'ubean';
 
-const secret = process.env.JWT_SECRET || 'secret';
-
-export const signToken = (payload: object) => {
-  return jwt.sign(payload, secret, { expiresIn: '1h' });
-};
-
-export const verifyToken = (token: string) => {
-  return jwt.verify(token, secret);
-};
-```
-
-### Login Route
-
-```typescript
-// src/routes/api/login.post.ts
-import { defineEventHandler, json } from '@ubean/core';
-import { signToken } from '@/auth/jwt';
-
-export default defineEventHandler(async c => {
-  const body = await c.req.json();
-  const { email, password } = body;
-
-  // Verify credentials
-  const user = await verifyUser(email, password);
-
-  if (!user) {
-    return json({ error: 'Invalid credentials' }, { status: 401 });
+export const GET = defineHandler(
+  defineHandlerMeta({ requiresAuth: true }),
+  async c => {
+    return c.json({ users: [] });
   }
+);
+```
 
-  const token = signToken({ userId: user.id });
-  return json({ token });
+### Programmatic guard
+
+```typescript
+import { defineHandler } from 'ubean';
+import { requireAuth } from '@ubean/auth';
+
+export const DELETE = defineHandler(async c => {
+  const session = await requireAuth(c); // throws 401 if missing
+  return c.json({ ok: true });
 });
 ```
 
-### Middleware
+## Social providers
+
+Configure OAuth providers in the plugin options:
 
 ```typescript
-// src/middleware/auth.ts
-import { defineMiddleware } from '@ubean/core';
-import { verifyToken } from '@/auth/jwt';
-
-export default defineMiddleware(async c => {
-  const authHeader = c.req.header('Authorization');
-
-  if (!authHeader) {
-    return c.status(401).json({ error: 'Unauthorized' });
+ubeanAuthPlugin({
+  socialProviders: {
+    google: { clientId: '…', clientSecret: '…' },
+    github: { clientId: '…', clientSecret: '…' }
   }
+});
+```
 
-  const token = authHeader.replace('Bearer ', '');
+Trigger the flow from the client:
 
+```typescript
+await signIn.social('github', { callbackURL: '/dashboard' });
+```
+
+## Middleware pattern (custom JWT)
+
+If you need a custom JWT flow (e.g. legacy token exchange), define a plain ubean middleware. **Do not use `defineEventHandler`** — it does not exist; use `defineHandler` with void-style named exports.
+
+```typescript
+// middleware/auth.ts
+import { defineMiddleware } from 'ubean';
+import { verify } from 'jsonwebtoken';
+
+export default defineMiddleware(async (c, next) => {
+  const header = c.req.header('Authorization');
+  if (!header?.startsWith('Bearer ')) {
+    return c.json({ error: 'Unauthorized' }, 401);
+  }
   try {
-    const decoded = verifyToken(token);
-    c.set('user', decoded);
+    c.set('user', verify(header.slice(7), process.env.JWT_SECRET!));
+    await next();
   } catch {
-    return c.status(401).json({ error: 'Invalid token' });
+    return c.json({ error: 'Invalid token' }, 401);
   }
 });
 ```
 
-## OAuth Providers
+Mount it via directory convention: `middleware/admin/auth.ts` applies to `/admin/*`.
 
-### Google
+## What ubean does NOT provide
 
-```typescript
-import { google } from '@better-auth/providers/google';
-
-export const auth = betterAuth({
-  providers: [
-    google({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET
-    })
-  ]
-});
-```
-
-### GitHub
-
-```typescript
-import { github } from '@better-auth/providers/github';
-
-export const auth = betterAuth({
-  providers: [
-    github({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET
-    })
-  ]
-});
-```
-
-### Facebook
-
-```typescript
-import { facebook } from '@better-auth/providers/facebook';
-
-export const auth = betterAuth({
-  providers: [
-    facebook({
-      clientId: process.env.FACEBOOK_CLIENT_ID,
-      clientSecret: process.env.FACEBOOK_CLIENT_SECRET
-    })
-  ]
-});
-```
-
-## Session Management
-
-### Server-Side
-
-```typescript
-import { defineEventHandler } from '@ubean/core';
-
-export default defineEventHandler(async c => {
-  const user = c.get('user');
-
-  if (!user) {
-    return c.status(401).json({ error: 'Unauthorized' });
-  }
-
-  return json({ user });
-});
-```
-
-### Client-Side
-
-```typescript
-import { ref, onMounted } from 'vue';
-
-const user = ref(null);
-
-onMounted(async () => {
-  const res = await fetch('/api/me');
-  if (res.ok) {
-    user.value = await res.json();
-  }
-});
-```
-
-## Password Management
-
-### Hash Password
-
-```typescript
-import bcrypt from 'bcrypt';
-
-const hash = await bcrypt.hash('password', 10);
-```
-
-### Verify Password
-
-```typescript
-const isValid = await bcrypt.compare('password', hash);
-```
-
-## Role-Based Access Control
-
-### Middleware
-
-```typescript
-// src/middleware/admin.ts
-import { defineMiddleware } from '@ubean/core';
-
-export default defineMiddleware(async c => {
-  const user = c.get('user');
-
-  if (!user || user.role !== 'admin') {
-    return c.status(403).json({ error: 'Forbidden' });
-  }
-});
-```
-
-### Route Protection
-
-```typescript
-// src/routes/api/admin/dashboard.get.ts
-import { defineEventHandler } from '@ubean/core';
-
-// This route requires admin middleware
-export default defineEventHandler(() => {
-  return json({ dashboard: 'admin' });
-});
-```
+- `defineEventHandler` — use `defineHandler` with `GET`/`POST`/… named exports
+- `.post.ts` / `.get.ts` file suffixes — use a single `login.ts` exporting both `GET` and `POST` if needed
+- Standalone `json()` / `redirect()` helpers — use `c.json()` / `c.redirect()` on the Hono context
 
 ## Best Practices
 
-1. **Use HTTPS**: Always use HTTPS in production
-2. **Secure cookies**: Use HttpOnly and Secure flags
-3. **Token expiration**: Set reasonable token expiration
-4. **Refresh tokens**: Implement refresh token rotation
-5. **Input validation**: Validate all inputs
-6. **Rate limiting**: Implement rate limiting for auth endpoints
-7. **Password hashing**: Use bcrypt or Argon2
-8. **Session storage**: Use secure session storage
+1. **Prefer `@ubean/auth` over hand-rolled auth** — Better Auth handles session rotation, CSRF, and OAuth edge cases.
+2. **Always set `requiresAuth: true`** on protected routes rather than guarding inside the handler body.
+3. **Use `getServerSession(c)` for SSR data loading** — it reads cookies directly without an extra round trip.
+4. **Rotate secrets** — store `JWT_SECRET` / provider secrets in `defineEnv()` with `.secret()`.
+5. **Combine with `defineRateLimit`** for login endpoints to mitigate brute force.

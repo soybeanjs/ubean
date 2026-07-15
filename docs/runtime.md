@@ -4,7 +4,9 @@
 
 #### 设计理念
 
-用户在项目根目录创建 `app.ts`（或 `app.ts`/`app.server.ts`/`app.client.ts` 区分服务端/客户端），通过 `defineApp` 导出一个工厂函数，该函数接收必要参数（如 Vue App 实例、router、运行时配置等）并返回配置后的 app 实例。
+用户在项目根目录（或 `srcDir`）创建 `app.ts`（可选 `app.server.ts` / `app.client.ts` 区分服务端/客户端），通过 `defineApp(options)` 导出一个**配置对象**（不是工厂函数）。ubean 在创建 Vue 实例后通过 `applyAppConfig(app, config, mode)` 将该配置应用到 `app` 上，从而支持注册插件、全局组件、provide/inject、错误组件、View Transitions 等。
+
+> ⚠️ 注意：早期设计曾计划将 `defineApp` 设计为接收 `({ app, router, ssrContext }) => app` 的工厂函数。**当前实现已废弃该模式**，`defineApp` 接受 options 对象并返回 `ResolvedAppConfig`。如果需要命令式访问 app 实例，请使用 `onAppCreated` / `onClientReady` 回调。
 
 ```typescript
 // app.ts
@@ -12,106 +14,169 @@ import { defineApp } from 'ubean';
 import { createPinia } from 'pinia';
 import GlobalComponent from './src/components/GlobalComponent.vue';
 
-export default defineApp(({ app, router, ssrContext }) => {
-  // 注册插件
-  const pinia = createPinia();
-  app.use(pinia);
+export default defineApp({
+  // 注册 Vue 插件（可附带 options 数组或 { plugin, mode } 配置）
+  plugins: [
+    createPinia(),
+    [SomePlugin, { option: true }] // 等价于 app.use(SomePlugin, { option: true })
+  ],
 
   // 全局组件注册
-  app.component('GlobalComponent', GlobalComponent);
-
-  // 全局指令
-  app.directive('focus', {
-    mounted(el) {
-      el.focus();
-    }
-  });
+  globalComponents: {
+    GlobalComponent
+  },
 
   // provide/inject
-  app.provide('appVersion', '1.0.0');
+  provides: {
+    appVersion: '1.0.0'
+  },
 
-  // 全局错误处理
-  app.config.errorHandler = (err, instance, info) => {
-    console.error('[Vue Error]', err, info);
-  };
+  // <head> 默认内容
+  head: {
+    title: 'My ubean App',
+    meta: [{ name: 'description', content: 'Built with ubean' }]
+  },
 
-  // SSR 特有: 可以访问 ssrContext
-  if (ssrContext) {
-    ssrContext.teleports = {};
-  }
+  // 根元素属性（#app）
+  rootId: 'app',
+  rootAttrs: { 'data-app': 'true' },
 
-  // 返回 app 实例 (支持链式创建或替换 app)
-  return app;
+  // 命令式访问 app 实例（替代旧的工厂函数）
+  onAppCreated(app) {
+    // 注册全局指令
+    app.directive('focus', {
+      mounted(el) {
+        el.focus();
+      }
+    });
+
+    // 全局错误处理
+    app.config.errorHandler = (err, _instance, info) => {
+      console.error('[Vue Error]', err, info);
+    };
+  },
+
+  // 客户端就绪回调（仅客户端执行）
+  onClientReady(app) {
+    // PWA 注册、分析埋点等
+  },
+
+  // 自定义错误/加载组件
+  errorComponent: () => import('./src/components/ErrorBoundary.vue'),
+  loadingComponent: () => import('./src/components/LoadingSpinner.vue'),
+
+  // 启用 View Transitions
+  viewTransitions: true
 });
 ```
 
 #### 服务端/客户端分离
 
+`app.server.ts` 和 `app.client.ts` 导出独立的 `defineApp(options)` 配置。ubean 在构建时合并：
+
+- 服务端：`app.ts` + `app.server.ts`（仅 `mode: 'server' | 'all'` 的插件生效）
+- 客户端：`app.ts` + `app.client.ts`（仅 `mode: 'client' | 'all'` 的插件生效）
+
 ```typescript
-// app.server.ts — 仅在 SSR 时执行
+// app.server.ts — 仅在 SSR 时合并
 import { defineApp } from 'ubean';
 
-export default defineApp(({ app, ssrContext }) => {
-  // SSR 特有逻辑，如注入 SSR 状态
-  return app;
+export default defineApp({
+  provides: {
+    isSSR: true
+  },
+  onAppCreated(app) {
+    // SSR 特有逻辑，如注入 SSR 状态
+  }
 });
 
-// app.client.ts — 仅在客户端水合时执行
+// app.client.ts — 仅在客户端水合时合并
 import { defineApp } from 'ubean';
 
-export default defineApp(({ app, router }) => {
-  // 客户端特有逻辑，如 PWA 注册、客户端分析埋点等
-  return app;
+export default defineApp({
+  plugins: [/* 仅客户端需要的插件 */],
+  onClientReady(app) {
+    // PWA 注册、客户端埋点等
+  }
 });
 ```
 
 #### defineApp 参数类型
 
 ```typescript
-// src/types/app.ts
-import type { App as VueApp } from 'vue';
-import type { Router } from 'vue-router';
-import type { UbeanRuntimeConfig } from './runtime';
+// packages/ubean/src/runtime/vue/define-app.ts
+import type { App as VueApp, Component, Plugin } from 'vue';
+import type { PageHead } from '../pages/protocol';
+import type { ViewTransitionOptions } from './view-transitions';
 
-export interface DefineAppContext {
-  /** Vue 应用实例 (createSSRApp 创建) */
-  app: VueApp;
-  /** 客户端路由器（仅客户端） */
-  router?: Router;
-  /** SSR 上下文（仅服务端） */
-  ssrContext?: {
-    teleports?: Record<string, string>;
-    [key: string]: unknown;
-  };
-  /** 运行时配置 */
-  runtimeConfig: UbeanRuntimeConfig;
-  /** Page 组件（根组件，即 App.vue 或自动生成的 Pages 包装器） */
-  rootComponent: unknown;
+export interface AppPluginConfig {
+  plugin: Plugin | [Plugin, ...any[]];
+  mode?: 'all' | 'client' | 'server';
 }
 
-export type DefineApp = (ctx: DefineAppContext) => VueApp | void | Promise<VueApp | void>;
-export function defineApp(fn: DefineApp): DefineApp;
+export interface DefineAppOptions {
+  /** Vue 插件列表（支持 Plugin、[Plugin, ...opts]、或 { plugin, mode }） */
+  plugins?: Array<Plugin | [Plugin, ...any[]] | AppPluginConfig>;
+  /** 全局组件（key → 组件） */
+  globalComponents?: Record<string, Component>;
+  /** provide/inject 的键值对 */
+  provides?: Record<string | symbol, unknown>;
+  /** 默认 <head> 内容 */
+  head?: PageHead;
+  /** 根元素 id（默认 'app'） */
+  rootId?: string;
+  /** 根元素额外属性 */
+  rootAttrs?: Record<string, string>;
+  /** App 创建后回调（替代旧工厂函数中直接操作 app） */
+  onAppCreated?: (app: VueApp) => void | Promise<void>;
+  /** 客户端 mount 完成后回调 */
+  onClientReady?: (app: VueApp) => void | Promise<void>;
+  /** 自定义错误边界组件 */
+  errorComponent?: Component;
+  /** 异步路由的加载占位组件 */
+  loadingComponent?: Component;
+  /** 启用/配置 View Transitions */
+  viewTransitions?: boolean | ViewTransitionOptions;
+}
+
+export interface ResolvedAppConfig {
+  plugins: AppPluginConfig[];
+  globalComponents: Record<string, Component>;
+  provides: Record<string | symbol, unknown>;
+  head?: PageHead;
+  rootId: string;
+  rootAttrs: Record<string, string>;
+  onAppCreated?: (app: VueApp) => void | Promise<void>;
+  onClientReady?: (app: VueApp) => void | Promise<void>;
+  errorComponent?: Component;
+  loadingComponent?: Component;
+  viewTransitions?: boolean | ViewTransitionOptions;
+}
+
+export function defineApp(options: DefineAppOptions): ResolvedAppConfig;
 ```
 
 #### 入口生成流程
 
-1. 构建时扫描项目根目录是否存在 `app.ts` / `app.server.ts` / `app.client.ts`
-2. 如果不存在，使用默认入口（createSSRApp + 自动 mount/hydrate）
+1. 构建时扫描 `srcDir` 是否存在 `app.ts` / `app.server.ts` / `app.client.ts`
+2. 如果不存在，使用默认入口（`createDefaultAppConfig()` + 自动 mount/hydrate）
 3. 如果存在，生成虚拟入口模块：
-   - 服务端: `import appConfig from '<app.ts>'; const app = createSSRApp(RootComponent); await appConfig({ app, ssrContext, runtimeConfig, rootComponent }); renderToString(app)`
-   - 客户端: `import appConfig from '<app.ts>'; const app = createSSRApp(RootComponent); appConfig({ app, router, runtimeConfig, rootComponent }); app.mount('#app')`
-4. 支持 app.server.ts 和 app.client.ts 的条件合并（服务端执行 app.ts + app.server.ts，客户端执行 app.ts + app.client.ts）
+   - 服务端: `import appConfig from '<app.ts>'; const app = createSSRApp(RootComponent); applyAppConfig(app, appConfig, 'server'); renderToString(app)`
+   - 客户端: `import appConfig from '<app.ts>'; const app = createSSRApp(RootComponent); applyAppConfig(app, appConfig, 'client'); app.mount('#' + appConfig.rootId)`
+4. 支持 `app.server.ts` / `app.client.ts` 的条件合并：服务端入口合并 `app.ts + app.server.ts`，客户端入口合并 `app.ts + app.client.ts`（`plugins` 中带 `mode` 的项按上下文过滤）
 
 #### 与 void 对比
 
 | 方面              | void (硬编码)                  | ubean (defineApp)                      |
 | ----------------- | ------------------------------ | -------------------------------------- |
-| App 实例创建      | 内部硬编码 `createSSRApp(App)` | 用户可通过 defineApp 完全控制          |
-| 插件注册          | 不支持（需手动改入口）         | 原生支持 `app.use(plugin)`             |
-| 全局组件          | 不支持                         | 支持 `app.component()`                 |
-| SSR 上下文        | 无法访问                       | 通过 `ssrContext` 参数暴露             |
+| App 实例创建      | 内部硬编码 `createSSRApp(App)` | 用户通过 `defineApp(options)` 配置     |
+| 插件注册          | 不支持（需手动改入口）         | 原生支持 `plugins` 数组                |
+| 全局组件          | 不支持                         | 支持 `globalComponents`                |
+| SSR 上下文        | 无法访问                       | 通过 `onAppCreated` 在 SSR 阶段访问    |
 | 服务端/客户端分离 | 不支持                         | `app.server.ts` / `app.client.ts` 分离 |
-| 默认行为          | 固定模板                       | 无 app.ts 时自动降级为默认行为         |
+| 默认行为          | 固定模板                       | 无 app.ts 时自动降级为默认行为          |
+| View Transitions  | 不支持                         | `viewTransitions` 选项                  |
+| 错误边界          | 不支持                         | `errorComponent` / `loadingComponent`  |
 
 ## 4.8 类型安全 Fetch 客户端 (ofetch + XHR upload adapter)
 
@@ -639,41 +704,41 @@ API 测试 Playground：在 DevTools 中直接填写参数、发送请求、查�
 DevTools 所有操作前后触发 hookable 事件，用户可以注册钩子将数据同步到数据库、触发 CI/CD、或做权限校验：
 
 ```typescript
-// app.ts 或 plugins/devtools-hooks.ts
+// app.ts
 import { defineApp } from 'ubean';
 import { useDevToolsHooks } from 'ubean/devtools';
 
-export default defineApp(({ app }) => {
-  const hooks = useDevToolsHooks();
+export default defineApp({
+  onAppCreated(app) {
+    const hooks = useDevToolsHooks();
 
-  // 页面路由创建前：可做权限校验、数据预存到 DB
-  hooks.hook('page:beforeCreate', async (input, context) => {
-    // 例如：记录到数据库
-    await db.pages.create({
-      data: { name: input.name, path: input.path, createdBy: context.user.id }
+    // 页面路由创建前：可做权限校验、数据预存到 DB
+    hooks.hook('page:beforeCreate', async (input, context) => {
+      // 例如：记录到数据库
+      await db.pages.create({
+        data: { name: input.name, path: input.path, createdBy: context.user.id }
+      });
     });
-  });
 
-  // 页面路由创建后：可触发 Git 提交、通知等
-  hooks.hook('page:afterCreate', async (result, context) => {
-    console.log(`Page ${result.name} created by ${context.user?.name}`);
-  });
+    // 页面路由创建后：可触发 Git 提交、通知等
+    hooks.hook('page:afterCreate', async (result, context) => {
+      console.log(`Page ${result.name} created by ${context.user?.name}`);
+    });
 
-  // API 接口创建前
-  hooks.hook('api:beforeCreate', async input => {
-    // 校验接口路径规范
-    if (!input.path.startsWith('/api/')) {
-      throw new Error('API path must start with /api/');
-    }
-  });
+    // API 接口创建前
+    hooks.hook('api:beforeCreate', async input => {
+      // 校验接口路径规范
+      if (!input.path.startsWith('/api/')) {
+        throw new Error('API path must start with /api/');
+      }
+    });
 
-  // 环境变量更新前
-  hooks.hook('env:beforeUpdate', async (key, value) => {
-    // 例如：同步到外部密钥管理服务
-    await secretsManager.set(key, value);
-  });
-
-  return app;
+    // 环境变量更新前
+    hooks.hook('env:beforeUpdate', async (key, value) => {
+      // 例如：同步到外部密钥管理服务
+      await secretsManager.set(key, value);
+    });
+  }
 });
 ```
 

@@ -1,198 +1,209 @@
-# Actions
+# Form Actions & Mutations
 
-Handle form submissions and user interactions with server-side actions.
+ubean does **not** provide a built-in `defineAction` composable. Handle form submissions by calling API routes that use `defineHandler` with HTTP methods (POST/PUT/PATCH/DELETE).
 
-## Basic Action
+## Basic Pattern
+
+Define an API route with `defineHandler`:
+
+```typescript
+// src/routes/api/submit.ts
+import { defineHandler, validator } from 'ubean';
+import { z } from 'zod';
+
+const submitSchema = z.object({
+  name: z.string().min(1),
+  email: z.string().email()
+});
+
+export const POST = defineHandler(
+  validator('json', submitSchema),
+  async c => {
+    const { name, email } = c.req.valid('json');
+    // Process submission...
+    return c.json({ success: true, name, email });
+  }
+);
+```
+
+In the page, submit via fetch with reactive state:
 
 ```vue
 <script setup lang="ts">
-import { defineAction } from '@ubean/core';
+import { ref } from 'vue';
 
-const { pending, execute } = defineAction(async (formData: FormData) => {
-  const name = formData.get('name');
-  const email = formData.get('email');
+const pending = ref(false);
+const result = ref<unknown>(null);
+const error = ref<Error | null>(null);
 
-  await fetch('/api/submit', {
-    method: 'POST',
-    body: formData
-  });
+async function execute(formData: FormData) {
+  pending.value = true;
+  error.value = null;
+  try {
+    const res = await fetch('/api/submit', {
+      method: 'POST',
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    result.value = await res.json();
+  } catch (e) {
+    error.value = e as Error;
+  } finally {
+    pending.value = false;
+  }
+}
 
-  return { success: true };
-});
+function handleSubmit(event: Event) {
+  const form = event.target as HTMLFormElement;
+  execute(new FormData(form));
+}
 </script>
 
 <template>
-  <form @submit.prevent="execute">
+  <form @submit.prevent="handleSubmit">
     <input type="text" name="name" required />
     <input type="email" name="email" required />
-    <button :disabled="pending">Submit</button>
+    <button :disabled="pending">{{ pending ? 'Submitting…' : 'Submit' }}</button>
   </form>
+
+  <p v-if="error" class="error">{{ error.message }}</p>
+  <p v-else-if="result">Submitted: {{ JSON.stringify(result) }}</p>
 </template>
 ```
 
-## Action Status
+## Typed Requests (validator + describeRoute)
 
-The `defineAction` composable returns status information:
-
-```typescript
-const {
-  pending, // Boolean: action is executing
-  execute, // Function: execute the action
-  result, // Result of the last execution
-  error, // Error if execution failed
-  reset // Function: reset state
-} = defineAction(async data => {
-  // ...
-});
-```
-
-## Typed Actions
-
-Type your action inputs and outputs:
+For type-safe requests with OpenAPI documentation:
 
 ```typescript
-interface FormInput {
-  name: string;
-  email: string;
-}
+// src/routes/api/users.ts
+import { defineHandler, validator, describeRoute, resolver } from 'ubean';
+import { z } from 'zod';
 
-interface FormResult {
-  success: boolean;
-  message: string;
-}
-
-const { execute } = defineAction<FormInput, FormResult>(async input => {
-  // input is typed as FormInput
-  return { success: true, message: 'Submitted' };
+const createUserSchema = z.object({
+  name: z.string(),
+  email: z.string().email()
 });
+
+export const POST = defineHandler(
+  describeRoute({
+    tags: ['Users'],
+    summary: 'Create user',
+    responses: {
+      201: {
+        description: 'Created',
+        content: { 'application/json': { schema: resolver(z.object({ id: z.string() }).merge(createUserSchema)) } }
+      }
+    }
+  }),
+  validator('json', createUserSchema),
+  async c => {
+    const body = c.req.valid('json');
+    // Persist user...
+    return c.json({ id: '1', ...body }, 201);
+  }
+);
 ```
 
-## Multiple Actions
+## Using $fetch (ofetch)
 
-Define multiple actions in one component:
+ubean bundles `ofetch` for ergonomic HTTP calls:
 
 ```vue
 <script setup lang="ts">
-import { defineAction } from '@ubean/core';
+import { ref } from 'vue';
 
-const { execute: addItem } = defineAction(async (formData: FormData) => {
-  await fetch('/api/items', { method: 'POST', body: formData });
-});
+const pending = ref(false);
+const error = ref<string | null>(null);
 
-const { execute: deleteItem } = defineAction(async (id: number) => {
-  await fetch(`/api/items/${id}`, { method: 'DELETE' });
-});
+async function submit(payload: { name: string; email: string }) {
+  pending.value = true;
+  error.value = null;
+  try {
+    await $fetch('/api/users', {
+      method: 'POST',
+      body: payload
+    });
+  } catch (e) {
+    error.value = (e as Error).message;
+  } finally {
+    pending.value = false;
+  }
+}
 </script>
 ```
 
-## Action Context
+## Multiple Mutations
 
-Access request information in actions:
-
-```typescript
-const { execute } = defineAction(async (data, ctx) => {
-  // Get current user
-  const user = ctx.user;
-
-  // Get request headers
-  const auth = ctx.headers.get('Authorization');
-
-  // Get route params
-  const id = ctx.params.id;
-
-  // Access environment variables
-  const apiUrl = ctx.env.API_URL;
-});
-```
-
-## Error Handling
-
-Handle errors in actions:
+Define multiple API methods in a single file using void-style named exports:
 
 ```typescript
-const { execute, error } = defineAction(async formData => {
-  const res = await fetch('/api/submit', {
-    method: 'POST',
-    body: formData
-  });
+// src/routes/api/items.ts
+import { defineHandler } from 'ubean';
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message);
-  }
-
-  return { success: true };
+export const POST = defineHandler(async c => {
+  const body = await c.req.json();
+  // create item
+  return c.json({ created: body });
 });
-```
 
-Display errors:
-
-```vue
-<template>
-  <form @submit.prevent="execute">
-    <!-- ... -->
-    <p v-if="error" class="error">{{ error.message }}</p>
-  </form>
-</template>
+export const DELETE = defineHandler(async c => {
+  const id = c.req.param('id');
+  // delete item
+  return c.json({ deleted: id });
+});
 ```
 
 ## Optimistic Updates
 
-Update UI optimistically before the action completes:
+Use Vue refs to manage optimistic UI:
 
 ```vue
 <script setup lang="ts">
-import { defineAction, useOptimistic } from '@ubean/core';
 import { ref } from 'vue';
 
-const items = ref(['Item 1', 'Item 2']);
-const optimisticItems = useOptimistic(items);
+const items = ref<string[]>(['Item 1', 'Item 2']);
+const optimistic = ref<string | null>(null);
 
-const { execute } = defineAction(
-  async (name: string) => {
-    await fetch('/api/items', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-      headers: { 'Content-Type': 'application/json' }
-    });
-
-    // Update real data
+async function addItem(name: string) {
+  optimistic.value = name;
+  try {
+    await $fetch('/api/items', { method: 'POST', body: { name } });
     items.value.push(name);
-  },
-  {
-    onBefore(name) {
-      // Optimistic update
-      optimisticItems.value.push(name);
-    },
-    onError() {
-      // Rollback on error
-      optimisticItems.value = [...items.value];
-    }
+  } catch (e) {
+    // rollback handled by not pushing
+  } finally {
+    optimistic.value = null;
   }
-);
+}
 </script>
 ```
 
-## Server Actions
+## Server-Side Handlers
 
-Define actions directly on the server:
+For mutations that don't need a UI, define API routes directly:
 
 ```typescript
-// src/routes/api/submit.post.ts
-import { defineEventHandler } from '@ubean/core';
+// src/routes/api/admin/cleanup.ts
+import { defineHandler, defineHandlerMeta } from 'ubean';
 
-export default defineEventHandler(async c => {
-  const body = await c.req.json();
-  // Process submission...
-  return { success: true };
-});
+export const POST = defineHandler(
+  defineHandlerMeta({ requiresAuth: true }),
+  async c => {
+    // Run cleanup
+    return c.json({ success: true });
+  }
+);
 ```
 
 ## Best Practices
 
-1. **Keep actions focused**: Each action should do one thing
-2. **Error handling**: Always handle errors and display feedback
-3. **Loading state**: Show loading indicators during execution
-4. **Security**: Validate and sanitize all inputs
-5. **Optimistic updates**: Improve perceived performance
-6. **Debouncing**: Debounce rapid actions
+1. **Validate inputs**: Always use `validator('json', schema)` (or `validator('form', ...)`) at API boundaries
+2. **Show loading state**: Use reactive `pending` ref during submission
+3. **Display errors**: Surface API errors to users
+4. **Disable submit button**: Prevent duplicate submissions while pending
+5. **Reset form on success**: Clear the form after a successful submission
+6. **Use CSRF protection**: For cookie-based auth, ensure CSRF tokens are sent

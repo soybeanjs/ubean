@@ -1,18 +1,18 @@
 # Icons
 
-uBean provides two icon systems that serve different purposes:
+ubean provides two icon systems that serve different purposes:
 
 ## 1. @ubean/icon (Built-in Icon System)
 
-`@ubean/icon` is uBean's **built-in icon plugin** that provides Iconify integration at build time and runtime. It handles icon collection scanning, SVG generation, and runtime icon rendering.
+`@ubean/icon` is ubean's **built-in icon plugin** that provides Iconify integration at build time and runtime. It handles icon collection scanning, SVG generation, and runtime icon rendering.
 
 ### Features
 
 - Iconify icon set support (100k+ icons from multiple collections)
 - SVG and CSS rendering modes
 - Vite plugin for SFC icon scanning and preloading
-- Custom icon collection registration
-- Runtime icon loading with API fallback
+- Custom icon collection registration (object-shape config)
+- Runtime icon loading with API fallback (`/_iconify` dev route)
 - Tree-shakeable icons
 - Flip/rotate transforms
 
@@ -22,7 +22,7 @@ uBean provides two icon systems that serve different purposes:
 
 ```typescript
 // ubean.config.ts
-import { defineConfig } from '@ubean/core';
+import { defineConfig } from 'ubean';
 
 export default defineConfig({
   icon: true // Enable built-in icon system with defaults
@@ -33,7 +33,7 @@ export default defineConfig({
 
 ```typescript
 // ubean.config.ts
-import { defineConfig } from '@ubean/core';
+import { defineConfig } from 'ubean';
 
 export default defineConfig({
   icon: {
@@ -45,6 +45,27 @@ export default defineConfig({
     },
     fallbackToApi: true, // Fetch from Iconify API if not locally loaded
     iconifyApiEnabled: true
+  }
+});
+```
+
+### Custom collections
+
+`customCollections` accepts an **object-shape** config (not an array). Each key maps to either a directory shorthand or a full `{ dir, prefix, normalizeIconName }` object. Nested subdirs are flattened into hyphenated prefixes.
+
+```typescript
+import { defineConfig } from 'ubean';
+
+export default defineConfig({
+  icon: {
+    customCollections: {
+      brand: './src/icons/brand',           // shorthand
+      ui: {
+        dir: './src/icons/ui',
+        prefix: 'ui',
+        normalizeIconName: (name: string) => name.toLowerCase()
+      }
+    }
   }
 });
 ```
@@ -84,14 +105,13 @@ import { Icon } from '@ubean/icon';
 | ariaLabel | string                               | undefined | ARIA label for accessibility          |
 | title     | string                               | undefined | Hover title                           |
 | mode      | 'svg' \| 'css'                       | 'svg'     | Rendering mode                        |
-| flip      | 'horizontal' \| 'vertical' \| 'both' | undefined | Flip direction                        |
+| flip      | 'horizontal' \| 'vertical' \| 'both' | undefined | Flip direction                       |
 | rotate    | number \| string                     | undefined | Rotation degrees                      |
 | inline    | boolean                              | false     | Inline display alignment              |
 
-### Register Custom Icon Collections
+### Register Custom Icon Collections at Runtime
 
 ```typescript
-// src/plugins/icons.ts
 import { defineIconCollection, defineIconCollectionLoader } from '@ubean/icon';
 
 // Static collection
@@ -108,14 +128,14 @@ defineIconCollection({
 
 // Lazy-loaded collection
 defineIconCollectionLoader('my-icons', async () => {
-  return await import('/icons/my-icons.json').default;
+  return (await import('/icons/my-icons.json')).default;
 });
 ```
 
 ### Programmatic API
 
 ```typescript
-import { useIcon, getIconSync, getIcon, registerCollection } from '@ubean/icon';
+import { useIcon, getIconSync, getIcon, addIconCollection } from '@ubean/icon';
 
 // useIcon composable
 const icon = useIcon('mdi:home');
@@ -126,6 +146,10 @@ const svgSync = icon.getSvgSync();
 const iconData = getIconSync('mdi:home');
 const iconDataAsync = await getIcon('mdi:home');
 ```
+
+### Local SVG serving (dev)
+
+When `fallbackToApi` is disabled, the `/_iconify` dev route serves local SVGs before falling back to the Iconify API. `parseSvgToIconData()` extracts `body` + `width`/`height`/`viewBox` from raw SVG files.
 
 ---
 
@@ -239,7 +263,7 @@ import { SIcon } from '@soybeanjs/ui';
 
 | Feature            | @ubean/icon (UbeanIcon)                           | @soybeanjs/ui (SIcon)                  |
 | ------------------ | ------------------------------------------------- | -------------------------------------- |
-| Component name     | `<Icon>` / `<UbeanIcon>`                          | `<SIcon>`                              |
+| Component name      | `<Icon>` / `<UbeanIcon>`                          | `<SIcon>`                              |
 | Icon prop          | `name` (e.g. `name="mdi:home"`)                   | `icon` (e.g. `icon="mdi:home"`)        |
 | Purpose            | Build-time + runtime icon engine                  | UI-styled icon component               |
 | Dependencies       | None (built-in module, opt-in via `icon: true`)   | Requires @soybeanjs/ui                 |

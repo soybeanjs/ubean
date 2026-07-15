@@ -1,7 +1,7 @@
 ---
 name: ubean
 display_name: uBean Framework
-description: Full-stack web framework powered by Vite, Hono, and Vue. Build modern web applications with SSR, file-based routing, islands architecture, and built-in DevTools.
+description: Full-stack Vue meta-framework built on Vite, Hono and Vue. File-based routing, SSR, islands architecture, i18n, DevTools, OpenAPI and multi-platform presets.
 version: 0.0.1
 author: SoybeanJS
 license: MIT
@@ -17,26 +17,28 @@ keywords:
   - ssg
   - meta-framework
   - devtools
+  - islands
+  - i18n
+  - openapi
 ---
 
 # uBean Skill
 
-> uBean is a full-stack framework for building modern web applications. It combines Vite, Hono, and Vue to provide a powerful development experience.
+> uBean is a full-stack Vue meta-framework combining Vite, Hono and Vue. The public package name is **`ubean`** (no `@ubean/core`); all framework APIs are imported from `ubean` directly or from subpath exports such as `ubean/runtime/vue`.
 
 ## When to Use This Skill
 
 Use this skill when working with uBean framework projects, including:
 
 - Creating new uBean projects with `ubean init`
-- Developing pages with file-based routing
-- Building API routes with Hono
-- Working with data loaders and actions
-- Configuring internationalization (i18n)
-- Using islands architecture for partial hydration
-- Configuring modules and plugins
+- Developing pages with file-based routing (`pages/**/*.vue`, `definePage` macro)
+- Building API routes with Hono (`routes/**`, `defineHandler`, named exports `GET`/`POST`/...)
+- Using hono-openapi `validator` / `describeRoute` / `resolver` for typed requests and OpenAPI
+- Configuring internationalization (i18n) with `defineLocale` / `useI18n`
+- Using islands architecture (`client:load|idle|visible|media|only`)
+- Configuring modules and platform presets (`standard` / `node` / `cloudflare`)
 - Debugging with uBean DevTools
-- Building for different platforms (Node.js, Cloudflare Workers)
-- Using the built-in icon system
+- Using the built-in icon / image / content / fonts / pwa / auth extension packages
 
 ## Quick Start
 
@@ -61,21 +63,24 @@ pnpm dev
 ## Agent Info
 
 - **Name**: ubean
-- **Description**: Full-stack framework for building modern web applications with Vite, Hono, and Vue
+- **Description**: Full-stack Vue meta-framework built on Vite, Hono and Vue
 - **Version**: 0.0.1
 - **Category**: Web Framework
+- **Public package**: `ubean` (workspace `packages/ubean`)
 
 ## Commands
 
-| Command  | Description                    | Usage                     |
-| -------- | ------------------------------ | ------------------------- |
-| init     | Initialize a new ubean project | `ubean init [options]`    |
-| dev      | Start development server       | `ubean dev [options]`     |
-| build    | Build for production           | `ubean build [options]`   |
-| preview  | Preview production build       | `ubean preview [options]` |
-| config   | Show resolved configuration    | `ubean config [options]`  |
-| page     | Scaffold a new page            | `ubean page <name>`       |
-| devtools | Open DevTools                  | `ubean devtools`          |
+| Command  | Description                                     | Usage                       |
+| -------- | ----------------------------------------------- | --------------------------- |
+| init     | Initialize a new ubean project                  | `ubean init [options]`      |
+| dev      | Start development server (Vite middleware mode) | `ubean dev [options]`       |
+| build    | Build for production (Vite SSR dual build)      | `ubean build [options]`     |
+| preview  | Preview production build                        | `ubean preview [options]`   |
+| prepare  | Generate `.ubean/` types                        | `ubean prepare [--force]`   |
+| page     | Scaffold page/api/layout/middleware/reuse       | `ubean page add [options]`  |
+| env      | Manage `.env` files                             | `ubean env <subcommand>`    |
+| config   | Show/init/example resolved configuration        | `ubean config <subcommand>` |
+| devtools | Print DevTools info/URL                         | `ubean devtools info`       |
 
 ### Command Details
 
@@ -86,9 +91,9 @@ Initialize a new ubean project with interactive wizard or non-interactive mode.
 **Options:**
 
 - `--name, -n`: Project name
-- `--template, -t`: Template (starter, minimal, blog)
-- `--preset, -p`: Preset (standard, node, cloudflare)
-- `--pm`: Package manager (npm, pnpm, yarn)
+- `--template, -t`: Template (`starter`, `minimal`, `blog`)
+- `--preset, -p`: Preset (`standard`, `node`, `cloudflare`)
+- `--pm`: Package manager (`npm`, `pnpm`, `yarn`)
 - `--yes, -y`: Skip interactive prompts
 - `--force, -f`: Overwrite existing directory
 - `--git`: Initialize git repository
@@ -103,13 +108,12 @@ ubean init -n blog -t blog -y
 
 #### ubean dev
 
-Start the development server with hot module replacement.
+Start the development server. Uses Vite middleware mode so all configured modules' Vite plugins (HMR, virtual modules, HTML transform) take effect automatically.
 
 **Options:**
 
 - `--port, -p`: Server port (default: 5173)
 - `--host`: Host to listen on
-- `--https`: Enable HTTPS
 - `--open`: Open browser on start
 
 **Examples:**
@@ -121,13 +125,13 @@ ubean dev --port 3000 --host 0.0.0.0
 
 #### ubean build
 
-Build the application for production.
+Build the application for production via Vite dual build (client + SSR).
 
 **Options:**
 
-- `--preset, -p`: Build preset (standard, node, cloudflare)
+- `--preset, -p`: Build preset (`standard`, `node`, `cloudflare`)
+- `--prerender`: Enable static site generation
 - `--clean`: Clean output directory before build
-- `--sourcemap`: Generate source maps
 
 **Examples:**
 
@@ -152,64 +156,100 @@ ubean preview
 ubean preview --port 3000
 ```
 
-#### ubean config
+#### ubean page add
 
-Show resolved configuration.
-
-**Options:**
-
-- `--json`: Output as JSON
-- `--env`: Show environment variables
-
-**Examples:**
-
-```bash
-ubean config
-ubean config --json
-```
-
-#### ubean page
-
-Scaffold a new page component.
+Scaffold a new page / api / layout / middleware / reuse route.
 
 **Arguments:**
 
-- `<name>`: Page name (e.g., "about", "blog/post")
+- `<type>`: `page` | `api` | `layout` | `middleware` | `reuse` | `cron` | `plugin`
+- `<path>`: Route path (e.g. `about`, `blog/post`, `users/[id]`)
+
+**Options:**
+
+- `--force`: Overwrite existing file (with `.bak` backup)
+- `--dry`: Dry run, print planned changes without writing
 
 **Examples:**
 
 ```bash
-ubean page about
-ubean page "blog/post"
-```
-
-#### ubean devtools
-
-Open the DevTools panel.
-
-**Examples:**
-
-```bash
-ubean devtools
+ubean page add page about
+ubean page add page "blog/post"
+ubean page add api users
+ubean page add layout admin
 ```
 
 ## API Routes
 
-### Built-in Routes
+### File Convention (single file, named exports)
 
-| Route                   | Method              | Description                  |
-| ----------------------- | ------------------- | ---------------------------- |
-| `/api/_health`          | GET                 | Health check endpoint        |
-| `/api/_devtools/rpc`    | POST                | DevTools RPC endpoint        |
-| `/api/_devtools/crud/*` | GET/POST/PUT/DELETE | CRUD operations for DevTools |
+ubean uses **void-style** named exports: a single file defines multiple HTTP methods through `export const GET`, `export const POST`, etc. There is **no** `.get.ts` / `.post.ts` file suffix convention.
 
-### Custom Routes
+```
+src/routes/
+├── api/
+│   ├── hello.ts          # GET/POST /api/hello  (named exports in one file)
+│   ├── users/
+│   │   ├── index.ts      # GET/POST /api/users
+│   │   └── [id].ts       # GET/PATCH/DELETE /api/users/:id
+│   └── health.ts         # GET /api/health
+└── index.ts              # GET /
+```
 
-Custom API routes are defined in `src/routes/api/` directory:
+### Defining a Handler
 
-- `GET /api/users` → `src/routes/api/users.get.ts`
-- `POST /api/users` → `src/routes/api/users.post.ts`
-- `PUT /api/users/:id` → `src/routes/api/users/[id].put.ts`
+```typescript
+// src/routes/api/hello.ts
+import { defineHandler } from 'ubean';
+
+export const GET = defineHandler(c => {
+  return c.json({ message: 'Hello from ubean API!' });
+});
+
+export const POST = defineHandler(async c => {
+  const body = await c.req.json().catch(() => ({}));
+  return c.json({ received: body });
+});
+```
+
+### Typed Requests + OpenAPI (hono-openapi)
+
+`validator`, `describeRoute`, `resolver` are re-exported from `ubean` (originally from `hono-openapi`). `defineHandlerMeta` carries ubean-specific metadata such as `requiresAuth`, `cache`, `rateLimit`.
+
+```typescript
+// src/routes/api/users/[id].ts
+import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean';
+import { z } from 'zod';
+
+const idParam = z.object({ id: z.string() });
+
+export const GET = defineHandler(
+  describeRoute({
+    tags: ['Users'],
+    summary: 'Get user by ID',
+    responses: {
+      200: { description: 'OK', content: { 'application/json': { schema: resolver(z.object({ id: z.string() })) } } },
+      404: { description: 'Not found' }
+    }
+  }),
+  defineHandlerMeta({ requiresAuth: true, cache: { ttl: 60 } }),
+  validator('param', idParam),
+  async c => {
+    const { id } = c.req.valid('param'); // typed
+    return c.json({ id });
+  }
+);
+```
+
+### Built-in / Internal Routes
+
+| Route                           | Method   | Description                                      |
+| ------------------------------- | -------- | ------------------------------------------------ |
+| `/_health`                      | GET      | Health check endpoint                            |
+| `/_openapi.json`                | GET      | OpenAPI 3.1 spec (dev)                           |
+| `/_scalar`                      | GET      | Scalar API docs UI (dev)                         |
+| `/_iconify`                     | GET      | Local icon collection dev server (`@ubean/icon`) |
+| `/_devtools` / `/_devtools/rpc` | GET/POST | DevTools iframe + RPC (dev only)                 |
 
 ## Document Routes
 
@@ -229,35 +269,38 @@ Custom API routes are defined in `src/routes/api/` directory:
 - `/docs/reference/api/env`: Environment variables
 - `/docs/reference/api/database`: Database operations
 - `/docs/reference/api/cache`: Cache operations
-- `/docs/reference/api/queue`: Queue operations
 - `/docs/reference/api/i18n`: I18n API
 
 ### Integrations
 
-- `/docs/integrations/database`: Database integrations (Drizzle, Prisma)
-- `/docs/integrations/auth`: Authentication (Better Auth)
-- `/docs/integrations/icons`: Icons (Iconify)
-- `/docs/integrations/pwa`: PWA support
-- `/docs/integrations/content`: Content management
-- `/docs/integrations/image`: Image optimization
-- `/docs/integrations/fonts`: Font optimization
+- `/docs/integrations/database`: Database integrations (Drizzle, db0)
+- `/docs/integrations/auth`: Authentication (`@ubean/auth`)
+- `/docs/integrations/icons`: Icons (`@ubean/icon`)
 
 ## Configuration
 
 ### ubean.config.ts
 
 ```typescript
-import { defineConfig } from '@ubean/core';
+import { defineConfig } from 'ubean';
 
 export default defineConfig({
   rootDir: '.',
   srcDir: 'src',
   modules: [],
-  icon: false, // @ubean/icon: built-in icon system (UbeanIcon), disabled by default, set to true to enable
-  pwa: false, // @ubean/pwa: PWA support, disabled by default
-  auth: false, // @ubean/auth: authentication, disabled by default
-  image: false, // @ubean/image: image optimization, disabled by default
-  fonts: false // @ubean/fonts: font optimization, disabled by default
+  // Top-level shortcuts for official extension packages (default: false)
+  icon: false, // @ubean/icon
+  pwa: false, // @ubean/pwa
+  auth: false, // @ubean/auth
+  image: false, // @ubean/image
+  fonts: false, // @ubean/fonts
+  // i18n routing
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en', 'zh'],
+    strategy: 'prefix_except_default' // prefix | prefix_except_default | no_prefix
+  },
+  routeRules: {}
 });
 ```
 
@@ -269,7 +312,7 @@ export default defineConfig({
     // Vite plugin instance
     somePlugin(),
 
-    // Factory tuple
+    // Factory tuple [factory, options]
     [iconFactory, { prefix: 'icon-' }],
 
     // Module definition
@@ -289,71 +332,107 @@ export default defineConfig({
 
 Use these keys in `dependsOn` for built-in modules:
 
-| Key     | Module                                         |
-| ------- | ---------------------------------------------- |
-| `icon`  | @ubean/icon (icon system, UbeanIcon component) |
-| `pwa`   | @ubean/pwa (PWA support)                       |
-| `auth`  | @ubean/auth (authentication)                   |
-| `image` | @ubean/image (image optimization)              |
-| `fonts` | @ubean/fonts (font optimization)               |
+| Key       | Module                                         |
+| --------- | ---------------------------------------------- |
+| `icon`    | @ubean/icon (icon system, UbeanIcon component) |
+| `pwa`     | @ubean/pwa (PWA support)                       |
+| `auth`    | @ubean/auth (authentication)                   |
+| `image`   | @ubean/image (image optimization)              |
+| `fonts`   | @ubean/fonts (font optimization)               |
+| `content` | @ubean/content (content management)            |
 
 ## Key Features
 
 ### 1. Full-Stack Framework
 
-- Server-side rendering (SSR) with Vue
-- Client-side hydration
-- Islands architecture for partial hydration
+- Server-side rendering (SSR) with Vue + `@vue/server-renderer`
+- Client-side hydration with `createUbeanApp` / `createUbeanSSRApp`
+- Islands architecture for partial hydration (`client:load|idle|visible|media|only`)
+- View Transitions API for native page transitions
 
 ### 2. Vite Integration
 
-- Middleware mode for dev server
-- Hot module replacement
-- Virtual modules for framework internals
+- Dev server uses Vite middleware mode (`vite.createServer({ middlewareMode: true })`)
+- Hot module replacement via Vite native HMR
+- Virtual modules: `ubean:pages`, `ubean:routes`, `ubean:meta`, `ubean:app-config`, `ubean:locales`
+- SSR modules loaded via `vite.ssrLoadModule()` in dev
 
 ### 3. Module System
 
-- Plugin-based architecture
-- Topological dependency resolution
-- Nuxt Kit-style API (addServerHandler, addVitePlugin, etc.)
+- Plugin-based architecture (`ModuleDefinition` with `vitePlugin` / `setup` / `hooks` / `dependsOn`)
+- Topological dependency resolution (cycle-safe fallback)
+- Nuxt Kit-style API: `addServerHandler`, `addVitePlugin`, `addVirtualImports`, `addComponentsDir`, `addAutoImport`, `addDevToolsTab`
+- 10 lifecycle hooks: `app:created`, `app:before:register`, `app:after:register`, `app:ready`, `build:before`, `build:after`, `dev:setup`, `dev:listen`, `request:start`, `request:end`
 
-### 4. Internationalization
+### 4. Routing
 
-- Built-in i18n support
-- Locale auto-detection
-- Pluralization and Intl formatting
-- SEO-friendly locale routing
+- API routes: `routes/**` with void-style named exports (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`OPTIONS`/`HEAD`)
+- Page routes: `pages/**/*.vue` (+ `.reuse.ts`, `.md`)
+- Layouts: `layouts/` (`xx.vue` or `xx/index.vue`), supports nested layout chain
+- Route groups: `(group)/` directories don't contribute URL segments
+- `definePage` compile-time macro for meta/layout/name/path override
+- Middleware: `middleware/` with numeric prefix ordering; `global`/`global.*` → `/*`, others by directory prefix
 
-### 5. DevTools
+### 5. Internationalization
 
-- Real-time inspection
-- API documentation
-- CRUD operations
-- AI assistant
+- Built-in zero-dependency i18n (`runtime/i18n.ts`, `i18n-routing.ts`)
+- 3 routing strategies: `prefix` / `prefix_except_default` / `no_prefix`
+- Detection order: URL path → cookie (`ubean_locale`) → Accept-Language → defaultLocale
+- Vue reactive `useI18n()` with `t` / `d` / `n` / `c` / `relativeTime` / `list`
+- Pluralization (pipe syntax), linked messages (`@:key`), missing key handlers
+- SSR hydration: locale injected via `<script id="__UBEAN_LOCALE__">`, auto syncs `<html lang/dir>`
 
-### 6. Platform Presets
+### 6. DevTools
 
-- Standard: Generic fetch handler
-- Node: Node.js HTTP server
-- Cloudflare: Cloudflare Workers
+- iframe-based panel injected in dev only (production tree-shaken)
+- RPC over `postMessage` with session token + origin binding
+- Built-in tabs: Overview, Pages, API Routes, Middlewares, Layouts, Cron Jobs, Env Vars, Config, API Playground, AI Assistant
+- CRUD operations share logic with CLI (`core/cli/shared/fs-ops.ts`)
+- Hookable CRUD lifecycle (`page:beforeCreate`, `api:afterUpdate`, `env:beforeDelete`, ...)
+- AI assistant with LLM function calling driving CRUD via RPC
 
-## Project Structure
+### 7. Platform Presets
+
+- `standard`: generic fetch handler
+- `node`: Node.js HTTP server via `@hono/node-server`
+- `cloudflare`: Cloudflare Workers (generates `wrangler.toml`)
+- Preset auto-detection: explicit config > config-file hints (wrangler.toml) > environment vars > default `standard`
+- Capability matrix (19 capabilities: `fs`, `cronTrigger`, `websocket`, `queue`, `isr`, ...) with build-time diagnostics
+
+### 8. Extension Packages (`@ubean/*` scope, kebab-case)
+
+- `@ubean/icon`: Iconify-based icons with custom local SVG collections, `/_iconify` dev route
+- `@ubean/auth`: Better Auth integration with email/password fallback, `useAuth()` composable
+- `@ubean/pwa`: Manifest + Service Worker generation, `usePwa()` composable
+- `@ubean/image`: Multi-provider image optimization (IPX/Cloudinary/Imgix/...)
+- `@ubean/content`: Markdown/YAML/JSON content collections with `queryContent()`
+- `@ubean/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
+
+## Project Structure (user project)
 
 ```
+my-app/
 ├── src/
-│   ├── routes/           # API routes
-│   │   └── api/          # API endpoints
-│   ├── pages/            # Page components
-│   ├── layouts/          # Layout components
-│   ├── middleware/       # Middleware
-│   ├── composables/      # Vue composables
-│   ├── components/       # Vue components
-│   ├── locales/          # Translation files
-│   ├── plugins/          # Vite plugins
-│   ├── crons/            # Cron jobs
-│   └── queues/           # Queue workers
-├── ubean.config.ts       # Framework config
-├── vite.config.ts        # Vite config (optional)
+│   ├── routes/           # API routes (void-style named exports)
+│   │   └── api/          # /api/* endpoints
+│   ├── pages/            # Page components (.vue, .md, .reuse.ts)
+│   ├── layouts/          # Layout components (xx.vue or xx/index.vue)
+│   ├── middleware/       # Middleware (numeric prefix ordering)
+│   ├── components/       # Auto-imported Vue components
+│   ├── composables/      # Auto-imported composables
+│   ├── locales/          # i18n messages (en.json, zh.json, etc.)
+│   ├── crons/            # Cron jobs (defineScheduled)
+│   ├── queues/           # Queue workers (defineQueue)
+│   └── plugins/          # Runtime plugins
+├── public/               # Static assets
+├── .ubean/                # Auto-generated types
+│   ├── routes.d.ts
+│   ├── pages.d.ts
+│   ├── auto-imports.d.ts
+│   └── components.d.ts
+├── ubean.config.ts       # Framework config (defineConfig)
+├── app.ts                # Vue app config (defineApp)
+├── env.ts                # Environment schema (defineEnv)
 └── package.json
 ```
 
@@ -362,77 +441,95 @@ Use these keys in `dependsOn` for built-in modules:
 ### Creating a Page
 
 ```bash
-ubean page about
+ubean page add page about
 ```
+
+```vue
+<!-- src/pages/about.vue -->
+<script setup lang="ts">
+definePage({
+  meta: { title: 'About' }
+});
+</script>
+
+<template>
+  <h1>About</h1>
+</template>
+```
+
+> `definePage` is a compile-time macro — auto-imported, no explicit import needed. Its top-level fields are `name`, `path`, `layout`, `reuse`, `meta`, `middleware`, `requiresAuth`, `head`. There is no top-level `title` field; use `meta: { title }`.
 
 ### Creating an API Route
 
 ```typescript
-// src/routes/api/hello.get.ts
-import { defineEventHandler } from '@ubean/core';
+// src/routes/api/hello.ts
+import { defineHandler } from 'ubean';
 
-export default defineEventHandler(() => {
-  return { message: 'Hello World!' };
+export const GET = defineHandler(c => {
+  return c.json({ message: 'Hello World!' });
+});
+
+export const POST = defineHandler(async c => {
+  const body = await c.req.json().catch(() => ({}));
+  return c.json({ ok: true, received: body });
 });
 ```
 
-### Using Loaders
+### Fetching Data (useData)
 
 ```vue
 <script setup lang="ts">
-import { defineLoader } from '@ubean/core';
-
-const data = await defineLoader(() => {
-  return {
-    posts: [{ id: 1, title: 'Hello' }]
-  };
-});
+// useData is auto-imported from ubean (UBEAN_SERVER_PRESET)
+const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
+  $fetch('/api/posts').then(r => r.json())
+);
 </script>
 
 <template>
-  <div v-for="post in data.posts" :key="post.id">
-    {{ post.title }}
-  </div>
+  <div v-if="loading">Loading…</div>
+  <div v-else-if="error">Error: {{ error.message }}</div>
+  <ul v-else>
+    <li v-for="post in data.posts" :key="post.id">{{ post.title }}</li>
+  </ul>
 </template>
 ```
 
-### Using Actions
+### Navigation & Link
+
+`<Link>` is a globally-registered component (no import needed):
+
+```vue
+<template>
+  <Link to="/">Home</Link>
+  <Link to="/users/123">User</Link>
+  <Link :to="{ name: 'UserDetail', params: { id: '123' } }">User detail</Link>
+</template>
+```
+
+Programmatic navigation uses `useRouter()` (auto-imported):
 
 ```vue
 <script setup lang="ts">
-import { defineAction } from '@ubean/core';
-
-const { pending, execute } = defineAction(async (formData: FormData) => {
-  await fetch('/api/submit', {
-    method: 'POST',
-    body: formData
-  });
-});
+const router = useRouter();
+function go() {
+  router.push('/about');
+}
 </script>
-
-<template>
-  <form @submit.prevent="execute">
-    <button :disabled="pending">Submit</button>
-  </form>
-</template>
 ```
 
 ### Internationalization
 
-```typescript
+```json
 // src/locales/en.json
 {
   "hello": "Hello",
-  "welcome": "Welcome to @:app.name",
   "items": "no items | one item | {count} items"
 }
 ```
 
 ```vue
 <script setup lang="ts">
-import { useI18n } from '@ubean/core';
-
-const { t, d, n, c } = useI18n();
+const { t, locale, setLocale, d, n, c } = useI18n();
 
 console.log(t('hello'));
 console.log(t('items', { count: 3 }));
@@ -444,16 +541,24 @@ console.log(c(42.99, 'USD'));
 
 ## Resources
 
-- **Documentation**: `/docs/`
-- **CLI Help**: `ubean --help`
-- **DevTools**: `ubean devtools`
+- **Project docs**: `/docs/`
+- **CLI help**: `ubean --help`
+- **DevTools**: open the floating button in dev (or `Shift+Alt+D`)
+- **OpenAPI UI**: `/_scalar` in dev
+- **Agent guide**: `/AGENTS.md` (project root)
 
 ## Version History
 
 - **v0.0.1**: Initial release
-  - Vite middleware mode dev server
-  - Module system with topological resolution
-  - SSR with Vue
-  - i18n with pluralization and Intl formatting
-  - DevTools with AI assistant
+  - Vite middleware mode dev server with module auto-loading
+  - SSR with Vue + `@unhead/vue` head management
+  - File-based routing (API + Pages) with `defineHandler` / `definePage`
+  - hono-openapi integration (`validator` / `describeRoute` / `resolver`)
+  - i18n with pluralization, Intl formatting, locale-prefixed routing, SSR hydration
+  - Islands architecture (`client:*` directives)
+  - View Transitions API
+  - DevTools with CRUD + AI assistant
   - Platform presets (Standard, Node, Cloudflare)
+  - Extension packages: icon, auth, pwa, image, content, fonts
+  - Prerender / SSG
+  - Built-in cron, queue, storage, database, WebSocket, SSE

@@ -1,273 +1,185 @@
 # Cache Operations
 
-## useCache()
+ubean ships a route-level HTTP cache built around a swappable `CacheStore`. It is not a generic key/value cache client — for arbitrary application caching use `unstorage` (re-exported as `useStorage`/`useKV`).
 
-Access cache instance.
+## useCacheStore()
+
+Get or set the global cache store. Defaults to an in-memory store with LRU eviction.
 
 ```typescript
-import { useCache } from '@ubean/core';
+import { useCacheStore, createMemoryStore } from 'ubean';
 
-const cache = useCache();
+// Use the default in-memory store
+const store = useCacheStore();
+
+// Replace the global store (e.g. with a Redis-backed implementation)
+useCacheStore(createMemoryStore(500));
 ```
 
-### Basic Operations
+### CacheStore interface
 
 ```typescript
-// Set cache
-await cache.set('user:1', { name: 'John' }, { ttl: 3600 });
-
-// Get cache
-const user = await cache.get('user:1');
-
-// Delete cache
-await cache.delete('user:1');
-
-// Check exists
-const exists = await cache.has('user:1');
-
-// Clear all
-await cache.clear();
+export interface CacheStore {
+  get(key: string): Promise<CacheEntry | undefined>;
+  set(key: string, entry: Omit<CacheEntry, 'createdAt' | 'expiresAt'>, ttl: number): Promise<void>;
+  delete(key: string): Promise<boolean>;
+  clear(): Promise<void>;
+}
 ```
 
-## defineCache()
+Implement this interface to back the cache with Redis, KV, or any other storage. The default `createMemoryStore(maxEntries = 200)` evicts ~20% of the oldest entries when full.
 
-Define cache configuration.
+## createMemoryStore()
 
 ```typescript
-import { defineCache } from '@ubean/core';
+import { createMemoryStore } from 'ubean';
 
-export default defineCache({
-  driver: 'redis',
-  config: {
-    host: process.env.REDIS_HOST,
-    port: parseInt(process.env.REDIS_PORT),
-    password: process.env.REDIS_PASSWORD
-  }
-});
+const store = createMemoryStore(1000); // up to 1000 entries
 ```
 
-### Drivers
+## createCacheMiddleware()
 
-| Driver    | Description               |
-| --------- | ------------------------- |
-| memory    | In-memory cache (default) |
-| redis     | Redis cache               |
-| memcached | Memcached cache           |
-| file      | File-based cache          |
-
-### Options
-
-| Option     | Type   | Description            |
-| ---------- | ------ | ---------------------- |
-| driver     | string | Cache driver           |
-| config     | object | Driver configuration   |
-| defaultTtl | number | Default TTL in seconds |
-
-## TTL Configuration
+Mount cache as a Hono middleware driven by route rules. Used internally by the ubean runtime when `routeRules` declares `cache`.
 
 ```typescript
-// Set with TTL
-await cache.set('key', 'value', { ttl: 60 }); // 60 seconds
+import { createCacheMiddleware, useCacheStore } from 'ubean';
 
-// Set with expiration date
-const expires = new Date(Date.now() + 3600000);
-await cache.set('key', 'value', { expires });
-
-// Get remaining TTL
-const ttl = await cache.ttl('key');
-
-// Extend TTL
-await cache.touch('key', 60);
-```
-
-## Cache Tags
-
-### Set with Tags
-
-```typescript
-await cache.set(
-  'user:1',
-  { name: 'John' },
-  {
-    ttl: 3600,
-    tags: ['user', 'user:1']
-  }
-);
-
-await cache.set(
-  'user:2',
-  { name: 'Jane' },
-  {
-    ttl: 3600,
-    tags: ['user', 'user:2']
-  }
-);
-```
-
-### Invalidate by Tag
-
-```typescript
-// Invalidate all items with 'user' tag
-await cache.invalidateTag('user');
-
-// Invalidate multiple tags
-await cache.invalidateTags(['user', 'posts']);
-```
-
-## Cache Groups
-
-### Define Groups
-
-```typescript
-export default defineCache({
-  driver: 'redis',
-  groups: {
-    user: {
-      ttl: 3600,
-      tags: ['user']
-    },
-    post: {
-      ttl: 7200,
-      tags: ['post']
-    }
-  }
-});
-```
-
-### Use Groups
-
-```typescript
-await cache.set('user:1', { name: 'John' }, { group: 'user' });
-await cache.set('post:1', { title: 'Hello' }, { group: 'post' });
-
-// Invalidate group
-await cache.invalidateGroup('user');
-```
-
-## Cache Helpers
-
-### remember()
-
-Get or set cache:
-
-```typescript
-const user = await cache.remember(
-  'user:1',
-  async () => {
-    // This runs if cache miss
-    const res = await fetch('/api/users/1');
-    return res.json();
+app.use(createCacheMiddleware({
+  store: useCacheStore(),
+  rules: {
+    '/api/products/**': { ttl: 60 },         // 60s
+    '/api/feed': { ttl: 300, swr: true }     // 5min, stale-while-revalidate
   },
-  { ttl: 3600 }
+  defaultTtl: 0
+}));
+```
+
+| Option      | Type                          | Description                                  |
+| ----------- | ----------------------------- | -------------------------------------------- |
+| store       | CacheStore                    | Store implementation (defaults to global)    |
+| rules       | Record<string, CacheRule>     | Path pattern → cache rule mapping            |
+| defaultTtl  | number                        | TTL applied when no rule matches (0 disables) |
+
+Path patterns support `*` (single segment) and `**` (multi-segment), matching the same semantics as `routeRules`.
+
+### CacheRule
+
+```typescript
+export interface CacheRule {
+  ttl: number;        // seconds; 0 disables caching
+  swr?: boolean | number;  // serve stale while revalidating
+  name?: string;      // explicit cache key (defaults to method + path + query)
+}
+```
+
+## cachedEventHandler()
+
+Wrap a single handler with caching. Useful for expensive endpoints that do not fit the path-pattern rule model.
+
+```typescript
+import { defineHandler, cachedEventHandler } from 'ubean';
+
+export const GET = defineHandler(
+  cachedEventHandler(
+    async c => {
+      const data = await expensiveCompute();
+      return c.json(data);
+    },
+    { ttl: 300, name: 'expensive:endpoint' }
+  )
 );
 ```
 
-### rememberForever()
+Cacheability is enforced automatically:
+- Only `GET`/`HEAD` requests are cached
+- Requests with `Authorization` headers are never cached
+- Requests with cookies are cached only if `Cache-Control: public` is sent
+- Responses with `set-cookie` or non-200 status are never stored
 
-Get or set permanent cache:
+## invalidateRouteCache()
+
+Invalidate cached entries by key, pattern, or clear all.
 
 ```typescript
-const config = await cache.rememberForever('app:config', async () => {
-  return { theme: 'dark' };
-});
+import { invalidateRouteCache } from 'ubean';
+
+await invalidateRouteCache('GET:/api/users:1');   // exact key
+await invalidateRouteCache(/^GET:\/api\/users:/); // regex match
+await invalidateRouteCache();                      // clear all
 ```
 
-### forget()
+## Route rules integration
 
-Alias for delete:
-
-```typescript
-await cache.forget('user:1');
-```
-
-## Redis Configuration
-
-### Basic Setup
+Cache rules are usually declared in `ubean.config.ts` via `routeRules`. The runtime resolves them into `CacheRule`s automatically.
 
 ```typescript
-export default defineCache({
-  driver: 'redis',
-  config: {
-    host: 'localhost',
-    port: 6379,
-    password: 'secret'
+// ubean.config.ts
+import { defineConfig } from 'ubean';
+
+export default defineConfig({
+  routeRules: {
+    '/api/products/**': { cache: { ttl: 60 } },
+    '/api/feed': { cache: { ttl: 300, swr: true } },
+    '/api/user/**': { headers: { 'cache-control': 'no-store' } }
   }
 });
 ```
 
-### Advanced Options
+The middleware sets `X-Cache: HIT|MISS` and `Age` headers on cached responses for observability.
+
+## Custom stores
+
+Implement `CacheStore` for Redis, Cloudflare KV, or any durable backend:
 
 ```typescript
-export default defineCache({
-  driver: 'redis',
-  config: {
-    host: 'localhost',
-    port: 6379,
-    password: 'secret',
-    db: 0,
-    retryDelayOnFailover: 100,
-    enableReadyCheck: true,
-    maxRetriesPerRequest: 2
+import { useCacheStore, type CacheStore } from 'ubean';
+import { createClient } from 'redis';
+
+const redis = createClient({ url: process.env.REDIS_URL });
+await redis.connect();
+
+const redisStore: CacheStore = {
+  async get(key) {
+    const raw = await redis.get(`cache:${key}`);
+    return raw ? JSON.parse(raw) : undefined;
+  },
+  async set(key, entry, ttl) {
+    await redis.set(`cache:${key}`, JSON.stringify(entry), { EX: ttl });
+  },
+  async delete(key) {
+    const count = await redis.del(`cache:${key}`);
+    return count > 0;
+  },
+  async clear() {
+    // implement carefully — usually scoped by prefix in production
   }
-});
+};
+
+useCacheStore(redisStore);
 ```
 
-## Memory Cache
+## What ubean does NOT provide
 
-### Configuration
+ubean does **not** ship these APIs (common in other frameworks' cache modules):
 
-```typescript
-export default defineCache({
-  driver: 'memory',
-  config: {
-    max: 1000, // Max items
-    ttl: 3600 // Default TTL
-  }
-});
-```
+- `useCache()` / `defineCache()` — use `useCacheStore()` + `cachedEventHandler` instead
+- Tag-based invalidation, cache groups, `remember()`, `rememberForever()`
+- Built-in Redis/Memcached/file drivers — implement `CacheStore` yourself or use `unstorage` (`useStorage`) for generic key/value caching
 
-## File Cache
-
-### Configuration
+For arbitrary application-level key/value caching (not HTTP response caching), prefer `useStorage` / `useKV`:
 
 ```typescript
-export default defineCache({
-  driver: 'file',
-  config: {
-    path: './.cache',
-    ttl: 3600
-  }
-});
-```
+import { useStorage } from 'ubean';
 
-## Cache Events
-
-### Subscribe to Events
-
-```typescript
-cache.on('hit', key => {
-  console.log(`Cache hit: ${key}`);
-});
-
-cache.on('miss', key => {
-  console.log(`Cache miss: ${key}`);
-});
-
-cache.on('set', (key, value) => {
-  console.log(`Cache set: ${key}`);
-});
-
-cache.on('delete', key => {
-  console.log(`Cache delete: ${key}`);
-});
+const storage = useStorage();
+await storage.setItem('user:1', { name: 'John' });
+const user = await storage.getItem('user:1');
 ```
 
 ## Best Practices
 
-1. **Use short TTL**: Don't cache forever
-2. **Cache invalidation**: Use tags for related items
-3. **Cache expensive operations**: Database queries, API calls
-4. **Use remember**: Combine get and set in one call
-5. **Monitor cache**: Use events for debugging
-6. **Fallback**: Always have fallback for cache miss
-7. **Serialize**: Complex objects are serialized automatically
+1. **Cache at the route level** — prefer `routeRules` over per-handler caching for consistency.
+2. **Scope custom stores** — namespace Redis keys to avoid collisions across deployments.
+3. **Invalidate on mutation** — call `invalidateRouteCache(...)` from `POST`/`PATCH`/`DELETE` handlers.
+4. **Never cache authed responses** — the middleware enforces this, but verify your `Cache-Control` headers.
+5. **Use `swr` for high-traffic feeds** — keeps latency low while revalidating in the background.

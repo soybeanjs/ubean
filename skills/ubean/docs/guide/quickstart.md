@@ -12,7 +12,7 @@ Get started with ubean in minutes.
 ### Interactive Mode
 
 ```bash
-pnpm create ubean@0.0.1
+pnpm create ubean@latest
 ```
 
 Follow the prompts to configure your project.
@@ -20,7 +20,7 @@ Follow the prompts to configure your project.
 ### Non-Interactive Mode
 
 ```bash
-pnpm create ubean@0.0.1 my-app --template starter --preset node -y
+pnpm create ubean@latest my-app --template starter --preset node -y
 ```
 
 ## Project Structure
@@ -28,21 +28,28 @@ pnpm create ubean@0.0.1 my-app --template starter --preset node -y
 ```
 my-app/
 ├── src/
-│   ├── routes/           # API routes
-│   │   └── api/          # API endpoints
-│   ├── pages/            # Page components
-│   ├── layouts/          # Layout components
-│   ├── middleware/       # Middleware
-│   ├── composables/      # Vue composables
-│   ├── components/       # Vue components
-│   └── locales/          # Translation files
-├── ubean.config.ts       # Framework config
+│   ├── routes/           # API routes (void-style named exports)
+│   │   └── api/          # /api/* endpoints
+│   ├── pages/            # Page components (.vue, .md, .reuse.ts)
+│   ├── layouts/          # Layout components (xx.vue or xx/index.vue)
+│   ├── middleware/       # Middleware (numeric prefix ordering)
+│   ├── components/       # Auto-imported Vue components
+│   ├── composables/      # Auto-imported composables
+│   ├── locales/          # i18n messages (en.json, zh.json, etc.)
+│   ├── crons/            # Cron jobs (defineScheduled)
+│   ├── queues/           # Queue workers (defineQueue)
+│   └── plugins/          # Runtime plugins
+├── public/               # Static assets
+├── .ubean/                # Auto-generated types
+├── ubean.config.ts       # Framework config (defineConfig)
+├── app.ts                # Vue app config (defineApp)
+├── env.ts                # Environment schema (defineEnv)
 └── package.json
 ```
 
 ## Development
 
-Start the development server:
+Start the development server (Vite middleware mode):
 
 ```bash
 cd my-app
@@ -64,6 +71,20 @@ The build output will be in the `.output` directory.
 
 ```bash
 pnpm preview
+```
+
+## Available Scripts
+
+```json
+{
+  "scripts": {
+    "dev": "ubean dev",
+    "build": "ubean build",
+    "preview": "ubean preview",
+    "prepare": "ubean prepare",
+    "typecheck": "vue-tsc --noEmit"
+  }
+}
 ```
 
 ## Next Steps

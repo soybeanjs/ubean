@@ -37,7 +37,7 @@ export function registerOpenAPIRoutes(
   <title>${title}</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
+    html, body { width: 100%; height: 100%; }
     body { background: #0f0f12; }
   </style>
 </head>

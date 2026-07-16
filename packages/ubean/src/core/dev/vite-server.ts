@@ -191,7 +191,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
     appType: 'custom',
     plugins,
-    devtools: { enabled: true },
+    devtools: { enabled: true, clientAuth: false },
     optimizeDeps: {
       exclude: [
         'ubean',

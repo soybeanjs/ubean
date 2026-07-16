@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { SConfigProvider, SIcon } from '@soybeanjs/ui';
 import { useRpc } from './composables/useRpc';
 import type { CrudResourceType } from './composables/useRpc';
+import FloatingAiButton from './components/FloatingAiButton.vue';
 import CreateDialog from './components/CreateDialog.vue';
 import EditDialog from './components/EditDialog.vue';
 import EnvEditDialog from './components/EnvEditDialog.vue';
@@ -37,7 +38,7 @@ const {
   crudRead,
   crudUpdate,
   crudDelete,
-  aiChat,
+  aiChatStream,
   terminalStart,
   terminalInput,
   terminalResize,
@@ -65,6 +66,63 @@ function tryRoute(r: { method: string; path: string }) {
   playgroundPath.value = r.path;
   apiSubTab.value = 'playground';
 }
+
+// --- Floating AI button context ---
+// Maps the current route (+ sub-tab) to a human-readable panel name and a
+// brief resource summary so the AI drawer knows what the user is looking at.
+const currentPanelContext = computed(() => {
+  switch (route.value) {
+    case 'overview':
+      return 'Overview';
+    case 'pages':
+      return pagesSubTab.value === 'layouts' ? 'Layouts' : 'Pages';
+    case 'api':
+      return apiSubTab.value === 'playground' ? 'API Playground' : 'API Routes';
+    case 'middleware':
+      return 'Middlewares';
+    case 'crons':
+      return 'Crons';
+    case 'env':
+      return 'Environment Variables';
+    case 'config':
+      return 'Config';
+    case 'api-docs':
+      return 'API Docs';
+    case 'database':
+      return 'Database';
+    case 'terminal':
+      return 'Terminal';
+    default:
+      return 'DevTools';
+  }
+});
+
+const currentResourceSummary = computed(() => {
+  if (!info.value) return '';
+  const i = info.value;
+  switch (route.value) {
+    case 'overview':
+      return `Project has ${i.pages} pages, ${i.apiRoutes} API routes, ${i.middleware} middleware, ${i.layouts} layouts, ${i.crons} cron jobs.`;
+    case 'pages':
+      return pagesSubTab.value === 'layouts'
+        ? `${i.layouts} layouts available.`
+        : `${i.pages} pages available.`;
+    case 'api':
+      return apiSubTab.value === 'playground'
+        ? `${i.apiRoutes} API routes available to test.`
+        : `${i.apiRoutes} API routes available.`;
+    case 'middleware':
+      return `${i.middleware} middleware registered.`;
+    case 'crons':
+      return `${i.crons} cron jobs registered.`;
+    case 'env':
+      return `${Object.keys(env.value).length} environment variables.`;
+    case 'config':
+      return `Preset: ${i.presets.join(', ') || 'default'}`;
+    default:
+      return '';
+  }
+});
 
 // --- Create dialog (keyboard shortcuts) ---
 const createDialogOpen = ref(false);
@@ -257,13 +315,29 @@ onUnmounted(() => {
           />
         </button>
 
+        <!-- Floating AI button (hidden on the dedicated AI panel to avoid duplication) -->
+        <FloatingAiButton
+          v-if="route !== 'ai'"
+          :panel-context="currentPanelContext"
+          :resource-summary="currentResourceSummary"
+          :send-chat-stream="aiChatStream"
+          :on-refresh="refresh"
+          :ai-enabled="info.ai?.enabled"
+        />
+
         <!-- Overview -->
         <div v-if="route === 'overview'" class="h-full overflow-y-auto">
           <Overview :info="info" :uptime="uptime" :fmt-uptime="fmtUptime" :fmt-time="fmtTime" :fmt-val="fmtVal" />
         </div>
 
         <!-- AI -->
-        <AiAssistant v-else-if="route === 'ai'" class="h-full" :info="info" :send-chat="aiChat" :on-refresh="refresh" />
+        <AiAssistant
+          v-else-if="route === 'ai'"
+          class="h-full"
+          :info="info"
+          :send-chat-stream="aiChatStream"
+          :on-refresh="refresh"
+        />
 
         <!-- API (Routes + Playground, grouped) -->
         <div v-else-if="route === 'api'" class="h-full flex flex-col">
@@ -294,6 +368,7 @@ onUnmounted(() => {
             @try-route="tryRoute"
             @edit="handleApiRouteEdit"
             @delete="handleApiRouteDelete"
+            @create="openCreateDialog('api')"
           />
           <ApiPlayground
             v-show="apiSubTab === 'playground'"
@@ -333,6 +408,7 @@ onUnmounted(() => {
             @edit="handlePageEdit"
             @edit-meta="handlePageMetaEdit"
             @delete="handlePageDelete"
+            @create="openCreateDialog('page')"
           />
           <Layouts
             v-show="pagesSubTab === 'layouts'"
@@ -341,6 +417,7 @@ onUnmounted(() => {
             :file-path="filePath"
             @edit="handleLayoutEdit"
             @delete="handleLayoutDelete"
+            @create="openCreateDialog('layout')"
           />
         </div>
 
@@ -352,6 +429,7 @@ onUnmounted(() => {
           :file-path="filePath"
           @edit="handleMiddlewareEdit"
           @delete="handleMiddlewareDelete"
+          @create="openCreateDialog('middleware')"
         />
 
         <!-- Crons -->
@@ -362,6 +440,7 @@ onUnmounted(() => {
           :file-path="filePath"
           @edit="handleCronEdit"
           @delete="handleCronDelete"
+          @create="openCreateDialog('cron')"
         />
 
         <!-- Env -->

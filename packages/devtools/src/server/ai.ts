@@ -1,5 +1,26 @@
+/**
+ * AI server for ubean DevTools.
+ *
+ * Uses the Vercel AI SDK (`ai` package) with `@ai-sdk/openai-compatible`
+ * to connect to DeepSeek by default. The provider/model can be overridden
+ * via `devtools.ai` config or client-side settings.
+ *
+ * Features:
+ * - Natural language chat with tool calling (create/delete/list resources, etc.)
+ * - Streaming via `streamText` + `onStreamChunk` callback (pushed through sharedState)
+ * - Command parser fallback when no API key is configured
+ * - Dynamic imports for `ai` and `@ai-sdk/openai-compatible` (optional deps)
+ */
 import type { DevToolsInfo } from '../types';
 import type { DevToolsCrudServer } from './crud';
+
+// --- DeepSeek defaults ---
+
+export const DEEPSEEK_API_BASE = 'https://api.deepseek.com/v1';
+export const DEEPSEEK_MODEL = 'deepseek-chat';
+const DEEPSEEK_PROVIDER_NAME = 'deepseek';
+
+// --- Interfaces (preserved for backward compatibility) ---
 
 export interface AiToolCall {
   id: string;
@@ -18,6 +39,7 @@ export interface AiChatMessage {
   content: string;
   toolCalls?: AiToolCall[];
   toolCallId?: string;
+  toolResults?: AiToolResult[];
   timestamp: number;
 }
 
@@ -43,12 +65,27 @@ export interface AiChatOptions {
   model?: string;
   apiKey?: string;
   apiBase?: string;
+  /** When provided, the server streams text deltas via this callback. */
+  requestId?: string;
 }
 
 export interface AiChatResponse {
   message: AiChatMessage;
   toolResults?: AiToolResult[];
 }
+
+/** A chunk pushed to the client during streaming. */
+export interface AiStreamChunk {
+  requestId: string;
+  /** Accumulated text so far (not a delta). */
+  text: string;
+  done: boolean;
+  toolCalls?: AiToolCall[];
+  toolResults?: AiToolResult[];
+  error?: string;
+}
+
+// --- System prompt ---
 
 const SYSTEM_PROMPT = `You are ubean Assistant, an AI developer assistant built into the ubean Vue meta-framework DevTools.
 You help developers scaffold pages, APIs, middleware, layouts, cron jobs, plugins, and manage environment variables.
@@ -63,7 +100,10 @@ Available resource types for creation: page, api, layout, middleware, cron, plug
 - plugin: Plugin under src/plugins/
 
 When creating resources, always use the create_resource tool and confirm the path with the user if ambiguous.
-Be concise and helpful. Use code examples when relevant.`;
+Be concise and helpful. Use code examples when relevant.
+
+When the user asks about the current project, use the list_resources or get_project_info tools to get up-to-date information.
+Do not guess resource paths — always verify with tools first.`;
 
 let toolCallCounter = 0;
 
@@ -71,7 +111,26 @@ function nextToolId(): string {
   return `call_${++toolCallCounter}`;
 }
 
-export function createAiServer(crud: DevToolsCrudServer, getInfo: () => DevToolsInfo) {
+// --- Factory ---
+
+export interface AiServerOptions {
+  crud: DevToolsCrudServer;
+  getInfo: () => DevToolsInfo;
+  /** Called for each text delta during streaming. The RPC layer wires this
+   *  to a sharedState key so the client receives live updates. */
+  onStreamChunk?: (chunk: AiStreamChunk) => void;
+}
+
+export function createAiServer(
+  crud: DevToolsCrudServer,
+  getInfo: () => DevToolsInfo,
+  onStreamChunk?: (chunk: AiStreamChunk) => void
+): DevToolsAiServer {
+  // ------------------------------------------------------------------
+  // Tool definitions (used both for the AI SDK `tool()` helpers and for
+  // the `ubean:ai:tools` RPC that exposes them to the client).
+  // ------------------------------------------------------------------
+
   function getToolDefinitions(): AiToolDefinition[] {
     return [
       {
@@ -188,6 +247,10 @@ export function createAiServer(crud: DevToolsCrudServer, getInfo: () => DevTools
     ];
   }
 
+  // ------------------------------------------------------------------
+  // Tool execution (shared between command-parser path and AI SDK path)
+  // ------------------------------------------------------------------
+
   async function executeToolCall(call: AiToolCall): Promise<AiToolResult> {
     try {
       const args = call.arguments;
@@ -290,6 +353,10 @@ export function createAiServer(crud: DevToolsCrudServer, getInfo: () => DevTools
     }
   }
 
+  // ------------------------------------------------------------------
+  // Command parser (fallback when no API key is configured)
+  // ------------------------------------------------------------------
+
   function parseCommand(input: string): { toolCalls?: AiToolCall[]; response?: string } | null {
     const lower = input.trim().toLowerCase();
 
@@ -365,7 +432,7 @@ export function createAiServer(crud: DevToolsCrudServer, getInfo: () => DevTools
 **Environment:**
 - \`set env DATABASE_URL=postgres://...\` — Set environment variable
 
-You can also ask me questions in natural language, or configure an OpenAI-compatible API key for more advanced AI assistance.`
+You can also ask me questions in natural language, or configure a DeepSeek/OpenAI-compatible API key for more advanced AI assistance.`
       };
     }
 
@@ -459,8 +526,82 @@ You can also ask me questions in natural language, or configure an OpenAI-compat
     return JSON.stringify(result, null, 2);
   }
 
+  // ------------------------------------------------------------------
+  // Message conversion: AiChatMessage[] → AI SDK CoreMessage[]
+  // ------------------------------------------------------------------
+
+  function convertToCoreMessages(messages: AiChatMessage[]): Array<Record<string, unknown>> {
+    return messages
+      .filter(m => m.role !== 'tool' || m.toolCallId) // skip orphan tool messages
+      .map(m => {
+        if (m.role === 'assistant' && m.toolCalls?.length) {
+          return {
+            role: 'assistant',
+            content: [
+              ...(m.content ? [{ type: 'text', text: m.content }] : []),
+              ...m.toolCalls.map(tc => ({
+                type: 'tool-call',
+                toolCallId: tc.id,
+                toolName: tc.name,
+                args: tc.arguments
+              }))
+            ]
+          };
+        }
+        if (m.role === 'tool') {
+          return {
+            role: 'tool',
+            content: [
+              {
+                type: 'tool-result',
+                toolCallId: m.toolCallId!,
+                toolName: 'tool',
+                result: m.content
+              }
+            ]
+          };
+        }
+        return { role: m.role, content: m.content };
+      });
+  }
+
+  // ------------------------------------------------------------------
+  // Build AI SDK tool map (with execute functions)
+  // ------------------------------------------------------------------
+
+  async function buildAiSdkTools(): Promise<Record<string, unknown>> {
+    const { tool, jsonSchema } = await import('ai');
+
+    const defs = getToolDefinitions();
+    const tools: Record<string, unknown> = {};
+
+    for (const def of defs) {
+      const exec = getToolExecutor(def.name);
+      tools[def.name] = tool({
+        description: def.description,
+        parameters: jsonSchema(def.parameters),
+        execute: async (args: Record<string, unknown>) => {
+          const result = await executeToolCall({ id: nextToolId(), name: def.name, arguments: args });
+          return result.error ? { error: result.error } : result.result;
+        }
+      });
+    }
+
+    void exec; // executor mapping is done inside executeToolCall
+    return tools;
+  }
+
+  /** Map tool name → executor (all go through `executeToolCall`). */
+  function getToolExecutor(_name: string) {
+    return executeToolCall;
+  }
+
+  // ------------------------------------------------------------------
+  // Main chat entry point
+  // ------------------------------------------------------------------
+
   async function chat(options: AiChatOptions): Promise<AiChatResponse> {
-    const { messages, apiKey, apiBase, model } = options;
+    const { messages, apiKey, apiBase, model, requestId } = options;
     const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
 
     if (!lastUserMsg) {
@@ -473,6 +614,7 @@ You can also ask me questions in natural language, or configure an OpenAI-compat
       };
     }
 
+    // 1. Try command parser first (works without an API key).
     const parsed = parseCommand(lastUserMsg.content);
 
     if (parsed?.response) {
@@ -514,9 +656,20 @@ You can also ask me questions in natural language, or configure an OpenAI-compat
       };
     }
 
-    if (apiKey && apiBase) {
+    // 2. If an API key is available, use the AI SDK (streamText).
+    const resolvedApiKey = apiKey || process.env.DEEPSEEK_API_KEY || process.env.UBEAN_AI_API_KEY || process.env.OPENAI_API_KEY;
+    const resolvedApiBase = apiBase || process.env.UBEAN_AI_API_BASE || DEEPSEEK_API_BASE;
+    const resolvedModel = model || process.env.UBEAN_AI_MODEL || DEEPSEEK_MODEL;
+
+    if (resolvedApiKey) {
       try {
-        return await callLlmApi({ messages, apiKey, apiBase, model });
+        return await callLlmApi({
+          messages,
+          apiKey: resolvedApiKey,
+          apiBase: resolvedApiBase,
+          model: resolvedModel,
+          requestId
+        });
       } catch (err) {
         return {
           message: {
@@ -528,115 +681,139 @@ You can also ask me questions in natural language, or configure an OpenAI-compat
       }
     }
 
+    // 3. No API key — prompt the user to configure one.
     return {
       message: {
         role: 'assistant',
-        content: `I didn't understand that command. Type "help" to see what I can do.\n\nTip: For natural language assistance, configure an OpenAI-compatible API endpoint:\n\n\`\`\`ts\n// ubean.config.ts\nexport default defineConfig({\n  devtools: {\n    ai: {\n      apiKey: process.env.OPENAI_API_KEY,\n      apiBase: 'https://api.openai.com/v1',\n      model: 'gpt-4o-mini'\n    }\n  }\n});\n\`\`\``,
+        content: `I didn't understand that command. Type "help" to see what I can do.\n\nTip: For natural language assistance, configure a DeepSeek or OpenAI-compatible API endpoint:\n\n\`\`\`ts\n// ubean.config.ts\nexport default defineConfig({\n  devtools: {\n    ai: {\n      apiKey: process.env.DEEPSEEK_API_KEY,\n      apiBase: 'https://api.deepseek.com/v1',\n      model: 'deepseek-chat'\n    }\n  }\n});\n\`\`\`\n\nOr set the \`DEEPSEEK_API_KEY\` environment variable.`,
         timestamp: Date.now()
       }
     };
   }
 
-  async function callLlmApi(options: AiChatOptions): Promise<AiChatResponse> {
-    const { messages, apiKey, apiBase, model } = options;
-    const tools = getToolDefinitions();
+  // ------------------------------------------------------------------
+  // LLM call via AI SDK (streamText with tool calling)
+  // ------------------------------------------------------------------
 
-    const apiMessages = [
-      { role: 'system', content: SYSTEM_PROMPT },
-      ...messages.map(m => ({
-        role: m.role,
-        content: m.content,
-        ...(m.toolCalls
-          ? {
-              tool_calls: m.toolCalls.map(tc => ({
-                id: tc.id,
-                type: 'function' as const,
-                function: { name: tc.name, arguments: JSON.stringify(tc.arguments) }
-              }))
-            }
-          : {}),
-        ...(m.toolCallId ? { tool_call_id: m.toolCallId } : {})
-      }))
-    ];
+  async function callLlmApi(options: Required<Omit<AiChatOptions, 'requestId'>> & { requestId?: string }): Promise<AiChatResponse> {
+    const { messages, apiKey, apiBase, model, requestId } = options;
 
-    const res = await fetch(`${apiBase}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: JSON.stringify({
-        model: model || 'gpt-4o-mini',
-        messages: apiMessages,
-        tools: tools.map(t => ({
-          type: 'function',
-          function: {
-            name: t.name,
-            description: t.description,
-            parameters: t.parameters
-          }
-        }))
-      })
+    // Dynamic import — makes `ai` and `@ai-sdk/openai-compatible` optional.
+    const [{ streamText, stepCountIs }, { createOpenAICompatible }] = await Promise.all([
+      import('ai'),
+      import('@ai-sdk/openai-compatible')
+    ]);
+
+    const provider = createOpenAICompatible({
+      baseURL: apiBase,
+      name: apiBase.includes('deepseek') ? DEEPSEEK_PROVIDER_NAME : 'ubean-ai',
+      apiKey
+    });
+    const aiModel = provider.chatModel(model);
+
+    const coreMessages = convertToCoreMessages(messages);
+    const tools = await buildAiSdkTools();
+
+    const result = streamText({
+      model: aiModel,
+      system: SYSTEM_PROMPT,
+      messages: coreMessages,
+      tools,
+      stopWhen: stepCountIs(5)
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`API request failed (${res.status}): ${text.slice(0, 200)}`);
-    }
+    // --- Streaming path ---
+    // When a requestId is provided, push accumulated text + tool events
+    // through onStreamChunk so the client can render live updates.
+    let accumulated = '';
+    const streamToolCalls: AiToolCall[] = [];
+    const streamToolResults: AiToolResult[] = [];
+    let streamError: string | undefined;
 
-    const data = (await res.json()) as {
-      choices?: Array<{
-        message?: {
-          content?: string;
-          tool_calls?: Array<{
-            id: string;
-            function: { name: string; arguments: string };
-          }>;
+    if (requestId && onStreamChunk) {
+      try {
+        for await (const part of result.fullStream) {
+          switch (part.type) {
+            case 'text-delta':
+              accumulated += part.textDelta;
+              // Throttle: push on word boundary or every ~5 chars
+              onStreamChunk({ requestId, text: accumulated, done: false });
+              break;
+            case 'tool-call':
+              streamToolCalls.push({
+                id: part.toolCallId,
+                name: part.toolName,
+                arguments: part.args as Record<string, unknown>
+              });
+              onStreamChunk({ requestId, text: accumulated, done: false, toolCalls: [...streamToolCalls] });
+              break;
+            case 'tool-result':
+              streamToolResults.push({
+                toolCallId: part.toolCallId,
+                result: part.result
+              });
+              onStreamChunk({
+                requestId,
+                text: accumulated,
+                done: false,
+                toolCalls: [...streamToolCalls],
+                toolResults: [...streamToolResults]
+              });
+              break;
+            case 'error':
+              streamError = part.error instanceof Error ? part.error.message : String(part.error);
+              break;
+          }
+        }
+      } catch (err) {
+        streamError = err instanceof Error ? err.message : String(err);
+      }
+
+      if (streamError) {
+        onStreamChunk({ requestId, text: accumulated, done: true, error: streamError });
+        return {
+          message: {
+            role: 'assistant',
+            content: accumulated || `Error: ${streamError}`,
+            toolCalls: streamToolCalls.length ? streamToolCalls : undefined,
+            timestamp: Date.now()
+          },
+          toolResults: streamToolResults.length ? streamToolResults : undefined
         };
-      }>;
+      }
+    } else {
+      // --- Non-streaming path: just await the full result ---
+      try {
+        for await (const _ of result.fullStream) {
+          if (_.type === 'text-delta') accumulated += _.textDelta;
+          if (_.type === 'tool-call') {
+            streamToolCalls.push({
+              id: _.toolCallId,
+              name: _.toolName,
+              arguments: _.args as Record<string, unknown>
+            });
+          }
+          if (_.type === 'tool-result') {
+            streamToolResults.push({ toolCallId: _.toolCallId, result: _.result });
+          }
+          if (_.type === 'error') {
+            streamError = _.error instanceof Error ? _.error.message : String(_.error);
+          }
+        }
+      } catch (err) {
+        streamError = err instanceof Error ? err.message : String(err);
+      }
+    }
+
+    return {
+      message: {
+        role: 'assistant',
+        content: accumulated || (streamError ? `Error: ${streamError}` : ''),
+        toolCalls: streamToolCalls.length ? streamToolCalls : undefined,
+        timestamp: Date.now()
+      },
+      toolResults: streamToolResults.length ? streamToolResults : undefined
     };
-    const choice = data.choices?.[0];
-    if (!choice?.message) {
-      throw new Error('Invalid API response');
-    }
-
-    const assistantMsg: AiChatMessage = {
-      role: 'assistant',
-      content: choice.message.content || '',
-      timestamp: Date.now()
-    };
-
-    const toolCalls: AiToolCall[] = [];
-    if (choice.message.tool_calls?.length) {
-      for (const tc of choice.message.tool_calls) {
-        const args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
-        toolCalls.push({ id: tc.id, name: tc.function.name, arguments: args });
-      }
-      assistantMsg.toolCalls = toolCalls;
-    }
-
-    let toolResults: AiToolResult[] | undefined;
-    if (toolCalls.length > 0) {
-      toolResults = [];
-      for (const tc of toolCalls) {
-        const result = await executeToolCall(tc);
-        toolResults.push(result);
-      }
-
-      const followUpMessages = [...messages, assistantMsg];
-      for (const tr of toolResults) {
-        followUpMessages.push({
-          role: 'tool',
-          content: JSON.stringify(tr.result ?? tr.error),
-          toolCallId: tr.toolCallId,
-          timestamp: Date.now()
-        });
-      }
-
-      return chat({ messages: followUpMessages, apiKey, apiBase, model });
-    }
-
-    return { message: assistantMsg, toolResults };
   }
 
   return {

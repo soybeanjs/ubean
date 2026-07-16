@@ -132,9 +132,13 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
     openAPI: configMeta?.openAPI ?? { enabled: false },
     database: configMeta?.database,
     ai: {
-      enabled: !!(ai?.apiKey || process.env.UBEAN_AI_API_KEY || process.env.OPENAI_API_KEY),
-      provider: ai?.apiBase?.includes('anthropic') ? 'anthropic' : 'openai',
-      model: ai?.model
+      enabled: !!(ai?.apiKey || process.env.DEEPSEEK_API_KEY || process.env.UBEAN_AI_API_KEY || process.env.OPENAI_API_KEY),
+      provider: ai?.apiBase?.includes('deepseek')
+        ? 'deepseek'
+        : ai?.apiBase?.includes('anthropic')
+          ? 'anthropic'
+          : 'deepseek',
+      model: ai?.model || (ai?.apiBase?.includes('deepseek') || !ai?.apiBase ? 'deepseek-chat' : ai.model)
     }
   };
 }

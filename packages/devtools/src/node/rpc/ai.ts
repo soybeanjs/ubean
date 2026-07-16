@@ -1,8 +1,11 @@
 /**
- * AI RPC functions — `ubean:ai:tools` and `ubean:ai:chat`.
+ * AI RPC functions — `ubean:ai:tools`, `ubean:ai:chat`, and `ubean:ai:chat-stream`.
  *
- * Delegates to the existing `createAiServer` which owns the command
- * parser, tool execution, and optional LLM API forwarding.
+ * `ubean:ai:chat` — non-streaming chat (returns full response).
+ * `ubean:ai:chat-stream` — streaming chat; pushes chunks to the
+ *   `ubean:ai:stream` sharedState key via the `onStreamChunk` callback
+ *   wired in `createAiServer`. The client subscribes to that sharedState
+ *   and filters by `requestId`.
  */
 import { defineRpcFunction } from '@vitejs/devtools-kit';
 import type { DevToolsAiServer, AiChatMessage, AiChatResponse } from '../../server/ai';
@@ -35,5 +38,26 @@ export function createAiRpcFunctions(ai: DevToolsAiServer) {
     })
   });
 
-  return [aiTools, aiChat];
+  const aiChatStream = defineRpcFunction({
+    name: 'ubean:ai:chat-stream',
+    type: 'action',
+    setup: () => ({
+      handler: (params: {
+        messages: AiChatMessage[];
+        requestId: string;
+        apiKey?: string;
+        apiBase?: string;
+        model?: string;
+      }): Promise<AiChatResponse> =>
+        ai.chat({
+          messages: params.messages,
+          apiKey: params.apiKey,
+          apiBase: params.apiBase,
+          model: params.model,
+          requestId: params.requestId
+        })
+    })
+  });
+
+  return [aiTools, aiChat, aiChatStream];
 }

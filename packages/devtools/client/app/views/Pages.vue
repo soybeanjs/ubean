@@ -13,6 +13,7 @@ const emit = defineEmits<{
   (e: 'delete', page: DevToolsPageInfo): void;
   (e: 'edit', page: DevToolsPageInfo): void;
   (e: 'edit-meta', page: DevToolsPageInfo): void;
+  (e: 'create'): void;
 }>();
 
 const searchQuery = ref('');
@@ -66,6 +67,14 @@ function handleDelete() {
         />
       </div>
       <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0 op-fade">{{ filteredPages.length }} pages</span>
+      <button
+        class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors cursor-pointer flex-shrink-0"
+        title="New page (P)"
+        @click="emit('create')"
+      >
+        <SIcon icon="lucide:plus" :size="13" />
+        New
+      </button>
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredPages.length > 0" class="flex flex-col gap-1">

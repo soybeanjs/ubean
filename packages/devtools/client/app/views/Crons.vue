@@ -12,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   delete: [cron: DevToolsCronInfo];
   edit: [cron: DevToolsCronInfo];
+  create: [];
 }>();
 
 const searchQuery = ref('');
@@ -65,6 +66,14 @@ function handleDelete() {
         />
       </div>
       <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0 op-fade">{{ filteredCrons.length }} jobs</span>
+      <button
+        class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors cursor-pointer flex-shrink-0"
+        title="New cron job (C)"
+        @click="emit('create')"
+      >
+        <SIcon icon="lucide:plus" :size="13" />
+        New
+      </button>
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredCrons.length > 0" class="flex flex-col gap-1">

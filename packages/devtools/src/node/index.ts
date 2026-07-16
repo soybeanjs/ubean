@@ -168,6 +168,21 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
         //    and receive patches on every refresh (no polling).
         const state = await initSharedState(ctx, initialInfo);
 
+        // 4b. AI streaming shared state — the AI server pushes text deltas
+        //     here during `streamText`, and clients subscribe to render
+        //     live updates. Keyed by `requestId` so multiple clients don't
+        //     clobber each other.
+        const aiStreamState = await ctx.rpc.sharedState.get('ubean:ai:stream', {
+          initialValue: { requestId: '', text: '', done: true } as {
+            requestId: string;
+            text: string;
+            done: boolean;
+            toolCalls?: unknown[];
+            toolResults?: unknown[];
+            error?: string;
+          }
+        });
+
         // 5. Instantiate the CRUD + AI servers (reused as-is from the old
         //    server/ modules — only the transport layer changed).
         const hooks = createDevToolsHooks();
@@ -182,7 +197,15 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
           getConfig: () => (options.getConfigMeta?.() ?? {}) as Record<string, unknown>,
           onFileChange: undefined
         });
-        const ai: DevToolsAiServer = createAiServer(crud, () => state.value() as DevToolsInfo);
+        const ai: DevToolsAiServer = createAiServer(
+          crud,
+          () => state.value() as DevToolsInfo,
+          (chunk) => {
+            // Push each chunk to the shared state — clients receive the
+            // updated value via their `on('updated')` subscription.
+            aiStreamState.mutate(() => chunk);
+          }
+        );
         const terminal: TerminalServer = createTerminalServer();
 
         // 6. Register all RPC functions (info / crud / ai / playground / terminal).

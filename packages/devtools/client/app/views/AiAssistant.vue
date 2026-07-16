@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
-import type { AiChatMessage, AiChatResponse } from '../composables/useRpc';
+import type { AiChatMessage, AiChatResponse, AiStreamChunk } from '../composables/useRpc';
+import { DEEPSEEK_API_BASE, DEEPSEEK_MODEL } from '../composables/useRpc';
 
 const props = defineProps<{
   info: {
     ai?: { enabled: boolean; provider?: string; model?: string };
   };
-  sendChat: (
+  sendChatStream: (
     messages: AiChatMessage[],
-    options: { apiKey?: string; apiBase?: string; model?: string }
+    options: { apiKey?: string; apiBase?: string; model?: string },
+    onChunk: (chunk: AiStreamChunk) => void
   ) => Promise<AiChatResponse>;
   onRefresh: () => Promise<void>;
 }>();
@@ -99,6 +101,14 @@ async function sendMessage(text?: string) {
   messages.value.push(userMsg);
   input.value = '';
   isLoading.value = true;
+
+  // Placeholder assistant message — updated in-place as chunks arrive.
+  const assistantMsg: AiChatMessage = {
+    role: 'assistant',
+    content: '',
+    timestamp: Date.now()
+  };
+  messages.value.push(assistantMsg);
   scrollToBottom();
 
   try {
@@ -107,20 +117,32 @@ async function sendMessage(text?: string) {
     if (apiBase.value) opts.apiBase = apiBase.value;
     if (model.value) opts.model = model.value;
 
-    const response = await props.sendChat([...messages.value], opts);
+    const response = await props.sendChatStream(
+      [...messages.value.slice(0, -1)],
+      opts,
+      (chunk: AiStreamChunk) => {
+        // Update the placeholder message in-place.
+        assistantMsg.content = chunk.text;
+        if (chunk.toolCalls) {
+          assistantMsg.toolCalls = chunk.toolCalls;
+        }
+        if (chunk.toolResults) {
+          assistantMsg.toolResults = chunk.toolResults;
+        }
+        scrollToBottom();
+      }
+    );
 
-    messages.value.push(response.message);
-
-    if (response.toolResults && response.toolResults.length > 0) {
-      response.message.toolResults = response.toolResults;
+    // Finalize with the response.
+    assistantMsg.content = response.message.content;
+    assistantMsg.toolCalls = response.message.toolCalls;
+    if (response.toolResults) {
+      assistantMsg.toolResults = response.toolResults;
+      // Refresh DevTools info if tools were executed.
       await props.onRefresh();
     }
   } catch (e) {
-    messages.value.push({
-      role: 'assistant',
-      content: `Error: ${e instanceof Error ? e.message : 'Unknown error'}`,
-      timestamp: Date.now()
-    });
+    assistantMsg.content = `Error: ${e instanceof Error ? e.message : 'Unknown error'}`;
   } finally {
     isLoading.value = false;
     scrollToBottom();
@@ -155,7 +177,13 @@ onMounted(() => {
           v-if="aiEnabled"
           class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-primary/10 text-primary"
         >
-          {{ info?.ai?.provider || 'openai' }}
+          {{ info?.ai?.provider || 'deepseek' }}
+        </span>
+        <span
+          v-if="info?.ai?.model"
+          class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono text-muted-foreground bg-secondary"
+        >
+          {{ info.ai.model }}
         </span>
       </div>
       <button
@@ -172,7 +200,7 @@ onMounted(() => {
         <input
           v-model="apiKey"
           type="password"
-          placeholder="sk-..."
+          placeholder="sk-... (DeepSeek or OpenAI-compatible)"
           class="w-full px-2 py-1.5 text-xs bg-background border border-base rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
@@ -181,7 +209,7 @@ onMounted(() => {
         <input
           v-model="apiBase"
           type="text"
-          placeholder="https://api.openai.com/v1"
+          :placeholder="DEEPSEEK_API_BASE"
           class="w-full px-2 py-1.5 text-xs bg-background border border-base rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
@@ -190,7 +218,7 @@ onMounted(() => {
         <input
           v-model="model"
           type="text"
-          placeholder="gpt-4o-mini"
+          :placeholder="DEEPSEEK_MODEL"
           class="w-full px-2 py-1.5 text-xs bg-background border border-base rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
@@ -206,8 +234,11 @@ onMounted(() => {
       <p class="text-[10px] text-warning flex items-start gap-1.5">
         <SIcon icon="lucide:alert-circle" :size="12" class="mt-0.5 flex-shrink-0" />
         <span>
-          No API key configured. Set UBEAN_AI_API_KEY/OPENAI_API_KEY env var or configure in settings. Simple text
-          commands still work without LLM.
+          No API key configured. Set
+          <code class="text-warning font-mono">DEEPSEEK_API_KEY</code> env var (or
+          <code class="text-warning font-mono">UBEAN_AI_API_KEY</code> /
+          <code class="text-warning font-mono">OPENAI_API_KEY</code>) or configure in settings. Simple text commands
+          still work without LLM.
         </span>
       </p>
     </div>
@@ -230,7 +261,13 @@ onMounted(() => {
                   : 'bg-background border border-base text-foreground rounded-tl-sm'
               ]"
             >
-              <div class="whitespace-pre-wrap">{{ msg.content }}</div>
+              <div v-if="msg.content" class="whitespace-pre-wrap">{{ msg.content }}</div>
+              <!-- Typing indicator for empty streaming message -->
+              <div v-else-if="isLoading && idx === messages.length - 1" class="flex gap-1 py-0.5">
+                <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 0ms"></span>
+                <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 150ms"></span>
+                <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 300ms"></span>
+              </div>
             </div>
             <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="space-y-1">
               <div
@@ -260,28 +297,6 @@ onMounted(() => {
           </div>
         </div>
       </template>
-
-      <div v-if="isLoading" class="flex gap-2 justify-start">
-        <div class="size-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-          <SIcon icon="lucide:sparkles" :size="11" class="text-primary" />
-        </div>
-        <div class="px-3 py-2 rounded-lg bg-background border border-base rounded-tl-sm">
-          <div class="flex gap-1">
-            <span
-              class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
-              style="animation-delay: 0ms"
-            ></span>
-            <span
-              class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
-              style="animation-delay: 150ms"
-            ></span>
-            <span
-              class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
-              style="animation-delay: 300ms"
-            ></span>
-          </div>
-        </div>
-      </div>
 
       <div v-if="messages.length <= 1" class="pt-2">
         <p class="text-[10px] text-muted-foreground mb-2 font-medium">Try:</p>

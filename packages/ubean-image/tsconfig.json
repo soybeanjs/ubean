@@ -4,8 +4,7 @@
     "outDir": "dist",
     "rootDir": "src",
     "declaration": true,
-    "emitDeclarationOnly": false,
-    "composite": false,
+    "emitDeclarationOnly": true,
     "paths": {
       "#app": ["../../packages/ubean/src/runtime/vue/index"]
     }

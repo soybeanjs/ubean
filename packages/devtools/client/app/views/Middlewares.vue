@@ -12,6 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   delete: [middleware: DevToolsMiddlewareInfo];
   edit: [middleware: DevToolsMiddlewareInfo];
+  create: [];
 }>();
 
 const searchQuery = ref('');
@@ -94,6 +95,14 @@ function handleDelete() {
           Route ({{ routeCount }})
         </button>
       </div>
+      <button
+        class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors cursor-pointer flex-shrink-0 ml-auto"
+        title="New middleware (M)"
+        @click="emit('create')"
+      >
+        <SIcon icon="lucide:plus" :size="13" />
+        New
+      </button>
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredMiddlewares.length > 0" class="flex flex-col gap-1">

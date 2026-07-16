@@ -549,7 +549,7 @@ describe('createAllRpcFunctions', () => {
     });
 
     expect(Array.isArray(fns)).toBe(true);
-    expect(fns.length).toBe(15); // 2 info + 5 crud + 2 ai + 1 playground + 5 terminal
+    expect(fns.length).toBe(16); // 2 info + 5 crud + 3 ai + 1 playground + 5 terminal
 
     const names = fns.map((f: any) => f.name);
     expect(names).toContain('ubean:get-info');
@@ -561,6 +561,7 @@ describe('createAllRpcFunctions', () => {
     expect(names).toContain('ubean:crud:restore');
     expect(names).toContain('ubean:ai:tools');
     expect(names).toContain('ubean:ai:chat');
+    expect(names).toContain('ubean:ai:chat-stream');
     expect(names).toContain('ubean:playground:invoke');
     expect(names).toContain('ubean:terminal:start');
     expect(names).toContain('ubean:terminal:input');

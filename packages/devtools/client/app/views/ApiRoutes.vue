@@ -14,6 +14,7 @@ const emit = defineEmits<{
   tryRoute: [route: DevToolsRouteInfo];
   delete: [route: DevToolsRouteInfo];
   edit: [route: DevToolsRouteInfo];
+  create: [];
 }>();
 
 const searchQuery = ref('');
@@ -86,6 +87,14 @@ function handleDelete() {
       <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0 op-fade">
         {{ filteredRoutes.length }} routes
       </span>
+      <button
+        class="inline-flex items-center gap-1 px-2 py-1.5 rounded-md bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors cursor-pointer flex-shrink-0"
+        title="New API route (A)"
+        @click="emit('create')"
+      >
+        <SIcon icon="lucide:plus" :size="13" />
+        New
+      </button>
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredRoutes.length > 0" class="flex flex-col gap-1">

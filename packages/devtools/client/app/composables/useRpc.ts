@@ -65,6 +65,21 @@ export interface AiChatResponse {
   toolResults?: Array<{ toolCallId: string; result?: unknown; error?: string }>;
 }
 
+/** A chunk pushed from the server during streaming. */
+export interface AiStreamChunk {
+  requestId: string;
+  /** Accumulated text so far (not a delta — replace, don't append). */
+  text: string;
+  done: boolean;
+  toolCalls?: Array<{ id: string; name: string; arguments: Record<string, unknown> }>;
+  toolResults?: Array<{ toolCallId: string; result?: unknown; error?: string }>;
+  error?: string;
+}
+
+/** DeepSeek defaults — used when the user hasn't configured a custom provider. */
+export const DEEPSEEK_API_BASE = 'https://api.deepseek.com/v1';
+export const DEEPSEEK_MODEL = 'deepseek-chat';
+
 export interface DevToolsInfo {
   version: string;
   pages: number;
@@ -336,6 +351,46 @@ export function useRpc() {
     }
   }
 
+  /**
+   * Streaming AI chat — subscribes to the `ubean:ai:stream` sharedState
+   * and calls `ubean:ai:chat-stream`. The `onChunk` callback is invoked
+   * for each text delta pushed by the server. Returns the final response
+   * when the stream completes.
+   */
+  async function aiChatStream(
+    messages: AiChatMessage[],
+    options: { apiKey?: string; apiBase?: string; model?: string },
+    onChunk: (chunk: AiStreamChunk) => void
+  ): Promise<AiChatResponse> {
+    const requestId = `stream_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+    try {
+      const client = await getClient();
+      const streamState = await client.sharedState.get('ubean:ai:stream');
+
+      // Filter by requestId so concurrent streams don't crosstalk.
+      const unsubscribe = streamState.on('updated', (value: AiStreamChunk) => {
+        if (value && value.requestId === requestId) {
+          onChunk(value);
+        }
+      }) as unknown as () => void;
+
+      try {
+        const response = await rpc<AiChatResponse>('ubean:ai:chat-stream', {
+          messages,
+          requestId,
+          ...options
+        });
+        return response;
+      } finally {
+        unsubscribe();
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'AI stream failed';
+      return { message: { role: 'assistant', content: `Error: ${msg}`, timestamp: Date.now() } };
+    }
+  }
+
   // --- Terminal RPC wrappers ---
   // The server keeps shell sessions in memory; the client opens one session
   // per Terminal view and polls for output via `ubean:terminal:poll`.
@@ -460,6 +515,7 @@ export function useRpc() {
     crudDelete,
     crudRestore,
     aiChat,
+    aiChatStream,
     aiGetTools,
     showToast,
     terminalStart,

@@ -13,6 +13,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   tryRoute: [route: DevToolsRouteInfo];
   delete: [route: DevToolsRouteInfo];
+  edit: [route: DevToolsRouteInfo];
 }>();
 
 const searchQuery = ref('');
@@ -57,7 +58,7 @@ function handleDelete() {
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="px-3.5 py-2 border-b border-border bg-card flex items-center gap-2 flex-shrink-0">
+    <div class="px-3.5 py-2 border-b border-base bg-background flex items-center gap-2 flex-shrink-0">
       <div class="relative flex-1 max-w-xs">
         <SIcon
           icon="lucide:search"
@@ -68,32 +69,30 @@ function handleDelete() {
           v-model="searchQuery"
           type="text"
           placeholder="Search routes..."
-          class="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+          class="w-full pl-8 pr-3 py-1.5 bg-background border border-base rounded-md text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-active focus:ring-1 focus:ring-primary-500/25 transition-all"
         />
       </div>
       <div class="flex gap-1 overflow-x-auto">
         <button
           v-for="m in methods"
           :key="m"
-          class="px-2.5 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="
-            activeMethod === m
-              ? 'bg-primary/15 text-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-          "
+          class="filter-chip"
+          :class="activeMethod === m ? 'filter-chip-active' : 'filter-chip-idle'"
           @click="activeMethod = m"
         >
           {{ m }}
         </button>
       </div>
-      <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0">{{ filteredRoutes.length }} routes</span>
+      <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0 op-fade">
+        {{ filteredRoutes.length }} routes
+      </span>
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredRoutes.length > 0" class="flex flex-col gap-1">
         <div
           v-for="(r, i) in filteredRoutes"
           :key="i"
-          class="group flex items-center gap-2.5 px-3 py-2 bg-card border border-border/60 rounded-lg text-xs hover:bg-secondary/30 transition-colors"
+          class="group flex items-center gap-2.5 px-3 py-2 bg-background border border-base rounded-lg text-xs hover:bg-active transition-colors"
         >
           <span
             class="min-w-[46px] px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider text-center font-mono flex-shrink-0"
@@ -102,6 +101,13 @@ function handleDelete() {
             {{ r.method }}
           </span>
           <span class="font-mono text-foreground flex-1 text-xs truncate" :title="r.path">{{ r.path }}</span>
+          <button
+            class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-all cursor-pointer flex-shrink-0"
+            title="Edit route"
+            @click.stop="emit('edit', r)"
+          >
+            <SIcon icon="lucide:pencil" :size="12" />
+          </button>
           <button
             class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-primary rounded transition-all cursor-pointer flex-shrink-0"
             title="Try in Playground"

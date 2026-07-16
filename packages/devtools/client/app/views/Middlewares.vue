@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   delete: [middleware: DevToolsMiddlewareInfo];
+  edit: [middleware: DevToolsMiddlewareInfo];
 }>();
 
 const searchQuery = ref('');
@@ -56,7 +57,7 @@ function handleDelete() {
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="px-3.5 py-2 border-b border-border bg-card flex items-center gap-2 flex-shrink-0">
+    <div class="px-3.5 py-2 border-b border-base bg-background flex items-center gap-2 flex-shrink-0">
       <div class="relative flex-1 max-w-xs">
         <SIcon
           icon="lucide:search"
@@ -67,39 +68,27 @@ function handleDelete() {
           v-model="searchQuery"
           type="text"
           placeholder="Search middlewares..."
-          class="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+          class="w-full pl-8 pr-3 py-1.5 bg-background border border-base rounded-md text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-active focus:ring-1 focus:ring-primary-500/25 transition-all"
         />
       </div>
       <div class="flex gap-1">
         <button
-          class="px-2.5 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="
-            filterGlobal === 'ALL'
-              ? 'bg-primary/15 text-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-          "
+          class="filter-chip"
+          :class="filterGlobal === 'ALL' ? 'filter-chip-active' : 'filter-chip-idle'"
           @click="filterGlobal = 'ALL'"
         >
           All ({{ middlewares.length }})
         </button>
         <button
-          class="px-2.5 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="
-            filterGlobal === 'GLOBAL'
-              ? 'bg-warning/15 text-warning'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-          "
+          class="filter-chip"
+          :class="filterGlobal === 'GLOBAL' ? 'bg-warning/15 text-warning op100!' : 'filter-chip-idle'"
           @click="filterGlobal = 'GLOBAL'"
         >
           Global ({{ globalCount }})
         </button>
         <button
-          class="px-2.5 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="
-            filterGlobal === 'ROUTE'
-              ? 'bg-info/15 text-info'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-          "
+          class="filter-chip"
+          :class="filterGlobal === 'ROUTE' ? 'bg-info/15 text-info op100!' : 'filter-chip-idle'"
           @click="filterGlobal = 'ROUTE'"
         >
           Route ({{ routeCount }})
@@ -108,16 +97,19 @@ function handleDelete() {
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredMiddlewares.length > 0" class="flex flex-col gap-1">
-        <div
-          v-for="(mw, i) in filteredMiddlewares"
-          :key="i"
-          class="list-item group hover:bg-secondary/30 transition-colors"
-        >
+        <div v-for="(mw, i) in filteredMiddlewares" :key="i" class="list-item group">
           <SIcon icon="lucide:layers" :size="14" class="text-warning flex-shrink-0" />
           <span class="font-mono text-foreground flex-1 text-xs truncate" :title="mw.path">{{ mw.path }}</span>
           <span v-if="mw.global" class="text-[10px] px-1.5 py-0.5 bg-warning/12 text-warning rounded-md font-semibold">
             GLOBAL
           </span>
+          <button
+            class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-all cursor-pointer flex-shrink-0"
+            title="Edit middleware"
+            @click.stop="emit('edit', mw)"
+          >
+            <SIcon icon="lucide:pencil" :size="12" />
+          </button>
           <button
             class="opacity-0 group-hover:opacity-100 size-6 flex items-center justify-center text-muted-foreground hover:text-destructive rounded transition-all cursor-pointer flex-shrink-0"
             title="Delete middleware"

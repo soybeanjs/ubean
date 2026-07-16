@@ -5,6 +5,7 @@
  * `DevToolsInfo` snapshot and pushes patches to all connected clients
  * via `ctx.rpc.sharedState`.
  */
+import { relative } from 'node:path';
 import type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
 import type { SharedState } from 'devframe/utils/shared-state';
 import { maskSensitiveEnv } from '../shared/env';
@@ -19,11 +20,11 @@ export const UBEAN_INFO_STATE_KEY = 'ubean:info';
  * has no static dependency on `ubean`.
  */
 export interface ScanResultLike {
-  apiRoutes: Array<{ method?: string; route: string; relativePath: string }>;
-  pages: Array<{ route: string; name: string; relativePath: string; isReuse: boolean; layout?: string | false }>;
-  middlewares: Array<{ global: boolean; relativePath: string }>;
-  layouts: Array<{ name: string; path: string; relativePath: string; isDefault: boolean }>;
-  crons: Array<{ name: string; relativePath: string }>;
+  apiRoutes: Array<{ method?: string; route: string; relativePath: string; fullPath: string }>;
+  pages: Array<{ route: string; name: string; relativePath: string; fullPath: string; isReuse: boolean; layout?: string | false }>;
+  middlewares: Array<{ global: boolean; relativePath: string; fullPath: string }>;
+  layouts: Array<{ name: string; path: string; relativePath: string; fullPath: string; isDefault: boolean }>;
+  crons: Array<{ name: string; relativePath: string; fullPath: string }>;
 }
 
 /** Config metadata passed by `dev.ts` for the DevToolsInfo.config field. */
@@ -48,11 +49,23 @@ export interface BuildInfoOptions {
 export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
   const { scan, configMeta, customTabs, ai, startTime, envData } = opts;
 
+  // Compute file paths relative to rootDir so the CRUD server (which resolves
+  // paths against cwd=rootDir) can correctly locate files. The scan result's
+  // `relativePath` is relative to the subdirectory (e.g. src/pages/), not
+  // rootDir, so we use `fullPath` and make it relative to rootDir instead.
+  const rootDir = configMeta?.rootDir || '';
+  const toRootRelative = (fullPath: string): string => {
+    if (!fullPath) return '';
+    // Both paths are absolute; result is like "src/pages/index.vue".
+    const rel = relative(rootDir, fullPath).replace(/\\/g, '/');
+    return rel || fullPath;
+  };
+
   const routes = scan
     ? scan.apiRoutes.map(r => ({
         method: (r.method || 'GET').toUpperCase(),
         path: r.route,
-        filePath: r.relativePath
+        filePath: toRootRelative(r.fullPath)
       }))
     : [];
 
@@ -64,7 +77,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
         .map(p => ({
           path: p.route,
           name: p.name,
-          filePath: p.relativePath,
+          filePath: toRootRelative(p.fullPath),
           layout: p.layout === false ? undefined : p.layout || defaultLayoutName || undefined
         }))
     : [];
@@ -72,7 +85,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
   const middlewaresList = scan
     ? scan.middlewares.map(m => ({
         path: m.global ? '*' : m.relativePath,
-        filePath: m.relativePath,
+        filePath: toRootRelative(m.fullPath),
         global: m.global
       }))
     : [];
@@ -81,7 +94,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
     ? scan.layouts.map(l => ({
         name: l.name,
         path: l.path,
-        filePath: l.relativePath,
+        filePath: toRootRelative(l.fullPath),
         isDefault: l.isDefault
       }))
     : [];
@@ -89,7 +102,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
   const cronsList = scan
     ? scan.crons.map(c => ({
         name: c.name,
-        filePath: c.relativePath
+        filePath: toRootRelative(c.fullPath)
       }))
     : [];
 

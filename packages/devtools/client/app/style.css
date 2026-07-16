@@ -1,7 +1,56 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@200;400;500;700&family=DM+Mono:wght@400;500&display=swap');
+
 html,
 body,
 #app {
   height: 100%;
+}
+
+/* Vite DevTools base surface + typography */
+html {
+  --uno: bg-background font-sans;
+}
+body {
+  --uno: color-base;
+  font-family:
+    'DM Sans',
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+}
+code,
+pre,
+kbd,
+.font-mono {
+  font-family: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Vite DevTools scrollbar tokens */
+:root {
+  --app-scrollbar-size: 6px;
+  --app-scrollbar-radius: 1px;
+  --app-scrollbar-thumb: #8884;
+  --app-scrollbar-thumb-hover: #8885;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--app-scrollbar-thumb) transparent;
+}
+::-webkit-scrollbar {
+  width: var(--app-scrollbar-size);
+  height: var(--app-scrollbar-size);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--app-scrollbar-thumb);
+  border-radius: var(--app-scrollbar-radius);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-scrollbar-thumb-hover);
 }
 
 @keyframes fade-in {

@@ -39,7 +39,7 @@ const presetColors = ['primary', 'success', 'info', 'warning', 'accent'];
       <div
         v-for="(s, i) in statCards"
         :key="i"
-        class="flex items-center gap-2.5 px-3 py-2.5 bg-card border border-border/60 rounded-lg"
+        class="flex items-center gap-2.5 px-3 py-2.5 bg-background border border-base rounded-lg"
       >
         <div class="size-9 rounded-lg flex items-center justify-center flex-shrink-0" :class="[iconBgMap[s.color]]">
           <SIcon :icon="s.icon" :size="18" />

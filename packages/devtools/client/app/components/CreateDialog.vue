@@ -82,9 +82,9 @@ async function handleSubmit() {
     <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="close"></div>
       <div
-        class="relative bg-popover border border-border rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in"
+        class="relative bg-background border border-base rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden animate-scale-in"
       >
-        <div class="flex items-center justify-between px-4 py-3 border-b border-border">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-base">
           <div class="flex items-center gap-2">
             <div class="size-7 rounded-lg bg-primary/15 flex items-center justify-center">
               <SIcon :icon="currentOption?.icon || 'lucide:plus'" :size="15" class="text-primary" />
@@ -95,7 +95,7 @@ async function handleSubmit() {
             </div>
           </div>
           <button
-            class="size-7 flex items-center justify-center rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            class="size-7 flex items-center justify-center rounded-md hover:bg-active text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             @click="close"
           >
             <SIcon icon="lucide:x" :size="14" />
@@ -115,8 +115,8 @@ async function handleSubmit() {
                 class="flex flex-col items-center gap-1 py-2 px-1 rounded-lg border transition-all cursor-pointer"
                 :class="
                   resourceType === opt.value
-                    ? 'border-primary/50 bg-primary/10 text-primary'
-                    : 'border-border bg-background text-muted-foreground hover:text-foreground hover:border-border/80'
+                    ? 'border-active bg-active text-foreground'
+                    : 'border-base bg-background text-muted-foreground hover:text-foreground hover:bg-active'
                 "
                 @click="resourceType = opt.value"
               >
@@ -138,8 +138,8 @@ async function handleSubmit() {
                 class="px-3 py-1.5 rounded-md text-xs font-mono font-semibold border transition-all cursor-pointer"
                 :class="
                   httpMethod === m
-                    ? 'border-primary/50 bg-primary/10 text-primary'
-                    : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                    ? 'border-active bg-active text-foreground'
+                    : 'border-base bg-background text-muted-foreground hover:text-foreground hover:bg-active'
                 "
                 @click="httpMethod = m"
               >
@@ -156,7 +156,7 @@ async function handleSubmit() {
               v-model="resourcePath"
               type="text"
               :placeholder="currentOption?.placeholder"
-              class="w-full px-3 py-2 bg-background border border-border rounded-lg text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all font-mono"
+              class="w-full px-3 py-2 bg-background border border-base rounded-lg text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-active focus:ring-1 focus:ring-primary-500/25 transition-all font-mono"
               @keydown.enter="handleSubmit"
             />
             <p v-if="resourceType === 'layout'" class="mt-1 text-[10px] text-muted-foreground">
@@ -178,7 +178,7 @@ async function handleSubmit() {
           <div class="flex items-center justify-end gap-2 pt-1">
             <button
               type="button"
-              class="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors cursor-pointer"
+              class="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-active transition-colors cursor-pointer"
               :disabled="creating"
               @click="close"
             >

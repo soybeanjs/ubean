@@ -8,17 +8,20 @@
 import type { SharedState } from 'devframe/utils/shared-state';
 import type { DevToolsAiServer } from '../../server/ai';
 import type { DevToolsCrudServer } from '../../server/crud';
+import type { TerminalServer } from '../../server/terminal';
 import type { DevToolsInfo } from '../../types';
 import { createAiRpcFunctions } from './ai';
 import { createCrudRpcFunctions } from './crud';
 import { createInfoRpcFunctions } from './info';
 import { createPlaygroundRpcFunctions } from './playground';
+import { createTerminalRpcFunctions } from './terminal';
 
 export interface RpcDeps {
   state: SharedState<DevToolsInfo>;
   getEnvData: () => Record<string, string>;
   crud: DevToolsCrudServer;
   ai: DevToolsAiServer;
+  terminal: TerminalServer;
   getApp?: () => { fetch: (req: Request) => Response | Promise<Response> } | undefined;
 }
 
@@ -34,6 +37,7 @@ export function createAllRpcFunctions(deps: RpcDeps): any[] {
     ...createInfoRpcFunctions({ state: deps.state, getEnvData: deps.getEnvData }),
     ...createCrudRpcFunctions(deps.crud),
     ...createAiRpcFunctions(deps.ai),
-    ...createPlaygroundRpcFunctions({ getApp: deps.getApp })
+    ...createPlaygroundRpcFunctions({ getApp: deps.getApp }),
+    ...createTerminalRpcFunctions(deps.terminal)
   ];
 }

@@ -40,7 +40,7 @@ async function handleConfirm() {
     <div v-if="open" class="fixed inset-0 z-50 flex items-center justify-center">
       <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="handleCancel"></div>
       <div
-        class="relative bg-popover border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-scale-in"
+        class="relative bg-background border border-base rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-scale-in"
       >
         <div class="p-4 pb-3">
           <div class="flex items-start gap-3">
@@ -60,9 +60,9 @@ async function handleConfirm() {
             </div>
           </div>
         </div>
-        <div class="flex items-center justify-end gap-2 px-4 py-3 bg-muted/30 border-t border-border">
+        <div class="flex items-center justify-end gap-2 px-4 py-3 bg-secondary border-t border-base">
           <button
-            class="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-secondary transition-colors cursor-pointer"
+            class="px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground rounded-lg hover:bg-active transition-colors cursor-pointer"
             :disabled="confirming"
             @click="handleCancel"
           >

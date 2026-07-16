@@ -5,6 +5,9 @@ import CodeEditor from '../components/CodeEditor.vue';
 
 const props = defineProps<{
   env: Record<string, string>;
+  onAdd: () => void;
+  onEdit: (key: string, value: string) => void;
+  onDelete: (key: string) => void;
 }>();
 
 const searchQuery = ref('');
@@ -29,7 +32,7 @@ function isSecret(key: string): boolean {
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="px-3.5 py-2 border-b border-border bg-card flex items-center gap-2 flex-shrink-0">
+    <div class="px-3.5 py-2 border-b border-base bg-background flex items-center gap-2 flex-shrink-0">
       <div class="relative flex-1 max-w-xs">
         <SIcon
           icon="lucide:search"
@@ -40,34 +43,34 @@ function isSecret(key: string): boolean {
           v-model="searchQuery"
           type="text"
           placeholder="Search env vars..."
-          class="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+          class="w-full pl-8 pr-3 py-1.5 bg-background border border-base rounded-md text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-active focus:ring-1 focus:ring-primary-500/25 transition-all"
         />
       </div>
       <div class="flex gap-1">
         <button
-          class="px-2 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="
-            viewMode === 'list'
-              ? 'bg-primary/15 text-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-          "
+          class="filter-chip"
+          :class="viewMode === 'list' ? 'filter-chip-active' : 'filter-chip-idle'"
           @click="viewMode = 'list'"
         >
           List
         </button>
         <button
-          class="px-2 py-1 rounded-md text-2xs font-medium transition-colors cursor-pointer"
-          :class="
-            viewMode === 'json'
-              ? 'bg-primary/15 text-primary'
-              : 'text-muted-foreground hover:text-foreground hover:bg-secondary'
-          "
+          class="filter-chip"
+          :class="viewMode === 'json' ? 'filter-chip-active' : 'filter-chip-idle'"
           @click="viewMode = 'json'"
         >
           JSON
         </button>
       </div>
-      <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0">{{ envEntries.length }} vars</span>
+      <button
+        class="flex items-center gap-1 px-2 py-1 bg-primary text-primary-foreground rounded-md text-2xs font-medium hover:bg-primary/90 transition-colors cursor-pointer flex-shrink-0"
+        title="Add env var"
+        @click="props.onAdd"
+      >
+        <SIcon icon="lucide:plus" :size="12" />
+        Add
+      </button>
+      <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0 op-fade">{{ envEntries.length }} vars</span>
     </div>
     <div class="flex-1 overflow-hidden p-3.5">
       <div v-if="viewMode === 'json'" class="h-full">
@@ -80,12 +83,26 @@ function isSecret(key: string): boolean {
             <span class="section-title">Environment Variables</span>
           </div>
           <div class="section-body">
-            <div v-for="[key, value] in envEntries" :key="key" class="info-row">
+            <div v-for="[key, value] in envEntries" :key="key" class="info-row group">
               <span class="info-key font-mono text-2xs flex items-center gap-1.5">
                 <SIcon v-if="isSecret(key)" icon="lucide:eye-off" :size="11" class="text-destructive" />
                 {{ key }}
               </span>
               <span class="info-val truncate max-w-[200px]" :title="String(value)">{{ String(value) }}</span>
+              <button
+                class="opacity-0 group-hover:opacity-100 size-5 flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-primary/10 rounded transition-all cursor-pointer flex-shrink-0"
+                title="Edit env var"
+                @click.stop="props.onEdit(key, String(value))"
+              >
+                <SIcon icon="lucide:pencil" :size="11" />
+              </button>
+              <button
+                class="opacity-0 group-hover:opacity-100 size-5 flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-all cursor-pointer flex-shrink-0"
+                title="Delete env var"
+                @click.stop="props.onDelete(key)"
+              >
+                <SIcon icon="lucide:trash-2" :size="11" />
+              </button>
             </div>
           </div>
         </div>

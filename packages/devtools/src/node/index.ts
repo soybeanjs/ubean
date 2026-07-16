@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 /// <reference types="@vitejs/devtools-kit" />
 import { fileURLToPath } from 'node:url';
@@ -9,6 +10,8 @@ import { createAiServer } from '../server/ai';
 import type { DevToolsAiServer } from '../server/ai';
 import { createCrudServer } from '../server/crud';
 import type { DevToolsCrudServer } from '../server/crud';
+import { createTerminalServer } from '../server/terminal';
+import type { TerminalServer } from '../server/terminal';
 import type { DevToolsCustomTab, DevToolsInfo } from '../types';
 import { createAllRpcFunctions } from './rpc';
 import {
@@ -97,27 +100,28 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
             url: `${SPA_BASE}#/overview`,
             order: 100
           },
-          { id: 'ubean:ai', title: 'AI', icon: 'lucide:sparkles', url: `${SPA_BASE}#/ai`, order: 95 },
+          { id: 'ubean:pages', title: 'Pages', icon: 'lucide:file-text', url: `${SPA_BASE}#/pages`, order: 95 },
           { id: 'ubean:api', title: 'API', icon: 'lucide:send', url: `${SPA_BASE}#/api`, order: 90 },
-          { id: 'ubean:pages', title: 'Pages', icon: 'lucide:file-text', url: `${SPA_BASE}#/pages`, order: 85 },
           {
-            id: 'ubean:structure',
-            title: 'Structure',
+            id: 'ubean:middleware',
+            title: 'Middleware',
             icon: 'lucide:layers',
-            url: `${SPA_BASE}#/structure`,
-            order: 80
+            url: `${SPA_BASE}#/middleware`,
+            order: 85
           },
-          { id: 'ubean:crons', title: 'Crons', icon: 'lucide:clock', url: `${SPA_BASE}#/crons`, order: 75 },
+          { id: 'ubean:crons', title: 'Crons', icon: 'lucide:clock', url: `${SPA_BASE}#/crons`, order: 80 },
+          { id: 'ubean:config', title: 'Config', icon: 'lucide:settings', url: `${SPA_BASE}#/config`, order: 75 },
           { id: 'ubean:env', title: 'Env', icon: 'lucide:terminal', url: `${SPA_BASE}#/env`, order: 70 },
-          { id: 'ubean:config', title: 'Config', icon: 'lucide:settings', url: `${SPA_BASE}#/config`, order: 65 },
           {
             id: 'ubean:api-docs',
             title: 'API Docs',
             icon: 'lucide:book-open',
             url: `${SPA_BASE}#/api-docs`,
-            order: 60
+            order: 65
           },
-          { id: 'ubean:database', title: 'Database', icon: 'lucide:database', url: `${SPA_BASE}#/database`, order: 55 }
+          { id: 'ubean:database', title: 'Database', icon: 'lucide:database', url: `${SPA_BASE}#/database`, order: 60 },
+          { id: 'ubean:terminal', title: 'Terminal', icon: 'lucide:square-terminal', url: `${SPA_BASE}#/terminal`, order: 58 },
+          { id: 'ubean:ai', title: 'AI', icon: 'lucide:sparkles', url: `${SPA_BASE}#/ai`, order: 55 }
         ];
         for (const entry of dockEntries) {
           ctx.docks.register({
@@ -134,7 +138,7 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
         // 3. Build the initial DevToolsInfo snapshot from scan + config data.
         const startTime = Date.now();
         const customTabs = options.getCustomTabs?.() ?? [];
-        const envData = snapshotEnv();
+        const envData = snapshotEnv(options.getCwd());
         const initialInfo = options.getScanResult
           ? buildDevToolsInfo({
               scan: options.getScanResult(),
@@ -179,13 +183,15 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
           onFileChange: undefined
         });
         const ai: DevToolsAiServer = createAiServer(crud, () => state.value() as DevToolsInfo);
+        const terminal: TerminalServer = createTerminalServer();
 
-        // 6. Register all RPC functions (info / crud / ai / playground).
+        // 6. Register all RPC functions (info / crud / ai / playground / terminal).
         const fns = createAllRpcFunctions({
           state,
           getEnvData: () => envData,
           crud,
           ai,
+          terminal,
           getApp: options.getApp
         });
         for (const fn of fns) ctx.rpc.register(fn);
@@ -213,15 +219,72 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
   };
 }
 
-/** Snapshot `process.env` into a plain string record (filtered to avoid
- *  leaking internal Node/V8 vars that aren't useful in DevTools). */
-function snapshotEnv(): Record<string, string> {
+/**
+ * Parse a single .env file and return the key/value pairs.
+ * - Ignores blank lines and `#` comments.
+ * - Strips surrounding single/double quotes from values.
+ */
+function parseEnvFile(filePath: string): Record<string, string> {
+  if (!existsSync(filePath)) return {};
+  let content: string;
+  try {
+    content = readFileSync(filePath, 'utf-8');
+  } catch {
+    return {};
+  }
   const env: Record<string, string> = {};
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) continue;
+    const key = trimmed.slice(0, eqIndex).trim();
+    let value = trimmed.slice(eqIndex + 1).trim();
+    // Strip inline comments (only when value is unquoted).
+    const hashIndex = value.search(/\s+#.*$/);
+    if (hashIndex !== -1 && !value.startsWith('"') && !value.startsWith("'")) {
+      value = value.slice(0, hashIndex).trim();
+    }
+    // Strip surrounding quotes.
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    env[key] = value;
+  }
+  return env;
+}
+
+/**
+ * Snapshot env vars relevant to the ubean app.
+ *
+ * Instead of dumping all of `process.env` (which includes noisy system vars
+ * like PATH, HOME, SHELL, LANG, TERM, etc.), we only collect:
+ *   1. Vars defined in .env / .env.local / .env.development / .env.development.local
+ *   2. UBEAN_* prefixed vars from process.env (framework/CLI vars set by shell)
+ *
+ * Values from process.env override .env file values (shell overrides take
+ * precedence), matching Vite's env loading semantics.
+ */
+function snapshotEnv(cwd: string): Record<string, string> {
+  const envFiles = ['.env', '.env.local', '.env.development', '.env.development.local'];
+  const env: Record<string, string> = {};
+
+  // 1. Load values from .env files (later files override earlier ones).
+  for (const file of envFiles) {
+    Object.assign(env, parseEnvFile(resolve(cwd, file)));
+  }
+
+  // 2. Override with process.env for keys already loaded from .env files.
+  //    Also include UBEAN_* vars (framework/CLI vars) from process.env.
   for (const [key, value] of Object.entries(process.env)) {
-    if (typeof value === 'string' && !key.startsWith('npm_') && !key.startsWith('NODE_')) {
+    if (typeof value === 'string' && (key in env || key.startsWith('UBEAN_'))) {
       env[key] = value;
     }
   }
+
   return env;
 }
 

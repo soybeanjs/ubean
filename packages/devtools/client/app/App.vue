@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { SConfigProvider, SIcon, SButtonIcon } from '@soybeanjs/ui';
+import { SConfigProvider, SIcon } from '@soybeanjs/ui';
 import { useRpc } from './composables/useRpc';
 import type { CrudResourceType } from './composables/useRpc';
 import CreateDialog from './components/CreateDialog.vue';
+import EditDialog from './components/EditDialog.vue';
+import EnvEditDialog from './components/EnvEditDialog.vue';
+import PageMetaDialog from './components/PageMetaDialog.vue';
 import AiAssistant from './views/AiAssistant.vue';
 import ApiDocs from './views/ApiDocs.vue';
 import ApiPlayground from './views/ApiPlayground.vue';
@@ -16,6 +19,7 @@ import Layouts from './views/Layouts.vue';
 import Middlewares from './views/Middlewares.vue';
 import Overview from './views/Overview.vue';
 import Pages from './views/Pages.vue';
+import Terminal from './views/Terminal.vue';
 
 const {
   loading,
@@ -30,8 +34,15 @@ const {
   methodClass,
   refresh,
   crudCreate,
+  crudRead,
+  crudUpdate,
   crudDelete,
-  aiChat
+  aiChat,
+  terminalStart,
+  terminalInput,
+  terminalResize,
+  terminalPoll,
+  terminalKill
 } = useRpc();
 
 // --- Hash-based routing ---
@@ -44,7 +55,7 @@ const route = computed(() => {
 
 // --- Sub-tab state for grouped views ---
 const apiSubTab = ref<'routes' | 'playground'>('routes');
-const structureSubTab = ref<'middlewares' | 'layouts'>('middlewares');
+const pagesSubTab = ref<'pages' | 'layouts'>('pages');
 
 // --- Playground cross-view interaction (Routes → Playground within #/api) ---
 const playgroundMethod = ref('GET');
@@ -55,17 +66,21 @@ function tryRoute(r: { method: string; path: string }) {
   apiSubTab.value = 'playground';
 }
 
-// --- Create dialog (floating action button + keyboard shortcuts) ---
-const showCreateMenu = ref(false);
+// --- Create dialog (keyboard shortcuts) ---
 const createDialogOpen = ref(false);
 const createDialogType = ref<CrudResourceType>('page');
-const createOptions = [
-  { type: 'page' as const, label: 'Page', icon: 'lucide:file-text', shortcut: 'P' },
-  { type: 'api' as const, label: 'API Route', icon: 'lucide:send', shortcut: 'A' },
-  { type: 'middleware' as const, label: 'Middleware', icon: 'lucide:layers', shortcut: 'M' },
-  { type: 'layout' as const, label: 'Layout', icon: 'lucide:layout', shortcut: 'L' },
-  { type: 'cron' as const, label: 'Cron Job', icon: 'lucide:clock', shortcut: 'C' }
-];
+
+// --- Refresh with spin animation ---
+const refreshing = ref(false);
+async function handleRefresh() {
+  if (refreshing.value) return;
+  refreshing.value = true;
+  await refresh();
+  // Keep the spin animation visible for at least 500ms for visual feedback.
+  setTimeout(() => {
+    refreshing.value = false;
+  }, 500);
+}
 const shortcutMap: Record<string, CrudResourceType> = {
   P: 'page',
   A: 'api',
@@ -77,7 +92,6 @@ const shortcutMap: Record<string, CrudResourceType> = {
 function openCreateDialog(type: CrudResourceType) {
   createDialogType.value = type;
   createDialogOpen.value = true;
-  showCreateMenu.value = false;
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -87,6 +101,10 @@ function handleKeydown(e: KeyboardEvent) {
   if (key === 'N' && (e.metaKey || e.ctrlKey)) {
     e.preventDefault();
     openCreateDialog('page');
+    return;
+  }
+  if (key === 'R') {
+    handleRefresh();
     return;
   }
   if (shortcutMap[key]) openCreateDialog(shortcutMap[key]);
@@ -109,6 +127,86 @@ function handleCronDelete(cron: { filePath?: string; name: string }) {
   if (cron.filePath) crudDelete('cron', { path: cron.filePath });
 }
 
+// --- Edit dialog state (reusable for all file-based resources) ---
+const editDialogOpen = ref(false);
+const editFilePath = ref('');
+const editResourceType = ref<CrudResourceType>('page');
+const editTitle = ref('');
+const editLanguage = ref<'vue' | 'typescript' | 'json' | 'text'>('typescript');
+
+function openEditDialog(filePath: string, type: CrudResourceType, title: string, lang?: 'vue' | 'typescript' | 'json' | 'text') {
+  editFilePath.value = filePath;
+  editResourceType.value = type;
+  editTitle.value = title;
+  editLanguage.value = lang || 'typescript';
+  editDialogOpen.value = true;
+}
+
+// --- Edit handlers ---
+function handlePageEdit(page: { filePath?: string; path: string }) {
+  if (page.filePath) openEditDialog(page.filePath, 'page', `Edit Page: ${page.path}`, 'vue');
+}
+function handleApiRouteEdit(r: { filePath?: string; path: string; method: string }) {
+  if (r.filePath) openEditDialog(r.filePath, 'api', `Edit Route: ${r.method} ${r.path}`, 'typescript');
+}
+function handleMiddlewareEdit(mw: { filePath?: string; path: string }) {
+  if (mw.filePath) openEditDialog(mw.filePath, 'middleware', `Edit Middleware: ${mw.path}`, 'typescript');
+}
+function handleLayoutEdit(layout: { filePath?: string; name: string }) {
+  if (layout.filePath) openEditDialog(layout.filePath, 'layout', `Edit Layout: ${layout.name}`, 'vue');
+}
+function handleCronEdit(cron: { filePath?: string; name: string }) {
+  if (cron.filePath) openEditDialog(cron.filePath, 'cron', `Edit Cron: ${cron.name}`, 'typescript');
+}
+
+// --- Config edit ---
+function handleConfigEdit() {
+  // The config file is at {cwd}/ubean.config.ts — use 'config' type with explicit path.
+  openEditDialog('ubean.config.ts', 'config', 'Edit Project Config', 'typescript');
+}
+
+// --- Page meta (definePage) form dialog ---
+const pageMetaOpen = ref(false);
+const pageMetaFilePath = ref('');
+const pageMetaPagePath = ref('');
+
+function handlePageMetaEdit(page: { filePath?: string; path: string }) {
+  if (!page.filePath) return;
+  pageMetaFilePath.value = page.filePath;
+  pageMetaPagePath.value = page.path;
+  pageMetaOpen.value = true;
+}
+
+// --- Env CRUD dialog ---
+const envEditOpen = ref(false);
+const envEditKey = ref('');
+const envEditValue = ref('');
+const envIsNew = ref(false);
+
+function handleEnvAdd() {
+  envIsNew.value = true;
+  envEditKey.value = '';
+  envEditValue.value = '';
+  envEditOpen.value = true;
+}
+function handleEnvEdit(key: string, value: string) {
+  envIsNew.value = false;
+  envEditKey.value = key;
+  envEditValue.value = value;
+  envEditOpen.value = true;
+}
+async function handleEnvSave(key: string, value: string): Promise<boolean> {
+  const result = await crudUpdate('env', { key, value });
+  if (result.success) {
+    await refresh();
+    return true;
+  }
+  return false;
+}
+function handleEnvDelete(key: string) {
+  crudDelete('env', { key });
+}
+
 onMounted(() => {
   window.addEventListener('keydown', handleKeydown);
 });
@@ -126,7 +224,7 @@ onUnmounted(() => {
         class="flex flex-col items-center justify-center h-full py-20 px-5 gap-3.5 text-muted-foreground"
       >
         <div class="size-7 border-2 border-muted border-t-primary rounded-full animate-spin"></div>
-        <span class="text-sm">Loading DevTools...</span>
+        <span class="text-sm op-fade">Loading DevTools...</span>
       </div>
 
       <!-- Error -->
@@ -138,57 +236,26 @@ onUnmounted(() => {
           <div>
             <strong>Connection failed</strong>
             <br />
-            {{ error }}
+            <span class="op-fade">{{ error }}</span>
           </div>
         </div>
       </div>
 
       <!-- View content -->
       <template v-else-if="info">
-        <!-- Floating toolbar (New + Refresh) -->
-        <div class="absolute top-2 right-2.5 z-40 flex items-center gap-1">
-          <div class="relative">
-            <SButtonIcon
-              icon="lucide:plus"
-              size="sm"
-              variant="ghost"
-              color="secondary"
-              title="New... (P/A/M/L/C)"
-              @click="showCreateMenu = !showCreateMenu"
-            />
-            <div
-              v-if="showCreateMenu"
-              class="absolute top-full right-0 mt-1 bg-popover border border-border rounded-lg shadow-xl py-1 min-w-48 animate-fade-in"
-              @click.self="showCreateMenu = false"
-            >
-              <div
-                class="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground border-b border-border"
-              >
-                Create New
-              </div>
-              <button
-                v-for="opt in createOptions"
-                :key="opt.type"
-                class="w-full flex items-center gap-2.5 px-3 py-2 text-xs hover:bg-secondary/50 cursor-pointer transition-colors text-foreground border-none bg-transparent"
-                @click="openCreateDialog(opt.type)"
-              >
-                <SIcon :icon="opt.icon" :size="14" />
-                <span>{{ opt.label }}</span>
-                <span class="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono">
-                  {{ opt.shortcut }}
-                </span>
-              </button>
-            </div>
-          </div>
-          <SButtonIcon
+        <!-- Refresh button (bottom-right, unobtrusive) -->
+        <button
+          class="fixed bottom-3 right-3 z-40 size-8 flex items-center justify-center rounded-full bg-secondary border border-base text-muted-foreground hover:text-foreground hover:border-active shadow-md transition-all cursor-pointer"
+          title="Refresh (R)"
+          @click="handleRefresh"
+        >
+          <SIcon
             icon="lucide:refresh-cw"
-            size="sm"
-            variant="ghost"
-            color="secondary"
-            title="Refresh"
-            @click="refresh"
+            :size="14"
+            :class="{ 'animate-spin': refreshing }"
+            class="transition-transform"
           />
-        </div>
+        </button>
 
         <!-- Overview -->
         <div v-if="route === 'overview'" class="h-full overflow-y-auto">
@@ -200,9 +267,9 @@ onUnmounted(() => {
 
         <!-- API (Routes + Playground, grouped) -->
         <div v-else-if="route === 'api'" class="h-full flex flex-col">
-          <div class="flex gap-0.5 px-2.5 py-1.5 bg-card border-b border-border flex-shrink-0">
+          <div class="flex gap-0.5 px-2.5 py-1.5 bg-background border-b border-base flex-shrink-0">
             <button
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border-none rounded-md text-muted-foreground text-xs font-medium cursor-pointer whitespace-nowrap transition-all duration-150 hover:text-foreground data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-transparent border-none rounded-md text-muted-foreground text-xs font-medium cursor-pointer whitespace-nowrap transition-all duration-150 op-fade hover:op100 hover:text-foreground hover:bg-active data-[active=true]:bg-active data-[active=true]:text-foreground data-[active=true]:op100!"
               :data-active="apiSubTab === 'routes'"
               @click="apiSubTab = 'routes'"
             >
@@ -225,6 +292,7 @@ onUnmounted(() => {
             :file-path="filePath"
             :method-class="methodClass"
             @try-route="tryRoute"
+            @edit="handleApiRouteEdit"
             @delete="handleApiRouteDelete"
           />
           <ApiPlayground
@@ -237,50 +305,54 @@ onUnmounted(() => {
           />
         </div>
 
-        <!-- Pages -->
-        <Pages
-          v-else-if="route === 'pages'"
-          class="h-full"
-          :pages="info.pagesList || []"
-          :file-path="filePath"
-          @delete="handlePageDelete"
-        />
-
-        <!-- Structure (Middlewares + Layouts, grouped) -->
-        <div v-else-if="route === 'structure'" class="h-full flex flex-col">
-          <div class="flex gap-0.5 px-2.5 py-1.5 bg-card border-b border-border flex-shrink-0">
+        <!-- Pages (Pages + Layouts, grouped) -->
+        <div v-else-if="route === 'pages'" class="h-full flex flex-col">
+          <div class="flex gap-0.5 px-2.5 py-1.5 bg-background border-b border-base flex-shrink-0">
             <button
-              class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border-none rounded-md text-muted-foreground text-xs font-medium cursor-pointer whitespace-nowrap transition-all duration-150 hover:text-foreground data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
-              :data-active="structureSubTab === 'middlewares'"
-              @click="structureSubTab = 'middlewares'"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 bg-transparent border-none rounded-md text-muted-foreground text-xs font-medium cursor-pointer whitespace-nowrap transition-all duration-150 op-fade hover:op100 hover:text-foreground hover:bg-active data-[active=true]:bg-active data-[active=true]:text-foreground data-[active=true]:op100!"
+              :data-active="pagesSubTab === 'pages'"
+              @click="pagesSubTab = 'pages'"
             >
-              <SIcon icon="lucide:layers" :size="13" />
-              Middlewares
+              <SIcon icon="lucide:file-text" :size="13" />
+              Pages
             </button>
             <button
               class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border-none rounded-md text-muted-foreground text-xs font-medium cursor-pointer whitespace-nowrap transition-all duration-150 hover:text-foreground data-[active=true]:bg-primary/10 data-[active=true]:text-primary"
-              :data-active="structureSubTab === 'layouts'"
-              @click="structureSubTab = 'layouts'"
+              :data-active="pagesSubTab === 'layouts'"
+              @click="pagesSubTab = 'layouts'"
             >
               <SIcon icon="lucide:layout" :size="13" />
               Layouts
             </button>
           </div>
-          <Middlewares
-            v-show="structureSubTab === 'middlewares'"
+          <Pages
+            v-show="pagesSubTab === 'pages'"
             class="flex-1 overflow-hidden"
-            :middlewares="info.middlewaresList || []"
+            :pages="info.pagesList || []"
             :file-path="filePath"
-            @delete="handleMiddlewareDelete"
+            @edit="handlePageEdit"
+            @edit-meta="handlePageMetaEdit"
+            @delete="handlePageDelete"
           />
           <Layouts
-            v-show="structureSubTab === 'layouts'"
+            v-show="pagesSubTab === 'layouts'"
             class="flex-1 overflow-hidden"
             :layouts="info.layoutsList || []"
             :file-path="filePath"
+            @edit="handleLayoutEdit"
             @delete="handleLayoutDelete"
           />
         </div>
+
+        <!-- Middleware -->
+        <Middlewares
+          v-else-if="route === 'middleware'"
+          class="h-full"
+          :middlewares="info.middlewaresList || []"
+          :file-path="filePath"
+          @edit="handleMiddlewareEdit"
+          @delete="handleMiddlewareDelete"
+        />
 
         <!-- Crons -->
         <Crons
@@ -288,11 +360,19 @@ onUnmounted(() => {
           class="h-full"
           :crons="info.cronsList || []"
           :file-path="filePath"
+          @edit="handleCronEdit"
           @delete="handleCronDelete"
         />
 
         <!-- Env -->
-        <EnvVars v-else-if="route === 'env'" class="h-full" :env="env" />
+        <EnvVars
+          v-else-if="route === 'env'"
+          class="h-full"
+          :env="env"
+          :on-add="handleEnvAdd"
+          :on-edit="handleEnvEdit"
+          :on-delete="handleEnvDelete"
+        />
 
         <!-- Config -->
         <Config
@@ -304,6 +384,7 @@ onUnmounted(() => {
           :fmt-time="fmtTime"
           :fmt-val="fmtVal"
           :uptime="uptime"
+          @edit="handleConfigEdit"
         />
 
         <!-- API Docs -->
@@ -322,8 +403,20 @@ onUnmounted(() => {
           :studio-url="info.database?.studioUrl"
         />
 
+        <!-- Terminal -->
+        <Terminal
+          v-else-if="route === 'terminal'"
+          class="h-full"
+          :cwd="info.config.rootDir as string | undefined"
+          :terminal-start="terminalStart"
+          :terminal-input="terminalInput"
+          :terminal-resize="terminalResize"
+          :terminal-poll="terminalPoll"
+          :terminal-kill="terminalKill"
+        />
+
         <!-- Fallback -->
-        <div v-else class="flex items-center justify-center h-full text-muted-foreground text-sm">
+        <div v-else class="flex items-center justify-center h-full text-muted-foreground text-sm op-fade">
           Unknown view: {{ route }}
         </div>
       </template>
@@ -333,6 +426,40 @@ onUnmounted(() => {
         :initial-type="createDialogType"
         :on-create="crudCreate"
         @close="createDialogOpen = false"
+      />
+
+      <!-- Reusable file editor dialog (pages, API routes, layouts, middleware, crons, config) -->
+      <EditDialog
+        :open="editDialogOpen"
+        :file-path="editFilePath"
+        :resource-type="editResourceType"
+        :title="editTitle"
+        :language="editLanguage"
+        :on-read="crudRead"
+        :on-save="crudUpdate"
+        @close="editDialogOpen = false"
+        @saved="refresh"
+      />
+
+      <!-- Page properties (definePage macro) form dialog -->
+      <PageMetaDialog
+        :open="pageMetaOpen"
+        :file-path="pageMetaFilePath"
+        :page-path="pageMetaPagePath"
+        :on-read="crudRead"
+        :on-save="crudUpdate"
+        @close="pageMetaOpen = false"
+        @saved="refresh"
+      />
+
+      <!-- Env var add/edit dialog -->
+      <EnvEditDialog
+        :open="envEditOpen"
+        :is-new="envIsNew"
+        :initial-key="envEditKey"
+        :initial-value="envEditValue"
+        :on-save="handleEnvSave"
+        @close="envEditOpen = false"
       />
     </div>
   </SConfigProvider>

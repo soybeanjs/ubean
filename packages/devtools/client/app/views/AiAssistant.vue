@@ -147,7 +147,7 @@ onMounted(() => {
 
 <template>
   <div class="flex flex-col h-full bg-background">
-    <div class="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-card/50">
+    <div class="flex items-center justify-between px-3 py-2 border-b border-base bg-background/50">
       <div class="flex items-center gap-2">
         <SIcon icon="lucide:sparkles" :size="14" class="text-primary" />
         <span class="text-xs font-semibold text-foreground">AI Assistant</span>
@@ -159,21 +159,21 @@ onMounted(() => {
         </span>
       </div>
       <button
-        class="p-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+        class="p-1 rounded hover:bg-active text-muted-foreground hover:text-foreground transition-colors"
         @click="showSettings = !showSettings"
       >
         <SIcon icon="lucide:settings" :size="14" />
       </button>
     </div>
 
-    <div v-if="showSettings" class="px-3 py-2.5 border-b border-border/60 bg-card/30 space-y-2">
+    <div v-if="showSettings" class="px-3 py-2.5 border-b border-base bg-background/30 space-y-2">
       <div>
         <label class="block text-[10px] font-medium text-muted-foreground mb-1">API Key</label>
         <input
           v-model="apiKey"
           type="password"
           placeholder="sk-..."
-          class="w-full px-2 py-1.5 text-xs bg-input border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          class="w-full px-2 py-1.5 text-xs bg-background border border-base rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
       <div>
@@ -182,7 +182,7 @@ onMounted(() => {
           v-model="apiBase"
           type="text"
           placeholder="https://api.openai.com/v1"
-          class="w-full px-2 py-1.5 text-xs bg-input border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          class="w-full px-2 py-1.5 text-xs bg-background border border-base rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
       <div>
@@ -191,7 +191,7 @@ onMounted(() => {
           v-model="model"
           type="text"
           placeholder="gpt-4o-mini"
-          class="w-full px-2 py-1.5 text-xs bg-input border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          class="w-full px-2 py-1.5 text-xs bg-background border border-base rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary-500"
         />
       </div>
       <button
@@ -227,7 +227,7 @@ onMounted(() => {
               :class="[
                 msg.role === 'user'
                   ? 'bg-primary text-primary-foreground rounded-tr-sm'
-                  : 'bg-card border border-border/60 text-foreground rounded-tl-sm'
+                  : 'bg-background border border-base text-foreground rounded-tl-sm'
               ]"
             >
               <div class="whitespace-pre-wrap">{{ msg.content }}</div>
@@ -236,7 +236,7 @@ onMounted(() => {
               <div
                 v-for="tc in msg.toolCalls"
                 :key="tc.id"
-                class="px-2 py-1 bg-muted/50 border border-border/40 rounded text-[10px] font-mono text-muted-foreground"
+                class="px-2 py-1 bg-secondary border border-base rounded text-[10px] font-mono text-muted-foreground"
               >
                 <SIcon icon="lucide:wrench" :size="10" class="inline mr-1" />
                 {{ formatToolCall(tc.name, tc.arguments) }}
@@ -265,7 +265,7 @@ onMounted(() => {
         <div class="size-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 mt-0.5">
           <SIcon icon="lucide:sparkles" :size="11" class="text-primary" />
         </div>
-        <div class="px-3 py-2 rounded-lg bg-card border border-border/60 rounded-tl-sm">
+        <div class="px-3 py-2 rounded-lg bg-background border border-base rounded-tl-sm">
           <div class="flex gap-1">
             <span
               class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
@@ -289,7 +289,7 @@ onMounted(() => {
           <button
             v-for="s in suggestions"
             :key="s.text"
-            class="inline-flex items-center gap-1 px-2 py-1 text-[10px] bg-card border border-border/60 rounded-md hover:bg-secondary hover:border-border text-muted-foreground hover:text-foreground transition-colors"
+            class="inline-flex items-center gap-1 px-2 py-1 text-[10px] bg-background border border-base rounded-md hover:bg-active text-muted-foreground hover:text-foreground transition-colors"
             @click="sendMessage(s.text)"
           >
             <SIcon :icon="s.icon" :size="10" />
@@ -299,13 +299,13 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="px-3 py-2.5 border-t border-border/60 bg-card/50">
+    <div class="px-3 py-2.5 border-t border-base bg-background/50">
       <div class="flex items-end gap-2">
         <textarea
           v-model="input"
           rows="1"
           placeholder="Ask me anything about your project..."
-          class="flex-1 resize-none px-3 py-2 text-xs bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary max-h-24"
+          class="flex-1 resize-none px-3 py-2 text-xs bg-background border border-base rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary-500 max-h-24"
           @keydown="handleKeydown"
         ></textarea>
         <button

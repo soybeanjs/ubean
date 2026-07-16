@@ -44,6 +44,8 @@
     "@vitejs/devtools": "^0.3.0",
     "@vitejs/devtools-kit": "^0.3.4",
     "@vitejs/plugin-vue": "^6.0.7",
+    "@xterm/addon-fit": "^0.11.0",
+    "@xterm/xterm": "^6.0.0",
     "hono": "catalog:",
     "typescript": "catalog:",
     "unocss": "^66.7.5",

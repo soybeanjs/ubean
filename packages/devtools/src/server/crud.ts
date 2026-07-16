@@ -152,6 +152,15 @@ export default definePlugin({
       }
 
       if (type === 'config') {
+        // If path is provided, treat as config file read (e.g. ubean.config.ts).
+        if (path) {
+          const fileExists = await fs.exists(path);
+          if (!fileExists) {
+            return { success: false, error: `File not found: ${path}` };
+          }
+          const content = await fs.readFile(path);
+          return { success: true, content };
+        }
         if (getConfig) {
           return { success: true, data: getConfig() };
         }
@@ -206,7 +215,18 @@ export default definePlugin({
           result = { success: true, updated: [`env:${key}`] };
         }
       } else if (type === 'config') {
-        result = { success: false, errors: ['Config update is not supported at runtime'] };
+        // Support writing config files (e.g. ubean.config.ts) when path is provided.
+        if (!path) {
+          result = { success: false, errors: ['Path is required for config file update'] };
+        } else {
+          const fileExists = await fs.exists(path);
+          if (!fileExists) {
+            result = { success: false, errors: [`File not found: ${path}`] };
+          } else {
+            await fs.writeFile(path, content || '');
+            result = { success: true, updated: [path] };
+          }
+        }
       } else if (!path) {
         result = { success: false, errors: ['Path is required for file update'] };
       } else if (SCAFFOLD_TYPE_SET.has(type) || type === 'cron' || type === 'plugin') {

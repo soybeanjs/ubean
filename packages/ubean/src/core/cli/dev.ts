@@ -71,8 +71,9 @@ export const devCommand: CommandDef = {
 
     // Latest scan result — kept mutable so the file-watcher can update it and
     // the DevTools plugin can read the freshest data via `getScanResult`.
-    let currentScanResult: ScanResult | null = null;
-    let { app: currentApp, layouts: currentLayouts } = await buildApp(cwd, config);
+    // Initialized with the initial scan so DevTools shows routes/pages
+    // immediately on startup (not only after the first file change).
+    let { app: currentApp, layouts: currentLayouts, scanResult: currentScanResult } = await buildApp(cwd, config);
 
     const runner = await createDevRunner({
       cwd,

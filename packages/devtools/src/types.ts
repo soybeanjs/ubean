@@ -27,6 +27,7 @@ export { DEVTOOLS_MAGIC_KEY, DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_C
 import type { DevToolsInfo } from 'ubean';
 import type { PlaygroundInvokeParams, PlaygroundInvokeResult } from './node/rpc/playground';
 import type { AiToolDefinition, AiChatResponse } from './server/ai';
+import type { TerminalStartParams, TerminalPollResult } from './server/terminal';
 
 // ---------------------------------------------------------------------------
 // Module augmentation — registers ubean's RPC functions and shared-state keys
@@ -62,6 +63,11 @@ declare module 'devframe' {
     'ubean:ai:tools': () => Promise<AiToolDefinition[]>;
     'ubean:ai:chat': (params: AiChatParams) => Promise<AiChatResponse>;
     'ubean:playground:invoke': (params: PlaygroundInvokeParams) => Promise<PlaygroundInvokeResult>;
+    'ubean:terminal:start': (params: TerminalStartParams) => Promise<{ sessionId: string }>;
+    'ubean:terminal:input': (params: { sessionId: string; data: string }) => Promise<boolean>;
+    'ubean:terminal:resize': (params: { sessionId: string; cols: number; rows: number }) => Promise<boolean>;
+    'ubean:terminal:poll': (params: { sessionId: string }) => Promise<TerminalPollResult>;
+    'ubean:terminal:kill': (params: { sessionId: string }) => Promise<boolean>;
   }
 
   interface DevframeRpcSharedStates {

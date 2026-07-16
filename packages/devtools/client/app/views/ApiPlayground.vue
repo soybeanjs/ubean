@@ -196,11 +196,11 @@ const filteredRoutes = computed(() => {
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="flex flex-col border-b border-border flex-shrink-0">
+    <div class="flex flex-col border-b border-base flex-shrink-0">
       <div class="flex items-center gap-1.5 px-3 py-2">
         <select
           v-model="method"
-          class="px-2 py-1.5 bg-background border border-border rounded-md text-xs font-bold text-foreground outline-none focus:border-primary/50 cursor-pointer"
+          class="px-2 py-1.5 bg-background border border-base rounded-md text-xs font-bold text-foreground outline-none focus:border-active cursor-pointer"
           :class="methodClass(method)"
         >
           <option v-for="m in methods" :key="m" :value="m">{{ m }}</option>
@@ -209,7 +209,7 @@ const filteredRoutes = computed(() => {
           v-model="url"
           type="text"
           placeholder="Enter request URL..."
-          class="flex-1 px-3 py-1.5 bg-background border border-border rounded-md text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+          class="flex-1 px-3 py-1.5 bg-background border border-base rounded-md text-xs font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-active"
           @keydown.enter="sendRequest"
         />
         <button
@@ -224,12 +224,12 @@ const filteredRoutes = computed(() => {
         </button>
       </div>
 
-      <div class="flex gap-0 border-t border-border/50">
+      <div class="flex gap-0 border-t border-base">
         <button
           class="px-3 py-1.5 text-[11px] font-medium border-b-2 transition-colors cursor-pointer"
           :class="
             requestTab === 'params'
-              ? 'border-primary text-foreground'
+              ? 'border-active text-foreground'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           "
           @click="requestTab = 'params'"
@@ -241,7 +241,7 @@ const filteredRoutes = computed(() => {
           class="px-3 py-1.5 text-[11px] font-medium border-b-2 transition-colors cursor-pointer"
           :class="
             requestTab === 'headers'
-              ? 'border-primary text-foreground'
+              ? 'border-active text-foreground'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           "
           @click="requestTab = 'headers'"
@@ -253,7 +253,7 @@ const filteredRoutes = computed(() => {
           class="px-3 py-1.5 text-[11px] font-medium border-b-2 transition-colors cursor-pointer"
           :class="
             requestTab === 'body'
-              ? 'border-primary text-foreground'
+              ? 'border-active text-foreground'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           "
           @click="requestTab = 'body'"
@@ -270,13 +270,13 @@ const filteredRoutes = computed(() => {
               v-model="p.key"
               type="text"
               placeholder="Key"
-              class="flex-1 px-2 py-1 bg-background border border-border/60 rounded text-[11px] font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+              class="flex-1 px-2 py-1 bg-background border border-base rounded text-[11px] font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-active"
             />
             <input
               v-model="p.value"
               type="text"
               placeholder="Value"
-              class="flex-1 px-2 py-1 bg-background border border-border/60 rounded text-[11px] font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+              class="flex-1 px-2 py-1 bg-background border border-base rounded text-[11px] font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-active"
             />
             <button
               class="size-6 flex items-center justify-center text-muted-foreground hover:text-destructive rounded cursor-pointer transition-colors"
@@ -303,13 +303,13 @@ const filteredRoutes = computed(() => {
               v-model="h.key"
               type="text"
               placeholder="Header name"
-              class="flex-1 px-2 py-1 bg-background border border-border/60 rounded text-[11px] font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+              class="flex-1 px-2 py-1 bg-background border border-base rounded text-[11px] font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-active"
             />
             <input
               v-model="h.value"
               type="text"
               placeholder="Value"
-              class="flex-1 px-2 py-1 bg-background border border-border/60 rounded text-[11px] font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50"
+              class="flex-1 px-2 py-1 bg-background border border-base rounded text-[11px] font-mono text-foreground placeholder:text-muted-foreground outline-none focus:border-active"
             />
             <button
               class="size-6 flex items-center justify-center text-muted-foreground hover:text-destructive rounded cursor-pointer transition-colors"
@@ -347,7 +347,7 @@ const filteredRoutes = computed(() => {
       </div>
 
       <div v-if="response" class="flex flex-col h-full">
-        <div class="flex items-center gap-3 px-3 py-1.5 border-b border-border bg-card/50 flex-shrink-0">
+        <div class="flex items-center gap-3 px-3 py-1.5 border-b border-base bg-background/50 flex-shrink-0">
           <span class="px-2 py-0.5 rounded-md text-[10px] font-bold font-mono" :class="statusClass">
             {{ response.status }} {{ response.statusText }}
           </span>
@@ -364,7 +364,7 @@ const filteredRoutes = computed(() => {
               class="px-2 py-1 text-[11px] font-medium border-b-2 transition-colors cursor-pointer"
               :class="
                 responseTab === 'body'
-                  ? 'border-primary text-foreground'
+                  ? 'border-active text-foreground'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               "
               @click="responseTab = 'body'"
@@ -375,7 +375,7 @@ const filteredRoutes = computed(() => {
               class="px-2 py-1 text-[11px] font-medium border-b-2 transition-colors cursor-pointer"
               :class="
                 responseTab === 'headers'
-                  ? 'border-primary text-foreground'
+                  ? 'border-active text-foreground'
                   : 'border-transparent text-muted-foreground hover:text-foreground'
               "
               @click="responseTab = 'headers'"
@@ -399,7 +399,7 @@ const filteredRoutes = computed(() => {
             <div
               v-for="(val, key) in response.headers"
               :key="String(key)"
-              class="flex items-center px-2 py-1 text-[11px] border-b border-border/30 font-mono"
+              class="flex items-center px-2 py-1 text-[11px] border-b border-base font-mono"
             >
               <span class="text-muted-foreground w-44 flex-shrink-0">{{ key }}</span>
               <span class="text-foreground break-all">{{ val }}</span>
@@ -419,7 +419,7 @@ const filteredRoutes = computed(() => {
               <button
                 v-for="r in filteredRoutes.slice(0, 50)"
                 :key="`${r.method}-${r.path}`"
-                class="flex items-center gap-2 px-2 py-1 rounded text-left hover:bg-secondary/50 transition-colors cursor-pointer"
+                class="flex items-center gap-2 px-2 py-1 rounded text-left hover:bg-active transition-colors cursor-pointer"
                 @click="selectRoute(r)"
               >
                 <span

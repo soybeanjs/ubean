@@ -11,6 +11,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'delete', page: DevToolsPageInfo): void;
+  (e: 'edit', page: DevToolsPageInfo): void;
+  (e: 'edit-meta', page: DevToolsPageInfo): void;
 }>();
 
 const searchQuery = ref('');
@@ -49,7 +51,7 @@ function handleDelete() {
 
 <template>
   <div class="flex flex-col h-full">
-    <div class="px-3.5 py-2 border-b border-border bg-card flex items-center gap-2 flex-shrink-0">
+    <div class="px-3.5 py-2 border-b border-base bg-background flex items-center gap-2 flex-shrink-0">
       <div class="relative flex-1 max-w-xs">
         <SIcon
           icon="lucide:search"
@@ -60,14 +62,14 @@ function handleDelete() {
           v-model="searchQuery"
           type="text"
           placeholder="Search pages..."
-          class="w-full pl-8 pr-3 py-1.5 bg-background border border-border rounded-md text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all"
+          class="w-full pl-8 pr-3 py-1.5 bg-background border border-base rounded-md text-xs text-foreground placeholder:text-muted-foreground outline-none focus:border-active focus:ring-1 focus:ring-primary-500/25 transition-all"
         />
       </div>
-      <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0">{{ filteredPages.length }} pages</span>
+      <span class="text-2xs text-muted-foreground ml-auto flex-shrink-0 op-fade">{{ filteredPages.length }} pages</span>
     </div>
     <div class="flex-1 overflow-y-auto p-3.5">
       <div v-if="filteredPages.length > 0" class="flex flex-col gap-1">
-        <div v-for="(p, i) in filteredPages" :key="i" class="list-item group hover:bg-secondary/30 transition-colors">
+        <div v-for="(p, i) in filteredPages" :key="i" class="list-item group">
           <SIcon icon="lucide:file-text" :size="14" class="text-primary flex-shrink-0" />
           <div class="flex flex-col min-w-0 flex-1">
             <span class="font-mono text-primary text-xs" :title="p.path">{{ p.path }}</span>
@@ -77,6 +79,20 @@ function handleDelete() {
             </span>
           </div>
           <span v-if="p.filePath" class="file-name" :title="p.filePath">{{ filePath(p.filePath) }}</span>
+          <button
+            class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer flex-shrink-0 ml-1"
+            title="Edit page properties (definePage)"
+            @click.stop="emit('edit-meta', p)"
+          >
+            <SIcon icon="lucide:sliders-horizontal" :size="12" />
+          </button>
+          <button
+            class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer flex-shrink-0 ml-1"
+            title="Edit page source"
+            @click.stop="emit('edit', p)"
+          >
+            <SIcon icon="lucide:pencil" :size="12" />
+          </button>
           <button
             class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer flex-shrink-0 ml-1"
             title="Delete page"

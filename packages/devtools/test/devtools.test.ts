@@ -11,6 +11,7 @@ import {
   createDevToolsHooks,
   createCrudServer,
   createAiServer,
+  createTerminalServer,
   createAllRpcFunctions,
   ubeanDevtoolsPlugin
 } from '../src';
@@ -23,23 +24,23 @@ import type { ScanResultLike, DevToolsConfigMeta } from '../src/node/state';
 function makeScanResult(): ScanResultLike {
   return {
     apiRoutes: [
-      { method: 'get', route: '/api/users', relativePath: 'routes/users.ts' },
-      { method: 'post', route: '/api/users', relativePath: 'routes/users.ts' }
+      { method: 'get', route: '/api/users', relativePath: 'routes/users.ts', fullPath: '/project/src/routes/users.ts' },
+      { method: 'post', route: '/api/users', relativePath: 'routes/users.ts', fullPath: '/project/src/routes/users.ts' }
     ],
     pages: [
-      { route: '/', name: 'Home', relativePath: 'pages/index.vue', isReuse: false },
-      { route: '/about', name: 'About', relativePath: 'pages/about.vue', isReuse: false, layout: 'default' },
-      { route: '/reuse-template', name: 'ReuseTemplate', relativePath: 'pages/reuse-template.reuse.vue', isReuse: true }
+      { route: '/', name: 'Home', relativePath: 'pages/index.vue', fullPath: '/project/src/pages/index.vue', isReuse: false },
+      { route: '/about', name: 'About', relativePath: 'pages/about.vue', fullPath: '/project/src/pages/about.vue', isReuse: false, layout: 'default' },
+      { route: '/reuse-template', name: 'ReuseTemplate', relativePath: 'pages/reuse-template.reuse.vue', fullPath: '/project/src/pages/reuse-template.reuse.vue', isReuse: true }
     ],
     middlewares: [
-      { global: true, relativePath: 'middleware/global.ts' },
-      { global: false, relativePath: 'middleware/admin/auth.ts' }
+      { global: true, relativePath: 'middleware/global.ts', fullPath: '/project/src/middleware/global.ts' },
+      { global: false, relativePath: 'middleware/admin/auth.ts', fullPath: '/project/src/middleware/admin/auth.ts' }
     ],
     layouts: [
-      { name: 'default', path: 'layouts/default.vue', relativePath: 'layouts/default.vue', isDefault: true },
-      { name: 'admin', path: 'layouts/admin.vue', relativePath: 'layouts/admin.vue', isDefault: false }
+      { name: 'default', path: 'layouts/default.vue', relativePath: 'layouts/default.vue', fullPath: '/project/src/layouts/default.vue', isDefault: true },
+      { name: 'admin', path: 'layouts/admin.vue', relativePath: 'layouts/admin.vue', fullPath: '/project/src/layouts/admin.vue', isDefault: false }
     ],
-    crons: [{ name: 'cleanup', relativePath: 'crons/01.cleanup.ts' }]
+    crons: [{ name: 'cleanup', relativePath: 'crons/01.cleanup.ts', fullPath: '/project/src/crons/01.cleanup.ts' }]
   };
 }
 
@@ -449,11 +450,11 @@ describe('createCrudServer', () => {
     expect(result.errors?.[0]).toContain('Unsupported resource type');
   });
 
-  it('returns error for config update (read-only)', async () => {
+  it('returns error for config update without path', async () => {
     const crud = createCrudServer({ cwd: tmpDir, getConfig: () => ({}) });
     const result = await crud.update({ type: 'config' });
     expect(result.success).toBe(false);
-    expect(result.errors?.[0]).toContain('not supported');
+    expect(result.errors?.[0]).toContain('Path is required');
   });
 
   it('returns error for env update without key', async () => {
@@ -536,17 +537,19 @@ describe('createAllRpcFunctions', () => {
 
     const crud = createCrudServer({ cwd: '.' });
     const ai = createAiServer(crud, () => emptyDevToolsInfo(0));
+    const terminal = createTerminalServer();
 
     const fns = createAllRpcFunctions({
       // @ts-expect-error ignore state type
       state: mockState,
       getEnvData: () => ({}),
       crud,
-      ai
+      ai,
+      terminal
     });
 
     expect(Array.isArray(fns)).toBe(true);
-    expect(fns.length).toBe(10); // 2 info + 5 crud + 2 ai + 1 playground
+    expect(fns.length).toBe(15); // 2 info + 5 crud + 2 ai + 1 playground + 5 terminal
 
     const names = fns.map((f: any) => f.name);
     expect(names).toContain('ubean:get-info');
@@ -559,6 +562,11 @@ describe('createAllRpcFunctions', () => {
     expect(names).toContain('ubean:ai:tools');
     expect(names).toContain('ubean:ai:chat');
     expect(names).toContain('ubean:playground:invoke');
+    expect(names).toContain('ubean:terminal:start');
+    expect(names).toContain('ubean:terminal:input');
+    expect(names).toContain('ubean:terminal:resize');
+    expect(names).toContain('ubean:terminal:poll');
+    expect(names).toContain('ubean:terminal:kill');
   });
 });
 

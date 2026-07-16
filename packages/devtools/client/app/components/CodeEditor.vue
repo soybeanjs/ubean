@@ -112,7 +112,8 @@ function createEditorState(doc: string) {
         overflow: 'hidden'
       },
       '.cm-scroller': {
-        fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+        fontFamily:
+          '"DM Mono", "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
         lineHeight: '1.6'
       },
       '.cm-gutters': {
@@ -199,12 +200,12 @@ defineExpose({
 <template>
   <div
     ref="editorContainer"
-    class="flex flex-col border border-border/50 rounded-lg overflow-hidden bg-[#1e1e2e] transition-colors"
-    :class="{ 'border-primary ring-2 ring-primary/15': focused, 'is-readonly': readonly }"
+    class="flex flex-col border border-base rounded-lg overflow-hidden bg-[#1e1e2e] transition-colors"
+    :class="{ 'border-active ring-2 ring-primary-500/15': focused, 'is-readonly': readonly }"
   >
     <div
       v-if="label"
-      class="flex items-center justify-between px-3 py-1.5 text-[11px] text-muted-foreground bg-[#1e1e2e]/80 border-b border-border/40 uppercase tracking-wider font-semibold"
+      class="flex items-center justify-between px-3 py-1.5 text-[11px] text-muted-foreground bg-[#1e1e2e]/80 border-b border-base uppercase tracking-wider font-semibold"
     >
       <span>{{ label }}</span>
       <span

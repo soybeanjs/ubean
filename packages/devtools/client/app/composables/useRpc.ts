@@ -1,7 +1,8 @@
 import { getDevToolsRpcClient } from '@vitejs/devtools-kit/client';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { toast } from '@soybeanjs/ui';
-import type { DevframeRpcClient } from 'devframe';
+import type { DevframeRpcSharedStates } from 'devframe';
+import type { DevframeRpcClient } from 'devframe/client';
 
 // --- Local type definitions (client self-contained; mirrors server types) ---
 
@@ -104,6 +105,21 @@ export interface CrudResult {
   updated?: string[];
   skipped?: string[];
   errors?: string[];
+}
+
+// --- Terminal types (mirrors src/server/terminal.ts) ---
+
+export interface TerminalStartParams {
+  cwd: string;
+  cols?: number;
+  rows?: number;
+  shell?: string;
+}
+
+export interface TerminalPollResult {
+  data: string;
+  exited: boolean;
+  exitCode: number | null;
 }
 
 export type CrudResourceType =
@@ -320,6 +336,54 @@ export function useRpc() {
     }
   }
 
+  // --- Terminal RPC wrappers ---
+  // The server keeps shell sessions in memory; the client opens one session
+  // per Terminal view and polls for output via `ubean:terminal:poll`.
+
+  async function terminalStart(
+    params: TerminalStartParams
+  ): Promise<{ sessionId: string } | null> {
+    try {
+      return await rpc<{ sessionId: string }>('ubean:terminal:start', params);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Terminal start failed';
+      showToast('error', msg);
+      return null;
+    }
+  }
+
+  async function terminalInput(sessionId: string, data: string): Promise<boolean> {
+    try {
+      return await rpc<boolean>('ubean:terminal:input', { sessionId, data });
+    } catch {
+      return false;
+    }
+  }
+
+  async function terminalResize(sessionId: string, cols: number, rows: number): Promise<boolean> {
+    try {
+      return await rpc<boolean>('ubean:terminal:resize', { sessionId, cols, rows });
+    } catch {
+      return false;
+    }
+  }
+
+  async function terminalPoll(sessionId: string): Promise<TerminalPollResult> {
+    try {
+      return await rpc<TerminalPollResult>('ubean:terminal:poll', { sessionId });
+    } catch {
+      return { data: '', exited: true, exitCode: -1 };
+    }
+  }
+
+  async function terminalKill(sessionId: string): Promise<boolean> {
+    try {
+      return await rpc<boolean>('ubean:terminal:kill', { sessionId });
+    } catch {
+      return false;
+    }
+  }
+
   function fmtUptime(ms: number): string {
     const s = Math.floor(ms / 1000);
     const m = Math.floor(s / 60);
@@ -397,6 +461,11 @@ export function useRpc() {
     crudRestore,
     aiChat,
     aiGetTools,
-    showToast
+    showToast,
+    terminalStart,
+    terminalInput,
+    terminalResize,
+    terminalPoll,
+    terminalKill
   };
 }

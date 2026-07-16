@@ -41,15 +41,10 @@ function openDrizzleStudio() {
         <span>Connecting to Drizzle Studio...</span>
         <p class="text-[12px] text-muted-foreground/70 m-0">
           Make sure
-          <code class="bg-muted px-1 py-0.5 rounded font-mono text-primary text-[11px]">drizzle-kit studio</code>
+          <code class="bg-secondary px-1 py-0.5 rounded font-mono text-primary text-[11px]">drizzle-kit studio</code>
           is running on port 4983
         </p>
-        <button
-          class="mt-2 px-3.5 py-1.5 bg-muted border border-border rounded-md text-foreground text-xs cursor-pointer transition-all hover:bg-secondary hover:border-primary"
-          @click="openDrizzleStudio"
-        >
-          Open local.drizzle.studio →
-        </button>
+        <button class="btn-action-sm mt-2" @click="openDrizzleStudio">Open local.drizzle.studio →</button>
       </div>
       <iframe
         v-show="iframeLoaded"
@@ -66,14 +61,14 @@ function openDrizzleStudio() {
       >
         <SIcon icon="lucide:database" :size="40" class="text-muted-foreground/50" />
         <div class="text-[15px] font-semibold text-foreground">Drizzle Studio Not Connected</div>
-        <div class="text-xs leading-relaxed max-w-90">
+        <div class="text-xs leading-relaxed max-w-90 op-fade">
           Drizzle Studio needs to be started separately. Run the command below and refresh:
         </div>
-        <pre class="bg-card border border-border px-4 py-2.5 rounded-md font-mono text-xs text-foreground my-1">
+        <pre class="bg-secondary border border-base px-4 py-2.5 rounded-md font-mono text-xs text-foreground my-1">
 npx drizzle-kit studio</pre
         >
         <button
-          class="mt-2 px-4.5 py-2 bg-primary border-none rounded-md text-white text-sm font-medium cursor-pointer transition-all hover:bg-primary/90"
+          class="mt-2 px-4.5 py-2 bg-primary border-none rounded-md text-primary-foreground text-sm font-medium cursor-pointer transition-all hover:bg-primary/90"
           @click="openInNewTab"
         >
           Open in Browser ({{ studioSrc }}) →
@@ -86,9 +81,9 @@ npx drizzle-kit studio</pre
     >
       <SIcon icon="lucide:database" :size="40" class="text-muted-foreground/50" />
       <div class="text-[15px] font-semibold text-foreground">Database Not Configured</div>
-      <div class="text-xs leading-relaxed max-w-90">
+      <div class="text-xs leading-relaxed max-w-90 op-fade">
         Drizzle Studio requires a database connection. Configure
-        <code class="bg-muted px-1.5 py-0.5 rounded text-[11px] font-mono text-primary">db0</code>
+        <code class="bg-secondary px-1.5 py-0.5 rounded text-[11px] font-mono text-primary">db0</code>
         or Drizzle ORM to enable.
       </div>
     </div>

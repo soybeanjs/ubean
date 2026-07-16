@@ -47,7 +47,6 @@ export function registerOpenAPIRoutes(
     data-url="${openAPIPath}"
     data-configuration='{
       "theme": "purple",
-      "darkMode": true,
       "layout": "modern",
       "hideClientButton": false,
       "defaultHttpClient": { "targetKey": "shell", "clientKey": "curl" }

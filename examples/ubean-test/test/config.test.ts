@@ -11,14 +11,14 @@ describe('Config system - defineConfig / loadUbeanConfig', () => {
           locales: ['en', 'zh'],
           strategy: 'prefix_except_default'
         }
-      });
+      })!;
       expect(config.i18n?.defaultLocale).toBe('en');
       expect(config.i18n?.locales).toEqual(['en', 'zh']);
       expect(config.i18n?.strategy).toBe('prefix_except_default');
     });
 
     it('accepts empty config', () => {
-      const config = defineConfig({});
+      const config = defineConfig({})!;
       expect(config).toBeDefined();
     });
 
@@ -26,10 +26,10 @@ describe('Config system - defineConfig / loadUbeanConfig', () => {
       const config = defineConfig({
         routeRules: {
           '/api/**': {
-            cors: true
+            headers: {}
           }
         }
-      });
+      })!;
       expect(config.routeRules).toBeDefined();
     });
   });
@@ -37,7 +37,7 @@ describe('Config system - defineConfig / loadUbeanConfig', () => {
   describe('loadUbeanConfig() from file', () => {
     it('loads config from ubean.config.ts', async () => {
       const rootDir = resolve(process.cwd());
-      const config = await loadUbeanConfig(rootDir);
+      const config = (await loadUbeanConfig(rootDir))!;
       expect(config).toBeDefined();
       expect(config.i18n).toBeDefined();
       expect(config.i18n?.defaultLocale).toBe('en');
@@ -56,24 +56,24 @@ describe('Config system - defineConfig / loadUbeanConfig', () => {
     it('returns the loaded config', async () => {
       const rootDir = resolve(process.cwd());
       await loadUbeanConfig(rootDir);
-      const config = getConfig();
+      const config = getConfig()!;
       expect(config).toBeDefined();
     });
   });
 
   describe('Default value fallback', () => {
     it('i18n defaults to undefined when not set', () => {
-      const config = defineConfig({});
+      const config = defineConfig({})!;
       expect(config.i18n).toBeUndefined();
     });
 
     it('srcDir defaults to undefined (framework uses "src")', () => {
-      const config = defineConfig({});
+      const config = defineConfig({})!;
       expect(config.srcDir).toBeUndefined();
     });
 
     it('routeRules defaults to undefined', () => {
-      const config = defineConfig({});
+      const config = defineConfig({})!;
       expect(config.routeRules).toBeUndefined();
     });
 
@@ -85,7 +85,7 @@ describe('Config system - defineConfig / loadUbeanConfig', () => {
           locales: ['zh', 'en'],
           strategy: 'prefix'
         }
-      });
+      })!;
       expect(config.srcDir).toBe('app');
       expect(config.i18n?.defaultLocale).toBe('zh');
       expect(config.i18n?.strategy).toBe('prefix');

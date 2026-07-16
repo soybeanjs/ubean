@@ -57,7 +57,7 @@ const testItems = ['apple', 'banana', 'cherry'];
           :key="loc"
           class="px-4 py-2 rounded-lg border transition-colors"
           :class="[
-            locale === loc
+            locale.value === loc
               ? 'bg-blue-500 text-white border-blue-500'
               : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
           ]"
@@ -148,19 +148,19 @@ const testItems = ['apple', 'banana', 'cherry'];
       <div class="space-y-3 text-sm">
         <div>
           <div class="text-gray-500 mb-1">Date ({{ locale }}):</div>
-          <div>{{ testDate.toLocaleDateString(locale) }}</div>
+          <div>{{ testDate.toLocaleDateString(locale.value) }}</div>
         </div>
         <div>
           <div class="text-gray-500 mb-1">Number:</div>
-          <div>{{ testNumber.toLocaleString(locale) }}</div>
+          <div>{{ testNumber.toLocaleString(locale.value) }}</div>
         </div>
         <div>
           <div class="text-gray-500 mb-1">Currency (USD):</div>
-          <div>{{ testNumber.toLocaleString(locale, { style: 'currency', currency: 'USD' }) }}</div>
+          <div>{{ testNumber.toLocaleString(locale.value, { style: 'currency', currency: 'USD' }) }}</div>
         </div>
         <div>
           <div class="text-gray-500 mb-1">List:</div>
-          <div>{{ new Intl.ListFormat(locale).format(testItems) }}</div>
+          <div>{{ new Intl.ListFormat(locale.value).format(testItems) }}</div>
         </div>
       </div>
     </section>

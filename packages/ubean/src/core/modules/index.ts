@@ -352,17 +352,18 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
       const setup = mod.setup;
       const kit = mod.kit;
       kit.hooks = {
-        hook: ((name: keyof ModuleHooks, fn: any) => moduleHooks.hook(name, fn)) as any,
-        callHook: (async (name: keyof ModuleHooks, ...args: any[]) => {
-          await moduleHooks.callHook(name, ...(args as any));
-        }) as any
+        hook: ((name: keyof ModuleHooks, fn: (...args: unknown[]) => unknown) =>
+          moduleHooks.hook(name, fn as never)) as ModuleKitContext['hooks']['hook'],
+        callHook: async (name: keyof ModuleHooks, ...args: unknown[]) => {
+          await (moduleHooks.callHook as (n: string, ...a: unknown[]) => Promise<void>)(name, ...args);
+        }
       };
       await setup(mod.options, kit);
     }
 
     if (mod.hooks) {
       for (const [hookName, hookFn] of Object.entries(mod.hooks)) {
-        moduleHooks.hook(hookName as keyof ModuleHooks, hookFn as any);
+        moduleHooks.hook(hookName as keyof ModuleHooks, hookFn as never);
       }
     }
 

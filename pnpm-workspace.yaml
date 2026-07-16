@@ -15,6 +15,7 @@ catalog:
   vite: npm:@voidzero-dev/vite-plus-core@latest
   vitest: npm:@voidzero-dev/vite-plus-test@latest
   vite-plus: ^0.2.4
+  vue-tsc: ^3.3.7
   hono: ^4.12.29
   defu: 6.1.7
   pathe: ^2.0.3

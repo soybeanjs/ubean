@@ -12,7 +12,7 @@ import {
 } from 'ubean';
 
 // Track processed/failed messages for testing
-const processed: Array<{ id: string; body: unknown; attempts: number }> = [];
+const processed: Array<{ id: string; body: unknown; attempts: number; timestamp?: number }> = [];
 const failed: Array<{ id: string; body: unknown; error: string }> = [];
 
 function setupRetryQueue() {
@@ -111,7 +111,7 @@ function setupDelayQueue() {
       retries: 0
     },
     async msg => {
-      processed.push({ id: msg.id, body: msg.body, attempts: msg.attempts, timestamp: Date.now() } as any);
+      processed.push({ id: msg.id, body: msg.body, attempts: msg.attempts, timestamp: Date.now() });
     }
   );
 
@@ -124,7 +124,6 @@ export const GET = defineHandler(async c => {
   if (action === 'retry') {
     setupRetryQueue();
     await startQueueWorkers();
-    const _sendTime = Date.now();
     const id = await sendMessage('retry-test-queue', 'retry-msg');
     // Wait for retries to complete
     await new Promise(r => setTimeout(r, 500));
@@ -186,7 +185,6 @@ export const GET = defineHandler(async c => {
   if (action === 'delay') {
     setupDelayQueue();
     await startQueueWorkers();
-    const _sendTime = Date.now();
     await sendMessage('delay-test', 'delayed-msg', { delay: 200 });
     // Check it's not processed immediately
     await new Promise(r => setTimeout(r, 100));

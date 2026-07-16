@@ -47,6 +47,7 @@ export interface ContentCollection {
   source: string;
   type?: ContentType;
   schema?: ContentSchema;
+  documents: ContentDocument[];
   list: () => Promise<ContentDocument[]>;
   getItem: (path: string) => Promise<ContentDocument | null>;
   query: () => ContentQueryBuilder;

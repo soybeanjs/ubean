@@ -20,8 +20,8 @@ describe('Preset system', () => {
       expect(standardPreset.name).toBe('standard');
     });
 
-    it('has stdName or url', () => {
-      expect(standardPreset.stdName || standardPreset.url || standardPreset.name).toBeDefined();
+    it('has stdName or url in _meta', () => {
+      expect(standardPreset._meta.stdName || standardPreset._meta.url || standardPreset.name).toBeDefined();
     });
 
     it('defines static/dev/compatibilityDate', () => {
@@ -29,9 +29,9 @@ describe('Preset system', () => {
       expect(standardPreset).toBeDefined();
     });
 
-    it('has aliases including default', () => {
+    it('has aliases including default in _meta', () => {
       // standard is often aliased as 'default'
-      const aliases = standardPreset.aliases || [];
+      const aliases = standardPreset._meta.aliases || [];
       expect(Array.isArray(aliases)).toBe(true);
     });
   });
@@ -45,8 +45,8 @@ describe('Preset system', () => {
       expect(nodePreset).toHaveProperty('name');
     });
 
-    it('may have node-server alias', () => {
-      const aliases = nodePreset.aliases || [];
+    it('may have node-server alias in _meta', () => {
+      const aliases = nodePreset._meta.aliases || [];
       expect(Array.isArray(aliases)).toBe(true);
     });
   });
@@ -60,8 +60,8 @@ describe('Preset system', () => {
       expect(cloudflarePreset).toHaveProperty('name');
     });
 
-    it('may have cf alias', () => {
-      const aliases = cloudflarePreset.aliases || [];
+    it('may have cf alias in _meta', () => {
+      const aliases = cloudflarePreset._meta.aliases || [];
       expect(Array.isArray(aliases)).toBe(true);
     });
   });
@@ -132,12 +132,12 @@ describe('Preset system', () => {
 
   describe('resolvePresetWithDetection()', () => {
     it('resolves with explicit name', () => {
-      const result = resolvePresetWithDetection({ name: 'node' });
+      const result = resolvePresetWithDetection('node');
       expect(result).toBeDefined();
     });
 
     it('resolves with auto-detection when no name', () => {
-      const result = resolvePresetWithDetection({});
+      const result = resolvePresetWithDetection();
       expect(result).toBeDefined();
     });
   });
@@ -157,7 +157,7 @@ describe('Preset system', () => {
     it('includes compatibility_date', () => {
       const config = generateWranglerConfig({
         name: 'test',
-        main: 'index.mjs',
+        entry: 'index.mjs',
         compatibilityDate: '2024-09-01'
       });
       expect(config.compatibility_date).toBe('2024-09-01');
@@ -180,7 +180,7 @@ describe('Preset system', () => {
     it('includes compatibility_date in TOML', () => {
       const config = generateWranglerConfig({
         name: 'test',
-        main: 'index.mjs',
+        entry: 'index.mjs',
         compatibilityDate: '2024-09-01'
       });
       const toml = serializeWranglerToml(config);
@@ -190,34 +190,43 @@ describe('Preset system', () => {
 
   describe('definePreset() / resolvePreset()', () => {
     it('defines a custom preset', () => {
-      const custom = definePreset({
-        name: 'test-custom',
-        static: true
-      });
+      const custom = definePreset(
+        {
+          name: 'test-custom'
+        },
+        { name: 'test-custom', static: true }
+      );
       expect(custom.name).toBe('test-custom');
     });
 
     it('resolvePreset resolves a defined preset', () => {
-      definePreset({
-        name: 'test-resolve',
-        static: true
-      });
+      definePreset(
+        {
+          name: 'test-resolve'
+        },
+        { name: 'test-resolve', static: true }
+      );
       const resolved = resolvePreset('test-resolve');
       expect(resolved).toBeDefined();
       expect(resolved?.name).toBe('test-resolve');
     });
 
     it('supports extends inheritance', () => {
-      definePreset({
-        name: 'base-preset',
-        static: true,
-        serve: { port: 3000 }
-      });
-      definePreset({
-        name: 'child-preset',
-        extends: 'base-preset',
-        serve: { port: 4000 }
-      });
+      definePreset(
+        {
+          name: 'base-preset',
+          serve: { port: 3000 }
+        },
+        { name: 'base-preset', static: true }
+      );
+      definePreset(
+        {
+          name: 'child-preset',
+          extends: 'base-preset',
+          serve: { port: 4000 }
+        },
+        { name: 'child-preset', static: true }
+      );
       const resolved = resolvePreset('child-preset');
       expect(resolved).toBeDefined();
       // child should override port

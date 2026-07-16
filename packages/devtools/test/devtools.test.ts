@@ -443,7 +443,8 @@ describe('createCrudServer', () => {
 
   it('returns error for unsupported create type', async () => {
     const crud = createCrudServer({ cwd: tmpDir });
-    const result = await crud.create({ type: 'invalid' as any, path: 'test' });
+    // @ts-expect-error test invalid type
+    const result = await crud.create({ type: 'invalid', path: 'test' });
     expect(result.success).toBe(false);
     expect(result.errors?.[0]).toContain('Unsupported resource type');
   });
@@ -531,12 +532,13 @@ describe('createAllRpcFunctions', () => {
       value: () => emptyDevToolsInfo(0),
       mutate: () => {},
       on: () => () => {}
-    } as any;
+    };
 
     const crud = createCrudServer({ cwd: '.' });
     const ai = createAiServer(crud, () => emptyDevToolsInfo(0));
 
     const fns = createAllRpcFunctions({
+      // @ts-expect-error ignore state type
       state: mockState,
       getEnvData: () => ({}),
       crud,

@@ -9,7 +9,8 @@ import {
   sseHeaders,
   clearSSEState
 } from 'ubean';
-import { api, getJson } from './helper';
+import type { UbeanContext } from 'ubean';
+import { api } from './helper';
 
 describe('SSE (Server-Sent Events) system', () => {
   beforeEach(() => {
@@ -88,7 +89,7 @@ describe('SSE (Server-Sent Events) system', () => {
     it('creates a Response with SSE headers', () => {
       const mockContext = {
         req: { url: 'http://localhost/sse' }
-      } as any;
+      } as unknown as UbeanContext;
 
       const response = createSSEStream(
         mockContext,

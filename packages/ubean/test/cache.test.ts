@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import type { Context } from 'hono';
 import {
   createMemoryStore,
   resolveRouteCacheRules,
@@ -202,7 +203,7 @@ describe('cache middleware', () => {
         method: 'GET',
         header: () => null
       }
-    } as any;
+    } as unknown as Context;
 
     let responseBody = 'response-1';
     const makeRes = (body: string) =>
@@ -218,7 +219,7 @@ describe('cache middleware', () => {
     });
     expect(callCount).toBe(1);
 
-    c.res = undefined as any;
+    c.res = undefined as unknown as Response;
     const secondRes = await mw(c, async () => {
       callCount++;
       c.res = makeRes('response-2');
@@ -248,8 +249,8 @@ describe('cache middleware', () => {
           method: 'POST',
           header: () => null
         },
-        res: undefined as any
-      } as any;
+        res: undefined as unknown as Response
+      } as unknown as Context;
       await mw(c, async () => {
         callCount++;
         c.res = new Response('ok', { status: 200 });

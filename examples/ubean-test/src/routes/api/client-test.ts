@@ -16,8 +16,6 @@ import {
 } from 'ubean';
 
 // Bypass HTTP proxy for localhost requests
-const _origProxy = process.env.HTTP_PROXY;
-const _origHttpsProxy = process.env.HTTPS_PROXY;
 if (process.env.HTTP_PROXY) delete process.env.HTTP_PROXY;
 if (process.env.HTTPS_PROXY) delete process.env.HTTPS_PROXY;
 process.env.NO_PROXY = 'localhost,127.0.0.1';
@@ -87,7 +85,8 @@ export const GET = defineHandler(async c => {
         headers: { 'X-Custom-Header': 'test-value' },
         onRequest({ options }) {
           log.push(`onRequest: ${options.method || 'GET'}`);
-          options.headers = { ...options.headers, 'X-Intercepted': 'true' };
+          const headers = options.headers as unknown as Record<string, string>;
+          headers['X-Intercepted'] = 'true';
         },
         onResponse({ response }) {
           log.push(`onResponse: ${response.status}`);

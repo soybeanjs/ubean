@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   createMemoryStore,
   useCacheStore,
@@ -8,6 +8,7 @@ import {
   invalidateRouteCache,
   resolveRouteCacheRules
 } from 'ubean';
+import type { UbeanContext } from 'ubean';
 import { getJson } from './helper';
 
 describe('Cache system', () => {
@@ -138,7 +139,7 @@ describe('Cache system', () => {
     });
 
     it('clearCacheStore resets the store', () => {
-      const store1 = useCacheStore();
+      useCacheStore();
       clearCacheStore();
       const store2 = useCacheStore();
       // After clear, a new store is created
@@ -156,7 +157,7 @@ describe('Cache system', () => {
 
     it('returns empty object when no cache rules', () => {
       const cacheRules = resolveRouteCacheRules({
-        '/api/**': { cors: true }
+        '/api/**': { headers: {} }
       });
       expect(Object.keys(cacheRules).length).toBe(0);
     });
@@ -171,7 +172,10 @@ describe('Cache system', () => {
 
   describe('cachedEventHandler() / invalidateRouteCache()', () => {
     it('cachedEventHandler creates a cached handler', () => {
-      const handler = cachedEventHandler(async () => ({ time: Date.now() }), { ttl: 60 });
+      const handler = cachedEventHandler(
+        (async () => ({ time: Date.now() })) as unknown as (c: UbeanContext) => Promise<Response>,
+        { ttl: 60 }
+      );
       expect(typeof handler).toBe('function');
     });
 
@@ -187,7 +191,7 @@ describe('Cache system', () => {
       expect(res1.status).toBe(200);
       expect(res2.status).toBe(200);
       // Both should return the same timestamp (cached)
-      expect(res1.data.timestamp).toBe(res2.data.timestamp);
+      expect((res1.data as { timestamp: number }).timestamp).toBe((res2.data as { timestamp: number }).timestamp);
     });
   });
 });

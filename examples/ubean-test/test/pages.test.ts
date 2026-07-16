@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { api, postJson, getJson } from './helper';
+import { api } from './helper';
 
 describe('Pages & Layouts', () => {
   describe('SSR rendering', () => {

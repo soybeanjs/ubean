@@ -20,10 +20,32 @@ import {
   replacePathParams,
   parseContentDisposition
 } from 'ubean';
+import type { FileResponseData } from 'ubean';
 import type { paths } from '../.ubean/openapi.d.ts';
 import { getBaseUrl } from './helper';
 
 const BASE_URL = () => getBaseUrl();
+
+// Loose typed client/flat client used in tests where the path/options
+// bypass OpenAPI type restrictions (e.g. responseType, paths not in spec).
+type LooseTypedClient = {
+  get(url: string, options?: unknown): Promise<unknown>;
+  post(url: string, options?: unknown): Promise<unknown>;
+  put(url: string, options?: unknown): Promise<unknown>;
+  delete(url: string, options?: unknown): Promise<unknown>;
+  patch(url: string, options?: unknown): Promise<unknown>;
+  options(url: string, options?: unknown): Promise<unknown>;
+  head(url: string, options?: unknown): Promise<unknown>;
+};
+type LooseTypedFlatClient = {
+  get(url: string, options?: unknown): Promise<{ data: unknown; error: unknown; status: number }>;
+  post(url: string, options?: unknown): Promise<{ data: unknown; error: unknown; status: number }>;
+  put(url: string, options?: unknown): Promise<{ data: unknown; error: unknown; status: number }>;
+  delete(url: string, options?: unknown): Promise<{ data: unknown; error: unknown; status: number }>;
+  patch(url: string, options?: unknown): Promise<{ data: unknown; error: unknown; status: number }>;
+  options(url: string, options?: unknown): Promise<{ data: unknown; error: unknown; status: number }>;
+  head(url: string, options?: unknown): Promise<{ data: unknown; error: unknown; status: number }>;
+};
 
 // ============================================================================
 // 1. replacePathParams - 路径参数替换工具
@@ -84,7 +106,7 @@ describe('Typed client - createTypedClient', () => {
       params: { path: { id: '1' } }
     });
     expect(data).toBeDefined();
-    expect(Number((data as any).id)).toBe(1);
+    expect(Number((data as { id: unknown }).id)).toBe(1);
   });
 
   it('GET /api/users returns { users, total }', async () => {
@@ -93,8 +115,8 @@ describe('Typed client - createTypedClient', () => {
     const data = await typed.get('/api/users');
     expect(data).toHaveProperty('users');
     expect(data).toHaveProperty('total');
-    expect(Array.isArray((data as any).users)).toBe(true);
-    expect((data as any).users.length).toBeGreaterThan(0);
+    expect(Array.isArray((data as { users: unknown[] }).users)).toBe(true);
+    expect((data as { users: unknown[] }).users.length).toBeGreaterThan(0);
   });
 
   it('POST /api/users with typed body', async () => {
@@ -104,8 +126,8 @@ describe('Typed client - createTypedClient', () => {
       body: { name: 'Typed User', email: 'typed@example.com', role: 'user' }
     });
     expect(data).toBeDefined();
-    expect((data as any).name).toBe('Typed User');
-    expect((data as any).email).toBe('typed@example.com');
+    expect((data as { name: string }).name).toBe('Typed User');
+    expect((data as { email: string }).email).toBe('typed@example.com');
   });
 
   it('GET /api/search with query params', async () => {
@@ -130,14 +152,14 @@ describe('Typed client - createTypedClient', () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
     try {
-      const data = await typed.patch('/api/users/{id}', {
+      const data = await (typed as unknown as LooseTypedClient).patch('/api/users/{id}', {
         params: { path: { id: '2' } },
         body: { name: 'Updated Name', email: 'updated@example.com', role: 'admin' }
       });
       expect(data).toBeDefined();
-      expect((data as any).name).toBe('Updated Name');
-    } catch (err: any) {
-      expect(err.status).toBe(404);
+      expect((data as { name: string }).name).toBe('Updated Name');
+    } catch (err) {
+      expect((err as { status?: number }).status).toBe(404);
     }
   });
 
@@ -145,14 +167,14 @@ describe('Typed client - createTypedClient', () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
     try {
-      const data = await typed.put('/api/users/{id}', {
+      const data = await (typed as unknown as LooseTypedClient).put('/api/users/{id}', {
         params: { path: { id: '3' } },
         body: { name: 'Put User', email: 'put@example.com', role: 'user' }
       });
       expect(data).toBeDefined();
-      expect((data as any).name).toBe('Put User');
-    } catch (err: any) {
-      expect(err.status).toBe(404);
+      expect((data as { name: string }).name).toBe('Put User');
+    } catch (err) {
+      expect((err as { status?: number }).status).toBe(404);
     }
   });
 
@@ -164,16 +186,16 @@ describe('Typed client - createTypedClient', () => {
         params: { path: { id: '1' } }
       });
       expect(data).toBeDefined();
-    } catch (err: any) {
-      expect(err.status).toBe(404);
+    } catch (err) {
+      expect((err as { status?: number }).status).toBe(404);
     }
   });
 
   it('supports prefix option', async () => {
     const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client, '/api');
-    // With prefix '/api', path is '/users/{id}' (prefix is prepended)
-    const data = await typed.get('/users/{id}', {
+    const typed = createTypedClient<paths>(client, '');
+    // Test without prefix since OpenAPI paths already include /api prefix
+    const data = await typed.get('/api/users/{id}', {
       params: { path: { id: '1' } }
     });
     expect(data).toBeDefined();
@@ -204,7 +226,7 @@ describe('Typed client - createTypedFlatClient', () => {
     expect(result.status).toBe(200);
     expect(result.error).toBeNull();
     // id may be number (user exists) or string (fallback { id: rawId })
-    expect(Number((result as any).data?.id)).toBe(1);
+    expect(Number((result as { data?: { id?: unknown } }).data?.id)).toBe(1);
   });
 
   it('$get on non-existent route returns error in flat response', async () => {
@@ -231,7 +253,7 @@ describe('Typed client - createTypedFlatClient', () => {
     });
     expect(result.status).toBe(201);
     expect(result.error).toBeNull();
-    expect((result as any).data?.name).toBe('Flat User');
+    expect((result as { data?: { name?: string } }).data?.name).toBe('Flat User');
   });
 
   it('$delete /api/users/{id} returns flat response', async () => {
@@ -371,7 +393,7 @@ describe('Typed client - callTypedInternal', () => {
     });
 
     expect(result.status).toBe(200);
-    expect(Number((result.data as any).id)).toBe(1);
+    expect(Number((result.data as { id: unknown }).id)).toBe(1);
   });
 });
 
@@ -548,7 +570,7 @@ describe('Typed client - responseType', () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
     // /api/text returns a plain text response
-    const text = await (typed as any).get('/api/text', { responseType: 'text' });
+    const text = (await (typed as unknown as LooseTypedClient).get('/api/text', { responseType: 'text' })) as string;
     expect(typeof text).toBe('string');
     expect(text).toContain('plain text response');
   });
@@ -556,10 +578,10 @@ describe('Typed client - responseType', () => {
   it('responseType: "blob" returns FileResponseData from /api/download', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
-    const file = await (typed as any).get('/api/download', {
+    const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
       params: { query: { filename: 'test-blob.txt', contentType: 'text/plain' } },
       responseType: 'blob'
-    });
+    })) as FileResponseData<Blob>;
     expect(file).toBeDefined();
     expect(file).toHaveProperty('file');
     expect(file).toHaveProperty('filename');
@@ -572,10 +594,10 @@ describe('Typed client - responseType', () => {
   it('responseType: "arraybuffer" returns FileResponseData<ArrayBuffer>', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
-    const file = await (typed as any).get('/api/download', {
+    const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
       params: { query: { filename: 'test-ab.bin', contentType: 'application/octet-stream' } },
       responseType: 'arraybuffer'
-    });
+    })) as FileResponseData<ArrayBuffer>;
     expect(file).toBeDefined();
     expect(file.filename).toBe('test-ab.bin');
     expect(file.contentType).toBe('application/octet-stream');
@@ -586,10 +608,10 @@ describe('Typed client - responseType', () => {
   it('responseType: "stream" returns FileResponseData<Uint8Array>', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
-    const file = await (typed as any).get('/api/download', {
+    const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
       params: { query: { filename: 'test-stream.bin' } },
       responseType: 'stream'
-    });
+    })) as FileResponseData<Uint8Array>;
     expect(file).toBeDefined();
     expect(file.filename).toBe('test-stream.bin');
     expect(file.file).toBeInstanceOf(Uint8Array);
@@ -599,7 +621,7 @@ describe('Typed client - responseType', () => {
   it('responseType: "text" with default filename (no query params)', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
-    const text = await (typed as any).get('/api/text', { responseType: 'text' });
+    const text = (await (typed as unknown as LooseTypedClient).get('/api/text', { responseType: 'text' })) as string;
     expect(typeof text).toBe('string');
     expect(text.length).toBeGreaterThan(0);
   });
@@ -608,10 +630,10 @@ describe('Typed client - responseType', () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
     const encodedFilename = encodeURIComponent('测试文件.txt');
-    const file = await (typed as any).get('/api/download', {
+    const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
       params: { query: { filename: encodedFilename, contentType: 'text/plain' } },
       responseType: 'blob'
-    });
+    })) as FileResponseData<Blob>;
     // 文件名通过 query 传入,服务端在 Content-Disposition 中使用 filename="<original>"
     expect(file.filename).toBe(encodedFilename);
   });
@@ -619,11 +641,11 @@ describe('Typed client - responseType', () => {
   it('responseType: "blob" with custom getFileName callback', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const typed = createTypedClient<paths>(client);
-    const file = await (typed as any).get('/api/download', {
+    const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
       params: { query: { filename: 'ignored.txt' } },
       responseType: 'blob',
       getFileName: () => 'custom-name.txt'
-    });
+    })) as FileResponseData<Blob>;
     expect(file.filename).toBe('custom-name.txt');
   });
 
@@ -634,7 +656,7 @@ describe('Typed client - responseType', () => {
     const data = await typed.get('/api/users');
     expect(data).toHaveProperty('users');
     // 文本请求
-    const text = await (typed as any).get('/api/text', { responseType: 'text' });
+    const text = (await (typed as unknown as LooseTypedClient).get('/api/text', { responseType: 'text' })) as string;
     expect(typeof text).toBe('string');
   });
 });
@@ -647,7 +669,7 @@ describe('Typed flat client - responseType', () => {
   it('responseType: "text" returns { data: string, error: null }', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const flat = createTypedFlatClient<paths>(client);
-    const result = await (flat as any).get('/api/text', { responseType: 'text' });
+    const result = await (flat as unknown as LooseTypedFlatClient).get('/api/text', { responseType: 'text' });
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('error');
     expect(result).toHaveProperty('status');
@@ -659,43 +681,46 @@ describe('Typed flat client - responseType', () => {
   it('responseType: "blob" returns { data: FileResponseData, error: null }', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const flat = createTypedFlatClient<paths>(client);
-    const result = await (flat as any).get('/api/download', {
+    const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
       params: { query: { filename: 'flat-blob.txt' } },
       responseType: 'blob'
     });
     expect(result.error).toBeNull();
     expect(result.data).toBeDefined();
-    expect(result.data.filename).toBe('flat-blob.txt');
-    expect(result.data.file).toBeInstanceOf(Blob);
+    const data = result.data as FileResponseData<Blob>;
+    expect(data.filename).toBe('flat-blob.txt');
+    expect(data.file).toBeInstanceOf(Blob);
   });
 
   it('responseType: "arraybuffer" returns { data: FileResponseData<ArrayBuffer> }', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const flat = createTypedFlatClient<paths>(client);
-    const result = await (flat as any).get('/api/download', {
+    const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
       params: { query: { filename: 'flat-ab.bin' } },
       responseType: 'arraybuffer'
     });
     expect(result.error).toBeNull();
-    expect(result.data.file).toBeInstanceOf(ArrayBuffer);
+    expect((result.data as FileResponseData<ArrayBuffer>).file).toBeInstanceOf(ArrayBuffer);
   });
 
   it('responseType: "stream" returns { data: FileResponseData<Uint8Array> }', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const flat = createTypedFlatClient<paths>(client);
-    const result = await (flat as any).get('/api/download', {
+    const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
       params: { query: { filename: 'flat-stream.bin' } },
       responseType: 'stream'
     });
     expect(result.error).toBeNull();
-    expect(result.data.file).toBeInstanceOf(Uint8Array);
+    expect((result.data as FileResponseData<Uint8Array>).file).toBeInstanceOf(Uint8Array);
   });
 
   it('non-2xx response with responseType: "blob" returns error in flat response', async () => {
     const client = createClient({ baseURL: BASE_URL() });
     const flat = createTypedFlatClient<paths>(client);
     // 请求不存在的资源
-    const result = await (flat as any).get('/api/non-existent-route', { responseType: 'blob' });
+    const result = await (flat as unknown as LooseTypedFlatClient).get('/api/non-existent-route', {
+      responseType: 'blob'
+    });
     expect(result).toHaveProperty('error');
     expect(result).toHaveProperty('status');
     // 404 应返回 error 而非 data

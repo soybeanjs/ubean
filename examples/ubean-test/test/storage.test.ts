@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createMemoryDriver, createStorage, clearGlobalStorage, createKV, useStorage } from 'ubean';
+import { createMemoryDriver, createStorage, clearGlobalStorage, createKV } from 'ubean';
 import { getJson } from './helper';
 
 describe('Storage system', () => {
@@ -219,29 +219,31 @@ describe('Storage system', () => {
     it('memory driver works via API', async () => {
       const res = await getJson('/api/storage-advanced-test?action=memory');
       expect(res.status).toBe(200);
-      expect(res.data.allStored).toBe(true);
-      expect(res.data.stringVal).toBe('hello');
-      expect(res.data.numberVal).toBe(42);
+      const data = res.data as { allStored: boolean; stringVal: string; numberVal: number };
+      expect(data.allStored).toBe(true);
+      expect(data.stringVal).toBe('hello');
+      expect(data.numberVal).toBe(42);
     });
 
     it('serialization works via API', async () => {
       const res = await getJson('/api/storage-advanced-test?action=serialization');
       expect(res.status).toBe(200);
-      expect(res.data.allMatch).toBe(true);
+      expect((res.data as { allMatch: boolean }).allMatch).toBe(true);
     });
 
     it('mount works via API', async () => {
       const res = await getJson('/api/storage-advanced-test?action=mount');
       expect(res.status).toBe(200);
-      expect(res.data.hasKeysFromBothDrivers).toBe(true);
+      expect((res.data as { hasKeysFromBothDrivers: boolean }).hasKeysFromBothDrivers).toBe(true);
     });
 
     it('TTL works via API', async () => {
       const res = await getJson('/api/storage-advanced-test?action=ttl');
       expect(res.status).toBe(200);
-      expect(res.data.beforeExpiry).toBe(true);
-      expect(res.data.afterExpiry).toBe(false);
-      expect(res.data.ttlExpired).toBe(true);
+      const data = res.data as { beforeExpiry: boolean; afterExpiry: boolean; ttlExpired: boolean };
+      expect(data.beforeExpiry).toBe(true);
+      expect(data.afterExpiry).toBe(false);
+      expect(data.ttlExpired).toBe(true);
     });
   });
 

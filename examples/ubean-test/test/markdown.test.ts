@@ -194,40 +194,43 @@ Content`;
     it('parse action returns parsed results', async () => {
       const res = await getJson('/api/markdown-parse-test?action=parse');
       expect(res.status).toBe(200);
-      expect(res.data.results).toHaveLength(4);
-      expect(res.data.results.every((r: any) => r.html)).toBe(true);
+      const data = res.data as { results: Array<{ html: unknown }> };
+      expect(data.results).toHaveLength(4);
+      expect(data.results.every(r => Boolean(r.html))).toBe(true);
     });
 
     it('frontmatter action returns frontmatter results', async () => {
       const res = await getJson('/api/markdown-parse-test?action=frontmatter');
       expect(res.status).toBe(200);
-      expect(res.data.results).toHaveLength(3);
-      expect(res.data.results[0].frontmatter).toBeDefined();
+      const data = res.data as { results: Array<{ frontmatter: unknown }> };
+      expect(data.results).toHaveLength(3);
+      expect(data.results[0].frontmatter).toBeDefined();
     });
 
     it('headings action returns extracted headings', async () => {
       const res = await getJson('/api/markdown-parse-test?action=headings');
       expect(res.status).toBe(200);
-      expect(res.data.allHeadings).toBe(true);
+      expect((res.data as { allHeadings: boolean }).allHeadings).toBe(true);
     });
 
     it('excerpt action returns excerpts', async () => {
       const res = await getJson('/api/markdown-parse-test?action=excerpt');
       expect(res.status).toBe(200);
-      expect(res.data.allNonEmpty).toBe(true);
+      expect((res.data as { allNonEmpty: boolean }).allNonEmpty).toBe(true);
     });
 
     it('html action returns HTML conversion', async () => {
       const res = await getJson('/api/markdown-parse-test?action=html');
       expect(res.status).toBe(200);
-      expect(res.data.allContainHtml).toBe(true);
+      expect((res.data as { allContainHtml: boolean }).allContainHtml).toBe(true);
     });
 
     it('definePage action returns page definition', async () => {
       const res = await getJson('/api/markdown-parse-test?action=definePage');
       expect(res.status).toBe(200);
-      expect(res.data.hasPath).toBe(true);
-      expect(res.data.hasContent).toBe(true);
+      const data = res.data as { hasPath: boolean; hasContent: boolean };
+      expect(data.hasPath).toBe(true);
+      expect(data.hasContent).toBe(true);
     });
   });
 });

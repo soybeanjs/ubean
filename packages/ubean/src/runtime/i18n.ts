@@ -1,5 +1,13 @@
 export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
 
+interface GlobalWithWindow {
+  window?: {
+    location: {
+      pathname: string;
+    };
+  };
+}
+
 export type DateTimeFormatStyle = 'short' | 'medium' | 'long' | 'full';
 export type NumberFormatStyle = 'decimal' | 'percent' | 'currency';
 export type ListFormatStyle = 'conjunction' | 'disjunction' | 'unit';
@@ -363,7 +371,7 @@ export function localizePath(path: string, locale?: string): string {
 }
 
 export function switchLocalePath(newLocale: string, currentPath?: string): string {
-  const _global = globalThis as any;
+  const _global = globalThis as GlobalWithWindow;
   const path = currentPath || (typeof _global.window !== 'undefined' ? _global.window.location.pathname : '/');
   return localizePath(path, newLocale);
 }

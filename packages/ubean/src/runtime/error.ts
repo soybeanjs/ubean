@@ -40,11 +40,16 @@ function statusCodeToMessage(code: number): string {
   return messages[code] || 'Error';
 }
 
+interface ErrorWithStatusCode extends Error {
+  statusCode: number;
+}
+
+function isErrorWithStatusCode(err: unknown): err is ErrorWithStatusCode {
+  return err instanceof Error && 'statusCode' in err && typeof (err as ErrorWithStatusCode).statusCode === 'number';
+}
+
 export function isUbeanError(err: unknown): err is UbeanError {
-  return (
-    err instanceof UbeanError ||
-    (err instanceof Error && err.name === 'UbeanError' && typeof (err as any).statusCode === 'number')
-  );
+  return err instanceof UbeanError || (err instanceof Error && err.name === 'UbeanError' && isErrorWithStatusCode(err));
 }
 
 export function errorToResponse(c: unknown, err?: unknown): Response {

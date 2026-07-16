@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { Plugin, Component } from 'vue';
 import { defineApp } from 'ubean/runtime/vue';
 import { api } from './helper';
 
@@ -17,10 +18,9 @@ describe('defineApp()', () => {
     });
 
     it('accepts onClientReady callback', () => {
-      let called = false;
       const def = defineApp({
         onClientReady: () => {
-          called = true;
+          // callback registered
         }
       });
       expect(def.onClientReady).toBeDefined();
@@ -32,7 +32,7 @@ describe('defineApp()', () => {
         install: () => {}
       };
       const def = defineApp({
-        plugins: [plugin as any]
+        plugins: [plugin as unknown as Plugin]
       });
       expect(def.plugins).toBeDefined();
       expect(def.plugins).toHaveLength(1);
@@ -55,7 +55,7 @@ describe('defineApp()', () => {
     it('accepts loadingComponent', () => {
       const LoadingComp = { template: '<div>Loading...</div>' };
       const def = defineApp({
-        loadingComponent: LoadingComp as any
+        loadingComponent: LoadingComp as unknown as Component
       });
       expect(def.loadingComponent).toBeDefined();
     });

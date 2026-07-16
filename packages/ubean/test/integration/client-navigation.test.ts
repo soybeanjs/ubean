@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { defineComponent, h } from 'vue';
+import type { VNode } from 'vue';
 import { createVueRenderer } from '../../src/core/vue/renderer';
 import { createUbeanApp } from '../../src/runtime/app';
 import {
@@ -28,7 +29,10 @@ describe('Integration: Client navigation protocol', () => {
       name: 'AboutPage',
       props: { title: { type: String, default: '' } },
       render() {
-        return h('div', { class: 'about' }, [h('h1', (this as any).title || 'About'), h('p', 'About page content')]);
+        return h('div', { class: 'about' }, [
+          h('h1', (this as { title: string }).title || 'About'),
+          h('p', 'About page content')
+        ]);
       }
     });
 
@@ -90,7 +94,7 @@ describe('Integration: Client navigation protocol', () => {
       name: 'HomePage',
       props: { msg: { type: String, default: '' } },
       render() {
-        return h('div', { class: 'home' }, (this as any).msg || 'Home');
+        return h('div', { class: 'home' }, (this as { msg: string }).msg || 'Home');
       }
     });
 
@@ -242,7 +246,7 @@ describe('Integration: Dynamic route parameters in pages', () => {
       name: 'UserPage',
       props: { id: { type: String, default: '' } },
       render() {
-        return h('div', { class: 'user-profile' }, [h('h1', `User ${(this as any).id}`)]);
+        return h('div', { class: 'user-profile' }, [h('h1', `User ${(this as { id: string }).id}`)]);
       }
     });
 
@@ -370,7 +374,10 @@ describe('Integration: Full page navigation flow (server-side)', () => {
       name: 'DefaultLayout',
       props: { page: Object, layoutName: String },
       render() {
-        return h('div', { class: 'layout' }, [h('header', 'Header'), h('main', (this as any).$slots.default?.())]);
+        return h('div', { class: 'layout' }, [
+          h('header', 'Header'),
+          h('main', (this as { $slots: { default?: () => VNode[] } }).$slots.default?.())
+        ]);
       }
     });
 

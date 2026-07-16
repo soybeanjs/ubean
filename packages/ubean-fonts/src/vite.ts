@@ -1,6 +1,7 @@
 import type { Plugin } from 'vite';
 import { defu } from 'defu';
 import { configureFontsRuntime, generateFontLinks, generateFontCSS } from './runtime';
+import type { FontFamilyOptions, GoogleFontsOptions, LocalFontOptions, FontModuleOptions } from './types';
 
 export interface UbeanFontsOptions {
   families?: Array<{
@@ -68,10 +69,10 @@ export function ubeanFontsPlugin(userOptions: UbeanFontsOptions = {}): Plugin {
 
     configResolved() {
       configureFontsRuntime({
-        families: options.families as any,
-        google: options.google as any,
-        local: options.local as any,
-        defaults: options.defaults as any
+        families: options.families as unknown as FontFamilyOptions[],
+        google: options.google as unknown as Partial<GoogleFontsOptions>,
+        local: options.local as unknown as Record<string, LocalFontOptions>,
+        defaults: options.defaults as unknown as FontModuleOptions['defaults']
       });
     },
 

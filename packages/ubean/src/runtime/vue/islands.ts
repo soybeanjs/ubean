@@ -1,10 +1,99 @@
 import { createApp, h, defineComponent } from 'vue';
 import type { Component, App as VueApp } from 'vue';
 
-type DomElement = any;
-type DomParentNode = any;
+type MountTarget = string | { [key: string]: unknown };
 
-declare const document: any;
+interface DomElement {
+  getAttribute(name: string): string | null;
+  setAttribute(name: string, value: string): void;
+  hasAttribute(name: string): boolean;
+}
+
+interface NodeListOf<T> {
+  forEach(callback: (value: T, key: number, parent: NodeListOf<T>) => void): void;
+}
+
+interface DomParentNode {
+  querySelectorAll(selector: string): NodeListOf<DomElement>;
+}
+
+interface MutationObserverCallback {
+  (): void;
+}
+
+interface MutationObserver {
+  observe(target: DomElement, options: { attributes: boolean; attributeFilter: string[] }): void;
+  disconnect(): void;
+}
+
+interface MutationObserverConstructor {
+  new (callback: MutationObserverCallback): MutationObserver;
+}
+
+interface RequestIdleCallbackOptions {
+  timeout?: number;
+}
+
+interface RequestIdleCallbackDeadline {
+  didTimeout: boolean;
+  timeRemaining(): number;
+}
+
+interface IntersectionObserverEntry {
+  isIntersecting: boolean;
+}
+
+interface IntersectionObserverCallback {
+  (entries: IntersectionObserverEntry[]): void;
+}
+
+interface IntersectionObserver {
+  observe(target: DomElement): void;
+  disconnect(): void;
+}
+
+interface IntersectionObserverConstructor {
+  new (callback: IntersectionObserverCallback, options?: { rootMargin?: string }): IntersectionObserver;
+}
+
+interface MediaQueryListEvent {
+  matches: boolean;
+}
+
+interface MediaQueryList {
+  matches: boolean;
+  addEventListener(type: 'change', listener: (e: MediaQueryListEvent) => void): void;
+  removeEventListener(type: 'change', listener: (e: MediaQueryListEvent) => void): void;
+  addListener?(listener: (e: MediaQueryListEvent) => void): void;
+  removeListener?(listener: (e: MediaQueryListEvent) => void): void;
+}
+
+interface WindowWithMatchMedia {
+  matchMedia(query: string): MediaQueryList;
+}
+
+interface BrowserDocument extends DomParentNode {
+  querySelectorAll(selector: string): NodeListOf<DomElement>;
+}
+
+interface GlobalWithBrowserAPIs {
+  MutationObserver?: MutationObserverConstructor;
+  requestIdleCallback?: (
+    callback: (deadline: RequestIdleCallbackDeadline) => void,
+    options?: RequestIdleCallbackOptions
+  ) => number;
+  IntersectionObserver?: IntersectionObserverConstructor;
+  window?: WindowWithMatchMedia;
+  document?: BrowserDocument;
+}
+
+interface VueAppInternal {
+  _context?: {
+    provides?: Record<string | symbol, unknown>;
+  };
+}
+
+const _global = globalThis as GlobalWithBrowserAPIs;
 
 export interface IslandHydrateOptions {
   getComponent?: (name: string) => Component | Promise<Component> | null;
@@ -35,17 +124,19 @@ function decodeProps(raw: string | null): Record<string, unknown> {
   }
 }
 
-export function collectIslands(root: DomParentNode = document): IslandRecord[] {
-  if (typeof document === 'undefined') return [];
-  const nodes = root.querySelectorAll('ubean-island[data-island-id]');
+export function collectIslands(root?: DomParentNode): IslandRecord[] {
+  const doc = root ?? _global.document;
+  if (!doc) return [];
+  const nodes = doc.querySelectorAll('ubean-island[data-island-id]');
   const records: IslandRecord[] = [];
-  nodes.forEach((el: DomElement) => {
-    const id = el.getAttribute('data-island-id') || '';
-    const componentName = el.getAttribute('data-component') || '';
-    const directive = el.getAttribute('data-directive') || 'client:load';
-    const mediaQuery = el.getAttribute('data-media') || undefined;
-    const props = decodeProps(el.getAttribute('data-props'));
-    records.push({ el, id, componentName, directive, mediaQuery, props });
+  nodes.forEach(el => {
+    const domEl = el as DomElement;
+    const id = domEl.getAttribute('data-island-id') || '';
+    const componentName = domEl.getAttribute('data-component') || '';
+    const directive = domEl.getAttribute('data-directive') || 'client:load';
+    const mediaQuery = domEl.getAttribute('data-media') || undefined;
+    const props = decodeProps(domEl.getAttribute('data-props'));
+    records.push({ el: domEl, id, componentName, directive, mediaQuery, props });
   });
   return records;
 }
@@ -57,7 +148,7 @@ export function hydrateIsland(record: IslandRecord, component: Component, option
   const ChildComponent = defineComponent({
     name: `Island-${record.componentName}`,
     setup() {
-      return () => h(component as any, record.props as any);
+      return () => h(component, record.props);
     }
   });
 
@@ -67,14 +158,15 @@ export function hydrateIsland(record: IslandRecord, component: Component, option
     if (options.appContext.config?.globalProperties) {
       Object.assign(app.config.globalProperties, options.appContext.config.globalProperties);
     }
-    if ((options.appContext as any)._context?.provides) {
-      for (const [key, value] of Object.entries((options.appContext as any)._context.provides)) {
-        app.provide(key as any, value);
+    const appContextInternal = options.appContext as unknown as VueAppInternal;
+    if (appContextInternal._context?.provides) {
+      for (const [key, value] of Object.entries(appContextInternal._context.provides)) {
+        app.provide(key, value);
       }
     }
   }
 
-  app.mount(record.el);
+  app.mount(record.el as unknown as MountTarget);
   options.onHydrated?.(record.el, component);
 }
 
@@ -84,9 +176,9 @@ export interface HydrateIslandsOptions extends IslandHydrateOptions {
 }
 
 export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
-  if (typeof document === 'undefined') return;
-  const { root = document, components = {}, getComponent, ...rest } = options;
+  const { root, components = {}, getComponent, ...rest } = options;
   const islands = collectIslands(root);
+  if (islands.length === 0) return;
 
   for (const record of islands) {
     if (record.directive === 'client:only') {
@@ -111,8 +203,7 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
     }
 
     // Also set up MutationObserver as fallback (for bootstrap script triggers)
-    const MutationObserverCtor: any =
-      typeof (globalThis as any).MutationObserver !== 'undefined' ? (globalThis as any).MutationObserver : null;
+    const MutationObserverCtor = _global.MutationObserver ?? null;
 
     if (MutationObserverCtor) {
       const observer = new MutationObserverCtor(() => {
@@ -131,18 +222,18 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
     if (directive === 'client:load') {
       doHydrate();
     } else if (directive === 'client:idle') {
-      const ric = (globalThis as any).requestIdleCallback;
+      const ric = _global.requestIdleCallback;
       if (typeof ric === 'function') {
         ric(() => doHydrate(), { timeout: 2000 });
       } else {
         setTimeout(doHydrate, 200);
       }
     } else if (directive === 'client:visible') {
-      const IOCtor = (globalThis as any).IntersectionObserver;
+      const IOCtor = _global.IntersectionObserver;
       if (typeof IOCtor === 'function') {
         const io = new IOCtor(
-          (entries: any[]) => {
-            entries.forEach((entry: any) => {
+          (entries: IntersectionObserverEntry[]) => {
+            entries.forEach((entry: IntersectionObserverEntry) => {
               if (entry.isIntersecting) {
                 io.disconnect();
                 doHydrate();
@@ -156,12 +247,12 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
         doHydrate();
       }
     } else if (directive === 'client:media' && record.mediaQuery) {
-      const mql = (globalThis as any).window?.matchMedia?.(record.mediaQuery);
+      const mql = _global.window?.matchMedia?.(record.mediaQuery);
       if (mql) {
         if (mql.matches) {
           doHydrate();
         } else {
-          const fn = (e: any) => {
+          const fn = (e: MediaQueryListEvent) => {
             if (e.matches) {
               doHydrate();
               if (mql.removeEventListener) {

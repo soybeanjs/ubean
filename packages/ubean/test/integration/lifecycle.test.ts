@@ -36,7 +36,7 @@ describe('Integration: Full request lifecycle', () => {
           GET: defineHandler(() => {
             order.push('handler');
             return { message: 'hello' };
-          }) as any
+          }) as unknown
         })
       },
       middlewareLoaders: {
@@ -82,7 +82,7 @@ describe('Integration: Full request lifecycle', () => {
             const body = await c.req.json();
             c.header('Location', `/api/users/${body.id}`);
             return c.json({ id: body.id, name: body.name }, 201);
-          }) as any
+          }) as unknown
         })
       },
       middlewareLoaders: {}
@@ -125,7 +125,7 @@ describe('Integration: Full request lifecycle', () => {
         'api/fail.get.ts': async () => ({
           GET: defineHandler(() => {
             throw createError({ statusCode: 422, statusMessage: 'Validation failed', data: { field: 'email' } });
-          }) as any
+          }) as unknown
         })
       },
       middlewareLoaders: {}
@@ -161,7 +161,7 @@ describe('Integration: Full request lifecycle', () => {
           GET: defineHandler(c => ({
             orgId: c.req.param('orgId'),
             userId: c.req.param('userId')
-          })) as any
+          })) as unknown
         })
       },
       middlewareLoaders: {}
@@ -204,13 +204,13 @@ describe('Integration: Full request lifecycle', () => {
       pages: [],
       routeLoaders: {
         'api/posts.get.ts': async () => ({
-          GET: defineHandler(() => ({ posts: ['a', 'b'] })) as any
+          GET: defineHandler(() => ({ posts: ['a', 'b'] })) as unknown
         }),
         'api/posts.post.ts': async () => ({
           POST: defineHandler(async c => {
             const body = await c.req.json();
             return c.json({ created: true, title: body.title }, 201);
-          }) as any
+          }) as unknown
         })
       },
       middlewareLoaders: {}
@@ -256,7 +256,7 @@ describe('Integration: Redirects and response helpers', () => {
       pages: [],
       routeLoaders: {
         'api/old.get.ts': async () => ({
-          GET: defineHandler(c => c.redirect('/api/new', 301)) as any
+          GET: defineHandler(c => c.redirect('/api/new', 301)) as unknown
         })
       },
       middlewareLoaders: {}
@@ -287,7 +287,7 @@ describe('Integration: Redirects and response helpers', () => {
       pages: [],
       routeLoaders: {
         'api/page.get.ts': async () => ({
-          GET: defineHandler(c => c.html('<h1>Hello</h1>')) as any
+          GET: defineHandler(c => c.html('<h1>Hello</h1>')) as unknown
         })
       },
       middlewareLoaders: {}
@@ -323,7 +323,7 @@ describe('Integration: Redirects and response helpers', () => {
           POST: defineHandler(async c => {
             const body = await c.req.json();
             return c.json({ ok: true, id: body.id }, 201);
-          }) as any
+          }) as unknown
         })
       },
       middlewareLoaders: {}
@@ -393,7 +393,7 @@ describe('Integration: Plugin hooks with routes', () => {
       pages: [],
       routeLoaders: {
         'api/ping.get.ts': async () => ({
-          GET: defineHandler(() => ({ pong: true })) as any
+          GET: defineHandler(() => ({ pong: true })) as unknown
         })
       },
       middlewareLoaders: {}
@@ -430,7 +430,7 @@ describe('Integration: Health and metadata endpoints', () => {
       pages: [],
       routeLoaders: {
         'api/data.get.ts': async () => ({
-          GET: defineHandler(() => ({ data: 'yes' })) as any
+          GET: defineHandler(() => ({ data: 'yes' })) as unknown
         })
       },
       middlewareLoaders: {}
@@ -472,7 +472,7 @@ describe('Integration: Query parameters', () => {
           GET: defineHandler(c => ({
             q: c.req.query('q'),
             page: c.req.query('page') || '1'
-          })) as any
+          })) as unknown
         })
       },
       middlewareLoaders: {}
@@ -510,7 +510,7 @@ describe('Integration: Request headers via Response return', () => {
           GET: defineHandler(c => {
             c.header('X-Echo', c.req.header('x-send') || 'none');
             return c.json({ received: c.req.header('x-send') });
-          }) as any
+          }) as unknown
         })
       },
       middlewareLoaders: {}

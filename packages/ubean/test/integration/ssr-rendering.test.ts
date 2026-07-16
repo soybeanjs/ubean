@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { defineComponent, h } from 'vue';
+import type { VNode } from 'vue';
 import { createVueRenderer } from '../../src/core/vue/renderer';
 import type { PageObject } from '../../src/runtime/pages/protocol';
 
@@ -84,7 +85,7 @@ describe('Integration: Vue SSR rendering', () => {
       render() {
         return h('div', { class: 'app-layout' }, [
           h('nav', 'Nav'),
-          h('main', (this as any).$slots.default?.()),
+          h('main', (this as { $slots: { default?: () => VNode[] } }).$slots.default?.()),
           h('footer', 'Footer')
         ]);
       }
@@ -130,7 +131,7 @@ describe('Integration: Vue SSR rendering', () => {
       render() {
         return h('div', { class: 'admin-layout' }, [
           h('aside', 'Sidebar'),
-          h('section', (this as any).$slots.default?.())
+          h('section', (this as { $slots: { default?: () => VNode[] } }).$slots.default?.())
         ]);
       }
     });
@@ -144,7 +145,7 @@ describe('Integration: Vue SSR rendering', () => {
       render() {
         return h('div', { class: 'default-layout' }, [
           h('header', 'Top Bar'),
-          h('main', (this as any).$slots.default?.())
+          h('main', (this as { $slots: { default?: () => VNode[] } }).$slots.default?.())
         ]);
       }
     });
@@ -191,7 +192,7 @@ describe('Integration: Vue SSR rendering', () => {
     const DefaultLayout = defineComponent({
       name: 'DefaultLayout',
       render() {
-        return h('div', { class: 'layout' }, (this as any).$slots.default?.());
+        return h('div', { class: 'layout' }, (this as { $slots: { default?: () => VNode[] } }).$slots.default?.());
       }
     });
 

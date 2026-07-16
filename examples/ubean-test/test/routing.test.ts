@@ -161,7 +161,7 @@ describe('Routing system', () => {
     it('GET /_health returns ok status', async () => {
       const res = await getJson('/_health');
       expect(res.status).toBe(200);
-      expect(res.data.status).toBe('ok');
+      expect((res.data as { status: string }).status).toBe('ok');
     });
   });
 

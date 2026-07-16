@@ -88,7 +88,7 @@ export const buildCommand: CommandDef = {
     const manifest = await buildProduction({
       cwd,
       config,
-      preset: resolvedPreset as any,
+      preset: resolvedPreset,
       scanResult: result,
       minify: args.minify as boolean,
       sourcemap: args.sourcemap as boolean

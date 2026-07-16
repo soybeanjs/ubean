@@ -62,13 +62,13 @@ describe('Queue system', () => {
 
     it('throws when queue has no name', () => {
       expect(() => {
-        defineQueue({ name: '' } as any, async () => {});
+        defineQueue({ name: '' }, async () => {});
       }).toThrow();
     });
 
     it('throws when queue has no handler', () => {
       expect(() => {
-        defineQueue({ name: 'no-handler' } as any);
+        defineQueue({ name: 'no-handler' });
       }).toThrow();
     });
 
@@ -181,7 +181,7 @@ describe('Queue system', () => {
       await new Promise(r => setTimeout(r, 300));
       const res = await getJson('/api/queue-test?action=processed');
       expect(res.status).toBe(200);
-      expect(res.data.count).toBeGreaterThan(0);
+      expect((res.data as { count: number }).count).toBeGreaterThan(0);
     });
   });
 
@@ -189,48 +189,48 @@ describe('Queue system', () => {
     it('memory driver works', async () => {
       const res = await getJson('/api/queue-advanced-test?action=memory-driver');
       expect(res.status).toBe(200);
-      expect(res.data.hasSend).toBe(true);
-      expect(res.data.hasSendBatch).toBe(true);
-      expect(res.data.hasStart).toBe(true);
-      expect(res.data.hasStop).toBe(true);
+      expect((res.data as { hasSend: boolean }).hasSend).toBe(true);
+      expect((res.data as { hasSendBatch: boolean }).hasSendBatch).toBe(true);
+      expect((res.data as { hasStart: boolean }).hasStart).toBe(true);
+      expect((res.data as { hasStop: boolean }).hasStop).toBe(true);
     });
 
     it('retry mechanism processes message after failures', async () => {
       const res = await getJson('/api/queue-advanced-test?action=retry');
       expect(res.status).toBe(200);
-      expect(res.data.retryWorked).toBe(true);
-      expect(res.data.processed).toBe(1);
+      expect((res.data as { retryWorked: boolean }).retryWorked).toBe(true);
+      expect((res.data as { processed: number }).processed).toBe(1);
     });
 
     it('dead letter queue receives failed messages', async () => {
       const res = await getJson('/api/queue-advanced-test?action=dlq');
       expect(res.status).toBe(200);
-      expect(res.data.dlqWorked).toBe(true);
-      expect(res.data.dlqReceived).toBe(1);
+      expect((res.data as { dlqWorked: boolean }).dlqWorked).toBe(true);
+      expect((res.data as { dlqReceived: number }).dlqReceived).toBe(1);
     });
 
     it('concurrency control limits parallel processing', async () => {
       const res = await getJson('/api/queue-advanced-test?action=concurrency');
       expect(res.status).toBe(200);
-      expect(res.data.concurrencyRespected).toBe(true);
-      expect(res.data.allProcessed).toBe(true);
-      expect(res.data.maxConcurrent).toBeLessThanOrEqual(2);
+      expect((res.data as { concurrencyRespected: boolean }).concurrencyRespected).toBe(true);
+      expect((res.data as { allProcessed: boolean }).allProcessed).toBe(true);
+      expect((res.data as { maxConcurrent: number }).maxConcurrent).toBeLessThanOrEqual(2);
     });
 
     it('delayed message is not processed immediately', async () => {
       const res = await getJson('/api/queue-advanced-test?action=delay');
       expect(res.status).toBe(200);
-      expect(res.data.delayWorked).toBe(true);
-      expect(res.data.beforeDelay).toBe(0);
-      expect(res.data.afterDelay).toBe(1);
+      expect((res.data as { delayWorked: boolean }).delayWorked).toBe(true);
+      expect((res.data as { beforeDelay: number }).beforeDelay).toBe(0);
+      expect((res.data as { afterDelay: number }).afterDelay).toBe(1);
     });
 
     it('batch send processes all messages', async () => {
       const res = await getJson('/api/queue-advanced-test?action=batch');
       expect(res.status).toBe(200);
-      expect(res.data.batchWorked).toBe(true);
-      expect(res.data.sentCount).toBe(5);
-      expect(res.data.processedCount).toBe(5);
+      expect((res.data as { batchWorked: boolean }).batchWorked).toBe(true);
+      expect((res.data as { sentCount: number }).sentCount).toBe(5);
+      expect((res.data as { processedCount: number }).processedCount).toBe(5);
     });
   });
 });

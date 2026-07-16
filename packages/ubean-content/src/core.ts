@@ -8,7 +8,8 @@ import type {
   ContentNavigationItem,
   ParsedContentMeta,
   ContentSchema,
-  ContentCollection
+  ContentCollection,
+  ContentType
 } from './types';
 
 export function generateId(path: string, extension?: string): string {
@@ -414,17 +415,17 @@ export function createQueryBuilder(documents: ContentDocument[]): ContentQueryBu
       const newDoc: ContentDocument = { ...doc };
       if (excludedFields) {
         for (const field of excludedFields) {
-          delete (newDoc as any)[field];
+          delete (newDoc as Record<string, unknown>)[field];
         }
       }
       if (selectedFields) {
-        const kept: any = {};
+        const kept: Record<string, unknown> = {};
         for (const field of selectedFields) {
-          kept[field] = (doc as any)[field];
+          kept[field] = (doc as Record<string, unknown>)[field];
         }
         kept._id = doc._id;
         kept._path = doc._path;
-        return kept;
+        return kept as unknown as ContentDocument;
       }
       return newDoc;
     });
@@ -484,7 +485,7 @@ export function buildNavigation(
 
 export function parseContent(raw: string, filePath: string, options: { type?: string } = {}): ContentDocument {
   const extension = getExtension(filePath);
-  const type = (options.type || extensionToType(extension)) as any;
+  const type = (options.type || extensionToType(extension)) as ContentType;
   const stem = getStem(getBasename(filePath));
   const isDraft = stem.startsWith('.') || filePath.includes('/.') || filePath.includes('_draft');
   const isPartial = stem.startsWith('_') || filePath.includes('_partial');
@@ -515,7 +516,7 @@ export function parseContent(raw: string, filePath: string, options: { type?: st
     } catch {
       extraMeta = {};
     }
-  } else if (type === 'yaml' || type === 'yml') {
+  } else if (type === 'yaml') {
     extraMeta = parseSimpleYaml(raw);
   }
 
@@ -572,6 +573,7 @@ export function defineContentCollection(collection: {
     source: collection.source,
     type: collection.type,
     schema: collection.schema,
+    documents: docs,
     list: async () => docs,
     getItem: async (path: string) => docs.find(d => d._path === path) || null,
     query: () => createQueryBuilder(docs)

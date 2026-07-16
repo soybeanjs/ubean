@@ -34,13 +34,13 @@ export interface GenerateOpenApiTypesOptions {
  * // → 生成 .ubean/openapi.d.ts
  * ```
  */
-export async function generateOpenApiTypes(schema: object, options: GenerateOpenApiTypesOptions): Promise<string> {
+export async function generateOpenApiTypes(schema: any, options: GenerateOpenApiTypesOptions): Promise<string> {
   const { outDir, fileName = 'openapi.d.ts' } = options;
 
   await mkdir(outDir, { recursive: true });
 
   // 用 openapi-typescript 编译 schema 为 AST
-  const ast = await openapiTS(schema as any);
+  const ast = await openapiTS(schema);
   const typesContent = astToString(ast);
 
   const header = [

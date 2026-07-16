@@ -144,28 +144,31 @@ describe('Cron system', () => {
     it('parse action returns parsed results', async () => {
       const res = await getJson('/api/cron-parse-test?action=parse');
       expect(res.status).toBe(200);
-      expect(res.data.results).toHaveLength(5);
-      expect(res.data.results.every((r: any) => r.valid)).toBe(true);
+      const data = res.data as { results: Array<{ valid: boolean }> };
+      expect(data.results).toHaveLength(5);
+      expect(data.results.every(r => r.valid)).toBe(true);
     });
 
     it('validate action returns validation results', async () => {
       const res = await getJson('/api/cron-parse-test?action=validate');
       expect(res.status).toBe(200);
-      expect(res.data.allPassed).toBe(true);
+      expect((res.data as { allPassed: boolean }).allPassed).toBe(true);
     });
 
     it('scheduler action returns scheduler info', async () => {
       const res = await getJson('/api/cron-parse-test?action=scheduler');
       expect(res.status).toBe(200);
-      expect(res.data.started).toBe(true);
-      expect(res.data.taskCount).toBe(2);
+      const data = res.data as { started: boolean; taskCount: number };
+      expect(data.started).toBe(true);
+      expect(data.taskCount).toBe(2);
     });
 
     it('runOnStart action executes immediate tasks', async () => {
       const res = await getJson('/api/cron-parse-test?action=runOnStart');
       expect(res.status).toBe(200);
-      expect(res.data.ranImmediate).toBe(true);
-      expect(res.data.skippedDelayed).toBe(true);
+      const data = res.data as { ranImmediate: boolean; skippedDelayed: boolean };
+      expect(data.ranImmediate).toBe(true);
+      expect(data.skippedDelayed).toBe(true);
     });
   });
 

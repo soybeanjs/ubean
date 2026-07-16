@@ -11,6 +11,7 @@ import {
 } from '../src/core/preset';
 import { UbeanError, createError, isUbeanError, errorToResponse } from '../src/runtime/error';
 import { defineHandler, defineHandlerMeta } from '../src/runtime/handler';
+import type { RouteMeta } from '../src/types/handler';
 
 describe('UbeanError', () => {
   it('should create error with status code', () => {
@@ -52,8 +53,8 @@ describe('defineHandlerMeta', () => {
   it('should return a meta middleware with requiresAuth flag', () => {
     const meta = defineHandlerMeta({ requiresAuth: false });
     expect(typeof meta).toBe('function');
-    expect((meta as any).meta.requiresAuth).toBe(false);
-    expect((meta as any).__brand).toBe('meta');
+    expect((meta as unknown as { meta: Partial<RouteMeta>; __brand: string }).meta.requiresAuth).toBe(false);
+    expect((meta as unknown as { meta: Partial<RouteMeta>; __brand: string }).__brand).toBe('meta');
   });
 
   it('should return meta with cache config', () => {
@@ -64,8 +65,8 @@ describe('defineHandlerMeta', () => {
         swr: true
       }
     });
-    expect((meta as any).meta.cache?.ttl).toBe(60);
-    expect((meta as any).meta.cache?.swr).toBe(true);
+    expect((meta as unknown as { meta: Partial<RouteMeta> }).meta.cache?.ttl).toBe(60);
+    expect((meta as unknown as { meta: Partial<RouteMeta> }).meta.cache?.swr).toBe(true);
   });
 });
 
@@ -93,16 +94,16 @@ describe('defineHandler', () => {
 
   it('should merge meta from defineHandlerMeta', () => {
     const def = defineHandler(defineHandlerMeta({ requiresAuth: false }), () => new Response('ok'));
-    expect((def as any).__routeMeta.requiresAuth).toBe(false);
+    expect((def as unknown as { __routeMeta?: RouteMeta }).__routeMeta?.requiresAuth).toBe(false);
   });
 
   it('should default meta.requiresAuth to true', () => {
     const def = defineHandler(() => new Response('ok'));
-    expect((def as any).__routeMeta.requiresAuth).toBe(true);
+    expect((def as unknown as { __routeMeta?: RouteMeta }).__routeMeta?.requiresAuth).toBe(true);
   });
 
   it('should throw when no handlers provided', () => {
-    expect(() => (defineHandler as any)()).toThrow('defineHandler requires at least one handler');
+    expect(() => (defineHandler as unknown as () => void)()).toThrow('defineHandler requires at least one handler');
   });
 });
 

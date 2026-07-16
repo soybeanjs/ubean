@@ -95,8 +95,7 @@ export function registerContent(collectionName: string, documents: ContentDocume
     });
     collections.set(collectionName, collection);
   } else {
-    const existing = (collection as any).documents as ContentDocument[];
-    existing.push(...documents);
+    collection.documents.push(...documents);
   }
   navigationCache = null;
   return collection;

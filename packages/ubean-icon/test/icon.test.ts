@@ -66,8 +66,8 @@ describe('ubean-icon core', () => {
       expect(parseIconName('home')).toBeNull();
       expect(parseIconName(':home')).toBeNull();
       expect(parseIconName('lucide:')).toBeNull();
-      expect(parseIconName(null as any)).toBeNull();
-      expect(parseIconName(undefined as any)).toBeNull();
+      expect(parseIconName(null as unknown as string)).toBeNull();
+      expect(parseIconName(undefined as unknown as string)).toBeNull();
     });
   });
 

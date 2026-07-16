@@ -1,11 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
+import type { Context } from 'hono';
 import {
   callInternal,
   setInternalFetcher,
   clearInternalFetcher,
   createRequestSender
 } from '../src/runtime/internal-fetch';
+import type { UbeanEnv } from '../src/types/handler';
 
 describe('callInternal', () => {
   let app: Hono;
@@ -101,7 +103,7 @@ describe('callInternal', () => {
         }
       },
       get: () => null
-    } as any;
+    } as unknown as Context<UbeanEnv>;
     const $request = createRequestSender(mockC);
     app.get('/api/cookies', c => {
       return c.json({

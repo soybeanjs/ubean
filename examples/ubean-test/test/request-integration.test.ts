@@ -39,6 +39,7 @@ import {
   withDependencies,
   getInvalidatedKeysForAction
 } from 'ubean';
+import type { UbeanContext } from 'ubean';
 import { getJson, getBaseUrl } from './helper';
 
 const BASE_URL = () => getBaseUrl();
@@ -235,9 +236,9 @@ describe('Request integration - Internal fetch', () => {
   describe('createRequestSender() - context-aware internal fetch', () => {
     it('creates a request sender function', () => {
       setInternalFetcher(() => Promise.resolve(new Response('{}')));
-      const mockContext: any = {
+      const mockContext = {
         req: { header: () => undefined }
-      };
+      } as unknown as UbeanContext;
       const sender = createRequestSender(mockContext);
       expect(typeof sender).toBe('function');
     });
@@ -253,7 +254,7 @@ describe('Request integration - Internal fetch', () => {
         set: (key: string, value: unknown) => {
           vars[key] = value;
         }
-      } as any;
+      } as unknown as UbeanContext;
     }
 
     it('forwards cookie from context request', async () => {
@@ -391,7 +392,7 @@ describe('Request integration - HTTP client', () => {
       );
       expect(data).toHaveProperty('method', 'POST');
       expect(data).toHaveProperty('received');
-      expect((data as any).received).toEqual({ name: 'Integration Test' });
+      expect((data as { received: { name: string } }).received).toEqual({ name: 'Integration Test' });
     });
 
     it('get() with query parameters', async () => {
@@ -415,7 +416,7 @@ describe('Request integration - HTTP client', () => {
       expect(result).toHaveProperty('status');
       expect(result.status).toBe(200);
       expect(result.error).toBeNull();
-      expect((result.data as any).message).toBe('Hello from ubean API!');
+      expect((result.data as { message: string }).message).toBe('Hello from ubean API!');
     });
 
     it('$get() on non-existent route returns error in flat shape', async () => {
@@ -435,8 +436,8 @@ describe('Request integration - HTTP client', () => {
       );
       expect(result.status).toBe(200);
       expect(result.error).toBeNull();
-      expect((result.data as any).method).toBe('POST');
-      expect((result.data as any).received).toEqual({ name: 'Flat Test' });
+      expect((result.data as { method: string }).method).toBe('POST');
+      expect((result.data as { received: { name: string } }).received).toEqual({ name: 'Flat Test' });
     });
   });
 
@@ -447,7 +448,9 @@ describe('Request integration - HTTP client', () => {
         baseURL: BASE_URL(),
         onRequest({ options }) {
           log.push('onRequest');
-          options.headers = { ...options.headers, 'X-Intercepted': 'yes' } as any;
+          const newHeaders = new Headers(options.headers as Headers);
+          newHeaders.set('X-Intercepted', 'yes');
+          options.headers = newHeaders;
         }
       });
       await client.get('/api/hello');
@@ -506,7 +509,7 @@ describe('Request integration - HTTP client', () => {
       expect(res.data).toHaveProperty('testedMethods');
       expect(res.data).toHaveProperty('successCount');
       expect(res.data).toHaveProperty('errorCount');
-      const tested = (res.data as any).testedMethods as string[];
+      const tested = (res.data as { testedMethods: string[] }).testedMethods;
       expect(tested).toEqual(
         expect.arrayContaining(['get', '$get', 'post', '$post', 'put', '$put', 'patch', 'delete', '$delete'])
       );
@@ -516,8 +519,8 @@ describe('Request integration - HTTP client', () => {
       const res = await getJson('/api/client-test?action=interceptors');
       expect(res.status).toBe(200);
       expect(res.data).toHaveProperty('interceptorLog');
-      expect((res.data as any).hasOnRequest).toBe(true);
-      expect((res.data as any).hasOnResponse).toBe(true);
+      expect((res.data as { hasOnRequest: boolean }).hasOnRequest).toBe(true);
+      expect((res.data as { hasOnResponse: boolean }).hasOnResponse).toBe(true);
     });
 
     it('action=head tests head/options methods', async () => {
@@ -531,9 +534,9 @@ describe('Request integration - HTTP client', () => {
       const res = await getJson('/api/client-test?action=flatResponse');
       expect(res.status).toBe(200);
       expect(res.data).toHaveProperty('success');
-      expect((res.data as any).hasData).toBe(true);
-      expect((res.data as any).hasError).toBe(true);
-      expect((res.data as any).hasStatus).toBe(true);
+      expect((res.data as { hasData: boolean }).hasData).toBe(true);
+      expect((res.data as { hasError: boolean }).hasError).toBe(true);
+      expect((res.data as { hasStatus: boolean }).hasStatus).toBe(true);
     });
 
     it('action=extend verifies client.extend() chain', async () => {
@@ -612,7 +615,7 @@ describe('Request integration - useData cache', () => {
       r1.invalidate();
       const r2 = await useData({ key: symKey, fetcher });
       expect(fetchCount).toBe(2);
-      expect((r2.data as any).v).toBe(2);
+      expect((r2.data as { v: number }).v).toBe(2);
     });
 
     it('invalidate() on string-keyed entry does not clear (string treated as tag)', async () => {
@@ -653,7 +656,7 @@ describe('Request integration - useData cache', () => {
       await new Promise(r => setTimeout(r, 100));
       const r2 = await useData({ key: 'ttl-after', ttl: 50, fetcher });
       expect(fetchCount).toBe(2);
-      expect((r2.data as any).version).toBe(2);
+      expect((r2.data as { version: number }).version).toBe(2);
     });
   });
 
@@ -803,8 +806,8 @@ describe('Request integration - useData cache', () => {
       expect(res.data).toHaveProperty('after');
       expect(res.data).toHaveProperty('invalidatedCount');
       // Documents current behavior: string-key without tag is not invalidated
-      expect((res.data as any).after).toBe(true);
-      expect((res.data as any).invalidatedCount).toBe(0);
+      expect((res.data as { after: boolean }).after).toBe(true);
+      expect((res.data as { invalidatedCount: number }).invalidatedCount).toBe(0);
     });
 
     it('action=invalidateByTag verifies tag-based invalidation', async () => {
@@ -818,8 +821,8 @@ describe('Request integration - useData cache', () => {
     it('action=invalidateAll clears all entries', async () => {
       const res = await getJson('/api/data-test?action=invalidateAll');
       expect(res.status).toBe(200);
-      expect((res.data as any).before).toEqual({ a1: true, a2: true, a3: true });
-      expect((res.data as any).after).toEqual({ a1: false, a2: false, a3: false });
+      expect((res.data as { before: Record<string, boolean> }).before).toEqual({ a1: true, a2: true, a3: true });
+      expect((res.data as { after: Record<string, boolean> }).after).toEqual({ a1: false, a2: false, a3: false });
     });
 
     it('action=ttl re-fetches after expiry (hasData reflects entry presence)', async () => {
@@ -829,8 +832,8 @@ describe('Request integration - useData cache', () => {
       const res = await getJson('/api/data-test?action=ttl');
       expect(res.status).toBe(200);
       expect(res.data).toHaveProperty('beforeExpiry', true);
-      expect((res.data as any).afterExpiry).toBe(true); // entry still in map
-      expect((res.data as any).version2).toBe(2); // but re-fetched
+      expect((res.data as { afterExpiry: boolean }).afterExpiry).toBe(true); // entry still in map
+      expect((res.data as { version2: number }).version2).toBe(2); // but re-fetched
       expect(res.data).toHaveProperty('refreshed', true);
     });
 
@@ -845,7 +848,7 @@ describe('Request integration - useData cache', () => {
       const res = await getJson('/api/data-test?action=dependencies');
       expect(res.status).toBe(200);
       expect(res.data).toHaveProperty('wrapped', true);
-      expect((res.data as any).depsKeys).toEqual(['dep1', 'dep2']);
+      expect((res.data as { depsKeys: string[] }).depsKeys).toEqual(['dep1', 'dep2']);
     });
 
     it('action=actionInvalidation verifies action-based invalidation', async () => {
@@ -867,7 +870,7 @@ describe('Request integration - useData cache', () => {
       const res = await getJson('/api/data-test');
       expect(res.status).toBe(200);
       expect(res.data).toHaveProperty('actions');
-      expect((res.data as any).actions).toEqual(
+      expect((res.data as { actions: string[] }).actions).toEqual(
         expect.arrayContaining([
           'cache',
           'invalidateByKey',
@@ -934,7 +937,7 @@ describe('Request integration - cross-subsystem scenarios', () => {
       }
     });
     expect(result.error).toBeNull();
-    expect((result.data as any).message).toBe('Hello from ubean API!');
+    expect((result.data as { message: string }).message).toBe('Hello from ubean API!');
   });
 
   it('useData caches result of internal fetch', async () => {
@@ -966,7 +969,7 @@ describe('Request integration - cross-subsystem scenarios', () => {
     const client = createClient({ baseURL: BASE_URL() });
     const clientData = await client.get('/api/hello');
     const internalData = await res.json();
-    expect(internalData.message).toBe((clientData as any).message);
+    expect(internalData.message).toBe((clientData as { message: string }).message);
   });
 
   it('error from internal fetch propagates to useData', async () => {

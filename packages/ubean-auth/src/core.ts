@@ -271,7 +271,8 @@ function createFallbackAuth(resolved: ResolvedAuthOptions) {
 
   authInstance.handler = fallbackHandler;
   authInstance.api = {
-    getSession: (async (headers: Headers) => {
+    getSession: (async (headersInput: unknown) => {
+      const headers = headersInput instanceof Headers ? headersInput : new Headers(headersInput as HeadersInit);
       const cookie = headers.get('cookie') || '';
       const match = cookie.match(new RegExp(`${resolved.session.cookieName}=([^;]+)`));
       const session = findSessionByToken(match?.[1]);
@@ -296,7 +297,7 @@ function createFallbackAuth(resolved: ResolvedAuthOptions) {
           updatedAt: u.createdAt
         }
       };
-    }) as any
+    }) as (...args: unknown[]) => Promise<unknown>
   };
   return { handler: fallbackHandler, api: authInstance.api };
 }
@@ -395,7 +396,7 @@ export function authMiddleware(): MiddlewareHandler {
       if (authInstance.api?.getSession && token) {
         try {
           const headers = new Headers({ cookie: `${opts.session.cookieName}=${token}` });
-          const result = (await (authInstance.api.getSession as any)(headers)) as AuthSession | null;
+          const result = (await authInstance.api.getSession(headers)) as AuthSession | null;
           if (result) {
             session = result.session;
             user = result.user as unknown as AuthUser;
@@ -618,7 +619,7 @@ export async function getServerSession(req?: Request): Promise<AuthSession | nul
   }
   if (req && authInstance.api?.getSession) {
     try {
-      const result = (await (authInstance.api.getSession as any)(req.headers)) as AuthSession | null;
+      const result = (await authInstance.api.getSession(req.headers)) as AuthSession | null;
       return result;
     } catch {
       return null;

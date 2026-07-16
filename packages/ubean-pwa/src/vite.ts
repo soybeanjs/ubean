@@ -80,7 +80,7 @@ if ('serviceWorker' in navigator) {
         const swCode = generateServiceWorker({
           version: hashContent(Date.now().toString()).slice(0, 8),
           precacheManifest,
-          runtimeCaching: runtimeCaching as any,
+          runtimeCaching,
           skipWaiting: options.skipWaiting,
           clientsClaim: options.clientsClaim,
           cleanupOutdatedCaches: options.cleanupOutdatedCaches,

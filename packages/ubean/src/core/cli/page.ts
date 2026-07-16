@@ -376,7 +376,8 @@ export const pageCommand: CommandDef = {
         const { logger } = await import('../log');
         const type = args.type as ScaffoldType;
 
-        if (!scaffoldTypes.includes(type as any)) {
+        // @ts-expect-error ignore type type
+        if (!scaffoldTypes.includes(type)) {
           logger.error(`Invalid type: ${type}. Must be one of: ${scaffoldTypes.join(', ')}`);
           return;
         }
@@ -478,7 +479,7 @@ export const pageCommand: CommandDef = {
         const { logger } = await import('../log');
         const type = args.type as ScaffoldType;
 
-        if (!allTypes.includes(type as any)) {
+        if (!allTypes.includes(type)) {
           logger.error(`Invalid type: ${type}. Must be one of: ${allTypes.join(', ')}`);
           return;
         }
@@ -527,7 +528,7 @@ export const pageCommand: CommandDef = {
         const { logger } = await import('../log');
         const type = args.type as ScaffoldType;
 
-        if (!allTypes.includes(type as any)) {
+        if (!allTypes.includes(type)) {
           logger.error(`Invalid type: ${type}. Must be one of: ${allTypes.join(', ')}`);
           return;
         }

@@ -21,6 +21,7 @@ import { resetVirtualRegistry, useVirtualRegistry } from '../src/core/build/virt
 import { generateTypes } from '../src/core/codegen';
 import { startDevServer } from '../src/core/dev/server';
 import { standardPreset, nodePreset, registerBuiltinPresets, resolvePresetByName } from '../src/core/preset';
+import type { ScannedPageRoute, ScannedLayout } from '../src/core/routing/types';
 import { createVuePagesVirtualModule, createVueAppEntryVirtualModule } from '../src/core/vue/virtual-modules';
 import { createUbeanApp, UbeanApp } from '../src/runtime/app';
 import { createClient } from '../src/runtime/client';
@@ -37,6 +38,7 @@ import {
   withSpan,
   createTracingMiddleware
 } from '../src/runtime/observability';
+import type { Span, ObservabilityExporter } from '../src/runtime/observability';
 import {
   buildClientOnlyShell,
   buildPageShell,
@@ -63,6 +65,7 @@ import {
   defineManifest,
   useSeoMeta
 } from '../src/runtime/seo';
+import type { UbeanMiddleware } from '../src/types/handler';
 
 describe('codegen', () => {
   let tmpDir: string;
@@ -323,7 +326,7 @@ describe('registerRoutes', () => {
       middleware: [],
       pages: [],
       routeLoaders: {
-        'api/users.get.ts': async () => ({ GET: usersHandler as any })
+        'api/users.get.ts': async () => ({ GET: usersHandler as unknown })
       },
       middlewareLoaders: {}
     });
@@ -353,7 +356,7 @@ describe('registerRoutes', () => {
       middleware: [],
       pages: [],
       routeLoaders: {
-        'api/users/[id].get.ts': async () => ({ GET: detailHandler as any })
+        'api/users/[id].get.ts': async () => ({ GET: detailHandler as unknown })
       },
       middlewareLoaders: {}
     });
@@ -411,13 +414,13 @@ describe('registerRoutes', () => {
             order.push(10);
             capturedRequiresAuth = c.get('route').meta.requiresAuth;
             return next();
-          }) as any
+          }) as unknown as UbeanMiddleware
         }),
         '1-first.ts': async () => ({
           default: (async (_c: any, next: any) => {
             order.push(1);
             return next();
-          }) as any
+          }) as unknown as UbeanMiddleware
         })
       }
     });
@@ -600,7 +603,7 @@ describe('defineEnv', () => {
     const originalEnv = process.env;
     process.env = { ...originalEnv, MY_VAR: 'val' };
     const { env } = defineEnv({ server: { MY_VAR: { type: String } } });
-    expect((env as any)[Symbol('test')]).toBeUndefined();
+    expect((env as Record<PropertyKey, unknown>)[Symbol('test')]).toBeUndefined();
     process.env = originalEnv;
   });
 });
@@ -801,8 +804,12 @@ describe('pages protocol', () => {
   });
 
   it('isPagesRequest detects client navigation header', () => {
-    expect(isPagesRequest({ req: { header: () => undefined } } as any)).toBe(false);
-    expect(isPagesRequest({ req: { header: () => 'true' } } as any)).toBe(true);
+    expect(
+      isPagesRequest({ req: { header: () => undefined } } as { req: { header: (k: string) => string | undefined } })
+    ).toBe(false);
+    expect(
+      isPagesRequest({ req: { header: () => 'true' } } as { req: { header: (k: string) => string | undefined } })
+    ).toBe(true);
   });
 
   it('renders head tags (title, meta, htmlAttrs)', () => {
@@ -837,7 +844,7 @@ describe('vue virtual modules', () => {
         dirname: '.',
         basename: 'home.vue',
         isReuse: false
-      } as any,
+      } as unknown as ScannedPageRoute,
       {
         name: 'about',
         route: '/about',
@@ -848,7 +855,7 @@ describe('vue virtual modules', () => {
         basename: 'about.vue',
         isReuse: false,
         layout: 'blank'
-      } as any
+      } as unknown as ScannedPageRoute
     ];
     const layouts = [
       {
@@ -859,7 +866,7 @@ describe('vue virtual modules', () => {
         basename: 'default.vue',
         path: '/',
         isDefault: true
-      } as any,
+      } as unknown as ScannedLayout,
       {
         name: 'blank',
         relativePath: 'blank.vue',
@@ -868,7 +875,7 @@ describe('vue virtual modules', () => {
         basename: 'blank.vue',
         path: '/blank',
         isDefault: false
-      } as any
+      } as unknown as ScannedLayout
     ];
 
     const mod = createVuePagesVirtualModule(pages, layouts);
@@ -919,7 +926,7 @@ describe('vue virtual modules', () => {
         dirname: '.',
         basename: 'home.vue',
         isReuse: false
-      } as any
+      } as unknown as ScannedPageRoute
     ];
     const layouts = [
       {
@@ -930,7 +937,7 @@ describe('vue virtual modules', () => {
         basename: 'default.vue',
         path: '/',
         isDefault: true
-      } as any
+      } as unknown as ScannedLayout
     ];
     registry.register(createVuePagesVirtualModule(pages, layouts));
     registry.register(createVueAppEntryVirtualModule());
@@ -1395,7 +1402,7 @@ describe('observability', () => {
       url: 'http://localhost:4318/v1/traces',
       serviceName: 'test-svc',
       serviceVersion: '1.0.0',
-      fetchImpl: fakeFetch as any
+      fetchImpl: fakeFetch as unknown as typeof fetch
     });
     expect(ex.name).toBe('opentelemetry');
 
@@ -1403,7 +1410,7 @@ describe('observability', () => {
     span.end();
     ex.exportSpan(span);
 
-    await (ex as any).flush();
+    await (ex as ObservabilityExporter & { flush(): Promise<void> }).flush();
     expect(fakeFetch).toHaveBeenCalled();
     const body = JSON.parse(capturedBody!);
     expect(body.resourceSpans[0].resource.attributes).toContainEqual({
@@ -1455,7 +1462,7 @@ describe('observability', () => {
     });
     const mw = createTracingMiddleware({ tracer });
     await expect(mw(c, next)).rejects.toThrow(err);
-    const span = store.get('span') as any;
+    const span = store.get('span') as Span;
     expect(span.status).toBe('error');
     expect(span.error).toBe(err);
   });

@@ -1,8 +1,7 @@
 import { defineHandler, createObservabilityTracer, createConsoleExporter, withSpan } from 'ubean';
 
 const tracer = createObservabilityTracer({
-  exporter: createConsoleExporter(),
-  serviceName: 'ubean-test'
+  exporters: [createConsoleExporter()]
 });
 
 export const GET = defineHandler(async c => {

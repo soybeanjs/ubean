@@ -2,6 +2,18 @@ import type { MiddlewareHandler, Context, Next } from 'hono';
 import type { Input, HandlerResponse, H } from 'hono/types';
 import type { UbeanEnv, RouteMeta } from '../types/handler';
 
+interface HandlerWithMeta {
+  __brand?: string;
+  __routeMeta?: RouteMeta;
+  meta?: Partial<RouteMeta>;
+}
+
+type HandlerInput = MiddlewareHandler | HandlerWithMeta;
+
+interface MiddlewareChain extends Array<MiddlewareHandler> {
+  __routeMeta?: RouteMeta;
+}
+
 function isResponse(value: unknown): value is Response {
   return value instanceof Response;
 }
@@ -14,7 +26,7 @@ function convertReturnValue(value: unknown): Response {
 }
 
 function isMetaHandler(h: unknown): h is { __brand: 'meta'; meta: Partial<RouteMeta> } {
-  return typeof h === 'function' && (h as { __brand?: string }).__brand === 'meta';
+  return typeof h === 'function' && (h as HandlerWithMeta).__brand === 'meta';
 }
 
 export function defineHandler<I extends Input = {}, R extends HandlerResponse<any> = any>(
@@ -85,7 +97,7 @@ export function defineHandler<
   H<UbeanEnv, any, I5, R5>
 ];
 
-export function defineHandler(...handlers: any[]): MiddlewareHandler[] {
+export function defineHandler(...handlers: HandlerInput[]): MiddlewareChain {
   if (handlers.length === 0) {
     throw new Error('defineHandler requires at least one handler');
   }
@@ -95,22 +107,22 @@ export function defineHandler(...handlers: any[]): MiddlewareHandler[] {
   const finalHandler = handlers[handlers.length - 1] as MiddlewareHandler;
 
   for (let i = 0; i < handlers.length - 1; i++) {
-    const h = handlers[i] as any;
+    const h = handlers[i];
     if (isMetaHandler(h)) {
       metaList.push(h.meta);
     } else {
-      middlewares.push(h);
+      middlewares.push(h as MiddlewareHandler);
     }
   }
 
   const routeMeta: RouteMeta = Object.assign({ requiresAuth: true }, ...metaList) as RouteMeta;
 
-  const wrappedFinal: MiddlewareHandler = async (c: any) => {
+  const wrappedFinal: MiddlewareHandler = async (c: Context<UbeanEnv>) => {
     const result = await finalHandler(c, async () => {});
     return convertReturnValue(result);
   };
 
-  const allHandlers: MiddlewareHandler[] = [...middlewares, wrappedFinal];
+  const allHandlers: MiddlewareChain = [...middlewares, wrappedFinal] as MiddlewareChain;
 
   Object.defineProperty(allHandlers, '__routeMeta', {
     value: routeMeta,
@@ -121,12 +133,12 @@ export function defineHandler(...handlers: any[]): MiddlewareHandler[] {
   return allHandlers;
 }
 
-export function isHandlerChain(obj: unknown): obj is MiddlewareHandler[] {
-  return Array.isArray(obj) && (obj as any).__routeMeta !== undefined;
+export function isHandlerChain(obj: unknown): obj is MiddlewareChain {
+  return Array.isArray(obj) && (obj as MiddlewareChain).__routeMeta !== undefined;
 }
 
 export function extractRouteMeta(handlers: MiddlewareHandler[]): RouteMeta {
-  return (handlers as any).__routeMeta ?? { requiresAuth: true };
+  return (handlers as MiddlewareChain).__routeMeta ?? { requiresAuth: true };
 }
 
 export function defineHandlerMeta(meta: Partial<RouteMeta>) {

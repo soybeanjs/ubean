@@ -1,5 +1,47 @@
 import type { PageObject, PageHead } from '../pages/protocol';
 
+interface MinimalElement {
+  textContent: string | null;
+}
+
+interface MinimalDocument {
+  getElementById(id: string): MinimalElement | null;
+}
+
+interface MinimalLocation {
+  href: string;
+  pathname: string;
+  search: string;
+  replace(url: string): void;
+}
+
+interface MinimalHistory {
+  back(): void;
+  forward(): void;
+  pushState(data: unknown, unused: string, url?: string | null): void;
+  replaceState(data: unknown, unused: string, url?: string | null): void;
+}
+
+type PopStateEventListener = (event: Event) => void;
+
+interface MinimalWindow {
+  location: MinimalLocation;
+  history: MinimalHistory;
+  fetch: typeof fetch;
+  addEventListener(type: 'popstate', listener: PopStateEventListener): void;
+}
+
+interface GlobalWithUbeanData {
+  document?: MinimalDocument;
+  location?: MinimalLocation;
+  __UBEAN_PAGE_DATA__?: PageObject | null;
+  window?: MinimalWindow;
+  fetch?: typeof fetch;
+  history?: MinimalHistory;
+}
+
+const _global = globalThis as GlobalWithUbeanData;
+
 export interface UbeanVueRouter {
   current: PageObject;
   navigating: boolean;
@@ -41,15 +83,13 @@ export interface UbeanVueApp {
   page: PageObject;
 }
 
-const _global = globalThis as any;
-
 export function getInitialPageData<T = Record<string, unknown>>(): PageObject<T> | null {
   if (typeof _global.document === 'undefined') return null;
   const doc = _global.document;
   const el = doc.getElementById('__UBEAN_PAGE_DATA__');
-  if (!el) return _global.__UBEAN_PAGE_DATA__ ?? null;
+  if (!el) return (_global.__UBEAN_PAGE_DATA__ as PageObject<T> | null) ?? null;
   try {
-    return JSON.parse(el.textContent || 'null');
+    return JSON.parse(el.textContent || 'null') as PageObject<T> | null;
   } catch {
     return null;
   }
@@ -72,20 +112,22 @@ export function createUbeanClient() {
   }
 
   async function fetchPage(url: string): Promise<PageObject> {
-    const res = await _global.fetch(url, {
+    const res = await _global.fetch!(url, {
       headers: { 'x-ubeanpages': 'true' }
     });
     if (!res.ok) throw new Error(`Failed to fetch page: ${res.status}`);
-    return res.json();
+    return res.json() as Promise<PageObject>;
   }
 
   function applyPage(page: PageObject, opts: { replace?: boolean; url?: string } = {}) {
     state.page = page;
     const url = opts.url ?? page.url;
+    const loc = _global.location!;
+    const hist = _global.history!;
     if (opts.replace) {
-      _global.history.replaceState({}, '', url);
-    } else if (url && url !== _global.location.pathname + _global.location.search) {
-      _global.history.pushState({}, '', url);
+      hist.replaceState({}, '', url);
+    } else if (url && url !== loc.pathname + loc.search) {
+      hist.pushState({}, '', url);
     }
     for (const fn of listeners) fn(page);
   }
@@ -109,22 +151,23 @@ export function createUbeanClient() {
   }
 
   function back() {
-    _global.history.back();
+    _global.history!.back();
   }
 
   function forward() {
-    _global.history.forward();
+    _global.history!.forward();
   }
 
   async function refresh() {
-    await navigate(_global.location.pathname + _global.location.search, { replace: true });
+    const loc = _global.location!;
+    await navigate(loc.pathname + loc.search, { replace: true });
   }
 
   async function submit(url: string, opts: SubmitOptions = {}): Promise<SubmitResult> {
     const { method = 'POST', body, headers = {}, replace: doReplace = false } = opts;
     state.submitting = true;
     try {
-      let fetchBody: any;
+      let fetchBody: unknown;
       const fetchHeaders: Record<string, string> = {
         'x-ubeanpages': 'true',
         ...headers
@@ -140,10 +183,10 @@ export function createUbeanClient() {
         fetchBody = JSON.stringify(body);
       }
 
-      const res = await _global.fetch(url, {
+      const res = await _global.fetch!(url, {
         method,
         headers: fetchHeaders,
-        body: fetchBody,
+        body: fetchBody as string | FormData | URLSearchParams | undefined,
         redirect: 'manual'
       });
 
@@ -155,21 +198,22 @@ export function createUbeanClient() {
 
       const contentType = res.headers.get('Content-Type') || '';
       if (contentType.includes('application/json')) {
-        const data = await res.json();
-        if (data.redirect) {
+        const data = (await res.json()) as Record<string, unknown>;
+        if (typeof data.redirect === 'string') {
           await navigate(data.redirect, { replace: doReplace });
           return { ok: true, redirected: true, url: data.redirect, status: res.status };
         }
         if (data.component) {
-          applyPage(data as PageObject, { replace: doReplace, url });
+          const pageData = data as unknown as PageObject;
+          applyPage(pageData, { replace: doReplace, url });
           return {
             ok: res.ok,
-            errors: (data as PageObject).errors ?? null,
-            data: (data as PageObject).props as Record<string, unknown>,
+            errors: pageData.errors ?? null,
+            data: pageData.props as Record<string, unknown>,
             status: res.status
           };
         }
-        return { ok: res.ok, data, status: res.status };
+        return { ok: res.ok, data: data as Record<string, unknown>, status: res.status };
       }
 
       return { ok: res.ok, status: res.status };
@@ -184,7 +228,8 @@ export function createUbeanClient() {
     _global.window.addEventListener('popstate', async () => {
       state.navigating = true;
       try {
-        const page = await fetchPage(_global.location.pathname + _global.location.search);
+        const loc = _global.location!;
+        const page = await fetchPage(loc.pathname + loc.search);
         applyPage(page);
       } finally {
         state.navigating = false;

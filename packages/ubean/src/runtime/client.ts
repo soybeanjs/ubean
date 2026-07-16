@@ -1,8 +1,42 @@
 import { $fetch, createFetch, FetchError } from 'ofetch';
-import type { FetchOptions } from 'ofetch';
+import type { FetchOptions, FetchResponse, IFetchError } from 'ofetch';
 import type { HttpMethod } from '../core/routing/types';
 
-const g = globalThis as any;
+/** Minimal XHR constructor type for browser upload-progress tracking (no DOM lib required). */
+type XHRConstructor = new () => {
+  upload: {
+    addEventListener: (
+      type: string,
+      listener: (e: { loaded: number; total: number; lengthComputable: boolean }) => void
+    ) => void;
+  };
+  open: (method: string, url: string, async?: boolean) => void;
+  send: (body?: unknown) => void;
+  setRequestHeader: (name: string, value: string) => void;
+  addEventListener: (type: string, listener: () => void) => void;
+  getAllResponseHeaders: () => string;
+  responseType: string;
+  withCredentials: boolean;
+  response: unknown;
+  status: number;
+  statusText: string;
+};
+
+interface RuntimeGlobal {
+  window?: unknown;
+  process?: { versions: { node?: string } };
+  Deno?: unknown;
+  Bun?: unknown;
+  EdgeRuntime?: unknown;
+  workerd?: unknown;
+  XMLHttpRequest?: XHRConstructor;
+  Headers?: typeof Headers;
+  Response?: typeof Response;
+  fetch?: typeof fetch;
+  AbortController?: typeof AbortController;
+}
+
+const g = globalThis as typeof globalThis & RuntimeGlobal;
 
 export interface ClientOptions {
   baseURL?: string;
@@ -45,15 +79,15 @@ function detectRuntime(): string {
   return 'unknown';
 }
 
-function createXhrFetch(onUploadProgress: (loaded: number, total: number) => void): any {
+function createXhrFetch(onUploadProgress: (loaded: number, total: number) => void): typeof fetch | undefined {
   if (typeof g.XMLHttpRequest === 'undefined') {
     return undefined;
   }
 
   const XHR = g.XMLHttpRequest;
 
-  return ((input: any, init?: any): Promise<any> => {
-    return new Promise((resolve, reject) => {
+  const fn: typeof fetch = (input, init?) => {
+    return new Promise<Response>((resolve, reject) => {
       const xhr = new XHR();
       const method = init?.method || 'GET';
       let url: string;
@@ -70,11 +104,13 @@ function createXhrFetch(onUploadProgress: (loaded: number, total: number) => voi
       xhr.responseType = 'blob';
 
       if (init?.headers) {
-        const headersList: [string, string][] = Array.isArray(init.headers)
-          ? init.headers
-          : typeof init.headers.forEach === 'function' || init.headers instanceof Headers
-            ? []
-            : Object.entries(init.headers);
+        const headersList = (
+          Array.isArray(init.headers)
+            ? init.headers
+            : typeof init.headers.forEach === 'function' || init.headers instanceof Headers
+              ? []
+              : Object.entries(init.headers)
+        ) as [string, string][];
         for (const [key, value] of headersList) {
           xhr.setRequestHeader(key, value);
         }
@@ -84,14 +120,14 @@ function createXhrFetch(onUploadProgress: (loaded: number, total: number) => voi
         xhr.withCredentials = true;
       }
 
-      xhr.upload.addEventListener('progress', (event: any) => {
+      xhr.upload.addEventListener('progress', (event: { loaded: number; total: number; lengthComputable: boolean }) => {
         if (event.lengthComputable) {
           onUploadProgress(event.loaded, event.total);
         }
       });
 
       xhr.addEventListener('load', () => {
-        const headers = new g.Headers();
+        const headers = new g.Headers!();
         const headerStr = xhr.getAllResponseHeaders() || '';
         const headerLines = headerStr.trim().split(/\r\n/);
         for (const line of headerLines) {
@@ -102,7 +138,7 @@ function createXhrFetch(onUploadProgress: (loaded: number, total: number) => voi
         }
 
         resolve(
-          new g.Response(xhr.response, {
+          new g.Response!(xhr.response as ConstructorParameters<typeof Response>[0], {
             status: xhr.status,
             statusText: xhr.statusText,
             headers
@@ -120,7 +156,9 @@ function createXhrFetch(onUploadProgress: (loaded: number, total: number) => voi
 
       xhr.send(init?.body);
     });
-  }) as typeof fetch;
+  };
+
+  return fn;
 }
 
 function createClientError(err: unknown): ClientError {
@@ -133,8 +171,9 @@ function createClientError(err: unknown): ClientError {
   }
   if (err instanceof Error) {
     const clientError = err as ClientError;
-    clientError.status = (err as any).status || 0;
-    clientError.data = (err as any).data || null;
+    const fetchErr = err as IFetchError;
+    clientError.status = fetchErr.status || fetchErr.response?.status || 0;
+    clientError.data = fetchErr.data || null;
     return clientError;
   }
   const clientError = new Error(String(err)) as ClientError;
@@ -146,7 +185,7 @@ function createClientError(err: unknown): ClientError {
 export function createClient(defaultOptions: ClientOptions = {}) {
   const runtime = detectRuntime();
 
-  const globalOptions: Record<string, any> = {};
+  const globalOptions: FetchOptions = {};
   if (defaultOptions.baseURL) globalOptions.baseURL = defaultOptions.baseURL;
   if (defaultOptions.timeout) globalOptions.timeout = defaultOptions.timeout;
   if (defaultOptions.retry !== undefined) globalOptions.retry = defaultOptions.retry;
@@ -158,10 +197,10 @@ export function createClient(defaultOptions: ClientOptions = {}) {
   if (defaultOptions.onResponse) globalOptions.onResponse = defaultOptions.onResponse;
   if (defaultOptions.onResponseError) globalOptions.onResponseError = defaultOptions.onResponseError;
 
-  const baseFetch = $fetch.create(globalOptions as FetchOptions);
+  const baseFetch = $fetch.create(globalOptions);
 
-  function buildOptions<B>(options: RequestOptions<B> = {}): any {
-    const fetchOpts: Record<string, any> = {
+  function buildOptions<B>(options: RequestOptions<B> = {}): FetchOptions<'json'> {
+    const fetchOpts: FetchOptions<'json'> = {
       retry: options.retry ?? defaultOptions.retry ?? 1,
       retryDelay: options.retryDelay ?? defaultOptions.retryDelay ?? 0,
       timeout: options.timeout ?? defaultOptions.timeout
@@ -170,8 +209,8 @@ export function createClient(defaultOptions: ClientOptions = {}) {
     if (options.headers) fetchOpts.headers = options.headers;
     if (options.credentials) fetchOpts.credentials = options.credentials;
     if (options.params) fetchOpts.params = options.params;
-    if (options.body !== undefined) fetchOpts.body = options.body as any;
-    if (options.query) fetchOpts.query = options.query as any;
+    if (options.body !== undefined) fetchOpts.body = options.body as FetchOptions['body'];
+    if (options.query) fetchOpts.query = options.query;
     if (options.onRequest) fetchOpts.onRequest = options.onRequest;
     if (options.onRequestError) fetchOpts.onRequestError = options.onRequestError;
     if (options.onResponse) fetchOpts.onResponse = options.onResponse;
@@ -190,11 +229,11 @@ export function createClient(defaultOptions: ClientOptions = {}) {
       if (options?.onUploadProgress) {
         const xhrFetch = createXhrFetch(options.onUploadProgress);
         if (xhrFetch) {
-          const customFetch = createFetch({ defaults: opts, fetch: xhrFetch } as any);
-          return await customFetch<T>(url, { method: method as any });
+          const customFetch = createFetch({ defaults: opts as unknown as FetchOptions, fetch: xhrFetch });
+          return await customFetch<T>(url, { method, ...opts });
         }
       }
-      return await baseFetch<T>(url, { method: method as any, ...opts });
+      return await baseFetch<T>(url, { method, ...opts });
     } catch (err) {
       throw createClientError(err);
     }
@@ -207,26 +246,27 @@ export function createClient(defaultOptions: ClientOptions = {}) {
   ): Promise<FlatResponse<T>> {
     try {
       const opts = buildOptions(options);
-      let response;
+      let response: FetchResponse<T>;
       if (options?.onUploadProgress) {
         const xhrFetch = createXhrFetch(options.onUploadProgress);
         if (xhrFetch) {
-          const customFetch = createFetch({ defaults: opts, fetch: xhrFetch } as any);
-          response = await customFetch.raw<T>(url, { method: method as any });
+          const customFetch = createFetch({ defaults: opts as unknown as FetchOptions, fetch: xhrFetch });
+          response = await customFetch.raw<T>(url, { method, ...opts });
         } else {
-          response = await baseFetch.raw<T>(url, { method: method as any, ...opts });
+          response = await baseFetch.raw<T>(url, { method, ...opts });
         }
       } else {
-        response = await baseFetch.raw<T>(url, { method: method as any, ...opts });
+        response = await baseFetch.raw<T>(url, { method, ...opts });
       }
       return {
-        data: (response as any)._data as T,
+        data: response._data as T,
         error: null,
         status: response.status
       };
     } catch (err) {
       const clientError = createClientError(err);
-      const status = (err as any)?.response?.status || 0;
+      const fetchErr = err as IFetchError;
+      const status = fetchErr?.response?.status || 0;
       return {
         data: null,
         error: clientError,
@@ -276,7 +316,7 @@ export function createClient(defaultOptions: ClientOptions = {}) {
 
     raw<T = unknown, B = unknown>(method: HttpMethod, url: string, options?: RequestOptions<B>) {
       const opts = buildOptions(options);
-      return baseFetch.raw<T>(url, { method: method as any, ...opts });
+      return baseFetch.raw<T>(url, { method, ...opts });
     },
 
     extend(options: ClientOptions) {

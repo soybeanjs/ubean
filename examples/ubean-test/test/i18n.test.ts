@@ -20,6 +20,7 @@ import {
   extractLocaleFromPath,
   getI18nConfig
 } from 'ubean';
+import type { UbeanContext } from 'ubean';
 import enMessages from '../src/locales/en.json';
 import zhMessages from '../src/locales/zh.json';
 import { getJson } from './helper';
@@ -232,7 +233,7 @@ describe('i18n system', () => {
 
   describe('switchLocalePath()', () => {
     it('switches locale in path', () => {
-      const mockContext = { req: { url: 'http://localhost/zh/about' } } as any;
+      const mockContext = { req: { url: 'http://localhost/zh/about' } } as unknown as UbeanContext;
       const result = switchLocalePath(mockContext, 'en', 'prefix_except_default', 'en');
       expect(result).toContain('about');
     });
@@ -258,14 +259,14 @@ describe('i18n system', () => {
       const res = await getJson('/api/i18n-test?action=translate&key=common.hello&name=Alice');
       expect(res.status).toBe(200);
       expect(res.data).toHaveProperty('translation');
-      expect(res.data.translation).toContain('Alice');
+      expect((res.data as { translation: string }).translation).toContain('Alice');
     });
 
     it('setLocale action changes locale', async () => {
       const res = await getJson('/api/i18n-test?action=setLocale&locale=zh');
       expect(res.status).toBe(200);
-      expect(res.data.success).toBe(true);
-      expect(res.data.after).toBe('zh');
+      expect((res.data as { success: boolean }).success).toBe(true);
+      expect((res.data as { after: string }).after).toBe('zh');
     });
 
     it('plural action returns plural forms', async () => {
@@ -306,7 +307,7 @@ describe('i18n system', () => {
       await getJson('/api/i18n-test?action=setLocale&locale=zh');
       const res = await getJson('/api/i18n-test?action=translate&key=common.hello&name=世界');
       expect(res.status).toBe(200);
-      expect(res.data.translation).toContain('世界');
+      expect((res.data as { translation: string }).translation).toContain('世界');
     });
   });
 });

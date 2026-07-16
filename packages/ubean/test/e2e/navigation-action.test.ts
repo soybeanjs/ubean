@@ -35,7 +35,10 @@ describe('E2E: Full navigation and action protocol over HTTP', () => {
     name: 'HomePage',
     props: { message: { type: String, default: '' } },
     render() {
-      return h('div', { class: 'home-page' }, [h('h1', 'Home'), h('p', (this as any).message || 'Welcome')]);
+      return h('div', { class: 'home-page' }, [
+        h('h1', 'Home'),
+        h('p', (this as { message: string }).message || 'Welcome')
+      ]);
     }
   });
 
@@ -52,7 +55,7 @@ describe('E2E: Full navigation and action protocol over HTTP', () => {
     render() {
       return h('div', { class: 'login-page' }, [
         h('h1', 'Login'),
-        (this as any).error ? h('p', { class: 'error' }, (this as any).error) : null
+        (this as { error: string }).error ? h('p', { class: 'error' }, (this as { error: string }).error) : null
       ]);
     }
   });
@@ -61,7 +64,7 @@ describe('E2E: Full navigation and action protocol over HTTP', () => {
     name: 'DashboardPage',
     props: { username: { type: String, default: '' } },
     render() {
-      return h('div', { class: 'dashboard' }, [h('h1', `Dashboard: ${(this as any).username || ''}`)]);
+      return h('div', { class: 'dashboard' }, [h('h1', `Dashboard: ${(this as { username: string }).username || ''}`)]);
     }
   });
 

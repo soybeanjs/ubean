@@ -244,38 +244,50 @@ export class UbeanApp {
     });
   }
 
-  use(path: string | MiddlewareHandler<UbeanEnv>, ...handlers: MiddlewareHandler<UbeanEnv>[]) {
-    this.hono.use(path as any, ...(handlers as any));
+  use(path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]): this;
+  use(...handlers: MiddlewareHandler<UbeanEnv>[]): this;
+  use(pathOrHandler: string | MiddlewareHandler<UbeanEnv>, ...handlers: MiddlewareHandler<UbeanEnv>[]) {
+    type UseFn = (...args: [string | MiddlewareHandler<UbeanEnv>, ...MiddlewareHandler<UbeanEnv>[]]) => void;
+    (this.hono.use as UseFn)(pathOrHandler, ...handlers);
     return this;
   }
 
   on(method: string | string[], path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) {
-    this.hono.on(method as any, path as any, ...(handlers as any));
+    type OnFn = (method: string, path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) => void;
+    const methods = Array.isArray(method) ? method : [method];
+    for (const m of methods) {
+      (this.hono.on as OnFn)(m, path, ...handlers);
+    }
     return this;
   }
 
   get(path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) {
-    this.hono.get(path as any, ...(handlers as any));
+    type MethodFn = (path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) => void;
+    (this.hono.get as MethodFn)(path, ...handlers);
     return this;
   }
 
   post(path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) {
-    this.hono.post(path as any, ...(handlers as any));
+    type MethodFn = (path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) => void;
+    (this.hono.post as MethodFn)(path, ...handlers);
     return this;
   }
 
   put(path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) {
-    this.hono.put(path as any, ...(handlers as any));
+    type MethodFn = (path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) => void;
+    (this.hono.put as MethodFn)(path, ...handlers);
     return this;
   }
 
   patch(path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) {
-    this.hono.patch(path as any, ...(handlers as any));
+    type MethodFn = (path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) => void;
+    (this.hono.patch as MethodFn)(path, ...handlers);
     return this;
   }
 
   delete(path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) {
-    this.hono.delete(path as any, ...(handlers as any));
+    type MethodFn = (path: string, ...handlers: MiddlewareHandler<UbeanEnv>[]) => void;
+    (this.hono.delete as MethodFn)(path, ...handlers);
     return this;
   }
 

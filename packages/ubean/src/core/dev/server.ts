@@ -28,7 +28,7 @@ async function toWebRequest(req: IncomingMessage, host: string, protocol: string
   }
 
   const method = req.method || 'GET';
-  const body = method === 'GET' || method === 'HEAD' ? undefined : (req as unknown as any);
+  const body = method === 'GET' || method === 'HEAD' ? undefined : req;
 
   return new Request(url, {
     method,
@@ -68,7 +68,8 @@ export function startDevServer(options: DevServerOptions): Promise<DevServer> {
     const server = createServer(async (req, res) => {
       try {
         await app.init();
-        const protocol = (req.socket as any)?.encrypted ? 'https' : 'http';
+        // @ts-expect-error Socket 类型没有 encrypted 属性
+        const protocol = req.socket?.encrypted ? 'https' : 'http';
         const webReq = await toWebRequest(req, host, protocol);
         const webRes = await app.fetch(webReq);
         await sendWebResponse(res, webRes);

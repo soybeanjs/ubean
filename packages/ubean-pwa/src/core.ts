@@ -1,6 +1,13 @@
 import { createHash } from 'node:crypto';
 import { defu } from 'defu';
-import type { PwaOptions, PwaResolvedOptions, SwTemplateOptions, VersionedAsset, WebAppManifest } from './types';
+import type {
+  PwaOptions,
+  PwaResolvedOptions,
+  SwTemplateOptions,
+  VersionedAsset,
+  WebAppManifest,
+  RuntimeCachingRule
+} from './types';
 
 export const DEFAULT_MANIFEST: WebAppManifest = {
   name: 'Ubean App',
@@ -142,16 +149,15 @@ export function generateRuntimeCachingDefaults(options: PwaResolvedOptions) {
       }
     }
   ];
-  return defaults as unknown as Array<{
-    urlPattern: RegExp | ((ctx: { request: Request }) => boolean);
-    handler: string;
-    options?: Record<string, unknown>;
-  }>;
+  return defaults as unknown as RuntimeCachingRule[];
 }
 
-function serializeUrlPattern(pattern: string | RegExp): string {
+function serializeUrlPattern(pattern: string | RegExp | ((ctx: { request: Request }) => boolean)): string {
   if (typeof pattern === 'string') {
     return `new RegExp(${JSON.stringify(pattern)})`;
+  }
+  if (typeof pattern === 'function') {
+    return `(${pattern.toString()})`;
   }
   return pattern.toString();
 }

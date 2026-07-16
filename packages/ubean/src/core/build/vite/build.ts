@@ -644,8 +644,7 @@ assets = { directory = "./public" }
   }
 
   const assets: BuildManifest['assets'] = [];
-  for (const [key, value] of Object.entries(clientManifest)) {
-    const entry = value as any;
+  for (const [key, entry] of Object.entries(clientManifest)) {
     assets.push({
       file: entry.file,
       src: key,

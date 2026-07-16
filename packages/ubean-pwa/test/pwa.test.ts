@@ -126,9 +126,9 @@ describe('ubean-pwa core', () => {
         }
       });
       const defaults = generateRuntimeCachingDefaults(resolved);
-      const imageRule = (defaults as any[]).find((r: any) => r.options?.cacheName === 'images');
+      const imageRule = defaults.find(r => r.options?.cacheName === 'images');
       expect(imageRule?.handler).toBe('cache-first');
-      const fontRule = (defaults as any[]).find((r: any) => r.options?.cacheName === 'fonts');
+      const fontRule = defaults.find(r => r.options?.cacheName === 'fonts');
       expect(fontRule?.handler).toBe('stale-while-revalidate');
     });
   });

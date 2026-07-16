@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { Context } from 'hono';
 import { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from '../src/runtime/route-rules';
 
 describe('route rules compiler', () => {
@@ -118,7 +119,7 @@ describe('route rules middleware', () => {
       redirect: () => {
         throw new Error('should not redirect');
       }
-    } as any;
+    } as unknown as Context;
 
     const next = async () => {
       nextCalled = true;
@@ -141,15 +142,15 @@ describe('route rules middleware', () => {
       redirect: (url: string, status: number) => {
         return { url, status, __redirected: true };
       }
-    } as any;
+    } as unknown as Context;
 
     const next = async () => {
       throw new Error('should not call next');
     };
 
     const result = await mw(c, next);
-    expect((result as any).url).toBe('/new-page');
-    expect((result as any).status).toBe(307);
+    expect((result as { url: string }).url).toBe('/new-page');
+    expect((result as { status: number }).status).toBe(307);
   });
 
   it('middleware sets Cache-Control header from cache rules', async () => {
@@ -166,7 +167,7 @@ describe('route rules middleware', () => {
       redirect: () => {
         throw new Error('should not redirect');
       }
-    } as any;
+    } as unknown as Context;
 
     await mw(c, async () => {});
 
@@ -190,7 +191,7 @@ describe('route rules middleware', () => {
       redirect: () => {
         throw new Error('should not redirect');
       }
-    } as any;
+    } as unknown as Context;
 
     await mw(c, async () => {
       nextCalled = true;

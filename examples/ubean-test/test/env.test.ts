@@ -207,12 +207,12 @@ describe('Environment variables - defineEnv', () => {
 
     it('Number type is properly typed', async () => {
       const res = await getJson('/api/env-schema?action=all');
-      expect(res.data.types.PORT).toBe('number');
+      expect((res.data as { types: Record<string, string> }).types.PORT).toBe('number');
     });
 
     it('Boolean type is properly typed', async () => {
       const res = await getJson('/api/env-schema?action=all');
-      expect(res.data.types.ENABLE_FEATURES).toBe('boolean');
+      expect((res.data as { types: Record<string, string> }).types.ENABLE_FEATURES).toBe('boolean');
     });
   });
 });

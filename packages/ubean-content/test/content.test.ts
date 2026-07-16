@@ -286,7 +286,7 @@ Content.`;
       const qb = createQueryBuilder(docs);
       const results = await qb.only(['title', '_path']).find();
       expect(results[0].title).toBeDefined();
-      expect((results[0] as any).date).toBeUndefined();
+      expect(results[0].date).toBeUndefined();
     });
 
     it('findSurround returns adjacent documents', async () => {

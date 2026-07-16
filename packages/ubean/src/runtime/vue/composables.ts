@@ -1,7 +1,21 @@
 import { defineDataKey as _defineDataKey } from '../pages/data';
 import type { PageObject } from '../pages/protocol';
 
-const _global = globalThis as any;
+interface MinimalDocument {
+  getElementById(id: string): { textContent: string | null } | null;
+}
+
+interface MinimalLocation {
+  href: string;
+  replace(url: string): void;
+}
+
+interface GlobalWithDocument {
+  document?: MinimalDocument;
+  location?: MinimalLocation;
+}
+
+const _global = globalThis as GlobalWithDocument;
 
 export interface UbeanVueContext {
   __ubean_router?: import('vue-router').Router;
@@ -216,7 +230,7 @@ export function createLinkHandler(ctx: UbeanVueContext) {
     getProps: () => ({}),
     async navigate(href: string, opts: { replace?: boolean } = {}) {
       if (!ctx.__ubean_router) {
-        const loc = _global.location;
+        const loc = _global.location!;
         if (opts.replace) loc.replace(href);
         else loc.href = href;
         return;

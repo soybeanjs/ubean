@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { defineScheduled, getScheduledTasks, clearScheduledTasks, runScheduledTask } from '../src/runtime/cron';
+import type { CronTaskMeta } from '../src/runtime/cron';
 import { createMemoryCronScheduler, parseCron, validateCron, resetCronRunCounts } from '../src/runtime/cron-scheduler';
 
 describe('Cron scheduler', () => {
@@ -85,13 +86,13 @@ describe('Cron scheduler', () => {
 
     it('throws when task has no name', () => {
       expect(() => {
-        defineScheduled({ schedule: '* * * * *' } as any, () => {});
+        defineScheduled({ schedule: '* * * * *' } as unknown as CronTaskMeta, () => {});
       }).toThrow('must have a name');
     });
 
     it('throws when task has no schedule', () => {
       expect(() => {
-        defineScheduled({ name: 'test' } as any, () => {});
+        defineScheduled({ name: 'test' } as unknown as CronTaskMeta, () => {});
       }).toThrow('must have a schedule');
     });
   });

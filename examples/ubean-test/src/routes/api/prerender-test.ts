@@ -35,7 +35,8 @@ export const GET = defineHandler(async c => {
           basename: 'index.vue',
           name: 'index',
           route: '/',
-          isReuse: false
+          isReuse: false,
+          isMarkdown: false
         },
         {
           path: '/about',
@@ -45,7 +46,8 @@ export const GET = defineHandler(async c => {
           basename: 'about.vue',
           name: 'about',
           route: '/about',
-          isReuse: false
+          isReuse: false,
+          isMarkdown: false
         },
         {
           path: '/user/[id]',
@@ -55,7 +57,8 @@ export const GET = defineHandler(async c => {
           basename: '[id].vue',
           name: 'user-id',
           route: '/user/[id]',
-          isReuse: false
+          isReuse: false,
+          isMarkdown: false
         },
         {
           path: '/dashboard',
@@ -65,7 +68,8 @@ export const GET = defineHandler(async c => {
           basename: 'index.vue',
           name: 'dashboard',
           route: '/dashboard',
-          isReuse: false
+          isReuse: false,
+          isMarkdown: false
         },
         {
           path: '/blog/[...slug]',
@@ -75,7 +79,8 @@ export const GET = defineHandler(async c => {
           basename: '[...slug].vue',
           name: 'blog-slug',
           route: '/blog/[...slug]',
-          isReuse: false
+          isReuse: false,
+          isMarkdown: false
         }
       ];
 
@@ -211,7 +216,8 @@ export const GET = defineHandler(async c => {
             basename: 'index.vue',
             name: 'index',
             route: '/',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           },
           {
             path: '/about',
@@ -221,7 +227,8 @@ export const GET = defineHandler(async c => {
             basename: 'about.vue',
             name: 'about',
             route: '/about',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           }
         ];
 
@@ -280,7 +287,8 @@ export const GET = defineHandler(async c => {
             basename: 'index.vue',
             name: 'index',
             route: '/',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           }
         ];
 
@@ -339,7 +347,8 @@ export const GET = defineHandler(async c => {
             basename: 'index.vue',
             name: 'index',
             route: '/',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           },
           {
             path: '/admin',
@@ -349,7 +358,8 @@ export const GET = defineHandler(async c => {
             basename: 'admin.vue',
             name: 'admin',
             route: '/admin',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           },
           {
             path: '/about',
@@ -359,7 +369,8 @@ export const GET = defineHandler(async c => {
             basename: 'about.vue',
             name: 'about',
             route: '/about',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           }
         ];
 
@@ -406,7 +417,8 @@ export const GET = defineHandler(async c => {
             basename: 'index.vue',
             name: 'index',
             route: '/',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           },
           {
             path: '/broken',
@@ -416,7 +428,8 @@ export const GET = defineHandler(async c => {
             basename: 'broken.vue',
             name: 'broken',
             route: '/broken',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           },
           {
             path: '/after-broken',
@@ -426,7 +439,8 @@ export const GET = defineHandler(async c => {
             basename: 'after-broken.vue',
             name: 'after-broken',
             route: '/after-broken',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           }
         ];
 
@@ -511,7 +525,8 @@ export const GET = defineHandler(async c => {
             basename: 'index.vue',
             name: 'index',
             route: '/',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           },
           {
             path: '/about',
@@ -521,7 +536,8 @@ export const GET = defineHandler(async c => {
             basename: 'about.vue',
             name: 'about',
             route: '/about',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           }
         ];
 
@@ -610,7 +626,8 @@ export const GET = defineHandler(async c => {
           basename: `page-${i}.vue`,
           name: `page-${i}`,
           route: `/page-${i}`,
-          isReuse: false
+          isReuse: false,
+          isMarkdown: false
         }));
 
         let maxConcurrent = 0;

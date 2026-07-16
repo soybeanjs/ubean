@@ -193,7 +193,7 @@ export const NuxtImg = defineComponent({
         'data-loaded': isLoaded.value ? '' : undefined,
         'data-error': isError.value ? '' : undefined,
         style: {
-          ...(attrs.style as any),
+          ...(attrs.style as Record<string, string>),
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat'
@@ -318,9 +318,9 @@ export const NuxtPicture = defineComponent({
             height: props.height,
             sizes: props.sizes,
             loading: props.loading,
-            crossorigin: props.crossorigin as any,
+            crossorigin: props.crossorigin as '' | 'anonymous' | 'use-credentials' | undefined,
             referrerpolicy: props.referrerpolicy,
-            placeholder: props.placeholder as any,
+            placeholder: props.placeholder as string | number | boolean,
             quality: props.quality,
             fit: props.fit,
             position: props.position,

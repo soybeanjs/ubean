@@ -24,7 +24,29 @@ import {
 import type { LocaleMessages, LocaleDefinition, LocaleChangeCallback, I18nConfig } from '../i18n';
 import { LOCALE_DATA_ID } from '../pages/protocol';
 
-const _global = globalThis as any;
+interface MinimalHtmlElement {
+  setAttribute(name: string, value: string): void;
+}
+
+interface MinimalDocument {
+  getElementById(id: string): { textContent: string | null } | null;
+  documentElement?: MinimalHtmlElement;
+}
+
+interface MinimalWindowLocation {
+  pathname: string;
+}
+
+interface MinimalWindow {
+  location: MinimalWindowLocation;
+}
+
+interface GlobalWithI18nData {
+  document?: MinimalDocument;
+  window?: MinimalWindow;
+}
+
+const _global = globalThis as GlobalWithI18nData;
 
 function hydrateLocale(): { locale: string | null; dir: 'ltr' | 'rtl'; messages?: Record<string, unknown> } {
   if (typeof _global.document === 'undefined') return { locale: null, dir: 'ltr' };

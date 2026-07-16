@@ -66,8 +66,8 @@ describe('Islands Architecture (P6-18)', () => {
       expect(island!.props.bool).toBe(true);
       expect(island!.props.arr).toEqual([1, 2, 3]);
       expect(island!.props.obj).toEqual({ key: 'value' });
-      expect((island!.props as any).fn).toBeUndefined();
-      expect((island!.props as any).sym).toBeUndefined();
+      expect((island!.props as Record<string, unknown>).fn).toBeUndefined();
+      expect((island!.props as Record<string, unknown>).sym).toBeUndefined();
     });
   });
 

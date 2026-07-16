@@ -1,7 +1,7 @@
 import { createServer as createHttpServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer as createViteServer } from 'vite';
-import type { ViteDevServer } from 'vite';
+import type { InlineConfig, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
 import { findAvailablePort } from '../utils/port';
@@ -52,7 +52,7 @@ async function toWebRequest(req: IncomingMessage, host: string, protocol: string
   }
 
   const method = req.method || 'GET';
-  const body = method === 'GET' || method === 'HEAD' ? undefined : (req as unknown as any);
+  const body = method === 'GET' || method === 'HEAD' ? undefined : req;
 
   return new Request(url, {
     method,
@@ -122,7 +122,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // `devtools.setup` hook fires only when Vite DevTools is enabled below.
   // Scan/config accessors come from the dev runner; `registerRefresh` lets
   // `updateApp()` push scan updates to clients without re-polling.
-  let devtoolsPlugin: any = null;
+  let devtoolsPlugin: Plugin | null = null;
   try {
     const { ubeanDevtoolsPlugin } = await import('@ubean/devtools');
     const devtoolsOpts = options.devtools;
@@ -137,7 +137,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       registerRefresh: (fn: () => void) => {
         refreshDevtools = fn;
       }
-    } as any);
+    } as Parameters<typeof ubeanDevtoolsPlugin>[0]);
   } catch {
     // @ubean/devtools not installed — DTK integration skipped.
   }
@@ -147,7 +147,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // plugin whose `configureServer` hook calls `createDevToolsContext()` and
   // invokes each plugin's `devtools.setup(context)`. Without this, the
   // `devtools.setup` hook never fires during dev.
-  let viteDevtoolsPlugins: any[] = [];
+  let viteDevtoolsPlugins: Plugin[] = [];
   try {
     const { DevTools } = await import('@vitejs/devtools');
     // builtinDevTools: false skips DevToolsRolldownUI (the built-in Vite DevTools
@@ -158,7 +158,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     // @vitejs/devtools not installed — Vite DevTools UI skipped.
   }
 
-  const builtinPlugins: any[] = [
+  const builtinPlugins: Plugin[] = [
     vue({
       include: VUE_PLUGIN_INCLUDE,
       template: {
@@ -166,7 +166,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
           isCustomElement: (tag: string) => tag.startsWith('ubean-')
         }
       }
-    }),
+    }) as unknown as Plugin,
     ubeanPlugin({ config }),
     ...ubeanVuePlugin({ config }),
     ubeanIslandsPlugin(),
@@ -180,7 +180,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     builtinPlugins
   });
 
-  viteServer = (await createViteServer({
+  viteServer = await createViteServer({
     root: cwd,
     configFile: false,
     server: {
@@ -206,7 +206,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     ssr: {
       noExternal: ['ubean']
     }
-  } as any)) as ViteDevServer;
+  } as InlineConfig & { devtools?: { enabled: boolean; clientAuth: boolean } });
 
   function enhanceAppWithVite(app: UbeanApp, layouts: ScannedLayout[] = []) {
     app.options.layouts = layouts;
@@ -324,7 +324,8 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
           }
 
           await currentApp.init();
-          const protocol = (req.socket as any)?.encrypted ? 'https' : 'http';
+          // @ts-expect-error Socket 类型没有 encrypted 属性
+          const protocol = req.socket?.encrypted ? 'https' : 'http';
           const webReq = await toWebRequest(req, host, protocol);
           const webRes = await currentApp.fetch(webReq);
 
@@ -374,7 +375,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         }
       });
 
-      viteServer!.httpServer = httpServer as any;
+      viteServer!.httpServer = httpServer;
 
       // Listen with auto-increment as a safety net. The probe above already
       // resolved the port in the common case; this retry only fires if someone

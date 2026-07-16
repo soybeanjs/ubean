@@ -14,6 +14,7 @@ import {
   handleClose,
   handleError
 } from 'ubean';
+import type { UbeanContext } from 'ubean';
 import { getJson } from './helper';
 
 describe('WebSocket system', () => {
@@ -120,8 +121,9 @@ describe('WebSocket system', () => {
         }
       };
 
-      handleUpgrade(mockContext as any, {
-        send: (data: string) => received.push(data),
+      handleUpgrade(mockContext as unknown as UbeanContext, {
+        send: (data: string | ArrayBuffer | Uint8Array) =>
+          received.push(typeof data === 'string' ? data : new TextDecoder().decode(data)),
         close: () => {}
       });
 
@@ -148,7 +150,7 @@ describe('WebSocket system', () => {
           raw: { headers: new Headers() }
         }
       };
-      const result = handleUpgrade(mockContext as any, {
+      const result = handleUpgrade(mockContext as unknown as UbeanContext, {
         send: () => {},
         close: () => {}
       });
@@ -170,12 +172,10 @@ describe('WebSocket system', () => {
           raw: { headers: new Headers() }
         }
       };
-      const result = handleUpgrade(mockContext as any, {
+      const result = handleUpgrade(mockContext as unknown as UbeanContext, {
         send: () => {},
         close: () => {}
       });
-      // Peer should receive broadcasts on 'updates' topic
-      const received: string[] = [];
       // The peer's send is captured, so we can't easily verify subscriptions
       // but we can verify the peer was created
       expect(result.peer).toBeDefined();
@@ -198,7 +198,7 @@ describe('WebSocket system', () => {
           raw: { headers: new Headers() }
         }
       };
-      const { peer } = handleUpgrade(mockContext as any, {
+      const { peer } = handleUpgrade(mockContext as unknown as UbeanContext, {
         send: () => {},
         close: () => {}
       });
@@ -222,7 +222,7 @@ describe('WebSocket system', () => {
           raw: { headers: new Headers() }
         }
       };
-      const { peer } = handleUpgrade(mockContext as any, {
+      const { peer } = handleUpgrade(mockContext as unknown as UbeanContext, {
         send: () => {},
         close: () => {}
       });
@@ -246,7 +246,7 @@ describe('WebSocket system', () => {
           raw: { headers: new Headers() }
         }
       };
-      const { peer } = handleUpgrade(mockContext as any, {
+      const { peer } = handleUpgrade(mockContext as unknown as UbeanContext, {
         send: () => {},
         close: () => {}
       });
@@ -265,7 +265,7 @@ describe('WebSocket system', () => {
           raw: { headers: new Headers() }
         }
       };
-      const { peer } = handleUpgrade(mockContext as any, {
+      const { peer } = handleUpgrade(mockContext as unknown as UbeanContext, {
         send: () => {},
         close: () => {}
       });
@@ -286,7 +286,7 @@ describe('WebSocket system', () => {
           raw: { headers: new Headers() }
         }
       };
-      const { peer } = handleUpgrade(mockContext as any, {
+      const { peer } = handleUpgrade(mockContext as unknown as UbeanContext, {
         send: () => {},
         close: () => {}
       });
@@ -303,7 +303,7 @@ describe('WebSocket system', () => {
           raw: { headers: new Headers() }
         }
       };
-      const { peer } = handleUpgrade(mockContext as any, {
+      const { peer } = handleUpgrade(mockContext as unknown as UbeanContext, {
         send: () => {},
         close: () => {}
       });
@@ -325,13 +325,15 @@ describe('WebSocket system', () => {
         }
       };
 
-      const peer1 = handleUpgrade(mockContext as any, {
-        send: (data: string) => received.push(`p1:${data}`),
+      const peer1 = handleUpgrade(mockContext as unknown as UbeanContext, {
+        send: (data: string | ArrayBuffer | Uint8Array) =>
+          received.push(`p1:${typeof data === 'string' ? data : new TextDecoder().decode(data)}`),
         close: () => {}
       }).peer;
 
-      const peer2 = handleUpgrade(mockContext as any, {
-        send: (data: string) => received.push(`p2:${data}`),
+      const peer2 = handleUpgrade(mockContext as unknown as UbeanContext, {
+        send: (data: string | ArrayBuffer | Uint8Array) =>
+          received.push(`p2:${typeof data === 'string' ? data : new TextDecoder().decode(data)}`),
         close: () => {}
       }).peer;
 
@@ -355,13 +357,15 @@ describe('WebSocket system', () => {
         }
       };
 
-      const peer1 = handleUpgrade(mockContext as any, {
-        send: (data: string) => received.push(`p1:${data}`),
+      const peer1 = handleUpgrade(mockContext as unknown as UbeanContext, {
+        send: (data: string | ArrayBuffer | Uint8Array) =>
+          received.push(`p1:${typeof data === 'string' ? data : new TextDecoder().decode(data)}`),
         close: () => {}
       }).peer;
 
-      const peer2 = handleUpgrade(mockContext as any, {
-        send: (data: string) => received.push(`p2:${data}`),
+      const peer2 = handleUpgrade(mockContext as unknown as UbeanContext, {
+        send: (data: string | ArrayBuffer | Uint8Array) =>
+          received.push(`p2:${typeof data === 'string' ? data : new TextDecoder().decode(data)}`),
         close: () => {}
       }).peer;
 

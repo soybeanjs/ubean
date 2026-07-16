@@ -331,9 +331,9 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
       }
     }
 
-    const props: Record<string, unknown> = loaderResult ?? {};
-    if (actionResult !== undefined) {
-      Object.assign(props as any, actionResult);
+    const props: Record<string, unknown> = { ...loaderResult } as Record<string, unknown>;
+    if (actionResult !== undefined && actionResult && typeof actionResult === 'object') {
+      Object.assign(props, actionResult as Record<string, unknown>);
     }
 
     const pageComponent = page.reuseTarget || page.name;

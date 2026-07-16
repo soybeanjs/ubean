@@ -1,4 +1,5 @@
 import { defineHandler, defineWebSocket, defineRoom } from 'ubean';
+import type { Peer } from 'ubean';
 
 const chatRoom = defineRoom('chat');
 
@@ -13,20 +14,23 @@ export const GET = defineHandler(c => {
 });
 
 defineWebSocket({
-  open(peer) {
-    chatRoom.add(peer);
-    peer.send({ type: 'connected', message: 'Welcome to chat room', peers: chatRoom.size });
-    chatRoom.broadcast({ type: 'user-joined', peerId: peer.id }, peer.id);
-  },
-  message(peer, message) {
-    const text = typeof message === 'string' ? message : new TextDecoder().decode(message);
-    chatRoom.broadcast({ type: 'message', from: peer.id, text, timestamp: Date.now() });
-  },
-  close(peer) {
-    chatRoom.remove(peer);
-    chatRoom.broadcast({ type: 'user-left', peerId: peer.id });
-  },
-  error(peer, error) {
-    console.error('[ws-test] WebSocket error:', error);
+  path: '/api/ws-test',
+  hooks: {
+    open(peer: Peer) {
+      chatRoom.add(peer);
+      peer.send(JSON.stringify({ type: 'connected', message: 'Welcome to chat room', peers: chatRoom.peers.size }));
+      chatRoom.broadcast(JSON.stringify({ type: 'user-joined', peerId: peer.id }), { except: peer });
+    },
+    message(peer: Peer, message: string | ArrayBuffer) {
+      const text = typeof message === 'string' ? message : new TextDecoder().decode(message);
+      chatRoom.broadcast(JSON.stringify({ type: 'message', from: peer.id, text, timestamp: Date.now() }));
+    },
+    close(peer: Peer) {
+      chatRoom.remove(peer);
+      chatRoom.broadcast(JSON.stringify({ type: 'user-left', peerId: peer.id }));
+    },
+    error(peer: Peer, error: Error) {
+      console.error('[ws-test] WebSocket error:', error);
+    }
   }
 });

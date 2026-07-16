@@ -135,7 +135,7 @@ describe('extractDefineMetaFromCode', () => {
     const code = `defineHandlerMeta({ rateLimit: { maxRequests: 100, windowSeconds: 60 } })`;
     const result = extractDefineMetaFromCode(code);
     expect(result?.meta).toBeDefined();
-    expect((result?.meta as any)?.rateLimit).toBeDefined();
+    expect((result?.meta as Record<string, unknown> | undefined)?.rateLimit).toBeDefined();
   });
 
   it('returns null when no defineHandlerMeta', () => {

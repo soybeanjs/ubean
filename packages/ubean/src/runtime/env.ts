@@ -1,6 +1,12 @@
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { GenericSchema } from '../types/handler';
 
+interface GlobalWithProcess {
+  process?: {
+    env?: Record<string, string | undefined>;
+  };
+}
+
 export type EnvSchema = Record<
   string,
   | StandardSchemaV1
@@ -116,7 +122,8 @@ function validateSchemaSync<S extends EnvSchema>(
 }
 
 export function defineEnv<S extends EnvSchema>(config: EnvConfig<S>): DefineEnvResult<S> {
-  const serverSource = typeof process !== 'undefined' ? process.env : (globalThis as any).process?.env || {};
+  const serverSource =
+    typeof process !== 'undefined' ? process.env : (globalThis as GlobalWithProcess).process?.env || {};
 
   const mergedSchema = { ...config.public, ...config.server } as S;
 

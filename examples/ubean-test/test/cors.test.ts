@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createCorsMiddleware, defineCors } from 'ubean';
+import type { UbeanContext } from 'ubean';
 import { api, getJson } from './helper';
 
 describe('CORS system', () => {
@@ -21,13 +22,15 @@ describe('CORS system', () => {
           header: (name: string) => headers.get(name.toLowerCase()) || undefined,
           url: 'http://localhost/api/test'
         },
-        header: (name: string, value: string) => {},
+        header: (_name: string, _value: string) => {},
         res: { headers: new Headers() }
-      } as any;
+      } as unknown as UbeanContext;
 
-      const result = await middleware(mockCtx, async () => new Response('ok'));
+      const result = await middleware(mockCtx, async () => {
+        // new Response('ok');
+      });
       expect(result).toBeInstanceOf(Response);
-      expect(result.status).toBe(204);
+      expect((result as Response).status).toBe(204);
     });
 
     it('sets Access-Control-Allow-Origin header', async () => {
@@ -39,11 +42,13 @@ describe('CORS system', () => {
           header: () => 'https://example.com',
           url: 'http://localhost/api/test'
         },
-        header: (name: string, value: string) => {},
+        header: (_name: string, _value: string) => {},
         res: { headers: new Headers() }
-      } as any;
+      } as unknown as UbeanContext;
 
-      await middleware(mockCtx, async () => new Response('ok'));
+      await middleware(mockCtx, async () => {
+        // new Response('ok');
+      });
       // The middleware should have set the ACAO header
       expect(mockCtx.header).toBeDefined();
     });
@@ -98,18 +103,18 @@ describe('CORS system', () => {
       expect(typeof middleware).toBe('function');
     });
 
-    it('methods option', () => {
+    it('allowMethods option', () => {
       const middleware = createCorsMiddleware({
         origin: '*',
-        methods: ['GET', 'POST', 'PUT', 'DELETE']
+        allowMethods: ['GET', 'POST', 'PUT', 'DELETE']
       });
       expect(typeof middleware).toBe('function');
     });
 
-    it('allowedHeaders option', () => {
+    it('allowHeaders option', () => {
       const middleware = createCorsMiddleware({
         origin: '*',
-        allowedHeaders: ['Content-Type', 'Authorization']
+        allowHeaders: ['Content-Type', 'Authorization']
       });
       expect(typeof middleware).toBe('function');
     });

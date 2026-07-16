@@ -2,14 +2,15 @@
 import { useSeoMeta, useHead } from 'ubean/runtime/vue';
 
 definePage({
-  title: 'SEO Meta Test - ubean'
+  head: {
+    title: 'SEO Meta Test - ubean'
+  }
 });
 
 // Test useSeoMeta with comprehensive SEO metadata
 useSeoMeta({
   title: 'SEO Test Page - Ubean Framework',
   description: 'A comprehensive SEO metadata test page for ubean framework integration testing',
-  keywords: 'ubean, seo, meta, opengraph, twitter, integration test',
   robots: 'index, follow',
   ogTitle: 'SEO Test Page - Ubean Framework',
   ogDescription: 'Testing OpenGraph metadata in ubean',
@@ -21,8 +22,7 @@ useSeoMeta({
   twitterTitle: 'SEO Test - Ubean',
   twitterDescription: 'Testing Twitter Card metadata',
   twitterImage: 'http://localhost:3000/twitter-image.png',
-  author: 'Ubean Test Suite',
-  canonical: 'http://localhost:3000/seo-meta'
+  author: 'Ubean Test Suite'
 });
 
 // Test useHead for additional tags
@@ -35,7 +35,8 @@ useHead({
   meta: [
     { name: 'theme-color', content: '#3b82f6' },
     { name: 'application-name', content: 'Ubean Test' },
-    { name: 'generator', content: 'Ubean Framework' }
+    { name: 'generator', content: 'Ubean Framework' },
+    { name: 'keywords', content: 'ubean, seo, meta, opengraph, twitter, integration test' }
   ]
 });
 </script>

@@ -188,7 +188,7 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
           ai,
           getApp: options.getApp
         });
-        for (const fn of fns) ctx.rpc.register(fn as any);
+        for (const fn of fns) ctx.rpc.register(fn);
 
         // 7. Register the refresh callback so the dev runner can push scan
         //    updates to all connected clients after an app rebuild.

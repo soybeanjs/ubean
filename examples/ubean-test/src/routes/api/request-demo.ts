@@ -33,7 +33,7 @@ export const GET = defineHandler(
 
     // 2. 调用 /api/users(JSON,带 path 参数)
     const user = await api.get('/api/users/{id}', {
-      params: { path: { id: 1 } }
+      params: { path: { id: '1' } }
     });
 
     // 3. 调用 /api/text(responseType: 'text' → 返回 string)

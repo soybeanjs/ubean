@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from 'ubean';
-import type { RouteRule } from 'ubean';
+import type { RouteRule, UbeanContext } from 'ubean';
 import { getJson, api } from './helper';
 
 describe('Route rules system', () => {
   describe('compileRouteRules()', () => {
     it('compiles route rules into pattern array', () => {
       const rules: Record<string, RouteRule> = {
-        '/api/**': { cors: true },
+        '/api/**': { headers: { 'X-CORS': 'true' } },
         '/admin/*': { headers: { 'X-Admin': 'true' } }
       };
       const compiled = compileRouteRules(rules);
@@ -23,8 +23,8 @@ describe('Route rules system', () => {
 
     it('compiles wildcard patterns', () => {
       const compiled = compileRouteRules({
-        '/api/*': { cors: true },
-        '/api/**': { cors: true }
+        '/api/*': { headers: { 'X-CORS': 'true' } },
+        '/api/**': { headers: { 'X-CORS': 'true' } }
       });
       expect(compiled).toHaveLength(2);
     });
@@ -103,7 +103,7 @@ describe('Route rules system', () => {
   describe('createRouteRulesMiddleware()', () => {
     it('creates a middleware handler', () => {
       const middleware = createRouteRulesMiddleware({
-        '/api/**': { cors: true }
+        '/api/**': { headers: { 'X-CORS': 'true' } }
       });
       expect(typeof middleware).toBe('function');
     });
@@ -118,12 +118,12 @@ describe('Route rules system', () => {
         req: { method: 'GET', url: 'http://localhost/api/test', path: '/api/test' },
         header: (_name: string, _value: string) => {},
         res: { headers: new Headers() }
-      } as any;
+      } as unknown as UbeanContext;
 
       let nextCalled = false;
       await middleware(mockCtx, async () => {
         nextCalled = true;
-        return new Response('ok');
+        // return new Response('ok');
       });
       expect(nextCalled).toBe(true);
     });
@@ -139,9 +139,11 @@ describe('Route rules system', () => {
         header: () => {},
         redirect: (url: string, status: number) => new Response(null, { status, headers: { Location: url } }),
         res: { headers: new Headers() }
-      } as any;
+      } as unknown as UbeanContext;
 
-      const result = await middleware(mockCtx, async () => new Response('ok'));
+      const result = await middleware(mockCtx, async () => {
+        // return new Response('ok');
+      });
       // Should return a redirect response
       expect(result).toBeInstanceOf(Response);
       if (result instanceof Response && result.status >= 300 && result.status < 400) {

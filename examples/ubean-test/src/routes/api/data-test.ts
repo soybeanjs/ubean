@@ -99,9 +99,9 @@ export const GET = defineHandler(async c => {
       return c.json({
         beforeExpiry,
         afterExpiry,
-        version1: (r1.data as any)?.version,
-        version2: (r2.data as any)?.version,
-        refreshed: (r2.data as any)?.refreshed === true
+        version1: r1.data?.version,
+        version2: r2.data?.version,
+        refreshed: r2.data?.refreshed === true
       });
     }
 

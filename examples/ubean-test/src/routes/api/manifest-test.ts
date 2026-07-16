@@ -8,7 +8,7 @@ const manifest = defineManifest({
   display: 'standalone',
   background_color: '#ffffff',
   theme_color: '#3b82f6',
-  orientation: 'portrait-primary',
+  orientation: 'portrait',
   icons: [
     {
       src: '/icon-192.png',
@@ -23,7 +23,6 @@ const manifest = defineManifest({
       purpose: 'any maskable'
     }
   ],
-  categories: ['developer', 'tools'],
   lang: 'en',
   dir: 'ltr'
 });

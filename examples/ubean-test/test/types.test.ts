@@ -36,7 +36,7 @@ describe('Type safety', () => {
       const props: TypedLinkProps = {
         to: { name: 'about', hash: '#section' }
       };
-      expect(props.to).toEqual({ name: 'about', hash: '#section' } as any);
+      expect(props.to).toEqual({ name: 'about', hash: '#section' });
     });
 
     it('accepts activeClass prop', () => {

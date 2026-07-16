@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { ResolvedConfig } from '../src/core/config/types';
 import { resolveModules, defineModule } from '../src/core/modules';
+import type { UbeanApp } from '../src/runtime/app';
 
 function createTestConfig(
   modules: any[] = [],
@@ -282,7 +283,7 @@ describe('Module system (P6-37)', () => {
     });
 
     it('gracefully handles invalid module entries', async () => {
-      const config = createTestConfig([null, undefined, 123, 'string-that-wont-resolve'] as any[]);
+      const config = createTestConfig([null, undefined, 123, 'string-that-wont-resolve'] as unknown[]);
       const builtinPlugins = [{ name: 'builtin' }];
 
       const result = await resolveModules({
@@ -595,7 +596,7 @@ describe('Module hooks and kit API (P6-40)', () => {
         builtinPlugins
       });
 
-      await result.hooks.callHook('app:ready', {} as any);
+      await result.hooks.callHook('app:ready', {} as unknown as UbeanApp);
       expect(hookCalled).toBe(true);
     });
 
@@ -636,7 +637,7 @@ describe('Module hooks and kit API (P6-40)', () => {
       });
 
       expect(result.hooks).toBeDefined();
-      await result.hooks.callHook('app:ready', {} as any);
+      await result.hooks.callHook('app:ready', {} as unknown as UbeanApp);
       expect(hookFn).toHaveBeenCalled();
     });
   });

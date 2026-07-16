@@ -1,5 +1,11 @@
 import { createHooks } from 'hookable';
 
+interface GlobalWithDb0 {
+  $db0Create?: (connector: DatabaseConnectorInstance) => unknown;
+}
+
+const _global = globalThis as GlobalWithDb0;
+
 export interface DatabaseHooks {
   'db:connect': (db: Database) => void | Promise<void>;
   'db:disconnect': (db: Database) => void | Promise<void>;
@@ -417,7 +423,7 @@ export function defineDatabase(options: DatabaseOptions = {}): Database {
     return db;
   }
 
-  const createFn = (globalThis as any).$db0Create as
+  const createFn = _global.$db0Create as
     | ((connector: DatabaseConnectorInstance) => { sql: RawSqlFn; exec: RawExecFn; close: RawCloseFn })
     | undefined;
 
@@ -487,7 +493,7 @@ export function getDatabaseHooks() {
 export function registerDb0Create(
   fn: (connector: DatabaseConnectorInstance) => { sql: RawSqlFn; exec: RawExecFn; close: RawCloseFn }
 ): void {
-  (globalThis as any).$db0Create = fn;
+  _global.$db0Create = fn;
 }
 
 export async function migrateDatabase(db: Database, migrations: string[]): Promise<void> {

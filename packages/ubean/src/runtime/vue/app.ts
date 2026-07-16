@@ -14,7 +14,7 @@ import {
 } from 'vue';
 import type { App, Component, ConcreteComponent, PropType } from 'vue';
 import { RouterView, RouterLink, useRoute, useRouter as useVueRouter } from 'vue-router';
-import type { RouteRecordRaw } from 'vue-router';
+import type { RouteLocationRaw, RouteRecordRaw } from 'vue-router';
 import { useHead as useUnheadHead } from '@unhead/vue';
 import type { VueHeadClient, UseHeadInput } from '@unhead/vue';
 import { Head as UnheadHeadComponent } from '@unhead/vue/components';
@@ -43,7 +43,7 @@ export interface UbeanAppInstance {
   app: App;
   router: ReturnType<typeof createUbeanRouter>;
   head: VueHeadClient;
-  page: Record<string, unknown>;
+  page: PageObject;
 }
 
 function createLayoutWrapper(
@@ -148,7 +148,7 @@ export const Link = defineComponent({
         RouterLink,
         {
           ...attrs,
-          to: resolvedTo.value as any,
+          to: resolvedTo.value as RouteLocationRaw,
           replace: props.replace,
           activeClass: props.noActiveClass ? '' : props.activeClass,
           exactActiveClass: props.noActiveClass ? '' : props.exactActiveClass
@@ -208,7 +208,7 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
         ? { enabled: true }
         : options.viewTransitions;
 
-  const page = reactive<PageObject>({ ...initial }) as any;
+  const page = reactive<PageObject>({ ...initial }) as PageObject;
 
   const router = createUbeanRouter({
     routes: options.routes,
@@ -217,7 +217,7 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
 
   const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
 
-  const RootComponent = createRootComponent(LayoutWrapper, page as any, transitionOpts, false);
+  const RootComponent = createRootComponent(LayoutWrapper, page, transitionOpts, false);
 
   const app = options.hydrate ? _createSSRApp(RootComponent) : _createApp(RootComponent);
   app.use(head);
@@ -225,7 +225,7 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
   app.component('Link', Link);
   app.config.globalProperties.$ubean = { page, head, router };
 
-  return { app, router, head, page: page as any };
+  return { app, router, head, page };
 }
 
 export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAppOptions, 'initialPage'>) {
@@ -244,7 +244,7 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
 
   const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
 
-  const RootComponent = createRootComponent(LayoutWrapper, page as any, { enabled: false }, true);
+  const RootComponent = createRootComponent(LayoutWrapper, page, { enabled: false }, true);
 
   const app = _createSSRApp(RootComponent);
   app.use(head);
@@ -257,7 +257,7 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
 
 export function usePage<T = Record<string, unknown>>(): PageObject<T> {
   const route = useRoute();
-  const pageData = inject<PageObject>(PAGE_KEY, null as any);
+  const pageData = inject<PageObject | null>(PAGE_KEY, null);
 
   return reactive({
     url: computed(() => route.fullPath),
@@ -268,7 +268,7 @@ export function usePage<T = Record<string, unknown>>(): PageObject<T> {
     component: computed(() => route.meta.pageName || pageData?.component || ''),
     head: computed(() => pageData?.head || null),
     errors: computed(() => pageData?.errors || null)
-  }) as any;
+  }) as unknown as PageObject<T>;
 }
 
 export interface UbeanRouter {

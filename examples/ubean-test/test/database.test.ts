@@ -129,9 +129,7 @@ describe('Database system', () => {
 
   describe('registerDb0Create() - db0 connector interface', () => {
     it('registers a custom database creator', () => {
-      let called = false;
-      registerDb0Create(connector => {
-        called = true;
+      registerDb0Create(() => {
         return {
           sql: async () => ({ rows: [] }),
           exec: async () => {},
@@ -139,7 +137,7 @@ describe('Database system', () => {
         };
       });
       // The function is registered on globalThis
-      expect((globalThis as any).$db0Create).toBeDefined();
+      expect((globalThis as Record<string, unknown>).$db0Create).toBeDefined();
     });
   });
 

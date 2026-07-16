@@ -11,7 +11,30 @@ interface ViewTransition {
   skipTransition: () => void;
 }
 
-const _global = globalThis as any;
+interface StartViewTransitionOptions {
+  update: () => Promise<void> | void;
+  types?: string[];
+}
+
+interface DocumentWithViewTransition {
+  startViewTransition(callback: (() => Promise<void> | void) | StartViewTransitionOptions): ViewTransition;
+}
+
+interface NavigationEntry {
+  transitionType?: 'traverse' | 'push' | 'replace' | 'reload';
+}
+
+interface NavigationWithEntry {
+  currentEntry?: NavigationEntry;
+  transitionType?: 'traverse' | 'push' | 'replace' | 'reload';
+}
+
+interface GlobalWithViewTransitions {
+  document?: DocumentWithViewTransition;
+  navigation?: NavigationWithEntry;
+}
+
+const _global = globalThis as GlobalWithViewTransitions;
 
 let _typesSupported: boolean | null = null;
 
@@ -23,9 +46,9 @@ function supportsTransitionTypes(): boolean {
   }
   try {
     let calledWithObject = false;
-    const doc = _global.document;
+    const doc = _global.document!;
     const orig = doc.startViewTransition;
-    doc.startViewTransition = function (this: any, opts: any) {
+    doc.startViewTransition = function (opts: StartViewTransitionOptions | (() => Promise<void> | void)) {
       if (opts && typeof opts === 'object' && 'update' in opts) {
         calledWithObject = true;
       }
@@ -62,7 +85,7 @@ export async function withViewTransition<T>(
     return callback();
   }
 
-  const doc = _global.document;
+  const doc = _global.document!;
   const useTypesApi = types && types.length > 0 && supportsTransitionTypes();
 
   let result: T | undefined;
@@ -106,7 +129,7 @@ export function getNavigationType(): 'traverse' | 'push' | 'replace' | 'reload' 
   try {
     const nav = _global.navigation;
     if (nav?.currentEntry && nav?.transitionType) {
-      return nav.transitionType as any;
+      return nav.transitionType;
     }
   } catch {}
   return 'push';

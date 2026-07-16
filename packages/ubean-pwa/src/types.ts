@@ -56,7 +56,7 @@ export type CachingStrategy =
   | 'cache-only';
 
 export interface RuntimeCachingRule {
-  urlPattern: string | RegExp;
+  urlPattern: string | RegExp | ((ctx: { request: Request }) => boolean);
   handler: CachingStrategy;
   method?: string;
   options?: {

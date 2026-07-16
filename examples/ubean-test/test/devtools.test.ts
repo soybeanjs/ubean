@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from 'ubean';
-import { api, getJson } from './helper';
+import { api } from './helper';
 
 describe('DevTools system', () => {
   beforeEach(() => {
@@ -11,20 +11,20 @@ describe('DevTools system', () => {
     it('defines a custom DevTools tab', () => {
       defineDevToolsTab({
         id: 'test-tab',
-        name: 'Test Tab',
+        label: 'Test Tab',
         icon: 'i-lucide-test',
-        view: () => null
+        src: 'about:blank'
       });
       const tabs = getCustomTabs();
       expect(tabs).toHaveLength(1);
       expect(tabs[0].id).toBe('test-tab');
-      expect(tabs[0].name).toBe('Test Tab');
+      expect(tabs[0].label).toBe('Test Tab');
     });
 
     it('supports multiple custom tabs', () => {
-      defineDevToolsTab({ id: 'tab1', name: 'Tab 1', icon: 'icon1', view: () => null });
-      defineDevToolsTab({ id: 'tab2', name: 'Tab 2', icon: 'icon2', view: () => null });
-      defineDevToolsTab({ id: 'tab3', name: 'Tab 3', icon: 'icon3', view: () => null });
+      defineDevToolsTab({ id: 'tab1', label: 'Tab 1', icon: 'icon1', src: 'about:blank' });
+      defineDevToolsTab({ id: 'tab2', label: 'Tab 2', icon: 'icon2', src: 'about:blank' });
+      defineDevToolsTab({ id: 'tab3', label: 'Tab 3', icon: 'icon3', src: 'about:blank' });
       const tabs = getCustomTabs();
       expect(tabs).toHaveLength(3);
     });
@@ -37,8 +37,8 @@ describe('DevTools system', () => {
     });
 
     it('returns all defined tabs', () => {
-      defineDevToolsTab({ id: 'a', name: 'A', icon: 'ia', view: () => null });
-      defineDevToolsTab({ id: 'b', name: 'B', icon: 'ib', view: () => null });
+      defineDevToolsTab({ id: 'a', label: 'A', icon: 'ia', src: 'about:blank' });
+      defineDevToolsTab({ id: 'b', label: 'B', icon: 'ib', src: 'about:blank' });
       const tabs = getCustomTabs();
       expect(tabs).toHaveLength(2);
       expect(tabs.map(t => t.id)).toContain('a');
@@ -48,7 +48,7 @@ describe('DevTools system', () => {
 
   describe('clearCustomTabs()', () => {
     it('clears all custom tabs', () => {
-      defineDevToolsTab({ id: 'x', name: 'X', icon: 'ix', view: () => null });
+      defineDevToolsTab({ id: 'x', label: 'X', icon: 'ix', src: 'about:blank' });
       expect(getCustomTabs()).toHaveLength(1);
       clearCustomTabs();
       expect(getCustomTabs()).toHaveLength(0);

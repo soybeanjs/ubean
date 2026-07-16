@@ -23,7 +23,7 @@ export const GET = defineHandler(async c => {
       action: 'internal-fetch',
       target: path,
       status: result.status,
-      ok: result.ok,
+      ok: result.response.ok,
       data: result.data,
       headers: Object.fromEntries(result.headers.entries())
     });

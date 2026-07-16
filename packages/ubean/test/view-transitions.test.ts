@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+type MockGlobal = { document?: Record<string, unknown>; navigation?: Record<string, unknown> };
+
 describe('View Transitions', () => {
   let supportsViewTransitions: typeof import('../src/runtime/vue/view-transitions').supportsViewTransitions;
   let withViewTransition: typeof import('../src/runtime/vue/view-transitions').withViewTransition;
@@ -7,8 +9,8 @@ describe('View Transitions', () => {
 
   beforeEach(async () => {
     vi.resetModules();
-    delete (globalThis as any).document;
-    delete (globalThis as any).navigation;
+    delete (globalThis as unknown as MockGlobal).document;
+    delete (globalThis as unknown as MockGlobal).navigation;
     const mod = await import('../src/runtime/vue/view-transitions');
     supportsViewTransitions = mod.supportsViewTransitions;
     withViewTransition = mod.withViewTransition;
@@ -21,17 +23,17 @@ describe('View Transitions', () => {
 
   describe('supportsViewTransitions', () => {
     it('returns false when document is undefined (SSR)', () => {
-      delete (globalThis as any).document;
+      delete (globalThis as unknown as MockGlobal).document;
       expect(supportsViewTransitions()).toBe(false);
     });
 
     it('returns false when startViewTransition is not available', () => {
-      (globalThis as any).document = {};
+      (globalThis as unknown as MockGlobal).document = {};
       expect(supportsViewTransitions()).toBe(false);
     });
 
     it('returns true when startViewTransition is available', () => {
-      (globalThis as any).document = {
+      (globalThis as unknown as MockGlobal).document = {
         startViewTransition: vi.fn()
       };
       expect(supportsViewTransitions()).toBe(true);
@@ -40,7 +42,7 @@ describe('View Transitions', () => {
 
   describe('withViewTransition', () => {
     it('runs callback directly when disabled', async () => {
-      delete (globalThis as any).document;
+      delete (globalThis as unknown as MockGlobal).document;
       const callback = vi.fn().mockResolvedValue('result');
       const result = await withViewTransition(callback, { enabled: false });
       expect(callback).toHaveBeenCalledTimes(1);
@@ -48,7 +50,7 @@ describe('View Transitions', () => {
     });
 
     it('runs callback directly when View Transitions not supported', async () => {
-      (globalThis as any).document = {};
+      (globalThis as unknown as MockGlobal).document = {};
       const callback = vi.fn().mockResolvedValue(42);
       const result = await withViewTransition(callback);
       expect(callback).toHaveBeenCalledTimes(1);
@@ -66,7 +68,7 @@ describe('View Transitions', () => {
         cb();
         return mockTransition;
       });
-      (globalThis as any).document = { startViewTransition: startVT };
+      (globalThis as unknown as MockGlobal).document = { startViewTransition: startVT };
 
       const callback = vi.fn().mockResolvedValue('hello');
       const result = await withViewTransition(callback);
@@ -83,7 +85,7 @@ describe('View Transitions', () => {
         updateCallbackDone: Promise.resolve(),
         skipTransition: vi.fn()
       };
-      (globalThis as any).document = {
+      (globalThis as unknown as MockGlobal).document = {
         startViewTransition: (cb: () => Promise<void>) => {
           cb();
           return mockTransition;
@@ -101,7 +103,7 @@ describe('View Transitions', () => {
         updateCallbackDone: Promise.resolve(),
         skipTransition: vi.fn()
       };
-      (globalThis as any).document = {
+      (globalThis as unknown as MockGlobal).document = {
         startViewTransition: (cb: () => Promise<void>) => {
           cb().catch(() => {});
           return mockTransition;
@@ -123,7 +125,7 @@ describe('View Transitions', () => {
         updateCallbackDone: Promise.resolve(),
         skipTransition: vi.fn()
       };
-      (globalThis as any).document = {
+      (globalThis as unknown as MockGlobal).document = {
         startViewTransition: () => mockTransition
       };
 
@@ -137,7 +139,7 @@ describe('View Transitions', () => {
         updateCallbackDone: Promise.resolve(),
         skipTransition: vi.fn()
       };
-      (globalThis as any).document = {
+      (globalThis as unknown as MockGlobal).document = {
         startViewTransition: (cb: () => void) => {
           cb();
           return mockTransition;
@@ -151,26 +153,26 @@ describe('View Transitions', () => {
 
   describe('getNavigationType', () => {
     it('returns push when navigation API is not available', () => {
-      delete (globalThis as any).navigation;
+      delete (globalThis as unknown as MockGlobal).navigation;
       expect(getNavigationType()).toBe('push');
     });
 
     it('returns push when navigation has no currentEntry', () => {
-      (globalThis as any).navigation = { transitionType: 'traverse' };
+      (globalThis as unknown as MockGlobal).navigation = { transitionType: 'traverse' };
       expect(getNavigationType()).toBe('push');
     });
 
     it('returns transitionType when navigation API is available', () => {
-      (globalThis as any).navigation = {
+      (globalThis as unknown as MockGlobal).navigation = {
         currentEntry: {},
         transitionType: 'traverse'
       };
       expect(getNavigationType()).toBe('traverse');
 
-      (globalThis as any).navigation.transitionType = 'replace';
+      (globalThis as unknown as MockGlobal).navigation!.transitionType = 'replace';
       expect(getNavigationType()).toBe('replace');
 
-      (globalThis as any).navigation.transitionType = 'reload';
+      (globalThis as unknown as MockGlobal).navigation!.transitionType = 'reload';
       expect(getNavigationType()).toBe('reload');
     });
 

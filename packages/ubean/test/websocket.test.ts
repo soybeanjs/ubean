@@ -8,6 +8,13 @@ import {
   getWebSocketDefinitions,
   clearWebSocketState
 } from '../src/runtime/websocket';
+import type { Peer } from '../src/runtime/websocket';
+
+type MockPeer = Peer & {
+  _subscriptions: Set<string>;
+  _rooms: Set<string>;
+  sent: (string | ArrayBuffer | Uint8Array)[];
+};
 
 describe('WebSocket definitions', () => {
   beforeEach(() => {
@@ -54,7 +61,7 @@ describe('rooms', () => {
       setData: vi.fn(),
       sent
     };
-    return peer as any;
+    return peer as unknown as MockPeer;
   }
 
   it('creates a room', () => {

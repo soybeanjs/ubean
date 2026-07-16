@@ -16,6 +16,7 @@
  * ```
  */
 
+import type { FetchResponse, IFetchError } from 'ofetch';
 import type { ApiClient, FlatResponse, ClientError } from './client';
 import { callInternal, createRequestSender } from './internal-fetch';
 import { createInternalFetch } from './pages/data';
@@ -384,7 +385,7 @@ async function fetchRawResponse(
   url: string,
   clientOpts: Record<string, any>
 ): Promise<Response> {
-  const baseURL = (client as any).defaults?.baseURL || '';
+  const baseURL = client.defaults?.baseURL || '';
   let fullUrl = url.startsWith('http') ? url : `${baseURL}${url.startsWith('/') ? '' : '/'}${url}`;
 
   const headers = new Headers(clientOpts.headers as Record<string, string> | undefined);
@@ -555,10 +556,13 @@ export function createTypedClient<Paths extends Record<string, any>, Prefix exte
 ): TypedClient<PathsRemovedPrefix<Paths, Prefix>> {
   const methods: HttpMethod[] = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
 
-  const typedClient = {} as TypedClient<PathsRemovedPrefix<Paths, Prefix>>;
+  const typedClient: Record<HttpMethod, (url: string, options?: unknown) => Promise<unknown>> = {} as Record<
+    HttpMethod,
+    (url: string, options?: unknown) => Promise<unknown>
+  >;
 
   for (const method of methods) {
-    (typedClient as any)[method] = async (url: string, options?: any) => {
+    typedClient[method] = async (url: string, options?: unknown) => {
       const { responseType, getFileName, rest } = extractResponseType(options);
       const { params, body } = rest;
       const resolvedUrl = replacePathParams(`${prefix}${url}`, params?.path);
@@ -598,7 +602,7 @@ export function createTypedClient<Paths extends Record<string, any>, Prefix exte
     };
   }
 
-  return typedClient;
+  return typedClient as unknown as TypedClient<PathsRemovedPrefix<Paths, Prefix>>;
 }
 
 // ============================================================================
@@ -650,10 +654,13 @@ export function createTypedFlatClient<Paths extends Record<string, any>, Prefix 
 ): TypedFlatClient<PathsRemovedPrefix<Paths, Prefix>> {
   const methods: HttpMethod[] = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
 
-  const typedClient = {} as TypedFlatClient<PathsRemovedPrefix<Paths, Prefix>>;
+  const typedClient: Record<HttpMethod, (url: string, options?: unknown) => Promise<unknown>> = {} as Record<
+    HttpMethod,
+    (url: string, options?: unknown) => Promise<unknown>
+  >;
 
   for (const method of methods) {
-    (typedClient as any)[method] = async (url: string, options?: any) => {
+    typedClient[method] = async (url: string, options?: unknown) => {
       const { responseType, getFileName, rest } = extractResponseType(options);
       const { params, body } = rest;
       const resolvedUrl = replacePathParams(`${prefix}${url}`, params?.path);
@@ -677,7 +684,8 @@ export function createTypedFlatClient<Paths extends Record<string, any>, Prefix 
           return { data: parsed, error: null, status: response.status };
         } catch (err) {
           // 网络错误或解析失败
-          const status = (err as any)?.status || 0;
+          const fetchErr = err as IFetchError;
+          const status = fetchErr?.status || 0;
           const wrappedError = Object.assign(new Error((err as Error)?.message || 'Request failed'), {
             status,
             data: null
@@ -707,33 +715,33 @@ export function createTypedFlatClient<Paths extends Record<string, any>, Prefix 
         case 'head':
           // head 没有 flat 版本,用 raw + 手动包装
           {
-            const rawRes = await client.raw('HEAD', resolvedUrl, clientOpts);
+            const rawRes: FetchResponse<unknown> = await client.raw('HEAD', resolvedUrl, clientOpts);
             result = {
-              data: (rawRes as any)._data ?? null,
+              data: rawRes._data ?? null,
               error: null,
-              status: (rawRes as any).status ?? 200
+              status: rawRes.status ?? 200
             };
           }
           break;
         case 'options':
           // options 没有 flat 版本,用 raw + 手动包装
           {
-            const rawRes = await client.raw('OPTIONS', resolvedUrl, clientOpts);
+            const rawRes: FetchResponse<unknown> = await client.raw('OPTIONS', resolvedUrl, clientOpts);
             result = {
-              data: (rawRes as any)._data ?? null,
+              data: rawRes._data ?? null,
               error: null,
-              status: (rawRes as any).status ?? 200
+              status: rawRes.status ?? 200
             };
           }
           break;
         default:
           throw new Error(`[typed-client] Unsupported method: ${method}`);
       }
-      return result as any;
+      return result;
     };
   }
 
-  return typedClient;
+  return typedClient as unknown as TypedFlatClient<PathsRemovedPrefix<Paths, Prefix>>;
 }
 
 // ============================================================================
@@ -758,11 +766,16 @@ export function createTypedFlatClient<Paths extends Record<string, any>, Prefix 
  * ```
  */
 export function callTypedInternal<Paths extends Record<string, any>>(): TypedInternalCaller<Paths> {
-  return (async (url: string, method: string, options?: any) => {
-    const { params, body, ...rest } = options || {};
+  const fn = async (url: string, method: string, options?: unknown) => {
+    const { params, body, ...rest } = (options || {}) as {
+      params?: { path?: Record<string, unknown>; query?: Record<string, unknown>; header?: Record<string, unknown> };
+      body?: unknown;
+      headers?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
     const resolvedUrl = replacePathParams(url, params?.path);
 
-    const callOpts: Record<string, any> = {
+    const callOpts: Record<string, unknown> = {
       method: method.toUpperCase(),
       ...rest
     };
@@ -775,7 +788,8 @@ export function callTypedInternal<Paths extends Record<string, any>>(): TypedInt
       data: result.data,
       status: result.status
     };
-  }) as any;
+  };
+  return fn as unknown as TypedInternalCaller<Paths>;
 }
 
 // ============================================================================
@@ -804,14 +818,21 @@ export function callTypedInternal<Paths extends Record<string, any>>(): TypedInt
  * });
  * ```
  */
-export function createTypedRequestSender<Paths extends Record<string, any>>(context: any): TypedRequestSender<Paths> {
+export function createTypedRequestSender<Paths extends Record<string, any>>(
+  context: Parameters<typeof createRequestSender>[0]
+): TypedRequestSender<Paths> {
   const sender = createRequestSender(context);
 
-  return (async (url: string, method: string, options?: any) => {
-    const { params, body, ...rest } = options || {};
+  const fn = async (url: string, method: string, options?: unknown) => {
+    const { params, body, ...rest } = (options || {}) as {
+      params?: { path?: Record<string, unknown>; query?: Record<string, unknown>; header?: Record<string, unknown> };
+      body?: unknown;
+      headers?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
     const resolvedUrl = replacePathParams(url, params?.path);
 
-    const callOpts: Record<string, any> = {
+    const callOpts: Record<string, unknown> = {
       method: method.toUpperCase(),
       ...rest
     };
@@ -824,7 +845,8 @@ export function createTypedRequestSender<Paths extends Record<string, any>>(cont
       data: result.data,
       status: result.status
     };
-  }) as any;
+  };
+  return fn as unknown as TypedRequestSender<Paths>;
 }
 
 // ============================================================================
@@ -886,10 +908,13 @@ export function createTypedInternalFetch<Paths extends Record<string, any>>(
   const fetchFn = createInternalFetch(context, resolvedOptions);
   const methods: HttpMethod[] = ['get', 'post', 'put', 'delete', 'patch', 'options', 'head'];
 
-  const typedClient = {} as TypedClient<Paths>;
+  const typedClient: Record<HttpMethod, (url: string, options?: unknown) => Promise<unknown>> = {} as Record<
+    HttpMethod,
+    (url: string, options?: unknown) => Promise<unknown>
+  >;
 
   for (const method of methods) {
-    (typedClient as any)[method] = async (url: string, opts?: any) => {
+    typedClient[method] = async (url: string, opts?: unknown) => {
       const { responseType, getFileName, rest } = extractResponseType(opts);
       const { params, body } = rest;
       let resolvedUrl = replacePathParams(url, params?.path);
@@ -906,10 +931,11 @@ export function createTypedInternalFetch<Paths extends Record<string, any>>(
 
       const init: RequestInit = { ...rest };
       // 从 init 中剥离不属于 fetch 的字段
-      delete (init as any).params;
-      delete (init as any).body;
-      delete (init as any).responseType;
-      delete (init as any).getFileName;
+      const cleanInit = init as Record<string, unknown>;
+      delete cleanInit.params;
+      delete cleanInit.body;
+      delete cleanInit.responseType;
+      delete cleanInit.getFileName;
       init.method = method.toUpperCase();
 
       const headers = new Headers((init.headers as Record<string, string> | undefined) ?? undefined);
@@ -947,7 +973,7 @@ export function createTypedInternalFetch<Paths extends Record<string, any>>(
     };
   }
 
-  return typedClient;
+  return typedClient as unknown as TypedClient<Paths>;
 }
 
 // 导出运行时辅助函数以便测试

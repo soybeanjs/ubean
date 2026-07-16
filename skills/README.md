@@ -1,6 +1,6 @@
-# uBean Skills
+# ubean Skills
 
-AI Agent skills for the uBean full-stack framework.
+AI Agent skills for the ubean full-stack framework.
 
 ## Structure
 
@@ -29,7 +29,7 @@ skills/
 
 This skills directory is designed for AI coding assistants (Claude, etc.) to:
 
-1. Understand uBean framework conventions
+1. Understand ubean framework conventions
 2. Provide accurate code examples
 3. Reference CLI commands and API
 4. Guide through common workflows
@@ -59,7 +59,7 @@ The main skill entry point uses the Claude Skills format with YAML frontmatter:
 ```yaml
 ---
 name: ubean
-display_name: uBean Framework
+display_name: ubean Framework
 description: Full-stack web framework powered by Vite, Hono, and Vue
 version: 0.0.1
 category: Web Framework

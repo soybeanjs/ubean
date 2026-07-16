@@ -1,12 +1,12 @@
 ---
 name: ubean
-display_name: uBean Framework
+display_name: ubean Framework
 description: Full-stack Vue meta-framework built on Vite, Hono and Vue. File-based routing, SSR, islands architecture, i18n, DevTools, OpenAPI and multi-platform presets.
 version: 0.0.1
 author: SoybeanJS
 license: MIT
 category: Web Framework
-repository: https://github.com/SoybeanJS/ubean
+repository: https://github.com/soybeanjs/ubean
 homepage: https://ubean.soybeanjs.cn
 keywords:
   - vue
@@ -22,22 +22,22 @@ keywords:
   - openapi
 ---
 
-# uBean Skill
+# ubean Skill
 
-> uBean is a full-stack Vue meta-framework combining Vite, Hono and Vue. The public package name is **`ubean`** (no `@ubean/core`); all framework APIs are imported from `ubean` directly or from subpath exports such as `ubean/runtime/vue`.
+> ubean is a full-stack Vue meta-framework combining Vite, Hono and Vue. The public package name is **`ubean`** (no `@ubean/core`); all framework APIs are imported from `ubean` directly or from subpath exports such as `ubean/runtime/vue`.
 
 ## When to Use This Skill
 
-Use this skill when working with uBean framework projects, including:
+Use this skill when working with ubean framework projects, including:
 
-- Creating new uBean projects with `ubean init`
+- Creating new ubean projects with `ubean init`
 - Developing pages with file-based routing (`pages/**/*.vue`, `definePage` macro)
 - Building API routes with Hono (`routes/**`, `defineHandler`, named exports `GET`/`POST`/...)
 - Using hono-openapi `validator` / `describeRoute` / `resolver` for typed requests and OpenAPI
 - Configuring internationalization (i18n) with `defineLocale` / `useI18n`
 - Using islands architecture (`client:load|idle|visible|media|only`)
 - Configuring modules and platform presets (`standard` / `node` / `cloudflare`)
-- Debugging with uBean DevTools
+- Debugging with ubean DevTools
 - Using the built-in icon / image / content / fonts / pwa / auth extension packages
 
 ## Quick Start

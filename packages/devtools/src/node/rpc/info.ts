@@ -7,8 +7,8 @@
  */
 import { defineRpcFunction } from '@vitejs/devtools-kit';
 import type { SharedState } from 'devframe/utils/shared-state';
-import type { DevToolsInfo } from '../../types';
 import { maskSensitiveEnv } from '../../shared/env';
+import type { DevToolsInfo } from '../../types';
 
 export function createInfoRpcFunctions(opts: {
   state: SharedState<DevToolsInfo>;

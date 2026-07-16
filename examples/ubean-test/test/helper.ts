@@ -23,10 +23,7 @@ export interface ApiResult {
 /**
  * Make an HTTP request to the dev server.
  */
-export async function api(
-  path: string,
-  init: RequestInit = {}
-): Promise<ApiResult> {
+export async function api(path: string, init: RequestInit = {}): Promise<ApiResult> {
   const url = path.startsWith('http') ? path : `${getBaseUrl()}${path}`;
   const res = await fetch(url, {
     ...init,
@@ -69,7 +66,11 @@ export async function postJson(path: string, body?: unknown, headers?: Record<st
 /**
  * Make a POST request with form data.
  */
-export async function postForm(path: string, formData: Record<string, string>, headers?: Record<string, string>): Promise<ApiResult> {
+export async function postForm(
+  path: string,
+  formData: Record<string, string>,
+  headers?: Record<string, string>
+): Promise<ApiResult> {
   const body = new URLSearchParams(formData).toString();
   return api(path, {
     method: 'POST',

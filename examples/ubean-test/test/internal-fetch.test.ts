@@ -1,11 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  createInternalFetch,
-  setInternalFetcher,
-  callInternal,
-  getInternalFetcher,
-  clearInternalFetcher
-} from 'ubean';
+import { createInternalFetch, setInternalFetcher, callInternal, getInternalFetcher, clearInternalFetcher } from 'ubean';
 import { getJson } from './helper';
 
 describe('Internal fetch system', () => {
@@ -16,17 +10,14 @@ describe('Internal fetch system', () => {
     });
 
     it('createInternalFetch with base URL', () => {
-      const fetcher = createInternalFetch(
-        { req: { header: () => undefined } },
-        { baseURL: 'http://localhost:3000' }
-      );
+      const fetcher = createInternalFetch({ req: { header: () => undefined } }, { baseURL: 'http://localhost:3000' });
       expect(typeof fetcher).toBe('function');
     });
   });
 
   describe('setInternalFetcher() / getInternalFetcher()', () => {
     it('setInternalFetcher sets a custom fetcher', () => {
-      setInternalFetcher((req: Request) => {
+      setInternalFetcher((_req: Request) => {
         return Promise.resolve(new Response('ok'));
       });
       expect(getInternalFetcher()).toBeDefined();
@@ -34,7 +25,7 @@ describe('Internal fetch system', () => {
     });
 
     it('clearInternalFetcher removes the fetcher', () => {
-      setInternalFetcher((req: Request) => Promise.resolve(new Response('ok')));
+      setInternalFetcher((_req: Request) => Promise.resolve(new Response('ok')));
       clearInternalFetcher();
       expect(getInternalFetcher()).toBeNull();
     });
@@ -42,11 +33,13 @@ describe('Internal fetch system', () => {
 
   describe('callInternal()', () => {
     it('calls the internal fetcher and returns result', async () => {
-      setInternalFetcher((req: Request) => {
-        return Promise.resolve(new Response(JSON.stringify({ ok: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' }
-        }));
+      setInternalFetcher((_req: Request) => {
+        return Promise.resolve(
+          new Response(JSON.stringify({ ok: true }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        );
       });
 
       const result = await callInternal('/api/test-internal');
@@ -63,10 +56,12 @@ describe('Internal fetch system', () => {
     it('supports POST method', async () => {
       setInternalFetcher((req: Request) => {
         expect(req.method).toBe('POST');
-        return Promise.resolve(new Response(JSON.stringify({ created: true }), {
-          status: 201,
-          headers: { 'Content-Type': 'application/json' }
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify({ created: true }), {
+            status: 201,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        );
       });
 
       const result = await callInternal('/api/create', { method: 'POST', body: { name: 'test' } });
@@ -78,9 +73,11 @@ describe('Internal fetch system', () => {
       setInternalFetcher((req: Request) => {
         const url = new URL(req.url);
         expect(url.searchParams.get('q')).toBe('test');
-        return Promise.resolve(new Response(JSON.stringify({ results: [] }), {
-          headers: { 'Content-Type': 'application/json' }
-        }));
+        return Promise.resolve(
+          new Response(JSON.stringify({ results: [] }), {
+            headers: { 'Content-Type': 'application/json' }
+          })
+        );
       });
 
       const result = await callInternal('/api/search', { query: { q: 'test' } });

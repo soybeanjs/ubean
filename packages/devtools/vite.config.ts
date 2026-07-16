@@ -16,7 +16,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
  * the correct behaviour for third-party peer/dev deps anyway.
  */
 const RE_DTS = /\.d\.[cm]?ts$/;
-const EXTERNAL_DTS_RE = /^(?:@vitejs\/devtools-kit|@vitejs\/devtools|vite|@devframes\/hub|devframe|esbuild|@voidzero-dev\/vite-plus-core)(?:\/|$)/;
+const EXTERNAL_DTS_RE =
+  /^(?:@vitejs\/devtools-kit|@vitejs\/devtools|vite|@devframes\/hub|devframe|esbuild|@voidzero-dev\/vite-plus-core)(?:\/|$)/;
 function externalDtsDevtoolsPlugin() {
   return {
     name: 'ubean:external-dts-devtools',

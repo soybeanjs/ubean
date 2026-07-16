@@ -1,6 +1,6 @@
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { defineConfig, loadUbeanConfig, getConfig } from 'ubean';
-import { resolve } from 'node:path';
 
 describe('Config system - defineConfig / loadUbeanConfig', () => {
   describe('defineConfig()', () => {

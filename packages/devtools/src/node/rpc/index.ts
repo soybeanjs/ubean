@@ -6,12 +6,12 @@
  * `ctx.rpc.register(fn)` during `devtools.setup`.
  */
 import type { SharedState } from 'devframe/utils/shared-state';
-import type { DevToolsInfo } from '../../types';
-import type { DevToolsCrudServer } from '../../server/crud';
 import type { DevToolsAiServer } from '../../server/ai';
-import { createInfoRpcFunctions } from './info';
-import { createCrudRpcFunctions } from './crud';
+import type { DevToolsCrudServer } from '../../server/crud';
+import type { DevToolsInfo } from '../../types';
 import { createAiRpcFunctions } from './ai';
+import { createCrudRpcFunctions } from './crud';
+import { createInfoRpcFunctions } from './info';
 import { createPlaygroundRpcFunctions } from './playground';
 
 export interface RpcDeps {

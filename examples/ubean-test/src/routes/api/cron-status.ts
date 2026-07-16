@@ -22,10 +22,7 @@ export const POST = defineHandler(async c => {
   // Ensure the task exists
   const existing = getScheduledTasks().find(t => t.name === taskName);
   if (!existing) {
-    defineScheduled(
-      { name: taskName, schedule: '* * * * *', runOnStart: false, timeout: 5000 },
-      async () => {}
-    );
+    defineScheduled({ name: taskName, schedule: '* * * * *', runOnStart: false, timeout: 5000 }, async () => {});
   }
 
   try {

@@ -90,7 +90,8 @@ export const GET = defineHandler(async c => {
       cacheVal1,
       cacheVal2,
       allKeys,
-      hasKeysFromBothDrivers: allKeys.includes('main-key') && cacheVal1 === 'from-cache-driver' && cacheVal2 === 'also-from-cache'
+      hasKeysFromBothDrivers:
+        allKeys.includes('main-key') && cacheVal1 === 'from-cache-driver' && cacheVal2 === 'also-from-cache'
     });
   }
 

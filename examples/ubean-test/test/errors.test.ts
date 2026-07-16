@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createError, UbeanError, isUbeanError, errorToResponse } from 'ubean';
-import { api, getJson } from './helper';
+import { getJson } from './helper';
 
 describe('Error handling - createError / UbeanError', () => {
   describe('createError()', () => {

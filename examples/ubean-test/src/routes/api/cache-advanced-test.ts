@@ -1,11 +1,11 @@
-import { defineHandler, createMemoryStore, useCacheStore, clearCacheStore, createCacheMiddleware } from 'ubean';
+import { defineHandler, createMemoryStore, clearCacheStore, createCacheMiddleware } from 'ubean';
 
 export const GET = defineHandler(async c => {
   const action = c.req.query('action') || 'memory';
 
   if (action === 'memory') {
     clearCacheStore();
-    const store = createMemoryStore({ maxEntries: 3 });
+    const store = createMemoryStore(3);
 
     await store.set('key1', 'value1', 60);
     await store.set('key2', 'value2', 60);
@@ -99,7 +99,7 @@ export const GET = defineHandler(async c => {
 
     const handler = async () => {
       callCount++;
-      return { cached: callCount === 1 ? false : true, count: callCount };
+      return { cached: callCount !== 1, count: callCount };
     };
 
     await middleware(mockContext as any, handler);

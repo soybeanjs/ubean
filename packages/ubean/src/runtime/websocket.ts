@@ -243,7 +243,7 @@ export function handleUpgrade(
   }
 
   return {
-    response: new Response(null, { status: 200, headers: { 'Upgrade': 'websocket', 'Connection': 'Upgrade' } }),
+    response: new Response(null, { status: 200, headers: { Upgrade: 'websocket', Connection: 'Upgrade' } }),
     peer
   };
 }

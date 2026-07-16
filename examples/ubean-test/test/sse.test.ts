@@ -90,9 +90,13 @@ describe('SSE (Server-Sent Events) system', () => {
         req: { url: 'http://localhost/sse' }
       } as any;
 
-      const response = createSSEStream(mockContext, {
-        onConnect: () => {}
-      }, { retry: 2000 });
+      const response = createSSEStream(
+        mockContext,
+        {
+          onConnect: () => {}
+        },
+        { retry: 2000 }
+      );
 
       expect(response).toBeInstanceOf(Response);
       expect(response.headers.get('Content-Type')).toBe('text/event-stream');

@@ -7,13 +7,7 @@
  */
 import { defineRpcFunction } from '@vitejs/devtools-kit';
 import type { DevToolsCrudServer } from '../../server/crud';
-import type {
-  CreateCrudParams,
-  ReadCrudParams,
-  UpdateCrudParams,
-  DeleteCrudParams,
-  CrudResult
-} from '../../types';
+import type { CreateCrudParams, ReadCrudParams, UpdateCrudParams, DeleteCrudParams, CrudResult } from '../../types';
 
 export function createCrudRpcFunctions(crud: DevToolsCrudServer) {
   const crudCreate = defineRpcFunction({

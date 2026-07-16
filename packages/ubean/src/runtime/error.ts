@@ -41,7 +41,10 @@ function statusCodeToMessage(code: number): string {
 }
 
 export function isUbeanError(err: unknown): err is UbeanError {
-  return err instanceof UbeanError || (err instanceof Error && err.name === 'UbeanError' && typeof (err as any).statusCode === 'number');
+  return (
+    err instanceof UbeanError ||
+    (err instanceof Error && err.name === 'UbeanError' && typeof (err as any).statusCode === 'number')
+  );
 }
 
 export function errorToResponse(c: unknown, err?: unknown): Response {

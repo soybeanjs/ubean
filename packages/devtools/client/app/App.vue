@@ -174,9 +174,7 @@ onUnmounted(() => {
               >
                 <SIcon :icon="opt.icon" :size="14" />
                 <span>{{ opt.label }}</span>
-                <span
-                  class="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono"
-                >
+                <span class="ml-auto text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded font-mono">
                   {{ opt.shortcut }}
                 </span>
               </button>
@@ -198,13 +196,7 @@ onUnmounted(() => {
         </div>
 
         <!-- AI -->
-        <AiAssistant
-          v-else-if="route === 'ai'"
-          class="h-full"
-          :info="info"
-          :send-chat="aiChat"
-          :on-refresh="refresh"
-        />
+        <AiAssistant v-else-if="route === 'ai'" class="h-full" :info="info" :send-chat="aiChat" :on-refresh="refresh" />
 
         <!-- API (Routes + Playground, grouped) -->
         <div v-else-if="route === 'api'" class="h-full flex flex-col">

@@ -1,6 +1,6 @@
+import { getDevToolsRpcClient } from '@vitejs/devtools-kit/client';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { toast } from '@soybeanjs/ui';
-import { getDevToolsRpcClient } from '@vitejs/devtools-kit/client';
 import type { DevframeRpcClient } from 'devframe';
 
 // --- Local type definitions (client self-contained; mirrors server types) ---
@@ -127,7 +127,11 @@ let clientPromise: Promise<DevframeRpcClient> | null = null;
 function getClient(): Promise<DevframeRpcClient> {
   if (!clientPromise) {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('DTK connection timeout — open this page via the Vite DevTools dock shell, not directly.')), 5000)
+      setTimeout(
+        () =>
+          reject(new Error('DTK connection timeout — open this page via the Vite DevTools dock shell, not directly.')),
+        5000
+      )
     );
     clientPromise = Promise.race([getDevToolsRpcClient(), timeout]);
   }

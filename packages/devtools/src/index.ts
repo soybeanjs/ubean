@@ -1,5 +1,12 @@
 // Vite DevTools Kit (DTK) integration — Vite plugin entry point + state helpers.
-export { ubeanDevtoolsPlugin, defineRpcFunction, buildDevToolsInfo, emptyDevToolsInfo, UBEAN_INFO_STATE_KEY, maskSensitiveEnv } from './node';
+export {
+  ubeanDevtoolsPlugin,
+  defineRpcFunction,
+  buildDevToolsInfo,
+  emptyDevToolsInfo,
+  UBEAN_INFO_STATE_KEY,
+  maskSensitiveEnv
+} from './node';
 export type { UbeanDevtoolsPluginOptions, ViteDevToolsNodeContext, ScanResultLike, DevToolsConfigMeta } from './node';
 
 // RPC function aggregator (for testing / custom setups).

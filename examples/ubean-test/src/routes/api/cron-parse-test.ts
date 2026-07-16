@@ -12,13 +12,7 @@ export const GET = defineHandler(async c => {
   const action = c.req.query('action') || 'parse';
 
   if (action === 'parse') {
-    const tests = [
-      '* * * * *',
-      '0 9 * * 1-5',
-      '*/15 * * * *',
-      '0 0 1 * *',
-      '0 0 * * 0'
-    ];
+    const tests = ['* * * * *', '0 9 * * 1-5', '*/15 * * * *', '0 0 1 * *', '0 0 * * 0'];
     const results = tests.map(expr => {
       try {
         const parsed = parseCron(expr);

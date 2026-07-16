@@ -39,9 +39,7 @@ function makeScanResult(): ScanResultLike {
       { name: 'default', path: 'layouts/default.vue', relativePath: 'layouts/default.vue', isDefault: true },
       { name: 'admin', path: 'layouts/admin.vue', relativePath: 'layouts/admin.vue', isDefault: false }
     ],
-    crons: [
-      { name: 'cleanup', relativePath: 'crons/01.cleanup.ts' }
-    ]
+    crons: [{ name: 'cleanup', relativePath: 'crons/01.cleanup.ts' }]
   };
 }
 
@@ -317,7 +315,9 @@ describe('createDevToolsHooks', () => {
   it('removeHook removes a specific handler', async () => {
     const hooks = createDevToolsHooks();
     let called = false;
-    const handler = () => { called = true; };
+    const handler = () => {
+      called = true;
+    };
 
     hooks.registerHook('beforeCreate', handler);
     hooks.removeHook('beforeCreate', handler);
@@ -330,8 +330,12 @@ describe('createDevToolsHooks', () => {
     let a = false;
     let b = false;
 
-    hooks.registerHook('beforeCreate', () => { a = true; });
-    hooks.registerHook('beforeUpdate', () => { b = true; });
+    hooks.registerHook('beforeCreate', () => {
+      a = true;
+    });
+    hooks.registerHook('beforeUpdate', () => {
+      b = true;
+    });
     hooks.removeAllHooks();
     await hooks.runHook('beforeCreate', { type: 'page', path: '/t' });
     await hooks.runHook('beforeUpdate', { type: 'env', key: 'X' });

@@ -7,8 +7,8 @@
  */
 import type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
 import type { SharedState } from 'devframe/utils/shared-state';
-import type { DevToolsInfo, DevToolsCustomTab } from '../types';
 import { maskSensitiveEnv } from '../shared/env';
+import type { DevToolsInfo, DevToolsCustomTab } from '../types';
 
 /** SharedState key for the ubean devtools info snapshot. */
 export const UBEAN_INFO_STATE_KEY = 'ubean:info';
@@ -164,10 +164,7 @@ export async function initSharedState(
  * Push a fresh `DevToolsInfo` into the shared state, triggering
  * patch-sync to all connected clients.
  */
-export function refreshSharedState(
-  state: SharedState<DevToolsInfo>,
-  info: DevToolsInfo
-): void {
+export function refreshSharedState(state: SharedState<DevToolsInfo>, info: DevToolsInfo): void {
   state.mutate(draft => {
     Object.assign(draft, info);
   });

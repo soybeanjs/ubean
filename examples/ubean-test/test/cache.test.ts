@@ -1,5 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createMemoryStore, useCacheStore, clearCacheStore, createCacheMiddleware, cachedEventHandler, invalidateRouteCache, resolveRouteCacheRules } from 'ubean';
+import {
+  createMemoryStore,
+  useCacheStore,
+  clearCacheStore,
+  createCacheMiddleware,
+  cachedEventHandler,
+  invalidateRouteCache,
+  resolveRouteCacheRules
+} from 'ubean';
 import { getJson } from './helper';
 
 describe('Cache system', () => {
@@ -15,12 +23,16 @@ describe('Cache system', () => {
 
     it('set/get stores and retrieves cache entries', async () => {
       const store = createMemoryStore(100);
-      await store.set('key1', {
-        body: new ArrayBuffer(0),
-        headers: { 'Content-Type': 'application/json' },
-        status: 200,
-        statusText: 'OK'
-      }, 60);
+      await store.set(
+        'key1',
+        {
+          body: new ArrayBuffer(0),
+          headers: { 'Content-Type': 'application/json' },
+          status: 200,
+          statusText: 'OK'
+        },
+        60
+      );
       const entry = await store.get('key1');
       expect(entry).toBeDefined();
       expect(entry?.status).toBe(200);
@@ -35,12 +47,16 @@ describe('Cache system', () => {
 
     it('delete removes a key', async () => {
       const store = createMemoryStore(100);
-      await store.set('todelete', {
-        body: new ArrayBuffer(0),
-        headers: {},
-        status: 200,
-        statusText: 'OK'
-      }, 60);
+      await store.set(
+        'todelete',
+        {
+          body: new ArrayBuffer(0),
+          headers: {},
+          status: 200,
+          statusText: 'OK'
+        },
+        60
+      );
       const deleted = await store.delete('todelete');
       expect(deleted).toBe(true);
       const entry = await store.get('todelete');
@@ -81,12 +97,16 @@ describe('Cache system', () => {
   describe('TTL expiration', () => {
     it('expires entries after TTL', async () => {
       const store = createMemoryStore(100);
-      await store.set('temp', {
-        body: new ArrayBuffer(0),
-        headers: {},
-        status: 200,
-        statusText: 'OK'
-      }, 1);
+      await store.set(
+        'temp',
+        {
+          body: new ArrayBuffer(0),
+          headers: {},
+          status: 200,
+          statusText: 'OK'
+        },
+        1
+      );
       expect(await store.get('temp')).toBeDefined();
       await new Promise(r => setTimeout(r, 1100));
       expect(await store.get('temp')).toBeUndefined();
@@ -94,12 +114,16 @@ describe('Cache system', () => {
 
     it('keeps entries with long TTL', async () => {
       const store = createMemoryStore(100);
-      await store.set('persistent', {
-        body: new ArrayBuffer(0),
-        headers: {},
-        status: 200,
-        statusText: 'OK'
-      }, 3600);
+      await store.set(
+        'persistent',
+        {
+          body: new ArrayBuffer(0),
+          headers: {},
+          status: 200,
+          statusText: 'OK'
+        },
+        3600
+      );
       await new Promise(r => setTimeout(r, 100));
       expect(await store.get('persistent')).toBeDefined();
     });

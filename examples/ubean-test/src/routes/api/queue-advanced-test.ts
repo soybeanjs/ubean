@@ -54,7 +54,7 @@ function setupDLQ() {
       retryDelay: 10,
       deadLetterQueue: 'dlq-sink'
     },
-    async msg => {
+    async () => {
       throw new Error('Always fails');
     }
   );
@@ -124,7 +124,7 @@ export const GET = defineHandler(async c => {
   if (action === 'retry') {
     setupRetryQueue();
     await startQueueWorkers();
-    const sendTime = Date.now();
+    const _sendTime = Date.now();
     const id = await sendMessage('retry-test-queue', 'retry-msg');
     // Wait for retries to complete
     await new Promise(r => setTimeout(r, 500));
@@ -186,7 +186,7 @@ export const GET = defineHandler(async c => {
   if (action === 'delay') {
     setupDelayQueue();
     await startQueueWorkers();
-    const sendTime = Date.now();
+    const _sendTime = Date.now();
     await sendMessage('delay-test', 'delayed-msg', { delay: 200 });
     // Check it's not processed immediately
     await new Promise(r => setTimeout(r, 100));
@@ -207,12 +207,9 @@ export const GET = defineHandler(async c => {
   if (action === 'batch') {
     clearQueueDefinitions();
     processed.length = 0;
-    defineQueue(
-      { name: 'batch-test', concurrency: 3, retries: 0 },
-      async msg => {
-        processed.push({ id: msg.id, body: msg.body, attempts: msg.attempts });
-      }
-    );
+    defineQueue({ name: 'batch-test', concurrency: 3, retries: 0 }, async msg => {
+      processed.push({ id: msg.id, body: msg.body, attempts: msg.attempts });
+    });
     setQueueDriver(createMemoryQueueDriver());
     await startQueueWorkers();
 
@@ -234,8 +231,8 @@ export const GET = defineHandler(async c => {
   if (action === 'memory-driver') {
     clearQueueDefinitions();
     const driver = createMemoryQueueDriver();
-    const queueDepth = await driver.getQueueDepth?.('test') ?? 0;
-    const deleted = await driver.deleteMessage?.('test', 'nonexistent') ?? false;
+    const queueDepth = (await driver.getQueueDepth?.('test')) ?? 0;
+    const deleted = (await driver.deleteMessage?.('test', 'nonexistent')) ?? false;
 
     return c.json({
       action: 'memory-driver',

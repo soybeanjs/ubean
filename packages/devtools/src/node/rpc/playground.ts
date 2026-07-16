@@ -50,7 +50,9 @@ export function createPlaygroundRpcFunctions(opts: {
 
         const res = await app.fetch(req);
         const resHeaders: Record<string, string> = {};
-        res.headers.forEach((v, k) => { resHeaders[k] = v; });
+        res.headers.forEach((v, k) => {
+          resHeaders[k] = v;
+        });
 
         const contentType = res.headers.get('content-type') || '';
         let body: unknown;

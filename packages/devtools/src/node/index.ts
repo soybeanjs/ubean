@@ -1,26 +1,24 @@
+import { dirname, resolve } from 'node:path';
 /// <reference types="@vitejs/devtools-kit" />
 import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
 import type { Plugin } from 'vite';
 import type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
-
-import type { DevToolsCustomTab, DevToolsInfo } from '../types';
+import { maskSensitiveEnv } from '../shared/env';
 import { createDevToolsHooks } from '../server/hooks';
-import { createCrudServer } from '../server/crud';
-import type { DevToolsCrudServer } from '../server/crud';
 import { createAiServer } from '../server/ai';
 import type { DevToolsAiServer } from '../server/ai';
-import { maskSensitiveEnv } from '../shared/env';
+import { createCrudServer } from '../server/crud';
+import type { DevToolsCrudServer } from '../server/crud';
+import type { DevToolsCustomTab, DevToolsInfo } from '../types';
+import { createAllRpcFunctions } from './rpc';
 import {
   buildDevToolsInfo,
   emptyDevToolsInfo,
   initSharedState,
   refreshSharedState,
-  UBEAN_INFO_STATE_KEY,
-  type ScanResultLike,
-  type DevToolsConfigMeta
+  UBEAN_INFO_STATE_KEY
 } from './state';
-import { createAllRpcFunctions } from './rpc';
+import type { ScanResultLike, DevToolsConfigMeta } from './state';
 
 export { defineRpcFunction } from '@vitejs/devtools-kit';
 export type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
@@ -92,15 +90,33 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
         //    renders only the view matching `window.location.hash`.
         const SPA_BASE = '/__ubean_devtools__/index.html';
         const dockEntries = [
-          { id: 'ubean:overview', title: 'Overview', icon: 'lucide:layout-dashboard', url: `${SPA_BASE}#/overview`, order: 100 },
+          {
+            id: 'ubean:overview',
+            title: 'Overview',
+            icon: 'lucide:layout-dashboard',
+            url: `${SPA_BASE}#/overview`,
+            order: 100
+          },
           { id: 'ubean:ai', title: 'AI', icon: 'lucide:sparkles', url: `${SPA_BASE}#/ai`, order: 95 },
           { id: 'ubean:api', title: 'API', icon: 'lucide:send', url: `${SPA_BASE}#/api`, order: 90 },
           { id: 'ubean:pages', title: 'Pages', icon: 'lucide:file-text', url: `${SPA_BASE}#/pages`, order: 85 },
-          { id: 'ubean:structure', title: 'Structure', icon: 'lucide:layers', url: `${SPA_BASE}#/structure`, order: 80 },
+          {
+            id: 'ubean:structure',
+            title: 'Structure',
+            icon: 'lucide:layers',
+            url: `${SPA_BASE}#/structure`,
+            order: 80
+          },
           { id: 'ubean:crons', title: 'Crons', icon: 'lucide:clock', url: `${SPA_BASE}#/crons`, order: 75 },
           { id: 'ubean:env', title: 'Env', icon: 'lucide:terminal', url: `${SPA_BASE}#/env`, order: 70 },
           { id: 'ubean:config', title: 'Config', icon: 'lucide:settings', url: `${SPA_BASE}#/config`, order: 65 },
-          { id: 'ubean:api-docs', title: 'API Docs', icon: 'lucide:book-open', url: `${SPA_BASE}#/api-docs`, order: 60 },
+          {
+            id: 'ubean:api-docs',
+            title: 'API Docs',
+            icon: 'lucide:book-open',
+            url: `${SPA_BASE}#/api-docs`,
+            order: 60
+          },
           { id: 'ubean:database', title: 'Database', icon: 'lucide:database', url: `${SPA_BASE}#/database`, order: 55 }
         ];
         for (const entry of dockEntries) {

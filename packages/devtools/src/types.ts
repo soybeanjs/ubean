@@ -25,8 +25,8 @@ export { DEVTOOLS_MAGIC_KEY, DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_C
 // module augmentation below. (A pure `export type { X } from ...` re-export
 // does not introduce a usable local name.)
 import type { DevToolsInfo } from 'ubean';
-import type { AiToolDefinition, AiChatResponse } from './server/ai';
 import type { PlaygroundInvokeParams, PlaygroundInvokeResult } from './node/rpc/playground';
+import type { AiToolDefinition, AiChatResponse } from './server/ai';
 
 // ---------------------------------------------------------------------------
 // Module augmentation — registers ubean's RPC functions and shared-state keys

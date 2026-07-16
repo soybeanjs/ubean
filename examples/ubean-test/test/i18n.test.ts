@@ -20,9 +20,9 @@ import {
   extractLocaleFromPath,
   getI18nConfig
 } from 'ubean';
-import { getJson } from './helper';
 import enMessages from '../src/locales/en.json';
 import zhMessages from '../src/locales/zh.json';
+import { getJson } from './helper';
 
 describe('i18n system', () => {
   beforeEach(() => {

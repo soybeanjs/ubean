@@ -180,7 +180,10 @@ export const devCommand: CommandDef = {
   }
 };
 
-async function buildApp(cwd: string, config: any): Promise<{ app: ReturnType<typeof createUbeanApp>; layouts: any[]; scanResult: ScanResult }> {
+async function buildApp(
+  cwd: string,
+  config: any
+): Promise<{ app: ReturnType<typeof createUbeanApp>; layouts: any[]; scanResult: ScanResult }> {
   logger.info('Scanning project files...');
   const result = await scanProject({
     cwd,

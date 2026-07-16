@@ -1,9 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  createRateLimitMiddleware,
-  defineRateLimit,
-  createMemoryRateLimitStore
-} from 'ubean';
+import { describe, it, expect } from 'vitest';
+import { createRateLimitMiddleware, defineRateLimit, createMemoryRateLimitStore } from 'ubean';
 import { api, getJson } from './helper';
 
 describe('Rate limit system', () => {
@@ -27,9 +23,9 @@ describe('Rate limit system', () => {
         res: { headers: new Headers() }
       } as any;
 
-      await middleware(mockCtx, async () => {
+      await middleware(mockCtx, async ctx => {
         nextCalled = true;
-        return new Response('ok');
+        return ctx.text('ok');
       });
       expect(nextCalled).toBe(true);
     });
@@ -123,7 +119,7 @@ describe('Rate limit system', () => {
         method: 'GET',
         req: {
           method: 'GET',
-          header: (name: string) => name === 'x-api-key' ? 'key123' : undefined,
+          header: (name: string) => (name === 'x-api-key' ? 'key123' : undefined),
           url: 'http://localhost/api/test'
         },
         header: () => {},

@@ -130,7 +130,7 @@ describe('Database system', () => {
   describe('registerDb0Create() - db0 connector interface', () => {
     it('registers a custom database creator', () => {
       let called = false;
-      registerDb0Create((connector) => {
+      registerDb0Create(connector => {
         called = true;
         return {
           sql: async () => ({ rows: [] }),
@@ -169,9 +169,7 @@ describe('Database system', () => {
 
     it('runMigrations skips already-applied migrations', async () => {
       const db = defineDatabase();
-      const migrations: Migration[] = [
-        { name: '001_first', up: 'CREATE TABLE mig_skip (id INTEGER)' }
-      ];
+      const migrations: Migration[] = [{ name: '001_first', up: 'CREATE TABLE mig_skip (id INTEGER)' }];
 
       await runMigrations(db, migrations);
       const result = await runMigrations(db, migrations);

@@ -1,8 +1,6 @@
 <script setup lang="ts">
-definePage({
-  head: {
-    title: '营销页面 (路由组测试)'
-  }
+useHead({
+  title: '营销页面 (路由组测试)'
 });
 </script>
 

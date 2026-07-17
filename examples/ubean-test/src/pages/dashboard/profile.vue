@@ -1,8 +1,6 @@
 <script setup lang="ts">
-definePage({
-  head: {
-    title: '个人资料'
-  }
+useHead({
+  title: '个人资料'
 });
 </script>
 

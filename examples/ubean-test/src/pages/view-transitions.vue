@@ -7,10 +7,8 @@ import {
   getNavigationType
 } from 'ubean/runtime/vue';
 
-definePage({
-  head: {
-    title: 'View Transitions 测试 - ubean-test'
-  }
+useHead({
+  title: 'View Transitions 测试 - ubean-test'
 });
 
 const supported = ref(false);

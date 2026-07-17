@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 
-definePage({
-  head: {
-    title: 'Data Fetch Test - ubean',
-    meta: [{ name: 'description', content: 'Data fetching and ofetch client integration test' }]
-  }
+useHead({
+  title: 'Data Fetch Test - ubean',
+  meta: [{ name: 'description', content: 'Data fetching and ofetch client integration test' }]
 });
 
 interface ApiResponse {

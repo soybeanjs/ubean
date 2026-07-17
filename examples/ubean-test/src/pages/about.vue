@@ -1,8 +1,6 @@
 <script setup lang="ts">
-definePage({
-  meta: {
-    title: '关于 - ubean-test'
-  }
+useHead({
+  title: '关于 - ubean-test'
 });
 </script>
 

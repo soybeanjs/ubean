@@ -1,12 +1,11 @@
 <script setup lang="ts">
-definePage({
-  meta: {
-    title: 'ubean-test - 首页'
-  },
-  head: {
-    title: 'ubean-test 功能测试首页',
-    meta: [{ name: 'description', content: 'ubean 框架功能验证测试项目' }]
-  }
+useHead({
+  title: 'ubean-test - 首页'
+});
+
+useHead({
+  title: 'ubean-test 功能测试首页',
+  meta: [{ name: 'description', content: 'ubean 框架功能验证测试项目' }]
 });
 </script>
 

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
-import CodeEditor from './CodeEditor.vue';
 import type { CrudResourceType, CrudResult } from '../composables/useRpc';
+import CodeEditor from './CodeEditor.vue';
 
 /**
  * Form-based editor for the `definePage({...})` macro inside a `.vue` page.
  *
  * Scalar fields (name / path / layout / reuse / middleware / requiresAuth)
- * are exposed as native inputs. Complex fields (meta / head) are edited as
+ * are exposed as native inputs. Complex fields (meta) are edited as
  * JSON via CodeEditor. On save, the dialog rebuilds the `definePage({...})`
  * call and patches the source file in-place — preserving everything outside
  * the macro call.
@@ -22,7 +22,6 @@ interface PageMetaForm {
   middleware: string; // comma-separated → string | string[]
   requiresAuth: boolean;
   meta: string; // JSON string
-  head: string; // JSON string
 }
 
 const props = defineProps<{
@@ -30,10 +29,7 @@ const props = defineProps<{
   filePath: string;
   pagePath: string;
   onRead: (type: CrudResourceType, path: string) => Promise<{ success: boolean; content?: string; error?: string }>;
-  onSave: (
-    type: CrudResourceType,
-    options: { path?: string; content?: string }
-  ) => Promise<CrudResult>;
+  onSave: (type: CrudResourceType, options: { path?: string; content?: string }) => Promise<CrudResult>;
 }>();
 
 const emit = defineEmits<{
@@ -45,7 +41,6 @@ const loading = ref(false);
 const saving = ref(false);
 const errorMsg = ref('');
 const metaError = ref('');
-const headError = ref('');
 const rawContent = ref('');
 const hasDefinePage = ref(false);
 
@@ -59,8 +54,7 @@ function emptyForm(): PageMetaForm {
     reuse: '',
     middleware: '',
     requiresAuth: false,
-    meta: '',
-    head: ''
+    meta: ''
   };
 }
 
@@ -69,7 +63,9 @@ function emptyForm(): PageMetaForm {
 function extractScriptContent(code: string): string | null {
   // NOTE: build the regex from concatenated parts so the SFC parser does not
   // see a literal closing-script tag inside this script block.
+  // oxlint-disable-next-line no-useless-concat
   const openTag = '<scr' + 'ipt';
+  // oxlint-disable-next-line no-useless-concat
   const closeTag = '</scr' + 'ipt>';
   if (!code.includes(openTag)) return code;
   const scriptRegex = new RegExp(`${openTag}([^>]*)>([\\s\\S]*?)${closeTag}`, 'g');
@@ -85,7 +81,11 @@ function extractScriptContent(code: string): string | null {
 }
 
 /** Find the balanced argument string of `funcName(...)` starting from `from`. */
-function findBalancedCall(code: string, funcName: string, from = 0): { start: number; argStart: number; end: number; arg: string } | null {
+function findBalancedCall(
+  code: string,
+  funcName: string,
+  from = 0
+): { start: number; argStart: number; end: number; arg: string } | null {
   const re = new RegExp(`\\b${funcName}\\s*\\(`, 'g');
   re.lastIndex = from;
   const m = re.exec(code);
@@ -97,13 +97,26 @@ function findBalancedCall(code: string, funcName: string, from = 0): { start: nu
   let escaped = false;
   while (i < code.length && depth > 0) {
     const ch = code[i];
-    if (escaped) { escaped = false; i++; continue; }
-    if (ch === '\\') { escaped = true; i++; continue; }
+    if (escaped) {
+      escaped = false;
+      i++;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      i++;
+      continue;
+    }
     if (inStr) {
       if (ch === inStr) inStr = null;
-      i++; continue;
+      i++;
+      continue;
     }
-    if (ch === '"' || ch === "'" || ch === '`') { inStr = ch; i++; continue; }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      inStr = ch;
+      i++;
+      continue;
+    }
     if (ch === '(' || ch === '{' || ch === '[') depth++;
     else if (ch === ')' || ch === '}' || ch === ']') {
       depth--;
@@ -123,7 +136,6 @@ function evalArg(arg: string): Record<string, unknown> | null {
   if (!trimmed.startsWith('{')) return null;
   // Wrap in parens to evaluate as expression. We use Function for a best-effort parse.
   try {
-    // eslint-disable-next-line no-new-func
     const fn = new Function(`return (${trimmed});`);
     const val = fn();
     if (val && typeof val === 'object' && !Array.isArray(val)) return val as Record<string, unknown>;
@@ -148,13 +160,15 @@ function parseMetaFromContent(code: string): { meta: PageMetaForm; found: boolea
   else if (typeof parsed.layout === 'string') f.layout = parsed.layout;
   if (typeof parsed.reuse === 'string') f.reuse = parsed.reuse;
   if (typeof parsed.middleware === 'string') f.middleware = parsed.middleware;
-  else if (Array.isArray(parsed.middleware)) f.middleware = parsed.middleware.filter((x): x is string => typeof x === 'string').join(', ');
+  else if (Array.isArray(parsed.middleware))
+    f.middleware = parsed.middleware.filter((x): x is string => typeof x === 'string').join(', ');
   if (typeof parsed.requiresAuth === 'boolean') f.requiresAuth = parsed.requiresAuth;
   if (parsed.meta && typeof parsed.meta === 'object') {
-    try { f.meta = JSON.stringify(parsed.meta, null, 2); } catch { /* ignore */ }
-  }
-  if (parsed.head && typeof parsed.head === 'object') {
-    try { f.head = JSON.stringify(parsed.head, null, 2); } catch { /* ignore */ }
+    try {
+      f.meta = JSON.stringify(parsed.meta, null, 2);
+    } catch {
+      /* ignore */
+    }
   }
   return { meta: f, found: true };
 }
@@ -171,7 +185,10 @@ function buildDefinePageCall(f: PageMetaForm): string {
 
   const mw = f.middleware.trim();
   if (mw) {
-    const parts = mw.split(',').map(s => s.trim()).filter(Boolean);
+    const parts = mw
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
     if (parts.length === 1) lines.push(`  middleware: ${JSON.stringify(parts[0])}`);
     else if (parts.length > 1) lines.push(`  middleware: ${JSON.stringify(parts)}`);
   }
@@ -180,9 +197,6 @@ function buildDefinePageCall(f: PageMetaForm): string {
   if (f.meta.trim()) {
     lines.push(`  meta: ${f.meta.trim()}`);
   }
-  if (f.head.trim()) {
-    lines.push(`  head: ${f.head.trim()}`);
-  }
   return `definePage({\n${lines.join(',\n')}\n})`;
 }
 
@@ -190,7 +204,9 @@ function patchSource(original: string, newCall: string): string {
   const script = extractScriptContent(original);
   // No script block (e.g. pure markdown) — prepend a script setup block.
   // NOTE: split the closing tag to avoid breaking the Vue SFC parser.
+  // oxlint-disable-next-line no-useless-concat
   const CLOSE_TAG = '</scr' + 'ipt>';
+  // oxlint-disable-next-line no-useless-concat
   const OPEN_TAG = '<scr' + 'ipt setup lang="ts">';
   if (script === null) {
     return `${OPEN_TAG}\n${newCall}\n${CLOSE_TAG}\n\n${original}`;
@@ -221,7 +237,6 @@ async function loadContent() {
   loading.value = true;
   errorMsg.value = '';
   metaError.value = '';
-  headError.value = '';
   try {
     const result = await props.onRead('page', props.filePath);
     if (result.success && result.content !== undefined) {
@@ -259,16 +274,14 @@ function close() {
 
 function validateJsonFields(): boolean {
   metaError.value = '';
-  headError.value = '';
   if (form.value.meta.trim()) {
-    try { JSON.parse(form.value.meta.trim()); }
-    catch (e) { metaError.value = e instanceof Error ? e.message : 'Invalid JSON'; }
+    try {
+      JSON.parse(form.value.meta.trim());
+    } catch (e) {
+      metaError.value = e instanceof Error ? e.message : 'Invalid JSON';
+    }
   }
-  if (form.value.head.trim()) {
-    try { JSON.parse(form.value.head.trim()); }
-    catch (e) { headError.value = e instanceof Error ? e.message : 'Invalid JSON'; }
-  }
-  return !metaError.value && !headError.value;
+  return !metaError.value;
 }
 
 async function handleSave() {
@@ -327,7 +340,10 @@ async function handleSave() {
             <span class="ml-2 text-xs text-muted-foreground">Loading...</span>
           </div>
 
-          <div v-else-if="errorMsg && !rawContent" class="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20">
+          <div
+            v-else-if="errorMsg && !rawContent"
+            class="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20"
+          >
             <SIcon icon="lucide:alert-circle" :size="13" class="flex-shrink-0" />
             {{ errorMsg }}
           </div>
@@ -339,7 +355,11 @@ async function handleSave() {
               class="flex items-start gap-2 p-2.5 rounded-lg bg-info/10 text-info text-xs border border-info/20"
             >
               <SIcon icon="lucide:info" :size="13" class="flex-shrink-0 mt-0.5" />
-              <span>No <code class="font-mono">definePage()</code> call detected. Saving will add one to the &lt;script setup&gt; block.</span>
+              <span>
+                No
+                <code class="font-mono">definePage()</code>
+                call detected. Saving will add one to the &lt;script setup&gt; block.
+              </span>
             </div>
 
             <!-- Scalar fields grid -->
@@ -390,11 +410,7 @@ async function handleSave() {
                 />
               </label>
               <label class="flex items-center gap-2 col-span-2 cursor-pointer">
-                <input
-                  v-model="form.requiresAuth"
-                  type="checkbox"
-                  class="size-3.5 accent-primary cursor-pointer"
-                />
+                <input v-model="form.requiresAuth" type="checkbox" class="size-3.5 accent-primary cursor-pointer" />
                 <span class="text-xs text-foreground">Requires Auth</span>
                 <span class="text-2xs text-muted-foreground">(redirect unauthenticated users)</span>
               </label>
@@ -406,34 +422,16 @@ async function handleSave() {
                 <span class="text-2xs text-muted-foreground font-medium">Meta (JSON object)</span>
                 <span v-if="metaError" class="text-2xs text-destructive">{{ metaError }}</span>
               </div>
-              <CodeEditor
-                v-model="form.meta"
-                language="json"
-                height="120px"
-                :line-numbers="false"
-                label="meta"
-              />
-            </div>
-
-            <div class="flex flex-col gap-1.5">
-              <div class="flex items-center justify-between">
-                <span class="text-2xs text-muted-foreground font-medium">Head (JSON object)</span>
-                <span v-if="headError" class="text-2xs text-destructive">{{ headError }}</span>
-              </div>
-              <CodeEditor
-                v-model="form.head"
-                language="json"
-                height="120px"
-                :line-numbers="false"
-                label="head"
-              />
+              <CodeEditor v-model="form.meta" language="json" height="120px" :line-numbers="false" label="meta" />
             </div>
           </div>
         </div>
 
         <!-- Save error -->
         <div v-if="errorMsg && rawContent && !loading" class="px-4 pb-2 flex-shrink-0">
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20">
+          <div
+            class="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20"
+          >
             <SIcon icon="lucide:alert-circle" :size="13" class="flex-shrink-0" />
             {{ errorMsg }}
           </div>
@@ -470,8 +468,14 @@ async function handleSave() {
 
 <style scoped>
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.95); }
-  to { opacity: 1; transform: scale(1); }
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 .animate-scale-in {
   animation: scale-in 0.15s ease-out;

@@ -1,8 +1,6 @@
 <script setup lang="ts">
-definePage({
-  meta: {
-    title: '用户详情'
-  }
+useHead({
+  title: '用户详情'
 });
 
 const page = usePage();

@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { useSeoMeta, useHead } from 'ubean/runtime/vue';
 
-definePage({
-  head: {
-    title: 'SEO Meta Test - ubean'
-  }
+useHead({
+  title: 'SEO Meta Test - ubean'
 });
 
 // Test useSeoMeta with comprehensive SEO metadata

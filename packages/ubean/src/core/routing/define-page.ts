@@ -1,14 +1,19 @@
 import { readFile } from 'node:fs/promises';
+import type { RouteMeta } from 'vue-router';
 
 export interface PageMeta {
   name?: string;
   path?: string;
   layout?: string | false;
   reuse?: string;
-  meta?: Record<string, unknown>;
+  /**
+   * Route metadata. Extends vue-router's `RouteMeta` so projects can
+   * augment it via `declare module 'vue-router' { interface RouteMeta { ... } }`
+   * and get full type-safety inside `definePage({ meta: { ... } })`.
+   */
+  meta?: RouteMeta;
   middleware?: string | string[];
   requiresAuth?: boolean;
-  head?: Record<string, unknown>;
 }
 
 export interface DefineMetaResult {
@@ -326,9 +331,8 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
   if (parsed.layout === false || (typeof parsed.layout === 'string' && parsed.layout !== 'default'))
     result.layout = parsed.layout as string | false;
   if (typeof parsed.reuse === 'string') result.reuse = parsed.reuse;
-  if (parsed.meta && typeof parsed.meta === 'object') result.meta = parsed.meta as Record<string, unknown>;
+  if (parsed.meta && typeof parsed.meta === 'object') result.meta = parsed.meta as RouteMeta;
   if (typeof parsed.requiresAuth === 'boolean') result.requiresAuth = parsed.requiresAuth;
-  if (parsed.head && typeof parsed.head === 'object') result.head = parsed.head as Record<string, unknown>;
   if (typeof parsed.middleware === 'string') {
     result.middleware = parsed.middleware;
   } else if (Array.isArray(parsed.middleware)) {

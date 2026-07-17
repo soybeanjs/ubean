@@ -347,8 +347,7 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
         (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
       layout:
         page.layout === false ? false : page.layout || page.pageMeta?.layout || (hasDefaultLayout ? 'default' : false),
-      errors: actionErrors,
-      head: page.pageMeta?.head
+      errors: actionErrors
     };
 
     if (isPagesRequest(c)) {

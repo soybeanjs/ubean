@@ -5,10 +5,8 @@ import IslandMedia from '../components/IslandMedia.vue';
 import IslandOnly from '../components/IslandOnly.vue';
 import IslandVisibility from '../components/IslandVisibility.vue';
 
-definePage({
-  head: {
-    title: 'Islands 架构测试 - ubean-test'
-  }
+useHead({
+  title: 'Islands 架构测试 - ubean-test'
 });
 </script>
 

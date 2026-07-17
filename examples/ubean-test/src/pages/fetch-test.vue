@@ -2,9 +2,8 @@
 import { ref } from 'vue';
 import { api, flatApi } from '../request/client';
 
-definePage({
-  name: 'fetch-test',
-  meta: { title: 'Typed Client Demo' }
+useHead({
+  title: 'Typed Client Demo - ubean-test'
 });
 
 // ============================================================================

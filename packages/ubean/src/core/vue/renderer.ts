@@ -27,21 +27,8 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
       htmlAttrs.lang = renderContext.locale;
       htmlAttrs.dir = renderContext.localeDir || 'ltr';
     }
-
-    if (pageObj.head?.htmlAttrs) {
-      Object.assign(htmlAttrs, pageObj.head.htmlAttrs);
-    }
-
-    const headEntry: Record<string, unknown> = {};
-    if (pageObj.head?.title) headEntry.title = pageObj.head.title;
-    if (pageObj.head?.meta) headEntry.meta = pageObj.head.meta;
-    if (pageObj.head?.link) headEntry.link = pageObj.head.link;
-    if (pageObj.head?.script) headEntry.script = pageObj.head.script;
-    if (pageObj.head?.bodyAttrs) headEntry.bodyAttrs = pageObj.head.bodyAttrs;
-    if (Object.keys(htmlAttrs).length > 0) headEntry.htmlAttrs = htmlAttrs;
-
-    if (Object.keys(headEntry).length > 0) {
-      head.push(headEntry);
+    if (Object.keys(htmlAttrs).length > 0) {
+      head.push({ htmlAttrs });
     }
 
     const { app, router } = createUbeanSSRApp(pageObj, {

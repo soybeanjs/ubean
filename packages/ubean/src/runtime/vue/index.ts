@@ -1,4 +1,50 @@
 export { getInitialPageData } from './client';
+export {
+  createClient,
+  defaultClient,
+  get,
+  post,
+  put,
+  patch,
+  del as delete,
+  head,
+  opts as options,
+  $get,
+  $post,
+  $put,
+  $patch,
+  $del as $delete,
+  raw,
+  extend,
+  runtime,
+  diagnoseEnvironment
+} from '../client';
+export type { ApiClient, ClientOptions, RequestOptions, ClientError, FlatResponse } from '../client';
+export { createTypedClient, createTypedFlatClient, replacePathParams, parseContentDisposition } from '../typed-client';
+export type {
+  PathsWithMethod,
+  RequiredKeysOf,
+  FilterKeys,
+  OperationRequestBodyContent,
+  IsOperationRequestBodyOptional,
+  SuccessResponse,
+  ErrorResponse,
+  OperationParams,
+  ParamsOption,
+  RequestBodyOption,
+  TypedRequestOptions,
+  ClientPassthroughOptions,
+  ClientMethod,
+  TypedClient,
+  FlatClientMethod,
+  TypedFlatClient,
+  TypedFlatResponse,
+  ResponseType,
+  FileResponseType,
+  ResponseTypeMap,
+  MappedType,
+  FileResponseData
+} from '../typed-client';
 export { useHeadInstance, injectHead } from './head';
 export type { VueHeadClient as HeadClient } from './head';
 export {

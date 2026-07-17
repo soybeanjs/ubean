@@ -1,8 +1,6 @@
 <script setup lang="ts">
-definePage({
-  head: {
-    title: '控制台'
-  }
+useHead({
+  title: '控制台'
 });
 </script>
 

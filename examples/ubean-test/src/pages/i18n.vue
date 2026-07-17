@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { useI18n, useSwitchLocalePath, useLocalePath } from 'ubean/runtime/vue';
 
-definePage({
-  head: {
-    title: 'i18n Test - ubean',
-    meta: [{ name: 'description', content: 'Internationalization test page' }]
-  }
+useHead({
+  title: 'i18n Test - ubean',
+  meta: [{ name: 'description', content: 'Internationalization test page' }]
 });
 
 const { locale, availableLocales, t, setLocale, getLocaleDir, getLocaleName, localeDir, localeName, fallbackLocale } =

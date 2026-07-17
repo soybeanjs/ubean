@@ -16,9 +16,9 @@ import type { App, Component, ConcreteComponent, PropType } from 'vue';
 import { RouterView, RouterLink, useRoute, useRouter as useVueRouter } from 'vue-router';
 import type { RouteLocationRaw, RouteRecordRaw } from 'vue-router';
 import { useHead as useUnheadHead } from '@unhead/vue';
-import type { VueHeadClient, UseHeadInput } from '@unhead/vue';
+import type { VueHeadClient } from '@unhead/vue';
 import { Head as UnheadHeadComponent } from '@unhead/vue/components';
-import type { PageObject, PageHead } from '../pages/protocol';
+import type { PageObject } from '../pages/protocol';
 import { localizePath } from './i18n';
 import { createUbeanRouter } from './router';
 import { supportsViewTransitions } from './view-transitions';
@@ -173,14 +173,6 @@ function createRootComponent(
       provide(PAGE_KEY, page);
       provide(TRANSITION_KEY, transitionOpts);
 
-      const route = useRoute();
-
-      const routeHead = computed(() => {
-        return (route.meta.head as PageHead) || {};
-      });
-
-      useUnheadHead(routeHead as unknown as UseHeadInput);
-
       return () => h(LayoutWrapper);
     }
   });
@@ -266,7 +258,6 @@ export function usePage<T = Record<string, unknown>>(): PageObject<T> {
     meta: computed(() => route.meta),
     props: computed(() => pageData?.props || {}),
     component: computed(() => route.meta.pageName || pageData?.component || ''),
-    head: computed(() => pageData?.head || null),
     errors: computed(() => pageData?.errors || null)
   }) as unknown as PageObject<T>;
 }

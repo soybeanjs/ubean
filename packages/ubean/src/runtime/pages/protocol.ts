@@ -14,7 +14,6 @@ export interface PageObject<Props = Record<string, unknown>> {
   url: string;
   layout?: string | false;
   errors?: Record<string, string> | null;
-  head?: PageHead;
 }
 
 export interface PageAssetTags {
@@ -75,61 +74,6 @@ export function pageJsonResponse(pageObj: PageObject, headers: Record<string, st
   });
 }
 
-function renderHeadTags(head?: PageHead): { htmlAttrs: string; bodyAttrs: string; headHtml: string } {
-  if (!head) return { htmlAttrs: '', bodyAttrs: '', headHtml: '' };
-
-  const htmlAttrs = head.htmlAttrs
-    ? Object.entries(head.htmlAttrs)
-        .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
-        .join(' ')
-    : '';
-
-  const bodyAttrs = head.bodyAttrs
-    ? Object.entries(head.bodyAttrs)
-        .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
-        .join(' ')
-    : '';
-
-  const parts: string[] = [];
-
-  if (head.title) {
-    parts.push(`<title>${escapeHtml(head.title)}</title>`);
-  }
-
-  if (head.meta) {
-    for (const m of head.meta) {
-      const attrs = Object.entries(m)
-        .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
-        .join(' ');
-      parts.push(`<meta ${attrs}>`);
-    }
-  }
-
-  if (head.link) {
-    for (const l of head.link) {
-      const attrs = Object.entries(l)
-        .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
-        .join(' ');
-      parts.push(`<link ${attrs}>`);
-    }
-  }
-
-  if (head.script) {
-    for (const s of head.script) {
-      const attrs = Object.entries(s)
-        .map(([k, v]) => `${k}="${escapeAttr(v)}"`)
-        .join(' ');
-      parts.push(`<script ${attrs}></script>`);
-    }
-  }
-
-  return { htmlAttrs, bodyAttrs, headHtml: parts.join('\n    ') };
-}
-
-function escapeHtml(str: string): string {
-  return str.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
-}
-
 function escapeAttr(str: string): string {
   return str.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 }
@@ -168,16 +112,6 @@ export function buildPageShell(
 </html>`;
 }
 
-function parseAttrs(attrStr: string): Record<string, string> {
-  if (!attrStr) return {};
-  const result: Record<string, string> = {};
-  const matches = attrStr.matchAll(/(\w+)="([^"]*)"/g);
-  for (const match of matches) {
-    result[match[1]] = match[2];
-  }
-  return result;
-}
-
 export function insertSsrContent(shell: string, appHtml: string): string {
   return shell.replace(SSR_CONTENT_MARKER, appHtml);
 }
@@ -190,7 +124,6 @@ export function buildClientOnlyShell(
   renderContext?: PageRenderContext
 ): string {
   const pageData = serializePageData(pageObj);
-  const { htmlAttrs, bodyAttrs, headHtml } = renderHeadTags(pageObj.head);
   const css = assetTags.css ?? '';
   const preloads = assetTags.preloads ?? '';
   const bodyTags = assetTags.body ?? '';
@@ -202,22 +135,21 @@ export function buildClientOnlyShell(
     ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}) })}</script>`
     : '';
 
-  const mergedHtmlAttrs = {
-    ...(locale ? { lang: locale } : {}),
-    ...(locale ? { dir: localeDir } : {}),
-    ...parseAttrs(htmlAttrs)
-  };
-
-  const finalHtmlAttrs = Object.entries(mergedHtmlAttrs)
+  const htmlAttrs: Record<string, string> = {};
+  if (locale) {
+    htmlAttrs.lang = locale;
+    htmlAttrs.dir = localeDir;
+  }
+  const finalHtmlAttrs = Object.entries(htmlAttrs)
     .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
     .join(' ');
 
   return `<!doctype html>
 <html${finalHtmlAttrs ? ` ${finalHtmlAttrs}` : ''}>
 <head>
-    ${headHtml}${preambleScript}${css}${preloads}
+    ${preambleScript}${css}${preloads}
 </head>
-<body${bodyAttrs ? ` ${bodyAttrs}` : ''}>
+<body>
   ${localeScript}
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
   <div id="${appId}" data-ubean-ssr="false"></div>

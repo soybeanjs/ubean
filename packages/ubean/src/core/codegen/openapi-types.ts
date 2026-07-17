@@ -29,7 +29,7 @@ export interface GenerateOpenApiTypesOptions {
  * ```typescript
  * import { generateOpenApiTypes } from 'ubean/core/codegen';
  *
- * const schema = await fetch('http://localhost:3000/_openapi.json').then(r => r.json());
+ * const schema = await fetch('http://localhost:9527/_openapi.json').then(r => r.json());
  * await generateOpenApiTypes(schema, { outDir: '.ubean' });
  * // → 生成 .ubean/openapi.d.ts
  * ```
@@ -61,7 +61,7 @@ export async function generateOpenApiTypes(schema: any, options: GenerateOpenApi
 /**
  * 从 dev server 的 `/_openapi.json` 路由获取 schema 并生成类型声明文件。
  *
- * @param baseUrl - dev server 的 base URL(如 `http://localhost:3000`)
+ * @param baseUrl - dev server 的 base URL(如 `http://localhost:9527`)
  * @param options - 输出选项
  * @returns 生成的文件绝对路径
  *
@@ -69,7 +69,7 @@ export async function generateOpenApiTypes(schema: any, options: GenerateOpenApi
  * ```typescript
  * import { generateOpenApiTypesFromServer } from 'ubean/core/codegen';
  *
- * await generateOpenApiTypesFromServer('http://localhost:3000', { outDir: '.ubean' });
+ * await generateOpenApiTypesFromServer('http://localhost:9527', { outDir: '.ubean' });
  * ```
  */
 export async function generateOpenApiTypesFromServer(

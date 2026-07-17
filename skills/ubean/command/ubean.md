@@ -77,7 +77,7 @@ ubean dev [options]
 ubean dev
 
 # Start on custom port
-ubean dev --port 3000 --host 0.0.0.0
+ubean dev --port 9527 --host 0.0.0.0
 
 # Open browser automatically
 ubean dev --open
@@ -136,7 +136,7 @@ ubean preview [options]
 ubean preview
 
 # Preview on custom port
-ubean preview --port 3000
+ubean preview --port 9527
 ```
 
 ### ubean config
@@ -263,7 +263,7 @@ ubean --version
 
 | Variable | Description | Default    |
 | -------- | ----------- | ---------- |
-| PORT     | Server port | 3000       |
+| PORT     | Server port | 9527       |
 | NODE_ENV | Environment | production |
 
 ## Exit Codes

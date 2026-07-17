@@ -32,7 +32,7 @@ export const nodePreset = definePreset(
     },
     serve: {
       host: 'localhost',
-      port: 3000
+      port: 9527
     },
     commands: {
       preview: 'node .ubean/dist/server/server.mjs'

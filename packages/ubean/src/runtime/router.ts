@@ -1,7 +1,7 @@
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '../core/routing/types';
 import type { RouteMeta, UbeanEnv, UbeanMiddleware } from '../types/handler';
-import { getLocale, getLocaleDir, getLocaleMessages } from './i18n';
+import { getLocale, getLocaleDir, getLocaleMessages, getRegisteredLocalesMeta } from './i18n';
 import type { UbeanApp } from './app';
 import { extractRouteMeta, isHandlerChain } from './handler';
 import { isPagesRequest, pageJsonResponse, renderPage } from './pages';
@@ -362,7 +362,8 @@ export async function registerRoutes(app: UbeanApp, options: RegisterOptions) {
     const renderContext: PageRenderContext = {
       locale: currentLocale,
       localeDir: getLocaleDir(currentLocale),
-      messages: getLocaleMessages(currentLocale)
+      messages: getLocaleMessages(currentLocale),
+      availableLocales: getRegisteredLocalesMeta()
     };
 
     const html = await renderPage(pageObj, pageAssetTags ?? {}, pageRenderer ?? null, 'app', renderContext);

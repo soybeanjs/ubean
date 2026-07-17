@@ -532,7 +532,7 @@ function buildClientOptions(
  * import { createClient, createTypedClient } from 'ubean';
  * import type { paths } from './.ubean/openapi';
  *
- * const client = createClient({ baseURL: 'http://localhost:3000' });
+ * const client = createClient({ baseURL: 'http://localhost:9527' });
  * const typed = createTypedClient<paths>(client);
  *
  * // 完全类型安全 — 路径、参数、请求体、响应均已推断
@@ -628,7 +628,7 @@ export function createTypedClient<Paths extends Record<string, any>, Prefix exte
  * import { createClient, createTypedFlatClient } from 'ubean';
  * import type { paths } from './.ubean/openapi';
  *
- * const client = createClient({ baseURL: 'http://localhost:3000' });
+ * const client = createClient({ baseURL: 'http://localhost:9527' });
  * const flat = createTypedFlatClient<paths>(client);
  *
  * const { data, error } = await flat.get('/api/users/{id}', {

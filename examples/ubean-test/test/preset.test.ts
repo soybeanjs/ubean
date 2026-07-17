@@ -215,7 +215,7 @@ describe('Preset system', () => {
       definePreset(
         {
           name: 'base-preset',
-          serve: { port: 3000 }
+          serve: { port: 9527 }
         },
         { name: 'base-preset', static: true }
       );

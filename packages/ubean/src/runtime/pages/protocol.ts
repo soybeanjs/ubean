@@ -22,10 +22,21 @@ export interface PageAssetTags {
   body?: string;
 }
 
+export interface LocaleMetaInfo {
+  code: string;
+  name?: string;
+  dir: 'ltr' | 'rtl';
+  isDefault?: boolean;
+}
+
 export interface PageRenderContext {
   locale?: string;
   localeDir?: 'ltr' | 'rtl';
   messages?: Record<string, unknown>;
+  /** All registered locales (metadata only, no messages) — sent to the
+   *  client so it can register every available locale during hydration,
+   *  preventing `availableLocales` hydration mismatches. */
+  availableLocales?: LocaleMetaInfo[];
 }
 
 export type PageRenderFn = (
@@ -93,8 +104,9 @@ export function buildPageShell(
   const locale = renderContext?.locale;
   const localeDir = renderContext?.localeDir || 'ltr';
   const messages = renderContext?.messages;
+  const availableLocales = renderContext?.availableLocales;
   const localeScript = locale
-    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}) })}</script>`
+    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}), ...(availableLocales?.length ? { availableLocales } : {}) })}</script>`
     : '';
 
   return `<!doctype html>
@@ -131,8 +143,9 @@ export function buildClientOnlyShell(
   const locale = renderContext?.locale;
   const localeDir = renderContext?.localeDir || 'ltr';
   const messages = renderContext?.messages;
+  const availableLocales = renderContext?.availableLocales;
   const localeScript = locale
-    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}) })}</script>`
+    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}), ...(availableLocales?.length ? { availableLocales } : {}) })}</script>`
     : '';
 
   const htmlAttrs: Record<string, string> = {};

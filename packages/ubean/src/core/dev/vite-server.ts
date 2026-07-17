@@ -335,7 +335,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
           // assets. Vite's transformIndexHtml would break the pre-built module
           // references and import-analysis. Skip transform for all devtools
           // paths (client SPA root, assets, and legacy iframe alias).
-          const skipTransform = (req.url || '').startsWith('/__ubean_devtools__');
+          const skipTransform = (req.url || '').startsWith('/_devtools');
           if (contentType.includes('text/html') && webRes.body && !skipTransform) {
             const html = await webRes.text();
             const transformedHtml = await viteServer!.transformIndexHtml(req.url || '/', html);

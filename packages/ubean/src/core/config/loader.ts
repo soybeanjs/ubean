@@ -25,8 +25,8 @@ const configDefaults: ResolvedConfig = {
     queues: 'queues',
     locales: 'locales'
   },
-  dev: { port: 3000, host: 'localhost', open: false },
-  preview: { port: 3000, host: 'localhost', strictPort: false },
+  dev: { port: 9527, host: 'localhost', open: false },
+  preview: { port: 9725, host: 'localhost', strictPort: false },
   build: { preset: 'node', outputDir: '.ubean/dist', minify: true, sourcemap: false },
   markdown: {
     enabled: true,

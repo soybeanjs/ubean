@@ -11,12 +11,12 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)));
  *
  * Produces separate static files (index.html + assets/*.js + assets/*.css)
  * under `dist/client/`. The DTK `hostStatic` mount serves these at
- * `/__ubean_devtools__/` — no inlining, no `</script>` escaping issues.
+ * `/_devtools/` — no inlining, no `</script>` escaping issues.
  * This mirrors the Nuxt DevTools architecture (sirv-based static serving).
  */
 export default defineConfig({
   root,
-  base: '/__ubean_devtools__/',
+  base: '/_devtools/',
   plugins: [
     Unocss({
       configFile: resolve(root, 'uno.config.ts')

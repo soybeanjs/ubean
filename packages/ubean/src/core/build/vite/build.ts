@@ -364,7 +364,7 @@ function generateNodeServerEntry(): string {
 import { createServer } from 'node:http';
 import createFetchHandler from './entry.mjs';
 
-const port = Number(process.env.PORT || 3000);
+const port = Number(process.env.PORT || 9527);
 const host = process.env.HOST || '0.0.0.0';
 
 async function main() {

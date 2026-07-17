@@ -4,7 +4,7 @@ const envResult = defineEnv({
   server: {
     DATABASE_URL: { type: String, default: 'sqlite://memory' },
     SECRET_KEY: { type: String, default: 'test-secret-key' },
-    PORT: { type: Number, default: 3000 }
+    PORT: { type: Number, default: 9527 }
   },
   public: {
     API_BASE_URL: { type: String, default: '/api' },
@@ -38,7 +38,7 @@ export const GET = defineHandler(c => {
     return c.json({
       action: 'runtime',
       nodeEnv: useRuntimeEnv('NODE_ENV', 'development'),
-      port: useRuntimeEnv('PORT', '3000')
+      port: useRuntimeEnv('PORT', '9527')
     });
   }
 

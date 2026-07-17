@@ -48,7 +48,7 @@ export const devtoolsCommand: CommandDef = {
         port: {
           type: 'string',
           description: 'Dev server port',
-          default: '3000'
+          default: '9527'
         }
       },
       async run({ args }) {

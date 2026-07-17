@@ -30,7 +30,7 @@ export function resolvePresetByName(name: string): ResolvedPreset {
   return {
     name: 'standard',
     _meta: { name: 'standard' },
-    serve: { host: 'localhost', port: 3000 },
+    serve: { host: 'localhost', port: 9527 },
     build: { outputDir: '.ubean/dist', format: 'esm', externals: [] },
     runtime: { entry: 'server' },
     capabilities: {},

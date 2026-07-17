@@ -9,7 +9,7 @@ export const GET = defineHandler(c => {
     upgradeUrl: '/api/ws-test',
     roomName: 'chat',
     rooms: ['chat'],
-    instructions: 'Use a WebSocket client to connect to ws://localhost:3000/api/ws-test'
+    instructions: 'Use a WebSocket client to connect to ws://localhost:9527/api/ws-test'
   });
 });
 

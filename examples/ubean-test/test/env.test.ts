@@ -17,10 +17,10 @@ describe('Environment variables - defineEnv', () => {
     it('defines env schema with Number type', () => {
       const { env } = defineEnv({
         server: {
-          PORT: { type: Number, default: 3000 }
+          PORT: { type: Number, default: 9527 }
         }
       });
-      expect(env.PORT).toBe(3000);
+      expect(env.PORT).toBe(9527);
       expect(typeof env.PORT).toBe('number');
     });
 

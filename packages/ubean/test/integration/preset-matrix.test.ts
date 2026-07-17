@@ -200,20 +200,20 @@ describe('Capability diagnosis', () => {
 describe('Node preset runtime with createUbeanApp', () => {
   it('node preset resolved config includes serve port', async () => {
     const preset = resolvePresetByName('node');
-    expect(preset.serve.port).toBe(3000);
-    expect(preset.build.outputDir).toBe('.ubean/dist');
-    expect(preset.build.format).toBe('esm');
+    expect(preset.serve?.port).toBe(9527);
+    expect(preset.build?.outputDir).toBe('.ubean/dist');
+    expect(preset.build?.format).toBe('esm');
   });
 
   it('standard preset resolved config includes serve port', () => {
     const preset = resolvePresetByName('standard');
-    expect(preset.serve.port).toBe(3000);
-    expect(preset.build.outputDir).toBe('.ubean/dist');
+    expect(preset.serve?.port).toBe(9527);
+    expect(preset.build?.outputDir).toBe('.ubean/dist');
   });
 
   it('node preset has preview command', () => {
     const preset = resolvePresetByName('node');
     expect(preset.commands?.preview).toBeDefined();
-    expect(preset.commands.preview).toContain('.ubean/dist');
+    expect(preset.commands?.preview).toContain('.ubean/dist');
   });
 });

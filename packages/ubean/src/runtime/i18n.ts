@@ -559,6 +559,29 @@ export function getRegisteredLocales(): string[] {
   return Array.from(getI18nState().registeredLocales.keys());
 }
 
+export interface LocaleMeta {
+  code: string;
+  name?: string;
+  dir: 'ltr' | 'rtl';
+  isDefault?: boolean;
+}
+
+/**
+ * Returns metadata for all registered locales (without messages).
+ * Used by SSR to serialize the full locale list so the client can
+ * register all available locales during hydration — preventing
+ * `availableLocales` hydration mismatches.
+ */
+export function getRegisteredLocalesMeta(): LocaleMeta[] {
+  const state = getI18nState();
+  return Array.from(state.registeredLocales.values()).map(loc => ({
+    code: loc.code,
+    name: loc.name,
+    dir: loc.dir,
+    isDefault: loc.isDefault
+  }));
+}
+
 export function getLocaleMessages(locale?: string): LocaleMessages | undefined {
   const state = getI18nState();
   const code = locale || state.currentLocale;

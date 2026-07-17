@@ -60,7 +60,7 @@ describe('Request integration - Internal fetch', () => {
     });
 
     it('creates a fetch function with baseURL option', () => {
-      const fetcher = createInternalFetch({ req: { header: () => undefined } }, { baseURL: 'http://localhost:3000' });
+      const fetcher = createInternalFetch({ req: { header: () => undefined } }, { baseURL: 'http://localhost:9527' });
       expect(typeof fetcher).toBe('function');
     });
 

@@ -35,7 +35,8 @@ export type {
   PageAssetTags,
   PageRenderFn,
   PageRenderer,
-  PageRenderContext
+  PageRenderContext,
+  LocaleMetaInfo
 } from './protocol';
 
 export type {

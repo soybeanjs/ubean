@@ -10,7 +10,7 @@ describe('Internal fetch system', () => {
     });
 
     it('createInternalFetch with base URL', () => {
-      const fetcher = createInternalFetch({ req: { header: () => undefined } }, { baseURL: 'http://localhost:3000' });
+      const fetcher = createInternalFetch({ req: { header: () => undefined } }, { baseURL: 'http://localhost:9527' });
       expect(typeof fetcher).toBe('function');
     });
   });

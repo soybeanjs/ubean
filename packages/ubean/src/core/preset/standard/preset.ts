@@ -14,7 +14,7 @@ export const standardPreset = definePreset(
     },
     serve: {
       host: 'localhost',
-      port: 3000
+      port: 9527
     }
   },
   {

@@ -112,7 +112,8 @@ describe('codegen', () => {
             name: 'index',
             route: '/',
             path: '/',
-            isReuse: false
+            isReuse: false,
+            isMarkdown: false
           }
         ],
         layouts: [
@@ -273,14 +274,24 @@ describe('UbeanApp lifecycle', () => {
       plugins: [
         {
           name: 'test',
-          setup: () => calls.push('setup'),
-          ready: () => calls.push('ready')
+          setup: () => {
+            calls.push('setup');
+          },
+          ready: () => {
+            calls.push('ready');
+          }
         }
       ]
     });
-    app.hooks.hook('app:created', () => calls.push('created'));
-    app.hooks.hook('app:before:register', () => calls.push('before-register'));
-    app.hooks.hook('app:after:register', () => calls.push('after-register'));
+    app.hooks.hook('app:created', () => {
+      calls.push('created');
+    });
+    app.hooks.hook('app:before:register', () => {
+      calls.push('before-register');
+    });
+    app.hooks.hook('app:after:register', () => {
+      calls.push('after-register');
+    });
     await app.init();
     expect(calls).toEqual(['created', 'setup', 'before-register', 'after-register', 'ready']);
   });
@@ -309,7 +320,7 @@ describe('UbeanApp lifecycle', () => {
 describe('registerRoutes', () => {
   it('registers API routes from scan results', async () => {
     const app = createUbeanApp();
-    const usersHandler = defineHandler(() => ({ users: [] }));
+    const usersHandler = defineHandler(c => c.json({ users: [] }));
     await registerRoutes(app, {
       routes: [
         {
@@ -339,7 +350,7 @@ describe('registerRoutes', () => {
 
   it('registers routes with dynamic params', async () => {
     const app = createUbeanApp();
-    const detailHandler = defineHandler((c: any) => ({ id: c.req.param('id') }));
+    const detailHandler = defineHandler(c => c.json({ id: c.req.param('id') }));
     await registerRoutes(app, {
       routes: [
         {
@@ -445,7 +456,8 @@ describe('registerRoutes', () => {
           name: 'about',
           route: '/about',
           path: '/about',
-          isReuse: false
+          isReuse: false,
+          isMarkdown: false
         }
       ],
       routeLoaders: {},
@@ -475,7 +487,8 @@ describe('registerRoutes', () => {
           name: 'about',
           route: '/about',
           path: '/about',
-          isReuse: false
+          isReuse: false,
+          isMarkdown: false
         }
       ],
       layouts: [
@@ -484,6 +497,7 @@ describe('registerRoutes', () => {
           relativePath: 'default.vue',
           dirname: '.',
           basename: 'default.vue',
+          path: '/src/layouts/default.vue',
           name: 'default',
           isDefault: true
         }
@@ -524,10 +538,10 @@ describe('defineEnv', () => {
     const { env } = defineEnv({
       mode: 'warn',
       server: {
-        PORT: { type: Number, default: 3000, required: false }
+        PORT: { type: Number, default: 9527, required: false }
       }
     });
-    expect(env.PORT).toBe(3000);
+    expect(env.PORT).toBe(9527);
   });
 
   it('returns validation errors via validate()', () => {
@@ -636,7 +650,7 @@ describe('useRuntimeEnv', () => {
 
 describe('createClient', () => {
   it('creates a client with http methods', () => {
-    const client = createClient({ baseURL: 'http://localhost:3000' });
+    const client = createClient({ baseURL: 'http://localhost:9527' });
     expect(client).toBeDefined();
     expect(typeof client.get).toBe('function');
     expect(typeof client.post).toBe('function');
@@ -1232,9 +1246,7 @@ describe('observability', () => {
 
   it('uses crypto.randomUUID when available', () => {
     const id = generateRequestId();
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-      expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
-    }
+    expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i);
   });
 
   it('getRequestId retrieves ID from context', () => {
@@ -1341,7 +1353,12 @@ describe('observability', () => {
 
   it('tracer exports spans to registered exporters', async () => {
     const exported: any[] = [];
-    const exporter = { name: 'test', exportSpan: vi.fn((s: any) => exported.push(s)) };
+    const exporter = {
+      name: 'test',
+      exportSpan: vi.fn((s: any) => {
+        exported.push(s);
+      })
+    };
     const tracer = createObservabilityTracer({ exporters: [exporter] });
     const span = tracer.startSpan({ name: 'exp' });
     span.end();

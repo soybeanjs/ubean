@@ -21,7 +21,7 @@ export const devCommand: CommandDef = {
     port: {
       type: 'string',
       description: 'Port to listen on',
-      default: '3000'
+      default: '9527'
     },
     host: {
       type: 'string',

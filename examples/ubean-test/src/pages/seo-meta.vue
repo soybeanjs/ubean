@@ -13,22 +13,22 @@ useSeoMeta({
   ogTitle: 'SEO Test Page - Ubean Framework',
   ogDescription: 'Testing OpenGraph metadata in ubean',
   ogType: 'website',
-  ogUrl: 'http://localhost:3000/seo-meta',
-  ogImage: 'http://localhost:3000/og-image.png',
+  ogUrl: 'http://localhost:9527/seo-meta',
+  ogImage: 'http://localhost:9527/og-image.png',
   ogSiteName: 'Ubean Test',
   twitterCard: 'summary_large_image',
   twitterTitle: 'SEO Test - Ubean',
   twitterDescription: 'Testing Twitter Card metadata',
-  twitterImage: 'http://localhost:3000/twitter-image.png',
+  twitterImage: 'http://localhost:9527/twitter-image.png',
   author: 'Ubean Test Suite'
 });
 
 // Test useHead for additional tags
 useHead({
   link: [
-    { rel: 'canonical', href: 'http://localhost:3000/seo-meta' },
-    { rel: 'alternate', hreflang: 'en', href: 'http://localhost:3000/seo-meta' },
-    { rel: 'alternate', hreflang: 'zh', href: 'http://localhost:3000/zh/seo-meta' }
+    { rel: 'canonical', href: 'http://localhost:9527/seo-meta' },
+    { rel: 'alternate', hreflang: 'en', href: 'http://localhost:9527/seo-meta' },
+    { rel: 'alternate', hreflang: 'zh', href: 'http://localhost:9527/zh/seo-meta' }
   ],
   meta: [
     { name: 'theme-color', content: '#3b82f6' },

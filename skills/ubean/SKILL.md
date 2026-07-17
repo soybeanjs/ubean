@@ -120,7 +120,7 @@ Start the development server. Uses Vite middleware mode so all configured module
 
 ```bash
 ubean dev
-ubean dev --port 3000 --host 0.0.0.0
+ubean dev --port 9527 --host 0.0.0.0
 ```
 
 #### ubean build
@@ -153,7 +153,7 @@ Preview the production build locally.
 
 ```bash
 ubean preview
-ubean preview --port 3000
+ubean preview --port 9527
 ```
 
 #### ubean page add

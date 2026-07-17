@@ -21,7 +21,7 @@ export default defineConfig({
 
   // Dev server options
   dev: {
-    port: 3000,
+    port: 9527,
     host: 'localhost',
     open: false
   },

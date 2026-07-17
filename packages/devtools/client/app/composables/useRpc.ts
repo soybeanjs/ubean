@@ -1,7 +1,6 @@
 import { getDevToolsRpcClient } from '@vitejs/devtools-kit/client';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { toast } from '@soybeanjs/ui';
-import type { DevframeRpcSharedStates } from 'devframe';
 import type { DevframeRpcClient } from 'devframe/client';
 
 // --- Local type definitions (client self-contained; mirrors server types) ---
@@ -395,9 +394,7 @@ export function useRpc() {
   // The server keeps shell sessions in memory; the client opens one session
   // per Terminal view and polls for output via `ubean:terminal:poll`.
 
-  async function terminalStart(
-    params: TerminalStartParams
-  ): Promise<{ sessionId: string } | null> {
+  async function terminalStart(params: TerminalStartParams): Promise<{ sessionId: string } | null> {
     try {
       return await rpc<{ sessionId: string }>('ubean:terminal:start', params);
     } catch (e) {

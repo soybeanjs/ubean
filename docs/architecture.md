@@ -225,7 +225,7 @@ export default defineConfig({
 
   // 开发服务器
   devServer: {
-    port: 3000,
+    port: 9527,
     host: 'localhost',
     watch: []
   },

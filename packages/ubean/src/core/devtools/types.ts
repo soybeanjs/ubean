@@ -167,7 +167,7 @@ export interface CrudHookContext {
 
 export type CrudHookHandler = (ctx: CrudHookContext) => void | Promise<void>;
 
-export const DEVTOOLS_MAGIC_KEY = '__ubean_devtools__';
-export const DEVTOOLS_RPC_PATH = '/__ubean_devtools__/rpc';
-export const DEVTOOLS_CLIENT_PATH = '/__ubean_devtools__/client';
-export const DEVTOOLS_IFRAME_PATH = '/__ubean_devtools__/iframe';
+export const DEVTOOLS_MAGIC_KEY = '_devtools';
+export const DEVTOOLS_RPC_PATH = '/_devtools/rpc';
+export const DEVTOOLS_CLIENT_PATH = '/_devtools/client';
+export const DEVTOOLS_IFRAME_PATH = '/_devtools/iframe';

@@ -48,7 +48,19 @@ interface GlobalWithI18nData {
 
 const _global = globalThis as GlobalWithI18nData;
 
-function hydrateLocale(): { locale: string | null; dir: 'ltr' | 'rtl'; messages?: Record<string, unknown> } {
+interface HydratedLocaleMeta {
+  code: string;
+  name?: string;
+  dir: 'ltr' | 'rtl';
+  isDefault?: boolean;
+}
+
+function hydrateLocale(): {
+  locale: string | null;
+  dir: 'ltr' | 'rtl';
+  messages?: Record<string, unknown>;
+  availableLocales?: HydratedLocaleMeta[];
+} {
   if (typeof _global.document === 'undefined') return { locale: null, dir: 'ltr' };
   const el = _global.document.getElementById(LOCALE_DATA_ID);
   if (!el) return { locale: null, dir: 'ltr' };
@@ -58,7 +70,8 @@ function hydrateLocale(): { locale: string | null; dir: 'ltr' | 'rtl'; messages?
       return {
         locale: data.locale,
         dir: data.dir === 'rtl' ? 'rtl' : 'ltr',
-        messages: data.messages
+        messages: data.messages,
+        availableLocales: Array.isArray(data.availableLocales) ? data.availableLocales : undefined
       };
     }
   } catch {
@@ -76,10 +89,30 @@ function syncHtmlLang(locale: string, dir: 'ltr' | 'rtl'): void {
   }
 }
 
-const { locale: hydratedLocale, dir: hydratedDir, messages: hydratedMessages } = hydrateLocale();
+const { locale: hydratedLocale, dir: hydratedDir, messages: hydratedMessages, availableLocales: hydratedAvailable } =
+  hydrateLocale();
 if (hydratedLocale) {
-  // Auto-register messages from SSR-injected data (no need for manual defineLocale in app.ts)
-  if (hydratedMessages && typeof hydratedMessages === 'object') {
+  // Register all available locales from SSR-injected data so that
+  // `availableLocales` matches the server during hydration (preventing
+  // hydration mismatches). Only the current locale's messages are
+  // serialized by SSR; other locales get empty messages.
+  if (hydratedAvailable && hydratedAvailable.length > 0) {
+    // Register the default locale first so the fallback is set correctly.
+    const sorted = [...hydratedAvailable].sort(
+      (a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0)
+    );
+    for (const loc of sorted) {
+      const isCurrent = loc.code === hydratedLocale;
+      defineLocaleCore({
+        code: loc.code,
+        messages: isCurrent && hydratedMessages ? (hydratedMessages as LocaleMessages) : {},
+        name: loc.name,
+        dir: loc.dir,
+        isDefault: loc.isDefault
+      });
+    }
+  } else if (hydratedMessages && typeof hydratedMessages === 'object') {
+    // Backward compat: only the current locale is available.
     defineLocaleCore({
       code: hydratedLocale,
       messages: hydratedMessages as LocaleMessages,

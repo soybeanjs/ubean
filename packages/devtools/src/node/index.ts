@@ -90,14 +90,14 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
         console.log('[ubean:devtools] devtools.setup hook fired — DTK integration active');
 
         // 1. Host the pre-built SPA static assets (replaces runtime/middleware.ts).
-        ctx.views.hostStatic('/__ubean_devtools__/', CLIENT_DIST);
+        ctx.views.hostStatic('/_devtools/', CLIENT_DIST);
 
         // 2. Register dock entries — one per view (or grouped domain).
         //    Routes + Playground share an iframe to preserve the "try route"
         //    cross-view interaction; Middlewares + Layouts are grouped as
         //    "Structure". DTK dock shell provides navigation chrome; the SPA
         //    renders only the view matching `window.location.hash`.
-        const SPA_BASE = '/__ubean_devtools__/index.html';
+        const SPA_BASE = '/_devtools/index.html';
         const dockEntries = [
           {
             id: 'ubean:overview',

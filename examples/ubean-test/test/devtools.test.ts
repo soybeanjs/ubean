@@ -68,8 +68,8 @@ describe('DevTools system', () => {
     });
 
     it('DevTools RPC endpoint exists', async () => {
-      // The DevTools RPC path is /__ubean_devtools__/rpc
-      const res = await api('/__ubean_devtools__/rpc', {
+      // The DevTools RPC path is /_devtools/rpc
+      const res = await api('/_devtools/rpc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

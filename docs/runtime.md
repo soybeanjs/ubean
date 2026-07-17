@@ -434,7 +434,7 @@ export const env = defineEnv({
   VITE_API_URL: url(),
 
   // 类型转换
-  PORT: number().default(3000),
+  PORT: number().default(9527),
   DEBUG: boolean().default(false),
 
   // 可选 + 默认值
@@ -1003,7 +1003,7 @@ export default defineConfig({
 
     /**
      * DevTools 面板访问路径
-     * @default '/__ubean_devtools__'
+     * @default '/_devtools'
      */
     route?: string;
 

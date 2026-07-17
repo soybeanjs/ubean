@@ -47,7 +47,7 @@ const {
 } = useRpc();
 
 // --- Hash-based routing ---
-// Each dock entry points to /__ubean_devtools__/index.html#/<route>.
+// Each dock entry points to /_devtools/index.html#/<route>.
 // DTK dock shell provides navigation; the SPA renders only the matching view.
 const route = computed(() => {
   const hash = window.location.hash.slice(2); // remove '#/'

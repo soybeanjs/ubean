@@ -22,7 +22,7 @@ process.env.NO_PROXY = 'localhost,127.0.0.1';
 
 export const GET = defineHandler(async c => {
   const action = c.req.query('action') || 'info';
-  const base = `http://localhost:${process.env.PORT || 3000}`;
+  const base = `http://localhost:${process.env.PORT || 9527}`;
 
   switch (action) {
     case 'env': {

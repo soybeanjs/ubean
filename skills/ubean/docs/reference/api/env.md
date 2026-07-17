@@ -15,7 +15,7 @@ export const env = defineEnv({
   },
   PORT: {
     type: 'number',
-    default: 3000
+    default: 9527
   },
   DEBUG: {
     type: 'boolean',
@@ -47,7 +47,7 @@ export default defineEnv({
   // Number with default
   PORT: {
     type: 'number',
-    default: 3000
+    default: 9527
   },
 
   // Boolean with default
@@ -172,7 +172,7 @@ JWT_SECRET=super-secret
 export default defineEnv({
   PORT: {
     type: 'number',
-    default: 3000,
+    default: 9527,
     validate: value => {
       const num = parseInt(value, 10);
       return num > 0 && num < 65536;

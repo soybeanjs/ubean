@@ -122,7 +122,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     transformIndexHtml(html, ctx) {
       // DevTools SPA is served pre-built via DTK's `hostStatic` and has its
       // own entry — skip injecting the main app's client entry there.
-      if (ctx?.path?.includes('__ubean_devtools__')) {
+      if (ctx?.path?.includes('_devtools')) {
         return html;
       }
       if (html.includes(CLIENT_ENTRY_URL) || html.includes(VIRTUAL_CLIENT)) return html;

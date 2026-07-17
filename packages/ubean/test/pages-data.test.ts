@@ -299,10 +299,10 @@ describe('createInternalFetch', () => {
 
     try {
       const c = { req: { header: () => undefined } };
-      const internalFetch = createInternalFetch(c, { baseURL: 'http://localhost:3000' });
+      const internalFetch = createInternalFetch(c, { baseURL: 'http://localhost:9527' });
       internalFetch('/api/users');
 
-      expect(capturedUrl).toBe('http://localhost:3000/api/users');
+      expect(capturedUrl).toBe('http://localhost:9527/api/users');
     } finally {
       (globalThis as unknown as { fetch: typeof fetch }).fetch = originalFetch;
     }

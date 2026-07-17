@@ -15,6 +15,8 @@ export interface DevRunnerDevtoolsOptions {
   getCustomTabs?: () => Array<{ id: string; label: string; icon?: string; src: string; sandbox?: string[] }>;
   ai?: { apiKey?: string; apiBase?: string; model?: string };
   getApp?: () => { fetch: (req: Request) => Response | Promise<Response> } | undefined;
+  /** Trigger an immediate project rescan + app reload (used after CRUD file operations). */
+  triggerRescan?: () => void | Promise<void>;
 }
 
 export interface DevRunnerOptions {

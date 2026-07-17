@@ -22,6 +22,8 @@ export interface ScaffoldOptions {
   schedule?: string;
   force?: boolean;
   dry?: boolean;
+  /** Override the default base directory for this type (absolute or relative to cwd). */
+  baseDir?: string;
 }
 
 export interface ScaffoldResult {
@@ -43,7 +45,7 @@ function getDirForType(cwd: string, type: ScaffoldType): string {
     case 'reuse':
       return join(srcDir, 'pages');
     case 'api':
-      return join(srcDir, 'api');
+      return join(srcDir, 'routes');
     case 'layout':
       return join(srcDir, 'layouts');
     case 'middleware':
@@ -55,6 +57,11 @@ function getDirForType(cwd: string, type: ScaffoldType): string {
     default:
       return srcDir;
   }
+}
+
+/** Resolve a baseDir that may be relative or absolute into an absolute path. */
+function resolveBaseDir(cwd: string, baseDir: string): string {
+  return baseDir.startsWith('/') ? baseDir : join(cwd, baseDir);
 }
 
 function resolveTargetPath(baseDir: string, path: string, type: ScaffoldType): string {
@@ -209,7 +216,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   const result: ScaffoldResult = { created: [], deleted: [], restored: [], skipped: [], errors: [] };
 
   try {
-    const baseDir = getDirForType(cwd, options.type);
+    const baseDir = options.baseDir ? resolveBaseDir(cwd, options.baseDir) : getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
     const relativePath = targetPath.replace(`${cwd}/`, '');
 
@@ -244,13 +251,14 @@ export async function deleteScaffold(options: {
   path: string;
   force?: boolean;
   dry?: boolean;
+  baseDir?: string;
 }): Promise<ScaffoldResult> {
   const cwd = options.cwd || process.cwd();
   const fs = createFsOps(cwd);
   const result: ScaffoldResult = { created: [], deleted: [], restored: [], skipped: [], errors: [] };
 
   try {
-    const baseDir = getDirForType(cwd, options.type);
+    const baseDir = options.baseDir ? resolveBaseDir(cwd, options.baseDir) : getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
     const relativePath = targetPath.replace(`${cwd}/`, '');
 
@@ -284,13 +292,14 @@ export async function recoverScaffold(options: {
   type: ScaffoldType;
   path: string;
   dry?: boolean;
+  baseDir?: string;
 }): Promise<ScaffoldResult> {
   const cwd = options.cwd || process.cwd();
   const fs = createFsOps(cwd);
   const result: ScaffoldResult = { created: [], deleted: [], restored: [], skipped: [], errors: [] };
 
   try {
-    const baseDir = getDirForType(cwd, options.type);
+    const baseDir = options.baseDir ? resolveBaseDir(cwd, options.baseDir) : getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
     const relativePath = targetPath.replace(`${cwd}/`, '');
 
@@ -318,10 +327,10 @@ export async function recoverScaffold(options: {
   return result;
 }
 
-export async function listScaffoldableFiles(cwd: string, type: ScaffoldType): Promise<string[]> {
+export async function listScaffoldableFiles(cwd: string, type: ScaffoldType, baseDir?: string): Promise<string[]> {
   const fs = createFsOps(cwd);
-  const baseDir = getDirForType(cwd, type);
-  const relativeBase = baseDir.replace(`${cwd}/`, '');
+  const absBaseDir = baseDir ? resolveBaseDir(cwd, baseDir) : getDirForType(cwd, type);
+  const relativeBase = absBaseDir.replace(`${cwd}/`, '');
   const files = await fs.listFiles(relativeBase);
   return files.map(f => f.replace(`${cwd}/`, ''));
 }

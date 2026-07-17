@@ -241,7 +241,7 @@ describe('scaffold', () => {
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'ubean-scaffold-test-'));
     await mkdir(join(tmpDir, 'src', 'pages'), { recursive: true });
-    await mkdir(join(tmpDir, 'src', 'api'), { recursive: true });
+    await mkdir(join(tmpDir, 'src', 'routes'), { recursive: true });
     await mkdir(join(tmpDir, 'src', 'middleware'), { recursive: true });
     await mkdir(join(tmpDir, 'src', 'layouts'), { recursive: true });
     await mkdir(join(tmpDir, 'src', 'server', 'crons'), { recursive: true });
@@ -297,7 +297,7 @@ describe('scaffold', () => {
 
     expect(result.errors).toHaveLength(0);
     expect(result.created[0]).toContain('users.ts');
-    expect(result.created[0]).toContain('api');
+    expect(result.created[0]).toContain('routes');
   });
 
   it('creates middleware file', async () => {
@@ -373,7 +373,7 @@ describe('scaffold', () => {
   it('generated API content contains defineHandler', async () => {
     await scaffold({ cwd: tmpDir, type: 'api', path: 'users' });
     const fs = createFsOps(tmpDir);
-    const content = await fs.readFile('src/api/users.ts');
+    const content = await fs.readFile('src/routes/users.ts');
     expect(content).toContain('defineHandler');
   });
 
@@ -431,7 +431,7 @@ describe('scaffold', () => {
   it('deleteScaffold permanently removes with --force (no backup)', async () => {
     await scaffold({ cwd: tmpDir, type: 'api', path: 'users' });
     const fs = createFsOps(tmpDir);
-    expect(await fs.exists('src/api/users.ts')).toBe(true);
+    expect(await fs.exists('src/routes/users.ts')).toBe(true);
 
     const result = await deleteScaffold({
       cwd: tmpDir,
@@ -441,8 +441,8 @@ describe('scaffold', () => {
     });
 
     expect(result.deleted).toHaveLength(1);
-    expect(await fs.exists('src/api/users.ts')).toBe(false);
-    expect(await fs.exists('src/api/users.ts.bak')).toBe(false);
+    expect(await fs.exists('src/routes/users.ts')).toBe(false);
+    expect(await fs.exists('src/routes/users.ts.bak')).toBe(false);
   });
 
   it('deleteScaffold returns error for non-existent files', async () => {

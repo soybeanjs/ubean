@@ -53,6 +53,12 @@ export interface UbeanDevtoolsPluginOptions {
     model?: string;
   };
   /**
+   * Trigger an immediate project rescan + app reload. Called by the CRUD
+   * server after file create/update/delete so the DevTools list updates
+   * without waiting for the file watcher's debounce.
+   */
+  triggerRescan?: () => void | Promise<void>;
+  /**
    * The dev runner registers a refresh callback here. Whenever the app is
    * rebuilt (file change), the runner invokes it so the plugin can rebuild
    * `DevToolsInfo` from the latest scan data and push patches to clients
@@ -120,7 +126,13 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
             order: 65
           },
           { id: 'ubean:database', title: 'Database', icon: 'lucide:database', url: `${SPA_BASE}#/database`, order: 60 },
-          { id: 'ubean:terminal', title: 'Terminal', icon: 'lucide:square-terminal', url: `${SPA_BASE}#/terminal`, order: 58 },
+          {
+            id: 'ubean:terminal',
+            title: 'Terminal',
+            icon: 'lucide:square-terminal',
+            url: `${SPA_BASE}#/terminal`,
+            order: 58
+          },
           { id: 'ubean:ai', title: 'AI', icon: 'lucide:sparkles', url: `${SPA_BASE}#/ai`, order: 55 }
         ];
         for (const entry of dockEntries) {
@@ -195,12 +207,21 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
             Object.assign(envData, env);
           },
           getConfig: () => (options.getConfigMeta?.() ?? {}) as Record<string, unknown>,
-          onFileChange: undefined
+          onFileChange: async () => {
+            // Trigger an immediate rescan so the DevTools list updates
+            // without waiting for the file watcher's debounce. The rescan
+            // rebuilds the scan result, calls `updateApp()`, which calls
+            // `refreshDevtools()`, which pushes fresh data to clients via
+            // sharedState.
+            if (options.triggerRescan) {
+              await options.triggerRescan();
+            }
+          }
         });
         const ai: DevToolsAiServer = createAiServer(
           crud,
           () => state.value() as DevToolsInfo,
-          (chunk) => {
+          chunk => {
             // Push each chunk to the shared state — clients receive the
             // updated value via their `on('updated')` subscription.
             aiStreamState.mutate(() => chunk);
@@ -269,10 +290,7 @@ function parseEnvFile(filePath: string): Record<string, string> {
       value = value.slice(0, hashIndex).trim();
     }
     // Strip surrounding quotes.
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
+    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1);
     }
     env[key] = value;

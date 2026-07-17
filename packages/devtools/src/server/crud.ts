@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createFsOps, scaffold, deleteScaffold, recoverScaffold } from 'ubean';
 import type { ScaffoldType } from 'ubean';
@@ -26,6 +27,31 @@ interface CrudServerOptions {
 export function createCrudServer(options: CrudServerOptions) {
   const { cwd, hooks, getEnv, setEnv, getConfig, onFileChange } = options;
   const fs = createFsOps(cwd);
+
+  /**
+   * Determine the correct base directory for a scaffold type, taking the
+   * project's `dir` config into account.
+   *
+   * For the 'api' type:
+   *   1. Use `config.dir.routes` (default 'routes') as the primary directory.
+   *   2. If that directory doesn't exist under srcDir, fall back to 'routes'.
+   *
+   * For other types, the scaffold function's built-in defaults are used.
+   */
+  function getBaseDirForType(type: CrudResourceType): string | undefined {
+    if (type !== 'api') return undefined;
+    const config = getConfig?.() ?? {};
+    const dir = (config.dir ?? {}) as Record<string, string>;
+    const srcDir = (config.srcDir as string) || 'src';
+    const routesDir = dir.routes || 'routes';
+    // Check if the configured routes directory exists; fall back to 'routes'.
+    const primaryDir = join(srcDir, routesDir);
+    if (existsSync(join(cwd, primaryDir))) {
+      return primaryDir;
+    }
+    // Fallback: always use src/routes.
+    return join(srcDir, 'routes');
+  }
 
   function normalizeResult(scaffoldRes: Awaited<ReturnType<typeof scaffold>>): CrudResult {
     const hasErrors = scaffoldRes.errors && scaffoldRes.errors.length > 0;
@@ -56,13 +82,15 @@ export function createCrudServer(options: CrudServerOptions) {
       let result: CrudResult;
 
       if (SCAFFOLD_TYPE_SET.has(type)) {
+        const baseDir = getBaseDirForType(type);
         const scaffoldRes = await scaffold({
           cwd,
           type: type as ScaffoldType,
           path,
           method,
           force,
-          dry: false
+          dry: false,
+          ...(baseDir ? { baseDir } : {})
         });
 
         if (content && scaffoldRes.created && scaffoldRes.created.length > 0) {
@@ -282,12 +310,14 @@ export default definePlugin({
       } else if (!path) {
         result = { success: false, errors: ['Path is required for file delete'] };
       } else if (SCAFFOLD_TYPE_SET.has(type)) {
+        const baseDir = getBaseDirForType(type);
         const scaffoldRes = await deleteScaffold({
           cwd,
           type: type as ScaffoldType,
           path,
           force,
-          dry: false
+          dry: false,
+          ...(baseDir ? { baseDir } : {})
         });
         result = normalizeResult(scaffoldRes);
       } else if (type === 'cron' || type === 'plugin') {
@@ -326,11 +356,13 @@ export default definePlugin({
   async function restore(path: string): Promise<CrudResult> {
     try {
       for (const type of SCAFFOLD_TYPES) {
+        const baseDir = getBaseDirForType(type);
         const scaffoldRes = await recoverScaffold({
           cwd,
           type: type as ScaffoldType,
           path,
-          dry: false
+          dry: false,
+          ...(baseDir ? { baseDir } : {})
         });
         if (scaffoldRes.restored && scaffoldRes.restored.length > 0) {
           await notifyChange();

@@ -48,6 +48,12 @@ function handleDelete() {
     deleteTarget.value = null;
   }
 }
+
+/** Open a page route in a new browser tab (dev server URL). */
+function openRoute(path: string) {
+  const url = `${window.location.origin}${path}`;
+  window.open(url, '_blank');
+}
 </script>
 
 <template>
@@ -88,6 +94,13 @@ function handleDelete() {
             </span>
           </div>
           <span v-if="p.filePath" class="file-name" :title="p.filePath">{{ filePath(p.filePath) }}</span>
+          <button
+            class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer flex-shrink-0 ml-1"
+            title="Open route in browser"
+            @click.stop="openRoute(p.path)"
+          >
+            <SIcon icon="lucide:external-link" :size="12" />
+          </button>
           <button
             class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer flex-shrink-0 ml-1"
             title="Edit page properties (definePage)"

@@ -21,7 +21,14 @@ export const UBEAN_INFO_STATE_KEY = 'ubean:info';
  */
 export interface ScanResultLike {
   apiRoutes: Array<{ method?: string; route: string; relativePath: string; fullPath: string }>;
-  pages: Array<{ route: string; name: string; relativePath: string; fullPath: string; isReuse: boolean; layout?: string | false }>;
+  pages: Array<{
+    route: string;
+    name: string;
+    relativePath: string;
+    fullPath: string;
+    isReuse: boolean;
+    layout?: string | false;
+  }>;
   middlewares: Array<{ global: boolean; relativePath: string; fullPath: string }>;
   layouts: Array<{ name: string; path: string; relativePath: string; fullPath: string; isDefault: boolean }>;
   crons: Array<{ name: string; relativePath: string; fullPath: string }>;
@@ -34,6 +41,8 @@ export interface DevToolsConfigMeta {
   srcDir: string;
   openAPI?: { enabled: boolean; scalarPath?: string; openAPIPath?: string };
   database?: { drizzleStudioAvailable?: boolean; studioUrl?: string };
+  /** Directory configuration for project structure (e.g. { routes: 'routes', pages: 'pages' }). */
+  dir?: Record<string, string>;
 }
 
 export interface BuildInfoOptions {
@@ -113,7 +122,8 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
       ? {
           preset: configMeta.preset,
           rootDir: configMeta.rootDir,
-          srcDir: configMeta.srcDir
+          srcDir: configMeta.srcDir,
+          dir: configMeta.dir
         }
       : {},
     env: maskSensitiveEnv(envData),
@@ -132,7 +142,12 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
     openAPI: configMeta?.openAPI ?? { enabled: false },
     database: configMeta?.database,
     ai: {
-      enabled: !!(ai?.apiKey || process.env.DEEPSEEK_API_KEY || process.env.UBEAN_AI_API_KEY || process.env.OPENAI_API_KEY),
+      enabled: !!(
+        ai?.apiKey ||
+        process.env.DEEPSEEK_API_KEY ||
+        process.env.UBEAN_AI_API_KEY ||
+        process.env.OPENAI_API_KEY
+      ),
       provider: ai?.apiBase?.includes('deepseek')
         ? 'deepseek'
         : ai?.apiBase?.includes('anthropic')

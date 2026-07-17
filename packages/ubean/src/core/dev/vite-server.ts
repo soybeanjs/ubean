@@ -134,6 +134,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       ...(devtoolsOpts?.getCustomTabs ? { getCustomTabs: devtoolsOpts.getCustomTabs } : {}),
       ...(devtoolsOpts?.ai ? { ai: devtoolsOpts.ai } : {}),
       ...(devtoolsOpts?.getApp ? { getApp: devtoolsOpts.getApp } : {}),
+      ...(devtoolsOpts?.triggerRescan ? { triggerRescan: devtoolsOpts.triggerRescan } : {}),
       registerRefresh: (fn: () => void) => {
         refreshDevtools = fn;
       }

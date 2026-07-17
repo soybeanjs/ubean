@@ -75,6 +75,28 @@ export const devCommand: CommandDef = {
     // immediately on startup (not only after the first file change).
     let { app: currentApp, layouts: currentLayouts, scanResult: currentScanResult } = await buildApp(cwd, config);
 
+    // Reusable rescan function — called by the file watcher AND by the
+    // DevTools plugin (via `triggerRescan`) after CRUD operations so the
+    // DevTools list updates immediately without waiting for the watcher's
+    // debounce.
+    let rescanInProgress = false;
+    async function rescan() {
+      if (rescanInProgress) return;
+      rescanInProgress = true;
+      try {
+        const { app: newApp, layouts: newLayouts, scanResult } = await buildApp(cwd, config);
+        currentApp = newApp;
+        currentLayouts = newLayouts;
+        currentScanResult = scanResult;
+        runner.updateApp(currentApp, currentLayouts);
+        await runner.reload();
+      } catch (err) {
+        logger.error(`Rescan failed: ${err instanceof Error ? err.message : String(err)}`);
+      } finally {
+        rescanInProgress = false;
+      }
+    }
+
     const runner = await createDevRunner({
       cwd,
       srcDir: config.srcDir,
@@ -98,9 +120,11 @@ export const devCommand: CommandDef = {
             enabled: true,
             scalarPath: '/_scalar',
             openAPIPath: '/_openapi.json'
-          }
+          },
+          dir: config.dir
         }),
-        getCustomTabs: () => getCustomTabs()
+        getCustomTabs: () => getCustomTabs(),
+        triggerRescan: () => rescan()
         // AI config is sourced from env vars (UBEAN_AI_API_KEY / OPENAI_API_KEY)
         // inside the plugin's `buildDevToolsInfo`.
       },
@@ -153,17 +177,7 @@ export const devCommand: CommandDef = {
         if (relevantEvents.length === 0) return;
 
         logger.info(`File change detected: ${relevantEvents[0].relativePath}`);
-
-        try {
-          const { app: newApp, layouts: newLayouts, scanResult } = await buildApp(cwd, config);
-          currentApp = newApp;
-          currentLayouts = newLayouts;
-          currentScanResult = scanResult;
-          runner.updateApp(currentApp, currentLayouts);
-          await runner.reload();
-        } catch (err) {
-          logger.error(`Reload failed: ${err instanceof Error ? err.message : String(err)}`);
-        }
+        await rescan();
       }
     });
 

@@ -88,13 +88,7 @@ export function toCamelCase(str: string): string {
   return pascal.charAt(0).toLowerCase() + pascal.slice(1);
 }
 
-export const PAGE_TEMPLATE = `<template>
-  <div class="{{kebabName}}-page">
-    <h1>{{name}}</h1>
-  </div>
-</template>
-
-<script setup lang="ts">
+export const PAGE_TEMPLATE = `<script setup lang="ts">
 definePage({
   meta: {
     title: '{{name}}'
@@ -102,11 +96,12 @@ definePage({
 });
 </script>
 
-<style scoped>
-.{{kebabName}}-page {
-  padding: 1rem;
-}
-</style>
+<template>
+  <div>
+    <div>{{name}}</div>
+  </div>
+</template>
+
 `;
 
 export const API_TEMPLATE = `import { defineHandler } from 'ubean';
@@ -124,23 +119,14 @@ export default defineMiddleware(async (c, next) => {
 });
 `;
 
-export const LAYOUT_TEMPLATE = `<template>
+export const LAYOUT_TEMPLATE = `
+<script setup lang="ts"></script>
+
+<template>
   <div class="{{kebabName}}-layout">
     <slot />
   </div>
 </template>
-
-<script setup lang="ts">
-definePage({
-  layout: false
-});
-</script>
-
-<style scoped>
-.{{kebabName}}-layout {
-  min-height: 100vh;
-}
-</style>
 `;
 
 export const CRON_TEMPLATE = `import { defineScheduled } from 'ubean';

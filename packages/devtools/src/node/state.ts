@@ -5,7 +5,7 @@
  * `DevToolsInfo` snapshot and pushes patches to all connected clients
  * via `ctx.rpc.sharedState`.
  */
-import { relative } from 'node:path';
+import { relative, join } from 'node:path';
 import type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
 import type { SharedState } from 'devframe/utils/shared-state';
 import { maskSensitiveEnv } from '../shared/env';
@@ -58,23 +58,39 @@ export interface BuildInfoOptions {
 export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
   const { scan, configMeta, customTabs, ai, startTime, envData } = opts;
 
-  // Compute file paths relative to rootDir so the CRUD server (which resolves
-  // paths against cwd=rootDir) can correctly locate files. The scan result's
-  // `relativePath` is relative to the subdirectory (e.g. src/pages/), not
-  // rootDir, so we use `fullPath` and make it relative to rootDir instead.
   const rootDir = configMeta?.rootDir || '';
-  const toRootRelative = (fullPath: string): string => {
+  const srcDir = configMeta?.srcDir || (rootDir ? join(rootDir, 'src') : 'src');
+  const dirs = configMeta?.dir ?? {};
+
+  const srcRel = rootDir ? relative(rootDir, srcDir).replace(/\\/g, '/') || 'src' : 'src';
+
+  const routesDir = dirs.routes || 'routes';
+  const pagesDir = dirs.pages || 'pages';
+  const middlewareDir = dirs.middleware || 'middleware';
+  const layoutsDir = dirs.layouts || 'layouts';
+  const cronsDir = dirs.crons || 'crons';
+
+  const routesPrefix = `${srcRel}/${routesDir}`;
+  const pagesPrefix = `${srcRel}/${pagesDir}`;
+  const middlewarePrefix = `${srcRel}/${middlewareDir}`;
+  const layoutsPrefix = `${srcRel}/${layoutsDir}`;
+  const cronsPrefix = `${srcRel}/${cronsDir}`;
+
+  const makeFilePath = (fullPath: string, relPath: string, prefix: string): string => {
     if (!fullPath) return '';
-    // Both paths are absolute; result is like "src/pages/index.vue".
-    const rel = relative(rootDir, fullPath).replace(/\\/g, '/');
-    return rel || fullPath;
+    if (rootDir) {
+      const rel = relative(rootDir, fullPath).replace(/\\/g, '/');
+      if (rel && !rel.startsWith('..')) return rel;
+    }
+    const normalized = relPath.replace(/\\/g, '/');
+    return `${prefix}/${normalized}`;
   };
 
   const routes = scan
     ? scan.apiRoutes.map(r => ({
         method: (r.method || 'GET').toUpperCase(),
         path: r.route,
-        filePath: toRootRelative(r.fullPath)
+        filePath: makeFilePath(r.fullPath, r.relativePath, routesPrefix)
       }))
     : [];
 
@@ -86,7 +102,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
         .map(p => ({
           path: p.route,
           name: p.name,
-          filePath: toRootRelative(p.fullPath),
+          filePath: makeFilePath(p.fullPath, p.relativePath, pagesPrefix),
           layout: p.layout === false ? undefined : p.layout || defaultLayoutName || undefined
         }))
     : [];
@@ -94,7 +110,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
   const middlewaresList = scan
     ? scan.middlewares.map(m => ({
         path: m.global ? '*' : m.relativePath,
-        filePath: toRootRelative(m.fullPath),
+        filePath: makeFilePath(m.fullPath, m.relativePath, middlewarePrefix),
         global: m.global
       }))
     : [];
@@ -103,7 +119,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
     ? scan.layouts.map(l => ({
         name: l.name,
         path: l.path,
-        filePath: toRootRelative(l.fullPath),
+        filePath: makeFilePath(l.fullPath, l.relativePath, layoutsPrefix),
         isDefault: l.isDefault
       }))
     : [];
@@ -111,7 +127,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
   const cronsList = scan
     ? scan.crons.map(c => ({
         name: c.name,
-        filePath: toRootRelative(c.fullPath)
+        filePath: makeFilePath(c.fullPath, c.relativePath, cronsPrefix)
       }))
     : [];
 

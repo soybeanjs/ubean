@@ -3,10 +3,10 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { SConfigProvider, SIcon } from '@soybeanjs/ui';
 import { useRpc } from './composables/useRpc';
 import type { CrudResourceType } from './composables/useRpc';
-import FloatingAiButton from './components/FloatingAiButton.vue';
 import CreateDialog from './components/CreateDialog.vue';
 import EditDialog from './components/EditDialog.vue';
 import EnvEditDialog from './components/EnvEditDialog.vue';
+import FloatingAiButton from './components/FloatingAiButton.vue';
 import PageMetaDialog from './components/PageMetaDialog.vue';
 import AiAssistant from './views/AiAssistant.vue';
 import ApiDocs from './views/ApiDocs.vue';
@@ -104,9 +104,7 @@ const currentResourceSummary = computed(() => {
     case 'overview':
       return `Project has ${i.pages} pages, ${i.apiRoutes} API routes, ${i.middleware} middleware, ${i.layouts} layouts, ${i.crons} cron jobs.`;
     case 'pages':
-      return pagesSubTab.value === 'layouts'
-        ? `${i.layouts} layouts available.`
-        : `${i.pages} pages available.`;
+      return pagesSubTab.value === 'layouts' ? `${i.layouts} layouts available.` : `${i.pages} pages available.`;
     case 'api':
       return apiSubTab.value === 'playground'
         ? `${i.apiRoutes} API routes available to test.`
@@ -192,8 +190,13 @@ const editResourceType = ref<CrudResourceType>('page');
 const editTitle = ref('');
 const editLanguage = ref<'vue' | 'typescript' | 'json' | 'text'>('typescript');
 
-function openEditDialog(filePath: string, type: CrudResourceType, title: string, lang?: 'vue' | 'typescript' | 'json' | 'text') {
-  editFilePath.value = filePath;
+function openEditDialog(
+  _filePath: string,
+  type: CrudResourceType,
+  title: string,
+  lang?: 'vue' | 'typescript' | 'json' | 'text'
+) {
+  editFilePath.value = _filePath;
   editResourceType.value = type;
   editTitle.value = title;
   editLanguage.value = lang || 'typescript';

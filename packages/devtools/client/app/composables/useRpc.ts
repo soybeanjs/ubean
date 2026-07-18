@@ -467,10 +467,10 @@ export function useRpc() {
   function filePath(p?: string): string {
     if (!p) return '';
     const parts = p.split('/');
-    if (parts.length > 4) {
-      return `.../${parts.slice(-3).join('/')}`;
-    }
-    return p;
+    if (parts.length <= 5) return p;
+    const prefix = parts.slice(0, 3).join('/');
+    const suffix = parts.slice(-2).join('/');
+    return `${prefix}/…/${suffix}`;
   }
 
   function methodClass(method: string): string {

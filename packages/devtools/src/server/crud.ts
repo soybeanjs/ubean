@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve, isAbsolute } from 'node:path';
 import { createFsOps, scaffold, deleteScaffold, recoverScaffold } from 'ubean';
 import type { ScaffoldType } from 'ubean';
 import type {
@@ -30,11 +30,11 @@ export function createCrudServer(options: CrudServerOptions) {
 
   /**
    * Determine the correct base directory for a scaffold type, taking the
-   * project's `dir` config into account.
+   * project's `dir` config into account. Returns an absolute path.
    *
    * For the 'api' type:
-   *   1. Use `config.dir.routes` (default 'routes') as the primary directory.
-   *   2. If that directory doesn't exist under srcDir, fall back to 'routes'.
+   *   1. Use `config.dir.routes` (default 'routes') relative to srcDir.
+   *   2. If that directory doesn't exist, fall back to src/routes.
    *
    * For other types, the scaffold function's built-in defaults are used.
    */
@@ -42,15 +42,18 @@ export function createCrudServer(options: CrudServerOptions) {
     if (type !== 'api') return undefined;
     const config = getConfig?.() ?? {};
     const dir = (config.dir ?? {}) as Record<string, string>;
-    const srcDir = (config.srcDir as string) || 'src';
+    const rawSrcDir = (config.srcDir as string) || 'src';
+    const srcDir = isAbsolute(rawSrcDir) ? rawSrcDir : resolve(cwd, rawSrcDir);
     const routesDir = dir.routes || 'routes';
-    // Check if the configured routes directory exists; fall back to 'routes'.
     const primaryDir = join(srcDir, routesDir);
-    if (existsSync(join(cwd, primaryDir))) {
+    if (existsSync(primaryDir)) {
       return primaryDir;
     }
-    // Fallback: always use src/routes.
-    return join(srcDir, 'routes');
+    const fallbackDir = join(srcDir, 'routes');
+    if (existsSync(fallbackDir)) {
+      return fallbackDir;
+    }
+    return primaryDir;
   }
 
   function normalizeResult(scaffoldRes: Awaited<ReturnType<typeof scaffold>>): CrudResult {

@@ -22,7 +22,7 @@ const DEFAULT_PRERENDER_CONFIG: Required<PrerenderConfig> = {
   crawlLinks: true,
   concurrency: 4,
   failOnError: false,
-  staticDir: '.output/public'
+  staticDir: 'dist/public'
 };
 
 export function resolvePrerenderConfig(config?: PrerenderConfig): Required<PrerenderConfig> {

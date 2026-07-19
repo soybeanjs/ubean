@@ -29,7 +29,7 @@ export const cloudflarePreset = definePreset(
     entry: 'worker',
     exportConditions: ['workerd', 'worker'],
     build: {
-      outputDir: '.ubean/dist/cloudflare',
+      outputDir: 'dist/cloudflare',
       format: 'esm',
       minify: false,
       externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'cloudflare:workers'],
@@ -38,9 +38,9 @@ export const cloudflarePreset = definePreset(
       }
     },
     output: {
-      dir: '.ubean/dist/cloudflare',
-      serverDir: '.ubean/dist/cloudflare',
-      publicDir: '.ubean/dist/cloudflare/public'
+      dir: 'dist/cloudflare',
+      serverDir: 'dist/cloudflare',
+      publicDir: 'dist/cloudflare/public'
     },
     runtime: {
       entry: 'worker/index.mjs',
@@ -129,7 +129,7 @@ export function generateWranglerConfig(options: {
 }): WranglerConfig {
   const config: WranglerConfig = {
     name: options.name,
-    main: options.entry || '.ubean/dist/cloudflare/worker/index.mjs',
+    main: options.entry || 'dist/cloudflare/worker/index.mjs',
     compatibility_date: options.compatibilityDate || '2024-09-01',
     compatibility_flags: options.compatibilityFlags || ['nodejs_compat'],
     workers_dev: true,

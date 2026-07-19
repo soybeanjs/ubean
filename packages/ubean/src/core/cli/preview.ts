@@ -44,7 +44,7 @@ export const previewCommand: CommandDef = {
 
     logger.info(`Preset: ${preset.name}`);
 
-    const outputDir = config.build.outputDir || '.ubean/dist';
+    const outputDir = config.build.outputDir || 'dist';
 
     // Determine the server entry file based on the preset's entry type
     const presetName = preset.name;

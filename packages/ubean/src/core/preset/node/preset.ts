@@ -6,7 +6,7 @@ export const nodePreset = definePreset(
     extends: 'standard',
     capabilities: NODE_CAPABILITIES,
     build: {
-      outputDir: '.ubean/dist',
+      outputDir: 'dist',
       format: 'esm',
       externals: [
         'hono',
@@ -35,7 +35,7 @@ export const nodePreset = definePreset(
       port: 9527
     },
     commands: {
-      preview: 'node .ubean/dist/server/server.mjs'
+      preview: 'node dist/server/server.mjs'
     }
   },
   {

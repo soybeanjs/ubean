@@ -28,7 +28,7 @@ export default defineConfig({
 
   // Build options
   build: {
-    outDir: '.ubean/dist'
+    outDir: 'dist'
   },
 
   // View transitions

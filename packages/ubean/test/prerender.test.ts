@@ -197,7 +197,7 @@ describe('prerender function', () => {
 
   beforeEach(async () => {
     tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-run-'));
-    await mkdir(join(tmpDir, '.output', 'public'), { recursive: true });
+    await mkdir(join(tmpDir, 'dist', 'public'), { recursive: true });
   });
 
   afterEach(async () => {
@@ -226,7 +226,7 @@ describe('prerender function', () => {
     expect(result.errors).toHaveLength(0);
     expect(result.duration).toBeGreaterThanOrEqual(0);
 
-    const indexHtml = await readFile(join(tmpDir, '.output', 'public', 'index.html'), 'utf-8');
+    const indexHtml = await readFile(join(tmpDir, 'dist', 'public', 'index.html'), 'utf-8');
     expect(indexHtml).toContain('/');
   });
 
@@ -247,7 +247,7 @@ describe('prerender function', () => {
     expect(result.generated).toContain('/');
     expect(result.generated).toContain('/about');
 
-    const aboutHtml = await readFile(join(tmpDir, '.output', 'public', 'about', 'index.html'), 'utf-8');
+    const aboutHtml = await readFile(join(tmpDir, 'dist', 'public', 'about', 'index.html'), 'utf-8');
     expect(aboutHtml).toContain('Home');
   });
 

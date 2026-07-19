@@ -5,7 +5,7 @@ export const standardPreset = definePreset(
   {
     capabilities: STANDARD_CAPABILITIES,
     build: {
-      outputDir: '.ubean/dist',
+      outputDir: 'dist',
       format: 'esm',
       externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod']
     },

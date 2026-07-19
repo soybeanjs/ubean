@@ -147,7 +147,7 @@ export const GET = defineHandler(async c => {
         { route: '/api', expected: true },
         { route: '/_health', expected: true },
         { route: '/admin/dashboard', expected: true },
-        { route: '/admin', expected: true },
+        { route: '/admin', expected: false }, // /admin/* requires a segment after /admin/
         { route: '/private/secret/data', expected: true },
         { route: '/about', expected: false },
         { route: '/dashboard', expected: false }
@@ -618,17 +618,31 @@ export const GET = defineHandler(async c => {
     case 'concurrency': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-conc-'));
       try {
-        const mockPages = Array.from({ length: 10 }, (_, i) => ({
-          path: `/page-${i}`,
-          fullPath: `page-${i}.vue`,
-          relativePath: `page-${i}.vue`,
-          dirname: '.',
-          basename: `page-${i}.vue`,
-          name: `page-${i}`,
-          route: `/page-${i}`,
-          isReuse: false,
-          isMarkdown: false
-        }));
+        // Include '/' as first page so collectPrerenderRoutes doesn't auto-add it (would yield 11)
+        const mockPages = [
+          {
+            path: '/',
+            fullPath: 'index.vue',
+            relativePath: 'index.vue',
+            dirname: '.',
+            basename: 'index.vue',
+            name: 'index',
+            route: '/',
+            isReuse: false,
+            isMarkdown: false
+          },
+          ...Array.from({ length: 9 }, (_, i) => ({
+            path: `/page-${i}`,
+            fullPath: `page-${i}.vue`,
+            relativePath: `page-${i}.vue`,
+            dirname: '.',
+            basename: `page-${i}.vue`,
+            name: `page-${i}`,
+            route: `/page-${i}`,
+            isReuse: false,
+            isMarkdown: false
+          }))
+        ];
 
         let maxConcurrent = 0;
         let currentConcurrent = 0;

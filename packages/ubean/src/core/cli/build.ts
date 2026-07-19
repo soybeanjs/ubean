@@ -1,12 +1,56 @@
 import type { CommandDef } from 'citty';
 import { resolve } from 'pathe';
+import { pathToFileURL } from 'node:url';
 import { loadUbeanConfig } from '../config/loader';
-import { buildProduction } from '../build/vite/build';
+import { buildProduction, type BuildManifest } from '../build/vite/build';
 import { generateTypes } from '../codegen';
 import { logger } from '../log';
 import { prerender } from '../prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '../preset';
 import { scanProject } from '../routing/scan';
+
+/**
+ * Creates a fetcher that invokes the built SSR entry to render real HTML.
+ * Inspired by void's Node prerender runner: import the built `entry.mjs`,
+ * call its `createFetchHandler()` to obtain a `fetch(req)` function, then
+ * drive it with synthetic `http://localhost<path>` requests.
+ *
+ * If the SSR entry cannot be loaded (e.g. missing dependencies), returns
+ * `undefined` so the caller falls back to the existing placeholder behavior.
+ */
+async function createSsrFetcher(
+  cwd: string,
+  manifest: BuildManifest
+): Promise<((url: string) => Promise<{ html: string; statusCode: number }>) | undefined> {
+  try {
+    const entryPath = resolve(cwd, manifest.serverDir, 'entry.mjs');
+    const entryUrl = pathToFileURL(entryPath).href;
+    const mod = await import(entryUrl);
+    const createFetchHandler = mod.default ?? mod.createFetchHandler;
+    if (typeof createFetchHandler !== 'function') {
+      logger.warn('SSR entry does not export createFetchHandler; falling back to placeholder prerender.');
+      return undefined;
+    }
+    const fetch = await createFetchHandler();
+    if (typeof fetch !== 'function') {
+      logger.warn('SSR entry did not return a fetch handler; falling back to placeholder prerender.');
+      return undefined;
+    }
+    return async (url: string) => {
+      const req = new Request(`http://localhost${url || '/'}`, {
+        headers: { 'x-ubean-prerender': '1' }
+      });
+      const res = await fetch(req);
+      const html = typeof res.text === 'function' ? await res.text() : String(res.body ?? '');
+      return { html, statusCode: res.status ?? 200 };
+    };
+  } catch (err) {
+    logger.warn(
+      `Failed to load SSR entry for prerender: ${err instanceof Error ? err.message : String(err)}. Falling back to placeholder prerender.`
+    );
+    return undefined;
+  }
+}
 
 export const buildCommand: CommandDef = {
   meta: {
@@ -97,12 +141,14 @@ export const buildCommand: CommandDef = {
     const shouldPrerender = args.prerender ?? config.prerender.enabled;
     if (shouldPrerender) {
       logger.info('Prerendering static pages...');
+      const fetcher = await createSsrFetcher(cwd, manifest);
       await prerender({
         cwd,
         outputDir: config.build.outputDir,
         pages: result.pages,
         routeRules: config.routeRules,
-        prerender: config.prerender
+        prerender: config.prerender,
+        fetcher
       });
     }
 

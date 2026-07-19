@@ -31,7 +31,7 @@ function createTestConfig(
     },
     dev: { port: 9527, host: 'localhost', open: false },
     preview: { port: 9725, host: 'localhost', strictPort: false },
-    build: { preset: 'node', outputDir: '.ubean/dist', minify: true, sourcemap: false },
+    build: { preset: 'node', outputDir: 'dist', minify: true, sourcemap: false },
     markdown: {
       enabled: true,
       mdx: false,
@@ -58,7 +58,7 @@ function createTestConfig(
       crawlLinks: true,
       concurrency: 4,
       failOnError: false,
-      staticDir: '.output/public'
+      staticDir: 'dist/public'
     },
     scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] }
   };

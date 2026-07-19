@@ -172,6 +172,22 @@ export class UbeanApp {
 
     await this.hooks.callHook('app:before:register', this.hono);
 
+    // Register the static file middleware BEFORE route handlers so that
+    // prerendered HTML files (e.g. dist/public/about/index.html) are served
+    // directly instead of re-rendering through SSR. `serveStatic` already
+    // skips `/api/*` and `/_*` paths, so API and built-in routes are unaffected.
+    // Files that don't exist fall through to `next()` and hit the SSR handler.
+    if (this.options.publicDir) {
+      const publicDir = isAbsolute(this.options.publicDir)
+        ? this.options.publicDir
+        : this.options.rootDir
+          ? join(this.options.rootDir, this.options.publicDir)
+          : this.options.publicDir;
+      if (existsSync(publicDir)) {
+        this.hono.use('/*', serveStatic({ publicDir }));
+      }
+    }
+
     await registerRoutes(this, {
       routes: this.options.routes || [],
       middleware: this.options.middleware || [],
@@ -184,17 +200,6 @@ export class UbeanApp {
       pageAssetTags: this.options.pageAssetTags ?? {},
       i18nConfig: this.options.i18nConfig
     });
-
-    if (this.options.publicDir) {
-      const publicDir = isAbsolute(this.options.publicDir)
-        ? this.options.publicDir
-        : this.options.rootDir
-          ? join(this.options.rootDir, this.options.publicDir)
-          : this.options.publicDir;
-      if (existsSync(publicDir)) {
-        this.hono.use('/*', serveStatic({ publicDir }));
-      }
-    }
 
     if (this.options.openAPI) {
       const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};

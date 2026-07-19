@@ -143,7 +143,7 @@ async function generateVirtualModulesToDisk(
   const layoutsGlob = JSON.stringify(`${viteSrcPrefix}/layouts/**/*.{vue,ts}`);
   // Point publicDir to the build output (not the source public/) so preview
   // serves the compiled client assets and copied static files.
-  const outputDir = config.build.outputDir || '.ubean/dist';
+  const outputDir = config.build.outputDir || 'dist';
   const publicDir = toVitePath(resolve(cwd, outputDir, 'public'));
 
   // Serialize scanned route/middleware/page/layout metadata so the production

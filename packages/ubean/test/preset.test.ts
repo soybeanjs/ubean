@@ -78,7 +78,7 @@ describe('generateWranglerConfig', () => {
   it('generates minimal config with name', () => {
     const config = generateWranglerConfig({ name: 'my-app' });
     expect(config.name).toBe('my-app');
-    expect(config.main).toBe('.ubean/dist/cloudflare/worker/index.mjs');
+    expect(config.main).toBe('dist/cloudflare/worker/index.mjs');
     expect(config.compatibility_date).toBe('2024-09-01');
     expect(config.compatibility_flags).toContain('nodejs_compat');
     expect(config.workers_dev).toBe(true);

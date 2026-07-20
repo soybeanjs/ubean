@@ -5,16 +5,14 @@
  * output buffering. The client polls for output via `ubean:terminal:poll`.
  */
 import { defineRpcFunction } from '@vitejs/devtools-kit';
-import type { TerminalServer } from '../../server/terminal';
-import type { TerminalStartParams, TerminalPollResult } from '../../server/terminal';
+import type { TerminalServer, TerminalStartParams, TerminalPollResult } from '../../server/terminal';
 
 export function createTerminalRpcFunctions(terminal: TerminalServer) {
   const terminalStart = defineRpcFunction({
     name: 'ubean:terminal:start',
     type: 'action',
     setup: () => ({
-      handler: (params: TerminalStartParams) =>
-        Promise.resolve(terminal.start(params))
+      handler: (params: TerminalStartParams) => Promise.resolve(terminal.start(params))
     })
   });
 
@@ -49,8 +47,7 @@ export function createTerminalRpcFunctions(terminal: TerminalServer) {
     name: 'ubean:terminal:kill',
     type: 'action',
     setup: () => ({
-      handler: (params: { sessionId: string }) =>
-        Promise.resolve(terminal.kill(params.sessionId))
+      handler: (params: { sessionId: string }) => Promise.resolve(terminal.kill(params.sessionId))
     })
   });
 

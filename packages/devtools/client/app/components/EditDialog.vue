@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
-import CodeEditor from './CodeEditor.vue';
 import type { CrudResourceType, CrudResult } from '../composables/useRpc';
+import CodeEditor from './CodeEditor.vue';
 
 const props = defineProps<{
   open: boolean;
@@ -11,10 +11,7 @@ const props = defineProps<{
   title?: string;
   language?: 'vue' | 'typescript' | 'ts' | 'javascript' | 'js' | 'json' | 'text';
   onRead: (type: CrudResourceType, path: string) => Promise<{ success: boolean; content?: string; error?: string }>;
-  onSave: (
-    type: CrudResourceType,
-    options: { path?: string; content?: string }
-  ) => Promise<CrudResult>;
+  onSave: (type: CrudResourceType, options: { path?: string; content?: string }) => Promise<CrudResult>;
 }>();
 
 const emit = defineEmits<{
@@ -115,7 +112,10 @@ async function handleSave() {
             <div class="size-5 border-2 border-muted border-t-primary rounded-full animate-spin"></div>
             <span class="ml-2 text-xs text-muted-foreground">Loading...</span>
           </div>
-          <div v-else-if="errorMsg && !content" class="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20">
+          <div
+            v-else-if="errorMsg && !content"
+            class="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20"
+          >
             <SIcon icon="lucide:alert-circle" :size="13" class="flex-shrink-0" />
             {{ errorMsg }}
           </div>
@@ -123,14 +123,16 @@ async function handleSave() {
             v-else
             v-model="content"
             :language="language || 'typescript'"
-            :height="'calc(85vh - 160px)'"
+            height="calc(85vh - 160px)"
             label="Source"
           />
         </div>
 
         <!-- Error (when content loaded but save failed) -->
         <div v-if="errorMsg && content && !loading" class="px-4 pb-2 flex-shrink-0">
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20">
+          <div
+            class="flex items-center gap-2 px-3 py-2 rounded-lg bg-destructive/10 text-destructive text-xs border border-destructive/20"
+          >
             <SIcon icon="lucide:alert-circle" :size="13" class="flex-shrink-0" />
             {{ errorMsg }}
           </div>

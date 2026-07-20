@@ -65,8 +65,7 @@ function openDrizzleStudio() {
           Drizzle Studio needs to be started separately. Run the command below and refresh:
         </div>
         <pre class="bg-secondary border border-base px-4 py-2.5 rounded-md font-mono text-xs text-foreground my-1">
-npx drizzle-kit studio</pre
-        >
+npx drizzle-kit studio</pre>
         <button
           class="mt-2 px-4.5 py-2 bg-primary border-none rounded-md text-primary-foreground text-sm font-medium cursor-pointer transition-all hover:bg-primary/90"
           @click="openInNewTab"

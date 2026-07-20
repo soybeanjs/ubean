@@ -539,10 +539,7 @@ describe('Prerender / SSG system', () => {
       try {
         // Include '/' as one of the 10 pages so collectPrerenderRoutes
         // doesn't auto-add it (which would yield 11 generated routes).
-        const pages = [
-          makePage('/'),
-          ...Array.from({ length: 9 }, (_, i) => makePage(`/page-${i}`))
-        ];
+        const pages = [makePage('/'), ...Array.from({ length: 9 }, (_, i) => makePage(`/page-${i}`))];
         let maxConcurrent = 0;
         let current = 0;
 

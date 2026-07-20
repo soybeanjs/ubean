@@ -12,7 +12,7 @@ import { createCrudServer } from '../server/crud';
 import type { DevToolsCrudServer } from '../server/crud';
 import { createTerminalServer } from '../server/terminal';
 import type { TerminalServer } from '../server/terminal';
-import type { DevToolsCustomTab, DevToolsInfo } from '../types';
+import type { DevToolsCustomTab, DevToolsInfo, DevToolsScaffoldOps } from '../types';
 import { createAllRpcFunctions } from './rpc';
 import {
   buildDevToolsInfo,
@@ -46,6 +46,12 @@ export interface UbeanDevtoolsPluginOptions {
   getConfigMeta?: () => DevToolsConfigMeta | null;
   /** Accessor for user-defined custom tabs (from `defineDevToolsTab`). */
   getCustomTabs?: () => DevToolsCustomTab[];
+  /**
+   * Scaffold operations injected by ubean so @ubean/devtools never has a
+   * hard runtime dependency on ubean. Provides fs ops + scaffold/delete/recover
+   * functions used by the CRUD server for file creation/deletion.
+   */
+  scaffoldOps?: DevToolsScaffoldOps;
   /** AI provider configuration forwarded to the AI server. */
   ai?: {
     apiKey?: string;
@@ -201,6 +207,7 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
         const crud: DevToolsCrudServer = createCrudServer({
           cwd: options.getCwd(),
           hooks,
+          scaffoldOps: options.scaffoldOps,
           getEnv: () => envData,
           setEnv: env => {
             Object.keys(envData).forEach(k => delete envData[k]);

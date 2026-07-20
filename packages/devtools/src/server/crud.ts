@@ -1,14 +1,16 @@
 import { existsSync } from 'node:fs';
 import { join, resolve, isAbsolute } from 'node:path';
-import { createFsOps, scaffold, deleteScaffold, recoverScaffold } from 'ubean';
-import type { ScaffoldType } from 'ubean';
 import type {
   CrudResult,
   CreateCrudParams,
   ReadCrudParams,
   UpdateCrudParams,
   DeleteCrudParams,
-  CrudResourceType
+  CrudResourceType,
+  DevToolsFsOps,
+  DevToolsScaffoldOps,
+  DevToolsScaffoldType,
+  ScaffoldResult
 } from '../types';
 import type { DevToolsHooksInstance } from './hooks';
 
@@ -22,11 +24,18 @@ interface CrudServerOptions {
   setEnv?: (env: Record<string, string>) => void;
   getConfig?: () => Record<string, unknown>;
   onFileChange?: () => void | Promise<void>;
+  scaffoldOps?: DevToolsScaffoldOps;
 }
 
 export function createCrudServer(options: CrudServerOptions) {
-  const { cwd, hooks, getEnv, setEnv, getConfig, onFileChange } = options;
-  const fs = createFsOps(cwd);
+  const { cwd, hooks, getEnv, setEnv, getConfig, onFileChange, scaffoldOps } = options;
+  if (!scaffoldOps) {
+    throw new Error(
+      '[ubean:devtools] scaffoldOps is required for CRUD server. ' +
+        'Make sure to pass scaffold functions via ubeanDevtoolsPlugin options.'
+    );
+  }
+  const fs: DevToolsFsOps = scaffoldOps.createFsOps(cwd);
 
   /**
    * Determine the correct base directory for a scaffold type, taking the
@@ -56,7 +65,7 @@ export function createCrudServer(options: CrudServerOptions) {
     return primaryDir;
   }
 
-  function normalizeResult(scaffoldRes: Awaited<ReturnType<typeof scaffold>>): CrudResult {
+  function normalizeResult(scaffoldRes: ScaffoldResult): CrudResult {
     const hasErrors = scaffoldRes.errors && scaffoldRes.errors.length > 0;
     return {
       success: !hasErrors,
@@ -86,9 +95,9 @@ export function createCrudServer(options: CrudServerOptions) {
 
       if (SCAFFOLD_TYPE_SET.has(type)) {
         const baseDir = getBaseDirForType(type);
-        const scaffoldRes = await scaffold({
+        const scaffoldRes = await scaffoldOps?.scaffold({
           cwd,
-          type: type as ScaffoldType,
+          type: type as DevToolsScaffoldType,
           path,
           method,
           force,
@@ -96,11 +105,11 @@ export function createCrudServer(options: CrudServerOptions) {
           ...(baseDir ? { baseDir } : {})
         });
 
-        if (content && scaffoldRes.created && scaffoldRes.created.length > 0) {
+        if (content && scaffoldRes?.created?.length) {
           await fs.writeFile(scaffoldRes.created[0], content);
         }
 
-        result = normalizeResult(scaffoldRes);
+        result = normalizeResult(scaffoldRes || ({} as ScaffoldResult));
       } else if (type === 'cron') {
         const cronDir = 'src/server/crons';
         const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
@@ -314,15 +323,15 @@ export default definePlugin({
         result = { success: false, errors: ['Path is required for file delete'] };
       } else if (SCAFFOLD_TYPE_SET.has(type)) {
         const baseDir = getBaseDirForType(type);
-        const scaffoldRes = await deleteScaffold({
+        const scaffoldRes = await scaffoldOps?.deleteScaffold({
           cwd,
-          type: type as ScaffoldType,
+          type: type as DevToolsScaffoldType,
           path,
           force,
           dry: false,
           ...(baseDir ? { baseDir } : {})
         });
-        result = normalizeResult(scaffoldRes);
+        result = normalizeResult(scaffoldRes || ({} as ScaffoldResult));
       } else if (type === 'cron' || type === 'plugin') {
         const fileExists = await fs.exists(path);
         if (!fileExists) {
@@ -360,14 +369,14 @@ export default definePlugin({
     try {
       for (const type of SCAFFOLD_TYPES) {
         const baseDir = getBaseDirForType(type);
-        const scaffoldRes = await recoverScaffold({
+        const scaffoldRes = await scaffoldOps?.recoverScaffold({
           cwd,
-          type: type as ScaffoldType,
+          type: type as DevToolsScaffoldType,
           path,
           dry: false,
           ...(baseDir ? { baseDir } : {})
         });
-        if (scaffoldRes.restored && scaffoldRes.restored.length > 0) {
+        if (scaffoldRes?.restored?.length) {
           await notifyChange();
           return normalizeResult(scaffoldRes);
         }

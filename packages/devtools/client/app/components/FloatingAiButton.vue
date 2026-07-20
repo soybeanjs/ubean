@@ -10,8 +10,8 @@
  */
 import { ref, nextTick, computed, watch } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
-import type { AiChatMessage, AiChatResponse, AiStreamChunk } from '../composables/useRpc';
 import { DEEPSEEK_API_BASE, DEEPSEEK_MODEL } from '../composables/useRpc';
+import type { AiChatMessage, AiChatResponse, AiStreamChunk } from '../composables/useRpc';
 
 const props = defineProps<{
   /** Current panel name (e.g. "Pages", "API Routes"). */
@@ -222,12 +222,12 @@ function handleKeydown(e: KeyboardEvent) {
 }
 
 // Reset conversation when the drawer is first opened.
-watch(drawerOpen, (open) => {
+watch(drawerOpen, open => {
   if (open && messages.value.length === 0) {
     messages.value = [
       {
         role: 'assistant',
-        content: `👋 Hi! I'm your ubean AI assistant.\n\nYou're on the **${props.panelContext}** panel. ${props.resourceSummary ? props.resourceSummary + '\n\n' : ''}Ask me to create, list, or delete resources, or any ubean-related question.`,
+        content: `👋 Hi! I'm your ubean AI assistant.\n\nYou're on the **${props.panelContext}** panel. ${props.resourceSummary ? `${props.resourceSummary}\n\n` : ''}Ask me to create, list, or delete resources, or any ubean-related question.`,
         timestamp: Date.now()
       }
     ];
@@ -235,17 +235,20 @@ watch(drawerOpen, (open) => {
 });
 
 // Update the welcome message when panel context changes (if conversation is empty).
-watch(() => props.panelContext, (ctx) => {
-  if (messages.value.length <= 1 && ctx) {
-    messages.value = [
-      {
-        role: 'assistant',
-        content: `👋 Hi! I'm your ubean AI assistant.\n\nYou're on the **${ctx}** panel. ${props.resourceSummary ? props.resourceSummary + '\n\n' : ''}Ask me to create, list, or delete resources, or any ubean-related question.`,
-        timestamp: Date.now()
-      }
-    ];
+watch(
+  () => props.panelContext,
+  ctx => {
+    if (messages.value.length <= 1 && ctx) {
+      messages.value = [
+        {
+          role: 'assistant',
+          content: `👋 Hi! I'm your ubean AI assistant.\n\nYou're on the **${ctx}** panel. ${props.resourceSummary ? `${props.resourceSummary}\n\n` : ''}Ask me to create, list, or delete resources, or any ubean-related question.`,
+          timestamp: Date.now()
+        }
+      ];
+    }
   }
-});
+);
 </script>
 
 <template>
@@ -281,7 +284,9 @@ watch(() => props.panelContext, (ctx) => {
               </div>
               <div class="flex flex-col">
                 <span class="text-xs font-semibold text-foreground">AI Assistant</span>
-                <span class="text-[9px] text-muted-foreground">{{ panelContext }}{{ resourceSummary ? ` · ${resourceSummary}` : '' }}</span>
+                <span class="text-[9px] text-muted-foreground">
+                  {{ panelContext }}{{ resourceSummary ? ` · ${resourceSummary}` : '' }}
+                </span>
               </div>
             </div>
             <div class="flex items-center gap-1">
@@ -345,7 +350,8 @@ watch(() => props.panelContext, (ctx) => {
               <SIcon icon="lucide:alert-circle" :size="12" class="mt-0.5 flex-shrink-0" />
               <span>
                 No API key configured. Simple commands work without LLM. For natural language chat, set
-                <code class="text-warning font-mono">DEEPSEEK_API_KEY</code> env var or configure in settings.
+                <code class="text-warning font-mono">DEEPSEEK_API_KEY</code>
+                env var or configure in settings.
               </span>
             </p>
           </div>
@@ -375,9 +381,18 @@ watch(() => props.panelContext, (ctx) => {
                     <div v-if="msg.content" class="whitespace-pre-wrap">{{ msg.content }}</div>
                     <!-- Typing indicator for empty streaming message -->
                     <div v-else-if="isLoading && idx === messages.length - 1" class="flex gap-1 py-0.5">
-                      <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 0ms"></span>
-                      <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 150ms"></span>
-                      <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 300ms"></span>
+                      <span
+                        class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
+                        style="animation-delay: 0ms"
+                      ></span>
+                      <span
+                        class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
+                        style="animation-delay: 150ms"
+                      ></span>
+                      <span
+                        class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
+                        style="animation-delay: 300ms"
+                      ></span>
                     </div>
                   </div>
 

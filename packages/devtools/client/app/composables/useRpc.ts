@@ -368,7 +368,7 @@ export function useRpc() {
       const streamState = await client.sharedState.get('ubean:ai:stream');
 
       // Filter by requestId so concurrent streams don't crosstalk.
-      const unsubscribe = streamState.on('updated', (value: AiStreamChunk) => {
+      const _unsubscribe = streamState.on('updated', (value: AiStreamChunk) => {
         if (value && value.requestId === requestId) {
           onChunk(value);
         }
@@ -382,7 +382,7 @@ export function useRpc() {
         });
         return response;
       } finally {
-        unsubscribe();
+        _unsubscribe();
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'AI stream failed';

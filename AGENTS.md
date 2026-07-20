@@ -227,12 +227,12 @@ ubean/
 
 ### Vue 运行时
 
-| API                                                                 | 说明                     |
+| API | 说明 |
 | ------------------------------------------------------------------- | ------------------------ | ------- | ----- | -------- | ------- |
-| `useRouter()` / `createUbeanRouter(options)`                        | 路由                     |
-| `useData(key, fetcher)` / `invalidateData(key)` / `invalidateAll()` | 页面数据                 |
-| `withViewTransition(fn)` / `supportsViewTransitions()`              | View Transitions         |
-| `<Link to="...">` / `<Head>`                                        | 全局注册组件（无需导入） |
+| `useRouter()` / `createUbeanRouter(options)` | 路由 |
+| `useData(key, fetcher)` / `invalidateData(key)` / `invalidateAll()` | 页面数据 |
+| `withViewTransition(fn)` / `supportsViewTransitions()` | View Transitions |
+| `<Link to="...">` / `<Head>` | 全局注册组件（无需导入） |
 | `<Comp client:load                                                  | idle                     | visible | media | only />` | Islands |
 
 ### Markdown

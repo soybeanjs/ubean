@@ -1,8 +1,9 @@
+import { pathToFileURL } from 'node:url';
 import type { CommandDef } from 'citty';
 import { resolve } from 'pathe';
-import { pathToFileURL } from 'node:url';
 import { loadUbeanConfig } from '../config/loader';
-import { buildProduction, type BuildManifest } from '../build/vite/build';
+import { buildProduction } from '../build/vite/build';
+import type { BuildManifest } from '../build/vite/build';
 import { generateTypes } from '../codegen';
 import { logger } from '../log';
 import { prerender } from '../prerender';

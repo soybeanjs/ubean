@@ -4,11 +4,13 @@ import { createServer as createViteServer } from 'vite';
 import type { Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
+import { createFsOps } from '../cli/shared/fs-ops';
 import { findAvailablePort } from '../utils/port';
 import { ubeanPlugin } from '../build/vite/plugin';
 import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '../vue/plugin';
 import { resolveModules } from '../modules';
 import type { UbeanApp } from '../../runtime/app';
+import { scaffold, deleteScaffold, recoverScaffold } from '../cli/page';
 import { ubeanIslandsPlugin } from '../islands/transform';
 import { logger } from '../log';
 import type { ScannedLayout } from '../routing/types';
@@ -129,6 +131,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     devtoolsPlugin = ubeanDevtoolsPlugin({
       getCwd: () => cwd,
       getApp: () => currentApp,
+      scaffoldOps: {
+        createFsOps,
+        scaffold,
+        deleteScaffold,
+        recoverScaffold
+      },
       ...(devtoolsOpts?.getScanResult ? { getScanResult: devtoolsOpts.getScanResult } : {}),
       ...(devtoolsOpts?.getConfigMeta ? { getConfigMeta: devtoolsOpts.getConfigMeta } : {}),
       ...(devtoolsOpts?.getCustomTabs ? { getCustomTabs: devtoolsOpts.getCustomTabs } : {}),

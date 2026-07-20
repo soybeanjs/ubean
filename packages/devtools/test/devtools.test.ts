@@ -28,17 +28,48 @@ function makeScanResult(): ScanResultLike {
       { method: 'post', route: '/api/users', relativePath: 'routes/users.ts', fullPath: '/project/src/routes/users.ts' }
     ],
     pages: [
-      { route: '/', name: 'Home', relativePath: 'pages/index.vue', fullPath: '/project/src/pages/index.vue', isReuse: false },
-      { route: '/about', name: 'About', relativePath: 'pages/about.vue', fullPath: '/project/src/pages/about.vue', isReuse: false, layout: 'default' },
-      { route: '/reuse-template', name: 'ReuseTemplate', relativePath: 'pages/reuse-template.reuse.vue', fullPath: '/project/src/pages/reuse-template.reuse.vue', isReuse: true }
+      {
+        route: '/',
+        name: 'Home',
+        relativePath: 'pages/index.vue',
+        fullPath: '/project/src/pages/index.vue',
+        isReuse: false
+      },
+      {
+        route: '/about',
+        name: 'About',
+        relativePath: 'pages/about.vue',
+        fullPath: '/project/src/pages/about.vue',
+        isReuse: false,
+        layout: 'default'
+      },
+      {
+        route: '/reuse-template',
+        name: 'ReuseTemplate',
+        relativePath: 'pages/reuse-template.reuse.vue',
+        fullPath: '/project/src/pages/reuse-template.reuse.vue',
+        isReuse: true
+      }
     ],
     middlewares: [
       { global: true, relativePath: 'middleware/global.ts', fullPath: '/project/src/middleware/global.ts' },
       { global: false, relativePath: 'middleware/admin/auth.ts', fullPath: '/project/src/middleware/admin/auth.ts' }
     ],
     layouts: [
-      { name: 'default', path: 'layouts/default.vue', relativePath: 'layouts/default.vue', fullPath: '/project/src/layouts/default.vue', isDefault: true },
-      { name: 'admin', path: 'layouts/admin.vue', relativePath: 'layouts/admin.vue', fullPath: '/project/src/layouts/admin.vue', isDefault: false }
+      {
+        name: 'default',
+        path: 'layouts/default.vue',
+        relativePath: 'layouts/default.vue',
+        fullPath: '/project/src/layouts/default.vue',
+        isDefault: true
+      },
+      {
+        name: 'admin',
+        path: 'layouts/admin.vue',
+        relativePath: 'layouts/admin.vue',
+        fullPath: '/project/src/layouts/admin.vue',
+        isDefault: false
+      }
     ],
     crons: [{ name: 'cleanup', relativePath: 'crons/01.cleanup.ts', fullPath: '/project/src/crons/01.cleanup.ts' }]
   };

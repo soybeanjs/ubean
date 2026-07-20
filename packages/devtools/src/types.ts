@@ -2,13 +2,15 @@
  * Shared devtools type contract.
  *
  * The host-facing contract types (the shapes `ubean`'s dev runner must build
- * to feed the RPC server, plus the iframe/client display types) live in
- * `ubean` itself so that `ubean` never depends on `@ubean/devtools`. This
- * file re-exports them and adds only package-internal types used solely
- * within `@ubean/devtools` server code.
+ * to feed the RPC server, plus the iframe/client display types) are imported
+ * from `ubean` using type-only imports (erased at compile time, no runtime
+ * circular dependency). All runtime dependencies on `ubean` (scaffold
+ * functions, fs ops) are injected via `UbeanDevtoolsPluginOptions` so
+ * `@ubean/devtools` never has a hard runtime import from `ubean`.
  */
 
-// Re-export the canonical contract types + runtime constants from ubean.
+// Type-only re-export of the canonical contract types from ubean.
+// These are erased at compile time and create NO runtime dependency.
 export type {
   DevToolsCustomTab,
   DevToolsInfo,
@@ -19,11 +21,9 @@ export type {
   DevToolsCronInfo,
   DevToolsOptions
 } from 'ubean';
-export { DEVTOOLS_MAGIC_KEY, DEVTOOLS_RPC_PATH, DEVTOOLS_IFRAME_PATH, DEVTOOLS_CLIENT_PATH } from 'ubean';
 
 // Local type-only bindings for use within package-internal interfaces and
-// module augmentation below. (A pure `export type { X } from ...` re-export
-// does not introduce a usable local name.)
+// module augmentation below.
 import type { DevToolsInfo } from 'ubean';
 import type { PlaygroundInvokeParams, PlaygroundInvokeResult } from './node/rpc/playground';
 import type { AiToolDefinition, AiChatResponse } from './server/ai';
@@ -161,3 +161,42 @@ export interface CrudHookContext {
 }
 
 export type CrudHookHandler = (ctx: CrudHookContext) => void | Promise<void>;
+
+// --- Scaffold injection types (runtime deps from ubean injected via options) ---
+
+export type DevToolsScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse';
+
+export interface ScaffoldResult {
+  created: string[];
+  deleted: string[];
+  restored: string[];
+  skipped: string[];
+  errors: string[];
+}
+
+export interface ScaffoldOptions {
+  cwd?: string;
+  type: DevToolsScaffoldType;
+  path: string;
+  method?: string;
+  force?: boolean;
+  dry?: boolean;
+  baseDir?: string;
+}
+
+export interface DevToolsFsOps {
+  exists: (path: string) => Promise<boolean>;
+  readFile: (path: string, enc?: BufferEncoding) => Promise<string>;
+  writeFile: (path: string, content: string, enc?: BufferEncoding) => Promise<void>;
+  remove: (path: string) => Promise<void>;
+  copyFile: (src: string, dest: string) => Promise<void>;
+  createBackup: (path: string, opts?: { backupSuffix?: string; removeOriginal?: boolean }) => Promise<string | null>;
+  removeBackup: (path: string, opts?: { backupSuffix?: string }) => Promise<void>;
+}
+
+export interface DevToolsScaffoldOps {
+  createFsOps: (cwd: string) => DevToolsFsOps;
+  scaffold: (opts: ScaffoldOptions) => Promise<ScaffoldResult>;
+  deleteScaffold: (opts: ScaffoldOptions) => Promise<ScaffoldResult>;
+  recoverScaffold: (opts: ScaffoldOptions) => Promise<ScaffoldResult>;
+}

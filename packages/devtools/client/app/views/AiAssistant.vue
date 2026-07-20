@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, nextTick, onMounted, computed } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
-import type { AiChatMessage, AiChatResponse, AiStreamChunk } from '../composables/useRpc';
 import { DEEPSEEK_API_BASE, DEEPSEEK_MODEL } from '../composables/useRpc';
+import type { AiChatMessage, AiChatResponse, AiStreamChunk } from '../composables/useRpc';
 
 const props = defineProps<{
   info: {
@@ -117,21 +117,17 @@ async function sendMessage(text?: string) {
     if (apiBase.value) opts.apiBase = apiBase.value;
     if (model.value) opts.model = model.value;
 
-    const response = await props.sendChatStream(
-      [...messages.value.slice(0, -1)],
-      opts,
-      (chunk: AiStreamChunk) => {
-        // Update the placeholder message in-place.
-        assistantMsg.content = chunk.text;
-        if (chunk.toolCalls) {
-          assistantMsg.toolCalls = chunk.toolCalls;
-        }
-        if (chunk.toolResults) {
-          assistantMsg.toolResults = chunk.toolResults;
-        }
-        scrollToBottom();
+    const response = await props.sendChatStream(messages.value.slice(0, -1), opts, (chunk: AiStreamChunk) => {
+      // Update the placeholder message in-place.
+      assistantMsg.content = chunk.text;
+      if (chunk.toolCalls) {
+        assistantMsg.toolCalls = chunk.toolCalls;
       }
-    );
+      if (chunk.toolResults) {
+        assistantMsg.toolResults = chunk.toolResults;
+      }
+      scrollToBottom();
+    });
 
     // Finalize with the response.
     assistantMsg.content = response.message.content;
@@ -235,10 +231,12 @@ onMounted(() => {
         <SIcon icon="lucide:alert-circle" :size="12" class="mt-0.5 flex-shrink-0" />
         <span>
           No API key configured. Set
-          <code class="text-warning font-mono">DEEPSEEK_API_KEY</code> env var (or
-          <code class="text-warning font-mono">UBEAN_AI_API_KEY</code> /
-          <code class="text-warning font-mono">OPENAI_API_KEY</code>) or configure in settings. Simple text commands
-          still work without LLM.
+          <code class="text-warning font-mono">DEEPSEEK_API_KEY</code>
+          env var (or
+          <code class="text-warning font-mono">UBEAN_AI_API_KEY</code>
+          /
+          <code class="text-warning font-mono">OPENAI_API_KEY</code>
+          ) or configure in settings. Simple text commands still work without LLM.
         </span>
       </p>
     </div>
@@ -264,9 +262,18 @@ onMounted(() => {
               <div v-if="msg.content" class="whitespace-pre-wrap">{{ msg.content }}</div>
               <!-- Typing indicator for empty streaming message -->
               <div v-else-if="isLoading && idx === messages.length - 1" class="flex gap-1 py-0.5">
-                <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 0ms"></span>
-                <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 150ms"></span>
-                <span class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce" style="animation-delay: 300ms"></span>
+                <span
+                  class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
+                  style="animation-delay: 0ms"
+                ></span>
+                <span
+                  class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
+                  style="animation-delay: 150ms"
+                ></span>
+                <span
+                  class="size-1.5 rounded-full bg-muted-foreground/40 animate-bounce"
+                  style="animation-delay: 300ms"
+                ></span>
               </div>
             </div>
             <div v-if="msg.toolCalls && msg.toolCalls.length > 0" class="space-y-1">

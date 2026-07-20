@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue';
 import { SIcon } from '@soybeanjs/ui';
-import { Terminal as XTermTerminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import { Terminal as XTermTerminal } from '@xterm/xterm';
 import type { TerminalStartParams, TerminalPollResult } from '../composables/useRpc';
 
 const props = defineProps<{
@@ -236,18 +236,11 @@ onUnmounted(() => {
     <div class="px-3.5 py-2 border-b border-base bg-background flex items-center gap-2 flex-shrink-0">
       <SIcon icon="lucide:square-terminal" :size="14" class="text-primary flex-shrink-0" />
       <span class="text-xs font-medium text-foreground flex-shrink-0">Terminal</span>
-      <span
-        v-if="cwd"
-        class="text-2xs text-muted-foreground font-mono truncate max-w-[280px] op-fade"
-        :title="cwd"
-      >
+      <span v-if="cwd" class="text-2xs text-muted-foreground font-mono truncate max-w-[280px] op-fade" :title="cwd">
         {{ cwd }}
       </span>
       <span class="ml-auto text-2xs text-muted-foreground flex-shrink-0 op-fade">
-        <span
-          class="inline-block size-1.5 rounded-full mr-1.5"
-          :class="isExited ? 'bg-destructive' : 'bg-success'"
-        />
+        <span class="inline-block size-1.5 rounded-full mr-1.5" :class="isExited ? 'bg-destructive' : 'bg-success'" />
         {{ statusText }}
       </span>
       <button

@@ -89,8 +89,12 @@ function syncHtmlLang(locale: string, dir: 'ltr' | 'rtl'): void {
   }
 }
 
-const { locale: hydratedLocale, dir: hydratedDir, messages: hydratedMessages, availableLocales: hydratedAvailable } =
-  hydrateLocale();
+const {
+  locale: hydratedLocale,
+  dir: hydratedDir,
+  messages: hydratedMessages,
+  availableLocales: hydratedAvailable
+} = hydrateLocale();
 if (hydratedLocale) {
   // Register all available locales from SSR-injected data so that
   // `availableLocales` matches the server during hydration (preventing
@@ -98,9 +102,7 @@ if (hydratedLocale) {
   // serialized by SSR; other locales get empty messages.
   if (hydratedAvailable && hydratedAvailable.length > 0) {
     // Register the default locale first so the fallback is set correctly.
-    const sorted = [...hydratedAvailable].sort(
-      (a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0)
-    );
+    const sorted = [...hydratedAvailable].sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0));
     for (const loc of sorted) {
       const isCurrent = loc.code === hydratedLocale;
       defineLocaleCore({

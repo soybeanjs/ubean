@@ -17,15 +17,16 @@ ubean init [options]
 ```
 
 **Options:**
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| --name | -n | Project name | Current directory name |
-| --template | -t | Project template | starter |
-| --preset | -p | Platform preset | standard |
-| --pm | - | Package manager | auto-detect |
-| --yes | -y | Skip interactive prompts | false |
-| --force | -f | Overwrite existing directory | false |
-| --git | - | Initialize git repository | false |
+
+| Option     | Short | Description                  | Default                |
+| ---------- | ----- | ---------------------------- | ---------------------- |
+| --name     | -n    | Project name                 | Current directory name |
+| --template | -t    | Project template             | starter                |
+| --preset   | -p    | Platform preset              | standard               |
+| --pm       | -     | Package manager              | auto-detect            |
+| --yes      | -y    | Skip interactive prompts     | false                  |
+| --force    | -f    | Overwrite existing directory | false                  |
+| --git      | -     | Initialize git repository    | false                  |
 
 **Templates:**
 
@@ -63,12 +64,13 @@ ubean dev [options]
 ```
 
 **Options:**
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| --port | -p | Server port | 5173 |
-| --host | - | Host to listen on | localhost |
-| --https | - | Enable HTTPS | false |
-| --open | - | Open browser on start | false |
+
+| Option  | Short | Description           | Default   |
+| ------- | ----- | --------------------- | --------- |
+| --port  | -p    | Server port           | 5173      |
+| --host  | -     | Host to listen on     | localhost |
+| --https | -     | Enable HTTPS          | false     |
+| --open  | -     | Open browser on start | false     |
 
 **Examples:**
 
@@ -94,11 +96,12 @@ ubean build [options]
 ```
 
 **Options:**
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| --preset | -p | Build preset | standard |
-| --clean | - | Clean output before build | false |
-| --sourcemap | - | Generate source maps | false |
+
+| Option      | Short | Description               | Default  |
+| ----------- | ----- | ------------------------- | -------- |
+| --preset    | -p    | Build preset              | standard |
+| --clean     | -     | Clean output before build | false    |
+| --sourcemap | -     | Generate source maps      | false    |
 
 **Examples:**
 
@@ -124,10 +127,11 @@ ubean preview [options]
 ```
 
 **Options:**
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| --port | -p | Preview port | 4173 |
-| --host | - | Host to listen on | localhost |
+
+| Option | Short | Description       | Default   |
+| ------ | ----- | ----------------- | --------- |
+| --port | -p    | Preview port      | 4173      |
+| --host | -     | Host to listen on | localhost |
 
 **Examples:**
 
@@ -150,10 +154,11 @@ ubean config [options]
 ```
 
 **Options:**
-| Option | Short | Description | Default |
-|--------|-------|-------------|---------|
-| --json | - | Output as JSON | false |
-| --env | - | Show environment variables | false |
+
+| Option | Short | Description                | Default |
+| ------ | ----- | -------------------------- | ------- |
+| --json | -     | Output as JSON             | false   |
+| --env  | -     | Show environment variables | false   |
 
 **Examples:**
 
@@ -179,8 +184,9 @@ ubean page <name>
 ```
 
 **Arguments:**
-| Argument | Description |
-|----------|-------------|
+
+| Argument | Description                            |
+| -------- | -------------------------------------- |
 | `<name>` | Page name (e.g., "about", "blog/post") |
 
 **Examples:**

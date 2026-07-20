@@ -1,33 +1,103 @@
 /**
- * Shared devtools type contract.
+ * DevTools type contract — all types are defined locally within `@ubean/devtools`
+ * so this package has ZERO dependency (compile-time or runtime) on `ubean`.
  *
- * The host-facing contract types (the shapes `ubean`'s dev runner must build
- * to feed the RPC server, plus the iframe/client display types) are imported
- * from `ubean` using type-only imports (erased at compile time, no runtime
- * circular dependency). All runtime dependencies on `ubean` (scaffold
- * functions, fs ops) are injected via `UbeanDevtoolsPluginOptions` so
- * `@ubean/devtools` never has a hard runtime import from `ubean`.
+ * The host (ubean) injects data conforming to these interfaces via
+ * `UbeanDevtoolsPluginOptions` (getScanResult, getConfigMeta, scaffoldOps, etc.)
+ * and type-only imports these types from `@ubean/devtools` for its own usage.
  */
 
-// Type-only re-export of the canonical contract types from ubean.
-// These are erased at compile time and create NO runtime dependency.
-export type {
-  DevToolsCustomTab,
-  DevToolsInfo,
-  DevToolsRouteInfo,
-  DevToolsPageInfo,
-  DevToolsMiddlewareInfo,
-  DevToolsLayoutInfo,
-  DevToolsCronInfo,
-  DevToolsOptions
-} from 'ubean';
-
-// Local type-only bindings for use within package-internal interfaces and
-// module augmentation below.
-import type { DevToolsInfo } from 'ubean';
 import type { PlaygroundInvokeParams, PlaygroundInvokeResult } from './node/rpc/playground';
 import type { AiToolDefinition, AiChatResponse } from './server/ai';
 import type { TerminalStartParams, TerminalPollResult } from './server/terminal';
+
+// ---------------------------------------------------------------------------
+// Host contract types — shapes the ubean dev runner must provide.
+// ---------------------------------------------------------------------------
+
+export interface DevToolsOptions {
+  enabled?: boolean;
+  port?: number;
+  host?: string;
+  ai?: {
+    apiKey?: string;
+    apiBase?: string;
+    model?: string;
+  };
+}
+
+export interface DevToolsRouteInfo {
+  method: string;
+  path: string;
+  filePath?: string;
+}
+
+export interface DevToolsPageInfo {
+  path: string;
+  name?: string;
+  filePath?: string;
+  layout?: string;
+}
+
+export interface DevToolsMiddlewareInfo {
+  path: string;
+  filePath?: string;
+  global: boolean;
+}
+
+export interface DevToolsCronInfo {
+  name: string;
+  schedule?: string;
+  filePath?: string;
+}
+
+export interface DevToolsLayoutInfo {
+  name: string;
+  path: string;
+  filePath?: string;
+  isDefault: boolean;
+}
+
+export interface DevToolsCustomTab {
+  id: string;
+  label: string;
+  icon?: string;
+  src: string;
+  sandbox?: string[];
+}
+
+export interface DevToolsInfo {
+  version: string;
+  startTime: number;
+  config: Record<string, unknown>;
+  env?: Record<string, string>;
+  pages: number;
+  apiRoutes: number;
+  middleware: number;
+  layouts?: number;
+  crons?: number;
+  presets?: string[];
+  routes?: DevToolsRouteInfo[];
+  pagesList?: DevToolsPageInfo[];
+  middlewaresList?: DevToolsMiddlewareInfo[];
+  layoutsList?: DevToolsLayoutInfo[];
+  cronsList?: DevToolsCronInfo[];
+  openAPI?: {
+    enabled: boolean;
+    scalarPath?: string;
+    openAPIPath?: string;
+  };
+  database?: {
+    drizzleStudioAvailable?: boolean;
+    studioUrl?: string;
+  };
+  ai?: {
+    enabled: boolean;
+    provider?: string;
+    model?: string;
+  };
+  customTabs?: DevToolsCustomTab[];
+}
 
 // ---------------------------------------------------------------------------
 // Module augmentation — registers ubean's RPC functions and shared-state keys

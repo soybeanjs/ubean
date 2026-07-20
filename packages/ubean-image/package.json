@@ -40,7 +40,7 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.39"
+    "vue": "^3.5.40"
   },
   "peerDependencies": {
     "vite": "^5.0.0 || ^6.0.0",

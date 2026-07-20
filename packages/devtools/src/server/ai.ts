@@ -1,3 +1,4 @@
+import type { ModelMessage, ToolSet } from 'ai';
 /**
  * AI server for ubean DevTools.
  *
@@ -57,7 +58,7 @@ export interface AiToolParam {
   type: 'string' | 'number' | 'boolean' | 'object' | 'array';
   description: string;
   enum?: string[];
-  items?: { type: string };
+  items?: { type: 'string' | 'number' | 'boolean' | 'object' | 'array' };
 }
 
 export interface AiChatOptions {
@@ -125,7 +126,7 @@ export function createAiServer(
   crud: DevToolsCrudServer,
   getInfo: () => DevToolsInfo,
   onStreamChunk?: (chunk: AiStreamChunk) => void
-): DevToolsAiServer {
+) {
   // ------------------------------------------------------------------
   // Tool definitions (used both for the AI SDK `tool()` helpers and for
   // the `ubean:ai:tools` RPC that exposes them to the client).
@@ -530,20 +531,20 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
   // Message conversion: AiChatMessage[] → AI SDK CoreMessage[]
   // ------------------------------------------------------------------
 
-  function convertToCoreMessages(messages: AiChatMessage[]): Array<Record<string, unknown>> {
+  function convertToCoreMessages(messages: AiChatMessage[]): ModelMessage[] {
     return messages
-      .filter(m => m.role !== 'tool' || m.toolCallId) // skip orphan tool messages
+      .filter(m => m.role !== 'tool' || m.toolCallId)
       .map(m => {
         if (m.role === 'assistant' && m.toolCalls?.length) {
           return {
             role: 'assistant',
             content: [
-              ...(m.content ? [{ type: 'text', text: m.content }] : []),
+              ...(m.content ? [{ type: 'text' as const, text: m.content }] : []),
               ...m.toolCalls.map(tc => ({
-                type: 'tool-call',
+                type: 'tool-call' as const,
                 toolCallId: tc.id,
                 toolName: tc.name,
-                args: tc.arguments
+                input: tc.arguments
               }))
             ]
           };
@@ -553,15 +554,18 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
             role: 'tool',
             content: [
               {
-                type: 'tool-result',
+                type: 'tool-result' as const,
                 toolCallId: m.toolCallId!,
                 toolName: 'tool',
-                result: m.content
+                output: {
+                  type: 'json' as const,
+                  value: typeof m.content === 'string' ? m.content : JSON.parse(m.content)
+                }
               }
             ]
           };
         }
-        return { role: m.role, content: m.content };
+        return { role: m.role, content: m.content } as ModelMessage;
       });
   }
 
@@ -569,31 +573,24 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
   // Build AI SDK tool map (with execute functions)
   // ------------------------------------------------------------------
 
-  async function buildAiSdkTools(): Promise<Record<string, unknown>> {
-    const { tool, jsonSchema } = await import('ai');
+  async function buildAiSdkTools(): Promise<ToolSet> {
+    const ai = await import('ai');
 
     const defs = getToolDefinitions();
     const tools: Record<string, unknown> = {};
 
     for (const def of defs) {
-      const exec = getToolExecutor(def.name);
-      tools[def.name] = tool({
+      tools[def.name] = ai.tool({
         description: def.description,
-        parameters: jsonSchema(def.parameters),
+        inputSchema: ai.jsonSchema(def.parameters),
         execute: async (args: Record<string, unknown>) => {
           const result = await executeToolCall({ id: nextToolId(), name: def.name, arguments: args });
           return result.error ? { error: result.error } : result.result;
         }
-      });
+      } as any);
     }
 
-    void exec; // executor mapping is done inside executeToolCall
-    return tools;
-  }
-
-  /** Map tool name → executor (all go through `executeToolCall`). */
-  function getToolExecutor(_name: string) {
-    return executeToolCall;
+    return tools as ToolSet;
   }
 
   // ------------------------------------------------------------------
@@ -657,7 +654,8 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
     }
 
     // 2. If an API key is available, use the AI SDK (streamText).
-    const resolvedApiKey = apiKey || process.env.DEEPSEEK_API_KEY || process.env.UBEAN_AI_API_KEY || process.env.OPENAI_API_KEY;
+    const resolvedApiKey =
+      apiKey || process.env.DEEPSEEK_API_KEY || process.env.UBEAN_AI_API_KEY || process.env.OPENAI_API_KEY;
     const resolvedApiBase = apiBase || process.env.UBEAN_AI_API_BASE || DEEPSEEK_API_BASE;
     const resolvedModel = model || process.env.UBEAN_AI_MODEL || DEEPSEEK_MODEL;
 
@@ -695,7 +693,9 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
   // LLM call via AI SDK (streamText with tool calling)
   // ------------------------------------------------------------------
 
-  async function callLlmApi(options: Required<Omit<AiChatOptions, 'requestId'>> & { requestId?: string }): Promise<AiChatResponse> {
+  async function callLlmApi(
+    options: Required<Omit<AiChatOptions, 'requestId'>> & { requestId?: string }
+  ): Promise<AiChatResponse> {
     const { messages, apiKey, apiBase, model, requestId } = options;
 
     // Dynamic import — makes `ai` and `@ai-sdk/openai-compatible` optional.
@@ -735,7 +735,7 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
         for await (const part of result.fullStream) {
           switch (part.type) {
             case 'text-delta':
-              accumulated += part.textDelta;
+              accumulated += part.text;
               // Throttle: push on word boundary or every ~5 chars
               onStreamChunk({ requestId, text: accumulated, done: false });
               break;
@@ -743,14 +743,14 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
               streamToolCalls.push({
                 id: part.toolCallId,
                 name: part.toolName,
-                arguments: part.args as Record<string, unknown>
+                arguments: part.input as Record<string, unknown>
               });
               onStreamChunk({ requestId, text: accumulated, done: false, toolCalls: [...streamToolCalls] });
               break;
             case 'tool-result':
               streamToolResults.push({
                 toolCallId: part.toolCallId,
-                result: part.result
+                result: part.output as unknown
               });
               onStreamChunk({
                 requestId,
@@ -785,16 +785,16 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
       // --- Non-streaming path: just await the full result ---
       try {
         for await (const _ of result.fullStream) {
-          if (_.type === 'text-delta') accumulated += _.textDelta;
+          if (_.type === 'text-delta') accumulated += _.text;
           if (_.type === 'tool-call') {
             streamToolCalls.push({
               id: _.toolCallId,
               name: _.toolName,
-              arguments: _.args as Record<string, unknown>
+              arguments: _.input as Record<string, unknown>
             });
           }
           if (_.type === 'tool-result') {
-            streamToolResults.push({ toolCallId: _.toolCallId, result: _.result });
+            streamToolResults.push({ toolCallId: _.toolCallId, result: _.output as unknown });
           }
           if (_.type === 'error') {
             streamError = _.error instanceof Error ? _.error.message : String(_.error);

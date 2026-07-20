@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile, rm, cp, readFile } from 'node:fs/promises';
 import { build as viteBuild } from 'vite';
+import type { Plugin as VitePlugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { join, resolve, relative } from 'pathe';
 import type { ResolvedConfig } from '../../config/types';
@@ -471,7 +472,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   logger.info('Generating virtual modules...');
   await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual);
 
-  const builtinPlugins: any[] = [
+  const builtinPlugins: VitePlugin[] = [
     vue({
       include: VUE_PLUGIN_INCLUDE,
       template: {
@@ -479,7 +480,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
           isCustomElement: (tag: string) => tag.startsWith('ubean-')
         }
       }
-    }),
+    }) as unknown as VitePlugin,
     ubeanPlugin({ config }),
     ...ubeanVuePlugin({ config }),
     ubeanIslandsPlugin()
@@ -535,7 +536,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     build: {
       outDir: outDirs.public,
       assetsDir: 'assets',
-      minify: minify ? 'esbuild' : false,
+      minify: minify ? 'oxc' : false,
       sourcemap,
       manifest: true,
       ssrManifest: true,

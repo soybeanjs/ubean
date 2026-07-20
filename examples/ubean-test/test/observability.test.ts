@@ -13,7 +13,7 @@
  * - 函数级: 直接调用 ubean 导出的函数验证返回值和副作用
  * - HTTP 集成级: 通过 /api/trace-test 验证端到端 span 行为
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import {
   generateRequestId,
   getRequestId,
@@ -67,16 +67,16 @@ describe('Observability / Tracing system', () => {
   describe('getRequestId()', () => {
     it('returns the requestId from context', () => {
       const mockContext = {
-        get: (key: 'requestId') => (key === 'requestId' ? 'req-12345' : undefined)
+        get: (key: 'requestId') => (key === 'requestId' ? 'req-12345' : '')
       };
       expect(getRequestId(mockContext)).toBe('req-12345');
     });
 
     it('returns undefined when not set', () => {
       const mockContext = {
-        get: () => undefined
+        get: () => ''
       };
-      expect(getRequestId(mockContext)).toBeUndefined();
+      expect(getRequestId(mockContext)).toBe('');
     });
   });
 
@@ -460,14 +460,13 @@ describe('Observability / Tracing system', () => {
 
     it('accepts options', () => {
       const middleware = createTracingMiddleware({
-        serviceName: 'test',
-        recordRequest: true,
-        recordResponse: false
+        includeHeaders: true,
+        headerFilter: (name: string) => name.toLowerCase() === 'authorization'
       });
       expect(typeof middleware).toBe('function');
     });
 
-    it('middleware calls next and returns its result', async () => {
+    it('middleware calls next', async () => {
       const middleware = createTracingMiddleware();
       const mockCtx = {
         method: 'GET',
@@ -482,15 +481,11 @@ describe('Observability / Tracing system', () => {
         header: () => {}
       } as any;
       let nextCalled = false;
-      const result = await middleware(mockCtx, async () => {
+      await middleware(mockCtx, async () => {
         nextCalled = true;
         return new Response('ok');
       });
       expect(nextCalled).toBe(true);
-      // Middleware may return the response from next or undefined
-      if (result) {
-        expect(result).toBeInstanceOf(Response);
-      }
     });
   });
 

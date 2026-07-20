@@ -415,7 +415,7 @@ describe('Typed client - createTypedRequestSender', () => {
       req: { header: () => undefined },
       get: () => undefined,
       set: () => {}
-    };
+    } as any;
     const sender = createTypedRequestSender<paths>(mockContext);
     expect(typeof sender).toBe('function');
   });
@@ -431,7 +431,7 @@ describe('Typed client - createTypedRequestSender', () => {
       req: { header: (name: string) => (name === 'cookie' ? 'session=abc' : undefined) },
       get: () => undefined,
       set: () => {}
-    };
+    } as any;
     const sender = createTypedRequestSender<paths>(mockContext);
     await sender('/api/users/{id}', 'get', {
       params: { path: { id: '1' } }
@@ -451,7 +451,7 @@ describe('Typed client - createTypedRequestSender', () => {
       req: { header: () => undefined },
       get: () => undefined,
       set: () => {}
-    };
+    } as any;
     const sender = createTypedRequestSender<paths>(mockContext);
     await sender('/api/users/{id}', 'get', {
       params: { path: { id: '99' } }

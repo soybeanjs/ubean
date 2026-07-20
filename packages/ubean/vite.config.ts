@@ -34,7 +34,6 @@ export default defineConfig({
       'src/core/codegen/index.ts',
       'src/core/preset/index.ts'
     ],
-    // onSuccess: 'tsc --emitDeclarationOnly',
     deps: {
       neverBundle: [
         'hono',

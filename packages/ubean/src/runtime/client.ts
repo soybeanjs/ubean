@@ -1,5 +1,5 @@
 import { $fetch, createFetch, FetchError } from 'ofetch';
-import type { FetchOptions, FetchResponse, IFetchError } from 'ofetch';
+import type { FetchOptions, FetchResponse, IFetchError, MappedResponseType, ResponseType } from 'ofetch';
 import type { HttpMethod } from '../core/routing/types';
 
 /** Minimal XHR constructor type for browser upload-progress tracking (no DOM lib required). */
@@ -52,10 +52,14 @@ export interface ClientOptions {
   onResponseError?: FetchOptions['onResponseError'];
 }
 
-export interface RequestOptions<T = unknown> extends Omit<ClientOptions, 'baseURL'> {
+export interface RequestOptions<T = unknown, R extends ResponseType = ResponseType> extends Omit<
+  ClientOptions,
+  'baseURL'
+> {
   body?: T;
   query?: Record<string, string | number | boolean | undefined | null>;
   params?: Record<string, string>;
+  responseType?: R;
 }
 
 export interface FlatResponse<T> {
@@ -199,12 +203,12 @@ export function createClient(defaultOptions: ClientOptions = {}) {
 
   const baseFetch = $fetch.create(globalOptions);
 
-  function buildOptions<B>(options: RequestOptions<B> = {}): FetchOptions<'json'> {
-    const fetchOpts: FetchOptions<'json'> = {
+  function buildOptions<B, R extends ResponseType = 'json'>(options: RequestOptions<B, R> = {}): FetchOptions<R> {
+    const fetchOpts: FetchOptions<R> = {
       retry: options.retry ?? defaultOptions.retry ?? 1,
       retryDelay: options.retryDelay ?? defaultOptions.retryDelay ?? 0,
       timeout: options.timeout ?? defaultOptions.timeout
-    };
+    } as FetchOptions<R>;
 
     if (options.headers) fetchOpts.headers = options.headers;
     if (options.credentials) fetchOpts.credentials = options.credentials;
@@ -215,51 +219,52 @@ export function createClient(defaultOptions: ClientOptions = {}) {
     if (options.onRequestError) fetchOpts.onRequestError = options.onRequestError;
     if (options.onResponse) fetchOpts.onResponse = options.onResponse;
     if (options.onResponseError) fetchOpts.onResponseError = options.onResponseError;
+    if (options.responseType) fetchOpts.responseType = options.responseType;
 
     return fetchOpts;
   }
 
-  async function request<T = unknown, B = unknown>(
+  async function request<T = unknown, B = unknown, R extends ResponseType = 'json'>(
     method: HttpMethod,
     url: string,
-    options?: RequestOptions<B>
-  ): Promise<T> {
+    options?: RequestOptions<B, R>
+  ): Promise<MappedResponseType<R, T>> {
     try {
-      const opts = buildOptions(options);
+      const opts = buildOptions<B, R>(options);
       if (options?.onUploadProgress) {
         const xhrFetch = createXhrFetch(options.onUploadProgress);
         if (xhrFetch) {
           const customFetch = createFetch({ defaults: opts as unknown as FetchOptions, fetch: xhrFetch });
-          return await customFetch<T>(url, { method, ...opts });
+          return (await customFetch(url, { method, ...opts })) as MappedResponseType<R, T>;
         }
       }
-      return await baseFetch<T>(url, { method, ...opts });
+      return (await baseFetch(url, { method, ...opts } as FetchOptions<R>)) as MappedResponseType<R, T>;
     } catch (err) {
       throw createClientError(err);
     }
   }
 
-  async function requestFlat<T = unknown, B = unknown>(
+  async function requestFlat<T = unknown, B = unknown, R extends ResponseType = 'json'>(
     method: HttpMethod,
     url: string,
-    options?: RequestOptions<B>
-  ): Promise<FlatResponse<T>> {
+    options?: RequestOptions<B, R>
+  ): Promise<FlatResponse<MappedResponseType<R, T>>> {
     try {
-      const opts = buildOptions(options);
-      let response: FetchResponse<T>;
+      const opts = buildOptions<B, R>(options);
+      let response: FetchResponse<MappedResponseType<R, T>>;
       if (options?.onUploadProgress) {
         const xhrFetch = createXhrFetch(options.onUploadProgress);
         if (xhrFetch) {
           const customFetch = createFetch({ defaults: opts as unknown as FetchOptions, fetch: xhrFetch });
-          response = await customFetch.raw<T>(url, { method, ...opts });
+          response = (await customFetch.raw(url, { method, ...opts })) as FetchResponse<MappedResponseType<R, T>>;
         } else {
-          response = await baseFetch.raw<T>(url, { method, ...opts });
+          response = await baseFetch.raw(url, { method, ...opts } as FetchOptions<R>);
         }
       } else {
-        response = await baseFetch.raw<T>(url, { method, ...opts });
+        response = await baseFetch.raw(url, { method, ...opts } as FetchOptions<R>);
       }
       return {
-        data: response._data as T,
+        data: response._data as MappedResponseType<R, T>,
         error: null,
         status: response.status
       };
@@ -276,47 +281,95 @@ export function createClient(defaultOptions: ClientOptions = {}) {
   }
 
   const client = {
-    get<T = unknown>(url: string, options?: Omit<RequestOptions, 'body'>): Promise<T> {
-      return request<T>('GET', url, options);
+    get<T = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      options?: Omit<RequestOptions<never, R>, 'body'>
+    ): Promise<MappedResponseType<R, T>> {
+      return request<T, never, R>('GET', url, options);
     },
-    post<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<T> {
-      return request<T, B>('POST', url, { ...options, body });
+    post<T = unknown, B = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      body?: B,
+      options?: Omit<RequestOptions<B, R>, 'body'>
+    ): Promise<MappedResponseType<R, T>> {
+      return request<T, B, R>('POST', url, { ...options, body });
     },
-    put<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<T> {
-      return request<T, B>('PUT', url, { ...options, body });
+    put<T = unknown, B = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      body?: B,
+      options?: Omit<RequestOptions<B, R>, 'body'>
+    ): Promise<MappedResponseType<R, T>> {
+      return request<T, B, R>('PUT', url, { ...options, body });
     },
-    patch<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<T> {
-      return request<T, B>('PATCH', url, { ...options, body });
+    patch<T = unknown, B = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      body?: B,
+      options?: Omit<RequestOptions<B, R>, 'body'>
+    ): Promise<MappedResponseType<R, T>> {
+      return request<T, B, R>('PATCH', url, { ...options, body });
     },
-    delete<T = unknown>(url: string, options?: RequestOptions): Promise<T> {
-      return request<T>('DELETE', url, options);
+    delete<T = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      options?: RequestOptions<never, R>
+    ): Promise<MappedResponseType<R, T>> {
+      return request<T, never, R>('DELETE', url, options);
     },
-    head<T = unknown>(url: string, options?: Omit<RequestOptions, 'body'>): Promise<T> {
-      return request<T>('HEAD', url, options);
+    head<T = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      options?: Omit<RequestOptions<never, R>, 'body'>
+    ): Promise<MappedResponseType<R, T>> {
+      return request<T, never, R>('HEAD', url, options);
     },
-    options<T = unknown>(url: string, options?: RequestOptions): Promise<T> {
-      return request<T>('OPTIONS', url, options);
+    options<T = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      options?: RequestOptions<never, R>
+    ): Promise<MappedResponseType<R, T>> {
+      return request<T, never, R>('OPTIONS', url, options);
     },
 
-    $get<T = unknown>(url: string, options?: Omit<RequestOptions, 'body'>): Promise<FlatResponse<T>> {
-      return requestFlat<T>('GET', url, options);
+    $get<T = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      options?: Omit<RequestOptions<never, R>, 'body'>
+    ): Promise<FlatResponse<MappedResponseType<R, T>>> {
+      return requestFlat<T, never, R>('GET', url, options);
     },
-    $post<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<FlatResponse<T>> {
-      return requestFlat<T, B>('POST', url, { ...options, body });
+    $post<T = unknown, B = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      body?: B,
+      options?: Omit<RequestOptions<B, R>, 'body'>
+    ): Promise<FlatResponse<MappedResponseType<R, T>>> {
+      return requestFlat<T, B, R>('POST', url, { ...options, body });
     },
-    $put<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<FlatResponse<T>> {
-      return requestFlat<T, B>('PUT', url, { ...options, body });
+    $put<T = unknown, B = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      body?: B,
+      options?: Omit<RequestOptions<B, R>, 'body'>
+    ): Promise<FlatResponse<MappedResponseType<R, T>>> {
+      return requestFlat<T, B, R>('PUT', url, { ...options, body });
     },
-    $patch<T = unknown, B = unknown>(url: string, body?: B, options?: RequestOptions<B>): Promise<FlatResponse<T>> {
-      return requestFlat<T, B>('PATCH', url, { ...options, body });
+    $patch<T = unknown, B = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      body?: B,
+      options?: Omit<RequestOptions<B, R>, 'body'>
+    ): Promise<FlatResponse<MappedResponseType<R, T>>> {
+      return requestFlat<T, B, R>('PATCH', url, { ...options, body });
     },
-    $delete<T = unknown>(url: string, options?: RequestOptions): Promise<FlatResponse<T>> {
-      return requestFlat<T>('DELETE', url, options);
+    $delete<T = unknown, R extends ResponseType = 'json'>(
+      url: string,
+      options?: RequestOptions<never, R>
+    ): Promise<FlatResponse<MappedResponseType<R, T>>> {
+      return requestFlat<T, never, R>('DELETE', url, options);
     },
 
-    raw<T = unknown, B = unknown>(method: HttpMethod, url: string, options?: RequestOptions<B>) {
-      const opts = buildOptions(options);
-      return baseFetch.raw<T>(url, { method, ...opts });
+    raw<T = unknown, R extends ResponseType = 'json', B = unknown>(
+      method: HttpMethod,
+      url: string,
+      options?: RequestOptions<B, R>
+    ) {
+      const opts = buildOptions<B, R>(options);
+      return baseFetch.raw(url, { method, ...opts } as FetchOptions<R>) as Promise<
+        FetchResponse<MappedResponseType<R, T>>
+      >;
     },
 
     extend(options: ClientOptions) {

@@ -1,7 +1,7 @@
 import { createServer as createHttpServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer as createViteServer } from 'vite';
-import type { InlineConfig, Plugin, ViteDevServer } from 'vite';
+import type { Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
 import { findAvailablePort } from '../utils/port';
@@ -192,7 +192,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
     appType: 'custom',
     plugins,
-    devtools: { enabled: true, clientAuth: false },
+    devtools: { enabled: true, clientAuthTokens: ['ubean-devtools-token'] },
     optimizeDeps: {
       exclude: [
         'ubean',
@@ -207,7 +207,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     ssr: {
       noExternal: ['ubean']
     }
-  } as InlineConfig & { devtools?: { enabled: boolean; clientAuth: boolean } });
+  });
 
   function enhanceAppWithVite(app: UbeanApp, layouts: ScannedLayout[] = []) {
     app.options.layouts = layouts;

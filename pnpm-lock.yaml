@@ -157,8 +157,8 @@ importers:
   examples/ubean-test:
     dependencies:
       '@soybeanjs/fetch':
-        specifier: workspace:*
-        version: link:../../../fetch
+        specifier: ^0.0.5
+        version: 0.0.5
       '@valibot/to-json-schema':
         specifier: ^1.7.1
         version: 1.7.1(valibot@1.4.2(typescript@6.0.3))
@@ -279,8 +279,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0(@standard-schema/spec@1.1.0)(hono@4.12.31)
       '@soybeanjs/fetch':
-        specifier: workspace:*
-        version: link:../../../fetch
+        specifier: ^0.0.5
+        version: 0.0.5
       '@standard-community/standard-json':
         specifier: ^0.3.5
         version: 0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3)
@@ -1827,6 +1827,9 @@ packages:
 
   '@soybeanjs/eslint-config-vue@0.1.1':
     resolution: {integrity: sha512-5HxJGL4e/7880xc3Ab81VAI+Jjg98qRU835Nt40B+XSepXuIXSbtC1PtrFtDETUj01RIgMIsU/3CqUt8J3o/Jw==}
+
+  '@soybeanjs/fetch@0.0.5':
+    resolution: {integrity: sha512-VvTE2X0uJqjvR9BmMk+hmmqyH+M+fU12qj0g3QkPq1fyCCnSfhqYxeGFGRDo8yH4eaPpwAxpqC3hYEok3HfnOQ==}
 
   '@soybeanjs/headless@0.29.3':
     resolution: {integrity: sha512-B/3DaLsueHp8uUBVS7NyATw4Mv/us0STnIM3mXkmnE9dtmxl7ULOOzf6x89Z2m4wSrRT84hixMemxqCoa8otDg==}
@@ -5182,6 +5185,8 @@ snapshots:
       - eslint
       - supports-color
       - typescript
+
+  '@soybeanjs/fetch@0.0.5': {}
 
   '@soybeanjs/headless@0.29.3(unplugin-vue-components@32.1.0(rolldown@1.1.5)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.40(typescript@6.0.3)))(vue-router@5.2.0(@vue/compiler-sfc@3.5.40)(rolldown@1.1.5)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(vue@3.5.40(typescript@6.0.3)))(vue@3.5.40(typescript@6.0.3))':
     dependencies:

@@ -11,7 +11,7 @@
     "type-check": "vue-tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@soybeanjs/fetch": "workspace:*",
+    "@soybeanjs/fetch": "^0.0.5",
     "@valibot/to-json-schema": "^1.7.1",
     "ubean": "workspace:*",
     "valibot": "^1.4.2",

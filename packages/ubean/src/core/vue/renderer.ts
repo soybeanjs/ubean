@@ -1,5 +1,5 @@
-import type { Component } from 'vue';
 import { createSSRApp, defineComponent, h, provide, reactive } from 'vue';
+import type { Component } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import type { RouteRecordRaw } from 'vue-router';
 import { createHead, transformHtmlTemplate } from '@unhead/vue/server';
@@ -38,13 +38,13 @@ async function resolveLayoutChain(
 
   let current: string | false | null | undefined = layoutName === undefined ? defaultLayout : layoutName;
 
-  while (current && current !== false && !visited.has(current as string)) {
-    visited.add(current as string);
+  while (current != null && current !== false && !visited.has(current)) {
+    visited.add(current);
     const comp = await resolveLayoutComponent(current);
     if (comp) {
       layouts.unshift(comp);
     }
-    current = resolveLayoutParent ? resolveLayoutParent(current as string) : null;
+    current = resolveLayoutParent ? resolveLayoutParent(current) : null;
   }
 
   return layouts;
@@ -64,25 +64,6 @@ function createSimpleApp(
     name: 'UbeanSimpleApp',
     setup() {
       provide(PAGE_KEY, pageData);
-
-      if (pageObj.head?.title) {
-        head.push({ title: pageObj.head.title });
-      }
-      if (pageObj.head?.meta) {
-        for (const m of pageObj.head.meta) {
-          head.push({ meta: [m] });
-        }
-      }
-      if (pageObj.head?.link) {
-        for (const l of pageObj.head.link) {
-          head.push({ link: [l] });
-        }
-      }
-      if (pageObj.head?.script) {
-        for (const s of pageObj.head.script) {
-          head.push({ script: [s] });
-        }
-      }
 
       return () => {
         let innerVNode: any = h(PageComp as any, pageObj.props || {});
@@ -111,24 +92,24 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
   ) => {
     const head = createHead();
 
-    const htmlAttrs: Record<string, string> = {};
     if (renderContext?.locale) {
-      htmlAttrs.lang = renderContext.locale;
-      htmlAttrs.dir = renderContext.localeDir || 'ltr';
-    }
-    if (pageObj.head?.htmlAttrs) {
-      Object.assign(htmlAttrs, pageObj.head.htmlAttrs);
-    }
-    if (Object.keys(htmlAttrs).length > 0) {
-      head.push({ htmlAttrs });
+      head.push({
+        htmlAttrs: {
+          lang: renderContext.locale,
+          dir: renderContext.localeDir || 'ltr'
+        }
+      });
     }
 
-    const bodyAttrs: Record<string, string> = {};
-    if (pageObj.head?.bodyAttrs) {
-      Object.assign(bodyAttrs, pageObj.head.bodyAttrs);
-    }
-    if (Object.keys(bodyAttrs).length > 0) {
-      head.push({ bodyAttrs });
+    if (pageObj.head) {
+      const headInput: Record<string, any> = {};
+      if (pageObj.head.title) headInput.title = pageObj.head.title;
+      if (pageObj.head.htmlAttrs) headInput.htmlAttrs = pageObj.head.htmlAttrs;
+      if (pageObj.head.bodyAttrs) headInput.bodyAttrs = pageObj.head.bodyAttrs;
+      if (pageObj.head.meta) headInput.meta = pageObj.head.meta;
+      if (pageObj.head.link) headInput.link = pageObj.head.link;
+      if (pageObj.head.script) headInput.script = pageObj.head.script;
+      head.push(headInput as any);
     }
 
     let appHtml: string;

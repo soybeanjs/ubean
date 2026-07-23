@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
+import { createRequest } from '@soybeanjs/fetch';
 import {
-  callInternal,
+  createInternalAdapter,
   setInternalFetcher,
-  clearInternalFetcher,
-  createRequestSender
+  clearInternalFetcher
 } from '../src/runtime/internal-fetch';
 import type { UbeanEnv } from '../src/types/handler';
 
-describe('callInternal', () => {
+describe('createInternalAdapter', () => {
   let app: Hono;
 
   beforeEach(() => {
@@ -35,65 +35,53 @@ describe('callInternal', () => {
     clearInternalFetcher();
   });
 
-  it('makes GET request and parses JSON', async () => {
-    const result = await callInternal<{ message: string }>('/api/hello');
-    expect(result.status).toBe(200);
-    expect(result.data.message).toBe('hello');
-    expect(result.response).toBeInstanceOf(Response);
-    expect(result.headers).toBeInstanceOf(Headers);
+  it('makes GET request and parses JSON via createRequest', async () => {
+    const adapter = createInternalAdapter();
+    const request = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+    const data = await request.get<{ message: string }>('/api/hello');
+    expect(data.message).toBe('hello');
   });
 
   it('makes POST request with JSON body', async () => {
-    const result = await callInternal<{ received: { name: string } }>('/api/echo', {
-      method: 'POST',
-      body: { name: 'test' }
-    });
-    expect(result.status).toBe(200);
-    expect(result.data.received.name).toBe('test');
+    const adapter = createInternalAdapter();
+    const request = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+    const data = await request.post<{ received: { name: string } }>('/api/echo', { name: 'test' });
+    expect(data.received.name).toBe('test');
   });
 
   it('handles URL parameters', async () => {
-    const result = await callInternal<{ id: string }>('/api/user/42');
-    expect(result.data.id).toBe('42');
+    const adapter = createInternalAdapter();
+    const request = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+    const data = await request.get<{ id: string }>('/api/user/42');
+    expect(data.id).toBe('42');
   });
 
   it('handles query parameters', async () => {
     app.get('/api/search', c => c.json({ q: c.req.query('q'), page: c.req.query('page') }));
-    const result = await callInternal('/api/search', { query: { q: 'ubean', page: 2 } });
-    expect(result.data).toEqual({ q: 'ubean', page: '2' });
-  });
-
-  it('parses text responses', async () => {
-    const result = await callInternal<string>('/api/text');
-    expect(result.data).toBe('plain text');
-  });
-
-  it('preserves error status codes', async () => {
-    const result = await callInternal('/api/error');
-    expect(result.status).toBe(400);
-    expect(result.data).toEqual({ error: 'bad' });
+    const adapter = createInternalAdapter();
+    const request = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+    const data = await request.get<{ q: string; page: string }>('/api/search', { query: { q: 'ubean', page: 2 } });
+    expect(data).toEqual({ q: 'ubean', page: '2' });
   });
 
   it('sets x-internal-request header', async () => {
-    const result = await callInternal('/api/headers', {
+    const adapter = createInternalAdapter();
+    const request = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+    const data = await request.get<{ 'x-internal': string; 'x-custom': string }>('/api/headers', {
       headers: { 'x-custom': 'test' }
     });
-    expect(result.data['x-internal']).toBe('1');
-    expect(result.data['x-custom']).toBe('test');
-  });
-
-  it('skips parsing when parseResponse is false', async () => {
-    const result = await callInternal('/api/hello', { parseResponse: false });
-    expect(result.data).toBeUndefined();
-    expect(result.status).toBe(200);
+    expect(data['x-internal']).toBe('1');
+    expect(data['x-custom']).toBe('test');
   });
 
   it('throws when fetcher not registered', async () => {
     clearInternalFetcher();
-    await expect(callInternal('/api/hello')).rejects.toThrow('fetcher not registered');
+    const adapter = createInternalAdapter();
+    const request = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+    await expect(request.get('/api/hello')).rejects.toThrow('fetcher not registered');
   });
 
-  it('createRequestSender creates context-aware fetcher', async () => {
+  it('forwards context headers (cookie, authorization)', async () => {
     const mockC = {
       req: {
         header: (name: string) => {
@@ -104,15 +92,18 @@ describe('callInternal', () => {
       },
       get: () => null
     } as unknown as Context<UbeanEnv>;
-    const $request = createRequestSender(mockC);
+
     app.get('/api/cookies', c => {
       return c.json({
         cookie: c.req.header('cookie'),
         auth: c.req.header('authorization')
       });
     });
-    const result = await $request<{ cookie: string; auth: string }>('/api/cookies');
-    expect(result.data.cookie).toBe('session=abc123');
-    expect(result.data.auth).toBe('Bearer token123');
+
+    const adapter = createInternalAdapter(mockC);
+    const request = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+    const data = await request.get<{ cookie: string; auth: string }>('/api/cookies');
+    expect(data.cookie).toBe('session=abc123');
+    expect(data.auth).toBe('Bearer token123');
   });
 });

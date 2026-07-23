@@ -62,43 +62,6 @@ export {
   runtime,
   diagnoseEnvironment
 } from './runtime/client';
-export {
-  createTypedClient,
-  createTypedFlatClient,
-  callTypedInternal,
-  createTypedRequestSender,
-  createTypedInternalFetch,
-  replacePathParams,
-  parseContentDisposition
-} from './runtime/typed-client';
-export type {
-  PathsWithMethod,
-  RequiredKeysOf,
-  FilterKeys,
-  OperationRequestBodyContent,
-  IsOperationRequestBodyOptional,
-  SuccessResponse,
-  ErrorResponse,
-  OperationParams,
-  ParamsOption,
-  RequestBodyOption,
-  TypedRequestOptions,
-  ClientPassthroughOptions,
-  ClientMethod,
-  TypedClient,
-  FlatClientMethod,
-  TypedFlatClient,
-  TypedFlatResponse,
-  InternalPassthroughOptions,
-  TypedInternalCaller,
-  TypedRequestSender,
-  PathsRemovedPrefix,
-  ResponseType,
-  FileResponseType,
-  ResponseTypeMap,
-  MappedType,
-  FileResponseData
-} from './runtime/typed-client';
 export { defineScheduled, getScheduledTasks, runScheduledTask, clearScheduledTasks } from './runtime/cron';
 export type { CronTaskMeta, CronContext, ScheduledTask, CronSchedule } from './runtime/cron';
 export {
@@ -375,8 +338,7 @@ export {
   formatSSEMessage
 } from './runtime/sse';
 export {
-  callInternal,
-  createRequestSender,
+  createInternalAdapter,
   setInternalFetcher,
   getInternalFetcher,
   clearInternalFetcher
@@ -455,7 +417,7 @@ export type { CacheEntry, CacheStore, CacheRule } from './runtime/cache';
 export type { StorageDriver, UbeanStorage, KVNamespace, KVOptions } from './runtime/storage';
 export type { Peer, WebSocketRoom, WebSocketHooks, WebSocketDefinition, UpgradeResult } from './runtime/websocket';
 export type { SSEMessage, SSEConnection, SSEHandler, SSEOptions } from './runtime/sse';
-export type { InternalRequestOptions, InternalRequestResult } from './runtime/internal-fetch';
+
 export type { CorsOptions } from './runtime/cors';
 export type { RateLimitOptions, RateLimitInfo, RateLimitStore, RateLimitStoreEntry } from './runtime/rate-limit';
 export type {

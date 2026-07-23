@@ -84,6 +84,11 @@ export function getConfig(): ResolvedConfig {
   return cachedConfig;
 }
 
+/** Returns the cached config if loaded, otherwise null (no throw). */
+export function tryGetConfig(): ResolvedConfig | null {
+  return cachedConfig;
+}
+
 export function defineConfig(config?: UbeanConfig) {
   return config;
 }

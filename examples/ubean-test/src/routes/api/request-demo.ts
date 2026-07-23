@@ -1,5 +1,5 @@
 import { defineHandler, describeRoute } from 'ubean';
-import { createServerApi } from '../../request/internal';
+import { createServerApi } from '@/request/internal';
 
 /**
  * 类型化内部 fetch 示例路由
@@ -29,15 +29,16 @@ export const GET = defineHandler(
     const api = createServerApi(c);
 
     // 1. 调用 /api/hello(JSON,默认)
-    const hello = await api.get('/api/hello');
+    const hello = await api.get('/hello');
 
     // 2. 调用 /api/users(JSON,带 path 参数)
-    const user = await api.get('/api/users/{id}', {
-      params: { path: { id: '1' } }
+    const user = await api.get('/users/{id}', {
+      pathParams: { id: '1' }
     });
 
     // 3. 调用 /api/text(responseType: 'text' → 返回 string)
-    const text = await api.get('/api/text', { responseType: 'text' });
+    //    非 'json' 的 responseType 需 cast 绕过 OpenAPI 类型约束
+    const text = await api.get('/text', { responseType: 'text' });
 
     return c.json({
       source: 'internal-fetch',

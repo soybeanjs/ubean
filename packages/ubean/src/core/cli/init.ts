@@ -318,7 +318,8 @@ export const GET = defineHandler(c => {
  *   import { api } from '../request/client';
  *   const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
  */
-const REQUEST_CLIENT_TEMPLATE = `import { createClient, createTypedClient, createTypedFlatClient } from 'ubean';
+const REQUEST_CLIENT_TEMPLATE = `import { createClient } from 'ubean';
+import { createTypedClient, createFlatTypedClient } from '@soybeanjs/fetch/openapi';
 import type { paths } from '../../.ubean/openapi';
 
 /**
@@ -348,7 +349,7 @@ const client = createClient({
  * import { api } from '../request/client';
  *
  * // JSON 请求(默认)
- * const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
+ * const user = await api.get('/api/users/{id}', { pathParams: { id: 1 } });
  *
  * // 文件下载
  * const file = await api.get('/api/export', { responseType: 'blob' });
@@ -363,14 +364,14 @@ export const api = createTypedClient<paths>(client);
 /**
  * 扁平模式类型化 HTTP 客户端(不抛异常,通过返回值判断)
  *
- * 返回 { data, error, status } — 成功时 error 为 null,失败时 data 为 null。
+ * 返回 { data, error, response } — 成功时 error 为 null,失败时 data 为 null。
  * 接口与 api 一致,同样支持 responseType。
  *
  * @example
  * import { flatApi } from '../request/client';
  *
  * const { data, error } = await flatApi.get('/api/users/{id}', {
- *   params: { path: { id: 1 } }
+ *   pathParams: { id: 1 }
  * });
  * if (error) {
  *   console.error('Failed:', error.message);
@@ -378,33 +379,33 @@ export const api = createTypedClient<paths>(client);
  *   console.log('User:', data);
  * }
  */
-export const flatApi = createTypedFlatClient<paths>(client);
+export const flatApi = createFlatTypedClient<paths>(client);
 `;
 
 /**
  * 类型化请求客户端模板 - server 端内部调度
  *
  * 在 API 路由或 useData 的 fetcher 中使用,自动转发 cookie/authorization 等请求头。
- * 与 client.ts 接口一致,但内部通过 createTypedInternalFetch 发起请求(进程内调度)。
+ * 与 client.ts 接口一致,但内部通过 createInternalAdapter + @soybeanjs/fetch 发起请求(进程内调度)。
  *
  * 使用方式:
  *   import { createServerApi } from '../request/internal';
  *   export const GET = defineHandler(async (c) => {
  *     const api = createServerApi(c);
- *     const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
+ *     const user = await api.get('/api/users/{id}', { pathParams: { id: 1 } });
  *     return c.json(user);
  *   });
  */
-const REQUEST_INTERNAL_TEMPLATE = `import { createTypedInternalFetch } from 'ubean';
+const REQUEST_INTERNAL_TEMPLATE = `import { createInternalAdapter } from 'ubean';
+import { createRequest } from '@soybeanjs/fetch';
+import { createTypedClient } from '@soybeanjs/fetch/openapi';
 import type { paths } from '../../.ubean/openapi';
 
 /**
  * server 端类型化内部 fetch
  *
  * 在 API 路由或 useData 的 fetcher 中使用,自动转发 cookie/authorization 等请求头。
- * 与 client.ts 的 api 接口一致,但通过 server 端 fetch 发起请求(自动转发请求头)。
- *
- * baseURL 会自动从当前请求的 URL 中推断,无需手动设置。
+ * 与 client.ts 的 api 接口一致,但通过进程内调度发起请求(不发起新的网络请求)。
  *
  * @example
  * // src/routes/api/posts.ts
@@ -413,7 +414,7 @@ import type { paths } from '../../.ubean/openapi';
  *
  * export const GET = defineHandler(async (c) => {
  *   const api = createServerApi(c);
- *   const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
+ *   const user = await api.get('/api/users/{id}', { pathParams: { id: 1 } });
  *   return c.json(user);
  * });
  *
@@ -425,14 +426,18 @@ import type { paths } from '../../.ubean/openapi';
  * export const GET = defineHandler(async (c) => {
  *   const api = createServerApi(c);
  *   const result = await useData({
- *     fetcher: async () => api.get('/api/users/{id}', { params: { path: { id: 1 } } })
+ *     fetcher: async () => api.get('/api/users/{id}', { pathParams: { id: 1 } })
  *   });
  *   return c.json(result.data);
  * });
  */
-export function createServerApi(context: Parameters<typeof createTypedInternalFetch>[0]) {
-  // createTypedInternalFetch 会自动从 context.req.url 推断 baseURL
-  return createTypedInternalFetch<paths>(context);
+export function createServerApi(context: Parameters<typeof createInternalAdapter>[0]) {
+  const adapter = createInternalAdapter(context);
+  const request = createRequest(
+    { retry: { retries: 0 }, adapter },
+    { isBackendSuccess: () => true, transform: response => response.data }
+  );
+  return createTypedClient<paths>(request);
 }
 `;
 

@@ -1,20 +1,11 @@
 import type { Context } from 'hono';
+import type { FetchAdapter, FetchAdapterInit, FetchAdapterResponse } from '@soybeanjs/fetch';
 import type { UbeanEnv } from '../types/handler';
+import type { InternalFetchOptions } from './pages/data';
 
-export interface InternalRequestOptions {
-  method?: string;
-  headers?: Record<string, string> | Headers;
-  body?: string | ArrayBuffer | Uint8Array | Record<string, unknown> | FormData;
-  query?: Record<string, string | number | boolean | undefined>;
-  parseResponse?: boolean;
-}
-
-export interface InternalRequestResult<T = unknown> {
-  response: Response;
-  data: T;
-  status: number;
-  headers: Headers;
-}
+// ============================================================================
+// Fetcher registry
+// ============================================================================
 
 type AppFetcher = (request: Request) => Response | Promise<Response>;
 
@@ -28,153 +19,77 @@ export function getInternalFetcher(): AppFetcher | null {
   return ((globalThis as Record<string, unknown>)[FETCHER_KEY] as AppFetcher | undefined) || null;
 }
 
-function buildUrl(path: string, query?: Record<string, string | number | boolean | undefined>): string {
-  const base = 'internal://local';
-  let url = path.startsWith('/') ? base + path : path;
-
-  if (query) {
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined) {
-        params.set(key, String(value));
-      }
-    }
-    const qs = params.toString();
-    if (qs) {
-      url += (url.includes('?') ? '&' : '?') + qs;
-    }
-  }
-
-  return url;
-}
-
-function buildHeaders(c?: Context<UbeanEnv>, headers?: Record<string, string> | Headers): Headers {
-  const h = new Headers();
-
-  h.set('x-internal-request', '1');
-
-  if (c) {
-    const cookie = c.req.header('cookie');
-    if (cookie) h.set('cookie', cookie);
-    const auth = c.req.header('authorization');
-    if (auth) h.set('authorization', auth);
-    const requestId = c.get('requestId');
-    if (requestId) h.set('x-request-id', requestId as string);
-    const forwardHeaders = ['accept-language', 'user-agent', 'x-forwarded-for', 'x-forwarded-proto', 'x-real-ip'];
-    for (const name of forwardHeaders) {
-      const value = c.req.header(name);
-      if (value) h.set(name, value);
-    }
-  }
-
-  if (headers) {
-    if (headers instanceof Headers) {
-      headers.forEach((value, key) => h.set(key, value));
-    } else {
-      for (const [key, value] of Object.entries(headers)) {
-        h.set(key, value);
-      }
-    }
-  }
-
-  return h;
-}
-
-type BodyInitLike = string | ArrayBuffer | Uint8Array | FormData;
-
-function buildBody(body?: InternalRequestOptions['body']): BodyInitLike | undefined {
-  if (body === undefined || body === null) return undefined;
-  if (typeof body === 'string') return body;
-  if (body instanceof ArrayBuffer) return body;
-  if (body instanceof Uint8Array) return body;
-  if (body instanceof FormData) return body;
-  return JSON.stringify(body);
-}
-
-export async function callInternal<T = unknown>(
-  path: string,
-  options: InternalRequestOptions = {}
-): Promise<InternalRequestResult<T>> {
-  const fetcher = getInternalFetcher();
-  if (!fetcher) {
-    throw new Error(
-      '[ubean] callInternal: fetcher not registered. Call setInternalFetcher() with your app.fetch first.'
-    );
-  }
-
-  const method = (options.method || 'GET').toUpperCase();
-  const url = buildUrl(path, options.query);
-  const headers = buildHeaders(undefined, options.headers);
-  const body = buildBody(options.body);
-
-  if (method !== 'GET' && method !== 'HEAD' && body && typeof body === 'string' && !headers.has('content-type')) {
-    headers.set('content-type', 'application/json');
-  }
-
-  const request = new Request(url, { method, headers, body });
-  const response = await fetcher(request);
-
-  let data: T = undefined as T;
-  if (options.parseResponse !== false) {
-    const contentType = response.headers.get('content-type') || '';
-    try {
-      if (contentType.includes('application/json')) {
-        data = (await response.json()) as T;
-      } else if (contentType.includes('text/')) {
-        data = (await response.text()) as unknown as T;
-      } else {
-        data = (await response.arrayBuffer()) as unknown as T;
-      }
-    } catch {
-      data = undefined as T;
-    }
-  }
-
-  return { response, data, status: response.status, headers: response.headers };
-}
-
-export function createRequestSender(c: Context<UbeanEnv>) {
-  return async function $request<T = unknown>(
-    path: string,
-    options: Omit<InternalRequestOptions, 'headers'> & { headers?: Record<string, string> | Headers } = {}
-  ): Promise<InternalRequestResult<T>> {
-    const fetcher = getInternalFetcher();
-    if (!fetcher) {
-      throw new Error('[ubean] $request: fetcher not registered.');
-    }
-
-    const method = (options.method || 'GET').toUpperCase();
-    const url = buildUrl(path, options.query);
-    const headers = buildHeaders(c, options.headers);
-    const body = buildBody(options.body);
-
-    if (method !== 'GET' && method !== 'HEAD' && body && typeof body === 'string' && !headers.has('content-type')) {
-      headers.set('content-type', 'application/json');
-    }
-
-    const request = new Request(url, { method, headers, body });
-    const response = await fetcher(request);
-
-    let data: T = undefined as T;
-    if (options.parseResponse !== false) {
-      const contentType = response.headers.get('content-type') || '';
-      try {
-        if (contentType.includes('application/json')) {
-          data = (await response.json()) as T;
-        } else if (contentType.includes('text/')) {
-          data = (await response.text()) as unknown as T;
-        } else {
-          data = (await response.arrayBuffer()) as unknown as T;
-        }
-      } catch {
-        data = undefined as T;
-      }
-    }
-
-    return { response, data, status: response.status, headers: response.headers };
-  };
-}
-
 export function clearInternalFetcher(): void {
   delete (globalThis as Record<string, unknown>)[FETCHER_KEY];
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+const FORWARD_HEADER_DEFAULTS = [
+  'cookie',
+  'authorization',
+  'x-request-id',
+  'x-forwarded-for',
+  'x-forwarded-proto',
+  'x-real-ip',
+  'accept-language',
+  'user-agent'
+];
+
+function applyContextHeaders(headers: Headers, c: Context<UbeanEnv>, forwardHeaders?: string[]): void {
+  const names = forwardHeaders || FORWARD_HEADER_DEFAULTS;
+  for (const name of names) {
+    const value = c.req.header(name);
+    if (value) headers.set(name, value);
+  }
+  const requestId = c.get('requestId');
+  if (requestId) headers.set('x-request-id', requestId as string);
+}
+
+// ============================================================================
+// createInternalAdapter — @soybeanjs/fetch FetchAdapter
+// ============================================================================
+
+/**
+ * 创建进程内调度适配器。
+ *
+ * 将注册的 Hono `app.fetch` 包装为 `@soybeanjs/fetch` 的 `FetchAdapter`,
+ * 使其可通过 `createRequest` / `createTypedClient` / `createFlatTypedClient` 等 API
+ * 进行进程内调度(不发起新的网络请求)。
+ *
+ * 消费者可直接组合使用:
+ * ```typescript
+ * import { createInternalAdapter } from 'ubean';
+ * import { createRequest, createTypedClient } from '@soybeanjs/fetch';
+ *
+ * const adapter = createInternalAdapter(c);
+ * const request = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+ * const api = createTypedClient<paths>(request);
+ * ```
+ *
+ * @param c - Hono Context(可选,用于转发 cookie/authorization 等请求头)
+ * @param options - 选项(`headers` 自定义额外 header,`forwardHeaders` 自定义转发 header 列表)
+ */
+export function createInternalAdapter(c?: Context<UbeanEnv>, options?: InternalFetchOptions): FetchAdapter {
+  const forwardHeaders = options?.forwardHeaders;
+  const extraHeaders = options?.headers;
+
+  return async (url: string, init: FetchAdapterInit): Promise<FetchAdapterResponse> => {
+    const fetcher = getInternalFetcher();
+    if (!fetcher) {
+      throw new Error(
+        '[ubean] createInternalAdapter: fetcher not registered. Call setInternalFetcher() with your app.fetch first.'
+      );
+    }
+    const headers = new Headers(init.headers);
+    headers.set('x-internal-request', '1');
+    if (c) applyContextHeaders(headers, c, forwardHeaders);
+    if (extraHeaders) {
+      for (const [k, v] of Object.entries(extraHeaders)) headers.set(k, v);
+    }
+    const request = new Request(url, { ...init, headers } as RequestInit);
+    return fetcher(request);
+  };
 }

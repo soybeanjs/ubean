@@ -6,6 +6,7 @@ import vue from '@vitejs/plugin-vue';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
 import { createFsOps } from '../cli/shared/fs-ops';
 import { findAvailablePort } from '../utils/port';
+import { findUserViteConfig } from '../utils/vite-config';
 import { ubeanPlugin } from '../build/vite/plugin';
 import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '../vue/plugin';
 import { resolveModules } from '../modules';
@@ -167,6 +168,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     // @vitejs/devtools not installed — Vite DevTools UI skipped.
   }
 
+  // 检测用户是否提供了 vite.config.{ts,js,mjs}
+  // 如果有,由用户的 vite.config 提供 ubeanPlugin()(无参调用,从缓存获取 config)
+  // 如果没有,由 builtin 提供 ubeanPlugin({ config })
+  const userViteConfig = findUserViteConfig(cwd);
+  const hasUserViteConfig = !!userViteConfig;
+
   const builtinPlugins: Plugin[] = [
     vue({
       include: VUE_PLUGIN_INCLUDE,
@@ -176,7 +183,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         }
       }
     }) as unknown as Plugin,
-    ubeanPlugin({ config }),
+    ...(hasUserViteConfig ? [] : [ubeanPlugin({ config })]),
     ...ubeanVuePlugin({ config }),
     ubeanIslandsPlugin(),
     ...viteDevtoolsPlugins,
@@ -191,7 +198,9 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
   viteServer = await createViteServer({
     root: cwd,
-    configFile: false,
+    // 如果用户有 vite.config,让 Vite 加载它(用户配置中的 ubeanPlugin() 会从缓存获取 config)
+    // 否则使用 false,完全由 builtin plugins 提供
+    configFile: userViteConfig ?? false,
     server: {
       middlewareMode: true,
       hmr: {

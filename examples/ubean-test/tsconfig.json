@@ -6,7 +6,10 @@
     "lib": ["DOM", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "paths": {},
+    "paths": {
+      "@/*": ["./src/*"],
+      "~ubean/*": ["./.ubean/*"]
+    },
     "types": ["node", "vite/client"],
     "resolveJsonModule": true,
     "strict": true,

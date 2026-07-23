@@ -1,4 +1,4 @@
-export { defineConfig, loadUbeanConfig, getConfig } from './loader';
+export { defineConfig, loadUbeanConfig, getConfig, tryGetConfig } from './loader';
 export type {
   UbeanConfig,
   ResolvedConfig,

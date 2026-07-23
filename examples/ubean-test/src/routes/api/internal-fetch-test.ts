@@ -1,4 +1,5 @@
-import { defineHandler, callInternal } from 'ubean';
+import { defineHandler, createInternalAdapter } from 'ubean';
+import { createRequest } from '@soybeanjs/fetch';
 
 export const GET = defineHandler(async c => {
   const target = c.req.query('target') || 'hello';
@@ -13,19 +14,19 @@ export const GET = defineHandler(async c => {
   const path = targetMap[target] || target;
 
   try {
-    const result = await callInternal(path, {
-      method: 'GET',
-      headers: c.req.raw.headers,
-      query: Object.fromEntries(new URLSearchParams(c.req.query() as Record<string, string>))
-    });
+    const adapter = createInternalAdapter(c);
+    const request = createRequest(
+      { retry: { retries: 0 }, adapter },
+      { isBackendSuccess: () => true }
+    );
+    const query = Object.fromEntries(new URLSearchParams(c.req.query() as Record<string, string>));
+    const data = await request.get(path, { query });
 
     return c.json({
       action: 'internal-fetch',
       target: path,
-      status: result.status,
-      ok: result.response.ok,
-      data: result.data,
-      headers: Object.fromEntries(result.headers.entries())
+      ok: true,
+      data
     });
   } catch (err) {
     return c.json(

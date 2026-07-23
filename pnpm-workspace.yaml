@@ -12,6 +12,7 @@ minimumReleaseAgeExclude:
 packages:
   - 'packages/*'
   - 'examples/*'
+  - '../fetch'
 catalog:
   '@ai-sdk/openai-compatible': 3.0.12
   '@codemirror/commands': 6.10.4

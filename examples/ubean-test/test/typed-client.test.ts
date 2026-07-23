@@ -1,26 +1,25 @@
 /**
  * 类型化请求客户端集成测试
  *
- * 验证 createTypedClient / createTypedFlatClient / callTypedInternal 的
+ * 验证 createTypedClient / createFlatTypedClient 的
  * 运行时行为和类型推断。
  *
  * 类型来源: ubean dev server 自动生成的 .ubean/openapi.d.ts
  * (由 openapi-typescript 从 /_openapi.json 编译)
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
-  createClient,
-  createTypedClient,
-  createTypedFlatClient,
-  callTypedInternal,
-  createTypedRequestSender,
-  setInternalFetcher,
-  clearInternalFetcher,
-  replacePathParams,
+  createRequest,
+  createFlatRequest,
   parseContentDisposition
-} from 'ubean';
-import type { FileResponseData } from 'ubean';
+} from '@soybeanjs/fetch';
+import {
+  createTypedClient,
+  createFlatTypedClient,
+  replacePathParams
+} from '@soybeanjs/fetch/openapi';
+import type { FileResponseData } from '@soybeanjs/fetch';
 import type { paths } from '../.ubean/openapi.d.ts';
 import { getBaseUrl } from './helper';
 
@@ -88,8 +87,8 @@ describe('Typed client - replacePathParams', () => {
 
 describe('Typed client - createTypedClient', () => {
   it('creates a typed client from createClient instance', () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     expect(typeof typed.get).toBe('function');
     expect(typeof typed.post).toBe('function');
     expect(typeof typed.put).toBe('function');
@@ -100,18 +99,18 @@ describe('Typed client - createTypedClient', () => {
   });
 
   it('GET /api/users/{id} with path param', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const data = await typed.get('/api/users/{id}', {
-      params: { path: { id: '1' } }
+      pathParams: { id: '1' }
     });
     expect(data).toBeDefined();
     expect(Number((data as { id: unknown }).id)).toBe(1);
   });
 
   it('GET /api/users returns { users, total }', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const data = await typed.get('/api/users');
     expect(data).toHaveProperty('users');
     expect(data).toHaveProperty('total');
@@ -120,8 +119,8 @@ describe('Typed client - createTypedClient', () => {
   });
 
   it('POST /api/users with typed body', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const data = await typed.post('/api/users', {
       body: { name: 'Typed User', email: 'typed@example.com', role: 'user' }
     });
@@ -131,29 +130,31 @@ describe('Typed client - createTypedClient', () => {
   });
 
   it('GET /api/search with query params', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const data = await typed.get('/api/search', {
-      params: { query: { q: 'test' } }
+      query: { q: 'test' }
     });
     expect(data).toBeDefined();
   });
 
   it('GET /api/headers with header params', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
-    const data = await typed.get('/api/headers', {
-      params: { header: { 'x-custom-header': 'typed-value' } }
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
+    // OpenapiRequestOptions only allows `headers` when the spec declares header params;
+    // cast to LooseTypedClient to pass arbitrary headers for this test.
+    const data = await (typed as unknown as LooseTypedClient).get('/api/headers', {
+      headers: { 'x-custom-header': 'typed-value' }
     });
     expect(data).toBeDefined();
   });
 
   it('PATCH /api/users/{id} with body (id=2, tolerates 404 if deleted by other tests)', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     try {
       const data = await (typed as unknown as LooseTypedClient).patch('/api/users/{id}', {
-        params: { path: { id: '2' } },
+        pathParams: { id: '2' },
         body: { name: 'Updated Name', email: 'updated@example.com', role: 'admin' }
       });
       expect(data).toBeDefined();
@@ -164,11 +165,11 @@ describe('Typed client - createTypedClient', () => {
   });
 
   it('PUT /api/users/{id} with body (id=3, tolerates 404 if deleted by other tests)', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     try {
       const data = await (typed as unknown as LooseTypedClient).put('/api/users/{id}', {
-        params: { path: { id: '3' } },
+        pathParams: { id: '3' },
         body: { name: 'Put User', email: 'put@example.com', role: 'user' }
       });
       expect(data).toBeDefined();
@@ -179,11 +180,11 @@ describe('Typed client - createTypedClient', () => {
   });
 
   it('DELETE /api/users/{id} (tolerates 404 if already deleted by other tests)', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     try {
       const data = await typed.delete('/api/users/{id}', {
-        params: { path: { id: '1' } }
+        pathParams: { id: '1' }
       });
       expect(data).toBeDefined();
     } catch (err) {
@@ -192,50 +193,50 @@ describe('Typed client - createTypedClient', () => {
   });
 
   it('supports prefix option', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client, '');
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request, '');
     // Test without prefix since OpenAPI paths already include /api prefix
     const data = await typed.get('/api/users/{id}', {
-      params: { path: { id: '1' } }
+      pathParams: { id: '1' }
     });
     expect(data).toBeDefined();
   });
 });
 
 // ============================================================================
-// 3. createTypedFlatClient - 类型化扁平化客户端
+// 3. createFlatTypedClient - 类型化扁平化客户端
 // ============================================================================
 
-describe('Typed client - createTypedFlatClient', () => {
+describe('Typed client - createFlatTypedClient', () => {
   it('creates a typed flat client', () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     expect(typeof flat.get).toBe('function');
     expect(typeof flat.post).toBe('function');
   });
 
-  it('$get /api/users/{id} returns { data, error, status }', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+  it('$get /api/users/{id} returns { data, error, response }', async () => {
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     const result = await flat.get('/api/users/{id}', {
-      params: { path: { id: '1' } }
+      pathParams: { id: '1' }
     });
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('error');
-    expect(result).toHaveProperty('status');
-    expect(result.status).toBe(200);
+    expect(result).toHaveProperty('response');
+    expect(result.response?.status).toBe(200);
     expect(result.error).toBeNull();
     // id may be number (user exists) or string (fallback { id: rawId })
     expect(Number((result as { data?: { id?: unknown } }).data?.id)).toBe(1);
   });
 
   it('$get on non-existent route returns error in flat response', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     // Use a path not in paths type - will 404 at runtime
     try {
       const result = await flat.get('/api/users/{id}', {
-        params: { path: { id: '99999' } }
+        pathParams: { id: '99999' }
       });
       // Either returns with data or error
       expect(result).toHaveProperty('data');
@@ -246,218 +247,25 @@ describe('Typed client - createTypedFlatClient', () => {
   });
 
   it('$post /api/users returns flat response with data', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     const result = await flat.post('/api/users', {
       body: { name: 'Flat User', email: 'flat@example.com', role: 'user' }
     });
-    expect(result.status).toBe(201);
+    expect(result.response?.status).toBe(201);
     expect(result.error).toBeNull();
     expect((result as { data?: { name?: string } }).data?.name).toBe('Flat User');
   });
 
   it('$delete /api/users/{id} returns flat response', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     const result = await flat.delete('/api/users/{id}', {
-      params: { path: { id: '1' } }
+      pathParams: { id: '1' }
     });
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('error');
     expect(result).toHaveProperty('status');
-  });
-});
-
-// ============================================================================
-// 4. callTypedInternal - 类型化内部调度
-// ============================================================================
-
-describe('Typed client - callTypedInternal', () => {
-  beforeEach(() => {
-    clearInternalFetcher();
-  });
-
-  afterEach(() => {
-    clearInternalFetcher();
-  });
-
-  it('creates a typed internal caller function', () => {
-    const caller = callTypedInternal<paths>();
-    expect(typeof caller).toBe('function');
-  });
-
-  it('throws when no fetcher is registered', async () => {
-    const caller = callTypedInternal<paths>();
-    await expect(caller('/api/users/{id}', 'get', { params: { path: { id: '1' } } })).rejects.toThrow(
-      /fetcher not registered/
-    );
-  });
-
-  it('calls internal fetcher with correct URL (path params replaced)', async () => {
-    let receivedUrl = '';
-    setInternalFetcher((req: Request) => {
-      receivedUrl = new URL(req.url).pathname;
-      return Promise.resolve(
-        new Response(JSON.stringify({ id: 1, name: 'Test' }), {
-          headers: { 'Content-Type': 'application/json' }
-        })
-      );
-    });
-
-    const caller = callTypedInternal<paths>();
-    const result = await caller('/api/users/{id}', 'get', {
-      params: { path: { id: '42' } }
-    });
-
-    expect(receivedUrl).toBe('/api/users/42');
-    expect(result.status).toBe(200);
-    expect(result.data).toEqual({ id: 1, name: 'Test' });
-  });
-
-  it('passes query params to internal fetcher', async () => {
-    let receivedQuery = '';
-    setInternalFetcher((req: Request) => {
-      receivedQuery = new URL(req.url).search;
-      return Promise.resolve(
-        new Response(JSON.stringify({ results: [] }), {
-          headers: { 'Content-Type': 'application/json' }
-        })
-      );
-    });
-
-    const caller = callTypedInternal<paths>();
-    await caller('/api/search', 'get', {
-      params: { query: { q: 'hello' } }
-    });
-
-    expect(receivedQuery).toBe('?q=hello');
-  });
-
-  it('passes body to internal fetcher for POST', async () => {
-    let receivedBody = '';
-    let receivedMethod = '';
-    setInternalFetcher(async (req: Request) => {
-      receivedMethod = req.method;
-      receivedBody = await req.text();
-      return Promise.resolve(
-        new Response(JSON.stringify({ id: 1 }), {
-          status: 201,
-          headers: { 'Content-Type': 'application/json' }
-        })
-      );
-    });
-
-    const caller = callTypedInternal<paths>();
-    const result = await caller('/api/users', 'post', {
-      body: { name: 'Internal User', email: 'internal@test.com', role: 'user' }
-    });
-
-    expect(receivedMethod).toBe('POST');
-    expect(JSON.parse(receivedBody)).toEqual({
-      name: 'Internal User',
-      email: 'internal@test.com',
-      role: 'user'
-    });
-    expect(result.status).toBe(201);
-  });
-
-  it('passes header params to internal fetcher', async () => {
-    let receivedHeader = '';
-    setInternalFetcher((req: Request) => {
-      receivedHeader = req.headers.get('x-custom-header') || '';
-      return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
-    });
-
-    const caller = callTypedInternal<paths>();
-    await caller('/api/headers', 'get', {
-      params: { header: { 'x-custom-header': 'internal-value' } }
-    });
-
-    expect(receivedHeader).toBe('internal-value');
-  });
-
-  it('integrates with real dev server via fetcher', async () => {
-    setInternalFetcher(async (req: Request) => {
-      const url = new URL(req.url);
-      const realUrl = `${BASE_URL()}${url.pathname}${url.search}`;
-      return fetch(realUrl, {
-        method: req.method,
-        headers: req.headers,
-        body: req.body
-      });
-    });
-
-    const caller = callTypedInternal<paths>();
-    const result = await caller('/api/users/{id}', 'get', {
-      params: { path: { id: '1' } }
-    });
-
-    expect(result.status).toBe(200);
-    expect(Number((result.data as { id: unknown }).id)).toBe(1);
-  });
-});
-
-// ============================================================================
-// 5. createTypedRequestSender - 上下文感知的类型化发送器
-// ============================================================================
-
-describe('Typed client - createTypedRequestSender', () => {
-  beforeEach(() => {
-    clearInternalFetcher();
-  });
-
-  afterEach(() => {
-    clearInternalFetcher();
-  });
-
-  it('creates a typed request sender from Hono context', () => {
-    const mockContext = {
-      req: { header: () => undefined },
-      get: () => undefined,
-      set: () => {}
-    } as any;
-    const sender = createTypedRequestSender<paths>(mockContext);
-    expect(typeof sender).toBe('function');
-  });
-
-  it('forwards cookie from context', async () => {
-    let receivedCookie = '';
-    setInternalFetcher((req: Request) => {
-      receivedCookie = req.headers.get('cookie') || '';
-      return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
-    });
-
-    const mockContext = {
-      req: { header: (name: string) => (name === 'cookie' ? 'session=abc' : undefined) },
-      get: () => undefined,
-      set: () => {}
-    } as any;
-    const sender = createTypedRequestSender<paths>(mockContext);
-    await sender('/api/users/{id}', 'get', {
-      params: { path: { id: '1' } }
-    });
-
-    expect(receivedCookie).toBe('session=abc');
-  });
-
-  it('replaces path params in URL', async () => {
-    let receivedUrl = '';
-    setInternalFetcher((req: Request) => {
-      receivedUrl = new URL(req.url).pathname;
-      return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
-    });
-
-    const mockContext = {
-      req: { header: () => undefined },
-      get: () => undefined,
-      set: () => {}
-    } as any;
-    const sender = createTypedRequestSender<paths>(mockContext);
-    await sender('/api/users/{id}', 'get', {
-      params: { path: { id: '99' } }
-    });
-
-    expect(receivedUrl).toBe('/api/users/99');
   });
 });
 
@@ -470,8 +278,8 @@ describe('Typed client - type inference (compile-time)', () => {
   // 如果类型不正确,TypeScript 编译会失败
 
   it('createTypedClient returns TypedClient<paths>', () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
 
     // 验证方法存在
     expect(typeof typed.get).toBe('function');
@@ -481,28 +289,23 @@ describe('Typed client - type inference (compile-time)', () => {
     expect(typeof typed.patch).toBe('function');
   });
 
-  it('createTypedFlatClient returns TypedFlatClient<paths>', () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+  it('createFlatTypedClient returns TypedFlatClient<paths>', () => {
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
 
     expect(typeof flat.get).toBe('function');
     expect(typeof flat.post).toBe('function');
   });
 
-  it('callTypedInternal returns TypedInternalCaller<paths>', () => {
-    const caller = callTypedInternal<paths>();
-    expect(typeof caller).toBe('function');
-  });
-
   // 类型断言测试 — 这些在编译时验证
   it('type assertions pass at compile time', () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
 
     // 以下调用如果类型不匹配,编译时会报错
     // GET /api/users/{id} 需要 path.id: string
     const getPromise = typed.get('/api/users/{id}', {
-      params: { path: { id: '1' } }
+      pathParams: { id: '1' }
     });
 
     // POST /api/users 需要 body: { name, email, role }
@@ -567,8 +370,8 @@ describe('Typed client - parseContentDisposition', () => {
 
 describe('Typed client - responseType', () => {
   it('responseType: "text" returns string from /api/text', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     // /api/text returns a plain text response
     const text = (await (typed as unknown as LooseTypedClient).get('/api/text', { responseType: 'text' })) as string;
     expect(typeof text).toBe('string');
@@ -576,10 +379,10 @@ describe('Typed client - responseType', () => {
   });
 
   it('responseType: "blob" returns FileResponseData from /api/download', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
-      params: { query: { filename: 'test-blob.txt', contentType: 'text/plain' } },
+      query: { filename: 'test-blob.txt', contentType: 'text/plain' },
       responseType: 'blob'
     })) as FileResponseData<Blob>;
     expect(file).toBeDefined();
@@ -592,10 +395,10 @@ describe('Typed client - responseType', () => {
   });
 
   it('responseType: "arraybuffer" returns FileResponseData<ArrayBuffer>', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
-      params: { query: { filename: 'test-ab.bin', contentType: 'application/octet-stream' } },
+      query: { filename: 'test-ab.bin', contentType: 'application/octet-stream' },
       responseType: 'arraybuffer'
     })) as FileResponseData<ArrayBuffer>;
     expect(file).toBeDefined();
@@ -606,10 +409,10 @@ describe('Typed client - responseType', () => {
   });
 
   it('responseType: "stream" returns FileResponseData<Uint8Array>', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
-      params: { query: { filename: 'test-stream.bin' } },
+      query: { filename: 'test-stream.bin' },
       responseType: 'stream'
     })) as FileResponseData<Uint8Array>;
     expect(file).toBeDefined();
@@ -619,19 +422,19 @@ describe('Typed client - responseType', () => {
   });
 
   it('responseType: "text" with default filename (no query params)', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const text = (await (typed as unknown as LooseTypedClient).get('/api/text', { responseType: 'text' })) as string;
     expect(typeof text).toBe('string');
     expect(text.length).toBeGreaterThan(0);
   });
 
   it('responseType: "blob" parses Chinese filename from Content-Disposition', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const encodedFilename = encodeURIComponent('测试文件.txt');
     const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
-      params: { query: { filename: encodedFilename, contentType: 'text/plain' } },
+      query: { filename: encodedFilename, contentType: 'text/plain' },
       responseType: 'blob'
     })) as FileResponseData<Blob>;
     // 文件名通过 query 传入,服务端在 Content-Disposition 中使用 filename="<original>"
@@ -639,10 +442,10 @@ describe('Typed client - responseType', () => {
   });
 
   it('responseType: "blob" with custom getFileName callback', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
-      params: { query: { filename: 'ignored.txt' } },
+      query: { filename: 'ignored.txt' },
       responseType: 'blob',
       getFileName: () => 'custom-name.txt'
     })) as FileResponseData<Blob>;
@@ -650,8 +453,8 @@ describe('Typed client - responseType', () => {
   });
 
   it('default responseType (json) still works alongside non-json', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const typed = createTypedClient<paths>(client);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const typed = createTypedClient<paths>(request);
     // JSON 请求
     const data = await typed.get('/api/users');
     expect(data).toHaveProperty('users');
@@ -662,13 +465,13 @@ describe('Typed client - responseType', () => {
 });
 
 // ============================================================================
-// 10. createTypedFlatClient - responseType 配置
+// 10. createFlatTypedClient - responseType 配置
 // ============================================================================
 
 describe('Typed flat client - responseType', () => {
   it('responseType: "text" returns { data: string, error: null }', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/text', { responseType: 'text' });
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('error');
@@ -679,10 +482,10 @@ describe('Typed flat client - responseType', () => {
   });
 
   it('responseType: "blob" returns { data: FileResponseData, error: null }', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
-      params: { query: { filename: 'flat-blob.txt' } },
+      query: { filename: 'flat-blob.txt' },
       responseType: 'blob'
     });
     expect(result.error).toBeNull();
@@ -693,10 +496,10 @@ describe('Typed flat client - responseType', () => {
   });
 
   it('responseType: "arraybuffer" returns { data: FileResponseData<ArrayBuffer> }', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
-      params: { query: { filename: 'flat-ab.bin' } },
+      query: { filename: 'flat-ab.bin' },
       responseType: 'arraybuffer'
     });
     expect(result.error).toBeNull();
@@ -704,10 +507,10 @@ describe('Typed flat client - responseType', () => {
   });
 
   it('responseType: "stream" returns { data: FileResponseData<Uint8Array> }', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
-      params: { query: { filename: 'flat-stream.bin' } },
+      query: { filename: 'flat-stream.bin' },
       responseType: 'stream'
     });
     expect(result.error).toBeNull();
@@ -715,8 +518,8 @@ describe('Typed flat client - responseType', () => {
   });
 
   it('non-2xx response with responseType: "blob" returns error in flat response', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const flat = createTypedFlatClient<paths>(client);
+    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = createFlatTypedClient<paths>(request);
     // 请求不存在的资源
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/non-existent-route', {
       responseType: 'blob'

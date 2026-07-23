@@ -128,7 +128,7 @@ export const UBEAN_SERVER_PRESET: InlinePreset = {
   imports: [
     'defineHandlerMeta',
     'useData',
-    'callInternal',
+    'createInternalAdapter',
     'defineScheduled',
     'defineQueue',
     'sendMessage',
@@ -138,12 +138,7 @@ export const UBEAN_SERVER_PRESET: InlinePreset = {
     'defineDatabase',
     'useKV',
     'createKV',
-    'useStorage',
-    'createTypedClient',
-    'createTypedFlatClient',
-    'callTypedInternal',
-    'createTypedRequestSender',
-    'createTypedInternalFetch'
+    'useStorage'
   ]
 };
 

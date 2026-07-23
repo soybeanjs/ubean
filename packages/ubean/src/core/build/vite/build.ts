@@ -25,6 +25,7 @@ import {
 } from '../../vue/virtual-modules';
 import { useVirtualRegistry } from '../virtual/registry';
 import { ubeanPlugin } from './plugin';
+import { findUserViteConfig } from '../../utils/vite-config';
 
 export interface BuildOptions {
   cwd: string;
@@ -472,6 +473,9 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   logger.info('Generating virtual modules...');
   await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual);
 
+  // 检测用户是否提供了 vite.config — 如有则由用户配置提供 ubeanPlugin()
+  const userViteConfig = findUserViteConfig(cwd);
+
   const builtinPlugins: VitePlugin[] = [
     vue({
       include: VUE_PLUGIN_INCLUDE,
@@ -481,7 +485,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         }
       }
     }) as unknown as VitePlugin,
-    ubeanPlugin({ config }),
+    ...(userViteConfig ? [] : [ubeanPlugin({ config })]),
     ...ubeanVuePlugin({ config }),
     ubeanIslandsPlugin()
   ];
@@ -531,7 +535,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
   await viteBuild({
     root: cwd,
-    configFile: false,
+    configFile: userViteConfig ?? false,
     mode: 'production',
     build: {
       outDir: outDirs.public,
@@ -586,7 +590,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
   await viteBuild({
     root: cwd,
-    configFile: false,
+    configFile: userViteConfig ?? false,
     mode: 'production',
     ssr: {
       target: presetBuildConfig.target === 'node18' ? 'node' : 'webworker',

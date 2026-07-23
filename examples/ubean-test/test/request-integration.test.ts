@@ -2,7 +2,7 @@
  * 请求相关集成测试
  *
  * 覆盖三大请求子系统:
- * 1. createInternalFetch / callInternal - 进程内路由调度
+ * 1. createInternalFetch / createInternalAdapter + createRequest - 进程内路由调度
  * 2. createClient / get / post / $get / $post 等 - HTTP 客户端
  * 3. useData / invalidateData / invalidateAll - 页面数据缓存
  *
@@ -15,11 +15,10 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   // Internal fetch
   createInternalFetch,
-  callInternal,
+  createInternalAdapter,
   setInternalFetcher,
   getInternalFetcher,
   clearInternalFetcher,
-  createRequestSender,
   // HTTP client
   createClient,
   defaultClient,
@@ -39,13 +38,20 @@ import {
   withDependencies,
   getInvalidatedKeysForAction
 } from 'ubean';
+import { createRequest } from '@soybeanjs/fetch';
 import type { UbeanContext } from 'ubean';
 import { getJson, getBaseUrl } from './helper';
 
 const BASE_URL = () => getBaseUrl();
 
+// Helper: build an internal request instance from an optional context.
+function createInternalRequest(c?: Parameters<typeof createInternalAdapter>[0]) {
+  const adapter = createInternalAdapter(c);
+  return createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+}
+
 // ============================================================================
-// 1. createInternalFetch / callInternal - 进程内路由调度
+// 1. createInternalFetch / createInternalAdapter + createRequest - 进程内路由调度
 // ============================================================================
 
 describe('Request integration - Internal fetch', () => {
@@ -116,13 +122,14 @@ describe('Request integration - Internal fetch', () => {
     });
   });
 
-  describe('callInternal()', () => {
+  describe('createInternalAdapter() + createRequest()', () => {
     beforeEach(() => {
       clearInternalFetcher();
     });
 
     it('throws when no fetcher is registered', async () => {
-      await expect(callInternal('/api/test')).rejects.toThrow(/fetcher not registered/);
+      const request = createInternalRequest();
+      await expect(request.get('/api/test')).rejects.toThrow('fetcher not registered');
     });
 
     it('calls registered fetcher and parses JSON response', async () => {
@@ -134,10 +141,10 @@ describe('Request integration - Internal fetch', () => {
           })
         )
       );
-      const result = await callInternal('/api/test');
-      expect(result.status).toBe(200);
-      expect(result.response).toBeInstanceOf(Response);
-      expect(result.data).toEqual({ ok: true, value: 42 });
+      const request = createInternalRequest();
+      const response = await request.raw({ url: '/api/test', method: 'GET' });
+      expect(response.status).toBe(200);
+      expect(response.data).toEqual({ ok: true, value: 42 });
     });
 
     it('supports GET method (default)', async () => {
@@ -146,7 +153,8 @@ describe('Request integration - Internal fetch', () => {
         receivedMethod = req.method;
         return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
       });
-      await callInternal('/api/test');
+      const request = createInternalRequest();
+      await request.get('/api/test');
       expect(receivedMethod).toBe('GET');
     });
 
@@ -163,14 +171,12 @@ describe('Request integration - Internal fetch', () => {
           })
         );
       });
-      const result = await callInternal('/api/create', {
-        method: 'POST',
-        body: { name: 'test', value: 123 }
-      });
+      const request = createInternalRequest();
+      const response = await request.raw({ url: '/api/create', method: 'POST', body: { name: 'test', value: 123 } });
       expect(receivedMethod).toBe('POST');
       expect(receivedBody).toBe(JSON.stringify({ name: 'test', value: 123 }));
-      expect(result.status).toBe(201);
-      expect(result.data).toEqual({ created: true });
+      expect(response.status).toBe(201);
+      expect(response.data).toEqual({ created: true });
     });
 
     it('supports query parameters', async () => {
@@ -183,7 +189,8 @@ describe('Request integration - Internal fetch', () => {
           })
         );
       });
-      await callInternal('/api/search', { query: { q: 'test', limit: 10 } });
+      const request = createInternalRequest();
+      await request.get('/api/search', { query: { q: 'test', limit: 10 } });
       const url = new URL(receivedUrl);
       expect(url.searchParams.get('q')).toBe('test');
       expect(url.searchParams.get('limit')).toBe('10');
@@ -195,7 +202,8 @@ describe('Request integration - Internal fetch', () => {
         receivedHeaders = req.headers;
         return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
       });
-      await callInternal('/api/test');
+      const request = createInternalRequest();
+      await request.get('/api/test');
       expect(receivedHeaders!.get('x-internal-request')).toBe('1');
     });
 
@@ -206,43 +214,28 @@ describe('Request integration - Internal fetch', () => {
         await req.text();
         return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
       });
-      await callInternal('/api/create', { method: 'POST', body: { name: 'test' } });
+      const request = createInternalRequest();
+      await request.post('/api/create', { name: 'test' });
       expect(contentType).toBe('application/json');
-    });
-
-    it('parseResponse=false skips body parsing', async () => {
-      setInternalFetcher(() =>
-        Promise.resolve(new Response('raw-text', { headers: { 'Content-Type': 'text/plain' } }))
-      );
-      const result = await callInternal('/api/text', { parseResponse: false });
-      expect(result.data).toBeUndefined();
-      expect(result.response).toBeInstanceOf(Response);
     });
 
     it('parses text/plain response as text', async () => {
       setInternalFetcher(() =>
         Promise.resolve(new Response('hello world', { headers: { 'Content-Type': 'text/plain' } }))
       );
-      const result = await callInternal('/api/text');
-      expect(result.data).toBe('hello world');
+      const request = createInternalRequest();
+      const data = await request.get('/api/text', { responseType: 'text' });
+      expect(data).toBe('hello world');
     });
 
     it('handles fetcher throwing an error', async () => {
       setInternalFetcher(() => Promise.reject(new Error('network failure')));
-      await expect(callInternal('/api/test')).rejects.toThrow('network failure');
+      const request = createInternalRequest();
+      await expect(request.get('/api/test')).rejects.toThrow('network failure');
     });
   });
 
-  describe('createRequestSender() - context-aware internal fetch', () => {
-    it('creates a request sender function', () => {
-      setInternalFetcher(() => Promise.resolve(new Response('{}')));
-      const mockContext = {
-        req: { header: () => undefined }
-      } as unknown as UbeanContext;
-      const sender = createRequestSender(mockContext);
-      expect(typeof sender).toBe('function');
-    });
-
+  describe('createInternalAdapter(context) - context-aware internal fetch', () => {
     // Hono Context stub providing both req.header and c.get()
     function mockHonoContext(headers: Record<string, string> = {}, vars: Record<string, unknown> = {}) {
       return {
@@ -257,14 +250,20 @@ describe('Request integration - Internal fetch', () => {
       } as unknown as UbeanContext;
     }
 
+    it('creates a request instance with a context-aware adapter', () => {
+      setInternalFetcher(() => Promise.resolve(new Response('{}')));
+      const request = createInternalRequest(mockHonoContext());
+      expect(typeof request.get).toBe('function');
+    });
+
     it('forwards cookie from context request', async () => {
       let receivedCookie = '';
       setInternalFetcher((req: Request) => {
         receivedCookie = req.headers.get('cookie') || '';
         return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
       });
-      const sender = createRequestSender(mockHonoContext({ cookie: 'session=abc123' }));
-      await sender('/api/test');
+      const request = createInternalRequest(mockHonoContext({ cookie: 'session=abc123' }));
+      await request.get('/api/test');
       expect(receivedCookie).toBe('session=abc123');
     });
 
@@ -274,8 +273,8 @@ describe('Request integration - Internal fetch', () => {
         receivedAuth = req.headers.get('authorization') || '';
         return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
       });
-      const sender = createRequestSender(mockHonoContext({ authorization: 'Bearer token123' }));
-      await sender('/api/test');
+      const request = createInternalRequest(mockHonoContext({ authorization: 'Bearer token123' }));
+      await request.get('/api/test');
       expect(receivedAuth).toBe('Bearer token123');
     });
 
@@ -285,8 +284,8 @@ describe('Request integration - Internal fetch', () => {
         receivedRequestId = req.headers.get('x-request-id') || '';
         return Promise.resolve(new Response('{}', { headers: { 'Content-Type': 'application/json' } }));
       });
-      const sender = createRequestSender(mockHonoContext({}, { requestId: 'req-456' }));
-      await sender('/api/test');
+      const request = createInternalRequest(mockHonoContext({}, { requestId: 'req-456' }));
+      await request.get('/api/test');
       expect(receivedRequestId).toBe('req-456');
     });
   });
@@ -302,19 +301,20 @@ describe('Request integration - Internal fetch', () => {
       expect(res.status).toBe(200);
       expect(res.data).toHaveProperty('action', 'internal-fetch');
       expect(res.data).toHaveProperty('target', '/api/hello');
-      expect(res.data).toHaveProperty('status', 200);
+      expect(res.data).toHaveProperty('ok', true);
+      expect(res.data).toHaveProperty('data');
     });
 
     it('internal fetch calls /api/health target', async () => {
       const res = await getJson('/api/internal-fetch-test?target=health');
       expect(res.status).toBe(200);
-      expect(res.data).toHaveProperty('status', 200);
+      expect(res.data).toHaveProperty('ok', true);
     });
 
     it('internal fetch calls /api/users target', async () => {
       const res = await getJson('/api/internal-fetch-test?target=users');
       expect(res.status).toBe(200);
-      expect(res.data).toHaveProperty('status', 200);
+      expect(res.data).toHaveProperty('ok', true);
     });
 
     it('internal fetch handles unknown target gracefully', async () => {
@@ -902,7 +902,7 @@ describe('Request integration - cross-subsystem scenarios', () => {
     clearDataCache();
   });
 
-  it('useData fetcher can use callInternal to fetch from routes', async () => {
+  it('useData fetcher can use createInternalAdapter + createRequest to fetch from routes', async () => {
     // Simulate app.fetch being available
     setInternalFetcher(async (req: Request) => {
       // Route to /api/hello by calling the real dev server
@@ -919,8 +919,9 @@ describe('Request integration - cross-subsystem scenarios', () => {
     const result = await useData({
       key: 'cross-internal-fetch',
       fetcher: async () => {
-        const r = await callInternal<{ message: string }>('/api/hello');
-        return r.data;
+        const adapter = createInternalAdapter();
+        const req = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+        return await req.get<{ message: string }>('/api/hello');
       }
     });
 
@@ -950,8 +951,9 @@ describe('Request integration - cross-subsystem scenarios', () => {
     });
 
     const fetcher = async () => {
-      const r = await callInternal<{ message: string }>('/api/hello');
-      return r.data;
+      const adapter = createInternalAdapter();
+      const req = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+      return await req.get<{ message: string }>('/api/hello');
     };
 
     const r1 = await useData({ key: 'cross-cache', fetcher });
@@ -977,12 +979,14 @@ describe('Request integration - cross-subsystem scenarios', () => {
     const result = await useData({
       key: 'cross-error',
       fetcher: async () => {
-        await callInternal('/api/hello');
+        const adapter = createInternalAdapter();
+        const req = createRequest({ adapter, retry: { retries: 0 } }, { isBackendSuccess: () => true });
+        await req.get('/api/hello');
         return 'unreachable';
       }
     });
     expect(result.error).toBeInstanceOf(Error);
-    expect(result.error?.message).toBe('internal network failure');
+    expect(result.error?.message).toContain('internal network failure');
     expect(result.data).toBeUndefined();
   });
 });

@@ -19,7 +19,7 @@ async function fetchHello() {
   helloResult.value = null;
   try {
     // 完全类型安全 — '/api/hello' 路径、参数、返回值均从 OpenAPI 推断
-    const data = await api.get('/api/hello');
+    const data = await api.get('/hello');
     helloResult.value = data;
   } catch (err) {
     helloError.value = err instanceof Error ? err.message : String(err);
@@ -41,9 +41,9 @@ async function fetchUser() {
   userError.value = '';
   userResult.value = null;
   try {
-    // path 参数 {id} 自动替换,params.path 有类型约束
-    const data = await api.get('/api/users/{id}', {
-      params: { path: { id: String(userId.value) } }
+    // path 参数 {id} 自动替换,pathParams 有类型约束
+    const data = await api.get('/users/{id}', {
+      pathParams: { id: String(userId.value) }
     });
     userResult.value = data;
   } catch (err) {
@@ -66,7 +66,8 @@ async function fetchText() {
   textResult.value = '';
   try {
     // responseType: 'text' 返回 string,而非 JSON 解析
-    const text = await api.get('/api/text', { responseType: 'text' });
+    // 非 'json' 的 responseType 需 cast 绕过 OpenAPI 类型约束
+    const text = (await (api as any).get('/api/text', { responseType: 'text' })) as string;
     textResult.value = text;
   } catch (err) {
     textError.value = err instanceof Error ? err.message : String(err);
@@ -88,10 +89,11 @@ async function downloadFile() {
   downloadInfo.value = null;
   try {
     // responseType: 'blob' 返回 { file: Blob; filename: string; contentType: string }
-    const result = await api.get('/api/download', {
+    // 非 'json' 的 responseType 需 cast 绕过 OpenAPI 类型约束
+    const result = (await (api as any).get('/api/download', {
       responseType: 'blob',
-      params: { query: { filename: 'demo-file.txt', contentType: 'text/plain' } }
-    });
+      query: { filename: 'demo-file.txt', contentType: 'text/plain' }
+    })) as { file: Blob; filename: string; contentType: string };
     downloadInfo.value = {
       filename: result.filename,
       contentType: result.contentType,
@@ -120,11 +122,11 @@ async function downloadFile() {
 const flatResult = ref<{ data: unknown; error: string | null; status: number } | null>(null);
 
 async function fetchFlat() {
-  const { data, error, status } = await flatApi.get('/api/users');
+  const { data, error, response } = await flatApi.get('/users');
   flatResult.value = {
     data,
     error: error ? error.message : null,
-    status
+    status: response?.status ?? 0
   };
 }
 </script>
@@ -201,7 +203,7 @@ async function fetchFlat() {
 
     <!-- 5. 扁平模式 -->
     <section>
-      <h2>5. 扁平模式(createTypedFlatClient)</h2>
+      <h2>5. 扁平模式(createFlatTypedClient)</h2>
       <button @click="fetchFlat">GET /api/users(flat)</button>
       <pre v-if="flatResult">{{ JSON.stringify(flatResult, null, 2) }}</pre>
     </section>

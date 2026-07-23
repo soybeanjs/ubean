@@ -96,8 +96,19 @@ export interface WebAppManifest {
   dir?: 'ltr' | 'rtl' | 'auto';
 }
 
-export { useSeoMeta } from '@unhead/vue';
-export type { UseSeoMetaInput } from '@unhead/vue';
+import { useSeoMeta as _useSeoMeta } from '@unhead/vue';
+import type { UseSeoMetaInput } from '@unhead/vue';
+
+export type { UseSeoMetaInput };
+
+export function useSeoMeta<T extends Record<string, any>>(meta: T): T {
+  try {
+    _useSeoMeta(meta as any);
+  } catch {
+    // ignore error when called outside Vue setup context
+  }
+  return meta;
+}
 
 export function mergeMetadata(...metadatas: (SeoMetadata | undefined | null)[]): SeoMetadata {
   const result: SeoMetadata = {};

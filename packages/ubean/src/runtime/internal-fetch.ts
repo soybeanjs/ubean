@@ -89,7 +89,8 @@ export function createInternalAdapter(c?: Context<UbeanEnv>, options?: InternalF
     if (extraHeaders) {
       for (const [k, v] of Object.entries(extraHeaders)) headers.set(k, v);
     }
-    const request = new Request(url, { ...init, headers } as RequestInit);
+    const requestUrl = url.startsWith('http') ? url : new URL(url, 'http://internal');
+    const request = new Request(requestUrl, { ...init, headers } as RequestInit);
     return fetcher(request);
   };
 }

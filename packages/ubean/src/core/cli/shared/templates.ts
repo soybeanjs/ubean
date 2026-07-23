@@ -97,7 +97,7 @@ definePage({
 </script>
 
 <template>
-  <div>
+  <div class="{{kebabName}}-page">
     <div>{{name}}</div>
   </div>
 </template>
@@ -119,11 +119,16 @@ export default defineMiddleware(async (c, next) => {
 });
 `;
 
-export const LAYOUT_TEMPLATE = `
-<script setup lang="ts"></script>
+export const LAYOUT_TEMPLATE = `<script setup lang="ts">
+definePage({
+  meta: {
+    title: '{{name}}'
+  }
+});
+</script>
 
 <template>
-  <div class="{{kebabName}}-layout">
+  <div class="{{kebabName}}">
     <slot />
   </div>
 </template>

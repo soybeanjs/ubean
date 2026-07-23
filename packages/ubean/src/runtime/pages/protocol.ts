@@ -14,6 +14,7 @@ export interface PageObject<Props = Record<string, unknown>> {
   url: string;
   layout?: string | false;
   errors?: Record<string, string> | null;
+  head?: PageHead;
 }
 
 export interface PageAssetTags {
@@ -89,6 +90,59 @@ function escapeAttr(str: string): string {
   return str.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 }
 
+function renderHeadTags(head?: PageHead): { headTags: string; htmlAttrsStr: string; bodyAttrsStr: string } {
+  if (!head) {
+    return { headTags: '', htmlAttrsStr: '', bodyAttrsStr: '' };
+  }
+
+  const tags: string[] = [];
+
+  if (head.title) {
+    tags.push(`<title>${escapeAttr(head.title)}</title>`);
+  }
+
+  if (head.meta) {
+    for (const meta of head.meta) {
+      const attrs = Object.entries(meta)
+        .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
+        .join(' ');
+      tags.push(`<meta ${attrs}>`);
+    }
+  }
+
+  if (head.link) {
+    for (const link of head.link) {
+      const attrs = Object.entries(link)
+        .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
+        .join(' ');
+      tags.push(`<link ${attrs}>`);
+    }
+  }
+
+  if (head.script) {
+    for (const script of head.script) {
+      const attrs = Object.entries(script)
+        .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
+        .join(' ');
+      tags.push(`<script ${attrs}></script>`);
+    }
+  }
+
+  const htmlAttrsStr = head.htmlAttrs
+    ? Object.entries(head.htmlAttrs)
+        .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
+        .join(' ')
+    : '';
+
+  const bodyAttrsStr = head.bodyAttrs
+    ? Object.entries(head.bodyAttrs)
+        .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
+        .join(' ')
+    : '';
+
+  return { headTags: tags.join('\n    '), htmlAttrsStr, bodyAttrsStr };
+}
+
 export function buildPageShell(
   pageObj: PageObject,
   assetTags: PageAssetTags,
@@ -109,12 +163,26 @@ export function buildPageShell(
     ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}), ...(availableLocales?.length ? { availableLocales } : {}) })}</script>`
     : '';
 
+  const { headTags, htmlAttrsStr, bodyAttrsStr } = renderHeadTags(pageObj.head);
+
+  const localeHtmlAttrs: Record<string, string> = {};
+  if (locale) {
+    localeHtmlAttrs.lang = locale;
+    localeHtmlAttrs.dir = localeDir;
+  }
+  const localeHtmlAttrsStr = Object.entries(localeHtmlAttrs)
+    .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
+    .join(' ');
+
+  const finalHtmlAttrs = [localeHtmlAttrsStr, htmlAttrsStr].filter(Boolean).join(' ');
+  const finalBodyAttrs = bodyAttrsStr;
+
   return `<!doctype html>
-<html>
+<html${finalHtmlAttrs ? ` ${finalHtmlAttrs}` : ''}>
 <head>
-    ${css}${preloads}
+    ${headTags ? `${headTags}\n    ` : ''}${css}${preloads}
 </head>
-<body>
+<body${finalBodyAttrs ? ` ${finalBodyAttrs}` : ''}>
   ${localeScript}
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
   <div id="${appId}">${SSR_CONTENT_MARKER}</div>
@@ -148,21 +216,26 @@ export function buildClientOnlyShell(
     ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}), ...(availableLocales?.length ? { availableLocales } : {}) })}</script>`
     : '';
 
+  const { headTags, htmlAttrsStr: pageHtmlAttrsStr, bodyAttrsStr } = renderHeadTags(pageObj.head);
+
   const htmlAttrs: Record<string, string> = {};
   if (locale) {
     htmlAttrs.lang = locale;
     htmlAttrs.dir = localeDir;
   }
-  const finalHtmlAttrs = Object.entries(htmlAttrs)
+  const localeHtmlAttrsStr = Object.entries(htmlAttrs)
     .map(([k, v]) => `${k}="${escapeAttr(String(v))}"`)
     .join(' ');
+
+  const finalHtmlAttrs = [localeHtmlAttrsStr, pageHtmlAttrsStr].filter(Boolean).join(' ');
+  const finalBodyAttrs = bodyAttrsStr;
 
   return `<!doctype html>
 <html${finalHtmlAttrs ? ` ${finalHtmlAttrs}` : ''}>
 <head>
-    ${preambleScript}${css}${preloads}
+    ${headTags ? `${headTags}\n    ` : ''}${preambleScript}${css}${preloads}
 </head>
-<body>
+<body${finalBodyAttrs ? ` ${finalBodyAttrs}` : ''}>
   ${localeScript}
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
   <div id="${appId}" data-ubean-ssr="false"></div>

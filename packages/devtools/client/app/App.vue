@@ -97,6 +97,8 @@ const currentPanelContext = computed(() => {
   }
 });
 
+const rootDir = computed(() => (info.value?.config.rootDir as string) || '');
+
 const currentResourceSummary = computed(() => {
   if (!info.value) return '';
   const i = info.value;
@@ -489,7 +491,7 @@ onUnmounted(() => {
         <Terminal
           v-else-if="route === 'terminal'"
           class="h-full"
-          :cwd="info.config.rootDir as string | undefined"
+          :cwd="rootDir"
           :terminal-start="terminalStart"
           :terminal-input="terminalInput"
           :terminal-resize="terminalResize"

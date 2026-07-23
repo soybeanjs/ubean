@@ -9,11 +9,20 @@ minimumReleaseAgeExclude:
   - '@unhead/vue@3.2.1'
   - unhead@3.2.1
   - '@soybeanjs/fetch@0.0.5'
+  - '@voidzero-dev/vite-plus-core@0.2.6'
+  - '@voidzero-dev/vite-plus-darwin-arm64@0.2.6'
+  - '@voidzero-dev/vite-plus-darwin-x64@0.2.6'
+  - '@voidzero-dev/vite-plus-linux-arm64-gnu@0.2.6'
+  - '@voidzero-dev/vite-plus-linux-arm64-musl@0.2.6'
+  - '@voidzero-dev/vite-plus-linux-x64-gnu@0.2.6'
+  - '@voidzero-dev/vite-plus-linux-x64-musl@0.2.6'
+  - '@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.6'
+  - '@voidzero-dev/vite-plus-win32-x64-msvc@0.2.6'
+  - vite-plus@0.2.6
 
 packages:
   - 'packages/*'
   - 'examples/*'
-  - '../fetch'
 catalog:
   '@ai-sdk/openai-compatible': 3.0.12
   '@codemirror/commands': 6.10.4
@@ -61,13 +70,12 @@ catalog:
   unplugin-vue-components: ^32.1.0
   unplugin-vue-markdown: ^32.0.0
   unstorage: ^1.17.5
-  vite-plus: 0.2.5
-  vite: npm:@voidzero-dev/vite-plus-core@latest
-  vitest: npm:@voidzero-dev/vite-plus-test@latest
+  vite-plus: 0.2.6
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.6
+  vitest: 4.1.10
   vue-tsc: ^3.3.7
 overrides:
   vite: 'catalog:'
-  vitest: 'catalog:'
   kysely: '0.28.5'
   markdown-exit: 'catalog:'
   typescript: 'catalog:'

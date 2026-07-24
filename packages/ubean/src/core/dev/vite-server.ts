@@ -284,7 +284,8 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       },
       meta: {
         layout: p.layout === false ? false : p.layout || defaultLayout,
-        pageName: p.name
+        pageName: p.name,
+        cache: p.cache === true ? true : undefined
       }
     }));
 

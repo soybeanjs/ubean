@@ -30,9 +30,20 @@ import type { Component, ComputedRef, Ref } from 'vue';
  *   await resetRouteCache('DashboardIndex');
  */
 
-const _cachedViewNames: Ref<string[]> = ref([]);
-const _excludedViewNames: Ref<string[]> = ref([]);
-const _cacheEnabled: Ref<boolean> = ref(true);
+// Store singletons on globalThis so that all module instances (which can be
+// duplicated by the bundler when different entry points import the same code)
+// share the same reactive state. Without this, `initCachedViewsFromRoutes`
+// called in `createUbeanSSRApp` (one chunk) would modify a different ref
+// than the one `useCacheViews()` reads in page components (another chunk),
+// causing SSR hydration mismatches.
+const _g = globalThis as typeof globalThis & {
+  __ubeanCachedViewNames?: Ref<string[]>;
+  __ubeanExcludedViewNames?: Ref<string[]>;
+  __ubeanCacheEnabled?: Ref<boolean>;
+};
+const _cachedViewNames: Ref<string[]> = (_g.__ubeanCachedViewNames ??= ref([]));
+const _excludedViewNames: Ref<string[]> = (_g.__ubeanExcludedViewNames ??= ref([]));
+const _cacheEnabled: Ref<boolean> = (_g.__ubeanCacheEnabled ??= ref(true));
 
 /**
  * Internal registry of named wrapper components used to give each route's

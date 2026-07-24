@@ -258,7 +258,8 @@ const _rendererRoutes = _pages.filter(p => !p.isReuse).map(p => ({
   },
   meta: {
     layout: p.layout === false ? false : p.layout || _defaultLayout,
-    pageName: p.name
+    pageName: p.name,
+    cache: p.cache === true ? true : undefined
   }
 }));
 

@@ -53,8 +53,7 @@ export interface UbeanAppInstance {
 
 function createLayoutWrapper(
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>,
-  defaultLayout: string | null,
-  ssr: boolean
+  defaultLayout: string | null
 ) {
   const layoutCache = new Map<string, Component | null>();
   const layoutComp = shallowRef<Component | null>(null);
@@ -333,7 +332,7 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
     ssr: false
   });
 
-  const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null, false);
+  const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
 
   // Seed the keep-alive include list from routes that declared
   // `definePage({ cache: true })`. Runtime toggling via
@@ -366,7 +365,13 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
     initialUrl: initialPage.url
   });
 
-  const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null, true);
+  const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
+
+  // Seed the keep-alive include list on SSR too, so the server-rendered
+  // cachedViews list matches the client's initial state. Without this,
+  // pages that declared `definePage({ cache: true })` render "(empty)" on
+  // the server but the route name on the client → hydration text mismatch.
+  initCachedViewsFromRoutes(options.routes as Array<{ name?: string | symbol; meta?: { cache?: boolean } }>);
 
   const RootComponent = createRootComponent(LayoutWrapper, page, { enabled: false }, true);
 

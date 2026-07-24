@@ -51,6 +51,10 @@
       "types": "./dist/runtime/app.d.ts",
       "import": "./dist/runtime/app.mjs"
     },
+    "./runtime/define-server": {
+      "types": "./dist/runtime/define-server.d.ts",
+      "import": "./dist/runtime/define-server.mjs"
+    },
     "./runtime/vue": {
       "types": "./dist/runtime/vue/index.d.ts",
       "browser": "./dist/runtime/vue/index.mjs",

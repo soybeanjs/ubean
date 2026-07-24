@@ -315,3 +315,7 @@ export interface AppPlugin {
 export function createUbeanApp(options: UbeanAppOptions = {}): UbeanApp {
   return new UbeanApp(options);
 }
+
+// Re-export defineServer and related types (server-side counterpart of defineApp)
+export { defineServer, createDefaultServerConfig, mergeServerConfigs, applyServerConfig } from './define-server';
+export type { DefineServerOptions, ResolvedServerConfig, ServerHooks } from './define-server';

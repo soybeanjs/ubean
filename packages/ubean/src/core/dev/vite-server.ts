@@ -95,6 +95,11 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   let currentLayouts = initialLayouts;
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let viteServer: ViteDevServer | null = null;
+  // Tracks whether the user's defineServer config has been applied to currentApp.
+  // Reset to false on HMR app refresh so the new app instance gets re-configured.
+  let serverConfigApplied = false;
+  let serverReadyCalled = false;
+  let cachedServerConfig: any = null;
   // Refresh callback registered by the DevTools plugin — invoked from
   // `updateApp()` so the plugin can rebuild `DevToolsInfo` from the latest
   // scan data and push patches to connected clients via sharedState.
@@ -356,7 +361,35 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
             logger.warn('[ubean] Failed to load locales:', err);
           }
 
+          // Apply user's defineServer config (plugins, hooks, onAppCreate)
+          // before init() — must happen before the first init() call.
+          if (!serverConfigApplied) {
+            serverConfigApplied = true;
+            try {
+              const serverMod = await viteServer!.ssrLoadModule('virtual:ubean-server.ts');
+              if (serverMod?.resolveServerConfig) {
+                const { applyServerConfig } = await import('ubean/runtime/app');
+                cachedServerConfig = serverMod.resolveServerConfig('dev');
+                await applyServerConfig(currentApp, cachedServerConfig);
+              }
+            } catch (err) {
+              logger.warn('[ubean] Failed to load server config:', err);
+            }
+          }
+
           await currentApp.init();
+
+          // Call onServerReady once after the first successful init
+          if (!serverReadyCalled) {
+            serverReadyCalled = true;
+            if (cachedServerConfig?.onServerReady) {
+              try {
+                await cachedServerConfig.onServerReady(currentApp);
+              } catch (err) {
+                logger.warn('[ubean] onServerReady error:', err);
+              }
+            }
+          }
           // @ts-expect-error Socket 类型没有 encrypted 属性
           const protocol = req.socket?.encrypted ? 'https' : 'http';
           const webReq = await toWebRequest(req, host, protocol);
@@ -457,6 +490,11 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     updateApp(app: UbeanApp, layouts?: ScannedLayout[]) {
       currentApp = app;
       if (layouts) currentLayouts = layouts;
+      // Reset server config flags — the new app instance needs fresh config
+      // application on its first request.
+      serverConfigApplied = false;
+      serverReadyCalled = false;
+      cachedServerConfig = null;
       enhanceAppWithVite(app, currentLayouts);
       // Push the fresh scan data to DevTools clients via sharedState. The
       // plugin's refresh callback rebuilds `DevToolsInfo` from `getScanResult`

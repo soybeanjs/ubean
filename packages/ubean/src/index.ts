@@ -1,8 +1,23 @@
 export { defineHandler, defineHandlerMeta, defineMiddleware } from './runtime/handler';
 export { defineConfig, loadUbeanConfig, getConfig } from './core/config';
 export { UbeanError, createError, isUbeanError, errorToResponse } from './runtime/error';
-export { createUbeanApp, UbeanApp } from './runtime/app';
-export type { UbeanAppOptions, UbeanAppPlugin, UbeanRuntimeHooks, AppPlugin } from './runtime/app';
+export {
+  createUbeanApp,
+  UbeanApp,
+  defineServer,
+  createDefaultServerConfig,
+  mergeServerConfigs,
+  applyServerConfig
+} from './runtime/app';
+export type {
+  UbeanAppOptions,
+  UbeanAppPlugin,
+  UbeanRuntimeHooks,
+  AppPlugin,
+  DefineServerOptions,
+  ResolvedServerConfig,
+  ServerHooks
+} from './runtime/app';
 export { validator, describeRoute, resolver, openAPIRouteHandler } from 'hono-openapi';
 export { defineEnv, setRuntimeEnv, useRuntimeEnv } from './runtime/env';
 export type { EnvSchema, EnvConfig, DefineEnvResult, EnvValidationError, InferEnvOutput } from './runtime/env';
@@ -407,6 +422,7 @@ export type {
   ScannedMiddleware,
   ScannedLayout,
   ScannedAppEntry,
+  ScannedServerEntry,
   AppEntry,
   HttpMethod,
   RouteMeta

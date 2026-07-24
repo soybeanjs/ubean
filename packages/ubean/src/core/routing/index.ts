@@ -21,6 +21,7 @@ export type {
   ScannedQueue,
   ScannedLocale,
   ScannedAppEntry,
+  ScannedServerEntry,
   AppEntry,
   ScanOptions,
   ScanResult

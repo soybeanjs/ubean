@@ -16,6 +16,7 @@ import type {
   ScannedLayout,
   ScannedPlugin,
   ScannedAppEntry,
+  ScannedServerEntry,
   ScannedCronTask,
   ScannedQueue,
   ScannedLocale,
@@ -51,17 +52,19 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
 
   const srcDir = isAbsolute(options.srcDir) ? options.srcDir : join(options.cwd, options.srcDir);
 
-  const [apiRoutes, middlewares, pages, layouts, plugins, crons, queues, locales, appEntry] = await Promise.all([
-    scanApiRoutes(srcDir, dirs.routes, ignore),
-    scanMiddlewares(srcDir, dirs.middleware, ignore),
-    scanPages(srcDir, dirs.pages, ignore),
-    scanLayouts(srcDir, dirs.layouts, ignore),
-    scanPlugins(srcDir, dirs.plugins, ignore),
-    scanCrons(srcDir, dirs.crons, ignore),
-    scanQueues(srcDir, dirs.queues, ignore),
-    scanLocales(srcDir, dirs.locales, ignore),
-    scanAppEntry(srcDir)
-  ]);
+  const [apiRoutes, middlewares, pages, layouts, plugins, crons, queues, locales, appEntry, serverEntry] =
+    await Promise.all([
+      scanApiRoutes(srcDir, dirs.routes, ignore),
+      scanMiddlewares(srcDir, dirs.middleware, ignore),
+      scanPages(srcDir, dirs.pages, ignore),
+      scanLayouts(srcDir, dirs.layouts, ignore),
+      scanPlugins(srcDir, dirs.plugins, ignore),
+      scanCrons(srcDir, dirs.crons, ignore),
+      scanQueues(srcDir, dirs.queues, ignore),
+      scanLocales(srcDir, dirs.locales, ignore),
+      scanAppEntry(srcDir),
+      scanServerEntry(srcDir)
+    ]);
 
   const reusePageNames = new Set(pages.filter(p => p.isReuse).map(p => p.name));
 
@@ -76,7 +79,19 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
 
   const defaultLocale = locales.find(l => l.isDefault)?.code || locales[0]?.code;
 
-  return { apiRoutes, middlewares, pages, layouts, plugins, crons, queues, locales, defaultLocale, appEntry };
+  return {
+    apiRoutes,
+    middlewares,
+    pages,
+    layouts,
+    plugins,
+    crons,
+    queues,
+    locales,
+    defaultLocale,
+    appEntry,
+    serverEntry
+  };
 }
 
 async function scanApiRoutes(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedApiRoute[]> {
@@ -503,6 +518,37 @@ async function scanAppEntry(srcDir: string): Promise<ScannedAppEntry> {
   result.shared = shared;
   result.server = server;
   result.client = client;
+
+  return result;
+}
+
+async function scanServerEntry(srcDir: string): Promise<ScannedServerEntry> {
+  const result: ScannedServerEntry = {
+    shared: { exists: false },
+    dev: { exists: false },
+    prod: { exists: false }
+  };
+
+  const findEntry = async (baseName: string): Promise<AppEntry> => {
+    for (const ext of APP_EXTENSIONS) {
+      const fullPath = join(srcDir, `${baseName}.${ext}`);
+      const exists = await fileExists(fullPath);
+      if (exists) {
+        return { exists: true, fullPath, relativePath: `${baseName}.${ext}` };
+      }
+    }
+    return { exists: false };
+  };
+
+  const [shared, dev, prod] = await Promise.all([
+    findEntry('server'),
+    findEntry('server.dev'),
+    findEntry('server.prod')
+  ]);
+
+  result.shared = shared;
+  result.dev = dev;
+  result.prod = prod;
 
   return result;
 }

@@ -87,6 +87,12 @@ export interface ScannedAppEntry {
   client: AppEntry;
 }
 
+export interface ScannedServerEntry {
+  shared: AppEntry;
+  dev: AppEntry;
+  prod: AppEntry;
+}
+
 export interface ScanOptions {
   cwd: string;
   srcDir: string;
@@ -114,6 +120,7 @@ export interface ScanResult {
   locales: ScannedLocale[];
   defaultLocale?: string;
   appEntry: ScannedAppEntry;
+  serverEntry: ScannedServerEntry;
 }
 
 export const GLOB_SCAN_PATTERN = '**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}';

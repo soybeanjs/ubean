@@ -11,7 +11,8 @@ import { scanProject } from '../routing/scan';
 import {
   createVuePagesVirtualModule,
   createVueAppEntryVirtualModule,
-  createClientEntryVirtualModule
+  createClientEntryVirtualModule,
+  createServerEntryVirtualModule
 } from './virtual-modules';
 
 export interface UbeanVuePluginOptions {
@@ -24,9 +25,10 @@ export const VUE_PLUGIN_INCLUDE = [/\.vue$/, /\.md$/];
 const VIRTUAL_PAGES = 'virtual:ubean-pages.ts';
 const VIRTUAL_APP = 'virtual:ubean-app.ts';
 const VIRTUAL_CLIENT = 'virtual:ubean-client-entry.ts';
+const VIRTUAL_SERVER = 'virtual:ubean-server.ts';
 const CLIENT_ENTRY_URL = `/@id/${VIRTUAL_CLIENT}`;
 
-const VIRTUAL_IDS = [VIRTUAL_PAGES, VIRTUAL_APP, VIRTUAL_CLIENT];
+const VIRTUAL_IDS = [VIRTUAL_PAGES, VIRTUAL_APP, VIRTUAL_CLIENT, VIRTUAL_SERVER];
 
 // 兼容旧 ID 映射
 const HASH_ID_TO_VIRTUAL: Record<string, string> = {
@@ -75,6 +77,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
 
     virtualRegistry.register(createVuePagesVirtualModule(result.pages, result.layouts));
     virtualRegistry.register(createVueAppEntryVirtualModule(result.appEntry));
+    virtualRegistry.register(createServerEntryVirtualModule(result.serverEntry));
     virtualRegistry.register(createClientEntryVirtualModule());
   }
 

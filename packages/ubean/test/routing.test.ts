@@ -45,7 +45,7 @@ describe('filePathToRoute', () => {
 
 describe('generateRouteName', () => {
   it('generates index name for root', () => {
-    expect(generateRouteName('/')).toBe('index');
+    expect(generateRouteName('/')).toBe('Index');
   });
 
   it('generates pascal case name', () => {

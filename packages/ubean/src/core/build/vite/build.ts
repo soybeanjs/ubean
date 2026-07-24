@@ -137,10 +137,10 @@ async function generateVirtualModulesToDisk(
   await writeModule('ubean:app-config', 'app-config.mjs');
   await writeModule('ubean:locales', 'locales.mjs');
   await writeModule('ubean:meta', 'meta.mjs');
-  await writeModule('virtual:ubean-pages', 'vue-pages.ts');
-  await writeModule('virtual:ubean-app', 'vue-app.ts');
-  await writeModule('virtual:ubean-server', 'server-entry.ts');
-  await writeModule('virtual:ubean-client-entry', 'client-entry.mjs');
+  await writeModule('virtual:ubean-pages', 'vue-pages.ts', '');
+  await writeModule('virtual:ubean-app', 'vue-app.ts', '');
+  await writeModule('virtual:ubean-server', 'server-entry.ts', '');
+  await writeModule('virtual:ubean-client-entry', 'client-entry.mjs', '');
 
   const pagesGlob = JSON.stringify(`${viteSrcPrefix}/pages/**/*.{vue,ts,tsx,js,jsx,md,mdx}`);
   const routesGlob = JSON.stringify(`${viteSrcPrefix}/routes/**/*.{ts,js,mjs}`);

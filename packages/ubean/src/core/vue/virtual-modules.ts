@@ -80,7 +80,7 @@ export function resolvePageComponent(name: string): Promise<any> {
 }
 
 export function resolveLayoutComponent(name: string | false | null | undefined): Promise<any> {
-  if (!name || name === false) return Promise.resolve(null);
+  if (!name) return Promise.resolve(null);
   const loader = _layoutLoaders[name];
   if (!loader) {
     return Promise.resolve(null);
@@ -158,7 +158,7 @@ import { createHead as createClientHead } from '@unhead/vue/client';
 import { createHead as createServerHead } from '@unhead/vue/server';
 import type { App } from 'vue';
 import type { Router } from 'vue-router';
-import type { Head } from '@unhead/vue';
+import type { Head as HeadClient } from '@unhead/vue';
 
 export {
   createUbeanApp,
@@ -203,11 +203,8 @@ function _mergeAppConfig(base: ResolvedAppConfig, ...configs: (ResolvedAppConfig
     if (cfg.globalComponents) result.globalComponents = { ...(result.globalComponents || {}), ...cfg.globalComponents };
     if (cfg.provides) result.provides = { ...(result.provides || {}), ...cfg.provides };
     if (cfg.head) result.head = { ...(result.head || {}), ...cfg.head };
-    if ((cfg as any).titleTemplate) (result as any).titleTemplate = (cfg as any).titleTemplate;
     if (cfg.rootId) result.rootId = cfg.rootId;
     if (cfg.rootAttrs) result.rootAttrs = { ...(result.rootAttrs || {}), ...cfg.rootAttrs };
-    if ((cfg as any).htmlAttrs) (result as any).htmlAttrs = { ...((result as any).htmlAttrs || {}), ...(cfg as any).htmlAttrs };
-    if ((cfg as any).bodyAttrs) (result as any).bodyAttrs = { ...((result as any).bodyAttrs || {}), ...(cfg as any).bodyAttrs };
     if (cfg.onAppCreated) result.onAppCreated = cfg.onAppCreated;
     if (cfg.onClientReady) result.onClientReady = cfg.onClientReady;
     if (cfg.errorComponent) result.errorComponent = cfg.errorComponent;
@@ -284,7 +281,7 @@ export function createApp(): { app: App; router: Router } {
   return instance;
 }
 
-export function createSSRApp(initialPage: any): { app: App; router: Router; head: Head; config: ResolvedAppConfig } {
+export function createSSRApp(initialPage: any): { app: App; router: Router; head: HeadClient; config: ResolvedAppConfig } {
   const config = resolveAppConfig('server');
   const head = createServerHead();
 

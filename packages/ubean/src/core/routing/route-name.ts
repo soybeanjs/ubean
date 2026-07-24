@@ -2,7 +2,7 @@ import { pascalCase } from 'scule';
 
 export function generateRouteName(routePath: string): string {
   if (routePath === '/' || routePath === '') {
-    return 'index';
+    return 'Index';
   }
 
   const segments = routePath.replace(/^\//, '').replace(/\/$/, '').split('/');
@@ -36,7 +36,7 @@ export function generateRouteName(routePath: string): string {
   }
 
   const name = nameSegments.join('');
-  return name || 'index';
+  return name || 'Index';
 }
 
 export function generateLayoutName(layoutPath: string): string {

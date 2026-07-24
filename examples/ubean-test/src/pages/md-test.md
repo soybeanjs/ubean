@@ -1,6 +1,11 @@
 ---
-title: Markdown 测试页
-description: 测试 ubean 的 Markdown 页面渲染功能
+head:
+  title: Markdown 测试页
+  meta:
+    - name: description
+      content: 测试 ubean 的 Markdown 页面渲染功能
+    - name: keywords
+      content: ubean,markdown,ssr
 ---
 
 # Markdown 页面测试 ✅

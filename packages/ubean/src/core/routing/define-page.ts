@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { RouteMeta } from 'vue-router';
+import type { PageHead } from '../../runtime/pages/protocol';
 
 export interface PageMeta {
   name?: string;
@@ -14,6 +15,11 @@ export interface PageMeta {
   meta?: RouteMeta;
   middleware?: string | string[];
   requiresAuth?: boolean;
+  /**
+   * Page-level head configuration (SEO title, meta, link, etc.).
+   * Used by Markdown frontmatter; Vue pages use `useHead()` at runtime instead.
+   */
+  head?: PageHead;
 }
 
 export interface DefineMetaResult {

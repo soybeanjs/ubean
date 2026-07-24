@@ -180,7 +180,9 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     plugins.push(
       Markdown({
         markdownOptions,
-        wrapperClasses: 'markdown-body'
+        wrapperClasses: 'markdown-body',
+        headEnabled: true,
+        headField: 'head'
       }) as Plugin
     );
   }

@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
 import { filePathToRoute } from '../../utils/path';
+import type { PageHead } from '../../runtime/pages/protocol';
 import { logger } from '../log';
 import { parseFrontmatter } from '../markdown';
 import { extractDefinePage } from './define-page';
@@ -206,9 +207,10 @@ async function scanPages(srcDir: string, dirName: string, ignore: string[]): Pro
         const parsed = parseFrontmatter(content);
         frontmatter = parsed.data;
         pageMeta = {
-          name: (frontmatter?.title as string) || name,
+          name: (frontmatter?.name as string) || name,
           path: (frontmatter?.path as string) || route,
-          layout: frontmatter?.layout as string | false | undefined
+          layout: frontmatter?.layout as string | false | undefined,
+          head: buildMarkdownHead(frontmatter)
         };
       } catch {
         pageMeta = null;
@@ -559,7 +561,7 @@ async function fileExists(path: string): Promise<boolean> {
 }
 
 function routeToName(route: string): string {
-  if (route === '/') return 'index';
+  if (route === '/') return 'Index';
   const segments = route
     .replace(/^\//, '')
     .replace(/\/$/, '')
@@ -572,6 +574,42 @@ function routeToName(route: string): string {
       return seg.split(/[-_]/).map(capitalize).join('');
     });
   return segments.join('');
+}
+
+/**
+ * Build a `PageHead` from Markdown frontmatter.
+ *
+ * Only the `head` field is used, matching `unplugin-vue-markdown`'s
+ * `headField: 'head'` option so SSR and client-side `useHead` stay in sync.
+ *
+ * Supported shape:
+ * ```yaml
+ * head:
+ *   title: "Page Title"
+ *   meta:
+ *     - name: description
+ *       content: ...
+ *   link:
+ *     - rel: canonical
+ *       href: ...
+ * ```
+ */
+function buildMarkdownHead(fm?: Record<string, unknown>): PageHead | undefined {
+  if (!fm || typeof fm.head !== 'object' || fm.head === null) return undefined;
+
+  const fmHead = fm.head as Record<string, unknown>;
+  const head: PageHead = {};
+
+  if (typeof fmHead.title === 'string') head.title = fmHead.title;
+  if (Array.isArray(fmHead.meta)) head.meta = fmHead.meta as Array<Record<string, string>>;
+  if (Array.isArray(fmHead.link)) head.link = fmHead.link as Array<Record<string, string>>;
+  if (Array.isArray(fmHead.script)) head.script = fmHead.script as Array<Record<string, string>>;
+  if (fmHead.htmlAttrs && typeof fmHead.htmlAttrs === 'object')
+    head.htmlAttrs = fmHead.htmlAttrs as Record<string, string>;
+  if (fmHead.bodyAttrs && typeof fmHead.bodyAttrs === 'object')
+    head.bodyAttrs = fmHead.bodyAttrs as Record<string, string>;
+
+  return Object.keys(head).length > 0 ? head : undefined;
 }
 
 function capitalize(s: string): string {

@@ -923,7 +923,7 @@ describe('vue virtual modules', () => {
     expect(code).toContain('createUbeanApp');
     expect(code).toContain('createUbeanSSRApp');
     expect(code).toContain('ubean/runtime/vue');
-    expect(code).toContain('virtual:ubean-pages.ts');
+    expect(code).toContain('virtual:ubean-pages');
     expect(code).toContain('defineApp');
     expect(code).toContain('createApp()');
   });
@@ -956,12 +956,12 @@ describe('vue virtual modules', () => {
     registry.register(createVuePagesVirtualModule(pages, layouts));
     registry.register(createVueAppEntryVirtualModule());
 
-    const pagesMod = registry.getModules().find(m => m.id === 'virtual:ubean-pages.ts');
+    const pagesMod = registry.getModules().find(m => m.id === 'virtual:ubean-pages');
     expect(pagesMod).toBeTruthy();
     const pagesCode = await pagesMod!.load();
     expect(pagesCode).toContain('"home"');
 
-    const appMod = registry.getModules().find(m => m.id === 'virtual:ubean-app.ts');
+    const appMod = registry.getModules().find(m => m.id === 'virtual:ubean-app');
     expect(appMod).toBeTruthy();
   });
 });

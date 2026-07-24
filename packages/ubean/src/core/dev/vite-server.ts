@@ -218,9 +218,9 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     optimizeDeps: {
       exclude: [
         'ubean',
-        'virtual:ubean-pages.ts',
-        'virtual:ubean-app.ts',
-        'virtual:ubean-client-entry.ts',
+        'virtual:ubean-pages',
+        'virtual:ubean-app',
+        'virtual:ubean-client-entry',
         '#ubean-pages',
         '#ubean-app',
         '#ubean-client-entry'
@@ -292,7 +292,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     let appConfigModule: Promise<any> | null = null;
     const getAppConfigModule = () => {
       if (!appConfigModule) {
-        appConfigModule = viteServer!.ssrLoadModule('virtual:ubean-app.ts');
+        appConfigModule = viteServer!.ssrLoadModule('virtual:ubean-app');
       }
       return appConfigModule;
     };
@@ -366,7 +366,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
           if (!serverConfigApplied) {
             serverConfigApplied = true;
             try {
-              const serverMod = await viteServer!.ssrLoadModule('virtual:ubean-server.ts');
+              const serverMod = await viteServer!.ssrLoadModule('virtual:ubean-server');
               if (serverMod?.resolveServerConfig) {
                 const { applyServerConfig } = await import('ubean/runtime/app');
                 cachedServerConfig = serverMod.resolveServerConfig('dev');

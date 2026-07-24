@@ -22,10 +22,10 @@ export interface UbeanVuePluginOptions {
 
 export const VUE_PLUGIN_INCLUDE = [/\.vue$/, /\.md$/];
 
-const VIRTUAL_PAGES = 'virtual:ubean-pages.ts';
-const VIRTUAL_APP = 'virtual:ubean-app.ts';
-const VIRTUAL_CLIENT = 'virtual:ubean-client-entry.ts';
-const VIRTUAL_SERVER = 'virtual:ubean-server.ts';
+const VIRTUAL_PAGES = 'virtual:ubean-pages';
+const VIRTUAL_APP = 'virtual:ubean-app';
+const VIRTUAL_CLIENT = 'virtual:ubean-client-entry';
+const VIRTUAL_SERVER = 'virtual:ubean-server';
 const CLIENT_ENTRY_URL = `/@id/${VIRTUAL_CLIENT}`;
 
 const VIRTUAL_IDS = [VIRTUAL_PAGES, VIRTUAL_APP, VIRTUAL_CLIENT, VIRTUAL_SERVER];
@@ -36,6 +36,10 @@ const HASH_ID_TO_VIRTUAL: Record<string, string> = {
   '#ubean-app': VIRTUAL_APP,
   '#ubean-client-entry': VIRTUAL_CLIENT
 };
+
+// Vite convention: \0 prefix prevents other plugins from processing virtual modules
+// and signals Vite to auto-detect TypeScript syntax regardless of file extension.
+const NULL_PREFIX = '\0';
 
 export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const { config: ubeanConfig } = _options;
@@ -94,18 +98,21 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     resolveId(id) {
       // 兼容旧 #ubean-xxx ID
       if (HASH_ID_TO_VIRTUAL[id]) {
-        return HASH_ID_TO_VIRTUAL[id];
+        return NULL_PREFIX + HASH_ID_TO_VIRTUAL[id];
       }
-      // 新 virtual:ubean-xxx.ts ID
+      // virtual:ubean-xxx ID — resolve with \0 prefix so Vite auto-detects TS
       if (VIRTUAL_IDS.includes(id)) {
-        return id;
+        return NULL_PREFIX + id;
       }
       return undefined;
     },
 
     async load(id) {
-      if (VIRTUAL_IDS.includes(id)) {
-        return loadVirtualModule(id);
+      if (id.startsWith(NULL_PREFIX)) {
+        const virtualId = id.slice(NULL_PREFIX.length);
+        if (VIRTUAL_IDS.includes(virtualId)) {
+          return loadVirtualModule(virtualId);
+        }
       }
       return undefined;
     },
@@ -142,11 +149,12 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       async function handleFileChange(file: string) {
         const rel = file.replace(`${srcDir}/`, '');
         const isAppFile = /^app(\.(server|client))?\.(ts|js|mjs|mts)$/.test(rel);
+        const isServerFile = /^server(\.(dev|prod))?\.(ts|js|mjs|mts)$/.test(rel);
         const isMarkdownFile = new RegExp(`\\.(${mdExtensions.join('|')})$`).test(rel);
-        if (isAppFile || watchDirs.some(d => rel.startsWith(`${d}/`)) || isMarkdownFile) {
+        if (isAppFile || isServerFile || watchDirs.some(d => rel.startsWith(`${d}/`)) || isMarkdownFile) {
           await scanAndRegister();
           for (const vid of VIRTUAL_IDS) {
-            const mod = server.moduleGraph.getModuleById(vid);
+            const mod = server.moduleGraph.getModuleById(NULL_PREFIX + vid);
             if (mod) {
               server.moduleGraph.invalidateModule(mod);
             }

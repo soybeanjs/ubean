@@ -137,10 +137,10 @@ async function generateVirtualModulesToDisk(
   await writeModule('ubean:app-config', 'app-config.mjs');
   await writeModule('ubean:locales', 'locales.mjs');
   await writeModule('ubean:meta', 'meta.mjs');
-  await writeModule('virtual:ubean-pages.ts', 'vue-pages.ts');
-  await writeModule('virtual:ubean-app.ts', 'vue-app.ts');
-  await writeModule('virtual:ubean-server.ts', 'server-entry.ts');
-  await writeModule('virtual:ubean-client-entry.ts', 'client-entry.mjs');
+  await writeModule('virtual:ubean-pages', 'vue-pages.ts');
+  await writeModule('virtual:ubean-app', 'vue-app.ts');
+  await writeModule('virtual:ubean-server', 'server-entry.ts');
+  await writeModule('virtual:ubean-client-entry', 'client-entry.mjs');
 
   const pagesGlob = JSON.stringify(`${viteSrcPrefix}/pages/**/*.{vue,ts,tsx,js,jsx,md,mdx}`);
   const routesGlob = JSON.stringify(`${viteSrcPrefix}/routes/**/*.{ts,js,mjs}`);
@@ -192,8 +192,8 @@ async function generateVirtualModulesToDisk(
   const serverEntry = `// Auto-generated server entry
 import { createUbeanApp, applyServerConfig } from 'ubean/runtime/app';
 import { createVueRenderer } from 'ubean/vue-ssr';
-import { resolveAppConfig as _resolveAppConfig } from 'virtual:ubean-app.ts';
-import { resolveServerConfig as _resolveServerConfig } from 'virtual:ubean-server.ts';
+import { resolveAppConfig as _resolveAppConfig } from 'virtual:ubean-app';
+import { resolveServerConfig as _resolveServerConfig } from 'virtual:ubean-server';
 import { loadLocales } from 'ubean:locales';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -517,10 +517,10 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
   const commonResolve = {
     alias: {
-      'virtual:ubean-pages.ts': join(virtualDir, 'vue-pages.ts'),
-      'virtual:ubean-app.ts': join(virtualDir, 'vue-app.ts'),
-      'virtual:ubean-server.ts': join(virtualDir, 'server-entry.ts'),
-      'virtual:ubean-client-entry.ts': join(virtualDir, 'client-entry.mjs'),
+      'virtual:ubean-pages': join(virtualDir, 'vue-pages.ts'),
+      'virtual:ubean-app': join(virtualDir, 'vue-app.ts'),
+      'virtual:ubean-server': join(virtualDir, 'server-entry.ts'),
+      'virtual:ubean-client-entry': join(virtualDir, 'client-entry.mjs'),
       '#ubean-pages': join(virtualDir, 'vue-pages.ts'),
       '#ubean-app': join(virtualDir, 'vue-app.ts'),
       '#ubean-client-entry': join(virtualDir, 'client-entry.mjs'),
@@ -545,7 +545,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 </head>
 <body>
   <div id="app"></div>
-  <script type="module" src="virtual:ubean-client-entry.ts"></script>
+  <script type="module" src="virtual:ubean-client-entry"></script>
 </body>
 </html>`;
   await writeFile(join(virtualDir, 'index.html'), htmlEntry, 'utf-8');
@@ -578,9 +578,9 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     optimizeDeps: {
       exclude: [
         'ubean',
-        'virtual:ubean-pages.ts',
-        'virtual:ubean-app.ts',
-        'virtual:ubean-client-entry.ts',
+        'virtual:ubean-pages',
+        'virtual:ubean-app',
+        'virtual:ubean-client-entry',
         '#ubean-pages',
         '#ubean-app',
         '#ubean-client-entry'

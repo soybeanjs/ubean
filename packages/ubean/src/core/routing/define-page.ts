@@ -16,6 +16,14 @@ export interface PageMeta {
   middleware?: string | string[];
   requiresAuth?: boolean;
   /**
+   * Enable `<keep-alive>` caching for this page.
+   * When `true`, the page component instance is preserved (not destroyed)
+   * when navigating away, and restored when navigating back.
+   * The page's route name is used as the cache key (component name).
+   * Can be toggled at runtime via `enablePageCache(name)` / `disablePageCache(name)`.
+   */
+  cache?: boolean;
+  /**
    * Page-level head configuration (SEO title, meta, link, etc.).
    * Used by Markdown frontmatter; Vue pages use `useHead()` at runtime instead.
    */
@@ -339,6 +347,7 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
   if (typeof parsed.reuse === 'string') result.reuse = parsed.reuse;
   if (parsed.meta && typeof parsed.meta === 'object') result.meta = parsed.meta as RouteMeta;
   if (typeof parsed.requiresAuth === 'boolean') result.requiresAuth = parsed.requiresAuth;
+  if (typeof parsed.cache === 'boolean') result.cache = parsed.cache;
   if (typeof parsed.middleware === 'string') {
     result.middleware = parsed.middleware;
   } else if (Array.isArray(parsed.middleware)) {

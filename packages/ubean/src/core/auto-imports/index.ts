@@ -114,7 +114,24 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
     'usePage',
     'useRouter',
     'useHead',
-    'useViewTransition'
+    'useViewTransition',
+    // Page cache (keep-alive) runtime control
+    'useCacheViews',
+    'enablePageCache',
+    'disablePageCache',
+    'excludePageCache',
+    'includePageCache',
+    'isPageExcluded',
+    'resetRouteCache',
+    'invalidatePageCache',
+    'isPageCached',
+    // Page transition + reload signal runtime control
+    'usePageTransition',
+    'setPageTransition',
+    'clearPageTransition',
+    'useReloadSignal',
+    'reloadPage',
+    'isReloading'
   ]
 };
 

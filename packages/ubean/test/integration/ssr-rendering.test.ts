@@ -114,7 +114,7 @@ describe('Integration: Vue SSR rendering', () => {
     expect(html).toContain('class="app-layout"');
   });
 
-  it('renders nested layouts correctly', async () => {
+  it('renders single-layer layout (no nesting) when page declares a specific layout', async () => {
     const PageComp = defineComponent({
       name: 'AdminPage',
       render() {
@@ -158,11 +158,7 @@ describe('Integration: Vue SSR rendering', () => {
     const renderer = createVueRenderer({
       resolvePageComponent: async () => PageComp,
       resolveLayoutComponent: async name => layoutMap[name as string] || null,
-      defaultLayout: 'default',
-      resolveLayoutParent: (name: string) => {
-        if (name === 'admin') return 'default';
-        return null;
-      }
+      defaultLayout: 'default'
     });
 
     const pageObj: PageObject = {
@@ -174,11 +170,12 @@ describe('Integration: Vue SSR rendering', () => {
     };
 
     const html = await renderer.render(pageObj, '', {});
-    expect(html).toContain('Top Bar');
+    // Single-layer: admin layout renders, but default layout does NOT
     expect(html).toContain('Sidebar');
     expect(html).toContain('Dashboard');
-    expect(html).toContain('class="default-layout"');
     expect(html).toContain('class="admin-layout"');
+    expect(html).not.toContain('Top Bar');
+    expect(html).not.toContain('class="default-layout"');
   });
 
   it('respects layout: false to render page without any layout', async () => {

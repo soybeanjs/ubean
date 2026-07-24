@@ -210,6 +210,7 @@ async function scanPages(srcDir: string, dirName: string, ignore: string[]): Pro
           name: (frontmatter?.name as string) || name,
           path: (frontmatter?.path as string) || route,
           layout: frontmatter?.layout as string | false | undefined,
+          cache: frontmatter?.cache as boolean | undefined,
           head: buildMarkdownHead(frontmatter)
         };
       } catch {
@@ -228,6 +229,7 @@ async function scanPages(srcDir: string, dirName: string, ignore: string[]): Pro
       route: pageMeta?.path || route,
       path: pageMeta?.path || route,
       layout: pageMeta?.layout,
+      cache: pageMeta?.cache,
       isReuse,
       isMarkdown,
       reuseTarget: pageMeta?.reuse,

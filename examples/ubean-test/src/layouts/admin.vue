@@ -2,7 +2,7 @@
 
 <template>
   <div class="src-layouts-admin-layout">
-    <slot />
+    <PageView />
   </div>
 </template>
 

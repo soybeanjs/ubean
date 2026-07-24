@@ -1,4 +1,27 @@
 export { getInitialPageData } from './client';
+
+// Augment vue-router's RouteMeta with ubean-managed meta fields so projects
+// get full type-safety when reading `route.meta.cache` / `route.meta.pageName`
+// without needing their own `declare module 'vue-router'` block.
+declare module 'vue-router' {
+  interface RouteMeta {
+    /** Whether this page is kept-alive (set by `definePage({ cache: true })`). */
+    cache?: boolean;
+    /** The page route name (set by ubean's virtual pages module). */
+    pageName?: string;
+    /** The layout name to use, or `false` to disable layout. */
+    layout?: string | false;
+    /** Whether authentication is required for this route. */
+    requiresAuth?: boolean;
+    /**
+     * Page transition name (used by `<PageView>`). Falls back to the global
+     * `usePageTransition()` ref when not set. Set to empty string to disable
+     * transitions for this specific page.
+     */
+    transition?: string;
+  }
+}
+
 export {
   createClient,
   defaultClient,
@@ -49,9 +72,38 @@ export {
   useViewTransition,
   Link,
   Head,
+  PageView,
   useSeoMeta
 } from './app';
 export type { UbeanAppOptions, UbeanAppInstance, VueHeadClient } from './app';
+export {
+  useCacheViews,
+  enablePageCache,
+  disablePageCache,
+  excludePageCache,
+  includePageCache,
+  isPageExcluded,
+  resetRouteCache,
+  invalidatePageCache,
+  isPageCached,
+  isCacheEnabled,
+  getCachedViewNames,
+  getExcludedViewNames,
+  getCacheEnabled,
+  initCachedViewsFromRoutes
+} from './cache-views';
+export type { UseCacheViewsReturn } from './cache-views';
+export {
+  usePageTransition,
+  setPageTransition,
+  clearPageTransition,
+  getPageTransitionName,
+  useReloadSignal,
+  reloadPage,
+  getReloadCounter,
+  isReloading
+} from './page-runtime';
+export type { UsePageTransitionReturn, UseReloadSignalReturn } from './page-runtime';
 export { createUbeanRouter } from './router';
 export type { CreateUbeanRouterOptions } from './router';
 export { defineApp, applyAppConfig, createDefaultAppConfig } from './define-app';

@@ -42,6 +42,7 @@ export interface ScannedPageRoute extends ScannedFile {
   route: string;
   path: string;
   layout?: string | false;
+  cache?: boolean;
   isReuse: boolean;
   isMarkdown: boolean;
   reuseTarget?: string;

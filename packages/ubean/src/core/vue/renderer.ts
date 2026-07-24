@@ -18,7 +18,6 @@ export interface VueRendererSimpleOptions {
   resolvePageComponent: (path: string) => Promise<Component | null>;
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>;
   defaultLayout?: string | null;
-  resolveLayoutParent?: (name: string) => string | null | undefined;
   /**
    * Resolves the user's `defineApp` config for the server side.
    * When provided, plugins / globalComponents / provides / head / onAppCreated
@@ -31,7 +30,6 @@ export interface VueRendererRouterOptions {
   routes: RouteRecordRaw[];
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>;
   defaultLayout?: string | null;
-  resolveLayoutParent?: (name: string) => string | null | undefined;
   /**
    * Resolves the user's `defineApp` config for the server side.
    * When provided, plugins / globalComponents / provides / head / onAppCreated
@@ -73,33 +71,26 @@ function isSimpleOptions(opts: VueRendererOptions): opts is VueRendererSimpleOpt
   return 'resolvePageComponent' in opts;
 }
 
-async function resolveLayoutChain(
+/**
+ * Resolve a single layout component by name.
+ * Returns `null` when layout is `false`, `null`, or not found.
+ * ubean uses flat single-layer layout (no nesting), matching the
+ * `layout: string | false` field on each page route.
+ */
+async function resolveSingleLayout(
   layoutName: string | false | null | undefined,
   defaultLayout: string | null,
-  resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>,
-  resolveLayoutParent?: (name: string) => string | null | undefined
-): Promise<Component[]> {
-  const layouts: Component[] = [];
-  const visited = new Set<string>();
-
-  let current: string | false | null | undefined = layoutName === undefined ? defaultLayout : layoutName;
-
-  while (current != null && current !== false && !visited.has(current)) {
-    visited.add(current);
-    const comp = await resolveLayoutComponent(current);
-    if (comp) {
-      layouts.unshift(comp);
-    }
-    current = resolveLayoutParent ? resolveLayoutParent(current) : null;
-  }
-
-  return layouts;
+  resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>
+): Promise<Component | null> {
+  const resolved = layoutName === undefined ? defaultLayout : layoutName;
+  if (resolved === false || resolved == null) return null;
+  return resolveLayoutComponent(resolved);
 }
 
 function createSimpleApp(
   pageObj: PageObject,
   PageComp: Component,
-  layoutChain: Component[],
+  layout: Component | null,
   head: ReturnType<typeof createHead>
 ) {
   const pageData = reactive({ ...pageObj });
@@ -112,13 +103,9 @@ function createSimpleApp(
       provide(PAGE_KEY, pageData);
 
       return () => {
-        let innerVNode: any = h(PageComp as any, pageObj.props || {});
-        for (let i = layoutChain.length - 1; i >= 0; i--) {
-          const Layout = layoutChain[i];
-          const child = innerVNode;
-          innerVNode = h(Layout as any, {}, { default: () => child });
-        }
-        return innerVNode;
+        const inner = h(PageComp as any, pageObj.props || {});
+        if (!layout) return inner;
+        return h(layout as any, {}, { default: () => inner });
       };
     }
   });
@@ -171,17 +158,16 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
         throw new Error(`[ubean] Could not resolve page component: ${pageObj.component}`);
       }
 
-      const layoutChain =
+      const layout =
         pageObj.layout === false
-          ? []
-          : await resolveLayoutChain(
+          ? null
+          : await resolveSingleLayout(
               pageObj.layout,
               options.defaultLayout || null,
-              options.resolveLayoutComponent,
-              options.resolveLayoutParent
+              options.resolveLayoutComponent
             );
 
-      const app = createSimpleApp(pageObj, pageComponent, layoutChain, head);
+      const app = createSimpleApp(pageObj, pageComponent, layout, head);
       if (appConfig) {
         await applyServerAppConfig(app, appConfig);
       }

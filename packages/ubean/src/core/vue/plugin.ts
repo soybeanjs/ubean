@@ -41,8 +41,24 @@ const HASH_ID_TO_VIRTUAL: Record<string, string> = {
   '#ubean-server': VIRTUAL_SERVER
 };
 
-// Vite convention: \0 prefix prevents other plugins from processing virtual modules
+// Vite convention: \0 prefix prevents other plugins from processing virtual modules.
+// We append `.ts` so Vite's esbuild parser uses the TypeScript loader — without it,
+// syntax like `as const` and `export type` in the generated virtual modules fails
+// to parse (esbuild defaults to the JS loader for IDs without a TS extension).
 const NULL_PREFIX = '\0';
+const VIRTUAL_EXT = '.ts';
+
+function toResolvedVirtualId(virtualId: string): string {
+  return NULL_PREFIX + virtualId + VIRTUAL_EXT;
+}
+
+function parseResolvedVirtualId(resolvedId: string): string | undefined {
+  if (!resolvedId.startsWith(NULL_PREFIX)) return undefined;
+  const withoutPrefix = resolvedId.slice(NULL_PREFIX.length);
+  if (!withoutPrefix.endsWith(VIRTUAL_EXT)) return undefined;
+  const virtualId = withoutPrefix.slice(0, -VIRTUAL_EXT.length);
+  return VIRTUAL_IDS.includes(virtualId) ? virtualId : undefined;
+}
 
 export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   const { config: ubeanConfig } = _options;
@@ -101,30 +117,29 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     resolveId(id) {
       // 兼容旧 #ubean-xxx ID
       if (HASH_ID_TO_VIRTUAL[id]) {
-        return NULL_PREFIX + HASH_ID_TO_VIRTUAL[id];
+        return toResolvedVirtualId(HASH_ID_TO_VIRTUAL[id]);
       }
-      // virtual:ubean-xxx ID — resolve with \0 prefix
+      // virtual:ubean-xxx ID — resolve with \0 prefix + `.ts` so Vite parses
+      // the generated TypeScript content with the proper loader.
       if (VIRTUAL_IDS.includes(id)) {
-        return NULL_PREFIX + id;
+        return toResolvedVirtualId(id);
       }
       return undefined;
     },
 
     async load(id) {
-      if (id.startsWith(NULL_PREFIX)) {
-        const virtualId = id.slice(NULL_PREFIX.length);
-        if (VIRTUAL_IDS.includes(virtualId)) {
-          let code = await loadVirtualModule(virtualId);
-          if (code && TS_VIRTUAL_IDS.includes(virtualId)) {
-            // Use oxc-transform to strip TypeScript types for SSR compatibility
-            const result = transformSync(`${virtualId}.ts`, code, {
-              lang: 'ts',
-              sourcemap: false
-            });
-            code = result.code;
-          }
-          return code;
+      const virtualId = parseResolvedVirtualId(id);
+      if (virtualId) {
+        let code = await loadVirtualModule(virtualId);
+        if (code && TS_VIRTUAL_IDS.includes(virtualId)) {
+          // Use oxc-transform to strip TypeScript types for SSR compatibility
+          const result = transformSync(`${virtualId}.ts`, code, {
+            lang: 'ts',
+            sourcemap: false
+          });
+          code = result.code;
         }
+        return code;
       }
       return undefined;
     },
@@ -166,7 +181,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         if (isAppFile || isServerFile || watchDirs.some(d => rel.startsWith(`${d}/`)) || isMarkdownFile) {
           await scanAndRegister();
           for (const vid of VIRTUAL_IDS) {
-            const mod = server.moduleGraph.getModuleById(NULL_PREFIX + vid);
+            const mod = server.moduleGraph.getModuleById(toResolvedVirtualId(vid));
             if (mod) {
               server.moduleGraph.invalidateModule(mod);
             }
@@ -211,7 +226,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     );
   }
 
-  const UBEAN_BUILTIN_COMPONENTS = ['Link', 'Head'];
+  const UBEAN_BUILTIN_COMPONENTS = ['Link', 'Head', 'PageView'];
 
   function ubeanComponentsResolver(componentName: string) {
     if (UBEAN_BUILTIN_COMPONENTS.includes(componentName)) {

@@ -83,13 +83,17 @@ function stripStatement(code: string, callStart: number, callEnd: number): strin
   let start = callStart;
   let end = callEnd;
 
-  while (start > 0 && /\s/.test(code[start - 1])) start--;
+  // Only consume leading whitespace on the same line (spaces/tabs, not newlines).
+  // Consuming newlines caused comments above the macro to merge with the next
+  // statement after stripping (e.g. `// comment\nuseHead({` on a single line).
+  while (start > 0 && /[ \t]/.test(code[start - 1])) start--;
 
   if (code[end] === ';') {
     end++;
   }
 
-  while (end < code.length && /[\s\n]/.test(code[end])) end++;
+  // Only consume trailing whitespace on the same line (spaces/tabs, not newlines).
+  while (end < code.length && /[ \t]/.test(code[end])) end++;
 
   const before = code.slice(0, start);
   const after = code.slice(end);

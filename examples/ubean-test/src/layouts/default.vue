@@ -1,7 +1,4 @@
 <script setup lang="ts">
-defineSlots<{
-  default?: () => unknown;
-}>();
 </script>
 
 <template>
@@ -13,11 +10,12 @@ defineSlots<{
           <Link to="/">首页</Link>
           <Link to="/about">关于</Link>
           <Link to="/features">功能测试</Link>
+          <Link to="/cache-demo">页面缓存</Link>
         </div>
       </nav>
     </header>
     <main class="main">
-      <slot />
+      <PageView />
     </main>
     <footer class="footer">
       <p>ubean 功能测试项目</p>

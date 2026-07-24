@@ -1,10 +1,17 @@
 import { createSSRApp, defineComponent, h, provide, reactive } from 'vue';
-import type { Component } from 'vue';
+import type { App, Component } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import type { RouteRecordRaw } from 'vue-router';
 import { createHead, transformHtmlTemplate } from '@unhead/vue/server';
 import { SSR_CONTENT_MARKER } from '../../runtime/pages/protocol';
-import type { PageObject, PageRenderer, PageAssetTags, PageRenderContext } from '../../runtime/pages/protocol';
+import type {
+  PageObject,
+  PageRenderer,
+  PageAssetTags,
+  PageRenderContext,
+  PageHead
+} from '../../runtime/pages/protocol';
+import type { ResolvedAppConfig } from '../../runtime/vue/define-app';
 import { getIslandsBootstrapScript } from '../islands';
 
 export interface VueRendererSimpleOptions {
@@ -12,6 +19,12 @@ export interface VueRendererSimpleOptions {
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>;
   defaultLayout?: string | null;
   resolveLayoutParent?: (name: string) => string | null | undefined;
+  /**
+   * Resolves the user's `defineApp` config for the server side.
+   * When provided, plugins / globalComponents / provides / head / onAppCreated
+   * will be applied to each SSR app instance.
+   */
+  resolveAppConfig?: () => ResolvedAppConfig | Promise<ResolvedAppConfig>;
 }
 
 export interface VueRendererRouterOptions {
@@ -19,9 +32,42 @@ export interface VueRendererRouterOptions {
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>;
   defaultLayout?: string | null;
   resolveLayoutParent?: (name: string) => string | null | undefined;
+  /**
+   * Resolves the user's `defineApp` config for the server side.
+   * When provided, plugins / globalComponents / provides / head / onAppCreated
+   * will be applied to each SSR app instance.
+   */
+  resolveAppConfig?: () => ResolvedAppConfig | Promise<ResolvedAppConfig>;
 }
 
 export type VueRendererOptions = VueRendererSimpleOptions | VueRendererRouterOptions;
+
+/**
+ * Push a `PageHead` (from `defineApp` or page-level `head`) into an @unhead head instance.
+ * Extracted so both the global app head and per-page head use the same mapping.
+ */
+function pushPageHead(head: ReturnType<typeof createHead>, pageHead: PageHead): void {
+  const headInput: Record<string, any> = {};
+  if (pageHead.title) headInput.title = pageHead.title;
+  if (pageHead.htmlAttrs) headInput.htmlAttrs = pageHead.htmlAttrs;
+  if (pageHead.bodyAttrs) headInput.bodyAttrs = pageHead.bodyAttrs;
+  if (pageHead.meta) headInput.meta = pageHead.meta;
+  if (pageHead.link) headInput.link = pageHead.link;
+  if (pageHead.script) headInput.script = pageHead.script;
+  head.push(headInput as any);
+}
+
+/**
+ * Apply user's `defineApp` config (plugins, globalComponents, provides) and
+ * invoke `onAppCreated` on a freshly created SSR app instance.
+ */
+async function applyServerAppConfig(app: App, appConfig: ResolvedAppConfig): Promise<void> {
+  const { applyAppConfig } = await import('../../runtime/vue/define-app');
+  applyAppConfig(app, appConfig, 'server');
+  if (appConfig.onAppCreated) {
+    await appConfig.onAppCreated(app);
+  }
+}
 
 function isSimpleOptions(opts: VueRendererOptions): opts is VueRendererSimpleOptions {
   return 'resolvePageComponent' in opts;
@@ -92,6 +138,18 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
   ) => {
     const head = createHead();
 
+    // Resolve user's defineApp config once per render. The config object is
+    // cheap to produce (object merge) and is the same across requests, but
+    // resolving lazily here keeps dev-mode HMR working correctly.
+    const appConfig = options.resolveAppConfig ? await options.resolveAppConfig() : null;
+
+    // 1. Global app head from defineApp (title / meta defaults) — pushed first
+    //    so page-specific head can override.
+    if (appConfig?.head) {
+      pushPageHead(head, appConfig.head);
+    }
+
+    // 2. Locale head
     if (renderContext?.locale) {
       head.push({
         htmlAttrs: {
@@ -101,15 +159,9 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
       });
     }
 
+    // 3. Page-specific head (overrides app-level defaults)
     if (pageObj.head) {
-      const headInput: Record<string, any> = {};
-      if (pageObj.head.title) headInput.title = pageObj.head.title;
-      if (pageObj.head.htmlAttrs) headInput.htmlAttrs = pageObj.head.htmlAttrs;
-      if (pageObj.head.bodyAttrs) headInput.bodyAttrs = pageObj.head.bodyAttrs;
-      if (pageObj.head.meta) headInput.meta = pageObj.head.meta;
-      if (pageObj.head.link) headInput.link = pageObj.head.link;
-      if (pageObj.head.script) headInput.script = pageObj.head.script;
-      head.push(headInput as any);
+      pushPageHead(head, pageObj.head);
     }
 
     let appHtml: string;
@@ -130,6 +182,9 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
             );
 
       const app = createSimpleApp(pageObj, pageComponent, layoutChain, head);
+      if (appConfig) {
+        await applyServerAppConfig(app, appConfig);
+      }
       appHtml = await renderToString(app);
     } else {
       const { createUbeanSSRApp } = await import('../../runtime/vue/app');
@@ -139,6 +194,9 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
         defaultLayout: options.defaultLayout,
         head
       });
+      if (appConfig) {
+        await applyServerAppConfig(createdApp, appConfig);
+      }
       await router.isReady();
       appHtml = await renderToString(createdApp);
     }

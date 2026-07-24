@@ -281,6 +281,17 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       }
     }));
 
+    // Lazily load the user's defineApp config from the virtual module.
+    // Cached so we only ssrLoadModule once per enhanceAppWithVite call (HMR
+    // triggers a fresh call, which picks up app.ts / app.server.ts edits).
+    let appConfigModule: Promise<any> | null = null;
+    const getAppConfigModule = () => {
+      if (!appConfigModule) {
+        appConfigModule = viteServer!.ssrLoadModule('virtual:ubean-app.ts');
+      }
+      return appConfigModule;
+    };
+
     app.options.pageRenderer = createVueRenderer({
       routes,
       async resolveLayoutComponent(name: string | false | null | undefined) {
@@ -290,7 +301,11 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         const mod = await viteServer!.ssrLoadModule(fullPath);
         return mod.default || mod;
       },
-      defaultLayout
+      defaultLayout,
+      async resolveAppConfig() {
+        const mod = await getAppConfigModule();
+        return mod.resolveAppConfig('server');
+      }
     });
 
     app.resetInit();

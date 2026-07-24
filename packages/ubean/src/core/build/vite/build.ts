@@ -5,6 +5,7 @@ import type { Plugin as VitePlugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { join, resolve, relative } from 'pathe';
 import type { ResolvedConfig } from '../../config/types';
+import { findUserViteConfig } from '../../utils/vite-config';
 import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '../../vue/plugin';
 import { resolveModules } from '../../modules';
 import {
@@ -25,7 +26,6 @@ import {
 } from '../../vue/virtual-modules';
 import { useVirtualRegistry } from '../virtual/registry';
 import { ubeanPlugin } from './plugin';
-import { findUserViteConfig } from '../../utils/vite-config';
 
 export interface BuildOptions {
   cwd: string;
@@ -189,6 +189,7 @@ async function generateVirtualModulesToDisk(
   const serverEntry = `// Auto-generated server entry
 import { createUbeanApp } from 'ubean/runtime/app';
 import { createVueRenderer } from 'ubean/vue-ssr';
+import { resolveAppConfig as _resolveAppConfig } from 'virtual:ubean-app.ts';
 import { loadLocales } from 'ubean:locales';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
@@ -273,7 +274,8 @@ const _pageRenderer = createVueRenderer({
     const mod = await loader();
     return mod.default || mod;
   },
-  defaultLayout: _defaultLayout
+  defaultLayout: _defaultLayout,
+  resolveAppConfig: () => _resolveAppConfig('server')
 });
 
 // --- Client asset tags from Vite manifest ---

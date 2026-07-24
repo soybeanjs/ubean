@@ -204,8 +204,8 @@ function _mergeAppConfig(base, ...configs) {
     if (cfg.rootAttrs) result.rootAttrs = { ...(result.rootAttrs || {}), ...cfg.rootAttrs };
     if (cfg.htmlAttrs) result.htmlAttrs = { ...(result.htmlAttrs || {}), ...cfg.htmlAttrs };
     if (cfg.bodyAttrs) result.bodyAttrs = { ...(result.bodyAttrs || {}), ...cfg.bodyAttrs };
-    if (cfg.onAppCreated) result._onAppCreated = cfg.onAppCreated;
-    if (cfg.onClientReady) result._onClientReady = cfg.onClientReady;
+    if (cfg.onAppCreated) result.onAppCreated = cfg.onAppCreated;
+    if (cfg.onClientReady) result.onClientReady = cfg.onClientReady;
     if (cfg.errorComponent) result.errorComponent = cfg.errorComponent;
     if (cfg.loadingComponent) result.loadingComponent = cfg.loadingComponent;
     if (cfg.viewTransitions !== undefined) result.viewTransitions = cfg.viewTransitions;
@@ -223,9 +223,10 @@ export function resolveAppConfig(mode) {
 
   const merged = _mergeAppConfig(base, sharedCfg, mode === 'server' ? serverCfg : clientCfg);
 
-  if (sharedCfg?.onAppCreated) merged._onAppCreated = sharedCfg.onAppCreated;
-  if (mode === 'client' && clientCfg?.onClientReady) merged._onClientReady = clientCfg.onClientReady;
-  else if (mode === 'server' && serverCfg?.onAppCreated) merged._onAppCreated = serverCfg.onAppCreated;
+  // onAppCreated: shared config is the default; server/client-specific overrides it if present.
+  if (sharedCfg?.onAppCreated) merged.onAppCreated = sharedCfg.onAppCreated;
+  if (mode === 'client' && clientCfg?.onClientReady) merged.onClientReady = clientCfg.onClientReady;
+  else if (mode === 'server' && serverCfg?.onAppCreated) merged.onAppCreated = serverCfg.onAppCreated;
 
   return merged;
 }
@@ -233,6 +234,18 @@ export function resolveAppConfig(mode) {
 export function createApp() {
   const config = resolveAppConfig('client');
   const head = createClientHead();
+
+  // Push global app head (from defineApp) as defaults before any page-level head.
+  if (config.head) {
+    const headInput = {};
+    if (config.head.title) headInput.title = config.head.title;
+    if (config.head.htmlAttrs) headInput.htmlAttrs = config.head.htmlAttrs;
+    if (config.head.bodyAttrs) headInput.bodyAttrs = config.head.bodyAttrs;
+    if (config.head.meta) headInput.meta = config.head.meta;
+    if (config.head.link) headInput.link = config.head.link;
+    if (config.head.script) headInput.script = config.head.script;
+    head.push(headInput);
+  }
 
   const initialPage = getInitialPageData();
   const instance = createUbeanApp({
@@ -247,12 +260,12 @@ export function createApp() {
 
   applyAppConfig(instance.app, config, 'client');
 
-  if (config._onAppCreated) config._onAppCreated(instance.app);
+  if (config.onAppCreated) config.onAppCreated(instance.app);
 
   const mountApp = () => {
     instance.app.mount('#' + (config.rootId || 'app'));
-    if (config._onClientReady) {
-      config._onClientReady(instance.app);
+    if (config.onClientReady) {
+      config.onClientReady(instance.app);
     }
   };
 
@@ -280,7 +293,7 @@ export function createSSRApp(initialPage) {
 
   applyAppConfig(app, config, 'server');
 
-  if (config._onAppCreated) config._onAppCreated(app);
+  if (config.onAppCreated) config.onAppCreated(app);
 
   return { app, router, head, config };
 }

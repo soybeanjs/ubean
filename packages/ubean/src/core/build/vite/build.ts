@@ -523,6 +523,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
       'virtual:ubean-client-entry': join(virtualDir, 'client-entry.mjs'),
       '#ubean-pages': join(virtualDir, 'vue-pages.ts'),
       '#ubean-app': join(virtualDir, 'vue-app.ts'),
+      '#ubean-server': join(virtualDir, 'server-entry.ts'),
       '#ubean-client-entry': join(virtualDir, 'client-entry.mjs'),
       'ubean:pages': join(virtualDir, 'pages.ts'),
       'ubean:routes': join(virtualDir, 'routes.mjs'),
@@ -580,9 +581,11 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         'ubean',
         'virtual:ubean-pages',
         'virtual:ubean-app',
+        'virtual:ubean-server',
         'virtual:ubean-client-entry',
         '#ubean-pages',
         '#ubean-app',
+        '#ubean-server',
         '#ubean-client-entry'
       ]
     }

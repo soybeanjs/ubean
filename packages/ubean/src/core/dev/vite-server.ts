@@ -220,9 +220,11 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         'ubean',
         'virtual:ubean-pages',
         'virtual:ubean-app',
+        'virtual:ubean-server',
         'virtual:ubean-client-entry',
         '#ubean-pages',
         '#ubean-app',
+        '#ubean-server',
         '#ubean-client-entry'
       ]
     },

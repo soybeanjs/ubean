@@ -2,6 +2,7 @@ import type { Plugin } from 'vite';
 import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
+import { transformSync } from 'oxc-transform';
 import { join } from 'pathe';
 import type { InlinePreset } from 'unimport';
 import type { ResolvedConfig as UbeanResolvedConfig } from '../config/types';
@@ -28,17 +29,19 @@ const VIRTUAL_CLIENT = 'virtual:ubean-client-entry';
 const VIRTUAL_SERVER = 'virtual:ubean-server';
 const CLIENT_ENTRY_URL = `/@id/${VIRTUAL_CLIENT}`;
 
+// Virtual modules that contain TypeScript code
+const TS_VIRTUAL_IDS = [VIRTUAL_PAGES, VIRTUAL_APP, VIRTUAL_SERVER];
 const VIRTUAL_IDS = [VIRTUAL_PAGES, VIRTUAL_APP, VIRTUAL_CLIENT, VIRTUAL_SERVER];
 
 // 兼容旧 ID 映射
 const HASH_ID_TO_VIRTUAL: Record<string, string> = {
   '#ubean-pages': VIRTUAL_PAGES,
   '#ubean-app': VIRTUAL_APP,
-  '#ubean-client-entry': VIRTUAL_CLIENT
+  '#ubean-client-entry': VIRTUAL_CLIENT,
+  '#ubean-server': VIRTUAL_SERVER
 };
 
 // Vite convention: \0 prefix prevents other plugins from processing virtual modules
-// and signals Vite to auto-detect TypeScript syntax regardless of file extension.
 const NULL_PREFIX = '\0';
 
 export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
@@ -100,7 +103,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       if (HASH_ID_TO_VIRTUAL[id]) {
         return NULL_PREFIX + HASH_ID_TO_VIRTUAL[id];
       }
-      // virtual:ubean-xxx ID — resolve with \0 prefix so Vite auto-detects TS
+      // virtual:ubean-xxx ID — resolve with \0 prefix
       if (VIRTUAL_IDS.includes(id)) {
         return NULL_PREFIX + id;
       }
@@ -111,7 +114,16 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       if (id.startsWith(NULL_PREFIX)) {
         const virtualId = id.slice(NULL_PREFIX.length);
         if (VIRTUAL_IDS.includes(virtualId)) {
-          return loadVirtualModule(virtualId);
+          let code = await loadVirtualModule(virtualId);
+          if (code && TS_VIRTUAL_IDS.includes(virtualId)) {
+            // Use oxc-transform to strip TypeScript types for SSR compatibility
+            const result = transformSync(`${virtualId}.ts`, code, {
+              lang: 'ts',
+              sourcemap: false
+            });
+            code = result.code;
+          }
+          return code;
         }
       }
       return undefined;

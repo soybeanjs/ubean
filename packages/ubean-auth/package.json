@@ -34,14 +34,14 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "better-auth": "catalog:",
-    "consola": "catalog:",
-    "defu": "catalog:"
+    "better-auth": "^1.6.25",
+    "consola": "^3.4.2",
+    "defu": "6.1.7"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
-    "hono": "catalog:",
-    "typescript": "catalog:",
+    "hono": "4.12.31",
+    "typescript": "6.0.3",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vue": "^3.5.40"

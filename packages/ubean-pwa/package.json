@@ -30,13 +30,14 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "consola": "catalog:",
-    "defu": "catalog:",
-    "pathe": "catalog:"
+    "consola": "^3.4.2",
+    "defu": "6.1.7",
+    "pathe": "^2.0.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
-    "typescript": "catalog:",
+    "typescript": "6.0.3",
+    "vite": "catalog:",
     "vite-plus": "catalog:",
     "vue": "^3.5.40"
   },

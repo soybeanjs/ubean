@@ -1,6 +1,12 @@
-# ubean
+<p align="center">
+  <img src="https://r2.soybeanjs.tech/soybeanjs/logo-ubean.png" alt="ubean logo" width="120" />
+</p>
 
-[中文文档](README.zh_CN.md)
+<h1 align="center">ubean</h1>
+
+<p align="center">
+  [中文文档](README.zh_CN.md)
+</p>
 
 A Vue-first full-stack meta-framework.
 

@@ -286,6 +286,7 @@ onUnmounted(() => {
         v-if="loading"
         class="flex flex-col items-center justify-center h-full py-20 px-5 gap-3.5 text-muted-foreground"
       >
+        <img src="https://r2.soybeanjs.tech/soybeanjs/logo-ubean.svg" alt="ubean" class="size-10 op-fade" />
         <div class="size-7 border-2 border-muted border-t-primary rounded-full animate-spin"></div>
         <span class="text-sm op-fade">Loading DevTools...</span>
       </div>

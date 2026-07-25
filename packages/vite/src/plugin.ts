@@ -162,8 +162,16 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       if (ctx?.path?.includes('_devtools')) {
         return html;
       }
-      if (html.includes(CLIENT_ENTRY_URL) || html.includes(VIRTUAL_CLIENT)) return html;
-      return html.replace('</body>', `  <script type="module" src="${CLIENT_ENTRY_URL}"></script>\n</body>`);
+      let result = html;
+      // Inject a default SVG favicon link if the user hasn't declared any
+      // <link rel="icon"> of their own. Resolves to /favicon.svg under the
+      // public/ dir — users override by adding their own favicon.svg or
+      // by declaring head.link in definePage().
+      if (!/<link\b[^>]*rel=["']icon["']/i.test(result)) {
+        result = result.replace('<head>', '<head>\n    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />');
+      }
+      if (result.includes(CLIENT_ENTRY_URL) || result.includes(VIRTUAL_CLIENT)) return result;
+      return result.replace('</body>', `  <script type="module" src="${CLIENT_ENTRY_URL}"></script>\n</body>`);
     },
 
     configureServer(server) {

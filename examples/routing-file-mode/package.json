@@ -1,0 +1,22 @@
+{
+  "name": "routing-file-mode",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "ubean build",
+    "dev": "ubean dev",
+    "preview": "ubean preview",
+    "type-check": "vue-tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "ubean": "workspace:*",
+    "vue": "^3.5.40"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vue-tsc": "^3.3.8"
+  },
+  "peerDependencies": {},
+  "optionalDependencies": {}
+}

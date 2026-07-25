@@ -1,10 +1,9 @@
 /**
  * 请求相关集成测试
  *
- * 覆盖三大请求子系统:
+ * 覆盖两大请求子系统:
  * 1. createInternalFetch / createInternalAdapter + createRequest - 进程内路由调度
- * 2. createClient / get / post / $get / $post 等 - HTTP 客户端
- * 3. useData / invalidateData / invalidateAll - 页面数据缓存
+ * 2. useData / invalidateData / invalidateAll - 页面数据缓存
  *
  * 测试策略:
  * - 函数级: 直接调用 API 验证返回值和类型
@@ -19,14 +18,6 @@ import {
   setInternalFetcher,
   getInternalFetcher,
   clearInternalFetcher,
-  // HTTP client
-  createClient,
-  defaultClient,
-  get,
-  post,
-  $get,
-  $post,
-  diagnoseEnvironment,
   // Data cache
   useData,
   defineDataKey,
@@ -327,228 +318,7 @@ describe('Request integration - Internal fetch', () => {
 });
 
 // ============================================================================
-// 2. createClient / HTTP 客户端
-// ============================================================================
-
-describe('Request integration - HTTP client', () => {
-  describe('diagnoseEnvironment()', () => {
-    it('returns runtime diagnostics', () => {
-      const diag = diagnoseEnvironment();
-      expect(diag).toHaveProperty('runtime');
-      expect(diag).toHaveProperty('hasFetch');
-      expect(diag).toHaveProperty('hasXHR');
-      expect(diag).toHaveProperty('hasAbortController');
-      expect(typeof diag.hasFetch).toBe('boolean');
-      expect(typeof diag.hasAbortController).toBe('boolean');
-    });
-
-    it('node runtime reports hasFetch=true', () => {
-      const diag = diagnoseEnvironment();
-      // In node 18+, global fetch is available
-      expect(diag.hasFetch).toBe(true);
-    });
-  });
-
-  describe('createClient() - instance creation', () => {
-    it('creates a client with no options', () => {
-      const client = createClient();
-      expect(typeof client.get).toBe('function');
-      expect(typeof client.post).toBe('function');
-      expect(typeof client.$get).toBe('function');
-      expect(typeof client.extend).toBe('function');
-    });
-
-    it('creates a client with baseURL', () => {
-      const client = createClient({ baseURL: BASE_URL() });
-      expect(typeof client.get).toBe('function');
-    });
-
-    it('defaultClient is a usable client instance', () => {
-      expect(defaultClient).toBeDefined();
-      expect(typeof defaultClient.get).toBe('function');
-      expect(typeof defaultClient.post).toBe('function');
-    });
-
-    it('extend() creates a new client with merged options', () => {
-      const client = createClient({ baseURL: BASE_URL(), headers: { 'X-Base': '1' } });
-      const extended = client.extend({ headers: { 'X-Extended': '2' } });
-      expect(extended).not.toBe(client);
-      expect(typeof extended.get).toBe('function');
-    });
-  });
-
-  describe('HTTP methods against dev server', () => {
-    it('get() fetches JSON from /api/hello', async () => {
-      const data = await get(`${BASE_URL()}/api/hello`);
-      expect(data).toHaveProperty('message', 'Hello from ubean API!');
-      expect(data).toHaveProperty('method', 'GET');
-    });
-
-    it('post() sends JSON body', async () => {
-      const data = await post(
-        `${BASE_URL()}/api/hello`,
-        { name: 'Integration Test' },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      expect(data).toHaveProperty('method', 'POST');
-      expect(data).toHaveProperty('received');
-      expect((data as { received: { name: string } }).received).toEqual({ name: 'Integration Test' });
-    });
-
-    it('get() with query parameters', async () => {
-      const data = await get(`${BASE_URL()}/api/users/1`);
-      expect(data).toHaveProperty('id', 1);
-    });
-
-    it('head() completes without throwing against /api/hello', async () => {
-      const { head } = await import('ubean');
-      // HEAD responses have no body; ofetch resolves to undefined.
-      // The important contract is that the call does not reject.
-      await head(`${BASE_URL()}/api/hello`);
-    });
-  });
-
-  describe('Flat response methods ($get, $post)', () => {
-    it('$get() returns { data, error, status } shape', async () => {
-      const result = await $get(`${BASE_URL()}/api/hello`);
-      expect(result).toHaveProperty('data');
-      expect(result).toHaveProperty('error');
-      expect(result).toHaveProperty('status');
-      expect(result.status).toBe(200);
-      expect(result.error).toBeNull();
-      expect((result.data as { message: string }).message).toBe('Hello from ubean API!');
-    });
-
-    it('$get() on non-existent route returns error in flat shape', async () => {
-      const result = await $get(`${BASE_URL()}/api/nonexistent-route-xyz`);
-      expect(result).toHaveProperty('data');
-      expect(result).toHaveProperty('error');
-      expect(result).toHaveProperty('status');
-      expect(result.error).not.toBeNull();
-      expect(result.data).toBeNull();
-    });
-
-    it('$post() returns flat response with body echo', async () => {
-      const result = await $post(
-        `${BASE_URL()}/api/hello`,
-        { name: 'Flat Test' },
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      expect(result.status).toBe(200);
-      expect(result.error).toBeNull();
-      expect((result.data as { method: string }).method).toBe('POST');
-      expect((result.data as { received: { name: string } }).received).toEqual({ name: 'Flat Test' });
-    });
-  });
-
-  describe('Interceptors', () => {
-    it('onRequest interceptor is invoked', async () => {
-      const log: string[] = [];
-      const client = createClient({
-        baseURL: BASE_URL(),
-        onRequest({ options }) {
-          log.push('onRequest');
-          const newHeaders = new Headers(options.headers as Headers);
-          newHeaders.set('X-Intercepted', 'yes');
-          options.headers = newHeaders;
-        }
-      });
-      await client.get('/api/hello');
-      expect(log).toContain('onRequest');
-    });
-
-    it('onResponse interceptor is invoked', async () => {
-      const log: string[] = [];
-      const client = createClient({
-        baseURL: BASE_URL(),
-        onResponse({ response }) {
-          log.push(`onResponse:${response.status}`);
-        }
-      });
-      await client.get('/api/hello');
-      expect(log.some(l => l.startsWith('onResponse'))).toBe(true);
-    });
-
-    it('onResponseError interceptor fires on 4xx/5xx', async () => {
-      const log: string[] = [];
-      const client = createClient({
-        baseURL: BASE_URL(),
-        onResponseError({ error }) {
-          log.push(`onResponseError:${error?.message ?? 'unknown'}`);
-        }
-      });
-      try {
-        await client.get('/api/nonexistent-route-xyz');
-      } catch {
-        // expected
-      }
-      expect(log.some(l => l.startsWith('onResponseError'))).toBe(true);
-    });
-
-    it('custom headers persist through interceptor', async () => {
-      const client = createClient({
-        baseURL: BASE_URL(),
-        headers: { 'X-Custom-Header': 'custom-value' }
-      });
-      const data = await client.get('/api/hello');
-      expect(data).toHaveProperty('message');
-    });
-  });
-
-  describe('HTTP integration via /api/client-test', () => {
-    it('action=env returns runtime diagnostics', async () => {
-      const res = await getJson('/api/client-test?action=env');
-      expect(res.status).toBe(200);
-      expect(res.data).toHaveProperty('runtime');
-      expect(res.data).toHaveProperty('hasFetch');
-    });
-
-    it('action=methods tests all HTTP method shortcuts', async () => {
-      const res = await getJson('/api/client-test?action=methods');
-      expect(res.status).toBe(200);
-      expect(res.data).toHaveProperty('testedMethods');
-      expect(res.data).toHaveProperty('successCount');
-      expect(res.data).toHaveProperty('errorCount');
-      const tested = (res.data as { testedMethods: string[] }).testedMethods;
-      expect(tested).toEqual(
-        expect.arrayContaining(['get', '$get', 'post', '$post', 'put', '$put', 'patch', 'delete', '$delete'])
-      );
-    });
-
-    it('action=interceptors verifies interceptor hooks', async () => {
-      const res = await getJson('/api/client-test?action=interceptors');
-      expect(res.status).toBe(200);
-      expect(res.data).toHaveProperty('interceptorLog');
-      expect((res.data as { hasOnRequest: boolean }).hasOnRequest).toBe(true);
-      expect((res.data as { hasOnResponse: boolean }).hasOnResponse).toBe(true);
-    });
-
-    it('action=head tests head/options methods', async () => {
-      const res = await getJson('/api/client-test?action=head');
-      expect(res.status).toBe(200);
-      // head/options methods execute without throwing; result.note confirms both ran
-      expect(res.data).toHaveProperty('note');
-    });
-
-    it('action=flatResponse verifies flat response shape', async () => {
-      const res = await getJson('/api/client-test?action=flatResponse');
-      expect(res.status).toBe(200);
-      expect(res.data).toHaveProperty('success');
-      expect((res.data as { hasData: boolean }).hasData).toBe(true);
-      expect((res.data as { hasError: boolean }).hasError).toBe(true);
-      expect((res.data as { hasStatus: boolean }).hasStatus).toBe(true);
-    });
-
-    it('action=extend verifies client.extend() chain', async () => {
-      const res = await getJson('/api/client-test?action=extend');
-      expect(res.status).toBe(200);
-      expect(res.data).toHaveProperty('isExtended', true);
-    });
-  });
-});
-
-// ============================================================================
-// 3. useData / 数据缓存系统
+// 2. useData / 数据缓存系统
 // ============================================================================
 
 describe('Request integration - useData cache', () => {
@@ -888,7 +658,7 @@ describe('Request integration - useData cache', () => {
 });
 
 // ============================================================================
-// 4. 跨子系统协作 - internal fetch + useData + client
+// 3. 跨子系统协作 - internal fetch + useData
 // ============================================================================
 
 describe('Request integration - cross-subsystem scenarios', () => {
@@ -929,18 +699,6 @@ describe('Request integration - cross-subsystem scenarios', () => {
     expect(result.data).toHaveProperty('message', 'Hello from ubean API!');
   });
 
-  it('useData fetcher can use createClient for HTTP requests', async () => {
-    const client = createClient({ baseURL: BASE_URL() });
-    const result = await useData({
-      key: 'cross-client',
-      fetcher: async () => {
-        return await client.get('/api/hello');
-      }
-    });
-    expect(result.error).toBeNull();
-    expect((result.data as { message: string }).message).toBe('Hello from ubean API!');
-  });
-
   it('useData caches result of internal fetch', async () => {
     let fetchCount = 0;
     setInternalFetcher(async (req: Request) => {
@@ -960,18 +718,6 @@ describe('Request integration - cross-subsystem scenarios', () => {
     const r2 = await useData({ key: 'cross-cache', fetcher });
     expect(fetchCount).toBe(1);
     expect(r1.data).toEqual(r2.data);
-  });
-
-  it('createInternalFetch + createClient can be combined', async () => {
-    const internalFetch = createInternalFetch({ req: { header: () => undefined } }, { baseURL: BASE_URL() });
-    const res = await internalFetch('/api/hello');
-    expect(res.status).toBe(200);
-
-    // Verify the internal fetch result is consistent with createClient
-    const client = createClient({ baseURL: BASE_URL() });
-    const clientData = await client.get('/api/hello');
-    const internalData = await res.json();
-    expect(internalData.message).toBe((clientData as { message: string }).message);
   });
 
   it('error from internal fetch propagates to useData', async () => {

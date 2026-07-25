@@ -47,7 +47,7 @@ useHead({
         </div>
         <div class="feature-item enabled">
           <span class="check">✅</span>
-          <span>@ubean/client 调用外部 API</span>
+          <span>@soybeanjs/fetch 调用外部 API</span>
         </div>
         <div class="feature-item enabled">
           <span class="check">✅</span>

@@ -30,7 +30,6 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/client": "workspace:*",
     "@ubean/i18n": "workspace:*",
     "@ubean/pages": "workspace:*",
     "@ubean/types": "workspace:*",

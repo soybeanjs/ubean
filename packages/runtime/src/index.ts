@@ -22,27 +22,6 @@ declare module 'vue-router' {
   }
 }
 
-export {
-  createClient,
-  defaultClient,
-  get,
-  post,
-  put,
-  patch,
-  del as delete,
-  head,
-  opts as options,
-  $get,
-  $post,
-  $put,
-  $patch,
-  $del as $delete,
-  raw,
-  extend,
-  runtime,
-  diagnoseEnvironment
-} from '@ubean/client';
-export type { ApiClient, ClientOptions, RequestOptions, ClientError, FlatResponse } from '@ubean/client';
 export { useHeadInstance, injectHead } from './head';
 export type { VueHeadClient as HeadClient } from './head';
 export {

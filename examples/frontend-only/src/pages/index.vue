@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { createClient } from 'ubean';
+import { createRequest } from '@soybeanjs/fetch';
 import IslandCounter from '../components/IslandCounter.vue';
 
 useHead({
   title: 'ubean frontend-only - 首页',
-  meta: [{ name: 'description', content: 'frontend-only 示例:文件路由 + Islands + @ubean/client' }]
+  meta: [{ name: 'description', content: 'frontend-only 示例:文件路由 + Islands + @soybeanjs/fetch' }]
 });
 
 interface JsonPlaceholderUser {
@@ -15,8 +15,8 @@ interface JsonPlaceholderUser {
   website: string;
 }
 
-// createClient 由 ubean 重新导出(底层来自 @ubean/client),可调用任意外部 API
-const externalClient = createClient({
+// 使用 @soybeanjs/fetch 创建请求实例,可调用任意外部 API
+const request = createRequest({
   baseURL: 'https://jsonplaceholder.typicode.com'
 });
 
@@ -28,8 +28,7 @@ async function loadUser() {
   loading.value = true;
   error.value = null;
   try {
-    // 默认 responseType: 'json',抛异常模式
-    user.value = (await externalClient.get<JsonPlaceholderUser>('/users/1')) as JsonPlaceholderUser;
+    user.value = await request.get<JsonPlaceholderUser>('/users/1');
   } catch (err) {
     error.value = err instanceof Error ? err.message : String(err);
   } finally {
@@ -70,10 +69,10 @@ onMounted(loadUser);
       </div>
 
       <div class="card">
-        <h3>🌐 @ubean/client</h3>
+        <h3>🌐 @soybeanjs/fetch</h3>
         <p class="hint">
           通过
-          <code>createClient</code>
+          <code>createRequest</code>
           调用外部 API(jsonplaceholder)。
         </p>
         <button :disabled="loading" class="btn" @click="loadUser">

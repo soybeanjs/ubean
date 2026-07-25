@@ -13,7 +13,6 @@
  * - i18n 函数:来自 `@ubean/i18n`(纯函数版),与 `@ubean/runtime` 的 Vue reactive 包装版冲突 → 保留 i18n 版本
  * - `UbeanAppOptions` 类型:来自 `@ubean/app`,与 `@ubean/runtime` 的 Vue 版本冲突 → 保留 app 版本
  * - `InternalFetchOptions` 类型:来自 `@ubean/pages`,与 `@ubean/api-routes` 版本冲突 → 保留 pages 版本
- * - `raw`:来自 `@ubean/client`(HTTP client),与 `@ubean/server-runtime` 的 `rawSql as raw` 冲突 → 保留 client 版本
  * - `PageAssetTags` 类型:来自 `@ubean/pages`,与 `@ubean/app` 版本冲突 → 保留 pages 版本
  */
 
@@ -23,7 +22,6 @@ export * from '@ubean/utils';
 export * from '@ubean/error';
 export * from '@ubean/env';
 export * from '@ubean/seo';
-export * from '@ubean/client';
 export * from '@ubean/pages';
 export * from '@ubean/markdown';
 export * from '@ubean/i18n';
@@ -201,13 +199,9 @@ export type { I18nRoutingOptions, I18nRoutingStrategy } from '@ubean/i18n/routin
 // ============== 数据库别名(对齐原 ubean 的 `raw as sqlRawAlias`)==============
 export { rawSql as sqlRawAlias } from '@ubean/server-runtime';
 
-// ============== 客户端别名(`del as delete` 等保留字别名,对齐原 ubean)==============
-export { del as delete, $del as $delete, opts as options } from '@ubean/client';
-
 // ============== 冲突消歧(显式 re-export 优先于上方 `export *`)==============
 // 这些名称在多个子包中存在不同实现/类型,显式选择与原 ubean 一致的来源
 export { useRouter } from '@ubean/routing'; // 服务端 rou3 router 单例
-export { raw } from '@ubean/client'; // HTTP client `raw`(非 server-runtime 的 `rawSql as raw`)
 export { defineDataKey } from '@ubean/pages'; // pages 模块的 defineDataKey
 export type { InternalFetchOptions, PageAssetTags, PageRenderer } from '@ubean/pages';
 

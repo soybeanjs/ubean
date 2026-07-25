@@ -53,7 +53,6 @@
     "@ubean/auto-imports": "workspace:*",
     "@ubean/build": "workspace:*",
     "@ubean/cli": "workspace:*",
-    "@ubean/client": "workspace:*",
     "@ubean/codegen": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/dev": "workspace:*",

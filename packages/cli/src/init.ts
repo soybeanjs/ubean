@@ -321,18 +321,23 @@ export const GET = defineHandler(c => {
  *   import { api } from '../request/client';
  *   const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
  */
-const REQUEST_CLIENT_TEMPLATE = `import { createClient } from 'ubean';
+const REQUEST_CLIENT_TEMPLATE = `import { createRequest, createFlatRequest } from '@soybeanjs/fetch';
 import { createTypedClient, createFlatTypedClient } from '@soybeanjs/fetch/openapi';
 import type { paths } from '../../.ubean/openapi';
 
 /**
- * 底层 HTTP 客户端实例(ofetch 封装)。
+ * 底层 HTTP 请求实例(@soybeanjs/fetch 封装)。
  *
- * api 和 flatApi 共用同一个 client 实例,共享 baseURL/timeout/headers 等配置。
+ * api 和 flatApi 共用同一份配置,共享 baseURL/timeout/headers 等。
  * 调整配置时只需修改此处一处。
  */
-const client = createClient({
+const request = createRequest({
   // baseURL: '/api',  // 按需设置 API 基础路径
+  // timeout: 10000,
+});
+
+const flatRequest = createFlatRequest({
+  // baseURL: '/api',
   // timeout: 10000,
 });
 
@@ -362,7 +367,7 @@ const client = createClient({
  * const text = await api.get('/api/readme', { responseType: 'text' });
  * // text: string
  */
-export const api = createTypedClient<paths>(client);
+export const api = createTypedClient<paths>(request);
 
 /**
  * 扁平模式类型化 HTTP 客户端(不抛异常,通过返回值判断)
@@ -382,7 +387,7 @@ export const api = createTypedClient<paths>(client);
  *   console.log('User:', data);
  * }
  */
-export const flatApi = createFlatTypedClient<paths>(client);
+export const flatApi = createFlatTypedClient<paths>(flatRequest);
 `;
 
 /**

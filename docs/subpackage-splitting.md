@@ -80,7 +80,6 @@ packages/
 ├── api-routes/               # @ubean/api-routes
 ├── server-runtime/           # @ubean/server-runtime
 ├── app/                      # @ubean/app
-├── client/                   # @ubean/client
 ├── i18n/                     # @ubean/i18n
 ├── env/                      # @ubean/env
 ├── error/                    # @ubean/error
@@ -162,12 +161,6 @@ packages/
 
 ### Layer 3 — 同构运行时(前端可用)
 
-#### `@ubean/client`
-- **职责**: HTTP 客户端 —— `createClient`、`defaultClient`、`get/post/put/patch/delete/head/options`、`$get/$post/...`、`extend`、`runtime`、`diagnoseEnvironment`
-- **来源**: `runtime/client.ts`
-- **依赖**: `ofetch`、`@soybeanjs/fetch`
-- **入口**: `@ubean/client`
-
 #### `@ubean/i18n`
 - **职责**: 零依赖 i18n 核心 —— `defineLocale`、`t`、`setLocale`、`formatDate/Number/Currency/RelativeTime/List`、`addLocale`、`mergeLocale`、`detectLocale`、`detectBrowserLocale`
 - **来源**: `runtime/{i18n,i18n-routing}.ts`
@@ -192,7 +185,7 @@ packages/
 #### `@ubean/pages`
 - **职责**: 页面数据协议 + 同构数据层 —— `PageObject`、`PageRenderer`、`buildPageShell`、`buildClientOnlyShell`、`renderPage`、`pageJsonResponse`、`useData`、`invalidateData`、`invalidateAll`、`clearDataCache`、`declareDependencies`、`withDependencies`、`createInternalFetch`、`createStreamResponse`、`createSseStream`、`defineDataKey`
 - **来源**: `runtime/pages/`
-- **依赖**: `@ubean/types`(type-only)、`@ubean/client`(部分)
+- **依赖**: `@ubean/types`(type-only)
 - **入口**: `@ubean/pages`
 
 ### Layer 4 — Vue 专属模块
@@ -200,7 +193,7 @@ packages/
 #### `@ubean/runtime`
 - **职责**: Vue 客户端运行时 —— `createUbeanApp`、`createUbeanSSRApp`、`useRouter`、`useHead`、`usePage`、`Link`、`Head`、`PageView`、`defineApp`、`applyAppConfig`、`createUbeanRouter`、`resolveRoute`、`isActiveRoute`、composables、`useCacheViews`、`usePageTransition`、`useReloadSignal`、`useViewTransition`、`hydrateIslands`、`useI18n`(Vue 集成)、vue-router `RouteMeta` 类型扩展
 - **来源**: `runtime/vue/`
-- **依赖**: `vue`、`vue-router`、`@unhead/vue`、`@ubean/client`、`@ubean/pages`、`@ubean/i18n`、`@ubean/seo`(type-only)
+- **依赖**: `vue`、`vue-router`、`@unhead/vue`、`@ubean/pages`、`@ubean/i18n`、`@ubean/seo`(type-only)
 - **入口**: `@ubean/runtime`、`@ubean/runtime/app`、`@ubean/runtime/define-app`
 
 #### `@ubean/islands`
@@ -312,9 +305,9 @@ packages/
         │          @ubean/api-routes     │       @ubean/markdown    @ubean/pages
         │                   │            │                            │
         │                   ▼            │                            ▼
-        │       @ubean/server-runtime    │                       @ubean/client
-        │                                │                       @ubean/i18n
-        ▼                                │                       @ubean/seo
+        │       @ubean/server-runtime    │                       @ubean/i18n
+        │                                │                       @ubean/seo
+        ▼                                │
    @ubean/modules                         │
    @ubean/config                          │
    @ubean/preset                          │
@@ -679,7 +672,7 @@ pnpm add ubean
 
 ### 场景 B:纯前端 SPA(无 SSR / 无后端路由)⭐
 ```bash
-pnpm add @ubean/vite @ubean/runtime @ubean/routing @ubean/pages @ubean/client @ubean/auto-imports @ubean/islands
+pnpm add @ubean/vite @ubean/runtime @ubean/routing @ubean/pages @ubean/auto-imports @ubean/islands @soybeanjs/fetch
 ```
 **不安装**:`@ubean/app`、`@ubean/api-routes`、`@ubean/server-runtime`、`@ubean/ssr`、`@ubean/prerender`
 
@@ -707,7 +700,7 @@ export default defineConfig({
 - ✅ `useI18n`、`t`、`formatDate`
 - ✅ View Transitions
 - ✅ Islands 局部水合
-- ✅ HTTP client
+- ✅ HTTP 请求(`@soybeanjs/fetch`)
 - ✅ 路由类型安全(`RouteKey`、`RoutePathMap`)
 - ❌ 无 SSR 渲染
 - ❌ 无 `defineHandler` / API 路由
@@ -720,7 +713,7 @@ pnpm add @ubean/app @ubean/api-routes @ubean/routing @ubean/server-runtime
 
 ### 场景 D:Vue + Islands + SSR(自定义组装)
 ```bash
-pnpm add @ubean/vite @ubean/runtime @ubean/ssr @ubean/pages @ubean/routing @ubean/client @ubean/islands
+pnpm add @ubean/vite @ubean/runtime @ubean/ssr @ubean/pages @ubean/routing @ubean/islands @soybeanjs/fetch
 ```
 
 ### 场景 E:仅用路由生成能力(脱离 ubean 运行时)
@@ -847,7 +840,6 @@ ubean build
 - [ ] `@ubean/env` ← `runtime/env.ts`
 - [ ] `@ubean/seo` ← `runtime/seo.ts`
 - [ ] `@ubean/i18n` ← `runtime/{i18n,i18n-routing}.ts`
-- [ ] `@ubean/client` ← `runtime/client.ts`
 - [ ] `@ubean/pages` ← `runtime/pages/`
 
 ### 阶段 2:路由与后端(3-4 天)⭐ 含 elegant-router 增强

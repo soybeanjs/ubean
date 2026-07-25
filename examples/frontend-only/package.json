@@ -9,6 +9,7 @@
     "type-check": "vue-tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@soybeanjs/fetch": "^0.0.5",
     "ubean": "workspace:*",
     "vue": "^3.5.40"
   },

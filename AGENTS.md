@@ -23,7 +23,6 @@ ubean/
 │   ├── error/              # @ubean/error — 错误类
 │   ├── env/                # @ubean/env — 环境变量
 │   ├── seo/                # @ubean/seo — SEO meta
-│   ├── client/             # @ubean/client — HTTP 客户端
 │   ├── pages/              # @ubean/pages — 页面数据协议
 │   ├── markdown/           # @ubean/markdown — Markdown 解析
 │   ├── i18n/               # @ubean/i18n — 国际化（纯函数）
@@ -264,13 +263,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `createInternalFetch(options)` / `callInternal(...)` | 进程内调度框架 handler，不发起网络请求 |
 | `internalFetch` 不支持上传进度                       | —                                      |
 
-### 客户端
-
-| API                                                  | 说明                           |
-| ---------------------------------------------------- | ------------------------------ |
-| `createClient(options)` / `defaultClient`            | HTTP 客户端                    |
-| `get`/`post`/`put`/`patch`/`delete`/`head`/`options` | 便捷方法（throw on error）     |
-| `$get`/`$post`/`$put`/`$patch`/`$delete`             | flat 模式（`{ data, error }`） |
+> 浏览器端 HTTP 请求请直接使用 [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)（`createRequest` / `createFlatRequest` / `createTypedClient` / `createFlatTypedClient`），ubean 不再内置 HTTP 客户端封装。
 
 ### Vue 运行时
 

@@ -86,7 +86,7 @@ describe('Typed client - replacePathParams', () => {
 // ============================================================================
 
 describe('Typed client - createTypedClient', () => {
-  it('creates a typed client from createClient instance', () => {
+  it('creates a typed client from createRequest instance', () => {
     const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
     const typed = createTypedClient<paths>(request);
     expect(typeof typed.get).toBe('function');

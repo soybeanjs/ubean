@@ -10,10 +10,11 @@
  *
  * 测试策略:
  * - HTTP 集成级: 通过 /api/download 验证响应头与二进制内容
- * - 客户端级: 使用 ubean createClient 的不同 responseType 验证解析
+ * - 客户端级: 使用 @soybeanjs/fetch createRequest 的不同 responseType 验证解析
  */
 import { describe, it, expect } from 'vitest';
-import { get } from 'ubean';
+import { createRequest } from '@soybeanjs/fetch';
+import type { FileResponseData } from '@soybeanjs/fetch';
 import { api, getBaseUrl } from './helper';
 
 describe('File download system', () => {
@@ -140,24 +141,27 @@ describe('File download system', () => {
     });
   });
 
-  describe('Client-side responseType (using ubean createClient)', () => {
-    it('get() returns Blob for binary responses by default', async () => {
-      // ofetch returns Blob for application/octet-stream Content-Type
-      const data = await get(`${getBaseUrl()}/api/download?filename=client.txt`);
-      expect(data).toBeInstanceOf(Blob);
-      const text = await (data as Blob).text();
-      expect(text).toContain('File content for client.txt');
+  describe('Client-side responseType (using @soybeanjs/fetch createRequest)', () => {
+    it('responseType: "blob" returns FileResponseData<Blob>', async () => {
+      const request = createRequest({ baseURL: getBaseUrl() }, { isBackendSuccess: () => true });
+      const data = (await request.get('/api/download', {
+        query: { filename: 'blob.bin' },
+        responseType: 'blob'
+      })) as FileResponseData<Blob>;
+      expect(data).toBeDefined();
+      expect(data.file).toBeInstanceOf(Blob);
+      const text = await data.file.text();
+      expect(text).toContain('File content for blob.bin');
     });
 
-    it('get() with responseType: "blob" returns Blob', async () => {
-      const { createClient } = await import('ubean');
-      const client = createClient({ baseURL: getBaseUrl() });
-      const data = await client.get('/api/download?filename=blob.bin', {
-        responseType: 'blob'
-      });
-      expect(data).toBeInstanceOf(Blob);
-      const text = await data.text();
-      expect(text).toContain('File content for blob.bin');
+    it('responseType: "text" returns string', async () => {
+      const request = createRequest({ baseURL: getBaseUrl() }, { isBackendSuccess: () => true });
+      const text = (await request.get('/api/download', {
+        query: { filename: 'text.bin' },
+        responseType: 'text'
+      })) as string;
+      expect(typeof text).toBe('string');
+      expect(text).toContain('File content for text.bin');
     });
 
     it('native fetch arrayBuffer() byte length matches Content-Length', async () => {

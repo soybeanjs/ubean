@@ -26,7 +26,7 @@
 ## 阶段 0:准备(预计 0.5 天)
 
 - [x] T0-1 创建 `packages/` 下 23 个新子包目录骨架
-  - `packages/{types,utils,routing,api-routes,server-runtime,app,client,i18n,env,error,seo,pages,runtime,islands,ssr,vite,auto-imports,markdown,prerender,preset,config,codegen,modules,build,dev,cli,core}/`
+  - `packages/{types,utils,routing,api-routes,server-runtime,app,i18n,env,error,seo,pages,runtime,islands,ssr,vite,auto-imports,markdown,prerender,preset,config,codegen,modules,build,dev,cli,core}/`
   - 每个目录包含 `package.json`、`tsconfig.json`、`src/index.ts`(空)
   - 状态:`[ ]`
   - 负责人:
@@ -125,21 +125,12 @@
   - 验证:`pnpm -F @ubean/i18n typecheck && pnpm -F @ubean/i18n test` 通过
   - 备注:
 
-### `@ubean/client`
-
-- [x] T1-9 迁移 `packages/ubean/src/runtime/client.ts` → `packages/client/src/`
-  - 包含:`createClient`、`defaultClient`、`get`、`post`、`put`、`patch`、`del`(delete)、`head`、`opts`(options)、`$get`、`$post`、`$put`、`$patch`、`$del`($delete)、`raw`、`extend`、`runtime`、`diagnoseEnvironment`、`ApiClient`、`ClientOptions`、`RequestOptions`、`ClientError`、`FlatResponse`
-  - 依赖:`ofetch`、`@soybeanjs/fetch`
-  - 状态:`[ ]`
-  - 验证:`pnpm -F @ubean/client typecheck` 通过
-  - 备注:
-
 ### `@ubean/pages`
 
 - [x] T1-10 迁移 `packages/ubean/src/runtime/pages/` → `packages/pages/src/`
   - 包含(`protocol.ts`):`PageHead`(改为从 `@ubean/types` 引入)、`PageObject`、`PageAssetTags`、`LocaleMetaInfo`、`PageRenderContext`、`PageRenderFn`、`PageRenderer`、`PAGE_DATA_ID`、`LOCALE_DATA_ID`、`PAGE_REQUEST_HEADER`、`SSR_CONTENT_MARKER`、`isPagesRequest`、`safeJsonStringify`、`serializePageData`、`pageJsonResponse`、`buildPageShell`、`buildClientOnlyShell`、`insertSsrContent`、`renderPage`、`escapeAttr`、`renderHeadTags`
   - 包含(`data.ts`):`useData`、`invalidateData`、`invalidateAll`、`clearDataCache`、`hasData`、`declareDependencies`、`withDependencies`、`getInvalidatedKeysForAction`、`createInternalFetch`、`createStreamResponse`、`createSseStream`、`defineDataKey`、`DataKey`、`DataCacheEntry`、`UseDataOptions`、`DataResult`、`DependencyDeclaration`、`InternalFetchOptions`、`StreamHelper`
-  - 依赖:`@ubean/types`(type-only)、`@ubean/client`(部分)
+  - 依赖:`@ubean/types`(type-only)
   - 状态:`[ ]`
   - 验证:`pnpm -F @ubean/pages typecheck && pnpm -F @ubean/pages test` 通过
   - 备注:
@@ -235,9 +226,9 @@
   - 包含:`app.ts`、`define-app.ts`、`router.ts`、`router-location.ts`、`client.ts`、`composables.ts`、`head.ts`、`cache-views.ts`、`page-runtime.ts`、`page-macro.ts`、`view-transitions.ts`、`islands.ts`、`i18n.ts`、`index.ts`
   - **关键改造**:
     - 把 `runtime/vue/index.ts` 中 `declare module 'vue-router'` 的 `RouteMeta` 扩展放在这里(从 `core/routing/define-page.ts` 移出)
-    - import 路径改写:`../client` → `@ubean/client`、`../seo` → `@ubean/seo`、`../i18n` → `@ubean/i18n`、`../pages/protocol` → `@ubean/pages` 或 `@ubean/types`
+    - import 路径改写:`../seo` → `@ubean/seo`、`../i18n` → `@ubean/i18n`、`../pages/protocol` → `@ubean/pages` 或 `@ubean/types`
   - 入口:`@ubean/runtime`、`@ubean/runtime/app`、`@ubean/runtime/define-app`
-  - 依赖:`vue`、`vue-router`、`@unhead/vue`、`@ubean/client`、`@ubean/pages`、`@ubean/i18n`、`@ubean/seo`(type-only)
+  - 依赖:`vue`、`vue-router`、`@unhead/vue`、`@ubean/pages`、`@ubean/i18n`、`@ubean/seo`(type-only)
   - 状态:`[ ]`
   - 验证:`pnpm -F @ubean/runtime typecheck && pnpm -F @ubean/runtime test` 通过
   - 备注:
@@ -389,7 +380,6 @@
     export * from '@ubean/api-routes';
     export * from '@ubean/server-runtime';
     export * from '@ubean/app';
-    export * from '@ubean/client';
     export * from '@ubean/i18n';
     export * from '@ubean/env';
     export * from '@ubean/error';
@@ -454,7 +444,7 @@
 
 - [x] T6-1 新增 `examples/frontend-only/` 示例
   - 场景 B 示例(SPA,无后端)
-  - 只依赖 `@ubean/vite`、`@ubean/runtime`、`@ubean/routing`、`@ubean/pages`、`@ubean/client`、`@ubean/auto-imports`、`@ubean/islands`
+  - 只依赖 `@ubean/vite`、`@ubean/runtime`、`@ubean/routing`、`@ubean/pages`、`@ubean/auto-imports`、`@ubean/islands`、`@soybeanjs/fetch`
   - 演示文件式路由 + Islands + View Transitions
   - 状态:`[ ]`
   - 验证:`pnpm dev` + `pnpm build` 通过

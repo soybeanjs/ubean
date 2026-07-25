@@ -102,14 +102,14 @@ export interface ScanOptions {
   cwd: string;
   srcDir: string;
   dirs?: {
-    routes?: string;
-    middleware?: string;
-    pages?: string;
-    layouts?: string;
-    plugins?: string;
-    crons?: string;
-    queues?: string;
-    locales?: string;
+    routes?: string | string[];
+    middleware?: string | string[];
+    pages?: string | string[];
+    layouts?: string | string[];
+    plugins?: string | string[];
+    crons?: string | string[];
+    queues?: string | string[];
+    locales?: string | string[];
   };
   ignore?: string[];
 }

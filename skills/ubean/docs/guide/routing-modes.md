@@ -43,13 +43,9 @@ export default defineConfig({
 | `mode` | `'virtual' \| 'file' \| 'both'` | `'virtual'` | 路由数据生成模式 |
 | `outputDir` | `string` | `'router/_generated'` | 实体文件输出目录(相对于 `srcDir`) |
 | `dtsDir` | `string` | 同 `outputDir` | 类型声明文件输出目录 |
-| `pageInclude` | `string[]` | — | 页面文件 glob 包含规则 |
-| `pageExclude` | `string[]` | 排除下划线/测试/dts | 页面文件 glob 排除规则 |
 | `generateBuiltinRoutes` | `boolean` | `true` | 是否生成内置路由(404、首页重定向) |
 | `rootRedirect` | `string` | — | 根路径重定向目标(如 `/home`) |
 | `notFoundRouteComponent` | `string` | `'404.vue'` | 404 页面组件路径 |
-| `defaultReuseRouteComponent` | `string` | — | 默认复用路由 fallback 组件 |
-| `reuseRoutes` | `Array<{path, component?}>` | `[]` | 复用路由配置 |
 | `layouts.defaultLayout` | `string \| false` | `'default'` | 默认布局名称 |
 | `layouts.layoutLazy` | `boolean` | `true` | 布局懒加载 |
 | `routeLazy` | `boolean` | `true` | 路由懒加载 |
@@ -61,6 +57,10 @@ export default defineConfig({
 | `onGenerated` | `(files: string[]) => void` | — | 生成完成回调(仅 `file`/`both`) |
 | `watchFile` | `boolean` | `true` | dev 监听变更(仅 `file`/`both`) |
 | `fileUpdateDuration` | `number` | `100` | debounce 时长(ms) |
+
+> **页面扫描来源**:页面文件扫描直接基于 `dir.pages`(支持 `string | string[]` 多目录),
+> 不再通过独立的 `pageInclude`/`pageExclude` glob 过滤。如需排除特定文件,使用
+> `scanOptions.ignore`(适用于所有扫描类型:pages/routes/layouts/middleware 等)。
 
 ## 模式详解
 

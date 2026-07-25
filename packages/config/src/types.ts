@@ -88,18 +88,12 @@ export interface RoutingConfig {
   dtsDir?: string;
 
   /**
-   * 页面文件 glob 包含规则(相对于 `pages/` 目录),默认包含所有文件。
-   * 用于过滤扫描结果,例如只包含特定目录的页面。
+   * 是否生成内置路由(如 404、首页重定向),默认 `true`。
+   *
+   * 页面文件扫描直接基于 `dir.pages`(支持多目录),不再通过独立的
+   * `pageInclude`/`pageExclude` glob 过滤。如需排除特定文件,使用
+   * `scanOptions.ignore`(适用于所有扫描类型:pages/routes/layouts 等)。
    */
-  pageInclude?: string[];
-
-  /**
-   * 页面文件 glob 排除规则(相对于 `pages/` 目录)。
-   * 默认排除下划线前缀的文件、测试文件和类型声明文件。
-   */
-  pageExclude?: string[];
-
-  /** 是否生成内置路由(如 404、首页重定向),默认 `true`。 */
   generateBuiltinRoutes?: boolean;
 
   /**
@@ -368,17 +362,17 @@ export interface UbeanConfig {
   image?: boolean | BuiltinModuleOptions;
   fonts?: boolean | BuiltinModuleOptions;
   dir?: {
-    pages?: string;
-    routes?: string;
-    layouts?: string;
-    middleware?: string;
-    plugins?: string;
+    pages?: string | string[];
+    routes?: string | string[];
+    layouts?: string | string[];
+    middleware?: string | string[];
+    plugins?: string | string[];
     composables?: string;
     components?: string;
     public?: string;
-    crons?: string;
-    queues?: string;
-    locales?: string;
+    crons?: string | string[];
+    queues?: string | string[];
+    locales?: string | string[];
   };
   dev?: {
     port?: number;

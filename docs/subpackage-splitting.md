@@ -345,10 +345,6 @@ export interface RoutingConfig {
   /** 类型声明输出目录 */
   dtsDir?: string;              // 默认 'src/typings'
 
-  /** 页面文件 glob */
-  pageInclude?: string[];       // 默认 ['**/*.vue', '**/*.md']
-  pageExclude?: string[];       // 默认 ['**/components/**', '**/modules/**']
-
   /** 是否生成内置路由(Root、404) */
   generateBuiltinRoutes?: boolean;  // 默认 false
 

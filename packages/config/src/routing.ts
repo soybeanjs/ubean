@@ -8,8 +8,6 @@ export const routingConfigDefaults: ResolvedRoutingConfig = {
   mode: 'virtual',
   outputDir: 'router/_generated',
   dtsDir: 'router/_generated',
-  pageInclude: ['**/*'],
-  pageExclude: ['**/_*/**/*', '**/_*', '**/*.test.*', '**/*.spec.*'],
   generateBuiltinRoutes: true,
   rootRedirect: '',
   notFoundRouteComponent: '404.vue',
@@ -47,9 +45,7 @@ export function resolveRoutingConfig(userConfig?: RoutingConfig): ResolvedRoutin
     layouts: {
       ...routingConfigDefaults.layouts,
       ...userConfig.layouts
-    },
-    pageInclude: userConfig.pageInclude ? [...userConfig.pageInclude] : [...routingConfigDefaults.pageInclude],
-    pageExclude: userConfig.pageExclude ? [...userConfig.pageExclude] : [...routingConfigDefaults.pageExclude]
+    }
   };
 
   // 重新挂载函数字段(仅在用户提供了的情况下)

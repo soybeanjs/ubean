@@ -62,6 +62,21 @@ const DEFAULT_DIRS = {
   locales: 'locales'
 };
 
+/**
+ * Normalize a `string | string[]` dir entry into `string[]`. Falsy values
+ * fall back to the provided default so callers always receive a non-empty
+ * list. Empty arrays are also replaced with the default to keep downstream
+ * globbing simple.
+ */
+function normalizeDirs(value: string | string[] | undefined, fallback: string): string[] {
+  if (value === undefined || value === null || value === '') return [fallback];
+  if (Array.isArray(value)) {
+    const filtered = value.filter((d): d is string => typeof d === 'string' && d.length > 0);
+    return filtered.length > 0 ? filtered : [fallback];
+  }
+  return [value];
+}
+
 function splitOrderPrefix(name: string): { order: number; cleanName: string } {
   const match = name.match(/^(\d+)\.(.+)$/);
   if (match) {
@@ -124,254 +139,305 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
   };
 }
 
-async function scanApiRoutes(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedApiRoute[]> {
-  const dir = join(srcDir, dirName);
-  const files = await glob(GLOB_SCAN_PATTERN, {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/*.vue', '**/_*'],
-    absolute: true
-  }).catch(() => [] as string[]);
-
+async function scanApiRoutes(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedApiRoute[]> {
+  const dirNames = normalizeDirs(dirName, 'routes');
   const routes: ScannedApiRoute[] = [];
 
-  for (const fullPath of files.sort()) {
-    const relativePath = toPosixPath(relative(dir, fullPath));
-    const base = basename(relativePath, extname(relativePath));
-    const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
-    const fileBase = dirPart ? `${dirPart}/${base}` : base;
-    const parsed = filePathToRoute(fileBase);
+  for (const single of dirNames) {
+    const dir = join(srcDir, single);
+    const files = await glob(GLOB_SCAN_PATTERN, {
+      cwd: dir,
+      dot: true,
+      ignore: [...ignore, '**/*.vue', '**/_*'],
+      absolute: true
+    }).catch(() => [] as string[]);
 
-    const detected = await detectHttpExports(fullPath).catch(() => ({
-      exports: [] as string[],
-      httpMethods: [] as Lowercase<(typeof HTTP_METHODS)[number]>[],
-      hasMeta: false,
-      fileMeta: undefined
-    }));
+    for (const fullPath of files.sort()) {
+      const relativePath = toPosixPath(relative(dir, fullPath));
+      const base = basename(relativePath, extname(relativePath));
+      const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
+      const fileBase = dirPart ? `${dirPart}/${base}` : base;
+      const parsed = filePathToRoute(fileBase);
 
-    const methods =
-      detected.httpMethods.length > 0
-        ? detected.httpMethods
-        : parsed.method
-          ? [parsed.method.toLowerCase() as Lowercase<(typeof HTTP_METHODS)[number]>]
-          : [];
+      const detected = await detectHttpExports(fullPath).catch(() => ({
+        exports: [] as string[],
+        httpMethods: [] as Lowercase<(typeof HTTP_METHODS)[number]>[],
+        hasMeta: false,
+        fileMeta: undefined
+      }));
 
-    for (const method of methods.length > 0
-      ? methods
-      : HTTP_METHODS.map(m => m.toLowerCase() as Lowercase<(typeof HTTP_METHODS)[number]>)) {
-      routes.push({
-        fullPath,
-        relativePath,
-        dirname: dirname(relativePath),
-        basename: basename(relativePath),
-        route: parsed.route,
-        method,
-        env: parsed.env as 'dev' | 'prod' | 'prerender' | undefined,
-        exports: detected.exports,
-        hasMeta: detected.hasMeta,
-        fileMeta: detected.fileMeta
-      });
+      const methods =
+        detected.httpMethods.length > 0
+          ? detected.httpMethods
+          : parsed.method
+            ? [parsed.method.toLowerCase() as Lowercase<(typeof HTTP_METHODS)[number]>]
+            : [];
+
+      for (const method of methods.length > 0
+        ? methods
+        : HTTP_METHODS.map(m => m.toLowerCase() as Lowercase<(typeof HTTP_METHODS)[number]>)) {
+        routes.push({
+          fullPath,
+          relativePath,
+          dirname: dirname(relativePath),
+          basename: basename(relativePath),
+          route: parsed.route,
+          method,
+          env: parsed.env as 'dev' | 'prod' | 'prerender' | undefined,
+          exports: detected.exports,
+          hasMeta: detected.hasMeta,
+          fileMeta: detected.fileMeta
+        });
+      }
     }
   }
 
   return routes;
 }
 
-async function scanMiddlewares(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedMiddleware[]> {
-  const dir = join(srcDir, dirName);
-  const files = await glob(GLOB_SCAN_PATTERN, {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/*.vue', '**/index.*', '**/_*'],
-    absolute: true
-  }).catch(() => [] as string[]);
+async function scanMiddlewares(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedMiddleware[]> {
+  const dirNames = normalizeDirs(dirName, 'middleware');
+  const results: ScannedMiddleware[] = [];
 
-  return files.sort().map(fullPath => {
-    const relativePath = toPosixPath(relative(dir, fullPath));
-    const base = basename(relativePath, extname(relativePath));
-    const { order, cleanName } = splitOrderPrefix(base);
-    return {
-      fullPath,
-      relativePath,
-      dirname: dirname(relativePath),
-      basename: basename(relativePath),
-      order,
-      global: cleanName === 'global' || cleanName.startsWith('global.')
-    };
-  });
+  for (const single of dirNames) {
+    const dir = join(srcDir, single);
+    const files = await glob(GLOB_SCAN_PATTERN, {
+      cwd: dir,
+      dot: true,
+      ignore: [...ignore, '**/*.vue', '**/index.*', '**/_*'],
+      absolute: true
+    }).catch(() => [] as string[]);
+
+    for (const fullPath of files.sort()) {
+      const relativePath = toPosixPath(relative(dir, fullPath));
+      const base = basename(relativePath, extname(relativePath));
+      const { order, cleanName } = splitOrderPrefix(base);
+      results.push({
+        fullPath,
+        relativePath,
+        dirname: dirname(relativePath),
+        basename: basename(relativePath),
+        order,
+        global: cleanName === 'global' || cleanName.startsWith('global.')
+      });
+    }
+  }
+
+  return results;
 }
 
-async function scanPages(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedPageRoute[]> {
-  const dir = join(srcDir, dirName);
-  const files = await glob(GLOB_VUE_PATTERN, {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/components/**', '**/_*'],
-    absolute: true
-  }).catch(() => [] as string[]);
-
+async function scanPages(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedPageRoute[]> {
+  const dirNames = normalizeDirs(dirName, 'pages');
   const pages: ScannedPageRoute[] = [];
+  const seenFullPaths = new Set<string>();
 
-  for (const fullPath of files.sort()) {
-    const relativePath = toPosixPath(relative(dir, fullPath));
-    const ext = extname(relativePath);
-    const base = basename(relativePath, ext);
+  for (const single of dirNames) {
+    const dir = join(srcDir, single);
+    const files = await glob(GLOB_VUE_PATTERN, {
+      cwd: dir,
+      dot: true,
+      ignore: [...ignore, '**/components/**', '**/_*'],
+      absolute: true
+    }).catch(() => [] as string[]);
 
-    if (base.startsWith('_')) continue;
+    for (const fullPath of files.sort()) {
+      // Deduplicate when multiple page directories overlap. First-seen-wins
+      // preserves the ordering of `dirs.pages` so users can layer folders.
+      if (seenFullPaths.has(fullPath)) continue;
+      seenFullPaths.add(fullPath);
 
-    const isMarkdown = ext === '.md' || ext === '.mdx';
-    const isReuse = !isMarkdown && base.endsWith('.reuse');
-    const pageBase = isReuse ? base.slice(0, -'.reuse'.length) : base;
-    const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
-    const fileBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
-    const { route } = filePathToRoute(fileBase);
-    const name = routeToName(route);
+      const relativePath = toPosixPath(relative(dir, fullPath));
+      const ext = extname(relativePath);
+      const base = basename(relativePath, ext);
 
-    let pageMeta = null;
-    let frontmatter: Record<string, unknown> | undefined;
+      if (base.startsWith('_')) continue;
 
-    if (isMarkdown) {
-      try {
-        const content = await readFile(fullPath, 'utf-8');
-        const parser = await getFrontmatterParser();
-        if (parser) {
-          const parsed = parser(content);
-          frontmatter = parsed.data;
-          pageMeta = {
-            name: (frontmatter?.name as string) || name,
-            path: (frontmatter?.path as string) || route,
-            layout: frontmatter?.layout as string | false | undefined,
-            cache: frontmatter?.cache as boolean | undefined,
-            head: buildMarkdownHead(frontmatter)
-          };
-        } else {
-          pageMeta = { name, path: route };
+      const isMarkdown = ext === '.md' || ext === '.mdx';
+      const isReuse = !isMarkdown && base.endsWith('.reuse');
+      const pageBase = isReuse ? base.slice(0, -'.reuse'.length) : base;
+      const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
+      const fileBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
+      const { route } = filePathToRoute(fileBase);
+      const name = routeToName(route);
+
+      let pageMeta = null;
+      let frontmatter: Record<string, unknown> | undefined;
+
+      if (isMarkdown) {
+        try {
+          const content = await readFile(fullPath, 'utf-8');
+          const parser = await getFrontmatterParser();
+          if (parser) {
+            const parsed = parser(content);
+            frontmatter = parsed.data;
+            pageMeta = {
+              name: (frontmatter?.name as string) || name,
+              path: (frontmatter?.path as string) || route,
+              layout: frontmatter?.layout as string | false | undefined,
+              cache: frontmatter?.cache as boolean | undefined,
+              head: buildMarkdownHead(frontmatter)
+            };
+          } else {
+            pageMeta = { name, path: route };
+          }
+        } catch {
+          pageMeta = null;
         }
-      } catch {
-        pageMeta = null;
+      } else {
+        pageMeta = await extractDefinePage(fullPath).catch(() => null);
       }
-    } else {
-      pageMeta = await extractDefinePage(fullPath).catch(() => null);
-    }
 
-    pages.push({
-      fullPath,
-      relativePath,
-      dirname: dirname(relativePath),
-      basename: basename(relativePath),
-      name: pageMeta?.name || name,
-      route: pageMeta?.path || route,
-      path: pageMeta?.path || route,
-      layout: pageMeta?.layout,
-      cache: pageMeta?.cache,
-      isReuse,
-      isMarkdown,
-      reuseTarget: pageMeta?.reuse,
-      pageMeta: pageMeta || undefined,
-      frontmatter
-    });
+      pages.push({
+        fullPath,
+        relativePath,
+        dirname: dirname(relativePath),
+        basename: basename(relativePath),
+        name: pageMeta?.name || name,
+        route: pageMeta?.path || route,
+        path: pageMeta?.path || route,
+        layout: pageMeta?.layout,
+        cache: pageMeta?.cache,
+        isReuse,
+        isMarkdown,
+        reuseTarget: pageMeta?.reuse,
+        pageMeta: pageMeta || undefined,
+        frontmatter
+      });
+    }
   }
 
   return pages;
 }
 
-async function scanLayouts(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedLayout[]> {
-  const dir = join(srcDir, dirName);
-  const files = await glob(GLOB_LAYOUT_PATTERN, {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/_*'],
-    absolute: true
-  }).catch(() => [] as string[]);
+async function scanLayouts(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedLayout[]> {
+  const dirNames = normalizeDirs(dirName, 'layouts');
+  const results: ScannedLayout[] = [];
+  const seenFullPaths = new Set<string>();
 
-  return files.sort().map(fullPath => {
-    const relativePath = toPosixPath(relative(dir, fullPath));
-    const base = basename(relativePath, extname(relativePath));
-    const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
-    const layoutBase = base === 'index' ? dirPart : dirPart ? `${dirPart}/${base}` : base;
-    const isDefault = base === 'default' || (base === 'index' && !dirPart);
-    const name = layoutBase || 'default';
-    return {
-      fullPath,
-      relativePath,
-      dirname: dirname(relativePath),
-      basename: basename(relativePath),
-      name,
-      path: toPosixPath(relativePath),
-      isDefault
-    };
-  });
+  for (const single of dirNames) {
+    const dir = join(srcDir, single);
+    const files = await glob(GLOB_LAYOUT_PATTERN, {
+      cwd: dir,
+      dot: true,
+      ignore: [...ignore, '**/_*'],
+      absolute: true
+    }).catch(() => [] as string[]);
+
+    for (const fullPath of files.sort()) {
+      if (seenFullPaths.has(fullPath)) continue;
+      seenFullPaths.add(fullPath);
+
+      const relativePath = toPosixPath(relative(dir, fullPath));
+      const base = basename(relativePath, extname(relativePath));
+      const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
+      const layoutBase = base === 'index' ? dirPart : dirPart ? `${dirPart}/${base}` : base;
+      const isDefault = base === 'default' || (base === 'index' && !dirPart);
+      const name = layoutBase || 'default';
+      results.push({
+        fullPath,
+        relativePath,
+        dirname: dirname(relativePath),
+        basename: basename(relativePath),
+        name,
+        path: toPosixPath(relativePath),
+        isDefault
+      });
+    }
+  }
+
+  return results;
 }
 
-async function scanPlugins(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedPlugin[]> {
-  const dir = join(srcDir, dirName);
-  const files = await glob(GLOB_SCAN_PATTERN, {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/*.vue', '**/_*'],
-    absolute: true
-  }).catch(() => [] as string[]);
+async function scanPlugins(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedPlugin[]> {
+  const dirNames = normalizeDirs(dirName, 'plugins');
+  const results: ScannedPlugin[] = [];
 
-  return files.sort().map(fullPath => {
-    const relativePath = toPosixPath(relative(dir, fullPath));
-    const base = basename(relativePath, extname(relativePath));
-    const { order } = splitOrderPrefix(base);
-    return {
-      fullPath,
-      relativePath,
-      dirname: dirname(relativePath),
-      basename: basename(relativePath),
-      order
-    };
-  });
+  for (const single of dirNames) {
+    const dir = join(srcDir, single);
+    const files = await glob(GLOB_SCAN_PATTERN, {
+      cwd: dir,
+      dot: true,
+      ignore: [...ignore, '**/*.vue', '**/_*'],
+      absolute: true
+    }).catch(() => [] as string[]);
+
+    for (const fullPath of files.sort()) {
+      const relativePath = toPosixPath(relative(dir, fullPath));
+      const base = basename(relativePath, extname(relativePath));
+      const { order } = splitOrderPrefix(base);
+      results.push({
+        fullPath,
+        relativePath,
+        dirname: dirname(relativePath),
+        basename: basename(relativePath),
+        order
+      });
+    }
+  }
+
+  return results;
 }
 
 const APP_EXTENSIONS = ['ts', 'js', 'mjs', 'mts'];
 
-async function scanCrons(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedCronTask[]> {
-  const dir = join(srcDir, dirName);
-  const files = await glob(GLOB_SCAN_PATTERN, {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/*.vue', '**/_*'],
-    absolute: true
-  }).catch(() => [] as string[]);
+async function scanCrons(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedCronTask[]> {
+  const dirNames = normalizeDirs(dirName, 'crons');
+  const results: ScannedCronTask[] = [];
 
-  return files.sort().map(fullPath => {
-    const relativePath = toPosixPath(relative(dir, fullPath));
-    const base = basename(relativePath, extname(relativePath));
-    const { cleanName } = splitOrderPrefix(base);
-    return {
-      fullPath,
-      relativePath,
-      dirname: dirname(relativePath),
-      basename: basename(relativePath),
-      name: cleanName
-    };
-  });
+  for (const single of dirNames) {
+    const dir = join(srcDir, single);
+    const files = await glob(GLOB_SCAN_PATTERN, {
+      cwd: dir,
+      dot: true,
+      ignore: [...ignore, '**/*.vue', '**/_*'],
+      absolute: true
+    }).catch(() => [] as string[]);
+
+    for (const fullPath of files.sort()) {
+      const relativePath = toPosixPath(relative(dir, fullPath));
+      const base = basename(relativePath, extname(relativePath));
+      const { cleanName } = splitOrderPrefix(base);
+      results.push({
+        fullPath,
+        relativePath,
+        dirname: dirname(relativePath),
+        basename: basename(relativePath),
+        name: cleanName
+      });
+    }
+  }
+
+  return results;
 }
 
-async function scanQueues(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedQueue[]> {
-  const dir = join(srcDir, dirName);
-  const files = await glob(GLOB_SCAN_PATTERN, {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/*.vue', '**/_*'],
-    absolute: true
-  }).catch(() => [] as string[]);
+async function scanQueues(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedQueue[]> {
+  const dirNames = normalizeDirs(dirName, 'queues');
+  const results: ScannedQueue[] = [];
 
-  return files.sort().map(fullPath => {
-    const relativePath = toPosixPath(relative(dir, fullPath));
-    const base = basename(relativePath, extname(relativePath));
-    const { cleanName } = splitOrderPrefix(base);
-    return {
-      fullPath,
-      relativePath,
-      dirname: dirname(relativePath),
-      basename: basename(relativePath),
-      name: cleanName
-    };
-  });
+  for (const single of dirNames) {
+    const dir = join(srcDir, single);
+    const files = await glob(GLOB_SCAN_PATTERN, {
+      cwd: dir,
+      dot: true,
+      ignore: [...ignore, '**/*.vue', '**/_*'],
+      absolute: true
+    }).catch(() => [] as string[]);
+
+    for (const fullPath of files.sort()) {
+      const relativePath = toPosixPath(relative(dir, fullPath));
+      const base = basename(relativePath, extname(relativePath));
+      const { cleanName } = splitOrderPrefix(base);
+      results.push({
+        fullPath,
+        relativePath,
+        dirname: dirname(relativePath),
+        basename: basename(relativePath),
+        name: cleanName
+      });
+    }
+  }
+
+  return results;
 }
 
 const LOCALE_GLOB_PATTERN = '**/*.{json,json5,yaml,yml,js,mjs,cjs,ts,mts,cts}';
@@ -459,71 +525,78 @@ async function loadLocaleFile(
   return { messages: {} };
 }
 
-async function scanLocales(srcDir: string, dirName: string, ignore: string[]): Promise<ScannedLocale[]> {
-  const dir = join(srcDir, dirName);
-  const files = await glob(LOCALE_GLOB_PATTERN, {
-    cwd: dir,
-    dot: true,
-    ignore: [...ignore, '**/*.vue', '**/_*'],
-    absolute: true
-  }).catch(() => [] as string[]);
-
+async function scanLocales(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedLocale[]> {
+  const dirNames = normalizeDirs(dirName, 'locales');
   const locales: ScannedLocale[] = [];
+  const seenFullPaths = new Set<string>();
 
-  for (const fullPath of files.sort()) {
-    const relativePath = toPosixPath(relative(dir, fullPath));
-    const ext = extname(relativePath);
-    const base = basename(relativePath, ext);
-    const { order: _order, cleanName: code } = splitOrderPrefix(base);
-    const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
+  for (const single of dirNames) {
+    const dir = join(srcDir, single);
+    const files = await glob(LOCALE_GLOB_PATTERN, {
+      cwd: dir,
+      dot: true,
+      ignore: [...ignore, '**/*.vue', '**/_*'],
+      absolute: true
+    }).catch(() => [] as string[]);
 
-    let namespace: string | undefined;
-    let finalCode = code;
-    let isDefault = code === 'default' || base.startsWith('default.');
+    for (const fullPath of files.sort()) {
+      if (seenFullPaths.has(fullPath)) continue;
+      seenFullPaths.add(fullPath);
 
-    if (dirPart) {
-      const dirParts = dirPart.split('/');
-      const isIndexFile = code === 'index';
+      const relativePath = toPosixPath(relative(dir, fullPath));
+      const ext = extname(relativePath);
+      const base = basename(relativePath, ext);
+      const { order: _order, cleanName: code } = splitOrderPrefix(base);
+      const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
 
-      finalCode = dirParts[0];
+      let namespace: string | undefined;
+      let finalCode = code;
+      let isDefault = code === 'default' || base.startsWith('default.');
 
-      const nsParts: string[] = [];
-      nsParts.push(...dirParts.slice(1));
-      if (!isIndexFile) {
-        nsParts.push(code);
+      if (dirPart) {
+        const dirParts = dirPart.split('/');
+        const isIndexFile = code === 'index';
+
+        finalCode = dirParts[0];
+
+        const nsParts: string[] = [];
+        nsParts.push(...dirParts.slice(1));
+        if (!isIndexFile) {
+          nsParts.push(code);
+        }
+        if (nsParts.length > 0) {
+          namespace = nsParts.join('.');
+        }
       }
-      if (nsParts.length > 0) {
-        namespace = nsParts.join('.');
+
+      let name: string | undefined;
+      let dirVal: 'ltr' | 'rtl' | undefined;
+
+      try {
+        const { meta } = await loadLocaleFile(fullPath, ext);
+        if (meta?.name) name = meta.name;
+        if (meta?.dir) dirVal = meta.dir;
+        if (meta?.isDefault) isDefault = true;
+      } catch {
+        logger.warn(`Failed to parse locale file: ${relativePath}`);
       }
+
+      if (isDefault && finalCode === 'default') {
+        finalCode = 'en';
+      }
+
+      locales.push({
+        fullPath,
+        relativePath,
+        dirname: dirname(relativePath),
+        basename: basename(relativePath),
+        code: finalCode,
+        namespace,
+        isDefault,
+        name,
+        dir: dirVal
+      });
     }
-
-    let name: string | undefined;
-    let dirVal: 'ltr' | 'rtl' | undefined;
-
-    try {
-      const { meta } = await loadLocaleFile(fullPath, ext);
-      if (meta?.name) name = meta.name;
-      if (meta?.dir) dirVal = meta.dir;
-      if (meta?.isDefault) isDefault = true;
-    } catch {
-      logger.warn(`Failed to parse locale file: ${relativePath}`);
-    }
-
-    if (isDefault && finalCode === 'default') {
-      finalCode = 'en';
-    }
-
-    locales.push({
-      fullPath,
-      relativePath,
-      dirname: dirname(relativePath),
-      basename: basename(relativePath),
-      code: finalCode,
-      namespace,
-      isDefault,
-      name,
-      dir: dirVal
-    });
   }
 
   return locales;

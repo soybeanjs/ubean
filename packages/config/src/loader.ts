@@ -2,7 +2,34 @@ import { defu } from 'defu';
 import { loadConfig } from 'c12';
 import { resolve } from 'pathe';
 import { resolveRoutingConfig } from './routing';
-import type { UbeanConfig, ResolvedConfig } from './types';
+import type { UbeanConfig, ResolvedConfig, PrerenderConfig, ResolvedPrerenderConfig } from './types';
+
+/**
+ * 解析用户侧 `PrerenderConfig` 为内部 `ResolvedPrerenderConfig`。
+ *
+ * - 未设置 / 空对象 → `enabled: false`(no-op)
+ * - `all: true` → 启用,匹配所有非动态页面
+ * - `include: [...]` → 启用,仅匹配列表
+ * - `all: true` 与 `include` 同时设置 → `include` 静默忽略
+ *
+ * 导出此函数供 prerender 包和 CLI 复用,避免逻辑重复。
+ */
+export function resolvePrerenderConfig(config?: PrerenderConfig): ResolvedPrerenderConfig {
+  const all = config?.all === true;
+  const include = config?.include ?? [];
+  const enabled = all || include.length > 0;
+
+  return {
+    enabled,
+    all,
+    include,
+    exclude: config?.exclude ?? [],
+    crawlLinks: config?.crawlLinks ?? true,
+    concurrency: config?.concurrency ?? 4,
+    failOnError: config?.failOnError ?? false,
+    staticDir: config?.staticDir ?? 'dist/public'
+  };
+}
 
 const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
@@ -51,15 +78,7 @@ const configDefaults: ResolvedConfig = {
   },
   routing: resolveRoutingConfig(),
   routeRules: {},
-  prerender: {
-    enabled: false,
-    routes: [],
-    ignore: ['/api/**', '/_health'],
-    crawlLinks: true,
-    concurrency: 4,
-    failOnError: false,
-    staticDir: 'dist/public'
-  },
+  prerender: resolvePrerenderConfig(),
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] }
 };
 
@@ -79,6 +98,9 @@ export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<Reso
   resolved.srcDir = resolve(cwd, resolved.srcDir);
   // 重新解析 routing(确保用户提供的 routing 字段被正确合并默认值)
   resolved.routing = resolveRoutingConfig(config.routing);
+  // 重新解析 prerender(defu 浅合并会让派生字段 enabled 失真,
+  // 必须基于合并后的 all/include 重算)
+  resolved.prerender = resolvePrerenderConfig(config.prerender);
   cachedConfig = resolved;
   return resolved;
 }

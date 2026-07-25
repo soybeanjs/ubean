@@ -7,6 +7,7 @@ import {
   collectPrerenderRoutes,
   extractLinks,
   shouldIgnoreRoute,
+  matchGlob,
   routeToFilePath,
   writePrerenderedFile,
   resolvePrerenderConfig,
@@ -24,7 +25,7 @@ export const GET = defineHandler(async c => {
   const base = `http://localhost:${process.env.PORT || 9527}`;
 
   switch (action) {
-    // Test 1: collectPrerenderRoutes - collects static routes, filters dynamic ones, applies routeRules
+    // Test 1: collectPrerenderRoutes - new signature with { all, include, exclude }
     case 'collectRoutes': {
       const mockPages = [
         {
@@ -84,22 +85,79 @@ export const GET = defineHandler(async c => {
         }
       ];
 
-      const { routes, ignoredRoutes } = collectPrerenderRoutes(
-        mockPages,
-        {
-          '/dashboard/**': { prerender: false }
-        },
-        ['/custom-route']
-      );
+      // New API: use include + exclude instead of routeRules
+      const { routes, skipped } = collectPrerenderRoutes(mockPages, {
+        all: true,
+        exclude: ['/dashboard', '/dashboard/**']
+      });
 
       return c.json({
         totalInputPages: mockPages.length,
         collectedRoutes: routes,
-        ignoredRoutes: Array.from(ignoredRoutes),
+        skippedRoutes: skipped,
         hasDynamicFiltered: !routes.some(r => r.includes('[')),
         hasRoot: routes.includes('/'),
-        hasCustomRoute: routes.includes('/custom-route'),
-        hasIgnoredDashboard: ignoredRoutes.has('/dashboard')
+        hasAbout: routes.includes('/about'),
+        hasDashboardSkipped: skipped.includes('/dashboard')
+      });
+    }
+
+    // Test 1b: collectPrerenderRoutes with include-only mode
+    case 'collectRoutesInclude': {
+      const mockPages = [
+        { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
+        { path: '/about', name: 'about', route: '/about', isReuse: false, isMarkdown: false },
+        { path: '/dashboard', name: 'dashboard', route: '/dashboard', isReuse: false, isMarkdown: false }
+      ];
+
+      const { routes } = collectPrerenderRoutes(mockPages, {
+        include: ['/about']
+      });
+
+      return c.json({
+        collectedRoutes: routes,
+        hasOnlyAbout: routes.length === 1 && routes[0] === '/about',
+        routesCount: routes.length
+      });
+    }
+
+    // Test 1c: collectPrerenderRoutes with include + specific dynamic path
+    case 'collectRoutesDynamic': {
+      const mockPages = [
+        { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
+        { path: '/blog/[id]', name: 'blog-id', route: '/blog/[id]', isReuse: false, isMarkdown: false }
+      ];
+
+      const { routes } = collectPrerenderRoutes(mockPages, {
+        include: ['/blog/hello-world', '/blog/second-post']
+      });
+
+      return c.json({
+        collectedRoutes: routes,
+        hasHelloWorld: routes.includes('/blog/hello-world'),
+        hasSecondPost: routes.includes('/blog/second-post'),
+        hasNoIndex: !routes.includes('/')
+      });
+    }
+
+    // Test 1d: collectPrerenderRoutes with all + include (include should be ignored)
+    case 'collectRoutesAllIgnoresInclude': {
+      const mockPages = [
+        { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
+        { path: '/about', name: 'about', route: '/about', isReuse: false, isMarkdown: false },
+        { path: '/blog', name: 'blog', route: '/blog', isReuse: false, isMarkdown: false }
+      ];
+
+      const { routes } = collectPrerenderRoutes(mockPages, {
+        all: true,
+        include: ['/about']  // should be ignored
+      });
+
+      return c.json({
+        collectedRoutes: routes,
+        // all: true means all non-dynamic pages are included, include is ignored
+        hasAllPages: routes.includes('/') && routes.includes('/about') && routes.includes('/blog'),
+        routesCount: routes.length
       });
     }
 
@@ -139,7 +197,38 @@ export const GET = defineHandler(async c => {
       });
     }
 
-    // Test 3: shouldIgnoreRoute - tests various ignore pattern matching
+    // Test 3: matchGlob - tests unified glob matching
+    case 'matchGlob': {
+      const tests = [
+        // exact match
+        { route: '/about', pattern: '/about', expected: true },
+        // ** multi-segment
+        { route: '/api/users/123', pattern: '/api/**', expected: true },
+        { route: '/api', pattern: '/api/**', expected: true },
+        // * single-segment
+        { route: '/admin/dashboard', pattern: '/admin/*', expected: true },
+        { route: '/admin/users/deep', pattern: '/admin/*', expected: false },
+        // non-match
+        { route: '/about', pattern: '/api/**', expected: false },
+        // bare ** matches everything
+        { route: '/any/route', pattern: '**', expected: true }
+      ];
+
+      const results = tests.map(t => ({
+        route: t.route,
+        pattern: t.pattern,
+        expected: t.expected,
+        actual: matchGlob(t.route, t.pattern),
+        passed: matchGlob(t.route, t.pattern) === t.expected
+      }));
+
+      return c.json({
+        tests: results,
+        allPassed: results.every(r => r.passed)
+      });
+    }
+
+    // Test 3b: shouldIgnoreRoute - kept for backward compat, delegates to matchGlob
     case 'shouldIgnore': {
       const patterns = ['/api/**', '/_health', '/admin/*', '/private/**'];
       const tests = [
@@ -147,7 +236,7 @@ export const GET = defineHandler(async c => {
         { route: '/api', expected: true },
         { route: '/_health', expected: true },
         { route: '/admin/dashboard', expected: true },
-        { route: '/admin', expected: false }, // /admin/* requires a segment after /admin/
+        { route: '/admin', expected: false },
         { route: '/private/secret/data', expected: true },
         { route: '/about', expected: false },
         { route: '/dashboard', expected: false }
@@ -167,7 +256,7 @@ export const GET = defineHandler(async c => {
       });
     }
 
-    // Test 4: definePrerenderRoutes - declares additional prerender routes
+    // Test 4: definePrerenderRoutes - deprecated but still functional
     case 'defineRoutes': {
       const extraRoutes = definePrerenderRoutes(['/landing', '/pricing', '/features']);
       return c.json({
@@ -178,32 +267,44 @@ export const GET = defineHandler(async c => {
       });
     }
 
-    // Test 5: resolvePrerenderConfig - tests config resolution with defaults and overrides
+    // Test 5: resolvePrerenderConfig - new signature with all/include/exclude
     case 'resolveConfig': {
       const defaultConfig = resolvePrerenderConfig();
-      const customConfig = resolvePrerenderConfig({
-        enabled: true,
+      const customAllConfig = resolvePrerenderConfig({
+        all: true,
+        exclude: ['/admin/**'],
         concurrency: 8,
         failOnError: true,
-        ignore: ['/api/**', '/admin/**'],
         crawlLinks: false,
-        routes: ['/extra'],
         staticDir: '.output/static'
       });
+      const customIncludeConfig = resolvePrerenderConfig({
+        include: ['/about', '/pricing'],
+        crawlLinks: false
+      });
+      const emptyConfig = resolvePrerenderConfig({});
 
       return c.json({
         defaultConfig,
-        customConfig,
+        customAllConfig,
+        customIncludeConfig,
+        emptyConfig,
         defaultsApplied: !defaultConfig.enabled && defaultConfig.concurrency === 4 && !defaultConfig.failOnError,
-        overridesApplied:
-          customConfig.enabled &&
-          customConfig.concurrency === 8 &&
-          customConfig.failOnError &&
-          customConfig.crawlLinks === false
+        allOverridesApplied:
+          customAllConfig.enabled &&
+          customAllConfig.all === true &&
+          customAllConfig.concurrency === 8 &&
+          customAllConfig.failOnError &&
+          customAllConfig.crawlLinks === false,
+        includeOverridesApplied:
+          customIncludeConfig.enabled &&
+          customIncludeConfig.all === false &&
+          customIncludeConfig.include.length === 2,
+        emptyIsDisabled: !emptyConfig.enabled
       });
     }
 
-    // Test 6: prerender() - full integration test with custom fetcher, writes HTML files to temp dir
+    // Test 6: prerender() - full integration with all: true
     case 'prerender': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-'));
       try {
@@ -237,22 +338,18 @@ export const GET = defineHandler(async c => {
           outputDir: '.output/public',
           pages: mockPages,
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
             concurrency: 2,
             failOnError: false,
             staticDir: '.output/public'
           },
           fetcher: async (route: string) => {
-            // Simulate fetching HTML for the route
             const html = `<!DOCTYPE html><html><head><title>${route}</title></head><body><h1>Prerendered: ${route}</h1></body></html>`;
             return { html, statusCode: 200 };
           }
         });
 
-        // Verify files were written
         const indexFile = join(tmpDir, '.output/public/index.html');
         const aboutFile = join(tmpDir, '.output/public/about/index.html');
         const indexContent = await readFile(indexFile, 'utf-8');
@@ -292,7 +389,6 @@ export const GET = defineHandler(async c => {
           }
         ];
 
-        // Track which routes were fetched to verify crawling
         const fetchedRoutes: string[] = [];
 
         const result = await prerender({
@@ -300,9 +396,7 @@ export const GET = defineHandler(async c => {
           outputDir: '.output/public',
           pages: mockPages,
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: true,
             concurrency: 2,
             failOnError: false,
@@ -310,12 +404,10 @@ export const GET = defineHandler(async c => {
           },
           fetcher: async (route: string) => {
             fetchedRoutes.push(route);
-            // Home page links to /about and /features
             if (route === '/') {
               const html = `<html><body><a href="/about">About</a><a href="/features">Features</a></body></html>`;
               return { html, statusCode: 200 };
             }
-            // Linked pages have no further links
             const html = `<html><body><h1>${route}</h1></body></html>`;
             return { html, statusCode: 200 };
           }
@@ -334,44 +426,14 @@ export const GET = defineHandler(async c => {
       }
     }
 
-    // Test 8: prerender with ignore rules - tests shouldIgnoreRoute integration
-    case 'ignoreRules': {
-      const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-ignore-'));
+    // Test 8: prerender with exclude - tests exclude filtering integration
+    case 'excludeRules': {
+      const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-exclude-'));
       try {
         const mockPages = [
-          {
-            path: '/',
-            fullPath: 'index.vue',
-            relativePath: 'index.vue',
-            dirname: '.',
-            basename: 'index.vue',
-            name: 'index',
-            route: '/',
-            isReuse: false,
-            isMarkdown: false
-          },
-          {
-            path: '/admin',
-            fullPath: 'admin.vue',
-            relativePath: 'admin.vue',
-            dirname: '.',
-            basename: 'admin.vue',
-            name: 'admin',
-            route: '/admin',
-            isReuse: false,
-            isMarkdown: false
-          },
-          {
-            path: '/about',
-            fullPath: 'about.vue',
-            relativePath: 'about.vue',
-            dirname: '.',
-            basename: 'about.vue',
-            name: 'about',
-            route: '/about',
-            isReuse: false,
-            isMarkdown: false
-          }
+          { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
+          { path: '/admin', name: 'admin', route: '/admin', isReuse: false, isMarkdown: false },
+          { path: '/about', name: 'about', route: '/about', isReuse: false, isMarkdown: false }
         ];
 
         const result = await prerender({
@@ -379,17 +441,14 @@ export const GET = defineHandler(async c => {
           outputDir: '.output/public',
           pages: mockPages,
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: ['/admin/**', '/admin'],
+            all: true,
+            exclude: ['/admin', '/admin/**'],
             crawlLinks: false,
             concurrency: 2,
             failOnError: false,
             staticDir: '.output/public'
           },
-          fetcher: async (route: string) => {
-            return { html: `<html><body>${route}</body></html>`, statusCode: 200 };
-          }
+          fetcher: async (route: string) => ({ html: `<html><body>${route}</body></html>`, statusCode: 200 })
         });
 
         return c.json({
@@ -404,69 +463,33 @@ export const GET = defineHandler(async c => {
       }
     }
 
-    // Test 9: prerender with failOnError - tests error handling behavior
+    // Test 9: prerender with failOnError
     case 'failOnError': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-error-'));
       try {
         const mockPages = [
-          {
-            path: '/',
-            fullPath: 'index.vue',
-            relativePath: 'index.vue',
-            dirname: '.',
-            basename: 'index.vue',
-            name: 'index',
-            route: '/',
-            isReuse: false,
-            isMarkdown: false
-          },
-          {
-            path: '/broken',
-            fullPath: 'broken.vue',
-            relativePath: 'broken.vue',
-            dirname: '.',
-            basename: 'broken.vue',
-            name: 'broken',
-            route: '/broken',
-            isReuse: false,
-            isMarkdown: false
-          },
-          {
-            path: '/after-broken',
-            fullPath: 'after-broken.vue',
-            relativePath: 'after-broken.vue',
-            dirname: '.',
-            basename: 'after-broken.vue',
-            name: 'after-broken',
-            route: '/after-broken',
-            isReuse: false,
-            isMarkdown: false
-          }
+          { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
+          { path: '/broken', name: 'broken', route: '/broken', isReuse: false, isMarkdown: false },
+          { path: '/after-broken', name: 'after-broken', route: '/after-broken', isReuse: false, isMarkdown: false }
         ];
 
-        // Test with failOnError: false (should continue and collect errors)
         const resultLenient = await prerender({
           cwd: tmpDir,
           outputDir: '.output/public',
           pages: mockPages,
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
-            concurrency: 1, // sequential to ensure order
+            concurrency: 1,
             failOnError: false,
             staticDir: '.output/public'
           },
           fetcher: async (route: string) => {
-            if (route === '/broken') {
-              return { html: 'Not Found', statusCode: 404 };
-            }
+            if (route === '/broken') return { html: 'Not Found', statusCode: 404 };
             return { html: `<html><body>${route}</body></html>`, statusCode: 200 };
           }
         });
 
-        // Test with failOnError: true (should throw on error)
         let threwOnError = false;
         let errorMessage = '';
         try {
@@ -475,18 +498,14 @@ export const GET = defineHandler(async c => {
             outputDir: '.output/public-strict',
             pages: mockPages,
             prerender: {
-              enabled: true,
-              routes: [],
-              ignore: [],
+              all: true,
               crawlLinks: false,
               concurrency: 1,
               failOnError: true,
               staticDir: '.output/public-strict'
             },
             fetcher: async (route: string) => {
-              if (route === '/broken') {
-                return { html: 'Not Found', statusCode: 404 };
-              }
+              if (route === '/broken') return { html: 'Not Found', statusCode: 404 };
               return { html: `<html><body>${route}</body></html>`, statusCode: 200 };
             }
           });
@@ -512,33 +531,13 @@ export const GET = defineHandler(async c => {
       }
     }
 
-    // Test 10: generatePrerenderManifest - generates manifest from prerender result
+    // Test 10: generatePrerenderManifest
     case 'manifest': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-manifest-'));
       try {
         const mockPages = [
-          {
-            path: '/',
-            fullPath: 'index.vue',
-            relativePath: 'index.vue',
-            dirname: '.',
-            basename: 'index.vue',
-            name: 'index',
-            route: '/',
-            isReuse: false,
-            isMarkdown: false
-          },
-          {
-            path: '/about',
-            fullPath: 'about.vue',
-            relativePath: 'about.vue',
-            dirname: '.',
-            basename: 'about.vue',
-            name: 'about',
-            route: '/about',
-            isReuse: false,
-            isMarkdown: false
-          }
+          { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
+          { path: '/about', name: 'about', route: '/about', isReuse: false, isMarkdown: false }
         ];
 
         const result = await prerender({
@@ -546,17 +545,13 @@ export const GET = defineHandler(async c => {
           outputDir: '.output/public',
           pages: mockPages,
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
             concurrency: 2,
             failOnError: false,
             staticDir: '.output/public'
           },
-          fetcher: async (route: string) => {
-            return { html: `<html><body>${route}</body></html>`, statusCode: 200 };
-          }
+          fetcher: async (route: string) => ({ html: `<html><body>${route}</body></html>`, statusCode: 200 })
         });
 
         const manifest = generatePrerenderManifest(result, 'https://example.com');
@@ -574,7 +569,7 @@ export const GET = defineHandler(async c => {
       }
     }
 
-    // Test 11: routeToFilePath and writePrerenderedFile - tests file path resolution and writing
+    // Test 11: routeToFilePath and writePrerenderedFile
     case 'filePath': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-path-'));
       try {
@@ -614,29 +609,14 @@ export const GET = defineHandler(async c => {
       }
     }
 
-    // Test 12: concurrency control - tests that routes are processed in batches
+    // Test 12: concurrency control
     case 'concurrency': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-conc-'));
       try {
-        // Include '/' as first page so collectPrerenderRoutes doesn't auto-add it (would yield 11)
         const mockPages = [
-          {
-            path: '/',
-            fullPath: 'index.vue',
-            relativePath: 'index.vue',
-            dirname: '.',
-            basename: 'index.vue',
-            name: 'index',
-            route: '/',
-            isReuse: false,
-            isMarkdown: false
-          },
+          { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
           ...Array.from({ length: 9 }, (_, i) => ({
             path: `/page-${i}`,
-            fullPath: `page-${i}.vue`,
-            relativePath: `page-${i}.vue`,
-            dirname: '.',
-            basename: `page-${i}.vue`,
             name: `page-${i}`,
             route: `/page-${i}`,
             isReuse: false,
@@ -652,9 +632,7 @@ export const GET = defineHandler(async c => {
           outputDir: '.output/public',
           pages: mockPages,
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
             concurrency: 3,
             failOnError: false,
@@ -686,13 +664,17 @@ export const GET = defineHandler(async c => {
       return c.json({
         actions: [
           'collectRoutes',
+          'collectRoutesInclude',
+          'collectRoutesDynamic',
+          'collectRoutesAllIgnoresInclude',
           'extractLinks',
+          'matchGlob',
           'shouldIgnore',
           'defineRoutes',
           'resolveConfig',
           'prerender',
           'crawlLinks',
-          'ignoreRules',
+          'excludeRules',
           'failOnError',
           'manifest',
           'filePath',

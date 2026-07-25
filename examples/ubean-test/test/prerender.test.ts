@@ -2,12 +2,13 @@
  * Prerender / SSG 系统测试
  *
  * 覆盖 ubean 的静态站点生成能力,包括:
- * - collectPrerenderRoutes: 收集路由、过滤动态路由、应用 routeRules
+ * - collectPrerenderRoutes: 收集路由、过滤动态路由、应用 all/include/exclude
+ * - matchGlob: 统一的通配符匹配
  * - extractLinks: 从 HTML 提取内部链接
- * - shouldIgnoreRoute: 忽略规则匹配
- * - definePrerenderRoutes: 声明额外预渲染路由
- * - resolvePrerenderConfig: 配置解析与默认值
- * - prerender(): 完整预渲染流程(写入 HTML 文件、crawlLinks、ignore、failOnError、并发)
+ * - shouldIgnoreRoute: 忽略规则匹配(委托给 matchGlob)
+ * - definePrerenderRoutes: 声明额外预渲染路由(兼容别名)
+ * - resolvePrerenderConfig: 配置解析与默认值(all/include/exclude)
+ * - prerender(): 完整预渲染流程(写入 HTML 文件、crawlLinks、exclude、failOnError、并发)
  * - generatePrerenderManifest: 生成清单
  * - routeToFilePath / writePrerenderedFile: 文件路径解析与写入
  *
@@ -24,6 +25,7 @@ import {
   collectPrerenderRoutes,
   extractLinks,
   shouldIgnoreRoute,
+  matchGlob,
   routeToFilePath,
   writePrerenderedFile,
   resolvePrerenderConfig,
@@ -49,59 +51,158 @@ function makePage(path: string, name = ''): any {
 }
 
 describe('Prerender / SSG system', () => {
+  // ==========================================================================
+  // collectPrerenderRoutes - 新签名 { all, include, exclude }
+  // ==========================================================================
   describe('collectPrerenderRoutes()', () => {
-    it('collects static routes from pages', () => {
-      const { routes } = collectPrerenderRoutes([makePage('/'), makePage('/about'), makePage('/contact')], {}, []);
+    it('all: true collects all static routes from pages', () => {
+      const { routes } = collectPrerenderRoutes(
+        [makePage('/'), makePage('/about'), makePage('/contact')],
+        { all: true }
+      );
       expect(routes).toContain('/');
       expect(routes).toContain('/about');
       expect(routes).toContain('/contact');
     });
 
-    it('filters out dynamic routes (with [param])', () => {
+    it('all: true filters out dynamic routes (with [param])', () => {
       const { routes } = collectPrerenderRoutes(
         [makePage('/'), makePage('/user/[id]'), makePage('/blog/[...slug]'), makePage('/about')],
-        {},
-        []
+        { all: true }
       );
       expect(routes).toContain('/');
       expect(routes).toContain('/about');
       expect(routes.some(r => r.includes('['))).toBe(false);
     });
 
-    it('filters out routes with :param', () => {
-      const { routes } = collectPrerenderRoutes([makePage('/users/:id')], {}, []);
+    it('all: true filters out routes with :param', () => {
+      const { routes } = collectPrerenderRoutes([makePage('/users/:id')], { all: true });
       expect(routes.some(r => r.includes(':'))).toBe(false);
     });
 
-    it('always includes "/" (home) even when no static routes', () => {
-      const { routes } = collectPrerenderRoutes([makePage('/user/[id]')], {}, []);
+    it('include: [...] only collects matching routes', () => {
+      const { routes } = collectPrerenderRoutes(
+        [makePage('/'), makePage('/about'), makePage('/contact')],
+        { include: ['/about'] }
+      );
+      expect(routes).toEqual(['/about']);
+    });
+
+    it('include supports glob patterns', () => {
+      const { routes } = collectPrerenderRoutes(
+        [makePage('/'), makePage('/blog/a'), makePage('/blog/b'), makePage('/about')],
+        { include: ['/blog/*'] }
+      );
+      expect(routes).toContain('/blog/a');
+      expect(routes).toContain('/blog/b');
+      expect(routes).not.toContain('/');
+      expect(routes).not.toContain('/about');
+    });
+
+    it('include adds literal paths directly (for dynamic route concrete values)', () => {
+      const { routes } = collectPrerenderRoutes(
+        [makePage('/'), makePage('/blog/[id]')],
+        { include: ['/blog/hello-world', '/blog/second-post'] }
+      );
+      expect(routes).toContain('/blog/hello-world');
+      expect(routes).toContain('/blog/second-post');
+      expect(routes).not.toContain('/');
+    });
+
+    it('include normalizes paths to start with /', () => {
+      const { routes } = collectPrerenderRoutes([makePage('/')], { include: ['pricing'] });
+      expect(routes).toContain('/pricing');
+    });
+
+    it('all: true ignores include field', () => {
+      const { routes } = collectPrerenderRoutes(
+        [makePage('/'), makePage('/about'), makePage('/blog')],
+        { all: true, include: ['/about'] }
+      );
+      // all: true means all non-dynamic pages included, include is silently ignored
       expect(routes).toContain('/');
+      expect(routes).toContain('/about');
+      expect(routes).toContain('/blog');
     });
 
-    it('adds extra routes from third argument', () => {
-      const { routes } = collectPrerenderRoutes([makePage('/')], {}, ['/landing', '/pricing']);
-      expect(routes).toContain('/landing');
-      expect(routes).toContain('/pricing');
-    });
-
-    it('normalizes extra routes to start with /', () => {
-      const { routes } = collectPrerenderRoutes([makePage('/')], {}, ['pricing']);
-      expect(routes).toContain('/pricing');
-    });
-
-    it('applies routeRules with prerender:false to skip routes', () => {
-      const { routes, ignoredRoutes } = collectPrerenderRoutes(
+    it('exclude filters out matched routes from all mode', () => {
+      const { routes, skipped } = collectPrerenderRoutes(
         [makePage('/'), makePage('/admin'), makePage('/about')],
-        { '/admin/**': { prerender: false } },
-        []
+        { all: true, exclude: ['/admin', '/admin/**'] }
       );
       expect(routes).toContain('/');
       expect(routes).toContain('/about');
-      expect(ignoredRoutes.has('/admin')).toBe(true);
       expect(routes).not.toContain('/admin');
+      expect(skipped).toContain('/admin');
+    });
+
+    it('exclude filters out matched routes from include mode', () => {
+      const { routes, skipped } = collectPrerenderRoutes(
+        [makePage('/'), makePage('/admin'), makePage('/about')],
+        { include: ['/admin', '/about'], exclude: ['/admin'] }
+      );
+      expect(routes).toContain('/about');
+      expect(routes).not.toContain('/admin');
+      expect(skipped).toContain('/admin');
+    });
+
+    it('exclude with glob pattern filters multiple routes', () => {
+      const { routes, skipped } = collectPrerenderRoutes(
+        [makePage('/'), makePage('/admin/users'), makePage('/admin/settings'), makePage('/about')],
+        { all: true, exclude: ['/admin/**'] }
+      );
+      expect(routes).toContain('/');
+      expect(routes).toContain('/about');
+      expect(routes).not.toContain('/admin/users');
+      expect(routes).not.toContain('/admin/settings');
+      expect(skipped).toContain('/admin/users');
+      expect(skipped).toContain('/admin/settings');
+    });
+
+    it('empty options returns empty routes', () => {
+      const { routes, skipped } = collectPrerenderRoutes([makePage('/'), makePage('/about')], {});
+      expect(routes).toEqual([]);
+      expect(skipped).toEqual([]);
     });
   });
 
+  // ==========================================================================
+  // matchGlob - 统一的通配符匹配
+  // ==========================================================================
+  describe('matchGlob()', () => {
+    it('matches exact route', () => {
+      expect(matchGlob('/about', '/about')).toBe(true);
+      expect(matchGlob('/about', '/contact')).toBe(false);
+    });
+
+    it('matches ** multi-segment wildcard', () => {
+      expect(matchGlob('/api/users/123', '/api/**')).toBe(true);
+      expect(matchGlob('/api', '/api/**')).toBe(true);
+      expect(matchGlob('/api/users', '/api/**')).toBe(true);
+      expect(matchGlob('/about', '/api/**')).toBe(false);
+    });
+
+    it('matches * single-segment wildcard', () => {
+      expect(matchGlob('/admin/dashboard', '/admin/*')).toBe(true);
+      expect(matchGlob('/admin/users/deep', '/admin/*')).toBe(false);
+      expect(matchGlob('/admin', '/admin/*')).toBe(false);
+    });
+
+    it('bare ** matches everything', () => {
+      expect(matchGlob('/any/route', '**')).toBe(true);
+      expect(matchGlob('/', '**')).toBe(true);
+      expect(matchGlob('/deeply/nested/path', '**')).toBe(true);
+    });
+
+    it('does not match unrelated routes', () => {
+      expect(matchGlob('/about', '/api/**')).toBe(false);
+      expect(matchGlob('/dashboard', '/admin/*')).toBe(false);
+    });
+  });
+
+  // ==========================================================================
+  // extractLinks
+  // ==========================================================================
   describe('extractLinks()', () => {
     it('extracts internal anchor links', () => {
       const html = '<a href="/about">About</a><a href="/contact">Contact</a>';
@@ -175,6 +276,9 @@ describe('Prerender / SSG system', () => {
     });
   });
 
+  // ==========================================================================
+  // shouldIgnoreRoute - 委托给 matchGlob
+  // ==========================================================================
   describe('shouldIgnoreRoute()', () => {
     it('matches exact route', () => {
       expect(shouldIgnoreRoute('/api', ['/api'])).toBe(true);
@@ -211,6 +315,9 @@ describe('Prerender / SSG system', () => {
     });
   });
 
+  // ==========================================================================
+  // definePrerenderRoutes - 兼容别名
+  // ==========================================================================
   describe('definePrerenderRoutes()', () => {
     it('returns the routes array as-is', () => {
       const routes = definePrerenderRoutes(['/landing', '/pricing']);
@@ -228,44 +335,76 @@ describe('Prerender / SSG system', () => {
     });
   });
 
+  // ==========================================================================
+  // resolvePrerenderConfig - 新签名 { all, include, exclude, ... }
+  // ==========================================================================
   describe('resolvePrerenderConfig()', () => {
-    it('returns default config when called with no args', () => {
+    it('returns disabled default config when called with no args', () => {
       const config = resolvePrerenderConfig();
       expect(config.enabled).toBe(false);
+      expect(config.all).toBe(false);
+      expect(config.include).toEqual([]);
+      expect(config.exclude).toEqual([]);
       expect(config.concurrency).toBe(4);
       expect(config.failOnError).toBe(false);
       expect(config.crawlLinks).toBe(true);
-      expect(config.routes).toEqual([]);
-      expect(config.ignore).toEqual([]);
+      expect(config.staticDir).toBe('dist/public');
+    });
+
+    it('returns disabled config for empty object', () => {
+      const config = resolvePrerenderConfig({});
+      expect(config.enabled).toBe(false);
+      expect(config.all).toBe(false);
+    });
+
+    it('enables when all: true', () => {
+      const config = resolvePrerenderConfig({ all: true });
+      expect(config.enabled).toBe(true);
+      expect(config.all).toBe(true);
+    });
+
+    it('enables when include has entries', () => {
+      const config = resolvePrerenderConfig({ include: ['/about'] });
+      expect(config.enabled).toBe(true);
+      expect(config.all).toBe(false);
+      expect(config.include).toEqual(['/about']);
+    });
+
+    it('does not enable when include is empty', () => {
+      const config = resolvePrerenderConfig({ include: [] });
+      expect(config.enabled).toBe(false);
     });
 
     it('applies custom overrides', () => {
       const config = resolvePrerenderConfig({
-        enabled: true,
+        all: true,
+        exclude: ['/admin/**'],
         concurrency: 8,
         failOnError: true,
         crawlLinks: false,
-        routes: ['/extra'],
-        ignore: ['/admin/**'],
         staticDir: '.output/static'
       });
       expect(config.enabled).toBe(true);
+      expect(config.all).toBe(true);
+      expect(config.exclude).toEqual(['/admin/**']);
       expect(config.concurrency).toBe(8);
       expect(config.failOnError).toBe(true);
       expect(config.crawlLinks).toBe(false);
-      expect(config.routes).toEqual(['/extra']);
-      expect(config.ignore).toEqual(['/admin/**']);
       expect(config.staticDir).toBe('.output/static');
     });
 
     it('fills undefined fields with defaults', () => {
-      const config = resolvePrerenderConfig({ enabled: true });
-      expect(config.enabled).toBe(true);
+      const config = resolvePrerenderConfig({ all: true });
       expect(config.concurrency).toBe(4); // default
       expect(config.failOnError).toBe(false); // default
+      expect(config.crawlLinks).toBe(true); // default
+      expect(config.exclude).toEqual([]); // default
     });
   });
 
+  // ==========================================================================
+  // routeToFilePath
+  // ==========================================================================
   describe('routeToFilePath()', () => {
     it('resolves "/" to index.html', () => {
       const path = routeToFilePath('/', '/tmp/output');
@@ -288,6 +427,9 @@ describe('Prerender / SSG system', () => {
     });
   });
 
+  // ==========================================================================
+  // writePrerenderedFile
+  // ==========================================================================
   describe('writePrerenderedFile()', () => {
     it('writes HTML content to disk', async () => {
       const tmp = await mkdtemp(join(tmpdir(), 'ubean-prender-write-'));
@@ -327,21 +469,16 @@ describe('Prerender / SSG system', () => {
     });
   });
 
+  // ==========================================================================
+  // prerender() - 集成测试
+  // ==========================================================================
   describe('prerender() - integration', () => {
-    it('returns empty result when disabled', async () => {
+    it('returns empty result when disabled (no all/include)', async () => {
       const result = await prerender({
         cwd: '/tmp',
         outputDir: '.output/public',
-        pages: [makePage('/')],
-        prerender: {
-          enabled: false,
-          routes: [],
-          ignore: [],
-          crawlLinks: false,
-          concurrency: 1,
-          failOnError: false,
-          staticDir: '.output/public'
-        }
+        pages: [makePage('/')]
+        // no prerender config = disabled
       });
       expect(result.generated).toEqual([]);
       expect(result.errors).toEqual([]);
@@ -349,7 +486,7 @@ describe('Prerender / SSG system', () => {
       expect(result.duration).toBe(0);
     });
 
-    it('writes HTML files for each route using custom fetcher', async () => {
+    it('writes HTML files for each route using custom fetcher (all: true)', async () => {
       const tmp = await mkdtemp(join(tmpdir(), 'ubean-prerender-basic-'));
       try {
         const pages = [makePage('/'), makePage('/about')];
@@ -358,9 +495,7 @@ describe('Prerender / SSG system', () => {
           outputDir: '.output/public',
           pages,
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
             concurrency: 2,
             failOnError: false,
@@ -385,6 +520,35 @@ describe('Prerender / SSG system', () => {
       }
     });
 
+    it('writes HTML files for routes specified via include', async () => {
+      const tmp = await mkdtemp(join(tmpdir(), 'ubean-prerender-include-'));
+      try {
+        const pages = [makePage('/'), makePage('/about'), makePage('/contact')];
+        const result = await prerender({
+          cwd: tmp,
+          outputDir: '.output/public',
+          pages,
+          prerender: {
+            include: ['/about'],
+            crawlLinks: false,
+            concurrency: 2,
+            failOnError: false,
+            staticDir: '.output/public'
+          },
+          fetcher: async route => ({
+            html: `<!DOCTYPE html><html><body>${route}</body></html>`,
+            statusCode: 200
+          })
+        });
+
+        expect(result.generated).toEqual(['/about']);
+        expect(result.generated).not.toContain('/');
+        expect(result.generated).not.toContain('/contact');
+      } finally {
+        await rm(tmp, { recursive: true, force: true });
+      }
+    });
+
     it('writes placeholder HTML when no fetcher is provided', async () => {
       const tmp = await mkdtemp(join(tmpdir(), 'ubean-prerender-placeholder-'));
       try {
@@ -393,9 +557,7 @@ describe('Prerender / SSG system', () => {
           outputDir: '.output/public',
           pages: [makePage('/')],
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
             concurrency: 1,
             failOnError: false,
@@ -420,9 +582,7 @@ describe('Prerender / SSG system', () => {
           outputDir: '.output/public',
           pages: [makePage('/')],
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: true,
             concurrency: 2,
             failOnError: false,
@@ -449,17 +609,16 @@ describe('Prerender / SSG system', () => {
       }
     });
 
-    it('skips routes matching ignore patterns', async () => {
-      const tmp = await mkdtemp(join(tmpdir(), 'ubean-prerender-ignore-'));
+    it('skips routes matching exclude patterns', async () => {
+      const tmp = await mkdtemp(join(tmpdir(), 'ubean-prerender-exclude-'));
       try {
         const result = await prerender({
           cwd: tmp,
           outputDir: '.output/public',
           pages: [makePage('/'), makePage('/admin'), makePage('/about')],
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: ['/admin/**', '/admin'],
+            all: true,
+            exclude: ['/admin', '/admin/**'],
             crawlLinks: false,
             concurrency: 2,
             failOnError: false,
@@ -484,9 +643,7 @@ describe('Prerender / SSG system', () => {
           outputDir: '.output/public',
           pages: [makePage('/'), makePage('/broken'), makePage('/after-broken')],
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
             concurrency: 1,
             failOnError: false,
@@ -515,9 +672,7 @@ describe('Prerender / SSG system', () => {
             outputDir: '.output/public',
             pages: [makePage('/'), makePage('/broken')],
             prerender: {
-              enabled: true,
-              routes: [],
-              ignore: [],
+              all: true,
               crawlLinks: false,
               concurrency: 1,
               failOnError: true,
@@ -537,8 +692,6 @@ describe('Prerender / SSG system', () => {
     it('respects concurrency limit', async () => {
       const tmp = await mkdtemp(join(tmpdir(), 'ubean-prerender-conc-'));
       try {
-        // Include '/' as one of the 10 pages so collectPrerenderRoutes
-        // doesn't auto-add it (which would yield 11 generated routes).
         const pages = [makePage('/'), ...Array.from({ length: 9 }, (_, i) => makePage(`/page-${i}`))];
         let maxConcurrent = 0;
         let current = 0;
@@ -548,9 +701,7 @@ describe('Prerender / SSG system', () => {
           outputDir: '.output/public',
           pages,
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
             concurrency: 3,
             failOnError: false,
@@ -572,6 +723,9 @@ describe('Prerender / SSG system', () => {
     });
   });
 
+  // ==========================================================================
+  // generatePrerenderManifest
+  // ==========================================================================
   describe('generatePrerenderManifest()', () => {
     it('generates manifest with absolute URLs', async () => {
       const tmp = await mkdtemp(join(tmpdir(), 'ubean-prerender-manifest-'));
@@ -581,9 +735,7 @@ describe('Prerender / SSG system', () => {
           outputDir: '.output/public',
           pages: [makePage('/'), makePage('/about')],
           prerender: {
-            enabled: true,
-            routes: [],
-            ignore: [],
+            all: true,
             crawlLinks: false,
             concurrency: 2,
             failOnError: false,
@@ -639,13 +791,17 @@ describe('Prerender / SSG system', () => {
       expect((res.data as { actions: string[] }).actions).toEqual(
         expect.arrayContaining([
           'collectRoutes',
+          'collectRoutesInclude',
+          'collectRoutesDynamic',
+          'collectRoutesAllIgnoresInclude',
           'extractLinks',
+          'matchGlob',
           'shouldIgnore',
           'defineRoutes',
           'resolveConfig',
           'prerender',
           'crawlLinks',
-          'ignoreRules',
+          'excludeRules',
           'failOnError',
           'manifest',
           'filePath',
@@ -654,25 +810,64 @@ describe('Prerender / SSG system', () => {
       );
     });
 
-    it('action=collectRoutes collects static routes and filters dynamic', async () => {
+    it('action=collectRoutes uses all + exclude', async () => {
       const res = await getJson('/api/prerender-test?action=collectRoutes');
       expect(res.status).toBe(200);
       const data = res.data as {
         totalInputPages: number;
         collectedRoutes: string[];
-        ignoredRoutes: string[];
+        skippedRoutes: string[];
         hasDynamicFiltered: boolean;
         hasRoot: boolean;
-        hasCustomRoute: boolean;
-        hasIgnoredDashboard: boolean;
+        hasAbout: boolean;
+        hasDashboardSkipped: boolean;
       };
       expect(data.totalInputPages).toBe(5);
       expect(data.hasDynamicFiltered).toBe(true);
       expect(data.hasRoot).toBe(true);
-      expect(data.hasCustomRoute).toBe(true);
-      expect(data.hasIgnoredDashboard).toBe(true);
-      expect(data.ignoredRoutes).toContain('/dashboard');
+      expect(data.hasAbout).toBe(true);
+      expect(data.hasDashboardSkipped).toBe(true);
+      expect(data.skippedRoutes).toContain('/dashboard');
       expect(data.collectedRoutes).not.toContain('/dashboard');
+    });
+
+    it('action=collectRoutesInclude uses include-only mode', async () => {
+      const res = await getJson('/api/prerender-test?action=collectRoutesInclude');
+      expect(res.status).toBe(200);
+      const data = res.data as {
+        collectedRoutes: string[];
+        hasOnlyAbout: boolean;
+        routesCount: number;
+      };
+      expect(data.hasOnlyAbout).toBe(true);
+      expect(data.routesCount).toBe(1);
+      expect(data.collectedRoutes).toEqual(['/about']);
+    });
+
+    it('action=collectRoutesDynamic uses include with concrete dynamic values', async () => {
+      const res = await getJson('/api/prerender-test?action=collectRoutesDynamic');
+      expect(res.status).toBe(200);
+      const data = res.data as {
+        collectedRoutes: string[];
+        hasHelloWorld: boolean;
+        hasSecondPost: boolean;
+        hasNoIndex: boolean;
+      };
+      expect(data.hasHelloWorld).toBe(true);
+      expect(data.hasSecondPost).toBe(true);
+      expect(data.hasNoIndex).toBe(true);
+    });
+
+    it('action=collectRoutesAllIgnoresInclude verifies all ignores include', async () => {
+      const res = await getJson('/api/prerender-test?action=collectRoutesAllIgnoresInclude');
+      expect(res.status).toBe(200);
+      const data = res.data as {
+        collectedRoutes: string[];
+        hasAllPages: boolean;
+        routesCount: number;
+      };
+      expect(data.hasAllPages).toBe(true);
+      expect(data.routesCount).toBe(3);
     });
 
     it('action=extractLinks extracts internal links and filters external/hash/mailto', async () => {
@@ -701,6 +896,14 @@ describe('Prerender / SSG system', () => {
       expect(data.hasTrailingSlashNormalized).toBe(true);
     });
 
+    it('action=matchGlob tests unified glob matching', async () => {
+      const res = await getJson('/api/prerender-test?action=matchGlob');
+      expect(res.status).toBe(200);
+      const data = res.data as { allPassed: boolean; tests: Array<{ passed: boolean }> };
+      expect(data.allPassed).toBe(true);
+      expect(data.tests.every(t => t.passed)).toBe(true);
+    });
+
     it('action=shouldIgnore matches patterns correctly', async () => {
       const res = await getJson('/api/prerender-test?action=shouldIgnore');
       expect(res.status).toBe(200);
@@ -724,26 +927,43 @@ describe('Prerender / SSG system', () => {
       expect(data.routes).toEqual(['/landing', '/pricing', '/features']);
     });
 
-    it('action=resolveConfig applies defaults and overrides', async () => {
+    it('action=resolveConfig applies defaults and overrides with new fields', async () => {
       const res = await getJson('/api/prerender-test?action=resolveConfig');
       expect(res.status).toBe(200);
       const data = res.data as {
-        defaultConfig: { enabled: boolean; concurrency: number; failOnError: boolean };
-        customConfig: { enabled: boolean; concurrency: number; failOnError: boolean; crawlLinks: boolean };
+        defaultConfig: { enabled: boolean; concurrency: number; failOnError: boolean; all: boolean };
+        customAllConfig: {
+          enabled: boolean;
+          all: boolean;
+          concurrency: number;
+          failOnError: boolean;
+          crawlLinks: boolean;
+        };
+        customIncludeConfig: { enabled: boolean; all: boolean; include: string[] };
+        emptyConfig: { enabled: boolean };
         defaultsApplied: boolean;
-        overridesApplied: boolean;
+        allOverridesApplied: boolean;
+        includeOverridesApplied: boolean;
+        emptyIsDisabled: boolean;
       };
       expect(data.defaultsApplied).toBe(true);
-      expect(data.overridesApplied).toBe(true);
+      expect(data.allOverridesApplied).toBe(true);
+      expect(data.includeOverridesApplied).toBe(true);
+      expect(data.emptyIsDisabled).toBe(true);
       expect(data.defaultConfig.enabled).toBe(false);
+      expect(data.defaultConfig.all).toBe(false);
       expect(data.defaultConfig.concurrency).toBe(4);
-      expect(data.customConfig.enabled).toBe(true);
-      expect(data.customConfig.concurrency).toBe(8);
-      expect(data.customConfig.failOnError).toBe(true);
-      expect(data.customConfig.crawlLinks).toBe(false);
+      expect(data.customAllConfig.enabled).toBe(true);
+      expect(data.customAllConfig.all).toBe(true);
+      expect(data.customAllConfig.concurrency).toBe(8);
+      expect(data.customAllConfig.failOnError).toBe(true);
+      expect(data.customAllConfig.crawlLinks).toBe(false);
+      expect(data.customIncludeConfig.enabled).toBe(true);
+      expect(data.customIncludeConfig.all).toBe(false);
+      expect(data.customIncludeConfig.include).toHaveLength(2);
     });
 
-    it('action=prerender writes HTML files for each route', async () => {
+    it('action=prerender writes HTML files for each route (all: true)', async () => {
       const res = await getJson('/api/prerender-test?action=prerender');
       expect(res.status).toBe(200);
       const data = res.data as {
@@ -782,8 +1002,8 @@ describe('Prerender / SSG system', () => {
       expect(data.totalGenerated).toBeGreaterThanOrEqual(3);
     });
 
-    it('action=ignoreRules skips routes matching ignore patterns', async () => {
-      const res = await getJson('/api/prerender-test?action=ignoreRules');
+    it('action=excludeRules skips routes matching exclude patterns', async () => {
+      const res = await getJson('/api/prerender-test?action=excludeRules');
       expect(res.status).toBe(200);
       const data = res.data as {
         generatedRoutes: string[];

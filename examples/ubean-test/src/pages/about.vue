@@ -1,4 +1,5 @@
 <script setup lang="ts">
+
 useHead({
   title: '关于 - ubean-test'
 });

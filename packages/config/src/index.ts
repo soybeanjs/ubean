@@ -6,10 +6,11 @@
  * - `loadUbeanConfig(cwd)` — 加载配置(从 `ubean.config.ts`、环境变量、默认值合并)
  * - `getConfig()` / `tryGetConfig()` — 获取已加载的配置
  * - `resolveRoutingConfig(userConfig?)` — 解析 `RoutingConfig` 默认值
+ * - `resolvePrerenderConfig(config?)` — 解析 `PrerenderConfig` 默认值与派生字段
  * - 完整的类型定义:`UbeanConfig`、`ResolvedConfig`、`RoutingConfig`、`RouteRule` 等
  */
 
-export { defineConfig, loadUbeanConfig, getConfig, tryGetConfig } from './loader';
+export { defineConfig, loadUbeanConfig, getConfig, tryGetConfig, resolvePrerenderConfig } from './loader';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
 
 export type {
@@ -27,5 +28,6 @@ export type {
   PrerenderConfig,
   PrerenderRoute,
   PrerenderResult,
+  ResolvedPrerenderConfig,
   AppMode
 } from './types';

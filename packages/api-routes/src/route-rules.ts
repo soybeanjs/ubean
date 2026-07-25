@@ -52,9 +52,6 @@ export function matchRouteRules(path: string, compiledRules: CompiledRouteRule[]
       if (rule.cache) {
         matched.cache = { ...matched.cache, ...rule.cache };
       }
-      if (rule.prerender !== undefined) {
-        matched.prerender = rule.prerender;
-      }
     }
   }
 

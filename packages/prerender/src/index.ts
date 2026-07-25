@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import type { RouteRule, PrerenderConfig, PrerenderRoute, PrerenderResult } from '@ubean/config';
+import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
+import { resolvePrerenderConfig } from '@ubean/config';
 import type { ScannedPageRoute } from '@ubean/routing';
 import { join, dirname } from 'pathe';
 
@@ -9,97 +10,58 @@ export interface PrerendererOptions {
   cwd: string;
   outputDir: string;
   pages: ScannedPageRoute[];
-  routeRules?: Record<string, RouteRule>;
+  /**
+   * 预渲染配置。可直接传用户配置对象(由 `resolvePrerenderConfig` 解析默认值)。
+   * 未设置或 `enabled: false` 时直接返回空结果。
+   */
   prerender?: PrerenderConfig;
   fetcher?: (url: string) => Promise<{ html: string; statusCode: number }>;
-}
-
-const DEFAULT_PRERENDER_CONFIG: Required<PrerenderConfig> = {
-  enabled: false,
-  routes: [],
-  ignore: [],
-  crawlLinks: true,
-  concurrency: 4,
-  failOnError: false,
-  staticDir: 'dist/public'
-};
-
-export function resolvePrerenderConfig(config?: PrerenderConfig): Required<PrerenderConfig> {
-  if (!config) return DEFAULT_PRERENDER_CONFIG;
-  return {
-    enabled: config.enabled ?? DEFAULT_PRERENDER_CONFIG.enabled,
-    routes: config.routes ?? DEFAULT_PRERENDER_CONFIG.routes,
-    ignore: config.ignore ?? DEFAULT_PRERENDER_CONFIG.ignore,
-    crawlLinks: config.crawlLinks ?? DEFAULT_PRERENDER_CONFIG.crawlLinks,
-    concurrency: config.concurrency ?? DEFAULT_PRERENDER_CONFIG.concurrency,
-    failOnError: config.failOnError ?? DEFAULT_PRERENDER_CONFIG.failOnError,
-    staticDir: config.staticDir ?? DEFAULT_PRERENDER_CONFIG.staticDir
-  };
 }
 
 function isDynamicPath(path: string): boolean {
   return /\[.*?\]/.test(path) || path.includes(':');
 }
 
-export function collectPrerenderRoutes(
-  pages: ScannedPageRoute[],
-  routeRules: Record<string, RouteRule> = {},
-  extraRoutes: string[] = []
-): { routes: string[]; ignoredRoutes: Set<string> } {
-  const routes = new Set<string>();
-  const ignoredRoutes = new Set<string>();
+/**
+ * 通配符匹配,支持:
+ * - `**` 多段递归  ('/blog/**' 匹配 '/blog/a/b/c' 与 '/blog')
+ * - `*`  单段     ('/blog/*' 匹配 '/blog/a' 不匹配 '/blog/a/b')
+ * - 字面量         ('/about' 仅匹配 '/about')
+ *
+ * 此函数统一了此前 `shouldIgnoreRoute` 与 `routePatternMatches` 的逻辑。
+ */
+export function matchGlob(route: string, pattern: string): boolean {
+  if (pattern === route) return true;
+  if (pattern === '**') return true;
 
-  for (const page of pages) {
-    const path = normalizePagePath(page.path);
-    if (!isDynamicPath(path)) {
-      routes.add(path);
-    }
+  if (pattern.endsWith('/**')) {
+    const prefix = pattern.slice(0, -3);
+    return route === prefix || route.startsWith(`${prefix}/`);
   }
 
-  for (const [pattern, rule] of Object.entries(routeRules)) {
-    if (rule.prerender === true) {
-      const routePath = pattern.replace(/\/\*\*?$/, '');
-      if (routePath && !isDynamicPath(routePath)) {
-        routes.add(routePath === '' ? '/' : routePath);
-      }
-    } else if (rule.prerender === false) {
-      const basePattern = pattern.replace(/\/\*\*?$/, '');
-      if (basePattern) {
-        for (const existing of routes) {
-          if (routePatternMatches(existing, pattern, basePattern)) {
-            ignoredRoutes.add(existing);
-          }
-        }
-      }
-    }
+  if (pattern.endsWith('/*')) {
+    const prefix = pattern.slice(0, -2);
+    return route.startsWith(`${prefix}/`) && !route.slice(prefix.length + 1).includes('/');
   }
 
-  for (const route of extraRoutes) {
-    routes.add(route.startsWith('/') ? route : `/${route}`);
+  if (pattern === '/**') {
+    return true;
   }
 
-  if (routes.size === 0 || !routes.has('/')) {
-    routes.add('/');
-  }
-
-  for (const ignored of ignoredRoutes) {
-    routes.delete(ignored);
-  }
-
-  return { routes: Array.from(routes), ignoredRoutes };
+  // 一般 glob:转正则(* → [^/]*, ** → .*)
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*\*/g, '.*')
+    .replace(/\*/g, '[^/]*');
+  return new RegExp(`^${escaped}$`).test(route);
 }
 
-function routePatternMatches(route: string, pattern: string, basePattern: string): boolean {
-  if (route === basePattern) return true;
-  if (pattern.endsWith('/**') && route.startsWith(`${basePattern}/`)) return true;
-  if (
-    pattern.endsWith('/*') &&
-    route.startsWith(`${basePattern}/`) &&
-    !route.slice(basePattern.length + 1).includes('/')
-  )
-    return true;
-  if (pattern === route) return true;
-  return false;
+/**
+ * 检查 route 是否匹配任意一个 patterns。
+ * 保留旧 API 名称以避免破坏外部调用,内部改用 `matchGlob`。
+ */
+export function shouldIgnoreRoute(route: string, patterns: string[]): boolean {
+  return patterns.some(p => matchGlob(route, p));
 }
 
 function normalizePagePath(filePath: string): string {
@@ -120,6 +82,68 @@ function normalizePagePath(filePath: string): string {
   }
 
   return path || '/';
+}
+
+/**
+ * 收集需要预渲染的路由列表。
+ *
+ * 行为:
+ * 1. 扫描 `pages` 得到所有非动态页面作为候选池
+ * 2. 若 `options.all === true`:加入候选池所有路由(`include` 被忽略)
+ * 3. 否则遍历 `options.include`:
+ *    - 含通配符的模式 → 与候选池匹配
+ *    - 不含通配符的具体路径 → 直接加入(用于动态路由的具象值)
+ * 4. 应用 `options.exclude` 过滤
+ *
+ * 返回的 `skipped` 为被 `exclude` 命中的路由集合。
+ */
+export function collectPrerenderRoutes(
+  pages: ScannedPageRoute[],
+  options: { all?: boolean; include?: string[]; exclude?: string[] } = {}
+): { routes: string[]; skipped: string[] } {
+  const all = options.all === true;
+  const include = options.include ?? [];
+  const exclude = options.exclude ?? [];
+
+  // 候选池:文件系统扫描出的非动态页面
+  const allPageRoutes: string[] = [];
+  for (const page of pages) {
+    const path = normalizePagePath(page.path);
+    if (!isDynamicPath(path)) {
+      allPageRoutes.push(path);
+    }
+  }
+
+  const matched = new Set<string>();
+
+  if (all) {
+    // 全部模式:`include` 静默忽略
+    for (const r of allPageRoutes) matched.add(r);
+  } else {
+    // 指定模式:遍历 include
+    for (const pattern of include) {
+      if (pattern.includes('*')) {
+        // glob 模式 - 仅匹配文件系统已有页面
+        for (const r of allPageRoutes) {
+          if (matchGlob(r, pattern)) matched.add(r);
+        }
+      } else {
+        // 具体路径 - 直接加入(可能是动态路由的具象值,如 /blog/hello-world)
+        matched.add(pattern.startsWith('/') ? pattern : `/${pattern}`);
+      }
+    }
+  }
+
+  // 应用 exclude
+  const skipped: string[] = [];
+  for (const r of matched) {
+    if (exclude.some(p => matchGlob(r, p))) {
+      skipped.push(r);
+    }
+  }
+  for (const r of skipped) matched.delete(r);
+
+  return { routes: Array.from(matched), skipped };
 }
 
 export function extractLinks(html: string, baseUrl: string = ''): string[] {
@@ -180,44 +204,6 @@ function normalizeHref(href: string, baseUrl: string): string | null {
   return path || '/';
 }
 
-export function shouldIgnoreRoute(route: string, ignorePatterns: string[]): boolean {
-  for (const pattern of ignorePatterns) {
-    if (pattern === route) return true;
-
-    if (pattern.endsWith('/**')) {
-      const prefix = pattern.slice(0, -2);
-      if (route === prefix.slice(0, -1) || route.startsWith(prefix)) return true;
-      continue;
-    }
-
-    if (pattern.endsWith('**')) {
-      const prefix = pattern.slice(0, -2);
-      if (route.startsWith(prefix)) return true;
-      continue;
-    }
-
-    if (pattern.endsWith('/*')) {
-      const prefix = pattern.slice(0, -1);
-      if (route.startsWith(prefix) && !route.slice(prefix.length).includes('/')) return true;
-      continue;
-    }
-
-    if (pattern.endsWith('*')) {
-      const prefix = pattern.slice(0, -1);
-      if (route.startsWith(prefix) && !route.slice(prefix.length).includes('/')) return true;
-      continue;
-    }
-
-    const escaped = pattern
-      .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-      .replace(/\*/g, '[^/]*')
-      .replace(/\*\*/g, '.*');
-    const regex = new RegExp(`^${escaped}$`);
-    if (regex.test(route)) return true;
-  }
-  return false;
-}
-
 export function routeToFilePath(route: string, outputDir: string): string {
   if (route === '/' || route === '') {
     return join(outputDir, 'index.html');
@@ -251,21 +237,25 @@ const _logger: Logger = {
 
 export async function prerender(options: PrerendererOptions): Promise<PrerenderResult> {
   const startTime = Date.now();
-  const config = resolvePrerenderConfig(options.prerender);
+  const config: ResolvedPrerenderConfig = resolvePrerenderConfig(options.prerender);
 
   if (!config.enabled) {
     return { routes: [], generated: [], errors: [], skipped: [], duration: 0 };
   }
 
   const outputDir = join(options.cwd, config.staticDir);
-  const { routes: initialRoutes } = collectPrerenderRoutes(options.pages, options.routeRules, config.routes);
+  const { routes: initialRoutes, skipped: initiallySkipped } = collectPrerenderRoutes(options.pages, {
+    all: config.all,
+    include: config.include,
+    exclude: config.exclude
+  });
 
   const queue = [...initialRoutes];
   const visited = new Set<string>();
   const results: PrerenderRoute[] = [];
   const generated: string[] = [];
   const errors: PrerenderRoute[] = [];
-  const skipped: string[] = [];
+  const skipped: string[] = [...initiallySkipped];
 
   _logger.info(`Prerendering ${queue.length} initial routes...`);
 
@@ -273,8 +263,9 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
     if (visited.has(route)) return;
     visited.add(route);
 
-    if (shouldIgnoreRoute(route, config.ignore)) {
-      skipped.push(route);
+    // exclude 二次过滤(对 crawlLinks 发现的链接也生效)
+    if (config.exclude.some(p => matchGlob(route, p))) {
+      if (!skipped.includes(route)) skipped.push(route);
       return;
     }
 
@@ -299,7 +290,7 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
         if (config.crawlLinks && resp.html) {
           const links = extractLinks(resp.html);
           for (const link of links) {
-            if (!visited.has(link) && !shouldIgnoreRoute(link, config.ignore)) {
+            if (!visited.has(link) && !config.exclude.some(p => matchGlob(link, p))) {
               queue.push(link);
             }
           }
@@ -356,6 +347,10 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
   return { routes: results, generated, errors, skipped, duration };
 }
 
+/**
+ * @deprecated 仅保留为兼容别名,新 API 直接使用 `prerender.include` 字段。
+ * 原功能:声明额外预渲染路由。
+ */
 export function definePrerenderRoutes(routes: string[]): string[] {
   return routes;
 }
@@ -370,3 +365,6 @@ export function generatePrerenderManifest(
     errors: result.errors.map(e => ({ route: e.route, message: e.error?.message || 'Unknown error' }))
   };
 }
+
+// 重新导出 RouteRule 类型,保持外部 import 兼容
+export type { RouteRule } from '@ubean/config';

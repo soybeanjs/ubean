@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { buildProduction } from '@ubean/build/production';
 import type { BuildManifest } from '@ubean/build/production';
 import { generateTypes } from '@ubean/codegen';
-import { loadUbeanConfig } from '@ubean/config';
+import { loadUbeanConfig, resolvePrerenderConfig } from '@ubean/config';
 import type { AppMode } from '@ubean/config';
 import { prerender } from '@ubean/prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
@@ -122,12 +122,24 @@ export const buildCommand: CommandDef = {
 
     // 根据 mode 调整 prerender 行为
     if (config.mode === 'ssg') {
-      config.prerender.enabled = true;
+      // SSG 模式默认开启全部预渲染(若用户未显式配置 all/include)
+      if (!config.prerender.all && config.prerender.include.length === 0) {
+        config.prerender = resolvePrerenderConfig({ all: true });
+      }
     } else if (config.mode === 'spa' || config.mode === 'backend') {
-      config.prerender.enabled = false;
+      config.prerender = resolvePrerenderConfig();  // 关闭
     } else if (config.mode === 'fullstack' && !config.ssr) {
       // fullstack + ssr:false 无法 prerender(无 SSR bundle)
-      config.prerender.enabled = false;
+      config.prerender = resolvePrerenderConfig();  // 关闭
+    }
+
+    // CLI --prerender / --no-prerender 覆盖
+    if (args.prerender === true) {
+      if (!config.prerender.enabled) {
+        config.prerender = resolvePrerenderConfig({ all: true });
+      }
+    } else if (args.prerender === false) {
+      config.prerender = resolvePrerenderConfig();  // 关闭
     }
 
     const presetName = args.preset || config.build.preset;
@@ -181,15 +193,13 @@ export const buildCommand: CommandDef = {
       sourcemap: args.sourcemap as boolean
     });
 
-    const shouldPrerender = args.prerender ?? config.prerender.enabled;
-    if (shouldPrerender) {
+    if (config.prerender.enabled) {
       logger.info('Prerendering static pages...');
       const fetcher = await createSsrFetcher(cwd, manifest);
       await prerender({
         cwd,
         outputDir: config.build.outputDir,
         pages: result.pages,
-        routeRules: config.routeRules,
         prerender: config.prerender,
         fetcher
       });

@@ -221,14 +221,91 @@ export interface ResolvedRoutingConfig extends Required<
 /* Prerender Config                                                             */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * 预渲染(SSG)配置。
+ *
+ * 用户配置侧仅接受对象形式;`prerender` 字段未设置等同于关闭。
+ * 启用预渲染必须显式设置 `all: true` 或 `include: [...]` 之一。
+ *
+ * - `all: true`     预渲染所有非动态页面(可用 `exclude` 进一步排除)
+ * - `include: [...]` 仅预渲染匹配的路由(`all` 优先于此字段)
+ *
+ * `exclude` 对 `all`、`include` 以及 `crawlLinks` 发现的链接均生效。
+ *
+ * 示例:
+ * ```ts
+ * // 全部页面
+ * prerender: { all: true }
+ *
+ * // 全部 + 排除
+ * prerender: { all: true, exclude: ['/admin/**'] }
+ *
+ * // 仅指定页面
+ * prerender: { include: ['/about'] }
+ *
+ * // 动态路由的具体路径
+ * prerender: { include: ['/blog/hello-world', '/blog/second-post'] }
+ * ```
+ */
 export interface PrerenderConfig {
-  enabled?: boolean;
-  routes?: string[];
-  ignore?: string[];
+  /**
+   * 是否预渲染所有非动态页面。
+   *
+   * - true: 预渲染所有非动态页面(可再用 `exclude` 排除)
+   * - false/未设置: 仅预渲染 `include` 中列出的路由
+   *
+   * `all: true` 时 `include` 字段被忽略(不报错,静默忽略)。
+   */
+  all?: boolean;
+
+  /**
+   * 要预渲染的路由模式列表(`all: false` 或未设置时生效)。
+   *
+   * 通配符:
+   * - `*`  单段匹配  (`'/blog/*'` 匹配 `'/blog/a'` 不匹配 `'/blog/a/b'`)
+   * - `**` 多段递归  (`'/blog/**'` 匹配 `'/blog/a/b/c'`)
+   *
+   * 不含通配符的具体路径直接加入预渲染队列,
+   * 用于动态路由(`[id].vue`)的具象值(如 `'/blog/hello-world'`)。
+   */
+  include?: string[];
+
+  /**
+   * 从匹配结果中排除的路由模式。
+   * 对 `all` 和 `include` 都生效,也过滤 `crawlLinks` 发现的链接。
+   */
+  exclude?: string[];
+
+  /**
+   * 是否从已渲染 HTML 中提取 `<a href>` 继续预渲染。
+   * 默认 true。发现的链接仍受 `exclude` 过滤。
+   */
   crawlLinks?: boolean;
+
+  /** 并发数。默认 4。 */
   concurrency?: number;
+
+  /** 失败是否中断构建。默认 false。 */
   failOnError?: boolean;
+
+  /** 静态产物输出目录,相对 cwd。默认 'dist/public'。 */
   staticDir?: string;
+}
+
+/**
+ * 内部解析后的预渲染配置。
+ * `enabled` 字段为内部派生标记,用户配置侧不暴露。
+ */
+export interface ResolvedPrerenderConfig {
+  /** 是否启用(等价于 `all === true || include.length > 0`) */
+  enabled: boolean;
+  all: boolean;
+  include: string[];
+  exclude: string[];
+  crawlLinks: boolean;
+  concurrency: number;
+  failOnError: boolean;
+  staticDir: string;
 }
 
 export interface PrerenderRoute {
@@ -377,6 +454,7 @@ export interface ResolvedConfig extends Required<
   image: boolean | BuiltinModuleOptions;
   fonts: boolean | BuiltinModuleOptions;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
+  prerender: ResolvedPrerenderConfig;
   dev: Required<NonNullable<UbeanConfig['dev']>>;
   preview: Required<NonNullable<UbeanConfig['preview']>>;
   build: Required<NonNullable<UbeanConfig['build']>>;
@@ -384,6 +462,5 @@ export interface ResolvedConfig extends Required<
   imports: Required<NonNullable<UbeanConfig['imports']>>;
   components: Required<NonNullable<UbeanConfig['components']>>;
   i18n: Required<NonNullable<UbeanConfig['i18n']>>;
-  prerender: Required<NonNullable<UbeanConfig['prerender']>>;
   routing: ResolvedRoutingConfig;
 }

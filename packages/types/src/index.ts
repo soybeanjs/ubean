@@ -46,6 +46,10 @@ export interface RouteMeta extends BaseRouteMeta {
 /**
  * 路由规则,由 @ubean/api-routes (route-rules) 和 @ubean/server (cache) 共享。
  * 完整的 ResolvedConfig 在 @ubean/config 中定义。
+ *
+ * 注意:构建时预渲染策略已迁移至 `PrerenderConfig`(由 `ubean.config.ts` 的
+ * `prerender` 字段统一管理),`RouteRule` 仅保留运行时关注点
+ * (cache/headers/redirect/rewrite/proxy)。
  */
 export interface RouteRule {
   cache?: { ttl?: number; swr?: boolean };
@@ -53,7 +57,6 @@ export interface RouteRule {
   redirect?: string | { to: string; statusCode?: number };
   rewrite?: string;
   proxy?: string;
-  prerender?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */

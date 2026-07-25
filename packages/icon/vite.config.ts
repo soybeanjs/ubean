@@ -9,11 +9,12 @@ export default defineConfig({
     clean: true,
     sourcemap: true,
     format: ['esm'],
+    fixedExtension: false,
     outDir: 'dist',
     entry: ['src/index.ts', 'src/vite.ts', 'src/runtime.ts'],
     onSuccess: 'tsc --emitDeclarationOnly',
     deps: {
-      neverBundle: ['vue', /^node:/]
+      neverBundle: ['vue', '@iconify/vue', /^node:/]
     }
   },
   test: {

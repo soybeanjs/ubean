@@ -42,6 +42,7 @@ export default defineConfig({
     dts: true,
     clean: true,
     format: ['esm'],
+    fixedExtension: false,
     outDir: 'dist',
     entry: ['src/index.ts'],
     deps: {

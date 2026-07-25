@@ -1,26 +1,30 @@
 {
-  "name": "@ubean/fonts",
+  "name": "@ubean/auth",
   "version": "0.0.1",
-  "description": "Font optimization module for ubean - Google Fonts, local fonts, self-hosting and metrics",
+  "description": "Better Auth integration for ubean framework",
   "files": [
     "dist"
   ],
   "type": "module",
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.js"
     },
     "./vite": {
       "types": "./dist/vite.d.ts",
-      "import": "./dist/vite.mjs"
+      "import": "./dist/vite.js"
     },
     "./runtime": {
       "types": "./dist/runtime.d.ts",
-      "import": "./dist/runtime.mjs"
+      "import": "./dist/runtime.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
     }
   },
   "scripts": {
@@ -30,22 +34,31 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "defu": "6.1.7",
-    "ohash": "^2.0.11",
-    "pathe": "^2.0.3",
-    "ufo": "1.6.4"
+    "better-auth": "^1.6.25",
+    "consola": "^3.4.2",
+    "defu": "6.1.7"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",
+    "hono": "4.12.31",
     "typescript": "6.0.3",
     "vite": "catalog:",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "vue": "^3.5.40"
   },
   "peerDependencies": {
-    "vite": "^5.0.0 || ^6.0.0"
+    "hono": "^4.0.0",
+    "vite": "^5.0.0 || ^6.0.0",
+    "vue": "^3.0.0"
   },
   "peerDependenciesMeta": {
+    "hono": {
+      "optional": true
+    },
     "vite": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   },

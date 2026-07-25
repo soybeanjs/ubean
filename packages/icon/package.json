@@ -1,26 +1,26 @@
 {
-  "name": "@ubean/pwa",
+  "name": "@ubean/icon",
   "version": "0.0.1",
-  "description": "PWA module for ubean with Service Worker and Web App Manifest",
+  "description": "Icon module for ubean with Iconify integration",
   "files": [
     "dist"
   ],
   "type": "module",
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.mjs"
+      "import": "./dist/index.js"
     },
     "./vite": {
       "types": "./dist/vite.d.ts",
-      "import": "./dist/vite.mjs"
+      "import": "./dist/vite.js"
     },
     "./runtime": {
       "types": "./dist/runtime.d.ts",
-      "import": "./dist/runtime.mjs"
+      "import": "./dist/runtime.js"
     }
   },
   "scripts": {
@@ -42,13 +42,9 @@
     "vue": "^3.5.40"
   },
   "peerDependencies": {
-    "vite": "^5.0.0 || ^6.0.0",
     "vue": "^3.0.0"
   },
   "peerDependenciesMeta": {
-    "vite": {
-      "optional": true
-    },
     "vue": {
       "optional": true
     }

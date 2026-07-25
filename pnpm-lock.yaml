@@ -191,6 +191,37 @@ importers:
         specifier: 'catalog:'
         version: 0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
+  packages/auth:
+    dependencies:
+      better-auth:
+        specifier: ^1.6.25
+        version: 1.6.25(vitest@4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)))(vue@3.5.40(typescript@6.0.3))
+      consola:
+        specifier: ^3.4.2
+        version: 3.4.2
+      defu:
+        specifier: 6.1.7
+        version: 6.1.7
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
+        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
+      hono:
+        specifier: 4.12.31
+        version: 4.12.31
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite-plus:
+        specifier: 'catalog:'
+        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
+      vue:
+        specifier: ^3.5.40
+        version: 3.5.40(typescript@6.0.3)
+
   packages/auto-imports:
     dependencies:
       '@ubean/routing':
@@ -395,107 +426,20 @@ importers:
         specifier: 'catalog:'
         version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
 
-  packages/core:
+  packages/content:
     dependencies:
-      '@hono/standard-validator':
-        specifier: ^0.3.0
-        version: 0.3.0(@standard-schema/spec@1.1.0)(hono@4.12.31)
-      '@standard-community/standard-json':
-        specifier: ^0.3.5
-        version: 0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3)
-      '@standard-community/standard-openapi':
-        specifier: ^0.2.9
-        version: 0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3)
-      '@ubean/api-routes':
-        specifier: workspace:*
-        version: link:../api-routes
-      '@ubean/app':
-        specifier: workspace:*
-        version: link:../app
-      '@ubean/auto-imports':
-        specifier: workspace:*
-        version: link:../auto-imports
-      '@ubean/build':
-        specifier: workspace:*
-        version: link:../build
-      '@ubean/cli':
-        specifier: workspace:*
-        version: link:../cli
-      '@ubean/client':
-        specifier: workspace:*
-        version: link:../client
-      '@ubean/codegen':
-        specifier: workspace:*
-        version: link:../codegen
-      '@ubean/config':
-        specifier: workspace:*
-        version: link:../config
-      '@ubean/dev':
-        specifier: workspace:*
-        version: link:../dev
-      '@ubean/devtools':
-        specifier: workspace:*
-        version: link:../devtools
-      '@ubean/env':
-        specifier: workspace:*
-        version: link:../env
-      '@ubean/error':
-        specifier: workspace:*
-        version: link:../error
-      '@ubean/i18n':
-        specifier: workspace:*
-        version: link:../i18n
-      '@ubean/islands':
-        specifier: workspace:*
-        version: link:../islands
-      '@ubean/markdown':
-        specifier: workspace:*
-        version: link:../markdown
-      '@ubean/modules':
-        specifier: workspace:*
-        version: link:../modules
-      '@ubean/pages':
-        specifier: workspace:*
-        version: link:../pages
-      '@ubean/prerender':
-        specifier: workspace:*
-        version: link:../prerender
-      '@ubean/preset':
-        specifier: workspace:*
-        version: link:../preset
-      '@ubean/routing':
-        specifier: workspace:*
-        version: link:../routing
-      '@ubean/runtime':
-        specifier: workspace:*
-        version: link:../runtime
-      '@ubean/seo':
-        specifier: workspace:*
-        version: link:../seo
-      '@ubean/server-runtime':
-        specifier: workspace:*
-        version: link:../server-runtime
-      '@ubean/ssr':
-        specifier: workspace:*
-        version: link:../ssr
-      '@ubean/types':
-        specifier: workspace:*
-        version: link:../types
-      '@ubean/utils':
-        specifier: workspace:*
-        version: link:../utils
-      '@ubean/vite':
-        specifier: workspace:*
-        version: link:../vite
-      consola:
-        specifier: ^3.4.2
-        version: 3.4.2
-      hono:
-        specifier: 4.12.31
-        version: 4.12.31
-      hono-openapi:
-        specifier: ^1.3.1
-        version: 1.3.1(@hono/standard-validator@0.3.0(@standard-schema/spec@1.1.0)(hono@4.12.31))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3))(@types/json-schema@7.0.15)(hono@4.12.31)(openapi-types@12.1.3)
+      defu:
+        specifier: 6.1.7
+        version: 6.1.7
+      pathe:
+        specifier: ^2.0.3
+        version: 2.0.3
+      scule:
+        specifier: ^1.3.0
+        version: 1.3.0
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
+        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
     devDependencies:
       '@types/node':
         specifier: ^26.1.1
@@ -503,15 +447,9 @@ importers:
       typescript:
         specifier: 6.0.3
         version: 6.0.3
-      vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
-        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
       vite-plus:
         specifier: 'catalog:'
         version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
-      vue:
-        specifier: ^3.5.40
-        version: 3.5.40(typescript@6.0.3)
 
   packages/dev:
     dependencies:
@@ -696,6 +634,34 @@ importers:
         specifier: 'catalog:'
         version: 0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
+  packages/fonts:
+    dependencies:
+      defu:
+        specifier: 6.1.7
+        version: 6.1.7
+      ohash:
+        specifier: ^2.0.11
+        version: 2.0.11
+      pathe:
+        specifier: ^2.0.3
+        version: 2.0.3
+      ufo:
+        specifier: 1.6.4
+        version: 1.6.4
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
+        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite-plus:
+        specifier: 'catalog:'
+        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
+
   packages/i18n:
     dependencies:
       '@ubean/types':
@@ -714,6 +680,65 @@ importers:
       vite-plus:
         specifier: 'catalog:'
         version: 0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+
+  packages/icon:
+    dependencies:
+      consola:
+        specifier: ^3.4.2
+        version: 3.4.2
+      defu:
+        specifier: 6.1.7
+        version: 6.1.7
+      pathe:
+        specifier: ^2.0.3
+        version: 2.0.3
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
+        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
+      vite-plus:
+        specifier: 'catalog:'
+        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
+      vue:
+        specifier: ^3.5.40
+        version: 3.5.40(typescript@6.0.3)
+
+  packages/image:
+    dependencies:
+      defu:
+        specifier: 6.1.7
+        version: 6.1.7
+      ohash:
+        specifier: ^2.0.11
+        version: 2.0.11
+      pathe:
+        specifier: ^2.0.3
+        version: 2.0.3
+      ufo:
+        specifier: 1.6.4
+        version: 1.6.4
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
+        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite-plus:
+        specifier: 'catalog:'
+        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
+      vue:
+        specifier: ^3.5.40
+        version: 3.5.40(typescript@6.0.3)
 
   packages/islands:
     dependencies:
@@ -830,6 +855,34 @@ importers:
       vite-plus:
         specifier: 'catalog:'
         version: 0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
+
+  packages/pwa:
+    dependencies:
+      consola:
+        specifier: ^3.4.2
+        version: 3.4.2
+      defu:
+        specifier: 6.1.7
+        version: 6.1.7
+      pathe:
+        specifier: ^2.0.3
+        version: 2.0.3
+      vite:
+        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
+        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
+    devDependencies:
+      '@types/node':
+        specifier: ^26.1.1
+        version: 26.1.1
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+      vite-plus:
+        specifier: 'catalog:'
+        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
+      vue:
+        specifier: ^3.5.40
+        version: 3.5.40(typescript@6.0.3)
 
   packages/routing:
     dependencies:
@@ -1013,24 +1066,45 @@ importers:
 
   packages/ubean:
     dependencies:
+      '@hono/standard-validator':
+        specifier: ^0.3.0
+        version: 0.3.0(@standard-schema/spec@1.1.0)(hono@4.12.31)
+      '@standard-community/standard-json':
+        specifier: ^0.3.5
+        version: 0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3)
+      '@standard-community/standard-openapi':
+        specifier: ^0.2.9
+        version: 0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3)
       '@ubean/api-routes':
         specifier: workspace:*
         version: link:../api-routes
       '@ubean/app':
         specifier: workspace:*
         version: link:../app
+      '@ubean/auto-imports':
+        specifier: workspace:*
+        version: link:../auto-imports
       '@ubean/build':
         specifier: workspace:*
         version: link:../build
       '@ubean/cli':
         specifier: workspace:*
         version: link:../cli
+      '@ubean/client':
+        specifier: workspace:*
+        version: link:../client
+      '@ubean/codegen':
+        specifier: workspace:*
+        version: link:../codegen
       '@ubean/config':
         specifier: workspace:*
         version: link:../config
-      '@ubean/core':
+      '@ubean/dev':
         specifier: workspace:*
-        version: link:../core
+        version: link:../dev
+      '@ubean/devtools':
+        specifier: workspace:*
+        version: link:../devtools
       '@ubean/env':
         specifier: workspace:*
         version: link:../env
@@ -1040,133 +1114,57 @@ importers:
       '@ubean/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@ubean/islands':
+        specifier: workspace:*
+        version: link:../islands
+      '@ubean/markdown':
+        specifier: workspace:*
+        version: link:../markdown
+      '@ubean/modules':
+        specifier: workspace:*
+        version: link:../modules
       '@ubean/pages':
         specifier: workspace:*
         version: link:../pages
+      '@ubean/prerender':
+        specifier: workspace:*
+        version: link:../prerender
+      '@ubean/preset':
+        specifier: workspace:*
+        version: link:../preset
       '@ubean/routing':
         specifier: workspace:*
         version: link:../routing
       '@ubean/runtime':
         specifier: workspace:*
         version: link:../runtime
+      '@ubean/seo':
+        specifier: workspace:*
+        version: link:../seo
+      '@ubean/server-runtime':
+        specifier: workspace:*
+        version: link:../server-runtime
       '@ubean/ssr':
         specifier: workspace:*
         version: link:../ssr
+      '@ubean/types':
+        specifier: workspace:*
+        version: link:../types
+      '@ubean/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@ubean/vite':
         specifier: workspace:*
         version: link:../vite
-    devDependencies:
-      '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
-      vue:
-        specifier: ^3.5.40
-        version: 3.5.40(typescript@6.0.3)
-      vue-tsc:
-        specifier: ^3.3.8
-        version: 3.3.8(typescript@6.0.3)
-
-  packages/ubean-auth:
-    dependencies:
-      better-auth:
-        specifier: ^1.6.25
-        version: 1.6.25(vitest@4.1.10)(vue@3.5.40(typescript@6.0.3))
       consola:
         specifier: ^3.4.2
         version: 3.4.2
-      defu:
-        specifier: 6.1.7
-        version: 6.1.7
-      vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
-        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
-    devDependencies:
-      '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
       hono:
         specifier: 4.12.31
         version: 4.12.31
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
-      vue:
-        specifier: ^3.5.40
-        version: 3.5.40(typescript@6.0.3)
-
-  packages/ubean-content:
-    dependencies:
-      defu:
-        specifier: 6.1.7
-        version: 6.1.7
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
-      scule:
-        specifier: ^1.3.0
-        version: 1.3.0
-      vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
-        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
-    devDependencies:
-      '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
-
-  packages/ubean-fonts:
-    dependencies:
-      defu:
-        specifier: 6.1.7
-        version: 6.1.7
-      ohash:
-        specifier: ^2.0.11
-        version: 2.0.11
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
-      ufo:
-        specifier: 1.6.4
-        version: 1.6.4
-      vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
-        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
-    devDependencies:
-      '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
-
-  packages/ubean-icon:
-    dependencies:
-      consola:
-        specifier: ^3.4.2
-        version: 3.4.2
-      defu:
-        specifier: 6.1.7
-        version: 6.1.7
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
+      hono-openapi:
+        specifier: ^1.3.1
+        version: 1.3.1(@hono/standard-validator@0.3.0(@standard-schema/spec@1.1.0)(hono@4.12.31))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(valibot@1.4.2(typescript@6.0.3))(zod@4.4.3))(@types/json-schema@7.0.15)(hono@4.12.31)(openapi-types@12.1.3)
     devDependencies:
       '@types/node':
         specifier: ^26.1.1
@@ -1177,65 +1175,6 @@ importers:
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
         version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
-      vue:
-        specifier: ^3.5.40
-        version: 3.5.40(typescript@6.0.3)
-
-  packages/ubean-image:
-    dependencies:
-      defu:
-        specifier: 6.1.7
-        version: 6.1.7
-      ohash:
-        specifier: ^2.0.11
-        version: 2.0.11
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
-      ufo:
-        specifier: 1.6.4
-        version: 1.6.4
-      vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
-        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
-    devDependencies:
-      '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
-      vue:
-        specifier: ^3.5.40
-        version: 3.5.40(typescript@6.0.3)
-
-  packages/ubean-pwa:
-    dependencies:
-      consola:
-        specifier: ^3.4.2
-        version: 3.4.2
-      defu:
-        specifier: 6.1.7
-        version: 6.1.7
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
-      vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@0.2.6
-        version: '@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(@vitejs/devtools@0.4.6)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)'
-    devDependencies:
-      '@types/node':
-        specifier: ^26.1.1
-        version: 26.1.1
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
       vite-plus:
         specifier: 'catalog:'
         version: 0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)
@@ -6336,7 +6275,6 @@ snapshots:
       - msw
       - utf-8-validate
       - vite
-    optional: true
 
   '@vitest/browser-preview@4.1.10(@voidzero-dev/vite-plus-core@0.2.6)(vitest@4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0)))':
     dependencies:
@@ -6378,7 +6316,6 @@ snapshots:
       - msw
       - utf-8-validate
       - vite
-    optional: true
 
   '@vitest/browser@4.1.10(@voidzero-dev/vite-plus-core@0.2.6)(vitest@4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0)))':
     dependencies:
@@ -6754,7 +6691,7 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
-  better-auth@1.6.25(vitest@4.1.10)(vue@3.5.40(typescript@6.0.3)):
+  better-auth@1.6.25(vitest@4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0)))(vue@3.5.40(typescript@6.0.3)):
     dependencies:
       '@better-auth/core': 1.6.25(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.4)(kysely@0.28.5)(nanostores@1.4.1)
       '@better-auth/drizzle-adapter': 1.6.25(@better-auth/core@1.6.25(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.3.7(zod@4.4.3))(jose@6.2.4)(kysely@0.28.5)(nanostores@1.4.1))(@better-auth/utils@0.4.2)
@@ -8231,8 +8168,8 @@ snapshots:
     dependencies:
       '@oxc-project/types': 0.141.0
       '@oxlint/plugins': 1.73.0
-      '@vitest/browser': 4.1.10(@voidzero-dev/vite-plus-core@0.2.6)(vitest@4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0)))
-      '@vitest/browser-preview': 4.1.10(@voidzero-dev/vite-plus-core@0.2.6)(vitest@4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0)))
+      '@vitest/browser': 4.1.10(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(vitest@4.1.10)
+      '@vitest/browser-preview': 4.1.10(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(vitest@4.1.10)
       '@vitest/expect': 4.1.10
       '@vitest/mocker': 4.1.10(@voidzero-dev/vite-plus-core@0.2.6)
       '@vitest/pretty-format': 4.1.10
@@ -8244,7 +8181,7 @@ snapshots:
       oxfmt: 0.60.0(vite-plus@0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))
       oxlint: 1.75.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.2.6(@types/node@26.1.1)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))
       oxlint-tsgolint: 7.0.2001
-      vitest: 4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0))(vitest@4.1.10))(@voidzero-dev/vite-plus-core@0.2.6)
+      vitest: 4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))
     optionalDependencies:
       '@voidzero-dev/vite-plus-darwin-arm64': 0.2.6
       '@voidzero-dev/vite-plus-darwin-x64': 0.2.6
@@ -8411,7 +8348,6 @@ snapshots:
       '@vitest/browser-preview': 4.1.10(@voidzero-dev/vite-plus-core@0.2.6(@types/node@26.1.1)(jiti@2.7.0)(typescript@6.0.3)(yaml@2.9.0))(vitest@4.1.10)
     transitivePeerDependencies:
       - msw
-    optional: true
 
   vitest@4.1.10(@types/node@26.1.1)(@vitest/browser-preview@4.1.10)(vite@8.1.5(@types/node@26.1.1)(jiti@2.7.0)(yaml@2.9.0)):
     dependencies:

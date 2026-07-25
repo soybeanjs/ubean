@@ -1,6 +1,0 @@
-/**
- * ubean/runtime/pages — 页面数据协议(遗留子路径)
- *
- * 向后兼容:转发到 `@ubean/pages`。
- */
-export * from '@ubean/pages';

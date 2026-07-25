@@ -27,6 +27,13 @@
     { "path": "./packages/prerender" },
     { "path": "./packages/dev" },
     { "path": "./packages/cli" },
-    { "path": "./packages/core" }
+    { "path": "./packages/devtools" },
+    { "path": "./packages/auth" },
+    { "path": "./packages/icon" },
+    { "path": "./packages/pwa" },
+    { "path": "./packages/image" },
+    { "path": "./packages/content" },
+    { "path": "./packages/fonts" },
+    { "path": "./packages/ubean" }
   ]
 }

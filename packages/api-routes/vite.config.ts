@@ -9,6 +9,7 @@ export default defineConfig({
     clean: true,
     sourcemap: true,
     format: ['esm'],
+    fixedExtension: false,
     outDir: 'dist',
     entry: ['src/index.ts'],
     deps: {

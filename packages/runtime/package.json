@@ -6,21 +6,21 @@
     "dist"
   ],
   "type": "module",
-  "main": "./dist/index.mjs",
-  "module": "./dist/index.mjs",
-  "types": "./dist/index.d.mts",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./app": {
-      "types": "./dist/app.d.mts",
-      "import": "./dist/app.mjs"
+      "types": "./dist/app.d.ts",
+      "import": "./dist/app.js"
     },
     "./define-app": {
-      "types": "./dist/define-app.d.mts",
-      "import": "./dist/define-app.mjs"
+      "types": "./dist/define-app.d.ts",
+      "import": "./dist/define-app.js"
     }
   },
   "scripts": {

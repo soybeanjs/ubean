@@ -1,0 +1,64 @@
+{
+  "name": "@ubean/dev",
+  "version": "0.0.1",
+  "description": "Dev server orchestration for ubean (createViteDevServer, createDevRunner, watcher)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/app": "workspace:*",
+    "@ubean/build": "workspace:*",
+    "@ubean/config": "workspace:*",
+    "@ubean/islands": "workspace:*",
+    "@ubean/modules": "workspace:*",
+    "@ubean/preset": "workspace:*",
+    "@ubean/routing": "workspace:*",
+    "@ubean/ssr": "workspace:*",
+    "@ubean/utils": "workspace:*",
+    "@ubean/vite": "workspace:*",
+    "consola": "^3.4.2",
+    "pathe": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@ubean/cli": "workspace:*",
+    "@ubean/devtools": "workspace:*",
+    "@vitejs/devtools": "^0.x",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@ubean/cli": {
+      "optional": true
+    },
+    "@ubean/devtools": {
+      "optional": true
+    },
+    "@vitejs/devtools": {
+      "optional": true
+    },
+    "@vitejs/plugin-vue": {
+      "optional": true
+    }
+  }
+}

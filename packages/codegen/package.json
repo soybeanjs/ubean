@@ -1,0 +1,35 @@
+{
+  "name": "@ubean/codegen",
+  "version": "0.0.1",
+  "description": "Type generation for ubean (generateTypes, routes.d.ts, pages.d.ts, openapi.d.ts)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/auto-imports": "workspace:*",
+    "@ubean/routing": "workspace:*",
+    "openapi-typescript": "^7.13.0",
+    "pathe": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite-plus": "catalog:"
+  }
+}

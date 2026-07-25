@@ -1,0 +1,41 @@
+{
+  "name": "@ubean/auto-imports",
+  "version": "0.0.1",
+  "description": "Auto-import presets for ubean (VUE_PRESET, UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "pathe": "^2.0.3",
+    "tinyglobby": "^0.2.17",
+    "unimport": "^6.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@ubean/routing": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@ubean/routing": {
+      "optional": true
+    }
+  }
+}

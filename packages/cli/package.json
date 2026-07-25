@@ -1,0 +1,60 @@
+{
+  "name": "@ubean/cli",
+  "version": "0.0.1",
+  "description": "CLI for ubean (ubean-next binary: dev, build, prepare, init, preview, page, env, config, devtools, api/layout/middleware/cron/plugin scaffolds)",
+  "bin": {
+    "ubean-next": "./bin/ubean-next.mjs"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./cli": {
+      "types": "./dist/cli.d.mts",
+      "import": "./dist/cli.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/app": "workspace:*",
+    "@ubean/build": "workspace:*",
+    "@ubean/codegen": "workspace:*",
+    "@ubean/config": "workspace:*",
+    "@ubean/dev": "workspace:*",
+    "@ubean/prerender": "workspace:*",
+    "@ubean/preset": "workspace:*",
+    "@ubean/routing": "workspace:*",
+    "@ubean/utils": "workspace:*",
+    "citty": "^0.2.2",
+    "consola": "^3.4.2",
+    "kolorist": "^1.8.0",
+    "pathe": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@ubean/devtools": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@ubean/devtools": {
+      "optional": true
+    }
+  }
+}

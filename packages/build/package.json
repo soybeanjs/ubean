@@ -1,0 +1,59 @@
+{
+  "name": "@ubean/build",
+  "version": "0.0.1",
+  "description": "Core Vite plugin (framework-agnostic) for ubean (ubeanPlugin, virtual modules: routes/pages/meta/app-config/locales, macros)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.mts",
+      "import": "./dist/vite.mjs"
+    },
+    "./production": {
+      "types": "./dist/production.d.mts",
+      "import": "./dist/production.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/config": "workspace:*",
+    "@ubean/islands": "workspace:*",
+    "@ubean/modules": "workspace:*",
+    "@ubean/preset": "workspace:*",
+    "@ubean/routing": "workspace:*",
+    "@ubean/ssr": "workspace:*",
+    "@ubean/utils": "workspace:*",
+    "@ubean/vite": "workspace:*",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "consola": "^3.4.2",
+    "oxc-transform": "^0.141.0",
+    "pathe": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "vite": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  }
+}

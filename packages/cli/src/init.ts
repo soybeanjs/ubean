@@ -321,23 +321,18 @@ export const GET = defineHandler(c => {
  *   import { api } from '../request/client';
  *   const user = await api.get('/api/users/{id}', { params: { path: { id: 1 } } });
  */
-const REQUEST_CLIENT_TEMPLATE = `import { createRequest, createFlatRequest } from '@soybeanjs/fetch';
-import { createTypedClient, createFlatTypedClient } from '@soybeanjs/fetch/openapi';
+const REQUEST_CLIENT_TEMPLATE = `import { createRequest } from '@soybeanjs/fetch';
+import { createTypedClient, toFlatTypedClient } from '@soybeanjs/fetch/openapi';
 import type { paths } from '../../.ubean/openapi';
 
 /**
  * 底层 HTTP 请求实例(@soybeanjs/fetch 封装)。
  *
- * api 和 flatApi 共用同一份配置,共享 baseURL/timeout/headers 等。
+ * api 和 flatApi 共用同一份 RequestInstance,共享 baseURL/timeout/headers/state 等。
  * 调整配置时只需修改此处一处。
  */
 const request = createRequest({
   // baseURL: '/api',  // 按需设置 API 基础路径
-  // timeout: 10000,
-});
-
-const flatRequest = createFlatRequest({
-  // baseURL: '/api',
   // timeout: 10000,
 });
 
@@ -372,6 +367,9 @@ export const api = createTypedClient<paths>(request);
 /**
  * 扁平模式类型化 HTTP 客户端(不抛异常,通过返回值判断)
  *
+ * toFlatTypedClient 接收同一个 RequestInstance,内部通过 withResponse + try/catch
+ * 实现扁平化返回,与 api 共享 state/cache/auth。
+ *
  * 返回 { data, error, response } — 成功时 error 为 null,失败时 data 为 null。
  * 接口与 api 一致,同样支持 responseType。
  *
@@ -387,7 +385,7 @@ export const api = createTypedClient<paths>(request);
  *   console.log('User:', data);
  * }
  */
-export const flatApi = createFlatTypedClient<paths>(flatRequest);
+export const flatApi = toFlatTypedClient<paths>(request);
 `;
 
 /**

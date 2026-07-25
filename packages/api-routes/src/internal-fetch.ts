@@ -62,7 +62,7 @@ function applyContextHeaders(headers: Headers, c: Context<UbeanEnv>, forwardHead
  * 创建进程内调度适配器。
  *
  * 将注册的 Hono `app.fetch` 包装为 `@soybeanjs/fetch` 的 `FetchAdapter`,
- * 使其可通过 `createRequest` / `createTypedClient` / `createFlatTypedClient` 等 API
+ * 使其可通过 `createRequest` / `createTypedClient` / `toFlatTypedClient` 等 API
  * 进行进程内调度(不发起新的网络请求)。
  *
  * 消费者可直接组合使用:

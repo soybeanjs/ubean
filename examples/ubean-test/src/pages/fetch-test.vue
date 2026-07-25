@@ -203,7 +203,7 @@ async function fetchFlat() {
 
     <!-- 5. 扁平模式 -->
     <section>
-      <h2>5. 扁平模式(createFlatTypedClient)</h2>
+      <h2>5. 扁平模式(toFlatTypedClient)</h2>
       <button @click="fetchFlat">GET /api/users(flat)</button>
       <pre v-if="flatResult">{{ JSON.stringify(flatResult, null, 2) }}</pre>
     </section>

@@ -1,7 +1,7 @@
 /**
  * 类型化请求客户端集成测试
  *
- * 验证 createTypedClient / createFlatTypedClient 的
+ * 验证 createTypedClient / toFlatTypedClient 的
  * 运行时行为和类型推断。
  *
  * 类型来源: ubean dev server 自动生成的 .ubean/openapi.d.ts
@@ -11,12 +11,11 @@
 import { describe, it, expect } from 'vitest';
 import {
   createRequest,
-  createFlatRequest,
   parseContentDisposition
 } from '@soybeanjs/fetch';
 import {
   createTypedClient,
-  createFlatTypedClient,
+  toFlatTypedClient,
   replacePathParams
 } from '@soybeanjs/fetch/openapi';
 import type { FileResponseData } from '@soybeanjs/fetch';
@@ -204,20 +203,20 @@ describe('Typed client - createTypedClient', () => {
 });
 
 // ============================================================================
-// 3. createFlatTypedClient - 类型化扁平化客户端
+// 3. toFlatTypedClient - 类型化扁平化客户端
 // ============================================================================
 
-describe('Typed client - createFlatTypedClient', () => {
+describe('Typed client - toFlatTypedClient', () => {
   it('creates a typed flat client', () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     expect(typeof flat.get).toBe('function');
     expect(typeof flat.post).toBe('function');
   });
 
   it('$get /api/users/{id} returns { data, error, response }', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     const result = await flat.get('/api/users/{id}', {
       pathParams: { id: '1' }
     });
@@ -231,8 +230,8 @@ describe('Typed client - createFlatTypedClient', () => {
   });
 
   it('$get on non-existent route returns error in flat response', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     // Use a path not in paths type - will 404 at runtime
     try {
       const result = await flat.get('/api/users/{id}', {
@@ -247,8 +246,8 @@ describe('Typed client - createFlatTypedClient', () => {
   });
 
   it('$post /api/users returns flat response with data', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     const result = await flat.post('/api/users', {
       body: { name: 'Flat User', email: 'flat@example.com', role: 'user' }
     });
@@ -258,8 +257,8 @@ describe('Typed client - createFlatTypedClient', () => {
   });
 
   it('$delete /api/users/{id} returns flat response', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     const result = await flat.delete('/api/users/{id}', {
       pathParams: { id: '1' }
     });
@@ -289,9 +288,9 @@ describe('Typed client - type inference (compile-time)', () => {
     expect(typeof typed.patch).toBe('function');
   });
 
-  it('createFlatTypedClient returns TypedFlatClient<paths>', () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+  it('toFlatTypedClient returns TypedFlatClient<paths>', () => {
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
 
     expect(typeof flat.get).toBe('function');
     expect(typeof flat.post).toBe('function');
@@ -465,13 +464,13 @@ describe('Typed client - responseType', () => {
 });
 
 // ============================================================================
-// 10. createFlatTypedClient - responseType 配置
+// 10. toFlatTypedClient - responseType 配置
 // ============================================================================
 
 describe('Typed flat client - responseType', () => {
   it('responseType: "text" returns { data: string, error: null }', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/text', { responseType: 'text' });
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('error');
@@ -482,8 +481,8 @@ describe('Typed flat client - responseType', () => {
   });
 
   it('responseType: "blob" returns { data: FileResponseData, error: null }', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
       query: { filename: 'flat-blob.txt' },
       responseType: 'blob'
@@ -496,8 +495,8 @@ describe('Typed flat client - responseType', () => {
   });
 
   it('responseType: "arraybuffer" returns { data: FileResponseData<ArrayBuffer> }', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
       query: { filename: 'flat-ab.bin' },
       responseType: 'arraybuffer'
@@ -507,8 +506,8 @@ describe('Typed flat client - responseType', () => {
   });
 
   it('responseType: "stream" returns { data: FileResponseData<Uint8Array> }', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
       query: { filename: 'flat-stream.bin' },
       responseType: 'stream'
@@ -518,8 +517,8 @@ describe('Typed flat client - responseType', () => {
   });
 
   it('non-2xx response with responseType: "blob" returns error in flat response', async () => {
-    const request = createFlatRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
-    const flat = createFlatTypedClient<paths>(request);
+    const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
+    const flat = toFlatTypedClient<paths>(request);
     // 请求不存在的资源
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/non-existent-route', {
       responseType: 'blob'

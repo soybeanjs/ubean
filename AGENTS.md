@@ -263,7 +263,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `createInternalFetch(options)` / `callInternal(...)` | 进程内调度框架 handler，不发起网络请求 |
 | `internalFetch` 不支持上传进度                       | —                                      |
 
-> 浏览器端 HTTP 请求请直接使用 [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)（`createRequest` / `createFlatRequest` / `createTypedClient` / `createFlatTypedClient`），ubean 不再内置 HTTP 客户端封装。
+> 浏览器端 HTTP 请求请直接使用 [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)（`createRequest` / `toFlatRequest` / `createTypedClient` / `toFlatTypedClient`），ubean 不再内置 HTTP 客户端封装。
 
 ### Vue 运行时
 

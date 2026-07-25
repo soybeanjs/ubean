@@ -1,0 +1,32 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/types" },
+    { "path": "./packages/utils" },
+    { "path": "./packages/markdown" },
+    { "path": "./packages/error" },
+    { "path": "./packages/env" },
+    { "path": "./packages/seo" },
+    { "path": "./packages/i18n" },
+    { "path": "./packages/client" },
+    { "path": "./packages/pages" },
+    { "path": "./packages/routing" },
+    { "path": "./packages/api-routes" },
+    { "path": "./packages/server-runtime" },
+    { "path": "./packages/app" },
+    { "path": "./packages/config" },
+    { "path": "./packages/preset" },
+    { "path": "./packages/codegen" },
+    { "path": "./packages/modules" },
+    { "path": "./packages/auto-imports" },
+    { "path": "./packages/runtime" },
+    { "path": "./packages/islands" },
+    { "path": "./packages/ssr" },
+    { "path": "./packages/vite" },
+    { "path": "./packages/build" },
+    { "path": "./packages/prerender" },
+    { "path": "./packages/dev" },
+    { "path": "./packages/cli" },
+    { "path": "./packages/core" }
+  ]
+}

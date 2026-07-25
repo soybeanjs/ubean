@@ -15,6 +15,8 @@
 | [生态能力演进](ecosystem.md)           | 元框架调研结论、页面数据协议、可观测性、SEO 与资源/内容扩展的取舍。     |
 | [DevTools 迁移设计](devtools-vite-devtools-migration.md) | 基于 Vite DevTools Kit 重构 `@ubean/devtools` 的可行性分析、目标架构与分阶段计划。 |
 | [ubean-studio 产品方案](ubean-studio.md) | 基于 Electron 的桌面工作台：DevTools 内嵌、命令可视化、物料市场、商业系统与 AI 驱动的完整规划与任务清单。 |
+| [子包拆分方案](subpackage-splitting.md) | 将 `ubean` 拆分为多个职责清晰的子包（`@ubean/routing`、`@ubean/api-routes`、`@ubean/runtime`、`@ubean/ssr` 等），支持前端独立使用；含路由生成双模式（虚拟 + 实体文件，对齐 elegant-router）与三阶段演进策略。 |
+| [子包拆分任务清单](subpackage-splitting-tasks.md) | 子包拆分方案的详细任务列表与状态跟踪（49 项任务，8 个阶段）。 |
 
 ## 文档原则
 

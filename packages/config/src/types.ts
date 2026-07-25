@@ -114,18 +114,6 @@ export interface RoutingConfig {
    */
   notFoundRouteComponent?: string;
 
-  /**
-   * 默认复用路由组件文件路径(相对于 `pages/` 目录),默认 `undefined`。
-   * 用于 `xxx.reuse.vue` 的默认 fallback。
-   */
-  defaultReuseRouteComponent?: string;
-
-  /**
-   * 复用路由配置。每项 `{ path, component }` 定义一个可复用的路由,
-   * 类似 vue-router 的 children 但使用扁平模式。
-   */
-  reuseRoutes?: Array<{ path: string; component?: string }>;
-
   /** 布局相关配置。 */
   layouts?: {
     /**

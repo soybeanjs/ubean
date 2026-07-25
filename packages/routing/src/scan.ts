@@ -94,13 +94,15 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
       scanServerEntry(srcDir)
     ]);
 
-  const reusePageNames = new Set(pages.filter(p => p.isReuse).map(p => p.name));
+  // Reuse routes reference a target page by name. The target must be a
+  // regular (non-reuse) page — chaining reuse routes is not supported.
+  const regularPageNames = new Set(pages.filter(p => !p.isReuse).map(p => p.name));
 
   for (const page of pages) {
-    if (page.reuseTarget && !reusePageNames.has(page.reuseTarget)) {
+    if (page.isReuse && page.reuseTarget && !regularPageNames.has(page.reuseTarget)) {
       logger.warn(
-        `Page "${page.name}" references reuse target "${page.reuseTarget}" which does not exist. ` +
-          `Available reuse pages: ${[...reusePageNames].join(', ') || '(none)'}`
+        `Reuse page "${page.name}" references target "${page.reuseTarget}" which does not exist. ` +
+          `Available page targets: ${[...regularPageNames].join(', ') || '(none)'}`
       );
     }
   }

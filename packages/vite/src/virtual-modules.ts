@@ -17,13 +17,29 @@ export function createVuePagesVirtualModule(pages: ScannedPageRoute[], layouts: 
     const layoutLoaders: string[] = [];
     const routeEntries: string[] = [];
 
+    // Build a name → page index for resolving reuse targets. Reuse routes
+    // reference another page's component via `reuseTarget`, so they must
+    // reuse the target's loader instead of importing the `.reuse.ts` file
+    // (which only contains `definePage` metadata, not a Vue component).
+    const pageByName = new Map<string, ScannedPageRoute>();
+    for (const p of pages) {
+      pageByName.set(p.name, p);
+    }
+
     for (const p of pages) {
       const varName = `Page_${p.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
       const routerPath = toVueRouterPath(p.route);
       const layoutValue = p.layout === false ? 'false' : p.layout ? JSON.stringify(p.layout) : 'undefined';
       const cacheValue = p.cache === true ? 'true' : 'undefined';
 
-      pageLoaders.push(`const ${varName} = () => import(${JSON.stringify(p.fullPath)}).then(m => m.default || m);`);
+      if (p.isReuse && p.reuseTarget && pageByName.has(p.reuseTarget)) {
+        // Reuse route: reference the target page's component loader instead
+        // of importing the `.reuse.ts` file (which holds only route metadata).
+        const targetVarName = `Page_${p.reuseTarget.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        pageLoaders.push(`const ${varName} = ${targetVarName};`);
+      } else {
+        pageLoaders.push(`const ${varName} = () => import(${JSON.stringify(p.fullPath)}).then(m => m.default || m);`);
+      }
       routeEntries.push(
         `  { path: ${JSON.stringify(routerPath)}, name: ${JSON.stringify(p.name)}, component: ${varName}, meta: { layout: ${layoutValue}, pageName: ${JSON.stringify(p.name)}, cache: ${cacheValue} } }`
       );
@@ -89,7 +105,7 @@ export function resolveLayoutComponent(name) {
 }
 
 export const pages = {
-${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)} }`).join(',\n')}
+${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)}, isReuse: ${p.isReuse}, reuseTarget: ${JSON.stringify(p.reuseTarget)} }`).join(',\n')}
 };
 
 export const layouts = {

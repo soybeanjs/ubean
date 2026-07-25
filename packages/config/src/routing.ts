@@ -13,8 +13,6 @@ export const routingConfigDefaults: ResolvedRoutingConfig = {
   generateBuiltinRoutes: true,
   rootRedirect: '',
   notFoundRouteComponent: '404.vue',
-  defaultReuseRouteComponent: '',
-  reuseRoutes: [],
   layouts: {
     defaultLayout: 'default',
     layoutLazy: true
@@ -50,7 +48,6 @@ export function resolveRoutingConfig(userConfig?: RoutingConfig): ResolvedRoutin
       ...routingConfigDefaults.layouts,
       ...userConfig.layouts
     },
-    reuseRoutes: userConfig.reuseRoutes ? [...userConfig.reuseRoutes] : [...routingConfigDefaults.reuseRoutes],
     pageInclude: userConfig.pageInclude ? [...userConfig.pageInclude] : [...routingConfigDefaults.pageInclude],
     pageExclude: userConfig.pageExclude ? [...userConfig.pageExclude] : [...routingConfigDefaults.pageExclude]
   };

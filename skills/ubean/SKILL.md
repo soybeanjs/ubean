@@ -68,6 +68,39 @@ pnpm dev
 - **Category**: Web Framework
 - **Public package**: `ubean` (workspace `packages/ubean`)
 
+## Package Architecture
+
+ubean is a **monorepo** of 36 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package (`ubean`) and get the full API surface via `import { ... } from 'ubean'`.
+
+### Subpath Exports
+
+| Subpath              | Purpose                                                                         |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `ubean`              | Main entry — re-exports all subpackages (server-side code, API routes)          |
+| `ubean/vite`         | Default Vite plugin combo (build + vue + islands) for `vite.config.ts`          |
+| `ubean/runtime/vue`  | Browser-side Vue client runtime (avoids pulling server deps into client bundle) |
+| `ubean/runtime/app`  | Server Hono app entry (`createUbeanApp` / `defineServer`) for `src/server.ts`   |
+| `ubean/runtime/i18n` | Server-side pure-function i18n                                                  |
+| `ubean/vue-ssr`      | Vue SSR renderer (`createVueRenderer`)                                          |
+
+> **Critical**: Client-side auto-imports MUST use `ubean/runtime/vue`, not `ubean` main entry — the latter triggers Vite to pre-bundle server-side dependencies (unocss, oxc-parser WASM) in the browser environment.
+
+### Key Subpackages
+
+| Package                 | Responsibility                                                        |
+| ----------------------- | --------------------------------------------------------------------- |
+| `@ubean/types`          | Shared type definitions                                               |
+| `@ubean/routing`        | Route scanner + rou3 router + AST extractor                           |
+| `@ubean/build`          | Build-time core (virtual modules + Vite plugins)                      |
+| `@ubean/runtime`        | Vue client runtime (composables, router, islands hydrate)             |
+| `@ubean/server-runtime` | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
+| `@ubean/app`            | Hono app factory + server config                                      |
+| `@ubean/config`         | Config loading (c12 + defu)                                           |
+| `@ubean/vite`           | Vue-specific Vite plugin (pages/entry virtual modules + auto-imports) |
+| `@ubean/cli`            | CLI commands (init/dev/build/preview/page/env)                        |
+
+Extension packages (`@ubean/auth`, `@ubean/icon`, `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`) are loaded on-demand via `ubean.config.ts` boolean flags (`icon: true`, `pwa: true`, etc.).
+
 ## Commands
 
 | Command  | Description                                     | Usage                       |

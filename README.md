@@ -59,6 +59,8 @@ Common commands:
 
 ## Architecture Direction
 
+ubean is a **monorepo** of 36 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package and get the full API surface. Subpackages are split by responsibility (routing, build, runtime, config, etc.) and can also be consumed individually for advanced use cases.
+
 The core implementation follows these boundaries:
 
 - Pure functions handle configuration merging, file scanning, route parsing, code generation, and type inference.
@@ -66,6 +68,22 @@ The core implementation follows these boundaries:
 - The public HTTP client uses `ofetch` by default. A browser request switches to `XMLHttpRequest.upload` only when it provides `onUploadProgress`.
 - `internalFetch` dispatches framework handlers directly without making a network request and does not support upload progress.
 - Presets declare their capabilities. Unsupported features must produce build-time diagnostics rather than silently degrade.
+
+### Package Structure
+
+```
+packages/
+├── ubean/          # Main package (npm: "ubean") — aggregator, re-exports all @ubean/*
+├── types/          # @ubean/types — shared types
+├── routing/        # @ubean/routing — route scanner + rou3 router
+├── build/          # @ubean/build — build-time core (virtual modules + Vite plugins)
+├── runtime/        # @ubean/runtime — Vue client runtime
+├── server-runtime/ # @ubean/server-runtime — cache/db/queue/cron/ws/sse
+├── ...             # 30 more subpackages
+└── auth/           # @ubean/auth — extension packages (icon/pwa/image/content/fonts)
+```
+
+See [docs/subpackage-splitting.md](docs/subpackage-splitting.md) for the full package architecture and [AGENTS.md](AGENTS.md) for the complete package list.
 
 ## Planning and Contributions
 

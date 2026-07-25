@@ -53,6 +53,8 @@ pnpm lint
 
 ## 架构方向
 
+ubean 是一个 **monorepo**，包含 36 个子包。公开包 `ubean` 是**聚合器**，re-export 所有 `@ubean/*` 子包 —— 用户安装一个包即可获得完整 API 表面。子包按职责拆分（路由、构建、运行时、配置等），也可单独消费用于高级场景。
+
 ubean 的核心实现遵循以下边界：
 
 - 纯函数处理配置归并、文件扫描、路由解析、代码生成和类型推导。
@@ -60,6 +62,22 @@ ubean 的核心实现遵循以下边界：
 - 对外 HTTP 客户端默认使用 `ofetch`；只有传入 `onUploadProgress` 的浏览器请求才切换为 `XMLHttpRequest.upload` 传输。
 - `internalFetch` 直接调度框架 handler，不通过网络，也不支持上传进度。
 - preset 必须声明能力；构建期对不支持的功能给出诊断，不能静默降级。
+
+### 包结构
+
+```
+packages/
+├── ubean/          # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/*
+├── types/          # @ubean/types — 共享类型
+├── routing/        # @ubean/routing — 路由扫描 + rou3 router
+├── build/          # @ubean/build — 构建时核心（虚拟模块 + Vite 插件）
+├── runtime/        # @ubean/runtime — Vue 客户端运行时
+├── server-runtime/ # @ubean/server-runtime — cache/db/queue/cron/ws/sse
+├── ...             # 另外 30 个子包
+└── auth/           # @ubean/auth — 扩展包（icon/pwa/image/content/fonts）
+```
+
+完整包架构见 [docs/subpackage-splitting.md](docs/subpackage-splitting.md)，完整包列表见 [AGENTS.md](AGENTS.md)。
 
 ## 规划与贡献
 

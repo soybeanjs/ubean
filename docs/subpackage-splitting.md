@@ -1,5 +1,17 @@
 # ubean 子包拆分方案
 
+> **实施状态:已完成(2026-07)**
+>
+> 本文档为原始设计方案。实际实施中进行了以下调整:
+> - **未创建 `@ubean/core` 中间包** — `packages/core` 最终直接重命名为 `packages/ubean`,聚合器包名即为 `ubean`(非 `@ubean/core`)。
+> - **扩展包目录去掉 `ubean-` 前缀** — `packages/ubean-auth/` → `packages/auth/`(包名仍为 `@ubean/auth`)。
+> - **导出格式统一为 `.js`/`.d.ts`** — 通过 `vite.config.ts` 的 `fixedExtension: false` 实现(非 `.mjs`/`.d.mts`)。
+> - **新增 4 个子路径导出** — `ubean/runtime/vue`、`ubean/runtime/app`、`ubean/runtime/i18n`、`ubean/vue-ssr`。
+>
+> 当前实际包架构见 [AGENTS.md](../AGENTS.md) 第 2 节。
+>
+> ---
+>
 > 目标:将 `packages/ubean` 中的实现拆分为多个职责清晰的子包,使前端项目可独立使用部分能力(无 SSR / 无后端路由),同时对齐 elegant-router 的实体文件路由生成能力。
 >
 > 关联文档:[任务清单与状态](subpackage-splitting-tasks.md)

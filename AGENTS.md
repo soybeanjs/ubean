@@ -16,25 +16,72 @@
 
 ```
 ubean/
-├── packages/
-│   ├── ubean/              # 主包 (npm: "ubean") — 核心运行时 + 构建时 + CLI
+├── packages/                # 36 个子包（monorepo）
+│   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
+│   ├── types/              # @ubean/types — 共享类型
+│   ├── utils/              # @ubean/utils — 工具函数
+│   ├── error/              # @ubean/error — 错误类
+│   ├── env/                # @ubean/env — 环境变量
+│   ├── seo/                # @ubean/seo — SEO meta
+│   ├── client/             # @ubean/client — HTTP 客户端
+│   ├── pages/              # @ubean/pages — 页面数据协议
+│   ├── markdown/           # @ubean/markdown — Markdown 解析
+│   ├── i18n/               # @ubean/i18n — 国际化（纯函数）
+│   ├── routing/            # @ubean/routing — 路由扫描 + rou3 router
+│   ├── api-routes/         # @ubean/api-routes — API 路由处理器
+│   ├── server-runtime/     # @ubean/server-runtime — 服务端运行时（cache/db/queue/cron/ws/sse）
+│   ├── app/                # @ubean/app — Hono 应用工厂
+│   ├── config/             # @ubean/config — 配置加载
+│   ├── preset/             # @ubean/preset — 平台预设（node/cloudflare）
+│   ├── codegen/            # @ubean/codegen — 类型生成
+│   ├── modules/            # @ubean/modules — 模块系统
+│   ├── auto-imports/       # @ubean/auto-imports — 自动导入
+│   ├── runtime/            # @ubean/runtime — Vue 客户端运行时
+│   ├── islands/            # @ubean/islands — Islands 架构
+│   ├── ssr/                # @ubean/ssr — Vue SSR 渲染器
+│   ├── vite/               # @ubean/vite — Vue 专属 Vite 插件
+│   ├── build/              # @ubean/build — 构建时核心（virtual + vite 插件）
+│   ├── prerender/          # @ubean/prerender — SSG 预渲染
+│   ├── dev/                # @ubean/dev — Dev server
+│   ├── cli/                # @ubean/cli — CLI 命令
 │   ├── devtools/           # @ubean/devtools — DevTools 独立包
-│   ├── ubean-auth/         # @ubean/auth — Better Auth 集成
-│   ├── ubean-icon/         # @ubean/icon — Iconify 集成
-│   ├── ubean-pwa/           # @ubean/pwa — PWA manifest + service worker
-│   ├── ubean-image/         # @ubean/image
-│   ├── ubean-content/       # @ubean/content
-│   └── ubean-fonts/         # @ubean/fonts
-├── examples/ubean-test/     # 完整示例 + 测试
+│   ├── auth/               # @ubean/auth — Better Auth 集成
+│   ├── icon/               # @ubean/icon — Iconify 集成
+│   ├── pwa/                # @ubean/pwa — PWA manifest + service worker
+│   ├── image/              # @ubean/image — 图片优化
+│   ├── content/            # @ubean/content — 内容集合
+│   └── fonts/              # @ubean/fonts — 字体优化
+├── examples/                # 示例项目
+│   ├── ubean-test/         # 完整全栈示例 + 测试（virtual 模式）
+│   ├── frontend-only/      # 纯前端示例（无 API/SSR）
+│   └── routing-file-mode/  # 路由文件生成模式示例
 ├── skills/ubean/            # AI Skill（含使用指南和 API 参考）
 ├── docs/                     # 架构/工程/路线图文档
 └── AGENTS.md                 # 本文件
 ```
 
-主包 `packages/ubean/src/` 内部分为：
+### 2.1 包架构
 
-- `core/` — 构建时：`auto-imports/`、`build/`（virtual + vite 插件）、`cli/`、`codegen/`、`config/`、`dev/`、`devtools/`、`islands/`、`markdown/`、`modules/`、`prerender/`、`preset/`、`routing/`、`vue/`
-- `runtime/` — 运行时：`app.ts`、`handler.ts`、`router.ts`、`cache.ts`、`database.ts`、`storage.ts`、`queue.ts`、`cron.ts`、`websocket.ts`、`sse.ts`、`env.ts`、`i18n.ts`、`seo.ts`、`route-rules.ts`、`rate-limit.ts`、`cors.ts`、`observability.ts`、`internal-fetch.ts`、`pages/`、`vue/`、`internal/`
+ubean 采用 **monorepo + 聚合器** 架构：
+
+- **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含 4 个子路径导出（见下文）。
+- **子包 `@ubean/*`**（其余 35 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`）：通过 `ubean.config.ts` 的顶层布尔字段（`icon: true`、`pwa: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
+
+### 2.2 主包子路径导出
+
+`ubean` 主包除 `.` 主入口外，提供以下子路径：
+
+| 子路径               | 说明                                                    | 典型用途             |
+| -------------------- | ------------------------------------------------------- | -------------------- |
+| `ubean`              | 主入口，re-export 所有子包                              | 服务端代码、API 路由 |
+| `ubean/vite`         | 默认 Vite 插件组合（build + vue + islands）             | `vite.config.ts`     |
+| `ubean/runtime/vue`  | 浏览器端 Vue 客户端运行时（避免拉入服务端依赖）         | 客户端自动导入       |
+| `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`） | `src/server.ts`      |
+| `ubean/runtime/i18n` | 服务端纯函数 i18n                                       | 构建时 i18n          |
+| `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）                   | 自定义 SSR           |
+
+> **注意**：客户端自动导入必须用 `ubean/runtime/vue` 入口，不能从 `ubean` 主入口导入（会触发 Vite 在浏览器环境预构建服务端依赖）。详见第 8 节陷阱 #8。
 
 ## 3. 核心约定
 
@@ -375,9 +422,13 @@ pnpm build            # 构建
 
 | 资源     | 路径                                                                 | 内容                                                        |
 | -------- | -------------------------------------------------------------------- | ----------------------------------------------------------- |
-| 架构文档 | [docs/](docs/)                                                       | 架构、工程规范、路线图                                      |
-| 使用指南 | [skills/ubean/docs/guide/](skills/ubean/docs/guide/)                 | 快速开始、页面路由、i18n、Islands                           |
+| 架构文档 | [docs/](docs/)                                                       | 架构、工程规范、路线图、子包拆分、应用模式                  |
+| 使用指南 | [skills/ubean/docs/guide/](skills/ubean/docs/guide/)                 | 快速开始、页面路由、i18n、Islands、路由模式                 |
 | 集成指南 | [skills/ubean/docs/integrations/](skills/ubean/docs/integrations/)   | Auth、Database、Icons                                       |
 | API 参考 | [skills/ubean/docs/reference/api/](skills/ubean/docs/reference/api/) | Cache、Database、Env、i18n、Route Helpers、Response Helpers |
 | CLI 命令 | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)       | CLI 命令文档                                                |
-| 示例项目 | [examples/ubean-test/](examples/ubean-test/)                         | 完整示例 + 测试                                             |
+| 示例项目 | [examples/ubean-test/](examples/ubean-test/)                         | 完整全栈示例 + 测试（virtual 路由模式）                     |
+| 示例项目 | [examples/frontend-only/](examples/frontend-only/)                   | 纯前端示例（无 API/SSR）                                    |
+| 示例项目 | [examples/routing-file-mode/](examples/routing-file-mode/)           | 路由文件生成模式示例                                        |
+| 应用模式 | [docs/modes.md](docs/modes.md)                                       | 全栈/前端/后端/SSG/SSR 模式设计方案                         |
+| 子包拆分 | [docs/subpackage-splitting.md](docs/subpackage-splitting.md)         | monorepo 拆分方案与包架构                                   |

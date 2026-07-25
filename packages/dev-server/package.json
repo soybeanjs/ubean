@@ -1,5 +1,5 @@
 {
-  "name": "@ubean/dev",
+  "name": "@ubean/dev-server",
   "version": "0.0.1",
   "description": "Dev server orchestration for ubean (createViteDevServer, createDevRunner, watcher)",
   "files": [

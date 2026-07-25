@@ -183,14 +183,14 @@
   - 验证:`pnpm -F @ubean/api-routes typecheck && pnpm -F @ubean/api-routes test` 通过
   - 备注:
 
-### `@ubean/server-runtime`
+### `@ubean/server`
 
-- [x] T2-5 合并迁移服务端运行时原语 → `packages/server-runtime/src/`
+- [x] T2-5 合并迁移服务端运行时原语 → `packages/server/src/`(包名 `@ubean/server`,原名 `@ubean/server-runtime` 已重命名)
   - 来源:`runtime/{cache,database,queue,cron,cron-scheduler,websocket,sse,storage,observability,static,cors,rate-limit}.ts`
   - 包含:`createMemoryStore`、`useCacheStore`、`clearCacheStore`、`createCacheMiddleware`、`cachedEventHandler`、`invalidateRouteCache`、`resolveRouteCacheRules`、`defineDatabase`、`useDatabase`、`closeDatabases`、`getDatabaseHooks`、`registerDb0Create`、`migrateDatabase`、`runMigrations`、`rawSql`、`sqlRaw`、`defineQueue`、`createMemoryQueueDriver`、`setQueueDriver`、`useQueueDriver`、`sendMessage`、`sendMessages`、`startQueueWorkers`、`stopQueueWorkers`、`defineScheduled`、`getScheduledTasks`、`runScheduledTask`、`clearScheduledTasks`、`createMemoryCronScheduler`、`startCronScheduler`、`parseCron`、`validateCron`、`defineWebSocket`、`defineRoom`、`createRoom`、`getRoom`、`broadcast`、`createSSEStream`、`defineSSE`、`broadcastSSE`、`formatSSEMessage`、`useStorage`、`createStorage`、`useKV`、`createKV`、`createMemoryDriver`、`getRequestId`、`createObservabilityTracer`、`createTracingMiddleware`、`serveStatic`、`createCorsMiddleware`、`defineCors`、`createRateLimitMiddleware`、`defineRateLimit`
   - 依赖:`hono`、`unstorage`、`hookable`、`@ubean/types`
   - 状态:`[ ]`
-  - 验证:`pnpm -F @ubean/server-runtime typecheck && pnpm -F @ubean/server-runtime test` 通过
+  - 验证:`pnpm -F @ubean/server typecheck && pnpm -F @ubean/server test` 通过
   - 备注:
 
 ### `@ubean/app`
@@ -198,7 +198,7 @@
 - [x] T2-6 迁移 Hono 应用工厂 → `packages/app/src/`
   - 来源:`runtime/{app,define-server}.ts`
   - 包含:`createUbeanApp`、`UbeanApp`、`defineServer`、`createDefaultServerConfig`、`mergeServerConfigs`、`applyServerConfig`、`UbeanAppOptions`、`UbeanAppPlugin`、`UbeanRuntimeHooks`、`AppPlugin`、`DefineServerOptions`、`ResolvedServerConfig`、`ServerHooks`
-  - 依赖:`hono`、`hookable`、`@ubean/api-routes`、`@ubean/server-runtime`、`@ubean/routing`(type-only)、`@ubean/config`(type-only)
+  - 依赖:`hono`、`hookable`、`@ubean/api-routes`、`@ubean/server`、`@ubean/routing`(type-only)、`@ubean/config`(type-only)
   - 状态:`[ ]`
   - 验证:`pnpm -F @ubean/app typecheck && pnpm -F @ubean/app test` 通过
   - 备注:
@@ -336,15 +336,15 @@
   - 验证:`pnpm -F @ubean/build typecheck` 通过
   - 备注:
 
-### `@ubean/dev`
+### `@ubean/dev-server`
 
-- [x] T4-7 迁移开发服务器编排 → `packages/dev/src/`
+- [x] T4-7 迁移开发服务器编排 → `packages/dev-server/src/`
   - 来源:`core/dev/`
   - 包含:`createViteDevServer`、`ViteDevServerOptions`、`ViteDevServerInstance`、`createDevRunner`、`DevRunnerDevtoolsOptions`、`FileWatcher`
   - 依赖:`vite`、`@vitejs/plugin-vue`、`@ubean/build`、`@ubean/vite`、`@ubean/ssr`、`@ubean/app`、`@ubean/islands`、`@ubean/cli`
-  - 入口:`@ubean/dev`
+  - 入口:`@ubean/dev-server`
   - 状态:`[ ]`
-  - 验证:`pnpm -F @ubean/dev typecheck` 通过
+  - 验证:`pnpm -F @ubean/dev-server typecheck` 通过
   - 备注:
 
 ### `@ubean/cli`
@@ -378,7 +378,7 @@
     export * from '@ubean/utils';
     export * from '@ubean/routing';
     export * from '@ubean/api-routes';
-    export * from '@ubean/server-runtime';
+    export * from '@ubean/server';
     export * from '@ubean/app';
     export * from '@ubean/i18n';
     export * from '@ubean/env';

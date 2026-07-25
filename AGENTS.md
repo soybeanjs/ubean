@@ -28,7 +28,7 @@ ubean/
 │   ├── i18n/               # @ubean/i18n — 国际化（纯函数）
 │   ├── routing/            # @ubean/routing — 路由扫描 + rou3 router
 │   ├── api-routes/         # @ubean/api-routes — API 路由处理器
-│   ├── server-runtime/     # @ubean/server-runtime — 服务端运行时（cache/db/queue/cron/ws/sse）
+│   ├── server/             # @ubean/server — 服务端运行时（cache/db/queue/cron/ws/sse）
 │   ├── app/                # @ubean/app — Hono 应用工厂
 │   ├── config/             # @ubean/config — 配置加载
 │   ├── preset/             # @ubean/preset — 平台预设（node/cloudflare）
@@ -41,7 +41,7 @@ ubean/
 │   ├── vite/               # @ubean/vite — Vue 专属 Vite 插件
 │   ├── build/              # @ubean/build — 构建时核心（virtual + vite 插件）
 │   ├── prerender/          # @ubean/prerender — SSG 预渲染
-│   ├── dev/                # @ubean/dev — Dev server
+│   ├── dev-server/         # @ubean/dev-server — Dev server
 │   ├── cli/                # @ubean/cli — CLI 命令
 │   ├── devtools/           # @ubean/devtools — DevTools 独立包
 │   ├── auth/               # @ubean/auth — Better Auth 集成
@@ -354,9 +354,12 @@ import { ubeanPwaPlugin } from '@ubean/pwa/vite';
 import { usePwa } from '@ubean/pwa/runtime';
 ```
 
-- 构建时生成 `manifest.webmanifest` + `sw.js`
+- **底层实现**：[vite-plugin-pwa](https://vite-pwa-org.netlify.app/) + workbox（ubean 仅提供薄封装层）
+- 构建时生成 `manifest.webmanifest` + `sw.js`（由 vite-plugin-pwa 的 `generateSW` 策略自动生成）
 - `registerType`：`autoUpdate` | `prompt` | `manual`
-- 5 种缓存策略
+- 5 种缓存策略：`cache-first` / `network-first` / `stale-while-revalidate` / `network-only` / `cache-only`
+- `strategies` 字段按资源类型（assets/pages/images/fonts/crossOrigin）配置默认缓存规则，内部转换为 workbox `runtimeCaching`
+- `injectManifest: true` 支持 `injectManifest` 策略（自定义 SW 源文件 `swSrc`）
 - `usePwa()`：`isInstalled`/`isUpdateAvailable`/`isOfflineReady`/`needRefresh`
 
 ## 6. 虚拟模块

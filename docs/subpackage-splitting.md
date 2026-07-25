@@ -78,7 +78,7 @@ packages/
 ├── utils/                    # @ubean/utils
 ├── routing/                  # @ubean/routing(含实体文件生成器)
 ├── api-routes/               # @ubean/api-routes
-├── server-runtime/           # @ubean/server-runtime
+├── server/                   # @ubean/server
 ├── app/                      # @ubean/app
 ├── i18n/                     # @ubean/i18n
 ├── env/                      # @ubean/env
@@ -97,7 +97,7 @@ packages/
 ├── codegen/                  # @ubean/codegen
 ├── modules/                  # @ubean/modules
 ├── build/                    # @ubean/build(框架无关 Vite 插件)
-├── dev/                      # @ubean/dev
+├── dev-server/               # @ubean/dev-server
 ├── cli/                      # @ubean/cli
 │
 ├── ubean-auth/               # 已有
@@ -146,17 +146,17 @@ packages/
 
 ### Layer 2 — 服务端运行时原语
 
-#### `@ubean/server-runtime`
+#### `@ubean/server`
 - **职责**: 服务端运行时原语 —— cache、database、queue、cron(+ scheduler)、websocket、sse、storage、observability、static、cors、rate-limit
 - **来源**: `runtime/{cache,database,queue,cron,cron-scheduler,websocket,sse,storage,observability,static,cors,rate-limit}.ts`
 - **依赖**: `hono`、`unstorage`、`hookable`、`@ubean/types`
-- **入口**: `@ubean/server-runtime`
+- **入口**: `@ubean/server`
 - **可选拆分**(后期): `@ubean/cache`、`@ubean/database`、`@ubean/queue`、`@ubean/cron`、`@ubean/realtime`、`@ubean/storage`
 
 #### `@ubean/app`
 - **职责**: Hono 应用工厂 + 服务器配置 —— `createUbeanApp`、`defineServer`、`createDefaultServerConfig`、`mergeServerConfigs`、`applyServerConfig`
 - **来源**: `runtime/{app,define-server}.ts`
-- **依赖**: `hono`、`hookable`、`@ubean/api-routes`、`@ubean/server-runtime`、`@ubean/routing`(type-only)、`@ubean/config`(type-only)
+- **依赖**: `hono`、`hookable`、`@ubean/api-routes`、`@ubean/server`、`@ubean/routing`(type-only)、`@ubean/config`(type-only)
 - **入口**: `@ubean/app`
 
 ### Layer 3 — 同构运行时(前端可用)
@@ -263,11 +263,11 @@ packages/
 - **依赖**: `vite`、`oxc-transform`、`@ubean/routing`、`@ubean/config`、`@ubean/modules`
 - **入口**: `@ubean/build/vite`
 
-#### `@ubean/dev`
+#### `@ubean/dev-server`
 - **职责**: 开发服务器编排 —— `createViteDevServer`、`createDevRunner`、watcher
 - **来源**: `core/dev/`
 - **依赖**: `vite`、`@vitejs/plugin-vue`、`@ubean/build`、`@ubean/vite`、`@ubean/ssr`、`@ubean/app`、`@ubean/islands`、`@ubean/cli`
-- **入口**: `@ubean/dev`
+- **入口**: `@ubean/dev-server`
 
 #### `@ubean/cli`
 - **职责**: CLI 命令 —— `ubean dev`、`ubean build`、`ubean prepare`、`ubean init`、`ubean preview`、`ubean page`、新增(对齐 elegant-router):`ubean add-route`、`ubean delete-route`、`ubean update-route`、`ubean recovery-route`、`ubean add-reuse-route`、`ubean backup`
@@ -305,7 +305,7 @@ packages/
         │          @ubean/api-routes     │       @ubean/markdown    @ubean/pages
         │                   │            │                            │
         │                   ▼            │                            ▼
-        │       @ubean/server-runtime    │                       @ubean/i18n
+        │       @ubean/server             │                       @ubean/i18n
         │                                │                       @ubean/seo
         ▼                                │
    @ubean/modules                         │
@@ -674,7 +674,7 @@ pnpm add ubean
 ```bash
 pnpm add @ubean/vite @ubean/runtime @ubean/routing @ubean/pages @ubean/auto-imports @ubean/islands @soybeanjs/fetch
 ```
-**不安装**:`@ubean/app`、`@ubean/api-routes`、`@ubean/server-runtime`、`@ubean/ssr`、`@ubean/prerender`
+**不安装**:`@ubean/app`、`@ubean/api-routes`、`@ubean/server`、`@ubean/ssr`、`@ubean/prerender`
 
 `vite.config.ts`:
 ```ts
@@ -708,7 +708,7 @@ export default defineConfig({
 
 ### 场景 C:后端 API 服务(无前端)
 ```bash
-pnpm add @ubean/app @ubean/api-routes @ubean/routing @ubean/server-runtime
+pnpm add @ubean/app @ubean/api-routes @ubean/routing @ubean/server
 ```
 
 ### 场景 D:Vue + Islands + SSR(自定义组装)
@@ -851,7 +851,7 @@ ubean build
   - 实现 ts-morph 增量更新
   - 实现路由备份/恢复
 - [ ] `@ubean/api-routes` ← `runtime/{handler,router,route-rules,internal-fetch,internal/openapi}.ts`
-- [ ] `@ubean/server-runtime` ← 合并 12 个服务端原语文件
+- [ ] `@ubean/server` ← 合并 12 个服务端原语文件
 - [ ] `@ubean/app` ← `runtime/{app,define-server}.ts`
 - [ ] `@ubean/config` 增强:新增 `RoutingConfig` 类型与默认值
 
@@ -868,7 +868,7 @@ ubean build
 - [ ] `@ubean/preset` ← `core/preset/`
 - [ ] `@ubean/codegen` ← `core/codegen/`(增强:生成 `ubean-router.d.ts`/`typed-router.d.ts`)
 - [ ] `@ubean/modules` ← `core/modules/`
-- [ ] `@ubean/dev` ← `core/dev/`
+- [ ] `@ubean/dev-server` ← `core/dev/`
 - [ ] `@ubean/cli` ← `core/cli/` + 新增 5 个路由管理命令
 
 ### 阶段 5:聚合器(1 天)

@@ -21,7 +21,7 @@ import {
   createMemoryStore,
   serveStatic,
   createWebSocketMiddleware
-} from '@ubean/server-runtime';
+} from '@ubean/server';
 import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '@ubean/types';
 import { requestId } from 'hono/request-id';
 import { createHooks } from 'hookable';

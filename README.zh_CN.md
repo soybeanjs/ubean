@@ -72,7 +72,7 @@ packages/
 ├── routing/        # @ubean/routing — 路由扫描 + rou3 router
 ├── build/          # @ubean/build — 构建时核心（虚拟模块 + Vite 插件）
 ├── runtime/        # @ubean/runtime — Vue 客户端运行时
-├── server-runtime/ # @ubean/server-runtime — cache/db/queue/cron/ws/sse
+├── server/         # @ubean/server — cache/db/queue/cron/ws/sse
 ├── ...             # 另外 30 个子包
 └── auth/           # @ubean/auth — 扩展包（icon/pwa/image/content/fonts）
 ```

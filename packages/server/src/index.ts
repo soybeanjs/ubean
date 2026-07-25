@@ -1,5 +1,5 @@
 /**
- * @ubean/server-runtime - Server-side runtime primitives for ubean
+ * @ubean/server - Server-side runtime primitives for ubean
  *
  * 此包提供所有服务端运行时原语:缓存、数据库、队列、cron、WebSocket、SSE、
  * 存储、可观测性、静态文件、CORS、限流。

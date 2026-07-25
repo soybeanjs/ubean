@@ -4,7 +4,7 @@
  * 此包是所有子包的基础类型依赖,不依赖任何其他 @ubean/* 子包。
  * 为了避免循环依赖,以下基础类型从其他子包下沉到此处:
  * - BaseRouteMeta(从 @ubean/routing)
- * - Span 相关类型(从 @ubean/server-runtime)
+ * - Span 相关类型(从 @ubean/server)
  * - PageHead(从 @ubean/pages)
  */
 import type { Context, MiddlewareHandler, Env as HonoEnv, Handler } from 'hono';
@@ -40,11 +40,11 @@ export interface RouteMeta extends BaseRouteMeta {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 路由规则类型(从 @ubean/config / @ubean/api-routes / @ubean/server-runtime 共享) */
+/* 路由规则类型(从 @ubean/config / @ubean/api-routes / @ubean/server 共享) */
 /* -------------------------------------------------------------------------- */
 
 /**
- * 路由规则,由 @ubean/api-routes (route-rules) 和 @ubean/server-runtime (cache) 共享。
+ * 路由规则,由 @ubean/api-routes (route-rules) 和 @ubean/server (cache) 共享。
  * 完整的 ResolvedConfig 在 @ubean/config 中定义。
  */
 export interface RouteRule {
@@ -57,7 +57,7 @@ export interface RouteRule {
 }
 
 /* -------------------------------------------------------------------------- */
-/* 可观测性 Span 类型(从 @ubean/server-runtime 下沉,避免循环依赖)              */
+/* 可观测性 Span 类型(从 @ubean/server 下沉,避免循环依赖)              */
 /* -------------------------------------------------------------------------- */
 
 export type SpanStatus = 'ok' | 'error' | 'cancelled';

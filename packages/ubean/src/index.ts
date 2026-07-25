@@ -28,7 +28,7 @@ export * from '@ubean/i18n';
 
 // ============== 服务端运行时 ==============
 export * from '@ubean/api-routes';
-export * from '@ubean/server-runtime';
+export * from '@ubean/server';
 export * from '@ubean/app';
 
 // ============== 构建时工具 ==============
@@ -197,7 +197,7 @@ export {
 export type { I18nRoutingOptions, I18nRoutingStrategy } from '@ubean/i18n/routing';
 
 // ============== 数据库别名(对齐原 ubean 的 `raw as sqlRawAlias`)==============
-export { rawSql as sqlRawAlias } from '@ubean/server-runtime';
+export { rawSql as sqlRawAlias } from '@ubean/server';
 
 // ============== 冲突消歧(显式 re-export 优先于上方 `export *`)==============
 // 这些名称在多个子包中存在不同实现/类型,显式选择与原 ubean 一致的来源

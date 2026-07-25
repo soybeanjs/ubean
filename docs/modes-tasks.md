@@ -167,7 +167,7 @@
   - 在 [packages/build/src/production.ts](../packages/build/src/production.ts#L499-L511) 的 `builtinPlugins` 中:
     - `config.mode === 'backend'` 时不加载 `vue()`、`ubeanVuePlugin()`、`ubeanIslandsPlugin()`
     - 仅保留 `ubeanPlugin({ config })`(负责 API 路由扫描)
-  - 在 [packages/dev/src/vite-server.ts](../packages/dev/src/vite-server.ts#L220-L225) 做同样的条件判断
+  - 在 [packages/dev-server/src/vite-server.ts](../packages/dev-server/src/vite-server.ts#L220-L225) 做同样的条件判断
   - 状态:`[ ]`
   - 验证:`backend` 模式构建日志不包含 Vue 相关插件加载
   - 备注:跳过 Vue 插件可显著减少 backend 项目的构建时间

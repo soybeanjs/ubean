@@ -152,7 +152,7 @@ export default defineConfig({
 
 ## 前端-only 项目的路由配置
 
-对于不依赖后端(SSR/API 路由)的纯 SPA 项目,可以只使用 `@ubean/vite`、`@ubean/runtime`、`@ubean/routing`、`@ubean/pages` 等子包,无需引入 `@ubean/build`、`@ubean/app`、`@ubean/server-runtime`。
+对于不依赖后端(SSR/API 路由)的纯 SPA 项目,可以只使用 `@ubean/vite`、`@ubean/runtime`、`@ubean/routing`、`@ubean/pages` 等子包,无需引入 `@ubean/build`、`@ubean/app`、`@ubean/server`。
 
 ```ts
 // vite.config.ts(frontend-only)

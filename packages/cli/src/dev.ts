@@ -1,7 +1,7 @@
 import { createUbeanApp } from '@ubean/app';
 import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/codegen';
 import { loadUbeanConfig } from '@ubean/config';
-import { createDevRunner, createDevWatcher, logDiagnostics } from '@ubean/dev';
+import { createDevRunner, createDevWatcher, logDiagnostics } from '@ubean/dev-server';
 import {
   resolvePresetByName,
   registerBuiltinPresets,

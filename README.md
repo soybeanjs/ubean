@@ -78,7 +78,7 @@ packages/
 ├── routing/        # @ubean/routing — route scanner + rou3 router
 ├── build/          # @ubean/build — build-time core (virtual modules + Vite plugins)
 ├── runtime/        # @ubean/runtime — Vue client runtime
-├── server-runtime/ # @ubean/server-runtime — cache/db/queue/cron/ws/sse
+├── server/         # @ubean/server — cache/db/queue/cron/ws/sse
 ├── ...             # 30 more subpackages
 └── auth/           # @ubean/auth — extension packages (icon/pwa/image/content/fonts)
 ```

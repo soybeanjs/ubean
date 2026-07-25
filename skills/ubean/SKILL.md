@@ -93,7 +93,7 @@ ubean is a **monorepo** of 36 packages. The public package `ubean` is an **aggre
 | `@ubean/routing`        | Route scanner + rou3 router + AST extractor                           |
 | `@ubean/build`          | Build-time core (virtual modules + Vite plugins)                      |
 | `@ubean/runtime`        | Vue client runtime (composables, router, islands hydrate)             |
-| `@ubean/server-runtime` | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
+| `@ubean/server` | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
 | `@ubean/app`            | Hono app factory + server config                                      |
 | `@ubean/config`         | Config loading (c12 + defu)                                           |
 | `@ubean/vite`           | Vue-specific Vite plugin (pages/entry virtual modules + auto-imports) |

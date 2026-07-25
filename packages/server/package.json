@@ -1,5 +1,5 @@
 {
-  "name": "@ubean/server-runtime",
+  "name": "@ubean/server",
   "version": "0.0.1",
   "description": "Server-side runtime primitives for ubean (cache, database, queue, cron, websocket, sse, storage, observability, static, cors, rate-limit)",
   "files": [

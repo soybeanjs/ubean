@@ -259,7 +259,7 @@ async run({ args }) {
 
 Dev 模式改动较小,因为 Vite middleware 模式天然支持按需加载。
 
-在 [packages/dev/src/vite-server.ts](../packages/dev/src/vite-server.ts#L220-L225) 中:
+在 [packages/dev-server/src/vite-server.ts](../packages/dev-server/src/vite-server.ts#L220-L225) 中:
 
 ```typescript
 const builtinPlugins: VitePlugin[] = [];
@@ -444,6 +444,6 @@ SSG 的本质是"在构建时执行 SSR 生成静态 HTML"。如果不构建 SSR
 - [packages/build/src/virtual-modules.ts](../packages/build/src/virtual-modules.ts) — 虚拟模块生成
 - [packages/cli/src/build.ts](../packages/cli/src/build.ts) — CLI build 命令
 - [packages/cli/src/preview.ts](../packages/cli/src/preview.ts) — CLI preview 命令
-- [packages/dev/src/vite-server.ts](../packages/dev/src/vite-server.ts) — Dev server
+- [packages/dev-server/src/vite-server.ts](../packages/dev-server/src/vite-server.ts) — Dev server
 - [packages/modules/src/index.ts](../packages/modules/src/index.ts) — 模块系统(动态 import)
 - [examples/frontend-only/ubean.config.ts](../examples/frontend-only/ubean.config.ts) — 现有前端示例

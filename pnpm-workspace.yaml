@@ -16,7 +16,7 @@ allowBuilds:
   workerd: true
   koffi: true
 minimumReleaseAgeExclude:
-  - '@soybeanjs/fetch@0.0.5'
+  - '@soybeanjs/fetch@0.0.5 || 0.1.0'
   - '@voidzero-dev/vite-plus-core@0.2.6'
   - '@voidzero-dev/vite-plus-darwin-arm64@0.2.6'
   - '@voidzero-dev/vite-plus-darwin-x64@0.2.6'
@@ -45,3 +45,5 @@ minimumReleaseAgeExclude:
   - ai@7.0.37
   - better-auth@1.6.25
   - devframe@0.7.12
+  - '@soybeanjs/cli@1.7.4'
+  - eslint@10.8.0

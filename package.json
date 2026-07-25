@@ -18,11 +18,11 @@
     "upkg": "soy ncu"
   },
   "devDependencies": {
-    "@soybeanjs/cli": "^1.7.2",
+    "@soybeanjs/cli": "^1.7.4",
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
     "@types/node": "^26.1.1",
-    "eslint": "^10.7.0",
+    "eslint": "^10.8.0",
     "vite-plus": "0.2.6"
   },
   "packageManager": "pnpm@11.17.0"

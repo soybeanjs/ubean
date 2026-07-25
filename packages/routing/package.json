@@ -44,8 +44,8 @@
     "@ubean/markdown": "workspace:*",
     "typescript": "6.0.3",
     "vite-plus": "catalog:",
-    "vue": "^3.0.0",
-    "vue-router": "^4.0.0"
+    "vue": "^3.5.40",
+    "vue-router": "^5.2.0"
   },
   "peerDependencies": {
     "@ubean/markdown": "workspace:*",

@@ -1,5 +1,5 @@
 /**
- * ubean/runtime/pages — 页面数据协议(遗留子路径)
+ * ubean/pages — 页面数据协议
  *
  * 向后兼容:转发到 `@ubean/pages`。
  */

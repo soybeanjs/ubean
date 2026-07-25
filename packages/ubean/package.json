@@ -1,7 +1,7 @@
 {
   "name": "ubean",
-  "version": "0.0.1",
-  "description": "Vue meta framework built on Vite-Plus with Hono",
+  "version": "1.0.0",
+  "description": "Vue meta framework built on Vite-Plus with Hono (thin re-export of @ubean/core)",
   "bin": {
     "ubean": "./bin/ubean.mjs"
   },
@@ -12,134 +12,113 @@
   "type": "module",
   "main": "./dist/index.mjs",
   "module": "./dist/index.mjs",
-  "types": "./dist/index.d.ts",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
+      "types": "./dist/index.d.mts",
       "browser": "./dist/runtime/vue/index.mjs",
       "import": "./dist/index.mjs"
     },
     "./handler": {
-      "types": "./dist/runtime/handler.d.ts",
+      "types": "./dist/runtime/handler.d.mts",
       "import": "./dist/runtime/handler.mjs"
     },
     "./config": {
-      "types": "./dist/core/config/index.d.ts",
-      "import": "./dist/core/config/index.mjs"
+      "types": "./dist/config.d.mts",
+      "import": "./dist/config.mjs"
     },
     "./vite": {
-      "types": "./dist/core/build/vite/plugin.d.ts",
-      "import": "./dist/core/build/vite/plugin.mjs"
+      "types": "./dist/vite.d.mts",
+      "import": "./dist/vite.mjs"
     },
     "./vite-vue": {
-      "types": "./dist/core/vue/plugin.d.ts",
-      "import": "./dist/core/vue/plugin.mjs"
+      "types": "./dist/vite-vue.d.mts",
+      "import": "./dist/vite-vue.mjs"
     },
     "./vue-ssr": {
-      "types": "./dist/core/vue/renderer.d.ts",
-      "import": "./dist/core/vue/renderer.mjs"
+      "types": "./dist/vue-ssr.d.mts",
+      "import": "./dist/vue-ssr.mjs"
     },
     "./routing": {
-      "types": "./dist/core/routing/index.d.ts",
-      "import": "./dist/core/routing/index.mjs"
+      "types": "./dist/routing.d.mts",
+      "import": "./dist/routing.mjs"
     },
     "./pages": {
-      "types": "./dist/runtime/pages/index.d.ts",
-      "import": "./dist/runtime/pages/index.mjs"
+      "types": "./dist/pages.d.mts",
+      "import": "./dist/pages.mjs"
     },
     "./runtime/app": {
-      "types": "./dist/runtime/app.d.ts",
+      "types": "./dist/runtime/app.d.mts",
       "import": "./dist/runtime/app.mjs"
     },
     "./runtime/define-server": {
-      "types": "./dist/runtime/define-server.d.ts",
+      "types": "./dist/runtime/define-server.d.mts",
       "import": "./dist/runtime/define-server.mjs"
     },
+    "./runtime/handler": {
+      "types": "./dist/runtime/handler.d.mts",
+      "import": "./dist/runtime/handler.mjs"
+    },
     "./runtime/vue": {
-      "types": "./dist/runtime/vue/index.d.ts",
+      "types": "./dist/runtime/vue/index.d.mts",
       "browser": "./dist/runtime/vue/index.mjs",
       "import": "./dist/runtime/vue/index.mjs"
     },
-    "./vue-runtime": {
-      "types": "./dist/runtime/vue/index.d.ts",
-      "import": "./dist/runtime/vue/index.mjs"
-    },
-    "./vue-runtime/app": {
-      "types": "./dist/runtime/vue/app.d.ts",
-      "import": "./dist/runtime/vue/app.mjs"
-    },
-    "./vue-runtime/define-app": {
-      "types": "./dist/runtime/vue/define-app.d.ts",
-      "import": "./dist/runtime/vue/define-app.mjs"
-    },
     "./runtime/i18n": {
-      "types": "./dist/runtime/i18n.d.ts",
+      "types": "./dist/runtime/i18n.d.mts",
       "import": "./dist/runtime/i18n.mjs"
     },
     "./runtime/i18n-routing": {
-      "types": "./dist/runtime/i18n-routing.d.ts",
+      "types": "./dist/runtime/i18n-routing.d.mts",
       "import": "./dist/runtime/i18n-routing.mjs"
+    },
+    "./vue-runtime": {
+      "types": "./dist/vue-runtime.d.mts",
+      "import": "./dist/vue-runtime.mjs"
+    },
+    "./vue-runtime/app": {
+      "types": "./dist/vue-runtime/app.d.mts",
+      "import": "./dist/vue-runtime/app.mjs"
+    },
+    "./vue-runtime/define-app": {
+      "types": "./dist/vue-runtime/define-app.d.mts",
+      "import": "./dist/vue-runtime/define-app.mjs"
     }
   },
   "scripts": {
     "build": "vp pack",
     "dev": "vp pack --watch",
-    "prepare": "pnpm -F @ubean/devtools build",
-    "test": "vp test",
-    "test:watch": "vp test --watch",
     "typecheck": "vue-tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@hono/standard-validator": "^0.3.0",
-    "@soybeanjs/fetch": "^0.0.5",
-    "@standard-community/standard-json": "^0.3.5",
-    "@standard-community/standard-openapi": "^0.2.9",
-    "@standard-schema/spec": "1.1.0",
-    "@unhead/vue": "^3.2.3",
-    "c12": "^4.0.0-beta.5",
-    "citty": "^0.2.2",
-    "consola": "^3.4.2",
-    "defu": "6.1.7",
-    "hono": "4.12.31",
-    "hono-openapi": "^1.3.1",
-    "hookable": "^6.1.1",
-    "kolorist": "^1.8.0",
-    "markdown-exit": "1.1.0-beta.2",
-    "mlly": "1.8.2",
-    "ofetch": "^1.5.1",
-    "openapi-typescript": "^7.13.0",
-    "oxc-transform": "^0.141.0",
-    "pathe": "^2.0.3",
-    "rou3": "^0.9.1",
-    "scule": "^1.3.0",
-    "tinyglobby": "^0.2.17",
-    "ufo": "1.6.4",
-    "unimport": "^6.3.1",
-    "unplugin-auto-import": "21.0.0",
-    "unplugin-vue-components": "^32.1.0",
-    "unplugin-vue-markdown": "^32.0.0",
-    "vue-router": "^5.2.0"
+    "@ubean/api-routes": "workspace:*",
+    "@ubean/app": "workspace:*",
+    "@ubean/build": "workspace:*",
+    "@ubean/cli": "workspace:*",
+    "@ubean/config": "workspace:*",
+    "@ubean/core": "workspace:*",
+    "@ubean/env": "workspace:*",
+    "@ubean/error": "workspace:*",
+    "@ubean/i18n": "workspace:*",
+    "@ubean/pages": "workspace:*",
+    "@ubean/routing": "workspace:*",
+    "@ubean/runtime": "workspace:*",
+    "@ubean/ssr": "workspace:*",
+    "@ubean/vite": "workspace:*"
   },
   "devDependencies": {
-    "@codemirror/commands": "6.10.4",
-    "@codemirror/lang-javascript": "6.2.5",
-    "@codemirror/lang-json": "6.0.2",
-    "@codemirror/lang-vue": "^0.1.3",
-    "@codemirror/language": "6.12.4",
-    "@codemirror/state": "6.7.1",
-    "@codemirror/theme-one-dark": "6.1.3",
-    "@codemirror/view": "6.43.6",
-    "@playwright/test": "^1.61.1",
-    "@soybeanjs/ui": "^0.29.3",
-    "@soybeanjs/unocss-preset": "^0.2.0",
-    "@soybeanjs/unocss-shadcn": "^0.29.3",
     "@types/node": "^26.1.1",
-    "@vitejs/plugin-vue": "^6.0.8",
     "typescript": "6.0.3",
-    "unocss": "^66.7.5",
-    "vite": "catalog:",
     "vite-plus": "catalog:",
     "vue": "^3.5.40",
     "vue-tsc": "^3.3.8"
+  },
+  "peerDependencies": {
+    "vue": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vue": {
+      "optional": true
+    }
   }
 }

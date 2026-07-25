@@ -1,5 +1,5 @@
 /**
- * ubean/runtime/handler — API 路由处理器(遗留子路径)
+ * ubean/handler — API 路由处理器
  *
  * 向后兼容:转发到 `@ubean/api-routes`。
  */

@@ -2,7 +2,7 @@ import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   resolve: {
-    tsconfigPaths: true
+    tsconfigPaths: false
   },
   pack: {
     dts: true,
@@ -10,71 +10,32 @@ export default defineConfig({
     format: ['esm'],
     outDir: 'dist',
     entry: [
+      // 主入口(re-export @ubean/core)
       'src/index.ts',
+      // 遗留子路径入口(向后兼容)
       'src/runtime/handler.ts',
-      'src/runtime/error.ts',
       'src/runtime/app.ts',
-      'src/runtime/router.ts',
-      'src/runtime/env.ts',
-      'src/runtime/client.ts',
+      'src/runtime/define-server.ts',
       'src/runtime/i18n.ts',
       'src/runtime/i18n-routing.ts',
       'src/runtime/pages/index.ts',
       'src/runtime/vue/index.ts',
       'src/runtime/vue/app.ts',
-      'src/core/config/index.ts',
-      'src/core/cli/index.ts',
-      'src/core/log.ts',
-      'src/core/dev/server.ts',
-      'src/core/build/vite/plugin.ts',
-      'src/core/vue/plugin.ts',
-      'src/core/vue/renderer.ts',
-      'src/core/vue/virtual-modules.ts',
-      'src/core/routing/index.ts',
-      'src/core/codegen/index.ts',
-      'src/core/preset/index.ts'
+      'src/runtime/vue/define-app.ts',
+      'src/handler.ts',
+      'src/config.ts',
+      'src/vite.ts',
+      'src/vite-vue.ts',
+      'src/vue-ssr.ts',
+      'src/routing.ts',
+      'src/pages.ts',
+      'src/vue-runtime.ts',
+      'src/vue-runtime/app.ts',
+      'src/vue-runtime/define-app.ts'
     ],
     deps: {
-      neverBundle: [
-        'hono',
-        'c12',
-        'citty',
-        'consola',
-        'defu',
-        'pathe',
-        'ufo',
-        'zod',
-        '@standard-schema/spec',
-        'hookable',
-        'mlly',
-        'rou3',
-        'scule',
-        'tinyglobby',
-        'vue',
-        '@vue/server-renderer',
-        'vite',
-        '@vitejs/plugin-vue',
-        'unocss',
-        /^@unocss\//,
-        'chokidar',
-        'jiti',
-        'esbuild',
-        'lightningcss',
-        'rollup',
-        /^@rolldown\//,
-        '@ubean/devtools',
-        '@vitejs/devtools',
-        /^@vitejs\/devtools/,
-        '@vitejs/devtools-kit',
-        '@devframes/hub',
-        'devframe',
-        'birpc',
-        /^node:/
-      ]
+      // 所有 ubean 子包都不打包,保留为外部依赖
+      neverBundle: [/^@ubean\//, /^node:/]
     }
-  },
-  test: {
-    include: ['test/**/*.test.ts'],
-    environment: 'node'
   }
 });

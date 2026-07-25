@@ -1,0 +1,47 @@
+{
+  "name": "@ubean/config",
+  "version": "0.0.1",
+  "description": "Configuration loader and types for ubean (defineConfig, loadUbeanConfig, RoutingConfig)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/types": "workspace:*",
+    "c12": "^4.0.0-beta.5",
+    "defu": "6.1.7",
+    "pathe": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@ubean/preset": "workspace:*",
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@ubean/preset": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
+  }
+}

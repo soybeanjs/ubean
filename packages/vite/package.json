@@ -1,0 +1,54 @@
+{
+  "name": "@ubean/vite",
+  "version": "0.0.1",
+  "description": "Vue-specific Vite plugin for ubean (ubeanVuePlugin, virtual modules: pages, app, server, client-entry)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/auto-imports": "workspace:*",
+    "@ubean/build": "workspace:*",
+    "@ubean/config": "workspace:*",
+    "@ubean/markdown": "workspace:*",
+    "@ubean/routing": "workspace:*",
+    "@ubean/runtime": "workspace:*",
+    "oxc-transform": "^0.141.0",
+    "pathe": "^2.0.3",
+    "unplugin-auto-import": "21.0.0",
+    "unplugin-vue-components": "^32.1.0",
+    "unplugin-vue-markdown": "^32.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "unimport": "^6.3.1",
+    "vite": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    },
+    "unimport": {
+      "optional": true
+    }
+  }
+}

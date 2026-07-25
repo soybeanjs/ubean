@@ -1,0 +1,37 @@
+{
+  "name": "@ubean/ssr",
+  "version": "0.0.1",
+  "description": "Vue SSR renderer for ubean (createVueRenderer, renderToString, applyServerAppConfig)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/islands": "workspace:*",
+    "@ubean/pages": "workspace:*",
+    "@ubean/runtime": "workspace:*",
+    "@unhead/vue": "^3.2.3",
+    "@vue/server-renderer": "^3.5.40",
+    "vue": "^3.5.40",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite-plus": "catalog:"
+  }
+}

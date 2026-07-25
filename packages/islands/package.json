@@ -1,0 +1,49 @@
+{
+  "name": "@ubean/islands",
+  "version": "0.0.1",
+  "description": "Islands architecture for ubean (Vite plugin for client:load/idle/visible/media/only directives, bootstrap script, client hydrate runtime)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.mts",
+      "import": "./dist/vite.mjs"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.mts",
+      "import": "./dist/runtime.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "vue": "^3.5.40"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "vite": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
+  }
+}

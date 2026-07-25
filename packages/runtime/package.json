@@ -1,0 +1,58 @@
+{
+  "name": "@ubean/runtime",
+  "version": "0.0.1",
+  "description": "Vue client runtime for ubean (createUbeanApp, useRouter, useHead, Link, Head, PageView, composables, view-transitions, cache-views, islands hydrate)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
+    "./app": {
+      "types": "./dist/app.d.mts",
+      "import": "./dist/app.mjs"
+    },
+    "./define-app": {
+      "types": "./dist/define-app.d.mts",
+      "import": "./dist/define-app.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/client": "workspace:*",
+    "@ubean/i18n": "workspace:*",
+    "@ubean/pages": "workspace:*",
+    "@ubean/types": "workspace:*",
+    "@unhead/vue": "^3.2.3",
+    "vue": "^3.5.40",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@ubean/routing": "workspace:*",
+    "@ubean/seo": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@ubean/seo": {
+      "optional": true
+    },
+    "@ubean/routing": {
+      "optional": true
+    }
+  }
+}

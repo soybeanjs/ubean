@@ -1,0 +1,33 @@
+{
+  "name": "@ubean/utils",
+  "version": "0.0.1",
+  "description": "Shared utilities for ubean (path conversion, port detection, vite config)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "pathe": "^2.0.3",
+    "tinyglobby": "^0.2.17",
+    "ufo": "1.6.4"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite-plus": "catalog:"
+  }
+}

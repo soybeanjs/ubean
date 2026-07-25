@@ -249,12 +249,53 @@ export interface PrerenderResult {
 }
 
 /* -------------------------------------------------------------------------- */
+/* AppMode                                                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 应用模式,控制构建流程按需执行。
+ *
+ * - `fullstack`(默认):客户端 + SSR + 服务端,完整全栈
+ * - `spa`:纯客户端渲染,无 SSR、无服务端 bundle
+ * - `ssg`:静态站点生成,构建时预渲染,产物为纯静态文件
+ * - `backend`:纯 API 后端,无 Vue 页面、无 SSR
+ *
+ * SSR 的开/关由 `ssr` 选项在 `fullstack` 模式下单独控制,
+ * 不再保留独立的 `ssr` mode(它在此前与 `fullstack` 完全等价)。
+ */
+export type AppMode = 'fullstack' | 'spa' | 'ssg' | 'backend';
+
+/* -------------------------------------------------------------------------- */
 /* UbeanConfig                                                                  */
 /* -------------------------------------------------------------------------- */
 
 export interface UbeanConfig {
   rootDir?: string;
   srcDir?: string;
+
+  /**
+   * 应用模式,控制构建流程按需执行。
+   *
+   * - `fullstack`(默认):客户端 + SSR + 服务端,完整全栈
+   * - `spa`:纯客户端渲染,无 SSR、无服务端 bundle
+   * - `ssg`:静态站点生成,构建时预渲染,产物为纯静态文件
+   * - `backend`:纯 API 后端,无 Vue 页面、无 SSR
+   *
+   * 详见 [docs/modes.md](../../docs/modes.md)。
+   */
+  mode?: AppMode;
+
+  /**
+   * 是否构建 SSR bundle。仅在 `mode === 'fullstack'` 时生效。
+   *
+   * - `true`(默认):构建 SSR bundle,支持服务端渲染
+   * - `false`:跳过 SSR bundle 构建,仅保留客户端渲染 + API 路由
+   *
+   * 其他 mode 下此字段被忽略(`spa`/`backend` 始终无 SSR;
+   * `ssg` 始终需要 SSR 进行预渲染)。
+   */
+  ssr?: boolean;
+
   modules?: ModuleConfiguration[];
   icon?: boolean | BuiltinModuleOptions;
   pwa?: boolean | BuiltinModuleOptions;

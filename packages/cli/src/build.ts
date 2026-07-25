@@ -1,14 +1,17 @@
 import { pathToFileURL } from 'node:url';
+import { rm } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { buildProduction } from '@ubean/build/production';
 import type { BuildManifest } from '@ubean/build/production';
 import { generateTypes } from '@ubean/codegen';
 import { loadUbeanConfig } from '@ubean/config';
+import type { AppMode } from '@ubean/config';
 import { prerender } from '@ubean/prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
 import { scanProject } from '@ubean/routing';
 import type { CommandDef } from 'citty';
 import { consola } from 'consola';
-import { resolve } from 'pathe';
+import { resolve, join } from 'pathe';
 
 const logger = consola.withTag('ubean-cli');
 
@@ -65,6 +68,19 @@ export const buildCommand: CommandDef = {
       type: 'string',
       description: 'Deployment preset (node, bun, deno, cloudflare, vercel, netlify, standard)'
     },
+    mode: {
+      type: 'string',
+      description: 'App mode (fullstack, spa, ssg, backend). Overrides ubean.config.ts mode'
+    },
+    ssr: {
+      type: 'boolean',
+      description: 'Enable SSR in fullstack mode (only effective with --mode fullstack). Use --no-ssr to disable'
+    },
+    ssg: {
+      type: 'boolean',
+      description: 'Shortcut for --mode ssg',
+      default: false
+    },
     minify: {
       type: 'boolean',
       description: 'Minify output',
@@ -91,10 +107,34 @@ export const buildCommand: CommandDef = {
 
     registerBuiltinPresets();
     const config = await loadUbeanConfig(cwd);
+
+    // CLI --mode / --ssg 覆盖配置文件中的 mode
+    if (args.ssg) {
+      config.mode = 'ssg';
+    } else if (args.mode) {
+      config.mode = args.mode as AppMode;
+    }
+
+    // CLI --ssr / --no-ssr 覆盖配置(仅在 fullstack 模式下生效)
+    if (config.mode === 'fullstack' && args.ssr !== undefined) {
+      config.ssr = args.ssr as boolean;
+    }
+
+    // 根据 mode 调整 prerender 行为
+    if (config.mode === 'ssg') {
+      config.prerender.enabled = true;
+    } else if (config.mode === 'spa' || config.mode === 'backend') {
+      config.prerender.enabled = false;
+    } else if (config.mode === 'fullstack' && !config.ssr) {
+      // fullstack + ssr:false 无法 prerender(无 SSR bundle)
+      config.prerender.enabled = false;
+    }
+
     const presetName = args.preset || config.build.preset;
 
     const preset = resolvePresetByName(presetName);
     logger.info(`Using preset: ${preset.name}`);
+    logger.info(`App mode: ${config.mode}${config.mode === 'fullstack' ? ` (ssr=${config.ssr})` : ''}`);
 
     logger.info('Scanning project...');
     const result = await scanProject({
@@ -155,6 +195,15 @@ export const buildCommand: CommandDef = {
       });
     }
 
+    // SSG 模式:清理临时 server bundle(prerender 已加载到内存,删除文件不影响静态 HTML)
+    if (config.mode === 'ssg') {
+      const serverDir = join(cwd, config.build.outputDir, 'server');
+      if (existsSync(serverDir)) {
+        logger.info('Cleaning temporary SSR bundle (SSG mode)...');
+        await rm(serverDir, { recursive: true, force: true });
+      }
+    }
+
     if (resolvedPreset.hooks?.['build:after']) {
       await resolvedPreset.hooks['build:after']({
         cwd,
@@ -167,7 +216,9 @@ export const buildCommand: CommandDef = {
 
     logger.success(`Build complete for preset "${resolvedPreset.name}"!`);
     logger.info(`  Output directory: ${resolve(cwd, config.build.outputDir)}`);
-    logger.info(`  Server entry: ${manifest.entry}`);
+    if (manifest.entry) {
+      logger.info(`  Server entry: ${manifest.entry}`);
+    }
     logger.info(`  Client assets: ${manifest.assets.length} files`);
   }
 };

@@ -26,5 +26,6 @@ export type {
   BuiltinModuleOptions,
   PrerenderConfig,
   PrerenderRoute,
-  PrerenderResult
+  PrerenderResult,
+  AppMode
 } from './types';

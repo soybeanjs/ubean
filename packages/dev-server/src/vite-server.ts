@@ -208,18 +208,25 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   const userViteConfig = findUserViteConfig(cwd);
   const hasUserViteConfig = !!userViteConfig;
 
+  // backend 模式:无 Vue 页面、无 SSR,跳过 Vue 相关插件
+  const isBackendMode = config.mode === 'backend';
+
   const builtinPlugins: Plugin[] = [
-    vue({
-      include: VUE_PLUGIN_INCLUDE,
-      template: {
-        compilerOptions: {
-          isCustomElement: (tag: string) => tag.startsWith('ubean-')
-        }
-      }
-    }) as unknown as Plugin,
+    ...(isBackendMode
+      ? []
+      : [
+          vue({
+            include: VUE_PLUGIN_INCLUDE,
+            template: {
+              compilerOptions: {
+                isCustomElement: (tag: string) => tag.startsWith('ubean-')
+              }
+            }
+          }) as unknown as Plugin
+        ]),
     ...(hasUserViteConfig ? [] : [ubeanPlugin({ config })]),
-    ...ubeanVuePlugin({ config }),
-    ubeanIslandsPlugin(),
+    ...(isBackendMode ? [] : ubeanVuePlugin({ config })),
+    ...(isBackendMode ? [] : [ubeanIslandsPlugin()]),
     ...viteDevtoolsPlugins,
     ...(devtoolsPlugin ? [devtoolsPlugin] : [])
   ];
@@ -301,6 +308,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     }
 
     const defaultLayout = layouts.find(l => l.isDefault)?.name || null;
+
+    // backend 模式无页面、无 SSR,跳过 pageRenderer 创建
+    if (config.mode === 'backend') {
+      app.resetInit();
+      return;
+    }
 
     // Build vue-router routes for SSR
     const scannedPages = app.options.pages || [];

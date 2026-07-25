@@ -7,6 +7,8 @@ import type { UbeanConfig, ResolvedConfig } from './types';
 const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
   srcDir: 'src',
+  mode: 'fullstack',
+  ssr: true,
   modules: [],
   icon: false,
   pwa: false,

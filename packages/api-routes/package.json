@@ -1,0 +1,57 @@
+{
+  "name": "@ubean/api-routes",
+  "version": "0.0.1",
+  "description": "Backend API route runtime for ubean (defineHandler, defineMiddleware, registerRoutes, route rules, internal-fetch, OpenAPI)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@hono/standard-validator": "^0.3.0",
+    "@soybeanjs/fetch": "^0.0.5",
+    "@standard-community/standard-json": "^0.3.5",
+    "@standard-community/standard-openapi": "^0.2.9",
+    "@ubean/types": "workspace:*",
+    "hono": "4.12.31",
+    "hono-openapi": "^1.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@ubean/i18n": "workspace:*",
+    "@ubean/pages": "workspace:*",
+    "@ubean/routing": "workspace:*",
+    "typescript": "6.0.3",
+    "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@ubean/i18n": "workspace:*",
+    "@ubean/pages": "workspace:*",
+    "@ubean/routing": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@ubean/routing": {
+      "optional": true
+    },
+    "@ubean/pages": {
+      "optional": true
+    },
+    "@ubean/i18n": {
+      "optional": true
+    }
+  }
+}

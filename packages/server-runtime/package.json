@@ -1,0 +1,35 @@
+{
+  "name": "@ubean/server-runtime",
+  "version": "0.0.1",
+  "description": "Server-side runtime primitives for ubean (cache, database, queue, cron, websocket, sse, storage, observability, static, cors, rate-limit)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.mjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/types": "workspace:*",
+    "hono": "4.12.31",
+    "hookable": "^6.1.1",
+    "pathe": "^2.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "6.0.3",
+    "vite-plus": "catalog:"
+  }
+}

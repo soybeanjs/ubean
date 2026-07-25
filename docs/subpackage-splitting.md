@@ -13,8 +13,6 @@
 > ---
 >
 > 目标:将 `packages/ubean` 中的实现拆分为多个职责清晰的子包,使前端项目可独立使用部分能力(无 SSR / 无后端路由),同时对齐 elegant-router 的实体文件路由生成能力。
->
-> 关联文档:[任务清单与状态](subpackage-splitting-tasks.md)
 
 ## 1. 设计原则
 

@@ -115,4 +115,4 @@ src/
 - [Islands 架构](../../skills/ubean/docs/guide/islands.md)
 - [i18n 国际化](../../skills/ubean/docs/guide/i18n.md)
 - [子包拆分方案](../../docs/subpackage-splitting.md)
-- [子包拆分任务进度](../../docs/subpackage-splitting-tasks.md)
+- [应用模式设计](../../docs/modes.md)

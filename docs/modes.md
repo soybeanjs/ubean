@@ -1,8 +1,6 @@
 # ubean 应用模式(App Mode)设计方案
 
 > 本文档描述 ubean 框架的 `mode` 配置字段设计,支持前端-only、后端-only、全栈、SSG 等多种应用形态。
->
-> 任务清单见 [modes-tasks.md](modes-tasks.md)。
 
 ## 1. 背景与目标
 

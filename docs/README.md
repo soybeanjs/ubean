@@ -14,6 +14,7 @@
 | [路线图与决策](roadmap.md)             | 交付里程碑、实施阶段、参考项目差异、技术决策、风险和任务跟踪。          |
 | [生态能力演进](ecosystem.md)           | 元框架调研结论、页面数据协议、可观测性、SEO 与资源/内容扩展的取舍。     |
 | [DevTools 迁移设计](devtools-vite-devtools-migration.md) | 基于 Vite DevTools Kit 重构 `@ubean/devtools` 的可行性分析、目标架构与分阶段计划。 |
+| [ubean-studio 产品方案](ubean-studio.md) | 基于 Electron 的桌面工作台：DevTools 内嵌、命令可视化、物料市场、商业系统与 AI 驱动的完整规划与任务清单。 |
 
 ## 文档原则
 

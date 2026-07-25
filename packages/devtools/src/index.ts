@@ -24,3 +24,7 @@ export type { TerminalServer, TerminalStartParams, TerminalPollResult } from './
 export type { DevToolsHooksInstance, DevToolsHooks } from './server/hooks';
 
 export * from './types';
+
+// Custom DevTools tab registration API.
+export { defineDevToolsTab, getCustomTabs, clearCustomTabs } from './define-tab';
+export type { DevToolsTabDefinition } from './define-tab';

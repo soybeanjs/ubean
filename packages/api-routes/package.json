@@ -1,6 +1,6 @@
 {
   "name": "@ubean/api-routes",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "description": "Backend API route runtime for ubean (defineHandler, defineMiddleware, registerRoutes, route rules, internal-fetch, OpenAPI)",
   "files": [
     "dist"

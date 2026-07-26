@@ -1,5 +1,5 @@
 export interface BuiltinModuleDefinition {
-  key: 'icon' | 'pwa' | 'auth' | 'image' | 'fonts';
+  key: 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'electron';
   modulePath: string;
   factoryExport?: string;
   pluginName: string;
@@ -35,6 +35,12 @@ export const BUILTIN_MODULES: BuiltinModuleDefinition[] = [
     modulePath: '@ubean/fonts/vite',
     factoryExport: 'ubeanFontsPlugin',
     pluginName: 'ubean:fonts'
+  },
+  {
+    key: 'electron',
+    modulePath: '@ubean/electron/vite',
+    factoryExport: 'ubeanElectronPlugin',
+    pluginName: 'ubean:electron'
   }
 ];
 

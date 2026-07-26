@@ -15,6 +15,7 @@ allowBuilds:
   sharp: false
   workerd: true
   koffi: true
+  electron: true
 minimumReleaseAgeExclude:
   - '@soybeanjs/fetch@0.0.5 || 0.1.0'
   - '@voidzero-dev/vite-plus-core@0.2.6'

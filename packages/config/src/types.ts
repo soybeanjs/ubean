@@ -37,6 +37,29 @@ export interface BuiltinModuleOptions {
   [key: string]: unknown;
 }
 
+/**
+ * Electron 模块配置。
+ * main/preload 有默认值，`electron: true` 即可启用。
+ */
+export interface ElectronModuleConfig {
+  /** 是否禁用 */
+  disabled?: boolean;
+  /** main 进程入口（默认 'electron/main.ts'） */
+  main?: {
+    entry?: string;
+    vite?: import('vite').InlineConfig;
+  };
+  /** preload 脚本入口（默认 'electron/preload.ts'） */
+  preload?: {
+    input?: string;
+    vite?: import('vite').InlineConfig;
+  };
+  /** renderer 进程配置（可选） */
+  renderer?: {
+    nodeIntegration?: boolean;
+  };
+}
+
 /* -------------------------------------------------------------------------- */
 /* Routing Config (T2-7 — aligned with elegant-router)                         */
 /* -------------------------------------------------------------------------- */
@@ -356,6 +379,8 @@ export interface UbeanConfig {
   auth?: boolean | BuiltinModuleOptions;
   image?: boolean | BuiltinModuleOptions;
   fonts?: boolean | BuiltinModuleOptions;
+  /** Electron 桌面应用配置（`true` 使用默认入口启用） */
+  electron?: boolean | ElectronModuleConfig;
   dir?: {
     pages?: string | string[];
     routes?: string | string[];
@@ -430,6 +455,7 @@ export interface ResolvedConfig extends Required<
   auth: boolean | BuiltinModuleOptions;
   image: boolean | BuiltinModuleOptions;
   fonts: boolean | BuiltinModuleOptions;
+  electron: boolean | ElectronModuleConfig;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   prerender: ResolvedPrerenderConfig;
   dev: Required<NonNullable<UbeanConfig['dev']>>;

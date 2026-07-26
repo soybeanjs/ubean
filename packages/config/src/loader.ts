@@ -69,6 +69,7 @@ const configDefaults: ResolvedConfig = {
   auth: false,
   image: false,
   fonts: false,
+  electron: false,
   dir: {
     pages: 'pages',
     routes: 'routes',
@@ -123,6 +124,10 @@ export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<Reso
   const resolved = defu(config as Partial<ResolvedConfig>, configDefaults) as ResolvedConfig;
   resolved.rootDir = resolve(cwd);
   resolved.srcDir = resolve(cwd, resolved.srcDir);
+  // Electron 启用时，ssr 默认改为 false（桌面应用无需 SSR，除非用户显式指定）
+  if (resolved.electron !== false && config.ssr === undefined) {
+    resolved.ssr = false;
+  }
   // 重新解析 routing(确保用户提供的 routing 字段被正确合并默认值)
   resolved.routing = resolveRoutingConfig(config.routing);
   // 重新解析 prerender(defu 浅合并会让派生字段 enabled 失真,

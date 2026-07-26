@@ -326,7 +326,12 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   const pageRenderer = options.pageRenderer as Parameters<typeof renderPage>[2] | null | undefined;
   const pageAssetTags = options.pageAssetTags as Parameters<typeof renderPage>[1] | undefined;
 
-  async function handlePageRequest(c: Context<UbeanEnv>, page: ScannedPageRoute, method: 'GET' | 'POST') {
+  async function handlePageRequest(
+    c: Context<UbeanEnv>,
+    page: ScannedPageRoute,
+    method: 'GET' | 'POST',
+    loaderKey?: string
+  ) {
     c.set('route', {
       meta: { requiresAuth: page.pageMeta?.requiresAuth ?? true } as RouteMeta,
       path: c.req.path,
@@ -340,7 +345,11 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     let actionErrors: Record<string, string> | null = null;
 
     if (pageLoaders) {
-      loader = pageLoaders[page.relativePath];
+      // For reuse routes, `loaderKey` points to the target page's
+      // `relativePath` so we load the target's module (which has the
+      // `loader()` / `action()` exports). For regular pages, `loaderKey`
+      // equals `page.relativePath` (the default).
+      loader = pageLoaders[loaderKey ?? page.relativePath];
       if (loader) {
         try {
           mod = await loader();
@@ -450,8 +459,18 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     return c.html(html, method === 'POST' && actionErrors ? { status: 422 } : undefined);
   }
 
+  // Build name → page map so reuse routes can resolve their target page's
+  // loader. The `.reuse.ts` file only contains `definePage` metadata, not a
+  // Vue component — reuse routes must share the target's module loader to
+  // access `loader()` / `action()` exports defined on the target page.
+  const pageByName = new Map<string, ScannedPageRoute>();
+  for (const p of pages) pageByName.set(p.name, p);
+
   for (const page of pages) {
-    if (page.isReuse) continue;
+    // Reuse routes are no longer skipped — they need their own Hono route
+    // handler registered at their path. The component resolution already
+    // uses `page.reuseTarget` (see handlePageRequest), and the loader is
+    // resolved to the target's `relativePath` via `pageByName` below.
     const honoPath = convertUbeanRoutePath(page.route);
     const matchingMiddleware = getMatchingMiddleware(honoPath);
     const pageMeta = { requiresAuth: page.pageMeta?.requiresAuth ?? true } as RouteMeta;
@@ -461,7 +480,15 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       await next();
     };
 
-    const pageHandler = (method: 'GET' | 'POST') => async (c: Context<UbeanEnv>) => handlePageRequest(c, page, method);
+    // For reuse routes, the loader key points to the target page's
+    // `relativePath` so `pageLoaders[loaderKey]` finds the target's module.
+    const loaderKey =
+      page.isReuse && page.reuseTarget
+        ? (pageByName.get(page.reuseTarget)?.relativePath ?? page.relativePath)
+        : page.relativePath;
+
+    const pageHandler = (method: 'GET' | 'POST') => async (c: Context<UbeanEnv>) =>
+      handlePageRequest(c, page, method, loaderKey);
 
     app.on(['GET'], honoPath, metaMiddleware, ...matchingMiddleware, pageHandler('GET'));
     app.on(['POST'], honoPath, metaMiddleware, ...matchingMiddleware, pageHandler('POST'));

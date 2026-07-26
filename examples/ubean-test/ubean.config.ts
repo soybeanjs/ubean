@@ -6,6 +6,7 @@ export default defineConfig({
     locales: ['en', 'zh'],
     strategy: 'prefix_except_default'
   },
+  devtools: true,
   prerender: {
     include: ['/about']
   }

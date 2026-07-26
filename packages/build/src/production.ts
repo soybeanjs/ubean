@@ -218,21 +218,27 @@ async function generateVirtualModulesToDisk(
 // --- SSR renderer setup ---
 const _defaultLayout = _layouts.find(l => l.isDefault)?.name || null;
 
-const _rendererRoutes = _pages.filter(p => !p.isReuse).map(p => ({
-  path: p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'),
-  name: p.name,
-  component: async () => {
-    const loader = pageLoaders[p.relativePath];
-    if (!loader) throw new Error('Page loader not found: ' + p.relativePath);
-    const mod = await loader();
-    return mod.default || mod;
-  },
-  meta: {
-    layout: p.layout === false ? false : p.layout || _defaultLayout,
-    pageName: p.name,
-    cache: p.cache === true ? true : undefined
-  }
-}));
+const _rendererRoutes = _pages.map(p => {
+  // For reuse routes, load the target page's module (the .reuse.ts file
+  // only contains definePage metadata, not a Vue component).
+  const _targetPage = p.isReuse && p.reuseTarget ? _pages.find(tp => tp.name === p.reuseTarget) : undefined;
+  const _loaderKey = _targetPage?.relativePath || p.relativePath;
+  return {
+    path: p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'),
+    name: p.name,
+    component: async () => {
+      const loader = pageLoaders[_loaderKey];
+      if (!loader) throw new Error('Page loader not found: ' + _loaderKey);
+      const mod = await loader();
+      return mod.default || mod;
+    },
+    meta: {
+      layout: p.layout === false ? false : p.layout || _defaultLayout,
+      pageName: p.name,
+      cache: p.cache === true ? true : undefined
+    }
+  };
+});
 
 const _layoutMap = new Map();
 for (const l of _layouts) {

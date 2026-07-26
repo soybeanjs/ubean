@@ -11,6 +11,45 @@ function toVueRouterPath(route: string): string {
   return route.replace(/\*\*:(\w[\w-]*)/g, ':$1(.*)*');
 }
 
+/**
+ * Sort pages so that reuse routes come after their targets.
+ *
+ * A reuse route generates `const Page_Reuse = Page_Target;` in the virtual
+ * module. If the reuse route is declared before its target, JavaScript's TDZ
+ * (temporal dead zone) throws `Cannot access 'Page_Target' before initialization`.
+ *
+ * This topological sort ensures targets are always emitted before their
+ * reuse routes. Pages without reuse dependencies retain their original order.
+ */
+function sortPagesByReuseDependency(pages: ScannedPageRoute[]): ScannedPageRoute[] {
+  const result: ScannedPageRoute[] = [];
+  const visited = new Set<string>();
+
+  // Build name → page map for quick lookup
+  const byName = new Map<string, ScannedPageRoute>();
+  for (const p of pages) {
+    byName.set(p.name, p);
+  }
+
+  function visit(page: ScannedPageRoute) {
+    if (visited.has(page.name)) return;
+    visited.add(page.name);
+
+    // If this is a reuse route, visit the target first
+    if (page.isReuse && page.reuseTarget && byName.has(page.reuseTarget)) {
+      visit(byName.get(page.reuseTarget)!);
+    }
+
+    result.push(page);
+  }
+
+  for (const p of pages) {
+    visit(p);
+  }
+
+  return result;
+}
+
 export function createVuePagesVirtualModule(pages: ScannedPageRoute[], layouts: ScannedLayout[]) {
   return defineVirtualModule('virtual:ubean-pages', () => {
     const pageLoaders: string[] = [];
@@ -26,7 +65,15 @@ export function createVuePagesVirtualModule(pages: ScannedPageRoute[], layouts: 
       pageByName.set(p.name, p);
     }
 
-    for (const p of pages) {
+    // Sort pages so that reuse routes come AFTER their targets.
+    // A reuse route generates `const Page_Reuse = Page_Target;` — if it
+    // appears before the target's `const Page_Target = () => import(...)`,
+    // JavaScript's temporal dead zone (TDZ) throws "Cannot access
+    // 'Page_Target' before initialization". Topological sort ensures
+    // targets are always declared first.
+    const sortedPages = sortPagesByReuseDependency(pages);
+
+    for (const p of sortedPages) {
       const varName = `Page_${p.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
       const routerPath = toVueRouterPath(p.route);
       const layoutValue = p.layout === false ? 'false' : p.layout ? JSON.stringify(p.layout) : 'undefined';
@@ -77,10 +124,10 @@ ${layoutLoaderMap}
 };
 
 const _pageLoaders = {
-${pages.map(p => `  ${JSON.stringify(p.name)}: ${`Page_${p.name.replace(/[^a-zA-Z0-9]/g, '_')}`}`).join(',\n')}
+${sortedPages.map(p => `  ${JSON.stringify(p.name)}: ${`Page_${p.name.replace(/[^a-zA-Z0-9]/g, '_')}`}`).join(',\n')}
 };
 
-export const pageNames = [${pages.map(p => JSON.stringify(p.name)).join(', ')}] as const;
+export const pageNames = [${sortedPages.map(p => JSON.stringify(p.name)).join(', ')}] as const;
 export const layoutNames = [${layouts.map(l => JSON.stringify(l.name)).join(', ')}] as const;
 export const defaultLayout = ${defaultLayoutName === 'null' ? 'null' : JSON.stringify(defaultLayoutName)} as const;
 

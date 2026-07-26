@@ -9,7 +9,7 @@ import { ubeanPlugin } from '@ubean/build/vite';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands';
 import { resolveModules } from '@ubean/modules';
-import type { ScannedLayout } from '@ubean/routing';
+import type { ScannedLayout, ScannedPageRoute } from '@ubean/routing';
 import { createVueRenderer } from '@ubean/ssr';
 import { findAvailablePort, findUserViteConfig } from '@ubean/utils';
 import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '@ubean/vite';
@@ -158,6 +158,117 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     logger.warn(`Port ${requestedPort} is in use, trying ${actualPort} instead.`);
   }
 
+  // Create the HTTP server BEFORE Vite so that:
+  // 1. `@vitejs/devtools` can mount its WebSocket server during
+  //    `configureServer` (needs `server.httpServer` to be set)
+  // 2. Vite's HMR WebSocket can share the same port (no separate HMR port)
+  // The request handler references `viteServer` via closure — it will be set
+  // before any request arrives (server doesn't listen until `start()`).
+  httpServer = createHttpServer(async (req, res) => {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        viteServer!.middlewares(req, res, (err?: unknown) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      });
+
+      if (res.writableEnded) {
+        return;
+      }
+
+      // Load locales through Vite SSR module graph (supports HMR)
+      try {
+        const localesMod = await viteServer!.ssrLoadModule('ubean:locales');
+        if (localesMod?.loadLocales) {
+          await localesMod.loadLocales();
+        }
+      } catch (err) {
+        logger.warn('[ubean] Failed to load locales:', err);
+      }
+
+      // Apply user's defineServer config (plugins, hooks, onAppCreated)
+      // before init() — must happen before the first init() call.
+      if (!serverConfigApplied) {
+        serverConfigApplied = true;
+        try {
+          const serverMod = await viteServer!.ssrLoadModule('virtual:ubean-server');
+          if (serverMod?.resolveServerConfig) {
+            cachedServerConfig = serverMod.resolveServerConfig('dev');
+            await applyServerConfig(currentApp, cachedServerConfig);
+          }
+        } catch (err) {
+          logger.warn('[ubean] Failed to load server config:', err);
+        }
+      }
+
+      await currentApp.init();
+
+      // Call onServerReady once after the first successful init
+      if (!serverReadyCalled) {
+        serverReadyCalled = true;
+        if (cachedServerConfig?.onServerReady) {
+          try {
+            await cachedServerConfig.onServerReady(currentApp);
+          } catch (err) {
+            logger.warn('[ubean] onServerReady error:', err);
+          }
+        }
+      }
+      // @ts-expect-error Socket 类型没有 encrypted 属性
+      const protocol = req.socket?.encrypted ? 'https' : 'http';
+      const webReq = await toWebRequest(req, host, protocol);
+      const webRes = await currentApp.fetch(webReq);
+
+      const contentType = webRes.headers.get('content-type') || '';
+      // The DevTools client serves a pre-built SPA with separate static
+      // assets. Vite's transformIndexHtml would break the pre-built module
+      // references and import-analysis. Skip transform for all devtools
+      // paths (client SPA root, assets, and legacy iframe alias).
+      const skipTransform = (req.url || '').startsWith('/_devtools');
+      if (contentType.includes('text/html') && webRes.body && !skipTransform) {
+        const html = await webRes.text();
+        const transformedHtml = await viteServer!.transformIndexHtml(req.url || '/', html);
+        res.statusCode = webRes.status;
+        res.statusMessage = webRes.statusText;
+        webRes.headers.forEach((value, key) => {
+          res.setHeader(key, value);
+        });
+        res.end(transformedHtml);
+      } else {
+        await sendWebResponse(res, webRes);
+      }
+    } catch (err) {
+      if (viteServer) {
+        viteServer.ssrFixStacktrace(err as Error);
+      }
+      if (!res.headersSent) {
+        res.statusCode = 500;
+        const errorHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <title>Server Error</title>
+    <style>
+      body { font-family: monospace; padding: 2rem; background: #1a1a1a; color: #ff6b6b; }
+      pre { background: #2d2d2d; padding: 1rem; border-radius: 4px; overflow-x: auto; }
+    </style>
+  </head>
+  <body>
+    <h1>Internal Server Error</h1>
+    <pre>${(err as Error).stack || (err as Error).message}</pre>
+  </body>
+</html>`;
+        res.setHeader('Content-Type', 'text/html');
+        res.end(errorHtml);
+      } else if (!res.writableEnded) {
+        res.end(err instanceof Error ? err.message : 'Internal Server Error');
+      }
+    }
+  });
+
   // DevTools Kit (DTK) integration: load `@ubean/devtools`'s Vite plugin
   // lazily so `@ubean/dev` has no static dependency on it. The plugin's
   // `devtools.setup` hook fires only when Vite DevTools is enabled below.
@@ -221,7 +332,28 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // backend 模式:无 Vue 页面、无 SSR,跳过 Vue 相关插件
   const isBackendMode = config.mode === 'backend';
 
+  // Vite-Plus does not set `viteServer.httpServer` when using
+  // `middlewareMode: { server: httpServer }` (unlike standard Vite).
+  // `@vitejs/devtools`'s `DevToolsServer` plugin (enforce: "post") reads
+  // `viteServer.httpServer` during its `configureServer` hook to decide
+  // whether to bind the WebSocket to the existing HTTP server (route-bound)
+  // or spin up a separate port. Without this fix, the WS lands on a random
+  // port that browsers may block (CORS/mixed-content) and the DevTools
+  // dock shell cannot establish a connection.
+  // This pre-plugin runs before `DevToolsServer` (post) and patches
+  // `viteServer.httpServer` so the WS binds to our HTTP server.
+  const httpServerBinderPlugin: Plugin = {
+    name: 'ubean:http-server-binder',
+    enforce: 'pre',
+    configureServer(server) {
+      if (!server.httpServer && httpServer) {
+        (server as any).httpServer = httpServer;
+      }
+    }
+  };
+
   const builtinPlugins: Plugin[] = [
+    httpServerBinderPlugin,
     ...(isBackendMode
       ? []
       : [
@@ -257,7 +389,9 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     // 否则使用 false,完全由 builtin plugins 提供
     configFile: userViteConfig ?? false,
     server: {
-      middlewareMode: true,
+      middlewareMode: {
+        server: httpServer
+      },
       hmr: {
         port: actualPort + 1000
       }
@@ -294,8 +428,17 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     app.options.routeLoaders = routeLoaders;
 
     const pageLoaders: Record<string, () => Promise<any>> = {};
+    // Build name → page map so reuse routes can resolve their target's
+    // `fullPath`. The `.reuse.ts` file only contains `definePage` metadata,
+    // so loading it would not yield a Vue component — reuse routes must
+    // load the target page's module instead.
+    const pageByName = new Map<string, ScannedPageRoute>();
     for (const page of app.options.pages || []) {
-      const fullPath = page.fullPath;
+      pageByName.set(page.name, page);
+    }
+    for (const page of app.options.pages || []) {
+      const targetPage = page.isReuse && page.reuseTarget ? pageByName.get(page.reuseTarget) : undefined;
+      const fullPath = targetPage?.fullPath || page.fullPath;
       pageLoaders[page.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
     }
     app.options.pageLoaders = pageLoaders;
@@ -331,19 +474,31 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
     // Build vue-router routes for SSR
     const scannedPages = app.options.pages || [];
-    const routes = scannedPages.map((p: any) => ({
-      path: p.route.replace(/\*\*:(\w[\w-]*)/g, ':$1(.*)*'),
-      name: p.name,
-      component: async () => {
-        const mod = await viteServer!.ssrLoadModule(p.fullPath);
-        return mod.default || mod;
-      },
-      meta: {
-        layout: p.layout === false ? false : p.layout || defaultLayout,
-        pageName: p.name,
-        cache: p.cache === true ? true : undefined
-      }
-    }));
+    // Build name → page map so reuse routes can resolve their target's
+    // `fullPath`. The `.reuse.ts` file only contains `definePage` metadata,
+    // not a Vue component — reuse routes must load the target page's module
+    // to get the actual SFC component.
+    const scannedPageByName = new Map<string, (typeof scannedPages)[number]>();
+    for (const p of scannedPages) {
+      scannedPageByName.set(p.name, p);
+    }
+    const routes = scannedPages.map((p: any) => {
+      const targetPage = p.isReuse && p.reuseTarget ? scannedPageByName.get(p.reuseTarget) : undefined;
+      const componentFullPath = targetPage?.fullPath || p.fullPath;
+      return {
+        path: p.route.replace(/\*\*:(\w[\w-]*)/g, ':$1(.*)*'),
+        name: p.name,
+        component: async () => {
+          const mod = await viteServer!.ssrLoadModule(componentFullPath);
+          return mod.default || mod;
+        },
+        meta: {
+          layout: p.layout === false ? false : p.layout || defaultLayout,
+          pageName: p.name,
+          cache: p.cache === true ? true : undefined
+        }
+      };
+    });
 
     // Lazily load the user's defineApp config from the virtual module.
     // Cached so we only ssrLoadModule once per enhanceAppWithVite call (HMR

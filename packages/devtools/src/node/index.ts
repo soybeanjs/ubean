@@ -98,6 +98,31 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
         // 1. Host the pre-built SPA static assets (replaces runtime/middleware.ts).
         ctx.views.hostStatic('/_devtools/', CLIENT_DIST);
 
+        // 1b. Serve `__connection.json` at the SPA base so the client can
+        //     discover the WebSocket endpoint when opened directly (not just
+        //     when embedded in the DTK dock shell at `/__devtools/`).
+        //     Without this, `GET /_devtools/__connection.json` returns 404 and
+        //     the SPA's `getDevToolsRpcClient()` cannot establish a connection.
+        //     We proxy to the DTK middleware's `/__devtools/__connection.json`
+        //     which is always available when DevTools is enabled.
+        const viteServer = ctx.viteServer;
+        if (viteServer?.middlewares) {
+          viteServer.middlewares.use('/_devtools/__connection.json', async (_req: any, res: any) => {
+            try {
+              // Forward to the DTK-served connection metadata endpoint
+              const origin = viteServer.resolvedUrls?.local?.[0] || 'http://localhost';
+              const metaRes = await fetch(new URL('/__devtools/__connection.json', origin));
+              const meta = await metaRes.json();
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify(meta));
+            } catch {
+              res.statusCode = 500;
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ error: 'Failed to resolve connection meta' }));
+            }
+          });
+        }
+
         // 2. Register dock entries — one per view (or grouped domain).
         //    Routes + Playground share an iframe to preserve the "try route"
         //    cross-view interaction; Middlewares + Layouts are grouped as

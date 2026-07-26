@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.1...main) (2026-07-27)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(a5e28)</samp>](https://github.com/soybeanjs/ubean/commit/a5e28c0)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v](https://github.com/soybeanjs/ubean/compare/v0.1.0...v) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

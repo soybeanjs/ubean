@@ -1,6 +1,6 @@
 {
   "name": "@ubean/preset",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Deployment presets for ubean (standard, node, cloudflare, wrangler config)",
   "files": [
     "dist"

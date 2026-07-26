@@ -44,7 +44,9 @@ export function ubeanElectronPlugin(options: ElectronOptions = {}): Plugin[] {
   const mainEntry = options.main?.entry ?? DEFAULT_MAIN_ENTRY;
   const preloadInput = options.preload?.input ?? DEFAULT_PRELOAD_INPUT;
 
-  const plugins = electron({
+  // renderer 仅在显式配置时传入 — 否则 vite-plugin-electron/simple 会要求
+  // 安装 vite-plugin-electron-renderer（仅在 renderer 进程使用 Node.js API 时才需要）
+  const electronConfig: Parameters<typeof electron>[0] = {
     main: {
       entry: mainEntry,
       ...options.main?.vite
@@ -52,9 +54,13 @@ export function ubeanElectronPlugin(options: ElectronOptions = {}): Plugin[] {
     preload: {
       input: preloadInput,
       ...options.preload?.vite
-    },
-    renderer: options.renderer ?? {}
-  });
+    }
+  };
+  if (options.renderer) {
+    electronConfig.renderer = options.renderer;
+  }
+
+  const plugins = electron(electronConfig);
 
   // vite-plugin-electron/simple 返回 Plugin[]，重命名便于识别
   const pluginArray = Array.isArray(plugins) ? plugins : [plugins];

@@ -24,6 +24,11 @@ declare module 'vue-router' {
 
 export { useHeadInstance, injectHead } from './head';
 export type { VueHeadClient as HeadClient } from './head';
+// Re-export createHead from @unhead/vue so consumers (and ubean's own virtual
+// modules) don't need @unhead/vue as a direct dependency — it's resolved through
+// ubean's node_modules. Renamed to avoid name clash between client/server variants.
+export { createHead as createClientHead } from '@unhead/vue/client';
+export { createHead as createServerHead } from '@unhead/vue/server';
 export {
   createLinkHandler,
   extractPageData,

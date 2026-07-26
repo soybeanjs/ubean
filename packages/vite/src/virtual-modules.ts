@@ -167,10 +167,10 @@ import {
   getInitialPageData,
   defineApp,
   applyAppConfig,
-  createDefaultAppConfig
+  createDefaultAppConfig,
+  createClientHead,
+  createServerHead
 } from 'ubean/runtime/vue';
-import { createHead as createClientHead } from '@unhead/vue/client';
-import { createHead as createServerHead } from '@unhead/vue/server';
 
 export {
   createUbeanApp,

@@ -5,7 +5,7 @@
 >
 > 状态图例：⬜ 待开始 | 🔄 进行中 | ✅ 已完成 | ⏸️ 暂缓
 >
-> 当前整体状态：**规划阶段（所有任务 ⬜）**。文档版本：v0.2（2026-07-26，引入独立仓库策略、pi-agent 底座、商业化策略与 BYOK 功能门控模型）。
+> 当前整体状态：**规划阶段（所有任务 ⬜）**。文档版本：v0.3（2026-07-26，引入 `@ubean/electron` 集成：studio 通过 `ubean.config.ts` 的 `electron: true` 启用 Electron 构建，默认 main/preload 入口，自动关闭 SSR）。
 
 ---
 
@@ -44,7 +44,8 @@ ubeanjs/ubean-studio (private)
 | studio 需要 | 来源 | 联调方式 |
 | --- | --- | --- |
 | `ubean` 框架运行时与类型 | npm `ubean` | `pnpm link --global` 或本地 `npm pack` |
-| `@ubean/devtools` client | npm `@ubean/devtools` | 同上；dev server 运行时经 `/<devtools-path>/client` 加载 |
+| `@ubean/electron` Electron 构建 | npm `@ubean/electron`（ubean 内置模块，基于 vite-plugin-electron） | 同上；studio `ubean.config.ts` 中 `electron: true` 启用，默认入口 `electron/main.ts`、`electron/preload.ts` |
+| `@ubean/devtools` client | npm `@ubean/devtools`（已包含在 `ubean` 依赖中） | 同上；dev server 运行时经 `/<devtools-path>/client` 加载 |
 | CLI Shared Layer（scaffold fs-ops） | **需主包新增 `ubean/scaffold` 子路径导出**（见 ADR-03 + ST0-08） | 同上 |
 | `skills/ubean` 知识包 | 主仓库 `skills/ubean` 目录 | studio 构建时拉取（git subtree 或 npm package） |
 | `@soybeanjs/ui` / UnoCSS preset | npm | 直接安装 |
@@ -178,9 +179,9 @@ ubeanjs/ubean-studio (private)
 
 | 决策点 | 选择 | 理由 |
 | --- | --- | --- |
-| 桌面框架 | **Electron + electron-vite** | 重度依赖 Node 能力（child_process、node-pty、ts-morph AST、c12 配置加载、直接复用 ubean/devtools 的 Node API）；Tauri 的 Rust 侧无法低成本承载这些依赖 |
+| 桌面框架 | **Electron + `@ubean/electron`**（基于 vite-plugin-electron） | 重度依赖 Node 能力（child_process、node-pty、ts-morph AST、c12 配置加载、直接复用 ubean/devtools 的 Node API）；Tauri 的 Rust 侧无法低成本承载这些依赖。ubean 内置 `@ubean/electron` 模块：`electron: true` 即可启用，默认 main/preload 入口（`electron/main.ts`、`electron/preload.ts`），自动关闭 SSR，省去独立 `electron-vite` 工具链 |
 | 渲染进程 UI | Vue 3 + `@soybeanjs/ui` + UnoCSS（`@soybeanjs/unocss-shadcn` preset） | 与 devtools client 一致，符合工程规范 §9.1 |
-| 路由 | vue-router（渲染进程 SPA，studio 自身不使用 ubean 框架） | studio 是工具应用，不需要 SSR；ubean 是 studio 的“管理对象”而非运行基础 |
+| 路由 | vue-router（渲染进程 SPA，studio 不使用 ubean 运行时） | studio 是工具应用，不需要 SSR/API 路由；ubean 是 studio 的"管理对象"。studio 复用 ubean 的构建工具链（`@ubean/electron`、Vite 插件），但不使用其运行时（SSR/页面路由/API 路由） |
 | 终端 | `node-pty` + `xterm.js`（devtools 已使用 xterm 6） | 复用既有依赖与经验 |
 | 进程内 API | `contextBridge` + 类型化 RPC（自定义轻量封装，参考 devframe 的 RPC 形态） | contextIsolation 安全模型下的标准方案 |
 | AI 底座 | **[`@earendil-works/pi-coding-agent`](https://github.com/earendil-works/pi) SDK 模式** + `pi-ai`（多 provider）+ `pi-agent-core`（agent runtime） | 见 §0.2：pi 提供 agent loop / tool calling / 事件流 / 多 provider 抽象，studio 以 Extension 注册 ubean 专属工具；省去自建 agent 基础设施 |
@@ -374,7 +375,7 @@ studio 在独立私有仓库 `ubeanjs/ubean-studio` 内，自身为 monorepo（p
 ubeanjs/ubean-studio (private)
 ├── packages/
 │   ├── studio/                        # @ubean/studio（Electron 应用，private: true）
-│   │   ├── electron.vite.config.ts
+│   │   ├── ubean.config.ts            # electron: true 启用 @ubean/electron（默认 main/preload 入口）
 │   │   ├── electron-builder.yml
 │   │   ├── package.json
 │   │   ├── src/
@@ -444,7 +445,8 @@ ubeanjs/ubean-studio (private)
 依赖边界：
 
 - `@ubean/studio` 为 `private`，不发布 npm；产物经 electron-builder 分发。
-- studio 以 npm 依赖消费 `ubean`、`@ubean/devtools`；本地联调用 `pnpm link --global` 或本地 `npm pack`（见 §0.1 联调方式）。
+- studio 以 npm 依赖消费 `ubean`（含 `@ubean/devtools`）与 `@ubean/electron`；本地联调用 `pnpm link --global` 或本地 `npm pack`（见 §0.1 联调方式）。
+- Electron 构建由 `@ubean/electron`（ubean 内置模块，底层 vite-plugin-electron）承担：`ubean.config.ts` 中 `electron: true` 启用，默认入口 `electron/main.ts`、`electron/preload.ts`，自动关闭 SSR；如需自定义入口可覆盖 `electron.main.entry` / `electron.preload.input`。
 - 脚手架逻辑依赖主包新增的 `ubean/scaffold` 子路径导出（需主包小改，见 ADR-03 + ST0-08）。
 - 主进程依赖 `@earendil-works/pi-coding-agent`、`@earendil-works/pi-ai`、`@earendil-works/pi-agent-core`、`node-pty`、（可选）`better-sqlite3`。
 - 渲染进程依赖 `@soybeanjs/ui`、`@soybeanjs/unocss-shadcn`、`xterm.js`。
@@ -457,7 +459,7 @@ ubeanjs/ubean-studio (private)
 
 | 里程碑 | 可交付能力 | 验收标准 |
 | --- | --- | --- |
-| **MS0 骨架** | 独立仓库初始化、electron-vite 三进程骨架、Shell 布局、pi-agent SDK 集成验证、打包出 mac 可运行 app | `pnpm dev` 启动；`pnpm build` 产出安装包；pi SDK 可对话；lint/typecheck 通过 |
+| **MS0 骨架** | 独立仓库初始化、`@ubean/electron` 三进程骨架（`ubean.config.ts` 启用）、Shell 布局、pi-agent SDK 集成验证、打包出 mac 可运行 app | `pnpm dev` 启动；`pnpm build` 产出安装包；pi SDK 可对话；lint/typecheck 通过 |
 | **MS1 项目管理 + 命令中心** | 项目 CRUD、新建向导、dev/build 可视化、日志、内嵌预览、脚手架表单 | 对 examples/ubean-test 全流程可操作；结果与 CLI 一致 |
 | **MS2 DevTools 集成** | 13 个 Tab 完整内嵌、二级菜单深链、未运行引导 | DevTools 全部功能可用（对照 docs/test.md 第十三节清单） |
 | **MS3 AI 核心（pi-agent）** | pi provider 配置、ubean extensions、全局 AI 面板、PermissionLayer、会话管理 | AI 可完成「创建页面+API+启动 dev」全链路；写操作均有确认与日志 |
@@ -475,7 +477,7 @@ ubeanjs/ubean-studio (private)
 
 | ID | 任务 | 状态 | 优先级 | 验收标准 |
 | --- | --- | --- | --- | --- |
-| ST0-01 | 初始化独立私有仓库 `ubeanjs/ubean-studio`（pnpm workspace + catalog + TS strict） | ⬜ | P0 | 仓库就绪；pnpm install 通过；CI 骨架就位 |
+| ST0-01 | 初始化独立私有仓库 `ubeanjs/ubean-studio`（pnpm workspace + catalog + TS strict + `ubean.config.ts` 启用 `@ubean/electron`） | ⬜ | P0 | 仓库就绪；pnpm install 通过；`electron: true` 生效（默认 main/preload 入口、SSR 自动关闭）；CI 骨架就位 |
 | ST0-02 | 主进程：窗口管理、单实例锁、深链（`ubean-studio://`）、 macOS 菜单/托盘占位 | ⬜ | P0 | 双开拦截；深链唤起并路由 |
 | ST0-03 | preload：contextBridge 类型化 API（`window.studio`）+ 事件订阅机制 | ⬜ | P0 | 渲染进程零 `ipcRenderer` 直用；类型端到端推导 |
 | ST0-04 | 渲染进程 Shell：侧边菜单、主题（亮/暗）、vue-router、全局通知 | ⬜ | P0 | 菜单折叠/展开；路由懒加载；`SConfigProvider` 主题 |
@@ -577,7 +579,7 @@ ubeanjs/ubean-studio (private)
 | ADR-01 | Electron vs Tauri | ✅ Electron | 主进程需直接运行 node-pty、ts-morph、c12、CLI Shared Layer 与 pi-agent SDK 的 Node 生态；Tauri 需 Rust 重写或 sidecar，成本高且丧失复用 |
 | ADR-02 | DevTools 集成方式 | ✅ webview 内嵌 | 完整复用 `@ubean/devtools` 13 个视图；原生重写列为远期 P3 |
 | ADR-03 | 脚手架操作通道 | ✅ 主进程直调 CLI Shared Layer | 与 DevTools RPC、CLI 三方共用同一实现，结果一致（§4.13）；需要主包新增 `ubean/scaffold` 子路径导出（ST0-08 前置小改） |
-| ADR-04 | studio 自身技术栈 | ✅ Vue 3 SPA（非 ubean） | studio 是 Electron 工具，无 SSR/部署需求；ubean 是被管理对象。官网落地页才用 ubean 自举（ST6-06） |
+| ADR-04 | studio 自身技术栈 | ✅ Vue 3 SPA（复用 ubean 构建链，非 ubean 运行时） | studio 是 Electron 工具，无 SSR/部署需求；ubean 是被管理对象。studio 通过 `@ubean/electron`（ubean 内置模块）处理 Electron 构建（main/preload/renderer 三进程构建、HMR、自动启动），但渲染进程不使用 ubean 的 SSR/页面路由/API 路由运行时。官网落地页才用 ubean 自举（ST6-06） |
 | ADR-05 | AI 工具协议 | ✅ pi-agent Extension（TypeScript） | v0.2 改用 pi-coding-agent SDK；ubean 专属能力注册为 pi extension，省去自建 tool registry；pi 原生支持 tool calling 协议 |
 | ADR-06 | 物料协议 | ✅ 自有 material.json（参考 shadcn registry） | 与 `@soybeanjs/ui` 生态对齐；保留向 shadcn registry 格式导出可能 |
 | ADR-07 | 密钥存储 | ✅ safeStorage | 系统级加密；不引入第三方 keyring；解密后注入 pi provider 配置 |
@@ -588,6 +590,7 @@ ubeanjs/ubean-studio (private)
 | ADR-12 | 产品命名 | ✅ 保留 ubean-studio | 名字传递"官方综合工作台"定位（对标 Android Studio / Xcode），AI 是属性而非全部；tagline 强化 AI-Native 定位；改名为 agent 会自我窄化，掩盖 DevTools/市场/解决方案的独占价值 |
 | ADR-13 | 商业化模型 | ✅ BYOK + 功能门控 + 解决方案市场 | AI 推理 BYOK 免费（消除摩擦），高级 AI 生成器（建表/插件/主题/模板）Pro 会员解锁；解决方案市场为高利润一次性付费产品；用户为"能力"付费而非"用量"，对标 Cline/OpenCode 的 BYOK + Cursor 的能力分层；见 §10 |
 | ADR-14 | 商业化起点 | ✅ 解决方案市场优先 | 完整应用模板（博客/商城/CMS）付费意愿最强、边际成本最低；studio 免费 + BYOK 驱动采纳，解决方案启动营收；Pro 订阅与企业层后续跟进；见 §10.4 |
+| ADR-15 | Electron 构建工具链 | ✅ `@ubean/electron`（替代 electron-vite） | v0.3：ubean 内置 `@ubean/electron` 模块（薄封装 vite-plugin-electron），`ubean.config.ts` 中 `electron: true` 即可启用；默认 main/preload 入口（`electron/main.ts`、`electron/preload.ts`），自动关闭 SSR（桌面应用无需 SSR）。收益：(1) studio 无需引入独立 `electron-vite` 工具链，构建配置统一在 `ubean.config.ts`；(2) 任何 ubean 项目均可通过 `electron: true` 升级为桌面应用，扩大 ubean 生态覆盖；(3) 主仓库原生维护 electron 集成，studio 跟随升级零成本 |
 
 ---
 

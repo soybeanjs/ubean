@@ -16,7 +16,7 @@
 
 ```
 ubean/
-├── packages/                # 36 个子包（monorepo）
+├── packages/                # 37 个子包（monorepo）
 │   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
 │   ├── types/              # @ubean/types — 共享类型
 │   ├── utils/              # @ubean/utils — 工具函数
@@ -49,7 +49,8 @@ ubean/
 │   ├── pwa/                # @ubean/pwa — PWA manifest + service worker
 │   ├── image/              # @ubean/image — 图片优化
 │   ├── content/            # @ubean/content — 内容集合
-│   └── fonts/              # @ubean/fonts — 字体优化
+│   ├── fonts/              # @ubean/fonts — 字体优化
+│   └── electron/           # @ubean/electron — Electron 桌面应用（vite-plugin-electron 封装）
 ├── examples/                # 示例项目
 │   ├── ubean-test/         # 完整全栈示例 + 测试（virtual 模式）
 │   ├── frontend-only/      # 纯前端示例（无 API/SSR）
@@ -64,8 +65,8 @@ ubean/
 ubean 采用 **monorepo + 聚合器** 架构：
 
 - **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含 4 个子路径导出（见下文）。
-- **子包 `@ubean/*`**（其余 35 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
-- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`）：通过 `ubean.config.ts` 的顶层布尔字段（`icon: true`、`pwa: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
+- **子包 `@ubean/*`**（其余 36 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
 
 ### 2.2 主包子路径导出
 
@@ -124,6 +125,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - `srcDir` 默认值：`{rootDir}/src`
 - `UbeanConfig` 的 `modules` 字段支持字符串包名、元组和实例
 - 平台预设：`standard`、`node`、`cloudflare`（`default` → `standard`，`cf` → `cloudflare`，`node-server` → `node`）
+- 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）
 
 ### 3.6 模块与扩展包
 
@@ -363,6 +365,45 @@ import { usePwa } from '@ubean/pwa/runtime';
 - `strategies` 字段按资源类型（assets/pages/images/fonts/crossOrigin）配置默认缓存规则，内部转换为 workbox `runtimeCaching`
 - `injectManifest: true` 支持 `injectManifest` 策略（自定义 SW 源文件 `swSrc`）
 - `usePwa()`：`isInstalled`/`isUpdateAvailable`/`isOfflineReady`/`needRefresh`
+
+### @ubean/electron
+
+```typescript
+import { ubeanElectronPlugin, defineElectronConfig } from '@ubean/electron/vite';
+import { DEFAULT_MAIN_ENTRY, DEFAULT_PRELOAD_INPUT } from '@ubean/electron';
+import type { ElectronOptions, ElectronMainOptions, ElectronPreloadOptions } from '@ubean/electron';
+```
+
+- **底层实现**：[vite-plugin-electron](https://github.com/electron-vite/vite-plugin-electron)（ubean 仅提供薄封装层）
+- `ubean.config.ts` 中 `electron: true` 或 `electron: { ... }` 启用
+- **默认入口**：main 进程 `electron/main.ts`，preload 脚本 `electron/preload.ts`（无需配置即可启用）
+- **自动关闭 SSR**：启用 electron 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非用户显式指定 `ssr: true`）
+- `main.entry`：自定义 main 进程入口路径
+- `preload.input`：自定义 preload 脚本入口路径
+- `main.vite` / `preload.vite`：传递给 Vite 的额外配置
+- `renderer.nodeIntegration`：是否在 renderer 中启用 Node.js API
+- 透传 vite-plugin-electron 的全部能力：Hot Restart / Hot Reload / HMR / 自动启动
+- 在 Vite `closeBundle` hook 中自动执行 `electron .` 启动桌面应用
+
+**最简启用**：
+
+```typescript
+// ubean.config.ts
+export default defineConfig({
+  electron: true // 使用默认入口，自动关闭 SSR
+});
+```
+
+**自定义入口**：
+
+```typescript
+export default defineConfig({
+  electron: {
+    main: { entry: 'electron/main.ts' },
+    preload: { input: 'electron/preload.ts' }
+  }
+});
+```
 
 ## 6. 虚拟模块
 

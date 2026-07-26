@@ -71,6 +71,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - `@ubean/image`: Multi-provider image optimization (IPX/Cloudinary/Imgix/...)
    - `@ubean/content`: Markdown/YAML/JSON content collections with `queryContent()`
    - `@ubean/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
+   - `@ubean/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries and auto-disables SSR
 
 ### Project Structure
 
@@ -288,6 +289,7 @@ export default defineConfig({
   icon: false, // @ubean/icon
   pwa: false, // @ubean/pwa
   auth: false, // @ubean/auth
+  electron: false, // @ubean/electron (enabling auto-disables SSR unless explicitly set)
   routing: { mode: 'virtual' }, // virtual (default) | file | both
   i18n: {
     defaultLocale: 'en',

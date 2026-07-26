@@ -12,7 +12,7 @@ A Vue-first full-stack meta-framework.
 
 Built on Vite-Plus, ubean unites Vue SSR pages, Hono API routes, type-safe route metadata, and portable deployment presets into a consistent development experience.
 
-> ubean is under active development. Core runtime, file-system routing, Vue SSR, Hono API routes, i18n, caching, database/storage layers, queues, cron, WebSocket/SSE, OpenAPI/Scalar, DevTools, and the `@ubean/auth`/`@ubean/icon`/`@ubean/pwa`/`@ubean/image`/`@ubean/content`/`@ubean/fonts` extension packages are implemented and tested. See the [documentation index](docs/README.md) for architecture decisions and the [skills/ubean/docs](skills/ubean/docs) for usage guides and API references.
+> ubean is under active development. Core runtime, file-system routing, Vue SSR, Hono API routes, i18n, caching, database/storage layers, queues, cron, WebSocket/SSE, OpenAPI/Scalar, DevTools, and the `@ubean/auth`/`@ubean/icon`/`@ubean/pwa`/`@ubean/image`/`@ubean/content`/`@ubean/fonts`/`@ubean/electron` extension packages are implemented and tested. See the [documentation index](docs/README.md) for architecture decisions and the [skills/ubean/docs](skills/ubean/docs) for usage guides and API references.
 
 ## Goals
 
@@ -36,7 +36,7 @@ Implemented capabilities include:
 - Built-in database layer (`defineDatabase`/`useDatabase`), storage (`useStorage`/`useKV`), cache (`useCacheStore`/`cachedEventHandler`), rate limiting, CORS, route rules (redirect/rewrite/headers/cache), and SSG prerendering.
 - WebSocket (`defineWebSocket`), SSE streaming, and `internalFetch` (dispatches framework handlers in-process without a network request).
 - DevTools with RPC, AI assistant, API playground, and CRUD scaffolding.
-- Extension packages: `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`.
+- Extension packages: `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`, `@ubean/electron` (desktop apps via vite-plugin-electron, with default main/preload entries and auto SSR disable).
 
 ## Development
 
@@ -59,7 +59,7 @@ Common commands:
 
 ## Architecture Direction
 
-ubean is a **monorepo** of 36 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package and get the full API surface. Subpackages are split by responsibility (routing, build, runtime, config, etc.) and can also be consumed individually for advanced use cases.
+ubean is a **monorepo** of 37 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package and get the full API surface. Subpackages are split by responsibility (routing, build, runtime, config, etc.) and can also be consumed individually for advanced use cases.
 
 The core implementation follows these boundaries:
 
@@ -79,8 +79,8 @@ packages/
 ├── build/          # @ubean/build — build-time core (virtual modules + Vite plugins)
 ├── runtime/        # @ubean/runtime — Vue client runtime
 ├── server/         # @ubean/server — cache/db/queue/cron/ws/sse
-├── ...             # 30 more subpackages
-└── auth/           # @ubean/auth — extension packages (icon/pwa/image/content/fonts)
+├── ...             # 31 more subpackages
+└── electron/       # @ubean/electron — desktop apps (vite-plugin-electron wrapper)
 ```
 
 See [docs/subpackage-splitting.md](docs/subpackage-splitting.md) for the original package-splitting design (now implemented) and [AGENTS.md](AGENTS.md) for the complete, current package list.

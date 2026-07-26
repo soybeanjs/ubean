@@ -1,6 +1,6 @@
 # ubean 文档
 
-本目录承载 ubean 的架构规划、工程约定与实施路线。核心运行时、文件式路由、Vue SSR、Hono API、i18n、缓存、数据库抽象、存储、队列、Cron、WebSocket、SSE、平台 preset、OpenAPI/Scalar、DevTools 以及 `@ubean/auth`/`@ubean/icon`/`@ubean/pwa` 等扩展包均已实现并附带测试，可参照 [skills/ubean/docs](../skills/ubean/docs) 中的使用指南与 API 参考。
+本目录承载 ubean 的架构规划、工程约定与实施路线。核心运行时、文件式路由、Vue SSR、Hono API、i18n、缓存、数据库抽象、存储、队列、Cron、WebSocket、SSE、平台 preset、OpenAPI/Scalar、DevTools 以及 `@ubean/auth`/`@ubean/icon`/`@ubean/pwa`/`@ubean/image`/`@ubean/content`/`@ubean/fonts`/`@ubean/electron` 等扩展包均已实现并附带测试，可参照 [skills/ubean/docs](../skills/ubean/docs) 中的使用指南与 API 参考。
 
 ## 文档分类
 
@@ -32,7 +32,7 @@
 
 | 文档                                   | 状态           | 内容                                                                                                                           |
 | -------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| [ubean-studio 产品方案](ubean-studio.md) | ⬜ 规划阶段（v0.2） | 基于 Electron 的桌面工作台：独立私有仓库策略、pi-agent 作为 AI 底座、BYOK + 功能门控商业化模型、DevTools 分层保留、物料市场、商业系统。所有任务尚未开始。 |
+| [ubean-studio 产品方案](ubean-studio.md) | ⬜ 规划阶段（v0.3） | 基于 Electron 的桌面工作台：独立私有仓库策略、pi-agent 作为 AI 底座、`@ubean/electron` 集成（ubean 内置模块）、BYOK + 功能门控商业化模型、DevTools 分层保留、物料市场、商业系统。所有任务尚未开始。 |
 
 ## 文档原则
 

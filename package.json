@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter ubean build",
-    "build:libs": "pnpm -F './packages/*' build",
+    "build:libs": "pnpm -F './packages/*' --parallel build",
     "commit": "soy git-commit",
     "dev": "pnpm --filter ubean dev",
     "fmt": "vp fmt",

@@ -86,6 +86,36 @@ router.go(-2);
 
 ### Navigation Guards
 
+There are two ways to register navigation guards:
+
+#### 1. Global guards via `defineApp({ router })` — **recommended**
+
+Register once at app startup in `src/app.ts`. Guards run on **both client and SSR**, and can intercept the first navigation. See [Navigation Guards guide](/docs/guide/pages-routing/overview#navigation-guards-client--ssr) for details.
+
+```typescript
+// src/app.ts
+import { defineApp } from 'ubean';
+
+export default defineApp({
+  router: {
+    setup(router) {
+      router.beforeEach((to, from) => {
+        if (to.meta.requiresAuth && !isAuthenticated()) {
+          return '/login';
+        }
+      });
+      router.afterEach((to, from) => {
+        // Analytics, scroll-to-top, etc.
+      });
+    }
+  }
+});
+```
+
+#### 2. Per-component guards via `useRouter()`
+
+For component-scoped guards (rare; mostly useful inside long-lived root components). Each call **appends** a new guard — make sure you're not re-registering on every mount:
+
 ```typescript
 const router = useRouter();
 
@@ -99,6 +129,8 @@ router.afterEach((to, from) => {
   // Analytics, scroll-to-top, etc.
 });
 ```
+
+> Production auth/analytics guards should live in `defineApp({ router })` to avoid duplicate registration and to ensure they fire during SSR.
 
 ## `<Link>` Component (Global)
 

@@ -156,7 +156,9 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `applyAppConfig(app, config, mode)`     | 应用配置到 Vue 实例                    |
 | `createUbeanApp(options)`               | 创建 ubean Hono 应用                   |
 
-`DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`
+`DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`
+
+> `router` 字段接收 `RouterConfig`(`{ setup(router) }`),在 router 实例创建后、`app.use(router)` 之前调用 `setup`,用于注册 vue-router 的导航守卫(`beforeEach`/`beforeResolve`/`afterEach`)。Client 和 SSR 都会执行;`app.ts` + `app.server.ts`/`app.client.ts` 中各自定义的 `setup` 会**累加执行**(shared 先,client/server 后)。
 
 ### 配置
 

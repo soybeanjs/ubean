@@ -221,6 +221,22 @@ function _mergeAppConfig(base, ...configs) {
     if (cfg.loadingComponent) result.loadingComponent = cfg.loadingComponent;
     if (cfg.viewTransitions !== undefined) result.viewTransitions = cfg.viewTransitions;
   }
+  // router.setup:累加语义 — shared 和 client/server 各自定义的 setup 都会执行
+  // (顺序:shared 先,client/server 后)。这样 shared 可放通用守卫(如埋点),
+  // client/server 可放环境专用守卫(如 SSR 鉴权)。
+  const setups = [];
+  for (const cfg of [base, ...configs]) {
+    if (cfg?.router?.setup) setups.push(cfg.router.setup);
+  }
+  if (setups.length === 1) {
+    result.router = { setup: setups[0] };
+  } else if (setups.length > 1) {
+    result.router = {
+      setup: (router) => {
+        for (const s of setups) s(router);
+      }
+    };
+  }
   return result;
 }
 
@@ -266,7 +282,8 @@ export function createApp() {
     head,
     viewTransitions: config.viewTransitions,
     initialPage: initialPage || undefined,
-    hydrate: !!initialPage
+    hydrate: !!initialPage,
+    routerSetup: config.router?.setup
   });
 
   applyAppConfig(instance.app, config, 'client');
@@ -299,7 +316,8 @@ export function createSSRApp(initialPage) {
     routes,
     resolveLayoutComponent,
     defaultLayout,
-    head
+    head,
+    routerSetup: config.router?.setup
   });
 
   applyAppConfig(app, config, 'server');

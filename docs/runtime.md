@@ -41,6 +41,26 @@ export default defineApp({
   rootId: 'app',
   rootAttrs: { 'data-app': 'true' },
 
+  // 路由钩子 — 注册 vue-router 的导航守卫
+  // 在 router 实例创建后、app.use(router) 之前调用,
+  // 因此守卫能拦截首次导航(包括 SSR 的初始 URL push)。
+  // Client 和 SSR 都会执行;setup 必须同步注册守卫(守卫本身可返回 Promise)。
+  router: {
+    setup(router) {
+      router.beforeEach((to, from) => {
+        if (to.meta.requiresAuth && !isAuthenticated()) {
+          return '/login';
+        }
+      });
+      router.afterEach((to) => {
+        // 埋点、设置文档标题等
+        if (typeof document !== 'undefined' && to.meta?.title) {
+          document.title = String(to.meta.title);
+        }
+      });
+    }
+  },
+
   // 命令式访问 app 实例（替代旧的工厂函数）
   onAppCreated(app) {
     // 注册全局指令
@@ -106,12 +126,24 @@ export default defineApp({
 ```typescript
 // packages/ubean/src/runtime/vue/define-app.ts
 import type { App as VueApp, Component, Plugin } from 'vue';
+import type { Router } from 'vue-router';
 import type { PageHead } from '../pages/protocol';
 import type { ViewTransitionOptions } from './view-transitions';
 
 export interface AppPluginConfig {
   plugin: Plugin | [Plugin, ...any[]];
   mode?: 'all' | 'client' | 'server';
+}
+
+/**
+ * 路由钩子配置 — 暴露 vue-router 的导航守卫注册入口。
+ * `setup(router)` 在 router 创建后、`app.use(router)` 之前调用,
+ * 因此守卫能拦截首次导航(包括 SSR 的初始 URL push)。
+ * Client 和 SSR 都会执行。
+ */
+export interface RouterConfig {
+  /** 在 router 创建后、初始导航前同步注册守卫(守卫本身可返回 Promise) */
+  setup?: (router: Router) => void;
 }
 
 export interface DefineAppOptions {
@@ -127,6 +159,8 @@ export interface DefineAppOptions {
   rootId?: string;
   /** 根元素额外属性 */
   rootAttrs?: Record<string, string>;
+  /** 路由钩子配置 — 注册 beforeEach/beforeResolve/afterEach 等导航守卫 */
+  router?: RouterConfig;
   /** App 创建后回调（替代旧工厂函数中直接操作 app） */
   onAppCreated?: (app: VueApp) => void | Promise<void>;
   /** 客户端 mount 完成后回调 */
@@ -146,6 +180,7 @@ export interface ResolvedAppConfig {
   head?: PageHead;
   rootId: string;
   rootAttrs: Record<string, string>;
+  router?: RouterConfig;
   onAppCreated?: (app: VueApp) => void | Promise<void>;
   onClientReady?: (app: VueApp) => void | Promise<void>;
   errorComponent?: Component;
@@ -174,9 +209,51 @@ export function defineApp(options: DefineAppOptions): ResolvedAppConfig;
 | 全局组件          | 不支持                         | 支持 `globalComponents`                |
 | SSR 上下文        | 无法访问                       | 通过 `onAppCreated` 在 SSR 阶段访问    |
 | 服务端/客户端分离 | 不支持                         | `app.server.ts` / `app.client.ts` 分离 |
+| 路由守卫          | 不支持                         | `router.setup` 注册 beforeEach 等      |
 | 默认行为          | 固定模板                       | 无 app.ts 时自动降级为默认行为          |
 | View Transitions  | 不支持                         | `viewTransitions` 选项                  |
 | 错误边界          | 不支持                         | `errorComponent` / `loadingComponent`  |
+
+#### 路由钩子（Navigation Guards）
+
+ubean 通过 `defineApp({ router })` 暴露 vue-router 的全局导航守卫注册入口,典型场景包括鉴权重定向、页面访问埋点、NProgress 进度条、根据 `to.meta.requiresAuth` 做登录校验等。
+
+**执行时机**:`router.setup(router)` 在 router 实例创建后、`app.use(router)` 之前调用,因此守卫能拦截**首次导航**(包括 SSR 的 `router.push(initialUrl)`)。
+
+**执行环境**:Client 和 SSR 都会执行。在 `app.ts` + `app.server.ts` / `app.client.ts` 中各自定义的 `setup` 会**累加执行**(顺序:shared 先,client/server 后),因此 shared 可放通用守卫(如埋点),client/server 可放环境专用守卫(如 SSR 鉴权重定向)。
+
+**注册约束**:`setup` 函数本身必须**同步**完成守卫注册(虽然守卫函数体可以返回 Promise)。不要在 `setup` 中执行异步操作(如发起 API 请求),否则会阻塞首次导航。如需异步逻辑,应放在守卫函数体内:
+
+```typescript
+// app.ts
+import { defineApp } from 'ubean';
+
+export default defineApp({
+  router: {
+    setup(router) {
+      // ✅ 同步注册守卫(守卫本身可异步)
+      router.beforeEach(async (to, from) => {
+        // 异步逻辑放在守卫函数体内,这里可以 await
+        if (to.meta.requiresAuth) {
+          const user = await fetchCurrentUser();
+          if (!user) return '/login';
+        }
+      });
+
+      router.afterEach((to) => {
+        // 埋点、设置文档标题等
+        if (typeof document !== 'undefined' && to.meta?.title) {
+          document.title = String(to.meta.title);
+        }
+      });
+    }
+  }
+});
+```
+
+**与组件内 `useRouter().beforeEach` 的区别**:`defineApp({ router })` 中的守卫是**全局**的,在应用启动时注册一次,作用于所有路由;而 `useRouter().beforeEach` 通常在组件 setup 中调用,如果组件被多次挂载会重复注册。**生产环境推荐使用 `defineApp({ router })` 注册全局守卫**。
+
+**与后端 middleware 的区别**:前端路由守卫只在客户端导航(以及 SSR 渲染当前 URL)时触发,不经过网络;后端 `src/middleware/` 是 Hono 中间件,在每个 HTTP 请求时触发。鉴权等需要查 cookie/header 的逻辑,通常在后端 middleware 中处理并将结果注入 context;前端守卫则用于根据已注入的状态做路由级决策(如未登录跳转)。
 
 ## 4.8 类型安全请求客户端
 

@@ -42,6 +42,13 @@ export interface UbeanAppOptions {
   head?: VueHeadClient;
   viewTransitions?: boolean | ViewTransitionOptions;
   hydrate?: boolean;
+  /**
+   * 在 router 实例创建后、`app.use(router)` 之前调用,
+   * 用于注册 vue-router 的导航守卫(`beforeEach` / `beforeResolve` / `afterEach`)。
+   *
+   * Client 和 SSR 都会执行。守卫注册必须同步完成(守卫本身可返回 Promise)。
+   */
+  routerSetup?: (router: ReturnType<typeof createUbeanRouter>) => void;
 }
 
 export interface UbeanAppInstance {
@@ -329,7 +336,8 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
 
   const router = createUbeanRouter({
     routes: options.routes,
-    ssr: false
+    ssr: false,
+    setup: options.routerSetup
   });
 
   const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
@@ -362,7 +370,8 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   const router = createUbeanRouter({
     routes: options.routes,
     ssr: true,
-    initialUrl: initialPage.url
+    initialUrl: initialPage.url,
+    setup: options.routerSetup
   });
 
   const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);

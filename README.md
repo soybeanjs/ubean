@@ -32,7 +32,7 @@ Implemented capabilities include:
 - `routes/` API file routing with named `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `OPTIONS`, `HEAD` exports wrapped by `defineHandler`.
 - `pages/` Vue SSR pages, layouts, route groups, reuse routes, loaders/actions, and typed navigation.
 - `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`), `validator`/`describeRoute`/`resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation, and generated `paths` types at `.ubean/routes.d.ts`.
-- `defineApp` options-based app customization, `definePage` macro, `defineMiddleware`, `defineLocale`, `defineEnv`, `defineScheduled` (cron), `defineQueue`.
+- `defineApp` options-based app customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineLocale`, `defineEnv`, `defineScheduled` (cron), `defineQueue`.
 - Built-in database layer (`defineDatabase`/`useDatabase`), storage (`useStorage`/`useKV`), cache (`useCacheStore`/`cachedEventHandler`), rate limiting, CORS, route rules (redirect/rewrite/headers/cache), and SSG prerendering.
 - WebSocket (`defineWebSocket`), SSE streaming, and `internalFetch` (dispatches framework handlers in-process without a network request).
 - DevTools with RPC, AI assistant, API playground, and CRUD scaffolding.

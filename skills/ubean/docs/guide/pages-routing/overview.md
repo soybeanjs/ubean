@@ -198,6 +198,59 @@ export default defineMiddleware(async c => {
 - Files with numeric prefix (e.g. `01-auth.ts`, `02-logging.ts`) → ordered by prefix
 - Directory-prefixed middleware (e.g. `middleware/admin/auth.ts`) → mounted at `/admin/*`
 
+## Navigation Guards (Client + SSR)
+
+ubean exposes vue-router's global navigation guards (`beforeEach` / `beforeResolve` / `afterEach`) via `defineApp({ router })` in `src/app.ts`. Guards run on **both client and SSR**, so they can intercept the initial navigation (including SSR's `router.push(initialUrl)`).
+
+```typescript
+// src/app.ts
+import { defineApp } from 'ubean';
+
+export default defineApp({
+  router: {
+    setup(router) {
+      // Auth guard — redirect to /login if route requires auth
+      router.beforeEach((to, from) => {
+        if (to.meta.requiresAuth && !isAuthenticated()) {
+          return '/login';
+        }
+      });
+
+      // Analytics / page title — runs after navigation completes
+      router.afterEach((to) => {
+        if (typeof document !== 'undefined' && to.meta?.title) {
+          document.title = String(to.meta.title);
+        }
+      });
+    }
+  }
+});
+```
+
+### Execution timing
+
+`setup(router)` is called **after** the router instance is created and **before** `app.use(router)`. This ensures guards are registered before the first navigation kicks off, so they can intercept the initial URL on both client hydration and SSR rendering.
+
+### Accumulation across `app.ts` + `app.server.ts` / `app.client.ts`
+
+If you split your config into `app.ts` (shared) + `app.server.ts` and/or `app.client.ts`, all `setup` functions are **chained** (shared first, then client/server-specific). This lets you put common guards (e.g. analytics) in `app.ts` and environment-specific guards (e.g. SSR-only auth redirects) in `app.server.ts`.
+
+### Constraints
+
+- `setup` itself must register guards **synchronously** (the guard functions can return Promises).
+- Don't `await` API calls inside `setup` — that delays the first navigation. Put async logic inside the guard callback instead.
+
+### Guards vs backend middleware
+
+| Aspect                | Frontend guards (`router.setup`)     | Backend middleware (`src/middleware/`)     |
+| --------------------- | ------------------------------------- | ----------------------------------------- |
+| Trigger               | Client-side navigation + SSR URL      | Every HTTP request                        |
+| Runs on               | Browser + SSR runtime                 | Server (Hono)                             |
+| Typical use           | Auth redirect, page title, analytics | Cookie parsing, session injection, CORS   |
+| Network round-trip    | No                                    | Yes                                       |
+
+Auth flows that need cookie/header inspection typically live in backend middleware (which injects user into context); frontend guards then read that state and decide whether to redirect.
+
 ## Route Rules
 
 Define route-level rules in `ubean.config.ts`:

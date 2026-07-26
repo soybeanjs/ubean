@@ -6,6 +6,16 @@ export interface CreateUbeanRouterOptions {
   ssr?: boolean;
   initialUrl?: string;
   base?: string;
+  /**
+   * 在 router 实例创建后、初始导航(SSR 的 `router.push(initialUrl)`)之前调用,
+   * 用于注册 `beforeEach` / `beforeResolve` / `afterEach` 等导航守卫。
+   *
+   * 守卫注册必须同步完成(守卫函数本身可以返回 Promise)。
+   * 不要在此处执行异步操作(如发起 API 请求),否则会阻塞首次导航。
+   *
+   * 该回调在 Client 和 SSR 环境都会执行。
+   */
+  setup?: (router: Router) => void;
 }
 
 export function createUbeanRouter(options: CreateUbeanRouterOptions): Router {
@@ -22,6 +32,11 @@ export function createUbeanRouter(options: CreateUbeanRouterOptions): Router {
       return { top: 0 };
     }
   });
+
+  // 注册导航守卫 — 必须在初始导航前完成,否则守卫拦截不到首次路由。
+  if (options.setup) {
+    options.setup(router);
+  }
 
   if (options.ssr && options.initialUrl) {
     router.push(options.initialUrl);

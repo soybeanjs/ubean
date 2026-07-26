@@ -10,7 +10,7 @@ ubean provides `useData()` for declarative data fetching with caching, TTL, depe
 <script setup lang="ts">
 // useData is auto-imported
 const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
-  $fetch('/api/posts').then(r => r.json())
+  fetch('/api/posts').then(r => r.json())
 );
 </script>
 

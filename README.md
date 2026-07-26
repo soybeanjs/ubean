@@ -5,21 +5,21 @@
 <h1 align="center">ubean</h1>
 
 <p align="center">
-  [中文文档](README.zh_CN.md)
+  <a href="README.zh_CN.md">中文文档</a>
 </p>
 
 A Vue-first full-stack meta-framework.
 
-Built on Vite-Plus, ubean aims to unite Vue SSR pages, Hono API routes, type-safe clients, and portable deployment presets into a consistent development experience.
+Built on Vite-Plus, ubean unites Vue SSR pages, Hono API routes, type-safe route metadata, and portable deployment presets into a consistent development experience.
 
-> ubean is under active development. Core runtime, file-system routing, Vue SSR, Hono API routes, i18n, caching, database/storage layers, queues, cron, WebSocket/SSE, OpenAPI/Scalar, DevTools, and the `@ubean/auth`/`@ubean/icon`/`@ubean/pwa` extension packages are implemented and tested. See the [documentation index](docs/README.md) for architecture decisions and the [skills/ubean/docs](skills/ubean/docs) for usage guides and API references.
+> ubean is under active development. Core runtime, file-system routing, Vue SSR, Hono API routes, i18n, caching, database/storage layers, queues, cron, WebSocket/SSE, OpenAPI/Scalar, DevTools, and the `@ubean/auth`/`@ubean/icon`/`@ubean/pwa`/`@ubean/image`/`@ubean/content`/`@ubean/fonts` extension packages are implemented and tested. See the [documentation index](docs/README.md) for architecture decisions and the [skills/ubean/docs](skills/ubean/docs) for usage guides and API references.
 
 ## Goals
 
 - Vue 3-specific SSR page routing and application entry customization.
 - Hono-based file-system API routes with named HTTP method exports.
-- OpenAPI and type-safe clients driven by validation schemas and route metadata.
-- An `ofetch` client across runtimes, with an XHR adapter for browser upload progress.
+- OpenAPI 3.1 and type-safe route metadata driven by `hono-openapi` validation schemas.
+- Browser HTTP requests via [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch); in-process handler dispatch via `internalFetch` (no network round-trip).
 - A Node.js-first deployment experience that expands to other platforms through a capability matrix.
 - Strict TypeScript, explicit side-effect boundaries, and continuous contract testing.
 
@@ -65,8 +65,8 @@ The core implementation follows these boundaries:
 
 - Pure functions handle configuration merging, file scanning, route parsing, code generation, and type inference.
 - I/O, Hono, Vite, Hookable, file-system access, and network access live behind explicit adapter/effect boundaries.
-- The public HTTP client uses `ofetch` by default. A browser request switches to `XMLHttpRequest.upload` only when it provides `onUploadProgress`.
-- `internalFetch` dispatches framework handlers directly without making a network request and does not support upload progress.
+- ubean does not bundle a browser HTTP client. For browser requests, use [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch) (`createRequest` / `toFlatRequest` / `createTypedClient`); for typed clients, consume the generated `.ubean/routes.d.ts` paths types.
+- `internalFetch` dispatches framework handlers in-process without a network request and does not support upload progress.
 - Presets declare their capabilities. Unsupported features must produce build-time diagnostics rather than silently degrade.
 
 ### Package Structure
@@ -83,11 +83,12 @@ packages/
 └── auth/           # @ubean/auth — extension packages (icon/pwa/image/content/fonts)
 ```
 
-See [docs/subpackage-splitting.md](docs/subpackage-splitting.md) for the full package architecture and [AGENTS.md](AGENTS.md) for the complete package list.
+See [docs/subpackage-splitting.md](docs/subpackage-splitting.md) for the original package-splitting design (now implemented) and [AGENTS.md](AGENTS.md) for the complete, current package list.
 
 ## Planning and Contributions
 
-- See the [documentation index](docs/README.md) for the complete architecture, directory structure, public API drafts, test strategy, and task tracking.
+- See the [documentation index](docs/README.md) for the architecture reference, historical design records, and pending proposals.
+- Usage guides and API references live in [skills/ubean/docs](skills/ubean/docs).
 - Each feature should include its unit tests, a real fixture, and the applicable `dev`, `build`, `preview`, or browser end-to-end verification.
 - Changes to public APIs, preset capabilities, or generated types must update the plan, tests, and migration guidance together.
 

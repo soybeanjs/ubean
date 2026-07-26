@@ -108,9 +108,9 @@ export const POST = defineHandler(
 );
 ```
 
-## Using $fetch (ofetch)
+## HTTP Requests
 
-ubean bundles `ofetch` for ergonomic HTTP calls:
+ubean does not bundle a browser HTTP client. Use the native `fetch`, or [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch) for a typed client with upload progress and flat error mode (`{ data, error }`):
 
 ```vue
 <script setup lang="ts">
@@ -123,9 +123,10 @@ async function submit(payload: { name: string; email: string }) {
   pending.value = true;
   error.value = null;
   try {
-    await $fetch('/api/users', {
+    await fetch('/api/users', {
       method: 'POST',
-      body: payload
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     });
   } catch (e) {
     error.value = (e as Error).message;
@@ -171,7 +172,11 @@ const optimistic = ref<string | null>(null);
 async function addItem(name: string) {
   optimistic.value = name;
   try {
-    await $fetch('/api/items', { method: 'POST', body: { name } });
+    await fetch('/api/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
     items.value.push(name);
   } catch (e) {
     // rollback handled by not pushing

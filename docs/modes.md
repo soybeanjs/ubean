@@ -1,5 +1,12 @@
 # ubean 应用模式(App Mode)设计方案
 
+> **状态:✅ 已实施(2026-07)**
+>
+> 本文档为原始设计方案。`AppMode` 类型与 `mode`/`ssr` 配置字段已落地到 [`@ubean/config`](../packages/config/src/types.ts)(`'fullstack' | 'spa' | 'ssg' | 'backend'`)。
+> 本文档保留作为设计决策记录;实际 API 以 [AGENTS.md](../AGENTS.md) 与 [skills/ubean/docs](../skills/ubean/docs) 为准。
+>
+> ---
+>
 > 本文档描述 ubean 框架的 `mode` 配置字段设计,支持前端-only、后端-only、全栈、SSG 等多种应用形态。
 
 ## 1. 背景与目标

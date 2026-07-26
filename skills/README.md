@@ -14,7 +14,12 @@ skills/
     └── docs/
         ├── guide/            # Getting started guides
         │   ├── quickstart.md
+        │   ├── app-modes.md       # Application modes (fullstack/spa/ssg/backend)
+        │   ├── routing-modes.md   # Route generation modes (virtual/file/both)
         │   ├── pages-routing/
+        │   │   ├── overview.md
+        │   │   ├── loaders.md
+        │   │   └── actions.md
         │   ├── i18n.md
         │   └── islands.md
         ├── reference/        # API reference

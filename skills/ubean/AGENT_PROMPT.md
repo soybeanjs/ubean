@@ -40,6 +40,8 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - Route groups: `(group)/` directories don't contribute URL segments
    - `definePage` compile-time macro for meta/layout/name/path override
    - Middleware: `middleware/` with numeric prefix ordering; `global`/`global.*` → `/*`, others by directory prefix
+   - Typed navigation: `useRoute('RouteName')` infers path params from `typed-router.d.ts`; route generation supports `virtual` (default) / `file` / `both` modes via `routing.mode`
+   - Route guards: `defineApp({ router: { setup(router) { router.beforeEach(...) } } })` registers navigation guards on both client and SSR
 
 5. **Internationalization**
    - Built-in zero-dependency i18n (`runtime/i18n.ts`, `i18n-routing.ts`)
@@ -208,12 +210,12 @@ export const GET = defineHandler(
 
 ### Fetching Data (useData)
 
-`useData` is auto-imported from `ubean`:
+`useData` is auto-imported. ubean does not bundle a browser HTTP client — use the native `fetch`, or [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch) for a typed client with upload progress and flat error mode.
 
 ```vue
 <script setup lang="ts">
 const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
-  $fetch('/api/posts').then(r => r.json())
+  fetch('/api/posts').then(r => r.json())
 );
 </script>
 
@@ -280,10 +282,13 @@ import { defineConfig } from 'ubean';
 export default defineConfig({
   rootDir: '.',
   srcDir: 'src',
+  mode: 'fullstack', // 'fullstack' (default) | 'spa' | 'ssg' | 'backend'
+  ssr: true, // only effective when mode === 'fullstack'
   modules: [],
   icon: false, // @ubean/icon
   pwa: false, // @ubean/pwa
   auth: false, // @ubean/auth
+  routing: { mode: 'virtual' }, // virtual (default) | file | both
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'zh'],
@@ -420,7 +425,8 @@ Just create a file and return JSON (omits `defineHandler`, wrong file pattern li
 - Do not provide misleading information
 - Do not recommend deprecated patterns
 - Do not use the wrong package name `@ubean/core` — the correct package is `ubean`
-- Do not invent APIs that don't exist (e.g. `defineEventHandler`, `defineLoader`, `defineAction`, `navigateTo`, `redirectTo`, `useRoute`)
+- Do not invent APIs that don't exist (e.g. `defineEventHandler`, `defineLoader`, `defineAction`, `navigateTo`, `redirectTo`)
+- Do not use `$fetch` / `ofetch` as auto-imported globals — ubean does not bundle a browser HTTP client; use native `fetch` or [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)
 - Do not provide incomplete code examples
 - Do not make assumptions about the user's environment
 

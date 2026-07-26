@@ -5,7 +5,7 @@ Get started with ubean in minutes.
 ## Prerequisites
 
 - Node.js >= 18.0.0
-- pnpm >= 8.0.0 (recommended)
+- pnpm `11.11.0` (required — ubean uses pnpm catalog and workspace features)
 
 ## Create a Project
 
@@ -65,7 +65,7 @@ Visit `http://localhost:5173` to see your application.
 pnpm build
 ```
 
-The build output will be in the `.output` directory.
+The build output will be in the `dist` directory (`dist/public/` for client, `dist/server/` for server — see [App Modes](app-modes.md) for mode-specific output).
 
 ## Preview Production Build
 
@@ -89,7 +89,10 @@ pnpm preview
 
 ## Next Steps
 
-- [Pages and Routing](/docs/guide/pages-routing/overview)
-- [API Routes](/docs/guide/api-routes)
-- [Internationalization](/docs/guide/i18n)
-- [Islands Architecture](/docs/guide/islands)
+- [Application Modes](app-modes.md) — fullstack / spa / ssg / backend
+- [Route Generation Modes](routing-modes.md) — virtual / file / both
+- [Pages and Routing](pages-routing/overview.md)
+- [Data Loaders](pages-routing/loaders.md)
+- [Actions](pages-routing/actions.md)
+- [Internationalization](i18n.md)
+- [Islands Architecture](islands.md)

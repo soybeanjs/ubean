@@ -287,7 +287,7 @@ Use `useData()` (auto-imported from `ubean`) for declarative data fetching with 
 ```vue
 <script setup lang="ts">
 const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
-  $fetch('/api/posts').then(r => r.json())
+  fetch('/api/posts').then(r => r.json())
 );
 </script>
 ```

@@ -289,6 +289,8 @@ export const GET = defineHandler(
 ### Guide
 
 - `/docs/guide/quickstart`: Quick start guide
+- `/docs/guide/app-modes`: Application modes (fullstack / spa / ssg / backend)
+- `/docs/guide/routing-modes`: Route generation modes (virtual / file / both)
 - `/docs/guide/pages-routing/overview`: Pages and routing overview
 - `/docs/guide/pages-routing/loaders`: Data loaders
 - `/docs/guide/pages-routing/actions`: Actions
@@ -320,6 +322,8 @@ import { defineConfig } from 'ubean';
 export default defineConfig({
   rootDir: '.',
   srcDir: 'src',
+  mode: 'fullstack', // 'fullstack' (default) | 'spa' | 'ssg' | 'backend'
+  ssr: true, // only effective when mode === 'fullstack'
   modules: [],
   // Top-level shortcuts for official extension packages (default: false)
   icon: false, // @ubean/icon
@@ -327,6 +331,8 @@ export default defineConfig({
   auth: false, // @ubean/auth
   image: false, // @ubean/image
   fonts: false, // @ubean/fonts
+  // Route generation mode (virtual | file | both)
+  routing: { mode: 'virtual' },
   // i18n routing
   i18n: {
     defaultLocale: 'en',
@@ -336,6 +342,8 @@ export default defineConfig({
   routeRules: {}
 });
 ```
+
+> **App modes**: `mode` controls which build steps run. `fullstack` (default) builds client + SSR + server; `spa` builds client only; `ssg` prerenders to static HTML; `backend` builds API server only. See [App Modes](/docs/guide/app-modes) and [Route Generation Modes](/docs/guide/routing-modes).
 
 ### Module Configuration
 
@@ -405,6 +413,8 @@ Use these keys in `dependsOn` for built-in modules:
 - Route groups: `(group)/` directories don't contribute URL segments
 - `definePage` compile-time macro for meta/layout/name/path override
 - Middleware: `middleware/` with numeric prefix ordering; `global`/`global.*` → `/*`, others by directory prefix
+- Typed navigation: `useRoute('RouteName')` infers path params from `typed-router.d.ts`; route generation supports `virtual` (default) / `file` / `both` modes via `routing.mode`
+- Route guards: `defineApp({ router: { setup(router) { router.beforeEach(...) } } })` registers navigation guards on both client and SSR (shared setup runs first, then client/server-specific setups)
 
 ### 5. Internationalization
 
@@ -420,7 +430,7 @@ Use these keys in `dependsOn` for built-in modules:
 - iframe-based panel injected in dev only (production tree-shaken)
 - RPC over `postMessage` with session token + origin binding
 - Built-in tabs: Overview, Pages, API Routes, Middlewares, Layouts, Cron Jobs, Env Vars, Config, API Playground, AI Assistant
-- CRUD operations share logic with CLI (`core/cli/shared/fs-ops.ts`)
+- CRUD operations share logic with CLI (`packages/cli/src/shared/fs-ops.ts`)
 - Hookable CRUD lifecycle (`page:beforeCreate`, `api:afterUpdate`, `env:beforeDelete`, ...)
 - AI assistant with LLM function calling driving CRUD via RPC
 
@@ -510,11 +520,12 @@ export const POST = defineHandler(async c => {
 
 ### Fetching Data (useData)
 
+`useData` is auto-imported. ubean does not bundle a browser HTTP client — use the native `fetch`, or [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch) for a typed client with upload progress and flat error mode.
+
 ```vue
 <script setup lang="ts">
-// useData is auto-imported from ubean (UBEAN_SERVER_PRESET)
 const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
-  $fetch('/api/posts').then(r => r.json())
+  fetch('/api/posts').then(r => r.json())
 );
 </script>
 

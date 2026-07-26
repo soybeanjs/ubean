@@ -1,6 +1,6 @@
 {
   "name": "@ubean/env",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Type-safe environment variables for ubean (defineEnv, useRuntimeEnv)",
   "files": [
     "dist"

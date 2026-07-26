@@ -1,5 +1,32 @@
 # Changelog
 
+## [v](https://github.com/soybeanjs/ubean/compare/v0.1.0...v) (2026-07-27)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **devtools**: add devtools configuration and integration support &nbsp;-&nbsp; by @soybeanjs [<samp>(0eab0)</samp>](https://github.com/soybeanjs/ubean/commit/0eab0b5)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **import**: fix import for head &nbsp;-&nbsp; by @soybeanjs [<samp>(c5390)</samp>](https://github.com/soybeanjs/ubean/commit/c539028)
+- **pages**: fix reuse pages &nbsp;-&nbsp; by @soybeanjs [<samp>(79acd)</samp>](https://github.com/soybeanjs/ubean/commit/79acd11)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **devtools**: optimize devtools &nbsp;-&nbsp; by @soybeanjs [<samp>(840cb)</samp>](https://github.com/soybeanjs/ubean/commit/840cbd5)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **CHANGELOG**: update CHANGELOG &nbsp;-&nbsp; by @soybeanjs [<samp>(7e50e)</samp>](https://github.com/soybeanjs/ubean/commit/7e50e41)
+
+### &nbsp;&nbsp;&nbsp;📦 Build
+
+- **package.json**: add parallel flag to build:libs script &nbsp;-&nbsp; by @soybeanjs [<samp>(49f1d)</samp>](https://github.com/soybeanjs/ubean/commit/49f1d5d)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.1.0](https://github.com/soybeanjs/ubean/compare/v0.1.0...main) (2026-07-26)
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes

@@ -160,14 +160,17 @@ export const devCommand: CommandDef = {
       },
       onListen({ url }) {
         const label = (text: string) => dim(text);
-        logger.box(
-          `${green(bold('🚀 ubean dev server ready'))}\n\n` +
-            `  → ${label('Local:')}      ${cyan(url)}\n` +
-            `  → ${label('Scalar UI:')}  ${cyan(`${url}/_scalar`)}\n` +
-            `  → ${label('OpenAPI:')}    ${cyan(`${url}/_openapi.json`)}\n` +
-            `  → ${label('DevTools:')}   ${cyan(`${url}/_devtools`)}\n` +
-            `  → ${dim('Press Ctrl+C to stop')}`
-        );
+        const lines = [
+          `${green(bold('🚀 ubean dev server ready'))}\n`,
+          `  → ${label('Local:')}      ${cyan(url)}`,
+          `  → ${label('Scalar UI:')}  ${cyan(`${url}/_scalar`)}`,
+          `  → ${label('OpenAPI:')}    ${cyan(`${url}/_openapi.json`)}`
+        ];
+        if (config.devtools.enabled) {
+          lines.push(`  → ${label('DevTools:')}   ${cyan(`${url}${config.devtools.route}`)}`);
+        }
+        lines.push(`  → ${dim('Press Ctrl+C to stop')}`);
+        logger.box(lines.join('\n'));
 
         // 异步生成 OpenAPI 类型声明(不阻塞 server 启动)
         generateOpenApiTypesFromServer(url, { outDir: resolve(cwd, '.ubean') })

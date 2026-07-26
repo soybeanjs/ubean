@@ -16,6 +16,7 @@ export {
   getConfig,
   tryGetConfig,
   resolvePrerenderConfig,
+  resolveDevToolsConfig,
   DEFAULT_PRERENDER_EXCLUDE
 } from './loader';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
@@ -36,5 +37,7 @@ export type {
   PrerenderRoute,
   PrerenderResult,
   ResolvedPrerenderConfig,
+  DevToolsConfig,
+  ResolvedDevToolsConfig,
   AppMode
 } from './types';

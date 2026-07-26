@@ -75,6 +75,71 @@ export interface UiModuleConfig {
 }
 
 /* -------------------------------------------------------------------------- */
+/* DevTools Config                                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * DevTools 配置。
+ *
+ * - `devtools: true` 启用（使用默认配置）
+ * - `devtools: false`（默认）禁用 — dev server 不加载 `@ubean/devtools` 与
+ *   `@vitejs/devtools` 插件，不注入 DevTools 客户端脚本
+ * - `devtools: { enabled: true, ... }` 启用并自定义
+ *
+ * @example
+ * ```ts
+ * // ubean.config.ts
+ * export default defineConfig({
+ *   devtools: { enabled: true }
+ * });
+ * ```
+ */
+export interface DevToolsConfig {
+  /**
+   * 是否启用 DevTools，默认 `false`。
+   *
+   * 启用后 dev server 会加载 `@ubean/devtools` Vite 插件（提供路由/页面/
+   * API/配置等可视化面板）和 `@vitejs/devtools`（提供 `devtools.setup`
+   * hook 与客户端注入脚本）。
+   */
+  enabled?: boolean;
+
+  /**
+   * DevTools 面板访问路径，默认 `/_devtools`。
+   */
+  route?: string;
+
+  /**
+   * DevTools 内置 AI 助手配置。
+   */
+  ai?: {
+    enabled?: boolean;
+    provider?: 'openai' | 'anthropic' | 'custom';
+    apiKey?: string;
+    model?: string;
+    endpoint?: string;
+    /** AI 可使用的工具白名单，默认全部 */
+    allowedTools?: string[];
+  };
+}
+
+/**
+ * 解析后的 DevTools 配置，所有字段均已填充默认值。
+ */
+export interface ResolvedDevToolsConfig {
+  enabled: boolean;
+  route: string;
+  ai: {
+    enabled: boolean;
+    provider?: 'openai' | 'anthropic' | 'custom';
+    apiKey?: string;
+    model?: string;
+    endpoint?: string;
+    allowedTools?: string[];
+  };
+}
+
+/* -------------------------------------------------------------------------- */
 /* Routing Config (T2-7 — aligned with elegant-router)                         */
 /* -------------------------------------------------------------------------- */
 
@@ -397,6 +462,14 @@ export interface UbeanConfig {
   electron?: boolean | ElectronModuleConfig;
   /** @soybeanjs/ui 集成配置（`true` 启用，默认注入 styles.css + UiResolver） */
   ui?: boolean | UiModuleConfig;
+  /**
+   * DevTools 配置（默认 `false` 禁用）。
+   *
+   * - `true` 启用（使用默认配置）
+   * - `false` 禁用 — 不加载 DevTools 插件、不注入客户端脚本
+   * - 对象形式自定义配置
+   */
+  devtools?: boolean | DevToolsConfig;
   dir?: {
     pages?: string | string[];
     routes?: string | string[];
@@ -461,7 +534,10 @@ export interface UbeanConfig {
 }
 
 export interface ResolvedConfig extends Required<
-  Omit<UbeanConfig, 'build' | 'dev' | 'preview' | 'prerender' | 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'routing'>
+  Omit<
+    UbeanConfig,
+    'build' | 'dev' | 'preview' | 'prerender' | 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'routing' | 'devtools'
+  >
 > {
   rootDir: string;
   srcDir: string;
@@ -473,6 +549,7 @@ export interface ResolvedConfig extends Required<
   fonts: boolean | BuiltinModuleOptions;
   electron: boolean | ElectronModuleConfig;
   ui: boolean | UiModuleConfig;
+  devtools: ResolvedDevToolsConfig;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   prerender: ResolvedPrerenderConfig;
   dev: Required<NonNullable<UbeanConfig['dev']>>;

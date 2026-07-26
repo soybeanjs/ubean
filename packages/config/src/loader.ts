@@ -2,7 +2,14 @@ import { defu } from 'defu';
 import { loadConfig } from 'c12';
 import { resolve } from 'pathe';
 import { resolveRoutingConfig } from './routing';
-import type { UbeanConfig, ResolvedConfig, PrerenderConfig, ResolvedPrerenderConfig } from './types';
+import type {
+  UbeanConfig,
+  ResolvedConfig,
+  PrerenderConfig,
+  ResolvedPrerenderConfig,
+  DevToolsConfig,
+  ResolvedDevToolsConfig
+} from './types';
 
 /**
  * 默认排除的路由模式。
@@ -24,6 +31,36 @@ export const DEFAULT_PRERENDER_EXCLUDE: string[] = [
   '/favicon.svg',
   '/manifest.webmanifest'
 ];
+
+/**
+ * 解析用户侧 `DevToolsConfig` 为内部 `ResolvedDevToolsConfig`。
+ *
+ * - `undefined` / `false` → `enabled: false`(DevTools 完全关闭)
+ * - `true` → `enabled: true`(使用默认配置)
+ * - 对象形式 → 按 `enabled` 字段判断(默认 `false`)
+ *
+ * 导出此函数供 dev-server 包和 CLI 复用,避免逻辑重复。
+ */
+export function resolveDevToolsConfig(config?: boolean | DevToolsConfig): ResolvedDevToolsConfig {
+  if (config === true) {
+    return { enabled: true, route: '/_devtools', ai: { enabled: false } };
+  }
+  if (config === false || config === undefined) {
+    return { enabled: false, route: '/_devtools', ai: { enabled: false } };
+  }
+  return {
+    enabled: config.enabled ?? false,
+    route: config.route ?? '/_devtools',
+    ai: {
+      enabled: config.ai?.enabled ?? false,
+      provider: config.ai?.provider,
+      apiKey: config.ai?.apiKey,
+      model: config.ai?.model,
+      endpoint: config.ai?.endpoint,
+      allowedTools: config.ai?.allowedTools
+    }
+  };
+}
 
 /**
  * 解析用户侧 `PrerenderConfig` 为内部 `ResolvedPrerenderConfig`。
@@ -71,6 +108,7 @@ const configDefaults: ResolvedConfig = {
   fonts: false,
   electron: false,
   ui: false,
+  devtools: { enabled: false, route: '/_devtools', ai: { enabled: false } },
   dir: {
     pages: 'pages',
     routes: 'routes',
@@ -134,6 +172,8 @@ export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<Reso
   // 重新解析 prerender(defu 浅合并会让派生字段 enabled 失真,
   // 必须基于合并后的 all/include 重算)
   resolved.prerender = resolvePrerenderConfig(config.prerender);
+  // 重新解析 devtools(同 prerender,defu 浅合并会让 enabled 失真)
+  resolved.devtools = resolveDevToolsConfig(config.devtools);
   cachedConfig = resolved;
   return resolved;
 }

@@ -163,27 +163,33 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // `devtools.setup` hook fires only when Vite DevTools is enabled below.
   // Scan/config accessors come from the dev runner; `registerRefresh` lets
   // `updateApp()` push scan updates to clients without re-polling.
+  //
+  // 全部 DevTools 插件加载由 `config.devtools.enabled` 控制（默认 false）。
+  // 禁用时跳过 `@ubean/devtools` 与 `@vitejs/devtools`，不注入客户端脚本。
+  const devtoolsEnabled = options.config.devtools.enabled;
   let devtoolsPlugin: Plugin | null = null;
-  try {
-    const { ubeanDevtoolsPlugin } = await import('@ubean/devtools');
-    const devtoolsOpts = options.devtools;
-    const scaffoldOps = await loadScaffoldOps();
-    devtoolsPlugin = ubeanDevtoolsPlugin({
-      getCwd: () => cwd,
-      getApp: () => currentApp,
-      ...(scaffoldOps ? { scaffoldOps } : {}),
-      ...(devtoolsOpts?.getScanResult ? { getScanResult: devtoolsOpts.getScanResult } : {}),
-      ...(devtoolsOpts?.getConfigMeta ? { getConfigMeta: devtoolsOpts.getConfigMeta } : {}),
-      ...(devtoolsOpts?.getCustomTabs ? { getCustomTabs: devtoolsOpts.getCustomTabs } : {}),
-      ...(devtoolsOpts?.ai ? { ai: devtoolsOpts.ai } : {}),
-      ...(devtoolsOpts?.getApp ? { getApp: devtoolsOpts.getApp } : {}),
-      ...(devtoolsOpts?.triggerRescan ? { triggerRescan: devtoolsOpts.triggerRescan } : {}),
-      registerRefresh: (fn: () => void) => {
-        refreshDevtools = fn;
-      }
-    } as Parameters<typeof ubeanDevtoolsPlugin>[0]);
-  } catch {
-    // @ubean/devtools not installed — DTK integration skipped.
+  if (devtoolsEnabled) {
+    try {
+      const { ubeanDevtoolsPlugin } = await import('@ubean/devtools');
+      const devtoolsOpts = options.devtools;
+      const scaffoldOps = await loadScaffoldOps();
+      devtoolsPlugin = ubeanDevtoolsPlugin({
+        getCwd: () => cwd,
+        getApp: () => currentApp,
+        ...(scaffoldOps ? { scaffoldOps } : {}),
+        ...(devtoolsOpts?.getScanResult ? { getScanResult: devtoolsOpts.getScanResult } : {}),
+        ...(devtoolsOpts?.getConfigMeta ? { getConfigMeta: devtoolsOpts.getConfigMeta } : {}),
+        ...(devtoolsOpts?.getCustomTabs ? { getCustomTabs: devtoolsOpts.getCustomTabs } : {}),
+        ...(devtoolsOpts?.ai ? { ai: devtoolsOpts.ai } : {}),
+        ...(devtoolsOpts?.getApp ? { getApp: devtoolsOpts.getApp } : {}),
+        ...(devtoolsOpts?.triggerRescan ? { triggerRescan: devtoolsOpts.triggerRescan } : {}),
+        registerRefresh: (fn: () => void) => {
+          refreshDevtools = fn;
+        }
+      } as Parameters<typeof ubeanDevtoolsPlugin>[0]);
+    } catch {
+      // @ubean/devtools not installed — DTK integration skipped.
+    }
   }
 
   // Vite-Plus-Core only loads `DevToolsIntegration` (build-only, `apply: "build"`).
@@ -192,14 +198,16 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // invokes each plugin's `devtools.setup(context)`. Without this, the
   // `devtools.setup` hook never fires during dev.
   let viteDevtoolsPlugins: Plugin[] = [];
-  try {
-    const { DevTools } = await import('@vitejs/devtools');
-    // builtinDevTools: false skips DevToolsRolldownUI (the built-in Vite DevTools
-    // dock panels) — we only need DevToolsServer (which fires devtools.setup) and
-    // DevToolsInjection (which injects the client bootstrap script).
-    viteDevtoolsPlugins = await DevTools({ builtinDevTools: false });
-  } catch {
-    // @vitejs/devtools not installed — Vite DevTools UI skipped.
+  if (devtoolsEnabled) {
+    try {
+      const { DevTools } = await import('@vitejs/devtools');
+      // builtinDevTools: false skips DevToolsRolldownUI (the built-in Vite DevTools
+      // dock panels) — we only need DevToolsServer (which fires devtools.setup) and
+      // DevToolsInjection (which injects the client bootstrap script).
+      viteDevtoolsPlugins = await DevTools({ builtinDevTools: false });
+    } catch {
+      // @vitejs/devtools not installed — Vite DevTools UI skipped.
+    }
   }
 
   // 检测用户是否提供了 vite.config.{ts,js,mjs}
@@ -256,7 +264,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
     appType: 'custom',
     plugins,
-    devtools: { enabled: true, clientAuthTokens: ['ubean-devtools-token'] },
+    devtools: { enabled: devtoolsEnabled, clientAuthTokens: ['ubean-devtools-token'] },
     optimizeDeps: {
       exclude: [
         'ubean',

@@ -2,6 +2,8 @@ import type { UbeanApp } from '@ubean/app';
 import type { ResolvedConfig } from '@ubean/config';
 import type { Preset, CapabilitySet, CapabilityDiagnosisResult } from '@ubean/preset';
 import type { ScannedLayout } from '@ubean/routing';
+import { createViteDevServer } from './vite-server';
+import type { ViteDevServerInstance } from './vite-server';
 
 /**
  * DevTools data accessors passed through to the `@ubean/devtools` Vite plugin.
@@ -55,7 +57,7 @@ export interface EnvRunner {
 }
 
 class ViteNodeDevRunner implements DevRunner {
-  private viteDevServer: import('./vite-server').ViteDevServerInstance | null = null;
+  private viteDevServer: ViteDevServerInstance | null = null;
   private currentApp: UbeanApp;
   private currentLayouts: ScannedLayout[];
   private readonly options: DevRunnerOptions;
@@ -85,8 +87,6 @@ class ViteNodeDevRunner implements DevRunner {
   }
 
   async start(): Promise<void> {
-    const { createViteDevServer } = await import('./vite-server');
-
     this.viteDevServer = await createViteDevServer({
       cwd: this.options.cwd,
       port: this._port,

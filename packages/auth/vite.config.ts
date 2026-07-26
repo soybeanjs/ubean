@@ -5,13 +5,12 @@ export default defineConfig({
     tsconfigPaths: true
   },
   pack: {
-    dts: false,
+    dts: true,
     clean: true,
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
     entry: ['src/index.ts', 'src/core.ts', 'src/vite.ts', 'src/runtime.ts'],
-    onSuccess: 'tsc --emitDeclarationOnly',
     deps: {
       neverBundle: ['vue', 'better-auth', 'hono', /^node:/]
     }

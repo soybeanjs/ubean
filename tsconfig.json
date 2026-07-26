@@ -6,7 +6,6 @@
     "lib": ["DOM", "ESNext"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "paths": {},
     "types": ["node", "vite/client"],
     "resolveJsonModule": true,
     "strict": true,
@@ -15,9 +14,7 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "isolatedModules": true,
-    "skipLibCheck": true
+    "isolatedModules": true
   },
-  "include": ["./**/*.ts", "./**/*.d.ts", "./**/*.tsx", "./**/*.vue"],
   "exclude": ["node_modules", "dist"]
 }

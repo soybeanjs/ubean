@@ -266,7 +266,7 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   } else {
     plugins.push(
       Components({
-        dts: false,
+        dts: true,
         resolvers: [ubeanComponentsResolver]
       }) as Plugin
     );

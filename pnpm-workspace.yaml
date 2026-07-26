@@ -17,34 +17,5 @@ allowBuilds:
   koffi: true
   electron: true
 minimumReleaseAgeExclude:
-  - '@soybeanjs/fetch@0.0.5 || 0.1.0'
-  - '@voidzero-dev/vite-plus-core@0.2.6'
-  - '@voidzero-dev/vite-plus-darwin-arm64@0.2.6'
-  - '@voidzero-dev/vite-plus-darwin-x64@0.2.6'
-  - '@voidzero-dev/vite-plus-linux-arm64-gnu@0.2.6'
-  - '@voidzero-dev/vite-plus-linux-arm64-musl@0.2.6'
-  - '@voidzero-dev/vite-plus-linux-x64-gnu@0.2.6'
-  - '@voidzero-dev/vite-plus-linux-x64-musl@0.2.6'
-  - '@voidzero-dev/vite-plus-win32-arm64-msvc@0.2.6'
-  - '@voidzero-dev/vite-plus-win32-x64-msvc@0.2.6'
-  - vite-plus@0.2.6
-  - '@ai-sdk/gateway@4.0.28'
-  - '@better-auth/core@1.6.25'
-  - '@better-auth/drizzle-adapter@1.6.25'
-  - '@better-auth/kysely-adapter@1.6.25'
-  - '@better-auth/memory-adapter@1.6.25'
-  - '@better-auth/mongo-adapter@1.6.25'
-  - '@better-auth/prisma-adapter@1.6.25'
-  - '@better-auth/telemetry@1.6.25'
-  - '@devframes/hub@0.7.12'
-  - '@devframes/json-render@0.7.12'
-  - '@devframes/plugin-inspect@0.7.12'
-  - '@devframes/plugin-messages@0.7.12'
-  - '@devframes/plugin-terminals@0.7.12'
-  - '@vitejs/devtools-kit@0.4.6'
-  - '@vitejs/devtools@0.4.6'
-  - ai@7.0.37
-  - better-auth@1.6.25
-  - devframe@0.7.12
-  - '@soybeanjs/cli@1.7.4'
-  - eslint@10.8.0
+  - '@soybeanjs/changelog@0.5.2'
+  - '@soybeanjs/cli@1.8.0'

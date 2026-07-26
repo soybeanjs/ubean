@@ -60,6 +60,20 @@ export interface ElectronModuleConfig {
   };
 }
 
+/**
+ * UI 模块配置（@soybeanjs/ui 集成）。
+ * `ui: true` 即可启用，默认自动注入 styles.css + UiResolver。
+ */
+export interface UiModuleConfig {
+  /** 是否禁用 */
+  disabled?: boolean;
+  /**
+   * 是否自动注入 `@soybeanjs/ui/styles.css`，默认 true。
+   * 设为 false 时使用 UnoCSS 模式（用户自行配置 @soybeanjs/unocss-shadcn）。
+   */
+  css?: boolean;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Routing Config (T2-7 — aligned with elegant-router)                         */
 /* -------------------------------------------------------------------------- */
@@ -381,6 +395,8 @@ export interface UbeanConfig {
   fonts?: boolean | BuiltinModuleOptions;
   /** Electron 桌面应用配置（`true` 使用默认入口启用） */
   electron?: boolean | ElectronModuleConfig;
+  /** @soybeanjs/ui 集成配置（`true` 启用，默认注入 styles.css + UiResolver） */
+  ui?: boolean | UiModuleConfig;
   dir?: {
     pages?: string | string[];
     routes?: string | string[];
@@ -456,6 +472,7 @@ export interface ResolvedConfig extends Required<
   image: boolean | BuiltinModuleOptions;
   fonts: boolean | BuiltinModuleOptions;
   electron: boolean | ElectronModuleConfig;
+  ui: boolean | UiModuleConfig;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   prerender: ResolvedPrerenderConfig;
   dev: Required<NonNullable<UbeanConfig['dev']>>;

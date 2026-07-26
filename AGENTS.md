@@ -16,7 +16,7 @@
 
 ```
 ubean/
-├── packages/                # 37 个子包（monorepo）
+├── packages/                # 38 个子包（monorepo）
 │   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
 │   ├── types/              # @ubean/types — 共享类型
 │   ├── utils/              # @ubean/utils — 工具函数
@@ -50,7 +50,8 @@ ubean/
 │   ├── image/              # @ubean/image — 图片优化
 │   ├── content/            # @ubean/content — 内容集合
 │   ├── fonts/              # @ubean/fonts — 字体优化
-│   └── electron/           # @ubean/electron — Electron 桌面应用（vite-plugin-electron 封装）
+│   ├── electron/           # @ubean/electron — Electron 桌面应用（vite-plugin-electron 封装）
+│   └── ui/                 # @ubean/ui — @soybeanjs/ui 集成（UiResolver + styles.css 自动注入）
 ├── examples/                # 示例项目
 │   ├── ubean-test/         # 完整全栈示例 + 测试（virtual 模式）
 │   ├── frontend-only/      # 纯前端示例（无 API/SSR）
@@ -65,8 +66,8 @@ ubean/
 ubean 采用 **monorepo + 聚合器** 架构：
 
 - **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含 4 个子路径导出（见下文）。
-- **子包 `@ubean/*`**（其余 36 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
-- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
+- **子包 `@ubean/*`**（其余 37 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`ui`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
 
 ### 2.2 主包子路径导出
 
@@ -405,7 +406,37 @@ export default defineConfig({
 });
 ```
 
-## 6. 虚拟模块
+### @ubean/ui
+
+```typescript
+import { ubeanUiPlugin, defineUiConfig } from '@ubean/ui/vite';
+import type { UiOptions } from '@ubean/ui';
+```
+
+- **底层实现**：[@soybeanjs/ui](https://www.npmjs.com/package/@soybeanjs/ui)（ubean 仅提供薄封装层）
+- `ubean.config.ts` 中 `ui: true` 或 `ui: { ... }` 启用
+- **组件自动导入**：自动注册 `UiResolver` 到 `unplugin-vue-components`，`S*` 组件（SButton、SInput 等）无需手动 import
+- **CSS 自动注入**：`css: true`（默认）自动将 `import '@soybeanjs/ui/styles.css'` 注入客户端入口
+- **UnoCSS 模式**：`css: false` 时不注入预构建样式，用户需自行配置 `@soybeanjs/unocss-shadcn` preset + UnoCSS Vite 插件
+
+**最简启用**：
+
+```typescript
+// ubean.config.ts
+export default defineConfig({
+  ui: true // 自动注入 styles.css + UiResolver
+});
+```
+
+**UnoCSS 模式**：
+
+```typescript
+export default defineConfig({
+  ui: { css: false } // 仅注入 UiResolver，样式由 UnoCSS + @soybeanjs/unocss-shadcn 管理
+});
+```
+
+> 组件库本身请直接从 `@soybeanjs/ui` 导入（`import { SButton } from '@soybeanjs/ui'`），`@ubean/ui` 仅负责构建集成。
 
 | 模块               | 内容         |
 | ------------------ | ------------ |

@@ -1,5 +1,5 @@
 export interface BuiltinModuleDefinition {
-  key: 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'electron';
+  key: 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'electron' | 'ui';
   modulePath: string;
   factoryExport?: string;
   pluginName: string;
@@ -41,6 +41,12 @@ export const BUILTIN_MODULES: BuiltinModuleDefinition[] = [
     modulePath: '@ubean/electron/vite',
     factoryExport: 'ubeanElectronPlugin',
     pluginName: 'ubean:electron'
+  },
+  {
+    key: 'ui',
+    modulePath: '@ubean/ui/vite',
+    factoryExport: 'ubeanUiPlugin',
+    pluginName: 'ubean:ui'
   }
 ];
 

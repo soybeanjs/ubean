@@ -12,7 +12,7 @@ Vue 专属全栈元框架。
 
 ubean 基于 Vite-Plus 构建，将 Vue SSR 页面、Hono API 路由、类型安全的路由元数据与可移植部署预设整合为一套一致的开发体验。
 
-> ubean 正在积极开发中。核心运行时、文件式路由、Vue SSR、Hono API 路由、i18n、缓存、数据库/存储层、队列、Cron、WebSocket/SSE、OpenAPI/Scalar、DevTools 以及 `@ubean/auth`/`@ubean/icon`/`@ubean/pwa`/`@ubean/image`/`@ubean/content`/`@ubean/fonts`/`@ubean/electron` 等扩展包均已实现并附带测试。架构决策见[文档索引](docs/README.md)，使用指南与 API 参考见 [skills/ubean/docs](skills/ubean/docs)。
+> ubean 正在积极开发中。核心运行时、文件式路由、Vue SSR、Hono API 路由、i18n、缓存、数据库/存储层、队列、Cron、WebSocket/SSE、OpenAPI/Scalar、DevTools 以及 `@ubean/auth`/`@ubean/icon`/`@ubean/pwa`/`@ubean/image`/`@ubean/content`/`@ubean/fonts`/`@ubean/electron`/`@ubean/ui` 等扩展包均已实现并附带测试。架构决策见[文档索引](docs/README.md)，使用指南与 API 参考见 [skills/ubean/docs](skills/ubean/docs)。
 
 ## 目标
 
@@ -36,7 +36,7 @@ v0.1 的目标平台为 Node.js（`node-server`）和 Cloudflare Workers。Bun�
 - 内置数据库层（`defineDatabase`/`useDatabase`）、存储（`useStorage`/`useKV`）、缓存（`useCacheStore`/`cachedEventHandler`）、限流、CORS、route rules（重定向/重写/headers/cache）与 SSG 预渲染。
 - WebSocket（`defineWebSocket`）、SSE 流，以及 `internalFetch`（直接在进程内调度框架 handler，不发起网络请求）。
 - DevTools，包含 RPC、AI 助手、API playground 与 CRUD 脚手架。
-- 扩展包：`@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/pwa`、`@ubean/image`、`@ubean/content`、`@ubean/fonts`、`@ubean/electron`（基于 vite-plugin-electron 的桌面应用，默认 main/preload 入口，自动关闭 SSR）。
+- 扩展包：`@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/pwa`、`@ubean/image`、`@ubean/content`、`@ubean/fonts`、`@ubean/electron`（基于 vite-plugin-electron 的桌面应用，默认 main/preload 入口，自动关闭 SSR）、`@ubean/ui`（@soybeanjs/ui 集成，UiResolver + styles.css 自动注入）。
 
 ## 开发
 
@@ -59,7 +59,7 @@ pnpm lint
 
 ## 架构方向
 
-ubean 是一个 **monorepo**，包含 37 个子包。公开包 `ubean` 是**聚合器**，re-export 所有 `@ubean/*` 子包 —— 用户安装一个包即可获得完整 API 表面。子包按职责拆分（路由、构建、运行时、配置等），也可单独消费用于高级场景。
+ubean 是一个 **monorepo**，包含 38 个子包。公开包 `ubean` 是**聚合器**，re-export 所有 `@ubean/*` 子包 —— 用户安装一个包即可获得完整 API 表面。子包按职责拆分（路由、构建、运行时、配置等），也可单独消费用于高级场景。
 
 ubean 的核心实现遵循以下边界：
 
@@ -79,8 +79,8 @@ packages/
 ├── build/          # @ubean/build — 构建时核心（虚拟模块 + Vite 插件）
 ├── runtime/        # @ubean/runtime — Vue 客户端运行时
 ├── server/         # @ubean/server — cache/db/queue/cron/ws/sse
-├── ...             # 另外 31 个子包
-└── electron/       # @ubean/electron — 桌面应用（vite-plugin-electron 封装）
+├── ...             # 另外 32 个子包
+└── ui/             # @ubean/ui — @soybeanjs/ui 集成（UiResolver + styles.css）
 ```
 
 子包拆分的原始设计方案见 [docs/subpackage-splitting.md](docs/subpackage-splitting.md)（已实施），完整且最新的包列表见 [AGENTS.md](AGENTS.md)。

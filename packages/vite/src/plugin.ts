@@ -3,7 +3,7 @@ import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '@ubean/auto-imports';
-import { useVirtualRegistry } from '@ubean/build';
+import { useVirtualRegistry, getComponentResolvers } from '@ubean/build';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { scanProject } from '@ubean/routing';
 import { transformSync } from 'oxc-transform';
@@ -242,6 +242,9 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     }
   }
 
+  // Merge built-in resolver with any registered by extension modules (e.g. UiResolver from @ubean/ui)
+  const allResolvers = [ubeanComponentsResolver, ...getComponentResolvers()];
+
   if (componentAutoImportEnabled) {
     const extensions = ['vue'];
     const includePatterns = [/\.vue$/, /\.vue\?vue/];
@@ -260,14 +263,14 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         directoryAsNamespace,
         dts: join(dtsDir, 'components.d.ts'),
         deep: true,
-        resolvers: [ubeanComponentsResolver]
+        resolvers: allResolvers
       }) as Plugin
     );
   } else {
     plugins.push(
       Components({
         dts: true,
-        resolvers: [ubeanComponentsResolver]
+        resolvers: allResolvers
       }) as Plugin
     );
   }

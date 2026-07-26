@@ -70,6 +70,7 @@ const configDefaults: ResolvedConfig = {
   image: false,
   fonts: false,
   electron: false,
+  ui: false,
   dir: {
     pages: 'pages',
     routes: 'routes',

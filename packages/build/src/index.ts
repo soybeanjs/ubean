@@ -16,3 +16,11 @@ export {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from './virtual-modules';
+
+export {
+  registerComponentResolver,
+  getComponentResolvers,
+  registerCssImport,
+  getCssImports,
+  resetModuleRegistry
+} from './registry';

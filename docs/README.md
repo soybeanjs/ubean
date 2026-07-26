@@ -1,6 +1,6 @@
 # ubean 文档
 
-本目录承载 ubean 的架构规划、工程约定与实施路线。核心运行时、文件式路由、Vue SSR、Hono API、i18n、缓存、数据库抽象、存储、队列、Cron、WebSocket、SSE、平台 preset、OpenAPI/Scalar、DevTools 以及 `@ubean/auth`/`@ubean/icon`/`@ubean/pwa`/`@ubean/image`/`@ubean/content`/`@ubean/fonts`/`@ubean/electron` 等扩展包均已实现并附带测试，可参照 [skills/ubean/docs](../skills/ubean/docs) 中的使用指南与 API 参考。
+本目录承载 ubean 的架构规划、工程约定与实施路线。核心运行时、文件式路由、Vue SSR、Hono API、i18n、缓存、数据库抽象、存储、队列、Cron、WebSocket、SSE、平台 preset、OpenAPI/Scalar、DevTools 以及 `@ubean/auth`/`@ubean/icon`/`@ubean/pwa`/`@ubean/image`/`@ubean/content`/`@ubean/fonts`/`@ubean/electron`/`@ubean/ui` 等扩展包均已实现并附带测试，可参照 [skills/ubean/docs](../skills/ubean/docs) 中的使用指南与 API 参考。
 
 ## 文档分类
 

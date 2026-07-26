@@ -38,7 +38,7 @@ Use this skill when working with ubean framework projects, including:
 - Using islands architecture (`client:load|idle|visible|media|only`)
 - Configuring modules and platform presets (`standard` / `node` / `cloudflare`)
 - Debugging with ubean DevTools
-- Using the built-in icon / image / content / fonts / pwa / auth / electron extension packages
+- Using the built-in icon / image / content / fonts / pwa / auth / electron / ui extension packages
 
 ## Quick Start
 
@@ -70,7 +70,7 @@ pnpm dev
 
 ## Package Architecture
 
-ubean is a **monorepo** of 37 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package (`ubean`) and get the full API surface via `import { ... } from 'ubean'`.
+ubean is a **monorepo** of 38 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package (`ubean`) and get the full API surface via `import { ... } from 'ubean'`.
 
 ### Subpath Exports
 
@@ -99,7 +99,7 @@ ubean is a **monorepo** of 37 packages. The public package `ubean` is an **aggre
 | `@ubean/vite`    | Vue-specific Vite plugin (pages/entry virtual modules + auto-imports) |
 | `@ubean/cli`     | CLI commands (init/dev/build/preview/page/env)                        |
 
-Extension packages (`@ubean/auth`, `@ubean/icon`, `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`, `@ubean/electron`) are loaded on-demand via `ubean.config.ts` flags (`icon: true`, `pwa: true`, `electron: true`, etc.).
+Extension packages (`@ubean/auth`, `@ubean/icon`, `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`, `@ubean/electron`, `@ubean/ui`) are loaded on-demand via `ubean.config.ts` flags (`icon: true`, `pwa: true`, `electron: true`, `ui: true`, etc.).
 
 ## Commands
 
@@ -312,6 +312,7 @@ export const GET = defineHandler(
 - `/docs/integrations/auth`: Authentication (`@ubean/auth`)
 - `/docs/integrations/icons`: Icons (`@ubean/icon`)
 - `/docs/integrations/electron`: Desktop apps (`@ubean/electron`)
+- `/docs/integrations/ui`: UI components (`@ubean/ui`)
 
 ## Configuration
 
@@ -333,6 +334,7 @@ export default defineConfig({
   image: false, // @ubean/image
   fonts: false, // @ubean/fonts
   electron: false, // @ubean/electron (enabling auto-disables SSR unless explicitly set)
+  ui: false, // @ubean/ui (@soybeanjs/ui: UiResolver + styles.css auto-injection)
   // Route generation mode (virtual | file | both)
   routing: { mode: 'virtual' },
   // i18n routing
@@ -377,15 +379,16 @@ export default defineConfig({
 
 Use these keys in `dependsOn` for built-in modules:
 
-| Key        | Module                                            |
-| ---------- | ------------------------------------------------- |
-| `icon`     | @ubean/icon (icon system, UbeanIcon component)    |
-| `pwa`      | @ubean/pwa (PWA support)                          |
-| `auth`     | @ubean/auth (authentication)                      |
-| `image`    | @ubean/image (image optimization)                 |
-| `fonts`    | @ubean/fonts (font optimization)                  |
-| `content`  | @ubean/content (content management)               |
-| `electron` | @ubean/electron (desktop apps, auto-disables SSR) |
+| Key        | Module                                             |
+| ---------- | -------------------------------------------------- |
+| `icon`     | @ubean/icon (icon system, UbeanIcon component)     |
+| `pwa`      | @ubean/pwa (PWA support)                           |
+| `auth`     | @ubean/auth (authentication)                       |
+| `image`    | @ubean/image (image optimization)                  |
+| `fonts`    | @ubean/fonts (font optimization)                   |
+| `content`  | @ubean/content (content management)                |
+| `electron` | @ubean/electron (desktop apps, auto-disables SSR)  |
+| `ui`       | @ubean/ui (@soybeanjs/ui: UiResolver + styles.css) |
 
 ## Key Features
 
@@ -456,6 +459,7 @@ Use these keys in `dependsOn` for built-in modules:
 - `@ubean/content`: Markdown/YAML/JSON content collections with `queryContent()`
 - `@ubean/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
 - `@ubean/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR
+- `@ubean/ui`: @soybeanjs/ui integration; `ui: true` enables UiResolver (component auto-import) + styles.css injection; `ui: { css: false }` for UnoCSS mode (@soybeanjs/unocss-shadcn)
 
 ## Project Structure (user project)
 
@@ -613,3 +617,4 @@ console.log(c(42.99, 'USD'));
   - Prerender / SSG
   - Built-in cron, queue, storage, database, WebSocket, SSE
   - `@ubean/electron` desktop app support (default main/preload entries, auto-disable SSR)
+  - `@ubean/ui` @soybeanjs/ui integration (UiResolver component auto-import + styles.css auto-injection)

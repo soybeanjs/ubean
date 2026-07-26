@@ -85,6 +85,15 @@ function stripStatement(code: string, callStart: number, callEnd: number): strin
 
   while (start > 0 && /[ \t]/.test(code[start - 1])) start--;
 
+  // Handle `export default definePage(...)` pattern (used in `.reuse.ts` files):
+  // stripping just `definePage(...)` would leave `export default` dangling,
+  // causing a syntax error. Remove the `export default` prefix as well.
+  const exportDefaultMatch = code.slice(0, start).match(/export\s+default\s*$/);
+  if (exportDefaultMatch) {
+    start -= exportDefaultMatch[0].length;
+    while (start > 0 && /[ \t\n\r]/.test(code[start - 1])) start--;
+  }
+
   if (code[end] === ';') {
     end++;
   }

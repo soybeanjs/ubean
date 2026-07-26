@@ -527,6 +527,9 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual);
 
   // 检测用户是否提供了 vite.config — 如有则由用户配置提供 ubeanPlugin()
+  // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVuePlugin + ubeanIslandsPlugin)
+  // 此处仅补充 vue 插件(用户容易遗漏 include/isCustomElement 配置),
+  // ubeanVuePlugin/ubeanIslandsPlugin 由用户的 ubeanPlugin() 提供,避免重复注册。
   const userViteConfig = findUserViteConfig(cwd);
 
   const builtinPlugins: VitePlugin[] = [];
@@ -539,13 +542,15 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
             isCustomElement: (tag: string) => tag.startsWith('ubean-')
           }
         }
-      }) as unknown as VitePlugin,
-      ...ubeanVuePlugin({ config }),
-      ubeanIslandsPlugin()
+      }) as unknown as VitePlugin
     );
   }
   if (!userViteConfig) {
+    // 无用户 vite.config:由 builtin 提供全部 ubean 插件
     builtinPlugins.push(ubeanPlugin({ config }));
+    if (hasPages) {
+      builtinPlugins.push(...ubeanVuePlugin({ config }), ubeanIslandsPlugin());
+    }
   }
 
   const { plugins } = await resolveModules({

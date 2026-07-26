@@ -204,7 +204,9 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
   // 检测用户是否提供了 vite.config.{ts,js,mjs}
   // 如果有,由用户的 vite.config 提供 ubeanPlugin()(无参调用,从缓存获取 config)
-  // 如果没有,由 builtin 提供 ubeanPlugin({ config })
+  // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVuePlugin + ubeanIslandsPlugin)
+  // 如果没有,由 builtin 提供全部 ubean 插件,避免重复注册导致 Markdown
+  // 等插件被注册两次(会让 .md 文件被双重转换,产出畸形 HTML)。
   const userViteConfig = findUserViteConfig(cwd);
   const hasUserViteConfig = !!userViteConfig;
 
@@ -224,9 +226,13 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
             }
           }) as unknown as Plugin
         ]),
-    ...(hasUserViteConfig ? [] : [ubeanPlugin({ config })]),
-    ...(isBackendMode ? [] : ubeanVuePlugin({ config })),
-    ...(isBackendMode ? [] : [ubeanIslandsPlugin()]),
+    ...(hasUserViteConfig
+      ? []
+      : [
+          ubeanPlugin({ config }),
+          ...(isBackendMode ? [] : ubeanVuePlugin({ config })),
+          ...(isBackendMode ? [] : [ubeanIslandsPlugin()])
+        ]),
     ...viteDevtoolsPlugins,
     ...(devtoolsPlugin ? [devtoolsPlugin] : [])
   ];

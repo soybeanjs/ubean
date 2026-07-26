@@ -105,6 +105,7 @@ export const buildCommand: CommandDef = {
     const cwd = resolve(args.cwd || process.cwd());
     logger.start('Building ubean application...');
 
+    try {
     registerBuiltinPresets();
     const config = await loadUbeanConfig(cwd);
 
@@ -230,5 +231,12 @@ export const buildCommand: CommandDef = {
       logger.info(`  Server entry: ${manifest.entry}`);
     }
     logger.info(`  Client assets: ${manifest.assets.length} files`);
+    } catch (err) {
+      logger.error(err instanceof Error ? err.message : String(err));
+      process.exit(1);
+    }
+    // 显式退出:Vite/unplugin 的 worker pool (tinypool) 以及 prerender
+    // 动态导入的 SSR entry 可能保留事件循环引用,导致进程无法自然退出。
+    process.exit(0);
   }
 };

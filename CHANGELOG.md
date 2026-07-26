@@ -1,6 +1,7 @@
 # Changelog
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.1...main) (2026-07-27)
+
+## [v0.1.2](https://github.com/soybeanjs/ubean/compare/v0.1.1...v0.1.2) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🏡 Chore
 
@@ -10,7 +11,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [v](https://github.com/soybeanjs/ubean/compare/v0.1.0...v) (2026-07-27)
+## [v0.1.1](https://github.com/soybeanjs/ubean/compare/v0.1.0...v0.1.1) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -384,3 +385,6 @@
 ### &nbsp;&nbsp;&nbsp;❤️ Contributors
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
+
+

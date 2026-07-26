@@ -21,8 +21,8 @@ import { defineConfig } from 'ubean';
 export default defineConfig({
   routing: {
     mode: 'file', // 'virtual' | 'file' | 'both'(默认 'virtual')
-    outputDir: 'src/router/_generated', // 实体文件输出目录(相对于 srcDir)
-    dtsDir: 'src/router/_generated', // .d.ts 输出目录(默认与 outputDir 同目录)
+    outputDir: 'src/router/_generated', // 实体文件输出目录(相对于 rootDir,产出 routes.ts / imports.ts)
+    defaultLayout: 'default', // 默认布局名称(默认 'default',设为 false 表示不使用)
     routeLazy: true, // 路由组件懒加载(默认 true)
     layoutLazy: true, // 布局组件懒加载(默认 true)
     watchFile: true, // dev 模式下监听文件变更(默认 true)
@@ -34,6 +34,8 @@ export default defineConfig({
 });
 ```
 
+> 📌 `typed-router.d.ts` 不在 `outputDir` 中,固定生成到 `.ubean/typed-router.d.ts`(与 `auto-imports.d.ts`、`components.d.ts` 等其他纯类型声明产物同目录,均已 gitignored)。该文件通过 `declare module '@ubean/routing'` 模块增强提供类型,只要 `tsconfig.json` 的 `include` 包含 `.ubean/*`,类型即自动全局生效。
+
 ### 完整配置项
 
 详见 [`@ubean/config` 的 `RoutingConfig` 类型](../../../packages/config/src/types.ts)。
@@ -41,15 +43,13 @@ export default defineConfig({
 | 字段 | 类型 | 默认值 | 说明 |
 |---|---|---|---|
 | `mode` | `'virtual' \| 'file' \| 'both'` | `'virtual'` | 路由数据生成模式 |
-| `outputDir` | `string` | `'router/_generated'` | 实体文件输出目录(相对于 `srcDir`) |
-| `dtsDir` | `string` | 同 `outputDir` | 类型声明文件输出目录 |
+| `outputDir` | `string` | `'src/router/_generated'` | 实体文件输出目录(相对于 `rootDir`,产出 `routes.ts`/`imports.ts`) |
 | `generateBuiltinRoutes` | `boolean` | `true` | 是否生成内置路由(404、首页重定向) |
 | `rootRedirect` | `string` | — | 根路径重定向目标(如 `/home`) |
 | `notFoundRouteComponent` | `string` | `'404.vue'` | 404 页面组件路径 |
-| `layouts.defaultLayout` | `string \| false` | `'default'` | 默认布局名称 |
-| `layouts.layoutLazy` | `boolean` | `true` | 布局懒加载 |
-| `routeLazy` | `boolean` | `true` | 路由懒加载 |
-| `layoutLazy` | `boolean` | `true` | 顶层快捷布局懒加载 |
+| `defaultLayout` | `string \| false` | `'default'` | 默认布局名称 |
+| `routeLazy` | `boolean` | `true` | 路由组件懒加载 |
+| `layoutLazy` | `boolean` | `true` | 布局组件懒加载(与 `routeLazy` 平行) |
 | `getRouteName` | `(filePath) => string` | 内置 | 自定义路由名称生成器 |
 | `getRoutePath` | `(filePath) => string` | 内置 | 自定义路由路径生成器 |
 | `getRouteLayout` | `(filePath) => string \| false \| undefined` | 内置 | 自定义布局解析器 |
@@ -85,22 +85,24 @@ export default defineConfig({});
 
 ### 2. `file` — 实体文件模式
 
-ubean 扫描后将路由数据写入 `src/router/_generated/` 目录,生成 3 个文件:
+ubean 扫描后将路由数据写入以下位置:
 
 ```
-src/router/_generated/
-├── routes.ts          # 扁平 RouteRecord[](name/path/component/layout/meta)
-├── imports.ts         # 懒加载 views 与 layouts 记录
-└── typed-router.d.ts  # 类型定义(RouteKey/RoutePath/RouteLayoutKey/ReuseRouteKey)
+src/router/_generated/        # 实体路由文件(可编辑 meta,增量保护)
+├── routes.ts                  # 扁平 RouteRecord[](name/path/component/layout/meta)
+└── imports.ts                 # 懒加载 views 与 layouts 记录
+
+.ubean/                        # 纯类型声明(已 gitignored,每次完全重新生成)
+└── typed-router.d.ts          # 类型定义(RouteKey/RoutePath/RouteLayoutKey/ReuseRouteKey)
 ```
 
 **优点**:
 - IDE 可直接跳转到 `routes.ts` 查看路由定义
 - 支持手动修改 `meta` 字段,**生成器采用增量更新,不会覆盖用户修改**
-- 生成的 `.d.ts` 提供路由名称/路径的强类型补全
+- 生成的 `.d.ts` 通过模块增强(`declare module '@ubean/routing'`)提供路由名称/路径的强类型补全,自动全局生效
 
 **缺点**:
-- `src/router/_generated/` 需要加入 `.gitignore`(或选择提交以供 PR 审阅)
+- `src/router/_generated/` 需要决定是否加入 `.gitignore`(推荐提交以供 PR 审阅,或忽略以避免污染 git 历史)
 - 首次启动稍慢(需要写文件)
 
 ```ts
@@ -116,9 +118,9 @@ export default defineConfig({
 
 生成器在每次重新生成时遵循以下规则:
 
-1. **`routes.ts`**:对每个路由记录,保留用户已有的 `meta` 字段(不覆盖),仅更新 `name`/`path`/`component`/`layout` 等自动生成的字段
-2. **`imports.ts`**:完全重新生成(无用户可编辑内容)
-3. **`typed-router.d.ts`**:完全重新生成(无用户可编辑内容)
+1. **`routes.ts`**(位于 `outputDir`):对每个路由记录,保留用户已有的 `meta` 字段(不覆盖),仅更新 `name`/`path`/`component`/`layout` 等自动生成的字段
+2. **`imports.ts`**(位于 `outputDir`):完全重新生成(无用户可编辑内容)
+3. **`typed-router.d.ts`**(位于 `.ubean/`):完全重新生成(无用户可编辑内容,gitignored)
 
 如果新增了页面文件,生成器会在 `routes.ts` 末尾追加新路由,默认 `meta` 来自 `definePage({ meta })` 宏或 frontmatter。
 

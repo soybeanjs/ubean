@@ -251,7 +251,10 @@ async function maybeGenerateRouteFiles(config: UbeanResolvedConfig, scanResult: 
 
   const routing = config.routing;
   const outDir = resolve(config.rootDir, routing.outputDir);
-  const dtsPath = resolve(config.rootDir, routing.dtsDir, 'typed-router.d.ts');
+  // `typed-router.d.ts` 固定生成到 `.ubean/typed-router.d.ts`,与
+  // `auto-imports.d.ts`/`components.d.ts` 等其他纯类型声明产物同目录,
+  // 由 `.gitignore` 忽略,且不参与 `outputDir` 中的可编辑实体文件。
+  const dtsPath = resolve(config.rootDir, '.ubean', 'typed-router.d.ts');
 
   // 适配 config.getRouteMeta(file, frontmatter) → generator.getRouteMeta(page)
   // 把页面对象的 `relativePath` 和扫描出的 `frontmatter` 传给配置层钩子。

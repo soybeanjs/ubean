@@ -70,22 +70,22 @@ export type RouteGenMode = 'virtual' | 'file' | 'both';
  *   }
  * });
  * ```
+ *
+ * 类型声明文件(`typed-router.d.ts`)不在此配置内,固定生成到
+ * `.ubean/typed-router.d.ts`(与 `auto-imports.d.ts`、`components.d.ts`
+ * 等其他生成产物同目录,均为纯类型声明,可在 `.gitignore` 中忽略)。
  */
 export interface RoutingConfig {
   /** 路由数据生成模式,默认 `virtual`。 */
   mode?: RouteGenMode;
 
   /**
-   * 实体路由文件输出目录(相对于 `srcDir`),默认 `router/_generated`。
-   * 仅在 `mode` 为 `file` 或 `both` 时生效。
+   * 实体路由文件输出目录(相对于 `rootDir`),默认 `src/router/_generated`。
+   * 仅在 `mode` 为 `file` 或 `both` 时生效,产出 `routes.ts` 和 `imports.ts`。
+   *
+   * 注意:`typed-router.d.ts` 不在此目录下,固定生成到 `.ubean/`。
    */
   outputDir?: string;
-
-  /**
-   * 类型声明文件(`.d.ts`)输出目录(相对于 `srcDir`),默认与 `outputDir` 同目录。
-   * 包含 `typed-router.d.ts`、`ubean-router.d.ts` 等。
-   */
-  dtsDir?: string;
 
   /**
    * 是否生成内置路由(如 404、首页重定向),默认 `true`。
@@ -108,16 +108,11 @@ export interface RoutingConfig {
    */
   notFoundRouteComponent?: string;
 
-  /** 布局相关配置。 */
-  layouts?: {
-    /**
-     * 默认布局名称,默认 `default`。
-     * 设为 `false` 表示不使用默认布局。
-     */
-    defaultLayout?: string | false;
-    /** 是否惰性加载布局组件,默认 `true`。 */
-    layoutLazy?: boolean;
-  };
+  /**
+   * 默认布局名称,默认 `default`。
+   * 设为 `false` 表示不使用默认布局。
+   */
+  defaultLayout?: string | false;
 
   /**
    * 是否惰性加载路由组件,默认 `true`。
@@ -127,7 +122,7 @@ export interface RoutingConfig {
 
   /**
    * 是否惰性加载布局组件,默认 `true`。
-   * 等同于 `layouts.layoutLazy`,此处作为顶层快捷配置。
+   * 与 `routeLazy` 平行,无嵌套形式。
    */
   layoutLazy?: boolean;
 

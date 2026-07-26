@@ -97,9 +97,9 @@ export class RouteFileGenerator {
     const finalDtsPath = generateDts ? dtsPath : undefined;
 
     await Promise.all([
-      routesPath ? writeFile(joinPosix(cwd, routesPath), this.renderRoutesFile(scanResult)) : null,
-      importsPath ? writeFile(joinPosix(cwd, importsPath), this.renderImportsFile(scanResult)) : null,
-      finalDtsPath ? writeFile(joinPosix(cwd, finalDtsPath), this.renderDtsFile(scanResult)) : null
+      routesPath ? writeFile(resolvePath(cwd, routesPath), this.renderRoutesFile(scanResult)) : null,
+      importsPath ? writeFile(resolvePath(cwd, importsPath), this.renderImportsFile(scanResult)) : null,
+      finalDtsPath ? writeFile(resolvePath(cwd, finalDtsPath), this.renderDtsFile(scanResult)) : null
     ]);
 
     return {
@@ -318,6 +318,27 @@ function joinPosix(...parts: string[]): string {
     .map(p => p.replace(/\\/g, '/'))
     .join('/')
     .replace(/\/+/g, '/');
+}
+
+/**
+ * 将 `cwd` 与 `target` 合并为最终写入路径。
+ *
+ * 与 `joinPosix` 不同,此函数会识别 `target` 是否为绝对路径:
+ * - 如果 `target` 以 `/` 开头(POSIX 绝对路径)或盘符开头(Windows,如 `C:`),
+ *   直接使用 `target`,忽略 `cwd`
+ * - 否则,使用 `joinPosix(cwd, target)` 拼接
+ *
+ * 这是为了支持消费方(`@ubean/build`)传入 `path.resolve()` 计算出的绝对路径,
+ * 避免出现 `<cwd>/<absolute-target>` 这种重复前缀的错误路径(参见
+ * `maybeGenerateRouteFiles` 中 `resolve(config.rootDir, ...)` 的调用)。
+ */
+function resolvePath(cwd: string, target: string): string {
+  const normalized = target.replace(/\\/g, '/');
+  // POSIX 绝对路径(/...)或 Windows 绝对路径(C:\... / C:/...)
+  if (normalized.startsWith('/') || /^[a-zA-Z]:[\\/]/.test(normalized)) {
+    return normalized;
+  }
+  return joinPosix(cwd, normalized);
 }
 
 function relativePosix(from: string, to: string): string {

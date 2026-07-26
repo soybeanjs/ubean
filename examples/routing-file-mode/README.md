@@ -16,7 +16,6 @@ export default defineConfig({
   routing: {
     mode: 'file',
     outputDir: 'src/router/_generated',
-    dtsDir: 'src/router/_generated',
     onGenerated(files) {
       console.log('[routing-file-mode] Generated route files:', files);
     }
@@ -37,16 +36,20 @@ pnpm -F routing-file-mode dev
 pnpm -F routing-file-mode build
 ```
 
-运行 `dev` 或 `build` 后,生成器会自动在 `src/router/_generated/` 下产出 3 个文件:
+运行 `dev` 或 `build` 后,生成器会产出以下文件:
 
 ```
-src/router/_generated/
-├── routes.ts          # 扁平 RouteRecord[](name/path/component/layout/meta)
-├── imports.ts         # 懒加载 views 与 layouts 记录
-└── typed-router.d.ts  # 类型定义(RouteKey / RoutePath / RouteLayoutKey / ReuseRouteKey)
+src/router/_generated/        # 实体路由文件(可编辑 meta,增量保护)
+├── routes.ts                  # 扁平 RouteRecord[](name/path/component/layout/meta)
+└── imports.ts                 # 懒加载 views 与 layouts 记录
+
+.ubean/                        # 纯类型声明(已 gitignored,每次完全重新生成)
+└── typed-router.d.ts          # 类型定义(RouteKey / RoutePath / RouteLayoutKey / ReuseRouteKey)
 ```
 
-> ⚠️ **不要手动创建或编辑 `src/router/_generated/` 目录中的 `imports.ts` 和 `typed-router.d.ts`** — 这两个文件每次都会被完全重新生成。只有 `routes.ts` 中的 `meta` 字段支持增量保护(见下文)。
+> ⚠️ **不要手动创建或编辑 `src/router/_generated/imports.ts` 或 `.ubean/typed-router.d.ts`** — 这两个文件每次都会被完全重新生成。只有 `routes.ts` 中的 `meta` 字段支持增量保护(见下文)。
+>
+> `typed-router.d.ts` 通过 `declare module '@ubean/routing'` 模块增强提供类型,只要 `tsconfig.json` 的 `include` 包含 `.ubean/*`,类型即自动全局生效,无需显式 `import`。
 
 ## 项目结构
 
@@ -75,11 +78,11 @@ examples/routing-file-mode/
 
 生成器在每次重新生成时遵循以下规则:
 
-| 文件                | 更新策略                                                                                      | 用户可编辑       |
-| ------------------- | --------------------------------------------------------------------------------------------- | ---------------- |
-| `routes.ts`         | **增量更新** — 仅刷新 `name`/`path`/`component`/`layout` 等自动字段,**保留用户已有的 `meta`** | ✅ 可编辑 `meta` |
-| `imports.ts`        | 完全重新生成                                                                                  | ❌               |
-| `typed-router.d.ts` | 完全重新生成                                                                                  | ❌               |
+| 文件                | 位置                     | 更新策略                                                                                      | 用户可编辑       |
+| ------------------- | ------------------------ | --------------------------------------------------------------------------------------------- | ---------------- |
+| `routes.ts`         | `src/router/_generated/` | **增量更新** — 仅刷新 `name`/`path`/`component`/`layout` 等自动字段,**保留用户已有的 `meta`** | ✅ 可编辑 `meta` |
+| `imports.ts`        | `src/router/_generated/` | 完全重新生成                                                                                  | ❌               |
+| `typed-router.d.ts` | `.ubean/`                | 完全重新生成                                                                                  | ❌               |
 
 如果新增了页面文件,生成器会在 `routes.ts` 末尾追加新路由,默认 `meta` 来自 `definePage({ meta })` 宏或 frontmatter。
 
@@ -115,20 +118,34 @@ examples/routing-file-mode/
 
 ## 路径别名
 
-在 `tsconfig.json` 中额外配置了 `~router/*` 路径映射,方便从生成文件中导入类型:
+`tsconfig.json` 中配置了以下路径映射:
 
 ```json
 {
   "paths": {
+    "@/*": ["./src/*"],
+    "~ubean/*": ["./.ubean/*"],
     "~router/*": ["./src/router/_generated/*"]
   }
 }
 ```
 
-使用示例:
+- `@/*` —— 指向 `src/`(应用源代码)
+- `~ubean/*` —— 指向 `.ubean/`(`auto-imports.d.ts`、`typed-router.d.ts` 等生成产物)
+- `~router/*` —— 指向 `src/router/_generated/`(可编辑实体路由文件,如 `routes.ts`、`imports.ts`)
+
+类型导入示例:
 
 ```ts
-import type { RouteKey } from '~router/typed-router';
+// typed-router.d.ts 通过 `declare module '@ubean/routing'` 模块增强提供类型,
+// tsconfig.json 的 `include` 已包含 .ubean/*,类型自动全局生效,直接从 @ubean/routing 导入即可。
+import type { RouteKey, RoutePath, RouteLayoutKey } from '@ubean/routing';
+```
+
+如果需要从生成文件中导入运行时数据(如自定义路由守卫),使用 `~router/*`:
+
+```ts
+import { routes } from '~router/routes';
 ```
 
 ## 配置项详解
@@ -137,16 +154,18 @@ import type { RouteKey } from '~router/typed-router';
 
 常用字段:
 
-| 字段                 | 类型                            | 默认值                | 说明                              |
-| -------------------- | ------------------------------- | --------------------- | --------------------------------- |
-| `mode`               | `'virtual' \| 'file' \| 'both'` | `'virtual'`           | 路由数据生成模式                  |
-| `outputDir`          | `string`                        | `'router/_generated'` | 实体文件输出目录(相对于 `srcDir`) |
-| `dtsDir`             | `string`                        | 同 `outputDir`        | 类型声明文件输出目录              |
-| `routeLazy`          | `boolean`                       | `true`                | 路由组件懒加载                    |
-| `layoutLazy`         | `boolean`                       | `true`                | 布局组件懒加载                    |
-| `watchFile`          | `boolean`                       | `true`                | dev 模式下监听文件变更            |
-| `fileUpdateDuration` | `number`                        | `100`                 | 文件变更 debounce 时长(ms)        |
-| `onGenerated`        | `(files: string[]) => void`     | —                     | 生成完成回调(仅 `file`/`both`)    |
+| 字段                 | 类型                            | 默认值                    | 说明                                                             |
+| -------------------- | ------------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| `mode`               | `'virtual' \| 'file' \| 'both'` | `'virtual'`               | 路由数据生成模式                                                 |
+| `outputDir`          | `string`                        | `'src/router/_generated'` | 实体文件输出目录(相对于 `rootDir`,产出 `routes.ts`/`imports.ts`) |
+| `defaultLayout`      | `string \| false`               | `'default'`               | 默认布局名称,设为 `false` 表示不使用默认布局                     |
+| `routeLazy`          | `boolean`                       | `true`                    | 路由组件懒加载                                                   |
+| `layoutLazy`         | `boolean`                       | `true`                    | 布局组件懒加载                                                   |
+| `watchFile`          | `boolean`                       | `true`                    | dev 模式下监听文件变更                                           |
+| `fileUpdateDuration` | `number`                        | `100`                     | 文件变更 debounce 时长(ms)                                       |
+| `onGenerated`        | `(files: string[]) => void`     | —                         | 生成完成回调(仅 `file`/`both`)                                   |
+
+> 📌 `typed-router.d.ts` 不在 `outputDir` 中,固定生成到 `.ubean/typed-router.d.ts`(与 `auto-imports.d.ts`、`components.d.ts` 同目录,均已 gitignored)。
 
 ## 三种模式对比
 

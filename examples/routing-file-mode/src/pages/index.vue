@@ -39,8 +39,8 @@ useHead({
           — 懒加载 views 与 layouts 记录
         </li>
         <li>
-          <code>src/router/_generated/typed-router.d.ts</code>
-          — 路由名称/路径类型
+          <code>.ubean/typed-router.d.ts</code>
+          — 路由名称/路径类型(模块增强,自动生效)
         </li>
       </ul>
     </section>

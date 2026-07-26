@@ -1,6 +1,6 @@
 {
   "name": "@ubean/i18n",
-  "version": "0.0.0",
+  "version": "0.1.0-beta.1",
   "description": "Zero-dependency i18n for ubean (defineLocale, t, formatDate, routing)",
   "files": [
     "dist"

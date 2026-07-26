@@ -128,7 +128,7 @@ const configDefaults: ResolvedConfig = {
   markdown: {
     enabled: true,
     mdx: false,
-    theme: 'vitesse-dark',
+    theme: 'one-dark',
     markdownExit: { html: true, linkify: true, breaks: false },
     headings: { anchorLinks: true },
     components: { autoImport: true }

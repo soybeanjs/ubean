@@ -166,6 +166,25 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // before any request arrives (server doesn't listen until `start()`).
   httpServer = createHttpServer(async (req, res) => {
     try {
+      // Redirect bare /_devtools and /_devtools/ (without subpaths) to the
+      // full Vite DevTools shell at /__devtools/. This ensures users who
+      // visit the CLI-advertised URL or click links to /_devtools get the
+      // complete DevTools UI with the dock sidebar and all tabs (both
+      // built-in Inspector/Terminal/Messages and ubean's custom panels),
+      // rather than seeing only our isolated SPA without the shell chrome.
+      //
+      // Static assets under /_devtools/ (index.html, JS/CSS chunks) must
+      // remain directly accessible because the DevTools shell loads our
+      // SPA inside an iframe via /_devtools/index.html#/route.
+      const url = req.url || '/';
+      const pathname = url.split('?')[0].split('#')[0];
+      if (devtoolsEnabled && (pathname === '/_devtools' || pathname === '/_devtools/')) {
+        res.statusCode = 302;
+        res.setHeader('Location', '/__devtools/');
+        res.end();
+        return;
+      }
+
       await new Promise<void>((resolve, reject) => {
         viteServer!.middlewares(req, res, (err?: unknown) => {
           if (err) {
@@ -383,6 +402,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     builtinPlugins
   });
 
+  if (devtoolsEnabled) {
+    process.env.VITE_DEVTOOLS_DISABLE_CLIENT_AUTH = 'true';
+  }
+
   viteServer = await createViteServer({
     root: cwd,
     // 如果用户有 vite.config,让 Vite 加载它(用户配置中的 ubeanPlugin() 会从缓存获取 config)
@@ -398,7 +421,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
     appType: 'custom',
     plugins,
-    devtools: { enabled: devtoolsEnabled, clientAuthTokens: ['ubean-devtools-token'] },
+    devtools: { enabled: devtoolsEnabled, clientAuth: false },
     optimizeDeps: {
       exclude: [
         'ubean',
@@ -549,113 +572,6 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
 
     async start() {
-      httpServer = createHttpServer(async (req, res) => {
-        try {
-          await new Promise<void>((resolve, reject) => {
-            viteServer!.middlewares(req, res, (err?: unknown) => {
-              if (err) {
-                reject(err);
-              } else {
-                resolve();
-              }
-            });
-          });
-
-          if (res.writableEnded) {
-            return;
-          }
-
-          // Load locales through Vite SSR module graph (supports HMR)
-          try {
-            const localesMod = await viteServer!.ssrLoadModule('ubean:locales');
-            if (localesMod?.loadLocales) {
-              await localesMod.loadLocales();
-            }
-          } catch (err) {
-            logger.warn('[ubean] Failed to load locales:', err);
-          }
-
-          // Apply user's defineServer config (plugins, hooks, onAppCreated)
-          // before init() — must happen before the first init() call.
-          if (!serverConfigApplied) {
-            serverConfigApplied = true;
-            try {
-              const serverMod = await viteServer!.ssrLoadModule('virtual:ubean-server');
-              if (serverMod?.resolveServerConfig) {
-                cachedServerConfig = serverMod.resolveServerConfig('dev');
-                await applyServerConfig(currentApp, cachedServerConfig);
-              }
-            } catch (err) {
-              logger.warn('[ubean] Failed to load server config:', err);
-            }
-          }
-
-          await currentApp.init();
-
-          // Call onServerReady once after the first successful init
-          if (!serverReadyCalled) {
-            serverReadyCalled = true;
-            if (cachedServerConfig?.onServerReady) {
-              try {
-                await cachedServerConfig.onServerReady(currentApp);
-              } catch (err) {
-                logger.warn('[ubean] onServerReady error:', err);
-              }
-            }
-          }
-          // @ts-expect-error Socket 类型没有 encrypted 属性
-          const protocol = req.socket?.encrypted ? 'https' : 'http';
-          const webReq = await toWebRequest(req, host, protocol);
-          const webRes = await currentApp.fetch(webReq);
-
-          const contentType = webRes.headers.get('content-type') || '';
-          // The DevTools client serves a pre-built SPA with separate static
-          // assets. Vite's transformIndexHtml would break the pre-built module
-          // references and import-analysis. Skip transform for all devtools
-          // paths (client SPA root, assets, and legacy iframe alias).
-          const skipTransform = (req.url || '').startsWith('/_devtools');
-          if (contentType.includes('text/html') && webRes.body && !skipTransform) {
-            const html = await webRes.text();
-            const transformedHtml = await viteServer!.transformIndexHtml(req.url || '/', html);
-            res.statusCode = webRes.status;
-            res.statusMessage = webRes.statusText;
-            webRes.headers.forEach((value, key) => {
-              res.setHeader(key, value);
-            });
-            res.end(transformedHtml);
-          } else {
-            await sendWebResponse(res, webRes);
-          }
-        } catch (err) {
-          if (viteServer) {
-            viteServer.ssrFixStacktrace(err as Error);
-          }
-          if (!res.headersSent) {
-            res.statusCode = 500;
-            const errorHtml = `<!DOCTYPE html>
-<html>
-  <head>
-    <title>Server Error</title>
-    <style>
-      body { font-family: monospace; padding: 2rem; background: #1a1a1a; color: #ff6b6b; }
-      pre { background: #2d2d2d; padding: 1rem; border-radius: 4px; overflow-x: auto; }
-    </style>
-  </head>
-  <body>
-    <h1>Internal Server Error</h1>
-    <pre>${(err as Error).stack || (err as Error).message}</pre>
-  </body>
-</html>`;
-            res.setHeader('Content-Type', 'text/html');
-            res.end(errorHtml);
-          } else if (!res.writableEnded) {
-            res.end(err instanceof Error ? err.message : 'Internal Server Error');
-          }
-        }
-      });
-
-      viteServer!.httpServer = httpServer;
-
       // Listen with auto-increment as a safety net. The probe above already
       // resolved the port in the common case; this retry only fires if someone
       // grabbed the port between the probe and this listen call, mirroring

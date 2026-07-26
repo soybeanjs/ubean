@@ -292,6 +292,6 @@ async function maybeGenerateRouteFiles(config: UbeanResolvedConfig, scanResult: 
     const files: string[] = [result.routesPath, result.importsPath, result.dtsPath].filter((p): p is string =>
       Boolean(p)
     );
-    await routing.onGenerated(files);
+    routing.onGenerated(files);
   }
 }

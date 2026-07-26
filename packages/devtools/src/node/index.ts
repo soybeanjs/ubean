@@ -1,8 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-/// <reference types="@vitejs/devtools-kit" />
 import { fileURLToPath } from 'node:url';
-import type { Plugin } from 'vite';
+import type { Plugin, Connect } from 'vite';
 import type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
 import { maskSensitiveEnv } from '../shared/env';
 import { createDevToolsHooks } from '../server/hooks';
@@ -98,29 +97,47 @@ export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getC
         // 1. Host the pre-built SPA static assets (replaces runtime/middleware.ts).
         ctx.views.hostStatic('/_devtools/', CLIENT_DIST);
 
-        // 1b. Serve `__connection.json` at the SPA base so the client can
-        //     discover the WebSocket endpoint when opened directly (not just
-        //     when embedded in the DTK dock shell at `/__devtools/`).
-        //     Without this, `GET /_devtools/__connection.json` returns 404 and
-        //     the SPA's `getDevToolsRpcClient()` cannot establish a connection.
-        //     We proxy to the DTK middleware's `/__devtools/__connection.json`
-        //     which is always available when DevTools is enabled.
+        // 1b. Serve `__connection.json` at both the SPA base (`/_devtools/`)
+        //     and the site root (`/`) so the client can discover the WebSocket
+        //     endpoint:
+        //       - When opened directly at `/_devtools/index.html`, the SPA
+        //         fetches `/_devtools/__connection.json`.
+        //       - The auto-injected inspector.js (devframe/DTK) fetches
+        //         `/__connection.json` from the page origin.
+        //     DTK itself hosts the canonical metadata at `/__devtools/__connection.json`
+        //     (note the double-underscore prefix — that's DTK's own mount point,
+        //     separate from our single-underscore `/_devtools/` SPA base).
+        //     We proxy to that canonical endpoint using the request's Host
+        //     header (instead of `viteServer.resolvedUrls` which may not be
+        //     populated yet when the devtools.setup hook fires). We also
+        //     rewrite websocket.path to an absolute path so it resolves
+        //     correctly no matter which URL the client fetched meta from.
         const viteServer = ctx.viteServer;
         if (viteServer?.middlewares) {
-          viteServer.middlewares.use('/_devtools/__connection.json', async (_req: any, res: any) => {
-            try {
-              // Forward to the DTK-served connection metadata endpoint
-              const origin = viteServer.resolvedUrls?.local?.[0] || 'http://localhost';
-              const metaRes = await fetch(new URL('/__devtools/__connection.json', origin));
-              const meta = await metaRes.json();
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify(meta));
-            } catch {
-              res.statusCode = 500;
-              res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ error: 'Failed to resolve connection meta' }));
-            }
-          });
+          const serveConnectionMeta: Connect.NextHandleFunction = (req, res) => {
+            const protocol = req.headers['x-forwarded-proto'] || 'http';
+            const host = req.headers.host || 'localhost:9527';
+            const targetUrl = `${protocol}://${host}/__devtools/__connection.json`;
+
+            fetch(targetUrl)
+              .then(async metaRes => {
+                const meta = await metaRes.json();
+
+                if (meta.websocket && typeof meta.websocket === 'object') {
+                  meta.websocket = { ...meta.websocket, path: '/__devtools/__ws' };
+                }
+
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify(meta));
+              })
+              .catch(() => {
+                res.statusCode = 500;
+                res.setHeader('Content-Type', 'application/json');
+                res.end(JSON.stringify({ error: 'Failed to resolve connection meta' }));
+              });
+          };
+          viteServer.middlewares.use('/_devtools/__connection.json', serveConnectionMeta);
+          viteServer.middlewares.use('/__connection.json', serveConnectionMeta);
         }
 
         // 2. Register dock entries — one per view (or grouped domain).

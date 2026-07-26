@@ -87,17 +87,17 @@ ubean is a **monorepo** of 36 packages. The public package `ubean` is an **aggre
 
 ### Key Subpackages
 
-| Package                 | Responsibility                                                        |
-| ----------------------- | --------------------------------------------------------------------- |
-| `@ubean/types`          | Shared type definitions                                               |
-| `@ubean/routing`        | Route scanner + rou3 router + AST extractor                           |
-| `@ubean/build`          | Build-time core (virtual modules + Vite plugins)                      |
-| `@ubean/runtime`        | Vue client runtime (composables, router, islands hydrate)             |
-| `@ubean/server` | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
-| `@ubean/app`            | Hono app factory + server config                                      |
-| `@ubean/config`         | Config loading (c12 + defu)                                           |
-| `@ubean/vite`           | Vue-specific Vite plugin (pages/entry virtual modules + auto-imports) |
-| `@ubean/cli`            | CLI commands (init/dev/build/preview/page/env)                        |
+| Package          | Responsibility                                                        |
+| ---------------- | --------------------------------------------------------------------- |
+| `@ubean/types`   | Shared type definitions                                               |
+| `@ubean/routing` | Route scanner + rou3 router + AST extractor                           |
+| `@ubean/build`   | Build-time core (virtual modules + Vite plugins)                      |
+| `@ubean/runtime` | Vue client runtime (composables, router, islands hydrate)             |
+| `@ubean/server`  | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
+| `@ubean/app`     | Hono app factory + server config                                      |
+| `@ubean/config`  | Config loading (c12 + defu)                                           |
+| `@ubean/vite`    | Vue-specific Vite plugin (pages/entry virtual modules + auto-imports) |
+| `@ubean/cli`     | CLI commands (init/dev/build/preview/page/env)                        |
 
 Extension packages (`@ubean/auth`, `@ubean/icon`, `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`) are loaded on-demand via `ubean.config.ts` boolean flags (`icon: true`, `pwa: true`, etc.).
 

@@ -2,7 +2,8 @@ import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
-import { createServer, type Server } from 'node:http';
+import { createServer } from 'node:http';
+import type { Server } from 'node:http';
 import { extname, normalize } from 'node:path';
 import { loadUbeanConfig } from '@ubean/config';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
@@ -42,12 +43,7 @@ const MIME_TYPES: Record<string, string> = {
  *
  * 使用 Node 内置 `http` + `fs`,避免引入 `sirv` 等依赖。
  */
-function startStaticServer(opts: {
-  root: string;
-  port: number;
-  host: string;
-  mode: 'spa' | 'ssg';
-}): Server {
+function startStaticServer(opts: { root: string; port: number; host: string; mode: 'spa' | 'ssg' }): Server {
   const { root, port, host, mode } = opts;
   const spaFallback = mode === 'spa';
 

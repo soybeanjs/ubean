@@ -10,8 +10,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ubeanPwaPlugin, definePwaConfig, toVitePwaOptions } from '../src/vite';
 import type { PwaOptions } from '../src/types';
+import { ubeanPwaPlugin, definePwaConfig, toVitePwaOptions } from '../src/vite';
 
 describe('@ubean/pwa thin wrapper', () => {
   describe('toVitePwaOptions', () => {
@@ -32,9 +32,7 @@ describe('@ubean/pwa thin wrapper', () => {
         swSrc: 'src/custom-sw.ts'
       });
       expect(result).toMatchObject({ strategies: 'injectManifest' });
-      expect((result as { injectManifest: { swSrc: string } }).injectManifest.swSrc).toBe(
-        'src/custom-sw.ts'
-      );
+      expect((result as { injectManifest: { swSrc: string } }).injectManifest.swSrc).toBe('src/custom-sw.ts');
     });
 
     it('applies default manifest values', () => {

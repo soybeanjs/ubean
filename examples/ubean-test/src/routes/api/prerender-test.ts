@@ -150,7 +150,7 @@ export const GET = defineHandler(async c => {
 
       const { routes } = collectPrerenderRoutes(mockPages, {
         all: true,
-        include: ['/about']  // should be ignored
+        include: ['/about'] // should be ignored
       });
 
       return c.json({
@@ -297,9 +297,7 @@ export const GET = defineHandler(async c => {
           customAllConfig.failOnError &&
           customAllConfig.crawlLinks === false,
         includeOverridesApplied:
-          customIncludeConfig.enabled &&
-          customIncludeConfig.all === false &&
-          customIncludeConfig.include.length === 2,
+          customIncludeConfig.enabled && customIncludeConfig.all === false && customIncludeConfig.include.length === 2,
         emptyIsDisabled: !emptyConfig.enabled
       });
     }

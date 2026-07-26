@@ -129,7 +129,12 @@ async function generateVirtualModulesToDisk(
   }
 
   registry.register(
-    createAppVirtualModule(scanResult.apiRoutes, scanResult.middlewares, hasPages ? scanResult.pages : [], viteSrcPrefix || '/')
+    createAppVirtualModule(
+      scanResult.apiRoutes,
+      scanResult.middlewares,
+      hasPages ? scanResult.pages : [],
+      viteSrcPrefix || '/'
+    )
   );
 
   registry.register(createLocalesVirtualModule(scanResult.locales, scanResult.defaultLocale, viteSrcPrefix || '/'));

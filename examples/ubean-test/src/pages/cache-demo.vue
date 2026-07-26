@@ -11,7 +11,13 @@ definePage({
 
 useHead({
   title: 'Page Cache Demo - ubean',
-  meta: [{ name: 'description', content: 'Demonstrates keep-alive page caching with enablePageCache / disablePageCache / resetRouteCache / reloadPage' }]
+  meta: [
+    {
+      name: 'description',
+      content:
+        'Demonstrates keep-alive page caching with enablePageCache / disablePageCache / resetRouteCache / reloadPage'
+    }
+  ]
 });
 
 // 这个计数器会在离开页面后被保留（因为 cache: true）
@@ -88,8 +94,11 @@ function setGlobalTransition(name: string) {
   <div class="p-8 max-w-4xl mx-auto">
     <h1 class="text-3xl font-bold mb-2">Page Cache Demo</h1>
     <p class="text-gray-500 mb-6">
-      此页面通过 <code>definePage(&#123; cache: true &#125;)</code> 启用 keep-alive 缓存，并通过
-      <code>meta.transition</code> 配置切换动画。离开再返回时，下方计数器和挂载时间会被保留。
+      此页面通过
+      <code>definePage(&#123; cache: true &#125;)</code>
+      启用 keep-alive 缓存，并通过
+      <code>meta.transition</code>
+      配置切换动画。离开再返回时，下方计数器和挂载时间会被保留。
     </p>
 
     <section class="mb-8 p-4 border rounded-lg">
@@ -113,15 +122,16 @@ function setGlobalTransition(name: string) {
         </div>
       </div>
       <div class="mt-4 flex items-center gap-4 flex-wrap">
-        <button
-          class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-          @click="counter++"
-        >
+        <button class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600" @click="counter++">
           计数器: {{ counter }}
         </button>
         <button
           class="px-4 py-2 rounded"
-          :class="reloadSignal.reloading.value ? 'bg-gray-400 text-white cursor-wait' : 'bg-purple-500 text-white hover:bg-purple-600'"
+          :class="
+            reloadSignal.reloading.value
+              ? 'bg-gray-400 text-white cursor-wait'
+              : 'bg-purple-500 text-white hover:bg-purple-600'
+          "
           :disabled="reloadSignal.reloading.value"
           @click="reloadCurrentPage"
         >
@@ -131,38 +141,53 @@ function setGlobalTransition(name: string) {
         <Link to="/about" class="text-blue-500 hover:underline">去 About →</Link>
       </div>
       <p class="mt-3 text-sm text-gray-500">
-        点击「重载页面」会调用 <code>reloadPage('CacheDemo')</code>，内部先
-        <code>resetRouteCache</code> 暂时把当前页面加入 exclude 列表清空缓存实例，
-        再通过 reload signal 触发组件重新挂载。
+        点击「重载页面」会调用
+        <code>reloadPage('CacheDemo')</code>
+        ，内部先
+        <code>resetRouteCache</code>
+        暂时把当前页面加入 exclude 列表清空缓存实例， 再通过 reload signal 触发组件重新挂载。
       </p>
     </section>
 
     <section class="mb-8 p-4 border rounded-lg">
       <h2 class="text-xl font-semibold mb-3">运行时缓存控制</h2>
       <p class="text-sm text-gray-600 mb-3">
-        即使页面未声明 <code>cache: true</code>，也可以在运行时通过 <code>enablePageCache</code> /
-        <code>disablePageCache</code> 动态启用/禁用缓存；通过 <code>excludePageCache</code> /
-        <code>includePageCache</code> 控制 exclude 列表（强制下次访问时不命中缓存）。
+        即使页面未声明
+        <code>cache: true</code>
+        ，也可以在运行时通过
+        <code>enablePageCache</code>
+        /
+        <code>disablePageCache</code>
+        动态启用/禁用缓存；通过
+        <code>excludePageCache</code>
+        /
+        <code>includePageCache</code>
+        控制 exclude 列表（强制下次访问时不命中缓存）。
       </p>
       <div class="flex items-center gap-3 mb-4 flex-wrap">
         <button
           class="px-4 py-2 rounded"
-          :class="isPageCached(runtimeToggleTarget) ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-green-500 text-white hover:bg-green-600'"
+          :class="
+            isPageCached(runtimeToggleTarget)
+              ? 'bg-red-500 text-white hover:bg-red-600'
+              : 'bg-green-500 text-white hover:bg-green-600'
+          "
           @click="toggleAboutCache"
         >
           {{ isPageCached(runtimeToggleTarget) ? '禁用 About 缓存 (include)' : '启用 About 缓存 (include)' }}
         </button>
         <button
           class="px-4 py-2 rounded"
-          :class="isPageExcluded(runtimeToggleTarget) ? 'bg-amber-600 text-white hover:bg-amber-700' : 'bg-amber-400 text-white hover:bg-amber-500'"
+          :class="
+            isPageExcluded(runtimeToggleTarget)
+              ? 'bg-amber-600 text-white hover:bg-amber-700'
+              : 'bg-amber-400 text-white hover:bg-amber-500'
+          "
           @click="toggleAboutExclude"
         >
           {{ isPageExcluded(runtimeToggleTarget) ? '取消 About 排除' : '排除 About (exclude)' }}
         </button>
-        <button
-          class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-          @click="invalidateAll"
-        >
+        <button class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600" @click="invalidateAll">
           清空所有缓存
         </button>
       </div>
@@ -185,9 +210,17 @@ function setGlobalTransition(name: string) {
     <section class="mb-8 p-4 border rounded-lg">
       <h2 class="text-xl font-semibold mb-3">全局过渡动画</h2>
       <p class="text-sm text-gray-600 mb-3">
-        通过 <code>usePageTransition()</code> /
-        <code>setPageTransition(name)</code> 可以在运行时配置全局页面切换动画。
-        优先级：<code>&lt;PageView :transition&gt;</code> &gt; <code>route.meta.transition</code> &gt; 全局 <code>usePageTransition</code>。
+        通过
+        <code>usePageTransition()</code>
+        /
+        <code>setPageTransition(name)</code>
+        可以在运行时配置全局页面切换动画。 优先级：
+        <code>&lt;PageView :transition&gt;</code>
+        &gt;
+        <code>route.meta.transition</code>
+        &gt; 全局
+        <code>usePageTransition</code>
+        。
       </p>
       <div class="flex items-center gap-2 mb-3 flex-wrap">
         <button

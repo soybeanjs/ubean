@@ -1,6 +1,6 @@
-import { pathToFileURL } from 'node:url';
-import { rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { rm } from 'node:fs/promises';
+import { pathToFileURL } from 'node:url';
 import { buildProduction } from '@ubean/build/production';
 import type { BuildManifest } from '@ubean/build/production';
 import { generateTypes } from '@ubean/codegen';
@@ -106,131 +106,131 @@ export const buildCommand: CommandDef = {
     logger.start('Building ubean application...');
 
     try {
-    registerBuiltinPresets();
-    const config = await loadUbeanConfig(cwd);
+      registerBuiltinPresets();
+      const config = await loadUbeanConfig(cwd);
 
-    // CLI --mode / --ssg 覆盖配置文件中的 mode
-    if (args.ssg) {
-      config.mode = 'ssg';
-    } else if (args.mode) {
-      config.mode = args.mode as AppMode;
-    }
-
-    // CLI --ssr / --no-ssr 覆盖配置(仅在 fullstack 模式下生效)
-    if (config.mode === 'fullstack' && args.ssr !== undefined) {
-      config.ssr = args.ssr as boolean;
-    }
-
-    // 根据 mode 调整 prerender 行为
-    if (config.mode === 'ssg') {
-      // SSG 模式默认开启全部预渲染(若用户未显式配置 all/include)
-      if (!config.prerender.all && config.prerender.include.length === 0) {
-        config.prerender = resolvePrerenderConfig({ all: true });
+      // CLI --mode / --ssg 覆盖配置文件中的 mode
+      if (args.ssg) {
+        config.mode = 'ssg';
+      } else if (args.mode) {
+        config.mode = args.mode as AppMode;
       }
-    } else if (config.mode === 'spa' || config.mode === 'backend') {
-      config.prerender = resolvePrerenderConfig();  // 关闭
-    } else if (config.mode === 'fullstack' && !config.ssr) {
-      // fullstack + ssr:false 无法 prerender(无 SSR bundle)
-      config.prerender = resolvePrerenderConfig();  // 关闭
-    }
 
-    // CLI --prerender / --no-prerender 覆盖
-    if (args.prerender === true) {
-      if (!config.prerender.enabled) {
-        config.prerender = resolvePrerenderConfig({ all: true });
+      // CLI --ssr / --no-ssr 覆盖配置(仅在 fullstack 模式下生效)
+      if (config.mode === 'fullstack' && args.ssr !== undefined) {
+        config.ssr = args.ssr as boolean;
       }
-    } else if (args.prerender === false) {
-      config.prerender = resolvePrerenderConfig();  // 关闭
-    }
 
-    const presetName = args.preset || config.build.preset;
+      // 根据 mode 调整 prerender 行为
+      if (config.mode === 'ssg') {
+        // SSG 模式默认开启全部预渲染(若用户未显式配置 all/include)
+        if (!config.prerender.all && config.prerender.include.length === 0) {
+          config.prerender = resolvePrerenderConfig({ all: true });
+        }
+      } else if (config.mode === 'spa' || config.mode === 'backend') {
+        config.prerender = resolvePrerenderConfig(); // 关闭
+      } else if (config.mode === 'fullstack' && !config.ssr) {
+        // fullstack + ssr:false 无法 prerender(无 SSR bundle)
+        config.prerender = resolvePrerenderConfig(); // 关闭
+      }
 
-    const preset = resolvePresetByName(presetName);
-    logger.info(`Using preset: ${preset.name}`);
-    logger.info(`App mode: ${config.mode}${config.mode === 'fullstack' ? ` (ssr=${config.ssr})` : ''}`);
+      // CLI --prerender / --no-prerender 覆盖
+      if (args.prerender === true) {
+        if (!config.prerender.enabled) {
+          config.prerender = resolvePrerenderConfig({ all: true });
+        }
+      } else if (args.prerender === false) {
+        config.prerender = resolvePrerenderConfig(); // 关闭
+      }
 
-    logger.info('Scanning project...');
-    const result = await scanProject({
-      cwd,
-      srcDir: config.srcDir,
-      dirs: config.dir,
-      ignore: config.scanOptions?.ignore
-    });
+      const presetName = args.preset || config.build.preset;
 
-    logger.info(
-      `Found ${result.apiRoutes.length} API routes, ${result.pages.length} pages, ${result.layouts.length} layouts`
-    );
+      const preset = resolvePresetByName(presetName);
+      logger.info(`Using preset: ${preset.name}`);
+      logger.info(`App mode: ${config.mode}${config.mode === 'fullstack' ? ` (ssr=${config.ssr})` : ''}`);
 
-    logger.info('Generating types...');
-    await generateTypes(result, {
-      cwd,
-      srcDir: config.srcDir,
-      buildDir: '.ubean',
-      dirs: config.dir,
-      imports: config.imports,
-      components: config.components,
-      composablesDirs: config.imports.dirs,
-      componentsDirs: config.components.dirs
-    });
-
-    const resolvedPreset = preset as { name: string; hooks?: Record<string, (ctx: any) => void | Promise<void>> };
-
-    if (resolvedPreset.hooks?.['build:before']) {
-      await resolvedPreset.hooks['build:before']({
+      logger.info('Scanning project...');
+      const result = await scanProject({
         cwd,
-        outputDir: config.build.outputDir,
+        srcDir: config.srcDir,
+        dirs: config.dir,
+        ignore: config.scanOptions?.ignore
+      });
+
+      logger.info(
+        `Found ${result.apiRoutes.length} API routes, ${result.pages.length} pages, ${result.layouts.length} layouts`
+      );
+
+      logger.info('Generating types...');
+      await generateTypes(result, {
+        cwd,
+        srcDir: config.srcDir,
+        buildDir: '.ubean',
+        dirs: config.dir,
+        imports: config.imports,
+        components: config.components,
+        composablesDirs: config.imports.dirs,
+        componentsDirs: config.components.dirs
+      });
+
+      const resolvedPreset = preset as { name: string; hooks?: Record<string, (ctx: any) => void | Promise<void>> };
+
+      if (resolvedPreset.hooks?.['build:before']) {
+        await resolvedPreset.hooks['build:before']({
+          cwd,
+          outputDir: config.build.outputDir,
+          preset: resolvedPreset,
+          config: config as unknown as Record<string, unknown>
+        });
+      }
+
+      logger.info('Building with Vite...');
+      const manifest = await buildProduction({
+        cwd,
+        config,
         preset: resolvedPreset,
-        config: config as unknown as Record<string, unknown>
+        scanResult: result,
+        minify: args.minify as boolean,
+        sourcemap: args.sourcemap as boolean
       });
-    }
 
-    logger.info('Building with Vite...');
-    const manifest = await buildProduction({
-      cwd,
-      config,
-      preset: resolvedPreset,
-      scanResult: result,
-      minify: args.minify as boolean,
-      sourcemap: args.sourcemap as boolean
-    });
-
-    if (config.prerender.enabled) {
-      logger.info('Prerendering static pages...');
-      const fetcher = await createSsrFetcher(cwd, manifest);
-      await prerender({
-        cwd,
-        outputDir: config.build.outputDir,
-        pages: result.pages,
-        prerender: config.prerender,
-        fetcher
-      });
-    }
-
-    // SSG 模式:清理临时 server bundle(prerender 已加载到内存,删除文件不影响静态 HTML)
-    if (config.mode === 'ssg') {
-      const serverDir = join(cwd, config.build.outputDir, 'server');
-      if (existsSync(serverDir)) {
-        logger.info('Cleaning temporary SSR bundle (SSG mode)...');
-        await rm(serverDir, { recursive: true, force: true });
+      if (config.prerender.enabled) {
+        logger.info('Prerendering static pages...');
+        const fetcher = await createSsrFetcher(cwd, manifest);
+        await prerender({
+          cwd,
+          outputDir: config.build.outputDir,
+          pages: result.pages,
+          prerender: config.prerender,
+          fetcher
+        });
       }
-    }
 
-    if (resolvedPreset.hooks?.['build:after']) {
-      await resolvedPreset.hooks['build:after']({
-        cwd,
-        outputDir: config.build.outputDir,
-        preset: resolvedPreset,
-        config: config as unknown as Record<string, unknown>,
-        manifest
-      });
-    }
+      // SSG 模式:清理临时 server bundle(prerender 已加载到内存,删除文件不影响静态 HTML)
+      if (config.mode === 'ssg') {
+        const serverDir = join(cwd, config.build.outputDir, 'server');
+        if (existsSync(serverDir)) {
+          logger.info('Cleaning temporary SSR bundle (SSG mode)...');
+          await rm(serverDir, { recursive: true, force: true });
+        }
+      }
 
-    logger.success(`Build complete for preset "${resolvedPreset.name}"!`);
-    logger.info(`  Output directory: ${resolve(cwd, config.build.outputDir)}`);
-    if (manifest.entry) {
-      logger.info(`  Server entry: ${manifest.entry}`);
-    }
-    logger.info(`  Client assets: ${manifest.assets.length} files`);
+      if (resolvedPreset.hooks?.['build:after']) {
+        await resolvedPreset.hooks['build:after']({
+          cwd,
+          outputDir: config.build.outputDir,
+          preset: resolvedPreset,
+          config: config as unknown as Record<string, unknown>,
+          manifest
+        });
+      }
+
+      logger.success(`Build complete for preset "${resolvedPreset.name}"!`);
+      logger.info(`  Output directory: ${resolve(cwd, config.build.outputDir)}`);
+      if (manifest.entry) {
+        logger.info(`  Server entry: ${manifest.entry}`);
+      }
+      logger.info(`  Client assets: ${manifest.assets.length} files`);
     } catch (err) {
       logger.error(err instanceof Error ? err.message : String(err));
       process.exit(1);

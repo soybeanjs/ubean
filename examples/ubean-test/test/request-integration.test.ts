@@ -11,6 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { createRequest } from '@soybeanjs/fetch';
 import {
   // Internal fetch
   createInternalFetch,
@@ -29,7 +30,6 @@ import {
   withDependencies,
   getInvalidatedKeysForAction
 } from 'ubean';
-import { createRequest } from '@soybeanjs/fetch';
 import type { UbeanContext } from 'ubean';
 import { getJson, getBaseUrl } from './helper';
 

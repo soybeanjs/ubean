@@ -7,7 +7,6 @@ export default defineConfig({
   pack: {
     dts: false,
     clean: true,
-    sourcemap: true,
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',

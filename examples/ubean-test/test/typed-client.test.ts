@@ -9,16 +9,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import {
-  createRequest,
-  parseContentDisposition
-} from '@soybeanjs/fetch';
-import {
-  createTypedClient,
-  toFlatTypedClient,
-  replacePathParams
-} from '@soybeanjs/fetch/openapi';
+import { createRequest, parseContentDisposition } from '@soybeanjs/fetch';
 import type { FileResponseData } from '@soybeanjs/fetch';
+import { createTypedClient, toFlatTypedClient, replacePathParams } from '@soybeanjs/fetch/openapi';
 import type { paths } from '../.ubean/openapi.d.ts';
 import { getBaseUrl } from './helper';
 

@@ -195,7 +195,11 @@ async function scanApiRoutes(srcDir: string, dirName: string | string[], ignore:
   return routes;
 }
 
-async function scanMiddlewares(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedMiddleware[]> {
+async function scanMiddlewares(
+  srcDir: string,
+  dirName: string | string[],
+  ignore: string[]
+): Promise<ScannedMiddleware[]> {
   const dirNames = normalizeDirs(dirName, 'middleware');
   const results: ScannedMiddleware[] = [];
 

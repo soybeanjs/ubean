@@ -1,11 +1,13 @@
 import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import { registerRoutes } from '@ubean/api-routes';
+import {
+  registerRoutes,
+  setInternalFetcher,
+  registerOpenAPIRoutes,
+  createRouteRulesMiddleware
+} from '@ubean/api-routes';
 import type { RouteRegistrar, RegisterOptions } from '@ubean/api-routes';
-import { setInternalFetcher } from '@ubean/api-routes';
-import { registerOpenAPIRoutes } from '@ubean/api-routes';
-import { createRouteRulesMiddleware } from '@ubean/api-routes';
 import { errorToResponse, isUbeanError, UbeanError } from '@ubean/error';
 import type {
   ScannedApiRoute,

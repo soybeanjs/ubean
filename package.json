@@ -12,6 +12,7 @@
     "lint:fix": "vp lint --fix && pnpm lint:vue --fix",
     "lint:vue": "eslint . --ext .vue",
     "prepare": "vp config --no-hooks --no-agent",
+    "release": "soy release",
     "test": "pnpm --filter ubean test",
     "test:watch": "pnpm --filter ubean test:watch",
     "typecheck": "pnpm build:libs && pnpm -r typecheck",

@@ -1,10 +1,6 @@
 # Changelog
 
-## [v](https://github.com/soybeanjs/ubean/compare/v0.1.0-beta.1...v) (2026-07-26)
-
-### &nbsp;&nbsp;&nbsp;❤️ Contributors
-
-## [v](https://github.com/soybeanjs/ubean/compare/v...main) (2026-07-26)
+## [v0.1.0](https://github.com/soybeanjs/ubean/compare/v0.1.0...main) (2026-07-26)
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
 

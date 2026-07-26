@@ -30,7 +30,8 @@ import {
   writePrerenderedFile,
   resolvePrerenderConfig,
   definePrerenderRoutes,
-  generatePrerenderManifest
+  generatePrerenderManifest,
+  DEFAULT_PRERENDER_EXCLUDE
 } from 'ubean';
 import { getJson } from './helper';
 
@@ -56,10 +57,9 @@ describe('Prerender / SSG system', () => {
   // ==========================================================================
   describe('collectPrerenderRoutes()', () => {
     it('all: true collects all static routes from pages', () => {
-      const { routes } = collectPrerenderRoutes(
-        [makePage('/'), makePage('/about'), makePage('/contact')],
-        { all: true }
-      );
+      const { routes } = collectPrerenderRoutes([makePage('/'), makePage('/about'), makePage('/contact')], {
+        all: true
+      });
       expect(routes).toContain('/');
       expect(routes).toContain('/about');
       expect(routes).toContain('/contact');
@@ -81,10 +81,9 @@ describe('Prerender / SSG system', () => {
     });
 
     it('include: [...] only collects matching routes', () => {
-      const { routes } = collectPrerenderRoutes(
-        [makePage('/'), makePage('/about'), makePage('/contact')],
-        { include: ['/about'] }
-      );
+      const { routes } = collectPrerenderRoutes([makePage('/'), makePage('/about'), makePage('/contact')], {
+        include: ['/about']
+      });
       expect(routes).toEqual(['/about']);
     });
 
@@ -100,10 +99,9 @@ describe('Prerender / SSG system', () => {
     });
 
     it('include adds literal paths directly (for dynamic route concrete values)', () => {
-      const { routes } = collectPrerenderRoutes(
-        [makePage('/'), makePage('/blog/[id]')],
-        { include: ['/blog/hello-world', '/blog/second-post'] }
-      );
+      const { routes } = collectPrerenderRoutes([makePage('/'), makePage('/blog/[id]')], {
+        include: ['/blog/hello-world', '/blog/second-post']
+      });
       expect(routes).toContain('/blog/hello-world');
       expect(routes).toContain('/blog/second-post');
       expect(routes).not.toContain('/');
@@ -115,10 +113,10 @@ describe('Prerender / SSG system', () => {
     });
 
     it('all: true ignores include field', () => {
-      const { routes } = collectPrerenderRoutes(
-        [makePage('/'), makePage('/about'), makePage('/blog')],
-        { all: true, include: ['/about'] }
-      );
+      const { routes } = collectPrerenderRoutes([makePage('/'), makePage('/about'), makePage('/blog')], {
+        all: true,
+        include: ['/about']
+      });
       // all: true means all non-dynamic pages included, include is silently ignored
       expect(routes).toContain('/');
       expect(routes).toContain('/about');
@@ -126,10 +124,10 @@ describe('Prerender / SSG system', () => {
     });
 
     it('exclude filters out matched routes from all mode', () => {
-      const { routes, skipped } = collectPrerenderRoutes(
-        [makePage('/'), makePage('/admin'), makePage('/about')],
-        { all: true, exclude: ['/admin', '/admin/**'] }
-      );
+      const { routes, skipped } = collectPrerenderRoutes([makePage('/'), makePage('/admin'), makePage('/about')], {
+        all: true,
+        exclude: ['/admin', '/admin/**']
+      });
       expect(routes).toContain('/');
       expect(routes).toContain('/about');
       expect(routes).not.toContain('/admin');
@@ -137,10 +135,10 @@ describe('Prerender / SSG system', () => {
     });
 
     it('exclude filters out matched routes from include mode', () => {
-      const { routes, skipped } = collectPrerenderRoutes(
-        [makePage('/'), makePage('/admin'), makePage('/about')],
-        { include: ['/admin', '/about'], exclude: ['/admin'] }
-      );
+      const { routes, skipped } = collectPrerenderRoutes([makePage('/'), makePage('/admin'), makePage('/about')], {
+        include: ['/admin', '/about'],
+        exclude: ['/admin']
+      });
       expect(routes).toContain('/about');
       expect(routes).not.toContain('/admin');
       expect(skipped).toContain('/admin');
@@ -344,7 +342,8 @@ describe('Prerender / SSG system', () => {
       expect(config.enabled).toBe(false);
       expect(config.all).toBe(false);
       expect(config.include).toEqual([]);
-      expect(config.exclude).toEqual([]);
+      // 默认排除规则(/api/**、/_**、/robots.txt 等)会自动合并
+      expect(config.exclude).toEqual(DEFAULT_PRERENDER_EXCLUDE);
       expect(config.concurrency).toBe(4);
       expect(config.failOnError).toBe(false);
       expect(config.crawlLinks).toBe(true);
@@ -386,7 +385,8 @@ describe('Prerender / SSG system', () => {
       });
       expect(config.enabled).toBe(true);
       expect(config.all).toBe(true);
-      expect(config.exclude).toEqual(['/admin/**']);
+      // 用户 exclude 会叠加在默认值之后
+      expect(config.exclude).toEqual([...DEFAULT_PRERENDER_EXCLUDE, '/admin/**']);
       expect(config.concurrency).toBe(8);
       expect(config.failOnError).toBe(true);
       expect(config.crawlLinks).toBe(false);
@@ -398,7 +398,20 @@ describe('Prerender / SSG system', () => {
       expect(config.concurrency).toBe(4); // default
       expect(config.failOnError).toBe(false); // default
       expect(config.crawlLinks).toBe(true); // default
-      expect(config.exclude).toEqual([]); // default
+      expect(config.exclude).toEqual(DEFAULT_PRERENDER_EXCLUDE); // default
+    });
+
+    it('merges user exclude on top of default exclude', () => {
+      const config = resolvePrerenderConfig({
+        include: ['/about'],
+        exclude: ['/private/**']
+      });
+      // 默认排除 + 用户排除
+      expect(config.exclude).toContain('/api/**');
+      expect(config.exclude).toContain('/robots.txt');
+      expect(config.exclude).toContain('/private/**');
+      // 不允许用户覆盖默认排除(只能追加)
+      expect(config.exclude).toEqual([...DEFAULT_PRERENDER_EXCLUDE, '/private/**']);
     });
   });
 
@@ -424,6 +437,25 @@ describe('Prerender / SSG system', () => {
     it('preserves .html suffix routes', () => {
       const path = routeToFilePath('/custom.html', '/tmp/output');
       expect(path).toBe(join('/tmp/output', 'custom.html'));
+    });
+
+    it('preserves .txt/.xml/.json/.webmanifest/.svg/.ico routes as flat files', () => {
+      // 这些带扩展名的路由不应被转成目录(/robots.txt/index.html),
+      // 而应保留原文件名(/robots.txt)。
+      expect(routeToFilePath('/robots.txt', '/tmp/output')).toBe(join('/tmp/output', 'robots.txt'));
+      expect(routeToFilePath('/sitemap.xml', '/tmp/output')).toBe(join('/tmp/output', 'sitemap.xml'));
+      expect(routeToFilePath('/manifest.webmanifest', '/tmp/output')).toBe(join('/tmp/output', 'manifest.webmanifest'));
+      expect(routeToFilePath('/favicon.svg', '/tmp/output')).toBe(join('/tmp/output', 'favicon.svg'));
+      expect(routeToFilePath('/favicon.ico', '/tmp/output')).toBe(join('/tmp/output', 'favicon.ico'));
+      expect(routeToFilePath('/data.json', '/tmp/output')).toBe(join('/tmp/output', 'data.json'));
+    });
+
+    it('does not treat versioned path segments as extensions', () => {
+      // /api/v1/users 中的 "v1" 不应被识别为扩展名
+      // routeToFilePath 只检查最后一段(/users),无 dot,故按目录处理
+      expect(routeToFilePath('/api/v1/users', '/tmp/output')).toBe(
+        join('/tmp/output', 'api', 'v1', 'users', 'index.html')
+      );
     });
   });
 

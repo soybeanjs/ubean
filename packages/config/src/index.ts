@@ -10,7 +10,14 @@
  * - 完整的类型定义:`UbeanConfig`、`ResolvedConfig`、`RoutingConfig`、`RouteRule` 等
  */
 
-export { defineConfig, loadUbeanConfig, getConfig, tryGetConfig, resolvePrerenderConfig } from './loader';
+export {
+  defineConfig,
+  loadUbeanConfig,
+  getConfig,
+  tryGetConfig,
+  resolvePrerenderConfig,
+  DEFAULT_PRERENDER_EXCLUDE
+} from './loader';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
 
 export type {

@@ -400,6 +400,7 @@ import { usePwa } from '@ubean/pwa/runtime';
 14. **不要**在 Vue SSR `renderer.ts` 的 layout 循环中直接用闭包捕获的 `vnode` — 会无限递归，用 `const child = vnode` 在块作用域中
 15. **不要**复制参考项目（void/nitro）代码 — 学习架构模式后重新实现，直接复制会导致 API 不一致
 16. **不要**推荐 vue-i18n — ubean 内置零依赖 i18n
+17. **不要**使用全局目录 `/tmp` — 用项目根目录下的 `.temp` 目录代替临时文件存储
 
 ## 9. 开发命令
 

@@ -5,6 +5,27 @@ import { resolveRoutingConfig } from './routing';
 import type { UbeanConfig, ResolvedConfig, PrerenderConfig, ResolvedPrerenderConfig } from './types';
 
 /**
+ * 默认排除的路由模式。
+ *
+ * 这些路由不应被预渲染:
+ * - `/api/**`:API 路由,返回 JSON/text,不是页面
+ * - `/_**`:内置内部路由(`/_health`、`/_devtools`、`/_scalar`、`/_openapi.json`、`/_iconify`)
+ * - `/robots.txt`、`/sitemap.xml`、`/favicon.ico`、`/favicon.svg`、`/manifest.webmanifest`:
+ *   文件型路由,有专门的处理器(不应作为目录渲染成 `index.html`)
+ *
+ * 用户的 `exclude` 配置会叠加在默认值之后,不可被覆盖。
+ */
+export const DEFAULT_PRERENDER_EXCLUDE: string[] = [
+  '/api/**',
+  '/_**',
+  '/robots.txt',
+  '/sitemap.xml',
+  '/favicon.ico',
+  '/favicon.svg',
+  '/manifest.webmanifest'
+];
+
+/**
  * 解析用户侧 `PrerenderConfig` 为内部 `ResolvedPrerenderConfig`。
  *
  * - 未设置 / 空对象 → `enabled: false`(no-op)
@@ -12,18 +33,24 @@ import type { UbeanConfig, ResolvedConfig, PrerenderConfig, ResolvedPrerenderCon
  * - `include: [...]` → 启用,仅匹配列表
  * - `all: true` 与 `include` 同时设置 → `include` 静默忽略
  *
+ * `exclude` 字段会自动合并默认排除列表(`DEFAULT_PRERENDER_EXCLUDE`),
+ * 用户的 `exclude` 配置叠加在默认值之后。如需禁用默认排除,可显式传入空数组并配合
+ * `include` 精确控制;若希望覆盖某个默认排除规则,需将其在 `include` 中显式列出
+ * (`include` 在 `collectPrerenderRoutes` 中直接加入队列,不经过 `exclude`)。
+ *
  * 导出此函数供 prerender 包和 CLI 复用,避免逻辑重复。
  */
 export function resolvePrerenderConfig(config?: PrerenderConfig): ResolvedPrerenderConfig {
   const all = config?.all === true;
   const include = config?.include ?? [];
   const enabled = all || include.length > 0;
+  const userExclude = config?.exclude ?? [];
 
   return {
     enabled,
     all,
     include,
-    exclude: config?.exclude ?? [],
+    exclude: [...DEFAULT_PRERENDER_EXCLUDE, ...userExclude],
     crawlLinks: config?.crawlLinks ?? true,
     concurrency: config?.concurrency ?? 4,
     failOnError: config?.failOnError ?? false,

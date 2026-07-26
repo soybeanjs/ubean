@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
 import { resolvePrerenderConfig } from '@ubean/config';
+import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
 import type { ScannedPageRoute } from '@ubean/routing';
 import { join, dirname } from 'pathe';
 
@@ -204,11 +204,30 @@ function normalizeHref(href: string, baseUrl: string): string | null {
   return path || '/';
 }
 
+/**
+ * 将路由路径映射到磁盘文件路径。
+ *
+ * 规则:
+ * - `/` 或空 → `outputDir/index.html`
+ * - 含文件扩展名(`.html`/`.txt`/`.xml`/`.json`/`.webmanifest`/`.svg`/`.ico` 等)
+ *   的路由 → 保留原文件名,例如 `/robots.txt` → `outputDir/robots.txt`(文件,不是目录)
+ * - 其他路由 → `outputDir/<route>/index.html`
+ *
+ * 处理带扩展名路由是为了避免 `/robots.txt/index.html`、`/sitemap.xml/index.html`
+ * 这种被错误转成目录的产物。
+ */
 export function routeToFilePath(route: string, outputDir: string): string {
   if (route === '/' || route === '') {
     return join(outputDir, 'index.html');
   }
   if (route.endsWith('.html')) {
+    return join(outputDir, route);
+  }
+  // 检测最后一段是否含扩展名(避免把 /api/v1/foo 当成扩展名场景)
+  const lastSegment = route.slice(route.lastIndexOf('/') + 1);
+  const dotIdx = lastSegment.lastIndexOf('.');
+  if (dotIdx > 0 && dotIdx < lastSegment.length - 1) {
+    // 保留原文件名:/robots.txt → outputDir/robots.txt
     return join(outputDir, route);
   }
   return join(outputDir, route, 'index.html');

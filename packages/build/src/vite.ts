@@ -233,9 +233,14 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
 /**
  * 根据 `routing.mode` 决定是否触发实体文件生成。
  *
- * - `'virtual'`(默认):不生成,仅靠虚拟模块
- * - `'file'`:生成实体文件,虚拟模块仍注册(便于在虚拟/实体混合场景调试)
- * - `'both'`:生成实体文件,虚拟模块也注册
+ * - `'virtual'`(默认):仅生成 `.ubean/typed-router.d.ts`(类型声明,所有模式都生成)
+ * - `'file'`:额外生成 `routes.ts`/`imports.ts` 到 `outputDir`(实体文件,可编辑 `meta`)
+ * - `'both'`:同 `'file'`,且虚拟模块也加载实体文件
+ *
+ * `typed-router.d.ts` 包含 `@ubean/routing` 和 `vue-router`/`vue-router/auto-routes`
+ * 的模块增强(让 `useRoute<Name>(name)` 能推断 `route.params` 类型),所有模式
+ * 都会生成到 `.ubean/typed-router.d.ts`,与 `auto-imports.d.ts`/`components.d.ts`
+ * 等其他纯类型声明产物同目录,由 `.gitignore` 忽略。
  *
  * 由于 `@ubean/routing/generator` 通过动态 import 加载,前端-only 项目
  * (不依赖实体路由文件)即使没有安装 generator 相关依赖也能运行。
@@ -247,13 +252,13 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
  */
 async function maybeGenerateRouteFiles(config: UbeanResolvedConfig, scanResult: ScanResult): Promise<void> {
   const mode = config.routing?.mode;
-  if (mode !== 'file' && mode !== 'both') return;
+  // 实体文件(routes.ts/imports.ts)仅在 file/both 模式下生成
+  const generateEntityFiles = mode === 'file' || mode === 'both';
 
   const routing = config.routing;
   const outDir = resolve(config.rootDir, routing.outputDir);
-  // `typed-router.d.ts` 固定生成到 `.ubean/typed-router.d.ts`,与
-  // `auto-imports.d.ts`/`components.d.ts` 等其他纯类型声明产物同目录,
-  // 由 `.gitignore` 忽略,且不参与 `outputDir` 中的可编辑实体文件。
+  // `typed-router.d.ts` 固定生成到 `.ubean/typed-router.d.ts`,所有模式都生成,
+  // 让 virtual 模式也能享受 useRoute<Name>(name) 的类型推断。
   const dtsPath = resolve(config.rootDir, '.ubean', 'typed-router.d.ts');
 
   // 适配 config.getRouteMeta(file, frontmatter) → generator.getRouteMeta(page)
@@ -271,6 +276,10 @@ async function maybeGenerateRouteFiles(config: UbeanResolvedConfig, scanResult: 
     cwd: config.rootDir,
     outDir,
     dtsPath,
+    // virtual 模式只生成 dts,跳过 routes.ts/imports.ts
+    generateRoutes: generateEntityFiles,
+    generateImports: generateEntityFiles,
+    generateDts: true,
     routeLazy: routing.routeLazy,
     layoutLazy: routing.layoutLazy,
     getRouteMeta: generatorGetRouteMeta,
@@ -278,6 +287,7 @@ async function maybeGenerateRouteFiles(config: UbeanResolvedConfig, scanResult: 
   });
 
   // 适配 GeneratorResult → string[]:配置层 `onGenerated` 期望"已生成的文件路径数组"
+  // 注意:virtual 模式下也触发 onGenerated(仅含 dtsPath),让用户感知类型文件已更新
   if (routing.onGenerated) {
     const files: string[] = [result.routesPath, result.importsPath, result.dtsPath].filter((p): p is string =>
       Boolean(p)

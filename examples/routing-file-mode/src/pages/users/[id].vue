@@ -5,8 +5,11 @@ useHead({
   title: '用户详情 - routing-file-mode'
 });
 
-const route = useRoute();
-const userId = (route.params.id as string | undefined) ?? 'unknown';
+// 传入路由名 'UsersId' 作为泛型参数,vue-router 会根据 `.ubean/typed-router.d.ts`
+// 中的 `RouteNamedMap` 自动推断 `route.params.id` 的类型为 `ParamValue<true>`(string),
+// 无需手动 `as string` 断言。
+const route = useRoute('UsersId');
+const userId = route.params.id ?? 'unknown';
 </script>
 
 <template>

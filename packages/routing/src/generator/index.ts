@@ -6,11 +6,14 @@ import type { ScanResult, ScannedPageRoute, ScannedLayout } from '../types';
  * The generator produces 3 files under `outDir`:
  *  - `routes.ts`         — flat route records (`RouteRecord[]`) with name/path/component/layout/meta
  *  - `imports.ts`        — lazy `views` and `layouts` records (for `import.meta.glob`-free consumption)
- *  - `typed-router.d.ts` — type definitions (`RouteKey`, `RoutePath`, `RouteLayoutKey`, `ReuseRouteKey`)
+ *  - `typed-router.d.ts` — type definitions:
+ *     - `@ubean/routing` 模块增强:`RouteKey`、`RoutePath`、`RouteLayoutKey`、`ReuseRouteKey`、`RoutePathMap`
+ *     - `vue-router/auto-routes` 模块增强:`RouteNamedMap`(name → `RouteRecordInfo<Name, Path, ParamsRaw, Params>`)
+ *     - `vue-router` 模块增强:`TypesConfig.RouteNamedMap` 引用上面的 `RouteNamedMap`
  *
- * The `vue-router` module augmentation (`RouteNamedMap`) is intentionally NOT
- * generated here — it is owned by `@ubean/runtime` to keep this package
- * decoupled from the Vue runtime (see T3-1).
+ * `RouteNamedMap` 让 `vue-router` 的 `useRoute<Name>(name)` 能根据路由名推断
+ * `route.params` 的类型(动态路由 `:id` / `:id?` 自动类型化),无需用户手动断言。
+ * 这与 elegant-router 的 `typed-router.d.ts` 行为对齐。
  */
 export interface GeneratorOptions {
   /** Project root directory (absolute). */
@@ -260,6 +263,13 @@ ${views}
     const layoutKeyList =
       scanResult.layouts.length > 0 ? scanResult.layouts.map(l => `"${l.name}"`).join(' | ') : 'never';
 
+    // RouteNamedMap:每条路由 → RouteRecordInfo<Name, Path, ParamsRaw, Params>
+    // 让 vue-router 的 useRoute<Name>(name) 能推断 route.params 的类型。
+    const routeNamedMapEntries =
+      scanResult.pages.length > 0
+        ? scanResult.pages.map(p => `    "${p.name}": ${this.renderRouteRecordInfo(p)};`).join('\n')
+        : '    // (no pages scanned)';
+
     return `${header}
 
 declare module '@ubean/routing' {
@@ -291,8 +301,50 @@ ${pathMapEntries}
   export type ReuseRouteKey = ${reuseKeys};
 }
 
+declare module 'vue-router/auto-routes' {
+  import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne } from 'vue-router';
+
+  /**
+   * Route named map — enables typed \`useRoute<Name>(name)\` via vue-router's
+   * \`TypesConfig\` augmentation below.
+   *
+   * Each entry describes a route's name, path, and the types of its path
+   * params (raw input vs. resolved value). For routes without params,
+   * \`Record<never, never>\` is used.
+   *
+   * @see https://router.vuejs.org/api/interfaces/RouteRecordInfo.html
+   */
+  export interface RouteNamedMap {
+${routeNamedMapEntries}
+  }
+}
+
+declare module 'vue-router' {
+  export interface TypesConfig {
+    RouteNamedMap: import('vue-router/auto-routes').RouteNamedMap;
+  }
+}
+
 export type { RouteLayoutKey, RoutePathMap, RouteKey, RoutePath, ReuseRouteKey } from '@ubean/routing';
 `;
+  }
+
+  /**
+   * 渲染单条路由的 `RouteRecordInfo<Name, Path, ParamsRaw, Params>`。
+   *
+   * 参数类型映射:
+   * - 必需参数(`/users/:id`)    → `{ id: ParamValue<true> }` / `{ id: ParamValue<false> }`
+   * - 可选参数(`/users/:id?`)   → `{ id?: ParamValueZeroOrOne<true> }` / `{ id?: ParamValueZeroOrOne<false> }`
+   * - 无参数(`/about`)          → `Record<never, never>`
+   *
+   * `ParamValue<true>` 表示原始输入类型(必需为 string),`ParamValue<false>` 表示
+   * 解析后类型(已编码/解码,可能为 `string | undefined`)。这是 vue-router 的约定。
+   */
+  private renderRouteRecordInfo(page: ScannedPageRoute): string {
+    const params = extractRouteParams(page.route);
+    const paramsRaw = renderParamsType(params, /* isRaw */ true);
+    const paramsResolved = renderParamsType(params, /* isRaw */ false);
+    return `RouteRecordInfo<${JSON.stringify(page.name)}, ${JSON.stringify(page.route)}, ${paramsRaw}, ${paramsResolved}>`;
   }
 }
 
@@ -311,6 +363,61 @@ function defaultLayoutImportPath(layout: ScannedLayout, cwd: string): string {
   const rel = relativePosix(cwd, layout.fullPath);
   const withoutExt = rel.replace(/\.(vue|tsx?|jsx?)$/, '');
   return `@/${withoutExt}`;
+}
+
+/**
+ * 从 vue-router 风格路径中提取参数信息。
+ *
+ * 支持的语法:
+ * - `:name`     — 必需参数(如 `/users/:id`)
+ * - `:name?`    — 可选参数(如 `/users/:id?`)
+ * - `:name*`    — 重复参数(零或多个,如 `/files/:path*`)— 当前当作可选处理
+ * - `:name+`    — 重复参数(一个或多个,如 `/files/:path+`)— 当前当作必需处理
+ * - `:name(...)` — 带自定义正则的参数(如 `:id(\\d+)`)— 提取 `name`,忽略正则
+ *
+ * 不识别 `:pathMatch(.*)*`(catch-all),由 vue-router 内部处理,在
+ * `RouteRecordInfo` 中视为无参数(`Record<never, never>`)。
+ *
+ * @returns 参数数组,顺序与 path 中出现顺序一致
+ */
+function extractRouteParams(path: string): Array<{ name: string; optional: boolean }> {
+  const params: Array<{ name: string; optional: boolean }> = [];
+  // 匹配 `:name` 后跟可选的 `(...)` 正则,以及 `?`/`*`/`+` 修饰符
+  const paramRegex = /:([A-Za-z_][A-Za-z0-9_]*)(?:\([^)]*\))?([?*+]?)/g;
+  let match: RegExpExecArray | null;
+  while ((match = paramRegex.exec(path)) !== null) {
+    const name = match[1];
+    const modifier = match[2];
+    // `?` 和 `*` 表示可选(零个或零/多个),`+` 表示必需(一个或多个),无修饰符表示必需
+    const optional = modifier === '?' || modifier === '*';
+    // 去重:vue-router 不允许同名参数出现两次
+    if (!params.some(p => p.name === name)) {
+      params.push({ name, optional });
+    }
+  }
+  return params;
+}
+
+/**
+ * 渲染参数类型字面量,用于 `RouteRecordInfo` 的 `ParamsRaw` / `Params` 类型参数位置。
+ *
+ * @param params   `extractRouteParams` 返回的参数数组
+ * @param isRaw    `true` 渲染原始输入类型(`ParamValue<true>` / `ParamValueZeroOrOne<true>`),
+ *                 `false` 渲染解析后类型(`ParamValue<false>` / `ParamValueZeroOrOne<false>`)
+ * @returns 类型字面量字符串,如 `{ id: ParamValue<true> }` 或 `Record<never, never>`
+ */
+function renderParamsType(params: Array<{ name: string; optional: boolean }>, isRaw: boolean): string {
+  if (params.length === 0) {
+    return 'Record<never, never>';
+  }
+  const entries = params.map(p => {
+    const optionalMarker = p.optional ? '?' : '';
+    const type = p.optional
+      ? `ParamValueZeroOrOne<${isRaw ? 'true' : 'false'}>`
+      : `ParamValue<${isRaw ? 'true' : 'false'}>`;
+    return `    ${p.name}${optionalMarker}: ${type}`;
+  });
+  return `{\n${entries.join(',\n')}\n  }`;
 }
 
 function joinPosix(...parts: string[]): string {

@@ -172,7 +172,11 @@ function findSvgFile(dir: string, iconName: string, normalizeFn: (name: string) 
 }
 
 export function ubeanIconPlugin(userOptions: UbeanIconOptions = {}): Plugin {
-  const options = defu(userOptions, defaultOptions) as ResolvedUbeanIconOptions;
+  const options = defu(userOptions, {
+    collections: {},
+    customCollections: {},
+    ...defaultOptions
+  }) as ResolvedUbeanIconOptions;
   const scannedIcons = new Set<string>();
   const resolvedCollectionPaths = new Map<string, string | null>();
   const customCollectionsCache = new Map<string, IconifyCollection>();

@@ -7,16 +7,16 @@ export const routes: RouteRecord[] = [
   {
     name: 'About',
     path: '/about',
-    component: '@/src/pages/about'
+    component: 'About'
   },
   {
     name: 'Index',
     path: '/',
-    component: '@/src/pages/index'
+    component: 'Index'
   },
   {
     name: 'UsersId',
     path: '/users/:id',
-    component: '@/src/pages/users/[id]'
+    component: 'UsersId'
   }
 ];

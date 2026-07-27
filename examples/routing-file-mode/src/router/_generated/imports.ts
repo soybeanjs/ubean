@@ -2,6 +2,32 @@
 // This file is regenerated on every dev start / build.
 
 export type LayoutKey = 'default';
+
+/**
+ * Route keys that have a corresponding source file (`.vue` / `.md`).
+ * Excludes reuse routes and builtin routes.
+ *
+ * The `views` map is keyed by this type — `views[RouteFileKey]` resolves
+ * to the actual component loader.
+ */
+export type RouteFileKey = 'About' | 'Index' | 'UsersId';
+
+/**
+ * Route keys declared via `.reuse.ts` / `.reuse.vue`.
+ * They reference another route's component via `reuseTarget`.
+ */
+export type RouteReuseKey = never;
+
+/**
+ * Builtin route keys (framework-provided, e.g. `root` / `not_found`).
+ * Currently unused — reserved for future builtin pages.
+ */
+export type BuiltinRouteKey = never;
+
+/**
+ * All page route names. Union of {@link RouteFileKey}, {@link RouteReuseKey}
+ * and {@link BuiltinRouteKey}.
+ */
 export type RouteKey = 'About' | 'Index' | 'UsersId';
 
 export type Lazy<T> = () => Promise<T>;
@@ -10,7 +36,14 @@ export type RawRouteComponent = import('vue').Component | Lazy<import('vue').Com
 export interface RouteRecord {
   name: RouteKey;
   path: string;
-  component: string;
+  /**
+   * Key into the `views` map — resolve the actual component via
+   * `views[route.component]`.
+   *
+   * For reuse routes, this is the `reuseTarget`'s `RouteFileKey`
+   * (not the reuse route's own name), so the same component is reused.
+   */
+  component: RouteFileKey;
   layout?: LayoutKey | false;
   reuse?: boolean;
   meta?: Record<string, unknown>;
@@ -20,11 +53,11 @@ export interface RouteRecord {
 }
 
 export const layouts: Record<LayoutKey, RawRouteComponent> = {
-  default: () => import('@/src/layouts/default')
+  default: () => import('@/layouts/default.vue')
 };
 
-export const views: Record<RouteKey, RawRouteComponent> = {
-  About: () => import('@/src/pages/about'),
-  Index: () => import('@/src/pages/index'),
-  UsersId: () => import('@/src/pages/users/[id]')
+export const views: Record<RouteFileKey, RawRouteComponent> = {
+  About: () => import('@/pages/about.vue'),
+  Index: () => import('@/pages/index.vue'),
+  UsersId: () => import('@/pages/users/[id].vue')
 };

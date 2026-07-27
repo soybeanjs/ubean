@@ -1,14 +1,30 @@
 import { writeFile, mkdir } from 'node:fs/promises';
-import type { ScanResult } from '@ubean/routing';
-import { join } from 'pathe';
+import type { ScanResult, ScannedApiRoute } from '@ubean/routing';
+import { join, relative, isAbsolute } from 'pathe';
 
 export interface RouteTypesOptions {
+  /** Project root directory (absolute). Used to compute portable relative `filePath` values. */
+  cwd: string;
   outDir: string;
   fileName?: string;
 }
 
+/**
+ * Compute a portable file path for a scanned route.
+ *
+ * - If `fullPath` is under `cwd`, returns a POSIX-style project-relative path
+ *   (e.g. `src/routes/api/users/[id].ts`). This keeps generated `.d.ts` files
+ *   portable across machines and free of leaked absolute paths.
+ * - Otherwise, falls back to the raw `fullPath` (already non-sensitive for
+ *   non-local sources).
+ */
+function toPortableFilePath(route: ScannedApiRoute, cwd: string): string {
+  const rel = isAbsolute(route.fullPath) ? relative(cwd, route.fullPath) : route.fullPath;
+  return rel.replace(/\\/g, '/');
+}
+
 export async function generateRouteTypes(result: ScanResult, options: RouteTypesOptions): Promise<string> {
-  const { outDir, fileName = 'routes.d.ts' } = options;
+  const { cwd, outDir, fileName = 'routes.d.ts' } = options;
   await mkdir(outDir, { recursive: true });
 
   const apiRoutes = result.apiRoutes;
@@ -28,13 +44,42 @@ export async function generateRouteTypes(result: ScanResult, options: RouteTypes
     ''
   ];
 
-  const routeEntries = apiRoutes.map(
-    r => `    "${r.method?.toUpperCase() || 'ALL'} ${r.route}": { filePath: ${JSON.stringify(r.fullPath)} }`
-  );
+  // ApiRouteMap: path → method → { filePath }
+  //
+  // Design rationale:
+  //   - Keyed by URL path (not `"METHOD path"`) so consumers can look up the
+  //     supported methods for a given path in O(1) via `ApiRouteMap['/users']`.
+  //   - Method-nested so each (path, method) pair carries its own `filePath`,
+  //     preserving per-method source location (reuse routes can map different
+  //     methods of the same path to different files).
+  //   - `filePath` is project-relative (computed via `toPortableFilePath`)
+  //     to avoid leaking absolute filesystem paths into generated artifacts.
+  if (apiRoutes.length > 0) {
+    // Group routes by path, preserving first-seen order for deterministic output.
+    const groups = new Map<string, ScannedApiRoute[]>();
+    for (const r of apiRoutes) {
+      const list = groups.get(r.route);
+      if (list) {
+        list.push(r);
+      } else {
+        groups.set(r.route, [r]);
+      }
+    }
 
-  if (routeEntries.length > 0) {
+    const entries: string[] = [];
+    for (const [path, routes] of groups) {
+      const methodEntries = routes
+        .map(r => {
+          const method = (r.method || 'ALL').toUpperCase();
+          const filePath = toPortableFilePath(r, cwd);
+          return `      ${method}: { filePath: ${JSON.stringify(filePath)} }`;
+        })
+        .join(';\n');
+      entries.push(`    ${JSON.stringify(path)}: {\n${methodEntries}\n    }`);
+    }
+
     lines.push('  export type ApiRouteMap = {');
-    lines.push(routeEntries.join(';\n'));
+    lines.push(`${entries.join(';\n')};`);
     lines.push('  };');
   } else {
     lines.push('  export type ApiRouteMap = {};');
@@ -42,11 +87,10 @@ export async function generateRouteTypes(result: ScanResult, options: RouteTypes
 
   lines.push('');
 
-  const routePaths = [...new Set(apiRoutes.map(r => r.route))].sort();
-  if (routePaths.length > 0) {
-    lines.push('  export type ApiRoutePath =');
-    lines.push(routePaths.map(p => `    | ${JSON.stringify(p)}`).join('\n'));
-    lines.push('  ;');
+  // Derive ApiRoutePath from ApiRouteMap keys when possible — single source
+  // of truth, avoids drift between the map and the union.
+  if (apiRoutes.length > 0) {
+    lines.push('  export type ApiRoutePath = keyof ApiRouteMap;');
   } else {
     lines.push('  export type ApiRoutePath = string;');
   }
@@ -130,33 +174,13 @@ export async function generatePageTypes(result: ScanResult, options: PageTypesOp
 
   lines.push('');
 
-  const pageEntries = pages.map(
-    p =>
-      `    ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(p.fullPath)}, layout: ${JSON.stringify(p.layout)}, reuseTarget: ${JSON.stringify(p.reuseTarget)} }`
-  );
-
-  if (pageEntries.length > 0) {
-    lines.push('  export const pages: {');
-    lines.push(pageEntries.join(',\n'));
-    lines.push('  };');
-  } else {
-    lines.push('  export const pages: Record<string, PageInfo>;');
-  }
-
-  lines.push('');
-
-  const layoutEntries = layouts.map(
-    l =>
-      `    ${JSON.stringify(l.name)}: { name: ${JSON.stringify(l.name)}, filePath: ${JSON.stringify(l.fullPath)}, isDefault: ${l.isDefault} }`
-  );
-
-  if (layoutEntries.length > 0) {
-    lines.push('  export const layouts: {');
-    lines.push(layoutEntries.join(',\n'));
-    lines.push('  };');
-  } else {
-    lines.push('  export const layouts: Record<string, LayoutInfo>;');
-  }
+  // Runtime values come from the virtual module (`ubean:pages`); this `.d.ts`
+  // only provides type information. Using `Record<RouteName, PageInfo>` keeps
+  // the declaration concise and avoids leaking absolute paths / verbose
+  // literal object types into the generated file. Consumers still get full
+  // type safety: `pages['SomePage'].filePath` is typed as `string`.
+  lines.push('  export const pages: Record<RouteName, PageInfo>;');
+  lines.push('  export const layouts: Record<LayoutName, LayoutInfo>;');
 
   lines.push('}');
 

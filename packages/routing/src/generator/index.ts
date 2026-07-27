@@ -18,6 +18,15 @@ import type { ScanResult, ScannedPageRoute, ScannedLayout } from '../types';
 export interface GeneratorOptions {
   /** Project root directory (absolute). */
   cwd: string;
+  /**
+   * Source directory (absolute, defaults to `<cwd>/src`).
+   *
+   * Used by the default `getImportPath` / `getLayoutImportPath` to compute
+   * import specifiers relative to `srcDir` (the conventional target of the
+   * `@/` path alias). When the alias differs, supply custom `getImportPath` /
+   * `getLayoutImportPath` callbacks.
+   */
+  srcDir?: string;
   /** Output directory for `routes.ts` / `imports.ts` (absolute or relative to `cwd`). */
   outDir: string;
   /** Path for `typed-router.d.ts` (absolute or relative to `cwd`). Default: `<outDir>/typed-router.d.ts`. */
@@ -41,7 +50,8 @@ export interface GeneratorOptions {
   /**
    * Compute the import specifier for a page file. Receives the absolute
    * `fullPath` of the page; should return a module specifier usable from
-   * `imports.ts`. Defaults to a project-relative path prefixed with `@/`.
+   * `imports.ts`. Defaults to a `srcDir`-relative path prefixed with `@/`
+   * (e.g. `@/pages/about.vue`), matching the common `@/` → `src/` alias.
    */
   getImportPath?: (page: ScannedPageRoute) => string;
   /** Same as `getImportPath` but for layouts. */
@@ -78,6 +88,7 @@ export class RouteFileGenerator {
     const dtsPath = options.dtsPath ?? joinPosix(options.outDir, 'typed-router.d.ts');
     this.opts = {
       cwd: options.cwd,
+      srcDir: options.srcDir ?? joinPosix(options.cwd, 'src'),
       outDir: options.outDir,
       dtsPath,
       generateRoutes: options.generateRoutes ?? true,
@@ -134,38 +145,42 @@ ${items}
 
   private renderRouteRecord(page: ScannedPageRoute): string {
     const parts: string[] = [];
-    parts.push(`  name: ${JSON.stringify(page.name)}`);
-    parts.push(`  path: ${JSON.stringify(page.route)}`);
+    parts.push(`    name: ${JSON.stringify(page.name)}`);
+    parts.push(`    path: ${JSON.stringify(page.route)}`);
 
-    const component = this.opts.getImportPath?.(page) ?? defaultPageImportPath(page, this.opts.cwd);
-    parts.push(`  component: ${JSON.stringify(component)}`);
+    // `component` is a RouteFileKey — a key into the `views` map in imports.ts.
+    // For reuse routes, use the `reuseTarget`'s name so `views[component]`
+    // resolves to the target's component loader (the .reuse.ts file only
+    // contains metadata, not a Vue component).
+    const componentKey = page.isReuse && page.reuseTarget ? page.reuseTarget : page.name;
+    parts.push(`    component: ${JSON.stringify(componentKey)}`);
 
     if (page.layout !== undefined) {
       const layoutVal = page.layout === false ? 'false' : JSON.stringify(page.layout);
-      parts.push(`  layout: ${layoutVal}`);
+      parts.push(`    layout: ${layoutVal}`);
     }
 
     if (page.isReuse) {
-      parts.push(`  reuse: true`);
+      parts.push(`    reuse: true`);
     }
 
     const meta = this.computeMeta(page);
     if (meta && Object.keys(meta).length > 0) {
-      parts.push(`  meta: ${JSON.stringify(meta)}`);
+      parts.push(`    meta: ${JSON.stringify(meta)}`);
     }
 
     if (page.pageMeta?.cache === true) {
-      parts.push(`  cache: true`);
+      parts.push(`    cache: true`);
     }
 
     if (page.pageMeta?.requiresAuth === true) {
-      parts.push(`  requiresAuth: true`);
+      parts.push(`    requiresAuth: true`);
     }
 
     if (page.pageMeta?.middleware) {
       const mw = page.pageMeta.middleware;
       const mwVal = Array.isArray(mw) ? JSON.stringify(mw) : JSON.stringify(mw);
-      parts.push(`  middleware: ${mwVal}`);
+      parts.push(`    middleware: ${mwVal}`);
     }
 
     return `  {\n${parts.join(',\n')}\n  }`;
@@ -194,12 +209,49 @@ ${items}
 
     const layoutType =
       scanResult.layouts.length > 0 ? `'${scanResult.layouts.map(l => l.name).join("' | '")}'` : 'string';
-    const viewType = scanResult.pages.length > 0 ? `'${scanResult.pages.map(p => p.name).join("' | '")}'` : 'string';
+
+    // Categorize route keys following the elegant-router model:
+    //   - RouteFileKey:   routes with a real .vue/.md file (excludes reuse & builtin)
+    //   - RouteReuseKey:  routes declared via `.reuse.ts` / `.reuse.vue`
+    //   - BuiltinRouteKey: framework-provided routes (root / not_found / ...)
+    //   - RouteKey:       union of the above (= all page route names)
+    const filePages = scanResult.pages.filter(p => !p.isReuse);
+    const reusePages = scanResult.pages.filter(p => p.isReuse);
+
+    const fileKeyType = filePages.length > 0 ? `'${filePages.map(p => p.name).join("' | '")}'` : 'never';
+    const reuseKeyType = reusePages.length > 0 ? `'${reusePages.map(p => p.name).join("' | '")}'` : 'never';
+    const allKeyType = scanResult.pages.length > 0 ? `'${scanResult.pages.map(p => p.name).join("' | '")}'` : 'never';
 
     return `${header}
 
 export type LayoutKey = ${layoutType};
-export type RouteKey = ${viewType};
+
+/**
+ * Route keys that have a corresponding source file (\`.vue\` / \`.md\`).
+ * Excludes reuse routes and builtin routes.
+ *
+ * The \`views\` map is keyed by this type — \`views[RouteFileKey]\` resolves
+ * to the actual component loader.
+ */
+export type RouteFileKey = ${fileKeyType};
+
+/**
+ * Route keys declared via \`.reuse.ts\` / \`.reuse.vue\`.
+ * They reference another route's component via \`reuseTarget\`.
+ */
+export type RouteReuseKey = ${reuseKeyType};
+
+/**
+ * Builtin route keys (framework-provided, e.g. \`root\` / \`not_found\`).
+ * Currently unused — reserved for future builtin pages.
+ */
+export type BuiltinRouteKey = never;
+
+/**
+ * All page route names. Union of {@link RouteFileKey}, {@link RouteReuseKey}
+ * and {@link BuiltinRouteKey}.
+ */
+export type RouteKey = ${allKeyType};
 
 export type Lazy<T> = () => Promise<T>;
 export type RawRouteComponent = import('vue').Component | Lazy<import('vue').Component>;
@@ -207,7 +259,14 @@ export type RawRouteComponent = import('vue').Component | Lazy<import('vue').Com
 export interface RouteRecord {
   name: RouteKey;
   path: string;
-  component: string;
+  /**
+   * Key into the \`views\` map — resolve the actual component via
+   * \`views[route.component]\`.
+   *
+   * For reuse routes, this is the \`reuseTarget\`'s \`RouteFileKey\`
+   * (not the reuse route's own name), so the same component is reused.
+   */
+  component: RouteFileKey;
   layout?: LayoutKey | false;
   reuse?: boolean;
   meta?: Record<string, unknown>;
@@ -220,14 +279,14 @@ export const layouts: Record<LayoutKey, RawRouteComponent> = {
 ${layouts}
 };
 
-export const views: Record<RouteKey, RawRouteComponent> = {
+export const views: Record<RouteFileKey, RawRouteComponent> = {
 ${views}
 };
 `;
   }
 
   private renderLayoutImport(layout: ScannedLayout): string {
-    const importPath = this.opts.getLayoutImportPath?.(layout) ?? defaultLayoutImportPath(layout, this.opts.cwd);
+    const importPath = this.opts.getLayoutImportPath?.(layout) ?? defaultLayoutImportPath(layout, this.opts.srcDir);
     const lazy = typeof this.opts.layoutLazy === 'function' ? this.opts.layoutLazy(layout) : this.opts.layoutLazy;
     if (lazy) {
       return `  ${layout.name}: () => import(${JSON.stringify(importPath)})`;
@@ -237,7 +296,7 @@ ${views}
   }
 
   private renderViewImport(page: ScannedPageRoute): string {
-    const importPath = this.opts.getImportPath?.(page) ?? defaultPageImportPath(page, this.opts.cwd);
+    const importPath = this.opts.getImportPath?.(page) ?? defaultPageImportPath(page, this.opts.srcDir);
     const lazy = typeof this.opts.routeLazy === 'function' ? this.opts.routeLazy(page) : this.opts.routeLazy;
     if (lazy) {
       return `  ${page.name}: () => import(${JSON.stringify(importPath)})`;
@@ -299,6 +358,20 @@ ${pathMapEntries}
    * Reuse route keys (pages using \`.reuse.vue\` suffix).
    */
   export type ReuseRouteKey = ${reuseKeys};
+
+  /**
+   * Builtin route keys (framework-provided, e.g. \`root\` / \`not_found\`).
+   * Currently unused — reserved for future builtin pages.
+   */
+  export type BuiltinRouteKey = never;
+
+  /**
+   * Route keys that have a corresponding source file (\`.vue\` / \`.md\`).
+   * Excludes reuse routes and builtin routes.
+   *
+   * Use this to index the \`views\` map for component lookup.
+   */
+  export type RouteFileKey = Exclude<RouteKey, ReuseRouteKey | BuiltinRouteKey>;
 }
 
 declare module 'vue-router/auto-routes' {
@@ -325,7 +398,7 @@ declare module 'vue-router' {
   }
 }
 
-export type { RouteLayoutKey, RoutePathMap, RouteKey, RoutePath, ReuseRouteKey } from '@ubean/routing';
+export type { RouteLayoutKey, RoutePathMap, RouteKey, RoutePath, ReuseRouteKey, BuiltinRouteKey, RouteFileKey } from '@ubean/routing';
 `;
   }
 
@@ -352,17 +425,37 @@ export type { RouteLayoutKey, RoutePathMap, RouteKey, RoutePath, ReuseRouteKey }
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
 
-function defaultPageImportPath(page: ScannedPageRoute, cwd: string): string {
-  // Default: relative path from project root, prefixed with `@/`
-  const rel = relativePosix(cwd, page.fullPath);
-  const withoutExt = rel.replace(/\.(vue|tsx?|jsx?|mdx?)$/, '');
-  return `@/${withoutExt}`;
+/**
+ * Extensions stripped when computing the default import specifier.
+ *
+ * `.vue` / `.md` / `.mdx` are KEPT — Vite dispatches them to dedicated
+ * transforms (vue-loader / markdown) based on the extension, so the
+ * explicit suffix is required for correct resolution at runtime.
+ *
+ * `.ts` / `.tsx` / `.js` / `.jsx` are STRIPPED — TypeScript/Vite convention
+ * is to import script modules without their extension.
+ */
+const STRIPPABLE_IMPORT_EXT = /\.(tsx?|jsx?)$/;
+
+/**
+ * Compute the default import specifier for a page.
+ *
+ * Uses `srcDir` (not `cwd`) as the relative base so that the resulting
+ * `@/<rel>` path matches the common `@/` → `src/` path alias. For example,
+ * a page at `<cwd>/src/pages/about.vue` becomes `@/pages/about.vue`
+ * (NOT `@/src/pages/about.vue`, which would double the `src/` prefix and
+ * fail to resolve under the standard alias).
+ */
+function defaultPageImportPath(page: ScannedPageRoute, srcDir: string): string {
+  const rel = relativePosix(srcDir, page.fullPath);
+  const importPath = rel.replace(STRIPPABLE_IMPORT_EXT, '');
+  return `@/${importPath}`;
 }
 
-function defaultLayoutImportPath(layout: ScannedLayout, cwd: string): string {
-  const rel = relativePosix(cwd, layout.fullPath);
-  const withoutExt = rel.replace(/\.(vue|tsx?|jsx?)$/, '');
-  return `@/${withoutExt}`;
+function defaultLayoutImportPath(layout: ScannedLayout, srcDir: string): string {
+  const rel = relativePosix(srcDir, layout.fullPath);
+  const importPath = rel.replace(STRIPPABLE_IMPORT_EXT, '');
+  return `@/${importPath}`;
 }
 
 /**

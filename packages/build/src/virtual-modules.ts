@@ -8,25 +8,40 @@ import type {
   ScannedPageRoute,
   ScannedLocale
 } from '@ubean/routing';
+import { relative, isAbsolute } from 'pathe';
 import { defineVirtualModule } from './virtual-registry';
 
 function toVitePath(p: string): string {
   return p.replace(/\\/g, '/');
 }
 
-export function createRoutingVirtualModule(routes: CompiledRoute[], middlewares: CompiledMiddleware[]) {
+/**
+ * Convert an absolute file path to a project-root-relative POSIX path.
+ *
+ * Generated virtual modules should NOT embed absolute paths — they leak the
+ * developer's filesystem layout into build artifacts and cause spurious git
+ * diffs across machines. This helper normalizes `filePath` fields to
+ * portable project-relative paths (e.g. `src/pages/about.vue`).
+ */
+function toPortableFilePath(fullPath: string, cwd: string): string {
+  if (!fullPath) return fullPath;
+  const rel = isAbsolute(fullPath) ? relative(cwd, fullPath) : fullPath;
+  return rel.replace(/\\/g, '/');
+}
+
+export function createRoutingVirtualModule(routes: CompiledRoute[], middlewares: CompiledMiddleware[], cwd: string) {
   return defineVirtualModule('ubean:routes', () => {
     const routesCode = routes
       .map(
         r =>
-          `  { method: ${JSON.stringify(r.method)}, path: ${JSON.stringify(r.path)}, id: ${JSON.stringify(r.id)}, filePath: ${JSON.stringify(r.filePath)} }`
+          `  { method: ${JSON.stringify(r.method)}, path: ${JSON.stringify(r.path)}, id: ${JSON.stringify(r.id)}, filePath: ${JSON.stringify(toPortableFilePath(r.filePath, cwd))} }`
       )
       .join(',\n');
 
     const mwCode = middlewares
       .map(
         m =>
-          `  { path: ${JSON.stringify(m.path)}, filePath: ${JSON.stringify(m.filePath)}, order: ${m.order}, global: ${m.global} }`
+          `  { path: ${JSON.stringify(m.path)}, filePath: ${JSON.stringify(toPortableFilePath(m.filePath, cwd))}, order: ${m.order}, global: ${m.global} }`
       )
       .join(',\n');
 
@@ -34,19 +49,19 @@ export function createRoutingVirtualModule(routes: CompiledRoute[], middlewares:
   });
 }
 
-export function createPagesVirtualModule(pages: CompiledPage[], layouts: CompiledLayout[]) {
+export function createPagesVirtualModule(pages: CompiledPage[], layouts: CompiledLayout[], cwd: string) {
   return defineVirtualModule('ubean:pages', () => {
     const pagesEntries = pages
       .map(
         p =>
-          `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(p.filePath)}, layout: ${JSON.stringify(p.layout)}, reuseTarget: ${JSON.stringify(p.reuseTarget)} }`
+          `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(toPortableFilePath(p.filePath, cwd))}, layout: ${JSON.stringify(p.layout)}, reuseTarget: ${JSON.stringify(p.reuseTarget)} }`
       )
       .join(',\n');
 
     const layoutEntries = layouts
       .map(
         l =>
-          `  ${JSON.stringify(l.name)}: { name: ${JSON.stringify(l.name)}, filePath: ${JSON.stringify(l.filePath)}, isDefault: ${l.isDefault} }`
+          `  ${JSON.stringify(l.name)}: { name: ${JSON.stringify(l.name)}, filePath: ${JSON.stringify(toPortableFilePath(l.filePath, cwd))}, isDefault: ${l.isDefault} }`
       )
       .join(',\n');
 

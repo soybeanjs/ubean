@@ -38,6 +38,17 @@ export function createCrudServer(options: CrudServerOptions) {
   const fs: DevToolsFsOps = scaffoldOps.createFsOps(cwd);
 
   /**
+   * Resolve a file path to an absolute path.
+   *
+   * Accepts both absolute paths (returned as-is) and project-root-relative
+   * paths (resolved against `cwd`). This is needed because virtual modules
+   * now emit portable relative `filePath` values instead of absolute paths.
+   */
+  function resolveFilePath(p: string): string {
+    return isAbsolute(p) ? p : resolve(cwd, p);
+  }
+
+  /**
    * Determine the correct base directory for a scaffold type, taking the
    * project's `dir` config into account. Returns an absolute path.
    *
@@ -194,11 +205,12 @@ export default definePlugin({
       if (type === 'config') {
         // If path is provided, treat as config file read (e.g. ubean.config.ts).
         if (path) {
-          const fileExists = await fs.exists(path);
+          const resolved = resolveFilePath(path);
+          const fileExists = await fs.exists(resolved);
           if (!fileExists) {
             return { success: false, error: `File not found: ${path}` };
           }
-          const content = await fs.readFile(path);
+          const content = await fs.readFile(resolved);
           return { success: true, content };
         }
         if (getConfig) {
@@ -212,11 +224,12 @@ export default definePlugin({
       }
 
       if (SCAFFOLD_TYPE_SET.has(type) || type === 'cron' || type === 'plugin') {
-        const fileExists = await fs.exists(path);
+        const resolved = resolveFilePath(path);
+        const fileExists = await fs.exists(resolved);
         if (!fileExists) {
           return { success: false, error: `File not found: ${path}` };
         }
-        const content = await fs.readFile(path);
+        const content = await fs.readFile(resolved);
         return { success: true, content };
       }
 
@@ -259,22 +272,24 @@ export default definePlugin({
         if (!path) {
           result = { success: false, errors: ['Path is required for config file update'] };
         } else {
-          const fileExists = await fs.exists(path);
+          const resolved = resolveFilePath(path);
+          const fileExists = await fs.exists(resolved);
           if (!fileExists) {
             result = { success: false, errors: [`File not found: ${path}`] };
           } else {
-            await fs.writeFile(path, content || '');
+            await fs.writeFile(resolved, content || '');
             result = { success: true, updated: [path] };
           }
         }
       } else if (!path) {
         result = { success: false, errors: ['Path is required for file update'] };
       } else if (SCAFFOLD_TYPE_SET.has(type) || type === 'cron' || type === 'plugin') {
-        const fileExists = await fs.exists(path);
+        const resolved = resolveFilePath(path);
+        const fileExists = await fs.exists(resolved);
         if (!fileExists) {
           result = { success: false, errors: [`File not found: ${path}`] };
         } else {
-          await fs.writeFile(path, content || '');
+          await fs.writeFile(resolved, content || '');
           result = { success: true, updated: [path] };
         }
       } else {
@@ -333,14 +348,15 @@ export default definePlugin({
         });
         result = normalizeResult(scaffoldRes || ({} as ScaffoldResult));
       } else if (type === 'cron' || type === 'plugin') {
-        const fileExists = await fs.exists(path);
+        const resolved = resolveFilePath(path);
+        const fileExists = await fs.exists(resolved);
         if (!fileExists) {
           result = { success: false, errors: [`File not found: ${path}`] };
         } else {
           if (force) {
-            await fs.remove(path);
+            await fs.remove(resolved);
           } else {
-            await fs.createBackup(path, { removeOriginal: true });
+            await fs.createBackup(resolved, { removeOriginal: true });
           }
           result = { success: true, deleted: [path] };
         }
@@ -367,12 +383,14 @@ export default definePlugin({
 
   async function restore(path: string): Promise<CrudResult> {
     try {
+      const resolved = resolveFilePath(path);
+
       for (const type of SCAFFOLD_TYPES) {
         const baseDir = getBaseDirForType(type);
         const scaffoldRes = await scaffoldOps?.recoverScaffold({
           cwd,
           type: type as DevToolsScaffoldType,
-          path,
+          path: resolved,
           dry: false,
           ...(baseDir ? { baseDir } : {})
         });
@@ -382,10 +400,10 @@ export default definePlugin({
         }
       }
 
-      const backupPath = `${path}.bak`;
+      const backupPath = `${resolved}.bak`;
       if (await fs.exists(backupPath)) {
-        await fs.copyFile(backupPath, path);
-        await fs.removeBackup(path);
+        await fs.copyFile(backupPath, resolved);
+        await fs.removeBackup(resolved);
         await notifyChange();
         return { success: true, restored: [path] };
       }

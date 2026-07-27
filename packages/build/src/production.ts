@@ -100,7 +100,8 @@ async function generateVirtualModulesToDisk(
         filePath: m.fullPath,
         order: m.order,
         global: m.global
-      }))
+      })),
+      cwd
     )
   );
 
@@ -118,7 +119,8 @@ async function generateVirtualModulesToDisk(
           name: l.name,
           filePath: l.fullPath,
           isDefault: l.isDefault
-        }))
+        })),
+        cwd
       )
     );
 

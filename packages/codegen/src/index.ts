@@ -31,7 +31,7 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
 
   const generated: string[] = [];
 
-  const routeTypesPath = await generateRouteTypes(result, { outDir });
+  const routeTypesPath = await generateRouteTypes(result, { cwd, outDir });
   generated.push(routeTypesPath);
 
   const pageTypesPath = await generatePageTypes(result, { outDir });

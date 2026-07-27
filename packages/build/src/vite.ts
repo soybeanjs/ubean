@@ -190,7 +190,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
           filePath: m.fullPath,
           order: m.order,
           global: m.global
-        }))
+        })),
+        ubeanConfig.rootDir
       )
     );
 
@@ -207,7 +208,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
           name: l.name,
           filePath: l.fullPath,
           isDefault: l.isDefault
-        }))
+        })),
+        ubeanConfig.rootDir
       )
     );
 
@@ -274,6 +276,7 @@ async function maybeGenerateRouteFiles(config: UbeanResolvedConfig, scanResult: 
 
   const result = await generateRouteFiles(scanResult, {
     cwd: config.rootDir,
+    srcDir: config.srcDir,
     outDir,
     dtsPath,
     // virtual 模式只生成 dts,跳过 routes.ts/imports.ts

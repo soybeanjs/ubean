@@ -7,6 +7,10 @@
  *
  * Registration happens at module load time (when ubeanUiPlugin() etc. are
  * called by the module system, before ubeanVuePlugin reads the registry).
+ *
+ * Uses globalThis for storage to ensure state is shared across multiple
+ * copies of @ubean/build that may exist due to package manager duplication
+ * (e.g. pnpm creating separate instances for different version ranges).
  */
 
 /**
@@ -16,15 +20,30 @@
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ComponentResolver = ((name: string) => any) | { type: 'component' | 'directive'; resolve: (name: string) => any };
 
-const componentResolvers: ComponentResolver[] = [];
-const cssImports: string[] = [];
+const REGISTRY_KEY = '__ubean_module_registry__';
+
+interface GlobalRegistry {
+  componentResolvers: ComponentResolver[];
+  cssImports: string[];
+}
+
+function getRegistry(): GlobalRegistry {
+  const g = globalThis as typeof globalThis & { [REGISTRY_KEY]?: GlobalRegistry };
+  if (!g[REGISTRY_KEY]) {
+    g[REGISTRY_KEY] = {
+      componentResolvers: [],
+      cssImports: []
+    };
+  }
+  return g[REGISTRY_KEY];
+}
 
 /**
  * Register a component resolver (e.g. `UiResolver()` from `@soybeanjs/ui/resolver`).
  * The resolver will be merged into `unplugin-vue-components`'s `resolvers` array.
  */
 export function registerComponentResolver(resolver: ComponentResolver): void {
-  componentResolvers.push(resolver);
+  getRegistry().componentResolvers.push(resolver);
 }
 
 /**
@@ -32,7 +51,7 @@ export function registerComponentResolver(resolver: ComponentResolver): void {
  * Called by `ubeanVuePlugin` when constructing the `Components()` plugin.
  */
 export function getComponentResolvers(): ComponentResolver[] {
-  return [...componentResolvers];
+  return [...getRegistry().componentResolvers];
 }
 
 /**
@@ -41,8 +60,9 @@ export function getComponentResolvers(): ComponentResolver[] {
  * entry module prepend `import '@soybeanjs/ui/styles.css'`.
  */
 export function registerCssImport(cssPath: string): void {
-  if (!cssImports.includes(cssPath)) {
-    cssImports.push(cssPath);
+  const reg = getRegistry();
+  if (!reg.cssImports.includes(cssPath)) {
+    reg.cssImports.push(cssPath);
   }
 }
 
@@ -51,7 +71,7 @@ export function registerCssImport(cssPath: string): void {
  * Called by `createClientEntryVirtualModule` to prepend CSS imports.
  */
 export function getCssImports(): string[] {
-  return [...cssImports];
+  return [...getRegistry().cssImports];
 }
 
 /**
@@ -59,6 +79,7 @@ export function getCssImports(): string[] {
  * @internal
  */
 export function resetModuleRegistry(): void {
-  componentResolvers.length = 0;
-  cssImports.length = 0;
+  const reg = getRegistry();
+  reg.componentResolvers.length = 0;
+  reg.cssImports.length = 0;
 }

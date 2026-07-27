@@ -243,7 +243,18 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
   }
 
   // Merge built-in resolver with any registered by extension modules (e.g. UiResolver from @ubean/ui)
-  const allResolvers = [ubeanComponentsResolver, ...getComponentResolvers()];
+  // Use a dynamic resolver that reads from the registry at resolution time, so that
+  // resolvers registered by built-in modules (loaded later via resolveModules) are picked up.
+  const dynamicResolvers = [
+    ubeanComponentsResolver,
+    (name: string) => {
+      for (const resolver of getComponentResolvers()) {
+        const result = typeof resolver === 'function' ? resolver(name) : resolver.resolve(name);
+        if (result) return result;
+      }
+      return undefined;
+    }
+  ];
 
   if (componentAutoImportEnabled) {
     const extensions = ['vue'];
@@ -263,14 +274,14 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         directoryAsNamespace,
         dts: join(dtsDir, 'components.d.ts'),
         deep: true,
-        resolvers: allResolvers
+        resolvers: dynamicResolvers
       }) as Plugin
     );
   } else {
     plugins.push(
       Components({
         dts: true,
-        resolvers: allResolvers
+        resolvers: dynamicResolvers
       }) as Plugin
     );
   }

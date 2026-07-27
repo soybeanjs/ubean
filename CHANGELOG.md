@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.5...main) (2026-07-27)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- **vue-plugin**: use dynamic resolver &nbsp;-&nbsp; by @soybeanjs [<samp>(99fc1)</samp>](https://github.com/soybeanjs/ubean/commit/99fc160)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.4...main) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

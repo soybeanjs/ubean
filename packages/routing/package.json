@@ -1,6 +1,6 @@
 {
   "name": "@ubean/routing",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "File-based routing core for ubean (scanner, rou3 matcher, route name generator, define-page AST extractor, file generator)",
   "files": [
     "dist"

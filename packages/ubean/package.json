@@ -1,6 +1,6 @@
 {
   "name": "ubean",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Vue-first full-stack meta-framework built on Vite-Plus with Hono (aggregator of all @ubean/* subpackages)",
   "bin": {
     "ubean": "./bin/ubean.mjs"

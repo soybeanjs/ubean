@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.4...main) (2026-07-27)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **icon**: fix icon options &nbsp;-&nbsp; by **Soybean** [<samp>(96e1e)</samp>](https://github.com/soybeanjs/ubean/commit/96e1e12)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[Soybean](mailto:soybeanjs@outlook.com)
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.3...main) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

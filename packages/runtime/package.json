@@ -1,6 +1,6 @@
 {
   "name": "@ubean/runtime",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Vue client runtime for ubean (createUbeanApp, useRouter, useHead, Link, Head, PageView, composables, view-transitions, cache-views, islands hydrate)",
   "files": [
     "dist"

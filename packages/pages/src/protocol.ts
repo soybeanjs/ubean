@@ -35,12 +35,23 @@ export interface PageRenderContext {
   availableLocales?: LocaleMetaInfo[];
 }
 
+/**
+ * 渲染结果。
+ *
+ * - `string`:仅 HTML(向后兼容,无 SSR state)
+ * - `{ html, state? }`:HTML + 可选的 SSR state(由 `defineApp.serializeState` 产生,
+ *   会被序列化到 `__UBEAN_STATE__` script 标签中,客户端通过 `getInitialState()` 读取)
+ *
+ * `state` 用于支持 Pinia / vue-query 等需要跨 SSR 边界传递状态的库。
+ */
+export type PageRenderResult = string | { html: string; state?: Record<string, unknown> };
+
 export type PageRenderFn = (
   pageObj: PageObject,
   shellHtml: string,
   assetTags: PageAssetTags,
   renderContext?: PageRenderContext
-) => string | Promise<string>;
+) => PageRenderResult | Promise<PageRenderResult>;
 
 export interface PageRenderer {
   render: PageRenderFn;
@@ -49,8 +60,11 @@ export interface PageRenderer {
 
 export const PAGE_DATA_ID = '__UBEAN_PAGE_DATA__';
 export const LOCALE_DATA_ID = '__UBEAN_LOCALE__';
+export const STATE_DATA_ID = '__UBEAN_STATE__';
 export const PAGE_REQUEST_HEADER = 'x-ubeanpages';
 export const SSR_CONTENT_MARKER = '<!--UBEAN_SSR_CONTENT-->';
+/** Shell 中 state script 的占位符,render 后由 `insertStateContent` 替换为实际 JSON */
+export const STATE_MARKER = '<!--UBEAN_STATE-->';
 
 export function isPagesRequest(c: { req: { header: (k: string) => string | undefined } }): boolean {
   return c.req.header(PAGE_REQUEST_HEADER) === 'true';
@@ -180,6 +194,7 @@ export function buildPageShell(
 <body${finalBodyAttrs ? ` ${finalBodyAttrs}` : ''}>
   ${localeScript}
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
+  <script id="${STATE_DATA_ID}" type="application/json">${STATE_MARKER}</script>
   <div id="${appId}">${SSR_CONTENT_MARKER}</div>
   ${preambleScript}
   ${bodyTags}
@@ -189,6 +204,19 @@ export function buildPageShell(
 
 export function insertSsrContent(shell: string, appHtml: string): string {
   return shell.replace(SSR_CONTENT_MARKER, appHtml);
+}
+
+/**
+ * 将序列化后的 state JSON 注入 shell 中的 `__UBEAN_STATE__` script 标签。
+ *
+ * 在 `renderPage` 中于 `renderer.render()` 之后调用:renderer 返回 `{ html, state }`
+ * 时,把 `state` 用 `safeJsonStringify` 转义后替换 `STATE_MARKER` 占位符。
+ *
+ * 若 `stateJson` 为空字符串或 `null`,将占位符替换为空字符串(产出空 script 体,
+ * 客户端 `getInitialState()` 会返回 `null`)。
+ */
+export function insertStateContent(shell: string, stateJson: string | null): string {
+  return shell.replace(STATE_MARKER, stateJson ?? '');
 }
 
 export function buildClientOnlyShell(
@@ -233,6 +261,7 @@ export function buildClientOnlyShell(
 <body${finalBodyAttrs ? ` ${finalBodyAttrs}` : ''}>
   ${localeScript}
   <script id="${PAGE_DATA_ID}" type="application/json">${pageData}</script>
+  <script id="${STATE_DATA_ID}" type="application/json"></script>
   <div id="${appId}" data-ubean-ssr="false"></div>
   ${bodyTags}
 </body>
@@ -252,9 +281,27 @@ export async function renderPage(
 
   const preambleScript = renderer.preambleScript ?? '';
   const shell = buildPageShell(pageObj, assetTags, preambleScript, appId, renderContext);
-  const appHtml = await renderer.render(pageObj, shell, assetTags, renderContext);
-  if (typeof appHtml === 'string' && !shell.includes(appHtml) && !appHtml.includes('<html')) {
-    return insertSsrContent(shell, appHtml);
+  const result = await renderer.render(pageObj, shell, assetTags, renderContext);
+
+  // 向后兼容:renderer 返回纯字符串时,直接作为完整 HTML 返回
+  if (typeof result === 'string') {
+    if (!shell.includes(result) && !result.includes('<html')) {
+      return insertSsrContent(shell, result);
+    }
+    return result;
   }
-  return appHtml;
+
+  // 新增:renderer 返回 { html, state? } 时,注入 state 到 shell
+  const { html, state } = result;
+  let finalHtml = html;
+  if (!shell.includes(html) && !html.includes('<html')) {
+    finalHtml = insertSsrContent(shell, html);
+  }
+  if (state && Object.keys(state).length > 0) {
+    finalHtml = insertStateContent(finalHtml, safeJsonStringify(state));
+  } else {
+    // 无 state:清空占位符(产出空 script 体)
+    finalHtml = insertStateContent(finalHtml, '');
+  }
+  return finalHtml;
 }

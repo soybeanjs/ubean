@@ -212,6 +212,7 @@ import {
   Link,
   Head,
   getInitialPageData,
+  getInitialState,
   defineApp,
   applyAppConfig,
   createDefaultAppConfig,
@@ -229,6 +230,7 @@ export {
   Link,
   Head,
   getInitialPageData,
+  getInitialState,
   defineApp,
   applyAppConfig,
   createDefaultAppConfig
@@ -267,6 +269,8 @@ function _mergeAppConfig(base, ...configs) {
     if (cfg.errorComponent) result.errorComponent = cfg.errorComponent;
     if (cfg.loadingComponent) result.loadingComponent = cfg.loadingComponent;
     if (cfg.viewTransitions !== undefined) result.viewTransitions = cfg.viewTransitions;
+    if (cfg.serializeState) result.serializeState = cfg.serializeState;
+    if (cfg.hydrateState) result.hydrateState = cfg.hydrateState;
   }
   // router.setup:累加语义 — shared 和 client/server 各自定义的 setup 都会执行
   // (顺序:shared 先,client/server 后)。这样 shared 可放通用守卫(如埋点),
@@ -336,6 +340,15 @@ export function createApp() {
   applyAppConfig(instance.app, config, 'client');
 
   if (config.onAppCreated) config.onAppCreated(instance.app);
+
+  // SSR 状态水合:在 applyAppConfig(注册插件)之后、mount 之前调用。
+  // getInitialState() 从 DOM 的 __UBEAN_STATE__ script 读取服务端
+  // serializeState 产生的状态对象(如 Pinia 的 state)。
+  // 必须在 mount 前执行,否则 store 已初始化为默认值,水合无效。
+  if (config.hydrateState) {
+    const state = getInitialState();
+    config.hydrateState(instance.app, state);
+  }
 
   const mountApp = () => {
     instance.app.mount('#' + (config.rootId || 'app'));

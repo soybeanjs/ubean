@@ -110,6 +110,7 @@ const configDefaults: ResolvedConfig = {
   fonts: false,
   electron: false,
   ui: false,
+  pinia: false,
   devtools: { enabled: false, route: '/_devtools', ai: { enabled: false } },
   dir: {
     pages: 'pages',

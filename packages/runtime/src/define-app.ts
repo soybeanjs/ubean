@@ -62,6 +62,50 @@ export interface DefineAppOptions {
   errorComponent?: Component;
   loadingComponent?: Component;
   viewTransitions?: boolean | ViewTransitionOptions;
+  /**
+   * SSR 专用:在 `renderToString(app)` 完成后调用,从 app 实例提取需要
+   * 序列化到客户端的状态(如 Pinia 的 `pinia.state.value`)。
+   *
+   * 返回的对象会被 `safeJsonStringify` 序列化并注入到 HTML 的
+   * `__UBEAN_STATE__` script 标签中。
+   *
+   * 仅在 server mode 下生效;client mode 下被忽略。
+   *
+   * @example
+   * ```ts
+   * import { createPinia } from 'pinia';
+   * defineApp({
+   *   plugins: [createPinia()],
+   *   serializeState: (app) => ({
+   *     pinia: app.config.globalProperties.$pinia.state.value
+   *   })
+   * });
+   * ```
+   */
+  serializeState?: (app: App) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  /**
+   * Client 专用:在 `applyAppConfig`(注册插件/provide)之后、`app.mount()` 之前调用,
+   * 用于从 `__UBEAN_STATE__` 反序列化的状态回填到 app(如 Pinia 的水合)。
+   *
+   * `state` 即 `serializeState` 在服务端返回的对象;若服务端未配置 `serializeState`
+   * 或返回空,`state` 为 `null`。
+   *
+   * 仅在 client mode 下生效;server mode 下被忽略。
+   *
+   * @example
+   * ```ts
+   * import { createPinia } from 'pinia';
+   * defineApp({
+   *   plugins: [createPinia()],
+   *   hydrateState: (app, state) => {
+   *     if (state?.pinia) {
+   *       app.config.globalProperties.$pinia.state.value = state.pinia;
+   *     }
+   *   }
+   * });
+   * ```
+   */
+  hydrateState?: (app: App, state: Record<string, unknown> | null) => void;
 }
 
 export interface ResolvedAppConfig {
@@ -77,6 +121,8 @@ export interface ResolvedAppConfig {
   errorComponent?: Component;
   loadingComponent?: Component;
   viewTransitions?: boolean | ViewTransitionOptions;
+  serializeState?: (app: App) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  hydrateState?: (app: App, state: Record<string, unknown> | null) => void;
 }
 
 export function defineApp(options: DefineAppOptions): ResolvedAppConfig {
@@ -106,7 +152,9 @@ export function defineApp(options: DefineAppOptions): ResolvedAppConfig {
     onClientReady: options.onClientReady,
     errorComponent: options.errorComponent,
     loadingComponent: options.loadingComponent,
-    viewTransitions: options.viewTransitions
+    viewTransitions: options.viewTransitions,
+    serializeState: options.serializeState,
+    hydrateState: options.hydrateState
   };
 }
 
@@ -138,4 +186,50 @@ export function createDefaultAppConfig(): ResolvedAppConfig {
     rootId: 'app',
     rootAttrs: {}
   };
+}
+
+/**
+ * 从多个 `ResolvedAppConfig` 合并出一个最终配置(shared + client/server)。
+ *
+ * `serializeState` 与 `hydrateState` 的合并语义:server 配置的 `serializeState` 优先,
+ * client 配置的 `hydrateState` 优先;shared 配置作为默认值。
+ *
+ * 这个函数在 `virtual:ubean-app` 虚拟模块中以 JS 字符串形式重新实现
+ * (`_mergeAppConfig`),保持两者语义一致。
+ */
+export function mergeAppConfig(
+  base: ResolvedAppConfig,
+  ...configs: (ResolvedAppConfig | null | undefined)[]
+): ResolvedAppConfig {
+  const result: ResolvedAppConfig = { ...base };
+  for (const cfg of configs) {
+    if (!cfg) continue;
+    if (cfg.plugins) result.plugins = [...(result.plugins || []), ...cfg.plugins];
+    if (cfg.globalComponents) result.globalComponents = { ...result.globalComponents, ...cfg.globalComponents };
+    if (cfg.provides) result.provides = { ...result.provides, ...cfg.provides };
+    if (cfg.head) result.head = { ...result.head, ...cfg.head };
+    if (cfg.rootId) result.rootId = cfg.rootId;
+    if (cfg.rootAttrs) result.rootAttrs = { ...result.rootAttrs, ...cfg.rootAttrs };
+    if (cfg.onAppCreated) result.onAppCreated = cfg.onAppCreated;
+    if (cfg.onClientReady) result.onClientReady = cfg.onClientReady;
+    if (cfg.errorComponent) result.errorComponent = cfg.errorComponent;
+    if (cfg.loadingComponent) result.loadingComponent = cfg.loadingComponent;
+    if (cfg.viewTransitions !== undefined) result.viewTransitions = cfg.viewTransitions;
+    if (cfg.serializeState) result.serializeState = cfg.serializeState;
+    if (cfg.hydrateState) result.hydrateState = cfg.hydrateState;
+    if (cfg.router?.setup) {
+      const prevSetup = result.router?.setup;
+      if (prevSetup) {
+        result.router = {
+          setup: (router: Router) => {
+            prevSetup(router);
+            cfg.router!.setup!(router);
+          }
+        };
+      } else {
+        result.router = { setup: cfg.router.setup };
+      }
+    }
+  }
+  return result;
 }

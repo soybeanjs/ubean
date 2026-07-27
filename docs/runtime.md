@@ -171,6 +171,18 @@ export interface DefineAppOptions {
   loadingComponent?: Component;
   /** 启用/配置 View Transitions */
   viewTransitions?: boolean | ViewTransitionOptions;
+  /**
+   * SSR 状态序列化钩子 — 在 renderToString 完成后调用。
+   * 返回的对象会被序列化到 HTML 的 `__UBEAN_STATE__` script 标签中。
+   * 配合 @ubean/pinia 等状态管理扩展使用。
+   */
+  serializeState?: (app: VueApp) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  /**
+   * 客户端状态水合钩子 — 在 applyAppConfig(注册插件)之后、app.mount() 之前调用。
+   * 接收从 `__UBEAN_STATE__` 反序列化的状态对象(或 null)。
+   * 必须在 mount 前执行,否则 store 已用默认值初始化,水合无效。
+   */
+  hydrateState?: (app: VueApp, state: Record<string, unknown> | null) => void;
 }
 
 export interface ResolvedAppConfig {
@@ -186,6 +198,8 @@ export interface ResolvedAppConfig {
   errorComponent?: Component;
   loadingComponent?: Component;
   viewTransitions?: boolean | ViewTransitionOptions;
+  serializeState?: (app: VueApp) => Record<string, unknown> | Promise<Record<string, unknown>>;
+  hydrateState?: (app: VueApp, state: Record<string, unknown> | null) => void;
 }
 
 export function defineApp(options: DefineAppOptions): ResolvedAppConfig;
@@ -1946,5 +1960,135 @@ const {
 - 三种注册模式：`autoUpdate`（自动更新）、`prompt`（提示用户确认）、`manual`（手动调用 register()）
 - Service Worker 文件在构建时输出到 `.output/public/sw.js`
 - DevTools 可查看 SW 注册状态和缓存列表
+
+---
+
+## 4.26 Pinia 状态管理（官方可选 `@ubean/pinia`）
+
+ubean 通过 `@ubean/pinia` 提供 Pinia 集成的薄封装层。它不重新导出 Pinia API,而是负责两件事:
+
+1. **dev 预构建优化** — 将 `pinia` 加入 Vite 的 `optimizeDeps.include`,避免首次请求扫描延迟
+2. **SSR 状态水合辅助** — 提供 `serializePiniaState` / `hydratePiniaState` 函数,配合 `defineApp({ serializeState, hydrateState })` 钩子完成服务端状态序列化与客户端水合
+
+Pinia 本身仍从 `pinia` 包导入(`createPinia`/`defineStore`/`storeToRefs` 等),`@ubean/pinia` 仅提供集成胶水。
+
+### 快速启用
+
+```ts
+// ubean.config.ts
+import { defineConfig } from 'ubean';
+
+export default defineConfig({
+  pinia: true
+});
+```
+
+然后在 `src/app.ts` 中注册 Pinia 插件和 SSR 水合钩子:
+
+```ts
+// src/app.ts
+import { createPinia } from 'pinia';
+import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import { defineApp } from 'ubean';
+
+export default defineApp({
+  plugins: [createPinia()],
+  serializeState: serializePiniaState,
+  hydrateState: hydratePiniaState
+});
+```
+
+### 定义与使用 Store
+
+Store 定义与常规 Pinia 完全一致:
+
+```ts
+// src/stores/counter.ts
+import { defineStore } from 'pinia';
+
+export const useCounterStore = defineStore('counter', {
+  state: () => ({ count: 0 }),
+  getters: {
+    double: state => state.count * 2
+  },
+  actions: {
+    increment() {
+      this.count++;
+    }
+  }
+});
+```
+
+在页面或组件中使用:
+
+```vue
+<script setup lang="ts">
+import { storeToRefs } from 'pinia';
+import { useCounterStore } from '~/stores/counter';
+
+const store = useCounterStore();
+const { count, double } = storeToRefs(store);
+</script>
+
+<template>
+  <button @click="store.increment()">Count: {{ count }} (double: {{ double }})</button>
+</template>
+```
+
+### SSR 状态水合流程
+
+ubean 的 SSR 状态协议通过 `defineApp` 的两个钩子实现:
+
+1. **服务端渲染** — `renderToString(app)` 完成后,ubean SSR 渲染器调用 `serializeState(app)`。`serializePiniaState` 从 `app.config.globalProperties.$pinia.state.value` 提取状态,返回 `{ pinia: ... }`。
+
+2. **HTML 注入** — 渲染器将状态对象序列化为 JSON,注入到 HTML 的 `<script id="__UBEAN_STATE__" type="application/json">` 标签中。
+
+3. **客户端水合** — 客户端入口在 `applyAppConfig`(注册 `createPinia()` 插件)之后、`app.mount()` 之前调用 `hydrateState(app, state)`。`hydratePiniaState` 将 `state.pinia` 赋值给 `pinia.state.value`。
+
+> 必须在 `mount` 前执行水合,否则 store 已用默认 state 初始化,水合无效。ubean 的客户端入口已确保此顺序。
+
+### 配置选项
+
+```ts
+export interface UbeanPiniaOptions {
+  /** 是否启用,默认 true。设为 false 等价于 `pinia: false` */
+  enabled?: boolean;
+  /**
+   * 是否将 `pinia` 加入 Vite 的 `optimizeDeps.include`,默认 true。
+   * dev 模式下预构建 pinia 可避免首次请求的依赖扫描延迟。
+   * 若你使用了自定义的 pinia 别名或 monorepo 内的 pinia 源码,可设为 false。
+   */
+  optimizeDeps?: boolean;
+}
+```
+
+显式配置示例:
+
+```ts
+// ubean.config.ts
+export default defineConfig({
+  pinia: { optimizeDeps: false } // 禁用 dev 预构建(如使用 monorepo 内的 pinia 源码)
+});
+```
+
+### 程序化 API
+
+```ts
+import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/pinia/vite';
+import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/pinia';
+```
+
+- `ubeanPiniaPlugin(options?: UbeanPiniaOptions): Plugin[]` — Vite 插件,通常由模块系统自动调用
+- `definePiniaConfig(options: UbeanPiniaOptions): UbeanPiniaOptions` — 类型安全的配置辅助函数
+- `serializePiniaState(app): PiniaSerializedState` — SSR 序列化,未检测到 `$pinia` 时返回空对象
+- `hydratePiniaState(app, state): void` — 客户端水合,`state` 为 null 或不含 `pinia` 字段时 no-op
+
+### 设计要点
+
+- **零侵入**:Pinia 本身仍从 `pinia` 包导入,`@ubean/pinia` 仅提供 Vite 插件和 SSR 水合辅助函数,不重新导出 Pinia API
+- **协议复用**:通过 ubean 的 `serializeState`/`hydrateState` 钩子集成,不引入并行的状态模型
+- **安全降级**:`serializePiniaState` 在未检测到 `$pinia` 时返回空对象;`hydratePiniaState` 在 `state` 为 null 或不含 `pinia` 字段时 no-op,允许在 CSR 模式或无 SSR state 时安全调用
+- **配置错误提示**:若 `hydrateState` 被调用但 app 上未检测到 `$pinia`(未注册 `createPinia()` 插件),会在控制台输出明确警告
 
 ---

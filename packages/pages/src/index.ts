@@ -6,11 +6,14 @@ export {
   buildPageShell,
   buildClientOnlyShell,
   insertSsrContent,
+  insertStateContent,
   renderPage,
   PAGE_DATA_ID,
   LOCALE_DATA_ID,
+  STATE_DATA_ID,
   PAGE_REQUEST_HEADER,
-  SSR_CONTENT_MARKER
+  SSR_CONTENT_MARKER,
+  STATE_MARKER
 } from './protocol';
 
 export {
@@ -34,6 +37,7 @@ export type {
   PageObject,
   PageAssetTags,
   PageRenderFn,
+  PageRenderResult,
   PageRenderer,
   PageRenderContext,
   LocaleMetaInfo

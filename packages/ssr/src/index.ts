@@ -4,7 +4,14 @@ import { renderToString } from '@vue/server-renderer';
 import type { RouteRecordRaw } from 'vue-router';
 import { getIslandsBootstrapScript } from '@ubean/islands';
 import { SSR_CONTENT_MARKER } from '@ubean/pages';
-import type { PageObject, PageRenderer, PageAssetTags, PageRenderContext, PageHead } from '@ubean/pages';
+import type {
+  PageObject,
+  PageRenderer,
+  PageAssetTags,
+  PageRenderContext,
+  PageHead,
+  PageRenderResult
+} from '@ubean/pages';
 import { applyAppConfig } from '@ubean/runtime/define-app';
 import type { ResolvedAppConfig } from '@ubean/runtime/define-app';
 import { createHead, transformHtmlTemplate } from '@unhead/vue/server';
@@ -116,7 +123,7 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     shellHtml: string,
     _assetTags: PageAssetTags,
     renderContext?: PageRenderContext
-  ) => {
+  ): Promise<PageRenderResult> => {
     const head = createHead();
 
     // Resolve user's defineApp config once per render. The config object is
@@ -146,6 +153,7 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     }
 
     let appHtml: string;
+    let renderApp: App | null = null;
     if (isSimpleOptions(options)) {
       const pageComponent = await options.resolvePageComponent(pageObj.component);
       if (!pageComponent) {
@@ -161,6 +169,7 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
       if (appConfig) {
         await applyServerAppConfig(app, appConfig);
       }
+      renderApp = app;
       appHtml = await renderToString(app);
     } else {
       const { createUbeanSSRApp } = await import('@ubean/runtime/app');
@@ -174,16 +183,38 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
         await applyServerAppConfig(createdApp, appConfig);
       }
       await router.isReady();
+      renderApp = createdApp;
       appHtml = await renderToString(createdApp);
     }
 
+    // SSR 状态序列化:在 renderToString 完成后,从 app 实例提取状态
+    // (如 Pinia 的 pinia.state.value)。返回的 state 会被 renderPage
+    // 注入到 HTML 的 __UBEAN_STATE__ script 标签中。
+    let state: Record<string, unknown> | undefined;
+    if (appConfig?.serializeState && renderApp) {
+      try {
+        const serialized = await appConfig.serializeState(renderApp);
+        if (serialized && Object.keys(serialized).length > 0) {
+          state = serialized;
+        }
+      } catch (err) {
+        // 序列化失败不应阻塞渲染,记录错误后继续(产出无 state 的 HTML)
+        console.error('[ubean-ssr] serializeState failed:', err);
+      }
+    }
+
     if (!shellHtml) {
+      // 无 shell 时,无法注入 state,直接返回 HTML 字符串
       return appHtml;
     }
 
     const htmlWithApp = shellHtml.replace(SSR_CONTENT_MARKER, appHtml);
     const html = transformHtmlTemplate(head, htmlWithApp);
 
+    // 有 state 时返回 { html, state },由 renderPage 注入到 __UBEAN_STATE__
+    if (state) {
+      return { html, state };
+    }
     return html;
   };
 

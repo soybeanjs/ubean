@@ -74,6 +74,23 @@ export interface UiModuleConfig {
   css?: boolean;
 }
 
+/**
+ * Pinia 模块配置（SSR 状态管理集成）。
+ * `pinia: true` 即可启用 Vite 预构建优化。
+ *
+ * 注意:SSR 状态水合需要在 `src/app.ts` 中显式配置
+ * `serializeState` / `hydrateState`(从 `@ubean/pinia/runtime` 导入)。
+ */
+export interface UbeanPiniaOptions {
+  /** 是否禁用 */
+  disabled?: boolean;
+  /**
+   * 是否将 `pinia` 加入 Vite 的 `optimizeDeps.include`，默认 true。
+   * dev 模式下预构建 pinia 可避免首次请求的依赖扫描延迟。
+   */
+  optimizeDeps?: boolean;
+}
+
 /* -------------------------------------------------------------------------- */
 /* DevTools Config                                                             */
 /* -------------------------------------------------------------------------- */
@@ -463,6 +480,28 @@ export interface UbeanConfig {
   /** @soybeanjs/ui 集成配置（`true` 启用，默认注入 styles.css + UiResolver） */
   ui?: boolean | UiModuleConfig;
   /**
+   * Pinia 集成配置（`true` 启用 Vite 预构建优化）。
+   *
+   * 注意:`pinia: true` 仅启用 Vite 插件优化。SSR 状态水合需要在 `src/app.ts`
+   * 中显式配置 `serializeState` / `hydrateState`(从 `@ubean/pinia/runtime` 导入)。
+   *
+   * @example
+   * ```ts
+   * // ubean.config.ts
+   * export default defineConfig({ pinia: true });
+   *
+   * // src/app.ts
+   * import { createPinia } from 'pinia';
+   * import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+   * export default defineApp({
+   *   plugins: [createPinia()],
+   *   serializeState: serializePiniaState,
+   *   hydrateState: hydratePiniaState
+   * });
+   * ```
+   */
+  pinia?: boolean | UbeanPiniaOptions;
+  /**
    * DevTools 配置（默认 `false` 禁用）。
    *
    * - `true` 启用（使用默认配置）
@@ -549,6 +588,7 @@ export interface ResolvedConfig extends Required<
   fonts: boolean | BuiltinModuleOptions;
   electron: boolean | ElectronModuleConfig;
   ui: boolean | UiModuleConfig;
+  pinia: boolean | UbeanPiniaOptions;
   devtools: ResolvedDevToolsConfig;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   prerender: ResolvedPrerenderConfig;

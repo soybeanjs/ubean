@@ -50,6 +50,7 @@ export * from '@ubean/routing';
 export {
   // client entry
   getInitialPageData,
+  getInitialState,
   // head
   useHeadInstance,
   injectHead,
@@ -101,6 +102,7 @@ export {
   defineApp,
   applyAppConfig,
   createDefaultAppConfig,
+  mergeAppConfig,
   // page-macro(no-op 宏,构建时被 strip)
   definePage,
   defineMeta,

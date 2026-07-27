@@ -255,6 +255,51 @@ const { user, isAuthenticated, isLoading, signIn, signUp, signOut, session } = u
 - 自动注册 fetchSession（onMounted + focus/visibilitychange 监听）
 - 支持 Better Auth 全部特性：OAuth 社交登录、session 管理、账号关联等
 
+### 4.7 `@ubean/pinia`：参考 Nuxt Pinia / Pinia 官方 SSR
+
+[Pinia](https://pinia.vuejs.org/) 是 Vue 官方推荐的状态管理库。ubean 通过 `@ubean/pinia` 提供薄封装层,负责 dev 预构建优化和 SSR 状态水合辅助,不重新导出 Pinia API。
+
+```ts
+// ubean.config.ts
+import { defineConfig } from 'ubean';
+
+export default defineConfig({
+  pinia: true // 启用 dev 预构建优化
+});
+```
+
+```ts
+// src/app.ts — 注册 Pinia 插件 + SSR 水合钩子
+import { createPinia } from 'pinia';
+import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import { defineApp } from 'ubean';
+
+export default defineApp({
+  plugins: [createPinia()],
+  serializeState: serializePiniaState,
+  hydrateState: hydratePiniaState
+});
+```
+
+```ts
+// src/stores/counter.ts — Store 定义与常规 Pinia 完全一致
+import { defineStore } from 'pinia';
+
+export const useCounterStore = defineStore('counter', {
+  state: () => ({ count: 0 }),
+  actions: {
+    increment() { this.count++; }
+  }
+});
+```
+
+- `ubean.config.ts` 中 `pinia: true` 或 `pinia: { ... }` 启用,自动将 `pinia` 加入 `optimizeDeps.include`
+- SSR 状态水合通过 `defineApp({ serializeState, hydrateState })` 钩子集成,状态序列化到 HTML 的 `__UBEAN_STATE__` script 标签
+- `serializePiniaState(app)` 从 `app.config.globalProperties.$pinia.state.value` 提取状态
+- `hydratePiniaState(app, state)` 在 `applyAppConfig`(注册 `createPinia()` 插件)后、`app.mount()` 前调用,将 SSR state 注入客户端 pinia 实例
+- **零侵入**:Pinia 本身仍从 `pinia` 包导入,`@ubean/pinia` 仅提供集成胶水和 SSR 水合辅助
+- **安全降级**:未检测到 `$pinia` 时序列化返回空对象;`state` 为 null 或不含 `pinia` 字段时水合 no-op
+
 ## 5. 延后能力
 
 | 能力                                                 | 决策                                | 原因                                                                           |
@@ -263,6 +308,7 @@ const { user, isAuthenticated, isLoading, signIn, signUp, signOut, session } = u
 | 通用 Remote Functions/RPC                            | 暂缓                                | OpenAPI client 与 Pages action 已覆盖主要需求，避免并行鉴权/缓存模型           |
 | PWA / Service Worker                                 | ✅ `@ubean/pwa` 已提供 opt-in 扩展  | 仅提供版本化 asset manifest、注册入口和显式 cache strategy；不默认缓存业务数据 |
 | 认证 (Auth)                                          | ✅ `@ubean/auth` 已提供 opt-in 扩展 | Better Auth 集成 + 内置fallback，支持email/password与社交登录                  |
+| 状态管理 (Pinia)                                     | ✅ `@ubean/pinia` 已提供 opt-in 扩展 | dev 预构建优化 + SSR 状态水合辅助;Pinia 本身由用户直接安装                     |
 | 内容浏览器 SQLite、全文搜索、远程 Git source、Studio | 后续扩展                            | 初版优先保证 collection、类型查询、renderer 与静态 dump 的稳定性               |
 
 ## 6. 验收要求

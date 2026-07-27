@@ -16,7 +16,7 @@
 
 ```
 ubean/
-├── packages/                # 38 个子包（monorepo）
+├── packages/                # 39 个子包（monorepo）
 │   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
 │   ├── types/              # @ubean/types — 共享类型
 │   ├── utils/              # @ubean/utils — 工具函数
@@ -51,6 +51,7 @@ ubean/
 │   ├── content/            # @ubean/content — 内容集合
 │   ├── fonts/              # @ubean/fonts — 字体优化
 │   ├── electron/           # @ubean/electron — Electron 桌面应用（vite-plugin-electron 封装）
+│   ├── pinia/              # @ubean/pinia — Pinia 集成（SSR 状态水合 + dev 预构建优化）
 │   └── ui/                 # @ubean/ui — @soybeanjs/ui 集成（UiResolver + styles.css 自动注入）
 ├── examples/                # 示例项目
 │   ├── ubean-test/         # 完整全栈示例 + 测试（virtual 模式）
@@ -66,8 +67,8 @@ ubean/
 ubean 采用 **monorepo + 聚合器** 架构：
 
 - **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含 4 个子路径导出（见下文）。
-- **子包 `@ubean/*`**（其余 37 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
-- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`ui`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
+- **子包 `@ubean/*`**（其余 38 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`pinia: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
 
 ### 2.2 主包子路径导出
 
@@ -127,6 +128,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - `UbeanConfig` 的 `modules` 字段支持字符串包名、元组和实例
 - 平台预设：`standard`、`node`、`cloudflare`（`default` → `standard`，`cf` → `cloudflare`，`node-server` → `node`）
 - 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）
+- 扩展模块顶层字段：`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`，均支持 `true` 或选项对象形式启用
 
 ### 3.6 模块与扩展包
 
@@ -159,9 +161,11 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `applyAppConfig(app, config, mode)`     | 应用配置到 Vue 实例                    |
 | `createUbeanApp(options)`               | 创建 ubean Hono 应用                   |
 
-`DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`
+`DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
 
 > `router` 字段接收 `RouterConfig`(`{ setup(router) }`),在 router 实例创建后、`app.use(router)` 之前调用 `setup`,用于注册 vue-router 的导航守卫(`beforeEach`/`beforeResolve`/`afterEach`)。Client 和 SSR 都会执行;`app.ts` + `app.server.ts`/`app.client.ts` 中各自定义的 `setup` 会**累加执行**(shared 先,client/server 后)。
+
+> `serializeState(app)` 在 SSR `renderToString` 完成后调用,返回的对象被序列化到 HTML 的 `__UBEAN_STATE__` script 标签;`hydrateState(app, state)` 在客户端 `applyAppConfig`(注册插件)之后、`app.mount()` 之前调用,用于将 SSR state 注入到客户端实例(如 Pinia 的 `pinia.state.value`)。两者均为可选,配合 `@ubean/pinia` 等状态管理扩展使用。
 
 ### 配置
 
@@ -406,6 +410,49 @@ export default defineConfig({
 });
 ```
 
+### @ubean/pinia
+
+```typescript
+import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/pinia/vite';
+import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/pinia';
+```
+
+- **底层实现**：[Pinia](https://pinia.vuejs.org/)（ubean 仅提供薄封装层,负责 dev 预构建优化和 SSR 状态水合辅助函数）
+- `ubean.config.ts` 中 `pinia: true` 或 `pinia: { ... }` 启用
+- **dev 预构建优化**：自动将 `pinia` 加入 Vite 的 `optimizeDeps.include`,避免首次请求扫描延迟
+- **SSR 状态水合**：通过 `defineApp({ serializeState, hydrateState })` 钩子集成,在 HTML 中注入 `__UBEAN_STATE__` script 标签
+- **零侵入**：Pinia 本身仍从 `pinia` 包导入(`createPinia`/`defineStore`/`storeToRefs` 等),`@ubean/pinia` 仅提供集成胶水
+- `UbeanPiniaOptions`：`enabled`(默认 true)、`optimizeDeps`(默认 true)
+- `serializePiniaState(app)`：从 Vue app 的 `$pinia.state.value` 提取状态
+- `hydratePiniaState(app, state)`：将 SSR state 注入客户端 pinia 实例(在 `applyAppConfig` 后、`mount` 前调用)
+
+**最简启用**：
+
+```typescript
+// ubean.config.ts
+export default defineConfig({
+  pinia: true // dev 预构建优化
+});
+```
+
+**SSR 状态水合配置**：
+
+```typescript
+// src/app.ts
+import { createPinia } from 'pinia';
+import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import { defineApp } from 'ubean';
+
+export default defineApp({
+  plugins: [createPinia()],
+  serializeState: serializePiniaState,
+  hydrateState: hydratePiniaState
+});
+```
+
+> Pinia 本身请直接从 `pinia` 导入(`import { createPinia, defineStore } from 'pinia'`),`@ubean/pinia` 仅负责构建集成和 SSR 水合辅助。
+
 ### @ubean/ui
 
 ```typescript
@@ -495,7 +542,7 @@ pnpm build            # 构建
 | -------- | -------------------------------------------------------------------- | ----------------------------------------------------------- |
 | 架构文档 | [docs/](docs/)                                                       | 架构、工程规范、路线图、子包拆分、应用模式                  |
 | 使用指南 | [skills/ubean/docs/guide/](skills/ubean/docs/guide/)                 | 快速开始、页面路由、i18n、Islands、路由模式                 |
-| 集成指南 | [skills/ubean/docs/integrations/](skills/ubean/docs/integrations/)   | Auth、Database、Icons                                       |
+| 集成指南 | [skills/ubean/docs/integrations/](skills/ubean/docs/integrations/)   | Auth、Database、Icons、Pinia、UI、Electron                  |
 | API 参考 | [skills/ubean/docs/reference/api/](skills/ubean/docs/reference/api/) | Cache、Database、Env、i18n、Route Helpers、Response Helpers |
 | CLI 命令 | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)       | CLI 命令文档                                                |
 | 示例项目 | [examples/ubean-test/](examples/ubean-test/)                         | 完整全栈示例 + 测试（virtual 路由模式）                     |

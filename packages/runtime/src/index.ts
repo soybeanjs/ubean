@@ -1,4 +1,4 @@
-export { getInitialPageData } from './client';
+export { getInitialPageData, getInitialState } from './client';
 
 // Augment vue-router's RouteMeta with ubean-managed meta fields so projects
 // get full type-safety when reading `route.meta.cache` / `route.meta.pageName`
@@ -90,7 +90,7 @@ export {
 export type { UsePageTransitionReturn, UseReloadSignalReturn } from './page-runtime';
 export { createUbeanRouter } from './router';
 export type { CreateUbeanRouterOptions } from './router';
-export { defineApp, applyAppConfig, createDefaultAppConfig } from './define-app';
+export { defineApp, applyAppConfig, createDefaultAppConfig, mergeAppConfig } from './define-app';
 export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
 export { definePage, defineMeta, defineMiddleware } from './page-macro';
 export type { SeoMetadata, MetaTag, LinkTag } from '@ubean/seo';

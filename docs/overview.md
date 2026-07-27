@@ -34,6 +34,7 @@
 | 平台适配       | Cloudflare 为主             | 30+ 平台 preset          | ✅ nitro 风格 preset 系统                                   |
 | 部署平台       | Void Cloud (自有平台)       | 各平台独立部署           | ❌ 移除，改为通用部署                                       |
 | 登录认证       | Better Auth 内置            | 无内置                   | ✅ 独立扩展包 `@ubean/auth`（Better Auth集成+内置fallback） |
+| 状态管理       | 无内置                      | 无内置                   | ✅ 独立扩展包 `@ubean/pinia`（Pinia 集成 + SSR 状态水合）   |
 | 数据库         | Drizzle ORM + D1/PG         | db0 抽象层               | ✅ Drizzle ORM + 多数据库驱动                               |
 | 环境变量       | defineEnv + Schema 验证     | runtimeConfig            | ✅ defineEnv + 类型安全验证                                 |
 | 缓存/ISR       | KV + Edge Cache             | routeRules 缓存          | ✅ 融合两者                                                 |
@@ -136,6 +137,7 @@
 | 浏览器传输适配器      | 仅在浏览器 client entry 打包；不进入 Node、edge 或 SSR bundle                | `ubean/client-xhr`（上传进度）、数据库驱动                      |
 | DevTools 与 Auth/PWA  | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`、`@ubean/pwa`                  |
 | 资源与内容扩展        | 独立包；依赖及平台实现按功能拆分，核心不静态引入                             | `@ubean/icon`、`@ubean/image`、`@ubean/content`、`@ubean/fonts` |
+| 状态管理与 UI 集成    | 独立包；底层库作为 peerDependency 由用户控制版本                             | `@ubean/pinia`、`@ubean/ui`                                     |
 
 - 文档示例若使用 `zod`，必须标记为用户项目依赖；框架核心仅依赖 Standard Schema 规范，不绑定某个验证库。
 - `@ubean/icon` 将 `@iconify/vue` 作为 Vue peer dependency，`@iconify-json/<collection>` 由用户按需安装为开发依赖；禁止将全量 `@iconify/json` 加入框架或应用默认依赖。
@@ -216,7 +218,10 @@ ubean/
 │   ├── ubean-pwa/                   # @ubean/pwa (manifest + sw)
 │   ├── ubean-image/                 # @ubean/image
 │   ├── ubean-content/               # @ubean/content
-│   └── ubean-fonts/                 # @ubean/fonts
+│   ├── ubean-fonts/                 # @ubean/fonts
+│   ├── ubean-electron/              # @ubean/electron (Electron 桌面应用)
+│   ├── ubean-pinia/                 # @ubean/pinia (Pinia 集成 + SSR 状态水合)
+│   └── ubean-ui/                    # @ubean/ui (@soybeanjs/ui 集成)
 │
 ├── examples/
 │   └── ubean-test/                  # 完整示例项目 (pages/, routes/api/, crons/, middleware/, layouts/, locales/, app.ts, ubean.config.ts)

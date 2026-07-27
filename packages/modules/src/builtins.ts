@@ -1,5 +1,5 @@
 export interface BuiltinModuleDefinition {
-  key: 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'electron' | 'ui';
+  key: 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'electron' | 'ui' | 'pinia';
   modulePath: string;
   factoryExport?: string;
   pluginName: string;
@@ -47,6 +47,12 @@ export const BUILTIN_MODULES: BuiltinModuleDefinition[] = [
     modulePath: '@ubean/ui/vite',
     factoryExport: 'ubeanUiPlugin',
     pluginName: 'ubean:ui'
+  },
+  {
+    key: 'pinia',
+    modulePath: '@ubean/pinia/vite',
+    factoryExport: 'ubeanPiniaPlugin',
+    pluginName: 'ubean:pinia'
   }
 ];
 

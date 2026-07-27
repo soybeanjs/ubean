@@ -35,6 +35,7 @@
     "@ubean/codegen": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/dev-server": "workspace:*",
+    "@ubean/modules": "workspace:*",
     "@ubean/prerender": "workspace:*",
     "@ubean/preset": "workspace:*",
     "@ubean/routing": "workspace:*",

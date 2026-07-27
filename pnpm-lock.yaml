@@ -322,6 +322,9 @@ importers:
       '@ubean/devtools':
         specifier: workspace:*
         version: link:../devtools
+      '@ubean/modules':
+        specifier: workspace:*
+        version: link:../modules
       '@ubean/prerender':
         specifier: workspace:*
         version: link:../prerender
@@ -795,6 +798,9 @@ importers:
       '@ubean/types':
         specifier: workspace:*
         version: link:../types
+      consola:
+        specifier: ^3.4.2
+        version: 3.4.2
       hookable:
         specifier: ^6.1.1
         version: 6.1.1

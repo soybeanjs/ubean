@@ -1,5 +1,6 @@
 import type { Plugin as VitePlugin } from 'vite';
 import type { ModuleDefinition, ResolvedModule, ResolvedConfig } from '@ubean/config';
+import { consola } from 'consola';
 import { createHooks } from 'hookable';
 import { BUILTIN_MODULES, isBuiltinDisabled, extractBuiltinOptions } from './builtins';
 import { createModuleKitContext, topologicalSort } from './kit';
@@ -10,6 +11,22 @@ import type {
   DevServerHandlerRegistration,
   DevToolsCustomTab
 } from './kit';
+
+const logger = consola.withTag('ubean-modules');
+
+/**
+ * Extracts the bare package name from a module path.
+ * Examples:
+ *   '@ubean/ui/vite'      → '@ubean/ui'
+ *   '@ubean/electron/vite' → '@ubean/electron'
+ *   'some-pkg/sub'        → 'some-pkg'
+ */
+function extractPackageName(modulePath: string): string {
+  if (modulePath.startsWith('@')) {
+    return modulePath.split('/').slice(0, 2).join('/');
+  }
+  return modulePath.split('/')[0];
+}
 
 export {
   BUILTIN_MODULES,
@@ -222,8 +239,18 @@ async function loadBuiltinModule(
         };
       }
     }
-  } catch {
-    // Module not installed, skip auto-registration
+  } catch (err) {
+    // Module is enabled in config but the package is not installed.
+    // Emit a clear warning so users know the module is silently skipped
+    // (rather than puzzling over why `ui: true` has no effect).
+    const packageName = extractPackageName(builtin.modulePath);
+    logger.warn(
+      `Built-in module "${builtin.key}" is enabled in ubean.config but \`${packageName}\` is not installed. ` +
+        `The module will be skipped. Install it with: pnpm add ${packageName} (or npm/yarn/bun equivalent).`
+    );
+    if (process.env.UBEAN_DEBUG) {
+      logger.debug(`Import error for ${builtin.modulePath}:`, err);
+    }
   }
   return null;
 }

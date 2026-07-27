@@ -35,7 +35,7 @@ import type { ElectronOptions } from './types';
  *
  * 通常由 ubean module 系统自动加载，无需在 vite.config.ts 中手动调用。
  */
-export function ubeanElectronPlugin(options: ElectronOptions = {}): Plugin[] {
+export async function ubeanElectronPlugin(options: ElectronOptions = {}): Promise<Plugin[]> {
   // 禁用时返回 noop 插件
   if (options.enabled === false) {
     return [{ name: 'ubean:electron:noop', enforce: 'post' }];
@@ -60,7 +60,8 @@ export function ubeanElectronPlugin(options: ElectronOptions = {}): Plugin[] {
     electronConfig.renderer = options.renderer;
   }
 
-  const plugins = electron(electronConfig);
+  // vite-plugin-electron/simple 的 electronSimple 是 async 函数，必须 await
+  const plugins = await electron(electronConfig);
 
   // vite-plugin-electron/simple 返回 Plugin[]，重命名便于识别
   const pluginArray = Array.isArray(plugins) ? plugins : [plugins];

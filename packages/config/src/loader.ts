@@ -1,6 +1,8 @@
+import { existsSync } from 'node:fs';
 import { defu } from 'defu';
 import { loadConfig } from 'c12';
-import { resolve } from 'pathe';
+import { createJiti } from 'jiti';
+import { resolve, join } from 'pathe';
 import { resolveRoutingConfig } from './routing';
 import type {
   UbeanConfig,
@@ -151,15 +153,13 @@ const configDefaults: ResolvedConfig = {
 
 let cachedConfig: ResolvedConfig | null = null;
 
-export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<ResolvedConfig> {
-  const { config } = await loadConfig<UbeanConfig>({
-    cwd,
-    name: 'ubean',
-    configFile: 'ubean.config',
-    rcFile: '.ubeanrc',
-    defaults: {}
-  });
-
+/**
+ * 将用户侧 `UbeanConfig` 解析为内部 `ResolvedConfig`（合并默认值 + 派生字段）。
+ *
+ * `loadUbeanConfig`（async）和 `loadUbeanConfigSync`（sync）共用此逻辑，
+ * 确保两条路径产出完全一致的配置对象。
+ */
+function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   const resolved = defu(config as Partial<ResolvedConfig>, configDefaults) as ResolvedConfig;
   resolved.rootDir = resolve(cwd);
   resolved.srcDir = resolve(cwd, resolved.srcDir);
@@ -174,6 +174,63 @@ export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<Reso
   resolved.prerender = resolvePrerenderConfig(config.prerender);
   // 重新解析 devtools(同 prerender,defu 浅合并会让 enabled 失真)
   resolved.devtools = resolveDevToolsConfig(config.devtools);
+  return resolved;
+}
+
+/**
+ * 查找 ubean 配置文件（支持 .ts/.js/.mjs/.cjs/.mts/.cts 扩展名）。
+ * 返回找到的第一个文件的绝对路径，未找到返回 null。
+ */
+function findUbeanConfigFile(cwd: string): string | null {
+  const extensions = ['.ts', '.js', '.mjs', '.cjs', '.mts', '.cts'];
+  for (const ext of extensions) {
+    const filePath = join(cwd, `ubean.config${ext}`);
+    if (existsSync(filePath)) return filePath;
+  }
+  return null;
+}
+
+export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<ResolvedConfig> {
+  const { config } = await loadConfig<UbeanConfig>({
+    cwd,
+    name: 'ubean',
+    configFile: 'ubean.config',
+    rcFile: '.ubeanrc',
+    defaults: {}
+  });
+
+  const resolved = resolveUbeanConfig(config, cwd);
+  cachedConfig = resolved;
+  return resolved;
+}
+
+/**
+ * 同步加载 ubean 配置。
+ *
+ * 用于 Vite 插件工厂等必须同步获取配置的场景（如 `ubeanPlugin()` 在
+ * `vite.config.ts` 中被调用时，无法 await `loadUbeanConfig()`）。
+ *
+ * 解析顺序：
+ * 1. `tryGetConfig()` 全局缓存（CLI `dev`/`build` 已调用 `loadUbeanConfig()` 时命中）
+ * 2. 用 jiti 同步加载 `ubean.config.{ts,js,mjs,cjs,mts,cts}`
+ *
+ * 注意：同步路径不支持 c12 的 `.ubeanrc` 和环境变量合并，仅读取 `ubean.config.*` 文件。
+ * 实践中 `ubean.config.ts` 是唯一配置源，此限制可接受。
+ */
+export function loadUbeanConfigSync(cwd: string = process.cwd()): ResolvedConfig {
+  // 1. 优先使用缓存（CLI 已加载时命中，包含 CLI 对 mode/ssr 的修改）
+  if (cachedConfig) return cachedConfig;
+
+  // 2. 用 jiti 同步加载 ubean.config.* 文件
+  const configPath = findUbeanConfigFile(cwd);
+  let config: UbeanConfig = {};
+
+  if (configPath) {
+    const jiti = createJiti(cwd, { interopDefault: true });
+    config = jiti(configPath) as UbeanConfig;
+  }
+
+  const resolved = resolveUbeanConfig(config, cwd);
   cachedConfig = resolved;
   return resolved;
 }

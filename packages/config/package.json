@@ -24,6 +24,7 @@
     "@ubean/types": "workspace:*",
     "c12": "^4.0.0-beta.5",
     "defu": "6.1.7",
+    "jiti": "^2.7.0",
     "pathe": "^2.0.3"
   },
   "devDependencies": {

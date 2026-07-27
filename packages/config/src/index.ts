@@ -13,6 +13,7 @@
 export {
   defineConfig,
   loadUbeanConfig,
+  loadUbeanConfigSync,
   getConfig,
   tryGetConfig,
   resolvePrerenderConfig,

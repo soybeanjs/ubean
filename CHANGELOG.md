@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.6...main) (2026-07-27)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **config**: add sync config loader and fix electron plugin async issue &nbsp;-&nbsp; by @soybeanjs [<samp>(669ee)</samp>](https://github.com/soybeanjs/ubean/commit/669ee87)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.5...main) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;💅 Refactors

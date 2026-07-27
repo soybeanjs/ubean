@@ -1,6 +1,6 @@
 {
   "name": "@ubean/seo",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "SEO utilities for ubean (useSeoMeta, robots, sitemap, manifest)",
   "files": [
     "dist"

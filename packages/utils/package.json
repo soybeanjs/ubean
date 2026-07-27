@@ -1,6 +1,6 @@
 {
   "name": "@ubean/utils",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Shared utilities for ubean (path conversion, port detection, vite config)",
   "files": [
     "dist"

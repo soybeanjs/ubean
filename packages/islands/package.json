@@ -1,6 +1,6 @@
 {
   "name": "@ubean/islands",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Islands architecture for ubean (Vite plugin for client:load/idle/visible/media/only directives, bootstrap script, client hydrate runtime)",
   "files": [
     "dist"

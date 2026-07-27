@@ -1,5 +1,23 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.3...main) (2026-07-27)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **modules**: add auto-install support for missing built-in modules &nbsp;-&nbsp; by @soybeanjs [<samp>(b38bd)</samp>](https://github.com/soybeanjs/ubean/commit/b38bd2d)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **README**: update README &nbsp;-&nbsp; by @soybeanjs [<samp>(aa02a)</samp>](https://github.com/soybeanjs/ubean/commit/aa02a6a)
+
+### &nbsp;&nbsp;&nbsp;📦 Build
+
+- **package.json**: fix typecheck script &nbsp;-&nbsp; by @soybeanjs [<samp>(27fbf)</samp>](https://github.com/soybeanjs/ubean/commit/27fbfe2)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.2...main) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation

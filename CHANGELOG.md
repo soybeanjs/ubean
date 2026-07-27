@@ -1,5 +1,18 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.2...main) (2026-07-27)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **projects**: update CHANGELOG &nbsp;-&nbsp; by @soybeanjs [<samp>(bc4df)</samp>](https://github.com/soybeanjs/ubean/commit/bc4df58)
+
+### &nbsp;&nbsp;&nbsp;📦 Build
+
+- **package.json**: fix build script &nbsp;-&nbsp; by @soybeanjs [<samp>(2aeea)</samp>](https://github.com/soybeanjs/ubean/commit/2aeea2f)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
 ## [v0.1.2](https://github.com/soybeanjs/ubean/compare/v0.1.1...v0.1.2) (2026-07-27)
 
@@ -385,6 +398,3 @@
 ### &nbsp;&nbsp;&nbsp;❤️ Contributors
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
-
-
-

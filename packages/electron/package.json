@@ -1,6 +1,6 @@
 {
   "name": "@ubean/electron",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Electron module for ubean (thin wrapper around vite-plugin-electron)",
   "files": [
     "dist"

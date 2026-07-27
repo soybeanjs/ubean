@@ -3,8 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "pnpm --filter ubean build",
-    "build:libs": "pnpm -F './packages/*' --parallel build",
+    "build": "pnpm -F './packages/*' --parallel build",
     "commit": "soy git-commit",
     "dev": "pnpm --filter ubean dev",
     "fmt": "vp fmt",

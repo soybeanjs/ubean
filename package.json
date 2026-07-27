@@ -14,7 +14,7 @@
     "release": "soy release",
     "test": "pnpm --filter ubean test",
     "test:watch": "pnpm --filter ubean test:watch",
-    "typecheck": "pnpm build:libs && pnpm -r typecheck",
+    "typecheck": "pnpm build && pnpm -r typecheck",
     "upkg": "soy ncu"
   },
   "devDependencies": {

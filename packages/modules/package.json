@@ -29,9 +29,9 @@
     "hookable": "^6.1.1"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "hono": "4.12.32",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vite": "^8.1.5",
     "vite-plus": "catalog:"
   },

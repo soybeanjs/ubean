@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@soybeanjs/ui": "^0.29.3",
-    "@types/node": "^26.1.1",
-    "typescript": "6.0.3",
+    "@types/node": "^26.1.2",
+    "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },

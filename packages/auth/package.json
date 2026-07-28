@@ -39,9 +39,9 @@
     "defu": "6.1.7"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "hono": "4.12.32",
-    "typescript": "6.0.3",
+    "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vue": "^3.5.40"

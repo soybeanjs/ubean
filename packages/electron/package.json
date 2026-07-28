@@ -25,12 +25,12 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "vite-plugin-electron": "^1.0.0"
+    "vite-plugin-electron": "^1.1.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
-    "electron": "^37.2.0",
-    "typescript": "6.0.3",
+    "@types/node": "^26.1.2",
+    "electron": "^43.2.0",
+    "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },

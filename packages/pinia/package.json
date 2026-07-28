@@ -33,9 +33,9 @@
     "@ubean/build": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^26.1.1",
-    "pinia": "^3.0.0",
-    "typescript": "6.0.3",
+    "@types/node": "^26.1.2",
+    "pinia": "^4.0.2",
+    "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vue": "^3.5.40"

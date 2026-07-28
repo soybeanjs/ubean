@@ -14,14 +14,14 @@
     "release": "soy release",
     "test": "pnpm --filter ubean test",
     "test:watch": "pnpm --filter ubean test:watch",
-    "typecheck": "pnpm build && pnpm -r typecheck",
+    "typecheck": "pnpm build && pnpm -r --parallel typecheck",
     "upkg": "soy ncu"
   },
   "devDependencies": {
-    "@soybeanjs/cli": "^1.8.0",
+    "@soybeanjs/cli": "^1.8.1",
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
-    "@types/node": "^26.1.1",
+    "@types/node": "^26.1.2",
     "eslint": "^10.8.0",
     "vite-plus": "0.2.6"
   },

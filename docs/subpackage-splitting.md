@@ -195,10 +195,11 @@ packages/
 - **入口**: `@ubean/runtime`、`@ubean/runtime/app`、`@ubean/runtime/define-app`
 
 #### `@ubean/islands`
-- **职责**: Islands 架构 —— Vite 插件(`client:load/idle/visible/media/only` 指令转换)、bootstrap 脚本、客户端 hydrate 运行时
+- **职责**: Islands 架构 —— Vite 插件(`client:load/idle/visible/media/only` 指令转换)、bootstrap 脚本、客户端 hydrate 运行时、**组件自动注册**（扫描 `client:*` 指令 + 解析 `<script setup>` import → 生成 `virtual:ubean-islands-registry` 虚拟模块）
 - **来源**: `core/islands/`、`runtime/vue/islands.ts`
 - **依赖**: `vue`(SFC 编译)、`@ubean/utils`
 - **入口**: `@ubean/islands/vite`、`@ubean/islands/runtime`
+- **虚拟模块**: `virtual:ubean-islands-registry`（由 Vite 插件生成,导出自动收集的 island 组件注册表）
 
 #### `@ubean/ssr`
 - **职责**: Vue SSR 渲染器 —— `createVueRenderer`、`renderToString`、`applyServerAppConfig`

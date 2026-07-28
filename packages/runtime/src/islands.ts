@@ -283,5 +283,18 @@ function resolveComponent(
 ): Component | Promise<Component> | null {
   if (components[name]) return components[name];
   if (getComponent) return getComponent(name);
+
+  // 诊断警告:组件未在注册表中找到,输出可能原因与已注册组件列表
+  // 帮助快速定位「island 静默不水合」问题(常见于组件名不匹配或忘记注册)
+  const registered = Object.keys(components);
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[ubean:islands] Island component "${name}" not found in registry.\n` +
+      `Possible causes:\n` +
+      `  1. Component is globally registered or dynamically imported — pass it via hydrateIslands({ components: { ${name}: YourComp } })\n` +
+      `  2. Component name mismatch between template tag and import\n` +
+      `  3. Component is auto-imported by unplugin-vue-components (no static import → not in auto-registry)\n` +
+      `Registered components: ${registered.length > 0 ? registered.join(', ') : '(none)'}`
+  );
   return null;
 }

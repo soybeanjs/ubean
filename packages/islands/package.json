@@ -21,10 +21,14 @@
     "./runtime": {
       "types": "./dist/runtime.d.ts",
       "import": "./dist/runtime.js"
+    },
+    "./virtual-registry": {
+      "types": "./dist/virtual-registry.d.ts",
+      "import": null
     }
   },
   "scripts": {
-    "build": "vp pack",
+    "build": "vp pack && cp src/virtual-registry.d.ts dist/virtual-registry.d.ts",
     "dev": "vp pack --watch",
     "test": "vp test",
     "typecheck": "tsc --noEmit --skipLibCheck"

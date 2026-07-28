@@ -1,5 +1,10 @@
 import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
-import IslandCounter from './components/IslandCounter.vue';
+
+// Island components are auto-registered by `ubeanIslandsPlugin` — it scans
+// `client:xxx` directives in .vue files, resolves the corresponding imports,
+// and generates `virtual:ubean-islands-registry`. `hydrateIslands` (imported
+// above from `ubean/runtime/vue`) automatically consumes that registry,
+// so no manual `components` map is needed here.
 
 export default defineApp({
   head: {
@@ -12,7 +17,6 @@ export default defineApp({
   rootId: 'app',
   onClientReady: app => {
     hydrateIslands({
-      components: { IslandCounter },
       appContext: app
     });
   }

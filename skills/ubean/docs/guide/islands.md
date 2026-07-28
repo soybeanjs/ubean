@@ -154,16 +154,85 @@ ubean transforms `client:*` directives into `<ubean-island>` custom elements at 
 
 On the client, `hydrateIslands()` (called automatically in `app.ts` via `onClientReady`) uses a `MutationObserver` to detect and hydrate islands. Components are registered via `compilerOptions.isCustomElement` in the Vue compiler config.
 
+## Auto-Registration (Zero-Config)
+
+Since v1.0, ubean **automatically collects** island components used with `client:*` directives — no manual `components` map needed. The Vite plugin scans `.vue` files at build/dev time, parses `<script setup>` imports, and generates a virtual module (`virtual:ubean-islands-registry`) that serves as the island component registry.
+
+**You no longer need to maintain a `components` map in `app.ts`:**
+
 ```typescript
-// app.ts
+// app.ts — zero registration
 import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
-import islandComponents from '~/islands';
 
 export default defineApp({
   onClientReady: app => {
-    hydrateIslands({ components: islandComponents, appContext: app });
+    hydrateIslands({ appContext: app });
+    // components are auto-imported from virtual:ubean-islands-registry
   }
 });
+```
+
+Just import the component in `<script setup>` and use a `client:*` directive — ubean handles the rest:
+
+```vue
+<script setup lang="ts">
+import Counter from '~/components/Counter.vue';
+</script>
+
+<template>
+  <Counter client:load />
+</template>
+```
+
+### How It Works
+
+1. **Build/Dev scan**: `ubeanIslandsPlugin` scans `.vue` files for `client:*` directives
+2. **Import resolution**: Parses `<script setup>` imports to map component names to file paths
+3. **Virtual module**: Generates `virtual:ubean-islands-registry` exporting all collected components
+4. **Runtime bridge**: `hydrateIslands` in `ubean/runtime/vue` auto-imports the registry and merges with any manual `components`
+5. **HMR**: Dev mode auto-updates the registry when new `client:*` directives are added (full-reload)
+6. **Tree-shaking**: Only components actually used with `client:*` directives are included in the client bundle
+
+### Manual Registration (Escape Hatch)
+
+For edge cases where auto-registration doesn't work (globally registered components, `defineAsyncComponent`, dynamic imports), you can still pass `components` manually. **Manual registration takes precedence** over auto-registration:
+
+```typescript
+// app.ts — hybrid mode (auto + manual)
+import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
+import DynamicIsland from '~/components/DynamicIsland.vue';
+
+export default defineApp({
+  onClientReady: app => {
+    hydrateIslands({
+      appContext: app,
+      components: {
+        // This component wasn't statically imported, so auto-registry can't find it
+        DynamicIsland
+      }
+    });
+  }
+});
+```
+
+### Diagnostics
+
+When an island component is not found in the registry, ubean outputs a helpful warning to the console:
+
+```
+[ubean:islands] Island component "MyComp" not found in registry.
+Possible causes:
+  1. Component is globally registered or dynamically imported — pass it via hydrateIslands({ components: { MyComp: YourComp } })
+  2. Component name mismatch between template tag and import
+Registered components: Counter, Chart, Comments
+```
+
+If a `client:*` directive is used on a component without a static import, a build-time warning is emitted:
+
+```
+[ubean:islands] Component "GloballyRegistered" used with client:xxx directive in /src/pages/test.vue
+has no corresponding static import in <script setup>. It will not be auto-registered.
+Add it manually via hydrateIslands({ components: { GloballyRegistered: YourComp } }).
 ```
 
 ## Performance Tips

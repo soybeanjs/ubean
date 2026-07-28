@@ -1,9 +1,10 @@
 # Changelog
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.7...main) (2026-07-28)
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.7...main) (2026-07-29)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
+- **islands**: add auto-registration via virtual module — scan `client:*` directives and `<script setup>` imports to generate `virtual:ubean-islands-registry`, eliminating manual `components` map in `app.ts` &nbsp;-&nbsp; by @soybeanjs
 - **modules**: add @ubean/pinia &nbsp;-&nbsp; by @soybeanjs [<samp>(19f4c)</samp>](https://github.com/soybeanjs/ubean/commit/19f4c8b)
 
 ### &nbsp;&nbsp;&nbsp;🛠 Optimizations

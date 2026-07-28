@@ -1,21 +1,14 @@
 import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
-import IslandClock from './components/IslandClock.vue';
-import IslandCounter from './components/IslandCounter.vue';
-import IslandMedia from './components/IslandMedia.vue';
-import IslandOnly from './components/IslandOnly.vue';
-import IslandVisibility from './components/IslandVisibility.vue';
 
 // Locales are auto-loaded by ubean:locales virtual module on the server,
 // and auto-hydrated on the client via SSR-injected __UBEAN_LOCALE__ data.
 // No manual defineLocale() needed here.
-
-const islandComponents = {
-  IslandCounter,
-  IslandClock,
-  IslandVisibility,
-  IslandMedia,
-  IslandOnly
-};
+//
+// Island components (IslandCounter, IslandClock, etc.) are auto-registered
+// by `ubeanIslandsPlugin` — it scans `client:xxx` directives in .vue files,
+// resolves the corresponding imports, and generates `virtual:ubean-islands-registry`.
+// `hydrateIslands` (imported above from `ubean/runtime/vue`) automatically
+// consumes that registry, so no manual `components` map is needed here.
 
 export default defineApp({
   head: {
@@ -46,8 +39,9 @@ export default defineApp({
     }
   },
   onClientReady: app => {
+    // 零注册:components 自动从 virtual:ubean-islands-registry 获取
+    // (由 ubeanIslandsPlugin 扫描 client:xxx 指令生成)
     hydrateIslands({
-      components: islandComponents,
       appContext: app
     });
   }

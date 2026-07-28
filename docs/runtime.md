@@ -1422,6 +1422,42 @@ export default defineConfig({
 5. **Props 序列化**：孤岛组件的 props 通过协议序列化传递到客户端（仅支持 JSON 可序列化值）
 6. **Markdown 自动孤岛**：含 Vue 组件或 `<script>` 的 `.md` 文件自动标记为需要客户端 bundle
 
+#### 组件自动注册（零配置）
+
+ubean v1.0 起支持 **Islands 组件自动注册**，无需在 `app.ts` 中手动维护 `components` map。
+
+**工作流程**：
+
+1. `ubeanIslandsPlugin` 在 transform 阶段扫描 `.vue` 文件，发现 `client:*` 指令时同步解析 `<script setup>` 的 import 语句
+2. 将组件名（模板标签名）与 import 路径建立映射，解析为绝对路径
+3. 生成虚拟模块 `virtual:ubean-islands-registry`，导出所有收集到的 island 组件
+4. `ubean/runtime/vue` 入口的 `hydrateIslands` 桥接函数自动导入虚拟注册表，与用户手动传入的 `components` 合并（手动优先）
+
+```typescript
+// app.ts —— 零注册
+import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
+
+export default defineApp({
+  onClientReady: app => {
+    hydrateIslands({ appContext: app });
+    // components 自动从 virtual:ubean-islands-registry 获取
+  }
+});
+```
+
+**支持的 import 形式**：`import Foo from './Foo.vue'`、`import { default as Foo } from './Foo.vue'`、`import Foo, { bar } from './Foo.vue'`
+
+**边缘场景处理**：
+
+| 场景 | 处理方式 |
+| --- | --- |
+| 全局注册 / `defineAsyncComponent` / 动态 import | 无法静态分析 → 构建期输出警告，用户通过 `components` 参数手动注册 |
+| 同名组件不同文件 import 路径不同 | 警告，以首次发现的路径为准 |
+| `node_modules` 中的组件 | 正常工作（bare specifier 原样传递给 Vite 解析） |
+| dev 模式新增 island 用法 | transform 重新扫描 → 更新 registry → 失效虚拟模块 → full-reload |
+
+> 详细设计见 [Islands 自动注册方案](islands-auto-registry.md)。
+
 #### 对比 void 的 Import Attributes
 
 | 方案                                               | 优点                                                    | 缺点                                                              |

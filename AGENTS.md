@@ -36,7 +36,7 @@ ubean/
 │   ├── modules/            # @ubean/modules — 模块系统
 │   ├── auto-imports/       # @ubean/auto-imports — 自动导入
 │   ├── runtime/            # @ubean/runtime — Vue 客户端运行时
-│   ├── islands/            # @ubean/islands — Islands 架构
+│   ├── islands/            # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
 │   ├── ssr/                # @ubean/ssr — Vue SSR 渲染器
 │   ├── vite/               # @ubean/vite — Vue 专属 Vite 插件
 │   ├── build/              # @ubean/build — 构建时核心（virtual + vite 插件）
@@ -78,7 +78,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | -------------------- | ------------------------------------------------------- | -------------------- |
 | `ubean`              | 主入口，re-export 所有子包                              | 服务端代码、API 路由 |
 | `ubean/vite`         | 默认 Vite 插件组合（build + vue + islands）             | `vite.config.ts`     |
-| `ubean/runtime/vue`  | 浏览器端 Vue 客户端运行时（避免拉入服务端依赖）         | 客户端自动导入       |
+| `ubean/runtime/vue`  | 浏览器端 Vue 客户端运行时（含 `hydrateIslands` 桥接,自动合并 islands 注册表） | 客户端自动导入       |
 | `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`） | `src/server.ts`      |
 | `ubean/runtime/i18n` | 服务端纯函数 i18n                                       | 构建时 i18n          |
 | `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）                   | 自定义 SSR           |
@@ -283,6 +283,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `withViewTransition(fn)` / `supportsViewTransitions()` | View Transitions |
 | `<Link to="...">` / `<Head>` | 全局注册组件（无需导入） |
 | `<Comp client:load                                                  | idle                     | visible | media | only />` | Islands |
+| `hydrateIslands(options?)` | Islands 水合（`components` 可选,自动从 `virtual:ubean-islands-registry` 获取；手动传入优先） |
 
 ### Markdown
 
@@ -492,6 +493,7 @@ export default defineConfig({
 | `ubean:meta`       | 路由元数据   |
 | `ubean:app-config` | 应用配置     |
 | `ubean:locales`    | 区域设置数据 |
+| `virtual:ubean-islands-registry` | Islands 组件自动注册表（由 `@ubean/islands` Vite 插件生成） |
 
 ## 7. 内置路由
 

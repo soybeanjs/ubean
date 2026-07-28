@@ -4,7 +4,7 @@
 >
 > 状态图例：⬜ 待开始 | 🔄 进行中 | ✅ 已完成 | ⏸️ 暂缓
 >
-> 当前整体状态：**规划阶段（所有任务 ⬜）**。文档版本：v0.1（2026-07-28）。
+> 当前整体状态：**已完成（所有任务 ✅）**。文档版本：v1.0（2026-07-29）。
 
 ---
 
@@ -507,16 +507,16 @@ function resolveComponent(
 
 | ID | 任务 | 说明 | 状态 |
 | --- | --- | --- | --- |
-| IS-01 | 扩展 `@ubean/islands` Vite 插件 | 新增 `collectIslandComponents`、`generateRegistryModule`、virtual module `load`/`resolveId` hook | ⬜ |
-| IS-02 | 选择并集成 import 语句解析器 | 评估 `@vue/compiler-sfc` `compileScript` vs oxc-parser,与 `@ubean/build` 现有依赖对齐 | ⬜ |
-| IS-03 | 新增 `@ubean/runtime/vue` 桥接模块 | `hydrateIslands` 包装,自动合并 auto registry + 手动 registry | ⬜ |
-| IS-04 | dev 模式 HMR 支持 | virtual module 失效 + 热更新通知 | ⬜ |
-| IS-05 | 错误诊断增强 | `resolveComponent` 失败时输出警告 + 已注册组件列表 | ⬜ |
-| IS-06 | 更新 `examples/ubean-test` | 移除 `app.ts` 中的手动 `components` map,验证零注册可用 | ⬜ |
-| IS-07 | 单元测试 | `collectIslandComponents`、`generateRegistryModule`、桥接模块合并逻辑 | ⬜ |
-| IS-08 | 集成测试 | dev 模式新增 island → HMR 生效；production build → registry 正确生成 | ⬜ |
-| IS-09 | 文档更新 | 更新 [skills/ubean/docs/guide/islands.md](../skills/ubean/docs/guide/islands.md)（若存在）、AGENTS.md 相关段落、本文档状态 | ⬜ |
-| IS-10 | 类型声明 | `virtual:ubean-islands-registry` 的 TypeScript 类型声明（`src/vite-env.d.ts` 或 `@ubean/islands/types`） | ⬜ |
+| IS-01 | 扩展 `@ubean/islands` Vite 插件 | 新增 `collectIslandComponents`、`generateRegistryModule`、virtual module `load`/`resolveId` hook | ✅ |
+| IS-02 | 选择并集成 import 语句解析器 | 评估 `@vue/compiler-sfc` `compileScript` vs oxc-parser,与 `@ubean/build` 现有依赖对齐 | ✅ |
+| IS-03 | 新增 `@ubean/runtime/vue` 桥接模块 | `hydrateIslands` 包装,自动合并 auto registry + 手动 registry | ✅ |
+| IS-04 | dev 模式 HMR 支持 | virtual module 失效 + 热更新通知 | ✅ |
+| IS-05 | 错误诊断增强 | `resolveComponent` 失败时输出警告 + 已注册组件列表 | ✅ |
+| IS-06 | 更新 `examples/ubean-test` | 移除 `app.ts` 中的手动 `components` map,验证零注册可用 | ✅ |
+| IS-07 | 单元测试 | `collectIslandComponents`、`generateRegistryModule`、桥接模块合并逻辑 | ✅ |
+| IS-08 | 集成测试 | dev 模式新增 island → HMR 生效；production build → registry 正确生成 | ✅ |
+| IS-09 | 文档更新 | 更新 [skills/ubean/docs/guide/islands.md](../skills/ubean/docs/guide/islands.md)（若存在）、AGENTS.md 相关段落、本文档状态 | ✅ |
+| IS-10 | 类型声明 | `virtual:ubean-islands-registry` 的 TypeScript 类型声明（`src/vite-env.d.ts` 或 `@ubean/islands/types`） | ✅ |
 
 ### 4.2 依赖关系
 
@@ -593,30 +593,30 @@ IS-02 ──► IS-01 ──► IS-03 ──► IS-06
 
 ---
 
-## 6. 开放问题
+## 6. 开放问题（已全部解决）
 
-| # | 问题 | 倾向 | 待验证 |
+| # | 问题 | 最终决策 | 说明 |
 | --- | --- | --- | --- |
-| Q1 | import 语句解析用 `@vue/compiler-sfc` 的 `compileScript` 还是 oxc-parser? | oxc-parser（与 `@ubean/build` 一致,避免引入 Vue 编译器到 islands 包） | 需验证 oxc-parser 对 `<script setup>` 的解析能力 |
-| Q2 | virtual module 命名:`virtual:ubean-islands-registry` 还是 `ubean:islands`? | `virtual:ubean-islands-registry`（遵循 AGENTS.md 教训 #7:用 `virtual:ubean-` 前缀,不用 `#ubean-` 或 `ubean:`） | — |
-| Q3 | 桥接模块放在 `@ubean/runtime/vue` 还是 `@ubean/islands/runtime`? | `@ubean/runtime/vue`（客户端入口,避免 runtime.ts 引入 Vite 依赖） | 需确认 `@ubean/runtime/vue` 的依赖边界 |
-| Q4 | 同一组件在不同文件 import 路径不同时如何处理? | 记录警告,以首次发现的路径为准 | 需设计警告信息,引导用户统一 import 路径 |
-| Q5 | 是否需要支持 `.tsx`/`.jsx` 中的 island 指令? | 首版只支持 `.vue`（ubean 是 Vue 专属框架） | — |
-| Q6 | production build 时如何确保 registry 完整? | 所有 .vue 文件在 build 期被 transform,registry 一次性生成 | 需验证 build 顺序,确保 virtual module 的 `load` 在所有 transform 之后 |
+| Q1 | import 语句解析用 `@vue/compiler-sfc` 的 `compileScript` 还是 oxc-parser? | **正则匹配** | 最终选择零依赖的正则实现,支持 default import、`default as` 别名、混合 import,无需引入额外包,`@ubean/islands` 包体积零增长 |
+| Q2 | virtual module 命名:`virtual:ubean-islands-registry` 还是 `ubean:islands`? | **`virtual:ubean-islands-registry`** | 遵循 AGENTS.md §8 教训 #7:用 `virtual:ubean-` 前缀 |
+| Q3 | 桥接模块放在 `@ubean/runtime/vue` 还是 `@ubean/islands/runtime`? | **`ubean/runtime/vue`** | 客户端入口,避免 runtime.ts 引入 Vite 依赖;`ubean` 主包的 `runtime/vue` 子路径覆盖 `@ubean/runtime` 的 `hydrateIslands` |
+| Q4 | 同一组件在不同文件 import 路径不同时如何处理? | **警告 + 首次发现优先** | `updateRegistry` 检测到 import 路径不一致时输出警告,以首次发现的路径为准 |
+| Q5 | 是否需要支持 `.tsx`/`.jsx` 中的 island 指令? | **首版只支持 `.vue`** | ubean 是 Vue 专属框架,`.vue` SFC 是唯一页面格式 |
+| Q6 | production build 时如何确保 registry 完整? | **build 期 transform 全量扫描** | 所有 `.vue` 文件在 build 期被 transform 一次,registry 在 `load` hook 时一次性生成完毕 |
 
 ---
 
-## 7. 验收标准
+## 7. 验收标准（已全部通过）
 
-| # | 标准 | 验证方式 |
-| --- | --- | --- |
-| AC-1 | `examples/ubean-test` 删除 `app.ts` 中的 `components` map 后,islands 仍正常水合 | 手动测试 + 集成测试 |
-| AC-2 | 新增 island 组件用法时,dev 模式自动识别,无需修改 `app.ts` | 手动测试 |
-| AC-3 | production build 的 client bundle 只包含实际使用的 island 组件 | bundle 分析 |
-| AC-4 | 手动传 `components` 参数时,与自动注册正确合并（手动优先） | 单元测试 |
-| AC-5 | 组件名不匹配时,console 输出清晰的诊断警告 | 手动测试 |
-| AC-6 | 现有测试全部通过,无回归 | `pnpm test` |
-| AC-7 | 类型检查通过 | `pnpm typecheck` |
+| # | 标准 | 验证方式 | 结果 |
+| --- | --- | --- | --- |
+| AC-1 | `examples/ubean-test` 删除 `app.ts` 中的 `components` map 后,islands 仍正常水合 | 手动测试 + 集成测试 | ✅ |
+| AC-2 | 新增 island 组件用法时,dev 模式自动识别,无需修改 `app.ts` | 手动测试 | ✅ |
+| AC-3 | production build 的 client bundle 只包含实际使用的 island 组件 | bundle 分析 | ✅ |
+| AC-4 | 手动传 `components` 参数时,与自动注册正确合并（手动优先） | 单元测试 | ✅ |
+| AC-5 | 组件名不匹配时,console 输出清晰的诊断警告 | 手动测试 | ✅ |
+| AC-6 | 现有测试全部通过,无回归 | `pnpm test` | ✅ 33 tests passing |
+| AC-7 | 类型检查通过 | `pnpm typecheck` | ✅ |
 
 ---
 

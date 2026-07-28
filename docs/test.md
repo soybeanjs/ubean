@@ -131,6 +131,19 @@
 - [x] `hydrateIslands()` 客户端水合函数（集成测试验证：5个island全部成功水合）
 - [x] `isCustomElement` Vue编译器配置（集成测试验证：ubean-前缀标签正确识别为自定义元素）
 
+#### 3.5.1 Islands 自动注册
+
+- [x] `parseScriptImports` 解析 `<script setup>` default import（单元测试验证：10个用例覆盖 default/named-as/mixed/namespace/空内容/重复名）
+- [x] `scanIslandDirectiveNames` 扫描模板中的 `client:*` 指令组件名（单元测试验证：8个用例覆盖自闭合/非自闭合/多组件/去重/嵌套/小写忽略/无指令忽略/空模板）
+- [x] `resolveIslandImportPath` 相对路径解析（单元测试验证：5个用例覆盖同级/父级/祖父级/bare specifier/scoped package）
+- [x] `collectIslandComponents` SFC 组件收集（单元测试验证：6个用例覆盖完整 SFC/无指令/无模板/普通 script/无 import 警告/多指令同组件）
+- [x] `generateRegistryModule` 虚拟模块生成（单元测试验证：3个用例覆盖空 map/正常生成/bare specifier）
+- [x] `transformVueSfcIslands` 与收集逻辑的集成（单元测试验证：模板转换与组件收集并行工作）
+- [x] `virtual:ubean-islands-registry` 虚拟模块 resolveId/load hook（构建验证：pnpm build 通过）
+- [x] `hydrateIslands` 桥接函数自动合并 auto + manual registry（类型检查验证：pnpm typecheck 通过）
+- [x] dev 模式 HMR：新增 island 用法时 full-reload（实现验证：updateRegistry + invalidateModule + ws.send）
+- [x] 诊断警告：无 import 的 island 组件 + 未找到组件时输出已注册列表（实现验证：console.warn with actionable message）
+
 ---
 
 ## 四、响应工具

@@ -20,5 +20,18 @@ export {
 export { getIslandsBootstrapScript, getIslandsClearScript } from './bootstrap';
 
 // Vite plugin & SFC transform
-export { ubeanIslandsPlugin, transformVueSfcIslands } from './vite';
-export type { UbeanIslandsPluginOptions } from './vite';
+export {
+  ubeanIslandsPlugin,
+  transformVueSfcIslands,
+  collectIslandComponents,
+  generateRegistryModule,
+  parseScriptImports,
+  scanIslandDirectiveNames,
+  resolveIslandImportPath,
+  ISLANDS_REGISTRY_VIRTUAL_ID
+} from './vite';
+export type {
+  UbeanIslandsPluginOptions,
+  IslandComponentEntry,
+  IslandComponentMap
+} from './vite';

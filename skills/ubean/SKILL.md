@@ -399,14 +399,14 @@ Use these keys in `dependsOn` for built-in modules:
 
 - Server-side rendering (SSR) with Vue + `@vue/server-renderer`
 - Client-side hydration with `createUbeanApp` / `createUbeanSSRApp`
-- Islands architecture for partial hydration (`client:load|idle|visible|media|only`)
+- Islands architecture for partial hydration (`client:load|idle|visible|media|only`) with auto-registration (zero-config `components` map)
 - View Transitions API for native page transitions
 
 ### 2. Vite Integration
 
 - Dev server uses Vite middleware mode (`vite.createServer({ middlewareMode: true })`)
 - Hot module replacement via Vite native HMR
-- Virtual modules: `ubean:pages`, `ubean:routes`, `ubean:meta`, `ubean:app-config`, `ubean:locales`
+- Virtual modules: `ubean:pages`, `ubean:routes`, `ubean:meta`, `ubean:app-config`, `ubean:locales`, `virtual:ubean-islands-registry`
 - SSR modules loaded via `vite.ssrLoadModule()` in dev
 
 ### 3. Module System

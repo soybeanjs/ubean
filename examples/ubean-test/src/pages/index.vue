@@ -1,9 +1,5 @@
 <script setup lang="ts">
 useHead({
-  title: 'ubean-test - 首页'
-});
-
-useHead({
   title: 'ubean-test 功能测试首页',
   meta: [{ name: 'description', content: 'ubean 框架功能验证测试项目' }]
 });

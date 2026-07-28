@@ -33,6 +33,7 @@
 | 文档                                   | 状态           | 内容                                                                                                                           |
 | -------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | [ubean-studio 产品方案](ubean-studio.md) | ⬜ 规划阶段（v0.3） | 基于 Electron 的桌面工作台：独立私有仓库策略、pi-agent 作为 AI 底座、`@ubean/electron` 集成（ubean 内置模块）、BYOK + 功能门控商业化模型、DevTools 分层保留、物料市场、商业系统。所有任务尚未开始。 |
+| [Islands 自动注册方案](islands-auto-registry.md) | ⬜ 规划阶段 | `@ubean/islands` 改进：Vite 插件扫描 `client:xxx` 指令用法 + 解析 `<script setup>` import 路径,自动生成 `virtual:ubean-islands-registry` 模块作为组件注册表,消除 `app.ts` 中手动维护 `components` map 的负担。零破坏性变更,`components` 参数从必填变可选。含与 void import attributes 方案的对比、边缘场景处理、实施任务拆解（IS-01 ~ IS-10）。 |
 
 ## 文档原则
 

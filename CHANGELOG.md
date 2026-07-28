@@ -1,5 +1,23 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.7...main) (2026-07-28)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **modules**: add @ubean/pinia &nbsp;-&nbsp; by @soybeanjs [<samp>(19f4c)</samp>](https://github.com/soybeanjs/ubean/commit/19f4c8b)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **codegen**: optimize codegen &nbsp;-&nbsp; by @soybeanjs [<samp>(aabcf)</samp>](https://github.com/soybeanjs/ubean/commit/aabcf93)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **projects**: update deps and update scripts &nbsp;-&nbsp; by @soybeanjs [<samp>(cf461)</samp>](https://github.com/soybeanjs/ubean/commit/cf46159)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.6...main) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

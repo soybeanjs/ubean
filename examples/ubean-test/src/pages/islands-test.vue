@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import IslandClock from '../components/IslandClock.vue';
-import IslandCounter from '../components/IslandCounter.vue';
-import IslandMedia from '../components/IslandMedia.vue';
-import IslandOnly from '../components/IslandOnly.vue';
-import IslandVisibility from '../components/IslandVisibility.vue';
+import IslandClock from '../components/islands/IslandClock.vue';
+import IslandCounter from '../components/islands/IslandCounter.vue';
+import IslandMedia from '../components/islands/IslandMedia.vue';
+import IslandOnly from '../components/islands/IslandOnly.vue';
+import IslandVisibility from '../components/islands/IslandVisibility.vue';
 
 useHead({
   title: 'Islands 架构测试 - ubean-test'

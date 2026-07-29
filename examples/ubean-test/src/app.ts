@@ -39,10 +39,16 @@ export default defineApp({
     }
   },
   onClientReady: app => {
-    // 零注册:components 自动从 virtual:ubean-islands-registry 获取
-    // (由 ubeanIslandsPlugin 扫描 client:xxx 指令生成)
-    hydrateIslands({
-      appContext: app
+    // Islands 在 SSR 时输出 <ubean-island v-once ...> 占位元素。
+    // onClientReady 在 app.mount() 完成后触发。
+    // 使用 requestAnimationFrame 两次将水合推迟到 Vue 的渲染循环之后,
+    // 确保异步组件解析和 patch 过程完全结束后再水合 islands,
+    // 避免 Vue 的 re-render 覆盖已水合的 island 内容。
+    // (setTimeout(0) 不够,nextTick 也不够——它们与 Vue 的 patch 在同一任务队列)
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        hydrateIslands({ appContext: app });
+      });
     });
   }
 });

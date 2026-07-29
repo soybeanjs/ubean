@@ -244,7 +244,7 @@ export function generateRegistryModule(components: IslandComponentMap): string {
   for (const [name, entry] of components) {
     const varName = `__island_${idx++}`;
     imports.push(`import ${varName} from ${JSON.stringify(entry.importPath)};`);
-    entries.push(`  ${JSON.stringify(name)}: ${varName}`);
+    entries.push(`  ${JSON.stringify(name)}: ${varName},`);
   }
 
   return [...imports, '', 'export const islands = {', ...entries, '};'].join('\n');
@@ -451,7 +451,12 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
     const props = collectStaticProps(tag.attrs);
     const propsJson = escapeAttr(JSON.stringify(props));
 
-    out += `<ubean-island data-island-id="${islandId}" data-component="${tag.tagName}" data-directive="${directive}" data-props="${propsJson}"${mediaStr}>`;
+    // v-once: prevent Vue from patching <ubean-island> children during re-render.
+    // Without v-once, when an async page component resolves and Vue re-renders,
+    // it would clear the hydrated island content (since the vDOM has no children
+    // for the custom element). v-once makes Vue render the element once and skip
+    // it in all subsequent patches, preserving the hydrated island content.
+    out += `<ubean-island v-once data-island-id="${islandId}" data-component="${tag.tagName}" data-directive="${directive}" data-props="${propsJson}"${mediaStr}>`;
     out += tag.selfClosing ? '' : tag.innerHTML;
     out += `</ubean-island>`;
 
@@ -491,6 +496,8 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
   const islandComponents: IslandComponentMap = new Map();
   // 源文件 → 该文件贡献的组件名集合（用于 HMR 重新扫描时清理过期条目）
   const entriesByFile = new Map<string, Set<string>>();
+  // 已转换过的 SFC 文件集合（用于区分「首次加载」与「HMR 更新」，避免首次加载触发 full-reload）
+  const transformedFiles = new Set<string>();
 
   /**
    * 用某次扫描结果更新 island 组件注册表。
@@ -502,30 +509,31 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
   function updateRegistry(entries: IslandComponentEntry[], sourceFile: string): boolean {
     let changed = false;
 
-    // 1) 清理该源文件之前的贡献
-    const oldNames = entriesByFile.get(sourceFile);
-    if (oldNames) {
-      for (const name of oldNames) {
-        // 检查其他文件是否还在使用该组件
-        let stillUsed = false;
-        for (const [otherFile, names] of entriesByFile) {
-          if (otherFile === sourceFile) continue;
-          if (names.has(name)) {
-            stillUsed = true;
-            break;
-          }
+    const oldNames = entriesByFile.get(sourceFile) ?? new Set<string>();
+    const newNames = new Set(entries.map(e => e.name));
+
+    // 1) 仅清理该源文件之前贡献、且新扫描结果中已不再使用的组件条目。
+    //    保留新旧交集的条目,避免「先删后加」导致每次重新转换都误报 changed=true,
+    //    进而触发无限 full-reload。
+    for (const name of oldNames) {
+      if (newNames.has(name)) continue; // 仍在本文件使用,保留
+      // 检查其他文件是否还在使用该组件
+      let stillUsed = false;
+      for (const [otherFile, names] of entriesByFile) {
+        if (otherFile === sourceFile) continue;
+        if (names.has(name)) {
+          stillUsed = true;
+          break;
         }
-        if (!stillUsed && islandComponents.has(name)) {
-          islandComponents.delete(name);
-          changed = true;
-        }
+      }
+      if (!stillUsed && islandComponents.has(name)) {
+        islandComponents.delete(name);
+        changed = true;
       }
     }
 
-    // 2) 添加新条目
-    const newNames = new Set<string>();
+    // 2) 添加新条目(仅添加 registry 中不存在的)
     for (const entry of entries) {
-      newNames.add(entry.name);
       const existing = islandComponents.get(entry.name);
       if (!existing) {
         islandComponents.set(entry.name, entry);
@@ -583,9 +591,14 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
         const collected = collectIslandComponents(code, absolutePath);
         const registryChanged = updateRegistry(collected, absolutePath);
 
-        // dev 模式：registry 变化时失效 virtual module，触发 full-reload
-        // 首版用 full-reload 保证正确性；后续可优化为精确 HMR boundary
-        if (registryChanged && devServer) {
+        // 仅在 HMR 更新时触发 full-reload，避免首次加载时的重载循环。
+        // 首次加载时 transform 也会运行并更新 registry（changed=true），
+        // 但此时页面还在加载中，无需 reload——客户端会直接拿到最新的 virtual module。
+        // 通过追踪已转换过的文件来区分「首次加载」与「HMR 更新」。
+        const isHmrUpdate = transformedFiles.has(absolutePath);
+        transformedFiles.add(absolutePath);
+
+        if (registryChanged && devServer && isHmrUpdate) {
           const mod = devServer.moduleGraph.getModuleById(ISLANDS_REGISTRY_RESOLVED_ID);
           if (mod) {
             devServer.moduleGraph.invalidateModule(mod);

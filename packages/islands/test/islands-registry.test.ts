@@ -281,6 +281,32 @@ describe('generateRegistryModule', () => {
     expect(code).toContain(`import __island_0 from "some-lib";`);
     expect(code).toContain(`"ExternalComp": __island_0`);
   });
+
+  it('generates syntactically valid object with commas between entries (regression)', () => {
+    // Regression: entries must be separated by commas, otherwise the generated
+    // virtual module fails to parse with "Expected `,` or `}`" when >1 island.
+    const map: IslandComponentMap = new Map<string, IslandComponentEntry>([
+      ['IslandCounter', { name: 'IslandCounter', importPath: '/src/a.vue', sourceFile: '/src/pages/test.vue' }],
+      ['IslandClock', { name: 'IslandClock', importPath: '/src/b.vue', sourceFile: '/src/pages/test.vue' }],
+      ['IslandVisibility', { name: 'IslandVisibility', importPath: '/src/c.vue', sourceFile: '/src/pages/test.vue' }]
+    ]);
+    const code = generateRegistryModule(map);
+
+    // Extract the islands object body and verify each entry ends with a comma.
+    const bodyMatch = code.match(/export const islands = \{([\s\S]*)\};/);
+    expect(bodyMatch).not.toBeNull();
+    const body = bodyMatch![1].trim();
+    for (const line of body.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed) {
+        expect(trimmed.endsWith(',')).toBe(true);
+      }
+    }
+
+    // Sanity check: the object literal (with placeholder values) must parse as valid JS.
+    const objLiteral = `{${body.replace(/__island_\d+/g, 'null')}}`;
+    expect(() => JSON.parse(objLiteral.replace(/'/g, '"').replace(/,(\s*[}\]])/g, '$1'))).not.toThrow();
+  });
 });
 
 describe('transformVueSfcIslands (integration with collection)', () => {

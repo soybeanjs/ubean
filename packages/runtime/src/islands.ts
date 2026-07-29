@@ -182,7 +182,11 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
     if (record.directive === 'client:only') {
       const comp = resolveComponent(record.componentName, components, getComponent);
       if (comp) {
-        Promise.resolve(comp).then(c => hydrateIsland(record, c, rest));
+        Promise.resolve(comp)
+          .then(c => {
+            hydrateIsland(record, c, rest);
+          })
+          .catch(e => console.error('[ubean:islands] hydrate error:', record.componentName, e));
       }
       continue;
     }
@@ -190,7 +194,11 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
     const doHydrate = () => {
       const comp = resolveComponent(record.componentName, components, getComponent);
       if (comp) {
-        Promise.resolve(comp).then(c => hydrateIsland(record, c, rest));
+        Promise.resolve(comp)
+          .then(c => {
+            hydrateIsland(record, c, rest);
+          })
+          .catch(e => console.error('[ubean:islands] hydrate error:', record.componentName, e));
       }
     };
 

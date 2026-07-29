@@ -6,9 +6,7 @@ import {
   defineContentCollection,
   generateId,
   parseFrontmatter,
-  parseMarkdown,
-  normalizePath,
-  pathToTitle
+  parseMarkdown
 } from './core';
 import type {
   ContentDocument,
@@ -113,9 +111,7 @@ export {
   buildNavigation,
   createContentCollection,
   defineContentCollection,
-  generateId,
-  normalizePath,
-  pathToTitle
+  generateId
 };
 
 export type {

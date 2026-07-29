@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { PageHead } from '@ubean/types';
-import { filePathToRoute } from '@ubean/utils';
+import { filePathToRoute, capitalize } from '@ubean/utils';
 import { consola } from 'consola';
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
@@ -723,8 +723,4 @@ function buildMarkdownHead(fm?: Record<string, unknown>): PageHead | undefined {
     head.bodyAttrs = fmHead.bodyAttrs as Record<string, string>;
 
   return Object.keys(head).length > 0 ? head : undefined;
-}
-
-function capitalize(s: string): string {
-  return s.charAt(0).toUpperCase() + s.slice(1);
 }

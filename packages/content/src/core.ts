@@ -1,3 +1,4 @@
+import { normalizePath, getDirname, getBasename, getExtension, getStem, pathToTitle } from '@ubean/utils';
 import { kebabCase } from 'scule';
 import type {
   ContentDocument,
@@ -19,45 +20,6 @@ export function generateId(path: string, extension?: string): string {
     return `content:${cleanPath.replace(new RegExp(`${ext}$`), '')}`;
   }
   return `content:${cleanPath.replace(/\.[^.]+$/, '')}`;
-}
-
-export function getDirname(path: string): string {
-  const parts = path.split('/');
-  parts.pop();
-  return parts.join('/') || '/';
-}
-
-export function getBasename(path: string): string {
-  const parts = path.split('/');
-  return parts[parts.length - 1];
-}
-
-export function getExtension(filename: string): string {
-  const match = filename.match(/\.([^.]+)$/);
-  return match ? match[1].toLowerCase() : '';
-}
-
-export function getStem(filename: string): string {
-  return filename.replace(/\.[^.]+$/, '');
-}
-
-export function normalizePath(path: string): string {
-  return `/${path.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '').replace(/\/+/g, '/')}`;
-}
-
-export function pathToTitle(path: string): string {
-  const stem = getStem(getBasename(path));
-  if (stem === 'index') {
-    return kebabCase(getBasename(getDirname(path)) || 'home')
-      .split('-')
-      .map(capitalize)
-      .join(' ');
-  }
-  return kebabCase(stem).split('-').map(capitalize).join(' ');
-}
-
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 export function parseFrontmatter(content: string): { data: Record<string, any>; content: string } {

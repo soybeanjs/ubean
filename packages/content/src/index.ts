@@ -23,13 +23,7 @@ export {
   buildNavigation,
   createContentCollection,
   defineContentCollection,
-  generateId,
-  normalizePath,
-  pathToTitle,
-  getDirname,
-  getBasename,
-  getExtension,
-  getStem
+  generateId
 } from './core';
 
 export type {

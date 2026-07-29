@@ -1,5 +1,34 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.8...main) (2026-07-29)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cli**: optimize init template &nbsp;-&nbsp; by **Soybean** [<samp>(21b19)</samp>](https://github.com/soybeanjs/ubean/commit/21b19f6)
+- **islands**: add auto-registration via virtual module &nbsp;-&nbsp; by **Soybean** [<samp>(1ee16)</samp>](https://github.com/soybeanjs/ubean/commit/1ee1605)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **islands**: resolve island hydration failure and infinite HMR reload &nbsp;-&nbsp; by **Soybean** [<samp>(5c244)</samp>](https://github.com/soybeanjs/ubean/commit/5c2440e)
+- **test**: fix test &nbsp;-&nbsp; by **Soybean** [<samp>(6b5bd)</samp>](https://github.com/soybeanjs/ubean/commit/6b5bd36)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **projects**: optimize code &nbsp;-&nbsp; by **Soybean** [<samp>(a2b4d)</samp>](https://github.com/soybeanjs/ubean/commit/a2b4d12)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- add islands auto registry scheme doc and update example &nbsp;-&nbsp; by **Soybean** [<samp>(a8000)</samp>](https://github.com/soybeanjs/ubean/commit/a800092)
+- **islands**: update islands auto hydration &nbsp;-&nbsp; by **Soybean** [<samp>(cba14)</samp>](https://github.com/soybeanjs/ubean/commit/cba1492)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **projects**: fix lint error and format code &nbsp;-&nbsp; by **Soybean** [<samp>(6cb02)</samp>](https://github.com/soybeanjs/ubean/commit/6cb0252)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[Soybean](mailto:soybeanjs@outlook.com)
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.7...main) (2026-07-29)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

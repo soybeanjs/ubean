@@ -1,6 +1,6 @@
 {
   "name": "@ubean/pwa",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "PWA module for ubean (thin wrapper around vite-plugin-pwa with Vue composable)",
   "files": [
     "dist"

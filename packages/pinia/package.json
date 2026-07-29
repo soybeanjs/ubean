@@ -1,6 +1,6 @@
 {
   "name": "@ubean/pinia",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Pinia integration for ubean framework with SSR state hydration",
   "files": [
     "dist"

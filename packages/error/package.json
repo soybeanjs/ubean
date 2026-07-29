@@ -1,6 +1,6 @@
 {
   "name": "@ubean/error",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Error handling for ubean (UbeanError, createError)",
   "files": [
     "dist"

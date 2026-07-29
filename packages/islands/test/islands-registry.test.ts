@@ -87,9 +87,7 @@ describe('scanIslandDirectiveNames', () => {
       <IslandClock client:idle />
       <IslandMedia client:media="(min-width: 768px)" />
     `;
-    expect(scanIslandDirectiveNames(template)).toEqual(
-      new Set(['IslandCounter', 'IslandClock', 'IslandMedia'])
-    );
+    expect(scanIslandDirectiveNames(template)).toEqual(new Set(['IslandCounter', 'IslandClock', 'IslandMedia']));
   });
 
   it('deduplicates same component used with different directives', () => {
@@ -171,12 +169,8 @@ import IslandMedia from '../components/IslandMedia.vue';
     expect(entries).toHaveLength(2);
     expect(entries.map(e => e.name).sort()).toEqual(['IslandCounter', 'IslandMedia']);
     // import paths should be resolved to absolute
-    expect(entries.find(e => e.name === 'IslandCounter')?.importPath).toBe(
-      '/src/components/IslandCounter.vue'
-    );
-    expect(entries.find(e => e.name === 'IslandMedia')?.importPath).toBe(
-      '/src/components/IslandMedia.vue'
-    );
+    expect(entries.find(e => e.name === 'IslandCounter')?.importPath).toBe('/src/components/IslandCounter.vue');
+    expect(entries.find(e => e.name === 'IslandMedia')?.importPath).toBe('/src/components/IslandMedia.vue');
   });
 
   it('returns empty array when no directives in template', () => {
@@ -255,8 +249,14 @@ describe('generateRegistryModule', () => {
 
   it('generates correct imports and exports', () => {
     const map: IslandComponentMap = new Map<string, IslandComponentEntry>([
-      ['IslandCounter', { name: 'IslandCounter', importPath: '/src/components/IslandCounter.vue', sourceFile: '/src/pages/test.vue' }],
-      ['IslandMedia', { name: 'IslandMedia', importPath: '/src/components/IslandMedia.vue', sourceFile: '/src/pages/test.vue' }]
+      [
+        'IslandCounter',
+        { name: 'IslandCounter', importPath: '/src/components/IslandCounter.vue', sourceFile: '/src/pages/test.vue' }
+      ],
+      [
+        'IslandMedia',
+        { name: 'IslandMedia', importPath: '/src/components/IslandMedia.vue', sourceFile: '/src/pages/test.vue' }
+      ]
     ]);
     const code = generateRegistryModule(map);
 

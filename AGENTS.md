@@ -74,14 +74,14 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 `ubean` 主包除 `.` 主入口外，提供以下子路径：
 
-| 子路径               | 说明                                                    | 典型用途             |
-| -------------------- | ------------------------------------------------------- | -------------------- |
-| `ubean`              | 主入口，re-export 所有子包                              | 服务端代码、API 路由 |
-| `ubean/vite`         | 默认 Vite 插件组合（build + vue + islands）             | `vite.config.ts`     |
+| 子路径               | 说明                                                                          | 典型用途             |
+| -------------------- | ----------------------------------------------------------------------------- | -------------------- |
+| `ubean`              | 主入口，re-export 所有子包                                                    | 服务端代码、API 路由 |
+| `ubean/vite`         | 默认 Vite 插件组合（build + vue + islands）                                   | `vite.config.ts`     |
 | `ubean/runtime/vue`  | 浏览器端 Vue 客户端运行时（含 `hydrateIslands` 桥接,自动合并 islands 注册表） | 客户端自动导入       |
-| `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`） | `src/server.ts`      |
-| `ubean/runtime/i18n` | 服务端纯函数 i18n                                       | 构建时 i18n          |
-| `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）                   | 自定义 SSR           |
+| `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`）                       | `src/server.ts`      |
+| `ubean/runtime/i18n` | 服务端纯函数 i18n                                                             | 构建时 i18n          |
+| `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）                                         | 自定义 SSR           |
 
 > **注意**：客户端自动导入必须用 `ubean/runtime/vue` 入口，不能从 `ubean` 主入口导入（会触发 Vite 在浏览器环境预构建服务端依赖）。详见第 8 节陷阱 #8。
 
@@ -486,13 +486,13 @@ export default defineConfig({
 
 > 组件库本身请直接从 `@soybeanjs/ui` 导入（`import { SButton } from '@soybeanjs/ui'`），`@ubean/ui` 仅负责构建集成。
 
-| 模块               | 内容         |
-| ------------------ | ------------ |
-| `ubean:pages`      | 页面路由数据 |
-| `ubean:routes`     | API 路由数据 |
-| `ubean:meta`       | 路由元数据   |
-| `ubean:app-config` | 应用配置     |
-| `ubean:locales`    | 区域设置数据 |
+| 模块                             | 内容                                                        |
+| -------------------------------- | ----------------------------------------------------------- |
+| `ubean:pages`                    | 页面路由数据                                                |
+| `ubean:routes`                   | API 路由数据                                                |
+| `ubean:meta`                     | 路由元数据                                                  |
+| `ubean:app-config`               | 应用配置                                                    |
+| `ubean:locales`                  | 区域设置数据                                                |
 | `virtual:ubean-islands-registry` | Islands 组件自动注册表（由 `@ubean/islands` Vite 插件生成） |
 
 ## 7. 内置路由

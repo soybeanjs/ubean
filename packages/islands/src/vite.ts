@@ -24,7 +24,7 @@ function isVueSfc(id: string): boolean {
  * 因此只对 SFC 主模块运行；模板子查询只含模板内容，无法解析 import。
  */
 function isMainVueSfc(id: string): boolean {
-  return /\.vue$/.test(id.split('?')[0]);
+  return id.split('?')[0].endsWith('.vue');
 }
 
 // ============== Islands 自动注册：组件收集与 registry 生成 ==============
@@ -65,7 +65,8 @@ export function parseScriptImports(scriptContent: string): Map<string, string> {
 
   // 1) default import: import Foo from '...'
   //    也匹配 `import Foo, { bar } from '...'` 与 `import Foo, * as ns from '...'`
-  const defaultRe = /import\s+([A-Za-z_$][\w$]*)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+[A-Za-z_$][\w$]*))?\s+from\s+['"]([^'"]+)['"]/g;
+  const defaultRe =
+    /import\s+([A-Za-z_$][\w$]*)(?:\s*,\s*(?:\{[^}]*\}|\*\s+as\s+[A-Za-z_$][\w$]*))?\s+from\s+['"]([^'"]+)['"]/g;
   let m: RegExpExecArray | null;
   while ((m = defaultRe.exec(scriptContent)) !== null) {
     const localName = m[1];
@@ -478,7 +479,7 @@ export interface UbeanIslandsPluginOptions {
 /** virtual:ubean-islands-registry 的虚拟模块 ID（遵循 AGENTS.md §8 教训 #7：用 `virtual:ubean-` 前缀） */
 export const ISLANDS_REGISTRY_VIRTUAL_ID = 'virtual:ubean-islands-registry';
 /** Vite 内部解析后的虚拟模块 ID（`\0` 前缀防止其他插件处理） */
-const ISLANDS_REGISTRY_RESOLVED_ID = '\0' + ISLANDS_REGISTRY_VIRTUAL_ID;
+const ISLANDS_REGISTRY_RESOLVED_ID = `\0${ISLANDS_REGISTRY_VIRTUAL_ID}`;
 
 export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Plugin {
   let viteConfig: ViteResolvedConfig;

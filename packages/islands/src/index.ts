@@ -30,8 +30,4 @@ export {
   resolveIslandImportPath,
   ISLANDS_REGISTRY_VIRTUAL_ID
 } from './vite';
-export type {
-  UbeanIslandsPluginOptions,
-  IslandComponentEntry,
-  IslandComponentMap
-} from './vite';
+export type { UbeanIslandsPluginOptions, IslandComponentEntry, IslandComponentMap } from './vite';

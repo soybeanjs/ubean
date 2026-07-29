@@ -104,7 +104,7 @@ src/
 ├── request/          # 请求工具(client、internal)
 ├── routes/           # API 路由(void 风格命名导出)
 ├── typings/          # 类型声明
-├── app.ts            # 客户端应用入口(defineApp + hydrateIslands)
+├── app.ts            # 客户端应用入口(defineApp，islands 自动水合)
 └── server.ts         # 服务端入口(defineServer + hooks)
 ```
 

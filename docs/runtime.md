@@ -1422,26 +1422,26 @@ export default defineConfig({
 5. **Props 序列化**：孤岛组件的 props 通过协议序列化传递到客户端（仅支持 JSON 可序列化值）
 6. **Markdown 自动孤岛**：含 Vue 组件或 `<script>` 的 `.md` 文件自动标记为需要客户端 bundle
 
-#### 组件自动注册（零配置）
+#### 组件自动注册（零配置）+ 自动水合
 
-ubean v1.0 起支持 **Islands 组件自动注册**，无需在 `app.ts` 中手动维护 `components` map。
+ubean v1.0 起支持 **Islands 组件自动注册**，无需在 `app.ts` 中手动维护 `components` map。框架还会在客户端**自动水合**所有 islands，无需在 `onClientReady` 中手动调用 `hydrateIslands()`。
 
 **工作流程**：
 
 1. `ubeanIslandsPlugin` 在 transform 阶段扫描 `.vue` 文件，发现 `client:*` 指令时同步解析 `<script setup>` 的 import 语句
-2. 将组件名（模板标签名）与 import 路径建立映射，解析为绝对路径
-3. 生成虚拟模块 `virtual:ubean-islands-registry`，导出所有收集到的 island 组件
-4. `ubean/runtime/vue` 入口的 `hydrateIslands` 桥接函数自动导入虚拟注册表，与用户手动传入的 `components` 合并（手动优先）
+2. 将组件名（模板标签名）替换为 `<ubean-island v-once>` 自定义元素（v-once 防止 Vue re-render 覆盖已水合内容）
+3. 将组件名与 import 路径建立映射，解析为绝对路径
+4. 生成虚拟模块 `virtual:ubean-islands-registry`，导出所有收集到的 island 组件
+5. `ubean/runtime/vue` 入口的 `hydrateIslands` 桥接函数自动导入虚拟注册表，与用户手动传入的 `components` 合并（手动优先）
+6. 客户端入口在 `app.mount()` 后通过双重 `requestAnimationFrame` 自动调用 `hydrateIslands()`，确保 Vue 渲染循环完成后再水合
+7. SPA 导航后通过 `router.afterEach` 自动水合新页面中的 islands
 
 ```typescript
-// app.ts —— 零注册
-import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
+// app.ts —— 零配置，无需任何 islands 相关代码
+import { defineApp } from 'ubean/runtime/vue';
 
 export default defineApp({
-  onClientReady: app => {
-    hydrateIslands({ appContext: app });
-    // components 自动从 virtual:ubean-islands-registry 获取
-  }
+  // islands 自动注册、自动水合
 });
 ```
 
@@ -1451,10 +1451,10 @@ export default defineApp({
 
 | 场景 | 处理方式 |
 | --- | --- |
-| 全局注册 / `defineAsyncComponent` / 动态 import | 无法静态分析 → 构建期输出警告，用户通过 `components` 参数手动注册 |
+| 全局注册 / `defineAsyncComponent` / 动态 import | 无法静态分析 → 构建期输出警告，用户在 `onClientReady` 中通过 `hydrateIslands({ components })` 手动注册 |
 | 同名组件不同文件 import 路径不同 | 警告，以首次发现的路径为准 |
 | `node_modules` 中的组件 | 正常工作（bare specifier 原样传递给 Vite 解析） |
-| dev 模式新增 island 用法 | transform 重新扫描 → 更新 registry → 失效虚拟模块 → full-reload |
+| dev 模式新增 island 用法 | transform 重新扫描 → 更新 registry → 失效虚拟模块 → full-reload（仅 HMR 更新时触发，初次加载不触发） |
 
 > 详细设计见 [Islands 自动注册方案](islands-auto-registry.md)。
 

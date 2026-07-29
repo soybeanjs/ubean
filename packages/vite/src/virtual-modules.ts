@@ -217,7 +217,8 @@ import {
   applyAppConfig,
   createDefaultAppConfig,
   createClientHead,
-  createServerHead
+  createServerHead,
+  hydrateIslands
 } from 'ubean/runtime/vue';
 
 export {
@@ -355,6 +356,22 @@ export function createApp() {
     if (config.onClientReady) {
       config.onClientReady(instance.app);
     }
+    // 自动水合 Islands:使用双重 requestAnimationFrame 确保 Vue 的渲染
+    // 循环（含异步组件解析和 router.isReady 后的 patch）完全结束后再水合,
+    // 避免 Vue re-render 覆盖已水合的 island 内容。
+    // 用户无需在 onClientReady 中手动调用 hydrateIslands。
+    var doHydrateIslands = function () {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          hydrateIslands({ appContext: instance.app });
+        });
+      });
+    };
+    doHydrateIslands();
+    // SPA 导航后也需要水合新页面中的 islands(router.afterEach 在每次导航完成后触发)
+    instance.router.afterEach(function () {
+      doHydrateIslands();
+    });
   };
 
   // When hydrating SSR content, must wait for router to be ready before mounting,

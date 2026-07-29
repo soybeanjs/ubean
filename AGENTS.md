@@ -74,14 +74,14 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 `ubean` 主包除 `.` 主入口外，提供以下子路径：
 
-| 子路径               | 说明                                                                          | 典型用途             |
-| -------------------- | ----------------------------------------------------------------------------- | -------------------- |
-| `ubean`              | 主入口，re-export 所有子包                                                    | 服务端代码、API 路由 |
-| `ubean/vite`         | 默认 Vite 插件组合（build + vue + islands）                                   | `vite.config.ts`     |
-| `ubean/runtime/vue`  | 浏览器端 Vue 客户端运行时（含 `hydrateIslands` 桥接,自动合并 islands 注册表） | 客户端自动导入       |
-| `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`）                       | `src/server.ts`      |
-| `ubean/runtime/i18n` | 服务端纯函数 i18n                                                             | 构建时 i18n          |
-| `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）                                         | 自定义 SSR           |
+| 子路径               | 说明                                                                                | 典型用途             |
+| -------------------- | ----------------------------------------------------------------------------------- | -------------------- |
+| `ubean`              | 主入口，re-export 所有子包                                                          | 服务端代码、API 路由 |
+| `ubean/vite`         | 默认 Vite 插件组合（build + vue + islands）                                         | `vite.config.ts`     |
+| `ubean/runtime/vue`  | 浏览器端 Vue 客户端运行时（含 `hydrateIslands` 桥接、自动水合、islands 注册表合并） | 客户端自动导入       |
+| `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`）                             | `src/server.ts`      |
+| `ubean/runtime/i18n` | 服务端纯函数 i18n                                                                   | 构建时 i18n          |
+| `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）                                               | 自定义 SSR           |
 
 > **注意**：客户端自动导入必须用 `ubean/runtime/vue` 入口，不能从 `ubean` 主入口导入（会触发 Vite 在浏览器环境预构建服务端依赖）。详见第 8 节陷阱 #8。
 
@@ -276,14 +276,14 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### Vue 运行时
 
-| API | 说明 |
-| ------------------------------------------------------------------- | ------------------------ | ------- | ----- | -------- | ------- |
-| `useRouter()` / `createUbeanRouter(options)` | 路由 |
-| `useData(key, fetcher)` / `invalidateData(key)` / `invalidateAll()` | 页面数据 |
-| `withViewTransition(fn)` / `supportsViewTransitions()` | View Transitions |
-| `<Link to="...">` / `<Head>` | 全局注册组件（无需导入） |
-| `<Comp client:load                                                  | idle                     | visible | media | only />` | Islands |
-| `hydrateIslands(options?)` | Islands 水合（`components` 可选,自动从 `virtual:ubean-islands-registry` 获取；手动传入优先） |
+| API                                                                                | 说明                                                                                      |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `useRouter()` / `createUbeanRouter(options)`                                       | 路由                                                                                      |
+| `useData(key, fetcher)` / `invalidateData(key)` / `invalidateAll()`                | 页面数据                                                                                  |
+| `withViewTransition(fn)` / `supportsViewTransitions()`                             | View Transitions                                                                          |
+| `<Link to="...">` / `<Head>`                                                       | 全局注册组件（无需导入）                                                                  |
+| `<Comp client:load / client:idle / client:visible / client:media / client:only />` | Islands 指令（框架自动水合，无需手动调用 `hydrateIslands`）                               |
+| `hydrateIslands(options?)`                                                         | Islands 水合（**框架自动调用**，无需手动执行；`components` 可选，手动传入优先于自动注册） |
 
 ### Markdown
 
@@ -524,6 +524,7 @@ export default defineConfig({
 15. **不要**复制参考项目（void/nitro）代码 — 学习架构模式后重新实现，直接复制会导致 API 不一致
 16. **不要**推荐 vue-i18n — ubean 内置零依赖 i18n
 17. **不要**使用全局目录 `/tmp` — 用项目根目录下的 `.temp` 目录代替临时文件存储
+18. **不要**在 `onClientReady` 中手动调用 `hydrateIslands()` 来水合常规 islands — 框架已在客户端入口自动调用（双重 rAF 时机 + SPA 导航后自动水合）；仅在需要传入手动注册组件（escape hatch）时才额外调用
 
 ## 9. 开发命令
 

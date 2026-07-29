@@ -399,7 +399,7 @@ Use these keys in `dependsOn` for built-in modules:
 
 - Server-side rendering (SSR) with Vue + `@vue/server-renderer`
 - Client-side hydration with `createUbeanApp` / `createUbeanSSRApp`
-- Islands architecture for partial hydration (`client:load|idle|visible|media|only`) with auto-registration (zero-config `components` map)
+- Islands architecture for partial hydration (`client:load|idle|visible|media|only`) with auto-registration and auto-hydration (zero-config, no manual `hydrateIslands()` call needed)
 - View Transitions API for native page transitions
 
 ### 2. Vite Integration

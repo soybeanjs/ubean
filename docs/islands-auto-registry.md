@@ -4,15 +4,15 @@
 >
 > 状态图例：⬜ 待开始 | 🔄 进行中 | ✅ 已完成 | ⏸️ 暂缓
 >
-> 当前整体状态：**已完成（所有任务 ✅）**。文档版本：v1.0（2026-07-29）。
+> 当前整体状态：**已完成（所有任务 ✅，含自动水合）**。文档版本：v1.1（2026-07-29）。
 
 ---
 
 ## 1. 背景与问题陈述
 
-### 1.1 当前 Islands 使用方式
+### 1.1 当前 Islands 使用方式（v1.0 之前）
 
-ubean 当前的 Islands 架构采用**组件级**指令式设计：在任意 `.vue` 页面中,通过 `client:xxx` 指令标记某个组件为 island,框架在 SSR 时将其转换为 `<ubean-island>` 自定义元素,客户端再根据指令策略择机水合。
+ubean 的 Islands 架构采用**组件级**指令式设计：在任意 `.vue` 页面中,通过 `client:xxx` 指令标记某个组件为 island,框架在 SSR 时将其转换为 `<ubean-island>` 自定义元素,客户端再根据指令策略择机水合。
 
 ```vue
 <!-- pages/islands-test.vue -->
@@ -23,7 +23,7 @@ ubean 当前的 Islands 架构采用**组件级**指令式设计：在任意 `.v
 ```
 
 ```ts
-// app.ts —— 当前必须手动维护 components 注册表
+// app.ts —— （v1.0 之前）必须手动维护 components 注册表并手动调用 hydrateIslands
 import IslandCounter from './components/IslandCounter.vue';
 import IslandMedia from './components/IslandMedia.vue';
 
@@ -41,6 +41,8 @@ export default defineApp({
   }
 });
 ```
+
+> **v1.0+ 更新**：组件注册表已自动生成（方案 C），且框架自动调用 `hydrateIslands()`。现在 `app.ts` 中无需任何 islands 相关代码。
 
 ### 1.2 现状的核心痛点
 
@@ -121,7 +123,7 @@ import PostForm from './_PostForm.vue' with { island: 'visible' };
 
 ### 3.1 核心思路
 
-**保留现有 `client:xxx` 指令语法不变,在 Vite 插件层面自动收集 island 组件并生成 virtual module 作为注册表,使 `hydrateIslands()` 的 `components` 参数从「必填」变为「可选」。**
+**保留现有 `client:xxx` 指令语法不变,在 Vite 插件层面自动收集 island 组件并生成 virtual module 作为注册表,使 `hydrateIslands()` 的 `components` 参数从「必填」变为「可选」。同时框架在客户端入口自动调用 `hydrateIslands()`（双重 rAF 时机），并在 SPA 导航后自动水合，用户无需在 `onClientReady` 中手动调用。**
 
 工作流程：
 
@@ -130,14 +132,17 @@ import PostForm from './_PostForm.vue' with { island: 'visible' };
   1. ubeanIslandsPlugin.transform() 扫描 .vue 文件模板
   2. 发现 <IslandCounter client:load /> → 记录组件名 "IslandCounter"
   3. 同文件解析 <script setup> 的 import 语句 → 得到 IslandCounter 的文件路径
-  4. 聚合所有文件的「组件名 → 文件路径」映射到 plugin 的 module graph
-  5. 新增 virtual module "virtual:ubean-islands-registry"
+  4. 将组件标签替换为 <ubean-island v-once> 自定义元素（v-once 防止 Vue re-render 覆盖）
+  5. 聚合所有文件的「组件名 → 文件路径」映射到 plugin 的 module graph
+  6. 新增 virtual module "virtual:ubean-islands-registry"
      - 导入所有收集到的 island 组件
      - 导出 { name: component } 形式的 registry
 
 运行时（客户端）:
-  6. hydrateIslands() 默认从 virtual module 获取 registry
-  7. 用户仍可显式传 components 参数覆盖（escape hatch）
+  7. 客户端入口（virtual:ubean-app）在 app.mount() 后通过双重 rAF 自动调用 hydrateIslands()
+  8. hydrateIslands() 默认从 virtual module 获取 registry
+  9. SPA 导航后通过 router.afterEach 自动水合新页面的 islands
+ 10. 用户仍可在 onClientReady 中显式传 components 参数补充手动注册组件（escape hatch）
 ```
 
 ### 3.2 用户侧体验对比
@@ -166,19 +171,16 @@ export default defineApp({
 });
 ```
 
-#### 方案 C 后（零注册）
+#### 方案 C 后（零配置 + 自动水合）
 
 ```ts
-// app.ts
+// app.ts —— 无需任何 islands 相关代码
 export default defineApp({
-  onClientReady: app => {
-    hydrateIslands({
-      appContext: app
-      // components 自动从 virtual:ubean-islands-registry 获取
-    });
-  }
+  // islands 自动注册 + 自动水合，无需 onClientReady
 });
 ```
+
+> **自动水合机制**：客户端入口（`virtual:ubean-app`）在 `app.mount()` 后通过双重 `requestAnimationFrame` 自动调用 `hydrateIslands()`，并在 SPA 导航后通过 `router.afterEach` 自动水合新页面的 islands。仅在需要手动注册（全局组件、动态 import 等 escape hatch 场景）时才在 `onClientReady` 中额外调用 `hydrateIslands({ components })`。
 
 页面侧用法完全不变：
 

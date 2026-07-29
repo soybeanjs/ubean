@@ -41,7 +41,7 @@ examples/frontend-only/
 │   │   │   └── [id].vue            # 动态路由,useRoute() 取参数
 │   │   ├── about.vue               # 关于页:列出已用/未用能力
 │   │   └── index.vue               # 首页:Islands + @soybeanjs/fetch 演示
-│   └── app.ts                      # 客户端入口(defineApp + hydrateIslands)
+│   └── app.ts                      # 客户端入口(defineApp，islands 自动水合)
 ├── package.json
 ├── tsconfig.json
 ├── ubean.config.ts                 # 最小配置(无 i18n / 无 modules)

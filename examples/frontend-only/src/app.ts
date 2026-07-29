@@ -1,10 +1,11 @@
-import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/runtime/vue';
 
-// Island components are auto-registered by `ubeanIslandsPlugin` — it scans
-// `client:xxx` directives in .vue files, resolves the corresponding imports,
-// and generates `virtual:ubean-islands-registry`. `hydrateIslands` (imported
-// above from `ubean/runtime/vue`) automatically consumes that registry,
-// so no manual `components` map is needed here.
+// Islands are auto-registered and auto-hydrated by the framework:
+// - `ubeanIslandsPlugin` scans `client:xxx` directives, resolves imports,
+//   and generates `virtual:ubean-islands-registry`.
+// - The client entry automatically calls `hydrateIslands()` after mount
+//   (double rAF) and after SPA navigation (`router.afterEach`).
+// - No manual `hydrateIslands()` call or `components` map is needed.
 
 export default defineApp({
   head: {
@@ -14,10 +15,5 @@ export default defineApp({
       { name: 'viewport', content: 'width=device-width, initial-scale=1' }
     ]
   },
-  rootId: 'app',
-  onClientReady: app => {
-    hydrateIslands({
-      appContext: app
-    });
-  }
+  rootId: 'app'
 });

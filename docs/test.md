@@ -130,6 +130,8 @@
 - [x] Props 序列化传递（集成测试验证：data-props属性正确序列化/反序列化）
 - [x] `hydrateIslands()` 客户端水合函数（集成测试验证：5个island全部成功水合）
 - [x] `isCustomElement` Vue编译器配置（集成测试验证：ubean-前缀标签正确识别为自定义元素）
+- [x] 自动水合（无需手动调用 hydrateIslands：客户端入口双重 rAF 自动调用，SPA 导航后 router.afterEach 自动水合）
+- [x] `<ubean-island v-once>` 防止 Vue re-render 覆盖已水合内容（浏览器验证：5个island正确渲染无空元素）
 
 #### 3.5.1 Islands 自动注册
 
@@ -141,7 +143,7 @@
 - [x] `transformVueSfcIslands` 与收集逻辑的集成（单元测试验证：模板转换与组件收集并行工作）
 - [x] `virtual:ubean-islands-registry` 虚拟模块 resolveId/load hook（构建验证：pnpm build 通过）
 - [x] `hydrateIslands` 桥接函数自动合并 auto + manual registry（类型检查验证：pnpm typecheck 通过）
-- [x] dev 模式 HMR：新增 island 用法时 full-reload（实现验证：updateRegistry + invalidateModule + ws.send）
+- [x] dev 模式 HMR：新增 island 用法时 full-reload（实现验证：updateRegistry + invalidateModule + ws.send，初次加载不触发重载）
 - [x] 诊断警告：无 import 的 island 组件 + 未找到组件时输出已注册列表（实现验证：console.warn with actionable message）
 
 ---

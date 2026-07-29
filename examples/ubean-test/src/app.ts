@@ -1,14 +1,12 @@
-import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/runtime/vue';
 
 // Locales are auto-loaded by ubean:locales virtual module on the server,
 // and auto-hydrated on the client via SSR-injected __UBEAN_LOCALE__ data.
 // No manual defineLocale() needed here.
 //
 // Island components (IslandCounter, IslandClock, etc.) are auto-registered
-// by `ubeanIslandsPlugin` — it scans `client:xxx` directives in .vue files,
-// resolves the corresponding imports, and generates `virtual:ubean-islands-registry`.
-// `hydrateIslands` (imported above from `ubean/runtime/vue`) automatically
-// consumes that registry, so no manual `components` map is needed here.
+// by `ubeanIslandsPlugin` and auto-hydrated by the framework after mount.
+// No manual hydrateIslands() call needed.
 
 export default defineApp({
   head: {
@@ -37,18 +35,5 @@ export default defineApp({
         }
       });
     }
-  },
-  onClientReady: app => {
-    // Islands 在 SSR 时输出 <ubean-island v-once ...> 占位元素。
-    // onClientReady 在 app.mount() 完成后触发。
-    // 使用 requestAnimationFrame 两次将水合推迟到 Vue 的渲染循环之后,
-    // 确保异步组件解析和 patch 过程完全结束后再水合 islands,
-    // 避免 Vue 的 re-render 覆盖已水合的 island 内容。
-    // (setTimeout(0) 不够,nextTick 也不够——它们与 Vue 的 patch 在同一任务队列)
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        hydrateIslands({ appContext: app });
-      });
-    });
   }
 });

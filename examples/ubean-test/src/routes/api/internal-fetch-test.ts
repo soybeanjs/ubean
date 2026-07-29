@@ -26,13 +26,11 @@ export const GET = defineHandler(async c => {
       data
     });
   } catch (err) {
-    return c.json(
-      {
-        action: 'internal-fetch',
-        target: path,
-        error: err instanceof Error ? err.message : String(err)
-      },
-      500
-    );
+    return c.json({
+      action: 'internal-fetch',
+      target: path,
+      ok: false,
+      error: err instanceof Error ? err.message : String(err)
+    });
   }
 });

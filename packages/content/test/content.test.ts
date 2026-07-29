@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { getDirname, getBasename, getExtension, getStem, normalizePath, pathToTitle } from '@ubean/utils';
 import {
   generateId,
-  getDirname,
-  getBasename,
-  getExtension,
-  getStem,
-  normalizePath,
-  pathToTitle,
   parseFrontmatter,
   parseMarkdown,
   createQueryBuilder,
@@ -23,6 +18,7 @@ import {
   fetchContentNavigation,
   parseContentFile
 } from '../src/runtime';
+import type { ContentDocument } from '../src/types';
 
 describe('ubean-content core utilities', () => {
   describe('path utilities', () => {
@@ -186,7 +182,7 @@ Content.`;
   });
 
   describe('query builder', () => {
-    const docs = [
+    const docs: ContentDocument[] = [
       {
         _id: '1',
         _path: '/posts/a',
@@ -298,7 +294,7 @@ Content.`;
 
   describe('navigation', () => {
     it('buildNavigation creates tree structure', () => {
-      const docs = [
+      const docs: ContentDocument[] = [
         {
           _id: '1',
           _path: '/',

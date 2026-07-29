@@ -257,7 +257,7 @@ describe('Typed client - toFlatTypedClient', () => {
     });
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('error');
-    expect(result).toHaveProperty('status');
+    expect(result).toHaveProperty('response');
   });
 });
 
@@ -400,17 +400,16 @@ describe('Typed client - responseType', () => {
     expect(file.file.byteLength).toBeGreaterThan(0);
   });
 
-  it('responseType: "stream" returns FileResponseData<Uint8Array>', async () => {
+  it('responseType: "stream" returns FileResponseData<ReadableStream<Uint8Array>>', async () => {
     const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
     const typed = createTypedClient<paths>(request);
     const file = (await (typed as unknown as LooseTypedClient).get('/api/download', {
       query: { filename: 'test-stream.bin' },
       responseType: 'stream'
-    })) as FileResponseData<Uint8Array>;
+    })) as FileResponseData<ReadableStream<Uint8Array>>;
     expect(file).toBeDefined();
     expect(file.filename).toBe('test-stream.bin');
-    expect(file.file).toBeInstanceOf(Uint8Array);
-    expect(file.file.length).toBeGreaterThan(0);
+    expect(file.file).toBeInstanceOf(ReadableStream);
   });
 
   it('responseType: "text" with default filename (no query params)', async () => {
@@ -467,7 +466,7 @@ describe('Typed flat client - responseType', () => {
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/text', { responseType: 'text' });
     expect(result).toHaveProperty('data');
     expect(result).toHaveProperty('error');
-    expect(result).toHaveProperty('status');
+    expect(result).toHaveProperty('response');
     expect(result.error).toBeNull();
     expect(typeof result.data).toBe('string');
     expect(result.data).toContain('plain text');
@@ -498,7 +497,7 @@ describe('Typed flat client - responseType', () => {
     expect((result.data as FileResponseData<ArrayBuffer>).file).toBeInstanceOf(ArrayBuffer);
   });
 
-  it('responseType: "stream" returns { data: FileResponseData<Uint8Array> }', async () => {
+  it('responseType: "stream" returns { data: FileResponseData<ReadableStream<Uint8Array>> }', async () => {
     const request = createRequest({ baseURL: BASE_URL() }, { isBackendSuccess: () => true });
     const flat = toFlatTypedClient<paths>(request);
     const result = await (flat as unknown as LooseTypedFlatClient).get('/api/download', {
@@ -506,7 +505,7 @@ describe('Typed flat client - responseType', () => {
       responseType: 'stream'
     });
     expect(result.error).toBeNull();
-    expect((result.data as FileResponseData<Uint8Array>).file).toBeInstanceOf(Uint8Array);
+    expect((result.data as FileResponseData<ReadableStream<Uint8Array>>).file).toBeInstanceOf(ReadableStream);
   });
 
   it('non-2xx response with responseType: "blob" returns error in flat response', async () => {
@@ -517,7 +516,7 @@ describe('Typed flat client - responseType', () => {
       responseType: 'blob'
     });
     expect(result).toHaveProperty('error');
-    expect(result).toHaveProperty('status');
+    expect(result).toHaveProperty('response');
     // 404 应返回 error 而非 data
     // (status 可能是 404 或 0,取决于错误处理)
   });

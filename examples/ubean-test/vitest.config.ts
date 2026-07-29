@@ -9,5 +9,10 @@ export default defineConfig({
     globalSetup: './test/global-setup.ts',
     pool: 'forks',
     fileParallelism: false
+  },
+  resolve: {
+    alias: {
+      'virtual:ubean-islands-registry': new URL('./test/stubs/islands-registry.ts', import.meta.url).pathname
+    }
   }
 });

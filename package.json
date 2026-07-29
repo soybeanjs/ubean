@@ -12,8 +12,8 @@
     "lint:vue": "eslint . --ext .vue",
     "prepare": "vp config --no-hooks --no-agent",
     "release": "soy release",
-    "test": "pnpm --filter ubean test",
-    "test:watch": "pnpm --filter ubean test:watch",
+    "test": "pnpm -r --parallel test -- --passWithNoTests",
+    "test:watch": "pnpm -r --parallel test:watch -- --passWithNoTests",
     "typecheck": "pnpm build && pnpm -r --parallel typecheck",
     "upkg": "soy ncu"
   },

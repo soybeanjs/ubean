@@ -1,6 +1,6 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, mkdir, writeFile, readFile, unlink, copyFile, access } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve, isAbsolute } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from 'ubean';
 import {
@@ -16,6 +16,116 @@ import {
   ubeanDevtoolsPlugin
 } from '../src';
 import type { ScanResultLike, DevToolsConfigMeta } from '../src/node/state';
+import type { DevToolsScaffoldOps, DevToolsFsOps, ScaffoldOptions, ScaffoldResult } from '../src/types';
+
+// ---------------------------------------------------------------------------
+// Test scaffoldOps — provides real filesystem operations for CRUD tests
+// ---------------------------------------------------------------------------
+
+const SCAFFOLD_DIRS: Record<string, string> = {
+  page: 'src/pages',
+  api: 'src/routes',
+  layout: 'src/layouts',
+  middleware: 'src/middleware',
+  reuse: 'src/reuse'
+};
+
+function createTestScaffoldOps(): DevToolsScaffoldOps {
+  const createFsOps = (cwd: string): DevToolsFsOps => {
+    const resolvePath = (p: string): string => (isAbsolute(p) ? p : resolve(cwd, p));
+    const exists = async (p: string): Promise<boolean> => {
+      try {
+        await access(resolvePath(p));
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    return {
+      exists,
+      readFile: (p, enc?) => readFile(resolvePath(p), enc),
+      writeFile: async (p, content, enc?) => {
+        const full = resolvePath(p);
+        await mkdir(join(full, '..'), { recursive: true });
+        await writeFile(full, content, enc);
+      },
+      remove: (p: string) => unlink(resolvePath(p)),
+      copyFile: (src, dest) => copyFile(resolvePath(src), resolvePath(dest)),
+      createBackup: async (p, opts?) => {
+        const full = resolvePath(p);
+        const suffix = opts?.backupSuffix ?? '.bak';
+        const backupPath = `${full}${suffix}`;
+        if (await exists(full)) {
+          await copyFile(full, backupPath);
+          if (opts?.removeOriginal) await unlink(full);
+          return backupPath;
+        }
+        return null;
+      },
+      removeBackup: async (p, opts?) => {
+        const suffix = opts?.backupSuffix ?? '.bak';
+        const backupPath = `${resolvePath(p)}${suffix}`;
+        try {
+          await unlink(backupPath);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+  };
+
+  const getScaffoldPath = (opts: ScaffoldOptions): string => {
+    const dir = opts.baseDir || SCAFFOLD_DIRS[opts.type] || 'src';
+    const normalizedPath = opts.path.startsWith('/') ? opts.path.slice(1) : opts.path;
+    const ext = opts.type === 'api' || opts.type === 'middleware' ? '.ts' : '.vue';
+    const fileName = normalizedPath.endsWith(ext) ? normalizedPath : `${normalizedPath}${ext}`;
+    return join(dir, fileName);
+  };
+
+  const scaffold = async (opts: ScaffoldOptions): Promise<ScaffoldResult> => {
+    if (!SCAFFOLD_DIRS[opts.type]) {
+      return { created: [], deleted: [], restored: [], skipped: [], errors: [`Unsupported type: ${opts.type}`] };
+    }
+    const cwd = opts.cwd || '.';
+    const fs = createFsOps(cwd);
+    const filePath = getScaffoldPath(opts);
+    if (!opts.force && (await fs.exists(filePath))) {
+      return { created: [], deleted: [], restored: [], skipped: [filePath], errors: ['File already exists'] };
+    }
+    const content =
+      opts.type === 'api'
+        ? `import { defineHandler } from 'ubean';\n\nexport const GET = defineHandler(c => c.json({ ok: true }));\n`
+        : `<template>\n  <div>${opts.path}</div>\n</template>\n`;
+    await fs.writeFile(filePath, content);
+    return { created: [filePath], deleted: [], restored: [], skipped: [], errors: [] };
+  };
+
+  const deleteScaffold = async (opts: ScaffoldOptions): Promise<ScaffoldResult> => {
+    const cwd = opts.cwd || '.';
+    const fs = createFsOps(cwd);
+    const filePath = getScaffoldPath(opts);
+    if (!(await fs.exists(filePath))) {
+      return { created: [], deleted: [], restored: [], skipped: [], errors: [`File not found: ${filePath}`] };
+    }
+    await fs.createBackup(filePath, { removeOriginal: true });
+    return { created: [], deleted: [filePath], restored: [], skipped: [], errors: [] };
+  };
+
+  const recoverScaffold = async (opts: ScaffoldOptions): Promise<ScaffoldResult> => {
+    const cwd = opts.cwd || '.';
+    const fs = createFsOps(cwd);
+    const filePath = isAbsolute(opts.path) ? opts.path : getScaffoldPath(opts);
+    const backupPath = `${filePath}.bak`;
+    if (!(await fs.exists(backupPath))) {
+      return { created: [], deleted: [], restored: [], skipped: [], errors: [] };
+    }
+    await fs.copyFile(backupPath, filePath);
+    await fs.removeBackup(filePath);
+    return { created: [], deleted: [], restored: [filePath], skipped: [], errors: [] };
+  };
+
+  return { createFsOps, scaffold, deleteScaffold, recoverScaffold };
+}
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -400,7 +510,7 @@ describe('createCrudServer', () => {
   });
 
   it('exposes create/read/update/delete/restore methods', () => {
-    const crud = createCrudServer({ cwd: tmpDir });
+    const crud = createCrudServer({ cwd: tmpDir, scaffoldOps: createTestScaffoldOps() });
     expect(typeof crud.create).toBe('function');
     expect(typeof crud.read).toBe('function');
     expect(typeof crud.update).toBe('function');
@@ -409,7 +519,7 @@ describe('createCrudServer', () => {
   });
 
   it('creates a page scaffold', async () => {
-    const crud = createCrudServer({ cwd: tmpDir });
+    const crud = createCrudServer({ cwd: tmpDir, scaffoldOps: createTestScaffoldOps() });
     const result = await crud.create({ type: 'page', path: 'test-page' });
     expect(result.success).toBe(true);
     expect(result.created).toBeDefined();
@@ -423,6 +533,7 @@ describe('createCrudServer', () => {
     };
     const crud = createCrudServer({
       cwd: tmpDir,
+      scaffoldOps: createTestScaffoldOps(),
       getEnv: () => envData,
       setEnv: env => {
         Object.keys(envData).forEach(k => delete envData[k]);
@@ -441,6 +552,7 @@ describe('createCrudServer', () => {
     const envData: Record<string, string> = { EXISTING: 'val' };
     const crud = createCrudServer({
       cwd: tmpDir,
+      scaffoldOps: createTestScaffoldOps(),
       getEnv: () => envData,
       setEnv: env => {
         Object.keys(envData).forEach(k => delete envData[k]);
@@ -461,6 +573,7 @@ describe('createCrudServer', () => {
     const envData: Record<string, string> = { A: '1', B: '2' };
     const crud = createCrudServer({
       cwd: tmpDir,
+      scaffoldOps: createTestScaffoldOps(),
       getEnv: () => envData,
       setEnv: env => {
         Object.keys(envData).forEach(k => delete envData[k]);
@@ -474,7 +587,7 @@ describe('createCrudServer', () => {
   });
 
   it('returns error for unsupported create type', async () => {
-    const crud = createCrudServer({ cwd: tmpDir });
+    const crud = createCrudServer({ cwd: tmpDir, scaffoldOps: createTestScaffoldOps() });
     // @ts-expect-error test invalid type
     const result = await crud.create({ type: 'invalid', path: 'test' });
     expect(result.success).toBe(false);
@@ -482,35 +595,45 @@ describe('createCrudServer', () => {
   });
 
   it('returns error for config update without path', async () => {
-    const crud = createCrudServer({ cwd: tmpDir, getConfig: () => ({}) });
+    const crud = createCrudServer({ cwd: tmpDir, scaffoldOps: createTestScaffoldOps(), getConfig: () => ({}) });
     const result = await crud.update({ type: 'config' });
     expect(result.success).toBe(false);
     expect(result.errors?.[0]).toContain('Path is required');
   });
 
   it('returns error for env update without key', async () => {
-    const crud = createCrudServer({ cwd: tmpDir, getEnv: () => ({}), setEnv: () => {} });
+    const crud = createCrudServer({
+      cwd: tmpDir,
+      scaffoldOps: createTestScaffoldOps(),
+      getEnv: () => ({}),
+      setEnv: () => {}
+    });
     const result = await crud.update({ type: 'env', value: 'val' });
     expect(result.success).toBe(false);
     expect(result.errors?.[0]).toContain('Key is required');
   });
 
   it('returns error for env delete without key', async () => {
-    const crud = createCrudServer({ cwd: tmpDir, getEnv: () => ({}), setEnv: () => {} });
+    const crud = createCrudServer({
+      cwd: tmpDir,
+      scaffoldOps: createTestScaffoldOps(),
+      getEnv: () => ({}),
+      setEnv: () => {}
+    });
     const result = await crud.delete({ type: 'env' });
     expect(result.success).toBe(false);
     expect(result.errors?.[0]).toContain('Key is required');
   });
 
   it('returns error for file delete without path', async () => {
-    const crud = createCrudServer({ cwd: tmpDir });
+    const crud = createCrudServer({ cwd: tmpDir, scaffoldOps: createTestScaffoldOps() });
     const result = await crud.delete({ type: 'page' });
     expect(result.success).toBe(false);
     expect(result.errors?.[0]).toContain('Path is required');
   });
 
   it('restore returns error when no backup exists', async () => {
-    const crud = createCrudServer({ cwd: tmpDir });
+    const crud = createCrudServer({ cwd: tmpDir, scaffoldOps: createTestScaffoldOps() });
     const result = await crud.restore('/nonexistent/path');
     expect(result.success).toBe(false);
     expect(result.errors?.[0]).toContain('No backup found');
@@ -523,7 +646,7 @@ describe('createCrudServer', () => {
     hooks.registerHook('beforeCreate', () => log.push('before'));
     hooks.registerHook('afterCreate', () => log.push('after'));
 
-    const crud = createCrudServer({ cwd: tmpDir, hooks });
+    const crud = createCrudServer({ cwd: tmpDir, scaffoldOps: createTestScaffoldOps(), hooks });
     await crud.create({ type: 'page', path: 'hooked-page' });
 
     expect(log).toContain('before');
@@ -537,14 +660,14 @@ describe('createCrudServer', () => {
 
 describe('createAiServer', () => {
   it('exposes getToolDefinitions and chat methods', () => {
-    const crud = createCrudServer({ cwd: '.' });
+    const crud = createCrudServer({ cwd: '.', scaffoldOps: createTestScaffoldOps() });
     const ai = createAiServer(crud, () => emptyDevToolsInfo(0));
     expect(typeof ai.getToolDefinitions).toBe('function');
     expect(typeof ai.chat).toBe('function');
   });
 
   it('returns tool definitions', () => {
-    const crud = createCrudServer({ cwd: '.' });
+    const crud = createCrudServer({ cwd: '.', scaffoldOps: createTestScaffoldOps() });
     const ai = createAiServer(crud, () => emptyDevToolsInfo(0));
     const tools = ai.getToolDefinitions();
     expect(Array.isArray(tools)).toBe(true);
@@ -566,7 +689,7 @@ describe('createAllRpcFunctions', () => {
       on: () => () => {}
     };
 
-    const crud = createCrudServer({ cwd: '.' });
+    const crud = createCrudServer({ cwd: '.', scaffoldOps: createTestScaffoldOps() });
     const ai = createAiServer(crud, () => emptyDevToolsInfo(0));
     const terminal = createTerminalServer();
 

@@ -98,7 +98,7 @@ Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin 
 
 ## Page Metadata (definePage)
 
-`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout`, `reuse`, `meta`, `middleware`, `requiresAuth`, `head`. There is **no top-level `title`** — use `meta: { title }`:
+`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout`, `reuse`, `meta`, `middleware`, `requiresAuth`, `cache`, `head`. There is **no top-level `title`** — use `meta: { title }`:
 
 ```vue
 <script setup lang="ts">
@@ -111,6 +111,7 @@ definePage({
   },
   middleware: ['auth'],            // Page-level middleware
   requiresAuth: true,               // Auth requirement (meta shortcut)
+  cache: true,                      // Enable KeepAlive page caching
   head: {                           // Per-page head tags (@unhead/vue)
     title: 'My Page',
     meta: [{ name: 'description', content: '...' }]
@@ -118,6 +119,96 @@ definePage({
 });
 </script>
 ```
+
+## Page Caching (KeepAlive)
+
+Set `cache: true` in `definePage` to preserve the page component instance with Vue's `<KeepAlive>` when navigating away. When the user navigates back, the page is restored from cache instead of being re-mounted — local state (form input, scroll position, etc.) is preserved.
+
+The framework automatically wraps the page component with a named wrapper (`getNamedPageWrapper`) using the route name. This means `<script setup>` SFCs work out of the box — you do **not** need to manually call `defineOptions({ name: 'About' })` to make KeepAlive's `include` filter match.
+
+```vue
+<!-- src/pages/about.vue -->
+<script setup lang="ts">
+import { onActivated, onDeactivated } from 'vue';
+
+definePage({ cache: true });
+
+onActivated(() => {
+  // Fires when navigating back to this cached page
+  console.log('About re-activated');
+});
+
+onDeactivated(() => {
+  // Fires when navigating away (component is kept alive, not unmounted)
+  console.log('About deactivated');
+});
+</script>
+
+<template>
+  <div>About Page</div>
+</template>
+```
+
+> When `cache: true` is set, use `onActivated` / `onDeactivated` instead of `onMounted` / `onUnmounted` for lifecycle logic that should fire on every visit.
+
+### Runtime cache control
+
+Use the auto-imported cache helpers to toggle caching at runtime (e.g. from a layout or a settings panel):
+
+```vue
+<script setup lang="ts">
+// All auto-imported from ubean/runtime/vue
+const { cachedViews, excludedViews } = useCacheViews();
+
+function toggleCache(name: string) {
+  if (cachedViews.value.includes(name)) {
+    disablePageCache(name);
+  } else {
+    enablePageCache(name);
+  }
+}
+
+// Force-remove a cached instance so it re-mounts next visit
+invalidatePageCache('About');
+
+// Reload the current cached page (exclude → wait → include, forces remount)
+await resetRouteCache('About');
+</script>
+```
+
+Available runtime helpers (all auto-imported from `ubean/runtime/vue`):
+
+| Function                       | Description                                                       |
+| ------------------------------ | ----------------------------------------------------------------- |
+| `useCacheViews()`              | Reactive store with `cachedViews` / `excludedViews` / `enabled`  |
+| `enablePageCache(name)`        | Add a route name to the cache include list                        |
+| `disablePageCache(name)`       | Remove a route name from the cache (prunes its instance)          |
+| `excludePageCache(name)`       | Temporarily exclude a page from cache (forces prune next render) |
+| `includePageCache(name)`       | Restore caching for an excluded page                              |
+| `invalidatePageCache(name?)`   | Invalidate a specific page, or all pages when omitted             |
+| `isPageCached(name)`           | Check whether a page is currently cached                          |
+| `resetRouteCache(name?, delay)` | Reload a cached page by exclude → wait → include (forces remount) |
+
+### Reuse route cache inheritance
+
+When a `.reuse.ts` page does **not** explicitly declare `cache`, it inherits the target page's `cache` setting. This means if the target page has `cache: true`, the reuse route is automatically cached too — each as an independent KeepAlive instance keyed by its own route name.
+
+```ts
+// pages/about.vue — cache enabled
+definePage({ cache: true });
+
+// pages/about2.reuse.ts — inherits cache: true automatically
+export default definePage({ reuse: 'About' });
+
+// pages/about3.reuse.ts — explicitly disable cache (overrides inheritance)
+export default definePage({ reuse: 'About', cache: false });
+```
+
+| Reuse page `cache` value | Behavior |
+| ------------------------ | -------- |
+| `undefined` (not declared) | Inherit from target page |
+| `true` | Explicitly enable cache (even if target is not cached) |
+| `false` | Explicitly disable cache (even if target is cached) |
 
 ## Navigation
 

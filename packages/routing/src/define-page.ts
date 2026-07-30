@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import type { RouteMeta } from 'vue-router';
+import type { PageHead } from '@ubean/types';
 import type { DefineMetaResult, PageMeta } from './types';
 
 export type { PageMeta, DefineMetaResult } from './types';
@@ -301,6 +302,29 @@ function extractAndParseCall(code: string, funcName: string): Record<string, unk
   return parseObjectLiteral(trimmed);
 }
 
+/**
+ * Normalize a parsed `head` value into a `PageHead` object.
+ *
+ * Mirrors `buildMarkdownHead` in `scan.ts` so Vue pages (via `definePage`)
+ * and Markdown pages (via frontmatter) share the same validation rules and
+ * SSR application path (`pageObj.head` → `pushPageHead`).
+ */
+function normalizePageHead(raw: unknown): PageHead | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+
+  const src = raw as Record<string, unknown>;
+  const head: PageHead = {};
+
+  if (typeof src.title === 'string') head.title = src.title;
+  if (Array.isArray(src.meta)) head.meta = src.meta as Array<Record<string, string>>;
+  if (Array.isArray(src.link)) head.link = src.link as Array<Record<string, string>>;
+  if (Array.isArray(src.script)) head.script = src.script as Array<Record<string, string>>;
+  if (src.htmlAttrs && typeof src.htmlAttrs === 'object') head.htmlAttrs = src.htmlAttrs as Record<string, string>;
+  if (src.bodyAttrs && typeof src.bodyAttrs === 'object') head.bodyAttrs = src.bodyAttrs as Record<string, string>;
+
+  return Object.keys(head).length > 0 ? head : undefined;
+}
+
 export function extractDefinePageFromCode(code: string): PageMeta | null {
   const scriptContent = extractScriptContent(code);
   if (!scriptContent) return null;
@@ -322,6 +346,9 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
   } else if (Array.isArray(parsed.middleware)) {
     result.middleware = parsed.middleware.filter((m): m is string => typeof m === 'string');
   }
+
+  const head = normalizePageHead(parsed.head);
+  if (head) result.head = head;
 
   return result;
 }

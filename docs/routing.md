@@ -359,9 +359,11 @@ definePage({
   meta: {
     title: '用户详情',
     requiresAuth: true,
-    roles: ['admin', 'user'],
-    keepAlive: true
-  }
+    roles: ['admin', 'user']
+  },
+  // 启用页面 KeepAlive 缓存（框架自动用路由名作为组件 name，
+  // <script setup> SFC 无需手动 defineOptions({ name })）
+  cache: true
 });
 
 const props = defineProps<{
@@ -387,8 +389,6 @@ export interface PageMeta {
   requiresAuth?: boolean;
   /** 需要的角色 */
   roles?: string[];
-  /** 是否缓存页面（keep-alive） */
-  keepAlive?: boolean;
   /** 允许用户扩展 */
   [key: string]: unknown;
 }
@@ -414,8 +414,45 @@ export interface DefinePageOptions<TName extends string = string, TLayout extend
    */
   layout?: TLayout | false;
 
+  /**
+   * 启用页面 KeepAlive 缓存。
+   * 设为 true 时，页面组件实例在导航离开后被保留（不卸载），
+   * 返回时从缓存恢复。框架自动用路由名作为组件 name（通过
+   * getNamedPageWrapper 包装），<script setup> SFC 无需手动
+   * defineOptions({ name })。
+   * 缓存后页面使用 onActivated/onDeactivated 替代 onMounted/onUnmounted。
+   * 运行时控制：useCacheViews()/enablePageCache(name)/disablePageCache(name)/
+   * excludePageCache(name)/includePageCache(name)/invalidatePageCache(name?)/
+   * isPageCached(name)/resetRouteCache(name?)。
+   */
+  cache?: boolean;
+
+  /**
+   * 复用路由目标 — 指定要复用其组件的已定义路由 name。
+   * 仅在 .reuse.ts 文件中使用；reuse 路由不会创建独立的 Vue 组件，
+   * 而是加载 target 页面的 SFC。
+   * cache 未显式声明时自动继承 target 的 cache 值。
+   */
+  reuse?: string;
+
   /** 路由元信息 */
   meta?: PageMeta;
+
+  /** 页面级中间件名 */
+  middleware?: string | string[];
+
+  /** 是否需要鉴权（meta shortcut，等价于 meta.requiresAuth） */
+  requiresAuth?: boolean;
+
+  /**
+   * 页面级静态 head 配置（SEO）。
+   * 构建时由 extractDefinePageFromCode 提取，SSR 时通过 pageObj.head →
+   * pushPageHead 应用（与 Markdown frontmatter 走相同路径）。
+   * 支持 title / meta / link / script / htmlAttrs / bodyAttrs。
+   * 动态/响应式 head 请使用 useHead()，两者可共存
+   * （useHead() 覆盖 definePage.head 中的同名字段）。
+   */
+  head?: PageHead;
 }
 
 export function definePage(options?: DefinePageOptions): void;
@@ -517,9 +554,11 @@ export default definePage({
   layout: 'default',
   // 独立 meta
   meta: {
-    title: '用户详情（复用）',
-    keepAlive: true
-  }
+    title: '用户详情（复用）'
+  },
+  // cache 未显式声明时自动继承 target（UserDetail）的 cache 值。
+  // 如需独立控制可显式声明：cache: true 启用，cache: false 关闭。
+  cache: true
 });
 ```
 
@@ -527,8 +566,21 @@ export default definePage({
 
 1. `xxx.reuse.ts` 与同名 `.vue` 文件互斥，`.reuse.ts` 优先级更高（若存在则不注册同名 `.vue` 路由）
 2. `reuse` 字段指向的路由 name 必须是已定义的其他页面路由（类型检查）
-3. reuse 路由默认使用被复用页面的组件作为 `component`，但 meta、layout、path 可以独立配置
-4. 可通过 CLI 命令 `ubean page add-reuse` 交互式创建 reuse 路由
+3. reuse 路由默认使用被复用页面的组件作为 `component`，但 meta、layout、path、cache 可以独立配置
+4. **cache 继承**：reuse 路由未显式声明 `cache`（`undefined`）时，自动继承 target 页面的 `cache` 值。显式 `cache: true`/`cache: false` 优先级更高，可独立启用或关闭缓存
+5. 每个 cached 的 reuse 路由是独立的 KeepAlive 实例，以各自的路由名作为缓存 key，状态互不共享
+6. 可通过 CLI 命令 `ubean page add-reuse` 交互式创建 reuse 路由
+
+**cache 继承真值表**：
+
+| target `cache` | reuse `cache` | 继承逻辑触发? | reuse 最终 `cache` | 结果 |
+| -------------- | ------------- | ------------- | ------------------ | ---- |
+| `true` | `undefined` | ✓ 触发 | `true` | reuse 继承缓存 |
+| `true` | `true` | ✗ 不触发 | `true` | reuse 显式缓存 |
+| `true` | `false` | ✗ 不触发 | `false` | reuse 显式关闭 |
+| `undefined`/`false` | `undefined` | ✓ 触发但 target 非 true | `undefined` | 都不缓存 |
+| `undefined`/`false` | `true` | ✗ 不触发 | `true` | reuse 独立缓存 |
+| `undefined`/`false` | `false` | ✗ 不触发 | `false` | 都不缓存 |
 
 #### 路由组 (Route Groups)
 

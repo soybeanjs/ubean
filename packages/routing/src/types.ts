@@ -138,7 +138,10 @@ export const GLOB_LAYOUT_PATTERN = '**/*.{vue,ts}';
 
 /**
  * Page-level head configuration (SEO title, meta, link, etc.).
- * Used by Markdown frontmatter; Vue pages use `useHead()` at runtime instead.
+ * Extracted from both Markdown frontmatter and `definePage({ head })` macro
+ * at build time; applied during SSR via `pageObj.head` → `pushPageHead`.
+ * For dynamic/reactive head, use `useHead()` at runtime — both can coexist
+ * (`useHead()` overrides `definePage.head` for same keys).
  *
  * `PageHead` itself is imported from `@ubean/types` to avoid a
  * routing ↔ pages circular dependency.
@@ -178,8 +181,10 @@ export interface PageMeta {
    */
   cache?: boolean;
   /**
-   * Page-level head configuration (SEO title, meta, link, etc.).
-   * Used by Markdown frontmatter; Vue pages use `useHead()` at runtime instead.
+   * Page-level static head configuration (SEO).
+   * Build-time extracted by `extractDefinePageFromCode`; applied during SSR
+   * via `pageObj.head` → `pushPageHead` (same path as Markdown frontmatter).
+   * For dynamic/reactive head, use `useHead()` — both can coexist.
    */
   head?: PageHead;
 }

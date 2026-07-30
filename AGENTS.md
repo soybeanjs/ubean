@@ -95,10 +95,12 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **layouts**：`src/layouts/`（`xx.vue` 或 `xx/index.vue`）
 - **middleware**：`src/middleware/`，`global`/`global.*` → `/*`，其他按目录前缀挂载
 - **路由组**：`(group-name)/` 不贡献 URL 段
-- **reuse 路由**：`xxx.reuse.ts` / `xxx.reuse.vue`
+- **reuse 路由**：`xxx.reuse.ts` / `xxx.reuse.vue`；未显式声明 `cache` 时自动继承 target 的 `cache` 值，可显式 `cache: false` 关闭
 - **动态路由**：`[id].vue` → `/user/:id`
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序
-- `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`middleware`、`requiresAuth`、`head`（**没有** 顶层 `title` 字段）
+- `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`middleware`、`requiresAuth`、`cache`、`head`（**没有** 顶层 `title` 字段）
+  - `cache: true` 启用页面 KeepAlive 缓存，框架自动用路由名作为组件 `name`（通过 `getNamedPageWrapper` 包装），`<script setup>` SFC 无需手动 `defineOptions({ name })`
+  - 运行时控制：`useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)`
 
 ### 3.2 验证与 OpenAPI
 
@@ -143,15 +145,15 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 路由与处理器
 
-| API                                        | 说明                                                                                            |
-| ------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| `defineHandler(...handlers)`               | 包装 API 路由处理器，返回 `UbeanHandlerChain`                                                   |
-| `defineHandlerMeta(meta)`                  | 路由元数据（`requiresAuth`/`cache`/`rateLimit`），返回带 `.__meta` 的 pass-through 中间件       |
-| `defineMiddleware(handler)`                | 包装中间件                                                                                      |
-| `definePage(meta)`                         | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`middleware`/`requiresAuth`/`head`） |
-| `defineMeta(meta)`                         | 定义路由 meta                                                                                   |
-| `validator` / `describeRoute` / `resolver` | 来自 `hono-openapi`，请求验证 + OpenAPI                                                         |
-| `registerRoutes(app, scanResult)`          | 路由挂载（内部用 `app.on(method, path, ...)`，**不要**用 `app[method](path, ...)`）             |
+| API                                        | 说明                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| `defineHandler(...handlers)`               | 包装 API 路由处理器，返回 `UbeanHandlerChain`                                                           |
+| `defineHandlerMeta(meta)`                  | 路由元数据（`requiresAuth`/`cache`/`rateLimit`），返回带 `.__meta` 的 pass-through 中间件               |
+| `defineMiddleware(handler)`                | 包装中间件                                                                                              |
+| `definePage(meta)`                         | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`middleware`/`requiresAuth`/`cache`/`head`） |
+| `defineMeta(meta)`                         | 定义路由 meta                                                                                           |
+| `validator` / `describeRoute` / `resolver` | 来自 `hono-openapi`，请求验证 + OpenAPI                                                                 |
+| `registerRoutes(app, scanResult)`          | 路由挂载（内部用 `app.on(method, path, ...)`，**不要**用 `app[method](path, ...)`）                     |
 
 ### 应用入口
 
@@ -276,14 +278,16 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### Vue 运行时
 
-| API                                                                                | 说明                                                                                      |
-| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `useRouter()` / `createUbeanRouter(options)`                                       | 路由                                                                                      |
-| `useData(key, fetcher)` / `invalidateData(key)` / `invalidateAll()`                | 页面数据                                                                                  |
-| `withViewTransition(fn)` / `supportsViewTransitions()`                             | View Transitions                                                                          |
-| `<Link to="...">` / `<Head>`                                                       | 全局注册组件（无需导入）                                                                  |
-| `<Comp client:load / client:idle / client:visible / client:media / client:only />` | Islands 指令（框架自动水合，无需手动调用 `hydrateIslands`）                               |
-| `hydrateIslands(options?)`                                                         | Islands 水合（**框架自动调用**，无需手动执行；`components` 可选，手动传入优先于自动注册） |
+| API                                                                                                                                                               | 说明                                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `useRouter()` / `createUbeanRouter(options)`                                                                                                                      | 路由                                                                                                            |
+| `useCacheViews()` / `enablePageCache` / `disablePageCache` / `excludePageCache` / `includePageCache` / `invalidatePageCache` / `isPageCached` / `resetRouteCache` | 页面 KeepAlive 缓存运行时控制（自动导入自 `ubean/runtime/vue`）；`getNamedPageWrapper` 从 `@ubean/runtime` 导出 |
+| `useHead()` / `useSeoMeta()`                                                                                                                                      | 动态 head/SEO（响应式）；静态 head 用 `definePage({ head })`                                                    |
+| `useData(key, fetcher)` / `invalidateData(key)` / `invalidateAll()`                                                                                               | 页面数据                                                                                                        |
+| `withViewTransition(fn)` / `supportsViewTransitions()`                                                                                                            | View Transitions                                                                                                |
+| `<Link to="...">` / `<Head>`                                                                                                                                      | 全局注册组件（无需导入）                                                                                        |
+| `<Comp client:load / client:idle / client:visible / client:media / client:only />`                                                                                | Islands 指令（框架自动水合，无需手动调用 `hydrateIslands`）                                                     |
+| `hydrateIslands(options?)`                                                                                                                                        | Islands 水合（**框架自动调用**，无需手动执行；`components` 可选，手动传入优先于自动注册）                       |
 
 ### Markdown
 

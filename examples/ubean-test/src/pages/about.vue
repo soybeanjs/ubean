@@ -1,6 +1,9 @@
 <script setup lang="ts">
-useHead({
-  title: '关于 - ubean-test'
+definePage({
+  head: {
+    title: '关于 - ubean-test',
+    meta: [{ name: 'description', content: 'ubean 框架功能测试项目介绍页' }]
+  }
 });
 </script>
 

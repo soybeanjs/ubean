@@ -187,6 +187,7 @@ definePage({
   },
   middleware: ['auth'],
   requiresAuth: true,
+  cache: true,                       // Enable KeepAlive page caching
   head: {
     title: 'About',
     meta: [{ name: 'description', content: 'About us' }]
@@ -206,9 +207,54 @@ definePage({
 | `meta`          | `object`              | Custom metadata (any shape)          |
 | `middleware`    | `string \| string[]`  | Page-level middleware names         |
 | `requiresAuth`  | `boolean`             | Auth requirement (meta shortcut)     |
+| `cache`         | `boolean`             | Enable KeepAlive page caching        |
 | `head`          | `object`              | Per-page head tags (@unhead/vue)     |
 
 > There is **no top-level `title`** field. Use `meta: { title }` or `head: { title }`.
+
+### Page Caching (`cache: true`)
+
+Set `cache: true` to preserve the page component instance with Vue's `<KeepAlive>` when navigating away. The page's route name (e.g. `'About'`) is used as the cache key — the framework automatically wraps the page component with a named wrapper (`getNamedPageWrapper`), so `<script setup>` SFCs work without manually calling `defineOptions({ name })`.
+
+When cached, `onActivated` / `onDeactivated` lifecycle hooks fire on the page component (instead of `onMounted` / `onUnmounted`):
+
+```vue
+<script setup lang="ts">
+import { onActivated, onDeactivated } from 'vue';
+
+definePage({ cache: true });
+
+onActivated(() => {
+  console.log('Page re-activated (navigated back)');
+});
+
+onDeactivated(() => {
+  console.log('Page deactivated (navigated away, but kept alive)');
+});
+</script>
+```
+
+Runtime control is available via `useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)` (auto-imported from `ubean/runtime/vue`).
+
+### Reuse Route Cache Inheritance
+
+When a `.reuse.ts` page does **not** explicitly declare `cache`, it inherits the target page's `cache` setting. You can also explicitly enable or disable cache on a reuse route independent of its target:
+
+```ts
+// pages/about.vue — cache enabled
+definePage({ cache: true });
+
+// pages/about2.reuse.ts — inherits cache: true from About (no need to repeat)
+export default definePage({ reuse: 'About' });
+
+// pages/about3.reuse.ts — explicitly disable cache (overrides inheritance)
+export default definePage({ reuse: 'About', cache: false });
+
+// pages/about4.reuse.ts — explicitly enable cache even if target is not cached
+export default definePage({ reuse: 'About', cache: true });
+```
+
+Each cached reuse route is an independent KeepAlive instance keyed by its own route name.
 
 ## Reading Route Params in API Routes
 

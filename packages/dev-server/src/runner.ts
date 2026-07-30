@@ -48,6 +48,8 @@ export interface DevRunner {
   stop(): Promise<void>;
   reload(): Promise<void>;
   updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void;
+  /** Send a `full-reload` event to all connected browser clients. */
+  sendFullReload(): void;
 }
 
 export interface EnvRunner {
@@ -126,6 +128,10 @@ class ViteNodeDevRunner implements DevRunner {
     if (this.viteDevServer) {
       this.viteDevServer.updateApp(app, this.currentLayouts);
     }
+  }
+
+  sendFullReload(): void {
+    this.viteDevServer?.sendFullReload();
   }
 }
 

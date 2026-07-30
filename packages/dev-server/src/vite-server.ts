@@ -39,6 +39,8 @@ export interface ViteDevServerInstance {
   start(): Promise<void>;
   stop(): Promise<void>;
   updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void;
+  /** Send a `full-reload` event to all connected browser clients. */
+  sendFullReload(): void;
 }
 
 async function toWebRequest(req: IncomingMessage, host: string, protocol: string): Promise<Request> {
@@ -629,6 +631,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       // plugin's refresh callback rebuilds `DevToolsInfo` from `getScanResult`
       // and emits a patch — no polling involved.
       refreshDevtools?.();
+    },
+
+    sendFullReload() {
+      if (viteServer) {
+        viteServer.ws.send({ type: 'full-reload' });
+      }
     }
   };
 

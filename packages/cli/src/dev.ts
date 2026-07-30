@@ -120,6 +120,13 @@ export const devCommand: CommandDef = {
         currentScanResult = scanResult;
         runner.updateApp(currentApp, currentLayouts);
         await runner.reload();
+        // Trigger a full browser reload AFTER the server-side app has been
+        // rebuilt with the latest `definePage` metadata. Previously the Vite
+        // plugin's file watcher sent `full-reload` immediately — racing with
+        // this debounced rescan and leaving the browser with stale route meta
+        // (the "must restart server" symptom). Now the reload is sequenced:
+        // scan → rebuild app → update runner → reload browser.
+        runner.sendFullReload();
       } catch (err) {
         logger.error(`Rescan failed: ${err instanceof Error ? err.message : String(err)}`);
       } finally {

@@ -141,9 +141,13 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
           }
           if (relativePath.startsWith('locales/')) {
             server.ws.send({ type: 'custom', event: 'ubean:locale-update', data: { file } });
-          } else {
-            server.ws.send({ type: 'full-reload' });
           }
+          // Do NOT send `full-reload` here. The CLI's debounced rescan
+          // (which rebuilds the app and updates server-side route metadata)
+          // is responsible for triggering the reload via `sendFullReload()`
+          // once the new app is ready. Sending it here would race with the
+          // rescan, causing the browser to reload with stale `definePage`
+          // metadata — the exact "needs server restart" symptom.
         }
       }
     }

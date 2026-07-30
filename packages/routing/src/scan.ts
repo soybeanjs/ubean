@@ -122,6 +122,35 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
     }
   }
 
+  // Inherit `cache` from reuse target.
+  // Reuse routes that don't explicitly declare `cache` (i.e. `undefined`)
+  // inherit the target page's cache setting. So if `about.vue` declares
+  // `definePage({ cache: true })`, then `about2.reuse.ts` (which reuses
+  // About) is automatically cached too — each as an independent keep-alive
+  // instance keyed by its own route name. To explicitly disable cache on
+  // a reuse route, set `cache: false` in its `definePage`.
+  const targetCacheMap = new Map<string, boolean | undefined>();
+  for (const p of pages) {
+    if (!p.isReuse) {
+      targetCacheMap.set(p.name, p.cache);
+    }
+  }
+  for (const page of pages) {
+    if (page.isReuse && page.reuseTarget && page.cache === undefined) {
+      const targetCache = targetCacheMap.get(page.reuseTarget);
+      if (targetCache === true) {
+        page.cache = true;
+        // Sync `pageMeta` so the file-mode route generator (which reads
+        // `page.pageMeta?.cache`) also sees the inherited value.
+        if (page.pageMeta) {
+          page.pageMeta.cache = true;
+        } else {
+          page.pageMeta = { cache: true };
+        }
+      }
+    }
+  }
+
   const defaultLocale = locales.find(l => l.isDefault)?.code || locales[0]?.code;
 
   return {

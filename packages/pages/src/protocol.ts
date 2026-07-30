@@ -55,8 +55,25 @@ export type PageRenderFn = (
   renderContext?: PageRenderContext
 ) => PageRenderResult | Promise<PageRenderResult>;
 
+/**
+ * 流式渲染函数:返回一个 `ReadableStream<Uint8Array>`,将完整 HTML 文档
+ * 分块流式输出(头部先发送,app HTML 边渲染边输出,state 在尾部注入)。
+ *
+ * 由 `@ubean/ssr` 的 `createVueRenderer` 实现。当 renderer 提供此方法且
+ * 应用配置启用了 `streaming` 时,页面处理器会优先使用流式渲染,显著改善
+ * TTFB/LCP(浏览器可在 app 渲染期间提前加载 CSS/JS)。
+ */
+export type PageStreamRenderFn = (
+  pageObj: PageObject,
+  shellHtml: string,
+  assetTags: PageAssetTags,
+  renderContext?: PageRenderContext
+) => ReadableStream<Uint8Array>;
+
 export interface PageRenderer {
   render: PageRenderFn;
+  /** 流式渲染(可选)。提供时优先于 `render` 用于流式 SSR 响应。 */
+  renderToStream?: PageStreamRenderFn;
   preambleScript?: string;
 }
 
@@ -345,4 +362,38 @@ export async function renderPage(
     finalHtml = insertStateContent(finalHtml, '');
   }
   return finalHtml;
+}
+
+/**
+ * 流式渲染页面:当 renderer 提供 `renderToStream` 时,返回一个
+ * `ReadableStream<Uint8Array>`,将完整 HTML 文档分块流式输出。
+ *
+ * 当 renderer 不支持流式(无 `renderToStream`)时,回退到缓冲式 `renderPage`,
+ * 返回一个包含完整 HTML 的单块流(保持调用方接口一致)。
+ *
+ * 调用方应使用 `c.body(stream, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })`
+ * 将流作为 HTTP 响应返回。
+ */
+export function renderPageToStream(
+  pageObj: PageObject,
+  assetTags: PageAssetTags,
+  renderer: PageRenderer | null,
+  appId = 'app',
+  renderContext?: PageRenderContext
+): ReadableStream<Uint8Array> {
+  // 无 renderer 或 renderer 不支持流式:回退到缓冲渲染,包装为单块流
+  if (!renderer || !renderer.renderToStream) {
+    const encoder = new TextEncoder();
+    return new ReadableStream<Uint8Array>({
+      async start(controller) {
+        const html = await renderPage(pageObj, assetTags, renderer, appId, renderContext);
+        controller.enqueue(encoder.encode(html));
+        controller.close();
+      }
+    });
+  }
+
+  const preambleScript = renderer.preambleScript ?? '';
+  const shell = buildPageShell(pageObj, assetTags, preambleScript, appId, renderContext);
+  return renderer.renderToStream(pageObj, shell, assetTags, renderContext);
 }

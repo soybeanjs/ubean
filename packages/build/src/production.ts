@@ -378,6 +378,7 @@ export async function createApp(options = {}) {
     publicDir: ${JSON.stringify(publicDir)},
     i18nConfig: ${JSON.stringify(config.i18n)},
     ssrExclude: ${JSON.stringify(config.ssr?.exclude ?? [])},
+    streaming: ${JSON.stringify(config.ssr?.streaming ?? false)},
     notFoundPage: _notFoundPage || undefined,
     ...options
   });

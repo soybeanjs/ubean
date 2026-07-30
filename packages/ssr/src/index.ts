@@ -1,9 +1,9 @@
 import { createSSRApp, defineComponent, h, provide, reactive } from 'vue';
 import type { App, Component } from 'vue';
-import { renderToString } from '@vue/server-renderer';
+import { renderToString, renderToNodeStream } from '@vue/server-renderer';
 import type { RouteRecordRaw } from 'vue-router';
 import { getIslandsBootstrapScript } from '@ubean/islands';
-import { SSR_CONTENT_MARKER } from '@ubean/pages';
+import { SSR_CONTENT_MARKER, STATE_DATA_ID, STATE_MARKER } from '@ubean/pages';
 import type {
   PageObject,
   PageRenderer,
@@ -15,6 +15,7 @@ import type {
 import { applyAppConfig } from '@ubean/runtime/define-app';
 import type { ResolvedAppConfig } from '@ubean/runtime/define-app';
 import { createHead, transformHtmlTemplate } from '@unhead/vue/server';
+import { safeJsonStringify } from '@ubean/pages';
 
 export interface VueRendererSimpleOptions {
   resolvePageComponent: (path: string) => Promise<Component | null>;
@@ -117,6 +118,100 @@ function createSimpleApp(
   return app;
 }
 
+/**
+ * Shared setup for both buffered and streaming renders: creates the head
+ * instance, pushes static head (defineApp + locale + page), builds the Vue
+ * SSR app, and returns everything the render methods need.
+ */
+async function prepareRender(
+  options: VueRendererOptions,
+  pageObj: PageObject,
+  renderContext?: PageRenderContext
+): Promise<{ app: App; head: ReturnType<typeof createHead>; appConfig: ResolvedAppConfig | null }> {
+  const head = createHead();
+
+  // Resolve user's defineApp config once per render. The config object is
+  // cheap to produce (object merge) and is the same across requests, but
+  // resolving lazily here keeps dev-mode HMR working correctly.
+  const appConfig = options.resolveAppConfig ? await options.resolveAppConfig() : null;
+
+  // 1. Global app head from defineApp (title / meta defaults) — pushed first
+  //    so page-specific head can override.
+  if (appConfig?.head) {
+    pushPageHead(head, appConfig.head);
+  }
+
+  // 2. Locale head
+  if (renderContext?.locale) {
+    head.push({
+      htmlAttrs: {
+        lang: renderContext.locale,
+        dir: renderContext.localeDir || 'ltr'
+      }
+    });
+  }
+
+  // 3. Page-specific head (overrides app-level defaults)
+  if (pageObj.head) {
+    pushPageHead(head, pageObj.head);
+  }
+
+  let renderApp: App;
+  if (isSimpleOptions(options)) {
+    const pageComponent = await options.resolvePageComponent(pageObj.component);
+    if (!pageComponent) {
+      throw new Error(`[ubean] Could not resolve page component: ${pageObj.component}`);
+    }
+
+    const layout =
+      pageObj.layout === false
+        ? null
+        : await resolveSingleLayout(pageObj.layout, options.defaultLayout || null, options.resolveLayoutComponent);
+
+    const app = createSimpleApp(pageObj, pageComponent, layout, head);
+    if (appConfig) {
+      await applyServerAppConfig(app, appConfig);
+    }
+    renderApp = app;
+  } else {
+    const { createUbeanSSRApp } = await import('@ubean/runtime/app');
+    const { app: createdApp, router } = createUbeanSSRApp(pageObj, {
+      routes: options.routes,
+      resolveLayoutComponent: options.resolveLayoutComponent,
+      defaultLayout: options.defaultLayout,
+      head
+    });
+    if (appConfig) {
+      await applyServerAppConfig(createdApp, appConfig);
+    }
+    await router.isReady();
+    renderApp = createdApp;
+  }
+
+  return { app: renderApp, head, appConfig };
+}
+
+/**
+ * Serialize SSR state (e.g. Pinia state) from the app instance after render.
+ * Returns `undefined` when there is no state or serialization fails.
+ */
+async function resolveState(
+  app: App,
+  appConfig: ResolvedAppConfig | null
+): Promise<Record<string, unknown> | undefined> {
+  if (!appConfig?.serializeState) return undefined;
+  try {
+    const serialized = await appConfig.serializeState(app);
+    if (serialized && Object.keys(serialized).length > 0) {
+      return serialized;
+    }
+  } catch (err) {
+    // 序列化失败不应阻塞渲染,记录错误后继续(产出无 state 的 HTML)
+    console.error('[ubean-ssr] serializeState failed:', err);
+  }
+  return undefined;
+}
+
 export function createVueRenderer(options: VueRendererOptions): PageRenderer {
   const render: PageRenderer['render'] = async (
     pageObj: PageObject,
@@ -124,84 +219,13 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     _assetTags: PageAssetTags,
     renderContext?: PageRenderContext
   ): Promise<PageRenderResult> => {
-    const head = createHead();
-
-    // Resolve user's defineApp config once per render. The config object is
-    // cheap to produce (object merge) and is the same across requests, but
-    // resolving lazily here keeps dev-mode HMR working correctly.
-    const appConfig = options.resolveAppConfig ? await options.resolveAppConfig() : null;
-
-    // 1. Global app head from defineApp (title / meta defaults) — pushed first
-    //    so page-specific head can override.
-    if (appConfig?.head) {
-      pushPageHead(head, appConfig.head);
-    }
-
-    // 2. Locale head
-    if (renderContext?.locale) {
-      head.push({
-        htmlAttrs: {
-          lang: renderContext.locale,
-          dir: renderContext.localeDir || 'ltr'
-        }
-      });
-    }
-
-    // 3. Page-specific head (overrides app-level defaults)
-    if (pageObj.head) {
-      pushPageHead(head, pageObj.head);
-    }
-
-    let appHtml: string;
-    let renderApp: App | null = null;
-    if (isSimpleOptions(options)) {
-      const pageComponent = await options.resolvePageComponent(pageObj.component);
-      if (!pageComponent) {
-        throw new Error(`[ubean] Could not resolve page component: ${pageObj.component}`);
-      }
-
-      const layout =
-        pageObj.layout === false
-          ? null
-          : await resolveSingleLayout(pageObj.layout, options.defaultLayout || null, options.resolveLayoutComponent);
-
-      const app = createSimpleApp(pageObj, pageComponent, layout, head);
-      if (appConfig) {
-        await applyServerAppConfig(app, appConfig);
-      }
-      renderApp = app;
-      appHtml = await renderToString(app);
-    } else {
-      const { createUbeanSSRApp } = await import('@ubean/runtime/app');
-      const { app: createdApp, router } = createUbeanSSRApp(pageObj, {
-        routes: options.routes,
-        resolveLayoutComponent: options.resolveLayoutComponent,
-        defaultLayout: options.defaultLayout,
-        head
-      });
-      if (appConfig) {
-        await applyServerAppConfig(createdApp, appConfig);
-      }
-      await router.isReady();
-      renderApp = createdApp;
-      appHtml = await renderToString(createdApp);
-    }
+    const { app, head, appConfig } = await prepareRender(options, pageObj, renderContext);
+    const appHtml = await renderToString(app);
 
     // SSR 状态序列化:在 renderToString 完成后,从 app 实例提取状态
     // (如 Pinia 的 pinia.state.value)。返回的 state 会被 renderPage
     // 注入到 HTML 的 __UBEAN_STATE__ script 标签中。
-    let state: Record<string, unknown> | undefined;
-    if (appConfig?.serializeState && renderApp) {
-      try {
-        const serialized = await appConfig.serializeState(renderApp);
-        if (serialized && Object.keys(serialized).length > 0) {
-          state = serialized;
-        }
-      } catch (err) {
-        // 序列化失败不应阻塞渲染,记录错误后继续(产出无 state 的 HTML)
-        console.error('[ubean-ssr] serializeState failed:', err);
-      }
-    }
+    const state = await resolveState(app, appConfig);
 
     if (!shellHtml) {
       // 无 shell 时,无法注入 state,直接返回 HTML 字符串
@@ -218,8 +242,101 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     return html;
   };
 
+  /**
+   * Streaming SSR: 返回一个 ReadableStream<Uint8Array>,将 HTML 文档分块流式输出。
+   *
+   * 与 `render` 的关键差异:
+   * - 使用 Vue 的 `renderToStream` 替代 `renderToString`,app HTML 边渲染边输出
+   * - 静态 head(defineApp + definePage)在流式开始前注入 `<head>`
+   * - SSR state(Pinia 等)在 app 流结束后、tail 之前注入为 `<script>`(移到 app div 之后,
+   *   因为 state 只有渲染完成后才可用;客户端通过 getElementById 读取,位置无关)
+   * - 动态 `useHead()`(组件 setup 内)在流式模式下不会出现在初始 `<head>` 中,
+   *   客户端水合后会自动同步 —— 与 Next.js 流式 metadata 行为一致(P9-24 将补强)
+   */
+  const renderToStreamFn: PageRenderer['renderToStream'] = (
+    pageObj: PageObject,
+    shellHtml: string,
+    _assetTags: PageAssetTags,
+    renderContext?: PageRenderContext
+  ): ReadableStream<Uint8Array> => {
+    const encoder = new TextEncoder();
+
+    // Vue 的 `renderToNodeStream` 返回 Node.js `Readable`,通过 async iteration
+    // 逐块读取并编码为 Uint8Array 后转发到 web ReadableStream。
+    // 兼容 Node(Buffer/string chunk)与未来 web stream 实现。
+    async function pumpVueStream(
+      vueStream: ReturnType<typeof renderToNodeStream>,
+      controller: ReadableStreamDefaultController<Uint8Array>
+    ): Promise<void> {
+      for await (const chunk of vueStream as AsyncIterable<unknown>) {
+        const text = typeof chunk === 'string' ? chunk : new TextDecoder().decode(chunk as ArrayBufferView);
+        controller.enqueue(encoder.encode(text));
+      }
+    }
+
+    return new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          const { app, head, appConfig } = await prepareRender(options, pageObj, renderContext);
+
+          // 无 shell:直接流式 app HTML
+          if (!shellHtml) {
+            const appStream = renderToNodeStream(app);
+            await pumpVueStream(appStream, controller);
+            controller.close();
+            return;
+          }
+
+          // 有 shell:在 SSR_CONTENT_MARKER 处拆分
+          const markerIdx = shellHtml.indexOf(SSR_CONTENT_MARKER);
+          if (markerIdx === -1) {
+            // 无标记,回退为:流式 app HTML + 尾部(无法注入,直接拼接)
+            const appStream = renderToNodeStream(app);
+            await pumpVueStream(appStream, controller);
+            controller.close();
+            return;
+          }
+
+          let headPart = shellHtml.slice(0, markerIdx);
+          const tailPart = shellHtml.slice(markerIdx + SSR_CONTENT_MARKER.length);
+
+          // 流式模式下,state script 移到 tail(app div 之后),因为 state
+          // 只有渲染完成后才可用。从 headPart 移除占位 state script。
+          const stateScriptRegex = new RegExp(
+            `<script id="${STATE_DATA_ID}" type="application/json">${STATE_MARKER}</script>`
+          );
+          headPart = headPart.replace(stateScriptRegex, '');
+
+          // 用静态 head 转换 headPart(注入 title/meta/htmlAttrs/bodyAttrs)
+          headPart = transformHtmlTemplate(head, headPart);
+
+          // 1. 立即输出 head 部分(doctype + head + body 开头 + page data scripts)
+          //    浏览器可提前加载 CSS/JS,显著改善 TTFB/LCP
+          controller.enqueue(encoder.encode(headPart));
+
+          // 2. 流式输出 Vue app HTML
+          const appStream = renderToNodeStream(app);
+          await pumpVueStream(appStream, controller);
+
+          // 3. 渲染完成后,序列化 state 并注入为 script(state 在 app div 之后)
+          const state = await resolveState(app, appConfig);
+          const stateScript = `<script id="${STATE_DATA_ID}" type="application/json">${
+            state ? safeJsonStringify(state) : ''
+          }</script>`;
+
+          // 4. 输出 state script + tail 部分(关闭 div/body/html)
+          controller.enqueue(encoder.encode(stateScript + tailPart));
+          controller.close();
+        } catch (err) {
+          controller.error(err);
+        }
+      }
+    });
+  };
+
   return {
     render,
+    renderToStream: renderToStreamFn,
     preambleScript: getIslandsBootstrapScript()
   };
 }

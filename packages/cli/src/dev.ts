@@ -279,6 +279,7 @@ async function buildApp(
     },
     i18nConfig: config.i18n,
     ssrExclude: config.ssr.exclude,
+    streaming: config.ssr.streaming,
     notFoundPage: result.notFoundPage
   });
 

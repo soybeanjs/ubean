@@ -108,17 +108,18 @@ export function resolvePrerenderConfig(config?: PrerenderConfig): ResolvedPreren
  */
 export function resolveSsrConfig(config?: boolean | SsrOptions): ResolvedSsrConfig {
   if (config === false) {
-    return { enabled: false, all: false, exclude: [] };
+    return { enabled: false, all: false, exclude: [], streaming: false };
   }
   if (config === true || config === undefined) {
-    return { enabled: true, all: true, exclude: [] };
+    return { enabled: true, all: true, exclude: [], streaming: false };
   }
   // 对象形式
   const all = config.all !== false; // 默认 true
   return {
     enabled: all,
     all,
-    exclude: config.exclude ?? []
+    exclude: config.exclude ?? [],
+    streaming: config.streaming === true
   };
 }
 
@@ -156,7 +157,7 @@ const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
   srcDir: 'src',
   mode: 'fullstack',
-  ssr: { enabled: true, all: true, exclude: [] },
+  ssr: { enabled: true, all: true, exclude: [], streaming: false },
   modules: [],
   icon: false,
   pwa: false,

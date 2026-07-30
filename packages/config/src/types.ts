@@ -350,6 +350,22 @@ export interface SsrOptions {
    * 匹配的页面将跳过服务端渲染,返回客户端渲染 shell。
    */
   exclude?: string[];
+
+  /**
+   * 启用流式 SSR(P9-01)。默认 `false`。
+   *
+   * `true` 时页面响应以 `ReadableStream` 分块输出:头部(doctype + head + CSS/JS
+   * 预加载)先发送,app HTML 边渲染边输出,SSR state 在尾部注入。
+   * 浏览器可在 app 渲染期间提前加载资源,显著改善 TTFB/LCP。
+   *
+   * 限制:组件 setup 内动态 `useHead()` 不会出现在初始流式 `<head>` 中
+   * (客户端水合后同步)—— 与 Next.js 流式 metadata 行为一致。
+   * 静态 head(`defineApp({ head })` + `definePage({ head })`)在流式开始前注入。
+   *
+   * @example
+   * ssr: { streaming: true }
+   */
+  streaming?: boolean;
 }
 
 /**
@@ -360,6 +376,8 @@ export interface ResolvedSsrConfig {
   enabled: boolean;
   all: boolean;
   exclude: string[];
+  /** 流式 SSR 开关 */
+  streaming: boolean;
 }
 
 /* -------------------------------------------------------------------------- */

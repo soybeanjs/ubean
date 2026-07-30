@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { buildProduction } from '@ubean/build/production';
 import type { BuildManifest } from '@ubean/build/production';
 import { generateTypes } from '@ubean/codegen';
-import { loadUbeanConfig, resolvePrerenderConfig } from '@ubean/config';
+import { loadUbeanConfig, resolvePrerenderConfig, resolveSsrConfig } from '@ubean/config';
 import type { AppMode } from '@ubean/config';
 import { prerender } from '@ubean/prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
@@ -118,7 +118,7 @@ export const buildCommand: CommandDef = {
 
       // CLI --ssr / --no-ssr 覆盖配置(仅在 fullstack 模式下生效)
       if (config.mode === 'fullstack' && args.ssr !== undefined) {
-        config.ssr = args.ssr as boolean;
+        config.ssr = resolveSsrConfig(args.ssr as boolean);
       }
 
       // 根据 mode 调整 prerender 行为
@@ -129,7 +129,7 @@ export const buildCommand: CommandDef = {
         }
       } else if (config.mode === 'spa' || config.mode === 'backend') {
         config.prerender = resolvePrerenderConfig(); // 关闭
-      } else if (config.mode === 'fullstack' && !config.ssr) {
+      } else if (config.mode === 'fullstack' && !config.ssr.enabled) {
         // fullstack + ssr:false 无法 prerender(无 SSR bundle)
         config.prerender = resolvePrerenderConfig(); // 关闭
       }
@@ -147,7 +147,7 @@ export const buildCommand: CommandDef = {
 
       const preset = resolvePresetByName(presetName);
       logger.info(`Using preset: ${preset.name}`);
-      logger.info(`App mode: ${config.mode}${config.mode === 'fullstack' ? ` (ssr=${config.ssr})` : ''}`);
+      logger.info(`App mode: ${config.mode}${config.mode === 'fullstack' ? ` (ssr=${config.ssr.enabled})` : ''}`);
 
       logger.info('Scanning project...');
       const result = await scanProject({

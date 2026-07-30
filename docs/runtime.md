@@ -576,7 +576,7 @@ export default [nodeServer, nodeCluster] as const;
 Preset 自动解析逻辑:
 
 1. 用户配置中明确指定 `preset` 选项
-2. 环境变量 `UBEAN_PRESET`
+2. 环境变量 `UBEAN_SERVER_PRESET`
 3. 自动检测 (std-env provider 检测):
    - `process.versions.bun` → bun
    - `Deno` 全局变量 → deno

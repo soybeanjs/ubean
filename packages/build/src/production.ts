@@ -75,7 +75,7 @@ async function generateVirtualModulesToDisk(
   virtualDir: string
 ) {
   const mode = config.mode;
-  const ssrEnabled = (mode === 'fullstack' && config.ssr) || mode === 'ssg';
+  const ssrEnabled = (mode === 'fullstack' && config.ssr.enabled) || mode === 'ssg';
   const hasPages = mode !== 'backend';
   const hasServer = mode !== 'spa';
 
@@ -263,7 +263,7 @@ const _pageRenderer = createVueRenderer({
 });
 `
     : `
-// --- SSR disabled (mode=${mode}, ssr=${config.ssr}) ---
+// --- SSR disabled (mode=${mode}, ssr=${config.ssr.enabled}) ---
 // pageRenderer is null; page requests fall back to a client-only HTML shell.
 const _pageRenderer = null;`;
   if (hasServer) {
@@ -353,6 +353,7 @@ export async function createApp(options = {}) {
     pageAssetTags: _assetTags,
     publicDir: ${JSON.stringify(publicDir)},
     i18nConfig: ${JSON.stringify(config.i18n)},
+    ssrExclude: ${JSON.stringify(config.ssr?.exclude ?? [])},
     ...options
   });
 
@@ -521,11 +522,13 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   const srcDir = resolve(cwd, config.srcDir);
 
   const mode = config.mode;
-  const ssrEnabled = (mode === 'fullstack' && config.ssr) || mode === 'ssg';
+  const ssrEnabled = (mode === 'fullstack' && config.ssr.enabled) || mode === 'ssg';
   const hasPages = mode !== 'backend';
   const hasServer = mode !== 'spa';
 
-  logger.info(`Cleaning output directory... (mode=${mode}${mode === 'fullstack' ? `, ssr=${config.ssr}` : ''})`);
+  logger.info(
+    `Cleaning output directory... (mode=${mode}${mode === 'fullstack' ? `, ssr=${config.ssr.enabled}` : ''})`
+  );
   if (existsSync(outDirs.root)) {
     await rm(outDirs.root, { recursive: true, force: true });
   }

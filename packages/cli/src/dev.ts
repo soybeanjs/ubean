@@ -269,7 +269,8 @@ async function buildApp(
       scalarPath: '/_scalar',
       openAPIPath: '/_openapi.json'
     },
-    i18nConfig: config.i18n
+    i18nConfig: config.i18n,
+    ssrExclude: config.ssr.exclude
   });
 
   app.hooks.hook('request:start', c => {

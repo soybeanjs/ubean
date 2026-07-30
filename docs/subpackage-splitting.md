@@ -216,7 +216,7 @@ packages/
 ### Layer 5 — 构建工具与编排
 
 #### `@ubean/auto-imports`
-- **职责**: 自动导入预设 —— `VUE_PRESET`、`UBEAN_CLIENT_PRESET`、`UBEAN_SERVER_PRESET`、`UBEAN_PRESET`、`BUILTIN_PRESETS`、`generateAutoImports`
+- **职责**: 自动导入预设 —— `VUE_PRESET`、`UBEAN_CLIENT_PRESET`、`UBEAN_SERVER_PRESET`、`BUILTIN_PRESETS`、`generateAutoImports`
 - **来源**: `core/auto-imports/`
 - **依赖**: `unimport`、`@ubean/routing`(type-only)
 - **入口**: `@ubean/auto-imports`

@@ -131,6 +131,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - 平台预设：`standard`、`node`、`cloudflare`（`default` → `standard`，`cf` → `cloudflare`，`node-server` → `node`）
 - 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）
 - 扩展模块顶层字段：`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`，均支持 `true` 或选项对象形式启用
+- SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'] }`（排除指定页面走 CSR）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段）
 
 ### 3.6 模块与扩展包
 
@@ -299,10 +300,9 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 预渲染
 
-| API                                                     | 说明           |
-| ------------------------------------------------------- | -------------- |
-| `prerender(options)` / `collectPrerenderRoutes(routes)` | SSG            |
-| `definePrerenderRoutes(routes)`                         | 定义预渲染路由 |
+| API                                                     | 说明 |
+| ------------------------------------------------------- | ---- |
+| `prerender(options)` / `collectPrerenderRoutes(routes)` | SSG  |
 
 ### i18n
 

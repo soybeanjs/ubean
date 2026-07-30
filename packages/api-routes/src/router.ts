@@ -1,6 +1,7 @@
 import type { Context, Next, MiddlewareHandler, Hono } from 'hono';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/routing';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware } from '@ubean/types';
+import { matchAnyGlob } from '@ubean/utils';
 import { extractRouteMeta, isHandlerChain } from './handler';
 
 /**
@@ -35,6 +36,11 @@ export interface RegisterOptions {
     defaultLocale?: string;
     locales?: string[];
   };
+  /**
+   * 不进行 SSR 的路由模式列表(glob)。
+   * 匹配的页面将跳过服务端渲染,返回客户端渲染 shell。
+   */
+  ssrExclude?: string[];
 }
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
@@ -325,6 +331,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   const pageLoaders = options.pageLoaders;
   const pageRenderer = options.pageRenderer as Parameters<typeof renderPage>[2] | null | undefined;
   const pageAssetTags = options.pageAssetTags as Parameters<typeof renderPage>[1] | undefined;
+  const ssrExclude = options.ssrExclude ?? [];
 
   async function handlePageRequest(
     c: Context<UbeanEnv>,
@@ -449,10 +456,14 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       renderContext.availableLocales = i18nMod.getRegisteredLocalesMeta();
     }
 
+    // SSR exclude: matched pages skip server rendering → CSR shell
+    const excluded = matchAnyGlob(page.route, ssrExclude);
+    const renderer = excluded ? null : (pageRenderer ?? null);
+
     const html = await renderPage(
       pageObj as Parameters<typeof renderPage>[0],
       pageAssetTags ?? {},
-      pageRenderer ?? null,
+      renderer,
       'app',
       renderContext as Parameters<typeof renderPage>[4]
     );

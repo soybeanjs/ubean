@@ -17,6 +17,7 @@ export {
   getConfig,
   tryGetConfig,
   resolvePrerenderConfig,
+  resolveSsrConfig,
   resolveDevToolsConfig,
   DEFAULT_PRERENDER_EXCLUDE
 } from './loader';
@@ -38,6 +39,8 @@ export type {
   PrerenderRoute,
   PrerenderResult,
   ResolvedPrerenderConfig,
+  SsrOptions,
+  ResolvedSsrConfig,
   DevToolsConfig,
   ResolvedDevToolsConfig,
   AppMode

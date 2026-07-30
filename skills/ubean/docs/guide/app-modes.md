@@ -54,6 +54,25 @@ Full-stack without SSR. Suitable for apps with no SEO requirements (admin panels
 - Pages render client-side; API routes respond normally
 - Preview still uses the Node server
 
+### `fullstack` + SSR exclude (`ssr: { exclude: [...] }`)
+
+Most pages SSR, but exclude specific routes (e.g. admin dashboards, highly interactive pages that don't need SEO).
+
+```typescript
+export default defineConfig({
+  mode: 'fullstack',
+  ssr: {
+    exclude: ['/admin/**', '/dashboard/*', '/realtime']
+  }
+});
+```
+
+- SSR bundle is still built (global `ssr` is `true` by default)
+- Matching pages return a client-only HTML shell (CSR) instead of SSR
+- Non-excluded pages render server-side normally
+- Glob patterns: `*` (single segment), `**` (multi-segment recursive)
+- Use case: mix of content pages (SSR) and app-like pages (CSR) in the same project
+
 ### `spa`
 
 Pure client-side rendering, no server.

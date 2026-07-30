@@ -158,9 +158,6 @@ export const UBEAN_SERVER_PRESET: InlinePreset = {
   ]
 };
 
-/** @deprecated Use UBEAN_CLIENT_PRESET + UBEAN_SERVER_PRESET instead */
-export const UBEAN_PRESET: InlinePreset = UBEAN_SERVER_PRESET;
-
 export const HONO_OPENAPI_PRESET: InlinePreset = {
   from: 'hono-openapi',
   imports: ['validator', 'describeRoute']

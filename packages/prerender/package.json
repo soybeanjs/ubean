@@ -1,7 +1,7 @@
 {
   "name": "@ubean/prerender",
   "version": "0.1.11",
-  "description": "SSG prerendering for ubean (prerender, collectPrerenderRoutes, definePrerenderRoutes)",
+  "description": "SSG prerendering for ubean (prerender, collectPrerenderRoutes)",
   "files": [
     "dist"
   ],
@@ -23,7 +23,8 @@
   },
   "dependencies": {
     "@ubean/config": "workspace:*",
-    "@ubean/routing": "workspace:*"
+    "@ubean/routing": "workspace:*",
+    "@ubean/utils": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

@@ -11,15 +11,7 @@
 
 export { UbeanApp, createUbeanApp, applyServerConfig } from './app';
 
-export type {
-  UbeanAppOptions,
-  UbeanAppPlugin,
-  UbeanRuntimeHooks,
-  AppPlugin,
-  DevToolsInstance,
-  PageRenderer,
-  PageAssetTags
-} from './app';
+export type { UbeanAppOptions, UbeanAppPlugin, UbeanRuntimeHooks, AppPlugin, PageRenderer, PageAssetTags } from './app';
 
 export { defineServer, createDefaultServerConfig, mergeServerConfigs } from './define-server';
 

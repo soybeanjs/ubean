@@ -128,6 +128,9 @@ importers:
       '@ubean/types':
         specifier: workspace:*
         version: link:../types
+      '@ubean/utils':
+        specifier: workspace:*
+        version: link:../utils
       hono:
         specifier: 4.12.32
         version: 4.12.32
@@ -876,6 +879,9 @@ importers:
       '@ubean/routing':
         specifier: workspace:*
         version: link:../routing
+      '@ubean/utils':
+        specifier: workspace:*
+        version: link:../utils
     devDependencies:
       '@types/node':
         specifier: ^26.1.2

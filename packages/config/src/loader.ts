@@ -9,6 +9,8 @@ import type {
   ResolvedConfig,
   PrerenderConfig,
   ResolvedPrerenderConfig,
+  SsrOptions,
+  ResolvedSsrConfig,
   DevToolsConfig,
   ResolvedDevToolsConfig
 } from './types';
@@ -97,11 +99,34 @@ export function resolvePrerenderConfig(config?: PrerenderConfig): ResolvedPreren
   };
 }
 
+/**
+ * 解析 SSR 配置。
+ *
+ * - `true` / 未设置 → `{ enabled: true, all: true, exclude: [] }`
+ * - `false` → `{ enabled: false, all: false, exclude: [] }`
+ * - 对象 → 按 `all` / `exclude` 解析(`all` 默认 `true`)
+ */
+export function resolveSsrConfig(config?: boolean | SsrOptions): ResolvedSsrConfig {
+  if (config === false) {
+    return { enabled: false, all: false, exclude: [] };
+  }
+  if (config === true || config === undefined) {
+    return { enabled: true, all: true, exclude: [] };
+  }
+  // 对象形式
+  const all = config.all !== false; // 默认 true
+  return {
+    enabled: all,
+    all,
+    exclude: config.exclude ?? []
+  };
+}
+
 const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
   srcDir: 'src',
   mode: 'fullstack',
-  ssr: true,
+  ssr: { enabled: true, all: true, exclude: [] },
   modules: [],
   icon: false,
   pwa: false,
@@ -166,13 +191,15 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   resolved.srcDir = resolve(cwd, resolved.srcDir);
   // Electron 启用时，ssr 默认改为 false（桌面应用无需 SSR，除非用户显式指定）
   if (resolved.electron !== false && config.ssr === undefined) {
-    resolved.ssr = false;
+    resolved.ssr = resolveSsrConfig(false);
   }
   // 重新解析 routing(确保用户提供的 routing 字段被正确合并默认值)
   resolved.routing = resolveRoutingConfig(config.routing);
   // 重新解析 prerender(defu 浅合并会让派生字段 enabled 失真,
   // 必须基于合并后的 all/include 重算)
   resolved.prerender = resolvePrerenderConfig(config.prerender);
+  // 重新解析 ssr(boolean | 对象 → ResolvedSsrConfig)
+  resolved.ssr = resolveSsrConfig(config.ssr);
   // 重新解析 devtools(同 prerender,defu 浅合并会让 enabled 失真)
   resolved.devtools = resolveDevToolsConfig(config.devtools);
   return resolved;

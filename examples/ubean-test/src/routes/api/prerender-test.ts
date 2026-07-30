@@ -6,14 +6,14 @@ import {
   prerender,
   collectPrerenderRoutes,
   extractLinks,
-  shouldIgnoreRoute,
   matchGlob,
+  matchAnyGlob,
   routeToFilePath,
   writePrerenderedFile,
   resolvePrerenderConfig,
-  definePrerenderRoutes,
   generatePrerenderManifest
 } from 'ubean';
+import type { ScannedPageRoute } from 'ubean';
 
 // Bypass HTTP proxy for localhost requests
 if (process.env.HTTP_PROXY) delete process.env.HTTP_PROXY;
@@ -27,7 +27,7 @@ export const GET = defineHandler(async c => {
   switch (action) {
     // Test 1: collectPrerenderRoutes - new signature with { all, include, exclude }
     case 'collectRoutes': {
-      const mockPages = [
+      const mockPages: ScannedPageRoute[] = [
         {
           path: '/',
           fullPath: '/pages/index.vue',
@@ -104,10 +104,40 @@ export const GET = defineHandler(async c => {
 
     // Test 1b: collectPrerenderRoutes with include-only mode
     case 'collectRoutesInclude': {
-      const mockPages = [
-        { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
-        { path: '/about', name: 'about', route: '/about', isReuse: false, isMarkdown: false },
-        { path: '/dashboard', name: 'dashboard', route: '/dashboard', isReuse: false, isMarkdown: false }
+      const mockPages: ScannedPageRoute[] = [
+        {
+          path: '/',
+          fullPath: '/pages/index.vue',
+          relativePath: 'index.vue',
+          dirname: '.',
+          basename: 'index.vue',
+          name: 'index',
+          route: '/',
+          isReuse: false,
+          isMarkdown: false
+        },
+        {
+          path: '/about',
+          fullPath: '/pages/about.vue',
+          relativePath: 'about.vue',
+          dirname: '.',
+          basename: 'about.vue',
+          name: 'about',
+          route: '/about',
+          isReuse: false,
+          isMarkdown: false
+        },
+        {
+          path: '/dashboard',
+          fullPath: '/pages/dashboard/index.vue',
+          relativePath: 'dashboard/index.vue',
+          dirname: 'dashboard',
+          basename: 'index.vue',
+          name: 'dashboard',
+          route: '/dashboard',
+          isReuse: false,
+          isMarkdown: false
+        }
       ];
 
       const { routes } = collectPrerenderRoutes(mockPages, {
@@ -123,9 +153,29 @@ export const GET = defineHandler(async c => {
 
     // Test 1c: collectPrerenderRoutes with include + specific dynamic path
     case 'collectRoutesDynamic': {
-      const mockPages = [
-        { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
-        { path: '/blog/[id]', name: 'blog-id', route: '/blog/[id]', isReuse: false, isMarkdown: false }
+      const mockPages: ScannedPageRoute[] = [
+        {
+          path: '/',
+          fullPath: '/pages/index.vue',
+          relativePath: 'index.vue',
+          dirname: '.',
+          basename: 'index.vue',
+          name: 'index',
+          route: '/',
+          isReuse: false,
+          isMarkdown: false
+        },
+        {
+          path: '/blog/[id]',
+          fullPath: '/pages/blog/[id].vue',
+          relativePath: 'blog/[id].vue',
+          dirname: 'blog',
+          basename: '[id].vue',
+          name: 'blog-id',
+          route: '/blog/[id]',
+          isReuse: false,
+          isMarkdown: false
+        }
       ];
 
       const { routes } = collectPrerenderRoutes(mockPages, {
@@ -142,10 +192,40 @@ export const GET = defineHandler(async c => {
 
     // Test 1d: collectPrerenderRoutes with all + include (include should be ignored)
     case 'collectRoutesAllIgnoresInclude': {
-      const mockPages = [
-        { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
-        { path: '/about', name: 'about', route: '/about', isReuse: false, isMarkdown: false },
-        { path: '/blog', name: 'blog', route: '/blog', isReuse: false, isMarkdown: false }
+      const mockPages: ScannedPageRoute[] = [
+        {
+          path: '/',
+          fullPath: '/pages/index.vue',
+          relativePath: 'index.vue',
+          dirname: '.',
+          basename: 'index.vue',
+          name: 'index',
+          route: '/',
+          isReuse: false,
+          isMarkdown: false
+        },
+        {
+          path: '/about',
+          fullPath: '/pages/about.vue',
+          relativePath: 'about.vue',
+          dirname: '.',
+          basename: 'about.vue',
+          name: 'about',
+          route: '/about',
+          isReuse: false,
+          isMarkdown: false
+        },
+        {
+          path: '/blog',
+          fullPath: '/pages/blog/index.vue',
+          relativePath: 'blog/index.vue',
+          dirname: 'blog',
+          basename: 'index.vue',
+          name: 'blog',
+          route: '/blog',
+          isReuse: false,
+          isMarkdown: false
+        }
       ];
 
       const { routes } = collectPrerenderRoutes(mockPages, {
@@ -245,8 +325,8 @@ export const GET = defineHandler(async c => {
       const results = tests.map(t => ({
         route: t.route,
         expected: t.expected,
-        actual: shouldIgnoreRoute(t.route, patterns),
-        passed: shouldIgnoreRoute(t.route, patterns) === t.expected
+        actual: matchAnyGlob(t.route, patterns),
+        passed: matchAnyGlob(t.route, patterns) === t.expected
       }));
 
       return c.json({
@@ -258,7 +338,7 @@ export const GET = defineHandler(async c => {
 
     // Test 4: definePrerenderRoutes - deprecated but still functional
     case 'defineRoutes': {
-      const extraRoutes = definePrerenderRoutes(['/landing', '/pricing', '/features']);
+      const extraRoutes = ['/landing', '/pricing', '/features'];
       return c.json({
         routes: extraRoutes,
         isArray: Array.isArray(extraRoutes),
@@ -428,10 +508,40 @@ export const GET = defineHandler(async c => {
     case 'excludeRules': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-exclude-'));
       try {
-        const mockPages = [
-          { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
-          { path: '/admin', name: 'admin', route: '/admin', isReuse: false, isMarkdown: false },
-          { path: '/about', name: 'about', route: '/about', isReuse: false, isMarkdown: false }
+        const mockPages: ScannedPageRoute[] = [
+          {
+            path: '/',
+            fullPath: 'index.vue',
+            relativePath: 'index.vue',
+            dirname: '.',
+            basename: 'index.vue',
+            name: 'index',
+            route: '/',
+            isReuse: false,
+            isMarkdown: false
+          },
+          {
+            path: '/admin',
+            fullPath: 'admin.vue',
+            relativePath: 'admin.vue',
+            dirname: '.',
+            basename: 'admin.vue',
+            name: 'admin',
+            route: '/admin',
+            isReuse: false,
+            isMarkdown: false
+          },
+          {
+            path: '/about',
+            fullPath: 'about.vue',
+            relativePath: 'about.vue',
+            dirname: '.',
+            basename: 'about.vue',
+            name: 'about',
+            route: '/about',
+            isReuse: false,
+            isMarkdown: false
+          }
         ];
 
         const result = await prerender({
@@ -465,10 +575,40 @@ export const GET = defineHandler(async c => {
     case 'failOnError': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-error-'));
       try {
-        const mockPages = [
-          { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
-          { path: '/broken', name: 'broken', route: '/broken', isReuse: false, isMarkdown: false },
-          { path: '/after-broken', name: 'after-broken', route: '/after-broken', isReuse: false, isMarkdown: false }
+        const mockPages: ScannedPageRoute[] = [
+          {
+            path: '/',
+            fullPath: 'index.vue',
+            relativePath: 'index.vue',
+            dirname: '.',
+            basename: 'index.vue',
+            name: 'index',
+            route: '/',
+            isReuse: false,
+            isMarkdown: false
+          },
+          {
+            path: '/broken',
+            fullPath: 'broken.vue',
+            relativePath: 'broken.vue',
+            dirname: '.',
+            basename: 'broken.vue',
+            name: 'broken',
+            route: '/broken',
+            isReuse: false,
+            isMarkdown: false
+          },
+          {
+            path: '/after-broken',
+            fullPath: 'after-broken.vue',
+            relativePath: 'after-broken.vue',
+            dirname: '.',
+            basename: 'after-broken.vue',
+            name: 'after-broken',
+            route: '/after-broken',
+            isReuse: false,
+            isMarkdown: false
+          }
         ];
 
         const resultLenient = await prerender({
@@ -533,9 +673,29 @@ export const GET = defineHandler(async c => {
     case 'manifest': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-manifest-'));
       try {
-        const mockPages = [
-          { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
-          { path: '/about', name: 'about', route: '/about', isReuse: false, isMarkdown: false }
+        const mockPages: ScannedPageRoute[] = [
+          {
+            path: '/',
+            fullPath: 'index.vue',
+            relativePath: 'index.vue',
+            dirname: '.',
+            basename: 'index.vue',
+            name: 'index',
+            route: '/',
+            isReuse: false,
+            isMarkdown: false
+          },
+          {
+            path: '/about',
+            fullPath: 'about.vue',
+            relativePath: 'about.vue',
+            dirname: '.',
+            basename: 'about.vue',
+            name: 'about',
+            route: '/about',
+            isReuse: false,
+            isMarkdown: false
+          }
         ];
 
         const result = await prerender({
@@ -611,10 +771,24 @@ export const GET = defineHandler(async c => {
     case 'concurrency': {
       const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-conc-'));
       try {
-        const mockPages = [
-          { path: '/', name: 'index', route: '/', isReuse: false, isMarkdown: false },
+        const mockPages: ScannedPageRoute[] = [
+          {
+            path: '/',
+            fullPath: 'index.vue',
+            relativePath: 'index.vue',
+            dirname: '.',
+            basename: 'index.vue',
+            name: 'index',
+            route: '/',
+            isReuse: false,
+            isMarkdown: false
+          },
           ...Array.from({ length: 9 }, (_, i) => ({
             path: `/page-${i}`,
+            fullPath: `/page-${i}`,
+            relativePath: `/page-${i}`,
+            dirname: '.',
+            basename: `/page-${i}`,
             name: `page-${i}`,
             route: `/page-${i}`,
             isReuse: false,

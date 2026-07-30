@@ -314,6 +314,55 @@ export interface ResolvedRoutingConfig extends Required<
 }
 
 /* -------------------------------------------------------------------------- */
+/* SSR Config                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * SSR(服务端渲染)配置。
+ *
+ * - `true`(默认):所有页面走 SSR
+ * - 对象形式:精细控制哪些页面排除 SSR(走 CSR)
+ *
+ * @example
+ * // 全部 SSR
+ * ssr: true
+ *
+ * // 排除指定页面(走 CSR)
+ * ssr: { exclude: ['/admin/**', '/dashboard/*'] }
+ *
+ * // 显式声明全部 SSR(等同 true)
+ * ssr: { all: true }
+ */
+export interface SsrOptions {
+  /**
+   * 是否对所有页面启用 SSR。默认 `true`。
+   * 设为 `false` 时仅 `include` 中的页面走 SSR(未实现,预留)。
+   */
+  all?: boolean;
+
+  /**
+   * 不进行 SSR 的路由模式列表(走 CSR)。
+   *
+   * 通配符:
+   * - `*`  单段匹配  (`'/admin/*'` 匹配 `'/admin/a'` 不匹配 `'/admin/a/b'`)
+   * - `**` 多段递归  (`'/admin/**'` 匹配 `'/admin/a/b/c'`)
+   *
+   * 匹配的页面将跳过服务端渲染,返回客户端渲染 shell。
+   */
+  exclude?: string[];
+}
+
+/**
+ * 内部解析后的 SSR 配置。
+ */
+export interface ResolvedSsrConfig {
+  /** 是否启用 SSR(等价于 `all === true`) */
+  enabled: boolean;
+  all: boolean;
+  exclude: string[];
+}
+
+/* -------------------------------------------------------------------------- */
 /* Prerender Config                                                             */
 /* -------------------------------------------------------------------------- */
 
@@ -459,15 +508,16 @@ export interface UbeanConfig {
   mode?: AppMode;
 
   /**
-   * 是否构建 SSR bundle。仅在 `mode === 'fullstack'` 时生效。
+   * SSR 配置。仅在 `mode === 'fullstack'` 时生效。
    *
-   * - `true`(默认):构建 SSR bundle,支持服务端渲染
+   * - `true`(默认):构建 SSR bundle,所有页面走服务端渲染
    * - `false`:跳过 SSR bundle 构建,仅保留客户端渲染 + API 路由
+   * - 对象形式:`{ all?: boolean; exclude?: string[] }`,精细控制排除页面
    *
    * 其他 mode 下此字段被忽略(`spa`/`backend` 始终无 SSR;
    * `ssg` 始终需要 SSR 进行预渲染)。
    */
-  ssr?: boolean;
+  ssr?: boolean | SsrOptions;
 
   modules?: ModuleConfiguration[];
   icon?: boolean | BuiltinModuleOptions;
@@ -575,7 +625,18 @@ export interface UbeanConfig {
 export interface ResolvedConfig extends Required<
   Omit<
     UbeanConfig,
-    'build' | 'dev' | 'preview' | 'prerender' | 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'routing' | 'devtools'
+    | 'build'
+    | 'dev'
+    | 'preview'
+    | 'prerender'
+    | 'ssr'
+    | 'icon'
+    | 'pwa'
+    | 'auth'
+    | 'image'
+    | 'fonts'
+    | 'routing'
+    | 'devtools'
   >
 > {
   rootDir: string;
@@ -592,6 +653,7 @@ export interface ResolvedConfig extends Required<
   devtools: ResolvedDevToolsConfig;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   prerender: ResolvedPrerenderConfig;
+  ssr: ResolvedSsrConfig;
   dev: Required<NonNullable<UbeanConfig['dev']>>;
   preview: Required<NonNullable<UbeanConfig['preview']>>;
   build: Required<NonNullable<UbeanConfig['build']>>;

@@ -93,6 +93,8 @@ export interface UbeanAppOptions {
   pageLoaders?: Record<string, () => Promise<unknown>>;
   pageRenderer?: PageRenderer | null;
   pageAssetTags?: PageAssetTags;
+  /** 不进行 SSR 的路由模式列表(glob),匹配的页面走 CSR */
+  ssrExclude?: string[];
   publicDir?: string;
   healthEndpoint?: boolean;
   openAPI?:
@@ -117,32 +119,6 @@ export interface UbeanAppPlugin {
   setup?: (app: UbeanApp) => void | Promise<void>;
   /** Called after all routes are registered */
   ready?: (app: UbeanApp) => void | Promise<void>;
-}
-
-/**
- * Structural view of the DevTools middleware returned by `createDevToolsMiddleware`
- * in `@ubean/devtools`. Defined locally (rather than importing the real return
- * type) so `ubean` has no static dependency on `@ubean/devtools` — the package is
- * loaded via a dynamic `import()` only when DevTools is enabled.
- *
- * @deprecated DevTools is now a Vite plugin (`@ubean/devtools`'s
- * `ubeanDevtoolsPlugin`) loaded by the dev runner. The Hono app no longer
- * hosts DevTools middleware. This placeholder is kept only for type
- * compatibility with external consumers that may still reference it.
- */
-export interface DevToolsInstance {
-  rpc: {
-    setRoutes(routes: never[]): void;
-    setPages(pages: never[]): void;
-    setMiddlewares(middlewares: never[]): void;
-    setLayouts(layouts: never[]): void;
-    setCrons(crons: never[]): void;
-    setPresets(presets: string[]): void;
-    setOpenAPI(openAPI: { enabled: boolean; scalarPath?: string; openAPIPath?: string }): void;
-    setCustomTabs(tabs: never[]): void;
-    updateInfo(partial: Record<string, unknown>): void;
-  };
-  middleware: (c: Context<UbeanEnv>, next: Next) => Promise<Response | void>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -242,6 +218,7 @@ export class UbeanApp {
       pageLoaders: this.options.pageLoaders || {},
       pageRenderer: this.options.pageRenderer ?? null,
       pageAssetTags: this.options.pageAssetTags ?? {},
+      ssrExclude: this.options.ssrExclude,
       i18nConfig: this.options.i18nConfig
     };
 

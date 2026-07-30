@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolvePrerenderConfig } from '@ubean/config';
 import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
 import type { ScannedPageRoute } from '@ubean/routing';
+import { matchGlob } from '@ubean/utils';
 import { join, dirname } from 'pathe';
 
 const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
@@ -20,48 +21,6 @@ export interface PrerendererOptions {
 
 function isDynamicPath(path: string): boolean {
   return /\[.*?\]/.test(path) || path.includes(':');
-}
-
-/**
- * 通配符匹配,支持:
- * - `**` 多段递归  ('/blog/**' 匹配 '/blog/a/b/c' 与 '/blog')
- * - `*`  单段     ('/blog/*' 匹配 '/blog/a' 不匹配 '/blog/a/b')
- * - 字面量         ('/about' 仅匹配 '/about')
- *
- * 此函数统一了此前 `shouldIgnoreRoute` 与 `routePatternMatches` 的逻辑。
- */
-export function matchGlob(route: string, pattern: string): boolean {
-  if (pattern === route) return true;
-  if (pattern === '**') return true;
-
-  if (pattern.endsWith('/**')) {
-    const prefix = pattern.slice(0, -3);
-    return route === prefix || route.startsWith(`${prefix}/`);
-  }
-
-  if (pattern.endsWith('/*')) {
-    const prefix = pattern.slice(0, -2);
-    return route.startsWith(`${prefix}/`) && !route.slice(prefix.length + 1).includes('/');
-  }
-
-  if (pattern === '/**') {
-    return true;
-  }
-
-  // 一般 glob:转正则(* → [^/]*, ** → .*)
-  const escaped = pattern
-    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
-    .replace(/\*\*/g, '.*')
-    .replace(/\*/g, '[^/]*');
-  return new RegExp(`^${escaped}$`).test(route);
-}
-
-/**
- * 检查 route 是否匹配任意一个 patterns。
- * 保留旧 API 名称以避免破坏外部调用,内部改用 `matchGlob`。
- */
-export function shouldIgnoreRoute(route: string, patterns: string[]): boolean {
-  return patterns.some(p => matchGlob(route, p));
 }
 
 function normalizePagePath(filePath: string): string {
@@ -364,14 +323,6 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
   );
 
   return { routes: results, generated, errors, skipped, duration };
-}
-
-/**
- * @deprecated 仅保留为兼容别名,新 API 直接使用 `prerender.include` 字段。
- * 原功能:声明额外预渲染路由。
- */
-export function definePrerenderRoutes(routes: string[]): string[] {
-  return routes;
 }
 
 export function generatePrerenderManifest(

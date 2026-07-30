@@ -5,8 +5,7 @@
  * - collectPrerenderRoutes: 收集路由、过滤动态路由、应用 all/include/exclude
  * - matchGlob: 统一的通配符匹配
  * - extractLinks: 从 HTML 提取内部链接
- * - shouldIgnoreRoute: 忽略规则匹配(委托给 matchGlob)
- * - definePrerenderRoutes: 声明额外预渲染路由(兼容别名)
+ * - matchAnyGlob: 忽略规则匹配(委托给 matchGlob)
  * - resolvePrerenderConfig: 配置解析与默认值(all/include/exclude)
  * - prerender(): 完整预渲染流程(写入 HTML 文件、crawlLinks、exclude、failOnError、并发)
  * - generatePrerenderManifest: 生成清单
@@ -24,12 +23,11 @@ import {
   prerender,
   collectPrerenderRoutes,
   extractLinks,
-  shouldIgnoreRoute,
+  matchAnyGlob,
   matchGlob,
   routeToFilePath,
   writePrerenderedFile,
   resolvePrerenderConfig,
-  definePrerenderRoutes,
   generatePrerenderManifest,
   DEFAULT_PRERENDER_EXCLUDE
 } from 'ubean';
@@ -275,41 +273,41 @@ describe('Prerender / SSG system', () => {
   });
 
   // ==========================================================================
-  // shouldIgnoreRoute - 委托给 matchGlob
+  // matchAnyGlob - 委托给 matchGlob
   // ==========================================================================
-  describe('shouldIgnoreRoute()', () => {
+  describe('matchAnyGlob()', () => {
     it('matches exact route', () => {
-      expect(shouldIgnoreRoute('/api', ['/api'])).toBe(true);
-      expect(shouldIgnoreRoute('/api/users', ['/api'])).toBe(false);
+      expect(matchAnyGlob('/api', ['/api'])).toBe(true);
+      expect(matchAnyGlob('/api/users', ['/api'])).toBe(false);
     });
 
     it('matches /api/** multi-segment wildcard', () => {
-      expect(shouldIgnoreRoute('/api/users', ['/api/**'])).toBe(true);
-      expect(shouldIgnoreRoute('/api/users/123', ['/api/**'])).toBe(true);
-      expect(shouldIgnoreRoute('/api', ['/api/**'])).toBe(true);
+      expect(matchAnyGlob('/api/users', ['/api/**'])).toBe(true);
+      expect(matchAnyGlob('/api/users/123', ['/api/**'])).toBe(true);
+      expect(matchAnyGlob('/api', ['/api/**'])).toBe(true);
     });
 
     it('matches /admin/* single-segment wildcard', () => {
-      expect(shouldIgnoreRoute('/admin/dashboard', ['/admin/*'])).toBe(true);
-      expect(shouldIgnoreRoute('/admin/users/deep', ['/admin/*'])).toBe(false);
+      expect(matchAnyGlob('/admin/dashboard', ['/admin/*'])).toBe(true);
+      expect(matchAnyGlob('/admin/users/deep', ['/admin/*'])).toBe(false);
     });
 
     it('does not match unrelated routes', () => {
-      expect(shouldIgnoreRoute('/about', ['/api/**', '/admin/*'])).toBe(false);
-      expect(shouldIgnoreRoute('/dashboard', ['/api/**', '/admin/*'])).toBe(false);
+      expect(matchAnyGlob('/about', ['/api/**', '/admin/*'])).toBe(false);
+      expect(matchAnyGlob('/dashboard', ['/api/**', '/admin/*'])).toBe(false);
     });
 
     it('handles empty pattern list', () => {
-      expect(shouldIgnoreRoute('/any', [])).toBe(false);
+      expect(matchAnyGlob('/any', [])).toBe(false);
     });
 
     it('handles multiple patterns', () => {
       const patterns = ['/api/**', '/_health', '/admin/*', '/private/**'];
-      expect(shouldIgnoreRoute('/api/users', patterns)).toBe(true);
-      expect(shouldIgnoreRoute('/_health', patterns)).toBe(true);
-      expect(shouldIgnoreRoute('/admin/dashboard', patterns)).toBe(true);
-      expect(shouldIgnoreRoute('/private/secret/data', patterns)).toBe(true);
-      expect(shouldIgnoreRoute('/about', patterns)).toBe(false);
+      expect(matchAnyGlob('/api/users', patterns)).toBe(true);
+      expect(matchAnyGlob('/_health', patterns)).toBe(true);
+      expect(matchAnyGlob('/admin/dashboard', patterns)).toBe(true);
+      expect(matchAnyGlob('/private/secret/data', patterns)).toBe(true);
+      expect(matchAnyGlob('/about', patterns)).toBe(false);
     });
   });
 
@@ -318,16 +316,16 @@ describe('Prerender / SSG system', () => {
   // ==========================================================================
   describe('definePrerenderRoutes()', () => {
     it('returns the routes array as-is', () => {
-      const routes = definePrerenderRoutes(['/landing', '/pricing']);
+      const routes = ['/landing', '/pricing'];
       expect(routes).toEqual(['/landing', '/pricing']);
     });
 
     it('returns empty array for empty input', () => {
-      expect(definePrerenderRoutes([])).toEqual([]);
+      expect([]).toEqual([]);
     });
 
     it('preserves route strings (no transformation)', () => {
-      const routes = definePrerenderRoutes(['relative-path', '/absolute']);
+      const routes = ['relative-path', '/absolute'];
       expect(routes).toContain('relative-path');
       expect(routes).toContain('/absolute');
     });

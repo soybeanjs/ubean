@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.10...main) (2026-07-30)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **cache**: optimize reuse page cache &nbsp;-&nbsp; by @soybeanjs [<samp>(5dd93)</samp>](https://github.com/soybeanjs/ubean/commit/5dd9338)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.9...main) (2026-07-30)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

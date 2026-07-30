@@ -1,6 +1,6 @@
 {
   "name": "@ubean/app",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Hono app factory and server config for ubean (createUbeanApp, defineServer)",
   "files": [
     "dist"

@@ -1,6 +1,6 @@
 {
   "name": "@ubean/devtools",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "DevTools for the ubean framework — server middleware, RPC, and the iframe SPA client",
   "files": [
     "dist"

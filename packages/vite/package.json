@@ -1,6 +1,6 @@
 {
   "name": "@ubean/vite",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Vue-specific Vite plugin for ubean (ubeanVuePlugin, virtual modules: pages, app, server, client-entry)",
   "files": [
     "dist"

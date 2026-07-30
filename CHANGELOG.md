@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.11...main) (2026-07-30)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **routing**: add page cache and definePage head support &nbsp;-&nbsp; by @soybeanjs [<samp>(e4cda)</samp>](https://github.com/soybeanjs/ubean/commit/e4cda69)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- **ssr**: refactor ssr, support exclude &nbsp;-&nbsp; by @soybeanjs [<samp>(c7d04)</samp>](https://github.com/soybeanjs/ubean/commit/c7d0428)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.10...main) (2026-07-30)
 
 ### &nbsp;&nbsp;&nbsp;🛠 Optimizations

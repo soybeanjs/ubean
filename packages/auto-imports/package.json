@@ -1,6 +1,6 @@
 {
   "name": "@ubean/auto-imports",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "description": "Auto-import presets for ubean (VUE_PRESET, UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET)",
   "files": [
     "dist"

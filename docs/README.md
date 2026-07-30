@@ -15,7 +15,8 @@
 | [路由设计](routing.md)         | API 路由、验证、OpenAPI、Pages、layouts、reuse 路由和类型生成。         |
 | [运行时与开发体验](runtime.md) | Vue 应用入口、客户端、定时任务、环境变量、preset、DevTools 与高级能力。 |
 | [工程规范、测试与发布](engineering.md) | TypeScript 函数式规范、测试策略、CLI、导出与公开 API 边界。             |
-| [路线图与决策](roadmap.md)     | 交付里程碑、实施阶段、参考项目差异、技术决策、风险和任务跟踪。          |
+| [路线图与决策](roadmap.md)     | 交付里程碑、实施阶段、参考项目差异、技术决策、风险和任务跟踪（含 Phase 9 元框架对齐任务）。 |
+| [元框架对比与差距分析](framework-comparison.md) | ubean vs Next.js/Nuxt/SvelteKit/SolidStart/Astro 的全面功能对比与缺失分析，作为 Phase 9 任务规划依据。 |
 | [生态能力演进](ecosystem.md)   | 元框架调研结论、页面数据协议、可观测性、SEO 与资源/内容扩展的取舍。     |
 | [功能测试清单](test.md)        | 基于 `examples/ubean-test` 的功能点验证清单与集成测试进度。             |
 

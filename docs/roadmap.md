@@ -12,6 +12,9 @@
 | M3：Node v0.1     | 静态资源、基础 route rules、可观测性、SEO metadata 与发布文档             | CI 全绿、Node 部署 smoke test、公开 API 审核            |
 | M4：第二个 preset | 一个实验性 preset 升级为正式支持                                          | 能力矩阵、目标平台 smoke test 与降级诊断                |
 | M5：生态扩展      | DevTools、数据库、队列、WebSocket、i18n 等可选能力                        | 各能力独立 fixture、权限审计与稳定性评估                |
+| M6：元框架对齐    | 流式 SSR、Server Actions、ISR/per-route 规则、PPR、文件约定 SEO、平台预设补全 | 渲染流式 TTFB 基准、Actions 端到端、ISR 失效、SEO 约定文件 smoke test |
+
+> M6 对应 Phase 9，依据见 [元框架对比与差距分析](framework-comparison.md)。
 
 ---
 
@@ -130,12 +133,62 @@
 | Phase 6b: Vite 模块化架构改造      | ✅   | Dev Server 迁移至 Vite Middleware Mode、Module 系统（`modules` 配置 + `resolveModules` + `ModuleKit` + 拓扑排序 + Hooks）、Vite SSR 生产构建 Pipeline（双构建 + preset 适配）、官方扩展包顶级配置快捷方式（icon/pwa/auth/image/fonts）、模块间依赖与 Hooks 集成 |
 | Phase 7: Skills & 文档              | ✅   | Skills 系统（SKILL.md 路由）、内置文档（guide/reference/integrations 共 14 文档）、AGENT_PROMPT.md、ubean init 交互式初始化、示例项目（hello-world/api-routes/pages-basic） |
 | Phase 8: 发布认证与测试完善        | ✅   | 单元测试补全（35 文件 811 用例）、DevTools 单元测试（32 用例）、集成与浏览器 e2e 测试（7 集成 + 1 e2e）、preset 测试矩阵、CI/CD（GitHub Actions）、npm scripts 验证                          |
+| Phase 9: 元框架对齐补全            | ⬜   | 依据 [元框架对比与差距分析](framework-comparison.md)，补齐与 Next.js/Nuxt/SvelteKit/SolidStart/Astro 的关键差距：流式 SSR、Server Actions、ISR/per-route 规则、PPR、文件约定 SEO、平台预设补全等（P9-01 ~ P9-28） |
 
-### 待办任务
+### Phase 9：元框架对齐补全
+
+> 依据：[元框架对比与差距分析](framework-comparison.md)
+> 目标：补齐与 Next.js 16 / Nuxt 4 / SvelteKit 2 / SolidStart / Astro 5 的关键差距，保持 ubean 独有优势。
+> 状态图例同上：⬜ 待开始 | 🔄 进行中 | ✅ 已完成
+
+#### P0 战略级（渲染与变更层，影响核心竞争力）
+
+| ID    | 任务                                      | 状态 | 依赖       | 说明                                                                                                  |
+| ----- | ----------------------------------------- | ---- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| P9-01 | 流式 SSR (Streaming SSR)                  | ⬜   | -          | `@ubean/ssr` 改用 `renderToNodeStream`/`pipeToWritable` + Vue Suspense；竞品全部已支持                |
+| P9-02 | Server Actions / Form Actions             | ⬜   | -          | `defineAction` + `'use server'` 指令转换；对齐 Next/SvelteKit/SolidStart/Astro                         |
+| P9-03 | per-route 渲染规则 + ISR                  | ⬜   | -          | 扩展 `routeRules` 支持 `ssr`/`prerender`/`swr`/`isr` per-route；对齐 Nuxt routeRules                   |
+| P9-04 | Partial Prerendering / Server Islands     | ⬜   | P9-01      | 静态壳 + Suspense 流式动态；对齐 Next.js 16 PPR / Astro `server:defer`                                 |
+
+#### P1 重要级（SEO 与缓存对齐）
+
+| ID    | 任务                                      | 状态 | 依赖       | 说明                                                                                                  |
+| ----- | ----------------------------------------- | ---- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| P9-05 | 文件约定 SEO                              | ⬜   | -          | `sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.tsx`/`icon.tsx` 约定文件扫描；对齐 Next.js     |
+| P9-06 | OG Image 动态生成                         | ⬜   | -          | 集成 Satori + resvg（或 `@vercel/og`）；对齐 Next.js `ImageResponse`                                  |
+| P9-07 | JSON-LD / Schema.org 结构化数据           | ⬜   | -          | `@ubean/seo` 增加 `useSchemaOrg()`/`defineJsonLd()`；对齐 Nuxt `nuxt-schema.org`                      |
+| P9-08 | 组件级缓存指令                            | ⬜   | -          | `"use cache"` + `cacheLife()`/`cacheTag()` 宏 + AST 转换；对齐 Next.js 16                             |
+| P9-09 | 全局 Hooks (handle/handleFetch/handleError) | ⬜ | -          | `@ubean/app` 增加全局 hooks 入口；对齐 SvelteKit hooks                                                |
+| P9-10 | 平台预设补全（合并 P5-06）                | ⬜   | -          | Vercel/Netlify/Bun/Deno preset；合并原 P5-06，先完成能力矩阵和 ADR                                    |
+
+#### P2 增强级（提升完整度）
+
+| ID    | 任务                                      | 状态 | 依赖       | 说明                                                                                                  |
+| ----- | ----------------------------------------- | ---- | ---------- | ----------------------------------------------------------------------------------------------------- |
+| P9-11 | 通用 Sessions API                         | ⬜   | -          | `Astro.session` 式服务端 session；当前仅有 auth session                                               |
+| P9-12 | CSRF 保护中间件                           | ⬜   | -          | 对齐 Astro 5 默认开启的 CSRF 保护                                                                     |
+| P9-13 | 安全头（CSP/HSTS/X-Frame-Options）        | ⬜   | -          | 对齐 Astro 6 CSP / Next.js headers                                                                    |
+| P9-14 | `after()` 响应后执行 API                  | ⬜   | -          | 日志/分析/缓存失效不阻塞 TTFB；对齐 Next.js 16 `after()`                                              |
+| P9-15 | 请求 memoization（fetch 自动去重）        | ⬜   | -          | 对齐 Next.js 自动 fetch memoization                                                                   |
+| P9-16 | Single-flight mutations                   | ⬜   | P9-02      | 避免变更后瀑布；对齐 SolidStart                                                                       |
+| P9-17 | 嵌套布局（多层）                          | ⬜   | -          | 当前仅单层 `layout`；对齐 Next/Nuxt/SvelteKit 多层嵌套                                                |
+| P9-18 | 并行路由 / 拦截路由                       | ⬜   | -          | 对齐 Next.js `@folder` slots + `(..)` 拦截                                                            |
+| P9-19 | Live Content Collections                  | ⬜   | -          | 请求时拉取；对齐 Astro 5.10+ Live Collections                                                         |
+| P9-20 | MDX 真实编译                              | ⬜   | -          | 当前仅类型注册无 MDX 编译器；对齐 Next/Nuxt/Astro/SvelteKit                                           |
+| P9-21 | Color mode（深浅色）                      | ⬜   | -          | 对齐 Nuxt `@nuxtjs/color-mode`（当前委托 @soybeanjs/ui）                                              |
+| P9-22 | 第三方脚本优化（Partytown 集成）          | ⬜   | -          | 对齐 Nuxt `@nuxtjs/scripts` / Astro partytown                                                         |
+| P9-23 | Draft / Preview mode                      | ⬜   | -          | 对齐 Next.js `draftMode()` / Astro                                                                    |
+| P9-24 | 流式 metadata                             | ⬜   | P9-01      | 流式 SSR 基础上的 metadata 流式；对齐 Next.js                                                         |
+| P9-25 | Email 发送                                | ⬜   | -          | 内置邮件发送原语                                                                                      |
+| P9-26 | 全文搜索（Pagefind 集成）                 | ⬜   | -          | 对齐 Astro Pagefind                                                                                   |
+| P9-27 | Analytics（页面访问统计）                 | ⬜   | -          | 当前仅有 observability；补充页面访问统计                                                              |
+| P9-28 | A/B 测试 / Feature flags                  | ⬜   | -          | 内置特性开关原语                                                                                      |
+
+### 待办任务（非 Phase 9）
 
 | ID    | 任务             | 状态 | 优先级 | 说明                                           |
 | ----- | ---------------- | ---- | ------ | ---------------------------------------------- |
-| P5-06 | 后续平台提案     | ⬜   | P3     | Bun、Deno、Vercel、Netlify 等先完成能力矩阵和 ADR 再实现 |
+| P5-06 | ~~后续平台提案~~ | —    | —      | 已合并入 P9-10，不再单独跟踪                   |
 
 > 各已完成阶段的任务明细（P1-01 ~ P8-06）见 git 历史；本表只保留当前活跃的待办项。
 

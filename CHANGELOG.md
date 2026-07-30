@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.9...main) (2026-07-30)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **runtime**: fix page cache &nbsp;-&nbsp; by **Soybean** [<samp>(686cb)</samp>](https://github.com/soybeanjs/ubean/commit/686cbcb)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by **Soybean** [<samp>(1b46c)</samp>](https://github.com/soybeanjs/ubean/commit/1b46cec)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[Soybean](mailto:soybeanjs@outlook.com)
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.8...main) (2026-07-29)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

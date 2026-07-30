@@ -3,8 +3,21 @@ export { defineHandler, defineHandlerMeta, defineMiddleware, isHandlerChain, ext
 export { registerRoutes, registerApiRoutes, registerPageRoutes, createRouteLoader } from './router';
 export type { RouteRegistrar, RegisterOptions } from './router';
 
-export { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from './route-rules';
-export type { RouteRule, CompiledRouteRule } from './route-rules';
+export { compileRouteRules, matchRouteRules, createRouteRulesMiddleware, normalizeIsrRule } from './route-rules';
+export type { RouteRule, CompiledRouteRule, IsrRule } from './route-rules';
+
+export {
+  serveIsr,
+  getIsrCache,
+  getStaleIsrCache,
+  setIsrCache,
+  invalidateIsrCache,
+  invalidateIsrCachePattern,
+  isIsrEntryStale,
+  buildIsrCacheKey,
+  getIsrRuleFromContext
+} from './isr';
+export type { IsrCacheStore, IsrCacheEntry, IsrCacheEntryInternal, IsrServeOptions } from './isr';
 
 export { setInternalFetcher, getInternalFetcher, clearInternalFetcher, createInternalAdapter } from './internal-fetch';
 export type { InternalFetchOptions } from './internal-fetch';

@@ -13,13 +13,14 @@
 | UI 框架 | React 19 | Vue 3 | Svelte 5 | Solid | 多框架 | Vue 3 |
 | 构建工具 | Turbopack | Vite | Vite | Vinxi(Vite+Nitro) | Vite | Vite-Plus |
 | HTTP 层 | Node/Runtime | Nitro(Hono) | Node/Hono | Nitro | Node/Hono | Hono |
-| SSR 流式 | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ 非流式 |
+| SSR 流式 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ P9-01 |
 | SSG | ✅ | ✅ | ✅ | ✅ | ✅ 默认 | ✅ |
-| ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅(SWR) | ❌ |
-| PPR / Server Islands | ✅ 稳定 | ❌ | ❌ | ❌ | ✅ `server:defer` | ❌ |
+| ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅(SWR) | ✅ P9-03(routeRules.isr + SWR) |
+| per-route 渲染规则 | ⚠️(部分) | ✅ routeRules | ❌ | ❌ | ✅ `export const prerender` | ✅ P9-03(routeRules.ssr/prerender/isr) |
+| PPR / Server Islands | ✅ 稳定 | ❌ | ❌ | ❌ | ✅ `server:defer` | ❌ (P9-04 待办) |
 | Server Components | ✅ RSC | ✅ | ❌ | ❌ | ❌(Islands) | ❌ |
 | Server Actions | ✅ | ❌ | ✅ form actions | ✅ | ✅ Actions | ❌ |
-| Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ P9-01 |
 | Islands | ❌ | ❌ | ❌ | ❌ | ✅ 原创 | ✅ |
 | 多框架 | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
 | 内置 DB | ❌ | ❌ | ❌ | ❌ | ⚠️(已弃) | ✅ db0 |
@@ -37,14 +38,14 @@
 
 | 能力 | 各框架情况 | ubean | 差距 |
 |---|---|---|---|
-| **SSR 流式渲染** | Next/Nuxt/SvelteKit/Solid/Astro 全部支持 `renderToStream`/`pipe`/Suspense 流式 | ❌ 仅 `renderToString` 同步缓冲 | **重大缺失** |
-| **Partial Prerendering** | Next.js 16 已稳定（静态壳 + Suspense 流式动态）；Astro 5 `server:defer` Server Islands | ❌ | **重大缺失** |
-| **ISR** | Next.js 内置；Nuxt `routeRules: { swr: 600 }`；Astro 5 实验 | ❌ 无 per-route revalidate | **缺失** |
-| **per-route 渲染规则** | Nuxt `routeRules` 可 per-route 切换 SSR/SSG/ISR/CSR + cors/headers；Astro `export const prerender = false` | ⚠️ 仅全局 `ssr.exclude` glob | **部分缺失** |
+| **SSR 流式渲染** | Next/Nuxt/SvelteKit/Solid/Astro 全部支持 `renderToStream`/`pipe`/Suspense 流式 | ✅ P9-01(`renderToNodeStream` + `ReadableStream`,`SsrOptions.streaming`) | 已具备 |
+| **Partial Prerendering** | Next.js 16 已稳定（静态壳 + Suspense 流式动态）；Astro 5 `server:defer` Server Islands | ❌ | **缺失**(P9-04 待办,依赖 P9-01 ✅) |
+| **ISR** | Next.js 内置；Nuxt `routeRules: { swr: 600 }`；Astro 5 实验 | ✅ P9-03(`routeRules.isr` + SWR,`peek` 保留过期项) | 已具备 |
+| **per-route 渲染规则** | Nuxt `routeRules` 可 per-route 切换 SSR/SSG/ISR/CSR + cors/headers；Astro `export const prerender = false` | ✅ P9-03(`routeRules.ssr`/`prerender`/`isr`,覆盖全局 `ssr.exclude`) | 已具备 |
 | **Server Components** | Next.js RSC 默认；Nuxt `<ServerComponent>` | ❌ | 设计差异（Vue 生态） |
 | **Hydration 错误恢复** | Next/Nuxt 有详细错误边界 + 流式 fallback | ✅ `error.vue` | 已具备 |
 
-ubean 当前最致命的差距在**渲染层**：所有竞品都已支持流式 SSR + PPR/Server Islands，而 ubean 仍是 `renderToString` 同步阻塞。这直接影响 TTFB 和 LCP。
+ubean 渲染层差距已大幅缩小:流式 SSR(P9-01)、ISR + per-route 渲染规则(P9-03)均已落地。剩余的 PPR/Server Islands(P9-04)是唯一未补齐的渲染层能力,且其前置依赖(流式 SSR)已具备。
 
 ### 2.2 数据获取与变更
 
@@ -81,8 +82,8 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），但**缺少 S
 |---|---|---|
 | **组件级缓存指令** | Next.js `"use cache"` + `cacheLife()`/`cacheTag()`/`updateTag()` | ❌ |
 | **fetch 自动 memo + 缓存** | Next.js Data Cache + revalidateTag/revalidatePath | ❌ |
-| **per-route 缓存规则** | Nuxt `routeRules.cache`；Astro `routeRules` | ⚠️ `resolveRouteCacheRules` 但较弱 |
-| **SWR** | Nuxt `swr: 600`；Astro `swr` | ⚠️ CacheRule 有 swr 但无 ISR 联动 |
+| **per-route 缓存规则** | Nuxt `routeRules.cache`；Astro `routeRules` | ✅ `resolveRouteCacheRules` + `routeRules.cache`(P9-03 增强) |
+| **SWR** | Nuxt `swr: 600`；Astro `swr` | ✅ CacheRule.swr + ISR SWR(P9-03,`peek` 保留过期项) |
 | **标签化失效** | Next.js `cacheTag`/`updateTag`；Astro tags | ⚠️ `invalidateRouteCache(keyPattern)` |
 | **cachedEventHandler** | Nuxt `defineCachedEventHandler`/`defineCachedFunction` | ✅ |
 | **CDN/Edge 缓存集成** | Next Full Route Cache；Astro adapter providers | ❌ |
@@ -190,12 +191,10 @@ ubean 平台预设明显最少（仅 Node + Cloudflare），roadmap P5-06 待补
 - **方案**：实现 `defineAction` + `'use server'` 指令转换
 - **任务**：P9-02
 
-#### 3. ❌ ISR + per-route 渲染规则
-- **现状**：SSG 全局、SSR 全局，无 per-route revalidate
-- **竞品**：Next.js ISR、Nuxt `routeRules: { swr: 600 }`、Astro SWR
-- **影响**：内容站点无法增量更新
-- **方案**：扩展 `routeRules` 支持 `ssr`/`prerender`/`swr`/`isr` per-route
-- **任务**：P9-03
+#### 3. ✅ ISR + per-route 渲染规则 (P9-03 已完成)
+- **现状**:`RouteRule` 扩展 `ssr`/`prerender`/`isr` per-route 字段;`route-rules` 中间件按规则+路径特异性排序并通过 `c.get('routeRule')` 暴露;router 按每路由 `ssr` 覆盖全局设置(`false`/`true`/`'streaming'`);GET 请求走 ISR(TTL + SWR,`peek` 保留过期条目供 stale 回源);`prerender` 自动从 `routeRules` 发现 `prerender: true` 路由
+- **竞品**:Next.js ISR、Nuxt `routeRules: { swr: 600 }`、Astro SWR
+- **任务**:P9-03 ✅
 
 #### 4. ❌ Partial Prerendering / Server Islands
 - **现状**：无静态壳 + 动态流式

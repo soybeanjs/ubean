@@ -44,12 +44,37 @@ export interface RouteMeta extends BaseRouteMeta {
 /* -------------------------------------------------------------------------- */
 
 /**
+ * ISR (Incremental Static Regeneration) 规则。
+ *
+ * - `number` → `{ ttl: <秒数>, swr: false }` 的简写
+ * - 对象形式可显式指定 `swr` 启用 stale-while-revalidate 语义
+ *   (返回过期内容 + 后台异步重新生成)
+ */
+export interface IsrRule {
+  /** 缓存有效期(秒)。过期后下次请求触发重新生成 */
+  ttl: number;
+  /** 是否启用 stale-while-revalidate:过期时先返回旧内容,后台异步刷新 */
+  swr?: boolean;
+}
+
+/**
  * 路由规则,由 @ubean/api-routes (route-rules) 和 @ubean/server (cache) 共享。
  * 完整的 ResolvedConfig 在 @ubean/config 中定义。
  *
+ * P9-03 扩展:支持 per-route 渲染规则(`ssr`/`prerender`/`isr`)。
+ * 这些字段为运行时 / 构建时的渲染提示,与原有的 `cache`/`headers`/`redirect`/
+ * `rewrite`/`proxy` 等运行时规则并存:
+ *
+ * - `ssr: true`        强制该路由走 SSR(覆盖全局 `ssr.exclude`)
+ * - `ssr: false`       强制该路由跳过 SSR(走 CSR shell)
+ * - `ssr: 'streaming'` 强制该路由走流式 SSR(覆盖全局 `ssr.streaming`)
+ * - `prerender: true`  该路由加入 SSG 预渲染队列(由 `@ubean/prerender` 自动发现)
+ * - `isr: 60` 或 `isr: { ttl: 60, swr: true }`  启用 ISR,以 TTL 秒缓存渲染 HTML
+ *
  * 注意:构建时预渲染策略已迁移至 `PrerenderConfig`(由 `ubean.config.ts` 的
- * `prerender` 字段统一管理),`RouteRule` 仅保留运行时关注点
- * (cache/headers/redirect/rewrite/proxy)。
+ * `prerender` 字段统一管理),`RouteRule.prerender` 仅作为自动发现标记 ——
+ * `prerender: true` 的路由会被 `collectPrerenderRoutes` 加入队列(受
+ * `PrerenderConfig.exclude` 过滤)。
  */
 export interface RouteRule {
   cache?: { ttl?: number; swr?: boolean };
@@ -57,6 +82,26 @@ export interface RouteRule {
   redirect?: string | { to: string; statusCode?: number };
   rewrite?: string;
   proxy?: string;
+  /**
+   * Per-route SSR 渲染策略(P9-03)。覆盖全局 `ssr.exclude` / `ssr.streaming`。
+   *
+   * - `true`  强制 SSR(即使命中全局 exclude)
+   * - `false` 强制 CSR(即使全局未排除)
+   * - `'streaming'` 强制流式 SSR(等同于 `ssr: true` + 流式输出)
+   */
+  ssr?: boolean | 'streaming';
+  /**
+   * 标记该路由加入 SSG 预渲染队列(P9-03)。
+   * 由 `collectPrerenderRoutes` 自动从 `routeRules` 中扫描发现。
+   */
+  prerender?: boolean;
+  /**
+   * 启用 ISR(增量静态再生,P9-03)。
+   *
+   * 服务端将渲染后的 HTML 以 TTL 秒缓存;过期后下次请求触发重新生成。
+   * `swr: true` 时,过期窗口内先返回旧 HTML,同时后台异步刷新。
+   */
+  isr?: number | IsrRule;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -133,6 +178,12 @@ export interface UbeanVariables extends RequestIdVariables {
   span?: Span;
   locale?: string;
   pathWithoutLocale?: string;
+  /**
+   * 匹配到的路由规则(P9-03)。由 `createRouteRulesMiddleware` 在请求开始时
+   * 写入,供页面渲染器读取 per-route 的 `ssr`/`isr`/`prerender` 等字段。
+   * 未启用 routeRules 中间件时为 `undefined`。
+   */
+  routeRule?: RouteRule;
 }
 
 export interface UbeanBindings {}

@@ -395,16 +395,59 @@ export default defineConfig({
       headers: { 'Cache-Control': 'private' }
     },
     '/static/**': {
-      cache: { maxAge: 3600 }
+      cache: { ttl: 3600 }
     }
   }
 });
 ```
 
-Supported rule types (processed in order): `redirect` > `rewrite` > `headers` (merged) > `cache` (→ `Cache-Control`).
+Supported rule fields (processed in order: `redirect` > `rewrite` > `headers` (merged) > `cache` (→ `Cache-Control`)):
 
 - `*` matches a single path segment
 - `**` matches multiple segments recursively
+
+### Per-Route Rendering Rules (P9-03)
+
+In addition to HTTP-level rules, `routeRules` can override rendering behavior per route. This aligns with Nuxt's `routeOptions` and Astro's `export const prerender`:
+
+```typescript
+export default defineConfig({
+  routeRules: {
+    // Force CSR for admin pages (overrides global ssr: true)
+    '/admin/**': { ssr: false },
+
+    // Force SSR for a specific page (overrides ssr.exclude)
+    '/dashboard/realtime': { ssr: true },
+
+    // Streaming SSR for this route (overrides global streaming setting)
+    '/feed': { ssr: 'streaming' },
+
+    // ISR: regenerate every 60s, serve stale while revalidating
+    '/blog/**': { isr: { ttl: 60, swr: true } },
+
+    // ISR with simple ttl form (no SWR)
+    '/news/**': { isr: 300 },
+
+    // Prerender at build time (auto-discovered by the prerenderer)
+    '/about': { prerender: true },
+    '/blog/**': { prerender: true }
+  }
+});
+```
+
+| Field       | Type                          | Description                                                                                                   |
+| ----------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `ssr`       | `boolean \| 'streaming'`      | Override global SSR setting for matching routes. `false` → CSR, `true` → SSR, `'streaming'` → streaming SSR. |
+| `prerender` | `boolean`                     | Mark route for build-time prerendering. Auto-discovered by `prerender()` from `routeRules`.                   |
+| `isr`       | `number \| { ttl: number; swr?: boolean }` | Incremental Static Regeneration. `ttl` in seconds; `swr: true` serves stale content while revalidating.       |
+
+**Specificity & merging**: Rules are sorted by a combined score (rule-type weight + path-segment weight). For a given request, the matched rule is exposed to handlers via `c.get('routeRule')` and drives:
+
+- `ssr` / `ssr: 'streaming'` → overrides `ssr.exclude` and `SsrOptions.streaming` for that route
+- `isr` → GET requests are served from ISR cache (HIT / STALE / MISS, marked via `X-ISR` header); the renderer runs on MISS (and on STALE when `swr` is enabled, in the background)
+- `prerender` → `collectPrerenderRoutes()` automatically collects these patterns at build time (merged with `prerender.include` / `prerender.all`)
+
+See also [Cache Operations](/docs/reference/api/cache) for `CacheStore.peek()` and ISR internals.
 
 ## Data Fetching
 

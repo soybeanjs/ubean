@@ -145,9 +145,9 @@
 
 | ID    | 任务                                      | 状态 | 依赖       | 说明                                                                                                  |
 | ----- | ----------------------------------------- | ---- | ---------- | ----------------------------------------------------------------------------------------------------- |
-| P9-01 | 流式 SSR (Streaming SSR)                  | ⬜   | -          | `@ubean/ssr` 改用 `renderToNodeStream`/`pipeToWritable` + Vue Suspense；竞品全部已支持                |
+| P9-01 | 流式 SSR (Streaming SSR)                  | ✅   | -          | `@ubean/ssr` 使用 `renderToNodeStream` + `ReadableStream` 分块输出；`SsrOptions.streaming` 配置；`renderPageToStream` + 回退逻辑；13 单元测试 |
 | P9-02 | Server Actions / Form Actions             | ⬜   | -          | `defineAction` + `'use server'` 指令转换；对齐 Next/SvelteKit/SolidStart/Astro                         |
-| P9-03 | per-route 渲染规则 + ISR                  | ⬜   | -          | 扩展 `routeRules` 支持 `ssr`/`prerender`/`swr`/`isr` per-route；对齐 Nuxt routeRules                   |
+| P9-03 | per-route 渲染规则 + ISR                  | ✅   | -          | 扩展 `RouteRule` 支持 `ssr`/`prerender`/`isr` per-route 字段；`route-rules` 中间件按规则+路径特异性排序合并并通过 `c.get('routeRule')` 暴露；router 根据每路由 `ssr` 覆盖全局设置（`false`/`true`/`'streaming'`）并在 GET 请求走 ISR（TTL + SWR，`peek` 保留过期条目供 stale 回源）；`CacheStore` 扩展可选 `peek`；`prerender` 自动从 `routeRules` 中 `prerender: true` 发现路由；`app.ts` 自动初始化 `cacheStore`；CLI 构建把 `routeRules` 传给 prerender；新增 `route-rules.test.ts`/`isr.test.ts`/`prerender.test.ts`（routeRules 自动发现） |
 | P9-04 | Partial Prerendering / Server Islands     | ⬜   | P9-01      | 静态壳 + Suspense 流式动态；对齐 Next.js 16 PPR / Astro `server:defer`                                 |
 
 #### P1 重要级（SEO 与缓存对齐）

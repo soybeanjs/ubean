@@ -136,7 +136,8 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - 平台预设：`standard`、`node`、`cloudflare`（`default` → `standard`，`cf` → `cloudflare`，`node-server` → `node`）
 - 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）
 - 扩展模块顶层字段：`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`，均支持 `true` 或选项对象形式启用
-- SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'] }`（排除指定页面走 CSR）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段）
+- SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
+- Per-route 渲染规则（P9-03）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）覆盖全局设置；优先级 `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`
 
 ### 3.6 模块与扩展包
 
@@ -221,9 +222,19 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `invalidateRouteCache(keyPattern?)`    | 失效缓存                                      |
 | `resolveRouteCacheRules(routeRules)`   | 解析路由缓存规则                              |
 
-`CacheStore` 接口：`get` / `set` / `delete` / `clear`
+`CacheStore` 接口：`get` / `set` / `delete` / `clear` / `peek?`（P9-03:ISR SWR 用,不更新 LRU、不删除过期项）
 
 **不存在的 API**：`useCache`、`defineCache`、标签/分组/`remember`
+
+### ISR (P9-03)
+
+| API                                                          | 说明                                                                |
+| ------------------------------------------------------------ | ------------------------------------------------------------------- |
+| `serveIsr(c, options)`                                       | ISR 请求处理(HIT/STALE/MISS,设置 `X-ISR` header)                   |
+| `extractPrerenderRoutesFromRules(routeRules)`                | 从 `routeRules` 中提取 `prerender: true` 的路由模式                  |
+| `normalizeIsrRule(rule)`                                      | 把 `number | IsrRule` 归一化为 `{ ttl, swr? }` 或 `undefined`       |
+
+`IsrRule`:`{ ttl: number; swr?: boolean }`;`routeRules` 顶层字段 `isr?: number | IsrRule`
 
 ### 存储
 
@@ -255,12 +266,14 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 路由规则
 
-| API                                                         | 说明              |
-| ----------------------------------------------------------- | ----------------- |
-| `compileRouteRules(rules)` / `matchRouteRules(path, rules)` | 路由规则编译/匹配 |
-| `createRouteRulesMiddleware(rules)`                         | 路由规则中间件    |
+| API                                                         | 说明                                                          |
+| ----------------------------------------------------------- | ------------------------------------------------------------- |
+| `compileRouteRules(rules)` / `matchRouteRules(path, rules)` | 路由规则编译/匹配(按规则+路径特异性排序)                      |
+| `createRouteRulesMiddleware(rules)`                         | 路由规则中间件(匹配后通过 `c.get('routeRule')` 暴露合并结果)  |
 
-通配符：`*` 单段，`**` 多段递归；处理顺序：redirect > rewrite > headers（合并）> cache
+`RouteRule` 字段(P9-03 扩展):`redirect` / `rewrite` / `proxy` / `headers` / `cache` / `ssr`(boolean \| `'streaming'`) / `prerender`(boolean) / `isr`(number \| `{ ttl, swr? }`)
+
+通配符:`*` 单段,`**` 多段递归;处理顺序:redirect > rewrite > headers(合并) > cache;渲染字段 `ssr`/`isr`/`prerender` 由 router 在页面请求阶段处理,优先级:`routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`
 
 ### 中间件工厂
 
@@ -311,9 +324,14 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 预渲染
 
-| API                                                     | 说明 |
-| ------------------------------------------------------- | ---- |
-| `prerender(options)` / `collectPrerenderRoutes(routes)` | SSG  |
+| API                                                                 | 说明                                                                              |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `prerender(options)` / `collectPrerenderRoutes(pages, options)`     | SSG;`options.routeRules` 自动发现 `prerender: true` 路由(P9-03)                   |
+| `extractPrerenderRoutesFromRules(routeRules)`                       | 从 `routeRules` 提取 `prerender: true` 模式(与 `include` 合并,受 `exclude` 过滤)  |
+| `generatePrerenderManifest(result, baseUrl)`                        | 生成清单                                                                          |
+| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`   | 路由 → 文件路径映射/写入                                                          |
+| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob`   | 链接提取/通配符匹配                                                               |
+| `resolvePrerenderConfig(config)`                                    | 配置解析与默认值                                                                  |
 
 ### i18n
 

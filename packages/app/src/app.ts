@@ -7,7 +7,7 @@ import {
   registerOpenAPIRoutes,
   createRouteRulesMiddleware
 } from '@ubean/api-routes';
-import type { RouteRegistrar, RegisterOptions } from '@ubean/api-routes';
+import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/api-routes';
 import { errorToResponse, isUbeanError, UbeanError } from '@ubean/error';
 import type {
   ScannedApiRoute,
@@ -97,6 +97,12 @@ export interface UbeanAppOptions {
   pageAssetTags?: PageAssetTags;
   /** 不进行 SSR 的路由模式列表(glob),匹配的页面走 CSR */
   ssrExclude?: string[];
+  /**
+   * 启用流式 SSR。`true` 时页面响应以 `ReadableStream` 分块输出
+   * (头部先发送,app HTML 边渲染边输出),改善 TTFB/LCP。
+   * renderer 不支持流式时自动降级为缓冲渲染。
+   */
+  streaming?: boolean;
   publicDir?: string;
   healthEndpoint?: boolean;
   openAPI?:
@@ -152,9 +158,14 @@ export class UbeanApp {
     if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
       this.hono.use('*', createRouteRulesMiddleware(this.options.routeRules));
       const cacheRules = resolveRouteCacheRules(this.options.routeRules);
-      if (Object.keys(cacheRules).length > 0) {
+      // P9-03: 总是初始化全局 cacheStore(即使无 cache 规则),供 ISR 使用。
+      // `useCacheStore` 单例,注册一次后续 registerRoutes 可复用。
+      const hasIsrRules = Object.values(this.options.routeRules).some(r => r?.isr !== undefined);
+      if (Object.keys(cacheRules).length > 0 || hasIsrRules) {
         useCacheStore(createMemoryStore());
-        this.hono.use('*', createCacheMiddleware({ rules: cacheRules }));
+        if (Object.keys(cacheRules).length > 0) {
+          this.hono.use('*', createCacheMiddleware({ rules: cacheRules }));
+        }
       }
     }
 
@@ -223,8 +234,15 @@ export class UbeanApp {
       pageRenderer: this.options.pageRenderer ?? null,
       pageAssetTags: this.options.pageAssetTags ?? {},
       ssrExclude: this.options.ssrExclude,
+      streaming: this.options.streaming,
       i18nConfig: this.options.i18nConfig,
-      notFoundPage: this.options.notFoundPage
+      notFoundPage: this.options.notFoundPage,
+      // P9-03: 注入全局 cacheStore 供 ISR 使用。仅当配置了 isr 规则时
+      // `useCacheStore()` 才会被初始化(见 `_setupBaseMiddleware`);无 isr
+      // 规则时 `useCacheStore` 返回默认内存存储,不影响行为。
+      cacheStore: this.options.routeRules && Object.keys(this.options.routeRules).length > 0
+        ? (useCacheStore() as unknown as IsrCacheStore)
+        : undefined
     };
 
     await registerRoutes(this as unknown as RouteRegistrar, registerOpts);

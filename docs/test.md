@@ -88,6 +88,29 @@
 - [x] 布局嵌套渲染（/about, /features等页面集成测试验证）
 - [x] 页面数据序列化注入页面（集成测试验证）
 
+### 3.1.1 流式 SSR (P9-01)
+
+- [x] `renderToNodeStream` + `ReadableStream` 分块输出（@ubean/ssr 单元测试 13 tests）
+- [x] `SsrOptions.streaming` 全局配置开关
+- [x] `renderPageToStream` + 同步回退逻辑
+
+### 3.1.2 Per-route 渲染规则 (P9-03)
+
+- [x] `routeRules.ssr` per-route 覆盖(`false`/`true`/`'streaming'`)(api-routes route-rules.test.ts)
+- [x] `routeRules.ssr` 优先级 > 全局 `ssr.exclude`/`SsrOptions.streaming`(router.ts handlePageRequest)
+- [x] 规则+路径特异性排序(`ruleSpecificity` + `pathSpecificity`)(api-routes route-rules.test.ts)
+- [x] 匹配结果通过 `c.get('routeRule')` 暴露(api-routes route-rules.test.ts)
+- [ ] per-route `ssr: 'streaming'` 集成测试(目前仅单元测试)
+
+### 3.1.3 ISR (P9-03)
+
+- [x] `routeRules.isr` 配置(`number | { ttl, swr? }`)(api-routes isr.test.ts)
+- [x] ISR HIT/STALE/MISS 三态(`X-ISR` header)(api-routes isr.test.ts)
+- [x] SWR 后台重新验证(去重 + `peek` 保留过期项)(api-routes isr.test.ts)
+- [x] `CacheStore.peek()` 可选方法(api-routes isr.test.ts)
+- [x] ISR 失效(`invalidateRouteCache`)(api-routes isr.test.ts)
+- [ ] ISR 集成测试(目前仅单元测试)
+
 ### 3.2 客户端导航
 
 - [x] `push`/`replace` 编程式导航（client-navigation 11 tests 集成测试覆盖）
@@ -221,6 +244,9 @@
 - [x] 路由级缓存配置（集成测试验证：cache:{ttl:60,swr:true}）
 - [x] 路由级 CORS 配置（集成测试验证：route-rules.test.ts cors 规则）
 - [x] 路由级预渲染配置（集成测试验证：/api/prerender-test?action=collectRoutes routeRules中prerender:false使/dashboard被忽略，prerender:true添加路由）
+- [x] P9-03 `ssr`/`prerender`/`isr` per-route 字段(api-routes route-rules.test.ts)
+- [x] P9-03 规则+路径特异性排序(api-routes route-rules.test.ts)
+- [x] P9-03 `c.get('routeRule')` 上下文暴露(api-routes route-rules.test.ts)
 
 ---
 
@@ -413,6 +439,9 @@
 - [x] Manifest 生成 (`generatePrerenderManifest`)（集成测试验证：action=manifest 生成routes/generatedAt/errors结构，routesAreAbsolute:true）
 - [x] 静态 HTML 文件写入（集成测试验证：action=filePath routeToFilePath正确转换路径，writePrerenderedFile写入/index.html、/about/index.html、/dashboard/settings/index.html，contentVerified:true）
 - [x] `definePrerenderRoutes()` 定义预渲染路由（集成测试验证：action=defineRoutes 返回数组，allStartWithSlash:true）
+- [x] P9-03 `extractPrerenderRoutesFromRules()` 从 routeRules 提取 `prerender: true`（prerender.test.ts routeRules auto-discovery 6 tests）
+- [x] P9-03 `collectPrerenderRoutes({ routeRules })` 合并 routeRules 与 include（prerender.test.ts）
+- [x] P9-03 CLI build 传递 routeRules 给 prerender（packages/cli/src/build.ts）
 
 ---
 

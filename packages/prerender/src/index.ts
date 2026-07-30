@@ -2,6 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolvePrerenderConfig } from '@ubean/config';
 import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
 import type { ScannedPageRoute } from '@ubean/routing';
+import type { RouteRule } from '@ubean/types';
 import { matchGlob } from '@ubean/utils';
 import { join, dirname } from 'pathe';
 
@@ -16,6 +17,14 @@ export interface PrerendererOptions {
    * 未设置或 `enabled: false` 时直接返回空结果。
    */
   prerender?: PrerenderConfig;
+  /**
+   * 路由规则(P9-03)。用于自动发现标记了 `prerender: true` 的路由。
+   * 与 `PrerenderConfig.include` / `all` 合并:
+   *   - `all: true` 时 routeRules 中的 prerender 标记被忽略(已包含全部)
+   *   - 否则 prerender 标记的路由加入 include 列表
+   * 受 `PrerenderConfig.exclude` 过滤。
+   */
+  routeRules?: Record<string, RouteRule>;
   fetcher?: (url: string) => Promise<{ html: string; statusCode: number }>;
 }
 
@@ -44,12 +53,31 @@ function normalizePagePath(filePath: string): string {
 }
 
 /**
+ * 从 routeRules 中提取标记了 `prerender: true` 的路由模式(P9-03)。
+ *
+ * 返回的路径列表会进一步与 `pages` 候选池匹配(glob 模式)或直接加入(具体路径)。
+ * 动态路由的具象值(如 `/blog/hello-world`)可通过具体路径直接加入。
+ */
+export function extractPrerenderRoutesFromRules(
+  routeRules: Record<string, RouteRule> | undefined
+): string[] {
+  if (!routeRules) return [];
+  const result: string[] = [];
+  for (const [pattern, rule] of Object.entries(routeRules)) {
+    if (rule?.prerender === true) {
+      result.push(pattern);
+    }
+  }
+  return result;
+}
+
+/**
  * 收集需要预渲染的路由列表。
  *
  * 行为:
  * 1. 扫描 `pages` 得到所有非动态页面作为候选池
  * 2. 若 `options.all === true`:加入候选池所有路由(`include` 被忽略)
- * 3. 否则遍历 `options.include`:
+ * 3. 否则遍历 `options.include` + `options.routeRules` 中 `prerender: true` 的模式:
  *    - 含通配符的模式 → 与候选池匹配
  *    - 不含通配符的具体路径 → 直接加入(用于动态路由的具象值)
  * 4. 应用 `options.exclude` 过滤
@@ -58,11 +86,18 @@ function normalizePagePath(filePath: string): string {
  */
 export function collectPrerenderRoutes(
   pages: ScannedPageRoute[],
-  options: { all?: boolean; include?: string[]; exclude?: string[] } = {}
+  options: {
+    all?: boolean;
+    include?: string[];
+    exclude?: string[];
+    /** P9-03: routeRules 中 `prerender: true` 的模式会合并到 include 列表 */
+    routeRules?: Record<string, RouteRule>;
+  } = {}
 ): { routes: string[]; skipped: string[] } {
   const all = options.all === true;
-  const include = options.include ?? [];
   const exclude = options.exclude ?? [];
+  // 合并显式 include 与 routeRules 中 prerender: true 的模式
+  const include = [...(options.include ?? []), ...extractPrerenderRoutesFromRules(options.routeRules)];
 
   // 候选池:文件系统扫描出的非动态页面
   const allPageRoutes: string[] = [];
@@ -79,7 +114,7 @@ export function collectPrerenderRoutes(
     // 全部模式:`include` 静默忽略
     for (const r of allPageRoutes) matched.add(r);
   } else {
-    // 指定模式:遍历 include
+    // 指定模式:遍历 include(含 routeRules 中 prerender: true 的模式)
     for (const pattern of include) {
       if (pattern.includes('*')) {
         // glob 模式 - 仅匹配文件系统已有页面
@@ -217,7 +252,12 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
   const startTime = Date.now();
   const config: ResolvedPrerenderConfig = resolvePrerenderConfig(options.prerender);
 
-  if (!config.enabled) {
+  // P9-03: routeRules 中 `prerender: true` 的路由也启用预渲染,
+  // 即使 `PrerenderConfig` 未显式配置 `all` 或 `include`。
+  const ruleDiscoveredRoutes = extractPrerenderRoutesFromRules(options.routeRules);
+  const enabledByRules = ruleDiscoveredRoutes.length > 0;
+
+  if (!config.enabled && !enabledByRules) {
     return { routes: [], generated: [], errors: [], skipped: [], duration: 0 };
   }
 
@@ -225,7 +265,8 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
   const { routes: initialRoutes, skipped: initiallySkipped } = collectPrerenderRoutes(options.pages, {
     all: config.all,
     include: config.include,
-    exclude: config.exclude
+    exclude: config.exclude,
+    routeRules: options.routeRules
   });
 
   const queue = [...initialRoutes];

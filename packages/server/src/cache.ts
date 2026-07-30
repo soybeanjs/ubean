@@ -15,6 +15,12 @@ export interface CacheStore {
   set(key: string, entry: Omit<CacheEntry, 'createdAt' | 'expiresAt'>, ttl: number): Promise<void>;
   delete(key: string): Promise<boolean>;
   clear(): Promise<void>;
+  /**
+   * 返回 entry(无论是否过期),不进行过期清理(P9-03 ISR SWR 用)。
+   *
+   * 不实现此方法的存储后端将不支持 ISR SWR(自动降级为同步重新生成)。
+   */
+  peek?(key: string): Promise<CacheEntry | undefined>;
 }
 
 export function createMemoryStore(maxEntries = 200): CacheStore {
@@ -38,6 +44,10 @@ export function createMemoryStore(maxEntries = 200): CacheStore {
         return undefined;
       }
       return entry;
+    },
+    async peek(key) {
+      // 不进行过期检查 —— 供 ISR SWR 读取过期但可用的旧内容
+      return store.get(key);
     },
     async set(key, entry, ttl) {
       const now = Date.now();

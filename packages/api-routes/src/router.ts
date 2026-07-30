@@ -1,8 +1,11 @@
 import type { Context, Next, MiddlewareHandler, Hono } from 'hono';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/routing';
-import type { UbeanEnv, RouteMeta, UbeanMiddleware } from '@ubean/types';
+import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule } from '@ubean/types';
 import { matchAnyGlob } from '@ubean/utils';
 import { extractRouteMeta, isHandlerChain } from './handler';
+import { normalizeIsrRule } from './route-rules';
+import type { IsrCacheStore } from './isr';
+import { serveIsr } from './isr';
 
 /**
  * Structural type for the route registrar app.
@@ -42,10 +45,21 @@ export interface RegisterOptions {
    */
   ssrExclude?: string[];
   /**
+   * 启用流式 SSR。当为 `true` 且 pageRenderer 提供 `renderToStream` 时,
+   * 页面响应将以 `ReadableStream` 形式分块输出(头部先发送,app HTML 边渲染边输出),
+   * 显著改善 TTFB/LCP。回退:renderer 不支持流式时自动降级为缓冲渲染。
+   */
+  streaming?: boolean;
+  /**
    * `pages/404.vue` 自动检测的 404 页面。
    * 注册为 Vue Router catch-all 路由的兜底,同时注册 Hono 的 `GET *` 兜底处理器。
    */
   notFoundPage?: ScannedPageRoute;
+  /**
+   * ISR 缓存存储(P9-03)。与 `@ubean/server` 的 `CacheStore` 结构兼容。
+   * 启用 `routeRules[*].isr` 时必须传入,否则 ISR 规则被忽略。
+   */
+  cacheStore?: IsrCacheStore;
 }
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
@@ -332,11 +346,13 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   }
 
   const hasDefaultLayout = layouts.some(l => l.isDefault);
-  const { isPagesRequest, pageJsonResponse, renderPage } = pagesMod;
+  const { isPagesRequest, pageJsonResponse, renderPage, renderPageToStream } = pagesMod;
   const pageLoaders = options.pageLoaders;
   const pageRenderer = options.pageRenderer as Parameters<typeof renderPage>[2] | null | undefined;
   const pageAssetTags = options.pageAssetTags as Parameters<typeof renderPage>[1] | undefined;
   const ssrExclude = options.ssrExclude ?? [];
+  const streaming = options.streaming === true;
+  const cacheStore = options.cacheStore;
 
   async function handlePageRequest(
     c: Context<UbeanEnv>,
@@ -461,9 +477,68 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       renderContext.availableLocales = i18nMod.getRegisteredLocalesMeta();
     }
 
-    // SSR exclude: matched pages skip server rendering → CSR shell
-    const excluded = matchAnyGlob(page.route, ssrExclude);
+    // P9-03: per-route 渲染规则 —— 从 context 读取匹配的 routeRule,
+    // 覆盖全局 ssr.exclude / streaming 配置。
+    const routeRule = c.get('routeRule') as RouteRule | undefined;
+    const perRouteSsr = routeRule?.ssr;
+    const isrRule = normalizeIsrRule(routeRule?.isr);
+
+    // SSR exclude: matched pages skip server rendering → CSR shell.
+    // per-route `ssr` 规则覆盖全局 exclude:
+    //   - `ssr: false`  → 强制 CSR(即使全局未排除)
+    //   - `ssr: true`   → 强制 SSR(即使命中全局 exclude)
+    //   - `ssr: 'streaming'` → 强制 SSR + 流式输出
+    let excluded = matchAnyGlob(page.route, ssrExclude);
+    let routeStreaming = streaming;
+    if (perRouteSsr === false) {
+      excluded = true;
+    } else if (perRouteSsr === true) {
+      excluded = false;
+    } else if (perRouteSsr === 'streaming') {
+      excluded = false;
+      routeStreaming = true;
+    }
     const renderer = excluded ? null : (pageRenderer ?? null);
+
+    // ISR(P9-03):仅对 GET 请求、且配置了 cacheStore 与 isr 规则时启用。
+    // 渲染函数封装为同步重新生成入口,供 serveIsr 命中失败时调用。
+    if (isrRule && cacheStore && method === 'GET') {
+      const pathname = new URL(c.req.url).pathname;
+      const isrResponse = await serveIsr(c, {
+        pathname,
+        rule: isrRule,
+        store: cacheStore,
+        render: async () => {
+          const html = await renderPage(
+            pageObj as Parameters<typeof renderPage>[0],
+            pageAssetTags ?? {},
+            renderer,
+            'app',
+            renderContext as Parameters<typeof renderPage>[4]
+          );
+          return { html, status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } };
+        }
+      });
+      if (isrResponse) {
+        return isrResponse;
+      }
+    }
+
+    // 流式 SSR:当启用且 renderer 支持时,返回 ReadableStream 响应。
+    // 回退:renderer 不支持流式时,renderPageToStream 内部自动降级为缓冲渲染。
+    if (routeStreaming && renderer) {
+      const stream = renderPageToStream(
+        pageObj as Parameters<typeof renderPageToStream>[0],
+        pageAssetTags ?? {},
+        renderer,
+        'app',
+        renderContext as Parameters<typeof renderPageToStream>[4]
+      );
+      return c.body(stream, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        ...(method === 'POST' && actionErrors ? { status: 422 } : {})
+      });
+    }
 
     const html = await renderPage(
       pageObj as Parameters<typeof renderPage>[0],
@@ -573,6 +648,21 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       // SSR exclude: if the 404 route matches an exclude pattern, use CSR
       const excluded = matchAnyGlob('/*', _ssrExclude);
       const renderer = excluded ? null : (pageRendererOpt ?? null);
+
+      // 流式 SSR(与主页面处理器一致)
+      if (streaming && renderer) {
+        const stream = renderPageToStream(
+          pageObj as Parameters<typeof renderPageToStream>[0],
+          pageAssetTagsOpt ?? {},
+          renderer,
+          'app',
+          renderContext as Parameters<typeof renderPageToStream>[4]
+        );
+        return c.body(stream, {
+          headers: { 'Content-Type': 'text/html; charset=utf-8' },
+          status: 404
+        });
+      }
 
       const html = await renderPage(
         pageObj as Parameters<typeof renderPage>[0],

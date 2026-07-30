@@ -24,10 +24,17 @@ export interface CacheStore {
   set(key: string, entry: Omit<CacheEntry, 'createdAt' | 'expiresAt'>, ttl: number): Promise<void>;
   delete(key: string): Promise<boolean>;
   clear(): Promise<void>;
+  /**
+   * Read an entry WITHOUT updating recency or deleting expired entries.
+   * Optional (P9-03): used by ISR SWR to serve stale content while revalidating.
+   * Implementations that don't support peek should leave it undefined;
+   * ISR falls back to `get()` (which deletes expired entries, disabling SWR).
+   */
+  peek?(key: string): Promise<CacheEntry | undefined>;
 }
 ```
 
-Implement this interface to back the cache with Redis, KV, or any other storage. The default `createMemoryStore(maxEntries = 200)` evicts ~20% of the oldest entries when full.
+Implement this interface to back the cache with Redis, KV, or any other storage. The default `createMemoryStore(maxEntries = 200)` evicts ~20% of the oldest entries when full. The optional `peek()` method (added in P9-03) is required for ISR stale-while-revalidate — it returns the raw entry even if expired, without touching LRU recency or evicting it.
 
 ## createMemoryStore()
 
@@ -126,6 +133,59 @@ export default defineConfig({
 ```
 
 The middleware sets `X-Cache: HIT|MISS` and `Age` headers on cached responses for observability.
+
+## ISR (Incremental Static Regeneration)
+
+ISR (P9-03) caches the **rendered HTML** of page routes with a TTL, optionally serving stale content while revalidating in the background. Unlike `cache` rules (which cache HTTP responses at the middleware layer), ISR caches the output of the Vue SSR renderer and is configured per-route via `routeRules.isr`.
+
+```typescript
+// ubean.config.ts
+export default defineConfig({
+  routeRules: {
+    // Regenerate /blog/** pages every 60s; serve stale while revalidating
+    '/blog/**': { isr: { ttl: 60, swr: true } },
+    // Simple form: ttl only (no SWR)
+    '/news/**': { isr: 300 }
+  }
+});
+```
+
+| Form                           | Behavior                                                            |
+| ------------------------------ | ------------------------------------------------------------------- |
+| `isr: 300`                     | Cache HTML for 300s. After expiry, the next request re-renders.     |
+| `isr: { ttl: 60 }`             | Same as `isr: 60`.                                                  |
+| `isr: { ttl: 60, swr: true }`  | Cache HTML for 60s; after expiry, serve stale + revalidate in background. |
+
+### How it works
+
+1. On a `GET` request to a page with an ISR rule, the router checks the cache store for the rendered HTML.
+2. **HIT** (entry exists and not expired) → serve cached HTML with `X-ISR: HIT`.
+3. **STALE** (entry exists but expired, `swr: true`) → serve stale HTML with `X-ISR: STALE`, trigger background revalidation (deduped per-path).
+4. **MISS** (no entry, or `swr: false` and entry expired) → render HTML synchronously, cache it, serve with `X-ISR: MISS`.
+
+The cache store is automatically initialized by the runtime when any `isr` rule is present. Custom stores should implement `peek()` to support SWR — otherwise ISR falls back to `get()` which deletes expired entries (disabling stale serving).
+
+### Invalidation
+
+Use `invalidateRouteCache()` to invalidate ISR entries (same API as HTTP cache):
+
+```typescript
+import { invalidateRouteCache } from 'ubean';
+
+// After publishing a new blog post, invalidate all /blog/* ISR entries
+await invalidateRouteCache(/^ISR:\/blog\//);
+```
+
+### Relationship to other rendering modes
+
+| Feature                | When it runs                | Output           | Caching                       |
+| ---------------------- | --------------------------- | ---------------- | ----------------------------- |
+| `prerender: true`      | Build time                  | Static HTML file | Permanent (until next build)  |
+| `isr`                  | First request / on expiry   | Cached HTML      | TTL-based + optional SWR      |
+| `ssr: true` (default)  | Every request               | Fresh HTML       | None                          |
+| `ssr: false`           | Client-side                 | Empty shell      | None                          |
+
+ISR requires SSR to be enabled (either globally via `ssr: true`, or per-route via `ssr: true` / `ssr: 'streaming'`). A route with `ssr: false` and `isr` will skip ISR (no renderer available).
 
 ## Custom stores
 

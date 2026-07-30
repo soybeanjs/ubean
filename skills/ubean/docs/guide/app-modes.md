@@ -73,6 +73,32 @@ export default defineConfig({
 - Glob patterns: `*` (single segment), `**` (multi-segment recursive)
 - Use case: mix of content pages (SSR) and app-like pages (CSR) in the same project
 
+### Per-route SSR override via `routeRules` (P9-03)
+
+For finer-grained control than `ssr.exclude`, use `routeRules.ssr` to override the global SSR setting per route. This takes precedence over `ssr.exclude`:
+
+```typescript
+export default defineConfig({
+  mode: 'fullstack',
+  ssr: {
+    exclude: ['/admin/**']           // admin pages → CSR by default
+  },
+  routeRules: {
+    '/admin/share-screen': { ssr: true },        // ...except this one (force SSR)
+    '/feed': { ssr: 'streaming' },                // force streaming SSR for /feed
+    '/dashboard/realtime': { ssr: false }         // force CSR even if not in exclude list
+  }
+});
+```
+
+| `routeRules.ssr` value | Behavior                                                                  |
+| ---------------------- | ------------------------------------------------------------------------- |
+| `true`                 | Force SSR for matching routes (overrides `ssr.exclude`)                   |
+| `false`                | Force CSR for matching routes (treats them as if in `ssr.exclude`)        |
+| `'streaming'`          | Force streaming SSR for matching routes (overrides `SsrOptions.streaming`) |
+
+Combine with `routeRules.isr` for incremental static regeneration, or `routeRules.prerender` for build-time prerendering. See [Route Rules](/docs/guide/pages-routing/overview#per-route-rendering-rules-p9-03) for the full field reference.
+
 ### `spa`
 
 Pure client-side rendering, no server.

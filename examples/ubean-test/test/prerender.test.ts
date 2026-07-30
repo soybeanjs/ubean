@@ -163,6 +163,108 @@ describe('Prerender / SSG system', () => {
   });
 
   // ==========================================================================
+  // P9-03: collectPrerenderRoutes - routeRules 自动发现 prerender: true
+  // ==========================================================================
+  describe('collectPrerenderRoutes() - routeRules auto-discovery (P9-03)', () => {
+    it('discovers routes from routeRules with prerender: true', () => {
+      const pages = [makePage('/'), makePage('/about'), makePage('/contact')];
+      const { routes } = collectPrerenderRoutes(pages, {
+        routeRules: {
+          '/about': { prerender: true },
+          '/contact': { prerender: true }
+        }
+      });
+      expect(routes).toContain('/about');
+      expect(routes).toContain('/contact');
+      expect(routes).not.toContain('/');
+    });
+
+    it('merges routeRules prerender with explicit include', () => {
+      const pages = [makePage('/'), makePage('/about'), makePage('/contact'), makePage('/blog')];
+      const { routes } = collectPrerenderRoutes(pages, {
+        include: ['/'],
+        routeRules: {
+          '/about': { prerender: true }
+        }
+      });
+      expect(routes).toContain('/');
+      expect(routes).toContain('/about');
+    });
+
+    it('supports glob patterns in routeRules prerender', () => {
+      const pages = [makePage('/blog/a'), makePage('/blog/b'), makePage('/about')];
+      const { routes } = collectPrerenderRoutes(pages, {
+        routeRules: {
+          '/blog/*': { prerender: true }
+        }
+      });
+      expect(routes).toContain('/blog/a');
+      expect(routes).toContain('/blog/b');
+      expect(routes).not.toContain('/about');
+    });
+
+    it('applies exclude to routeRules-discovered routes', () => {
+      const pages = [makePage('/about'), makePage('/secret')];
+      const { routes, skipped } = collectPrerenderRoutes(pages, {
+        routeRules: {
+          '/about': { prerender: true },
+          '/secret': { prerender: true }
+        },
+        exclude: ['/secret']
+      });
+      expect(routes).toContain('/about');
+      expect(routes).not.toContain('/secret');
+      expect(skipped).toContain('/secret');
+    });
+
+    it('ignores routeRules without prerender: true', () => {
+      const pages = [makePage('/about')];
+      const { routes } = collectPrerenderRoutes(pages, {
+        routeRules: {
+          '/about': { ssr: false, isr: 60 } // no prerender
+        }
+      });
+      expect(routes).toEqual([]);
+    });
+
+    it('all: true takes precedence over routeRules prerender', () => {
+      const pages = [makePage('/'), makePage('/about'), makePage('/blog')];
+      const { routes } = collectPrerenderRoutes(pages, {
+        all: true,
+        routeRules: {
+          '/about': { prerender: true }
+        }
+      });
+      // all: true includes everything (routeRules ignored)
+      expect(routes).toContain('/');
+      expect(routes).toContain('/about');
+      expect(routes).toContain('/blog');
+    });
+  });
+
+  // ==========================================================================
+  // P9-03: extractPrerenderRoutesFromRules
+  // ==========================================================================
+  describe('extractPrerenderRoutesFromRules() (P9-03)', () => {
+    it('returns patterns with prerender: true', async () => {
+      const { extractPrerenderRoutesFromRules } = await import('ubean');
+      const result = extractPrerenderRoutesFromRules({
+        '/about': { prerender: true },
+        '/blog/**': { prerender: true },
+        '/admin': { ssr: false } // no prerender
+      });
+      expect(result).toContain('/about');
+      expect(result).toContain('/blog/**');
+      expect(result).not.toContain('/admin');
+    });
+
+    it('returns empty array for undefined routeRules', async () => {
+      const { extractPrerenderRoutesFromRules } = await import('ubean');
+      expect(extractPrerenderRoutesFromRules(undefined)).toEqual([]);
+    });
+  });
+
+  // ==========================================================================
   // matchGlob - 统一的通配符匹配
   // ==========================================================================
   describe('matchGlob()', () => {

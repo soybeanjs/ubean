@@ -1,6 +1,6 @@
 {
   "name": "@ubean/build",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Core Vite plugin (framework-agnostic) for ubean (ubeanPlugin, virtual modules: routes/pages/meta/app-config/locales, macros)",
   "files": [
     "dist"

@@ -1,6 +1,6 @@
 {
   "name": "@ubean/codegen",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Type generation for ubean (generateTypes, routes.d.ts, pages.d.ts, openapi.d.ts)",
   "files": [
     "dist"

@@ -1,6 +1,6 @@
 {
   "name": "@ubean/prerender",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "SSG prerendering for ubean (prerender, collectPrerenderRoutes)",
   "files": [
     "dist"

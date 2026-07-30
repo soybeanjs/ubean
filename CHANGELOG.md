@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.12...main) (2026-07-30)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **ubean**: add 404/loading/error and add favicon support &nbsp;-&nbsp; by @soybeanjs [<samp>(eb060)</samp>](https://github.com/soybeanjs/ubean/commit/eb060d0)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **dev-server**: fix definePage data reload in dev server &nbsp;-&nbsp; by @soybeanjs [<samp>(aaeb8)</samp>](https://github.com/soybeanjs/ubean/commit/aaeb83c)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.11...main) (2026-07-30)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

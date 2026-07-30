@@ -8,6 +8,7 @@ import {
   createRouteRulesMiddleware
 } from '@ubean/api-routes';
 import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/api-routes';
+import { createActionsMiddleware, ACTIONS_ENDPOINT } from '@ubean/actions';
 import { errorToResponse, isUbeanError, UbeanError } from '@ubean/error';
 import type {
   ScannedApiRoute,
@@ -246,6 +247,13 @@ export class UbeanApp {
     };
 
     await registerRoutes(this as unknown as RouteRegistrar, registerOpts);
+
+    // P9-02: Server Actions — mount the `/__actions` POST endpoint for
+    // RPC-style invocation from the client (`useAction()` / `callAction()`).
+    // The endpoint looks up actions by ID from the global registry; unknown
+    // IDs return 404. Form actions (`?/name`) are handled by the page route
+    // POST handler in `registerRoutes`, not here.
+    this.hono.on('POST', ACTIONS_ENDPOINT, createActionsMiddleware());
 
     if (this.options.openAPI) {
       const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};

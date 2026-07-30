@@ -19,7 +19,7 @@
 | per-route 渲染规则 | ⚠️(部分) | ✅ routeRules | ❌ | ❌ | ✅ `export const prerender` | ✅ P9-03(routeRules.ssr/prerender/isr) |
 | PPR / Server Islands | ✅ 稳定 | ❌ | ❌ | ❌ | ✅ `server:defer` | ❌ (P9-04 待办) |
 | Server Components | ✅ RSC | ✅ | ❌ | ❌ | ❌(Islands) | ❌ |
-| Server Actions | ✅ | ❌ | ✅ form actions | ✅ | ✅ Actions | ❌ |
+| Server Actions | ✅ | ❌ | ✅ form actions | ✅ | ✅ Actions | ✅ P9-02(defineAction + 'use server' + form actions) |
 | Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ P9-01 |
 | Islands | ❌ | ❌ | ❌ | ❌ | ✅ 原创 | ✅ |
 | 多框架 | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
@@ -51,7 +51,7 @@ ubean 渲染层差距已大幅缩小:流式 SSR(P9-01)、ISR + per-route 渲染�
 
 | 能力 | 各框架情况 | ubean |
 |---|---|---|
-| **Server Actions / Form Actions** | Next.js `"use server"`；SvelteKit `actions`；SolidStart `action()`；Astro `defineAction` | ❌ 无 |
+| **Server Actions / Form Actions** | Next.js `"use server"`；SvelteKit `actions`；SolidStart `action()`；Astro `defineAction` | ✅ P9-02(`defineAction` + `'use server'` + SvelteKit 风格 `?/name` 表单 action) |
 | **`useFetch`/`useAsyncData` 等价** | Nuxt 全套（dedupe/refresh/payload/CSP）；SvelteKit `load` 函数 | ⚠️ `useData`/`useAsyncData` 较薄 |
 | **`defer()` 流式非关键数据** | Next.js Suspense + `defer`；SvelteKit 流式 promise | ❌ |
 | **单飞变更 (Single-flight mutations)** | SolidStart 独有，避免变更后瀑布 | ❌ |
@@ -60,7 +60,7 @@ ubean 渲染层差距已大幅缩小:流式 SSR(P9-01)、ISR + per-route 渲染�
 | **Hooks (handle/handleFetch/handleError)** | SvelteKit 全局 hooks；Nuxt server plugins | ⚠️ 仅 middleware |
 | **`after()` 响应后执行** | Next.js 16 `after()` 用于日志/分析/缓存失效不阻塞 TTFB | ❌ |
 
-ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），但**缺少 Server Actions 这一现代范式**——这是 Next/SvelteKit/Solid/Astro 共同趋势。
+ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 P9-02 补齐 **Server Actions** 范式（`defineAction` + `'use server'` 指令 + SvelteKit 风格 `?/name` 表单 action），对齐 Next/SvelteKit/Solid/Astro 共同趋势。
 
 ### 2.3 路由
 
@@ -184,12 +184,10 @@ ubean 平台预设明显最少（仅 Node + Cloudflare），roadmap P5-06 待补
 - **方案**：改用 `@vue/server-renderer` 的 `renderToNodeStream`/`pipeToWritable`，配合 Vue Suspense
 - **任务**：P9-01
 
-#### 2. ❌ Server Actions / Form Actions
-- **现状**：仅有 `useData` fetcher 模式
-- **竞品**：Next.js `"use server"`、SvelteKit `actions`、SolidStart `action()`、Astro `defineAction`
-- **影响**：表单/变更逻辑需手写 API 路由，缺少渐进增强
-- **方案**：实现 `defineAction` + `'use server'` 指令转换
-- **任务**：P9-02
+#### 2. ✅ Server Actions / Form Actions (P9-02 已完成)
+- **现状**:`@ubean/actions` 包提供 `defineAction`(支持 schema 验证)+ `fail()`/`ActionError` 错误模型 + 全局注册表 + 稳定 action ID(`base32(sha1(filePath:exportName))`)+ `/__actions` RPC 中间件 + SvelteKit 风格 `?/<name>` 表单 action(页面模块 `export const actions` map,渐进增强)+ 客户端 `useAction`/`useFormAction`/`callAction` + `'use server'` 指令 Vite 插件(server 端 `defineAction` 包裹,client 端 RPC stub 替换)
+- **竞品**:Next.js `"use server"`、SvelteKit `actions`、SolidStart `action()`、Astro `defineAction`
+- **任务**:P9-02 ✅
 
 #### 3. ✅ ISR + per-route 渲染规则 (P9-03 已完成)
 - **现状**:`RouteRule` 扩展 `ssr`/`prerender`/`isr` per-route 字段;`route-rules` 中间件按规则+路径特异性排序并通过 `c.get('routeRule')` 暴露;router 按每路由 `ssr` 覆盖全局设置(`false`/`true`/`'streaming'`);GET 请求走 ISR(TTL + SWR,`peek` 保留过期条目供 stale 回源);`prerender` 自动从 `routeRules` 发现 `prerender: true` 路由
@@ -286,7 +284,7 @@ ubean 有若干竞品**没有**的差异化能力，是其核心竞争力：
 
 1. **流式 SSR**（P0，解锁 PPR 前置）—— 改 `@ubean/ssr` 用 `renderToNodeStream`
 2. **per-route 渲染规则 + ISR**（P0）—— 扩展 `routeRules`
-3. **Server Actions**（P0）—— `defineAction` + `'use server'`
+3. **Server Actions**（P0，✅ 已完成 P9-02）—— `defineAction` + `'use server'`
 4. **PPR / Server Islands**（P0，依赖 1+3）
 5. **文件约定 SEO**（P1）—— sitemap.ts/robots.ts/opengraph-image
 6. **OG Image 生成**（P1）—— Satori 集成

@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
+    "@ubean/actions": "workspace:*",
     "@ubean/i18n": "workspace:*",
     "@ubean/pages": "workspace:*",
     "@ubean/routing": "workspace:*",

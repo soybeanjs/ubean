@@ -28,6 +28,7 @@ export * from '@ubean/i18n';
 
 // ============== 服务端运行时 ==============
 export * from '@ubean/api-routes';
+export * from '@ubean/actions';
 export * from '@ubean/server';
 export * from '@ubean/app';
 
@@ -180,6 +181,7 @@ export type { UbeanVuePluginOptions } from '@ubean/vite';
 export { VUE_PLUGIN_INCLUDE } from '@ubean/vite';
 // `ubeanIslandsPlugin` 来自 `/vite` 子路径;`getIslandsBootstrapScript` 在主入口
 export { ubeanIslandsPlugin } from '@ubean/islands/vite';
+export { ubeanServerActionsPlugin } from '@ubean/actions/vite';
 export { getIslandsBootstrapScript } from '@ubean/islands';
 export { createVueRenderer } from '@ubean/ssr';
 export type { VueRendererSimpleOptions, VueRendererRouterOptions, VueRendererOptions } from '@ubean/ssr';

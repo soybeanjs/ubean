@@ -76,6 +76,7 @@ packages/
 ├── utils/                    # @ubean/utils
 ├── routing/                  # @ubean/routing(含实体文件生成器)
 ├── api-routes/               # @ubean/api-routes
+├── actions/                  # @ubean/actions(Server Actions / Form Actions)
 ├── server/                   # @ubean/server
 ├── app/                      # @ubean/app
 ├── i18n/                     # @ubean/i18n

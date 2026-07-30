@@ -28,6 +28,7 @@
 import type { Plugin } from 'vite';
 import { ubeanPlugin as ubeanCorePlugin } from '@ubean/build/vite';
 import type { UbeanPluginOptions } from '@ubean/build/vite';
+import { ubeanServerActionsPlugin } from '@ubean/actions/vite';
 import { loadUbeanConfigSync } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import { ubeanVuePlugin } from '@ubean/vite';
@@ -42,6 +43,7 @@ export type { UbeanPluginOptions, UbeanVuePluginOptions };
  * 1. `ubeanCorePlugin` — 框架无关的核心插件（路由扫描、虚拟模块、宏转换）
  * 2. `ubeanVuePlugin` — Vue 专属插件（页面/入口虚拟模块、自动导入、组件解析）
  * 3. `ubeanIslandsPlugin` — Islands 架构插件（SFC 中 `client:*` 指令转换）
+ * 4. `ubeanServerActionsPlugin` — Server Actions 插件（`'use server'` 指令转换）
  *
  * 配置来源：始终从 `ubean.config.ts` 加载（同步），不接受 `config` 参数。
  */
@@ -49,5 +51,10 @@ export function ubeanPlugin(): Plugin[] {
   // 同步加载 config（优先读缓存，其次用 jiti 同步加载 ubean.config.ts）
   const config = loadUbeanConfigSync();
 
-  return [ubeanCorePlugin({ config }), ...ubeanVuePlugin({ config }), ubeanIslandsPlugin()];
+  return [
+    ubeanCorePlugin({ config }),
+    ...ubeanVuePlugin({ config }),
+    ubeanIslandsPlugin(),
+    ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() })
+  ];
 }

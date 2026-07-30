@@ -39,6 +39,11 @@ import type { HydrateIslandsOptions } from '@ubean/runtime';
 import { islands as autoIslands } from 'virtual:ubean-islands-registry';
 
 export * from '@ubean/runtime';
+// P9-02: Server Actions client runtime (callAction, useAction, useFormAction).
+// Re-exported here so client code can auto-import from `ubean/runtime/vue`
+// alongside other Vue composables, without pulling server-side code.
+export { callAction, useAction, useFormAction } from '@ubean/actions/runtime';
+export type { UseActionReturn, UseFormActionReturn } from '@ubean/actions/runtime';
 
 /**
  * `hydrateIslands` 的桥接版本:自动合并虚拟注册表与手动 `components`。

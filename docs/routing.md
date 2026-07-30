@@ -464,8 +464,8 @@ export function definePage(options?: DefinePageOptions): void;
 
 ```typescript
 // pages/users/[id].server.ts
-import { defineLoader, defineAction } from 'ubean/pages';
-import { db } from 'ubean/database';
+import { defineLoader, defineAction, fail } from 'ubean';
+import { db } from 'ubean';
 import { users } from '../../db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -475,11 +475,17 @@ export const loader = defineLoader(async ({ params }) => {
   return { user };
 });
 
-// Server-side action (POST/PUT/DELETE 请求自动调用)
-export const action = defineAction(async ({ params, request }) => {
-  const formData = await request.formData();
-  return { success: true };
-});
+// Server-side actions (POST 请求按 ?/<name> 分发,SvelteKit 风格)
+export const actions = {
+  default: defineAction(async (input, ctx) => {
+    return { success: true };
+  }),
+  update: defineAction(async (input: { name: string }, ctx) => {
+    if (!input.name) return fail(400, { name: 'required' });
+    await db.update(users).set({ name: input.name }).where(eq(users.id, ctx.params.id));
+    return { success: true };
+  })
+};
 
 // 可选: 禁用 SSR
 export const ssr = true;

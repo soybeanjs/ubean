@@ -1,11 +1,13 @@
 import type { Context, Next, MiddlewareHandler, Hono } from 'hono';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/routing';
-import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule } from '@ubean/types';
+import { isServerAction } from '@ubean/types';
+import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/types';
 import { matchAnyGlob } from '@ubean/utils';
 import { extractRouteMeta, isHandlerChain } from './handler';
 import { normalizeIsrRule } from './route-rules';
-import type { IsrCacheStore } from './isr';
 import { serveIsr } from './isr';
+import type { IsrCacheStore } from './isr';
+import { parseFormActionName as _parseFormActionName, handleActionResponse as _handleActionResponse, runServerAction as _runServerAction } from './form-actions';
 
 /**
  * Structural type for the route registrar app.
@@ -147,6 +149,12 @@ async function loadI18n(): Promise<I18nModule | null> {
   }
   return _i18nMod;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Server Actions helpers (P9-02) are imported from ./form-actions            */
+/* (kept self-contained so the router doesn't pull @ubean/actions, which     */
+/* re-exports the Vue runtime, into the server bundle).                       */
+/* -------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------- */
 /* registerApiRoutes — API-only registration (no page deps)                  */
@@ -387,44 +395,51 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       }
     }
 
-    if (method === 'POST' && mod?.action && typeof mod.action === 'function') {
-      try {
-        actionResult = await mod.action(c);
-        if (actionResult instanceof Response) {
-          if (actionResult.status >= 300 && actionResult.status < 400) {
-            const redirectUrl = actionResult.headers.get('Location');
-            if (redirectUrl) {
-              if (isPagesRequest(c)) {
-                return c.json({ redirect: redirectUrl }, { status: 200, headers: { 'X-Ubean-Redirect': redirectUrl } });
-              }
-              return actionResult;
-            }
+    if (method === 'POST') {
+      // P9-02: Server Actions — `mod.actions` map (SvelteKit-style `?/name`).
+      // Page modules may export an `actions` object whose values are
+      // `ServerAction`s created via `defineAction()`. The action name is
+      // parsed from the URL search query (`?/login` → `actions.login`).
+      const actionsExport = mod?.actions;
+      if (actionsExport && typeof actionsExport === 'object') {
+        const actionName = _parseFormActionName(c.req.url);
+        const action = (actionsExport as Record<string, ServerAction>)[actionName];
+        if (action && isServerAction(action)) {
+          const res = await _runServerAction(action, c);
+          if (res.response) {
+            const handled = _handleActionResponse(c, res.response, isPagesRequest);
+            if (handled) return handled;
+            actionResult = res.response;
+          } else if (res.errors) {
+            actionErrors = res.errors;
+          } else {
+            actionResult = res.data;
+          }
+        }
+      }
+      // Legacy: `mod.action(c)` function (backward compat).
+      else if (mod?.action && typeof mod.action === 'function') {
+        try {
+          actionResult = await mod.action(c);
+          if (actionResult instanceof Response) {
+            const handled = _handleActionResponse(c, actionResult, isPagesRequest);
+            if (handled) return handled;
+          }
+          if (actionResult && typeof actionResult === 'object' && 'errors' in actionResult) {
+            actionErrors = actionResult.errors as Record<string, string>;
+            actionResult = undefined;
+          }
+        } catch (err) {
+          if (err instanceof Response) {
+            const handled = _handleActionResponse(c, err, isPagesRequest);
+            if (handled) return handled;
+            return err;
           }
           if (isPagesRequest(c)) {
-            return actionResult;
+            return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
           }
+          actionErrors = { _error: err instanceof Error ? err.message : String(err) };
         }
-        if (actionResult && typeof actionResult === 'object' && 'errors' in actionResult) {
-          actionErrors = actionResult.errors as Record<string, string>;
-          actionResult = undefined;
-        }
-      } catch (err) {
-        if (err instanceof Response) {
-          if (err.status >= 300 && err.status < 400) {
-            const redirectUrl = err.headers.get('Location');
-            if (redirectUrl) {
-              if (isPagesRequest(c)) {
-                return c.json({ redirect: redirectUrl }, { status: 200, headers: { 'X-Ubean-Redirect': redirectUrl } });
-              }
-              return err;
-            }
-          }
-          return err;
-        }
-        if (isPagesRequest(c)) {
-          return c.json({ error: err instanceof Error ? err.message : String(err) }, 500);
-        }
-        actionErrors = { _error: err instanceof Error ? err.message : String(err) };
       }
     }
 

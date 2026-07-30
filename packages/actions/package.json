@@ -1,7 +1,7 @@
 {
-  "name": "@ubean/app",
+  "name": "@ubean/actions",
   "version": "0.1.13",
-  "description": "Hono app factory and server config for ubean (createUbeanApp, defineServer)",
+  "description": "Server Actions / Form Actions for ubean (defineAction, registry, dispatch, middleware)",
   "files": [
     "dist"
   ],
@@ -13,6 +13,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js"
     }
   },
   "scripts": {
@@ -22,31 +30,26 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/actions": "workspace:*",
-    "@ubean/api-routes": "workspace:*",
-    "@ubean/error": "workspace:*",
-    "@ubean/server": "workspace:*",
     "@ubean/types": "workspace:*",
-    "hono": "4.12.32",
-    "hookable": "^6.1.1",
-    "pathe": "^2.0.3"
+    "@ubean/utils": "workspace:*",
+    "hono": "4.12.32"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
-    "@ubean/pages": "workspace:*",
-    "@ubean/routing": "workspace:*",
     "typescript": "7.0.2",
-    "vite-plus": "catalog:"
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vue": "^3.5.40"
   },
   "peerDependencies": {
-    "@ubean/pages": "workspace:*",
-    "@ubean/routing": "workspace:*"
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
+    "vue": "^3.0.0"
   },
   "peerDependenciesMeta": {
-    "@ubean/routing": {
+    "vite": {
       "optional": true
     },
-    "@ubean/pages": {
+    "vue": {
       "optional": true
     }
   }

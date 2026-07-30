@@ -19,6 +19,11 @@ export {
 } from './isr';
 export type { IsrCacheStore, IsrCacheEntry, IsrCacheEntryInternal, IsrServeOptions } from './isr';
 
+// Note: P9-02 form-action helpers (parseFormActionName, handleActionResponse,
+// runServerAction) are internal to the router's `handlePageRequest` and are
+// NOT re-exported here. The public Server Actions API lives in `@ubean/actions`.
+// Tests import directly from `../src/form-actions`.
+
 export { setInternalFetcher, getInternalFetcher, clearInternalFetcher, createInternalAdapter } from './internal-fetch';
 export type { InternalFetchOptions } from './internal-fetch';
 

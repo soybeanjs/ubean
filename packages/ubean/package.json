@@ -48,6 +48,7 @@
     "@hono/standard-validator": "^0.3.0",
     "@standard-community/standard-json": "^0.3.5",
     "@standard-community/standard-openapi": "^0.2.9",
+    "@ubean/actions": "workspace:*",
     "@ubean/api-routes": "workspace:*",
     "@ubean/app": "workspace:*",
     "@ubean/auto-imports": "workspace:*",

@@ -4,7 +4,7 @@
 
 ## 1. 项目概述
 
-**ubean**（npm 包名：`ubean`，**不是** `@ubean/core`）是一个基于 Vite-Plus 的 Vue 专属全栈元框架，融合 void 的 Inertia 式 SSR 页面路由和 nitro 的跨平台部署能力。
+ubean/（npm 包名：`ubean`，**不是** `@ubean/core`）是一个基于 Vite-Plus 的 Vue 专属全栈元框架，融合 void 的 Inertia 式 SSR 页面路由和 nitro 的跨平台部署能力。
 
 - **HTTP 框架**：Hono
 - **构建工具**：Vite-Plus
@@ -16,7 +16,7 @@
 
 ```
 ubean/
-├── packages/                # 39 个子包（monorepo）
+├── packages/                # 40 个子包（monorepo）
 │   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
 │   ├── types/              # @ubean/types — 共享类型
 │   ├── utils/              # @ubean/utils — 工具函数
@@ -28,6 +28,7 @@ ubean/
 │   ├── i18n/               # @ubean/i18n — 国际化（纯函数）
 │   ├── routing/            # @ubean/routing — 路由扫描 + rou3 router
 │   ├── api-routes/         # @ubean/api-routes — API 路由处理器
+│   ├── actions/            # @ubean/actions — Server Actions / Form Actions（defineAction + 'use server' 指令转换）
 │   ├── server/             # @ubean/server — 服务端运行时（cache/db/queue/cron/ws/sse）
 │   ├── app/                # @ubean/app — Hono 应用工厂
 │   ├── config/             # @ubean/config — 配置加载
@@ -67,7 +68,7 @@ ubean/
 ubean 采用 **monorepo + 聚合器** 架构：
 
 - **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含 4 个子路径导出（见下文）。
-- **子包 `@ubean/*`**（其余 38 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **子包 `@ubean/*`**（其余 39 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
 - **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`pinia: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
 
 ### 2.2 主包子路径导出
@@ -103,6 +104,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
   - `error.vue`（或 `.ts`/`.md`）→ 错误边界（ErrorBoundary）组件，当页面组件渲染/异步解析/setup 抛出错误时显示，接收 `error` prop；路由切换时自动重置；仅客户端生效
   - 仅根目录文件被视为特殊页面；`users/404.vue` 仍为常规路由 `/users/404`
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序
+- **Server Actions（表单 action）**：页面模块可 `export const actions = { name: defineAction(...) }`，POST 表单通过 `?/<actionName>` URL 分发（SvelteKit 风格，渐进增强）；详见第 4 节 Server Actions
 - `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`middleware`、`requiresAuth`、`cache`、`head`（**没有** 顶层 `title` 字段）
   - `cache: true` 启用页面 KeepAlive 缓存，框架自动用路由名作为组件 `name`（通过 `getNamedPageWrapper` 包装），`<script setup>` SFC 无需手动 `defineOptions({ name })`
   - 运行时控制：`useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)`
@@ -300,6 +302,22 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `internalFetch` 不支持上传进度                       | —                                      |
 
 > 浏览器端 HTTP 请求请直接使用 [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)（`createRequest` / `toFlatRequest` / `createTypedClient` / `toFlatTypedClient`），ubean 不再内置 HTTP 客户端封装。
+
+### Server Actions（P9-02）
+
+| API                                                          | 说明                                                                                |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| `defineAction(handlerOrSchema, handler?, opts?)`             | 定义服务端 action，支持 schema 验证；返回带 `ACTION_BRAND` 的 `ServerAction`        |
+| `fail(status, errors)`                                       | 在 action handler 中返回字段级验证错误（SvelteKit 风格）                            |
+| `ActionError`                                                | 用户可读错误类（含 `code`/`status`），在 handler 中 throw                           |
+| `isServerAction(value)` / `isActionFailure(value)`           | 类型守卫                                                                            |
+| `callAction(id, args)`                                       | 客户端 RPC 调用（POST `/__actions`）                                                |
+| `useAction(actionOrId)`                                      | Vue composable：`pending`/`data`/`error`/`errors`/`status`/`result`/`submit`/`reset` |
+| `useFormAction(actionName)`                                  | Vue composable：表单 action URL + SPA 提交（渐进增强）                              |
+| `'use server'` 指令                                          | Vite 插件自动转换：server 端包裹 `defineAction`，client 端替换为 RPC stub          |
+| `?/<actionName>` URL 约定                                    | 页面模块 `export const actions = { name: defineAction(...) }` → POST 表单分发       |
+
+> Server Actions 通过 `@ubean/actions` 包实现，Vite 插件 `ubeanServerActionsPlugin` 已包含在默认 `ubeanPlugin()` 中。action ID 由 `base32(sha1(filePath:exportName))` 生成，client/server 自动一致。`@ubean/types` 提供 `ServerAction`/`ActionContext`/`ActionResult`/`ActionFailure` 等共享类型。
 
 ### Vue 运行时
 

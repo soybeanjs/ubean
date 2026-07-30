@@ -213,3 +213,170 @@ export type UbeanHandler<I extends Input = {}, R extends HandlerResponse<any> = 
 >;
 
 export type ComposedHandler = MiddlewareHandler<UbeanEnv>;
+
+/* -------------------------------------------------------------------------- */
+/* Server Actions (P9-02)                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Action ID — a stable string identifier for a server action.
+ *
+ * Generated from the action's source location (file path + export name) so
+ * the client and server sides agree on the same ID without runtime
+ * coordination. Format: `<base32(sha1(relPath:exportName))>`.
+ */
+export type ActionId = string;
+
+/**
+ * Context passed to every server action handler.
+ *
+ * - `request`: the underlying `Request` (for headers, cookies, etc.)
+ * - `context`: the Hono context (for `c.set`, `c.get`, `c.req`, etc.)
+ * - `params`: route params extracted from the URL (for page-level actions)
+ */
+export interface ActionContext {
+  request: Request;
+  context: Context<UbeanEnv>;
+  params: Record<string, string>;
+}
+
+/**
+ * Result returned by a server action.
+ *
+ * - `data`: the action's return value (serializable)
+ * - `error`: an `ActionError` instance thrown by the handler, or `null`
+ * - `errors`: per-field validation errors (SvelteKit-style `ActionFailure<{ fields }>`),
+ *   populated when the handler returns `fail()` with field errors
+ *
+ * Either `data` (success) or `error`/`errors` (failure) is set; never both.
+ */
+export interface ActionResult<T = unknown> {
+  data?: T;
+  error?: { message: string; code?: string };
+  errors?: Record<string, string> | null;
+  status: number;
+}
+
+/**
+ * A handler that runs server-side when an action is invoked.
+ *
+ * - When `schema` is provided to `defineAction`, the handler receives the
+ *   parsed/validated `data` (typed by the schema's output).
+ * - Without a schema, the handler receives the raw `input` (FormData or
+ *   parsed JSON object).
+ *
+ * The handler may return any serializable value, throw an `ActionError`,
+ * or call `fail()` to return field-level validation errors.
+ */
+export type ActionHandler<TInput = unknown, TOutput = unknown> = (
+  input: TInput,
+  ctx: ActionContext
+) => Promise<TOutput | ActionFailure> | TOutput | ActionFailure;
+
+/**
+ * Field-level validation failure (SvelteKit-style).
+ *
+ * Returned by `fail()` inside an action handler to signal validation errors
+ * back to the form without throwing. The page can read `result.errors` to
+ * display per-field messages.
+ */
+export interface ActionFailure<T = Record<string, string>> {
+  __actionFailure: true;
+  status: number;
+  errors: T;
+}
+
+/**
+ * Schema accepted by `defineAction` for input validation.
+ *
+ * Any Standard Schema (`safeParse`/`parse`) or a function
+ * `(value: unknown) => { success: true; data } | { success: false; error }`.
+ */
+export interface ActionSchema<TOutput = unknown> {
+  safeParse?(value: unknown): { success: boolean; data?: TOutput; error?: { issues?: Array<{ message?: string }> } };
+  parse?(value: unknown): TOutput;
+  _output?: TOutput;
+}
+
+/**
+ * A registered server action — the runtime representation produced by
+ * `defineAction`. Carries the action ID and the original handler.
+ *
+ * The function is callable server-side (direct invocation with typed input)
+ * and is replaced by an RPC stub on the client (POST to `/__actions`).
+ */
+export interface ServerAction<TInput = unknown, TOutput = unknown> {
+  /** Stable action ID (file path + export name hash). */
+  id: ActionId;
+  /** The handler that runs server-side. */
+  handler: ActionHandler<TInput, TOutput>;
+  /** Optional schema for input validation. */
+  schema?: ActionSchema<TOutput>;
+  /** Original function name (for error messages / debugging). */
+  name: string;
+  /** Source file path (project-relative, for debugging). */
+  filePath?: string;
+}
+
+/**
+ * Brand used to identify a server action at runtime (`Symbol`).
+ */
+export const ACTION_BRAND = Symbol.for('ubean.action');
+
+/**
+ * Type guard: is the value a registered `ServerAction`?
+ */
+export function isServerAction(value: unknown): value is ServerAction {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as Record<symbol, unknown>)[ACTION_BRAND] === true &&
+    typeof (value as ServerAction).id === 'string' &&
+    typeof (value as ServerAction).handler === 'function'
+  );
+}
+
+/**
+ * Error thrown by action handlers to signal a user-facing error.
+ *
+ * The `code` field can be used for programmatic error handling on the client
+ * (e.g. `err.code === 'INVALID_CREDENTIALS'`).
+ */
+export class ActionError extends Error {
+  code?: string;
+  status: number;
+  constructor(message: string, opts: { code?: string; status?: number } = {}) {
+    super(message);
+    this.name = 'ActionError';
+    this.code = opts.code;
+    this.status = opts.status ?? 400;
+  }
+}
+
+/**
+ * Mark a return value as a field-level validation failure.
+ *
+ * Used inside `defineAction` handlers to signal validation errors back to
+ * the form without throwing. Mirrors SvelteKit's `fail()` helper.
+ *
+ * ```ts
+ * export const login = defineAction(async (input) => {
+ *   if (!input.email) return fail(400, { email: 'Email is required' });
+ *   return { user: input.email };
+ * });
+ * ```
+ */
+export function fail<T extends Record<string, string>>(status: number, errors: T): ActionFailure<T> {
+  return { __actionFailure: true, status, errors };
+}
+
+/**
+ * Type guard: is the value an `ActionFailure` (returned by `fail()`)?
+ */
+export function isActionFailure(value: unknown): value is ActionFailure {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    (value as ActionFailure).__actionFailure === true
+  );
+}

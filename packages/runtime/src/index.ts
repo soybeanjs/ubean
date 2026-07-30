@@ -74,6 +74,7 @@ export {
   getCachedViewNames,
   getExcludedViewNames,
   getCacheEnabled,
+  getNamedPageWrapper,
   initCachedViewsFromRoutes
 } from './cache-views';
 export type { UseCacheViewsReturn } from './cache-views';

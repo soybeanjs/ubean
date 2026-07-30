@@ -23,7 +23,7 @@ import type { VueHeadClient } from '@unhead/vue';
 import { Head as UnheadHeadComponent } from '@unhead/vue/components';
 import { localizePath } from './i18n';
 import { createUbeanRouter } from './router';
-import { useCacheViews, initCachedViewsFromRoutes } from './cache-views';
+import { useCacheViews, initCachedViewsFromRoutes, getNamedPageWrapper } from './cache-views';
 import { usePageTransition, useReloadSignal } from './page-runtime';
 import { supportsViewTransitions } from './view-transitions';
 import type { ViewTransitionOptions } from './view-transitions';
@@ -174,7 +174,19 @@ export const PageView = defineComponent({
           // `Component` as `h(ViewComponent, props)` — a VNode whose `.type`
           // is the actual component object. We use that to create a fresh
           // VNode so keep-alive can cache by component identity.
-          const comp = Component.type as ConcreteComponent;
+          //
+          // Wrap the page component with a named wrapper carrying the route
+          // name (from `route.meta.pageName`). This is essential for
+          // `<KeepAlive :include="cachedViews">` to match — Vue's KeepAlive
+          // filters by the component's `name` option, and `<script setup>`
+          // SFCs don't auto-set `name`. Without this wrapper, pages with
+          // `definePage({ cache: true })` would never be cached because the
+          // route name (e.g. 'About') wouldn't match the component's name
+          // (typically `undefined`). The wrapper is cached per routeName and
+          // rebuilt on HMR when the original component reference changes.
+          const rawComp = Component.type as ConcreteComponent;
+          const pageName = route.meta?.pageName as string | undefined;
+          const comp = pageName ? getNamedPageWrapper(pageName, rawComp) : rawComp;
           const componentProps = Component.props || {};
 
           // Resolve the render key. When `reloadKey` is provided explicitly,

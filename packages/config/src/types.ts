@@ -620,6 +620,30 @@ export interface UbeanConfig {
   scanOptions?: {
     ignore?: string[];
   };
+
+  /**
+   * 网站图标（favicon）配置。
+   *
+   * - `true` 或未设置（默认）:自动从 `public/` 目录依次查找
+   *   `favicon.ico` → `favicon.svg` → `favicon.png` → `favicon.jpg` → `favicon.jpeg`,
+   *   使用第一个找到的文件作为图标
+   * - `string`:自定义图标路径（如 `/icons/my-icon.png`）,
+   *   注意为以 `/` 开头的 URL 路径,指向 public 目录下的文件
+   * - `false`:禁用图标自动注入
+   *
+   * @example
+   * ```ts
+   * // 自动检测（默认）
+   * export default defineConfig({});
+   *
+   * // 自定义路径
+   * export default defineConfig({ favicon: '/icons/logo.png' });
+   *
+   * // 禁用
+   * export default defineConfig({ favicon: false });
+   * ```
+   */
+  favicon?: boolean | string;
 }
 
 export interface ResolvedConfig extends Required<
@@ -637,6 +661,7 @@ export interface ResolvedConfig extends Required<
     | 'fonts'
     | 'routing'
     | 'devtools'
+    | 'favicon'
   >
 > {
   rootDir: string;
@@ -662,4 +687,9 @@ export interface ResolvedConfig extends Required<
   components: Required<NonNullable<UbeanConfig['components']>>;
   i18n: Required<NonNullable<UbeanConfig['i18n']>>;
   routing: ResolvedRoutingConfig;
+  /**
+   * 解析后的 favicon HREF（如 `/favicon.ico`），`null` 表示禁用。
+   * 由 `resolveFavicon()` 在配置加载时从 `public/` 目录自动检测或使用用户配置的路径。
+   */
+  favicon: string | null;
 }

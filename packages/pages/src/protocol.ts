@@ -16,6 +16,8 @@ export interface PageAssetTags {
   css?: string;
   preloads?: string;
   body?: string;
+  /** Favicon HREF (如 `/favicon.ico`),自动注入 `<link rel="icon">` 到 `<head>` */
+  favicon?: string;
 }
 
 export interface LocaleMetaInfo {
@@ -99,6 +101,43 @@ function escapeAttr(str: string): string {
   return str.replaceAll('&', '&amp;').replaceAll('"', '&quot;').replaceAll('<', '&lt;');
 }
 
+/**
+ * 根据文件扩展名推断 favicon 的 MIME type。
+ * SVG 必须显式声明 `type="image/svg+xml"`,否则部分浏览器不会渲染;
+ * 其他类型浏览器可从 URL 自动推断,但显式声明更规范。
+ */
+function faviconMimeType(href: string): string | null {
+  const ext = href.split('.').pop()?.toLowerCase();
+  switch (ext) {
+    case 'svg':
+      return 'image/svg+xml';
+    case 'ico':
+      return 'image/x-icon';
+    case 'png':
+      return 'image/png';
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg';
+    case 'gif':
+      return 'image/gif';
+    case 'webp':
+      return 'image/webp';
+    default:
+      return null;
+  }
+}
+
+/**
+ * 生成 favicon `<link>` 标签字符串。
+ * 当 `favicon` 为空/未设置时返回空字符串。
+ */
+function renderFaviconLink(favicon?: string): string {
+  if (!favicon) return '';
+  const type = faviconMimeType(favicon);
+  const typeAttr = type ? ` type="${escapeAttr(type)}"` : '';
+  return `<link rel="icon" href="${escapeAttr(favicon)}"${typeAttr}>`;
+}
+
 function renderHeadTags(head?: PageHead): { headTags: string; htmlAttrsStr: string; bodyAttrsStr: string } {
   if (!head) {
     return { headTags: '', htmlAttrsStr: '', bodyAttrsStr: '' };
@@ -163,6 +202,7 @@ export function buildPageShell(
   const css = assetTags.css ?? '';
   const preloads = assetTags.preloads ?? '';
   const bodyTags = assetTags.body ?? '';
+  const faviconLink = renderFaviconLink(assetTags.favicon);
 
   const locale = renderContext?.locale;
   const localeDir = renderContext?.localeDir || 'ltr';
@@ -189,7 +229,7 @@ export function buildPageShell(
   return `<!doctype html>
 <html${finalHtmlAttrs ? ` ${finalHtmlAttrs}` : ''}>
 <head>
-    ${headTags ? `${headTags}\n    ` : ''}${css}${preloads}
+    ${faviconLink ? `${faviconLink}\n    ` : ''}${headTags ? `${headTags}\n    ` : ''}${css}${preloads}
 </head>
 <body${finalBodyAttrs ? ` ${finalBodyAttrs}` : ''}>
   ${localeScript}
@@ -230,6 +270,7 @@ export function buildClientOnlyShell(
   const css = assetTags.css ?? '';
   const preloads = assetTags.preloads ?? '';
   const bodyTags = assetTags.body ?? '';
+  const faviconLink = renderFaviconLink(assetTags.favicon);
 
   const locale = renderContext?.locale;
   const localeDir = renderContext?.localeDir || 'ltr';
@@ -256,7 +297,7 @@ export function buildClientOnlyShell(
   return `<!doctype html>
 <html${finalHtmlAttrs ? ` ${finalHtmlAttrs}` : ''}>
 <head>
-    ${headTags ? `${headTags}\n    ` : ''}${preambleScript}${css}${preloads}
+    ${faviconLink ? `${faviconLink}\n    ` : ''}${headTags ? `${headTags}\n    ` : ''}${preambleScript}${css}${preloads}
 </head>
 <body${finalBodyAttrs ? ` ${finalBodyAttrs}` : ''}>
   ${localeScript}

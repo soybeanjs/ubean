@@ -126,6 +126,27 @@ export interface ScanResult {
   defaultLocale?: string;
   appEntry: ScannedAppEntry;
   serverEntry: ScannedServerEntry;
+  /**
+   * `pages/404.vue`(或 `.ts`/`.md`)自动检测的 404 页面。
+   * 不作为常规路由注册,而是作为 Vue Router 的 catch-all 路由
+   * `/:pathMatch(.*)*` 和 Hono 的兜底页面处理器。
+   * `undefined` 表示未找到 404 页面文件。
+   */
+  notFoundPage?: ScannedPageRoute;
+  /**
+   * `pages/loading.vue`(或 `.ts`/`.md`)自动检测的加载组件。
+   * 不作为路由注册,而是作为 `<Suspense>` 的 fallback 组件,
+   * 在 SPA 导航懒加载页面组件时显示。
+   * `undefined` 表示未找到 loading 页面文件。
+   */
+  loadingPage?: ScannedPageRoute;
+  /**
+   * `pages/error.vue`(或 `.ts`/`.md`)自动检测的错误兜底组件。
+   * 不作为路由注册,而是作为渲染错误边界(ErrorBoundary)组件,
+   * 当页面组件渲染、异步解析或 setup 抛出错误时显示。
+   * `undefined` 表示未找到 error 页面文件。
+   */
+  errorPage?: ScannedPageRoute;
 }
 
 export const GLOB_SCAN_PATTERN = '**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}';

@@ -98,7 +98,15 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       ignore: ubeanConfig.scanOptions?.ignore
     });
 
-    virtualRegistry.register(createVuePagesVirtualModule(result.pages, result.layouts));
+    virtualRegistry.register(
+      createVuePagesVirtualModule(
+        result.pages,
+        result.layouts,
+        result.notFoundPage,
+        result.loadingPage,
+        result.errorPage
+      )
+    );
     virtualRegistry.register(createVueAppEntryVirtualModule(result.appEntry));
     virtualRegistry.register(createServerEntryVirtualModule(result.serverEntry));
     virtualRegistry.register(createClientEntryVirtualModule());

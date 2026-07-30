@@ -271,13 +271,15 @@ async function buildApp(
     crons: result.crons,
     routeRules: config.routeRules || {},
     publicDir: config.dir.public,
+    pageAssetTags: config.favicon ? { favicon: config.favicon } : undefined,
     openAPI: {
       title: 'UBEAN Dev API',
       scalarPath: '/_scalar',
       openAPIPath: '/_openapi.json'
     },
     i18nConfig: config.i18n,
-    ssrExclude: config.ssr.exclude
+    ssrExclude: config.ssr.exclude,
+    notFoundPage: result.notFoundPage
   });
 
   app.hooks.hook('request:start', c => {

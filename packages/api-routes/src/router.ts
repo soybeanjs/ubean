@@ -41,6 +41,11 @@ export interface RegisterOptions {
    * 匹配的页面将跳过服务端渲染,返回客户端渲染 shell。
    */
   ssrExclude?: string[];
+  /**
+   * `pages/404.vue` 自动检测的 404 页面。
+   * 注册为 Vue Router catch-all 路由的兜底,同时注册 Hono 的 `GET *` 兜底处理器。
+   */
+  notFoundPage?: ScannedPageRoute;
 }
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
@@ -512,6 +517,72 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       app.on(['GET'], localePath, localeMetaMiddleware, ...matchingMiddleware, pageHandler('GET'));
       app.on(['POST'], localePath, localeMetaMiddleware, ...matchingMiddleware, pageHandler('POST'));
     }
+  }
+
+  // 404 catch-all: register a fallback GET handler that renders the
+  // `pages/404.vue` component for unmatched browser navigation requests.
+  // Hono's router (rou3) gives priority to specific paths, so `*` only
+  // fires when no registered route matches.
+  if (options.notFoundPage) {
+    const notFoundPage = options.notFoundPage;
+    const pageAssetTagsOpt = options.pageAssetTags;
+    const _ssrExclude = options.ssrExclude ?? [];
+    const pageRendererOpt = options.pageRenderer as Parameters<typeof renderPage>[2] | null | undefined;
+
+    app.get('*', async (c: Context<UbeanEnv>) => {
+      // Skip API and internal paths — let the default notFound handler
+      // return JSON for those.
+      const path = c.req.path;
+      if (path.startsWith('/api/') || path.startsWith('/_')) {
+        return c.json({ error: 'Not Found', path, method: c.req.method }, 404);
+      }
+
+      // For SPA page requests, return the page data as JSON
+      if (isPagesRequest(c)) {
+        return pageJsonResponse({
+          component: 'NotFound',
+          props: {},
+          params: {},
+          url: path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
+          layout: notFoundPage.layout ?? (layouts.some(l => l.isDefault) ? 'default' : false),
+          errors: null,
+          head: notFoundPage.pageMeta?.head
+        });
+      }
+
+      // For browser navigation, render the 404 page (SSR if available, CSR fallback)
+      const currentLocale = (c.get('locale') as string) || '';
+      const renderContext: Record<string, unknown> = { locale: currentLocale, localeDir: 'ltr' as const };
+      const i18nMod = await loadI18n();
+      if (i18nMod && currentLocale) {
+        renderContext.localeDir = i18nMod.getLocaleDir(currentLocale);
+        renderContext.messages = i18nMod.getLocaleMessages(currentLocale);
+        renderContext.availableLocales = i18nMod.getRegisteredLocalesMeta();
+      }
+
+      const pageObj = {
+        component: 'NotFound',
+        props: {},
+        params: {},
+        url: path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
+        layout: notFoundPage.layout ?? (layouts.some(l => l.isDefault) ? 'default' : false),
+        errors: null,
+        head: notFoundPage.pageMeta?.head
+      };
+
+      // SSR exclude: if the 404 route matches an exclude pattern, use CSR
+      const excluded = matchAnyGlob('/*', _ssrExclude);
+      const renderer = excluded ? null : (pageRendererOpt ?? null);
+
+      const html = await renderPage(
+        pageObj as Parameters<typeof renderPage>[0],
+        pageAssetTagsOpt ?? {},
+        renderer,
+        'app',
+        renderContext as Parameters<typeof renderPage>[4]
+      );
+      return c.html(html, 404);
+    });
   }
 }
 

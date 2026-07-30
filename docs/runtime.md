@@ -81,7 +81,7 @@ export default defineApp({
     // PWA 注册、分析埋点等
   },
 
-  // 自定义错误/加载组件
+  // 自定义错误/加载组件(覆盖 pages/error.vue 和 pages/loading.vue 自动检测)
   errorComponent: () => import('./src/components/ErrorBoundary.vue'),
   loadingComponent: () => import('./src/components/LoadingSpinner.vue'),
 
@@ -165,9 +165,9 @@ export interface DefineAppOptions {
   onAppCreated?: (app: VueApp) => void | Promise<void>;
   /** 客户端 mount 完成后回调 */
   onClientReady?: (app: VueApp) => void | Promise<void>;
-  /** 自定义错误边界组件 */
+  /** 自定义错误边界组件(覆盖 pages/error.vue 自动检测) */
   errorComponent?: Component;
-  /** 异步路由的加载占位组件 */
+  /** 异步路由的加载占位组件(覆盖 pages/loading.vue 自动检测) */
   loadingComponent?: Component;
   /** 启用/配置 View Transitions */
   viewTransitions?: boolean | ViewTransitionOptions;
@@ -1314,10 +1314,17 @@ throw createError({ statusCode: 400, statusMessage: 'Bad Request', data: { field
 
 #### 错误页面
 
-- `error.vue` — 在 pages/ 根目录创建自定义错误页
-- `error.[statusCode].vue` — 特定状态码错误页（如 `error.404.vue`）
-- 支持服务端和客户端错误统一展示
-- DevTools 中提供错误详情面板（堆栈、请求信息）
+ubean 在 `pages/` 根目录下自动检测三类特殊页面,无需手动配置即可生效:
+
+| 文件 | 角色 | 作用 |
+| --- | --- | --- |
+| `pages/404.vue` | 未找到页面 | Vue Router catch-all `/:pathMatch(.*)*` + Hono `GET *` 兜底处理器;未匹配的浏览器导航返回 HTTP 404 并渲染该组件 |
+| `pages/loading.vue` | 加载占位 | `<Suspense>` fallback 组件,在 SPA 导航懒加载页面组件期间显示 |
+| `pages/error.vue` | 渲染错误兜底 | 错误边界(ErrorBoundary)组件,当页面组件渲染/异步解析/setup 抛出错误时显示,接收 `error` prop;路由切换时自动重置 |
+
+- 仅根目录文件被视为特殊页面;`users/404.vue` 仍为常规路由 `/users/404`
+- `loading.vue` 和 `error.vue` 仅在客户端生效(SSR 同步解析,无需 fallback;错误在 SSR 阶段由服务端错误处理器处理)
+- 三类页面均可通过 `defineApp({ loadingComponent / errorComponent })` 显式覆盖,优先级高于文件自动检测
 
 #### 开发模式错误展示
 

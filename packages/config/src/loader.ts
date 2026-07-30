@@ -122,6 +122,36 @@ export function resolveSsrConfig(config?: boolean | SsrOptions): ResolvedSsrConf
   };
 }
 
+/**
+ * favicon 自动检测的候选文件名（按优先级排序）。
+ */
+const FAVICON_CANDIDATES = ['favicon.ico', 'favicon.svg', 'favicon.png', 'favicon.jpg', 'favicon.jpeg'] as const;
+
+/**
+ * 解析 favicon 配置。
+ *
+ * - `false` → `null`（禁用）
+ * - `string` → 直接使用该路径作为 HREF（如 `/icons/my-icon.png`）
+ * - `true` / 未设置 → 自动从 `publicDir` 依次查找
+ *   `favicon.ico` → `favicon.svg` → `favicon.png` → `favicon.jpg` → `favicon.jpeg`,
+ *   返回第一个找到文件的 HREF;未找到则返回 `null`
+ *
+ * @param favicon 用户配置的 favicon 值
+ * @param publicDir public 目录的绝对路径
+ * @returns 解析后的 favicon HREF（如 `/favicon.ico`），`null` 表示禁用或未找到
+ */
+export function resolveFavicon(favicon: boolean | string | undefined, publicDir: string): string | null {
+  if (favicon === false) return null;
+  if (typeof favicon === 'string') return favicon;
+  // favicon === true 或 undefined → 自动检测
+  for (const name of FAVICON_CANDIDATES) {
+    if (existsSync(join(publicDir, name))) {
+      return `/${name}`;
+    }
+  }
+  return null;
+}
+
 const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
   srcDir: 'src',
@@ -174,7 +204,8 @@ const configDefaults: ResolvedConfig = {
   routing: resolveRoutingConfig(),
   routeRules: {},
   prerender: resolvePrerenderConfig(),
-  scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] }
+  scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
+  favicon: null
 };
 
 let cachedConfig: ResolvedConfig | null = null;
@@ -202,6 +233,9 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   resolved.ssr = resolveSsrConfig(config.ssr);
   // 重新解析 devtools(同 prerender,defu 浅合并会让 enabled 失真)
   resolved.devtools = resolveDevToolsConfig(config.devtools);
+  // 解析 favicon(自动检测 public 目录或使用用户配置的路径)
+  const publicDir = join(resolved.rootDir, resolved.dir.public);
+  resolved.favicon = resolveFavicon(config.favicon, publicDir);
   return resolved;
 }
 

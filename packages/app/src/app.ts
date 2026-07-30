@@ -72,6 +72,8 @@ export interface PageAssetTags {
   head?: string;
   bodyAttrs?: string;
   htmlAttrs?: string;
+  /** Favicon HREF (如 `/favicon.ico`),自动注入 `<link rel="icon">` 到 `<head>` */
+  favicon?: string;
 }
 
 export interface UbeanAppOptions {
@@ -111,6 +113,8 @@ export interface UbeanAppOptions {
     defaultLocale?: string;
     locales?: string[];
   };
+  /** `pages/404.vue` 自动检测的 404 页面,注册为 Hono 兜底处理器 */
+  notFoundPage?: ScannedPageRoute;
 }
 
 export interface UbeanAppPlugin {
@@ -219,7 +223,8 @@ export class UbeanApp {
       pageRenderer: this.options.pageRenderer ?? null,
       pageAssetTags: this.options.pageAssetTags ?? {},
       ssrExclude: this.options.ssrExclude,
-      i18nConfig: this.options.i18nConfig
+      i18nConfig: this.options.i18nConfig,
+      notFoundPage: this.options.notFoundPage
     };
 
     await registerRoutes(this as unknown as RouteRegistrar, registerOpts);

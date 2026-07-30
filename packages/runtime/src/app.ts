@@ -4,6 +4,7 @@ import {
   defineComponent,
   h,
   KeepAlive,
+  Suspense,
   Transition,
   ref,
   reactive,
@@ -11,8 +12,10 @@ import {
   inject,
   markRaw,
   watchEffect,
+  watch,
   computed,
-  shallowRef
+  shallowRef,
+  onErrorCaptured
 } from 'vue';
 import type { App, Component, ConcreteComponent, InjectionKey, PropType, VNode } from 'vue';
 import { RouterView, RouterLink, useRoute, useRouter as useVueRouter } from 'vue-router';
@@ -31,6 +34,8 @@ import type { ViewTransitionOptions } from './view-transitions';
 const PAGE_KEY = Symbol('ubean-page');
 const TRANSITION_KEY = Symbol('ubean-transition');
 const SSR_KEY: InjectionKey<boolean> = Symbol('ubean-ssr');
+const LOADING_KEY: InjectionKey<Component | null> = Symbol('ubean-loading');
+const ERROR_KEY: InjectionKey<Component | null> = Symbol('ubean-error');
 
 export type { VueHeadClient };
 
@@ -49,6 +54,19 @@ export interface UbeanAppOptions {
    * Client 和 SSR 都会执行。守卫注册必须同步完成(守卫本身可返回 Promise)。
    */
   routerSetup?: (router: ReturnType<typeof createUbeanRouter>) => void;
+  /**
+   * 页面加载时的 fallback 组件,在 SPA 导航懒加载页面组件期间显示。
+   * 来源:`pages/loading.vue` 自动检测 或 `defineApp({ loadingComponent })` 显式配置。
+   * 优先级:`defineApp({ loadingComponent })` > `pages/loading.vue`
+   */
+  loadingComponent?: Component | (() => Component);
+  /**
+   * 渲染错误兜底组件,当页面组件渲染、异步解析或 setup 抛出错误时显示。
+   * 来源:`pages/error.vue` 自动检测 或 `defineApp({ errorComponent })` 显式配置。
+   * 优先级:`defineApp({ errorComponent })` > `pages/error.vue`
+   * 通过 Vue 的 `errorCaptured` 生命周期实现错误边界。
+   */
+  errorComponent?: Component | (() => Component);
 }
 
 export interface UbeanAppInstance {
@@ -117,6 +135,47 @@ function createLayoutWrapper(
 }
 
 /**
+ * ErrorBoundary — catches rendering, async resolution, and setup errors
+ * from descendant components. When an error is caught, renders the
+ * configured `errorComponent` (from `defineApp({ errorComponent })`)
+ * instead of the slot content.
+ *
+ * The error state automatically resets when the route changes, so
+ * navigating away from a broken page clears the error and renders
+ * the new page normally.
+ */
+const ErrorBoundary = defineComponent({
+  name: 'UbeanErrorBoundary',
+  props: {
+    component: { type: [Object, Function] as PropType<Component | null>, default: null }
+  },
+  setup(props, { slots }) {
+    const error = shallowRef<Error | null>(null);
+
+    // Reset error on route change so navigating away clears the boundary
+    const route = useRoute();
+    watch(
+      () => route.fullPath,
+      () => {
+        error.value = null;
+      }
+    );
+
+    onErrorCaptured(err => {
+      error.value = err as Error;
+      return false; // Prevent error from propagating further up
+    });
+
+    return () => {
+      if (error.value && props.component) {
+        return h(props.component as ConcreteComponent, { error: error.value });
+      }
+      return slots.default?.();
+    };
+  }
+});
+
+/**
  * PageView — a globally-registered component that renders the matched route
  * page, wrapped with `<Transition>` and `<KeepAlive>`.
  *
@@ -161,6 +220,8 @@ export const PageView = defineComponent({
     const globalTransition = usePageTransition();
     const { counter: reloadCounter } = useReloadSignal();
     const ssr = inject(SSR_KEY, false);
+    const loadingComp = inject(LOADING_KEY, null);
+    const errorComp = inject(ERROR_KEY, null);
 
     return () => {
       return h(RouterView, null, {
@@ -230,18 +291,48 @@ export const PageView = defineComponent({
             default: () => pageVNode
           });
 
-          // <Transition :name="..." mode="out-in"><KeepAlive>...</KeepAlive></Transition>
-          if (transitionName) {
+          // <Suspense> with loading fallback: when a loading component is
+          // configured (from `pages/loading.vue` or `defineApp({ loadingComponent })`),
+          // wrap the KeepAlive in Suspense so the loading component shows during
+          // async page component loading (lazy `() => import(...)` routes).
+          // On SSR, Suspense is skipped (server resolves async synchronously).
+          // Skip Suspense when no loading component is available.
+          const contentVNode: VNode =
+            !ssr && loadingComp
+              ? h(Suspense, null, {
+                  default: () => keepAliveVNode,
+                  fallback: () => h(loadingComp as ConcreteComponent)
+                })
+              : keepAliveVNode;
+
+          // <Transition :name="..." mode="out-in"><Suspense><KeepAlive>...</KeepAlive></Suspense></Transition>
+          const transitionVNode: VNode | null = transitionName
+            ? h(
+                Transition,
+                { name: transitionName, mode: props.mode },
+                {
+                  default: () => contentVNode
+                }
+              )
+            : null;
+
+          // <ErrorBoundary> wraps the entire Transition/Suspense/KeepAlive
+          // content so rendering, async resolution, and setup errors are
+          // caught and the errorComponent is shown instead. The boundary
+          // auto-resets on route change. Skipped on SSR (errors during SSR
+          // propagate to the server error handler) and when no errorComponent
+          // is configured.
+          if (!ssr && errorComp) {
             return h(
-              Transition,
-              { name: transitionName, mode: props.mode },
+              ErrorBoundary,
+              { component: errorComp },
               {
-                default: () => keepAliveVNode
+                default: () => transitionVNode ?? contentVNode
               }
             );
           }
 
-          return keepAliveVNode;
+          return transitionVNode ?? contentVNode;
         }
       });
     };
@@ -304,11 +395,33 @@ export const Link = defineComponent({
 
 export const Head = UnheadHeadComponent;
 
+/**
+ * Resolve a component from either a direct `Component` or a
+ * function returning a `Component` (lazy resolver from auto-detection
+ * like `resolveLoadingComponent()` / `resolveErrorComponent()`).
+ * Returns `null` if no component is configured.
+ */
+function resolveComp(comp?: Component | (() => Component)): Component | null {
+  if (!comp) return null;
+  if (typeof comp === 'function' && !(comp as any).render && !(comp as any).setup) {
+    // It's a factory function (() => Component), call it to get the actual component
+    try {
+      const resolved = (comp as () => Component)();
+      return resolved ? markRaw(resolved as ConcreteComponent) : null;
+    } catch {
+      return null;
+    }
+  }
+  return markRaw(comp as ConcreteComponent);
+}
+
 function createRootComponent(
   LayoutWrapper: Component,
   page: PageObject,
   transitionOpts: ViewTransitionOptions,
-  isSSR: boolean
+  isSSR: boolean,
+  loadingComponent?: Component | null,
+  errorComponent?: Component | null
 ) {
   return defineComponent({
     name: isSSR ? 'UbeanSSRApp' : 'UbeanAppRoot',
@@ -316,6 +429,8 @@ function createRootComponent(
       provide(PAGE_KEY, page);
       provide(TRANSITION_KEY, transitionOpts);
       provide(SSR_KEY, isSSR);
+      provide(LOADING_KEY, loadingComponent ?? null);
+      provide(ERROR_KEY, errorComponent ?? null);
 
       return () => h(LayoutWrapper);
     }
@@ -359,7 +474,14 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
   // `enablePageCache` / `disablePageCache` is still possible afterwards.
   initCachedViewsFromRoutes(options.routes as Array<{ name?: string | symbol; meta?: { cache?: boolean } }>);
 
-  const RootComponent = createRootComponent(LayoutWrapper, page, transitionOpts, false);
+  const RootComponent = createRootComponent(
+    LayoutWrapper,
+    page,
+    transitionOpts,
+    false,
+    resolveComp(options.loadingComponent),
+    resolveComp(options.errorComponent)
+  );
 
   const app = options.hydrate ? _createSSRApp(RootComponent) : _createApp(RootComponent);
   app.use(head);
@@ -394,7 +516,14 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   // the server but the route name on the client → hydration text mismatch.
   initCachedViewsFromRoutes(options.routes as Array<{ name?: string | symbol; meta?: { cache?: boolean } }>);
 
-  const RootComponent = createRootComponent(LayoutWrapper, page, { enabled: false }, true);
+  const RootComponent = createRootComponent(
+    LayoutWrapper,
+    page,
+    { enabled: false },
+    true,
+    resolveComp(options.loadingComponent),
+    resolveComp(options.errorComponent)
+  );
 
   const app = _createSSRApp(RootComponent);
   app.use(head);

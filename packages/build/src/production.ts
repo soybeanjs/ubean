@@ -125,7 +125,15 @@ async function generateVirtualModulesToDisk(
     );
 
     registry.register(createMetaVirtualModule());
-    registry.register(createVuePagesVirtualModule(scanResult.pages, scanResult.layouts));
+    registry.register(
+      createVuePagesVirtualModule(
+        scanResult.pages,
+        scanResult.layouts,
+        scanResult.notFoundPage,
+        scanResult.loadingPage,
+        scanResult.errorPage
+      )
+    );
     registry.register(createVueAppEntryVirtualModule(scanResult.appEntry));
     registry.register(createClientEntryVirtualModule());
   }
@@ -212,6 +220,21 @@ async function generateVirtualModulesToDisk(
       relativePath: l.relativePath,
       isDefault: l.isDefault
     }))
+  );
+
+  // Serialize the auto-detected 404 page metadata so the production server
+  // entry can pass it to createUbeanApp for the Hono catch-all handler.
+  // Only the fields consumed by router.ts are serialized (layout + head).
+  const notFoundPageJson = JSON.stringify(
+    scanResult.notFoundPage
+      ? {
+          relativePath: scanResult.notFoundPage.relativePath,
+          name: scanResult.notFoundPage.name,
+          route: scanResult.notFoundPage.route,
+          layout: scanResult.notFoundPage.layout,
+          pageMeta: scanResult.notFoundPage.pageMeta
+        }
+      : null
   );
 
   const rendererImport = ssrEnabled ? `import { createVueRenderer } from 'ubean/vue-ssr';` : '';
@@ -321,10 +344,11 @@ const _routes = ${routesJson};
 const _middleware = ${middlewareJson};
 const _pages = ${pagesJson};
 const _layouts = ${layoutsJson};
+const _notFoundPage = ${notFoundPageJson};
 ${rendererSetup}
 // --- Client asset tags from Vite manifest ---
 const __dirname = dirname(fileURLToPath(import.meta.url));
-let _assetTags = { css: '', preloads: '', body: '' };
+let _assetTags = { css: '', preloads: '', body: '', favicon: ${JSON.stringify(config.favicon)} };
 try {
   const manifestPath = join(__dirname, '..', 'public', '.vite', 'manifest.json');
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
@@ -354,6 +378,7 @@ export async function createApp(options = {}) {
     publicDir: ${JSON.stringify(publicDir)},
     i18nConfig: ${JSON.stringify(config.i18n)},
     ssrExclude: ${JSON.stringify(config.ssr?.exclude ?? [])},
+    notFoundPage: _notFoundPage || undefined,
     ...options
   });
 

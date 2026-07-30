@@ -19,6 +19,7 @@ export {
   resolvePrerenderConfig,
   resolveSsrConfig,
   resolveDevToolsConfig,
+  resolveFavicon,
   DEFAULT_PRERENDER_EXCLUDE
 } from './loader';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';

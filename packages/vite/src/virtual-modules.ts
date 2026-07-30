@@ -50,7 +50,13 @@ function sortPagesByReuseDependency(pages: ScannedPageRoute[]): ScannedPageRoute
   return result;
 }
 
-export function createVuePagesVirtualModule(pages: ScannedPageRoute[], layouts: ScannedLayout[]) {
+export function createVuePagesVirtualModule(
+  pages: ScannedPageRoute[],
+  layouts: ScannedLayout[],
+  notFoundPage?: ScannedPageRoute,
+  loadingPage?: ScannedPageRoute,
+  errorPage?: ScannedPageRoute
+) {
   return defineVirtualModule('virtual:ubean-pages', () => {
     const pageLoaders: string[] = [];
     const layoutLoaders: string[] = [];
@@ -89,6 +95,41 @@ export function createVuePagesVirtualModule(pages: ScannedPageRoute[], layouts: 
       }
       routeEntries.push(
         `  { path: ${JSON.stringify(routerPath)}, name: ${JSON.stringify(p.name)}, component: ${varName}, meta: { layout: ${layoutValue}, pageName: ${JSON.stringify(p.name)}, cache: ${cacheValue} } }`
+      );
+    }
+
+    // 404 catch-all route: when `pages/404.vue` is detected, register a
+    // Vue Router catch-all `/:pathMatch(.*)*` so unmatched URLs render the
+    // 404 component instead of a blank page. Works for both SPA navigation
+    // and SSR (Vue Router matches the catch-all on the server too).
+    let notFoundLoaderName = 'null';
+    if (notFoundPage) {
+      notFoundLoaderName = 'NotFoundPage';
+      pageLoaders.push(
+        `const ${notFoundLoaderName} = () => import(${JSON.stringify(notFoundPage.fullPath)}).then(m => m.default || m);`
+      );
+      routeEntries.push(
+        `  { path: '/:pathMatch(.*)*', name: 'NotFound', component: ${notFoundLoaderName}, meta: { pageName: 'NotFound' } }`
+      );
+    }
+
+    // Loading component: when `pages/loading.vue` is detected, export its
+    // loader so `virtual:ubean-app` can pass it to `<Suspense>` as fallback.
+    let loadingLoaderName = 'null';
+    if (loadingPage) {
+      loadingLoaderName = 'LoadingPage';
+      pageLoaders.push(
+        `const ${loadingLoaderName} = () => import(${JSON.stringify(loadingPage.fullPath)}).then(m => m.default || m);`
+      );
+    }
+
+    // Error component: when `pages/error.vue` is detected, export its
+    // loader so `virtual:ubean-app` can pass it to the ErrorBoundary.
+    let errorLoaderName = 'null';
+    if (errorPage) {
+      errorLoaderName = 'ErrorPage';
+      pageLoaders.push(
+        `const ${errorLoaderName} = () => import(${JSON.stringify(errorPage.fullPath)}).then(m => m.default || m);`
       );
     }
 
@@ -151,6 +192,22 @@ export function resolveLayoutComponent(name) {
   return loader();
 }
 
+export function resolveLoadingComponent() {
+  ${loadingLoaderName === 'null' ? 'return Promise.resolve(null);' : `return ${loadingLoaderName}();`}
+}
+
+export function resolveErrorComponent() {
+  ${errorLoaderName === 'null' ? 'return Promise.resolve(null);' : `return ${errorLoaderName}();`}
+}
+
+export function hasNotFoundPage() {
+  return ${notFoundLoaderName !== 'null'};
+}
+
+export function hasErrorPage() {
+  return ${errorLoaderName !== 'null'};
+}
+
 export const pages = {
 ${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)}, isReuse: ${p.isReuse}, reuseTarget: ${JSON.stringify(p.reuseTarget)} }`).join(',\n')}
 };
@@ -166,6 +223,10 @@ export default {
   defaultLayout,
   resolvePageComponent,
   resolveLayoutComponent,
+  resolveLoadingComponent,
+  resolveErrorComponent,
+  hasNotFoundPage,
+  hasErrorPage,
   pages,
   layouts
 };
@@ -243,7 +304,11 @@ import {
   resolveLayoutComponent,
   defaultLayout,
   pageNames,
-  layoutNames
+  layoutNames,
+  resolveLoadingComponent,
+  resolveErrorComponent,
+  hasNotFoundPage,
+  hasErrorPage
 } from 'virtual:ubean-pages';
 
 export {
@@ -252,7 +317,11 @@ export {
   resolveLayoutComponent,
   defaultLayout,
   pageNames,
-  layoutNames
+  layoutNames,
+  resolveLoadingComponent,
+  resolveErrorComponent,
+  hasNotFoundPage,
+  hasErrorPage
 };
 
 function _mergeAppConfig(base, ...configs) {
@@ -326,6 +395,16 @@ export function createApp() {
     head.push(headInput);
   }
 
+  // Resolve the auto-detected loading component from pages/loading.vue.
+  // defineApp({ loadingComponent }) takes priority over the auto-detected file.
+  const _autoLoadingComponent = resolveLoadingComponent();
+  const loadingComponent = config.loadingComponent || (_autoLoadingComponent ? () => _autoLoadingComponent : undefined);
+
+  // Resolve the auto-detected error component from pages/error.vue.
+  // defineApp({ errorComponent }) takes priority over the auto-detected file.
+  const _autoErrorComponent = resolveErrorComponent();
+  const errorComponent = config.errorComponent || (_autoErrorComponent ? () => _autoErrorComponent : undefined);
+
   const initialPage = getInitialPageData();
   const instance = createUbeanApp({
     routes,
@@ -335,7 +414,9 @@ export function createApp() {
     viewTransitions: config.viewTransitions,
     initialPage: initialPage || undefined,
     hydrate: !!initialPage,
-    routerSetup: config.router?.setup
+    routerSetup: config.router?.setup,
+    loadingComponent,
+    errorComponent
   });
 
   applyAppConfig(instance.app, config, 'client');
@@ -389,12 +470,22 @@ export function createSSRApp(initialPage) {
   const config = resolveAppConfig('server');
   const head = createServerHead();
 
+  // SSR doesn't need Suspense fallback (server resolves async synchronously),
+  // but we still pass it for consistency.
+  const _autoLoadingComponent = resolveLoadingComponent();
+  const loadingComponent = config.loadingComponent || (_autoLoadingComponent ? () => _autoLoadingComponent : undefined);
+
+  const _autoErrorComponent = resolveErrorComponent();
+  const errorComponent = config.errorComponent || (_autoErrorComponent ? () => _autoErrorComponent : undefined);
+
   const { app, router } = createUbeanSSRApp(initialPage, {
     routes,
     resolveLayoutComponent,
     defaultLayout,
     head,
-    routerSetup: config.router?.setup
+    routerSetup: config.router?.setup,
+    loadingComponent,
+    errorComponent
   });
 
   applyAppConfig(app, config, 'server');

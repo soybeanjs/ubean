@@ -49,6 +49,41 @@ Use `[...path]` for catch-all routes:
 src/pages/[...path].vue → /anything/here
 ```
 
+### Special Pages (404 / Loading)
+
+ubean auto-detects special pages at the **root** of `src/pages/`. These are not registered as regular routes — they serve framework-level roles instead:
+
+| File | Role | Effect |
+| --- | --- | --- |
+| `pages/404.vue` (or `.ts` / `.md`) | Not Found page | Registers a Vue Router catch-all `/:pathMatch(.*)*` **and** a Hono `GET *` fallback handler. Unmatched browser navigation returns HTTP 404 and renders this component. API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404. |
+| `pages/loading.vue` (or `.ts` / `.md`) | Loading indicator | Used as the `<Suspense>` fallback component, shown while a lazy-loaded page component is being resolved during SPA navigation. SSR skips this (server resolves async synchronously). |
+| `pages/error.vue` (or `.ts` / `.md`) | Error boundary | Used as the `ErrorBoundary` component (Vue `errorCaptured`). Renders when a page's render / setup / async resolution throws. Receives an `error` prop. Auto-resets on route change. Client-only. |
+
+Only root-level files are treated as special. A nested file like `pages/users/404.vue` remains a regular route at `/users/404`.
+
+#### Overriding via `defineApp`
+
+Both `loadingComponent` and `errorComponent` can also be configured (or overridden) programmatically via `defineApp`:
+
+```typescript
+// src/app.ts
+import { defineApp } from 'ubean';
+import MyLoading from './components/MyLoading.vue';
+import MyError from './components/MyError.vue';
+
+export default defineApp({
+  // Overrides pages/loading.vue auto-detection
+  loadingComponent: MyLoading,
+
+  // Overrides pages/error.vue auto-detection
+  errorComponent: MyError
+});
+```
+
+Priority: `defineApp({ loadingComponent / errorComponent })` > `pages/loading.vue` / `pages/error.vue` auto-detection.
+
+`errorComponent` wraps the page content in an error boundary (using Vue's `errorCaptured` lifecycle). The error state auto-resets when the route changes, so navigating away from a broken page clears the boundary.
+
 ### Route Groups
 
 Directories wrapped in parentheses don't contribute URL segments:

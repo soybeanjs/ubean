@@ -97,6 +97,11 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **路由组**：`(group-name)/` 不贡献 URL 段
 - **reuse 路由**：`xxx.reuse.ts` / `xxx.reuse.vue`；未显式声明 `cache` 时自动继承 target 的 `cache` 值，可显式 `cache: false` 关闭
 - **动态路由**：`[id].vue` → `/user/:id`
+- **预设页面**（`src/pages/` 根目录下自动检测，不作为常规路由注册）：
+  - `404.vue`（或 `.ts`/`.md`）→ Vue Router catch-all `/:pathMatch(.*)*` + Hono `GET *` 兜底处理器；未匹配的浏览器导航返回 404 状态码并渲染该组件；API/`_` 前缀路径仍走默认 JSON 404
+  - `loading.vue`（或 `.ts`/`.md`）→ `<Suspense>` fallback 组件，在 SPA 导航懒加载页面组件期间显示；仅客户端生效（SSR 同步解析无需 loading）
+  - `error.vue`（或 `.ts`/`.md`）→ 错误边界（ErrorBoundary）组件，当页面组件渲染/异步解析/setup 抛出错误时显示，接收 `error` prop；路由切换时自动重置；仅客户端生效
+  - 仅根目录文件被视为特殊页面；`users/404.vue` 仍为常规路由 `/users/404`
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序
 - `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`middleware`、`requiresAuth`、`cache`、`head`（**没有** 顶层 `title` 字段）
   - `cache: true` 启用页面 KeepAlive 缓存，框架自动用路由名作为组件 `name`（通过 `getNamedPageWrapper` 包装），`<script setup>` SFC 无需手动 `defineOptions({ name })`
@@ -165,6 +170,12 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `createUbeanApp(options)`               | 创建 ubean Hono 应用                   |
 
 `DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
+
+> `errorComponent` / `loadingComponent` 说明：
+>
+> - `loadingComponent`：页面懒加载期间的 `<Suspense>` fallback 组件。优先级：`defineApp({ loadingComponent })` > `pages/loading.vue` 自动检测。仅客户端生效。
+> - `errorComponent`：渲染错误兜底组件，通过 Vue `errorCaptured` 实现错误边界（ErrorBoundary）。当页面组件渲染、异步解析或 setup 抛出错误时显示。接收 `error` prop。优先级：`defineApp({ errorComponent })` > `pages/error.vue` 自动检测。路由切换时自动重置。
+> - 两者均通过 `provide`/`inject` 注入到 `PageView` 组件，无需手动处理。
 
 > `router` 字段接收 `RouterConfig`(`{ setup(router) }`),在 router 实例创建后、`app.use(router)` 之前调用 `setup`,用于注册 vue-router 的导航守卫(`beforeEach`/`beforeResolve`/`afterEach`)。Client 和 SSR 都会执行;`app.ts` + `app.server.ts`/`app.client.ts` 中各自定义的 `setup` 会**累加执行**(shared 先,client/server 后)。
 
@@ -490,14 +501,15 @@ export default defineConfig({
 
 > 组件库本身请直接从 `@soybeanjs/ui` 导入（`import { SButton } from '@soybeanjs/ui'`），`@ubean/ui` 仅负责构建集成。
 
-| 模块                             | 内容                                                        |
-| -------------------------------- | ----------------------------------------------------------- |
-| `ubean:pages`                    | 页面路由数据                                                |
-| `ubean:routes`                   | API 路由数据                                                |
-| `ubean:meta`                     | 路由元数据                                                  |
-| `ubean:app-config`               | 应用配置                                                    |
-| `ubean:locales`                  | 区域设置数据                                                |
-| `virtual:ubean-islands-registry` | Islands 组件自动注册表（由 `@ubean/islands` Vite 插件生成） |
+| 模块                             | 内容                                                                                                                               |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `ubean:pages`                    | 页面路由数据                                                                                                                       |
+| `ubean:routes`                   | API 路由数据                                                                                                                       |
+| `ubean:meta`                     | 路由元数据                                                                                                                         |
+| `ubean:app-config`               | 应用配置                                                                                                                           |
+| `ubean:locales`                  | 区域设置数据                                                                                                                       |
+| `virtual:ubean-pages`            | Vue Router 路由表 + 页面/布局 loader + `resolveLoadingComponent`/`hasNotFoundPage`（自动检测 `pages/loading.vue`/`pages/404.vue`） |
+| `virtual:ubean-islands-registry` | Islands 组件自动注册表（由 `@ubean/islands` Vite 插件生成）                                                                        |
 
 ## 7. 内置路由
 

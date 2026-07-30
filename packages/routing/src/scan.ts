@@ -95,7 +95,7 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
 
   const srcDir = isAbsolute(options.srcDir) ? options.srcDir : join(options.cwd, options.srcDir);
 
-  const [apiRoutes, middlewares, pages, layouts, plugins, crons, queues, locales, appEntry, serverEntry] =
+  const [apiRoutes, middlewares, pagesResult, layouts, plugins, crons, queues, locales, appEntry, serverEntry] =
     await Promise.all([
       scanApiRoutes(srcDir, dirs.routes, ignore),
       scanMiddlewares(srcDir, dirs.middleware, ignore),
@@ -108,6 +108,8 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
       scanAppEntry(srcDir),
       scanServerEntry(srcDir)
     ]);
+
+  const { pages, notFoundPage, loadingPage, errorPage } = pagesResult;
 
   // Reuse routes reference a target page by name. The target must be a
   // regular (non-reuse) page — chaining reuse routes is not supported.
@@ -164,7 +166,10 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
     locales,
     defaultLocale,
     appEntry,
-    serverEntry
+    serverEntry,
+    notFoundPage,
+    loadingPage,
+    errorPage
   };
 }
 
@@ -259,10 +264,22 @@ async function scanMiddlewares(
   return results;
 }
 
-async function scanPages(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedPageRoute[]> {
+async function scanPages(
+  srcDir: string,
+  dirName: string | string[],
+  ignore: string[]
+): Promise<{
+  pages: ScannedPageRoute[];
+  notFoundPage?: ScannedPageRoute;
+  loadingPage?: ScannedPageRoute;
+  errorPage?: ScannedPageRoute;
+}> {
   const dirNames = normalizeDirs(dirName, 'pages');
   const pages: ScannedPageRoute[] = [];
   const seenFullPaths = new Set<string>();
+  let notFoundPage: ScannedPageRoute | undefined;
+  let loadingPage: ScannedPageRoute | undefined;
+  let errorPage: ScannedPageRoute | undefined;
 
   for (const single of dirNames) {
     const dir = join(srcDir, single);
@@ -290,6 +307,42 @@ async function scanPages(srcDir: string, dirName: string | string[], ignore: str
       const pageBase = isReuse ? base.slice(0, -'.reuse'.length) : base;
       const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
       const fileBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
+
+      // Special preset pages at the root of pages/ directory:
+      // - `404.vue` (or .ts/.md) → Vue Router catch-all + Hono fallback
+      // - `loading.vue` (or .ts/.md) → <Suspense> fallback component
+      // - `error.vue` (or .ts/.md) → ErrorBoundary component
+      // Only root-level files are treated as special; nested files like
+      // `users/404.vue` remain regular routes at `/users/404`.
+      if (!isReuse && dirPart === '' && (pageBase === '404' || pageBase === 'loading' || pageBase === 'error')) {
+        const { route: specialRoute } = filePathToRoute(fileBase);
+        const specialName = routeToName(specialRoute);
+        const specialPage: ScannedPageRoute = {
+          fullPath,
+          relativePath,
+          dirname: dirname(relativePath),
+          basename: basename(relativePath),
+          name: specialName,
+          route: specialRoute,
+          path: specialRoute,
+          layout: undefined,
+          cache: undefined,
+          isReuse: false,
+          isMarkdown,
+          reuseTarget: undefined,
+          pageMeta: undefined,
+          frontmatter: undefined
+        };
+        if (pageBase === '404') {
+          notFoundPage = specialPage;
+        } else if (pageBase === 'loading') {
+          loadingPage = specialPage;
+        } else {
+          errorPage = specialPage;
+        }
+        continue;
+      }
+
       const { route } = filePathToRoute(fileBase);
       const name = routeToName(route);
 
@@ -339,7 +392,7 @@ async function scanPages(srcDir: string, dirName: string | string[], ignore: str
     }
   }
 
-  return pages;
+  return { pages, notFoundPage, loadingPage, errorPage };
 }
 
 async function scanLayouts(srcDir: string, dirName: string | string[], ignore: string[]): Promise<ScannedLayout[]> {

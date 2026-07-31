@@ -17,9 +17,9 @@
  */
 import { describe, it, expect } from 'vitest';
 import { defineComponent, h, Suspense } from 'vue';
-import { createVueRenderer } from '../src/index';
 import { SSR_CONTENT_MARKER } from '@ubean/pages';
 import type { PageObject } from '@ubean/pages';
+import { createVueRenderer } from '../src/index';
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
   const reader = stream.getReader();

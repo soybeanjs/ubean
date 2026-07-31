@@ -15,14 +15,10 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import {
-  parseFormActionName,
-  handleActionResponse,
-  runServerAction
-} from '../src/form-actions';
+import type { Context } from 'hono';
 import { defineAction, fail, clearActions } from '@ubean/actions';
 import type { ServerAction, UbeanEnv } from '@ubean/types';
-import type { Context } from 'hono';
+import { parseFormActionName, handleActionResponse, runServerAction } from '../src/form-actions';
 
 /* -------------------------------------------------------------------------- */
 /* parseFormActionName                                                        */
@@ -63,13 +59,10 @@ describe('handleActionResponse', () => {
    * with the given response + pages-request predicate, returning the result.
    * This provides a real Hono context (needed for `c.json()`).
    */
-  async function dispatch(
-    response: Response,
-    isPagesReq: (c: Context<UbeanEnv>) => boolean
-  ): Promise<Response | null> {
+  async function dispatch(response: Response, isPagesReq: (c: Context<UbeanEnv>) => boolean): Promise<Response | null> {
     const app = new Hono<UbeanEnv>();
     let result: Response | null = null;
-    app.post('/page', async (c) => {
+    app.post('/page', async c => {
       result = handleActionResponse(c, response, isPagesReq);
       return result ?? c.body(null);
     });
@@ -133,7 +126,7 @@ describe('runServerAction', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -152,7 +145,7 @@ describe('runServerAction', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -169,7 +162,7 @@ describe('runServerAction', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -188,7 +181,7 @@ describe('runServerAction', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -197,12 +190,15 @@ describe('runServerAction', () => {
   });
 
   it('returns { errors } when handler throws a generic Error', async () => {
-    const action = defineAction(async () => {
-      throw new Error('boom');
-    }, { name: 'thrower', filePath: 'src/actions/t.ts' });
+    const action = defineAction(
+      async () => {
+        throw new Error('boom');
+      },
+      { name: 'thrower', filePath: 'src/actions/t.ts' }
+    );
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -221,7 +217,7 @@ describe('runServerAction', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -234,12 +230,15 @@ describe('runServerAction', () => {
       status: 301,
       headers: { Location: '/moved' }
     });
-    const action = defineAction(async () => {
-      throw redirect;
-    }, { name: 'throwRedirect', filePath: 'src/actions/r.ts' });
+    const action = defineAction(
+      async () => {
+        throw redirect;
+      },
+      { name: 'throwRedirect', filePath: 'src/actions/r.ts' }
+    );
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -260,14 +259,13 @@ describe('runServerAction', () => {
         return { success: true, data: obj };
       }
     };
-    const action = defineAction(
-      schema as never,
-      async (data: { email: string }) => ({ user: data.email }),
-      { name: 'validated', filePath: 'src/actions/v.ts' }
-    );
+    const action = defineAction(schema as never, async (data: { email: string }) => ({ user: data.email }), {
+      name: 'validated',
+      filePath: 'src/actions/v.ts'
+    });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -281,16 +279,18 @@ describe('runServerAction', () => {
 
   it('passes validated data to handler on safeParse success', async () => {
     const schema = {
-      safeParse: (input: unknown) => ({ success: true, data: { email: (input as { email: string }).email.toUpperCase() } })
+      safeParse: (input: unknown) => ({
+        success: true,
+        data: { email: (input as { email: string }).email.toUpperCase() }
+      })
     };
-    const action = defineAction(
-      schema as never,
-      async (data: { email: string }) => ({ user: data.email }),
-      { name: 'validated', filePath: 'src/actions/v.ts' }
-    );
+    const action = defineAction(schema as never, async (data: { email: string }) => ({ user: data.email }), {
+      name: 'validated',
+      filePath: 'src/actions/v.ts'
+    });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -310,14 +310,13 @@ describe('runServerAction', () => {
         return obj;
       }
     };
-    const action = defineAction(
-      schema as never,
-      async (data: { name: string }) => ({ user: data.name }),
-      { name: 'parseValidate', filePath: 'src/actions/p.ts' }
-    );
+    const action = defineAction(schema as never, async (data: { name: string }) => ({ user: data.name }), {
+      name: 'parseValidate',
+      filePath: 'src/actions/p.ts'
+    });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -336,7 +335,7 @@ describe('runServerAction', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -351,7 +350,7 @@ describe('runServerAction', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runServerAction(action as ServerAction, c);
       return c.json({});
     });
@@ -372,24 +371,36 @@ describe('runServerAction', () => {
 describe('named form actions dispatch (handlePageRequest mod.actions branch)', () => {
   // Build an `actions` map mimicking a page module's `export const actions = { ... }`
   function buildPageActions(): Record<string, ServerAction> {
-    const login = defineAction(async (input: { email: string; password: string }) => {
-      if (input.password === 'wrong') {
-        return fail(400, { password: 'incorrect' });
-      }
-      return { user: input.email, token: 'abc123' };
-    }, { name: 'login', filePath: 'src/pages/login.vue' });
+    const login = defineAction(
+      async (input: { email: string; password: string }) => {
+        if (input.password === 'wrong') {
+          return fail(400, { password: 'incorrect' });
+        }
+        return { user: input.email, token: 'abc123' };
+      },
+      { name: 'login', filePath: 'src/pages/login.vue' }
+    );
 
-    const register = defineAction(async (input: { email: string }) => {
-      return { registered: true, email: input.email };
-    }, { name: 'register', filePath: 'src/pages/login.vue' });
+    const register = defineAction(
+      async (input: { email: string }) => {
+        return { registered: true, email: input.email };
+      },
+      { name: 'register', filePath: 'src/pages/login.vue' }
+    );
 
-    const redirectHome = defineAction(async () => {
-      return new Response(null, { status: 302, headers: { Location: '/' } });
-    }, { name: 'logout', filePath: 'src/pages/login.vue' });
+    const redirectHome = defineAction(
+      async () => {
+        return new Response(null, { status: 302, headers: { Location: '/' } });
+      },
+      { name: 'logout', filePath: 'src/pages/login.vue' }
+    );
 
-    const defaultAction = defineAction(async () => {
-      return { ok: true, from: 'default' };
-    }, { name: 'default', filePath: 'src/pages/login.vue' });
+    const defaultAction = defineAction(
+      async () => {
+        return { ok: true, from: 'default' };
+      },
+      { name: 'default', filePath: 'src/pages/login.vue' }
+    );
 
     return {
       login: login as ServerAction,
@@ -408,7 +419,7 @@ describe('named form actions dispatch (handlePageRequest mod.actions branch)', (
    *     errors → JSON)
    */
   function attachPageActionHandler(app: Hono<UbeanEnv>, actions: Record<string, ServerAction>) {
-    app.post('/login', async (c) => {
+    app.post('/login', async c => {
       const actionName = parseFormActionName(c.req.url);
       const action = actions[actionName];
       if (!action) {

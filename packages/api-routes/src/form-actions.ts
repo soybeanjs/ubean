@@ -40,10 +40,7 @@ export function handleActionResponse(
     const redirectUrl = response.headers.get('Location');
     if (redirectUrl) {
       if (isPagesReq(c)) {
-        return c.json(
-          { redirect: redirectUrl },
-          { status: 200, headers: { 'X-Ubean-Redirect': redirectUrl } }
-        );
+        return c.json({ redirect: redirectUrl }, { status: 200, headers: { 'X-Ubean-Redirect': redirectUrl } });
       }
       return response;
     }

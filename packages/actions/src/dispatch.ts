@@ -1,3 +1,4 @@
+import type { Context } from 'hono';
 /**
  * Server-side action dispatcher (P9-02).
  *
@@ -17,14 +18,8 @@
  * Both produce a serializable `ActionResult` consumed by the client.
  */
 import type { ActionResult, ActionContext, ServerAction, UbeanEnv } from '@ubean/types';
-import type { Context } from 'hono';
+import { buildActionContext, normalizeActionResult, parseActionInput, validateActionInput } from './define';
 import { getAction } from './registry';
-import {
-  buildActionContext,
-  normalizeActionResult,
-  parseActionInput,
-  validateActionInput
-} from './define';
 
 /**
  * Dispatch a registered server action by ID.

@@ -7,6 +7,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
+import { fail, ActionError, isActionFailure, isServerAction } from '@ubean/types';
+import type { ServerAction, UbeanEnv } from '@ubean/types';
 import {
   defineAction,
   createActionId,
@@ -39,8 +41,6 @@ import {
   transformUseServerForClient,
   ubeanServerActionsPlugin
 } from '../src/vite';
-import { fail, ActionError, isActionFailure, isServerAction } from '@ubean/types';
-import type { ServerAction, UbeanEnv } from '@ubean/types';
 
 /* -------------------------------------------------------------------------- */
 /* Action ID generation                                                       */
@@ -130,9 +130,12 @@ describe('defineAction', () => {
   beforeEach(() => clearActions());
 
   it('creates a server action without a schema', () => {
-    const action = defineAction(async (input: { name: string }) => {
-      return { ok: true, echo: input.name };
-    }, { name: 'ping', filePath: 'src/actions/test.ts' });
+    const action = defineAction(
+      async (input: { name: string }) => {
+        return { ok: true, echo: input.name };
+      },
+      { name: 'ping', filePath: 'src/actions/test.ts' }
+    );
 
     expect(isServerAction(action)).toBe(true);
     expect(action.name).toBe('ping');
@@ -149,11 +152,10 @@ describe('defineAction', () => {
         return { success: false, error: { issues: [{ message: 'Invalid' }] } };
       }
     };
-    const action = defineAction(
-      schema,
-      async (data: { email: string }) => ({ user: data.email }),
-      { name: 'login', filePath: 'src/actions/auth.ts' }
-    );
+    const action = defineAction(schema, async (data: { email: string }) => ({ user: data.email }), {
+      name: 'login',
+      filePath: 'src/actions/auth.ts'
+    });
     expect(action.schema).toBeDefined();
     expect(action.name).toBe('login');
   });
@@ -222,9 +224,7 @@ describe('validateActionInput', () => {
   it('validates with safeParse success', () => {
     const schema = {
       safeParse(v: unknown) {
-        return v === 'ok'
-          ? { success: true, data: 'ok' }
-          : { success: false, error: { issues: [{ message: 'bad' }] } };
+        return v === 'ok' ? { success: true, data: 'ok' } : { success: false, error: { issues: [{ message: 'bad' }] } };
       }
     };
     expect(validateActionInput(schema, 'ok').success).toBe(true);
@@ -239,7 +239,11 @@ describe('validateActionInput', () => {
   });
 
   it('returns errors when parse() throws', () => {
-    const schema = { parse: () => { throw new Error('invalid'); } };
+    const schema = {
+      parse: () => {
+        throw new Error('invalid');
+      }
+    };
     const r = validateActionInput(schema, 'x');
     expect(r.success).toBe(false);
   });
@@ -290,7 +294,7 @@ describe('dispatcher', () => {
   it('dispatchAction returns 404 for unknown action', async () => {
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await dispatchAction('act_unknown0000000', c);
       return c.json({ ok: true });
     });
@@ -305,7 +309,7 @@ describe('dispatcher', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runAction(action as ServerAction, c);
       return c.json({});
     });
@@ -324,7 +328,7 @@ describe('dispatcher', () => {
     });
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runAction(action as ServerAction, c);
       return c.json({});
     });
@@ -333,12 +337,15 @@ describe('dispatcher', () => {
   });
 
   it('runAction surfaces ActionError as error', async () => {
-    const action = defineAction(async () => {
-      throw new ActionError('Forbidden', { code: 'NO', status: 403 });
-    }, { name: 'thrower', filePath: 'src/actions/t.ts' });
+    const action = defineAction(
+      async () => {
+        throw new ActionError('Forbidden', { code: 'NO', status: 403 });
+      },
+      { name: 'thrower', filePath: 'src/actions/t.ts' }
+    );
     const app = makeApp();
     let result: unknown;
-    app.post('/test', async (c) => {
+    app.post('/test', async c => {
       result = await runAction(action as ServerAction, c);
       return c.json({});
     });
@@ -348,7 +355,8 @@ describe('dispatcher', () => {
 
   it('runPageAction dispatches named actions from a map', async () => {
     const login = defineAction(async () => ({ user: 'alice' }), {
-      name: 'login', filePath: 'src/actions/p.ts'
+      name: 'login',
+      filePath: 'src/actions/p.ts'
     });
     const result = await runPageAction(
       { login: login as ServerAction },
@@ -358,11 +366,9 @@ describe('dispatcher', () => {
       null as never
     ).catch(() => 'throws-without-ctx');
     // Without a real context, runAction will throw. Test the lookup-null branch:
-    const nullResult = await runPageAction(
-      { login: login as ServerAction },
-      'nonexistent',
-      null as never
-    ).catch(() => null);
+    const nullResult = await runPageAction({ login: login as ServerAction }, 'nonexistent', null as never).catch(
+      () => null
+    );
     expect(nullResult).toBeNull();
     // Verify the action itself is valid
     expect(isServerAction(login)).toBe(true);
@@ -562,11 +568,7 @@ export async function greet(name) { return 'hi ' + name; }`;
 
   it('vite plugin skips files without "use server" directive', () => {
     const plugin = ubeanServerActionsPlugin({ root: '/root' });
-    const result = plugin.transform!(
-      'export const x = 1;',
-      '/root/src/utils.ts',
-      { ssr: true }
-    );
+    const result = plugin.transform!('export const x = 1;', '/root/src/utils.ts', { ssr: true });
     expect(result).toBeNull();
   });
 

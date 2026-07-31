@@ -13,11 +13,7 @@
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import type { ActionResult, ServerAction } from '@ubean/types';
-import {
-  ACTIONS_ENDPOINT,
-  ACTION_RESPONSE_HEADER,
-  buildFormActionUrl
-} from './index';
+import { ACTIONS_ENDPOINT, ACTION_RESPONSE_HEADER, buildFormActionUrl } from './index';
 
 /**
  * Low-level RPC: invoke a registered server action by ID.
@@ -30,10 +26,7 @@ import {
  * @param args     Arguments to pass to the action handler (serialized as JSON)
  * @returns The `ActionResult` returned by the server
  */
-export async function callAction<T = unknown>(
-  actionId: string,
-  args: unknown[] = []
-): Promise<ActionResult<T>> {
+export async function callAction<T = unknown>(actionId: string, args: unknown[] = []): Promise<ActionResult<T>> {
   const res = await fetch(ACTIONS_ENDPOINT, {
     method: 'POST',
     headers: {

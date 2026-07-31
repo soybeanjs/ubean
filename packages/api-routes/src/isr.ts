@@ -74,10 +74,7 @@ export function buildIsrCacheKey(pathname: string): string {
 /**
  * 读取缓存的 ISR entry(仅未过期)。
  */
-export async function getIsrCache(
-  store: IsrCacheStore,
-  pathname: string
-): Promise<IsrCacheEntry | undefined> {
+export async function getIsrCache(store: IsrCacheStore, pathname: string): Promise<IsrCacheEntry | undefined> {
   const key = buildIsrCacheKey(pathname);
   const entry = await store.get(key);
   if (!entry) return undefined;
@@ -92,10 +89,7 @@ export async function getIsrCache(
  * 读取缓存的 ISR entry(即使已过期,用于 SWR)。
  * 后端不支持 `peek` 时退化为 `get`(无 SWR)。
  */
-export async function getStaleIsrCache(
-  store: IsrCacheStore,
-  pathname: string
-): Promise<IsrCacheEntry | undefined> {
+export async function getStaleIsrCache(store: IsrCacheStore, pathname: string): Promise<IsrCacheEntry | undefined> {
   if (!store.peek) return getIsrCache(store, pathname);
   const key = buildIsrCacheKey(pathname);
   const entry = await store.peek(key);
@@ -169,18 +163,13 @@ export function isIsrEntryStale(pathname: string, store: IsrCacheStore): boolean
  * 过期时删除 entry 导致 SWR 无法读取旧内容。后端不支持 `peek` 时退化为 `get`
  * (SWR 自动降级为同步重新生成)。
  */
-export async function serveIsr(
-  _c: Context<UbeanEnv>,
-  options: IsrServeOptions
-): Promise<Response | undefined> {
+export async function serveIsr(_c: Context<UbeanEnv>, options: IsrServeOptions): Promise<Response | undefined> {
   const store = options.store;
   const { pathname, rule, render } = options;
   const key = buildIsrCacheKey(pathname);
 
   // 1. 读取 entry(优先 peek 避免删除副作用)
-  const rawEntry = store.peek
-    ? await store.peek(key)
-    : await store.get(key);
+  const rawEntry = store.peek ? await store.peek(key) : await store.get(key);
 
   if (rawEntry) {
     const isStale = Date.now() > rawEntry.expiresAt;
@@ -201,11 +190,16 @@ export async function serveIsr(
         REVALIDATING.add(revalKey);
         void render()
           .then(async result => {
-            await setIsrCache(store, pathname, {
-              html: result.html,
-              status: result.status ?? 200,
-              headers: result.headers ?? { 'Content-Type': 'text/html; charset=utf-8' }
-            }, rule.ttl);
+            await setIsrCache(
+              store,
+              pathname,
+              {
+                html: result.html,
+                status: result.status ?? 200,
+                headers: result.headers ?? { 'Content-Type': 'text/html; charset=utf-8' }
+              },
+              rule.ttl
+            );
           })
           .catch(() => {
             // 后台重新生成失败 —— 旧内容继续服务,下次请求会重试

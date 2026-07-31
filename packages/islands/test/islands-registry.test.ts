@@ -5,10 +5,10 @@ import {
   resolveIslandImportPath,
   collectIslandComponents,
   generateRegistryModule,
-  transformVueSfcIslands
+  transformVueSfcIslands,
+  SERVER_DEFER_DIRECTIVE
 } from '../src/vite';
 import type { IslandComponentEntry, IslandComponentMap } from '../src/vite';
-import { SERVER_DEFER_DIRECTIVE } from '../src/vite';
 
 describe('parseScriptImports', () => {
   it('parses default import', () => {

@@ -55,7 +55,7 @@ export const ACTION_RESPONSE_HEADER = 'x-ubean-action';
  * server setup — users don't need to mount it manually.
  */
 export function createActionsMiddleware(): MiddlewareHandler<UbeanEnv> {
-  return async (c) => {
+  return async c => {
     // Read action ID + args from body (`{ id, args }`) or query string (`?id=`).
     let actionId: string | undefined;
     let args: unknown[] | undefined;
@@ -95,19 +95,11 @@ export function createActionsMiddleware(): MiddlewareHandler<UbeanEnv> {
  * Serialize an `ActionResult` as a JSON Hono response with the action
  * response header set.
  */
-function _jsonResult(
-  c: Parameters<MiddlewareHandler<UbeanEnv>>[0],
-  result: ActionResult,
-  status: number
-) {
-  return c.json(
-    result,
-    status as 200,
-    {
-      [ACTION_RESPONSE_HEADER]: 'true',
-      'Cache-Control': 'no-store'
-    }
-  );
+function _jsonResult(c: Parameters<MiddlewareHandler<UbeanEnv>>[0], result: ActionResult, status: number) {
+  return c.json(result, status as 200, {
+    [ACTION_RESPONSE_HEADER]: 'true',
+    'Cache-Control': 'no-store'
+  });
 }
 
 /**

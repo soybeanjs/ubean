@@ -195,9 +195,7 @@ export const buildCommand: CommandDef = {
       });
 
       // P9-03: routeRules 中 `prerender: true` 的路由也触发预渲染
-      const hasPrerenderRules = Object.values(config.routeRules || {}).some(
-        r => r?.prerender === true
-      );
+      const hasPrerenderRules = Object.values(config.routeRules || {}).some(r => r?.prerender === true);
       if (config.prerender.enabled || hasPrerenderRules) {
         logger.info('Prerendering static pages...');
         const fetcher = await createSsrFetcher(cwd, manifest);

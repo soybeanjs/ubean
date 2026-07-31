@@ -40,8 +40,8 @@
  * ```
  */
 import type { Plugin } from 'vite';
-import { createActionId } from './id';
 import { relative } from 'pathe';
+import { createActionId } from './id';
 
 export interface ServerActionsPluginOptions {
   /**
@@ -160,11 +160,7 @@ function toProjectRelative(filePath: string, root: string): string {
  * export names, re-exports with `from`) are skipped — users should keep
  * `'use server'` modules simple (exported async functions only).
  */
-export function transformUseServerForServer(
-  code: string,
-  filePath: string,
-  root: string
-): string {
+export function transformUseServerForServer(code: string, filePath: string, root: string): string {
   // Strip the top-level `'use server'` directive
   let stripped = code.replace(USE_SERVER_DIRECTIVE_RE, '');
   // Re-strip leading whitespace / comments that may have been before the
@@ -195,9 +191,7 @@ export function transformUseServerForServer(
     })
     .join('\n');
 
-  const reExports = exportNames
-    .map(name => `export { __ubean_action_${name} as ${name} };`)
-    .join('\n');
+  const reExports = exportNames.map(name => `export { __ubean_action_${name} as ${name} };`).join('\n');
 
   // Rename original `export` keywords to plain declarations
   let renamed = stripped;
@@ -208,15 +202,9 @@ export function transformUseServerForServer(
       '$1function __ubean_raw_$2'
     );
     // `export const name =` → `const __ubean_raw_name =`
-    renamed = renamed.replace(
-      new RegExp(`export\\s+(const|let|var)\\s+(${name})\\s*=`),
-      '$1 __ubean_raw_$2 ='
-    );
+    renamed = renamed.replace(new RegExp(`export\\s+(const|let|var)\\s+(${name})\\s*=`), '$1 __ubean_raw_$2 =');
     // `export class name` → `class __ubean_raw_name`
-    renamed = renamed.replace(
-      new RegExp(`export\\s+class\\s+(${name})\\b`),
-      'class __ubean_raw_$1'
-    );
+    renamed = renamed.replace(new RegExp(`export\\s+class\\s+(${name})\\b`), 'class __ubean_raw_$1');
     // `export { name }` → drop (we re-export the wrapped version)
     // (handled by removing the `export { ... }` statement below)
   }
@@ -252,11 +240,7 @@ ${reExports}
  *
  * The stub preserves the call signature so callers don't need to change.
  */
-export function transformUseServerForClient(
-  code: string,
-  filePath: string,
-  root: string
-): string {
+export function transformUseServerForClient(code: string, filePath: string, root: string): string {
   // Strip the top-level `'use server'` directive
   let stripped = code.replace(USE_SERVER_DIRECTIVE_RE, '');
   stripped = stripped.replace(/^\s+/, '');
@@ -320,9 +304,7 @@ export function ubeanServerActionsPlugin(options: ServerActionsPluginOptions = {
       const isServer = transformOptions?.ssr === true;
 
       if (isWholeModule) {
-        return isServer
-          ? transformUseServerForServer(code, id, root)
-          : transformUseServerForClient(code, id, root);
+        return isServer ? transformUseServerForServer(code, id, root) : transformUseServerForClient(code, id, root);
       }
 
       // Per-function directive: not yet supported (would require AST

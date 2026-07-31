@@ -394,9 +394,5 @@ export function fail<T extends Record<string, string>>(status: number, errors: T
  * Type guard: is the value an `ActionFailure` (returned by `fail()`)?
  */
 export function isActionFailure(value: unknown): value is ActionFailure {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    (value as ActionFailure).__actionFailure === true
-  );
+  return typeof value === 'object' && value !== null && (value as ActionFailure).__actionFailure === true;
 }

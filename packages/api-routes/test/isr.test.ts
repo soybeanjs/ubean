@@ -82,11 +82,16 @@ describe('P9-03 ISR cache helpers', () => {
 
   describe('setIsrCache / getIsrCache', () => {
     it('round-trips an HTML entry', async () => {
-      await setIsrCache(store, '/page', {
-        html: '<html>hello</html>',
-        status: 200,
-        headers: { 'Content-Type': 'text/html' }
-      }, 60);
+      await setIsrCache(
+        store,
+        '/page',
+        {
+          html: '<html>hello</html>',
+          status: 200,
+          headers: { 'Content-Type': 'text/html' }
+        },
+        60
+      );
       const entry = await getIsrCache(store, '/page');
       expect(entry).toBeDefined();
       expect(entry!.html).toBe('<html>hello</html>');
@@ -100,11 +105,16 @@ describe('P9-03 ISR cache helpers', () => {
     });
 
     it('returns undefined after TTL expires', async () => {
-      await setIsrCache(store, '/page', {
-        html: '<html>expired</html>',
-        status: 200,
-        headers: {}
-      }, 0); // 0 second TTL → immediately expired
+      await setIsrCache(
+        store,
+        '/page',
+        {
+          html: '<html>expired</html>',
+          status: 200,
+          headers: {}
+        },
+        0
+      ); // 0 second TTL → immediately expired
       // Tiny sleep to ensure Date.now() advances past expiresAt
       await new Promise(r => setTimeout(r, 5));
       const entry = await getIsrCache(store, '/page');
@@ -114,11 +124,16 @@ describe('P9-03 ISR cache helpers', () => {
 
   describe('getStaleIsrCache', () => {
     it('returns entry even after TTL expires (with peek)', async () => {
-      await setIsrCache(store, '/page', {
-        html: '<html>stale</html>',
-        status: 200,
-        headers: {}
-      }, 0);
+      await setIsrCache(
+        store,
+        '/page',
+        {
+          html: '<html>stale</html>',
+          status: 200,
+          headers: {}
+        },
+        0
+      );
       await new Promise(r => setTimeout(r, 5));
       const fresh = await getIsrCache(store, '/page');
       expect(fresh).toBeUndefined();
@@ -135,11 +150,16 @@ describe('P9-03 ISR cache helpers', () => {
         clear: store.clear
         // no peek
       };
-      await setIsrCache(noPeekStore, '/page', {
-        html: '<html>x</html>',
-        status: 200,
-        headers: {}
-      }, 0);
+      await setIsrCache(
+        noPeekStore,
+        '/page',
+        {
+          html: '<html>x</html>',
+          status: 200,
+          headers: {}
+        },
+        0
+      );
       await new Promise(r => setTimeout(r, 5));
       const stale = await getStaleIsrCache(noPeekStore, '/page');
       // Without peek, falls back to get which returns undefined for expired
@@ -149,20 +169,30 @@ describe('P9-03 ISR cache helpers', () => {
 
   describe('isIsrEntryStale', () => {
     it('returns false for fresh entry', async () => {
-      await setIsrCache(store, '/page', {
-        html: 'x',
-        status: 200,
-        headers: {}
-      }, 60);
+      await setIsrCache(
+        store,
+        '/page',
+        {
+          html: 'x',
+          status: 200,
+          headers: {}
+        },
+        60
+      );
       expect(isIsrEntryStale('/page', store)).toBe(false);
     });
 
     it('returns true for expired entry', async () => {
-      await setIsrCache(store, '/page', {
-        html: 'x',
-        status: 200,
-        headers: {}
-      }, 0);
+      await setIsrCache(
+        store,
+        '/page',
+        {
+          html: 'x',
+          status: 200,
+          headers: {}
+        },
+        0
+      );
       await new Promise(r => setTimeout(r, 5));
       expect(isIsrEntryStale('/page', store)).toBe(true);
     });
@@ -174,11 +204,16 @@ describe('P9-03 ISR cache helpers', () => {
 
   describe('serveIsr', () => {
     it('returns cached HTML with X-ISR: HIT on fresh hit', async () => {
-      await setIsrCache(store, '/page', {
-        html: '<html>cached</html>',
-        status: 200,
-        headers: { 'Content-Type': 'text/html' }
-      }, 60);
+      await setIsrCache(
+        store,
+        '/page',
+        {
+          html: '<html>cached</html>',
+          status: 200,
+          headers: { 'Content-Type': 'text/html' }
+        },
+        60
+      );
 
       const render = vi.fn(async () => ({ html: '<html>fresh</html>' }));
       const response = await serveIsr(mockCtx(), {
@@ -240,11 +275,16 @@ describe('P9-03 ISR cache helpers', () => {
     });
 
     it('returns stale HTML with X-ISR: STALE on swr + expired', async () => {
-      await setIsrCache(store, '/page', {
-        html: '<html>old</html>',
-        status: 200,
-        headers: { 'Content-Type': 'text/html' }
-      }, 0);
+      await setIsrCache(
+        store,
+        '/page',
+        {
+          html: '<html>old</html>',
+          status: 200,
+          headers: { 'Content-Type': 'text/html' }
+        },
+        0
+      );
       await new Promise(r => setTimeout(r, 5));
 
       const render = vi.fn(async () => ({ html: '<html>new</html>' }));
@@ -270,11 +310,16 @@ describe('P9-03 ISR cache helpers', () => {
     });
 
     it('synchronously regenerates on expired + swr=false', async () => {
-      await setIsrCache(store, '/page', {
-        html: '<html>old</html>',
-        status: 200,
-        headers: {}
-      }, 0);
+      await setIsrCache(
+        store,
+        '/page',
+        {
+          html: '<html>old</html>',
+          status: 200,
+          headers: {}
+        },
+        0
+      );
       await new Promise(r => setTimeout(r, 5));
 
       const render = vi.fn(async () => ({

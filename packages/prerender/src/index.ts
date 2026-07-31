@@ -62,9 +62,7 @@ function normalizePagePath(filePath: string): string {
  * 返回的路径列表会进一步与 `pages` 候选池匹配(glob 模式)或直接加入(具体路径)。
  * 动态路由的具象值(如 `/blog/hello-world`)可通过具体路径直接加入。
  */
-export function extractPrerenderRoutesFromRules(
-  routeRules: Record<string, RouteRule> | undefined
-): string[] {
+export function extractPrerenderRoutesFromRules(routeRules: Record<string, RouteRule> | undefined): string[] {
   if (!routeRules) return [];
   const result: string[] = [];
   for (const [pattern, rule] of Object.entries(routeRules)) {

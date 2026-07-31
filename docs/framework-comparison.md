@@ -57,7 +57,7 @@ ubean 渲染层差距已基本补齐:流式 SSR(P9-01)、ISR + per-route 渲染�
 | **单飞变更 (Single-flight mutations)** | SolidStart 独有，避免变更后瀑布 | ❌ |
 | **请求 memoization** | Next.js 自动 fetch memoization | ❌ |
 | **Payload 提取（SSG）** | Nuxt 自动提取 `__NUXT_DATA__` | ⚠️ `__UBEAN_STATE__` 但无 SSG payload 提取 |
-| **Hooks (handle/handleFetch/handleError)** | SvelteKit 全局 hooks；Nuxt server plugins | ⚠️ 仅 middleware |
+| **Hooks (handle/handleFetch/handleError)** | SvelteKit 全局 hooks；Nuxt server plugins | ✅ `defineServer({ globalHooks })` |
 | **`after()` 响应后执行** | Next.js 16 `after()` 用于日志/分析/缓存失效不阻塞 TTFB | ❌ |
 
 ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 P9-02 补齐 **Server Actions** 范式（`defineAction` + `'use server'` 指令 + SvelteKit 风格 `?/name` 表单 action），对齐 Next/SvelteKit/Solid/Astro 共同趋势。
@@ -221,10 +221,10 @@ ubean 平台预设明显最少（仅 Node + Cloudflare），roadmap P5-06 待补
 - **竞品**：Next.js 16 `"use cache"` + `cacheLife()`/`cacheTag()`/`revalidateTag()`
 - **任务**：P9-08 ✅
 
-#### 9. ❌ SvelteKit 式全局 Hooks（`handle`/`handleFetch`/`handleError`）
-- **现状**：仅 middleware
-- **方案**：在 `@ubean/app` 增加全局 hooks 入口
-- **任务**：P9-09
+#### 9. ✅ SvelteKit 式全局 Hooks（`handle`/`handleFetch`/`handleError`）
+- **现状**：`@ubean/app/hooks` 提供三个全局 hook:`handle`(包裹每个请求,覆盖所有路由 + 静态资源 + 404 + 错误响应)、`handleFetch`(拦截服务端 `internalFetch`/`createInternalAdapter` 调用,可修改请求头/URL/注入认证)、`handleError`(未捕获错误的统一处理入口,用于日志/上报);通过 `defineServer({ globalHooks })` 注册,`mergeServerConfigs` 自动合并 shared + mode-specific hooks;`applyHandleHook` 在中间件链最前注册,无 hook 时零开销降级为正常 `next()`;30 单元 + 集成测试
+- **竞品**：SvelteKit `hooks.server.ts` / Nuxt server plugins / Astro middleware
+- **任务**：P9-09 ✅
 
 #### 10. ❌ 平台预设补全（Vercel/Netlify/Bun/Deno）
 - **现状**：P5-06 pending，仅 Node + Cloudflare

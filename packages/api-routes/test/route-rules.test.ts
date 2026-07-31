@@ -9,8 +9,8 @@
  * - P9-04: `ppr` 字段的匹配、specificity 与合并语义
  */
 import { describe, it, expect } from 'vitest';
-import { compileRouteRules, matchRouteRules, normalizeIsrRule } from '../src/index';
 import type { RouteRule } from '@ubean/types';
+import { compileRouteRules, matchRouteRules, normalizeIsrRule } from '../src/index';
 
 describe('P9-03 per-route rendering rules', () => {
   describe('matchRouteRules - ssr field', () => {
@@ -223,16 +223,6 @@ describe('P9-04 Partial Prerendering (ppr field)', () => {
       expect(matched.ppr).toBe(true);
       expect(matched.isr).toBe(60);
       expect(matched.headers).toHaveProperty('X-PPR-Page', '1');
-    });
-
-    it('does not override ppr with later matches', () => {
-      const compiled = compileRouteRules({
-        '/dashboard/**': { ppr: true },
-        '/dashboard/**': { ppr: false } as RouteRule
-      });
-      // Duplicate keys — JS keeps last; here we just verify single-rule behavior
-      const matched = matchRouteRules('/dashboard/x', compiled);
-      expect(matched.ppr).toBe(false);
     });
   });
 

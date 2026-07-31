@@ -1,3 +1,5 @@
+import { setGlobalHooks } from './hooks';
+import type { GlobalHooks } from './hooks';
 import type { UbeanApp, UbeanAppPlugin, UbeanRuntimeHooks } from './app';
 
 /**
@@ -7,6 +9,7 @@ import type { UbeanApp, UbeanAppPlugin, UbeanRuntimeHooks } from './app';
  * - `plugins` are available when `init()` calls `setup` / `ready`
  * - `hooks` are registered before `init()` fires `app:created` etc.
  * - `onAppCreate` runs before route registration
+ * - `globalHooks` (handle/handleFetch/handleError) are set before any request
  *
  * `onServerReady` is NOT called here — the caller must invoke it after
  * `app.init()` completes.
@@ -25,6 +28,11 @@ export async function applyServerConfig(app: UbeanApp, config: ResolvedServerCon
         handler as (...args: never[]) => void
       );
     }
+  }
+
+  // P9-09: Set global hooks (handle/handleFetch/handleError)
+  if (config.globalHooks) {
+    setGlobalHooks(config.globalHooks);
   }
 
   // Call onAppCreate before init
@@ -62,6 +70,15 @@ export interface DefineServerOptions {
   hooks?: ServerHooks;
 
   /**
+   * P9-09: Global hooks (SvelteKit-style `handle`/`handleFetch`/`handleError`).
+   *
+   * - `handle` wraps every request (including 404 and static assets)
+   * - `handleFetch` intercepts server-side `fetch()` calls
+   * - `handleError` is called on uncaught errors for logging/reporting
+   */
+  globalHooks?: GlobalHooks;
+
+  /**
    * Called after `UbeanApp` is created but before `app.init()`.
    * Useful for initializing databases, external service connections, etc.
    */
@@ -80,6 +97,7 @@ export interface DefineServerOptions {
 export interface ResolvedServerConfig {
   plugins: UbeanAppPlugin[];
   hooks: ServerHooks;
+  globalHooks?: GlobalHooks;
   onAppCreate?: (app: UbeanApp) => void | Promise<void>;
   onServerReady?: (app: UbeanApp) => void | Promise<void>;
 }
@@ -107,6 +125,16 @@ export interface ResolvedServerConfig {
  *   hooks: {
  *     'request:start': (c) => { console.log(c.req.method, c.req.path); }
  *   },
+ *   globalHooks: {
+ *     handle: async ({ event, resolve }) => {
+ *       const response = await resolve(event);
+ *       response.headers.set('X-Custom', 'ubean');
+ *       return response;
+ *     },
+ *     handleError: async ({ error, status }) => {
+ *       console.error(`[${status}]`, error);
+ *     }
+ *   },
  *   onAppCreate: async (app) => { /* init db *\/ },
  *   onServerReady: async (app) => { /* start workers *\/ }
  * });
@@ -116,6 +144,7 @@ export function defineServer(options: DefineServerOptions): ResolvedServerConfig
   return {
     plugins: options.plugins || [],
     hooks: options.hooks || {},
+    globalHooks: options.globalHooks,
     onAppCreate: options.onAppCreate,
     onServerReady: options.onServerReady
   };
@@ -144,6 +173,7 @@ export function mergeServerConfigs(
   const result: ResolvedServerConfig = {
     plugins: [...base.plugins],
     hooks: { ...base.hooks },
+    globalHooks: base.globalHooks ? { ...base.globalHooks } : undefined,
     onAppCreate: base.onAppCreate,
     onServerReady: base.onServerReady
   };
@@ -152,6 +182,9 @@ export function mergeServerConfigs(
     if (!cfg) continue;
     if (cfg.plugins) result.plugins.push(...cfg.plugins);
     if (cfg.hooks) Object.assign(result.hooks, cfg.hooks);
+    if (cfg.globalHooks) {
+      result.globalHooks = { ...result.globalHooks, ...cfg.globalHooks };
+    }
     if (cfg.onAppCreate) result.onAppCreate = cfg.onAppCreate;
     if (cfg.onServerReady) result.onServerReady = cfg.onServerReady;
   }

@@ -368,6 +368,53 @@ await revalidatePath('getUser:*');
 
 > Server Actions 通过 `@ubean/actions` 包实现，Vite 插件 `ubeanServerActionsPlugin` 已包含在默认 `ubeanPlugin()` 中。action ID 由 `base32(sha1(filePath:exportName))` 生成，client/server 自动一致。`@ubean/types` 提供 `ServerAction`/`ActionContext`/`ActionResult`/`ActionFailure` 等共享类型。
 
+### 全局 Hooks（P9-09）
+
+SvelteKit 风格的全局 hooks，通过 `defineServer({ globalHooks })` 注册。对齐 SvelteKit `hooks.server.ts` / Nuxt server plugins / Astro middleware。
+
+| API                                                                   | 说明                                                                                                       |
+| --------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `defineServer({ globalHooks: { handle, handleFetch, handleError } })` | 注册全局 hooks（在 `src/server.ts` 中导出）                                                                |
+| `setGlobalHooks(hooks)` / `getGlobalHooks()` / `clearGlobalHooks()`   | 全局 hooks 注册表（通常由 `applyServerConfig` 自动调用）                                                   |
+| `applyHandleHook(c, next)`                                            | 应用 `handle` hook（内部由 `app.ts` 中间件调用；无 hook 时返回 `false` 并正常 `next()`）                   |
+| `applyHandleFetchHook(request, defaultFetch, serverContext?)`         | 应用 `handleFetch` hook（内部包裹 `setInternalFetcher`，拦截 `internalFetch`/`createInternalAdapter`）     |
+| `applyHandleErrorHook(c, error, status)`                              | 应用 `handleError` hook（内部由 `app.ts` 的 `onError` 调用，fire-and-forget）                              |
+| `createHandleEvent(c)` / `extractErrorMessage(error, status)`         | 辅助函数：构建请求事件 / 脱敏错误消息（404→"Not Found"、5xx→"Internal Server Error"、4xx→`error.message`） |
+| `wrapResolve(c, next)`                                                | 封装 Hono `next()` 为 `resolve(event): Promise<Response>`                                                  |
+
+**三个 hook 的职责**：
+
+- **`handle({ event, resolve })`**：包裹每个请求（覆盖所有路由 + 静态资源 + 404 + 错误响应）。必须调用 `resolve(event)` 让请求继续处理，或返回自定义 `Response` 短路。用于：统一添加 header、请求日志、A/B 测试、认证预处理。
+- **`handleFetch({ request, fetch, serverContext? })`**：拦截服务端 `internalFetch`/`createInternalAdapter` 调用。可修改请求头/URL/注入认证 token，然后调用 `fetch(request)`。用于：内部 API 鉴权、请求改写。
+- **`handleError({ event, error, status, message })`**：未捕获错误的统一处理入口（仅副作用，不影响返回给客户端的响应）。用于：日志记录、Sentry 上报。
+
+**用法示例**：
+
+```typescript
+// src/server.ts
+import { defineServer } from '@ubean/app';
+
+export default defineServer({
+  globalHooks: {
+    handle: async ({ event, resolve }) => {
+      const start = Date.now();
+      const response = await resolve(event);
+      response.headers.set('X-Response-Time', `${Date.now() - start}ms`);
+      return response;
+    },
+    handleFetch: async ({ request, fetch }) => {
+      request.headers.set('X-Internal-Auth', process.env.INTERNAL_TOKEN!);
+      return fetch(request);
+    },
+    handleError: async ({ event, status, message }) => {
+      console.error(`[${status}] ${message}`, event.request.url);
+    }
+  }
+});
+```
+
+> `mergeServerConfigs` 会自动合并 shared + mode-specific 的 `globalHooks`（浅合并，mode-specific 覆盖 shared 的同名字段）。`applyHandleHook` 在中间件链最前注册，无 `handle` hook 时零开销降级为正常 `next()`。
+
 ### Vue 运行时
 
 | API                                                                                                                                                               | 说明                                                                                                            |

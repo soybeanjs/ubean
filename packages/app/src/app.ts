@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
+import { createActionsMiddleware, ACTIONS_ENDPOINT } from '@ubean/actions';
 import {
   registerRoutes,
   setInternalFetcher,
@@ -8,7 +9,6 @@ import {
   createRouteRulesMiddleware
 } from '@ubean/api-routes';
 import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/api-routes';
-import { createActionsMiddleware, ACTIONS_ENDPOINT } from '@ubean/actions';
 import { errorToResponse, isUbeanError, UbeanError } from '@ubean/error';
 import type {
   ScannedApiRoute,
@@ -30,6 +30,7 @@ import { requestId } from 'hono/request-id';
 import { createHooks } from 'hookable';
 import type { Hookable } from 'hookable';
 import { join, isAbsolute } from 'pathe';
+import { applyHandleHook, applyHandleFetchHook, applyHandleErrorHook } from './hooks';
 
 /* -------------------------------------------------------------------------- */
 /* Hooks                                                                       */
@@ -154,6 +155,21 @@ export class UbeanApp {
   }
 
   private _setupBaseMiddleware(): void {
+    // P9-09: Global `handle` hook — registered FIRST so it wraps everything
+    // (all middleware, routes, 404, and error responses). The hook is stored
+    // in a global registry set by `applyServerConfig`. If no `handle` hook
+    // is registered, `applyHandleHook` returns `false` and the request
+    // proceeds normally via `next()`. When a `handle` hook IS registered,
+    // it owns the response (it must call `resolve` to invoke downstream
+    // handlers, or return its own Response to short-circuit).
+    this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
+      const handled = await applyHandleHook(c, next);
+      if (!handled) {
+        // No global `handle` hook — proceed with normal middleware chain
+        await next();
+      }
+    });
+
     this.hono.use('*', requestId());
 
     if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
@@ -241,9 +257,10 @@ export class UbeanApp {
       // P9-03: 注入全局 cacheStore 供 ISR 使用。仅当配置了 isr 规则时
       // `useCacheStore()` 才会被初始化(见 `_setupBaseMiddleware`);无 isr
       // 规则时 `useCacheStore` 返回默认内存存储,不影响行为。
-      cacheStore: this.options.routeRules && Object.keys(this.options.routeRules).length > 0
-        ? (useCacheStore() as unknown as IsrCacheStore)
-        : undefined
+      cacheStore:
+        this.options.routeRules && Object.keys(this.options.routeRules).length > 0
+          ? (useCacheStore() as unknown as IsrCacheStore)
+          : undefined
     };
 
     await registerRoutes(this as unknown as RouteRegistrar, registerOpts);
@@ -262,7 +279,14 @@ export class UbeanApp {
 
     await this.hooks.callHook('app:after:register', this.hono);
 
-    setInternalFetcher((req: Request) => this.hono.fetch(req));
+    // P9-09: Wrap the internal fetcher with `handleFetch` hook so server-side
+    // `internalFetch` / `createInternalAdapter` calls can be intercepted
+    // (modify headers, URL, inject auth tokens, etc.). When no `handleFetch`
+    // hook is registered, `applyHandleFetchHook` falls through to the default
+    // fetcher with no overhead beyond a single function call.
+    setInternalFetcher((req: Request) =>
+      applyHandleFetchHook(req, (r: Request) => Promise.resolve(this.hono.fetch(r)))
+    );
 
     for (const plugin of this.plugins) {
       if (plugin.ready) {
@@ -296,6 +320,9 @@ export class UbeanApp {
 
     this.hono.onError((err: Error, c: Context<UbeanEnv>) => {
       void this.hooks.callHook('error', err, c);
+      // P9-09: Call global `handleError` hook for logging/reporting
+      const status = isUbeanError(err) ? err.statusCode : 500;
+      void applyHandleErrorHook(c, err, status);
       if (isUbeanError(err)) {
         return errorToResponse(c, err);
       }

@@ -106,7 +106,7 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 
 | 能力 | 各框架情况 | ubean |
 |---|---|---|
 | **Content Collections** | Astro Content Layer API（pluggable loaders, 5x 提速）；Nuxt Content | ✅ `@ubean/content` |
-| **Live Collections（请求时拉取）** | Astro 5.10+ 实验，6 稳定 | ❌ |
+| **Live Collections（请求时拉取）** | Astro 5.10+ 实验，6 稳定 | ✅ P9-19（`defineLiveCollection` + loader 函数 + TTL 缓存 + schema 校验 + 延迟查询构建器） |
 | **MDX** | Next/Nuxt/Astro/SvelteKit 都支持 | ⚠️ 类型注册但无 MDX 编译器 |
 | **Image 优化** | Next `next/image`；Nuxt `@nuxt/image`；Astro `astro:assets`；SvelteKit `enhanced-img` | ✅ `@ubean/image` 多 provider |
 | **字体优化** | Next `next/font`；Nuxt `@nuxt/fonts`；Astro `astro:fonts` | ✅ `@ubean/fonts` |

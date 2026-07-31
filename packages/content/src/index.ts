@@ -26,6 +26,8 @@ export {
   generateId
 } from './core';
 
+export { defineLiveCollection, getLiveCollection, listLiveCollections, clearLiveCollections } from './live';
+
 export type {
   ContentDocument,
   ContentCollection,
@@ -41,3 +43,12 @@ export type {
   ContentType,
   ParsedContentMeta
 } from './types';
+
+export type {
+  LiveCollection,
+  LiveCollectionEntry,
+  LiveCollectionLoader,
+  LiveCollectionLoaderParams,
+  LiveCollectionCacheOptions,
+  LiveCollectionOptions
+} from './live';

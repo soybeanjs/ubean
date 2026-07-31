@@ -8,6 +8,7 @@ import {
   transformVueSfcIslands
 } from '../src/vite';
 import type { IslandComponentEntry, IslandComponentMap } from '../src/vite';
+import { SERVER_DEFER_DIRECTIVE } from '../src/vite';
 
 describe('parseScriptImports', () => {
   it('parses default import', () => {
@@ -323,5 +324,148 @@ describe('transformVueSfcIslands (integration with collection)', () => {
     expect(result.code).toContain('<ubean-island');
     expect(result.code).toContain('data-component="IslandCounter"');
     expect(result.code).toContain('data-directive="client:load"');
+  });
+});
+
+describe('P9-04: server:defer directive transform', () => {
+  it('wraps a self-closing server:defer component in <Suspense>', () => {
+    const sfc = `<template><SlowComp server:defer /></template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    // The component is wrapped in <Suspense> with a default fallback
+    expect(result.code).toContain('<Suspense>');
+    expect(result.code).toContain('</Suspense>');
+    // Default fallback placeholder
+    expect(result.code).toContain('<ubean-defer-fallback');
+    expect(result.code).toContain('data-component="SlowComp"');
+    // The `server:defer` attribute is stripped from the component tag
+    expect(result.code).not.toContain('server:defer');
+    // The original component tag is preserved inside the Suspense
+    expect(result.code).toContain('<SlowComp');
+    // No client island registration happens for server:defer
+    expect(result.code).not.toContain('<ubean-island');
+    // islandCount stays 0 (server:defer is not a client island)
+    expect(result.islandCount).toBe(0);
+  });
+
+  it('wraps a non-self-closing server:defer component', () => {
+    const sfc = `<template><SlowComp server:defer></SlowComp></template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    expect(result.code).toContain('<Suspense>');
+    expect(result.code).toContain('<SlowComp');
+    expect(result.code).toContain('</SlowComp>');
+    expect(result.code).toContain('</Suspense>');
+  });
+
+  it('extracts inline #fallback slot to the Suspense wrapper', () => {
+    const sfc = `<template>
+  <Dashboard server:defer>
+    <template #fallback>Loading dashboard...</template>
+    <Stats />
+  </Dashboard>
+</template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    // Suspense wraps the component
+    expect(result.code).toContain('<Suspense>');
+    // The fallback slot content is moved to the Suspense #fallback slot
+    expect(result.code).toContain('Loading dashboard...');
+    // The <template #fallback> is no longer inside the Dashboard component
+    const dashboardInner = result.code.match(/<Dashboard[^>]*>([\s\S]*?)<\/Dashboard>/)?.[1] ?? '';
+    expect(dashboardInner).not.toContain('#fallback');
+    expect(dashboardInner).not.toContain('Loading dashboard...');
+    // The default content (<Stats />) stays inside Dashboard
+    expect(dashboardInner).toContain('<Stats');
+    // No default placeholder since inline fallback was provided
+    expect(result.code).not.toContain('<ubean-defer-fallback');
+  });
+
+  it('uses default fallback when no inline #fallback slot provided', () => {
+    const sfc = `<template><SlowComp server:defer /></template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    expect(result.code).toContain('<ubean-defer-fallback');
+    expect(result.code).toContain('data-component="SlowComp"');
+  });
+
+  it('preserves other props and attributes on the deferred component', () => {
+    const sfc = `<template><SlowComp server:defer class="my-class" id="s1" /></template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    // The component still has its other attributes (server:defer is stripped)
+    expect(result.code).toContain('class="my-class"');
+    expect(result.code).toContain('id="s1"');
+    expect(result.code).not.toContain('server:defer');
+  });
+
+  it('handles multiple server:defer components in the same template', () => {
+    const sfc = `<template>
+  <div>
+    <CompA server:defer />
+    <CompB server:defer />
+  </div>
+</template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    // Two Suspense wrappers
+    const suspenseCount = (result.code.match(/<Suspense>/g) || []).length;
+    expect(suspenseCount).toBe(2);
+    // Both components wrapped
+    expect(result.code).toContain('data-component="CompA"');
+    expect(result.code).toContain('data-component="CompB"');
+  });
+
+  it('handles nested server:defer components', () => {
+    const sfc = `<template>
+  <Outer server:defer>
+    <Inner server:defer />
+  </Outer>
+</template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    // Outer is wrapped in Suspense
+    expect(result.code).toContain('<Suspense>');
+    // Inner is also wrapped (nested transform)
+    const suspenseCount = (result.code.match(/<Suspense>/g) || []).length;
+    expect(suspenseCount).toBe(2);
+  });
+
+  it('coexists with client:* directives in the same template', () => {
+    const sfc = `<template>
+  <div>
+    <ClientIsland client:load />
+    <ServerDeferred server:defer />
+  </div>
+</template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    // Client island is converted to <ubean-island>
+    expect(result.code).toContain('<ubean-island');
+    expect(result.code).toContain('data-component="ClientIsland"');
+    expect(result.code).toContain('data-directive="client:load"');
+    // Server deferred is wrapped in <Suspense>
+    expect(result.code).toContain('<Suspense>');
+    expect(result.code).toContain('data-component="ServerDeferred"');
+    // islandCount counts only client islands
+    expect(result.islandCount).toBe(1);
+  });
+
+  it('does not register server:defer components in the client island registry', () => {
+    // collectIslandComponents should not pick up server:defer (only client:*)
+    const sfc = `<script setup>import SlowComp from './SlowComp.vue';</script>
+<template><SlowComp server:defer /></template>`;
+    const entries = collectIslandComponents(sfc, '/src/pages/test.vue');
+    expect(entries).toHaveLength(0);
+  });
+
+  it('exports SERVER_DEFER_DIRECTIVE constant', () => {
+    expect(SERVER_DEFER_DIRECTIVE).toBe('server:defer');
+  });
+
+  it('returns empty when template has no directives', () => {
+    const sfc = `<template><div>plain content</div></template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    expect(result.islandCount).toBe(0);
+    expect(result.code).toBe(sfc);
+  });
+
+  it('preserves template attributes (e.g. lang)', () => {
+    const sfc = `<template lang="ts"><SlowComp server:defer /></template>`;
+    const result = transformVueSfcIslands(sfc, 'test.vue');
+    expect(result.code).toContain('<template lang="ts">');
+    expect(result.code).toContain('<Suspense>');
   });
 });

@@ -17,7 +17,7 @@
 | SSG | ✅ | ✅ | ✅ | ✅ | ✅ 默认 | ✅ |
 | ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅(SWR) | ✅ P9-03(routeRules.isr + SWR) |
 | per-route 渲染规则 | ⚠️(部分) | ✅ routeRules | ❌ | ❌ | ✅ `export const prerender` | ✅ P9-03(routeRules.ssr/prerender/isr) |
-| PPR / Server Islands | ✅ 稳定 | ❌ | ❌ | ❌ | ✅ `server:defer` | ❌ (P9-04 待办) |
+| PPR / Server Islands | ✅ 稳定 | ❌ | ❌ | ❌ | ✅ `server:defer` | ✅ P9-04(`routeRules.ppr` + `server:defer` 指令 → `<Suspense>`) |
 | Server Components | ✅ RSC | ✅ | ❌ | ❌ | ❌(Islands) | ❌ |
 | Server Actions | ✅ | ❌ | ✅ form actions | ✅ | ✅ Actions | ✅ P9-02(defineAction + 'use server' + form actions) |
 | Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ P9-01 |
@@ -39,13 +39,13 @@
 | 能力 | 各框架情况 | ubean | 差距 |
 |---|---|---|---|
 | **SSR 流式渲染** | Next/Nuxt/SvelteKit/Solid/Astro 全部支持 `renderToStream`/`pipe`/Suspense 流式 | ✅ P9-01(`renderToNodeStream` + `ReadableStream`,`SsrOptions.streaming`) | 已具备 |
-| **Partial Prerendering** | Next.js 16 已稳定（静态壳 + Suspense 流式动态）；Astro 5 `server:defer` Server Islands | ❌ | **缺失**(P9-04 待办,依赖 P9-01 ✅) |
+| **Partial Prerendering** | Next.js 16 已稳定（静态壳 + Suspense 流式动态）；Astro 5 `server:defer` Server Islands | ✅ P9-04(`routeRules.ppr: true` 隐含 `prerender` + 强制流式 SSR;`server:defer` 指令编译时包裹 `<Suspense>` + 提取 `#fallback`) | 已具备 |
 | **ISR** | Next.js 内置；Nuxt `routeRules: { swr: 600 }`；Astro 5 实验 | ✅ P9-03(`routeRules.isr` + SWR,`peek` 保留过期项) | 已具备 |
 | **per-route 渲染规则** | Nuxt `routeRules` 可 per-route 切换 SSR/SSG/ISR/CSR + cors/headers；Astro `export const prerender = false` | ✅ P9-03(`routeRules.ssr`/`prerender`/`isr`,覆盖全局 `ssr.exclude`) | 已具备 |
 | **Server Components** | Next.js RSC 默认；Nuxt `<ServerComponent>` | ❌ | 设计差异（Vue 生态） |
 | **Hydration 错误恢复** | Next/Nuxt 有详细错误边界 + 流式 fallback | ✅ `error.vue` | 已具备 |
 
-ubean 渲染层差距已大幅缩小:流式 SSR(P9-01)、ISR + per-route 渲染规则(P9-03)均已落地。剩余的 PPR/Server Islands(P9-04)是唯一未补齐的渲染层能力,且其前置依赖(流式 SSR)已具备。
+ubean 渲染层差距已基本补齐:流式 SSR(P9-01)、ISR + per-route 渲染规则(P9-03)、PPR/Server Islands(P9-04)均已落地,P0 战略级渲染与变更层能力对齐完成。
 
 ### 2.2 数据获取与变更
 
@@ -194,12 +194,10 @@ ubean 平台预设明显最少（仅 Node + Cloudflare），roadmap P5-06 待补
 - **竞品**:Next.js ISR、Nuxt `routeRules: { swr: 600 }`、Astro SWR
 - **任务**:P9-03 ✅
 
-#### 4. ❌ Partial Prerendering / Server Islands
-- **现状**：无静态壳 + 动态流式
-- **竞品**：Next.js 16 PPR 稳定、Astro 5 `server:defer`
-- **影响**：个性化页面无法享受静态加速
-- **方案**：依赖流式 SSR + Suspense 边界实现
-- **任务**：P9-04（依赖 P9-01）
+#### 4. ✅ Partial Prerendering / Server Islands
+- **现状**:`RouteRule` 扩展 `ppr: true` 字段(隐含 `prerender: true` + 强制流式 SSR,等价 `ssr: 'streaming'`);`route-rules` 中间件匹配 `ppr` 字段;router 对 PPR 路由强制流式输出并附加 `X-PPR: true` 响应头;`prerender` 自动发现 `ppr: true` 路由生成静态壳;`@ubean/islands` Vite 插件新增 `server:defer` 指令转换:编译时将组件包裹在 `<Suspense>` 中,提取 `#fallback` 插槽为 Suspense fallback(无 fallback 时注入 `<ubean-defer-fallback>` 占位);预渲染时仅渲染 fallback(静态壳),流式 SSR 时通过 Suspense 边界流式输出异步组件解析后的内容
+- **竞品**:Next.js 16 PPR 稳定、Astro 5 `server:defer`
+- **任务**:P9-04 ✅
 
 ### P1 重要缺失（影响对齐度）
 
@@ -285,7 +283,7 @@ ubean 有若干竞品**没有**的差异化能力，是其核心竞争力：
 1. **流式 SSR**（P0，解锁 PPR 前置）—— 改 `@ubean/ssr` 用 `renderToNodeStream`
 2. **per-route 渲染规则 + ISR**（P0）—— 扩展 `routeRules`
 3. **Server Actions**（P0，✅ 已完成 P9-02）—— `defineAction` + `'use server'`
-4. **PPR / Server Islands**（P0，依赖 1+3）
+4. **PPR / Server Islands**（P0，✅ 已完成 P9-04，依赖 1+3）—— `routeRules.ppr` + `server:defer` → `<Suspense>`
 5. **文件约定 SEO**（P1）—— sitemap.ts/robots.ts/opengraph-image
 6. **OG Image 生成**（P1）—— Satori 集成
 7. **JSON-LD/Schema.org**（P1）
@@ -293,7 +291,7 @@ ubean 有若干竞品**没有**的差异化能力，是其核心竞争力：
 9. **CSRF + 安全头**（P2）
 10. **Sessions API + after()**（P2）
 
-ubean 的架构（Hono + Vite-Plus + 模块系统）足以支撑上述补全，关键缺口集中在**渲染层**与**变更层**，这是 Vue 元框架追赶 Next.js 16 的必经之路。
+ubean 的架构（Hono + Vite-Plus + 模块系统）足以支撑上述补全。P0 渲染层与变更层（流式 SSR、ISR、per-route 规则、Server Actions、PPR）已全部落地，Vue 元框架追赶 Next.js 16 的核心能力对齐完成，后续聚焦 P1/P2 的 SEO、缓存、安全与平台预设补全。
 
 ---
 

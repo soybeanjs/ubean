@@ -71,10 +71,16 @@ export interface IsrRule {
  * - `prerender: true`  该路由加入 SSG 预渲染队列(由 `@ubean/prerender` 自动发现)
  * - `isr: 60` 或 `isr: { ttl: 60, swr: true }`  启用 ISR,以 TTL 秒缓存渲染 HTML
  *
+ * P9-04 扩展:支持 Partial Prerendering(`ppr`)。
+ * - `ppr: true` 启用 PPR:静态壳预渲染 + Suspense 流式动态内容
+ *   (对齐 Next.js 16 PPR / Astro `server:defer`)。运行时强制流式 SSR,
+ *   覆盖全局 `ssr.exclude`;同时该路由加入预渲染队列(等价于 `prerender: true`),
+ *   预渲染产物作为静态壳供运行时复用。
+ *
  * 注意:构建时预渲染策略已迁移至 `PrerenderConfig`(由 `ubean.config.ts` 的
  * `prerender` 字段统一管理),`RouteRule.prerender` 仅作为自动发现标记 ——
  * `prerender: true` 的路由会被 `collectPrerenderRoutes` 加入队列(受
- * `PrerenderConfig.exclude` 过滤)。
+ * `PrerenderConfig.exclude` 过滤)。`ppr: true` 隐含 `prerender: true`。
  */
 export interface RouteRule {
   cache?: { ttl?: number; swr?: boolean };
@@ -102,6 +108,20 @@ export interface RouteRule {
    * `swr: true` 时,过期窗口内先返回旧 HTML,同时后台异步刷新。
    */
   isr?: number | IsrRule;
+  /**
+   * 启用 Partial Prerendering / Server Islands(P9-04)。
+   *
+   * - `true` 该路由启用 PPR:静态壳预渲染 + Suspense 流式动态内容
+   *
+   * 运行时行为:
+   * - 强制流式 SSR(覆盖 `ssr.exclude` / 全局 `streaming`),等价于 `ssr: 'streaming'`
+   * - 隐含 `prerender: true`,该路由会被预渲染(产物作为静态壳)
+   * - 页面内带 `server:defer` 指令的组件在预渲染时仅渲染 fallback,
+   *   在流式 SSR 时通过 Suspense 边界流式输出实际内容
+   *
+   * 对齐:Next.js 16 PPR(稳定)、Astro 5 `server:defer`。
+   */
+  ppr?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -139,7 +139,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）
 - 扩展模块顶层字段：`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`，均支持 `true` 或选项对象形式启用
 - SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
-- Per-route 渲染规则（P9-03）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）覆盖全局设置；优先级 `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`
+- Per-route 渲染规则（P9-03 + P9-04）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）/ `ppr`（`boolean`）覆盖全局设置；优先级 `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`；`ppr: true` 隐含 `prerender: true` + 强制流式 SSR（等价 `ssr: 'streaming'`）
 
 ### 3.6 模块与扩展包
 
@@ -273,9 +273,20 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `compileRouteRules(rules)` / `matchRouteRules(path, rules)` | 路由规则编译/匹配(按规则+路径特异性排序)                      |
 | `createRouteRulesMiddleware(rules)`                         | 路由规则中间件(匹配后通过 `c.get('routeRule')` 暴露合并结果)  |
 
-`RouteRule` 字段(P9-03 扩展):`redirect` / `rewrite` / `proxy` / `headers` / `cache` / `ssr`(boolean \| `'streaming'`) / `prerender`(boolean) / `isr`(number \| `{ ttl, swr? }`)
+`RouteRule` 字段(P9-03 + P9-04 扩展):`redirect` / `rewrite` / `proxy` / `headers` / `cache` / `ssr`(boolean \| `'streaming'`) / `prerender`(boolean) / `isr`(number \| `{ ttl, swr? }`) / `ppr`(boolean)
 
-通配符:`*` 单段,`**` 多段递归;处理顺序:redirect > rewrite > headers(合并) > cache;渲染字段 `ssr`/`isr`/`prerender` 由 router 在页面请求阶段处理,优先级:`routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`
+通配符:`*` 单段,`**` 多段递归;处理顺序:redirect > rewrite > headers(合并) > cache;渲染字段 `ssr`/`isr`/`prerender`/`ppr` 由 router 在页面请求阶段处理,优先级:`routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`;`ppr: true` 隐含 `prerender: true` + 强制流式 SSR,router 附加 `X-PPR: true` 响应头
+
+### Partial Prerendering / Server Islands (P9-04)
+
+| API / 指令                              | 说明                                                                                                              |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `routeRules: { '/path': { ppr: true } }` | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)     |
+| `<Comp server:defer />`                 | 编译时指令:组件包裹在 `<Suspense>` 中,`#fallback` 插槽提取为 Suspense fallback(无 fallback 时注入 `<ubean-defer-fallback>` 占位) |
+| `<Comp server:defer><template #fallback>...</template>...</Comp>` | 带自定义 fallback 的 server:defer;预渲染时仅渲染 fallback(静态壳),流式 SSR 时流式输出异步组件解析后的内容    |
+
+- `server:defer` 组件必须为异步(`async setup()` 或 `defineAsyncComponent`)才能触发 Suspense 流式
+- 对齐 Next.js 16 PPR / Astro 5 `server:defer`
 
 ### 中间件工厂
 
@@ -330,6 +341,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `withViewTransition(fn)` / `supportsViewTransitions()`                                                                                                            | View Transitions                                                                                                |
 | `<Link to="...">` / `<Head>`                                                                                                                                      | 全局注册组件（无需导入）                                                                                        |
 | `<Comp client:load / client:idle / client:visible / client:media / client:only />`                                                                                | Islands 指令（框架自动水合，无需手动调用 `hydrateIslands`）                                                     |
+| `<Comp server:defer />`                                                                                                                                           | Server Islands 指令（P9-04）：编译时包裹 `<Suspense>`，预渲染 fallback + 流式 SSR 输出异步组件内容              |
 | `hydrateIslands(options?)`                                                                                                                                        | Islands 水合（**框架自动调用**，无需手动执行；`components` 可选，手动传入优先于自动注册）                       |
 
 ### Markdown
@@ -344,8 +356,8 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 | API                                                                 | 说明                                                                              |
 | ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `prerender(options)` / `collectPrerenderRoutes(pages, options)`     | SSG;`options.routeRules` 自动发现 `prerender: true` 路由(P9-03)                   |
-| `extractPrerenderRoutesFromRules(routeRules)`                       | 从 `routeRules` 提取 `prerender: true` 模式(与 `include` 合并,受 `exclude` 过滤)  |
+| `prerender(options)` / `collectPrerenderRoutes(pages, options)`     | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)  |
+| `extractPrerenderRoutesFromRules(routeRules)`                       | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤) |
 | `generatePrerenderManifest(result, baseUrl)`                        | 生成清单                                                                          |
 | `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`   | 路由 → 文件路径映射/写入                                                          |
 | `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob`   | 链接提取/通配符匹配                                                               |

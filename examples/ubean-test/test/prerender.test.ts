@@ -262,6 +262,21 @@ describe('Prerender / SSG system', () => {
       const { extractPrerenderRoutesFromRules } = await import('ubean');
       expect(extractPrerenderRoutesFromRules(undefined)).toEqual([]);
     });
+
+    // P9-04: `ppr: true` implies `prerender: true` (static shell generation)
+    it('discovers routes with ppr: true (P9-04 implies prerender)', async () => {
+      const { extractPrerenderRoutesFromRules } = await import('ubean');
+      const result = extractPrerenderRoutesFromRules({
+        '/dashboard': { ppr: true },
+        '/dashboard/stats': { ppr: true },
+        '/about': { prerender: true },
+        '/admin': { ssr: false } // neither prerender nor ppr
+      });
+      expect(result).toContain('/dashboard');
+      expect(result).toContain('/dashboard/stats');
+      expect(result).toContain('/about');
+      expect(result).not.toContain('/admin');
+    });
   });
 
   // ==========================================================================

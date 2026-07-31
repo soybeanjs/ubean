@@ -1,11 +1,12 @@
 /**
- * P9-03 per-route 渲染规则单元测试
+ * P9-03 / P9-04 per-route 渲染规则单元测试
  *
- * 验证 `RouteRule` 的新字段 `ssr` / `prerender` / `isr` 在
+ * 验证 `RouteRule` 的新字段 `ssr` / `prerender` / `isr` / `ppr` 在
  * `compileRouteRules` / `matchRouteRules` / `normalizeIsrRule` 中的行为:
  * - 首次匹配胜出(按 specificity 排序后)
- * - 多规则合并时 ssr/prerender/isr 不被覆盖
+ * - 多规则合并时 ssr/prerender/isr/ppr 不被覆盖
  * - `isr` 规范化为 `IsrRule` 对象
+ * - P9-04: `ppr` 字段的匹配、specificity 与合并语义
  */
 import { describe, it, expect } from 'vitest';
 import { compileRouteRules, matchRouteRules, normalizeIsrRule } from '../src/index';
@@ -171,6 +172,123 @@ describe('P9-03 per-route rendering rules', () => {
       expect(matched.isr).toEqual({ ttl: 30, swr: false });
       expect(matched.cache).toEqual({ ttl: 60, swr: true });
       expect(matched.headers).toHaveProperty('X-Custom', 'yes');
+    });
+  });
+});
+
+describe('P9-04 Partial Prerendering (ppr field)', () => {
+  describe('matchRouteRules - ppr field', () => {
+    it('matches ppr: true on specific path', () => {
+      const compiled = compileRouteRules({
+        '/dashboard': { ppr: true }
+      });
+      const matched = matchRouteRules('/dashboard', compiled);
+      expect(matched.ppr).toBe(true);
+    });
+
+    it('matches ppr via wildcard', () => {
+      const compiled = compileRouteRules({
+        '/dashboard/**': { ppr: true }
+      });
+      const matched = matchRouteRules('/dashboard/stats', compiled);
+      expect(matched.ppr).toBe(true);
+    });
+
+    it('does not set ppr when no rule matches', () => {
+      const compiled = compileRouteRules({
+        '/dashboard/**': { ppr: true }
+      });
+      const matched = matchRouteRules('/about', compiled);
+      expect(matched.ppr).toBeUndefined();
+    });
+
+    it('first ppr match wins (specificity ordering)', () => {
+      const compiled = compileRouteRules({
+        '/dashboard/**': { ppr: true },
+        '/dashboard/private': { ppr: false }
+      });
+      // /dashboard/private matches both; more specific path wins
+      const matched = matchRouteRules('/dashboard/private', compiled);
+      expect(matched.ppr).toBe(false);
+    });
+  });
+
+  describe('matchRouteRules - ppr combined with other fields', () => {
+    it('merges ppr + isr + headers from different rules', () => {
+      const compiled = compileRouteRules({
+        '/dashboard/**': { headers: { 'X-PPR-Page': '1' } },
+        '/dashboard/stats': { ppr: true, isr: 60 }
+      });
+      const matched = matchRouteRules('/dashboard/stats', compiled);
+      expect(matched.ppr).toBe(true);
+      expect(matched.isr).toBe(60);
+      expect(matched.headers).toHaveProperty('X-PPR-Page', '1');
+    });
+
+    it('does not override ppr with later matches', () => {
+      const compiled = compileRouteRules({
+        '/dashboard/**': { ppr: true },
+        '/dashboard/**': { ppr: false } as RouteRule
+      });
+      // Duplicate keys — JS keeps last; here we just verify single-rule behavior
+      const matched = matchRouteRules('/dashboard/x', compiled);
+      expect(matched.ppr).toBe(false);
+    });
+  });
+
+  describe('compileRouteRules - ppr specificity', () => {
+    it('sorts ppr rules higher than plain header rules', () => {
+      const compiled = compileRouteRules({
+        '/**': { headers: { 'X-Default': '1' } },
+        '/dashboard/**': { ppr: true }
+      });
+      // /dashboard/** should be more specific due to ppr field (+1)
+      expect(compiled[0].rule.ppr).toBe(true);
+    });
+
+    it('treats ppr and ssr with equal specificity (both +1)', () => {
+      // Two rules with same path specificity and same rule specificity (ppr vs ssr).
+      // Order between them is stable but not guaranteed — we just verify both
+      // are sorted above a plain header rule.
+      const compiled = compileRouteRules({
+        '/**': { headers: { 'X-Default': '1' } },
+        '/a/**': { ppr: true },
+        '/b/**': { ssr: 'streaming' }
+      });
+      // Both ppr and ssr rules come before the plain header rule
+      const ruleKinds = compiled.map(c => Object.keys(c.rule)).flat();
+      expect(ruleKinds).toContain('ppr');
+      expect(ruleKinds).toContain('ssr');
+      // The plain headers rule is last
+      expect(compiled[compiled.length - 1].rule.headers).toBeDefined();
+    });
+
+    it('redirect still beats ppr specificity', () => {
+      const compiled = compileRouteRules({
+        '/dashboard/**': { ppr: true },
+        '/old': { redirect: '/new' }
+      });
+      // redirect contributes +3, ppr = +1
+      expect(compiled[0].rule.redirect).toBe('/new');
+    });
+  });
+
+  describe('RouteRule type compatibility with ppr', () => {
+    it('accepts ppr alongside all other fields', () => {
+      const rule: RouteRule = {
+        cache: { ttl: 60 },
+        headers: { 'X-PPR': 'true' },
+        ssr: 'streaming',
+        prerender: true,
+        isr: { ttl: 30 },
+        ppr: true
+      };
+      const compiled = compileRouteRules({ '/dashboard': rule });
+      const matched = matchRouteRules('/dashboard', compiled);
+      expect(matched.ppr).toBe(true);
+      expect(matched.ssr).toBe('streaming');
+      expect(matched.prerender).toBe(true);
+      expect(matched.isr).toEqual({ ttl: 30 });
     });
   });
 });

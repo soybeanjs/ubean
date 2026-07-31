@@ -494,15 +494,18 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
 
     // P9-03: per-route 渲染规则 —— 从 context 读取匹配的 routeRule,
     // 覆盖全局 ssr.exclude / streaming 配置。
+    // P9-04: `ppr: true` 隐式等价于 `ssr: 'streaming'`(强制流式 SSR + 覆盖 exclude)。
     const routeRule = c.get('routeRule') as RouteRule | undefined;
     const perRouteSsr = routeRule?.ssr;
     const isrRule = normalizeIsrRule(routeRule?.isr);
+    const pprEnabled = routeRule?.ppr === true;
 
     // SSR exclude: matched pages skip server rendering → CSR shell.
     // per-route `ssr` 规则覆盖全局 exclude:
     //   - `ssr: false`  → 强制 CSR(即使全局未排除)
     //   - `ssr: true`   → 强制 SSR(即使命中全局 exclude)
     //   - `ssr: 'streaming'` → 强制 SSR + 流式输出
+    // P9-04: `ppr: true` → 强制 SSR + 流式输出(等价于 `ssr: 'streaming'`)
     let excluded = matchAnyGlob(page.route, ssrExclude);
     let routeStreaming = streaming;
     if (perRouteSsr === false) {
@@ -510,6 +513,10 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     } else if (perRouteSsr === true) {
       excluded = false;
     } else if (perRouteSsr === 'streaming') {
+      excluded = false;
+      routeStreaming = true;
+    } else if (pprEnabled) {
+      // PPR 需要流式 SSR(Suspense 边界流式输出动态内容)
       excluded = false;
       routeStreaming = true;
     }
@@ -541,6 +548,8 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
 
     // 流式 SSR:当启用且 renderer 支持时,返回 ReadableStream 响应。
     // 回退:renderer 不支持流式时,renderPageToStream 内部自动降级为缓冲渲染。
+    // P9-04: PPR 路由也走此分支(ppr: true → routeStreaming = true),
+    //         响应头附加 `X-PPR: true` 标记,便于调试与可观测性。
     if (routeStreaming && renderer) {
       const stream = renderPageToStream(
         pageObj as Parameters<typeof renderPageToStream>[0],
@@ -549,8 +558,10 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
         'app',
         renderContext as Parameters<typeof renderPageToStream>[4]
       );
+      const headers: Record<string, string> = { 'Content-Type': 'text/html; charset=utf-8' };
+      if (pprEnabled) headers['X-PPR'] = 'true';
       return c.body(stream, {
-        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+        headers,
         ...(method === 'POST' && actionErrors ? { status: 422 } : {})
       });
     }

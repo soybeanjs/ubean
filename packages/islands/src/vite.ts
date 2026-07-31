@@ -3,6 +3,19 @@ import type { Plugin, ResolvedConfig as ViteResolvedConfig } from 'vite';
 
 export type ClientDirective = 'client:load' | 'client:idle' | 'client:visible' | 'client:media' | 'client:only';
 
+/**
+ * Server-side deferral directive (P9-04: Partial Prerendering / Server Islands).
+ *
+ * Components marked with `server:defer` are wrapped in `<Suspense>` at compile time:
+ * - During SSG/prerender: only the fallback is rendered (produces the static shell)
+ * - During streaming SSR: the fallback is sent first, then the resolved content
+ *   streams in via the Suspense boundary (the component must be async —
+ *   `defineAsyncComponent` or `async setup()`)
+ *
+ * Aligns with Astro 5 `server:defer` and Next.js 16 PPR semantics.
+ */
+export const SERVER_DEFER_DIRECTIVE = 'server:defer';
+
 const CLIENT_DIRECTIVES: ClientDirective[] = [
   'client:load',
   'client:idle',
@@ -11,7 +24,11 @@ const CLIENT_DIRECTIVES: ClientDirective[] = [
   'client:only'
 ];
 
+/** Matches any `client:*` directive (for client island detection) */
 const DIRECTIVE_RE = /\bclient:(load|idle|visible|media|only)\b/;
+
+/** Matches either `client:*` or `server:defer` (used to fast-skip non-island SFCs) */
+const ANY_DIRECTIVE_RE = /\b(?:client:(?:load|idle|visible|media|only)|server:defer)\b/;
 
 function isVueSfc(id: string): boolean {
   return /\.vue(?:\?.*)?$/.test(id) && !id.includes('&type=');
@@ -250,6 +267,16 @@ export function generateRegistryModule(components: IslandComponentMap): string {
   return [...imports, '', 'export const islands = {', ...entries, '};'].join('\n');
 }
 
+/**
+ * 提取 SFC 中顶层的 `<template>` 块。
+ *
+ * 处理嵌套 `<template>` 标签(P9-04 需要):Vue SFC 的 `<template>` 块内部
+ * 可能包含 `<template #slot>` 等嵌套 template 标签(如 `server:defer` 的
+ * `#fallback` 插槽)。简单 `indexOf('</template>')` 会错误匹配到嵌套关闭
+ * 标签,因此用深度计数找到匹配的顶层关闭标签。
+ *
+ * 仅匹配小写 `<template`(SFC 块标签),不会误匹配 `<Template>` 组件。
+ */
 function extractTemplateBlock(
   code: string
 ): { start: number; end: number; content: string; attrs: string; openTagEnd: number } | null {
@@ -257,7 +284,28 @@ function extractTemplateBlock(
   if (!openMatch) return null;
   const openTagEnd = openMatch.index! + openMatch[0].length;
   const closeTag = '</template>';
-  const closeIdx = code.indexOf(closeTag, openTagEnd);
+  const openRe = /<template[\s>]/g;
+  const closeRe = /<\/template>/g;
+  openRe.lastIndex = openTagEnd;
+  closeRe.lastIndex = openTagEnd;
+  let depth = 1;
+  let closeIdx = -1;
+  while (depth > 0) {
+    const nextOpen = openRe.exec(code);
+    const nextClose = closeRe.exec(code);
+    if (!nextClose) return null; // unbalanced — no closing tag
+    if (nextOpen && nextOpen.index < nextClose.index) {
+      depth++;
+      closeRe.lastIndex = nextOpen.index + nextOpen[0].length;
+    } else {
+      depth--;
+      if (depth === 0) {
+        closeIdx = nextClose.index;
+        break;
+      }
+      openRe.lastIndex = nextClose.index + nextClose[0].length;
+    }
+  }
   if (closeIdx === -1) return null;
   return {
     start: openMatch.index!,
@@ -428,6 +476,28 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
       continue;
     }
 
+    // P9-04: `server:defer` — wrap component in <Suspense> with a fallback slot.
+    // The component itself is left intact (only the `server:defer` attribute is
+    // stripped). The component must be async for true streaming behavior; the
+    // Suspense boundary is the streaming split point during renderToNodeStream.
+    if (tag.attrs.has(SERVER_DEFER_DIRECTIVE)) {
+      const { fallbackHtml, restInner } = extractFallbackSlot(tag.innerHTML);
+      // Recursively transform nested directives inside the component's remaining
+      // inner content (excluding the extracted #fallback slot).
+      const transformedInner = transformTemplate(restInner, islandCounter, filePath);
+      const strippedOpenTag = stripAttr(tag.fullOpenTag, SERVER_DEFER_DIRECTIVE);
+      const fallbackContent =
+        fallbackHtml ??
+        `<ubean-defer-fallback data-component="${escapeAttr(tag.tagName)}"></ubean-defer-fallback>`;
+
+      // <Suspense><template #fallback>...</template><Comp>...</Comp></Suspense>
+      out += `<Suspense><template #fallback>${fallbackContent}</template>${strippedOpenTag}${transformedInner}`;
+      if (!tag.selfClosing) out += `</${tag.tagName}>`;
+      out += `</Suspense>`;
+      pos = tag.end;
+      continue;
+    }
+
     const directive = CLIENT_DIRECTIVES.find(d => tag.attrs.has(d));
     if (!directive) {
       const inner = tag.selfClosing ? '' : transformTemplate(tag.innerHTML, islandCounter, filePath);
@@ -466,10 +536,50 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
   return out;
 }
 
+/**
+ * Extract a `<template #fallback>...</template>` slot from `innerHTML`.
+ *
+ * Used by `server:defer` transform: the fallback slot's content is moved to the
+ * wrapping `<Suspense>`'s `#fallback` slot. The remaining inner content (other
+ * slots + default content) stays with the original component.
+ *
+ * Returns `{ fallbackHtml, restInner }`:
+ * - `fallbackHtml`: inner HTML of the `<template #fallback>` element, or `null`
+ *   if no fallback slot was provided
+ * - `restInner`: `innerHTML` with the `<template #fallback>...</template>` removed
+ */
+function extractFallbackSlot(innerHTML: string): { fallbackHtml: string | null; restInner: string } {
+  // Match `<template #fallback>...</template>` (also handles `v-slot:fallback`).
+  // We don't use findTagAt because `<template>` is lowercase (not a component).
+  const fallbackRe = /<template\s+[^>]*#fallback[^>]*>([\s\S]*?)<\/template>/g;
+  const match = fallbackRe.exec(innerHTML);
+  if (!match) {
+    return { fallbackHtml: null, restInner: innerHTML };
+  }
+  const fallbackHtml = match[1];
+  // Remove the matched `<template #fallback>...</template>` from innerHTML
+  const restInner = innerHTML.slice(0, match.index) + innerHTML.slice(match.index + match[0].length);
+  return { fallbackHtml, restInner };
+}
+
+/**
+ * Strip a single attribute (matched by name, with optional value) from an
+ * opening tag string. Used by `server:defer` transform to remove the directive
+ * attribute after wrapping the component in `<Suspense>`.
+ */
+function stripAttr(openTag: string, attrName: string): string {
+  // Match ` attrName` optionally followed by `="..."` or `'...'` (value).
+  // The leading `\s` ensures we don't partially match a longer attribute name.
+  const re = new RegExp(`\\s${attrName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(?:=(?:"[^"]*"|'[^']*'|[^\\s]+))?`);
+  return openTag.replace(re, '');
+}
+
 export function transformVueSfcIslands(code: string, filePath: string): { code: string; islandCount: number } {
   const tpl = extractTemplateBlock(code);
   if (!tpl) return { code, islandCount: 0 };
-  if (!DIRECTIVE_RE.test(tpl.content)) return { code, islandCount: 0 };
+  // P9-04: also transform `server:defer` (not just `client:*` directives).
+  // `ANY_DIRECTIVE_RE` matches both, letting the transform run on either kind.
+  if (!ANY_DIRECTIVE_RE.test(tpl.content)) return { code, islandCount: 0 };
 
   const counter = { count: 0 };
   const newContent = transformTemplate(tpl.content, counter, filePath);
@@ -580,13 +690,16 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
     transform(code, id) {
       if (!enabled) return null;
       if (!isVueSfc(id)) return null;
-      if (!DIRECTIVE_RE.test(code)) return null;
+      // P9-04: also transform SFCs containing `server:defer` (not just `client:*`).
+      if (!ANY_DIRECTIVE_RE.test(code)) return null;
 
       const absolutePath = id.split('?')[0];
       const filePath = absolutePath.replace(viteConfig.root, '').replace(/^[/\\]/, '');
       const result = transformVueSfcIslands(code, filePath);
 
       // 仅对 SFC 主模块运行收集逻辑（?vue&type=template 等子查询只有模板片段，无 <script>）
+      // 注意:`server:defer` 组件不进入客户端 island 注册表(它们是服务端渲染的),
+      // `collectIslandComponents` 内部仅扫描 `client:*` 指令,自动忽略 `server:defer`。
       if (isMainVueSfc(id)) {
         const collected = collectIslandComponents(code, absolutePath);
         const registryChanged = updateRegistry(collected, absolutePath);

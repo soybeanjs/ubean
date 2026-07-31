@@ -53,7 +53,11 @@ function normalizePagePath(filePath: string): string {
 }
 
 /**
- * 从 routeRules 中提取标记了 `prerender: true` 的路由模式(P9-03)。
+ * 从 routeRules 中提取标记了 `prerender: true` 或 `ppr: true` 的路由模式
+ * (P9-03 + P9-04)。
+ *
+ * P9-04:`ppr: true` 隐含 `prerender: true` —— PPR 路由的静态壳需要通过
+ * 预渲染生成(`server:defer` 组件在预渲染时仅渲染 fallback)。
  *
  * 返回的路径列表会进一步与 `pages` 候选池匹配(glob 模式)或直接加入(具体路径)。
  * 动态路由的具象值(如 `/blog/hello-world`)可通过具体路径直接加入。
@@ -64,7 +68,7 @@ export function extractPrerenderRoutesFromRules(
   if (!routeRules) return [];
   const result: string[] = [];
   for (const [pattern, rule] of Object.entries(routeRules)) {
-    if (rule?.prerender === true) {
+    if (rule?.prerender === true || rule?.ppr === true) {
       result.push(pattern);
     }
   }
@@ -252,8 +256,9 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
   const startTime = Date.now();
   const config: ResolvedPrerenderConfig = resolvePrerenderConfig(options.prerender);
 
-  // P9-03: routeRules 中 `prerender: true` 的路由也启用预渲染,
+  // P9-03 + P9-04: routeRules 中 `prerender: true` 或 `ppr: true` 的路由也启用预渲染,
   // 即使 `PrerenderConfig` 未显式配置 `all` 或 `include`。
+  // PPR 路由的预渲染产物作为静态壳(`server:defer` 组件仅渲染 fallback)。
   const ruleDiscoveredRoutes = extractPrerenderRoutesFromRules(options.routeRules);
   const enabledByRules = ruleDiscoveredRoutes.length > 0;
 

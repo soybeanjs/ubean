@@ -29,6 +29,8 @@ function compileRulePath(pattern: string): RegExp {
  *
  * P9-03 引入 `ssr`/`prerender`/`isr` 字段后,具体路径(如 `/admin/*`)应优先于
  * 通配路径(如 `/**`)被匹配,以便 per-route 字段优先级正确。
+ *
+ * P9-04 扩展:`ppr` 字段同样参与 specificity 计算。
  */
 function ruleSpecificity(rule: RouteRule): number {
   return (
@@ -37,7 +39,8 @@ function ruleSpecificity(rule: RouteRule): number {
     (rule.headers ? 1 : 0) +
     (rule.ssr !== undefined ? 1 : 0) +
     (rule.isr !== undefined ? 1 : 0) +
-    (rule.prerender !== undefined ? 1 : 0)
+    (rule.prerender !== undefined ? 1 : 0) +
+    (rule.ppr !== undefined ? 1 : 0)
   );
 }
 
@@ -116,6 +119,10 @@ export function matchRouteRules(path: string, compiledRules: CompiledRouteRule[]
       }
       if (rule.isr !== undefined && matched.isr === undefined) {
         matched.isr = rule.isr;
+      }
+      // P9-04: Partial Prerendering 标记,首次匹配胜出
+      if (rule.ppr !== undefined && matched.ppr === undefined) {
+        matched.ppr = rule.ppr;
       }
     }
   }

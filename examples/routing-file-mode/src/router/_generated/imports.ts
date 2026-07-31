@@ -44,7 +44,7 @@ export interface RouteRecord {
    * (not the reuse route's own name), so the same component is reused.
    */
   component: RouteFileKey;
-  layout?: LayoutKey | false;
+  layout?: LayoutKey | LayoutKey[] | false;
   reuse?: boolean;
   meta?: Record<string, unknown>;
   cache?: boolean;

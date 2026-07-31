@@ -1669,6 +1669,94 @@ export const loader = defineLoader(c => {
 });
 ```
 
+## 4.19b Color Mode 深浅色（P9-21）
+
+ubean 内置深浅色（dark/light）模式支持，对齐 Nuxt `@nuxtjs/color-mode`。通过注入 no-FOUC（防闪烁）内联脚本到 `<head>`，在浏览器绘制前同步设置 `<html>` 的 class 或 `data-*` 属性，避免暗色模式切换时的闪烁。
+
+#### 基本用法
+
+```typescript
+// 在任意 Vue 组件中使用（自动导入）
+const colorMode = useColorMode();
+
+colorMode.value;       // 'light' | 'dark' — 当前实际模式
+colorMode.preference;  // 'system' | 'light' | 'dark' — 用户偏好
+colorMode.set('dark'); // 设置偏好并持久化
+colorMode.toggle();    // 在 modes 之间循环切换
+```
+
+#### 工作原理
+
+1. **SSR / 构建时**：Vite 插件在 `transformIndexHtml` 阶段将 no-FOUC 脚本注入 `<head>` 最前面
+2. **浏览器加载时**：脚本同步执行，从 cookie（SSR 友好）或 localStorage 读取偏好，若为 `system` 则检测 `prefers-color-scheme`
+3. **Hydration 后**：`useColorMode()` composable 从 DOM 读取当前模式，提供响应式访问
+
+#### 配置
+
+```typescript
+// ubean.config.ts
+export default defineConfig({
+  colorMode: {
+    preference: 'system',    // 默认偏好: 'system' | 'light' | 'dark' | 自定义
+    fallback: 'light',       // 系统偏好无法检测时的回退值
+    classPrefix: '',         // class 前缀
+    classSuffix: '-mode',    // class 后缀 → 'light-mode', 'dark-mode'
+    storageKey: 'ubean-color-mode',  // localStorage 键名
+    cookieName: 'ubean-color-mode',  // cookie 名（SSR）
+    dataValue: false,        // 使用 data-color-mode 属性代替 class
+    modes: ['light', 'dark'] // 可用模式列表
+  }
+});
+```
+
+设为 `false` 可完全禁用颜色模式：
+
+```typescript
+export default defineConfig({
+  colorMode: false
+});
+```
+
+#### 自定义模式
+
+支持超过两种模式（如 sepia）：
+
+```typescript
+export default defineConfig({
+  colorMode: {
+    modes: ['light', 'dark', 'sepia'],
+    classSuffix: ''  // → class="light" / "dark" / "sepia"
+  }
+});
+```
+
+#### CSS 配合
+
+```css
+/* 使用 class 模式（默认） */
+html.light-mode { background: #fff; color: #333; }
+html.dark-mode  { background: #1a1a1a; color: #eee; }
+
+/* 使用 data 属性模式 */
+html[data-color-mode="light"] { background: #fff; color: #333; }
+html[data-color-mode="dark"]  { background: #1a1a1a; color: #eee; }
+```
+
+#### 路由级强制模式
+
+通过 `forceColorMode()` / `unforceColorMode()` 可在路由级别强制颜色模式：
+
+```typescript
+// 在路由守卫中
+router.beforeEach((to) => {
+  if (to.meta.colorMode) {
+    forceColorMode(to.meta.colorMode as string);
+  } else {
+    unforceColorMode();
+  }
+});
+```
+
 ## 4.20 跨平台队列（Queues）
 
 参考 void 的 Proxy 动态绑定模式，ubean 提供跨平台队列抽象。

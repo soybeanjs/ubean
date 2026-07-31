@@ -618,6 +618,26 @@ export interface UbeanConfig {
     /** Rehype plugins passed to @mdx-js/mdx (only used when `mdx: true`). */
     rehypePlugins?: any[];
   };
+  colorMode?:
+    | {
+        /** Default preference: 'system' | 'light' | 'dark' | string (default: 'system'). */
+        preference?: string;
+        /** Fallback when system preference can't be determined (default: 'light'). */
+        fallback?: string;
+        /** Class prefix for the html element (default: ''). */
+        classPrefix?: string;
+        /** Class suffix (default: '-mode' → 'light-mode', 'dark-mode'). */
+        classSuffix?: string;
+        /** localStorage key for persisting user preference (default: 'ubean-color-mode'). */
+        storageKey?: string;
+        /** Cookie name for SSR (default: 'ubean-color-mode'). */
+        cookieName?: string;
+        /** Use a `data-color-mode` attribute on `<html>` instead of a class (default: false). */
+        dataValue?: boolean;
+        /** List of all possible color mode values (default: ['light', 'dark']). */
+        modes?: string[];
+      }
+    | false;
   imports?: {
     autoImport?: boolean;
     dirs?: string[];

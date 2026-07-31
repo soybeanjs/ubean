@@ -7,6 +7,7 @@ import { useVirtualRegistry, getComponentResolvers } from '@ubean/build';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanMdxPlugin } from '@ubean/markdown';
 import { scanProject } from '@ubean/routing';
+import { getColorModeScript, resolveColorModeConfig } from '@ubean/runtime';
 import { transformSync } from 'oxc-transform';
 import { join } from 'pathe';
 import type { InlinePreset } from 'unimport';
@@ -172,6 +173,13 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         return html;
       }
       let result = html;
+      // P9-21: Inject color mode no-FOUC script as the first element in <head>
+      // so the correct class/attribute is set before the browser paints.
+      const colorModeConfig = ubeanConfig.colorMode;
+      if (colorModeConfig !== false) {
+        const script = getColorModeScript(resolveColorModeConfig(colorModeConfig));
+        result = result.replace('<head>', `<head>\n    ${script}`);
+      }
       // Inject a default SVG favicon link if the user hasn't declared any
       // <link rel="icon"> of their own. Resolves to /favicon.svg under the
       // public/ dir — users override by adding their own favicon.svg or

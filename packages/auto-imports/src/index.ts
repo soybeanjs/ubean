@@ -109,6 +109,7 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
     'createDefaultAppConfig',
     't',
     'useI18n',
+    'useColorMode',
     'useSeoMeta',
     'usePage',
     'useRouter',

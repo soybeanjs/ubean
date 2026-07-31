@@ -132,3 +132,14 @@ export {
   useLocalePath
 } from './i18n';
 export type { VueI18nInstance } from './i18n';
+export {
+  useColorMode,
+  configureColorMode,
+  getColorModeConfig,
+  getColorModeScript,
+  resolveColorModeConfig,
+  forceColorMode,
+  unforceColorMode,
+  _resetColorMode
+} from './color-mode';
+export type { ColorModeConfig, ColorMode } from './color-mode';

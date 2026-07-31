@@ -14,5 +14,9 @@ export default defineConfig({
     deps: {
       neverBundle: ['vue', 'vue-router', '@unhead/vue', /^@ubean\//, /^node:/]
     }
+  },
+  test: {
+    include: ['test/**/*.test.ts'],
+    environment: 'node'
   }
 });

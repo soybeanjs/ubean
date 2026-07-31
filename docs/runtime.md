@@ -1843,6 +1843,91 @@ export default defineConfig({
 | `getPartyTownScript(config)` | 生成内联配置脚本 HTML |
 | `resolvePartyTownConfig(config)` | 合并默认配置 |
 
+## 4.19d 流式 metadata（P9-24）
+
+ubean 在流式 SSR 基础上支持动态 metadata 流式注入，对齐 Next.js streaming metadata。当页面组件在 `setup()` 内通过 `useHead()` / `useSeoMeta()` 添加 head 标签（如 `og:title`、`canonical`、动态 `title`）时，这些动态标签会被捕获并注入到流式响应中，确保 SEO 爬虫和社交机器人无需等待客户端水合即可看到完整 metadata。
+
+#### 问题背景
+
+流式 SSR 的核心优化是**先发送 `<head>` 再渲染 app**：浏览器在 app 渲染期间可提前加载 CSS/JS，显著改善 TTFB/LCP。但这带来一个 SEO 问题——组件 `setup()` 内的 `useHead()` 调用发生在 app 渲染期间，此时 `<head>` 已经发送完毕，动态添加的 `<meta>` / `<title>` / `<link>` 标签无法进入已发送的 `<head>`。
+
+#### 解决方案
+
+ubean 在流式渲染流程中增加动态 head 标签捕获与注入：
+
+1. **快照静态 head**：流式开始前，调用 `renderSSRHead(head)` 记录静态 head 标签（来自 `defineApp` / `definePage` / locale）
+2. **流式渲染 app**：Vue 组件 `setup()` 内的 `useHead()` 调用会向 head 实例追加新条目
+3. **收集动态标签**：app 渲染完成后，再次调用 `renderSSRHead(head)` 获取完整 head，与静态快照对比，提取新增标签
+4. **注入到 tail**：动态标签在 SSR state script 之后、tail 之前注入。浏览器会自动将 `<meta>` / `<title>` / `<link>` 标签移入 `<head>`
+
+```typescript
+// 任意 Vue 组件——动态 metadata 会被自动捕获
+import { useHead } from '@unhead/vue';
+
+export default defineComponent({
+  setup() {
+    // 这些标签在流式渲染期间添加，会被捕获并注入到响应中
+    useHead({
+      title: 'Dynamic Page Title',
+      meta: [
+        { name: 'og:title', content: 'Dynamic OG Title' },
+        { name: 'og:description', content: 'Description from component' }
+      ],
+      link: [
+        { rel: 'canonical', href: 'https://example.com/article/123' }
+      ]
+    });
+
+    return () => h('div', 'Page content');
+  }
+});
+```
+
+#### 工作原理
+
+```
+流式响应结构:
+┌─────────────────────────────────────────┐
+│ <!doctype html>                         │ ← head 部分(立即发送)
+│ <html><head>                            │   - 静态 title/meta/link
+│   <title>静态标题</title>               │   - CSS/JS 预加载
+│   <meta name="description" ...>         │
+│ </head><body>                           │
+│   <div id="app">                        │
+│     <!-- Vue app HTML 边渲染边流式输出 --> │ ← app 部分
+│     <div>页面内容</div>                  │
+│   </div>                                │
+│   <script id="__UBEAN_STATE__">...</script> │ ← tail 部分
+│   <meta name="og:title" content="...">  │   - 动态 head 标签(P9-24)
+│   <link rel="canonical" href="...">     │   - 浏览器自动移入 <head>
+│ </body></html>                          │
+└─────────────────────────────────────────┘
+```
+
+#### 启用条件
+
+流式 metadata 依赖流式 SSR，需在 `ubean.config.ts` 中启用 `ssr.streaming`：
+
+```typescript
+export default defineConfig({
+  ssr: {
+    streaming: true  // 启用流式 SSR（自动启用流式 metadata）
+  }
+});
+```
+
+未启用流式 SSR 时，动态 head 标签通过 `transformHtmlTemplate` 在缓冲渲染中一次性注入（原有行为，不受影响）。
+
+#### 与静态 head 的关系
+
+| 来源 | 注入时机 | 位置 | 覆盖关系 |
+| --- | --- | --- | --- |
+| `defineApp({ head })` | 流式开始前 | `<head>` 内 | 被页面级 head 覆盖 |
+| `definePage({ head })` / `pageObj.head` | 流式开始前 | `<head>` 内 | 覆盖 app 级 head |
+| 组件内 `useHead()` | 流式渲染期间 | tail（浏览器移入 `<head>`） | 追加（不重复静态标签） |
+
+> **注意**：动态 head 标签采用**追加**策略，不会覆盖或重复静态标签。`collectDynamicHeadTags` 通过逐行对比静态快照与完整 head，仅注入新增的标签行。
+
 ## 4.20 跨平台队列（Queues）
 
 参考 void 的 Proxy 动态绑定模式，ubean 提供跨平台队列抽象。

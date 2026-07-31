@@ -3,7 +3,7 @@ import type { App, Component } from 'vue';
 import { renderToString, renderToNodeStream } from '@vue/server-renderer';
 import type { RouteRecordRaw } from 'vue-router';
 import { getIslandsBootstrapScript } from '@ubean/islands';
-import { SSR_CONTENT_MARKER, STATE_DATA_ID, STATE_MARKER } from '@ubean/pages';
+import { SSR_CONTENT_MARKER, STATE_DATA_ID, STATE_MARKER, safeJsonStringify } from '@ubean/pages';
 import type {
   PageObject,
   PageRenderer,
@@ -14,8 +14,7 @@ import type {
 } from '@ubean/pages';
 import { applyAppConfig } from '@ubean/runtime/define-app';
 import type { ResolvedAppConfig } from '@ubean/runtime/define-app';
-import { createHead, transformHtmlTemplate } from '@unhead/vue/server';
-import { safeJsonStringify } from '@ubean/pages';
+import { createHead, transformHtmlTemplate, renderSSRHead } from '@unhead/vue/server';
 
 export interface VueRendererSimpleOptions {
   resolvePageComponent: (path: string) => Promise<Component | null>;
@@ -212,6 +211,44 @@ async function resolveState(
   return undefined;
 }
 
+/**
+ * P9-24: Collect dynamic head tags that were added during streaming.
+ *
+ * During streaming SSR, the initial `<head>` is sent before the Vue app
+ * renders. Any `useHead()` / `useSeoMeta()` calls inside component setup
+ * push entries to the head instance *after* the initial head was sent.
+ *
+ * This function compares the head state before and after streaming to
+ * find tags that were added dynamically, and returns them as an HTML string
+ * that can be injected before the stream closes.
+ *
+ * This ensures SEO crawlers and social media bots see the complete metadata
+ * (title, og:tags, etc.) without waiting for client hydration.
+ */
+function collectDynamicHeadTags(head: ReturnType<typeof createHead>, staticHeadTags: string): string {
+  const fullHead = renderSSRHead(head);
+  const fullTags = fullHead.headTags || '';
+
+  if (!fullTags || fullTags === staticHeadTags) return '';
+
+  // Split by newline and find tags that exist in full but not in static.
+  // Each tag is on its own line (renderSSRHead outputs one tag per line).
+  const staticLines = new Set(
+    staticHeadTags
+      .split('\n')
+      .map(l => l.trim())
+      .filter(Boolean)
+  );
+  const dynamicLines = fullTags
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => Boolean(l) && !staticLines.has(l));
+
+  if (dynamicLines.length === 0) return '';
+
+  return dynamicLines.join('\n');
+}
+
 export function createVueRenderer(options: VueRendererOptions): PageRenderer {
   const render: PageRenderer['render'] = async (
     pageObj: PageObject,
@@ -250,8 +287,9 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
    * - 静态 head(defineApp + definePage)在流式开始前注入 `<head>`
    * - SSR state(Pinia 等)在 app 流结束后、tail 之前注入为 `<script>`(移到 app div 之后,
    *   因为 state 只有渲染完成后才可用;客户端通过 getElementById 读取,位置无关)
-   * - 动态 `useHead()`(组件 setup 内)在流式模式下不会出现在初始 `<head>` 中,
-   *   客户端水合后会自动同步 —— 与 Next.js 流式 metadata 行为一致(P9-24 将补强)
+   * - P9-24: 动态 `useHead()`(组件 setup 内)在 app 流结束后收集,作为 late head tags
+   *   注入到 tail 之前。浏览器会将 `<meta>`/`<title>`/`<link>` 标签自动移入 `<head>`,
+   *   确保 SEO 爬虫和社交机器人看到完整 metadata,无需等待客户端水合。
    */
   const renderToStreamFn: PageRenderer['renderToStream'] = (
     pageObj: PageObject,
@@ -310,6 +348,11 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
           // 用静态 head 转换 headPart(注入 title/meta/htmlAttrs/bodyAttrs)
           headPart = transformHtmlTemplate(head, headPart);
 
+          // P9-24: Snapshot the static head tags before streaming.
+          // After the Vue app streams, we'll collect dynamic head entries
+          // (from component `useHead()`) and inject them before the tail.
+          const staticHeadTags = renderSSRHead(head).headTags || '';
+
           // 1. 立即输出 head 部分(doctype + head + body 开头 + page data scripts)
           //    浏览器可提前加载 CSS/JS,显著改善 TTFB/LCP
           controller.enqueue(encoder.encode(headPart));
@@ -318,14 +361,22 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
           const appStream = renderToNodeStream(app);
           await pumpVueStream(appStream, controller);
 
+          // P9-24: Collect dynamic head tags added during streaming
+          // (e.g. useHead/useSeoMeta calls in component setup).
+          // These are injected before the tail so SEO crawlers see them
+          // without waiting for client hydration.
+          const dynamicHeadTags = collectDynamicHeadTags(head, staticHeadTags);
+
           // 3. 渲染完成后,序列化 state 并注入为 script(state 在 app div 之后)
           const state = await resolveState(app, appConfig);
           const stateScript = `<script id="${STATE_DATA_ID}" type="application/json">${
             state ? safeJsonStringify(state) : ''
           }</script>`;
 
-          // 4. 输出 state script + tail 部分(关闭 div/body/html)
-          controller.enqueue(encoder.encode(stateScript + tailPart));
+          // 4. 输出 dynamic head tags + state script + tail 部分
+          //    浏览器会将 <meta>/<title>/<link> 标签自动移入 <head>
+          const tailContent = (dynamicHeadTags ? `${dynamicHeadTags}\n` : '') + stateScript + tailPart;
+          controller.enqueue(encoder.encode(tailContent));
           controller.close();
         } catch (err) {
           controller.error(err);

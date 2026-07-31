@@ -14,9 +14,10 @@
  */
 import { describe, it, expect } from 'vitest';
 import { defineComponent, h } from 'vue';
-import { createVueRenderer } from '../src/index';
 import { renderPageToStream, SSR_CONTENT_MARKER, STATE_DATA_ID, STATE_MARKER } from '@ubean/pages';
 import type { PageObject, PageRenderer } from '@ubean/pages';
+import { useHead } from '@unhead/vue';
+import { createVueRenderer } from '../src/index';
 
 /** 读取 ReadableStream<Uint8Array> 为完整字符串。 */
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
@@ -166,6 +167,132 @@ describe('Streaming SSR - createVueRenderer.renderToStream', () => {
   });
 });
 
+/**
+ * P9-24: Streaming metadata
+ *
+ * 验证组件 setup 内的 `useHead()` / `useSeoMeta()` 调用在流式渲染期间
+ * 添加的动态 head 标签会被捕获并注入到流的尾部(tail 之前),
+ * 确保 SEO 爬虫无需等待客户端水合即可看到完整 metadata。
+ */
+describe('Streaming SSR - P9-24 dynamic head tags', () => {
+  it('injects dynamic useHead() tags added during streaming into the output', async () => {
+    // 组件在 setup 内调用 useHead 添加动态 meta 标签
+    const DynamicHeadPage = defineComponent({
+      name: 'DynamicHeadPage',
+      setup() {
+        useHead({
+          meta: [{ name: 'og:title', content: 'Dynamic OG Title' }],
+          link: [{ rel: 'canonical', href: 'https://example.com/page' }]
+        });
+        return () => h('div', { class: 'dynamic-content' }, 'Dynamic Head Page');
+      }
+    });
+
+    const dynamicRenderer = createVueRenderer({
+      resolvePageComponent: async () => DynamicHeadPage,
+      resolveLayoutComponent: async () => null,
+      defaultLayout: null
+    });
+
+    const stream = dynamicRenderer.renderToStream!(pageObj, makeShell(), {}, undefined);
+    const html = await readStream(stream);
+
+    // 动态 meta 标签应出现在输出中
+    expect(html).toContain('og:title');
+    expect(html).toContain('Dynamic OG Title');
+    // 动态 link 标签也应出现
+    expect(html).toContain('canonical');
+    expect(html).toContain('https://example.com/page');
+    // 页面内容正常渲染
+    expect(html).toContain('Dynamic Head Page');
+  });
+
+  it('injects dynamic title from useHead() during streaming', async () => {
+    const DynamicTitlePage = defineComponent({
+      name: 'DynamicTitlePage',
+      setup() {
+        useHead({ title: 'Dynamic Title From Component' });
+        return () => h('div', 'content');
+      }
+    });
+
+    const dynamicRenderer = createVueRenderer({
+      resolvePageComponent: async () => DynamicTitlePage,
+      resolveLayoutComponent: async () => null,
+      defaultLayout: null
+    });
+
+    const stream = dynamicRenderer.renderToStream!(pageObj, makeShell(), {}, undefined);
+    const html = await readStream(stream);
+
+    expect(html).toContain('Dynamic Title From Component');
+  });
+
+  it('dynamic head tags are injected after app content (in tail)', async () => {
+    const DynamicHeadPage = defineComponent({
+      name: 'DynamicHeadPageTail',
+      setup() {
+        useHead({
+          meta: [{ name: 'dynamic-marker', content: 'tail-injected' }]
+        });
+        return () => h('div', { class: 'app-content' }, 'App Content Here');
+      }
+    });
+
+    const dynamicRenderer = createVueRenderer({
+      resolvePageComponent: async () => DynamicHeadPage,
+      resolveLayoutComponent: async () => null,
+      defaultLayout: null
+    });
+
+    const stream = dynamicRenderer.renderToStream!(pageObj, makeShell(), {}, undefined);
+    const html = await readStream(stream);
+
+    // 动态 meta 应出现在 app 内容之后(在 tail 部分注入)
+    const contentIdx = html.indexOf('App Content Here');
+    const dynamicMetaIdx = html.indexOf('dynamic-marker');
+    expect(contentIdx).toBeGreaterThan(-1);
+    expect(dynamicMetaIdx).toBeGreaterThan(contentIdx);
+  });
+
+  it('does not duplicate static head tags when dynamic tags are added', async () => {
+    // 页面已有静态 title,组件内再添加动态 meta
+    const pageWithStaticHead: PageObject = {
+      ...pageObj,
+      head: {
+        title: 'Static Title',
+        meta: [{ name: 'description', content: 'static description' }]
+      }
+    };
+
+    const DynamicHeadPage = defineComponent({
+      name: 'DynamicHeadPageNoDup',
+      setup() {
+        useHead({
+          meta: [{ name: 'og:title', content: 'Dynamic OG' }]
+        });
+        return () => h('div', 'content');
+      }
+    });
+
+    const dynamicRenderer = createVueRenderer({
+      resolvePageComponent: async () => DynamicHeadPage,
+      resolveLayoutComponent: async () => null,
+      defaultLayout: null
+    });
+
+    const stream = dynamicRenderer.renderToStream!(pageWithStaticHead, makeShell(), {}, undefined);
+    const html = await readStream(stream);
+
+    // 静态 title 应在 head 中(流式开始前注入)
+    expect(html).toContain('Static Title');
+    // 静态 description 应在 head 中
+    expect(html).toContain('static description');
+    // 动态 og:title 应在输出中(流式后注入)
+    expect(html).toContain('Dynamic OG');
+  });
+});
+
 describe('Streaming SSR - renderPageToStream fallback', () => {
   it('falls back to buffered render when renderer is null', async () => {
     // renderer 为 null 时,renderPageToStream 回退到 renderPage,
@@ -195,7 +322,9 @@ describe('Streaming SSR - renderPageToStream fallback', () => {
         const encoder = new TextEncoder();
         return new ReadableStream<Uint8Array>({
           start(controller) {
-            controller.enqueue(encoder.encode(shell.replace(SSR_CONTENT_MARKER, '<div class="test-content">Streamed</div>')));
+            controller.enqueue(
+              encoder.encode(shell.replace(SSR_CONTENT_MARKER, '<div class="test-content">Streamed</div>'))
+            );
             controller.close();
           }
         });

@@ -10,9 +10,13 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts'],
+    entry: ['src/index.ts', 'src/conventions.ts'],
     deps: {
       neverBundle: [/^@ubean\//, '@unhead/vue', 'vue', /^node:/]
     }
+  },
+  test: {
+    include: ['test/**/*.test.ts'],
+    environment: 'node'
   }
 });

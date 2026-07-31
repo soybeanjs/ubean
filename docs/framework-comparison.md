@@ -92,11 +92,11 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 
 
 | 能力 | 各框架情况 | ubean |
 |---|---|---|
-| **`sitemap.ts` 文件约定** | Next.js `app/sitemap.ts` 自动生成 `/sitemap.xml` | ❌ 仅 `createSitemapResponse()` 编程式 |
-| **`robots.ts` 文件约定** | Next.js `app/robots.ts` | ❌ 仅 `createRobotsResponse()` |
-| **`manifest.ts` 文件约定** | Next.js `app/manifest.ts` | ⚠️ `defineManifest` 但非文件约定 |
-| **`opengraph-image.tsx` 动态生成** | Next.js `ImageResponse`；SvelteKit `@vercel/og` | ❌ |
-| **`icon.tsx`/`apple-icon.tsx`** | Next.js 动态图标 | ❌ |
+| **`sitemap.ts` 文件约定** | Next.js `app/sitemap.ts` 自动生成 `/sitemap.xml` | ✅ P9-05(`src/sitemap.ts` → `registerSeoConventions` 自动注册 GET `/sitemap.xml`) |
+| **`robots.ts` 文件约定** | Next.js `app/robots.ts` | ✅ P9-05(`src/robots.ts` → GET `/robots.txt`) |
+| **`manifest.ts` 文件约定** | Next.js `app/manifest.ts` | ✅ P9-05(`src/manifest.ts` → GET `/manifest.webmanifest`) |
+| **`opengraph-image.tsx` 动态生成** | Next.js `ImageResponse`；SvelteKit `@vercel/og` | ⚠️ P9-05(handler 返回 `Response` 约定已就绪,但无内置 PNG 生成器 — 见 P9-06) |
+| **`icon.tsx`/`apple-icon.tsx`** | Next.js 动态图标 | ✅ P9-05(`src/icon.ts`/`src/apple-icon.ts` → GET `/icon`/`/apple-icon`) |
 | **`metadata`/`generateMetadata`** | Next.js Metadata API（自动 dedupe + 流式） | ⚠️ `useSeoMeta`/`definePage({head})` 无自动 dedupe |
 | **流式 metadata** | Next.js 流式 metadata（爬虫禁用） | ❌ |
 | **JSON-LD / Schema.org** | Nuxt `nuxt-schema.org`；Astro 手动 | ❌ |
@@ -201,11 +201,10 @@ ubean 平台预设明显最少（仅 Node + Cloudflare），roadmap P5-06 待补
 
 ### P1 重要缺失（影响对齐度）
 
-#### 5. ❌ 文件约定 SEO（`sitemap.ts`/`robots.ts`/`opengraph-image.tsx`）
-- **现状**：仅编程式 `createSitemapResponse()`
-- **竞品**：Next.js 完整文件约定
-- **方案**：在 `src/` 增加 `sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.tsx` 约定文件扫描
-- **任务**：P9-05
+#### 5. ✅ 文件约定 SEO（`sitemap.ts`/`robots.ts`/`opengraph-image.tsx`）
+- **现状**:`@ubean/seo/conventions` 提供 `SEO_CONVENTIONS` 描述符表 + `registerSeoConventions(app,{srcDir})` 运行时扫描器,自动为 `src/sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.ts`/`icon.ts`/`apple-icon.ts` 注册 GET 路由;sitemap/robots/manifest 用 `create*Response` 包装,图像类约定 handler 直接返回 `Response`;`enabled`/`disabled` 过滤 + 多扩展名候选(`.ts/.js/.mjs/.mts/.cjs`)
+- **竞品**:Next.js 完整文件约定
+- **任务**:P9-05 ✅
 
 #### 6. ❌ OG Image 动态生成
 - **竞品**：Next.js `ImageResponse`（基于 Satori + resvg）、Astro

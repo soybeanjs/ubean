@@ -1,7 +1,7 @@
 {
   "name": "@ubean/seo",
   "version": "0.1.13",
-  "description": "SEO utilities for ubean (useSeoMeta, robots, sitemap, manifest)",
+  "description": "SEO utilities for ubean (useSeoMeta, robots, sitemap, manifest, file conventions, JSON-LD)",
   "files": [
     "dist"
   ],
@@ -13,15 +13,21 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./conventions": {
+      "types": "./dist/conventions.d.ts",
+      "import": "./dist/conventions.js"
     }
   },
   "scripts": {
     "build": "vp pack",
     "dev": "vp pack --watch",
+    "test": "vp test",
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@unhead/vue": "^3.2.3"
+    "@unhead/vue": "^3.2.3",
+    "pathe": "^2.0.3"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

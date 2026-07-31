@@ -154,7 +154,7 @@
 
 | ID    | 任务                                      | 状态 | 依赖       | 说明                                                                                                  |
 | ----- | ----------------------------------------- | ---- | ---------- | ----------------------------------------------------------------------------------------------------- |
-| P9-05 | 文件约定 SEO                              | ⬜   | -          | `sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.tsx`/`icon.tsx` 约定文件扫描；对齐 Next.js     |
+| P9-05 | 文件约定 SEO                              | ✅   | -          | `@ubean/seo/conventions`:`SEO_CONVENTIONS` 描述符表(`sitemap`/`robots`/`manifest`/`opengraph-image`/`icon`/`apple-icon`) + `discoverSeoConventions()`/`registerSeoConventions(app,{srcDir})`/`listSeoConventions()` 运行时扫描器(`fs.access` + 动态 `import`);sitemap/robots/manifest 用 `create*Response` 包装,图像类约定 handler 直接返回 `Response`;`enabled`/`disabled` 过滤 + 多扩展名候选(`.ts/.js/.mjs/.mts/.cjs`);20 单元测试 |
 | P9-06 | OG Image 动态生成                         | ⬜   | -          | 集成 Satori + resvg（或 `@vercel/og`）；对齐 Next.js `ImageResponse`                                  |
 | P9-07 | JSON-LD / Schema.org 结构化数据           | ⬜   | -          | `@ubean/seo` 增加 `useSchemaOrg()`/`defineJsonLd()`；对齐 Nuxt `nuxt-schema.org`                      |
 | P9-08 | 组件级缓存指令                            | ⬜   | -          | `"use cache"` + `cacheLife()`/`cacheTag()` 宏 + AST 转换；对齐 Next.js 16                             |

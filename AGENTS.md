@@ -230,11 +230,11 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### ISR (P9-03)
 
-| API                                                          | 说明                                                                |
-| ------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `serveIsr(c, options)`                                       | ISR 请求处理(HIT/STALE/MISS,设置 `X-ISR` header)                   |
-| `extractPrerenderRoutesFromRules(routeRules)`                | 从 `routeRules` 中提取 `prerender: true` 的路由模式                  |
-| `normalizeIsrRule(rule)`                                      | 把 `number | IsrRule` 归一化为 `{ ttl, swr? }` 或 `undefined`       |
+| API                                           | 说明                                                |
+| --------------------------------------------- | --------------------------------------------------- |
+| `serveIsr(c, options)`                        | ISR 请求处理(HIT/STALE/MISS,设置 `X-ISR` header)    |
+| `extractPrerenderRoutesFromRules(routeRules)` | 从 `routeRules` 中提取 `prerender: true` 的路由模式 |
+| `normalizeIsrRule(rule)`                      | 把 `number                                          | IsrRule`归一化为`{ ttl, swr? }`或`undefined` |
 
 `IsrRule`:`{ ttl: number; swr?: boolean }`;`routeRules` 顶层字段 `isr?: number | IsrRule`
 
@@ -268,10 +268,10 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 路由规则
 
-| API                                                         | 说明                                                          |
-| ----------------------------------------------------------- | ------------------------------------------------------------- |
-| `compileRouteRules(rules)` / `matchRouteRules(path, rules)` | 路由规则编译/匹配(按规则+路径特异性排序)                      |
-| `createRouteRulesMiddleware(rules)`                         | 路由规则中间件(匹配后通过 `c.get('routeRule')` 暴露合并结果)  |
+| API                                                         | 说明                                                         |
+| ----------------------------------------------------------- | ------------------------------------------------------------ |
+| `compileRouteRules(rules)` / `matchRouteRules(path, rules)` | 路由规则编译/匹配(按规则+路径特异性排序)                     |
+| `createRouteRulesMiddleware(rules)`                         | 路由规则中间件(匹配后通过 `c.get('routeRule')` 暴露合并结果) |
 
 `RouteRule` 字段(P9-03 + P9-04 扩展):`redirect` / `rewrite` / `proxy` / `headers` / `cache` / `ssr`(boolean \| `'streaming'`) / `prerender`(boolean) / `isr`(number \| `{ ttl, swr? }`) / `ppr`(boolean)
 
@@ -279,11 +279,11 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### Partial Prerendering / Server Islands (P9-04)
 
-| API / 指令                              | 说明                                                                                                              |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `routeRules: { '/path': { ppr: true } }` | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)     |
-| `<Comp server:defer />`                 | 编译时指令:组件包裹在 `<Suspense>` 中,`#fallback` 插槽提取为 Suspense fallback(无 fallback 时注入 `<ubean-defer-fallback>` 占位) |
-| `<Comp server:defer><template #fallback>...</template>...</Comp>` | 带自定义 fallback 的 server:defer;预渲染时仅渲染 fallback(静态壳),流式 SSR 时流式输出异步组件解析后的内容    |
+| API / 指令                                                        | 说明                                                                                                                             |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `routeRules: { '/path': { ppr: true } }`                          | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)                         |
+| `<Comp server:defer />`                                           | 编译时指令:组件包裹在 `<Suspense>` 中,`#fallback` 插槽提取为 Suspense fallback(无 fallback 时注入 `<ubean-defer-fallback>` 占位) |
+| `<Comp server:defer><template #fallback>...</template>...</Comp>` | 带自定义 fallback 的 server:defer;预渲染时仅渲染 fallback(静态壳),流式 SSR 时流式输出异步组件解析后的内容                        |
 
 - `server:defer` 组件必须为异步(`async setup()` 或 `defineAsyncComponent`)才能触发 Suspense 流式
 - 对齐 Next.js 16 PPR / Astro 5 `server:defer`
@@ -297,13 +297,15 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### SEO 与可观测性
 
-| API                                                  | 说明                     |
-| ---------------------------------------------------- | ------------------------ |
-| `useSeoMeta()` / `mergeMetadata()`                   | SEO meta                 |
-| `createRobotsResponse()` / `createSitemapResponse()` | robots.txt / sitemap.xml |
-| `defineManifest()` / `createManifestResponse()`      | PWA manifest             |
-| `getRequestId()` / `createObservabilityTracer()`     | 请求 ID / 可观测性       |
-| `createTracingMiddleware(options)`                   | tracing 中间件           |
+| API                                                  | 说明                                                                                                                                |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `useSeoMeta()` / `mergeMetadata()`                   | SEO meta                                                                                                                            |
+| `createRobotsResponse()` / `createSitemapResponse()` | robots.txt / sitemap.xml                                                                                                            |
+| `defineManifest()` / `createManifestResponse()`      | PWA manifest                                                                                                                        |
+| `getRequestId()` / `createObservabilityTracer()`     | 请求 ID / 可观测性                                                                                                                  |
+| `createTracingMiddleware(options)`                   | tracing 中间件                                                                                                                      |
+| `registerSeoConventions(app, {srcDir})`              | P9-05 文件约定 SEO:扫描 `src/sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.ts`/`icon.ts`/`apple-icon.ts`,自动注册 GET 路由 |
+| `listSeoConventions({srcDir})`                       | 列出 srcDir 下存在的约定文件 kind(不加载)                                                                                           |
 
 ### 内部调用
 
@@ -316,17 +318,17 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### Server Actions（P9-02）
 
-| API                                                          | 说明                                                                                |
-| ------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
-| `defineAction(handlerOrSchema, handler?, opts?)`             | 定义服务端 action，支持 schema 验证；返回带 `ACTION_BRAND` 的 `ServerAction`        |
-| `fail(status, errors)`                                       | 在 action handler 中返回字段级验证错误（SvelteKit 风格）                            |
-| `ActionError`                                                | 用户可读错误类（含 `code`/`status`），在 handler 中 throw                           |
-| `isServerAction(value)` / `isActionFailure(value)`           | 类型守卫                                                                            |
-| `callAction(id, args)`                                       | 客户端 RPC 调用（POST `/__actions`）                                                |
-| `useAction(actionOrId)`                                      | Vue composable：`pending`/`data`/`error`/`errors`/`status`/`result`/`submit`/`reset` |
-| `useFormAction(actionName)`                                  | Vue composable：表单 action URL + SPA 提交（渐进增强）                              |
-| `'use server'` 指令                                          | Vite 插件自动转换：server 端包裹 `defineAction`，client 端替换为 RPC stub          |
-| `?/<actionName>` URL 约定                                    | 页面模块 `export const actions = { name: defineAction(...) }` → POST 表单分发       |
+| API                                                | 说明                                                                                 |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `defineAction(handlerOrSchema, handler?, opts?)`   | 定义服务端 action，支持 schema 验证；返回带 `ACTION_BRAND` 的 `ServerAction`         |
+| `fail(status, errors)`                             | 在 action handler 中返回字段级验证错误（SvelteKit 风格）                             |
+| `ActionError`                                      | 用户可读错误类（含 `code`/`status`），在 handler 中 throw                            |
+| `isServerAction(value)` / `isActionFailure(value)` | 类型守卫                                                                             |
+| `callAction(id, args)`                             | 客户端 RPC 调用（POST `/__actions`）                                                 |
+| `useAction(actionOrId)`                            | Vue composable：`pending`/`data`/`error`/`errors`/`status`/`result`/`submit`/`reset` |
+| `useFormAction(actionName)`                        | Vue composable：表单 action URL + SPA 提交（渐进增强）                               |
+| `'use server'` 指令                                | Vite 插件自动转换：server 端包裹 `defineAction`，client 端替换为 RPC stub            |
+| `?/<actionName>` URL 约定                          | 页面模块 `export const actions = { name: defineAction(...) }` → POST 表单分发        |
 
 > Server Actions 通过 `@ubean/actions` 包实现，Vite 插件 `ubeanServerActionsPlugin` 已包含在默认 `ubeanPlugin()` 中。action ID 由 `base32(sha1(filePath:exportName))` 生成，client/server 自动一致。`@ubean/types` 提供 `ServerAction`/`ActionContext`/`ActionResult`/`ActionFailure` 等共享类型。
 
@@ -354,14 +356,14 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 预渲染
 
-| API                                                                 | 说明                                                                              |
-| ------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `prerender(options)` / `collectPrerenderRoutes(pages, options)`     | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)  |
-| `extractPrerenderRoutesFromRules(routeRules)`                       | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤) |
-| `generatePrerenderManifest(result, baseUrl)`                        | 生成清单                                                                          |
-| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`   | 路由 → 文件路径映射/写入                                                          |
-| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob`   | 链接提取/通配符匹配                                                               |
-| `resolvePrerenderConfig(config)`                                    | 配置解析与默认值                                                                  |
+| API                                                                | 说明                                                                                           |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `prerender(options)` / `collectPrerenderRoutes(pages, options)`    | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)          |
+| `extractPrerenderRoutesFromRules(routeRules)`                      | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤) |
+| `generatePrerenderManifest(result, baseUrl)`                       | 生成清单                                                                                       |
+| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`  | 路由 → 文件路径映射/写入                                                                       |
+| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob` | 链接提取/通配符匹配                                                                            |
+| `resolvePrerenderConfig(config)`                                   | 配置解析与默认值                                                                               |
 
 ### i18n
 

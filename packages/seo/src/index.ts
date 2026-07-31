@@ -406,3 +406,14 @@ export function defineSitemapConfig(urls: SitemapUrl[] | (() => SitemapUrl[] | P
 }
 
 export { formatRobotsTxt, formatSitemapXml, escapeXml };
+
+/* -------------------------------------------------------------------------- */
+/* P9-05 文件约定 SEO                                                          */
+/* -------------------------------------------------------------------------- */
+export * from './conventions';
+
+/* -------------------------------------------------------------------------- */
+/* P9-07 JSON-LD / Schema.org 结构化数据                                       */
+/* -------------------------------------------------------------------------- */
+// (P9-07 will re-enable this export)
+// export * from './json-ld';

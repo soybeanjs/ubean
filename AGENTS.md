@@ -10,7 +10,7 @@ ubean/（npm 包名：`ubean`，**不是** `@ubean/core`）是一个基于 Vite-
 - **构建工具**：Vite-Plus
 - **前端框架**：Vue 3（仅支持 Vue）
 - **包管理器**：pnpm 11.x（monorepo + catalog）
-- **目标平台**：Node.js（`node-server`）、Cloudflare Workers
+- **目标平台**：Node.js（`node-server`）、Cloudflare Workers、Vercel（Serverless + Edge）、Netlify、Bun、Deno
 
 ## 2. 仓库结构
 
@@ -32,7 +32,7 @@ ubean/
 │   ├── server/             # @ubean/server — 服务端运行时（cache/db/queue/cron/ws/sse）
 │   ├── app/                # @ubean/app — Hono 应用工厂
 │   ├── config/             # @ubean/config — 配置加载
-│   ├── preset/             # @ubean/preset — 平台预设（node/cloudflare）
+│   ├── preset/             # @ubean/preset — 平台预设（standard/node/cloudflare/vercel/netlify/bun/deno）
 │   ├── codegen/            # @ubean/codegen — 类型生成
 │   ├── modules/            # @ubean/modules — 模块系统
 │   ├── auto-imports/       # @ubean/auto-imports — 自动导入
@@ -135,7 +135,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 - `srcDir` 默认值：`{rootDir}/src`
 - `UbeanConfig` 的 `modules` 字段支持字符串包名、元组和实例
-- 平台预设：`standard`、`node`、`cloudflare`（`default` → `standard`，`cf` → `cloudflare`，`node-server` → `node`）
+- 平台预设：`standard`、`node`、`cloudflare`、`vercel`、`vercel-edge`、`netlify`、`bun`、`deno`（`default` → `standard`，`cf` → `cloudflare`，`node-server` → `node`，`vercel-serverless`/`vercel-node` → `vercel`，`netlify-functions` → `netlify`，`bun-runtime` → `bun`，`deno-deploy`/`deno-runtime` → `deno`）；`detectPreset()` 自动识别 `vercel.json`/`netlify.toml`/`deno.json`/`deno.jsonc` 配置文件、`VERCEL`/`NETLIFY` 环境变量、`globalThis.Deno`/`globalThis.Bun`/`process.versions.bun` 运行时全局,以及 `package.json` 中的 `vercel`/`@vercel/*`/`netlify-cli` 依赖
 - 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）
 - 扩展模块顶层字段：`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`，均支持 `true` 或选项对象形式启用
 - SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
@@ -414,6 +414,72 @@ export default defineServer({
 ```
 
 > `mergeServerConfigs` 会自动合并 shared + mode-specific 的 `globalHooks`（浅合并，mode-specific 覆盖 shared 的同名字段）。`applyHandleHook` 在中间件链最前注册，无 `handle` hook 时零开销降级为正常 `next()`。
+
+### 平台预设（P9-10）
+
+`@ubean/preset` 内置 9 个平台预设（合并原 P5-06），均通过 `definePreset()` 定义,新平台预设 `extends: 'node'` 继承基础配置。
+
+| 预设                  | 别名                                                             | 说明                                                                                     |
+| --------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `standardPreset`      | `default`                                                        | 默认预设（Node 兼容）                                                                    |
+| `nodePreset`          | `node-server`                                                    | Node.js 运行时                                                                           |
+| `cloudflarePreset`    | `cloudflare-pages`/`cloudflare-module`/`cf`/`wrangler`/`workers` | Cloudflare Workers                                                                       |
+| `cloudflareDevPreset` | `cf-dev`/`wrangler-dev`                                          | Cloudflare 开发模式（miniflare）                                                         |
+| `vercelPreset`        | `vercel-serverless`/`vercel-node`                                | Vercel Serverless Functions（Node 运行时）                                               |
+| `vercelEdgePreset`    | `vercel-edge-function`                                           | Vercel Edge Functions（关闭 `nodeCompat`/`database`/`queues`/`cronTriggers`，开启 `kv`） |
+| `netlifyPreset`       | `netlify-functions`/`netlify-node`                               | Netlify Serverless Functions                                                             |
+| `bunPreset`           | `bun-runtime`                                                    | Bun 运行时（原生 TypeScript + `bun:sqlite`）                                             |
+| `denoPreset`          | `deno-deploy`/`deno-runtime`                                     | Deno 运行时（Deno KV / Deno.cron / Deno.Queue）                                          |
+
+| API                                                                         | 说明                                                           |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `definePreset(definition, meta)`                                            | 定义预设（支持 `extends` 继承）                                |
+| `registerPreset(preset)` / `resolvePreset(name)` / `getRegisteredPresets()` | 预设注册表                                                     |
+| `resolvePresetByName(name)`                                                 | 按名称/别名解析预设（未找到时 fallback 到 `standard`）         |
+| `registerBuiltinPresets()`                                                  | 注册所有内置预设（模块加载时自动调用）                         |
+| `detectPreset(hints?)` / `resolvePresetWithDetection(name?, cwd?)`          | 自动检测平台（explicit > config-file > environment > default） |
+| `listDetectablePresets()`                                                   | 列出所有可检测预设（9 个）                                     |
+| `getPresetAliases()` / `getPresetNames()`                                   | 别名/名称映射                                                  |
+| `generateWranglerConfig(opts)` / `serializeWranglerToml(config)`            | Cloudflare `wrangler.toml` 生成/序列化                         |
+| `generateVercelConfig(opts)` / `serializeVercelConfig(config)`              | Vercel `vercel.json` 生成/序列化                               |
+| `generateNetlifyConfig(opts)` / `serializeNetlifyConfig(config)`            | Netlify `netlify.toml` 生成/序列化                             |
+| `generateBunfigConfig(opts)` / `serializeBunfigConfig(config)`              | Bun `bunfig.toml` 生成/序列化                                  |
+| `generateDenoConfig(opts)` / `serializeDenoConfig(config)`                  | Deno `deno.json` 生成/序列化                                   |
+
+**自动检测优先级**：
+
+1. **explicit**:`resolvePresetWithDetection('vercel')` 显式指定
+2. **config-file**:检测 `wrangler.toml`/`wrangler.json`(Cloudflare)、`vercel.json`(Vercel)、`netlify.toml`(Netlify)、`deno.json`/`deno.jsonc`(Deno),以及 `package.json` 中的 `wrangler`/`@cloudflare/workers-types`/`vercel`/`@vercel/*`/`netlify-cli`/`netlify-lambda` 依赖
+3. **environment**:`CF_WORKERS`/`WRANGLER`/`CLOUDFLARE_WORKER`(Cloudflare)、`VERCEL`/`VERCEL_ENV`/`NOW_ID`(Vercel)、`NETLIFY`/`NETLIFY_DEV`(Netlify)、`globalThis.Deno`(Deno)、`globalThis.Bun`/`process.versions.bun`(Bun)、`globalThis.process.versions.node`(Node)
+4. **default**:fallback 到 `standard` 预设
+
+**用法示例**：
+
+```typescript
+// ubean.config.ts —— 显式指定 Vercel Edge 预设
+import { defineConfig } from 'ubean';
+
+export default defineConfig({
+  preset: 'vercel-edge'
+});
+
+// 自动检测（推荐）：在 Vercel 平台部署时,框架会自动检测 VERCEL 环境变量
+export default defineConfig({
+  // 不指定 preset,运行时自动检测
+});
+```
+
+```typescript
+// 生成 Vercel 配置文件
+import { generateVercelConfig, serializeVercelConfig } from 'ubean';
+
+const config = generateVercelConfig({
+  name: 'my-app',
+  functions: { 'api/**': { memory: 1024, maxDuration: 60 } }
+});
+const json = serializeVercelConfig(config);
+// 写入 vercel.json
+```
 
 ### Vue 运行时
 

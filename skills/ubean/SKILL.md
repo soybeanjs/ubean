@@ -36,7 +36,7 @@ Use this skill when working with ubean framework projects, including:
 - Using hono-openapi `validator` / `describeRoute` / `resolver` for typed requests and OpenAPI
 - Configuring internationalization (i18n) with `defineLocale` / `useI18n`
 - Using islands architecture (`client:load|idle|visible|media|only`)
-- Configuring modules and platform presets (`standard` / `node` / `cloudflare`)
+- Configuring modules and platform presets (`standard` / `node` / `cloudflare` / `vercel` / `vercel-edge` / `netlify` / `bun` / `deno`)
 - Debugging with ubean DevTools
 - Using the built-in icon / image / content / fonts / pwa / auth / electron / pinia / ui extension packages
 
@@ -125,7 +125,7 @@ Initialize a new ubean project with interactive wizard or non-interactive mode.
 
 - `--name, -n`: Project name
 - `--template, -t`: Template (`starter`, `minimal`, `blog`)
-- `--preset, -p`: Preset (`standard`, `node`, `cloudflare`)
+- `--preset, -p`: Preset (`standard`, `node`, `cloudflare`, `vercel`, `vercel-edge`, `netlify`, `bun`, `deno`)
 - `--pm`: Package manager (`npm`, `pnpm`, `yarn`)
 - `--yes, -y`: Skip interactive prompts
 - `--force, -f`: Overwrite existing directory
@@ -162,7 +162,7 @@ Build the application for production via Vite dual build (client + SSR).
 
 **Options:**
 
-- `--preset, -p`: Build preset (`standard`, `node`, `cloudflare`)
+- `--preset, -p`: Build preset (`standard`, `node`, `cloudflare`, `vercel`, `vercel-edge`, `netlify`, `bun`, `deno`)
 - `--prerender`: Enable static site generation
 - `--clean`: Clean output directory before build
 
@@ -447,11 +447,18 @@ Use these keys in `dependsOn` for built-in modules:
 
 ### 7. Platform Presets
 
-- `standard`: generic fetch handler
-- `node`: Node.js HTTP server via `@hono/node-server`
-- `cloudflare`: Cloudflare Workers (generates `wrangler.toml`)
-- Preset auto-detection: explicit config > config-file hints (wrangler.toml) > environment vars > default `standard`
+- `standard`: generic fetch handler (default, alias `default`)
+- `node`: Node.js HTTP server via `@hono/node-server` (alias `node-server`)
+- `cloudflare`: Cloudflare Workers (generates `wrangler.toml`, aliases `cf`/`wrangler`/`workers`)
+- `cloudflare-dev`: Cloudflare dev mode via miniflare (alias `cf-dev`)
+- `vercel`: Vercel Serverless Functions (Node runtime, generates `vercel.json`, aliases `vercel-serverless`/`vercel-node`)
+- `vercel-edge`: Vercel Edge Functions (edge runtime, alias `vercel-edge-function`)
+- `netlify`: Netlify Serverless Functions (generates `netlify.toml`, aliases `netlify-functions`/`netlify-node`)
+- `bun`: Bun runtime with native TypeScript + `bun:sqlite` (generates `bunfig.toml`, alias `bun-runtime`)
+- `deno`: Deno runtime with Deno KV/cron/Queue (generates `deno.json`, aliases `deno-deploy`/`deno-runtime`)
+- Preset auto-detection: explicit config > config-file hints (wrangler.toml/vercel.json/netlify.toml/deno.json) > environment vars (VERCEL/NETLIFY/globalThis.Deno/globalThis.Bun) > default `standard`
 - Capability matrix (19 capabilities: `fs`, `cronTrigger`, `websocket`, `queue`, `isr`, ...) with build-time diagnostics
+- Config generators: `generateWranglerConfig` / `generateVercelConfig` / `generateNetlifyConfig` / `generateBunfigConfig` / `generateDenoConfig`
 
 ### 8. Extension Packages (`@ubean/*` scope, kebab-case)
 
@@ -616,7 +623,7 @@ console.log(c(42.99, 'USD'));
   - Islands architecture (`client:*` directives)
   - View Transitions API
   - DevTools with CRUD + AI assistant
-  - Platform presets (Standard, Node, Cloudflare)
+  - Platform presets (Standard, Node, Cloudflare, Vercel, Vercel Edge, Netlify, Bun, Deno)
   - Extension packages: icon, auth, pwa, image, content, fonts
   - Prerender / SSG
   - Built-in cron, queue, storage, database, WebSocket, SSE

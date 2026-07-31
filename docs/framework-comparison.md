@@ -28,7 +28,7 @@
 | 内置 Auth | ❌(Auth.js) | ⚠️ | ❌ | ❌ | ❌ | ✅ Better Auth |
 | 内置 i18n | ❌ | ⚠️ 模块 | ❌ | ❌ | ⚠️ 路由 | ✅ 零依赖 |
 | 内置 DevTools | ⚠️ | ✅ | ❌ | ❌ | ✅ Toolbar | ✅ AI 助手 |
-| 平台预设 | Vercel/Node/Edge | 12+ | 6+ | 20+ | 4+ | 2 (P5-06 待补) |
+| 平台预设 | Vercel/Node/Edge | 12+ | 6+ | 20+ | 4+ | 6（Node/CF/Vercel/Netlify/Bun/Deno，P9-10） |
 
 ---
 
@@ -119,13 +119,13 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 
 |---|---|---|---|---|---|---|
 | Node | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Cloudflare | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Vercel | ✅ 原生 | ✅ | ✅ | ✅ | ✅ | ❌ P5-06 |
-| Netlify | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ P5-06 |
-| Bun | ⚠️ | ✅ | ⚠️ | ✅ | ⚠️ | ❌ P5-06 |
-| Deno | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ❌ P5-06 |
+| Vercel | ✅ 原生 | ✅ | ✅ | ✅ | ✅ | ✅ P9-10（Serverless + Edge） |
+| Netlify | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ P9-10（Functions） |
+| Bun | ⚠️ | ✅ | ⚠️ | ✅ | ⚠️ | ✅ P9-10（原生 TS） |
+| Deno | ⚠️ | ✅ | ⚠️ | ✅ | ✅ | ✅ P9-10（KV/cron/Queue） |
 | AWS/Azure | ⚠️ | ✅ | ⚠️ | ✅ | ⚠️ | ❌ |
 
-ubean 平台预设明显最少（仅 Node + Cloudflare），roadmap P5-06 待补。
+ubean P9-10 已补齐 Vercel/Netlify/Bun/Deno 四大平台预设，均 `extends:'node'` 继承基础配置，并提供平台特定能力矩阵、构建配置（`exportConditions`/`externals`/`outputDir`）与配置文件生成器（`generateVercelConfig`/`generateNetlifyConfig`/`generateBunfigConfig`/`generateDenoConfig`）。`detectPreset()` 支持配置文件、环境变量、`package.json` 依赖三种自动检测方式。
 
 ### 2.8 安全与会话
 
@@ -226,10 +226,16 @@ ubean 平台预设明显最少（仅 Node + Cloudflare），roadmap P5-06 待补
 - **竞品**：SvelteKit `hooks.server.ts` / Nuxt server plugins / Astro middleware
 - **任务**：P9-09 ✅
 
-#### 10. ❌ 平台预设补全（Vercel/Netlify/Bun/Deno）
-- **现状**：P5-06 pending，仅 Node + Cloudflare
-- **方案**：基于 Nitro 预设或自研 preset
-- **任务**：P9-10（合并 P5-06）
+#### 10. ✅ 平台预设补全（Vercel/Netlify/Bun/Deno）
+- **现状**：`@ubean/preset` 已新增 4 个预设（合并原 P5-06）:
+  - `vercelPreset` / `vercelEdgePreset`:Serverless + Edge 两种模式,`VERCEL_CAPABILITIES` / `VERCEL_EDGE_CAPABILITIES` 能力矩阵(Edge 模式关闭 `nodeCompat`/`database`/`queues`/`cronTriggers`,开启 `kv`),`exportConditions: ['vercel']`,`generateVercelConfig()` / `serializeVercelConfig()` 生成 `vercel.json`
+  - `netlifyPreset`:Serverless Functions 模式,`NETLIFY_CAPABILITIES` 能力矩阵,`exportConditions: ['netlify']`,`generateNetlifyConfig()` / `serializeNetlifyConfig()` 生成 `netlify.toml`
+  - `bunPreset`:Bun 原生 TypeScript 运行时 + `bun:sqlite`,`BUN_CAPABILITIES` 能力矩阵,`exportConditions: ['bun']`,`generateBunfigConfig()` / `serializeBunfigConfig()` 生成 `bunfig.toml`
+  - `denoPreset`:Deno KV / Deno.cron / Deno.Queue 原生支持,`DENO_CAPABILITIES` 能力矩阵,`exportConditions: ['deno']`,`generateDenoConfig()` / `serializeDenoConfig()` 生成 `deno.json`
+  - 均使用 `extends: 'node'` 继承基础配置,各预设提供独立 `output`/`runtime`/`serve`/`commands`/`hooks`
+- **检测**:`detectPreset()` 增强为三种自动检测:配置文件(`vercel.json`/`netlify.toml`/`deno.json`/`deno.jsonc`)+ 环境变量(`VERCEL`/`NETLIFY`/`globalThis.Deno`/`globalThis.Bun`/`process.versions.bun`)+ `package.json` 依赖(`vercel`/`@vercel/*`/`netlify-cli`);`listDetectablePresets()` 返回 9 个预设
+- **竞品**:Nitro 12+ 预设 / Nuxt 6+ / Astro 4+
+- **任务**:P9-10 ✅（合并 P5-06）
 
 ### P2 增强级缺失（提升完整度）
 
@@ -286,11 +292,11 @@ ubean 有若干竞品**没有**的差异化能力，是其核心竞争力：
 5. **文件约定 SEO**（P1）—— sitemap.ts/robots.ts/opengraph-image
 6. **OG Image 生成**（P1）—— Satori 集成
 7. **JSON-LD/Schema.org**（P1）
-8. **平台预设补全**（P1，P5-06）
+8. **平台预设补全**（P1，✅ 已完成 P9-10，合并 P5-06）—— Vercel/Netlify/Bun/Deno preset
 9. **CSRF + 安全头**（P2）
 10. **Sessions API + after()**（P2）
 
-ubean 的架构（Hono + Vite-Plus + 模块系统）足以支撑上述补全。P0 渲染层与变更层（流式 SSR、ISR、per-route 规则、Server Actions、PPR）已全部落地，Vue 元框架追赶 Next.js 16 的核心能力对齐完成，后续聚焦 P1/P2 的 SEO、缓存、安全与平台预设补全。
+ubean 的架构（Hono + Vite-Plus + 模块系统）足以支撑上述补全。P0 渲染层与变更层（流式 SSR、ISR、per-route 规则、Server Actions、PPR）已全部落地，P1 重要级（文件约定 SEO、OG Image、JSON-LD、组件级缓存指令、全局 Hooks、平台预设补全）也已完成，Vue 元框架追赶 Next.js 16 的核心能力对齐完成。后续聚焦 P2 增强级（Sessions/CSRF/安全头/after()/嵌套布局等）。
 
 ---
 

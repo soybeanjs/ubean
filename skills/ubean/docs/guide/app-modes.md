@@ -132,7 +132,7 @@ Pure API backend, no frontend.
 
 | Config field | Relationship to `mode` |
 | --- | --- |
-| `build.preset` | Orthogonal — `mode` controls architecture, `preset` controls deployment platform (node/cloudflare) |
+| `build.preset` | Orthogonal — `mode` controls architecture, `preset` controls deployment platform (standard/node/cloudflare/vercel/vercel-edge/netlify/bun/deno) |
 | `routing.mode` | Orthogonal — controls route file generation (virtual/file/both), independent of app `mode` |
 | `prerender.enabled` | `ssg` forces it on; `spa`/`backend`/`fullstack`+`ssr:false` force it off |
 | `ssr` | Sub-option of `fullstack` only; ignored by other modes |

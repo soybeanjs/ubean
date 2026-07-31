@@ -36,9 +36,16 @@ ubean init [options]
 
 **Presets:**
 
-- `standard`: Generic fetch handler for any platform
-- `node`: Node.js HTTP server
-- `cloudflare`: Cloudflare Workers
+- `standard`: Generic fetch handler for any platform (default)
+- `node`: Node.js HTTP server (alias `node-server`)
+- `cloudflare`: Cloudflare Workers (alias `cf`/`wrangler`)
+- `vercel`: Vercel Serverless Functions (aliases `vercel-serverless`/`vercel-node`)
+- `vercel-edge`: Vercel Edge Functions
+- `netlify`: Netlify Serverless Functions (aliases `netlify-functions`/`netlify-node`)
+- `bun`: Bun runtime with native TypeScript (alias `bun-runtime`)
+- `deno`: Deno runtime with KV/cron/Queue (aliases `deno-deploy`/`deno-runtime`)
+
+> Preset can also be auto-detected from `vercel.json`/`netlify.toml`/`deno.json`/`wrangler.toml` config files, `VERCEL`/`NETLIFY` environment variables, `globalThis.Deno`/`globalThis.Bun` runtime globals, or `package.json` dependencies.
 
 **Examples:**
 
@@ -111,6 +118,21 @@ ubean build
 
 # Build for Cloudflare
 ubean build --preset cloudflare
+
+# Build for Vercel
+ubean build --preset vercel
+
+# Build for Vercel Edge
+ubean build --preset vercel-edge
+
+# Build for Netlify
+ubean build --preset netlify
+
+# Build for Bun
+ubean build --preset bun
+
+# Build for Deno
+ubean build --preset deno
 
 # Build with source maps
 ubean build --sourcemap

@@ -19,6 +19,7 @@ import {
 import type { App, Component, ConcreteComponent, InjectionKey, PropType, VNode } from 'vue';
 import { RouterView, RouterLink, useRoute, useRouter as useVueRouter } from 'vue-router';
 import type { RouteLocationRaw, RouteRecordRaw } from 'vue-router';
+import { vClient } from '@ubean/islands';
 import type { PageObject } from '@ubean/pages';
 import { useHead as useUnheadHead } from '@unhead/vue';
 import type { VueHeadClient } from '@unhead/vue';
@@ -599,6 +600,7 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
   app.component('Link', Link);
   app.component('PageView', PageView);
   app.component('SlotView', SlotView);
+  app.directive('client', vClient);
   app.config.globalProperties.$ubean = { page, head, router };
 
   return { app, router, head, page };
@@ -642,6 +644,7 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   app.component('Link', Link);
   app.component('PageView', PageView);
   app.component('SlotView', SlotView);
+  app.directive('client', vClient);
   app.config.globalProperties.$ubean = { page, head, router };
 
   return { app, router, head };

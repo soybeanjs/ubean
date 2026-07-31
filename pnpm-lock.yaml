@@ -1033,6 +1033,9 @@ importers:
       '@ubean/i18n':
         specifier: workspace:*
         version: link:../i18n
+      '@ubean/islands':
+        specifier: workspace:*
+        version: link:../islands
       '@ubean/pages':
         specifier: workspace:*
         version: link:../pages

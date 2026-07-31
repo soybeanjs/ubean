@@ -16,6 +16,26 @@ export {
   hydrationStrategyMeta
 } from './types';
 
+// v-client directive (P9-29: Vue directive system refactor)
+export {
+  vClient,
+  resolveClientStrategy,
+  strategyToLegacyDirective,
+  legacyDirectiveToStrategy,
+  applyStrategy,
+  cleanupStrategy,
+  CLIENT_DIRECTIVE_ATTR,
+  CLIENT_MEDIA_ATTR,
+  CLIENT_ONLY_ATTR
+} from './directive';
+export type {
+  ClientStrategy,
+  ClientDirectiveModifiers,
+  ClientDirectiveValue,
+  ClientDirectiveBinding,
+  VClientDirective
+} from './directive';
+
 // Bootstrap scripts (injected by SSR renderer / build)
 export { getIslandsBootstrapScript, getIslandsClearScript } from './bootstrap';
 

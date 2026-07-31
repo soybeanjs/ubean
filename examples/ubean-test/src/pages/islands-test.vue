@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { vClient } from 'ubean';
 import IslandClock from '../components/islands/IslandClock.vue';
 import IslandCounter from '../components/islands/IslandCounter.vue';
 import IslandMedia from '../components/islands/IslandMedia.vue';
@@ -23,19 +24,19 @@ useHead({
       <div class="island-section">
         <h2>client:load</h2>
         <p class="directive-hint">页面加载时立即水合</p>
-        <IslandCounter client:load />
+        <IslandCounter v-client.load />
       </div>
 
       <div class="island-section">
         <h2>client:idle</h2>
         <p class="directive-hint">浏览器空闲时水合</p>
-        <IslandClock client:idle />
+        <IslandClock v-client.idle />
       </div>
 
       <div class="island-section">
         <h2>client:visible</h2>
         <p class="directive-hint">滚动到可见区域时水合</p>
-        <IslandVisibility client:visible />
+        <IslandVisibility v-client.visible />
       </div>
 
       <div class="island-section">

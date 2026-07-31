@@ -1,5 +1,6 @@
 import { resolve, dirname } from 'node:path';
 import type { Plugin, ResolvedConfig as ViteResolvedConfig } from 'vite';
+import { legacyDirectiveToStrategy, strategyToLegacyDirective } from './directive';
 
 export type ClientDirective = 'client:load' | 'client:idle' | 'client:visible' | 'client:media' | 'client:only';
 
@@ -24,11 +25,32 @@ const CLIENT_DIRECTIVES: ClientDirective[] = [
   'client:only'
 ];
 
-/** Matches any `client:*` directive (for client island detection) */
-const DIRECTIVE_RE = /\bclient:(load|idle|visible|media|only)\b/;
+/**
+ * v-client.* directive attribute names (P9-29: Vue directive system refactor).
+ *
+ * These are the Vue custom directive equivalents of the legacy `client:*`
+ * attribute syntax. Both are supported — `v-client.*` is preferred for new code.
+ */
+const V_CLIENT_DIRECTIVES: string[] = [
+  'v-client.load',
+  'v-client.idle',
+  'v-client.visible',
+  'v-client.media',
+  'v-client.only'
+];
 
-/** Matches either `client:*` or `server:defer` (used to fast-skip non-island SFCs) */
-const ANY_DIRECTIVE_RE = /\b(?:client:(?:load|idle|visible|media|only)|server:defer)\b/;
+/**
+ * Matches either `client:*` or `v-client.*` (for client island detection).
+ *
+ * `client:load` is the legacy syntax; `v-client.load` is the Vue directive
+ * syntax (P9-29). Both are detected and transformed equivalently.
+ */
+const ANY_CLIENT_DIRECTIVE_RE =
+  /\b(?:client:(?:load|idle|visible|media|only)|v-client\.(?:load|idle|visible|media|only))\b/;
+
+/** Matches either `client:*`, `v-client.*`, or `server:defer` (used to fast-skip non-island SFCs) */
+const ANY_DIRECTIVE_RE =
+  /\b(?:client:(?:load|idle|visible|media|only)|v-client\.(?:load|idle|visible|media|only)|server:defer)\b/;
 
 function isVueSfc(id: string): boolean {
   return /\.vue(?:\?.*)?$/.test(id) && !id.includes('&type=');
@@ -109,13 +131,65 @@ export function parseScriptImports(scriptContent: string): Map<string, string> {
 }
 
 /**
- * 扫描模板内容，返回所有带 `client:xxx` 指令的组件标签名集合。
+ * Find the client directive on a tag, checking both legacy `client:*` and
+ * new `v-client.*` syntax.
+ *
+ * Returns the legacy directive name (e.g. `'client:load'`) for internal
+ * consistency, or `null` if no client directive is present.
+ *
+ * Also returns the media query value for `client:media` / `v-client.media`.
+ */
+function findClientDirectiveOnTag(
+  attrs: Map<string, string | true>
+): { directive: ClientDirective; mediaQuery?: string } | null {
+  // 1. Check legacy `client:*` syntax
+  for (const d of CLIENT_DIRECTIVES) {
+    if (attrs.has(d)) {
+      const mediaQuery = d === 'client:media' ? extractMediaQuery(attrs.get(d)) : undefined;
+      return { directive: d, mediaQuery };
+    }
+  }
+
+  // 2. Check `v-client.*` syntax (P9-29)
+  for (const vcd of V_CLIENT_DIRECTIVES) {
+    if (attrs.has(vcd)) {
+      const strategy = legacyDirectiveToStrategy(vcd) || 'load';
+      const legacyName = strategyToLegacyDirective(strategy) as ClientDirective;
+      const mediaQuery = strategy === 'media' ? extractMediaQuery(attrs.get(vcd)) : undefined;
+      return { directive: legacyName, mediaQuery };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Extract a media query string from a directive value.
+ *
+ * For `client:media="(max-width: 768px)"` the value is the raw string.
+ * For `v-client.media="'(max-width: 768px)'"` the value is a Vue expression
+ * (string literal), so we strip surrounding quotes.
+ */
+function extractMediaQuery(raw: string | true | undefined): string | undefined {
+  if (raw === undefined || raw === true) return undefined;
+  // Strip surrounding quotes from Vue expression (e.g. "'(max-width: 768px)" → "(max-width: 768px)")
+  let value = String(raw).trim();
+  if ((value.startsWith("'") && value.endsWith("'")) || (value.startsWith('"') && value.endsWith('"'))) {
+    value = value.slice(1, -1);
+  }
+  return value || undefined;
+}
+
+/**
+ * 扫描模板内容，返回所有带 `client:xxx` 或 `v-client.*` 指令的组件标签名集合。
  *
  * 复用 `findTagAt` 的标签解析逻辑，确保与 `transformTemplate` 的识别规则一致
  * （仅匹配首字母大写的组件标签）。
  *
  * 与 `transformTemplate` 对称：非 island 标签会递归扫描其 innerHTML，
  * island 标签不递归（其子内容属于该 island 的 SSR 输出，不作为独立 island）。
+ *
+ * 支持 `client:load`（旧语法）和 `v-client.load`（新语法），两者等价。
  */
 export function scanIslandDirectiveNames(template: string): Set<string> {
   const names = new Set<string>();
@@ -136,7 +210,7 @@ export function scanIslandDirectiveNames(template: string): Set<string> {
         pos = lt + 1;
         continue;
       }
-      const hasDirective = CLIENT_DIRECTIVES.some(d => tag.attrs.has(d));
+      const hasDirective = findClientDirectiveOnTag(tag.attrs) !== null;
       if (hasDirective) {
         names.add(tag.tagName);
       }
@@ -181,7 +255,7 @@ export function collectIslandComponents(code: string, sourceFile: string): Islan
   const templateContent = extractTemplateBlock(code)?.content ?? '';
 
   if (!templateContent) return [];
-  if (!DIRECTIVE_RE.test(templateContent)) return [];
+  if (!ANY_CLIENT_DIRECTIVE_RE.test(templateContent)) return [];
 
   const importMap = parseScriptImports(scriptContent);
   const islandNames = scanIslandDirectiveNames(templateContent);
@@ -427,7 +501,11 @@ function parseAttrs(str: string): Map<string, string | true> {
 function collectStaticProps(attrs: Map<string, string | true>): Record<string, unknown> {
   const props: Record<string, unknown> = {};
   for (const [key, val] of attrs) {
+    // Exclude legacy `client:*` directives
     if (key.startsWith('client:')) continue;
+    // Exclude `v-client.*` directives (P9-29) — must check before the
+    // generic `v-` exclusion below, since `v-client.*` is a `v-` attribute
+    if (key.startsWith('v-client.')) continue;
     if (key.startsWith('v-') || key.startsWith('@') || key.startsWith(':')) continue;
     if (key === 'key' || key === 'ref') continue;
     if (val === true) {
@@ -487,8 +565,7 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
       const transformedInner = transformTemplate(restInner, islandCounter, filePath);
       const strippedOpenTag = stripAttr(tag.fullOpenTag, SERVER_DEFER_DIRECTIVE);
       const fallbackContent =
-        fallbackHtml ??
-        `<ubean-defer-fallback data-component="${escapeAttr(tag.tagName)}"></ubean-defer-fallback>`;
+        fallbackHtml ?? `<ubean-defer-fallback data-component="${escapeAttr(tag.tagName)}"></ubean-defer-fallback>`;
 
       // <Suspense><template #fallback>...</template><Comp>...</Comp></Suspense>
       out += `<Suspense><template #fallback>${fallbackContent}</template>${strippedOpenTag}${transformedInner}`;
@@ -498,8 +575,8 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
       continue;
     }
 
-    const directive = CLIENT_DIRECTIVES.find(d => tag.attrs.has(d));
-    if (!directive) {
+    const clientDirectiveInfo = findClientDirectiveOnTag(tag.attrs);
+    if (!clientDirectiveInfo) {
       const inner = tag.selfClosing ? '' : transformTemplate(tag.innerHTML, islandCounter, filePath);
       out += tag.fullOpenTag;
       out += inner;
@@ -508,16 +585,16 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
       continue;
     }
 
+    const { directive, mediaQuery } = clientDirectiveInfo;
     islandCounter.count++;
     const islandId = `island-${filePath.replace(/[^a-zA-Z0-9]/g, '-')}-${islandCounter.count}`;
 
-    const mediaRaw = tag.attrs.get('client:media');
     let mediaStr = '';
-    if (directive === 'client:media' && mediaRaw && mediaRaw !== true) {
-      const m = String(mediaRaw).replace(/^["']|["']$/g, '');
-      mediaStr = ` data-media="${escapeAttr(m)}"`;
+    if (directive === 'client:media' && mediaQuery) {
+      mediaStr = ` data-media="${escapeAttr(mediaQuery)}"`;
     }
 
+    // Collect static props, excluding both legacy and new directive attributes
     const props = collectStaticProps(tag.attrs);
     const propsJson = escapeAttr(JSON.stringify(props));
 

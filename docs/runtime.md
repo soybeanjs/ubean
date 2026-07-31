@@ -1462,9 +1462,95 @@ export default defineConfig({
 </template>
 ```
 
+#### `v-client.*` Vue 指令语法（P9-29，推荐）
+
+`client:load` 等 HTML 属性语法在 Vue 模板中不属于标准 Vue 指令，IDE 和 eslint-plugin-vue 无法提供类型检查与自动补全。P9-29 将其重构为 **Vue 自定义指令** `v-client.*`，提供完整的 TypeScript 类型定义，同时保持与旧语法完全等价的编译时转换行为。
+
+```vue
+<template>
+  <!-- v-client.load：页面加载后立即 hydrate（等价 client:load） -->
+  <Counter v-client.load />
+
+  <!-- v-client.idle：空闲时 hydrate（等价 client:idle） -->
+  <HeavyChart v-client.idle />
+
+  <!-- v-client.visible：进入视口时 hydrate（等价 client:visible） -->
+  <Comments v-client.visible />
+
+  <!-- v-client.media：媒体查询匹配时 hydrate（等价 client:media） -->
+  <!-- 注意：值是 Vue 表达式，字符串需加引号 -->
+  <MobileNav v-client.media="'(max-width: 768px)'" />
+
+  <!-- v-client.only：仅客户端渲染，跳过 SSR（等价 client:only） -->
+  <ClientOnlyWidget v-client.only />
+</template>
+```
+
+#### 语法迁移对照
+
+| 旧语法 (`client:*`)                        | 新语法 (`v-client.*`)                          | 说明                     |
+| ------------------------------------------ | --------------------------------------------- | ------------------------ |
+| `<Comp client:load />`                     | `<Comp v-client.load />`                     | 立即水合                  |
+| `<Comp client:idle />`                     | `<Comp v-client.idle />`                     | 空闲时水合                |
+| `<Comp client:visible />`                  | `<Comp v-client.visible />`                  | 可见时水合                |
+| `<Comp client:media="(max-width: 768px)"/>`| `<Comp v-client.media="'(max-width: 768px)'" />` | 媒体查询水合（值需引号） |
+| `<Comp client:only />`                     | `<Comp v-client.only />`                     | 仅客户端                  |
+
+> **注意**：两种语法完全等价，可在同一项目中混用。新代码推荐使用 `v-client.*` 语法。
+>
+> `v-client.media` 的值是 Vue 表达式，字符串字面量需要加引号（`"'(max-width: 768px)'"`），
+> 也可使用变量（`v-client.media="mediaQuery"`）。旧语法 `client:media="(max-width: 768px)"` 的值是纯字符串。
+
+#### 双层设计
+
+`v-client` 指令采用双层架构：
+
+1. **编译时（Vite 插件）**：`ubean:islands` Vite 插件检测模板中的 `v-client.*` 和 `client:*`，将其转换为 `<ubean-island>` 占位元素。这是 SSR/Islands 模式的主要代码路径。
+
+2. **运行时（Vue 指令）**：当 Vite 插件未启用时（CSR-only 应用、单元测试、组件库），`vClient` 指令作为普通 Vue 指令注册在应用上，为元素标记 `data-client-directive` 等属性，使 `hydrateIslands()` 仍能发现并处理它们。
+
+```typescript
+// 框架自动注册（createUbeanApp 内部）：
+app.directive('client', vClient);
+
+// 手动注册（独立 Vue 应用）：
+import { vClient } from '@ubean/islands';
+app.directive('client', vClient);
+```
+
+#### TypeScript 类型定义
+
+`v-client` 指令提供完整的类型定义，包括指令参数类型、修饰符类型和钩子函数类型：
+
+```typescript
+import type {
+  ClientStrategy,              // 'load' | 'idle' | 'visible' | 'media' | 'only'
+  ClientDirectiveModifiers,    // { load?, idle?, visible?, media?, only? }
+  ClientDirectiveValue,        // string | undefined (媒体查询)
+  ClientDirectiveBinding,      // DirectiveBinding<ClientDirectiveValue>
+  VClientDirective             // Directive<HTMLElement, ClientDirectiveValue>
+} from '@ubean/islands';
+
+// 策略解析工具函数
+import { resolveClientStrategy } from '@ubean/islands';
+
+const strategy = resolveClientStrategy({ idle: true }); // → 'idle'
+```
+
+#### API 速查
+
+| API | 说明 |
+| --- | --- |
+| `vClient` | Vue 自定义指令对象（`Directive<HTMLElement, string \| undefined>`） |
+| `resolveClientStrategy(modifiers)` | 从修饰符解析策略（`{ idle: true }` → `'idle'`） |
+| `strategyToLegacyDirective(strategy)` | 策略转旧指令名（`'idle'` → `'client:idle'`） |
+| `legacyDirectiveToStrategy(directive)` | 旧指令名转策略（`'client:idle'` → `'idle'`） |
+| `applyStrategy(el, strategy, mediaQuery?)` | 直接对 DOM 元素应用策略 |
+| `cleanupStrategy(el)` | 清理策略资源（observer/timer） |
+
 #### 工作原理
 
-1. **编译时扫描**：Vite 插件扫描 `.vue` 和 `.md` 文件，检测 `client:*` 指令
+1. **编译时扫描**：Vite 插件扫描 `.vue` 和 `.md` 文件，检测 `client:*` 和 `v-client.*` 指令
 2. **自动 island 标记**：含 `client:*` 指令的组件自动作为孤岛组件，服务端渲染后客户端单独 hydrate
 3. **客户端 JS 按需发送**：无孤岛组件的页面不发送客户端 JS（纯静态 HTML）
 4. **Layout 链继承**：Layout 中的孤岛组件会传递给所有使用该 Layout 的页面

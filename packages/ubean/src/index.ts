@@ -182,7 +182,7 @@ export { VUE_PLUGIN_INCLUDE } from '@ubean/vite';
 // `ubeanIslandsPlugin` 来自 `/vite` 子路径;`getIslandsBootstrapScript` 在主入口
 export { ubeanIslandsPlugin } from '@ubean/islands/vite';
 export { ubeanServerActionsPlugin } from '@ubean/actions/vite';
-export { getIslandsBootstrapScript } from '@ubean/islands';
+export { vClient, getIslandsBootstrapScript } from '@ubean/islands';
 export { createVueRenderer } from '@ubean/ssr';
 export type { VueRendererSimpleOptions, VueRendererRouterOptions, VueRendererOptions } from '@ubean/ssr';
 

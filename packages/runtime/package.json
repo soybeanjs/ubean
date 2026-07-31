@@ -31,6 +31,7 @@
   },
   "dependencies": {
     "@ubean/i18n": "workspace:*",
+    "@ubean/islands": "workspace:*",
     "@ubean/pages": "workspace:*",
     "@ubean/types": "workspace:*",
     "@unhead/vue": "^3.2.3",

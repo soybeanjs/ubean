@@ -5,11 +5,12 @@
  */
 
 export function getBaseUrl(): string {
-  const url = process.env.UBEAN_TEST_BASE_URL;
-  if (!url) {
-    throw new Error('UBEAN_TEST_BASE_URL is not set. global-setup may have failed.');
-  }
-  return url;
+  // Fall back to localhost:3000 when the env var is not set (e.g. when the
+  // IDE Vitest extension evaluates tests without the global-setup script).
+  // Tests will fail with a network error instead of throwing, and
+  // describe.skipIf(!process.env.UBEAN_TEST_BASE_URL) will skip them
+  // when running via `pnpm test` without the dev server.
+  return process.env.UBEAN_TEST_BASE_URL || 'http://localhost:3000';
 }
 
 export interface ApiResult {

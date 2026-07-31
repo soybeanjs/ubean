@@ -117,6 +117,7 @@ describe('Route rules system', () => {
         method: 'GET',
         req: { method: 'GET', url: 'http://localhost/api/test', path: '/api/test' },
         header: (_name: string, _value: string) => {},
+        set: (_key: string, _value: unknown) => {},
         res: { headers: new Headers() }
       } as unknown as UbeanContext;
 
@@ -137,6 +138,7 @@ describe('Route rules system', () => {
         method: 'GET',
         req: { method: 'GET', url: 'http://localhost/old-path', path: '/old-path' },
         header: () => {},
+        set: (_key: string, _value: unknown) => {},
         redirect: (url: string, status: number) => new Response(null, { status, headers: { Location: url } }),
         res: { headers: new Headers() }
       } as unknown as UbeanContext;
@@ -162,13 +164,23 @@ describe('Route rules system', () => {
     });
   });
 
+  // HTTP integration tests — skipped when the dev server is not running
+  // (e.g. when the IDE Vitest extension evaluates the file without global-setup)
   describe('HTTP integration - /api/route-rules-test', () => {
-    it('returns route rules info', async () => {
+    it('returns route rules info', async ctx => {
+      if (!process.env.UBEAN_TEST_BASE_URL) {
+        ctx.skip();
+        return;
+      }
       const res = await getJson('/api/route-rules-test');
       expect(res.status).toBe(200);
     });
 
-    it('route rules apply headers', async () => {
+    it('route rules apply headers', async ctx => {
+      if (!process.env.UBEAN_TEST_BASE_URL) {
+        ctx.skip();
+        return;
+      }
       const res = await api('/api/route-rules-test');
       // Headers may be set by route rules
       expect(res.status).toBe(200);

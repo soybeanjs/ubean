@@ -80,6 +80,14 @@ function normalizeMethod(m: string | undefined): Method | undefined {
 
 function convertUbeanRoutePath(path: string): string {
   let honoPath = path;
+  // Handle already-converted catch-all from filePathToRoute: /**:slug → *
+  // (filePathToRoute converts [...slug] to **:slug, so by this point there are
+  // no brackets to match — convert the Vue Router catch-all to Hono's wildcard.)
+  // Using '*' (not '/*') so specific routes like '/' still get priority.
+  if (/\/\*\*:/.test(honoPath)) {
+    honoPath = '*';
+  }
+  // Handle bracket notation (for paths that still use raw bracket syntax)
   honoPath = honoPath.replace(/\[(\.\.\.)?([^\]]+)\]/g, (_m, rest, name) => {
     if (rest) return `*${name}`;
     return `:${name}`;

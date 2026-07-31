@@ -1,0 +1,31 @@
+{
+  "name": "@ubean/docs",
+  "version": "0.0.1",
+  "private": true,
+  "description": "ubean framework documentation site — dogfoods the ubean framework (SSG + @ubean/ui).",
+  "type": "module",
+  "scripts": {
+    "dev": "ubean dev",
+    "build": "pnpm build:api && pnpm build:search && ubean build",
+    "build:api": "node scripts/build-api.mjs",
+    "build:search": "node scripts/build-search.mjs",
+    "preview": "ubean preview",
+    "prepare": "ubean prepare",
+    "typecheck": "vue-tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@soybeanjs/ui": "^0.29.3",
+    "fuse.js": "^7.0.0",
+    "shiki": "^4.3.1",
+    "ubean": "workspace:*",
+    "vue": "^3.5.40"
+  },
+  "devDependencies": {
+    "@soybeanjs/unocss-preset": "^0.2.0",
+    "@soybeanjs/unocss-shadcn": "^0.29.3",
+    "@types/node": "^26.1.2",
+    "typedoc": "^0.28.0",
+    "unocss": "^66.7.5",
+    "vue-tsc": "^3.3.8"
+  }
+}

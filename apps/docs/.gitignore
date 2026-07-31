@@ -1,0 +1,15 @@
+# ubean build output
+dist
+.ubean
+
+# Generated API reference (TypeDoc output — run `pnpm build:api`)
+public/api/*.json
+
+# Generated search index (run `pnpm build:search`)
+public/search-index.json
+
+# Dependencies
+node_modules
+
+# Logs
+*.log

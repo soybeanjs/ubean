@@ -210,7 +210,7 @@ export const buildCommand: CommandDef = {
       }
 
       // SSG 模式:清理临时 server bundle(prerender 已加载到内存,删除文件不影响静态 HTML)
-      if (config.mode === 'ssg') {
+      if (config.mode === 'ssg' && !process.env.UBEAN_KEEP_SSR) {
         const serverDir = join(cwd, config.build.outputDir, 'server');
         if (existsSync(serverDir)) {
           logger.info('Cleaning temporary SSR bundle (SSG mode)...');

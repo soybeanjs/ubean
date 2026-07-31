@@ -175,6 +175,15 @@ async function generateVirtualModulesToDisk(
     await writeModule('virtual:ubean-server', 'server-entry.ts', '');
   }
 
+  // Islands registry stub for SSR build.
+  // The real registry is populated by ubeanIslandsPlugin during the client
+  // build (via transform/scan of SFCs with client:* directives). During SSR,
+  // islands are rendered server-side — no client hydration — so an empty
+  // stub suffices. This prevents the `virtual:ubean-islands-registry` import
+  // (inside ubean/runtime/vue, pulled in via virtual:ubean-app) from leaking
+  // unresolved into the SSR bundle when ubean is noExternal.
+  await writeFile(join(virtualDir, 'islands-registry.ts'), 'export const islands = {};\n', 'utf-8');
+
   const pagesGlob = JSON.stringify(`${viteSrcPrefix}/pages/**/*.{vue,ts,tsx,js,jsx,md,mdx}`);
   const routesGlob = JSON.stringify(`${viteSrcPrefix}/routes/**/*.{ts,js,mjs}`);
   const middlewareGlob = JSON.stringify(`${viteSrcPrefix}/middleware/**/*.{ts,js,mjs}`);
@@ -708,6 +717,10 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
       mode: 'production',
       ssr: {
         target: presetBuildConfig.target === 'node18' ? 'node' : 'webworker',
+        // Bundle the ubean package so that virtual module imports inside it
+        // (e.g. `virtual:ubean-islands-registry` in `ubean/runtime/vue`) are
+        // resolved by Vite plugins rather than leaking as bare `virtual:`
+        // imports that Node's ESM loader cannot resolve at prerender time.
         noExternal: ['ubean']
       },
       build: {
@@ -717,7 +730,13 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         sourcemap,
         rollupOptions: {
           input: serverEntryPath,
-          external: presetBuildConfig.external,
+          // Remove the ubean pattern from external — it conflicts with
+          // `ssr.noExternal: ['ubean']` above. Keeping it would externalize
+          // ubean, causing Node to load it from node_modules where the
+          // virtual module import is unresolved.
+          external: presetBuildConfig.external.filter(
+            e => !(e instanceof RegExp && e.source.startsWith('^ubean'))
+          ),
           output: {
             format: presetBuildConfig.format,
             entryFileNames: 'entry.mjs',
@@ -727,7 +746,25 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         },
         emptyOutDir: false
       },
-      plugins: [...plugins],
+      plugins: [
+        ...plugins,
+        {
+          // SSR stub for `virtual:ubean-islands-registry`.
+          // The real registry is populated by ubeanIslandsPlugin during the
+          // client build. During SSR, islands are rendered server-side (no
+          // client hydration), so an empty stub suffices.
+          name: 'ubean:islands-ssr-stub',
+          enforce: 'pre',
+          resolveId(id) {
+            if (id === 'virtual:ubean-islands-registry') return '\0virtual:ubean-islands-registry';
+            return undefined;
+          },
+          load(id) {
+            if (id === '\0virtual:ubean-islands-registry') return 'export const islands = {};';
+            return undefined;
+          }
+        }
+      ],
       resolve: commonResolve
     });
 

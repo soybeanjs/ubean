@@ -1,7 +1,7 @@
 {
   "name": "@ubean/seo",
   "version": "0.1.13",
-  "description": "SEO utilities for ubean (useSeoMeta, robots, sitemap, manifest, file conventions, JSON-LD)",
+  "description": "SEO utilities for ubean (useSeoMeta, robots, sitemap, manifest, file conventions, JSON-LD, OG image)",
   "files": [
     "dist"
   ],
@@ -17,6 +17,10 @@
     "./conventions": {
       "types": "./dist/conventions.d.ts",
       "import": "./dist/conventions.js"
+    },
+    "./og-image": {
+      "types": "./dist/og-image.d.ts",
+      "import": "./dist/og-image.js"
     }
   },
   "scripts": {
@@ -35,10 +39,18 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
+    "@resvg/resvg-js": "^2.6.0",
+    "satori": "^0.12.0",
     "vue": "^3.0.0"
   },
   "peerDependenciesMeta": {
     "vue": {
+      "optional": true
+    },
+    "satori": {
+      "optional": true
+    },
+    "@resvg/resvg-js": {
       "optional": true
     }
   }

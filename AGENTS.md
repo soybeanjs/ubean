@@ -106,6 +106,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序
 - **Server Actions（表单 action）**：页面模块可 `export const actions = { name: defineAction(...) }`，POST 表单通过 `?/<actionName>` URL 分发（SvelteKit 风格，渐进增强）；详见第 4 节 Server Actions
 - `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`middleware`、`requiresAuth`、`cache`、`head`（**没有** 顶层 `title` 字段）
+  - `layout` 支持 `string`（单层）、`string[]`（多层嵌套，P9-17）或 `false`（禁用）；数组按外→内顺序嵌套：`['default', 'admin', 'dashboard']` → `default` 包裹 `admin` 包裹 `dashboard` 包裹页面；数组中的 `'default'` 是字面布局名（引用 `layouts/default.vue`），而单独字符串 `'default'` 表示使用默认布局
   - `cache: true` 启用页面 KeepAlive 缓存，框架自动用路由名作为组件 `name`（通过 `getNamedPageWrapper` 包装），`<script setup>` SFC 无需手动 `defineOptions({ name })`
   - 运行时控制：`useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)`
 

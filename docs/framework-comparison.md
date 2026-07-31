@@ -71,7 +71,7 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 
 | **拦截路由 (Intercepting Routes)** | Next.js `(..)` 模态路由 | ❌ |
 | **Route Groups** | 全部支持 `(group)` | ✅ |
 | **动态路由 + matchers** | SvelteKit matchers；其余 `[param]` | ⚠️ 无 matchers |
-| **嵌套布局** | Next/Nuxt/SvelteKit 多层嵌套 | ⚠️ 单层 `layout` |
+| **嵌套布局** | Next/Nuxt/SvelteKit 多层嵌套 | ✅ `layout: ['default', 'admin', 'dashboard']` 多层嵌套 (P9-17) |
 | **404/loading/error 约定文件** | Next.js `not-found.tsx`/`loading.tsx`/`error.tsx`/`global-error.tsx`；SvelteKit `+error.svelte` | ✅ `404.vue`/`loading.vue`/`error.vue` |
 | **typed routes** | Nuxt/SvelteKit `$types` 自动生成 | ✅ TBD-08 |
 | **View Transitions** | Next/Nuxt/Astro/SvelteKit | ✅ |

@@ -21,7 +21,7 @@ export interface CompiledPage {
   name: string;
   path: string;
   filePath: string;
-  layout?: string | false;
+  layout?: string | string[] | false;
   reuseTarget?: string;
 }
 

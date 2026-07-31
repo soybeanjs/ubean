@@ -45,7 +45,7 @@ export interface ScannedPageRoute extends ScannedFile {
   name: string;
   route: string;
   path: string;
-  layout?: string | false;
+  layout?: string | string[] | false;
   cache?: boolean;
   isReuse: boolean;
   isMarkdown: boolean;
@@ -183,7 +183,13 @@ export const GLOB_LAYOUT_PATTERN = '**/*.{vue,ts}';
 export interface PageMeta {
   name?: string;
   path?: string;
-  layout?: string | false;
+  /**
+   * Layout name, array of layout names (outer → inner, applied left-to-right),
+   * or `false` to disable layout. When an array is given, layouts are nested:
+   * the first entry is the outermost layout, the last is the innermost, and
+   * the innermost layout's `<PageView />` renders the matched page.
+   */
+  layout?: string | string[] | false;
   reuse?: string;
   /**
    * Route metadata. Extends vue-router's `RouteMeta` so projects can

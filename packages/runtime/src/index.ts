@@ -9,8 +9,8 @@ declare module 'vue-router' {
     cache?: boolean;
     /** The page route name (set by ubean's virtual pages module). */
     pageName?: string;
-    /** The layout name to use, or `false` to disable layout. */
-    layout?: string | false;
+    /** The layout name, array of layout names (nested, outer → inner), or `false` to disable layout. */
+    layout?: string | string[] | false;
     /** Whether authentication is required for this route. */
     requiresAuth?: boolean;
     /**

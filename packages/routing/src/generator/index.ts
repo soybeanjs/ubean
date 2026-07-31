@@ -156,7 +156,15 @@ ${items}
     parts.push(`    component: ${JSON.stringify(componentKey)}`);
 
     if (page.layout !== undefined) {
-      const layoutVal = page.layout === false ? 'false' : JSON.stringify(page.layout);
+      let layoutVal: string;
+      if (page.layout === false) {
+        layoutVal = 'false';
+      } else if (Array.isArray(page.layout)) {
+        // 'default' inside an array is a literal layout name, keep as-is
+        layoutVal = JSON.stringify(page.layout);
+      } else {
+        layoutVal = JSON.stringify(page.layout);
+      }
       parts.push(`    layout: ${layoutVal}`);
     }
 
@@ -267,7 +275,7 @@ export interface RouteRecord {
    * (not the reuse route's own name), so the same component is reused.
    */
   component: RouteFileKey;
-  layout?: LayoutKey | false;
+  layout?: LayoutKey | LayoutKey[] | false;
   reuse?: boolean;
   meta?: Record<string, unknown>;
   cache?: boolean;

@@ -335,8 +335,19 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
   const result: PageMeta = {};
   if (typeof parsed.name === 'string') result.name = parsed.name;
   if (typeof parsed.path === 'string') result.path = parsed.path;
-  if (parsed.layout === false || (typeof parsed.layout === 'string' && parsed.layout !== 'default'))
-    result.layout = parsed.layout as string | false;
+  if (parsed.layout === false) {
+    result.layout = false;
+  } else if (typeof parsed.layout === 'string' && parsed.layout !== 'default') {
+    result.layout = parsed.layout;
+  } else if (Array.isArray(parsed.layout)) {
+    // Nested layouts: array of layout names (outer → inner).
+    // Unlike single-string 'default' (which means "use default layout" and
+    // is mapped to undefined), 'default' inside an array is a literal layout
+    // name — it explicitly includes `layouts/default.vue` in the nesting chain.
+    // Only filter out non-string entries.
+    const layouts = parsed.layout.filter((l): l is string => typeof l === 'string');
+    if (layouts.length > 0) result.layout = layouts;
+  }
   if (typeof parsed.reuse === 'string') result.reuse = parsed.reuse;
   if (parsed.meta && typeof parsed.meta === 'object') result.meta = parsed.meta as RouteMeta;
   if (typeof parsed.requiresAuth === 'boolean') result.requiresAuth = parsed.requiresAuth;

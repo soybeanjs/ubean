@@ -82,7 +82,19 @@ export function createVuePagesVirtualModule(
     for (const p of sortedPages) {
       const varName = `Page_${p.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
       const routerPath = toVueRouterPath(p.route);
-      const layoutValue = p.layout === false ? 'false' : p.layout ? JSON.stringify(p.layout) : 'undefined';
+      let layoutValue: string;
+      if (p.layout === false) {
+        layoutValue = 'false';
+      } else if (Array.isArray(p.layout)) {
+        // Nested layouts: 'default' inside an array is a literal layout name,
+        // not the special "use default" directive. Keep it as-is.
+        // Empty array → undefined (no layouts).
+        layoutValue = p.layout.length > 0 ? JSON.stringify(p.layout) : 'undefined';
+      } else if (typeof p.layout === 'string') {
+        layoutValue = p.layout === 'default' ? 'undefined' : JSON.stringify(p.layout);
+      } else {
+        layoutValue = 'undefined';
+      }
       const cacheValue = p.cache === true ? 'true' : 'undefined';
 
       if (p.isReuse && p.reuseTarget && pageByName.has(p.reuseTarget)) {

@@ -6,7 +6,6 @@ import {
   KeepAlive,
   Suspense,
   Transition,
-  ref,
   reactive,
   provide,
   inject,
@@ -36,6 +35,18 @@ const TRANSITION_KEY = Symbol('ubean-transition');
 const SSR_KEY: InjectionKey<boolean> = Symbol('ubean-ssr');
 const LOADING_KEY: InjectionKey<Component | null> = Symbol('ubean-loading');
 const ERROR_KEY: InjectionKey<Component | null> = Symbol('ubean-error');
+
+/**
+ * Layout chain context — provided by `LayoutChainRenderer` so that `<PageView />`
+ * inside a layout knows whether to render the next nested layout or the actual
+ * page. When `depth < components.length - 1`, `PageView` renders the next
+ * `LayoutChainRenderer`; otherwise it renders the matched page via `<RouterView>`.
+ */
+interface LayoutChainContext {
+  components: Array<Component | null>;
+  depth: number;
+}
+const LAYOUT_CHAIN_KEY: InjectionKey<LayoutChainContext | null> = Symbol('ubean-layout-chain');
 
 export type { VueHeadClient };
 
@@ -76,33 +87,82 @@ export interface UbeanAppInstance {
   page: PageObject;
 }
 
+/**
+ * Normalize the `layout` route meta field into an array of layout names
+ * (outer → inner). Handles `string`, `string[]`, `false`, and `undefined`
+ * (falls back to `defaultLayout`). The `'default'` name is filtered out
+ * because the default layout is applied implicitly when no layout is specified.
+ */
+function normalizeLayoutNames(layout: string | string[] | false | undefined, defaultLayout: string | null): string[] {
+  if (layout === false || layout == null) {
+    return layout === false ? [] : defaultLayout ? [defaultLayout] : [];
+  }
+  if (Array.isArray(layout)) {
+    // 'default' inside an array is a literal layout name (refers to
+    // `layouts/default.vue`), not the special "use default" directive.
+    return layout.filter(n => typeof n === 'string');
+  }
+  if (layout === 'default') {
+    return defaultLayout ? [defaultLayout] : [];
+  }
+  return [layout];
+}
+
+/**
+ * LayoutChainRenderer — recursively renders a chain of nested layout components.
+ *
+ * At each depth, it renders the layout component at `depth` and provides the
+ * chain context via `LAYOUT_CHAIN_KEY`. When the layout's `<PageView />` is
+ * rendered, `PageView` checks the context: if there are more layouts to render,
+ * it renders the next `LayoutChainRenderer`; otherwise it renders the matched
+ * page via `<RouterView>`.
+ *
+ * This enables `definePage({ layout: ['default', 'admin', 'dashboard'] })` where
+ * `default` wraps `admin` wraps `dashboard` wraps the page.
+ */
+const LayoutChainRenderer = defineComponent({
+  name: 'UbeanLayoutChain',
+  props: {
+    components: { type: Array as PropType<Array<Component | null>>, required: true },
+    depth: { type: Number, default: 0 }
+  },
+  setup(props) {
+    // Provide the chain context so PageView knows whether to render the next
+    // layout or the actual page.
+    provide(LAYOUT_CHAIN_KEY, {
+      get components() {
+        return props.components;
+      },
+      get depth() {
+        return props.depth;
+      }
+    });
+
+    return (): VNode => {
+      const comp = props.components[props.depth];
+      if (!comp) {
+        // No layout at this depth — fall through to PageView (which renders
+        // the actual page via RouterView).
+        return h(PageView);
+      }
+      return h(comp as ConcreteComponent);
+    };
+  }
+});
+
 function createLayoutWrapper(
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>,
   defaultLayout: string | null
 ) {
   const layoutCache = new Map<string, Component | null>();
-  const layoutComp = shallowRef<Component | null>(null);
-  const currentLayoutName = ref<string | false | null>(null);
+  const layoutComps = shallowRef<Array<Component | null>>([]);
 
-  async function loadLayout(name: string | false | null | undefined) {
-    const resolved = name === undefined ? defaultLayout : name;
-    if (resolved === false || resolved == null) {
-      layoutComp.value = null;
-      return;
-    }
-    if (layoutCache.has(resolved)) {
-      layoutComp.value = layoutCache.get(resolved) || null;
-      return;
-    }
-    const comp = await resolveLayoutComponent(resolved);
-    if (comp) {
-      const raw = markRaw(comp);
-      layoutCache.set(resolved, raw);
-      layoutComp.value = raw;
-    } else {
-      layoutCache.set(resolved, null);
-      layoutComp.value = null;
-    }
+  async function loadLayout(name: string): Promise<Component | null> {
+    if (layoutCache.has(name)) return layoutCache.get(name)!;
+    const comp = await resolveLayoutComponent(name);
+    const raw = comp ? markRaw(comp) : null;
+    layoutCache.set(name, raw);
+    return raw;
   }
 
   return defineComponent({
@@ -110,25 +170,26 @@ function createLayoutWrapper(
     setup() {
       const route = useRoute();
 
-      watchEffect(() => {
-        const layoutName = route.meta.layout as string | false | undefined;
-        if (layoutName !== currentLayoutName.value) {
-          currentLayoutName.value = layoutName === undefined ? defaultLayout : layoutName;
-          loadLayout(currentLayoutName.value);
+      watchEffect(async () => {
+        const layoutField = route.meta.layout as string | string[] | false | undefined;
+        const resolved = layoutField === undefined ? (defaultLayout ?? undefined) : layoutField;
+        const names = normalizeLayoutNames(resolved, defaultLayout);
+        if (names.length === 0) {
+          layoutComps.value = [];
+          return;
         }
+        const comps = await Promise.all(names.map(n => loadLayout(n)));
+        layoutComps.value = comps;
       });
 
       return () => {
-        // Render the layout component directly. The layout is expected to
-        // contain a `<PageView />` (or `<RouterView />`) inside its template
-        // to render the matched page. This follows vue-router's guidance:
-        // layouts use RouterView, not slot injection, so keep-alive can wrap
-        // the RouterView cleanly without the v-slot closure issues.
-        if (!layoutComp.value) {
+        const comps = layoutComps.value;
+        if (comps.length === 0) {
           // No layout: render PageView directly so pages still render.
           return h(PageView);
         }
-        return h(layoutComp.value as ConcreteComponent);
+        // Render the layout chain starting at depth 0.
+        return h(LayoutChainRenderer, { components: comps, depth: 0 });
       };
     }
   });
@@ -222,8 +283,23 @@ export const PageView = defineComponent({
     const ssr = inject(SSR_KEY, false);
     const loadingComp = inject(LOADING_KEY, null);
     const errorComp = inject(ERROR_KEY, null);
+    // Layout chain context — when inside a nested layout chain, PageView
+    // renders the next layout instead of the actual page (until the chain
+    // is exhausted, at which point it renders the page via RouterView).
+    const layoutChain = inject(LAYOUT_CHAIN_KEY, null);
 
-    return () => {
+    return (): VNode => {
+      // If inside a layout chain and there are more layouts to render,
+      // render the next LayoutChainRenderer instead of the actual page.
+      // The innermost layout's <PageView /> (depth === components.length - 1)
+      // falls through to RouterView below.
+      if (layoutChain && layoutChain.depth < layoutChain.components.length - 1) {
+        return h(LayoutChainRenderer, {
+          components: layoutChain.components,
+          depth: layoutChain.depth + 1
+        });
+      }
+
       return h(RouterView, null, {
         default: ({ Component, route }: { Component: VNode | null; route: any }) => {
           if (!Component) return null;

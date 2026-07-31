@@ -359,7 +359,7 @@ async function scanPages(
             pageMeta = {
               name: (frontmatter?.name as string) || name,
               path: (frontmatter?.path as string) || route,
-              layout: frontmatter?.layout as string | false | undefined,
+              layout: frontmatter?.layout as string | string[] | false | undefined,
               cache: frontmatter?.cache as boolean | undefined,
               head: buildMarkdownHead(frontmatter)
             };

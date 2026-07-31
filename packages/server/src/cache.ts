@@ -21,6 +21,13 @@ export interface CacheStore {
    * 不实现此方法的存储后端将不支持 ISR SWR(自动降级为同步重新生成)。
    */
   peek?(key: string): Promise<CacheEntry | undefined>;
+  /**
+   * 内部 Map(仅内存存储实现暴露)。供 `invalidateCachePattern` /
+   * `isIsrEntryStale` 等函数通过 `memStore.store` 访问底层存储进行模式匹配。
+   *
+   * 其他后端(Redis 等)不实现此属性,模式匹配将返回 0/false。
+   */
+  store?: Map<string, CacheEntry>;
 }
 
 export function createMemoryStore(maxEntries = 200): CacheStore {
@@ -36,11 +43,15 @@ export function createMemoryStore(maxEntries = 200): CacheStore {
   }
 
   return {
+    // 暴露内部 Map,供 invalidateCachePattern / isIsrEntryStale 等函数
+    // 通过 `memStore.store` 访问底层存储进行模式匹配。
+    store,
     async get(key) {
       const entry = store.get(key);
       if (!entry) return undefined;
+      // 不删除过期 entry —— 保留供 peek() / ISR SWR 读取旧内容。
+      // 删除副作用会导致 getStaleIsrCache 无法获取 stale entry。
       if (Date.now() > entry.expiresAt) {
-        store.delete(key);
         return undefined;
       }
       return entry;

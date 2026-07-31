@@ -26,17 +26,21 @@ import type { IsrCacheStore } from '../src/isr';
 
 /**
  * 构造一个内存 IsrCacheStore(与 @ubean/server 的 createMemoryStore 结构兼容)。
- * `peek` 返回 entry(无论是否过期);`get` 在过期时返回 undefined。
+ * `peek` 返回 entry(无论是否过期);`get` 在过期时返回 undefined(不删除,保留供 peek/SWR 读取)。
+ *
+ * 注意:内部 Map 暴露为 `store` 属性(无下划线前缀),与 `isr.ts` 中
+ * `invalidateIsrCachePattern` / `isIsrEntryStale` 访问的 `memStore.store` 一致。
  */
-function createTestStore(): IsrCacheStore & { _store: Map<string, any> } {
+function createTestStore(): IsrCacheStore & { store: Map<string, any> } {
   const store = new Map<string, any>();
   return {
-    _store: store,
+    store,
     async get(key) {
       const entry = store.get(key);
       if (!entry) return undefined;
       if (Date.now() > entry.expiresAt) {
-        store.delete(key);
+        // 不删除过期 entry —— 保留供 peek() / SWR 读取旧内容。
+        // 删除副作用会导致 getStaleIsrCache 无法获取 stale entry。
         return undefined;
       }
       return entry;

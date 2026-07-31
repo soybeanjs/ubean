@@ -248,3 +248,8 @@ export function parseMarkdown(source: string, options: MarkdownOptions = {}): Pa
 export function defineMarkdownPage(frontmatter: MarkdownFrontmatter & Record<string, unknown>) {
   return frontmatter;
 }
+
+// P9-20: MDX compilation
+export { compileMdx, isMdxAvailable, isMdxAvailableSync, type MdxOptions, type MdxCompileResult } from './mdx';
+
+export { ubeanMdxPlugin, type MdxVitePluginOptions } from './vite-plugin';

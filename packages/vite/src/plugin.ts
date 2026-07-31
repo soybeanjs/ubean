@@ -5,6 +5,7 @@ import AutoImport from 'unplugin-auto-import/vite';
 import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '@ubean/auto-imports';
 import { useVirtualRegistry, getComponentResolvers } from '@ubean/build';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
+import { ubeanMdxPlugin } from '@ubean/markdown';
 import { scanProject } from '@ubean/routing';
 import { transformSync } from 'oxc-transform';
 import { join } from 'pathe';
@@ -226,6 +227,16 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
         wrapperClasses: 'markdown-body',
         headEnabled: true,
         headField: 'head'
+      }) as Plugin
+    );
+  }
+
+  // P9-20: MDX real compilation plugin
+  if (mdxEnabled) {
+    plugins.push(
+      ubeanMdxPlugin({
+        remarkPlugins: ubeanConfig.markdown?.remarkPlugins || [],
+        rehypePlugins: ubeanConfig.markdown?.rehypePlugins || []
       }) as Plugin
     );
   }

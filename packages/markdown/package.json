@@ -13,6 +13,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./jsx-runtime": {
+      "types": "./dist/jsx-runtime.d.ts",
+      "import": "./dist/jsx-runtime.js"
+    },
+    "./mdx": {
+      "types": "./dist/mdx.d.ts",
+      "import": "./dist/mdx.js"
     }
   },
   "scripts": {
@@ -27,6 +35,17 @@
   "devDependencies": {
     "@types/node": "^26.1.2",
     "typescript": "7.0.2",
-    "vite-plus": "catalog:"
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vue": "^3.5.40"
+  },
+  "peerDependencies": {
+    "@mdx-js/mdx": "^3.0.0",
+    "vue": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@mdx-js/mdx": {
+      "optional": true
+    }
   }
 }

@@ -1366,6 +1366,45 @@ Welcome to our company...
 - Markdown 正文通过 [`markdown-exit`](https://github.com/serkodev/markdown-exit) 渲染（markdown-it 的 TypeScript 重写版，原生支持 async），通过 `@shikijs/markdown-exit` 插件集成 Shiki 提供代码语法高亮，无需额外 async 补丁
 - 支持嵌入 Vue 组件，组件通过 client 指令控制 hydration 策略
 
+#### MDX 真实编译（P9-20）
+
+当 `markdown.mdx: true` 时，ubean 使用 `@mdx-js/mdx` 将 `.mdx` 文件编译为 Vue 组件（而非简单的 Markdown 渲染）。`@mdx-js/mdx` 是 optional peer dependency，需手动安装：
+
+```bash
+pnpm add @mdx-js/mdx
+```
+
+编译产物通过 `@ubean/markdown/jsx-runtime`（Vue 兼容的 JSX runtime，基于 Vue `h()` 函数）渲染，因此在 `.mdx` 文件中可以直接使用 JSX 语法和导入的 Vue 组件：
+
+```mdx
+---
+title: My Post
+---
+
+import Counter from '~/components/Counter.vue'
+
+# Hello MDX
+
+This is **MDX** with real compilation.
+
+<Counter client:visible />
+```
+
+若未安装 `@mdx-js/mdx`，ubean 会自动 fallback 为 plain Markdown 渲染（将 HTML 包裹在 Vue 组件中通过 `v-html` 输出），功能上等价于普通 `.md` 文件。
+
+可通过 `markdown.remarkPlugins` 和 `markdown.rehypePlugins` 传递额外的 remark/rehype 插件：
+
+```typescript
+// ubean.config.ts
+export default defineConfig({
+  markdown: {
+    mdx: true,
+    remarkPlugins: [remarkGfm],        // e.g. GitHub Flavored Markdown
+    rehypePlugins: [rehypeSlug]        // e.g. slugify headings
+  }
+});
+```
+
 #### 配置选项
 
 ```typescript
@@ -1373,7 +1412,7 @@ Welcome to our company...
 export default defineConfig({
   markdown: {
     enabled: true, // 默认 true，设为 false 禁用
-    mdx: false, // 是否启用 MDX 支持
+    mdx: false, // 是否启用 MDX 真实编译（需安装 @mdx-js/mdx）
     theme: 'vitesse-dark', // Shiki 代码高亮主题（支持双主题: { light, dark }）
     markdownExit: {
       // markdown-exit 配置（原生 async 渲染）
@@ -1386,9 +1425,12 @@ export default defineConfig({
       anchorLinks: true
     },
     components: {
-      // 自动导入的 Vue 组件可在 md 中使用
+      // 自动导入的 Vue 组件可在 md/mdx 中使用
       autoImport: true
-    }
+    },
+    // MDX 编译插件（仅 mdx: true 时生效）
+    remarkPlugins: [],   // 传递给 @mdx-js/mdx 的 remark 插件
+    rehypePlugins: []    // 传递给 @mdx-js/mdx 的 rehype 插件
   }
 });
 ```

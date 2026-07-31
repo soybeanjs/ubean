@@ -10,9 +10,9 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts'],
+    entry: ['src/index.ts', 'src/mdx.ts', 'src/jsx-runtime.ts', 'src/vite-plugin.ts'],
     deps: {
-      neverBundle: [/^@ubean\//, /^node:/]
+      neverBundle: [/^@ubean\//, 'vue', '@mdx-js/mdx', /^node:/]
     }
   }
 });

@@ -613,6 +613,10 @@ export interface UbeanConfig {
     markdownExit?: Record<string, unknown>;
     headings?: { anchorLinks?: boolean };
     components?: { autoImport?: boolean };
+    /** Remark plugins passed to @mdx-js/mdx (only used when `mdx: true`). */
+    remarkPlugins?: any[];
+    /** Rehype plugins passed to @mdx-js/mdx (only used when `mdx: true`). */
+    rehypePlugins?: any[];
   };
   imports?: {
     autoImport?: boolean;

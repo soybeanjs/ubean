@@ -210,7 +210,8 @@ const configDefaults: ResolvedConfig = {
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
   favicon: null,
   colorMode: false,
-  partyTown: false
+  partyTown: false,
+  search: false
 };
 
 let cachedConfig: ResolvedConfig | null = null;

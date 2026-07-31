@@ -155,3 +155,16 @@ export {
   _resetPartyTown
 } from './party-town';
 export type { PartyTownConfig, UseScriptOptions, UseScriptReturn, ScriptTrigger } from './party-town';
+// P9-26: Full-text search (Pagefind integration)
+export {
+  useSearch,
+  initPagefind,
+  executeSearch,
+  configureSearch,
+  getSearchConfig,
+  resolveSearchConfig,
+  isPagefindLoaded,
+  _resetSearch,
+  _setPagefindMock
+} from './search';
+export type { SearchResult, SearchFilters, UseSearchOptions, UseSearchReturn, SearchRuntimeConfig } from './search';

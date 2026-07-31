@@ -661,6 +661,39 @@ export interface UbeanConfig {
       }
     | true
     | false;
+  /**
+   * P9-26: Full-text search via Pagefind.
+   *
+   * Set to `false` (default) to disable. Set to `true` or an object to
+   * configure. When enabled, the Vite plugin runs the Pagefind CLI after
+   * build to index generated HTML files into a `/pagefind/` directory.
+   *
+   * At runtime, the `useSearch()` composable lazily loads the Pagefind
+   * browser library and provides reactive search results.
+   */
+  search?:
+    | {
+        /** Enable Pagefind search (default: true when search config object is provided). */
+        enabled?: boolean;
+        /**
+         * Directory containing built HTML files to index (default: derived
+         * from Vite's `build.outDir`, usually `dist`).
+         */
+        site?: string;
+        /**
+         * Output subdirectory for Pagefind assets, relative to `site`
+         * (default: `pagefind`). The browser loads `/pagefind/pagefind-modern.js`.
+         */
+        indexPath?: string;
+        /** Glob pattern of HTML files to include in the index (default: all .html files). */
+        glob?: string;
+        /** CSS selectors to exclude from indexing (e.g. `['nav', 'footer']`). */
+        excludeSelectors?: string[];
+        /** Verbose logging during indexing (default: false). */
+        verbose?: boolean;
+      }
+    | true
+    | false;
   imports?: {
     autoImport?: boolean;
     dirs?: string[];

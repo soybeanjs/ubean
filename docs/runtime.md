@@ -1928,6 +1928,155 @@ export default defineConfig({
 
 > **注意**：动态 head 标签采用**追加**策略，不会覆盖或重复静态标签。`collectDynamicHeadTags` 通过逐行对比静态快照与完整 head，仅注入新增的标签行。
 
+## 4.19e 全文搜索 / Pagefind（P9-26）
+
+ubean 内置全文搜索支持，对齐 Astro Pagefind 集成。通过 [Pagefind](https://pagefind.app/) 在构建时索引生成的 HTML 文件，运行时提供客户端搜索 API，无需服务端数据库或搜索引擎。
+
+#### 基本用法
+
+```typescript
+// ubean.config.ts — 启用 Pagefind
+export default defineConfig({
+  search: true
+  // 或自定义配置:
+  // search: {
+  //   site: 'dist',           // HTML 输出目录
+  //   indexPath: 'pagefind',  // 索引输出子目录
+  //   verbose: true           // 详细日志
+  // }
+});
+```
+
+构建时，Vite 插件自动运行 Pagefind CLI 索引 HTML 文件：
+
+```
+$ ubean build
+  [ubean:pagefind] Search index generated successfully.
+```
+
+在 Vue 组件中使用 `useSearch()` composable（自动导入）：
+
+```vue
+<script setup lang="ts">
+const { search, results, loading, error } = useSearch({ debounce: 200 });
+</script>
+
+<template>
+  <input
+    type="search"
+    placeholder="搜索文档..."
+    @input="search($event.target.value)"
+  />
+  <div v-if="loading">搜索中...</div>
+  <div v-else-if="error">{{ error }}</div>
+  <ul v-else>
+    <li v-for="r in results" :key="r.id">
+      <a :href="r.url">{{ r.meta.title || r.url }}</a>
+      <p v-html="r.excerpt" />
+    </li>
+  </ul>
+</template>
+```
+
+#### 工作原理
+
+```
+构建时:
+┌──────────────────────────────────────────┐
+│ ubean build                              │
+│   ├── Vite 构建 → 生成 HTML 文件到 dist/ │
+│   └── closeBundle hook                   │
+│       └── npx pagefind --site dist       │
+│           → 生成 dist/pagefind/ 索引文件  │
+│             (pagefind-modern.js, 索引碎片) │
+└──────────────────────────────────────────┘
+
+运行时:
+┌──────────────────────────────────────────┐
+│ 浏览器                                    │
+│   ├── useSearch()                        │
+│   │   └── 首次搜索时动态 import           │
+│   │       /pagefind/pagefind-modern.js   │
+│   └── pagefind.search(query)             │
+│       → 返回匹配结果(url/excerpt/meta)    │
+└──────────────────────────────────────────┘
+```
+
+#### 配置选项
+
+```typescript
+export default defineConfig({
+  search: {
+    enabled: true,           // 启用（默认 true 当 search 为对象时）
+    site: 'dist',            // HTML 输出目录（默认从 Vite outDir 推导）
+    indexPath: 'pagefind',   // 索引输出子目录（默认 'pagefind'）
+    glob: '**/*.html',       // HTML 文件 glob（默认所有 .html）
+    excludeSelectors: ['nav', 'footer', '.sidebar'],  // 排除的 CSS 选择器
+    verbose: false           // 详细索引日志
+  }
+});
+```
+
+#### composable 选项
+
+```typescript
+const {
+  query,    // Ref<string> — 当前查询
+  results,  // ShallowRef<SearchResult[]> — 搜索结果
+  loading,  // Ref<boolean> — 是否搜索中
+  error,    // Ref<string | null> — 错误信息
+  ready,    // Ref<boolean> — Pagefind 是否已加载
+  search,   // (query: string, filters?) => Promise<void>
+  clear,    // () => void — 清除结果
+  preload   // () => Promise<void> — 预加载 Pagefind
+} = useSearch({
+  debounce: 150,   // debounce 延迟(ms)，默认 150
+  limit: 10,       // 最大结果数，默认 10
+  filters: {       // 默认过滤器
+    filters: { tags: 'guide' },
+    sort: { date: 'desc' }
+  },
+  immediate: '初始查询'  // 挂载时自动搜索
+});
+```
+
+#### 过滤与排序
+
+通过 HTML 中的 `data-pagefind-filter` 属性标记过滤字段，然后在搜索时传入 filters：
+
+```html
+<!-- 在页面 HTML 中 -->
+<article data-pagefind-filter="tags:guide">
+  <h1>Getting Started</h1>
+  ...
+</article>
+```
+
+```typescript
+// 搜索时过滤
+await search('vue', {
+  filters: { tags: 'guide' }
+});
+
+// 按日期排序
+await search('vue', {
+  sort: { date: 'desc' }
+});
+```
+
+#### API 速查
+
+| API | 说明 |
+| --- | --- |
+| `useSearch(options?)` | 搜索 composable，返回响应式状态和搜索方法 |
+| `initPagefind(options?)` | 手动加载 Pagefind 浏览器库 |
+| `executeSearch(query, options)` | 底层搜索 API（无响应式状态） |
+| `configureSearch(config)` | 全局配置搜索运行时 |
+| `resolveSearchConfig(config)` | 合并默认配置 |
+| `isPagefindLoaded()` | 检查 Pagefind 是否已加载 |
+
+> **注意**：使用 Pagefind 需安装 `pagefind` CLI：`pnpm add -D pagefind`。未安装时构建会跳过索引并输出警告，不影响其他功能。
+
 ## 4.20 跨平台队列（Queues）
 
 参考 void 的 Proxy 动态绑定模式，ubean 提供跨平台队列抽象。

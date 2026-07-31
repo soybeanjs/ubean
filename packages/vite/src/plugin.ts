@@ -326,5 +326,94 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
     );
   }
 
+  // P9-26: Pagefind post-build indexing plugin.
+  // Runs the Pagefind CLI after the build completes to index generated HTML
+  // files. The browser-side `useSearch()` composable loads the generated
+  // `/pagefind/pagefind-modern.js` at runtime.
+  const searchConfig = ubeanConfig.search;
+  if (searchConfig !== false && searchConfig !== undefined) {
+    plugins.push({
+      name: 'ubean:pagefind',
+      apply: 'build',
+      closeBundle() {
+        // Lazy-load node:child_process and node:path to avoid pulling them
+        // into the dev server bundle unnecessarily.
+        return runPagefindIndexing(ubeanConfig, searchConfig);
+      }
+    });
+  }
+
   return plugins;
+}
+
+/**
+ * P9-26: Run the Pagefind CLI to index built HTML files.
+ *
+ * Spawns `npx pagefind --site <dir>` after the build. If the `pagefind`
+ * package is not installed, prints a helpful warning instead of failing.
+ */
+async function runPagefindIndexing(
+  ubeanConfig: UbeanResolvedConfig,
+  searchConfig: NonNullable<UbeanResolvedConfig['search']>
+): Promise<void> {
+  const { spawn } = await import('node:child_process');
+  const { resolve } = await import('node:path');
+
+  const isObjectConfig = typeof searchConfig === 'object';
+  const enabled = isObjectConfig ? searchConfig.enabled !== false : true;
+
+  if (!enabled) return;
+
+  // Determine the site directory (where HTML files are output).
+  const outDir = isObjectConfig && searchConfig.site ? searchConfig.site : 'dist';
+
+  const indexPath = isObjectConfig && searchConfig.indexPath ? searchConfig.indexPath : 'pagefind';
+
+  const verbose = isObjectConfig && searchConfig.verbose === true;
+
+  const sitePath = resolve(ubeanConfig.rootDir, outDir);
+
+  const args = ['pagefind', '--site', sitePath, '--output-subdir', indexPath];
+
+  if (isObjectConfig && searchConfig.glob) {
+    args.push('--glob', searchConfig.glob);
+  }
+
+  if (isObjectConfig && searchConfig.excludeSelectors) {
+    for (const selector of searchConfig.excludeSelectors) {
+      args.push('--exclude-selectors', selector);
+    }
+  }
+
+  if (verbose) {
+    args.push('--verbose');
+  }
+
+  return new Promise<void>(resolvePromise => {
+    const child = spawn('npx', args, {
+      stdio: 'inherit',
+      cwd: ubeanConfig.rootDir,
+      shell: true
+    });
+
+    child.on('error', (err: Error & { code?: string }) => {
+      if (err.code === 'ENOENT' || /not found/i.test(err.message)) {
+        console.warn(
+          '[ubean:pagefind] Pagefind CLI not found. Install it with `pnpm add -D pagefind` to enable full-text search.'
+        );
+      } else {
+        console.error('[ubean:pagefind] Failed to run Pagefind:', err.message);
+      }
+      resolvePromise();
+    });
+
+    child.on('exit', code => {
+      if (code === 0) {
+        console.log('[ubean:pagefind] Search index generated successfully.');
+      } else {
+        console.warn(`[ubean:pagefind] Pagefind exited with code ${code}. Search index may be incomplete.`);
+      }
+      resolvePromise();
+    });
+  });
 }

@@ -80,11 +80,11 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 
 
 | 能力 | 各框架情况 | ubean |
 |---|---|---|
-| **组件级缓存指令** | Next.js `"use cache"` + `cacheLife()`/`cacheTag()`/`updateTag()` | ❌ |
+| **组件级缓存指令** | Next.js `"use cache"` + `cacheLife()`/`cacheTag()`/`updateTag()` | ✅ P9-08(`"use cache"` 指令 + `cacheLife()`/`cacheTag()` 宏 + `wrapWithCache()` + Vite 插件 AST 转换) |
 | **fetch 自动 memo + 缓存** | Next.js Data Cache + revalidateTag/revalidatePath | ❌ |
 | **per-route 缓存规则** | Nuxt `routeRules.cache`；Astro `routeRules` | ✅ `resolveRouteCacheRules` + `routeRules.cache`(P9-03 增强) |
 | **SWR** | Nuxt `swr: 600`；Astro `swr` | ✅ CacheRule.swr + ISR SWR(P9-03,`peek` 保留过期项) |
-| **标签化失效** | Next.js `cacheTag`/`updateTag`；Astro tags | ⚠️ `invalidateRouteCache(keyPattern)` |
+| **标签化失效** | Next.js `cacheTag`/`updateTag`；Astro tags | ✅ P9-08(`revalidateTag(tag)`/`revalidateTags(...)`/`revalidatePath(pattern)` 组件级缓存标签失效) |
 | **cachedEventHandler** | Nuxt `defineCachedEventHandler`/`defineCachedFunction` | ✅ |
 | **CDN/Edge 缓存集成** | Next Full Route Cache；Astro adapter providers | ❌ |
 
@@ -95,11 +95,11 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 
 | **`sitemap.ts` 文件约定** | Next.js `app/sitemap.ts` 自动生成 `/sitemap.xml` | ✅ P9-05(`src/sitemap.ts` → `registerSeoConventions` 自动注册 GET `/sitemap.xml`) |
 | **`robots.ts` 文件约定** | Next.js `app/robots.ts` | ✅ P9-05(`src/robots.ts` → GET `/robots.txt`) |
 | **`manifest.ts` 文件约定** | Next.js `app/manifest.ts` | ✅ P9-05(`src/manifest.ts` → GET `/manifest.webmanifest`) |
-| **`opengraph-image.tsx` 动态生成** | Next.js `ImageResponse`；SvelteKit `@vercel/og` | ⚠️ P9-05(handler 返回 `Response` 约定已就绪,但无内置 PNG 生成器 — 见 P9-06) |
+| **`opengraph-image.tsx` 动态生成** | Next.js `ImageResponse`；SvelteKit `@vercel/og` | ✅ P9-05(约定文件)+ P9-06(`@ubean/seo/og-image`:`ImageResponse` 类 + `renderOgImage`/`renderArticleOgImage` + `defaultTemplate`/`articleTemplate` + 字体加载辅助;`satori`/`@resvg/resvg-js` 为 optional peer 依赖) |
 | **`icon.tsx`/`apple-icon.tsx`** | Next.js 动态图标 | ✅ P9-05(`src/icon.ts`/`src/apple-icon.ts` → GET `/icon`/`/apple-icon`) |
 | **`metadata`/`generateMetadata`** | Next.js Metadata API（自动 dedupe + 流式） | ⚠️ `useSeoMeta`/`definePage({head})` 无自动 dedupe |
 | **流式 metadata** | Next.js 流式 metadata（爬虫禁用） | ❌ |
-| **JSON-LD / Schema.org** | Nuxt `nuxt-schema.org`；Astro 手动 | ❌ |
+| **JSON-LD / Schema.org** | Nuxt `nuxt-schema.org`；Astro 手动 | ✅ P9-07(`@ubean/seo/json-ld`:`defineJsonLd`/`useSchemaOrg`/`renderJsonLdScript` + `schemaOrg.{organization,website,article,breadcrumb,product}` 工厂) |
 
 ### 2.6 内容与媒体
 
@@ -206,20 +206,20 @@ ubean 平台预设明显最少（仅 Node + Cloudflare），roadmap P5-06 待补
 - **竞品**:Next.js 完整文件约定
 - **任务**:P9-05 ✅
 
-#### 6. ❌ OG Image 动态生成
-- **竞品**：Next.js `ImageResponse`（基于 Satori + resvg）、Astro
-- **方案**：集成 `@vercel/og` 或 Satori
-- **任务**：P9-06
+#### 6. ✅ OG Image 动态生成 (P9-06 已完成)
+- **现状**:`@ubean/seo/og-image` 提供 `ImageResponse` 类(对齐 Next.js,用 `ReadableStream` 实现懒渲染,可同步 `return new ImageResponse(node, { fonts })`) + `renderOgImage(input, options)`/`renderArticleOgImage(input, options)` 一步到位渲染 + `renderToImage(node, options)` 底层渲染(返回 `{ body, contentType }`) + `defaultTemplate(input)`/`articleTemplate(input)` 内置 Satori VDOM 模板(渐变背景/标题自适应字号/可选描述/站点名/logo/作者日期) + `shadeColor(hex, percent)` 颜色调亮/调暗 + `loadDefaultFont()`/`loadFontFromUrl()`/`loadFontFromFile()` 字体加载辅助 + `isOgImageSupported()` 能力检测;`satori`/`@resvg/resvg-js` 为 optional peer 依赖,运行时动态 `import()` 加载,未安装时抛出友好引导错误
+- **竞品**:Next.js `ImageResponse`(基于 Satori + resvg)、SvelteKit `@vercel/og`、Astro `astro-og-image`
+- **任务**:P9-06 ✅
 
-#### 7. ❌ JSON-LD / Schema.org 结构化数据
-- **竞品**：Nuxt `nuxt-schema.org`
-- **方案**：在 `@ubean/seo` 增加 `useSchemaOrg()`/`defineJsonLd()`
-- **任务**：P9-07
+#### 7. ✅ JSON-LD / Schema.org 结构化数据 (P9-07 已完成)
+- **现状**:`@ubean/seo/json-ld` 提供 `defineJsonLd(schema)` 纯函数定义 + `useSchemaOrg(schema)` Vue composable(通过 `globalThis.__UBEAN_HEAD__` 注入 head) + `renderJsonLdScript(schema)`/`renderJsonLdScripts(schemas)` 序列化为 `<script type="application/ld+json">` 标签(自动转义 `<`/`>`/U+2028/U+2029 防注入) + `mergeJsonLd(schemas)` 合并为 `@graph` 数组 + `schemaOrg.{organization,website,article,breadcrumb,product}` 工厂函数
+- **竞品**:Nuxt `nuxt-schema.org`(基于 `schema-dts` 类型);Astro 手动注入
+- **任务**:P9-07 ✅
 
-#### 8. ❌ 组件级缓存指令（`"use cache"`/`cacheLife`/`cacheTag`）
-- **竞品**：Next.js 16
-- **方案**：宏 + AST 转换实现组件/函数级缓存标记
-- **任务**：P9-08
+#### 8. ✅ 组件级缓存指令（`"use cache"`/`cacheLife`/`cacheTag`）
+- **现状**：`@ubean/server/cache-directive` 提供 `cacheLife(seconds)`/`cacheTag(...tags)` 宏(通过 `AsyncLocalStorage` 传递作用域) + `wrapWithCache(fn,options)` 缓存包装器 + `revalidateTag(tag)`/`revalidateTags(...)`/`revalidatePath(pattern)` 失效 API + 独立 `ComponentCacheStore`(存储 JSON 可序列化值,带标签反向索引);`@ubean/server/vite` 的 `ubeanCacheDirectivePlugin()` Vite 插件检测 `"use cache"` 指令并 AST 转换为 `wrapWithCache()` 调用;已集成到 `ubean/vite` 默认插件组合
+- **竞品**：Next.js 16 `"use cache"` + `cacheLife()`/`cacheTag()`/`revalidateTag()`
+- **任务**：P9-08 ✅
 
 #### 9. ❌ SvelteKit 式全局 Hooks（`handle`/`handleFetch`/`handleError`）
 - **现状**：仅 middleware

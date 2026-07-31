@@ -1,7 +1,7 @@
 {
   "name": "@ubean/server",
   "version": "0.1.13",
-  "description": "Server-side runtime primitives for ubean (cache, database, queue, cron, websocket, sse, storage, observability, static, cors, rate-limit)",
+  "description": "Server-side runtime primitives for ubean (cache, database, queue, cron, websocket, sse, storage, observability, static, cors, rate-limit, component cache directive)",
   "files": [
     "dist"
   ],
@@ -13,6 +13,14 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js"
+    },
+    "./cache-directive": {
+      "types": "./dist/cache-directive.d.ts",
+      "import": "./dist/cache-directive.js"
     }
   },
   "scripts": {
@@ -30,6 +38,15 @@
   "devDependencies": {
     "@types/node": "^26.1.2",
     "typescript": "7.0.2",
+    "vite": "catalog:",
     "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    }
   }
 }

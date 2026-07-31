@@ -26,11 +26,12 @@
  */
 
 import type { Plugin } from 'vite';
+import { ubeanServerActionsPlugin } from '@ubean/actions/vite';
 import { ubeanPlugin as ubeanCorePlugin } from '@ubean/build/vite';
 import type { UbeanPluginOptions } from '@ubean/build/vite';
-import { ubeanServerActionsPlugin } from '@ubean/actions/vite';
 import { loadUbeanConfigSync } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
+import { ubeanCacheDirectivePlugin } from '@ubean/server/vite';
 import { ubeanVuePlugin } from '@ubean/vite';
 import type { UbeanVuePluginOptions } from '@ubean/vite';
 
@@ -44,6 +45,7 @@ export type { UbeanPluginOptions, UbeanVuePluginOptions };
  * 2. `ubeanVuePlugin` — Vue 专属插件（页面/入口虚拟模块、自动导入、组件解析）
  * 3. `ubeanIslandsPlugin` — Islands 架构插件（SFC 中 `client:*` 指令转换）
  * 4. `ubeanServerActionsPlugin` — Server Actions 插件（`'use server'` 指令转换）
+ * 5. `ubeanCacheDirectivePlugin` — 组件级缓存插件（`"use cache"` 指令转换）
  *
  * 配置来源：始终从 `ubean.config.ts` 加载（同步），不接受 `config` 参数。
  */
@@ -55,6 +57,7 @@ export function ubeanPlugin(): Plugin[] {
     ubeanCorePlugin({ config }),
     ...ubeanVuePlugin({ config }),
     ubeanIslandsPlugin(),
-    ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() })
+    ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() }),
+    ubeanCacheDirectivePlugin({ root: config.rootDir || process.cwd() })
   ];
 }

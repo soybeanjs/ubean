@@ -176,6 +176,23 @@ export { createRateLimitMiddleware, defineRateLimit, createMemoryRateLimitStore 
 export type { RateLimitOptions, RateLimitInfo, RateLimitStoreEntry, RateLimitStore } from './rate-limit';
 
 /* -------------------------------------------------------------------------- */
+/* 组件级缓存指令 (P9-08)                                                       */
+/* -------------------------------------------------------------------------- */
+export {
+  createComponentMemoryStore,
+  useComponentCacheStore,
+  clearComponentCacheStore,
+  cacheLife,
+  cacheTag,
+  wrapWithCache,
+  revalidateTag,
+  revalidateTags,
+  revalidatePath,
+  clearComponentCache
+} from './cache-directive';
+export type { ComponentCacheEntry, ComponentCacheStore, CacheWrapOptions } from './cache-directive';
+
+/* -------------------------------------------------------------------------- */
 /* 从 @ubean/types re-export 共享类型(方便消费者单入口导入)                       */
 /* -------------------------------------------------------------------------- */
 export type {

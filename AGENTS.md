@@ -228,6 +228,37 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 **不存在的 API**：`useCache`、`defineCache`、标签/分组/`remember`
 
+### 组件级缓存指令 (P9-08)
+
+| API                                              | 说明                                                                   |
+| ------------------------------------------------ | ---------------------------------------------------------------------- |
+| `"use cache"` 指令                               | 异步函数体首行标记,编译时转换为 `wrapWithCache()` 调用;对齐 Next.js 16 |
+| `cacheLife(seconds)`                             | 设置当前缓存作用域 TTL(秒),须在 `"use cache"` 函数体内调用             |
+| `cacheTag(...tags)`                              | 为当前缓存作用域添加标签,用于 `revalidateTag()` 精确失效               |
+| `revalidateTag(tag)` / `revalidateTags(...tags)` | 按标签失效组件缓存条目,返回删除数量                                    |
+| `revalidatePath(pattern)`                        | 按 glob/正则失效缓存键匹配的条目                                       |
+| `wrapWithCache(fn, options)`                     | 内部缓存包装器(Vite 插件注入,用户通常无需手动调用)                     |
+| `useComponentCacheStore(store?)`                 | 获取/设置组件级缓存存储                                                |
+| `createComponentMemoryStore(maxEntries)`         | 内存组件缓存存储(带标签反向索引)                                       |
+| `clearComponentCache()`                          | 清空所有组件级缓存                                                     |
+| `ubeanCacheDirectivePlugin()`                    | Vite 插件(`@ubean/server/vite`),`"use cache"` 指令 AST 转换            |
+
+```typescript
+// 异步函数 + "use cache" 指令(Vite 插件自动转换)
+async function getUser(id: string) {
+  'use cache';
+  cacheLife(3600); // 缓存 1 小时
+  cacheTag('users', `user:${id}`);
+  return await db.query.user.findById(id);
+}
+
+// 失效缓存
+await revalidateTag('users');
+await revalidatePath('getUser:*');
+```
+
+> `cacheLife()` / `cacheTag()` 通过 `AsyncLocalStorage` 传递作用域,在非缓存上下文中调用为空操作。组件级缓存与 HTTP 响应缓存(`CacheStore`)解耦,使用独立的 `ComponentCacheStore`(存储 JSON 可序列化值)。
+
 ### ISR (P9-03)
 
 | API                                           | 说明                                                |
@@ -297,15 +328,20 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### SEO 与可观测性
 
-| API                                                  | 说明                                                                                                                                |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `useSeoMeta()` / `mergeMetadata()`                   | SEO meta                                                                                                                            |
-| `createRobotsResponse()` / `createSitemapResponse()` | robots.txt / sitemap.xml                                                                                                            |
-| `defineManifest()` / `createManifestResponse()`      | PWA manifest                                                                                                                        |
-| `getRequestId()` / `createObservabilityTracer()`     | 请求 ID / 可观测性                                                                                                                  |
-| `createTracingMiddleware(options)`                   | tracing 中间件                                                                                                                      |
-| `registerSeoConventions(app, {srcDir})`              | P9-05 文件约定 SEO:扫描 `src/sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.ts`/`icon.ts`/`apple-icon.ts`,自动注册 GET 路由 |
-| `listSeoConventions({srcDir})`                       | 列出 srcDir 下存在的约定文件 kind(不加载)                                                                                           |
+| API                                                                                       | 说明                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useSeoMeta()` / `mergeMetadata()`                                                        | SEO meta                                                                                                                                                                                                                                                      |
+| `createRobotsResponse()` / `createSitemapResponse()`                                      | robots.txt / sitemap.xml                                                                                                                                                                                                                                      |
+| `defineManifest()` / `createManifestResponse()`                                           | PWA manifest                                                                                                                                                                                                                                                  |
+| `getRequestId()` / `createObservabilityTracer()`                                          | 请求 ID / 可观测性                                                                                                                                                                                                                                            |
+| `createTracingMiddleware(options)`                                                        | tracing 中间件                                                                                                                                                                                                                                                |
+| `registerSeoConventions(app, {srcDir})`                                                   | P9-05 文件约定 SEO:扫描 `src/sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.ts`/`icon.ts`/`apple-icon.ts`,自动注册 GET 路由                                                                                                                           |
+| `listSeoConventions({srcDir})`                                                            | 列出 srcDir 下存在的约定文件 kind(不加载)                                                                                                                                                                                                                     |
+| `defineJsonLd()` / `useSchemaOrg()` / `renderJsonLdScript()`                              | P9-07 JSON-LD 结构化数据:`defineJsonLd(schema)` 定义、`useSchemaOrg(schema)` Vue composable、`renderJsonLdScript(schema)` 序列化为 `<script type="application/ld+json">` 标签(自动转义 `</script>`/U+2028/U+2029)                                             |
+| `schemaOrg.*`                                                                             | Schema.org 工厂:`organization`/`website`/`article`/`breadcrumb`/`product`                                                                                                                                                                                     |
+| `ImageResponse` / `renderOgImage()` / `renderArticleOgImage()`                            | P9-06 OG Image 动态生成(`@ubean/seo/og-image`):`ImageResponse` 类对齐 Next.js(ReadableStream 懒渲染)、`renderOgImage(input, options)` 一步到位渲染默认模板、`renderArticleOgImage(input, options)` 文章模板。`satori`/`@resvg/resvg-js` 为 optional peer 依赖 |
+| `defaultTemplate()` / `articleTemplate()` / `renderToImage()`                             | P9-06 Satori VDOM 模板(渐变背景/标题自适应字号/可选描述/站点名/logo/作者日期)与底层渲染(返回 `{ body, contentType }`)                                                                                                                                         |
+| `loadDefaultFont()` / `loadFontFromUrl()` / `loadFontFromFile()` / `isOgImageSupported()` | P9-06 字体加载辅助(默认 Inter from Google Fonts / URL / 本地文件)与能力检测                                                                                                                                                                                   |
 
 ### 内部调用
 

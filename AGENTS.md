@@ -321,12 +321,15 @@ await revalidatePath('getUser:*');
 
 ### 中间件工厂
 
-| API                                                                                                        | 说明                                                                                                                   |
-| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `createCorsMiddleware(options)` / `defineCors(options)`                                                    | CORS                                                                                                                   |
-| `createRateLimitMiddleware(options)` / `defineRateLimit(options)`                                          | 限流                                                                                                                   |
-| `createCsrfMiddleware(options)` / `defineCsrf(options)` / `generateCsrfToken(length)`                      | CSRF 保护(P9-12):double-submit cookie 模式(默认)/origin 校验/both 模式;支持自定义 cookie/header/field 名、exclude 路径 |
-| `createSecurityHeadersMiddleware(options)` / `defineSecurityHeaders(options)` / `serializeCsp(directives)` | 安全头(P9-13):CSP/HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy/Cross-Origin-*        |
+| API                                                                                                        | 说明                                                                                                                                    |
+| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `createCorsMiddleware(options)` / `defineCors(options)`                                                    | CORS                                                                                                                                    |
+| `createRateLimitMiddleware(options)` / `defineRateLimit(options)`                                          | 限流                                                                                                                                    |
+| `createCsrfMiddleware(options)` / `defineCsrf(options)` / `generateCsrfToken(length)`                      | CSRF 保护(P9-12):double-submit cookie 模式(默认)/origin 校验/both 模式;支持自定义 cookie/header/field 名、exclude 路径                  |
+| `createSecurityHeadersMiddleware(options)` / `defineSecurityHeaders(options)` / `serializeCsp(directives)` | 安全头(P9-13):CSP/HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy/Cross-Origin-*                         |
+| `createSessionMiddleware(options)` / `useSession(c)` / `createStorageSessionStore(...)`                    | 通用 Sessions API(P9-11):cookie 模式(signed cookie) + storage 模式(SessionStore);`Session<T>` 接口(get/set/delete/has/all/save/destroy) |
+| `after(callback)` / `createAfterMiddleware()`                                                              | 响应后执行(P9-14):fire-and-forget 回调不阻塞 TTFB;AsyncLocalStorage 请求作用域                                                          |
+| `createFetchMemoizationMiddleware(options)` / `createMemoizedFetch(options)`                               | 请求 memoization(P9-15):请求内相同 GET URL 自动去重                                                                                     |
 
 ### SEO 与可观测性
 

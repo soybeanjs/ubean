@@ -134,7 +134,7 @@ ubean P9-10 已补齐 Vercel/Netlify/Bun/Deno 四大平台预设，均 `extends:
 | **CSRF 保护** | Astro 5 默认开启；Next/SvelteKit 中间件 | ✅ P9-12（double-submit cookie + origin 校验） |
 | **CSP 头生成** | Astro 6 稳定；Next.js headers | ✅ P9-13（`serializeCsp` + report-only） |
 | **安全头（HSTS/X-Frame 等）** | Next/Nuxt/Astro 配置 | ✅ P9-13（HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy/Cross-Origin-*） |
-| **通用 Sessions API** | Astro 5.7+ `Astro.session`；SvelteKit locals | ⚠️ 仅 auth session |
+| **通用 Sessions API** | Astro 5.7+ `Astro.session`；SvelteKit locals | ✅ P9-11（cookie + storage 模式） |
 | **Rate limiting** | 第三方 | ✅ |
 | **CORS** | 全部 | ✅ |
 

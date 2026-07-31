@@ -188,6 +188,22 @@ export { createSecurityHeadersMiddleware, defineSecurityHeaders, serializeCsp } 
 export type { ContentSecurityPolicyDirectives, SecurityHeadersOptions } from './security-headers';
 
 /* -------------------------------------------------------------------------- */
+/* 通用 Sessions API (P9-11)                                                   */
+/* -------------------------------------------------------------------------- */
+export { createSessionMiddleware, createStorageSessionStore, useSession, defineSessionStore } from './sessions';
+export type { Session, SessionData, SessionStore, SessionOptions } from './sessions';
+
+/* -------------------------------------------------------------------------- */
+/* after() 响应后执行 API (P9-14)                                              */
+/* -------------------------------------------------------------------------- */
+export { after, createAfterMiddleware, flushAfterCallbacks, getAfterCallbackCount } from './after';
+
+/* -------------------------------------------------------------------------- */
+/* 请求 memoization (P9-15)                                                    */
+/* -------------------------------------------------------------------------- */
+export { createFetchMemoizationMiddleware, createMemoizedFetch } from './fetch-memo';
+
+/* -------------------------------------------------------------------------- */
 /* 组件级缓存指令 (P9-08)                                                       */
 /* -------------------------------------------------------------------------- */
 export {

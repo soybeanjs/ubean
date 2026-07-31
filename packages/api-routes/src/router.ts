@@ -3,11 +3,15 @@ import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayou
 import { isServerAction } from '@ubean/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/types';
 import { matchAnyGlob } from '@ubean/utils';
+import {
+  parseFormActionName as _parseFormActionName,
+  handleActionResponse as _handleActionResponse,
+  runServerAction as _runServerAction
+} from './form-actions';
 import { extractRouteMeta, isHandlerChain } from './handler';
-import { normalizeIsrRule } from './route-rules';
 import { serveIsr } from './isr';
 import type { IsrCacheStore } from './isr';
-import { parseFormActionName as _parseFormActionName, handleActionResponse as _handleActionResponse, runServerAction as _runServerAction } from './form-actions';
+import { normalizeIsrRule } from './route-rules';
 
 /**
  * Structural type for the route registrar app.
@@ -645,7 +649,9 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
           props: {},
           params: {},
           url: path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
-          layout: notFoundPage.layout ?? (layouts.some(l => l.isDefault) ? 'default' : false),
+          layout:
+            (Array.isArray(notFoundPage.layout) ? notFoundPage.layout[0] : notFoundPage.layout) ??
+            (layouts.some(l => l.isDefault) ? 'default' : false),
           errors: null,
           head: notFoundPage.pageMeta?.head
         });

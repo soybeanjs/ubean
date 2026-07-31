@@ -133,7 +133,7 @@
 | Phase 6b: Vite 模块化架构改造      | ✅   | Dev Server 迁移至 Vite Middleware Mode、Module 系统（`modules` 配置 + `resolveModules` + `ModuleKit` + 拓扑排序 + Hooks）、Vite SSR 生产构建 Pipeline（双构建 + preset 适配）、官方扩展包顶级配置快捷方式（icon/pwa/auth/image/fonts）、模块间依赖与 Hooks 集成 |
 | Phase 7: Skills & 文档              | ✅   | Skills 系统（SKILL.md 路由）、内置文档（guide/reference/integrations 共 14 文档）、AGENT_PROMPT.md、ubean init 交互式初始化、示例项目（hello-world/api-routes/pages-basic） |
 | Phase 8: 发布认证与测试完善        | ✅   | 单元测试补全（35 文件 811 用例）、DevTools 单元测试（32 用例）、集成与浏览器 e2e 测试（7 集成 + 1 e2e）、preset 测试矩阵、CI/CD（GitHub Actions）、npm scripts 验证                          |
-| Phase 9: 元框架对齐补全            | ⬜   | 依据 [元框架对比与差距分析](framework-comparison.md)，补齐与 Next.js/Nuxt/SvelteKit/SolidStart/Astro 的关键差距：流式 SSR、Server Actions、ISR/per-route 规则、PPR、文件约定 SEO、平台预设补全等（P9-01 ~ P9-28） |
+| Phase 9: 元框架对齐补全            | ✅   | 依据 [元框架对比与差距分析](framework-comparison.md)，补齐与 Next.js/Nuxt/SvelteKit/SolidStart/Astro 的关键差距：流式 SSR、Server Actions、ISR/per-route 规则、PPR、文件约定 SEO、平台预设补全等（P9-01 ~ P9-28） |
 
 ### Phase 9：元框架对齐补全
 

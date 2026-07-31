@@ -57,6 +57,7 @@ export {
   Link,
   Head,
   PageView,
+  SlotView,
   useSeoMeta
 } from './app';
 export type { UbeanAppOptions, UbeanAppInstance, VueHeadClient } from './app';

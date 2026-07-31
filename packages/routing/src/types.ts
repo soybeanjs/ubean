@@ -52,6 +52,19 @@ export interface ScannedPageRoute extends ScannedFile {
   reuseTarget?: string;
   pageMeta?: PageMeta;
   frontmatter?: Record<string, unknown>;
+  /**
+   * Parallel route slot name (P9-18). When set, this page is a parallel route
+   * that populates a named view in the layout. Derived from `@slotName/`
+   * directory convention. Undefined for the default slot (main page).
+   */
+  slot?: string;
+  /**
+   * Intercepting route info (P9-18). When set, this page intercepts
+   * navigation to `interceptTarget` when coming from `interceptFrom`.
+   * Derived from `(..)name/`, `(.)name/`, `(...)name/` directory conventions.
+   */
+  interceptFrom?: string;
+  interceptTarget?: string;
 }
 
 export interface ScannedLayout extends ScannedFile {

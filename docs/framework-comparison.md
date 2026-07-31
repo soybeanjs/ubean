@@ -67,8 +67,8 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 
 | 能力 | 各框架情况 | ubean |
 |---|---|---|
 | **文件约定路由** | 全部支持 | ✅ |
-| **并行路由 (Parallel Routes)** | Next.js `@folder` slots | ❌ |
-| **拦截路由 (Intercepting Routes)** | Next.js `(..)` 模态路由 | ❌ |
+| **并行路由 (Parallel Routes)** | Next.js `@folder` slots | ✅ P9-18（`@slotName/` 目录约定 → Vue Router named views + `<SlotView>` 组件） |
+| **拦截路由 (Intercepting Routes)** | Next.js `(..)` 模态路由 | ✅ P9-18（`(..)target`/`(.)target`/`(...)target` 目录约定 → `__intercept_` 前缀路由 + intercept meta） |
 | **Route Groups** | 全部支持 `(group)` | ✅ |
 | **动态路由 + matchers** | SvelteKit matchers；其余 `[param]` | ⚠️ 无 matchers |
 | **嵌套布局** | Next/Nuxt/SvelteKit 多层嵌套 | ✅ `layout: ['default', 'admin', 'dashboard']` 多层嵌套 (P9-17) |

@@ -96,6 +96,8 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **layouts**：`src/layouts/`（`xx.vue` 或 `xx/index.vue`）
 - **middleware**：`src/middleware/`，`global`/`global.*` → `/*`，其他按目录前缀挂载
 - **路由组**：`(group-name)/` 不贡献 URL 段
+- **并行路由 (Parallel Routes, P9-18)**：`@slotName/` 目录约定，同一路径下多个页面渲染到布局的不同命名插槽；虚拟模块按路径分组为 Vue Router named views (`components: { default, slotName }`)；布局中使用 `<SlotView name="slotName" />` 渲染对应插槽
+- **拦截路由 (Intercepting Routes, P9-18)**：`(..)target/`、`(.)target/`、`(...)target/` 目录约定，拦截导航到 `target` 路由（分别从父级、同级、根级拦截）；虚拟模块注册为 `__intercept_` 前缀的独立路由，`meta` 含 `interceptFrom`/`interceptTarget`/`isIntercepting`
 - **reuse 路由**：`xxx.reuse.ts` / `xxx.reuse.vue`；未显式声明 `cache` 时自动继承 target 的 `cache` 值，可显式 `cache: false` 关闭
 - **动态路由**：`[id].vue` → `/user/:id`
 - **预设页面**（`src/pages/` 根目录下自动检测，不作为常规路由注册）：

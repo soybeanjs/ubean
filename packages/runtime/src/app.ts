@@ -415,6 +415,40 @@ export const PageView = defineComponent({
   }
 });
 
+/**
+ * SlotView — renders a named parallel route slot (P9-18).
+ *
+ * Parallel routes (defined via `@slotName/` directory convention) are
+ * registered as Vue Router named views. `<SlotView name="modal" />`
+ * renders the matched component for the `modal` slot at the current route.
+ *
+ * If no parallel route is matched for the given slot name, nothing is
+ * rendered (the component returns `null`). This allows layouts to
+ * unconditionally include `<SlotView name="modal" />` — it only renders
+ * content when a parallel route actually matches.
+ *
+ * Usage in a layout:
+ * ```html
+ * <template>
+ *   <div>
+ *     <main><PageView /></main>
+ *     <SlotView name="modal" />
+ *   </div>
+ * </template>
+ * ```
+ */
+export const SlotView = defineComponent({
+  name: 'SlotView',
+  props: {
+    name: { type: String, required: true }
+  },
+  setup(props) {
+    return (): VNode => {
+      return h(RouterView, { name: props.name });
+    };
+  }
+});
+
 export const Link = defineComponent({
   name: 'Link',
   props: {
@@ -564,6 +598,7 @@ export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
   app.use(router);
   app.component('Link', Link);
   app.component('PageView', PageView);
+  app.component('SlotView', SlotView);
   app.config.globalProperties.$ubean = { page, head, router };
 
   return { app, router, head, page };
@@ -606,6 +641,7 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   app.use(router);
   app.component('Link', Link);
   app.component('PageView', PageView);
+  app.component('SlotView', SlotView);
   app.config.globalProperties.$ubean = { page, head, router };
 
   return { app, router, head };

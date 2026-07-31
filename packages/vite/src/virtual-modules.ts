@@ -79,24 +79,9 @@ export function createVuePagesVirtualModule(
     // targets are always declared first.
     const sortedPages = sortPagesByReuseDependency(pages);
 
+    // Generate page loader variables for all pages (including slot pages).
     for (const p of sortedPages) {
       const varName = `Page_${p.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
-      const routerPath = toVueRouterPath(p.route);
-      let layoutValue: string;
-      if (p.layout === false) {
-        layoutValue = 'false';
-      } else if (Array.isArray(p.layout)) {
-        // Nested layouts: 'default' inside an array is a literal layout name,
-        // not the special "use default" directive. Keep it as-is.
-        // Empty array → undefined (no layouts).
-        layoutValue = p.layout.length > 0 ? JSON.stringify(p.layout) : 'undefined';
-      } else if (typeof p.layout === 'string') {
-        layoutValue = p.layout === 'default' ? 'undefined' : JSON.stringify(p.layout);
-      } else {
-        layoutValue = 'undefined';
-      }
-      const cacheValue = p.cache === true ? 'true' : 'undefined';
-
       if (p.isReuse && p.reuseTarget && pageByName.has(p.reuseTarget)) {
         // Reuse route: reference the target page's component loader instead
         // of importing the `.reuse.ts` file (which holds only route metadata).
@@ -105,8 +90,98 @@ export function createVuePagesVirtualModule(
       } else {
         pageLoaders.push(`const ${varName} = () => import(${JSON.stringify(p.fullPath)}).then(m => m.default || m);`);
       }
+    }
+
+    // Group parallel routes by route path so they can be registered as
+    // Vue Router named views (`components: { default, slotName }`).
+    // Pages without a slot are "default" views; pages with a slot populate
+    // the corresponding named view. Intercepting routes (pages with
+    // `interceptTarget`) are registered as separate routes with a distinct
+    // name and intercept metadata in `meta`.
+    const routeGroups = new Map<string, { default?: ScannedPageRoute; slots: Map<string, ScannedPageRoute> }>();
+    const interceptPages: ScannedPageRoute[] = [];
+
+    for (const p of sortedPages) {
+      if (p.interceptTarget) {
+        interceptPages.push(p);
+        continue;
+      }
+      const routerPath = toVueRouterPath(p.route);
+      let group = routeGroups.get(routerPath);
+      if (!group) {
+        group = { slots: new Map() };
+        routeGroups.set(routerPath, group);
+      }
+      if (p.slot) {
+        group.slots.set(p.slot, p);
+      } else {
+        // First non-slot page wins as the default view.
+        if (!group.default) group.default = p;
+      }
+    }
+
+    // Generate route entries for grouped (non-intercepting) routes.
+    for (const [routerPath, group] of routeGroups) {
+      const defaultPage = group.default;
+      const slotPages = [...group.slots.values()];
+      // Skip groups with no default and no slots (shouldn't happen).
+      if (!defaultPage && slotPages.length === 0) continue;
+
+      const primaryPage = defaultPage || slotPages[0];
+      let layoutValue: string;
+      if (primaryPage.layout === false) {
+        layoutValue = 'false';
+      } else if (Array.isArray(primaryPage.layout)) {
+        layoutValue = primaryPage.layout.length > 0 ? JSON.stringify(primaryPage.layout) : 'undefined';
+      } else if (typeof primaryPage.layout === 'string') {
+        layoutValue = primaryPage.layout === 'default' ? 'undefined' : JSON.stringify(primaryPage.layout);
+      } else {
+        layoutValue = 'undefined';
+      }
+      const cacheValue = primaryPage.cache === true ? 'true' : 'undefined';
+
+      if (slotPages.length > 0) {
+        // Parallel route: use `components` (named views) instead of `component`.
+        const componentParts: string[] = [];
+        if (defaultPage) {
+          componentParts.push(`default: Page_${defaultPage.name.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        }
+        for (const sp of slotPages) {
+          componentParts.push(`${JSON.stringify(sp.slot)}: Page_${sp.name.replace(/[^a-zA-Z0-9]/g, '_')}`);
+        }
+        routeEntries.push(
+          `  { path: ${JSON.stringify(routerPath)}, name: ${JSON.stringify(primaryPage.name)}, components: { ${componentParts.join(', ')} }, meta: { layout: ${layoutValue}, pageName: ${JSON.stringify(primaryPage.name)}, cache: ${cacheValue}, parallelSlots: ${JSON.stringify(slotPages.map(s => s.slot))} } }`
+        );
+      } else {
+        // Regular route (no parallel slots).
+        const varName = `Page_${defaultPage!.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        routeEntries.push(
+          `  { path: ${JSON.stringify(routerPath)}, name: ${JSON.stringify(defaultPage!.name)}, component: ${varName}, meta: { layout: ${layoutValue}, pageName: ${JSON.stringify(defaultPage!.name)}, cache: ${cacheValue} } }`
+        );
+      }
+    }
+
+    // Generate route entries for intercepting routes. These are registered
+    // as separate routes with a `__intercept_` name prefix and intercept
+    // metadata in `meta`, so the runtime can resolve them via navigation
+    // guards (e.g., when navigating to `interceptTarget` from `interceptFrom`).
+    for (const p of interceptPages) {
+      const varName = `Page_${p.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+      const routerPath = toVueRouterPath(p.route);
+      let layoutValue: string;
+      if (p.layout === false) {
+        layoutValue = 'false';
+      } else if (Array.isArray(p.layout)) {
+        layoutValue = p.layout.length > 0 ? JSON.stringify(p.layout) : 'undefined';
+      } else if (typeof p.layout === 'string') {
+        layoutValue = p.layout === 'default' ? 'undefined' : JSON.stringify(p.layout);
+      } else {
+        layoutValue = 'undefined';
+      }
+      const cacheValue = p.cache === true ? 'true' : 'undefined';
+      const interceptName = `__intercept_${p.name}`;
       routeEntries.push(
-        `  { path: ${JSON.stringify(routerPath)}, name: ${JSON.stringify(p.name)}, component: ${varName}, meta: { layout: ${layoutValue}, pageName: ${JSON.stringify(p.name)}, cache: ${cacheValue} } }`
+        `  { path: ${JSON.stringify(routerPath)}, name: ${JSON.stringify(interceptName)}, component: ${varName}, meta: { layout: ${layoutValue}, pageName: ${JSON.stringify(p.name)}, cache: ${cacheValue}, interceptFrom: ${JSON.stringify(p.interceptFrom)}, interceptTarget: ${JSON.stringify(p.interceptTarget)}, isIntercepting: true } }`
       );
     }
 

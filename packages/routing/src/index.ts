@@ -1,4 +1,4 @@
-export { scanProject } from './scan';
+export { scanProject, extractSlotAndIntercept } from './scan';
 export { detectHttpExports, detectHttpExportsFromCode } from './detect-exports';
 export { filePathToRoute, stripRouteGroups } from '@ubean/utils';
 export { generateRouteName, generateLayoutName, generateApiRouteId } from './route-name';

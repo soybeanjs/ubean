@@ -7,6 +7,75 @@ import { glob } from 'tinyglobby';
 import { extractDefinePage } from './define-page';
 import { detectHttpExports } from './detect-exports';
 import { HTTP_METHODS, GLOB_SCAN_PATTERN, GLOB_VUE_PATTERN, GLOB_LAYOUT_PATTERN } from './types';
+
+/**
+ * Extract parallel route slot name and intercept info from a relative file path.
+ * Exported for unit testing (P9-18).
+ *
+ * Parallel routes: `@slotName/page.vue` → slot = 'slotName'
+ * Intercepting routes:
+ *   `(..)target/page.vue` → intercept from parent, target = 'target'
+ *   `(.)target/page.vue`  → intercept from same level, target = 'target'
+ *   `(...)target/page.vue` → intercept from root, target = 'target'
+ *
+ * Returns the cleaned file base (with slot/intercept prefixes removed) plus
+ * any extracted slot/intercept metadata.
+ */
+export function extractSlotAndIntercept(fileBase: string): {
+  cleanedBase: string;
+  slot?: string;
+  interceptFrom?: string;
+  interceptTarget?: string;
+} {
+  const segments = fileBase.split('/');
+  let slot: string | undefined;
+  let interceptFrom: string | undefined;
+  let interceptTarget: string | undefined;
+  const cleanedSegments: string[] = [];
+
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+
+    // Parallel route slot: @slotName
+    if (seg.startsWith('@')) {
+      slot = seg.slice(1);
+      continue;
+    }
+
+    // Intercepting route: (..)target, (.)target, (...)target
+    const interceptMatch = seg.match(/^\((\.{1,3})\)(.+)$/);
+    if (interceptMatch) {
+      const dots = interceptMatch[1];
+      interceptTarget = interceptMatch[2];
+      // Determine the intercept "from" path based on dot count:
+      // (.)  → same level (current directory)
+      // (..) → one level up
+      // (...)→ root level
+      const prefixSegments = cleanedSegments.slice(0, i);
+      if (dots === '..') {
+        // One level up: remove the last segment
+        interceptFrom = `/${prefixSegments.slice(0, -1).join('/')}`;
+      } else if (dots === '...') {
+        // Root level
+        interceptFrom = '/';
+      } else {
+        // Same level
+        interceptFrom = `/${prefixSegments.join('/')}`;
+      }
+      // Don't add the intercept segment to the cleaned path
+      continue;
+    }
+
+    cleanedSegments.push(seg);
+  }
+
+  return {
+    cleanedBase: cleanedSegments.join('/'),
+    slot,
+    interceptFrom,
+    interceptTarget
+  };
+}
 import type {
   ScanOptions,
   ScanResult,
@@ -306,7 +375,14 @@ async function scanPages(
       const isReuse = !isMarkdown && base.endsWith('.reuse');
       const pageBase = isReuse ? base.slice(0, -'.reuse'.length) : base;
       const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
-      const fileBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
+      const rawFileBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
+
+      // Extract parallel route slot (`@slotName`) and intercepting route
+      // (`(..)target` / `(.)target` / `(...)target`) metadata (P9-18).
+      // The cleaned base (with slot/intercept prefixes removed) is used to
+      // compute the actual route path.
+      const { cleanedBase, slot, interceptFrom, interceptTarget } = extractSlotAndIntercept(rawFileBase);
+      const fileBase = cleanedBase;
 
       // Special preset pages at the root of pages/ directory:
       // - `404.vue` (or .ts/.md) → Vue Router catch-all + Hono fallback
@@ -387,7 +463,10 @@ async function scanPages(
         isMarkdown,
         reuseTarget: pageMeta?.reuse,
         pageMeta: pageMeta || undefined,
-        frontmatter
+        frontmatter,
+        slot,
+        interceptFrom,
+        interceptTarget
       });
     }
   }

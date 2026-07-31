@@ -638,6 +638,29 @@ export interface UbeanConfig {
         modes?: string[];
       }
     | false;
+  /**
+   * P9-22: Partytown integration for third-party script optimization.
+   * Set to `false` (default) to disable. Set to `true` or an object to configure.
+   */
+  partyTown?:
+    | {
+        /** Enable Partytown (default: true when partyTown config object is provided). */
+        enabled?: boolean;
+        /** Path where Partytown lib files are served (default: '~partytown'). */
+        libPath?: string;
+        /** Forward calls to main thread (e.g. `['dataLayer.push']`). */
+        forward?: string[];
+        /** Main thread accessors (e.g. `['document.cookie']`). */
+        mainAccess?: string[];
+        /** Enable debug mode (default: false). */
+        debug?: boolean;
+        /** Log script execution errors (default: false). */
+        logScriptExecution?: boolean;
+        /** Non-blocking load (default: true). */
+        nonBlocking?: boolean;
+      }
+    | true
+    | false;
   imports?: {
     autoImport?: boolean;
     dirs?: string[];

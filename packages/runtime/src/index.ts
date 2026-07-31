@@ -143,3 +143,15 @@ export {
   _resetColorMode
 } from './color-mode';
 export type { ColorModeConfig, ColorMode } from './color-mode';
+// P9-22: Third-party script optimization (Partytown integration)
+export {
+  useScript,
+  configurePartyTown,
+  getPartyTownConfig,
+  isPartyTownEnabled,
+  getPartyTownScript,
+  getPartyTownHeadContent,
+  resolvePartyTownConfig,
+  _resetPartyTown
+} from './party-town';
+export type { PartyTownConfig, UseScriptOptions, UseScriptReturn, ScriptTrigger } from './party-town';

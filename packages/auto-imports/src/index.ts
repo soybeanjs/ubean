@@ -110,6 +110,7 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
     't',
     'useI18n',
     'useColorMode',
+    'useScript',
     'useSeoMeta',
     'usePage',
     'useRouter',

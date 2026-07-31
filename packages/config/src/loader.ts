@@ -190,7 +190,9 @@ const configDefaults: ResolvedConfig = {
     theme: 'one-dark',
     markdownExit: { html: true, linkify: true, breaks: false },
     headings: { anchorLinks: true },
-    components: { autoImport: true }
+    components: { autoImport: true },
+    remarkPlugins: [],
+    rehypePlugins: []
   },
   imports: { autoImport: true, dirs: [], global: false },
   components: { autoImport: true, dirs: [], directoryAsNamespace: false },
@@ -206,7 +208,9 @@ const configDefaults: ResolvedConfig = {
   routeRules: {},
   prerender: resolvePrerenderConfig(),
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
-  favicon: null
+  favicon: null,
+  colorMode: false,
+  partyTown: false
 };
 
 let cachedConfig: ResolvedConfig | null = null;

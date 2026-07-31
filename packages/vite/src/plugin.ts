@@ -7,7 +7,7 @@ import { useVirtualRegistry, getComponentResolvers } from '@ubean/build';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanMdxPlugin } from '@ubean/markdown';
 import { scanProject } from '@ubean/routing';
-import { getColorModeScript, resolveColorModeConfig } from '@ubean/runtime';
+import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolvePartyTownConfig } from '@ubean/runtime';
 import { transformSync } from 'oxc-transform';
 import { join } from 'pathe';
 import type { InlinePreset } from 'unimport';
@@ -179,6 +179,19 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
       if (colorModeConfig !== false) {
         const script = getColorModeScript(resolveColorModeConfig(colorModeConfig));
         result = result.replace('<head>', `<head>\n    ${script}`);
+      }
+      // P9-22: Inject Partytown config script when enabled.
+      // Partytown must be configured before third-party scripts that use
+      // `type="text/partytown"` so it can intercept them and run in a Web Worker.
+      const partyTownConfig = ubeanConfig.partyTown;
+      if (partyTownConfig !== false && partyTownConfig !== undefined) {
+        const resolved = resolvePartyTownConfig(partyTownConfig === true ? { enabled: true } : partyTownConfig);
+        if (resolved.enabled) {
+          const script = getPartyTownScript(resolved);
+          if (script) {
+            result = result.replace('</head>', `    ${script}\n</head>`);
+          }
+        }
       }
       // Inject a default SVG favicon link if the user hasn't declared any
       // <link rel="icon"> of their own. Resolves to /favicon.svg under the

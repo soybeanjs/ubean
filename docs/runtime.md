@@ -1757,6 +1757,92 @@ router.beforeEach((to) => {
 });
 ```
 
+## 4.19c 第三方脚本优化 / Partytown（P9-22）
+
+ubean 内置第三方脚本优化支持，对齐 Nuxt `@nuxtjs/scripts` 和 Astro Partytown 集成。通过 [Partytown](https://partytown.builder.io/) 将第三方脚本（Google Analytics、Facebook Pixel、GTM 等）移入 Web Worker 执行，不阻塞主线程，提升页面交互性能。
+
+#### 基本用法
+
+```typescript
+// 在任意 Vue 组件中使用（自动导入）
+const { loaded, load, remove } = useScript('https://www.googletagmanager.com/gtag/js?id=GA_ID', {
+  partytown: true,       // 通过 Partytown 在 Web Worker 中执行
+  trigger: 'idle',       // 浏览器空闲时加载
+  attrs: { 'data-ga-id': 'GA_ID' }
+});
+
+// 手动加载（trigger: 'manual'）
+const script = useScript('/heavy-script.js', { trigger: 'manual' });
+script.load();
+script.waitForLoad().then(() => console.log('loaded'));
+```
+
+#### 加载策略
+
+| 策略 | 说明 | 适用场景 |
+| --- | --- | --- |
+| `'load'` | 页面加载后立即加载（默认） | 关键脚本 |
+| `'idle'` | 浏览器空闲时加载（`requestIdleCallback`） | 分析、埋点 |
+| `'visible'` | 目标元素进入视口时加载（`IntersectionObserver`） | 视频、地图 |
+| `'manual'` | 仅手动调用 `load()` 时加载 | 用户交互触发 |
+
+```typescript
+// visible 策略：元素进入视口时加载
+const mapRef = ref<HTMLElement | null>(null);
+useScript('https://maps.googleapis.com/maps/api/js', {
+  trigger: 'visible',
+  target: mapRef,
+  rootMargin: '200px'  // 提前 200px 加载
+});
+```
+
+#### Partytown 配置
+
+在 `ubean.config.ts` 中启用 Partytown：
+
+```typescript
+export default defineConfig({
+  partyTown: {
+    enabled: true,
+    forward: ['dataLayer.push'],   // 转发主线程调用
+    mainAccess: ['document.cookie'], // 主线程访问器
+    debug: false,                   // 调试模式
+    libPath: '~partytown'           // lib 文件路径
+  }
+});
+
+// 或简写
+export default defineConfig({
+  partyTown: true  // 使用默认配置启用
+});
+```
+
+设为 `false`（默认）可禁用：
+
+```typescript
+export default defineConfig({
+  partyTown: false
+});
+```
+
+#### 工作原理
+
+1. **构建时**：Vite 插件在 `transformIndexHtml` 阶段将 Partytown 配置脚本注入 `<head>`（设置 `window.partytown` 配置 + 加载 `partytown.js` lib）
+2. **运行时**：`useScript()` 创建 `<script>` 标签，`partytown: true` 时设置 `type="text/partytown"`，Partytown 拦截并移入 Web Worker 执行
+3. **主线程转发**：`forward` 配置的 API（如 `dataLayer.push`）自动从 Worker 转发到主线程
+
+> **注意**：使用 Partytown 需要将 Partytown lib 文件复制到 `public/~partytown/` 目录。安装 `@builder.io/partytown` 后运行 `partytown copylib public/~partytown`。
+
+#### API 速查
+
+| API | 说明 |
+| --- | --- |
+| `useScript(src, options)` | 加载第三方脚本，返回 `{ script, loaded, error, load, remove, waitForLoad }` |
+| `configurePartyTown(config)` | 全局配置 Partytown |
+| `isPartyTownEnabled()` | 检查是否启用 |
+| `getPartyTownScript(config)` | 生成内联配置脚本 HTML |
+| `resolvePartyTownConfig(config)` | 合并默认配置 |
+
 ## 4.20 跨平台队列（Queues）
 
 参考 void 的 Proxy 动态绑定模式，ubean 提供跨平台队列抽象。

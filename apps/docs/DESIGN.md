@@ -115,6 +115,70 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Rationale:** `ubean/runtime/vue` (pulled into the SSR bundle via `virtual:ubean-app`) imports `virtual:ubean-islands-registry` — a client-only virtual module populated by `ubeanIslandsPlugin` during the client build. When ubean was externalized by `rollupOptions.external`, Node.js loaded it from `node_modules` at prerender time, where the `virtual:` import is unresolved, causing `ERR_UNSUPPORTED_ESM_URL_SCHEME: Received protocol 'virtual:'`. The fix has two parts: (1) filter the ubean pattern out of `rollupOptions.external` so Vite bundles ubean and the inline stub plugin can intercept the virtual import; (2) the inline stub plugin provides an empty registry (SSR renders islands server-side, no client hydration needed). Also added `UBEAN_KEEP_SSR=1` env var to skip SSG cleanup for debugging.
 **Alternatives:** `resolve.alias` mapping (didn't work — Vite's SSR externalizer ran before alias resolution for `noExternal` packages); keeping ubean external and patching `ubean/runtime/vue` to conditionally import (invasive, couples build-time concerns to runtime code). Fix is in [`packages/build/src/production.ts`](file:///Users/soybean/Web/Projects/SoybeanJS/ubean/packages/build/src/production.ts) SSR build section.
 
+## 3B. Style Refactor Decision Log (Round 2)
+
+> Sub-session: full style parity with [`soybean-ui/apps/docs`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs).
+> Triggered by reported dark-mode anomalies, markdown formatting chaos, and divergent responsive/interaction states.
+> Each entry: **Decision → Rationale → Alternatives considered**.
+
+### D19. Dark-mode fix — `presetWind3({ dark: 'class' })` + `SConfigProvider` wrap
+**Decision:** Update `uno.config.ts` to include `presetWind3({ dark: 'class' })` (placed before `presetSoybean()`, matching the reference's preset order) and `presetAnimations()`. Wrap the app root in `SConfigProvider` from `@soybeanjs/ui` (in a new `src/App.vue`).
+**Rationale:** Without `presetWind3({ dark: 'class' })`, UnoCSS `dark:` variants use the default `media` strategy (system-driven), not the explicit `.dark` class on `<html>` that `@soybeanjs/unocss-shadcn` tokens assume. This is the root cause of "dark mode anomalies": shadcn `bg-background`/`text-foreground` resolve correctly but `dark:`-prefixed utilities did not flip in lockstep with the runtime class. `SConfigProvider` is the supported `@soybeanjs/ui` integration point for component theming context (SToast/SDialog positioning, locale, etc.).
+**Alternatives:** `presetWind3` only (works for utilities but `@soybeanjs/ui` components lack theming context — toast/dialog mis-themed); `SConfigProvider` only (utilities still on `media` strategy, out of sync with `<html>.dark`).
+**Verified against:** [`soybean-ui/apps/docs/uno.config.ts`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/uno.config.ts#L14-L23) and [`soybean-ui/apps/docs/src/App.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/App.vue#L1-L11).
+
+### D20. Color-mode bootstrap — inline no-flash script + `SConfigProvider`, drop ubean `colorMode`
+**Decision:** Remove the `colorMode` block from `ubean.config.ts`. Add a small inline script to `index.html` that reads `localStorage.ubean_color_mode` (falling back to `prefers-color-scheme`) and sets the `.dark` class on `<html>` *before* Vue mounts. `SConfigProvider` reads the same class at runtime for theming context; `tool-bar.vue` continues to use `useColorMode()` from `ubean/runtime/vue` for the toggle UI (it writes the same localStorage key + class).
+**Rationale:** Single source of truth = the `.dark` class on `<html>`. The ubean `colorMode` runtime and the inline script both target this class; keeping both creates two writers and a hidden coupling. SSG-prerendered HTML is the same for both light and dark visitors, so the no-flash inline script is *required* — `SConfigProvider` runs only at Vue mount, which is too late for any first paint on a static page. The inline script is the proven pattern (vite-ssg, Nuxt color-mode, next-themes all do this).
+**Alternatives:** keep ubean `colorMode` for bootstrap only + `SConfigProvider` for runtime (two systems writing the same class — works but coupling is implicit); accept flash-of-wrong-theme (unacceptable UX for a framework docs site).
+**Verified against:** [`soybean-ui/apps/docs/src/main.ts`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/main.ts#L1-L22) (no `colorMode` config in vite-ssg; the `<html>.dark` class is set by an inline script + `SConfigProvider`).
+
+### D21. Markdown styling — port `markdown.css` + `global.css` + `frosted.css` + Manrope; rename wrapper to `markdown-wrapper`
+**Decision:** Create three stylesheets under `src/styles/`:
+1. `markdown.css` — verbatim port of the reference's 179-line prose stylesheet (headings, lists, code, blockquote, table, details, `.md-code-block`, `.code-btn`, `.code-btn-outline`).
+2. `global.css` — verbatim port defining all `--docs-*` CSS variables (light + dark variants), `--scrollbar-*`, `--docs-font-sans`, shiki token overrides, and `@import` of `markdown.css` + `frosted.css`.
+3. `frosted.css` — verbatim port of the `.docs-header-shell[data-scrolled]` / `.docs-topbar-shell[data-scrolled]` glass effect.
+Add `@fontsource-variable/manrope` to `package.json` and import it in `app.ts` before `uno.css`. Import `./styles/global.css` in `app.ts` after `uno.css`. Rename the markdown wrapper class from `.markdown-body` to `.markdown-wrapper` everywhere (`[...slug].vue`, `vite.config.ts` markdown plugin `wrapperClass`, `doc-md.vue`).
+**Rationale:** The current project has *zero* markdown typography CSS — the prose renders as unstyled browser defaults, which is the root cause of "markdown page format chaos". The reference's stylesheet is mature, dark-mode-aware (uses `--docs-*` variables that swap with `.dark`), and uses UnoCSS `--uno:` directives (which `transformerDirectives` already enables). The `--docs-*` variables are tightly coupled to `markdown.css` (it references 12 of them) and must ship together. Manrope is referenced first in the current `uno.config.ts` `fontFamily.sans` but never imported, so system-ui silently substitutes — porting the font closes that divergence.
+**Alternatives:** port + retarget to `.markdown-body` (find/replace drift risk, diverges from upstream); write fresh CSS for `.markdown-body` (re-invents mature upstream work, drift risk); skip `frosted.css` (header scroll-state visual diverges); skip Manrope (typography diverges from reference).
+**Verified against:** [`soybean-ui/apps/docs/src/styles/markdown.css`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/styles/markdown.css), [`soybean-ui/apps/docs/src/styles/global.css`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/styles/global.css), [`soybean-ui/apps/docs/src/styles/frosted.css`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/styles/frosted.css), [`soybean-ui/apps/docs/src/main.ts`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/main.ts#L4-L6).
+
+### D22. `doc-md.vue` — port the reference's `<article>` wrapper verbatim
+**Decision:** Port the reference's `doc-md.vue` template verbatim: outer `<div ref="contentRef" class="min-w-0">` → `<article class="relative min-w-0 border border-border/50 dark:border-border rounded-xl overflow-hidden">` with `aria-hidden` gradient header (`from-primary/8 via-warning/6 to-info/8`) → inner `<div class="relative min-w-0 px-5 py-6 sm:px-8 sm:py-8 xl:px-10 xl:py-10">` → `<component :is="cp" />`. Adapt the script to keep the current project's markdown loading mechanism (`defineProps<{ component: any }>()` passthrough from `[...slug].vue`), since the reference's `import.meta.glob` + `path` prop logic is tied to its `src/docs` content layout.
+**Rationale:** The current `doc-md.vue` is a 1-line passthrough that renders raw markdown with no card framing — visually inconsistent with the reference's framed article and its decorative gradient header. Full port closes the gap. The script logic (glob, locale, outline) differs between the two projects (ubean resolves markdown at the route level, the reference resolves it inside `doc-md.vue`); only the *template* is portable verbatim.
+**Alternatives:** article + border + padding, no gradient header (loses visual flourish that distinguishes the reference's docs); keep passthrough, rely on markdown.css alone (loses the article card framing that the reference uses to visually contain prose).
+**Verified against:** [`soybean-ui/apps/docs/src/components/doc-md.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/components/doc-md.vue#L174-L192).
+
+### D23. Tool-bar — single-file, style-align only (no split, no `ThemeConfigurator`)
+**Decision:** Keep `tool-bar.vue` as a single inline component (current structure). Align its visual states (hover/active/disabled/focus) and dark-mode color tokens with the reference's `theme-schema-toggler.vue` + `locale-toggler.vue` patterns. Skip the `ThemeConfigurator` (palette editor from `@playground/components/theme-configurator.vue`) entirely — it is component-library-specific (per D8).
+**Rationale:** The reference splits tool-bar into three sub-components because its `ThemeConfigurator` is a complex palette editor with no framework-docs equivalent. Splitting the current single-file tool-bar into separate `theme-schema-toggler.vue` + `locale-toggler.vue` files would be churn for parity's sake without functional gain. Style alignment (button states, color tokens, dark-mode handling) is the actual gap.
+**Alternatives:** split into separate toggglers (closer to reference file structure, but D8 already excludes the configurator that justifies the split); full port including `ThemeConfigurator` (dead code, no palette data to edit).
+**Verified against:** [`soybean-ui/apps/docs/src/components/tool-bar.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/components/tool-bar.vue#L1-L40).
+
+### D24. D8 reaffirmation — "exactly the same" applies to the SHELL only; markdown prose styling IS in scope
+**Decision:** D8 stands unchanged: port the reference's structural shell, skip the reference's component-library-specific components (playground, type-table, component-api, changelog, tailwind-palette). The user's "视觉/交互/布局完全一致" requirement is interpreted as applying to the *ported shell* (header, sidebar, toolbar, outline, search, codeblock, markdown prose, doc-md card framing). This sub-session explicitly clarifies that markdown prose styling (markdown.css + global.css + frosted.css, per D21) and the doc-md article wrapper (per D22) ARE shell concerns, not component-library-specific.
+**Rationale:** D8 originally listed "doc-md.vue" as a ported shell component but did not explicitly enumerate the prose stylesheet as in scope. The reported "markdown formatting chaos" makes that enumeration necessary. The clarification closes the ambiguity without re-opening D8.
+**Alternatives:** amend D8 to port more (split tool-bar, port `ThemeConfigurator` — both rejected per D23); amend D8 to port everything including component-library specifics (dead code, no framework equivalent).
+**Verified against:** original D8 above.
+
+### D25. App root — create `src/App.vue` wrapping `RouterView` in `SConfigProvider`
+**Decision:** Create `src/App.vue` whose template is `<SConfigProvider><RouterView /></SConfigProvider>` (no props — `provideThemeContext` from `@playground/theme` is a component-library-specific helper that we skip per D8). ubean's `defineApp` in `app.ts` continues to own head/meta/rootId. The ubean runtime picks up `src/App.vue` as the root component (verify against ubean runtime convention; if not, fall back to wiring `App` in `defineApp.root`).
+**Rationale:** `SConfigProvider` must wrap the entire render tree so `@soybeanjs/ui` components (SToast, SDialog, SPopover) inherit theme context. Putting it in a layout (default.vue/home.vue/blank.vue) would re-mount the provider on layout transitions and lose toast/dialog state. The reference puts it at `App.vue` for the same reason. Skipping `provideThemeContext` keeps the surface minimal — `SConfigProvider` with no props still applies the theme tokens via the `.dark` class on `<html>` (set by the D20 inline script).
+**Alternatives:** wrap in `default.vue` only (loses provider on home/blank routes, re-mounts on transitions); replicate `provideThemeContext` locally (couples to a playground-specific abstraction we don't need).
+**Verified against:** [`soybean-ui/apps/docs/src/App.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/App.vue#L1-L11).
+
+### D26. Verification matrix — manual cross-browser × 3 viewports × light/dark
+**Decision:** After implementation, spin up `pnpm dev` and manually verify in Chrome, Safari, Firefox (latest stable on macOS). For each browser, test 2 color modes (light, dark) × 3 viewports (mobile 375px, tablet 768px, desktop 1280px) on 4 key routes: home `/`, a markdown doc `/guide/quickstart`, an API table `/reference/api/ubean`, the 404 `/__nonexistent__`. Document results as a checklist in the PR description; no committed test files.
+**Rationale:** Cross-browser divergence is most likely on `backdrop-filter` (Safari prefix), `color-mix` (Safari 16.2+), and `scroll-snap` (Safari quirks) — all used by the ported stylesheets. Manual smoke at 3 viewports catches the responsive regressions the user reported. Playwright snapshot tests would add CI-runnable guarantees but also test-maintenance overhead disproportionate to a docs site with ~30 templates.
+**Alternatives:** Playwright snapshot tests (CI-runnable but maintenance overhead, esp. for shiki token colors that flake on font rendering); Chrome-only manual smoke (fast but misses Safari/Firefox divergence on the exact CSS features we're porting).
+**Verified against:** the user's original requirement ("多浏览器兼容性测试及不同屏幕尺寸的响应式测试").
+
+### D27. Component-alignment scope — 4 components beyond the primary fixes
+**Decision:** After the primary fixes (D19–D25) land and verify, additionally style-align 4 components: `app-header.vue` (border/scroll-state/responsive classes + new `frosted.css` integration with `docs-header-shell`/`docs-header-frame` shortcuts already present in `uno.config.ts`), `sider-menu.vue` (active-item/hover/disabled states + dark-mode border tokens), `code-block.vue` + `copy-button.vue` (shiki token colors + copy-button hover/active/copy-feedback states), `search-document.vue` (modal/trigger/results-item states + dark-mode tokens).
+**Rationale:** These four components are the user-visible shell surfaces where dark-mode and interaction-state divergences are most noticeable after the primary fixes. Aligning them after the foundation lands avoids changing component styles against a moving CSS-variable baseline.
+**Alternatives:** align all components (over-scope; shell-only per D8); align none and rely on the foundation fixes (works for color tokens but not for component-specific hover/active/disabled state classes).
+**Verified against:** the user's original requirement ("统一导航栏、侧边栏、页脚等公共组件的样式" and "确保所有交互元素的状态样式...一致").
+
 ## 4. Architecture Overview
 
 ```
@@ -151,9 +215,10 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 
 ```
 apps/docs/
-├── ubean.config.ts            # mode: 'ssg', ui: { css: false }, i18n, prerender
-├── uno.config.ts              # @soybeanjs/unocss-shadcn preset
-├── package.json               # scripts: dev/build/preview/build:api/build:search
+├── ubean.config.ts            # mode: 'ssg', ui: { css: false }, i18n, prerender (colorMode removed per D20)
+├── uno.config.ts              # presetWind3 dark:class + presetAnimations + presetSoybean + presetShadcn (D19)
+├── index.html                 # no-flash inline script sets .dark on <html> before Vue mount (D20)
+├── package.json               # scripts: dev/build/preview/build:api/build:search; +@fontsource-variable/manrope (D21)
 ├── tsconfig.json
 ├── DESIGN.md                  # this file
 ├── GLOSSARY.md
@@ -169,6 +234,12 @@ apps/docs/
 │   ├── search-index.json      # ← generated by prerender
 │   └── favicon.svg
 └── src/
+    ├── App.vue                # NEW (D25): wraps RouterView in SConfigProvider
+    ├── app.ts                 # imports manrope + uno.css + styles/global.css (D21)
+    ├── styles/                # NEW (D21): ported verbatim from soybean-ui/apps/docs/src/styles/
+    │   ├── global.css         # --docs-* CSS vars (light + dark), scrollbar, shiki overrides
+    │   ├── markdown.css       # .markdown-wrapper prose styles (headings/lists/code/table/blockquote/details)
+    │   └── frosted.css        # docs-header-shell/docs-topbar-shell scrolled glass effect
     ├── content/               # ← moved from skills/ubean/docs + repo docs/
     │   ├── en/
     │   │   ├── guide/         # quickstart, app-modes, routing-modes, pages-routing/*, i18n, islands

@@ -148,12 +148,20 @@ const pageStatus = computed(() => resolved.value.frontmatter?.status as string |
 </script>
 
 <template>
-  <article class="markdown-body max-w-3xl mx-auto min-w-0">
+  <main class="mx-auto min-w-0 max-w-3xl">
     <!-- API reference page -->
     <template v-if="resolved.kind === 'api'">
-      <h1 class="text-3xl font-bold mb-2">{{ `@ubean/${resolved.pkg}` }}</h1>
-      <p class="text-muted-foreground mb-6">API reference generated from package type definitions.</p>
-      <ApiTable :pkg="resolved.pkg!" />
+      <article class="docs-card relative overflow-hidden">
+        <div
+          aria-hidden="true"
+          class="pointer-events-none absolute inset-x-0 top-0 h-36 bg-linear-to-r from-primary/8 via-warning/6 to-info/8 opacity-80"
+        />
+        <div class="relative px-5 py-6 sm:px-8 sm:py-8 xl:px-10 xl:py-10">
+          <h1 class="mb-2 text-3xl font-bold">{{ `@ubean/${resolved.pkg}` }}</h1>
+          <p class="mb-6 text-muted-foreground">API reference generated from package type definitions.</p>
+          <ApiTable :pkg="resolved.pkg!" />
+        </div>
+      </article>
     </template>
 
     <!-- Markdown content page -->
@@ -162,16 +170,16 @@ const pageStatus = computed(() => resolved.value.frontmatter?.status as string |
         <h1 v-if="pageTitle" class="text-3xl font-bold">{{ pageTitle }}</h1>
         <StatusBadge v-if="pageStatus" :status="pageStatus" />
       </div>
-      <DocMd :component="resolved.component" />
+      <DocMd :component="resolved.component" :path="route.path" />
     </template>
 
     <!-- Not found -->
     <template v-else>
       <div class="py-16 text-center">
-        <div class="text-5xl font-bold text-muted-foreground mb-2">404</div>
-        <p class="text-muted-foreground mb-4">This page doesn't exist in the docs.</p>
+        <div class="mb-2 text-5xl font-bold text-muted-foreground">404</div>
+        <p class="mb-4 text-muted-foreground">This page doesn't exist in the docs.</p>
         <SButton variant="outline" shape="rounded" @click="router.push('/')">Back to home</SButton>
       </div>
     </template>
-  </article>
+  </main>
 </template>

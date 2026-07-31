@@ -1,13 +1,14 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'pathe';
 import { defineConfig, transformerDirectives, transformerVariantGroup } from 'unocss';
+import type { Theme } from 'unocss/preset-mini';
 import { presetSoybean } from '@soybeanjs/unocss-preset';
 import { presetShadcn } from '@soybeanjs/unocss-shadcn';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = resolve(__dirname, 'src');
 
-export default defineConfig({
+export default defineConfig<Theme>({
   content: {
     pipeline: {
       include: [/\.vue($|\?)/, /\.md($|\?)/, /\.ts($|\?)/]
@@ -15,7 +16,17 @@ export default defineConfig({
     filesystem: [resolve(SRC_DIR, '**/*.{vue,md,ts}')]
   },
   transformers: [transformerDirectives(), transformerVariantGroup()],
-  presets: [presetSoybean(), presetShadcn()],
+  // presetWind3({dark:'class'}) + presetAnimations() are bundled inside
+  // presetShadcn, so they need not be listed explicitly. Keep presetSoybean
+  // for its flex/grid shortcuts.
+  presets: [
+    presetSoybean(),
+    presetShadcn({
+      generated: {
+        ui: true
+      }
+    })
+  ],
   theme: {
     fontFamily: {
       sans: "'Manrope', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
@@ -23,6 +34,10 @@ export default defineConfig({
     }
   },
   shortcuts: {
+    'docs-card':
+      'bg-card/25! border-border/50! dark:border-border! divide-border/50! dark:divide-border! rounded-xl! shadow!',
+    'docs-subtle-card':
+      'bg-gray-1/30! dark:bg-transparent! border border-border/50! dark:border-border! rounded-xl!',
     'docs-header-shell':
       'group fixed top-0 start-0 end-0 z-49 px-4 transition-all-800 data-[scrolled=true]:top-3 sm:px-6',
     'docs-header-frame':

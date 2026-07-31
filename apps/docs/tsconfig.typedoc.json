@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "skipLibCheck": true,
+    "strict": false,
+    "noEmit": true,
+    "types": []
+  },
+  "include": [
+    "../../packages/ubean/dist/**/*.d.ts",
+    "../../packages/runtime/dist/**/*.d.ts",
+    "../../packages/routing/dist/**/*.d.ts",
+    "../../packages/config/dist/**/*.d.ts",
+    "../../packages/auth/dist/**/*.d.ts",
+    "../../packages/ui/dist/**/*.d.ts",
+    "../../packages/pinia/dist/**/*.d.ts"
+  ]
+}

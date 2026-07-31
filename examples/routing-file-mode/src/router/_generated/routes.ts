@@ -5,18 +5,18 @@ import type { RouteRecord } from './imports';
 
 export const routes: RouteRecord[] = [
   {
-    name: 'About',
-    path: '/about',
-    component: 'About'
+    name: "About",
+    path: "/about",
+    component: "About"
   },
   {
-    name: 'Index',
-    path: '/',
-    component: 'Index'
+    name: "Index",
+    path: "/",
+    component: "Index"
   },
   {
-    name: 'UsersId',
-    path: '/users/:id',
-    component: 'UsersId'
+    name: "UsersId",
+    path: "/users/:id",
+    component: "UsersId"
   }
 ];

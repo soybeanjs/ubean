@@ -68,3 +68,19 @@
 **Component Registry** — the `public/r/*.json` auto-generated component metadata in the reference. ubean has no component registry; its analog is the TypeDoc-generated `public/api/*.json` (API reference, not component demos).
 
 **Changelog** — the reference's per-component changelog (`component-changelog.vue` + `generated/changelog/*.json`). v1 has no per-API changelog generator; the repo's top-level `CHANGELOG.md` is linked from the home page instead.
+
+**ThemeConfigurator** — the reference's palette editor (`@playground/components/theme-configurator.vue`), invoked from `tool-bar.vue`. Component-library-specific (no palette data to edit for a framework); excluded by D8 + D23.
+
+## Style refactor (Round 2 — see DESIGN.md §3B, D19–D27)
+
+**Markdown Wrapper** — the outer `<div class="markdown-wrapper">` that wraps rendered markdown prose. (Renamed from `.markdown-body` per D21.) Owned by `@ubean/markdown`'s `wrapperClass` option (configured in `vite.config.ts`) for fence-rendered markdown, and by `<article>` inside `doc-md.vue` for the framed prose card. Styled by `src/styles/markdown.css`.
+
+**`--docs-*` CSS variables** — a family of design tokens (chip-bg, panel-bg, panel-border, panel-radius, panel-shadow, panel-inset, panel-blur, surface-strong, shell-bg, shell-border, shell-blur, table-head-bg, table-row-border) defined in `src/styles/global.css` with light + `.dark` variants. Consumed by `markdown.css` (prose surfaces: code blocks, blockquotes, tables, details) and `frosted.css` (header scroll glass). Mirroring the reference's design-token system; renaming or removing any of them breaks the ported stylesheets.
+
+**Frosted Shell** — the glass effect applied to `.docs-header-shell[data-scrolled='true'] .docs-header-frame` (and the topbar equivalent) when the page is scrolled. Defined in `src/styles/frosted.css`, depends on `--docs-shell-bg`, `--docs-shell-border`, `--docs-shell-blur` (defined in `global.css`). The `docs-header-shell` / `docs-header-frame` UnoCSS shortcuts (already in `uno.config.ts`) provide the structural frame; `frosted.css` adds the visual glass surface.
+
+**No-flash Bootstrap** — the inline `<script>` in `index.html` that reads `localStorage.ubean_color_mode` (falling back to `prefers-color-scheme: dark`) and sets the `.dark` class on `<html>` *before* Vue mounts. Required for SSG-prerendered HTML to render with the correct theme on first paint; without it, dark-mode visitors see a light → dark flicker. Replaces the ubean `colorMode` runtime (removed per D20). `SConfigProvider` (in `App.vue`) reads the same `.dark` class at mount for `@soybeanjs/ui` component theming context; `useColorMode()` in `tool-bar.vue` writes the same localStorage key + class on user toggle.
+
+**`<DocMd>` Article Card** — the framed prose container rendered by `doc-md.vue`: an `<article class="border border-border/50 dark:border-border rounded-xl overflow-hidden">` with an `aria-hidden` decorative gradient header (`from-primary/8 via-warning/6 to-info/8`) and inner padding (`px-5 py-6 sm:px-8 sm:py-8 xl:px-10 xl:py-10`). Ported verbatim from the reference per D22; distinct from the prose-typography `.markdown-wrapper` styling inside it.
+
+**Style Parity Scope (D24)** — the set of shell surfaces that must visually match the reference: `AppHeader`, `SiderMenu`, `ToolBar`, `Outline` (`SAnchor`), `SearchDocument`, `CodeBlock` + `CopyButton`, `<DocMd>` article card, `.markdown-wrapper` prose. Component-library-specific surfaces (playground, type-table, component-api, changelog, tailwind-palette, theme-configurator) remain excluded per D8.

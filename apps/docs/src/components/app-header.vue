@@ -36,7 +36,7 @@ onUnmounted(() => {
     :data-scrolled="isScrolled"
     class="docs-header-shell"
   >
-    <div class="docs-header-frame">
+    <div class="docs-header-frame lt-md:group-data-[scrolled=true]:py-2">
       <div class="flex min-w-0 items-center gap-4 lg:gap-6 xl:gap-8">
         <SLink to="/" class="group flex items-center gap-3">
           <AppLogo class="size-8 transition-transform duration-300 group-hover:scale-110" />

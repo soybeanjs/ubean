@@ -40,15 +40,15 @@ watch(() => props.code, renderCode);
 </script>
 
 <template>
-  <div class="relative group my-4">
-    <div ref="wrapper" class="md-code-block rounded-lg overflow-auto text-sm" :data-lang="lang" />
+  <div class="group relative my-4">
+    <div ref="wrapper" class="md-code-block overflow-auto text-sm" :data-lang="lang" />
     <button
       type="button"
-      class="absolute top-2 end-2 p-1.5 rounded-md bg-background/80 backdrop-blur border border-border/50 opacity-0 group-hover:opacity-100 transition-opacity"
+      class="absolute end-2 top-2 rounded-md border border-border/50 bg-background/80 p-1.5 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       :aria-label="copied ? 'Copied' : 'Copy code'"
       @click="copy"
     >
-      <SIcon :icon="copied ? 'lucide:check' : 'lucide:copy'" class="size-4" />
+      <SIcon :icon="copied ? 'lucide:check' : 'lucide:copy'" class="size-4" :class="copied ? 'text-success' : ''" />
     </button>
   </div>
 </template>

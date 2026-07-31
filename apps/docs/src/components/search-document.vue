@@ -28,7 +28,7 @@ function onSelect(route: string) {
       </SButton>
     </template>
 
-    <div class="w-80 md:w-96 p-2">
+    <div class="docs-subtle-card w-80 border border-border/50 p-2 dark:border-border md:w-96">
       <SInput
         v-model="query"
         placeholder="Type to search…"
@@ -40,23 +40,23 @@ function onSelect(route: string) {
         </template>
       </SInput>
 
-      <div v-if="loading" class="py-4 text-center text-muted-foreground text-xs">Searching…</div>
-      <div v-else-if="results.length" class="mt-2 max-h-80 overflow-auto flex flex-col gap-0.5">
+      <div v-if="loading" class="py-4 text-center text-xs text-muted-foreground">Searching…</div>
+      <div v-else-if="results.length" class="mt-2 flex max-h-80 flex-col gap-0.5 overflow-auto">
         <button
           v-for="r in results"
           :key="r.item.route"
           type="button"
-          class="text-start px-2 py-1.5 rounded-md hover:bg-active transition-colors"
+          class="rounded-md px-2 py-1.5 text-start transition-colors hover:bg-active focus-visible:bg-active focus-visible:outline-none"
           @click="onSelect(r.item.route)"
         >
-          <div class="text-sm font-medium truncate">{{ r.item.title }}</div>
-          <div class="text-xs text-muted-foreground truncate">
+          <div class="truncate text-sm font-medium">{{ r.item.title }}</div>
+          <div class="truncate text-xs text-muted-foreground">
             <span class="opacity-70">{{ r.item.section }}</span> · {{ r.item.route }}
           </div>
         </button>
       </div>
-      <div v-else-if="query" class="py-4 text-center text-muted-foreground text-xs">No matches.</div>
-      <div v-else class="py-3 text-center text-muted-foreground text-xs">
+      <div v-else-if="query" class="py-4 text-center text-xs text-muted-foreground">No matches.</div>
+      <div v-else class="py-3 text-center text-xs text-muted-foreground">
         Index builds at prerender time. Run <code class="font-mono">pnpm build</code>.
       </div>
     </div>

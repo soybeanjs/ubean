@@ -63,10 +63,23 @@ export const menuSections: MenuSection[] = [
     ]
   },
   {
+    value: 'reference-guides',
+    label: 'Reference Guides',
+    items: [
+      { label: 'Cache', to: '/reference/cache' },
+      { label: 'Database', to: '/reference/database' },
+      { label: 'Env', to: '/reference/env' },
+      { label: 'I18n', to: '/reference/i18n' },
+      { label: 'Response Helpers', to: '/reference/response-helpers' },
+      { label: 'Route Helpers', to: '/reference/route-helpers' }
+    ]
+  },
+  {
     value: 'architecture',
     label: 'Architecture',
     items: [
       { label: 'Overview', to: '/architecture/overview', status: 'implemented' },
+      { label: 'Architecture', to: '/architecture/architecture', status: 'implemented' },
       { label: 'Routing', to: '/architecture/routing', status: 'implemented' },
       { label: 'Runtime', to: '/architecture/runtime', status: 'implemented' },
       { label: 'Engineering', to: '/architecture/engineering', status: 'implemented' },
@@ -76,7 +89,8 @@ export const menuSections: MenuSection[] = [
       { label: 'Subpackage Splitting', to: '/architecture/subpackage-splitting', status: 'historical' },
       { label: 'App Modes', to: '/architecture/modes', status: 'historical' },
       { label: 'Islands Auto-Registry', to: '/architecture/islands-auto-registry', status: 'proposal' },
-      { label: 'ubean-studio', to: '/architecture/ubean-studio', status: 'proposal' }
+      { label: 'ubean-studio', to: '/architecture/ubean-studio', status: 'proposal' },
+      { label: 'Test Checklist', to: '/architecture/test', status: 'implemented' }
     ]
   }
 ];

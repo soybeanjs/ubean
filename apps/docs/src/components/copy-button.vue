@@ -19,10 +19,10 @@ async function copy() {
 <template>
   <button
     type="button"
-    class="p-1.5 rounded-md hover:bg-active transition-colors"
+    class="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-active hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
     :aria-label="copied ? 'Copied' : 'Copy'"
     @click="copy"
   >
-    <SIcon :icon="copied ? 'lucide:check' : 'lucide:copy'" class="size-4" />
+    <SIcon :icon="copied ? 'lucide:check' : 'lucide:copy'" class="size-4" :class="copied ? 'text-success' : ''" />
   </button>
 </template>

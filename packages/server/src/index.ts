@@ -176,6 +176,18 @@ export { createRateLimitMiddleware, defineRateLimit, createMemoryRateLimitStore 
 export type { RateLimitOptions, RateLimitInfo, RateLimitStoreEntry, RateLimitStore } from './rate-limit';
 
 /* -------------------------------------------------------------------------- */
+/* CSRF 保护 (P9-12)                                                            */
+/* -------------------------------------------------------------------------- */
+export { createCsrfMiddleware, defineCsrf, generateCsrfToken } from './csrf';
+export type { CsrfOptions } from './csrf';
+
+/* -------------------------------------------------------------------------- */
+/* 安全头 (P9-13)                                                               */
+/* -------------------------------------------------------------------------- */
+export { createSecurityHeadersMiddleware, defineSecurityHeaders, serializeCsp } from './security-headers';
+export type { ContentSecurityPolicyDirectives, SecurityHeadersOptions } from './security-headers';
+
+/* -------------------------------------------------------------------------- */
 /* 组件级缓存指令 (P9-08)                                                       */
 /* -------------------------------------------------------------------------- */
 export {

@@ -131,9 +131,9 @@ ubean P9-10 已补齐 Vercel/Netlify/Bun/Deno 四大平台预设，均 `extends:
 
 | 能力 | 各框架情况 | ubean |
 |---|---|---|
-| **CSRF 保护** | Astro 5 默认开启；Next/SvelteKit 中间件 | ❌ |
-| **CSP 头生成** | Astro 6 稳定；Next.js headers | ❌ |
-| **安全头（HSTS/X-Frame 等）** | Next/Nuxt/Astro 配置 | ❌ |
+| **CSRF 保护** | Astro 5 默认开启；Next/SvelteKit 中间件 | ✅ P9-12（double-submit cookie + origin 校验） |
+| **CSP 头生成** | Astro 6 稳定；Next.js headers | ✅ P9-13（`serializeCsp` + report-only） |
+| **安全头（HSTS/X-Frame 等）** | Next/Nuxt/Astro 配置 | ✅ P9-13（HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy/Cross-Origin-*） |
 | **通用 Sessions API** | Astro 5.7+ `Astro.session`；SvelteKit locals | ⚠️ 仅 auth session |
 | **Rate limiting** | 第三方 | ✅ |
 | **CORS** | 全部 | ✅ |
@@ -293,7 +293,7 @@ ubean 有若干竞品**没有**的差异化能力，是其核心竞争力：
 6. **OG Image 生成**（P1）—— Satori 集成
 7. **JSON-LD/Schema.org**（P1）
 8. **平台预设补全**（P1，✅ 已完成 P9-10，合并 P5-06）—— Vercel/Netlify/Bun/Deno preset
-9. **CSRF + 安全头**（P2）
+9. **CSRF + 安全头**（P2，✅ 已完成 P9-12 + P9-13）—— CSRF double-submit cookie + origin 校验;CSP/HSTS/X-Frame-Options/Permissions-Policy/Cross-Origin-* 安全头
 10. **Sessions API + after()**（P2）
 
 ubean 的架构（Hono + Vite-Plus + 模块系统）足以支撑上述补全。P0 渲染层与变更层（流式 SSR、ISR、per-route 规则、Server Actions、PPR）已全部落地，P1 重要级（文件约定 SEO、OG Image、JSON-LD、组件级缓存指令、全局 Hooks、平台预设补全）也已完成，Vue 元框架追赶 Next.js 16 的核心能力对齐完成。后续聚焦 P2 增强级（Sessions/CSRF/安全头/after()/嵌套布局等）。

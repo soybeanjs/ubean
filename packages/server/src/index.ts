@@ -131,6 +131,39 @@ export { createMemoryDriver, createStorage, useStorage, clearGlobalStorage, crea
 export type { StorageDriver, UbeanStorage, KVOptions, KVNamespace } from './storage';
 
 /* -------------------------------------------------------------------------- */
+/* 邮件发送 (P9-25)                                                             */
+/* -------------------------------------------------------------------------- */
+export {
+  defineEmailProvider,
+  createEmailTransport,
+  setDefaultEmailProvider,
+  useEmailProvider,
+  getEmailTransport,
+  getEmailProvider,
+  getEmailProviderNames,
+  sendEmail,
+  renderEmailTemplate,
+  getSentEmails,
+  clearSentEmails,
+  clearEmailProviders
+} from './email';
+export type {
+  EmailAttachment,
+  EmailOptions,
+  EmailResult,
+  EmailTransport,
+  MockEmailTransport,
+  EmailProviderType,
+  LogEmailProviderConfig,
+  SmtpEmailProviderConfig,
+  MockEmailProviderConfig,
+  SendmailEmailProviderConfig,
+  EmailProviderConfig,
+  DefineEmailProviderOptions,
+  EmailProvider
+} from './email';
+
+/* -------------------------------------------------------------------------- */
 /* 可观测性                                                                     */
 /* -------------------------------------------------------------------------- */
 export {
@@ -204,6 +237,43 @@ export { after, createAfterMiddleware, flushAfterCallbacks, getAfterCallbackCoun
 export { createFetchMemoizationMiddleware, createMemoizedFetch } from './fetch-memo';
 
 /* -------------------------------------------------------------------------- */
+/* Draft/Preview Mode (P9-23)                                                  */
+/* -------------------------------------------------------------------------- */
+export {
+  createDraftModeMiddleware,
+  defineDraftMode,
+  enableDraftMode,
+  disableDraftMode,
+  isDraftMode,
+  useDraftMode
+} from './draft-mode';
+export type { DraftModeOptions, DraftMode } from './draft-mode';
+
+/* -------------------------------------------------------------------------- */
+/* Single-flight mutations (P9-16)                                             */
+/* -------------------------------------------------------------------------- */
+export {
+  createSingleFlightMiddleware,
+  defineSingleFlight,
+  defineRevalidation,
+  unregisterRevalidation,
+  getRevalidationEntries,
+  clearRevalidationRegistry,
+  invalidate,
+  invalidateKey,
+  getInvalidatedKeys,
+  runRevalidation
+} from './single-flight';
+export type {
+  RevalidationKey,
+  RevalidationContext,
+  RevalidationFetcher,
+  RevalidationEntry,
+  RevalidationResult,
+  SingleFlightOptions
+} from './single-flight';
+
+/* -------------------------------------------------------------------------- */
 /* 组件级缓存指令 (P9-08)                                                       */
 /* -------------------------------------------------------------------------- */
 export {
@@ -219,6 +289,83 @@ export {
   clearComponentCache
 } from './cache-directive';
 export type { ComponentCacheEntry, ComponentCacheStore, CacheWrapOptions } from './cache-directive';
+
+/* -------------------------------------------------------------------------- */
+/* Analytics (P9-27)                                                          */
+/* -------------------------------------------------------------------------- */
+export {
+  createLogAnalyticsProvider,
+  createMemoryAnalyticsProvider,
+  createMockAnalyticsProvider,
+  defineAnalyticsProvider,
+  registerAnalyticsProvider,
+  unregisterAnalyticsProvider,
+  getAnalyticsProvider,
+  listAnalyticsProviders,
+  clearAnalyticsProviders,
+  setGlobalAnalyticsProvider,
+  getGlobalAnalyticsProvider,
+  extractAnalyticsContext,
+  trackPageView,
+  trackEvent,
+  trackRaw,
+  createAnalyticsMiddleware,
+  defineAnalytics,
+  useAnalytics
+} from './analytics';
+export type {
+  AnalyticsContext,
+  AnalyticsEvent,
+  AnalyticsProperties,
+  AnalyticsRecord,
+  AnalyticsProvider,
+  AnalyticsProviderOptions,
+  AnalyticsTrackOptions,
+  AnalyticsMiddlewareOptions
+} from './analytics';
+
+/* -------------------------------------------------------------------------- */
+/* Feature Flags / A/B Testing (P9-28)                                         */
+/* -------------------------------------------------------------------------- */
+export {
+  createMemoryFeatureFlagStore,
+  setGlobalFeatureFlagStore,
+  getGlobalFeatureFlagStore,
+  clearFeatureFlags,
+  defineFeatureFlag,
+  defineExperiment,
+  evaluateFlag,
+  evaluateFlagWithReason,
+  getVariant,
+  getVariantAssignment,
+  extractFlagContext,
+  createFeatureFlagsMiddleware,
+  useFlags,
+  useExperiments,
+  useFlagContext,
+  evaluateFlagFromContext,
+  getVariantFromContext,
+  listFlagNames,
+  listExperimentNames,
+  removeFeatureFlag,
+  removeExperiment
+} from './feature-flags';
+export type {
+  FlagValue,
+  FlagContext,
+  FlagKind,
+  SegmentRule,
+  Segment,
+  Variant,
+  FeatureFlagOptions,
+  ExperimentOptions,
+  FeatureFlagDefinition,
+  ExperimentDefinition,
+  FlagEvaluation,
+  ExperimentAssignment,
+  FeatureFlagStore,
+  FeatureFlagsMiddlewareOptions
+} from './feature-flags';
 
 /* -------------------------------------------------------------------------- */
 /* 从 @ubean/types re-export 共享类型(方便消费者单入口导入)                       */

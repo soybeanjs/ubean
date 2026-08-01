@@ -80,9 +80,9 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 | # | 能力 | 任务 ID | 理由 |
 |---|---|---|---|
-| 1 | `defer()` 流式非关键数据 | 新建 | 与已有 PPR + Suspense 架构互补，竞品全部支持 |
-| 2 | useData/useAsyncData 增强 | 增强 | 当前实现较薄，缺 dedupe/refresh/payload 提取 |
-| 3 | SSG payload 提取 | 增强 | `__UBEAN_STATE__` 存在但 SSG 无独立 payload |
+| 1 | `defer()` 流式非关键数据 | ✅ 已实现 | 与已有 PPR + Suspense 架构互补，竞品全部支持 |
+| 2 | useData/useAsyncData 增强 | ✅ 已实现 | 当前实现较薄，缺 dedupe/refresh/payload 提取 |
+| 3 | SSG payload 提取 | ✅ 已实现 | `__UBEAN_STATE__` 存在但 SSG 无独立 payload |
 | 4 | fetch Data Cache | ✅ 已实现 | 与组件级缓存互补，对齐 Next.js Data Cache |
 
 ### P1 — 重要功能补全（中重要性 / 中需求 / 中等难度）
@@ -90,7 +90,7 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 | # | 能力 | 任务 ID | 理由 |
 |---|---|---|---|
 | 5 | Draft / Preview mode | ✅ 已实现 | 内容管理场景刚需，CMS 集成前置 |
-| 6 | 流式 metadata | P9-24 | SEO 优化，Next.js 已有 |
+| 6 | 流式 metadata | ✅ 已实现 | SEO 优化，Next.js 已有 |
 | 7 | 动态路由 matchers | ✅ 已实现 | SvelteKit 有，rou3 底层支持 |
 | 8 | metadata 自动 dedupe | ✅ 已实现 | 当前 useSeoMeta 无去重 |
 

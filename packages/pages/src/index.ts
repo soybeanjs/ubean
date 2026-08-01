@@ -54,3 +54,20 @@ export type {
   InternalFetchOptions,
   StreamHelper
 } from './data';
+
+export {
+  defer,
+  useDeferredData,
+  isDeferredValue,
+  DEFERRED_DATA_ID,
+  __registerDeferred,
+  __resolveDeferred,
+  __clearDeferred,
+  __serializeDeferred,
+  __resetDeferredCache
+} from './defer';
+
+export type {
+  DeferredValue,
+  UseDeferredDataResult
+} from './defer';

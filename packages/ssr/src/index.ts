@@ -3,7 +3,15 @@ import type { App, Component } from 'vue';
 import { renderToString, renderToNodeStream } from '@vue/server-renderer';
 import type { RouteRecordRaw } from 'vue-router';
 import { getIslandsBootstrapScript } from '@ubean/islands';
-import { SSR_CONTENT_MARKER, STATE_DATA_ID, STATE_MARKER, safeJsonStringify } from '@ubean/pages';
+import {
+  SSR_CONTENT_MARKER,
+  STATE_DATA_ID,
+  STATE_MARKER,
+  safeJsonStringify,
+  __clearDeferred,
+  __resolveDeferred,
+  __serializeDeferred
+} from '@ubean/pages';
 import type {
   PageObject,
   PageRenderer,
@@ -256,6 +264,7 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     _assetTags: PageAssetTags,
     renderContext?: PageRenderContext
   ): Promise<PageRenderResult> => {
+    __clearDeferred();
     const { app, head, appConfig } = await prepareRender(options, pageObj, renderContext);
     const appHtml = await renderToString(app);
 
@@ -264,13 +273,25 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     // 注入到 HTML 的 __UBEAN_STATE__ script 标签中。
     const state = await resolveState(app, appConfig);
 
+    // 解析 deferred promises(useDeferredData 注册的非关键数据)
+    const deferredData = await __resolveDeferred();
+    const deferredScript = __serializeDeferred(deferredData);
+
     if (!shellHtml) {
-      // 无 shell 时,无法注入 state,直接返回 HTML 字符串
-      return appHtml;
+      // 无 shell 时,直接拼接 HTML + deferred script
+      return deferredScript ? appHtml + deferredScript : appHtml;
     }
 
     const htmlWithApp = shellHtml.replace(SSR_CONTENT_MARKER, appHtml);
-    const html = transformHtmlTemplate(head, htmlWithApp);
+    let html = transformHtmlTemplate(head, htmlWithApp);
+
+    // 注入 deferred script(在 app div 之后,STATE_DATA_ID 之前)
+    if (deferredScript) {
+      html = html.replace(
+        new RegExp(`(<script id="${STATE_DATA_ID}")`),
+        `${deferredScript}\n  $1`
+      );
+    }
 
     // 有 state 时返回 { html, state },由 renderPage 注入到 __UBEAN_STATE__
     if (state) {
@@ -315,12 +336,17 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     return new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
+          __clearDeferred();
           const { app, head, appConfig } = await prepareRender(options, pageObj, renderContext);
 
           // 无 shell:直接流式 app HTML
           if (!shellHtml) {
             const appStream = renderToNodeStream(app);
             await pumpVueStream(appStream, controller);
+            // 即使无 shell,也解析并输出 deferred 数据
+            const deferredData = await __resolveDeferred();
+            const deferredScript = __serializeDeferred(deferredData);
+            if (deferredScript) controller.enqueue(encoder.encode(deferredScript));
             controller.close();
             return;
           }
@@ -331,6 +357,9 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
             // 无标记,回退为:流式 app HTML + 尾部(无法注入,直接拼接)
             const appStream = renderToNodeStream(app);
             await pumpVueStream(appStream, controller);
+            const deferredData = await __resolveDeferred();
+            const deferredScript = __serializeDeferred(deferredData);
+            if (deferredScript) controller.enqueue(encoder.encode(deferredScript));
             controller.close();
             return;
           }
@@ -367,15 +396,24 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
           // without waiting for client hydration.
           const dynamicHeadTags = collectDynamicHeadTags(head, staticHeadTags);
 
+          // 解析 deferred promises(useDeferredData 注册的非关键数据)
+          // 在 Vue 流之后、state script 之前注入,客户端水合时立即可用
+          const deferredData = await __resolveDeferred();
+          const deferredScript = __serializeDeferred(deferredData);
+
           // 3. 渲染完成后,序列化 state 并注入为 script(state 在 app div 之后)
           const state = await resolveState(app, appConfig);
           const stateScript = `<script id="${STATE_DATA_ID}" type="application/json">${
             state ? safeJsonStringify(state) : ''
           }</script>`;
 
-          // 4. 输出 dynamic head tags + state script + tail 部分
+          // 4. 输出 dynamic head tags + deferred script + state script + tail 部分
           //    浏览器会将 <meta>/<title>/<link> 标签自动移入 <head>
-          const tailContent = (dynamicHeadTags ? `${dynamicHeadTags}\n` : '') + stateScript + tailPart;
+          const tailContent =
+            (dynamicHeadTags ? `${dynamicHeadTags}\n` : '') +
+            (deferredScript ? `${deferredScript}\n  ` : '') +
+            stateScript +
+            tailPart;
           controller.enqueue(encoder.encode(tailContent));
           controller.close();
         } catch (err) {

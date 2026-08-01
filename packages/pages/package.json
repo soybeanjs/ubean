@@ -24,6 +24,9 @@
   "dependencies": {
     "@ubean/types": "workspace:*"
   },
+  "peerDependencies": {
+    "vue": ">=3.4.0"
+  },
   "devDependencies": {
     "@types/node": "^26.1.2",
     "typescript": "7.0.2",

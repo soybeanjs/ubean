@@ -1,0 +1,441 @@
+# ubean 框架未实现功能规划文档
+
+> 基于 [framework-comparison.md](../apps/docs/src/content/zh/architecture/framework-comparison.md) 对比分析，梳理 ubean 当前未实现的功能特性，按优先级制定实现计划。
+> 更新日期：2026-08-01
+
+---
+
+## 一、现状校正
+
+对比文档与源码核实后，以下 3 项已实际实现但对比文档未更新：
+
+| 任务 ID | 功能 | 实现位置 | 文档状态 |
+|---|---|---|---|
+| P9-14 | `after()` 响应后执行 | `packages/server/src/after.ts` | ❌ → ✅ |
+| P9-15 | fetch memoization | `packages/server/src/fetch-memo.ts` | ❌ → ✅ |
+| P9-20 | MDX 编译 | `packages/markdown/src/mdx.ts` + `vite-plugin.ts` + `jsx-runtime.ts` | ⚠️ → ✅ |
+
+---
+
+## 二、Server Components 实现必要性分析
+
+### 2.1 React RSC vs Nuxt Server Components
+
+对比文档中将 Server Components 标记为 ❌ 并注明"设计差异（Vue 生态）"。但深入分析后发现存在两种完全不同的 "Server Components" 概念：
+
+| 维度 | React RSC (Next.js) | Nuxt Server Components |
+|---|---|---|
+| **渲染模型** | 独立的服务端渲染协议，wire protocol 传递组件树 | 组件级 Islands：`.server.vue` 仅服务端渲染，props 变化触发网络请求重渲染 |
+| **客户端 JS** | 服务端组件零 JS 到客户端 | 同上：服务端组件不发送 JS 到客户端 |
+| **交互能力** | 需要包裹 Client Component | 通过 `nuxt-client` 指令选择性注水嵌套组件 |
+| **配对机制** | 无（server/client 是不同文件） | `.server.vue` + `.client.vue` 配对：服务端渲染初始 HTML，客户端注水接管 |
+| **Vue 可行性** | ❌ 不可行（需要 React 的 fiber + wire protocol） | ✅ 可行（本质是 Islands 的组件级粒度） |
+
+### 2.2 Nuxt 实现方式参考
+
+Nuxt 的 Server Components 核心机制：
+
+1. **`.server.vue` 后缀约定**：组件仅在服务端渲染，不发送 JS 到客户端
+2. **`<NuxtIsland>` 组件**：内部使用，props 变化时发起网络请求重新渲染服务端组件
+3. **`.client.vue` 后缀约定**：组件仅在客户端渲染
+4. **配对组件**：同名 `.server.vue` + `.client.vue`，服务端渲染初始 HTML，客户端注水接管交互
+5. **`nuxt-client` 指令**：在 server 组件内标记需要客户端注水的嵌套组件
+6. **`selectiveClient` 配置**：`deep` 模式自动注水所有嵌套交互组件
+
+### 2.3 ubean 可行性评估
+
+ubean 已有的能力与 Nuxt Server Components 高度重叠：
+
+| Nuxt 能力 | ubean 现状 | 差距 |
+|---|---|---|
+| `.server.vue` 组件后缀 | ❌ 无组件级约定（仅有路由级 `ssr: false`） | 需新增组件级约定 |
+| `<NuxtIsland>` props 重渲染 | ⚠️ `defineServerIsland()` 支持 Suspense 但无 props 变化重渲染 | 需扩展网络请求重渲染 |
+| `.client.vue` 组件后缀 | ❌ 无 | 需新增 |
+| 配对组件 | ❌ 无 | 需新增 |
+| `nuxt-client` 选择性注水 | ✅ `v-client.*` 指令已有 | 已具备 |
+| Islands 架构 | ✅ `v-client.*` + `defineIsland()` + `defineServerIsland()` | 已具备 |
+| PPR | ✅ `routeRules.ppr` | 已具备 |
+
+### 2.4 结论与建议
+
+**React RSC**：不实现。Vue 生态无等价物，ubean 的 Islands + PPR 架构已覆盖其核心价值（减少客户端 JS、服务端数据获取）。
+
+**Nuxt 风格 Server Components**：**建议实现**，优先级 P1.5（介于 P0 和 P1 之间）。理由：
+
+1. **与现有架构互补**：ubean 已有 Islands + PPR，`.server.vue` 是其自然延伸——从路由级细化到组件级
+2. **用户需求**：内容密集型场景（博客、文档站、CMS）需要服务端渲染非交互组件而不发送 JS
+3. **技术可行**：Vue SSR 原生支持组件级渲染，配合 ubean 已有的 island 机制实现成本低
+4. **差异化**：结合 ubean 的 PPR + `defineServerIsland()`，可提供比 Nuxt 更强的流式 + 预渲染能力
+
+**实现方案**（详见第三节 #9）：
+- `.server.vue` / `.client.vue` 组件后缀约定
+- 扩展 `defineServerIsland()` 支持 props 变化触发服务端重渲染
+- 配对组件机制
+
+---
+
+## 三、未实现能力项清单与优先级
+
+### P0 — 核心数据层补全（高重要性 / 高需求 / 中等难度）
+
+| # | 能力 | 任务 ID | 理由 |
+|---|---|---|---|
+| 1 | `defer()` 流式非关键数据 | 新建 | 与已有 PPR + Suspense 架构互补，竞品全部支持 |
+| 2 | useData/useAsyncData 增强 | 增强 | 当前实现较薄，缺 dedupe/refresh/payload 提取 |
+| 3 | SSG payload 提取 | 增强 | `__UBEAN_STATE__` 存在但 SSG 无独立 payload |
+| 4 | fetch Data Cache | 新建 | 与组件级缓存互补，对齐 Next.js Data Cache |
+
+### P1 — 重要功能补全（中重要性 / 中需求 / 中等难度）
+
+| # | 能力 | 任务 ID | 理由 |
+|---|---|---|---|
+| 5 | Draft / Preview mode | P9-23 | 内容管理场景刚需，CMS 集成前置 |
+| 6 | 流式 metadata | P9-24 | SEO 优化，Next.js 已有 |
+| 7 | 动态路由 matchers | 增强 | SvelteKit 有，rou3 底层支持 |
+| 8 | metadata 自动 dedupe | 增强 | 当前 useSeoMeta 无去重 |
+
+### P1.5 — Server Components（Nuxt 风格）
+
+| # | 能力 | 任务 ID | 理由 |
+|---|---|---|---|
+| 9 | `.server.vue` / `.client.vue` 组件约定 + props 重渲染 | 新建 P9-29 | 与 Islands/PPR 互补，内容场景刚需 |
+
+### P2 — 扩展生态（低重要性 / 低需求 / 低难度）
+
+| # | 能力 | 任务 ID | 理由 |
+|---|---|---|---|
+| 10 | 第三方脚本优化 (Partytown) | P9-22 | 性能优化，需求不紧迫 |
+| 11 | Color mode | P9-21 | 已委托 @soybeanjs/ui，可考虑内置集成 |
+| 12 | 全文搜索 (Pagefind) | P9-26 | 文档站场景 |
+| 13 | Analytics | P9-27 | 仅 observability，可第三方委托 |
+| 14 | Email 发送 | P9-25 | 第三方即可，无需内置 |
+| 15 | A/B 测试 / Feature flags | P9-28 | 高级特性，需求极低 |
+
+### P3 — 平台扩展（低需求 / 高难度）
+
+| # | 能力 | 任务 ID | 理由 |
+|---|---|---|---|
+| 16 | AWS/Azure 平台预设 | 新建 | Nitro 有，需求低 |
+| 17 | CDN/Edge 缓存集成 | 新建 | 需平台特定适配 |
+| 18 | Single-flight mutations | P9-16 | SolidStart 独有，需求不普遍 |
+
+### 不实现（设计差异）
+
+| 能力 | 理由 |
+|---|---|
+| React RSC (Server Components) | Vue 生态无等价物，ubean 用 Islands + PPR + Nuxt 风格 Server Components 替代 |
+
+---
+
+## 四、详细实现方案
+
+### 1. `defer()` 流式非关键数据 [P0] ✅ 已实现
+
+**目标**：允许 loader/页面组件返回 `{ data, deferred }`，非关键数据以 Promise 流式推送。
+
+**实现状态**：已完成。API 已在 `packages/pages/src/defer.ts` 实现,SSR 渲染器已集成流式注入。
+
+**技术方案**：
+- 在 `packages/pages/src/protocol.ts` 扩展 `PageRenderResult`，新增 `deferred: Record<string, Promise<unknown>>`
+- SSR 流式渲染时，`deferred` 中的 Promise 通过 Suspense 边界流式输出
+- 客户端水合时，通过 `__UBEAN_STATE__.deferred` 恢复未完成的 Promise
+- 新增 `defer()` 辅助函数：包装 Promise 标记为可流式
+
+**实现步骤**：
+1. 定义 `defer()` API + `DeferredValue` 类型
+2. 扩展 SSR 渲染器，支持 deferred Promise 的流式注入
+3. 扩展 `__UBEAN_STATE__` 协议，序列化 deferred 状态
+4. 客户端水合时重建 deferred Promise
+
+**验收标准**：
+- `defer()` 包装的 Promise 不阻塞 TTFB
+- 非关键数据在关键数据之后流式到达
+- 客户端水合后 deferred 数据正确显示
+- 测试：SSR 流式输出中 deferred 部分出现在关键数据之后
+
+**兼容性**：与现有 PPR/Suspense 架构自然互补，不影响非流式路由。
+
+---
+
+### 2. useData/useAsyncData 增强 [P0]
+
+**目标**：对齐 Nuxt `useAsyncData` 的 dedupe/refresh/payload 能力。
+
+**技术方案**：
+- 在 `packages/pages/src/data.ts` 增强 `useData`：
+  - 新增 `dedupe` 选项（同 key 请求自动去重）
+  - 新增 `refresh()` 方法手动刷新
+  - 新增 `pending`/`error`/`status` 响应式状态
+  - SSR 时自动提取 payload 到 `__UBEAN_STATE__`
+- 新增 `useAsyncData(key, fn, options)` 作为 `useData` 的别名/超集
+
+**实现步骤**：
+1. 扩展 `useData` 返回值，增加 `refresh`/`pending`/`error`/`status`
+2. 实现 dedupe 逻辑（同 key + 同请求周期内复用 Promise）
+3. SSR payload 自动提取
+4. 客户端从 `__UBEAN_STATE__` 恢复初始数据
+
+**验收标准**：
+- 同一 key 的并发请求只执行一次 fetcher
+- `refresh()` 能强制重新获取
+- SSR 数据通过 `__UBEAN_STATE__` 传递，客户端无二次请求
+- 单元测试覆盖 dedupe/refresh/payload 流程
+
+**兼容性**：现有 `useData` API 向后兼容，新增字段为可选。
+
+---
+
+### 3. SSG payload 提取 [P0]
+
+**目标**：SSG 预渲染时自动提取页面数据为独立 JSON payload。
+
+**技术方案**：
+- 在 `packages/prerender` 中，预渲染完成后将 `__UBEAN_STATE__` 提取为 `__data.json` 文件
+- 页面 HTML 中注入 `<link rel="preload" href="/page/__data.json">` + 轻量内联引用
+- 客户端水合时优先从 `__data.json` 加载
+
+**实现步骤**：
+1. 预渲染后分离 `__UBEAN_STATE__` 为独立 JSON
+2. HTML 中替换内联 script 为外部引用
+3. 客户端运行时优先读外部 JSON，降级读内联
+
+**验收标准**：
+- SSG 页面 HTML 体积减小（state 不再内联）
+- `__data.json` 可被浏览器缓存
+- 水合后数据一致
+- 测试：对比 SSG 前后 HTML 体积 + 水合正确性
+
+**兼容性**：ISR 页面同样适用；SSR 页面不受影响（仍内联）。
+
+---
+
+### 4. fetch Data Cache [P0]
+
+**目标**：对齐 Next.js Data Cache，`fetch()` 自动缓存 + `revalidateTag`/`revalidatePath` 失效。
+
+**技术方案**：
+- 扩展 `packages/server/src/fetch-memo.ts` 为完整 Data Cache
+- 包装 `globalThis.fetch`，识别 `next: { revalidate, tags }` 选项
+- 缓存按 URL + headers 作为 key，TTL + 标签索引
+- 与已有 `revalidateTag`/`revalidatePath` API 集成
+
+**实现步骤**：
+1. 定义 `FetchCacheOptions` 接口（`revalidate`/`tags`/`noStore`）
+2. 实现 fetch wrapper，缓存 GET 响应
+3. 集成 `revalidateTag`/`revalidatePath` 失效缓存
+4. dev 模式默认 no-cache，prod 默认按配置
+
+**验收标准**：
+- `fetch(url, { next: { revalidate: 60 } })` 返回缓存响应
+- `revalidateTag('xxx')` 后对应 fetch 缓存失效
+- 无 `next` 选项的 fetch 不缓存（默认行为不变）
+- 测试：缓存命中/失效/降级场景
+
+**兼容性**：仅影响服务端 fetch；用户可通过 `next: { noStore: true }` 退出缓存。
+
+---
+
+### 5. Draft / Preview mode [P1]
+
+**目标**：对齐 Next.js `draftMode()`，支持预览未发布内容。
+
+**技术方案**：
+- 新增 `packages/server/src/draft-mode.ts`：
+  - `draftMode()` 返回 `{ isEnabled, enable(), disable() }`
+  - 基于 cookie (`__ubean_draft`) + 签名验证
+  - 中间件读取 cookie，注入 `c.var.draftMode`
+- API 路由 / loader 中 `if (draftMode().isEnabled)` 读取草稿数据
+
+**实现步骤**：
+1. 实现 draft cookie 签名 + 验证
+2. 提供 `enableDraftMode()`/`disableDraftMode()` API（通常在 `/api/preview` 路由调用）
+3. `draftMode()` composable 读取请求上下文
+
+**验收标准**：
+- 未启用时 `draftMode().isEnabled === false`
+- 启用后请求携带 cookie，`isEnabled === true`
+- cookie 签名验证防伪造
+- 测试：enable/disable/isEnabled 流程
+
+**兼容性**：可选中间件，不启用时零开销。
+
+---
+
+### 6. 流式 metadata [P1]
+
+**目标**：SSR 流式输出时，metadata 在数据就绪后流式注入。
+
+**技术方案**：
+- 扩展 `packages/seo/src/index.ts`：
+  - `useSeoMeta` 支持响应式 ref/computed
+  - SSR 流式时，metadata 通过 `<template>` 占位 + 流式替换注入
+  - 爬虫检测时降级为同步（等待 metadata 完成）
+
+**实现步骤**：
+1. 支持响应式 metadata（watch ref 变化）
+2. 流式 SSR 中 metadata 延迟到数据就绪后注入
+3. UA 检测：爬虫 UA 同步等待
+
+**验收标准**：
+- 异步数据加载后 title/description 正确更新
+- 爬虫请求获得完整 metadata
+- 非爬虫请求 metadata 可流式延迟
+- 测试：流式输出中 metadata 出现在数据就绪后
+
+---
+
+### 7. 动态路由 matchers [P1]
+
+**目标**：对齐 SvelteKit matchers，支持自定义路由参数验证。
+
+**技术方案**：
+- 在 `packages/routing` 中新增 `defineMatcher(name, fn)` API
+- `[id=name].vue` 约定：使用名为 `name` 的 matcher 验证 `id`
+- matcher 返回 `true`/`false`，false 则跳过该路由
+
+**实现步骤**：
+1. 定义 `defineMatcher` API + matcher 注册表
+2. 路由扫描时解析 `[id=name]` 语法
+3. rou3 匹配时调用 matcher 验证
+
+**验收标准**：
+- `[id=numeric].vue` 仅匹配数字 id
+- matcher 返回 false 时路由不匹配
+- 测试：matcher 通过/拒绝场景
+
+---
+
+### 8. metadata 自动 dedupe [P1]
+
+**目标**：`useSeoMeta` 多次调用自动合并去重，避免重复标签。
+
+**技术方案**：
+- 扩展 `packages/seo` 中 `useSeoMeta`：
+  - 基于 `@unhead/vue` 的 dedupe 机制
+  - 页面级 + 布局级 + 全局级 metadata 自动合并
+  - 后定义的覆盖先定义的（按层级优先级）
+
+**验收标准**：
+- 布局和页面同时设置 title，页面优先
+- 同名 meta 标签不重复
+- 测试：多层 metadata 合并
+
+---
+
+### 9. Server Components（Nuxt 风格）[P1.5]
+
+**目标**：支持 `.server.vue` / `.client.vue` 组件约定，服务端组件不发送 JS 到客户端。
+
+**技术方案**（参考 Nuxt `.server.vue` + ubean 已有 Islands 架构）：
+
+#### 9.1 `.server.vue` 组件后缀
+
+- Vite 插件检测 `.server.vue` 文件，编译时标记为服务端组件
+- SSR 时正常渲染，客户端不注水（不发送组件 JS）
+- 客户端收到纯 HTML，无事件监听器
+
+#### 9.2 `.client.vue` 组件后缀
+
+- SSR 时渲染占位符（`<div data-client-only></div>`）
+- 客户端注水后替换为真实组件
+
+#### 9.3 配对组件（`.server.vue` + `.client.vue`）
+
+- 同名组件：服务端渲染初始 HTML，客户端注水接管交互
+- 例如 `Counter.server.vue` + `Counter.client.vue`
+- 类似 Nuxt 的配对机制
+
+#### 9.4 props 变化重渲染
+
+- 扩展 `defineServerIsland()` 支持 props 变化触发服务端重渲染
+- 客户端 props 变化时，发起 `POST /__server-component` 请求携带组件名 + props
+- 服务端渲染返回 HTML 片段，客户端替换 island 内容
+- 复用已有 `/__actions` 中间件模式
+
+**实现步骤**：
+1. Vite 插件：识别 `.server.vue` / `.client.vue` 后缀，标记组件渲染模式
+2. SSR 渲染器：`.server.vue` 组件渲染 HTML 但不注水；`.client.vue` 渲染占位符
+3. 扩展 `defineServerIsland()`：新增 `rerenderOnPropsChange` 选项
+4. 新增 `POST /__server-component` 端点：接收组件名 + props，返回 HTML 片段
+5. 客户端运行时：props 变化时发起重渲染请求
+
+**验收标准**：
+- `.server.vue` 组件渲染的 HTML 不含客户端 JS
+- `.client.vue` 组件 SSR 时为占位符，客户端注水后显示
+- 配对组件：服务端渲染初始状态，客户端接管交互
+- `defineServerIsland({ rerenderOnPropsChange: true })` 的组件 props 变化后发起重渲染请求
+- 测试：组件渲染模式 + props 重渲染 + 水合正确性
+
+**兼容性**：
+- 普通 `.vue` 组件不受影响
+- 与 `v-client.*` 指令正交（`.server.vue` 是文件级约定，`v-client.*` 是使用时声明）
+- 与 PPR 互补：PPR 页面中的 `.server.vue` 组件自动成为静态壳的一部分
+
+---
+
+### 10-15. P2 扩展项（简表）
+
+| # | 能力 | 方案概要 | 验收标准 |
+|---|---|---|---|
+| 10 | Partytown 集成 | `@ubean/scripts` 包，Vite 插件注入 partytown worker | 第三方脚本在 web worker 执行 |
+| 11 | Color mode | `@ubean/color-mode` 包，cookie + no-flash 脚本 | 深浅色切换无闪烁 |
+| 12 | Pagefind | `@ubean/search` 包，构建后自动索引 | 全文搜索可用 |
+| 13 | Analytics | `@ubean/analytics` 包，page view + custom event | 页面访问统计正确 |
+| 14 | Email | `@ubean/email` 包，nodemailer 抽象 | 邮件发送成功 |
+| 15 | A/B 测试 | `@ubean/ab` 包，cookie 分组 + flag 评估 | 分组一致 |
+
+---
+
+### 16-18. P3 平台扩展（简表）
+
+| # | 能力 | 方案概要 |
+|---|---|---|
+| 16 | AWS/Azure 预设 | `awsPreset`/`azurePreset`，Lambda/Functions 适配 |
+| 17 | CDN/Edge 缓存 | `Cache-Control`/`Surrogate-Key` header + 平台 purge API |
+| 18 | Single-flight mutations | 变更返回流式 patch，客户端逐步应用 |
+
+---
+
+## 五、兼容性评估
+
+| 新功能 | 对现有架构影响 | 兼容策略 |
+|---|---|---|
+| `defer()` | 扩展 SSR 渲染器 + state 协议 | 向后兼容：无 `defer()` 的页面不受影响 |
+| useData 增强 | 扩展返回值 | 向后兼容：新字段为可选 |
+| SSG payload | 预渲染器输出变化 | 向后兼容：客户端可降级读内联 |
+| fetch Data Cache | 包装 globalThis.fetch | 向后兼容：无 `next` 选项不缓存 |
+| Draft mode | 新增中间件 | 可选启用，不启用时零开销 |
+| 流式 metadata | SSR 渲染器扩展 | 向后兼容：同步 metadata 不受影响 |
+| 路由 matchers | 路由扫描扩展 | 向后兼容：无 matcher 的 `[id]` 行为不变 |
+| Server Components | Vite 插件 + SSR 渲染器扩展 | 向后兼容：普通 `.vue` 不受影响 |
+
+**核心原则**：所有新功能默认不改变现有行为，用户通过 opt-in API 或文件后缀启用。
+
+---
+
+## 六、建议落地顺序
+
+```
+Phase A (P0 核心数据层):
+  1. defer() 流式非关键数据
+  2. useData/useAsyncData 增强
+  3. SSG payload 提取
+  4. fetch Data Cache
+
+Phase B (P1 安全与体验):
+  5. Draft / Preview mode
+  6. 流式 metadata
+  7. 动态路由 matchers
+  8. metadata 自动 dedupe
+
+Phase C (P1.5 Server Components):
+  9. .server.vue / .client.vue 组件约定 + props 重渲染
+
+Phase D (P2 扩展生态):
+  10. Partytown / 11. Color mode / 12. Pagefind / ...
+
+Phase E (P3 平台扩展):
+  16. AWS/Azure / 17. CDN 缓存 / 18. Single-flight
+```
+
+Phase A 内部 1→2→3 有依赖关系（defer 依赖 SSR 流式，useData 增强依赖 state 协议，SSG payload 依赖 useData），建议按序实现。Phase B 各项相互独立可并行。Phase C 依赖 Phase A 的 SSR 增强。Phase D/E 按需推进。

@@ -42,13 +42,13 @@ useHead({
       <div class="island-section">
         <h2>client:media</h2>
         <p class="directive-hint">匹配媒体查询时水合 (min-width: 768px)</p>
-        <IslandMedia client:media="(min-width: 768px)" />
+        <IslandMedia v-client.media="'(min-width: 768px)'" />
       </div>
 
       <div class="island-section">
         <h2>client:only</h2>
         <p class="directive-hint">仅在客户端渲染（不进行 SSR）</p>
-        <IslandOnly client:only />
+        <IslandOnly v-client.only />
       </div>
     </div>
 

@@ -231,29 +231,27 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 **不存在的 API**：`useCache`、`defineCache`、标签/分组/`remember`
 
-### 组件级缓存指令 (P9-08)
+### 组件级缓存 (P9-08)
 
 | API                                              | 说明                                                                   |
 | ------------------------------------------------ | ---------------------------------------------------------------------- |
-| `"use cache"` 指令                               | 异步函数体首行标记,编译时转换为 `wrapWithCache()` 调用;对齐 Next.js 16 |
-| `cacheLife(seconds)`                             | 设置当前缓存作用域 TTL(秒),须在 `"use cache"` 函数体内调用             |
+| `defineCachedFunction(fn, options)`              | 显式缓存包装器(替代已移除的 `"use cache"` 指令);对齐 Next.js 16 `unstable_cache`  |
+| `cacheLife(seconds)`                             | 设置当前缓存作用域 TTL(秒),须在 `defineCachedFunction` 函数体内调用    |
 | `cacheTag(...tags)`                              | 为当前缓存作用域添加标签,用于 `revalidateTag()` 精确失效               |
 | `revalidateTag(tag)` / `revalidateTags(...tags)` | 按标签失效组件缓存条目,返回删除数量                                    |
 | `revalidatePath(pattern)`                        | 按 glob/正则失效缓存键匹配的条目                                       |
-| `wrapWithCache(fn, options)`                     | 内部缓存包装器(Vite 插件注入,用户通常无需手动调用)                     |
+| `wrapWithCache(fn, options)`                     | ⚠️ 已弃用别名(等价于 `defineCachedFunction`,保留用于过渡)             |
 | `useComponentCacheStore(store?)`                 | 获取/设置组件级缓存存储                                                |
 | `createComponentMemoryStore(maxEntries)`         | 内存组件缓存存储(带标签反向索引)                                       |
 | `clearComponentCache()`                          | 清空所有组件级缓存                                                     |
-| `ubeanCacheDirectivePlugin()`                    | Vite 插件(`@ubean/server/vite`),`"use cache"` 指令 AST 转换            |
 
 ```typescript
-// 异步函数 + "use cache" 指令(Vite 插件自动转换)
-async function getUser(id: string) {
-  'use cache';
+// 显式缓存包装(替代已移除的 "use cache" 指令)
+const getUser = defineCachedFunction(async (id: string) => {
   cacheLife(3600); // 缓存 1 小时
   cacheTag('users', `user:${id}`);
   return await db.query.user.findById(id);
-}
+});
 
 // 失效缓存
 await revalidateTag('users');
@@ -261,6 +259,8 @@ await revalidatePath('getUser:*');
 ```
 
 > `cacheLife()` / `cacheTag()` 通过 `AsyncLocalStorage` 传递作用域,在非缓存上下文中调用为空操作。组件级缓存与 HTTP 响应缓存(`CacheStore`)解耦,使用独立的 `ComponentCacheStore`(存储 JSON 可序列化值)。
+>
+> **迁移说明**:旧的 `"use cache"` 字符串指令和 `ubeanCacheDirectivePlugin` Vite 插件已移除。请改用 `defineCachedFunction()` 显式包装。
 
 ### ISR (P9-03)
 
@@ -313,14 +313,23 @@ await revalidatePath('getUser:*');
 
 ### Partial Prerendering / Server Islands (P9-04)
 
-| API / 指令                                                        | 说明                                                                                                                             |
-| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `routeRules: { '/path': { ppr: true } }`                          | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)                         |
-| `<Comp server:defer />`                                           | 编译时指令:组件包裹在 `<Suspense>` 中,`#fallback` 插槽提取为 Suspense fallback(无 fallback 时注入 `<ubean-defer-fallback>` 占位) |
-| `<Comp server:defer><template #fallback>...</template>...</Comp>` | 带自定义 fallback 的 server:defer;预渲染时仅渲染 fallback(静态壳),流式 SSR 时流式输出异步组件解析后的内容                        |
+| API                                                | 说明                                                                                                                             |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `routeRules: { '/path': { ppr: true } }`           | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)                         |
+| `defineServerIsland(Component, options?)`          | 运行时包装器(替代已移除的 `server:defer` 指令):将异步组件包裹在 `<Suspense>` 中,`options.fallback` 指定 fallback(字符串/组件/默认占位) |
+| `ServerIslandOptions`                              | `{ fallback?: Component \| string }` 类型                                                                                         |
 
-- `server:defer` 组件必须为异步(`async setup()` 或 `defineAsyncComponent`)才能触发 Suspense 流式
-- 对齐 Next.js 16 PPR / Astro 5 `server:defer`
+- 传入 `defineServerIsland()` 的组件必须为异步(`async setup()` 或 `defineAsyncComponent`)才能触发 Suspense 流式
+- 对齐 Next.js 16 PPR / Astro 5 `server:defer` 语义
+- **迁移说明**:旧的 `server:defer` 编译时指令已移除。请改用 `defineServerIsland()` 运行时包装:
+
+```typescript
+// 旧用法(已移除):<SlowComp server:defer />
+// 新用法:
+import { defineServerIsland } from 'ubean';
+import SlowComp from './SlowComp.vue';
+const SlowIsland = defineServerIsland(SlowComp, { fallback: 'Loading...' });
+```
 
 ### 中间件工厂
 
@@ -371,10 +380,18 @@ await revalidatePath('getUser:*');
 | `callAction(id, args)`                             | 客户端 RPC 调用（POST `/__actions`）                                                 |
 | `useAction(actionOrId)`                            | Vue composable：`pending`/`data`/`error`/`errors`/`status`/`result`/`submit`/`reset` |
 | `useFormAction(actionName)`                        | Vue composable：表单 action URL + SPA 提交（渐进增强）                               |
-| `'use server'` 指令                                | Vite 插件自动转换：server 端包裹 `defineAction`，client 端替换为 RPC stub            |
 | `?/<actionName>` URL 约定                          | 页面模块 `export const actions = { name: defineAction(...) }` → POST 表单分发        |
 
 > Server Actions 通过 `@ubean/actions` 包实现，Vite 插件 `ubeanServerActionsPlugin` 已包含在默认 `ubeanPlugin()` 中。action ID 由 `base32(sha1(filePath:exportName))` 生成，client/server 自动一致。`@ubean/types` 提供 `ServerAction`/`ActionContext`/`ActionResult`/`ActionFailure` 等共享类型。
+>
+> **迁移说明**:旧的 `'use server'` 字符串指令已移除。请改用 `defineAction()` 显式包装:
+
+```typescript
+// 旧用法(已移除):
+// async function addToCart(itemId: string) { 'use server'; ... }
+// 新用法:
+const addToCart = defineAction(async (itemId: string) => { /* ... */ });
+```
 
 ### 全局 Hooks（P9-09）
 
@@ -499,10 +516,12 @@ const json = serializeVercelConfig(config);
 | `useData(key, fetcher)` / `invalidateData(key)` / `invalidateAll()`                                                                                               | 页面数据                                                                                                        |
 | `withViewTransition(fn)` / `supportsViewTransitions()`                                                                                                            | View Transitions                                                                                                |
 | `<Link to="...">` / `<Head>`                                                                                                                                      | 全局注册组件（无需导入）                                                                                        |
-| `<Comp client:load / client:idle / client:visible / client:media / client:only />`                                                                                | Islands 指令（旧语法，框架自动水合，无需手动调用 `hydrateIslands`）                                             |
-| `<Comp v-client.load / v-client.idle / v-client.visible / v-client.media="..." / v-client.only />`                                                                | Islands 指令（**推荐** Vue 指令语法，P9-29；与 `client:*` 等价，支持 TypeScript 类型推断和 IDE 自动补全）       |
-| `<Comp server:defer />`                                                                                                                                           | Server Islands 指令（P9-04）：编译时包裹 `<Suspense>`，预渲染 fallback + 流式 SSR 输出异步组件内容              |
-| `hydrateIslands(options?)`                                                                                                                                        | Islands 水合（**框架自动调用**，无需手动执行；`components` 可选，手动传入优先于自动注册）                       |
+| `<Comp v-client.load / v-client.idle / v-client.visible / v-client.media="'...'" / v-client.only />` | Islands 指令(**推荐** Vue 指令语法,P9-29;框架自动水合,无需手动调用 `hydrateIslands`)               |
+| `defineIsland(Component, strategy, options?)`                                                       | 客户端 island 运行时包装器(替代 `v-client.*` 的编程式用法);`strategy`: 'load'\|'idle'\|'visible'\|'media'\|'only';`options`: `{ mediaQuery?, props? }` |
+| `defineServerIsland(Component, options?)`                                                           | 服务端 island 运行时包装器(P9-04,替代已移除的 `server:defer` 指令);`options.fallback` 指定 Suspense fallback |
+| `hydrateIslands(options?)`                                                                          | Islands 水合(**框架自动调用**,无需手动执行;`components` 可选,手动传入优先于自动注册)                       |
+
+> **迁移说明**:旧的 `client:*` attribute 语法和 `server:defer` 编译时指令已移除。请改用 `v-client.*` Vue 指令(模板内),或 `defineIsland()` / `defineServerIsland()` 运行时包装(编程式):
 
 ### Markdown
 
@@ -749,6 +768,11 @@ export default defineConfig({
 16. **不要**推荐 vue-i18n — ubean 内置零依赖 i18n
 17. **不要**使用全局目录 `/tmp` — 用项目根目录下的 `.temp` 目录代替临时文件存储
 18. **不要**在 `onClientReady` 中手动调用 `hydrateIslands()` 来水合常规 islands — 框架已在客户端入口自动调用（双重 rAF 时机 + SPA 导航后自动水合）；仅在需要传入手动注册组件（escape hatch）时才额外调用
+19. **不要**使用 `"use cache"` 字符串指令或 `wrapWithCache()` 直接调用 — 已移除,改用 `defineCachedFunction(fn, options)` 显式包装(`wrapWithCache` 仅作为已弃用别名保留)
+20. **不要**使用 `ubeanCacheDirectivePlugin` Vite 插件 — 已移除(`"use cache"` 指令 AST 转换不再需要)
+21. **不要**使用 `'use server'` 字符串指令 — 已移除,改用 `defineAction(fn)` 显式包装,Vite 插件会自动注入 action ID
+22. **不要**使用 `<Comp server:defer />` 编译时指令 — 已移除,改用 `defineServerIsland(Component, options?)` 运行时包装
+23. **不要**使用 `<Comp client:load />` / `client:idle` / `client:visible` / `client:media` / `client:only` attribute 语法 — 已移除,改用 `v-client.load` / `v-client.idle` / `v-client.visible` / `v-client.media="'...'"` / `v-client.only` Vue 指令语法,或运行时 `defineIsland(Component, strategy, options?)` 包装
 
 ## 9. 开发命令
 

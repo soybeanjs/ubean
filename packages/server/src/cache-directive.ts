@@ -1,7 +1,7 @@
 /**
- * P9-08 组件级缓存指令 —— 运行时原语
+ * 组件级缓存 —— 运行时原语
  *
- * 对齐 Next.js 16 `"use cache"` 指令 + `cacheLife()` / `cacheTag()` 宏。
+ * 通过 `defineCachedFunction()` 显式包装异步函数,缓存其返回值。
  *
  * 设计要点:
  * - **值缓存**(非 HTTP 响应缓存):缓存异步函数的返回值(JSON 可序列化),
@@ -12,10 +12,8 @@
  *   `revalidatePath(path)` 失效匹配路径的缓存条目。
  * - **零外部依赖**:使用内置 `AsyncLocalStorage` + `Map` 内存存储。
  *
- * Vite 插件(`@ubean/server/vite`)在编译时将 `"use cache"` 指令的函数
- * 转换为 `wrapWithCache()` 调用,运行时通过此模块的 API 执行缓存逻辑。
- *
- * 对齐:Next.js 16 `"use cache"` / `cacheLife()` / `cacheTag()` / `revalidateTag()`。
+ * 用户通过 `defineCachedFunction(fn, options)` 显式声明缓存函数,无需 Vite 插件
+ * 参与,运行时通过此模块的 API 执行缓存逻辑。
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
@@ -175,16 +173,18 @@ const cacheScopeStorage = new AsyncLocalStorage<CacheScope>();
 /**
  * 设置当前缓存作用域的 TTL(秒)。
  *
- * 必须在 `"use cache"` 标记的函数体内调用,否则为空操作(允许在非缓存
- * 上下文中调用以简化条件逻辑)。
+ * 必须在 `defineCachedFunction()` 包装的函数体内调用,否则为空操作(允许在
+ * 非缓存上下文中调用以简化条件逻辑)。
  *
  * @example
  * ```ts
- * async function getUser(id: string) {
- *   'use cache';
- *   cacheLife(3600); // 缓存 1 小时
- *   return await db.query.user.findById(id);
- * }
+ * const getUser = defineCachedFunction(
+ *   async (id: string) => {
+ *     cacheLife(3600); // 缓存 1 小时
+ *     return await db.query.user.findById(id);
+ *   },
+ *   { name: 'getUser' }
+ * );
  * ```
  */
 export function cacheLife(seconds: number): void {
@@ -201,11 +201,13 @@ export function cacheLife(seconds: number): void {
  *
  * @example
  * ```ts
- * async function getUser(id: string) {
- *   'use cache';
- *   cacheTag('users', `user:${id}`);
- *   return await db.query.user.findById(id);
- * }
+ * const getUser = defineCachedFunction(
+ *   async (id: string) => {
+ *     cacheTag('users', `user:${id}`);
+ *     return await db.query.user.findById(id);
+ *   },
+ *   { name: 'getUser' }
+ * );
  *
  * // 失效所有带 'users' 标签的缓存
  * await revalidateTag('users');
@@ -223,9 +225,9 @@ export function cacheTag(...tags: string[]): void {
 /* -------------------------------------------------------------------------- */
 
 /**
- * 缓存包装选项。
+ * 缓存函数选项。
  */
-export interface CacheWrapOptions {
+export interface CachedFunctionOptions {
   /** 缓存键前缀(通常是函数名或文件路径 + 函数名)。 */
   name: string;
   /** 默认 TTL(秒)。未调用 `cacheLife()` 时使用。默认 60。 */
@@ -236,6 +238,11 @@ export interface CacheWrapOptions {
    */
   getKey?: (...args: unknown[]) => string;
 }
+
+/**
+ * @deprecated 请使用 `CachedFunctionOptions`。保留旧名称仅为向后兼容。
+ */
+export type CacheWrapOptions = CachedFunctionOptions;
 
 /**
  * 默认缓存键生成器:`name + ":" + JSON.stringify(args)`。
@@ -251,9 +258,9 @@ function defaultGetKey(name: string, args: unknown[]): string {
 }
 
 /**
- * 包装一个异步函数,使其返回值被缓存。
+ * 将异步函数包装为带缓存的函数。
  *
- * 此函数由 Vite 插件在编译时注入,用户通常无需手动调用。
+ * 用户在源码中显式调用此函数声明缓存函数(无需 Vite 插件参与)。
  *
  * 工作流程:
  * 1. 根据参数生成缓存键
@@ -263,12 +270,26 @@ function defaultGetKey(name: string, args: unknown[]): string {
  * 4. 将结果序列化存入缓存(带标签 + TTL)
  * 5. 返回结果
  *
+ * @example
+ * ```ts
+ * import { defineCachedFunction, cacheLife, cacheTag } from '@ubean/server';
+ *
+ * const getUser = defineCachedFunction(
+ *   async (id: string) => {
+ *     cacheLife(3600);
+ *     cacheTag('users', `user:${id}`);
+ *     return await db.query.user.findById(id);
+ *   },
+ *   { name: 'getUser' }
+ * );
+ * ```
+ *
  * @param fn 原始异步函数
  * @param options 缓存选项
  */
-export function wrapWithCache<TArgs extends unknown[], TResult>(
+export function defineCachedFunction<TArgs extends unknown[], TResult>(
   fn: (...args: TArgs) => Promise<TResult>,
-  options: CacheWrapOptions
+  options: CachedFunctionOptions
 ): (...args: TArgs) => Promise<TResult> {
   const store = useComponentCacheStore();
   const defaultTtl = options.defaultTtl ?? 60;
@@ -301,6 +322,11 @@ export function wrapWithCache<TArgs extends unknown[], TResult>(
     return result;
   };
 }
+
+/**
+ * @deprecated 请使用 `defineCachedFunction()`。保留旧名称仅为向后兼容。
+ */
+export const wrapWithCache = defineCachedFunction;
 
 /* -------------------------------------------------------------------------- */
 /* 失效 API                                                                    */

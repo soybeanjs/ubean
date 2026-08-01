@@ -1,11 +1,13 @@
 /**
- * Unit tests for the `v-client` Vue custom directive (P9-29).
+ * Unit tests for the `v-client` Vue custom directive (P9-29 / Phase 4).
  *
  * Tests cover:
  * - Strategy resolution from modifiers
- * - Legacy ↔ new syntax conversion
+ * - Strategy ↔ legacy directive string conversion (used internally by Vite plugin)
  * - Directive mounted/unmounted lifecycle (data attributes + strategy application)
- * - Vite plugin transform: `v-client.*` → `<ubean-island>` equivalence with `client:*`
+ * - Vite plugin transform: `v-client.*` → `<ubean-island>`
+ *
+ * Phase 4: 旧的 `client:*` attribute 语法已移除,所有测试均使用 `v-client.*`。
  */
 import { describe, it, expect } from 'vitest';
 import {
@@ -119,8 +121,9 @@ describe('P9-29: strategyToLegacyDirective / legacyDirectiveToStrategy', () => {
   });
 
   it('parses v-client.* attribute name back to strategy', () => {
-    // The function works on the format `client:strategy`
-    // v-client.load → 'client:load' (via strategyToLegacyDirective)
+    // The function accepts both `client:strategy` and `v-client.strategy` formats
+    expect(legacyDirectiveToStrategy('v-client.load')).toBe('load');
+    expect(legacyDirectiveToStrategy('v-client.media')).toBe('media');
     expect(legacyDirectiveToStrategy('client:load')).toBe('load');
     expect(legacyDirectiveToStrategy('client:media')).toBe('media');
   });
@@ -333,23 +336,15 @@ describe('P9-29: Vite plugin transform — v-client.* syntax', () => {
     expect(result.code).toContain('data-directive="client:only"');
   });
 
-  it('produces identical output for v-client.load and client:load', () => {
-    const newSyntax = `<template><Counter v-client.load /></template>`;
-    const oldSyntax = `<template><Counter client:load /></template>`;
+  it('does NOT transform legacy client:* syntax (Phase 4: removed)', () => {
+    // After Phase 4, `client:load` is treated as a regular attribute — not an island directive.
+    const sfc = `<template><Counter client:load /></template>`;
+    const result = transformVueSfcIslands(sfc, 'Test.vue');
 
-    const newResult = transformVueSfcIslands(newSyntax, 'Test.vue');
-    const oldResult = transformVueSfcIslands(oldSyntax, 'Test.vue');
-
-    // Both should produce the same <ubean-island> element
-    // (island IDs will differ due to file path, so compare structure)
-    const extractIsland = (code: string) => {
-      const directiveMatch = code.match(/data-directive="([^"]*)"/);
-      const componentMatch = code.match(/data-component="([^"]*)"/);
-      return directiveMatch && componentMatch ? { directive: directiveMatch[1], component: componentMatch[1] } : null;
-    };
-
-    expect(extractIsland(newResult.code)).toEqual({ directive: 'client:load', component: 'Counter' });
-    expect(extractIsland(oldResult.code)).toEqual({ directive: 'client:load', component: 'Counter' });
+    expect(result.islandCount).toBe(0);
+    // The original attribute is preserved unchanged
+    expect(result.code).toContain('client:load');
+    expect(result.code).not.toContain('<ubean-island');
   });
 
   it('preserves static props on v-client.* elements', () => {
@@ -369,7 +364,6 @@ describe('P9-29: Vite plugin transform — v-client.* syntax', () => {
       );
       expect(props.title).toBe('Test');
       expect(props['v-client.load']).toBeUndefined();
-      expect(props['client:load']).toBeUndefined();
     }
   });
 
@@ -385,18 +379,6 @@ describe('P9-29: Vite plugin transform — v-client.* syntax', () => {
     expect(result.code).toContain('data-directive="client:load"');
     expect(result.code).toContain('data-directive="client:idle"');
     expect(result.code).toContain('data-directive="client:visible"');
-  });
-
-  it('mixes v-client.* and client:* syntax in same template', () => {
-    const sfc = `<template>
-      <Counter v-client.load />
-      <HeavyChart client:idle />
-    </template>`;
-    const result = transformVueSfcIslands(sfc, 'Test.vue');
-
-    expect(result.islandCount).toBe(2);
-    expect(result.code).toContain('data-directive="client:load"');
-    expect(result.code).toContain('data-directive="client:idle"');
   });
 });
 
@@ -417,16 +399,23 @@ describe('P9-29: scanIslandDirectiveNames — v-client.* syntax', () => {
     expect(names.has('MobileNav')).toBe(true);
   });
 
-  it('detects mixed v-client.* and client:* directives', () => {
+  it('detects multiple v-client.* directives', () => {
     const template = `
       <CompA v-client.load />
-      <CompB client:idle />
+      <CompB v-client.idle />
       <CompC v-client.visible />
     `;
     const names = scanIslandDirectiveNames(template);
     expect(names.has('CompA')).toBe(true);
     expect(names.has('CompB')).toBe(true);
     expect(names.has('CompC')).toBe(true);
+  });
+
+  it('does not detect components with legacy client:* syntax (Phase 4: removed)', () => {
+    // After Phase 4, `client:*` is no longer recognized — it's just a regular attribute.
+    const template = `<CompB client:idle />`;
+    const names = scanIslandDirectiveNames(template);
+    expect(names.size).toBe(0);
   });
 
   it('does not detect components without client directives', () => {

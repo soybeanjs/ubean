@@ -10,7 +10,7 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts', 'src/vite.ts', 'src/cache-directive.ts'],
+    entry: ['src/index.ts', 'src/cache-directive.ts'],
     deps: {
       neverBundle: ['hono', 'vite', /^node:/, /^@ubean\//]
     }

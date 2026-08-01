@@ -5,31 +5,10 @@ import { legacyDirectiveToStrategy, strategyToLegacyDirective } from './directiv
 export type ClientDirective = 'client:load' | 'client:idle' | 'client:visible' | 'client:media' | 'client:only';
 
 /**
- * Server-side deferral directive (P9-04: Partial Prerendering / Server Islands).
+ * `v-client.*` 指令属性名(Phase 4: 唯一支持的客户端 island 语法)。
  *
- * Components marked with `server:defer` are wrapped in `<Suspense>` at compile time:
- * - During SSG/prerender: only the fallback is rendered (produces the static shell)
- * - During streaming SSR: the fallback is sent first, then the resolved content
- *   streams in via the Suspense boundary (the component must be async —
- *   `defineAsyncComponent` or `async setup()`)
- *
- * Aligns with Astro 5 `server:defer` and Next.js 16 PPR semantics.
- */
-export const SERVER_DEFER_DIRECTIVE = 'server:defer';
-
-const CLIENT_DIRECTIVES: ClientDirective[] = [
-  'client:load',
-  'client:idle',
-  'client:visible',
-  'client:media',
-  'client:only'
-];
-
-/**
- * v-client.* directive attribute names (P9-29: Vue directive system refactor).
- *
- * These are the Vue custom directive equivalents of the legacy `client:*`
- * attribute syntax. Both are supported — `v-client.*` is preferred for new code.
+ * 旧的 `client:*` attribute 语法已移除 — 请迁移至 `v-client.*`,
+ * 或使用运行时 `defineIsland()` 包装组件。
  */
 const V_CLIENT_DIRECTIVES: string[] = [
   'v-client.load',
@@ -40,17 +19,14 @@ const V_CLIENT_DIRECTIVES: string[] = [
 ];
 
 /**
- * Matches either `client:*` or `v-client.*` (for client island detection).
+ * Matches `v-client.*` (用于客户端 island 检测)。
  *
- * `client:load` is the legacy syntax; `v-client.load` is the Vue directive
- * syntax (P9-29). Both are detected and transformed equivalently.
+ * Phase 4 起 `client:*` legacy 语法不再支持,正则只匹配 `v-client.*`。
  */
-const ANY_CLIENT_DIRECTIVE_RE =
-  /\b(?:client:(?:load|idle|visible|media|only)|v-client\.(?:load|idle|visible|media|only))\b/;
+const ANY_CLIENT_DIRECTIVE_RE = /\bv-client\.(?:load|idle|visible|media|only)\b/;
 
-/** Matches either `client:*`, `v-client.*`, or `server:defer` (used to fast-skip non-island SFCs) */
-const ANY_DIRECTIVE_RE =
-  /\b(?:client:(?:load|idle|visible|media|only)|v-client\.(?:load|idle|visible|media|only)|server:defer)\b/;
+/** Matches `v-client.*` (用于快速跳过非 island SFC) */
+const ANY_DIRECTIVE_RE = /\bv-client\.(?:load|idle|visible|media|only)\b/;
 
 function isVueSfc(id: string): boolean {
   return /\.vue(?:\?.*)?$/.test(id) && !id.includes('&type=');
@@ -131,26 +107,19 @@ export function parseScriptImports(scriptContent: string): Map<string, string> {
 }
 
 /**
- * Find the client directive on a tag, checking both legacy `client:*` and
- * new `v-client.*` syntax.
+ * Find the `v-client.*` directive on a tag.
  *
  * Returns the legacy directive name (e.g. `'client:load'`) for internal
- * consistency, or `null` if no client directive is present.
+ * consistency with `<ubean-island data-directive="...">` format consumed by
+ * `hydrateIslands()`, or `null` if no client directive is present.
  *
- * Also returns the media query value for `client:media` / `v-client.media`.
+ * Also returns the media query value for `v-client.media`.
+ *
+ * Phase 4: 旧的 `client:*` attribute 语法已移除,仅识别 `v-client.*`。
  */
 function findClientDirectiveOnTag(
   attrs: Map<string, string | true>
 ): { directive: ClientDirective; mediaQuery?: string } | null {
-  // 1. Check legacy `client:*` syntax
-  for (const d of CLIENT_DIRECTIVES) {
-    if (attrs.has(d)) {
-      const mediaQuery = d === 'client:media' ? extractMediaQuery(attrs.get(d)) : undefined;
-      return { directive: d, mediaQuery };
-    }
-  }
-
-  // 2. Check `v-client.*` syntax (P9-29)
   for (const vcd of V_CLIENT_DIRECTIVES) {
     if (attrs.has(vcd)) {
       const strategy = legacyDirectiveToStrategy(vcd) || 'load';
@@ -166,7 +135,6 @@ function findClientDirectiveOnTag(
 /**
  * Extract a media query string from a directive value.
  *
- * For `client:media="(max-width: 768px)"` the value is the raw string.
  * For `v-client.media="'(max-width: 768px)'"` the value is a Vue expression
  * (string literal), so we strip surrounding quotes.
  */
@@ -181,7 +149,7 @@ function extractMediaQuery(raw: string | true | undefined): string | undefined {
 }
 
 /**
- * 扫描模板内容，返回所有带 `client:xxx` 或 `v-client.*` 指令的组件标签名集合。
+ * 扫描模板内容，返回所有带 `v-client.*` 指令的组件标签名集合。
  *
  * 复用 `findTagAt` 的标签解析逻辑，确保与 `transformTemplate` 的识别规则一致
  * （仅匹配首字母大写的组件标签）。
@@ -189,7 +157,7 @@ function extractMediaQuery(raw: string | true | undefined): string | undefined {
  * 与 `transformTemplate` 对称：非 island 标签会递归扫描其 innerHTML，
  * island 标签不递归（其子内容属于该 island 的 SSR 输出，不作为独立 island）。
  *
- * 支持 `client:load`（旧语法）和 `v-client.load`（新语法），两者等价。
+ * Phase 4: 仅识别 `v-client.*`(旧的 `client:*` 语法已移除)。
  */
 export function scanIslandDirectiveNames(template: string): Set<string> {
   const names = new Set<string>();
@@ -243,7 +211,7 @@ export function resolveIslandImportPath(importPath: string, sourceFile: string):
  * 步骤：
  * 1. 提取 `<script setup>` / `<script>` 内容
  * 2. 解析 import 语句，建立 { 局部名 → import 路径 } 映射
- * 3. 扫描模板中的 `<Comp client:xxx />` 指令，得到组件名集合
+ * 3. 扫描模板中的 `<Comp v-client.* />` 指令，得到组件名集合
  * 4. 交集：既在 import 映射中、又在 island 指令集合中的组件
  * 5. 将相对 import 路径解析为绝对路径
  *
@@ -268,7 +236,7 @@ export function collectIslandComponents(code: string, sourceFile: string): Islan
       // 这类用法无法静态分析 → 记录警告，留待用户手动注册或通过 getComponent 兜底
       // eslint-disable-next-line no-console
       console.warn(
-        `[ubean:islands] Component "${name}" used with client:xxx directive in ${sourceFile} has no corresponding static import in <script setup>. ` +
+        `[ubean:islands] Component "${name}" used with v-client.* directive in ${sourceFile} has no corresponding static import in <script setup>. ` +
           `It will not be auto-registered. Add it manually via hydrateIslands({ components: { ${name}: YourComp } }) or pass a getComponent() resolver.`
       );
       continue;
@@ -344,10 +312,10 @@ export function generateRegistryModule(components: IslandComponentMap): string {
 /**
  * 提取 SFC 中顶层的 `<template>` 块。
  *
- * 处理嵌套 `<template>` 标签(P9-04 需要):Vue SFC 的 `<template>` 块内部
- * 可能包含 `<template #slot>` 等嵌套 template 标签(如 `server:defer` 的
- * `#fallback` 插槽)。简单 `indexOf('</template>')` 会错误匹配到嵌套关闭
- * 标签,因此用深度计数找到匹配的顶层关闭标签。
+ * 处理嵌套 `<template>` 标签:Vue SFC 的 `<template>` 块内部可能包含
+ * `<template #slot>` 等嵌套 template 标签(如作用域插槽、`v-if`/`v-for`
+ * 包装)。简单 `indexOf('</template>')` 会错误匹配到嵌套关闭标签,因此用
+ * 深度计数找到匹配的顶层关闭标签。
  *
  * 仅匹配小写 `<template`(SFC 块标签),不会误匹配 `<Template>` 组件。
  */
@@ -501,9 +469,7 @@ function parseAttrs(str: string): Map<string, string | true> {
 function collectStaticProps(attrs: Map<string, string | true>): Record<string, unknown> {
   const props: Record<string, unknown> = {};
   for (const [key, val] of attrs) {
-    // Exclude legacy `client:*` directives
-    if (key.startsWith('client:')) continue;
-    // Exclude `v-client.*` directives (P9-29) — must check before the
+    // Exclude `v-client.*` directives — must check before the
     // generic `v-` exclusion below, since `v-client.*` is a `v-` attribute
     if (key.startsWith('v-client.')) continue;
     if (key.startsWith('v-') || key.startsWith('@') || key.startsWith(':')) continue;
@@ -554,27 +520,6 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
       continue;
     }
 
-    // P9-04: `server:defer` — wrap component in <Suspense> with a fallback slot.
-    // The component itself is left intact (only the `server:defer` attribute is
-    // stripped). The component must be async for true streaming behavior; the
-    // Suspense boundary is the streaming split point during renderToNodeStream.
-    if (tag.attrs.has(SERVER_DEFER_DIRECTIVE)) {
-      const { fallbackHtml, restInner } = extractFallbackSlot(tag.innerHTML);
-      // Recursively transform nested directives inside the component's remaining
-      // inner content (excluding the extracted #fallback slot).
-      const transformedInner = transformTemplate(restInner, islandCounter, filePath);
-      const strippedOpenTag = stripAttr(tag.fullOpenTag, SERVER_DEFER_DIRECTIVE);
-      const fallbackContent =
-        fallbackHtml ?? `<ubean-defer-fallback data-component="${escapeAttr(tag.tagName)}"></ubean-defer-fallback>`;
-
-      // <Suspense><template #fallback>...</template><Comp>...</Comp></Suspense>
-      out += `<Suspense><template #fallback>${fallbackContent}</template>${strippedOpenTag}${transformedInner}`;
-      if (!tag.selfClosing) out += `</${tag.tagName}>`;
-      out += `</Suspense>`;
-      pos = tag.end;
-      continue;
-    }
-
     const clientDirectiveInfo = findClientDirectiveOnTag(tag.attrs);
     if (!clientDirectiveInfo) {
       const inner = tag.selfClosing ? '' : transformTemplate(tag.innerHTML, islandCounter, filePath);
@@ -594,7 +539,7 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
       mediaStr = ` data-media="${escapeAttr(mediaQuery)}"`;
     }
 
-    // Collect static props, excluding both legacy and new directive attributes
+    // Collect static props, excluding `v-client.*` directive attributes
     const props = collectStaticProps(tag.attrs);
     const propsJson = escapeAttr(JSON.stringify(props));
 
@@ -613,49 +558,9 @@ function transformTemplate(template: string, islandCounter: { count: number }, f
   return out;
 }
 
-/**
- * Extract a `<template #fallback>...</template>` slot from `innerHTML`.
- *
- * Used by `server:defer` transform: the fallback slot's content is moved to the
- * wrapping `<Suspense>`'s `#fallback` slot. The remaining inner content (other
- * slots + default content) stays with the original component.
- *
- * Returns `{ fallbackHtml, restInner }`:
- * - `fallbackHtml`: inner HTML of the `<template #fallback>` element, or `null`
- *   if no fallback slot was provided
- * - `restInner`: `innerHTML` with the `<template #fallback>...</template>` removed
- */
-function extractFallbackSlot(innerHTML: string): { fallbackHtml: string | null; restInner: string } {
-  // Match `<template #fallback>...</template>` (also handles `v-slot:fallback`).
-  // We don't use findTagAt because `<template>` is lowercase (not a component).
-  const fallbackRe = /<template\s+[^>]*#fallback[^>]*>([\s\S]*?)<\/template>/g;
-  const match = fallbackRe.exec(innerHTML);
-  if (!match) {
-    return { fallbackHtml: null, restInner: innerHTML };
-  }
-  const fallbackHtml = match[1];
-  // Remove the matched `<template #fallback>...</template>` from innerHTML
-  const restInner = innerHTML.slice(0, match.index) + innerHTML.slice(match.index + match[0].length);
-  return { fallbackHtml, restInner };
-}
-
-/**
- * Strip a single attribute (matched by name, with optional value) from an
- * opening tag string. Used by `server:defer` transform to remove the directive
- * attribute after wrapping the component in `<Suspense>`.
- */
-function stripAttr(openTag: string, attrName: string): string {
-  // Match ` attrName` optionally followed by `="..."` or `'...'` (value).
-  // The leading `\s` ensures we don't partially match a longer attribute name.
-  const re = new RegExp(`\\s${attrName.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}(?:=(?:"[^"]*"|'[^']*'|[^\\s]+))?`);
-  return openTag.replace(re, '');
-}
-
 export function transformVueSfcIslands(code: string, filePath: string): { code: string; islandCount: number } {
   const tpl = extractTemplateBlock(code);
   if (!tpl) return { code, islandCount: 0 };
-  // P9-04: also transform `server:defer` (not just `client:*` directives).
-  // `ANY_DIRECTIVE_RE` matches both, letting the transform run on either kind.
   if (!ANY_DIRECTIVE_RE.test(tpl.content)) return { code, islandCount: 0 };
 
   const counter = { count: 0 };
@@ -767,7 +672,6 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
     transform(code, id) {
       if (!enabled) return null;
       if (!isVueSfc(id)) return null;
-      // P9-04: also transform SFCs containing `server:defer` (not just `client:*`).
       if (!ANY_DIRECTIVE_RE.test(code)) return null;
 
       const absolutePath = id.split('?')[0];
@@ -775,8 +679,6 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
       const result = transformVueSfcIslands(code, filePath);
 
       // 仅对 SFC 主模块运行收集逻辑（?vue&type=template 等子查询只有模板片段，无 <script>）
-      // 注意:`server:defer` 组件不进入客户端 island 注册表(它们是服务端渲染的),
-      // `collectIslandComponents` 内部仅扫描 `client:*` 指令,自动忽略 `server:defer`。
       if (isMainVueSfc(id)) {
         const collected = collectIslandComponents(code, absolutePath);
         const registryChanged = updateRegistry(collected, absolutePath);

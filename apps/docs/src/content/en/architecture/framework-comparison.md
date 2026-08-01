@@ -21,9 +21,9 @@ title: Framework Comparison
 | SSG | ✅ | ✅ | ✅ | ✅ | ✅ default | ✅ |
 | ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ (SWR) | ✅ P9-03 (routeRules.isr + SWR) |
 | per-route render rules | ⚠️ (partial) | ✅ routeRules | ❌ | ❌ | ✅ `export const prerender` | ✅ P9-03 (routeRules.ssr/prerender/isr) |
-| PPR / Server Islands | ✅ stable | ❌ | ❌ | ❌ | ✅ `server:defer` | ✅ P9-04 (`routeRules.ppr` + `server:defer` directive → `<Suspense>`) |
+| PPR / Server Islands | ✅ stable | ❌ | ❌ | ❌ | ✅ `server:defer` | ✅ P9-04 (`routeRules.ppr` + `defineServerIsland()` runtime wrapper → `<Suspense>`) |
 | Server Components | ✅ RSC | ✅ | ❌ | ❌ | ❌ (Islands) | ❌ |
-| Server Actions | ✅ | ❌ | ✅ form actions | ✅ | ✅ Actions | ✅ P9-02 (defineAction + 'use server' + form actions) |
+| Server Actions | ✅ | ❌ | ✅ form actions | ✅ | ✅ Actions | ✅ P9-02 (`defineAction()` wrapper + form actions) |
 | Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ P9-01 |
 | Islands | ❌ | ❌ | ❌ | ❌ | ✅ original | ✅ |
 | Multi-framework | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
@@ -43,7 +43,7 @@ title: Framework Comparison
 | Capability | Other Frameworks | ubean | Gap |
 | --- | --- | --- | --- |
 | **SSR Streaming Render** | Next/Nuxt/SvelteKit/Solid/Astro all support `renderToStream`/`pipe`/Suspense streaming | ✅ P9-01 (`renderToNodeStream` + `ReadableStream`, `SsrOptions.streaming`) | Closed |
-| **Partial Prerendering** | Next.js 16 stable (static shell + Suspense streaming for dynamic); Astro 5 `server:defer` Server Islands | ✅ P9-04 (`routeRules.ppr: true` implies `prerender` + forces streaming SSR; `server:defer` directive wraps in `<Suspense>` at compile time + extracts `#fallback`) | Closed |
+| **Partial Prerendering** | Next.js 16 stable (static shell + Suspense streaming for dynamic); Astro 5 `server:defer` Server Islands | ✅ P9-04 (`routeRules.ppr: true` implies `prerender` + forces streaming SSR; `defineServerIsland()` runtime wrapper wraps in `<Suspense>` with a fallback + extracts `#fallback`) | Closed |
 | **ISR** | Next.js built-in; Nuxt `routeRules: { swr: 600 }`; Astro 5 experimental | ✅ P9-03 (`routeRules.isr` + SWR, `peek` keeps stale entries) | Closed |
 | **per-route render rules** | Nuxt `routeRules` can switch SSR/SSG/ISR/CSR + cors/headers per-route; Astro `export const prerender = false` | ✅ P9-03 (`routeRules.ssr`/`prerender`/`isr`, overrides global `ssr.exclude`) | Closed |
 | **Server Components** | Next.js RSC default; Nuxt `<ServerComponent>` | ❌ | Design difference (Vue ecosystem) |
@@ -55,7 +55,7 @@ ubean's rendering-layer gaps are essentially closed: streaming SSR (P9-01), ISR 
 
 | Capability | Other Frameworks | ubean |
 | --- | --- | --- |
-| **Server Actions / Form Actions** | Next.js `"use server"`; SvelteKit `actions`; SolidStart `action()`; Astro `defineAction` | ✅ P9-02 (`defineAction` + `'use server'` + SvelteKit-style `?/name` form action) |
+| **Server Actions / Form Actions** | Next.js `"use server"`; SvelteKit `actions`; SolidStart `action()`; Astro `defineAction` | ✅ P9-02 (`defineAction()` explicit wrapper + SvelteKit-style `?/name` form action) |
 | **`useFetch`/`useAsyncData` equivalent** | Nuxt full set (dedupe/refresh/payload/CSP); SvelteKit `load` functions | ⚠️ `useData`/`useAsyncData` is thin |
 | **`defer()` streaming non-critical data** | Next.js Suspense + `defer`; SvelteKit streaming promises | ❌ |
 | **Single-flight mutations** | SolidStart exclusive, avoids post-mutation waterfalls | ❌ |
@@ -64,7 +64,7 @@ ubean's rendering-layer gaps are essentially closed: streaming SSR (P9-01), ISR 
 | **Hooks (handle/handleFetch/handleError)** | SvelteKit global hooks; Nuxt server plugins | ✅ `defineServer({ globalHooks })` |
 | **`after()` post-response execution** | Next.js 16 `after()` for logging/analytics/cache invalidation without blocking TTFB | ❌ |
 
-ubean chose the `useData`/`depends`/`invalidate` route (TBD-10), and has closed the **Server Actions** paradigm via P9-02 (`defineAction` + `'use server'` directive + SvelteKit-style `?/name` form action), aligning with the common trend across Next/SvelteKit/Solid/Astro.
+ubean chose the `useData`/`depends`/`invalidate` route (TBD-10), and has closed the **Server Actions** paradigm via P9-02 (`defineAction()` explicit wrapper + SvelteKit-style `?/name` form action), aligning with the common trend across Next/SvelteKit/Solid/Astro.
 
 ### 2.3 Routing
 
@@ -84,7 +84,7 @@ ubean chose the `useData`/`depends`/`invalidate` route (TBD-10), and has closed 
 
 | Capability | Other Frameworks | ubean |
 | --- | --- | --- |
-| **Component-level cache directives** | Next.js `"use cache"` + `cacheLife()`/`cacheTag()`/`updateTag()` | ✅ P9-08 (`"use cache"` directive + `cacheLife()`/`cacheTag()` macros + `wrapWithCache()` + Vite plugin AST transform) |
+| **Component-level cache directives** | Next.js `"use cache"` + `cacheLife()`/`cacheTag()`/`updateTag()` | ✅ P9-08 (`defineCachedFunction()` explicit wrapper + `cacheLife()`/`cacheTag()` macros; `wrapWithCache()` kept as deprecated alias; the removed `"use cache"` directive / `ubeanCacheDirectivePlugin()` / `@ubean/server/vite` export have been deleted) |
 | **fetch auto memo + cache** | Next.js Data Cache + revalidateTag/revalidatePath | ❌ |
 | **per-route cache rules** | Nuxt `routeRules.cache`; Astro `routeRules` | ✅ `resolveRouteCacheRules` + `routeRules.cache` (P9-03 enhanced) |
 | **SWR** | Nuxt `swr: 600`; Astro `swr` | ✅ CacheRule.swr + ISR SWR (P9-03, `peek` keeps stale entries) |
@@ -189,7 +189,7 @@ ubean P9-10 has closed the four major platform presets Vercel/Netlify/Bun/Deno, 
 - **Task**: P9-01
 
 #### 2. ✅ Server Actions / Form Actions (P9-02 completed)
-- **Status**: the `@ubean/actions` package provides `defineAction` (schema validation support) + `fail()`/`ActionError` error model + global registry + stable action ID (`base32(sha1(filePath:exportName))`) + `/__actions` RPC middleware + SvelteKit-style `?/<name>` form action (page module `export const actions` map, progressive enhancement) + client `useAction`/`useFormAction`/`callAction` + `'use server'` directive Vite plugin (server-side wraps `defineAction`, client-side RPC stub replacement)
+- **Status**: the `@ubean/actions` package provides `defineAction` (schema validation support) + `fail()`/`ActionError` error model + global registry + stable action ID (`base32(sha1(filePath:exportName))`) + `/__actions` RPC middleware + SvelteKit-style `?/<name>` form action (page module `export const actions` map, progressive enhancement) + client `useAction`/`useFormAction`/`callAction` + `defineAction()` call-expression Vite plugin (the `ubeanServerActionsPlugin` detects `defineAction(` calls and injects `filePath`/`name`; server-side registers to the global registry, client-side replaces with RPC stub)
 - **Competitors**: Next.js `"use server"`, SvelteKit `actions`, SolidStart `action()`, Astro `defineAction`
 - **Task**: P9-02 ✅
 
@@ -199,7 +199,7 @@ ubean P9-10 has closed the four major platform presets Vercel/Netlify/Bun/Deno, 
 - **Task**: P9-03 ✅
 
 #### 4. ✅ Partial Prerendering / Server Islands
-- **Status**: `RouteRule` extended with `ppr: true` field (implies `prerender: true` + forces streaming SSR, equivalent to `ssr: 'streaming'`); `route-rules` middleware matches `ppr` field; router forces streaming output for PPR routes and adds `X-PPR: true` response header; `prerender` auto-discovers `ppr: true` routes to generate the static shell; `@ubean/islands` Vite plugin adds `server:defer` directive transform: at compile time wraps the component in `<Suspense>`, extracts the `#fallback` slot as Suspense fallback (injects `<ubean-defer-fallback>` placeholder when no fallback); during prerender only the fallback (static shell) is rendered, during streaming SSR the resolved async component content is streamed out via the Suspense boundary
+- **Status**: `RouteRule` extended with `ppr: true` field (implies `prerender: true` + forces streaming SSR, equivalent to `ssr: 'streaming'`); `route-rules` middleware matches `ppr` field; router forces streaming output for PPR routes and adds `X-PPR: true` response header; `prerender` auto-discovers `ppr: true` routes to generate the static shell; `@ubean/islands` provides `defineServerIsland(Component, options?)` runtime wrapper (replaces the removed `server:defer` compile-time directive): wraps an async component in `<Suspense>` with a fallback (string | Component | default `<ubean-defer-fallback>` placeholder), sets `inheritAttrs: false`, forwards attrs + slots to the inner Component; during prerender only the fallback (static shell) is rendered, during streaming SSR the resolved async component content is streamed out via the Suspense boundary
 - **Competitors**: Next.js 16 PPR stable, Astro 5 `server:defer`
 - **Task**: P9-04 ✅
 
@@ -221,7 +221,7 @@ ubean P9-10 has closed the four major platform presets Vercel/Netlify/Bun/Deno, 
 - **Task**: P9-07 ✅
 
 #### 8. ✅ Component-level cache directives (`"use cache"`/`cacheLife`/`cacheTag`)
-- **Status**: `@ubean/server/cache-directive` provides `cacheLife(seconds)`/`cacheTag(...tags)` macros (pass scope via `AsyncLocalStorage`) + `wrapWithCache(fn,options)` cache wrapper + `revalidateTag(tag)`/`revalidateTags(...)`/`revalidatePath(pattern)` invalidation API + standalone `ComponentCacheStore` (stores JSON-serializable values, with tag reverse index); the `ubeanCacheDirectivePlugin()` Vite plugin of `@ubean/server/vite` detects the `"use cache"` directive and AST-transforms it into a `wrapWithCache()` call; integrated into the default `ubean/vite` plugin composition
+- **Status**: `@ubean/server/cache-directive` provides `cacheLife(seconds)`/`cacheTag(...tags)` macros (pass scope via `AsyncLocalStorage`) + `defineCachedFunction(fn,options)` explicit cache wrapper (replaces the removed `"use cache"` string directive; `wrapWithCache(fn,options)` kept as a deprecated alias) + `revalidateTag(tag)`/`revalidateTags(...)`/`revalidatePath(pattern)` invalidation API + standalone `ComponentCacheStore` (stores JSON-serializable values, with tag reverse index); the removed `ubeanCacheDirectivePlugin()` Vite plugin and `@ubean/server/vite` export have been deleted (replaced by the explicit `defineCachedFunction()` call); integrated into the default `ubean/vite` plugin composition
 - **Competitors**: Next.js 16 `"use cache"` + `cacheLife()`/`cacheTag()`/`revalidateTag()`
 - **Task**: P9-08 ✅
 
@@ -277,7 +277,7 @@ ubean has several differentiated capabilities that competitors **do not have**, 
 | **OpenAPI auto-generation** | `/_openapi.json` + Scalar UI, no competitor has it |
 | **Zero-dependency i18n** | 4 strategies + Intl + plural + linked messages, no vue-i18n needed |
 | **Better Auth + fallback** | Built-in auth fallback solution |
-| **Islands architecture** | Astro-style `client:*` directives, rare in the Vue ecosystem |
+| **Islands architecture** | `v-client.*` Vue directives + `defineIsland()`/`defineServerIsland()` runtime wrappers, rare in the Vue ecosystem |
 | **Electron built-in** | Desktop apps out of the box |
 | **Multi-provider image optimization** | ipx/cloudinary/imgix/vercel/netlify etc. 10+ |
 | **Complete CLI scaffolding** | page/api/layout/middleware/cron/plugin full set |
@@ -291,8 +291,8 @@ ubean has several differentiated capabilities that competitors **do not have**, 
 
 1. **Streaming SSR** (P0, unlocks PPR prerequisite) — change `@ubean/ssr` to use `renderToNodeStream`
 2. **per-route render rules + ISR** (P0) — extend `routeRules`
-3. **Server Actions** (P0, ✅ completed P9-02) — `defineAction` + `'use server'`
-4. **PPR / Server Islands** (P0, ✅ completed P9-04, depends on 1+3) — `routeRules.ppr` + `server:defer` → `<Suspense>`
+3. **Server Actions** (P0, ✅ completed P9-02) — `defineAction()` explicit wrapper
+4. **PPR / Server Islands** (P0, ✅ completed P9-04, depends on 1+3) — `routeRules.ppr` + `defineServerIsland()` → `<Suspense>`
 5. **File-convention SEO** (P1) — sitemap.ts/robots.ts/opengraph-image
 6. **OG Image generation** (P1) — Satori integration
 7. **JSON-LD/Schema.org** (P1)

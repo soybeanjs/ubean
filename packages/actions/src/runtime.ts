@@ -2,8 +2,9 @@
  * Client-side runtime for server actions (P9-02).
  *
  * This module is browser-only — it MUST NOT import any Node.js APIs or
- * server-only types. The Vite plugin's RPC stubs import `callAction` from
- * here, and `useAction()` / `useFormAction()` are auto-imported from
+ * server-only types. The Vite plugin replaces `defineAction()` calls on
+ * the client with `createActionStub()` calls (imported from here), and
+ * `useAction()` / `useFormAction()` are auto-imported from
  * `ubean/runtime/vue` (which re-exports these).
  *
  * The runtime communicates with the server via the `/__actions` POST
@@ -12,8 +13,42 @@
  */
 import { ref } from 'vue';
 import type { Ref } from 'vue';
-import type { ActionResult, ServerAction } from '@ubean/types';
+import { ACTION_BRAND } from '@ubean/types';
+import type { ActionHandler, ActionResult, ServerAction } from '@ubean/types';
 import { ACTIONS_ENDPOINT, ACTION_RESPONSE_HEADER, buildFormActionUrl } from './index';
+
+/**
+ * Create a client-side stub for a server action.
+ *
+ * The Vite plugin replaces `defineAction(...)` calls on the client with
+ * `createActionStub('<id>')` calls. The stub is a `ServerAction`-compatible
+ * object whose `handler` performs an RPC POST to `/__actions` with the
+ * action's stable ID.
+ *
+ * Application code should not call this directly — it is injected by the
+ * Vite plugin. Use `defineAction()` in source code; the plugin handles the
+ * client/server split automatically.
+ *
+ * @param actionId The stable action ID (e.g. `act_xxxxxxxxxxxx`)
+ */
+export function createActionStub<TInput = unknown, TOutput = unknown>(actionId: string): ServerAction<TInput, TOutput> {
+  const rpc: ActionHandler<TInput, TOutput> = ((...args: unknown[]) =>
+    callAction<TOutput>(actionId, args)) as unknown as ActionHandler<TInput, TOutput>;
+
+  const stub: ServerAction<TInput, TOutput> = {
+    id: actionId,
+    handler: rpc,
+    name: 'stub',
+    filePath: 'client'
+  };
+  Object.defineProperty(stub, ACTION_BRAND, {
+    value: true,
+    enumerable: false,
+    configurable: false,
+    writable: false
+  });
+  return stub;
+}
 
 /**
  * Low-level RPC: invoke a registered server action by ID.
@@ -77,8 +112,8 @@ export interface UseActionReturn<TInput = unknown, TOutput = unknown> {
    *  - the action's typed input (when no schema), or
    *  - the validated data shape (when schema is provided)
    *
-   * For `'use server'` modules, pass arguments positionally as an array:
-   * `submit(email, password)`.
+   * On the client, the action is an RPC stub created by the Vite plugin;
+   * arguments are forwarded positionally to the server handler.
    */
   submit: (...args: TInput extends unknown[] ? TInput : [TInput]) => Promise<ActionResult<TOutput>>;
   /** Reset all reactive state to initial values. */
@@ -100,7 +135,7 @@ export interface UseActionReturn<TInput = unknown, TOutput = unknown> {
  * await submit({ email, password });
  * ```
  *
- * ## 2. Action ID from `'use server'` module
+ * ## 2. Action ID string
  *
  * ```ts
  * const { submit, pending, data, error } = useAction('act_xxxxxxxxxxxx');

@@ -1,43 +1,33 @@
 /**
- * Vite plugin for `'use server'` directive transformation (P9-02).
+ * Vite plugin for Server Actions (P9-02).
  *
- * Aligns with Next.js 16 / React 19 Server Actions and SolidStart's
- * `action()` convention. A module marked with `'use server'` (top-level
- * directive) has all its exports treated as server actions.
+ * Detects `defineAction()` call expressions in source code and handles the
+ * client/server split automatically:
  *
- * ## How it works
+ *  - **Server** (SSR / Node): injects `filePath` (and `name` when inferable)
+ *    into the `defineAction()` options so the generated action ID is stable
+ *    across dev / build. The `defineAction()` call runs for real and
+ *    registers the action in the global registry.
+ *  - **Client** (browser): replaces each `defineAction(...)` call with
+ *    `createActionStub('<id>')`, where `<id>` is computed from the file
+ *    path + inferred name (matching the server). The stub performs an RPC
+ *    POST to `/__actions` when invoked via `useAction()`.
  *
- * On the **server** (SSR / Node):
- *  - The module loads normally (real implementation).
- *  - Each exported function is wrapped with `defineAction()` so it gets
- *    registered in the global action registry with a stable ID.
- *  - The stable ID is computed from the file path + export name.
+ * ## Name inference
  *
- * On the **client** (browser):
- *  - Each exported function is replaced with an RPC stub that POSTs to
- *    `/__actions` with the action ID.
- *  - The original implementation is stripped (dead code elimination).
- *  - The RPC stub preserves the function's call signature so the caller
- *    code is unchanged (`const result = await login(email, password)`).
+ * The action name is resolved in priority order:
+ *  1. The `name` property in the call's options object (if present).
+ *  2. The variable / property name the result is assigned to:
+ *     - `export const login = defineAction(...)` → `'login'`
+ *     - `const login = defineAction(...)`        → `'login'`
+ *     - `{ login: defineAction(...) }`           → `'login'`
+ *  3. Fallback: `'anonymous'`.
  *
  * ## Detection
  *
  * The plugin scans `.ts` / `.js` / `.mts` / `.mjs` / `.tsx` / `.jsx`
- * files for a top-level `'use server'` string literal directive. The
- * directive must be the first statement in the file (similar to `'use
- * strict'` and `'use client'`).
- *
- * ## Per-function directive
- *
- * A single function can be marked with `'use server'` at the top of its
- * body. The plugin treats only that function as a server action.
- *
- * ```ts
- * export async function login(email, password) {
- *   'use server';
- *   // server-only code
- * }
- * ```
+ * files for `\bdefineAction\s*\(` call expressions. Files without any
+ * match are skipped.
  */
 import type { Plugin } from 'vite';
 import { relative } from 'pathe';
@@ -49,77 +39,78 @@ export interface ServerActionsPluginOptions {
    * Defaults to `process.cwd()` at plugin creation time.
    */
   root?: string;
-  /**
-   * Only transform files matching these patterns. Defaults to
-   * `src/actions/**` and any file with a `'use server'` directive.
-   */
-  include?: RegExp[];
 }
 
-const USE_SERVER_DIRECTIVE_RE = /^(?:['"]use server['"];?|['"]use server['"]\n)/;
-const PER_FUNC_DIRECTIVE_RE = /['"]use server['"];?/;
+/* -------------------------------------------------------------------------- */
+/* 工具函数                                                                     */
+/* -------------------------------------------------------------------------- */
 
 /**
- * Detect whether a source file starts with a top-level `'use server'`
- * directive.
+ * 查找匹配的闭合括号(支持字符串/模板字面量/注释跳过)。
  */
-export function hasUseServerDirective(code: string): boolean {
-  // Skip BOM and leading whitespace / comments
-  const stripped = code
-    .replace(/^\uFEFF/, '')
-    .replace(/^\/\/[^\n]*\n/gm, '')
-    .replace(/^\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s+/, '');
-  return USE_SERVER_DIRECTIVE_RE.test(stripped);
-}
+function findBalanced(code: string, openChar: string, closeChar: string, startIdx: number): number | null {
+  let depth = 1;
+  let i = startIdx;
+  let inString: string | null = null;
+  let escaped = false;
+  let inTemplateExpr = 0;
 
-/**
- * Extract all top-level export names from a module's source code.
- *
- * Recognizes:
- *  - `export function <name>(...) { ... }`
- *  - `export async function <name>(...) { ... }`
- *  - `export const <name> = ...`
- *  - `export const <name> = async ...`
- *  - `export { <name> }` (from a declaration above)
- */
-export function extractExportNames(code: string): string[] {
-  const names = new Set<string>();
+  while (i < code.length && depth > 0) {
+    const ch = code[i];
 
-  // `export function name` / `export async function name`
-  const funcRe = /export\s+(?:async\s+)?function\s+([A-Za-z_$][\w$]*)/g;
-  let m: RegExpExecArray | null;
-  while ((m = funcRe.exec(code)) !== null) names.add(m[1]);
-
-  // `export const name =` / `export let name =` / `export var name =`
-  const constRe = /export\s+(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=/g;
-  while ((m = constRe.exec(code)) !== null) names.add(m[1]);
-
-  // `export class name`
-  const classRe = /export\s+class\s+([A-Za-z_$][\w$]*)/g;
-  while ((m = classRe.exec(code)) !== null) names.add(m[1]);
-
-  // `export { name1, name2 }`
-  const braceRe = /export\s*\{([^}]+)\}/g;
-  while ((m = braceRe.exec(code)) !== null) {
-    const items = m[1].split(',');
-    for (const item of items) {
-      // Handle `name as alias` — register both
-      const parts = item.split(/\s+as\s+/).map(s => s.trim());
-      for (const p of parts) {
-        if (p && /^[A-Za-z_$][\w$]*$/.test(p)) names.add(p);
-      }
+    if (escaped) {
+      escaped = false;
+      i++;
+      continue;
     }
-  }
+    if (ch === '\\') {
+      escaped = true;
+      i++;
+      continue;
+    }
+    if (inString) {
+      if (inString === '`' && ch === '$' && code[i + 1] === '{') {
+        inTemplateExpr++;
+        i += 2;
+        continue;
+      }
+      if (inString === '`' && ch === '}' && inTemplateExpr > 0) {
+        inTemplateExpr--;
+        i++;
+        continue;
+      }
+      if (ch === inString) inString = null;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      inString = ch;
+      i++;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '/') {
+      while (i < code.length && code[i] !== '\n') i++;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '*') {
+      i += 2;
+      while (i < code.length && !(code[i] === '*' && code[i + 1] === '/')) i++;
+      i += 2;
+      continue;
+    }
 
-  return [...names];
+    if (ch === openChar) depth++;
+    else if (ch === closeChar) {
+      depth--;
+      if (depth === 0) return i;
+    }
+    i++;
+  }
+  return null;
 }
 
 /**
- * Compute a project-relative path for action ID generation.
- *
- * The Vite plugin injects this path into `defineAction({ filePath })`
- * so the client and server agree on the same ID for a given action.
+ * 计算项目相对路径(用于 action ID 生成)。
  */
 function toProjectRelative(filePath: string, root: string): string {
   let rel = filePath;
@@ -127,159 +118,411 @@ function toProjectRelative(filePath: string, root: string): string {
     try {
       rel = relative(root, filePath);
     } catch {
-      // pathe.relative can throw on Windows cross-drive paths; fall back
-      // to the original path.
+      // pathe.relative 在 Windows 跨盘符路径上可能抛错,退回原路径
     }
   }
-  // Normalize Windows backslashes to forward slashes
   return rel.replace(/\\/g, '/');
 }
 
+/* -------------------------------------------------------------------------- */
+/* defineAction 调用检测                                                        */
+/* -------------------------------------------------------------------------- */
+
+const DEFINE_ACTION_RE = /\bdefineAction\s*\(/g;
+
+interface DefineActionCall {
+  /** `defineAction` 标识符起始位置。 */
+  start: number;
+  /** `(` 后第一个字符位置(参数区起点)。 */
+  argStart: number;
+  /** 匹配的 `)` 位置。 */
+  end: number;
+  /** 推断出的 action 名称。 */
+  name: string;
+  /** 最后一个参数是否为对象字面量(options)。 */
+  hasOptionsObject: boolean;
+  /** options 对象 `{` 的位置(若 hasOptionsObject)。 */
+  optionsBraceStart: number;
+  /** options 对象 `}` 的位置(若 hasOptionsObject)。 */
+  optionsBraceEnd: number;
+  /** options 对象是否已包含 `name` 属性。 */
+  optionsHasName: boolean;
+  /** options 对象是否已包含 `filePath` 属性。 */
+  optionsHasFilePath: boolean;
+}
+
 /**
- * Transform a `'use server'` module for the **server** side.
+ * 从 options 对象文本中提取 `name` 属性的字符串字面量值。
  *
- * Wraps each export in `defineAction()` and registers it with the global
- * registry. The transformation rewrites the module to:
- *
- * ```ts
- * import { defineAction } from '@ubean/actions';
- *
- * // original exports become wrapped:
- * const __ubean_login = defineAction(
- *   { id: 'act_xxxxxxxxxxxx', filePath: 'src/actions/auth.ts', name: 'login' },
- *   async (email, password, ctx) => {
- *     // original implementation
- *   }
- * );
- * export { __ubean_login as login };
- * ```
- *
- * Implementation note: rather than parsing the full AST (which would
- * require a heavy parser dependency), we use a lightweight regex-based
- * approach that handles the common cases. Edge cases (e.g. computed
- * export names, re-exports with `from`) are skipped — users should keep
- * `'use server'` modules simple (exported async functions only).
+ * 匹配 `name: 'xxx'` 或 `name: "xxx"`。不支持动态值(如 `name: someVar`),
+ * 此类情况下返回 `null`。
  */
-export function transformUseServerForServer(code: string, filePath: string, root: string): string {
-  // Strip the top-level `'use server'` directive
-  let stripped = code.replace(USE_SERVER_DIRECTIVE_RE, '');
-  // Re-strip leading whitespace / comments that may have been before the
-  // directive.
-  stripped = stripped.replace(/^\s+/, '');
+function extractOptionsName(objText: string): string | null {
+  const m = objText.match(/\bname\s*:\s*['"]([^'"]+)['"]/);
+  return m ? m[1] : null;
+}
 
-  const exportNames = extractExportNames(stripped);
-  if (exportNames.length === 0) return code; // nothing to transform
-
-  const relPath = toProjectRelative(filePath, root);
-
-  // Generate the registration wrapper. We append a registration block
-  // that wraps each export with `defineAction()` and re-exports it.
-  // The original exports are preserved as `__raw_<name>` so the wrapper
-  // can reference them.
-  //
-  // This approach avoids re-parsing the function bodies — we just rename
-  // the original exports and emit new wrappers with the same names.
-
-  const wrapperDefs = exportNames
-    .map(name => {
-      const id = createActionId(relPath, name);
-      return `const __ubean_action_${name} = defineAction({
-  id: ${JSON.stringify(id)},
-  filePath: ${JSON.stringify(relPath)},
-  name: ${JSON.stringify(name)}
-}, __ubean_raw_${name});`;
-    })
-    .join('\n');
-
-  const reExports = exportNames.map(name => `export { __ubean_action_${name} as ${name} };`).join('\n');
-
-  // Rename original `export` keywords to plain declarations
-  let renamed = stripped;
-  for (const name of exportNames) {
-    // `export function name` → `function __ubean_raw_name`
-    renamed = renamed.replace(
-      new RegExp(`export\\s+(async\\s+)?function\\s+(${name})\\b`),
-      '$1function __ubean_raw_$2'
-    );
-    // `export const name =` → `const __ubean_raw_name =`
-    renamed = renamed.replace(new RegExp(`export\\s+(const|let|var)\\s+(${name})\\s*=`), '$1 __ubean_raw_$2 =');
-    // `export class name` → `class __ubean_raw_name`
-    renamed = renamed.replace(new RegExp(`export\\s+class\\s+(${name})\\b`), 'class __ubean_raw_$1');
-    // `export { name }` → drop (we re-export the wrapped version)
-    // (handled by removing the `export { ... }` statement below)
+/**
+ * 推断 action 名称。
+ *
+ * 优先级:
+ *  1. options 对象中的 `name` 字符串字面量(若存在)
+ *  2. 变量/属性赋名:
+ *     - `export const <name> = defineAction(`
+ *     - `const <name> = defineAction(`
+ *     - `<name>: defineAction(`  (对象属性)
+ *  3. `'anonymous'`
+ */
+function inferName(code: string, callStart: number, optionsObjText: string | null): string {
+  // 优先级 1: options 中的 name 字面量
+  if (optionsObjText) {
+    const optsName = extractOptionsName(optionsObjText);
+    if (optsName) return optsName;
   }
 
-  // Remove bare `export { name1, name2 }` statements (we re-export
-  // wrapped versions). This is a simplification — if the original had
-  // `export { name as alias }`, we'd lose the alias. For 'use server'
-  // modules this is acceptable.
-  renamed = renamed.replace(/export\s*\{[^}]+\}\s*;?/g, '');
+  // 取 `defineAction` 之前的文本,去除尾部空白
+  const before = code.slice(0, callStart).replace(/\s+$/, '');
+  if (before.length === 0) return 'anonymous';
 
-  return `// [ubean:use-server] Server-side transformed module
-import { defineAction } from '@ubean/actions';
+  // 优先级 2: 变量/属性赋名
+  const varMatch = before.match(/(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*$/);
+  if (varMatch) return varMatch[1];
 
-${renamed}
+  const propMatch = before.match(/([A-Za-z_$][\w$]*|['"]([^'"]+)['"])\s*:\s*$/);
+  if (propMatch) return propMatch[2] || propMatch[1];
 
-${wrapperDefs}
-
-${reExports}
-`;
+  return 'anonymous';
 }
 
 /**
- * Transform a `'use server'` module for the **client** side.
- *
- * Replaces each export with an RPC stub that POSTs to `/__actions` with
- * the action ID. The original implementation is stripped.
- *
- * ```ts
- * export function login(email, password) {
- *   return __ubean_callAction('act_xxxxxxxxxxxx', [email, password]);
- * }
- * ```
- *
- * The stub preserves the call signature so callers don't need to change.
+ * 检查对象字面量文本中是否包含指定顶层属性。
  */
-export function transformUseServerForClient(code: string, filePath: string, root: string): string {
-  // Strip the top-level `'use server'` directive
-  let stripped = code.replace(USE_SERVER_DIRECTIVE_RE, '');
-  stripped = stripped.replace(/^\s+/, '');
+function objectHasProperty(objText: string, propName: string): boolean {
+  // 简单匹配:`<propName>\s*:` (顶层,但正则无法保证顶层;近似处理)
+  return new RegExp(`\\b${propName}\\s*:`).test(objText);
+}
 
-  const exportNames = extractExportNames(stripped);
-  if (exportNames.length === 0) return code;
+/**
+ * 在调用参数区(argStart..end)内查找顶层逗号位置(深度 0 相对于调用括号)。
+ *
+ * 返回所有顶层逗号的索引数组。
+ */
+function findTopLevelCommas(code: string, argStart: number, end: number): number[] {
+  const commas: number[] = [];
+  let depth = 0;
+  let i = argStart;
+  let inString: string | null = null;
+  let escaped = false;
+  let inTemplateExpr = 0;
+
+  while (i < end) {
+    const ch = code[i];
+
+    if (escaped) {
+      escaped = false;
+      i++;
+      continue;
+    }
+    if (ch === '\\') {
+      escaped = true;
+      i++;
+      continue;
+    }
+    if (inString) {
+      if (inString === '`' && ch === '$' && code[i + 1] === '{') {
+        inTemplateExpr++;
+        i += 2;
+        continue;
+      }
+      if (inString === '`' && ch === '}' && inTemplateExpr > 0) {
+        inTemplateExpr--;
+        i++;
+        continue;
+      }
+      if (ch === inString) inString = null;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      inString = ch;
+      i++;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '/') {
+      while (i < end && code[i] !== '\n') i++;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '*') {
+      i += 2;
+      while (i < end && !(code[i] === '*' && code[i + 1] === '/')) i++;
+      i += 2;
+      continue;
+    }
+
+    if (ch === '(' || ch === '[' || ch === '{') depth++;
+    else if (ch === ')' || ch === ']' || ch === '}') depth--;
+    else if (ch === ',' && depth === 0) {
+      commas.push(i);
+    }
+    i++;
+  }
+  return commas;
+}
+
+/**
+ * 预扫描代码,返回所有"非代码"区间 `[start, end)`:注释(块/行)和字符串字面量。
+ *
+ * 用于跳过注释/字符串内的 `defineAction(` 匹配(如 JSDoc 示例或说明性字符串)。
+ */
+function findNonCodeRanges(code: string): Array<[number, number]> {
+  const ranges: Array<[number, number]> = [];
+  const len = code.length;
+  let i = 0;
+
+  while (i < len) {
+    // 块注释
+    if (code[i] === '/' && code[i + 1] === '*') {
+      const start = i;
+      i += 2;
+      while (i < len && !(code[i] === '*' && code[i + 1] === '/')) i++;
+      i += 2; // skip */
+      ranges.push([start, Math.min(i, len)]);
+      continue;
+    }
+    // 行注释
+    if (code[i] === '/' && code[i + 1] === '/') {
+      const start = i;
+      i += 2;
+      while (i < len && code[i] !== '\n') i++;
+      ranges.push([start, i]);
+      continue;
+    }
+    // 字符串字面量 — 记录区间以跳过其中的匹配
+    if (code[i] === '"' || code[i] === "'" || code[i] === '`') {
+      const start = i;
+      const quote = code[i];
+      i++;
+      while (i < len) {
+        if (code[i] === '\\') {
+          i += 2;
+          continue;
+        }
+        if (quote === '`' && code[i] === '$' && code[i + 1] === '{') {
+          // 模板字面量表达式 — 简化处理,跳到匹配的 }
+          i += 2;
+          let depth = 1;
+          while (i < len && depth > 0) {
+            if (code[i] === '{') depth++;
+            else if (code[i] === '}') depth--;
+            i++;
+          }
+          continue;
+        }
+        if (code[i] === quote) {
+          i++;
+          break;
+        }
+        i++;
+      }
+      ranges.push([start, i]);
+      continue;
+    }
+    i++;
+  }
+  return ranges;
+}
+
+/**
+ * 检查位置 `pos` 是否落在任意区间内。
+ */
+function isInsideRanges(pos: number, ranges: Array<[number, number]>): boolean {
+  for (const [start, end] of ranges) {
+    if (pos >= start && pos < end) return true;
+  }
+  return false;
+}
+
+/**
+ * 提取源码中所有 `defineAction(...)` 调用信息。
+ *
+ * 跳过注释内的匹配(如 JSDoc 示例)和函数声明(`function defineAction(`)。
+ */
+export function findDefineActionCalls(code: string): DefineActionCall[] {
+  const results: DefineActionCall[] = [];
+  const nonCodeRanges = findNonCodeRanges(code);
+
+  let m: RegExpExecArray | null;
+  DEFINE_ACTION_RE.lastIndex = 0;
+  while ((m = DEFINE_ACTION_RE.exec(code)) !== null) {
+    const start = m.index;
+
+    // 跳过注释/字符串内的匹配(如 JSDoc 中的 defineAction( 示例)
+    if (isInsideRanges(start, nonCodeRanges)) continue;
+
+    // 跳过函数声明: `function defineAction(` / `export function defineAction(`
+    const before = code.slice(0, start);
+    if (/\bfunction\s+$/.test(before)) continue;
+
+    const argStart = m.index + m[0].length; // `(` 后
+    const end = findBalanced(code, '(', ')', argStart);
+    if (end === null) continue;
+
+    // 查找最后一个参数是否为对象字面量
+    const commas = findTopLevelCommas(code, argStart, end);
+    let hasOptionsObject = false;
+    let optionsBraceStart = -1;
+    let optionsBraceEnd = -1;
+    let optionsHasName = false;
+    let optionsHasFilePath = false;
+    let optionsObjText: string | null = null;
+
+    // 最后一个参数的起始位置
+    const lastArgStart = commas.length > 0 ? commas[commas.length - 1] + 1 : argStart;
+    // 跳过空白
+    let scanIdx = lastArgStart;
+    while (scanIdx < end && /\s/.test(code[scanIdx])) scanIdx++;
+
+    if (scanIdx < end && code[scanIdx] === '{') {
+      const braceEnd = findBalanced(code, '{', '}', scanIdx + 1);
+      if (braceEnd !== null && braceEnd < end) {
+        // 确认 `}` 之后到 `)` 之间只有空白
+        let after = braceEnd + 1;
+        while (after < end && /\s/.test(code[after])) after++;
+        if (after === end) {
+          hasOptionsObject = true;
+          optionsBraceStart = scanIdx;
+          optionsBraceEnd = braceEnd;
+          optionsObjText = code.slice(scanIdx + 1, braceEnd);
+          optionsHasName = objectHasProperty(optionsObjText, 'name');
+          optionsHasFilePath = objectHasProperty(optionsObjText, 'filePath');
+        }
+      }
+    }
+
+    // 推断名称(优先 options 中的 name,其次变量/属性赋名)
+    const name = inferName(code, start, optionsObjText);
+
+    results.push({
+      start,
+      argStart,
+      end,
+      name,
+      hasOptionsObject,
+      optionsBraceStart,
+      optionsBraceEnd,
+      optionsHasName,
+      optionsHasFilePath
+    });
+  }
+
+  // 按起始位置降序排序,便于从后向前替换
+  results.sort((a, b) => b.start - a.start);
+  return results;
+}
+
+/**
+ * 检测源码是否包含 `defineAction(` 调用。
+ */
+export function hasDefineActionCall(code: string): boolean {
+  DEFINE_ACTION_RE.lastIndex = 0;
+  return DEFINE_ACTION_RE.test(code);
+}
+
+/* -------------------------------------------------------------------------- */
+/* 转换函数                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 服务端转换:为每个 `defineAction()` 调用注入 `filePath`(以及缺失时的 `name`),
+ * 确保 action ID 在 dev / build 之间稳定。
+ *
+ * 返回转换后的代码;若无 `defineAction` 调用则返回 `null`。
+ */
+export function transformActionsForServer(code: string, filePath: string, root: string): string | null {
+  if (!hasDefineActionCall(code)) return null;
+
+  const calls = findDefineActionCalls(code);
+  if (calls.length === 0) return null;
 
   const relPath = toProjectRelative(filePath, root);
 
-  // Replace the entire module with stubs
-  const stubs = exportNames
-    .map(name => {
-      const id = createActionId(relPath, name);
-      return `export function ${name}(...args) {
-  return __ubean_callAction(${JSON.stringify(id)}, args);
-}`;
-    })
-    .join('\n\n');
+  let result = code;
+  for (const call of calls) {
+    const injectName = !call.optionsHasName ? call.name : null;
+    // filePath 总是注入(除非用户已显式指定)
+    const injectFilePath = !call.optionsHasFilePath ? relPath : null;
 
-  return `// [ubean:use-server] Client-side RPC stubs (original implementation stripped)
-import { callAction as __ubean_callAction } from '@ubean/actions/runtime';
+    if (call.hasOptionsObject) {
+      // 在 options 对象 `{` 后注入属性
+      const injectParts: string[] = [];
+      if (injectFilePath) injectParts.push(`filePath: ${JSON.stringify(injectFilePath)}`);
+      if (injectName) injectParts.push(`name: ${JSON.stringify(injectName)}`);
+      if (injectParts.length === 0) continue; // 无需注入
 
-${stubs}
-`;
+      const injectText = injectParts.join(', ') + ', ';
+      // 在 `{` 后插入(若有内容则前面加属性,后续属性在后,逗号已含)
+      const insertPos = call.optionsBraceStart + 1;
+      result = result.slice(0, insertPos) + injectText + result.slice(insertPos);
+    } else {
+      // 无 options 对象,追加新的 options 参数
+      const opts: Record<string, string> = {};
+      if (injectFilePath) opts.filePath = JSON.stringify(injectFilePath);
+      if (injectName) opts.name = JSON.stringify(injectName);
+      const optsText = `{ ${Object.entries(opts)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(', ')} }`;
+      // 在 `)` 前插入 `, optsText`
+      // 判断 `)` 前是否有参数(若有参数需加逗号)
+      const beforeEnd = result.slice(call.argStart, call.end).replace(/\s+$/, '');
+      const hasArgs = beforeEnd.length > 0;
+      const insertText = `${hasArgs ? ', ' : ''}${optsText}`;
+      result = result.slice(0, call.end) + insertText + result.slice(call.end);
+    }
+  }
+
+  return result;
 }
 
 /**
- * Vite plugin for `'use server'` directive transformation.
+ * 客户端转换:将每个 `defineAction(...)` 调用替换为
+ * `__ubean_createActionStub('<id>')`(别名 import,避免与用户代码冲突)。
  *
- * The plugin hooks into Vite's `transform` step and inspects each module.
- * Modules with a top-level `'use server'` directive are transformed:
+ * 返回转换后的代码(含注入的 import);若无 `defineAction` 调用则返回 `null`。
+ */
+export function transformActionsForClient(code: string, filePath: string, root: string): string | null {
+  if (!hasDefineActionCall(code)) return null;
+
+  const calls = findDefineActionCalls(code);
+  if (calls.length === 0) return null;
+
+  const relPath = toProjectRelative(filePath, root);
+
+  // 从后向前替换,保持索引有效
+  let result = code;
+  for (const call of calls) {
+    const id = createActionId(relPath, call.name);
+    const replacement = `__ubean_createActionStub(${JSON.stringify(id)})`;
+    result = result.slice(0, call.start) + replacement + result.slice(call.end + 1);
+  }
+
+  // 注入 import(避免重复)
+  const importStmt = `import { createActionStub as __ubean_createActionStub } from '@ubean/actions/runtime';\n`;
+  if (!result.includes("@ubean/actions/runtime'")) {
+    result = importStmt + result;
+  }
+
+  return result;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Vite 插件                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Vite 插件:Server Actions 的客户端/服务端拆分。
  *
- *  - On the server (SSR build / dev server SSR): exports are wrapped with
- *    `defineAction()` and registered in the global action registry.
- *  - On the client (browser build): exports are replaced with RPC stubs.
- *
- * The plugin is environment-aware via the `isServer` flag passed to
- * `transform()`. It also handles per-function `'use server'` directives
- * by transforming the containing function into an action.
+ *  - 服务端(SSR):注入 `filePath`/`name` 到 `defineAction()` 选项。
+ *  - 客户端(浏览器):将 `defineAction(...)` 替换为 `createActionStub('<id>')`。
  */
 export function ubeanServerActionsPlugin(options: ServerActionsPluginOptions = {}): Plugin {
   const root = options.root || (typeof process !== 'undefined' ? process.cwd() : '');
@@ -289,29 +532,24 @@ export function ubeanServerActionsPlugin(options: ServerActionsPluginOptions = {
     enforce: 'pre',
 
     transform(code, id, transformOptions) {
-      // Skip node_modules and virtual modules
+      // 跳过 node_modules 和虚拟模块
       if (id.includes('/node_modules/') || id.includes('\0')) return null;
 
-      // Only transform JS/TS files
+      // 仅转换 JS/TS 文件
       if (!/\.(ts|js|mts|mjs|tsx|jsx)$/.test(id)) return null;
 
-      // Quick scan: must contain `'use server'` directive somewhere
-      if (!PER_FUNC_DIRECTIVE_RE.test(code)) return null;
-
-      // Top-level directive → transform the whole module
-      const isWholeModule = hasUseServerDirective(code);
+      // 快速检测:必须包含 `defineAction(` 调用
+      if (!hasDefineActionCall(code)) return null;
 
       const isServer = transformOptions?.ssr === true;
 
-      if (isWholeModule) {
-        return isServer ? transformUseServerForServer(code, id, root) : transformUseServerForClient(code, id, root);
+      if (isServer) {
+        const transformed = transformActionsForServer(code, id, root);
+        return transformed ? { code: transformed } : null;
       }
 
-      // Per-function directive: not yet supported (would require AST
-      // parsing to extract individual function bodies reliably).
-      // For now, fall through and let the module load unchanged.
-      // Users should use top-level `'use server'` for now.
-      return null;
+      const transformed = transformActionsForClient(code, id, root);
+      return transformed ? { code: transformed } : null;
     }
   };
 }

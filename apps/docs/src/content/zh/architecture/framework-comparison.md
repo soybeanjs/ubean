@@ -21,9 +21,9 @@ title: Framework Comparison
 | SSG | ✅ | ✅ | ✅ | ✅ | ✅ 默认 | ✅ |
 | ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅(SWR) | ✅ P9-03(routeRules.isr + SWR) |
 | per-route 渲染规则 | ⚠️(部分) | ✅ routeRules | ❌ | ❌ | ✅ `export const prerender` | ✅ P9-03(routeRules.ssr/prerender/isr) |
-| PPR / Server Islands | ✅ 稳定 | ❌ | ❌ | ❌ | ✅ `server:defer` | ✅ P9-04(`routeRules.ppr` + `server:defer` 指令 → `<Suspense>`) |
+| PPR / Server Islands | ✅ 稳定 | ❌ | ❌ | ❌ | ✅ `server:defer` | ✅ P9-04(`routeRules.ppr` + `defineServerIsland()` 运行时包装器 → `<Suspense>`) |
 | Server Components | ✅ RSC | ✅ | ❌ | ❌ | ❌(Islands) | ❌ |
-| Server Actions | ✅ | ❌ | ✅ form actions | ✅ | ✅ Actions | ✅ P9-02(defineAction + 'use server' + form actions) |
+| Server Actions | ✅ | ❌ | ✅ form actions | ✅ | ✅ Actions | ✅ P9-02(`defineAction()` 显式包装器 + form actions) |
 | Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ P9-01 |
 | Islands | ❌ | ❌ | ❌ | ❌ | ✅ 原创 | ✅ |
 | 多框架 | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
@@ -43,7 +43,7 @@ title: Framework Comparison
 | 能力 | 各框架情况 | ubean | 差距 |
 |---|---|---|---|
 | **SSR 流式渲染** | Next/Nuxt/SvelteKit/Solid/Astro 全部支持 `renderToStream`/`pipe`/Suspense 流式 | ✅ P9-01(`renderToNodeStream` + `ReadableStream`,`SsrOptions.streaming`) | 已具备 |
-| **Partial Prerendering** | Next.js 16 已稳定（静态壳 + Suspense 流式动态）；Astro 5 `server:defer` Server Islands | ✅ P9-04(`routeRules.ppr: true` 隐含 `prerender` + 强制流式 SSR;`server:defer` 指令编译时包裹 `<Suspense>` + 提取 `#fallback`) | 已具备 |
+| **Partial Prerendering** | Next.js 16 已稳定（静态壳 + Suspense 流式动态）；Astro 5 `server:defer` Server Islands | ✅ P9-04(`routeRules.ppr: true` 隐含 `prerender` + 强制流式 SSR;`defineServerIsland()` 运行时包装器包裹 `<Suspense>` + 提供 fallback + 提取 `#fallback`) | 已具备 |
 | **ISR** | Next.js 内置；Nuxt `routeRules: { swr: 600 }`；Astro 5 实验 | ✅ P9-03(`routeRules.isr` + SWR,`peek` 保留过期项) | 已具备 |
 | **per-route 渲染规则** | Nuxt `routeRules` 可 per-route 切换 SSR/SSG/ISR/CSR + cors/headers；Astro `export const prerender = false` | ✅ P9-03(`routeRules.ssr`/`prerender`/`isr`,覆盖全局 `ssr.exclude`) | 已具备 |
 | **Server Components** | Next.js RSC 默认；Nuxt `<ServerComponent>` | ❌ | 设计差异（Vue 生态） |
@@ -55,7 +55,7 @@ ubean 渲染层差距已基本补齐:流式 SSR(P9-01)、ISR + per-route 渲染�
 
 | 能力 | 各框架情况 | ubean |
 |---|---|---|
-| **Server Actions / Form Actions** | Next.js `"use server"`；SvelteKit `actions`；SolidStart `action()`；Astro `defineAction` | ✅ P9-02(`defineAction` + `'use server'` + SvelteKit 风格 `?/name` 表单 action) |
+| **Server Actions / Form Actions** | Next.js `"use server"`；SvelteKit `actions`；SolidStart `action()`；Astro `defineAction` | ✅ P9-02(`defineAction()` 显式包装器 + SvelteKit 风格 `?/name` 表单 action) |
 | **`useFetch`/`useAsyncData` 等价** | Nuxt 全套（dedupe/refresh/payload/CSP）；SvelteKit `load` 函数 | ⚠️ `useData`/`useAsyncData` 较薄 |
 | **`defer()` 流式非关键数据** | Next.js Suspense + `defer`；SvelteKit 流式 promise | ❌ |
 | **单飞变更 (Single-flight mutations)** | SolidStart 独有，避免变更后瀑布 | ❌ |
@@ -64,7 +64,7 @@ ubean 渲染层差距已基本补齐:流式 SSR(P9-01)、ISR + per-route 渲染�
 | **Hooks (handle/handleFetch/handleError)** | SvelteKit 全局 hooks；Nuxt server plugins | ✅ `defineServer({ globalHooks })` |
 | **`after()` 响应后执行** | Next.js 16 `after()` 用于日志/分析/缓存失效不阻塞 TTFB | ❌ |
 
-ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 P9-02 补齐 **Server Actions** 范式（`defineAction` + `'use server'` 指令 + SvelteKit 风格 `?/name` 表单 action），对齐 Next/SvelteKit/Solid/Astro 共同趋势。
+ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 P9-02 补齐 **Server Actions** 范式（`defineAction()` 显式包装器 + SvelteKit 风格 `?/name` 表单 action），对齐 Next/SvelteKit/Solid/Astro 共同趋势。
 
 ### 2.3 路由
 
@@ -84,7 +84,7 @@ ubean 选择 `useData`/`depends`/`invalidate` 路线（TBD-10），并已通过 
 
 | 能力 | 各框架情况 | ubean |
 |---|---|---|
-| **组件级缓存指令** | Next.js `"use cache"` + `cacheLife()`/`cacheTag()`/`updateTag()` | ✅ P9-08(`"use cache"` 指令 + `cacheLife()`/`cacheTag()` 宏 + `wrapWithCache()` + Vite 插件 AST 转换) |
+| **组件级缓存指令** | Next.js `"use cache"` + `cacheLife()`/`cacheTag()`/`updateTag()` | ✅ P9-08(`defineCachedFunction()` 显式包装器 + `cacheLife()`/`cacheTag()` 宏;`wrapWithCache()` 保留为弃用别名;已移除的 `"use cache"` 指令 / `ubeanCacheDirectivePlugin()` / `@ubean/server/vite` 导出已删除) |
 | **fetch 自动 memo + 缓存** | Next.js Data Cache + revalidateTag/revalidatePath | ❌ |
 | **per-route 缓存规则** | Nuxt `routeRules.cache`；Astro `routeRules` | ✅ `resolveRouteCacheRules` + `routeRules.cache`(P9-03 增强) |
 | **SWR** | Nuxt `swr: 600`；Astro `swr` | ✅ CacheRule.swr + ISR SWR(P9-03,`peek` 保留过期项) |
@@ -189,7 +189,7 @@ ubean P9-10 已补齐 Vercel/Netlify/Bun/Deno 四大平台预设，均 `extends:
 - **任务**：P9-01
 
 #### 2. ✅ Server Actions / Form Actions (P9-02 已完成)
-- **现状**:`@ubean/actions` 包提供 `defineAction`(支持 schema 验证)+ `fail()`/`ActionError` 错误模型 + 全局注册表 + 稳定 action ID(`base32(sha1(filePath:exportName))`)+ `/__actions` RPC 中间件 + SvelteKit 风格 `?/<name>` 表单 action(页面模块 `export const actions` map,渐进增强)+ 客户端 `useAction`/`useFormAction`/`callAction` + `'use server'` 指令 Vite 插件(server 端 `defineAction` 包裹,client 端 RPC stub 替换)
+- **现状**:`@ubean/actions` 包提供 `defineAction`(支持 schema 验证)+ `fail()`/`ActionError` 错误模型 + 全局注册表 + 稳定 action ID(`base32(sha1(filePath:exportName))`)+ `/__actions` RPC 中间件 + SvelteKit 风格 `?/<name>` 表单 action(页面模块 `export const actions` map,渐进增强)+ 客户端 `useAction`/`useFormAction`/`callAction` + `defineAction()` 调用表达式 Vite 插件(`ubeanServerActionsPlugin` 检测 `defineAction(` 调用并注入 `filePath`/`name`;server 端注册到全局注册表,client 端替换为 RPC stub)
 - **竞品**:Next.js `"use server"`、SvelteKit `actions`、SolidStart `action()`、Astro `defineAction`
 - **任务**:P9-02 ✅
 
@@ -199,7 +199,7 @@ ubean P9-10 已补齐 Vercel/Netlify/Bun/Deno 四大平台预设，均 `extends:
 - **任务**:P9-03 ✅
 
 #### 4. ✅ Partial Prerendering / Server Islands
-- **现状**:`RouteRule` 扩展 `ppr: true` 字段(隐含 `prerender: true` + 强制流式 SSR,等价 `ssr: 'streaming'`);`route-rules` 中间件匹配 `ppr` 字段;router 对 PPR 路由强制流式输出并附加 `X-PPR: true` 响应头;`prerender` 自动发现 `ppr: true` 路由生成静态壳;`@ubean/islands` Vite 插件新增 `server:defer` 指令转换:编译时将组件包裹在 `<Suspense>` 中,提取 `#fallback` 插槽为 Suspense fallback(无 fallback 时注入 `<ubean-defer-fallback>` 占位);预渲染时仅渲染 fallback(静态壳),流式 SSR 时通过 Suspense 边界流式输出异步组件解析后的内容
+- **现状**:`RouteRule` 扩展 `ppr: true` 字段(隐含 `prerender: true` + 强制流式 SSR,等价 `ssr: 'streaming'`);`route-rules` 中间件匹配 `ppr` 字段;router 对 PPR 路由强制流式输出并附加 `X-PPR: true` 响应头;`prerender` 自动发现 `ppr: true` 路由生成静态壳;`@ubean/islands` 提供 `defineServerIsland(Component, options?)` 运行时包装器(替代已移除的 `server:defer` 编译时指令):将异步组件包裹在 `<Suspense>` 中并提供 fallback(string \| Component \| 默认 `<ubean-defer-fallback>` 占位符),设置 `inheritAttrs: false`,将 attrs 和 slots 转发给内部组件;预渲染时仅渲染 fallback(静态壳),流式 SSR 时通过 Suspense 边界流式输出异步组件解析后的内容
 - **竞品**:Next.js 16 PPR 稳定、Astro 5 `server:defer`
 - **任务**:P9-04 ✅
 
@@ -221,7 +221,7 @@ ubean P9-10 已补齐 Vercel/Netlify/Bun/Deno 四大平台预设，均 `extends:
 - **任务**:P9-07 ✅
 
 #### 8. ✅ 组件级缓存指令（`"use cache"`/`cacheLife`/`cacheTag`）
-- **现状**：`@ubean/server/cache-directive` 提供 `cacheLife(seconds)`/`cacheTag(...tags)` 宏(通过 `AsyncLocalStorage` 传递作用域) + `wrapWithCache(fn,options)` 缓存包装器 + `revalidateTag(tag)`/`revalidateTags(...)`/`revalidatePath(pattern)` 失效 API + 独立 `ComponentCacheStore`(存储 JSON 可序列化值,带标签反向索引);`@ubean/server/vite` 的 `ubeanCacheDirectivePlugin()` Vite 插件检测 `"use cache"` 指令并 AST 转换为 `wrapWithCache()` 调用;已集成到 `ubean/vite` 默认插件组合
+- **现状**：`@ubean/server/cache-directive` 提供 `cacheLife(seconds)`/`cacheTag(...tags)` 宏(通过 `AsyncLocalStorage` 传递作用域) + `defineCachedFunction(fn,options)` 显式缓存包装器(替代已移除的 `"use cache"` 字符串指令;`wrapWithCache(fn,options)` 保留为弃用别名) + `revalidateTag(tag)`/`revalidateTags(...)`/`revalidatePath(pattern)` 失效 API + 独立 `ComponentCacheStore`(存储 JSON 可序列化值,带标签反向索引);已移除的 `ubeanCacheDirectivePlugin()` Vite 插件和 `@ubean/server/vite` 导出已删除(由显式 `defineCachedFunction()` 调用替代);已集成到 `ubean/vite` 默认插件组合
 - **竞品**：Next.js 16 `"use cache"` + `cacheLife()`/`cacheTag()`/`revalidateTag()`
 - **任务**：P9-08 ✅
 
@@ -277,7 +277,7 @@ ubean 有若干竞品**没有**的差异化能力，是其核心竞争力：
 | **OpenAPI 自动生成** | `/_openapi.json` + Scalar UI，竞品均无 |
 | **零依赖 i18n** | 4 策略 + Intl + plural + linked messages，无需 vue-i18n |
 | **Better Auth + fallback** | 内置认证降级方案 |
-| **Islands 架构** | Vue 生态罕见的 Astro 式 `client:*` 指令 |
+| **Islands 架构** | `v-client.*` Vue 指令 + `defineIsland()`/`defineServerIsland()` 运行时包装器，Vue 生态罕见 |
 | **Electron 内置** | 桌面应用开箱即用 |
 | **多 provider 图片优化** | ipx/cloudinary/imgix/vercel/netlify 等 10+ |
 | **CLI 脚手架完整** | page/api/layout/middleware/cron/plugin 全套 |
@@ -291,8 +291,8 @@ ubean 有若干竞品**没有**的差异化能力，是其核心竞争力：
 
 1. **流式 SSR**（P0，解锁 PPR 前置）—— 改 `@ubean/ssr` 用 `renderToNodeStream`
 2. **per-route 渲染规则 + ISR**（P0）—— 扩展 `routeRules`
-3. **Server Actions**（P0，✅ 已完成 P9-02）—— `defineAction` + `'use server'`
-4. **PPR / Server Islands**（P0，✅ 已完成 P9-04，依赖 1+3）—— `routeRules.ppr` + `server:defer` → `<Suspense>`
+3. **Server Actions**（P0，✅ 已完成 P9-02）—— `defineAction()` 显式包装器
+4. **PPR / Server Islands**（P0，✅ 已完成 P9-04，依赖 1+3）—— `routeRules.ppr` + `defineServerIsland()` → `<Suspense>`
 5. **文件约定 SEO**（P1）—— sitemap.ts/robots.ts/opengraph-image
 6. **OG Image 生成**（P1）—— Satori 集成
 7. **JSON-LD/Schema.org**（P1）

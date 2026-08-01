@@ -274,7 +274,7 @@ export type {
 } from './single-flight';
 
 /* -------------------------------------------------------------------------- */
-/* 组件级缓存指令 (P9-08)                                                       */
+/* 组件级缓存 (P9-08)                                                          */
 /* -------------------------------------------------------------------------- */
 export {
   createComponentMemoryStore,
@@ -282,13 +282,17 @@ export {
   clearComponentCacheStore,
   cacheLife,
   cacheTag,
+  defineCachedFunction,
+  /** @deprecated 使用 `defineCachedFunction` */
   wrapWithCache,
   revalidateTag,
   revalidateTags,
   revalidatePath,
   clearComponentCache
 } from './cache-directive';
-export type { ComponentCacheEntry, ComponentCacheStore, CacheWrapOptions } from './cache-directive';
+export type { ComponentCacheEntry, ComponentCacheStore, CachedFunctionOptions } from './cache-directive';
+/** @deprecated 使用 `CachedFunctionOptions` */
+export type { CacheWrapOptions } from './cache-directive';
 
 /* -------------------------------------------------------------------------- */
 /* Analytics (P9-27)                                                          */

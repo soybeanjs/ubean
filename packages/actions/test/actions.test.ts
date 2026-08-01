@@ -35,10 +35,10 @@ import {
   parseActionInput
 } from '../src/index';
 import {
-  hasUseServerDirective,
-  extractExportNames,
-  transformUseServerForServer,
-  transformUseServerForClient,
+  hasDefineActionCall,
+  findDefineActionCalls,
+  transformActionsForServer,
+  transformActionsForClient,
   ubeanServerActionsPlugin
 } from '../src/vite';
 
@@ -493,103 +493,273 @@ describe('form action URL parsing', () => {
 });
 
 /* -------------------------------------------------------------------------- */
-/* Vite plugin: directive detection & transformation                          */
+/* Vite plugin: defineAction() call detection & transformation                */
 /* -------------------------------------------------------------------------- */
 
-describe('vite plugin: use server directive', () => {
-  it('detects top-level "use server" directive', () => {
-    expect(hasUseServerDirective('"use server";\nexport const x = 1;')).toBe(true);
-    expect(hasUseServerDirective("'use server';\nexport const x = 1;")).toBe(true);
-    expect(hasUseServerDirective('// comment\n"use server";\nexport const x = 1;')).toBe(true);
-    expect(hasUseServerDirective('export const x = 1;')).toBe(false);
+describe('vite plugin: defineAction call detection', () => {
+  it('detects defineAction calls', () => {
+    expect(hasDefineActionCall('export const x = defineAction(async () => 1);')).toBe(true);
+    expect(hasDefineActionCall('const y = defineAction(schema, handler, {});')).toBe(true);
+    expect(hasDefineActionCall('export const x = 1;')).toBe(false);
   });
 
-  it('extracts export names from a module', () => {
-    const code = `
-      export async function login() {}
-      export const logout = async () => {}
-      export function helper() {}
-      const _private = 1;
-      export { _private as internal };
-    `;
-    const names = extractExportNames(code);
-    expect(names).toContain('login');
-    expect(names).toContain('logout');
-    expect(names).toContain('helper');
-    expect(names).toContain('internal');
-    expect(names).toContain('_private');
+  it('does not match identifiers containing defineAction as substring', () => {
+    expect(hasDefineActionCall('const myDefineActionCall = 1;')).toBe(false);
   });
 
-  it('transforms a "use server" module for the server side', () => {
-    const code = `"use server";
-export async function ping(input) {
-  return { pong: input };
+  it('infers name from variable assignment', () => {
+    const code = `export const login = defineAction(async () => 1);`;
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe('login');
+  });
+
+  it('infers name from object property', () => {
+    const code = `export const actions = {
+  login: defineAction(async () => 1),
+  register: defineAction(async () => 2)
+};`;
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(2);
+    const names = calls.map(c => c.name).sort();
+    expect(names).toEqual(['login', 'register']);
+  });
+
+  it('uses name from options object when present', () => {
+    const code = `export const x = defineAction(async () => 1, { name: 'custom' });`;
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe('custom');
+  });
+
+  it('falls back to anonymous when no name inferable', () => {
+    const code = `defineAction(async () => 1);`;
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe('anonymous');
+  });
+
+  it('detects options object presence', () => {
+    const code = `export const x = defineAction(async () => 1, { name: 'x', filePath: 'f.ts' });`;
+    const calls = findDefineActionCalls(code);
+    expect(calls[0].hasOptionsObject).toBe(true);
+    expect(calls[0].optionsHasName).toBe(true);
+    expect(calls[0].optionsHasFilePath).toBe(true);
+  });
+
+  it('detects absence of options object', () => {
+    const code = `export const x = defineAction(async () => 1);`;
+    const calls = findDefineActionCalls(code);
+    expect(calls[0].hasOptionsObject).toBe(false);
+    expect(calls[0].optionsHasName).toBe(false);
+    expect(calls[0].optionsHasFilePath).toBe(false);
+  });
+
+  it('skips function declarations (function defineAction(...))', () => {
+    const code = `function defineAction(schemaOrHandler, handlerOrOptions, options) {
+  let schema;
+  let handler;
+  return { id: 'x' };
 }`;
-    const transformed = transformUseServerForServer(code, 'src/actions/ping.ts', '/root');
-    expect(transformed).toContain('import { defineAction }');
-    expect(transformed).toContain('__ubean_action_ping');
-    expect(transformed).toContain('export { __ubean_action_ping as ping }');
-    // The original 'use server' directive should be stripped
-    expect(transformed.startsWith('"use server"')).toBe(false);
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(0);
   });
 
-  it('transforms a "use server" module for the client side', () => {
-    const code = `"use server";
-export async function ping(input) {
-  return { pong: input };
+  it('skips exported function declarations', () => {
+    const code = `export function defineAction(handler, options) {
+  return { id: 'x' };
 }`;
-    const transformed = transformUseServerForClient(code, 'src/actions/ping.ts', '/root');
-    expect(transformed).toContain('callAction');
-    expect(transformed).toContain('__ubean_callAction');
-    expect(transformed).toContain('export function ping(...args)');
-    // The original implementation should be stripped
-    expect(transformed).not.toContain('pong');
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('skips defineAction( inside JSDoc block comments', () => {
+    const code = `/**
+ * export const login = defineAction(
+ *   z.object({ email: z.string() }),
+ *   async (data) => data
+ * );
+ */
+export const ping = defineAction(async () => 1);`;
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe('ping');
+  });
+
+  it('skips defineAction( inside line comments', () => {
+    const code = `// const x = defineAction(async () => 1);
+export const real = defineAction(async () => 2);`;
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe('real');
+  });
+
+  it('skips defineAction( inside string literals', () => {
+    const code = `const msg = "use defineAction() to create actions";
+export const real = defineAction(async () => 1);`;
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].name).toBe('real');
+  });
+
+  it('handles dist file scenario: function definition + JSDoc (no calls)', () => {
+    // Simulates the compiled dist output of @ubean/actions
+    const code = `/**
+ * export const login = defineAction(
+ *   z.object({ email: z.string() }),
+ *   async (data) => data
+ * );
+ */
+function defineAction(schemaOrHandler, handlerOrOptions, options) {
+  let schema;
+  let handler;
+  let opts = {};
+  if (typeof schemaOrHandler === "function") {
+    handler = schemaOrHandler;
+  } else {
+    schema = schemaOrHandler;
+    handler = handlerOrOptions;
+  }
+  return { id: 'x', handler, schema };
+}`;
+    const calls = findDefineActionCalls(code);
+    expect(calls).toHaveLength(0);
+    // transformActionsForServer should return null (no transformation needed)
+    expect(transformActionsForServer(code, '/root/packages/actions/dist/src.js', '/root')).toBeNull();
+  });
+});
+
+describe('vite plugin: server transform', () => {
+  it('injects filePath and name when no options', () => {
+    const code = `export const ping = defineAction(async (input) => input);`;
+    const result = transformActionsForServer(code, '/root/src/actions/ping.ts', '/root');
+    expect(result).not.toBeNull();
+    expect(result!).toContain('filePath:');
+    expect(result!).toContain('src/actions/ping.ts');
+    expect(result!).toContain('name:');
+    expect(result!).toContain('"ping"');
+  });
+
+  it('injects only filePath when options already has name', () => {
+    const code = `export const ping = defineAction(async () => 1, { name: 'custom' });`;
+    const result = transformActionsForServer(code, '/root/src/actions/ping.ts', '/root');
+    expect(result).not.toBeNull();
+    expect(result!).toContain('filePath:');
+    expect(result!).toContain('src/actions/ping.ts');
+    // Should not inject a second name (user already has one)
+    const nameMatches = result!.match(/\bname\s*:/g) || [];
+    expect(nameMatches.length).toBe(1);
+  });
+
+  it('injects into existing options object', () => {
+    const code = `export const ping = defineAction(async () => 1, { id: 'custom-id' });`;
+    const result = transformActionsForServer(code, '/root/src/actions/ping.ts', '/root');
+    expect(result).not.toBeNull();
+    expect(result!).toContain('filePath:');
+    expect(result!).toContain('id:');
+    expect(result!).toContain('name:');
+  });
+
+  it('returns null when no defineAction calls', () => {
+    expect(transformActionsForServer('export const x = 1;', '/root/src/test.ts', '/root')).toBeNull();
+  });
+
+  it('handles schema overload (3 args)', () => {
+    const code = `export const login = defineAction(schema, async (data) => data, { name: 'login' });`;
+    const result = transformActionsForServer(code, '/root/src/actions/auth.ts', '/root');
+    expect(result).not.toBeNull();
+    expect(result!).toContain('filePath:');
+    expect(result!).toContain('src/actions/auth.ts');
+  });
+});
+
+describe('vite plugin: client transform', () => {
+  it('replaces defineAction with createActionStub', () => {
+    const code = `export const ping = defineAction(async (input) => input);`;
+    const result = transformActionsForClient(code, '/root/src/actions/ping.ts', '/root');
+    expect(result).not.toBeNull();
+    expect(result!).toContain('__ubean_createActionStub');
+    expect(result!).toContain("import { createActionStub as __ubean_createActionStub } from '@ubean/actions/runtime'");
+    // Original handler should be stripped (replaced by stub)
+    expect(result!).not.toContain('async (input)');
   });
 
   it('produces matching IDs for server and client transforms', () => {
-    const code = `"use server";
-export async function greet(name) { return 'hi ' + name; }`;
-    const serverCode = transformUseServerForServer(code, 'src/actions/greet.ts', '/root');
-    const clientCode = transformUseServerForClient(code, 'src/actions/greet.ts', '/root');
-    // Extract the action ID from both transforms — they must match.
-    // Both transforms use JSON.stringify() → double-quoted strings.
-    const serverIdMatch = serverCode.match(/"act_[a-z2-7]{12}"/);
-    const clientIdMatch = clientCode.match(/"act_[a-z2-7]{12}"/);
-    expect(serverIdMatch).not.toBeNull();
+    const code = `export const greet = defineAction(async (name) => 'hi ' + name);`;
+    const serverCode = transformActionsForServer(code, '/root/src/actions/greet.ts', '/root');
+    const clientCode = transformActionsForClient(code, '/root/src/actions/greet.ts', '/root');
+    // Server injects filePath/name; client uses createActionStub with computed id.
+    // The server's defineAction computes the id internally from filePath+name.
+    // The client's stub call contains the literal id string.
+    // Extract the id from the client stub:
+    const clientIdMatch = clientCode!.match(/"act_[a-z2-7]{12}"/);
     expect(clientIdMatch).not.toBeNull();
-    expect(serverIdMatch![0]).toBe(clientIdMatch![0]);
+    // The server code should reference the same filePath and name so that
+    // createActionId(filePath, name) === clientId.
+    expect(serverCode).toContain('src/actions/greet.ts');
+    expect(serverCode).toContain('"greet"');
   });
 
-  it('vite plugin skips node_modules and virtual modules', () => {
-    const plugin = ubeanServerActionsPlugin({ root: '/root' });
-    const result = plugin.transform!('export const x = 1', '/root/node_modules/pkg/index.ts', {});
-    expect(result).toBeNull();
-  });
-
-  it('vite plugin skips files without "use server" directive', () => {
-    const plugin = ubeanServerActionsPlugin({ root: '/root' });
-    const result = plugin.transform!('export const x = 1;', '/root/src/utils.ts', { ssr: true });
-    expect(result).toBeNull();
-  });
-
-  it('vite plugin transforms "use server" modules on the server', () => {
-    const plugin = ubeanServerActionsPlugin({ root: '/root' });
-    const code = `"use server";
-export async function ping() { return 'pong'; }`;
-    const result = plugin.transform!(code, '/root/src/actions/ping.ts', { ssr: true });
+  it('replaces multiple defineAction calls', () => {
+    const code = `export const a = defineAction(async () => 1);
+export const b = defineAction(async () => 2);`;
+    const result = transformActionsForClient(code, '/root/src/actions/multi.ts', '/root');
     expect(result).not.toBeNull();
-    // Vite transform may return a string or { code, map }
-    const out = typeof result === 'string' ? result : (result as { code: string }).code;
-    expect(out).toContain('defineAction');
+    const stubCount = (result!.match(/__ubean_createActionStub\(/g) || []).length;
+    expect(stubCount).toBe(2);
   });
 
-  it('vite plugin transforms "use server" modules on the client', () => {
+  it('returns null when no defineAction calls', () => {
+    expect(transformActionsForClient('export const x = 1;', '/root/src/test.ts', '/root')).toBeNull();
+  });
+});
+
+describe('vite plugin: plugin instance', () => {
+  it('returns a Vite plugin with correct name', () => {
     const plugin = ubeanServerActionsPlugin({ root: '/root' });
-    const code = `"use server";
-export async function ping() { return 'pong'; }`;
-    const result = plugin.transform!(code, '/root/src/actions/ping.ts', { ssr: false });
+    expect(plugin.name).toBe('ubean:server-actions');
+    expect(plugin.enforce).toBe('pre');
+  });
+
+  it('skips node_modules and virtual modules', () => {
+    const plugin = ubeanServerActionsPlugin({ root: '/root' });
+    const code = `export const x = defineAction(async () => 1);`;
+    const transform = plugin.transform as Function;
+    expect(transform.call(plugin, code, '/root/node_modules/pkg/index.ts', { ssr: true })).toBeNull();
+    expect(transform.call(plugin, code, '\0virtual:ubean', { ssr: true })).toBeNull();
+  });
+
+  it('skips files without defineAction calls', () => {
+    const plugin = ubeanServerActionsPlugin({ root: '/root' });
+    const transform = plugin.transform as Function;
+    expect(transform.call(plugin, 'export const x = 1;', '/root/src/utils.ts', { ssr: true })).toBeNull();
+  });
+
+  it('skips non-JS/TS files', () => {
+    const plugin = ubeanServerActionsPlugin({ root: '/root' });
+    const code = `export const x = defineAction(async () => 1);`;
+    const transform = plugin.transform as Function;
+    expect(transform.call(plugin, code, '/root/src/style.css', { ssr: true })).toBeNull();
+  });
+
+  it('transforms on the server (injects filePath)', () => {
+    const plugin = ubeanServerActionsPlugin({ root: '/root' });
+    const code = `export const ping = defineAction(async () => 'pong');`;
+    const transform = plugin.transform as Function;
+    const result = transform.call(plugin, code, '/root/src/actions/ping.ts', { ssr: true });
     expect(result).not.toBeNull();
     const out = typeof result === 'string' ? result : (result as { code: string }).code;
-    expect(out).toContain('callAction');
+    expect(out).toContain('filePath:');
+    expect(out).toContain('defineAction'); // original call preserved
+  });
+
+  it('transforms on the client (replaces with stub)', () => {
+    const plugin = ubeanServerActionsPlugin({ root: '/root' });
+    const code = `export const ping = defineAction(async () => 'pong');`;
+    const transform = plugin.transform as Function;
+    const result = transform.call(plugin, code, '/root/src/actions/ping.ts', { ssr: false });
+    expect(result).not.toBeNull();
+    const out = typeof result === 'string' ? result : (result as { code: string }).code;
+    expect(out).toContain('__ubean_createActionStub');
   });
 });

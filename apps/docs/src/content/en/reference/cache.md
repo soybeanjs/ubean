@@ -107,6 +107,55 @@ Cacheability is enforced automatically:
 - Requests with cookies are cached only if `Cache-Control: public` is sent
 - Responses with `set-cookie` or non-200 status are never stored
 
+## defineCachedFunction()
+
+Wrap an arbitrary function with caching. This is the explicit, function-call replacement for the removed `"use cache"` string directive. Useful for memoizing expensive computations (DB queries, remote fetches, derived data) with TTL- and tag-based invalidation.
+
+```typescript
+import { defineCachedFunction } from 'ubean';
+
+// Wrap a function with a 60s TTL and tags for targeted invalidation
+export const getUserProfile = defineCachedFunction(
+  async (userId: string) => {
+    const user = await db.query.users.findById(userId);
+    return user;
+  },
+  { ttl: 60, tags: (userId) => [`user:${userId}`] }
+);
+
+// Invalidate by tag (or pattern) from a mutation handler
+import { revalidateTag } from 'ubean';
+await revalidateTag('user:42');
+```
+
+| Option  | Type                          | Description                                                       |
+| ------- | ----------------------------- | ----------------------------------------------------------------- |
+| ttl     | number                        | Cache TTL in seconds (0 disables caching)                         |
+| tags    | string[] \| (...args) => string[] | Tags attached to the entry for tag-based invalidation         |
+| name    | string                        | Explicit cache key (defaults to function name + serialized args) |
+
+> **Deprecated alias**: `wrapWithCache(fn, options)` is kept as a deprecated alias for `defineCachedFunction()`. Prefer `defineCachedFunction()` in new code.
+
+### Migration from legacy syntax
+
+The `"use cache"` string directive and its `ubeanCacheDirectivePlugin` Vite plugin (previously exported from `@ubean/server/vite`) have been **removed**. Migrate to the explicit `defineCachedFunction()` wrapper:
+
+```typescript
+// Before (removed): "use cache" string directive
+async function getUserProfile(userId: string) {
+  'use cache';
+  return await db.query.users.findById(userId);
+}
+
+// After: explicit defineCachedFunction() wrapper
+export const getUserProfile = defineCachedFunction(
+  async (userId: string) => db.query.users.findById(userId),
+  { ttl: 60 }
+);
+```
+
+The `cacheLife(seconds)` / `cacheTag(...tags)` macros and the `revalidateTag()` / `revalidateTags()` / `revalidatePath()` invalidation APIs are unchanged.
+
 ## invalidateRouteCache()
 
 Invalidate cached entries by key, pattern, or clear all.

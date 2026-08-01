@@ -1,13 +1,16 @@
 import { describe, it, expect } from 'vitest';
+import { h, defineComponent, Suspense } from 'vue';
+import { renderToString } from 'vue/server-renderer';
 import {
   parseScriptImports,
   scanIslandDirectiveNames,
   resolveIslandImportPath,
   collectIslandComponents,
   generateRegistryModule,
-  transformVueSfcIslands,
-  SERVER_DEFER_DIRECTIVE
+  transformVueSfcIslands
 } from '../src/vite';
+import { defineServerIsland, defineIsland } from '../src/runtime';
+import type { ServerIslandOptions, IslandStrategy, IslandOptions } from '../src/runtime';
 import type { IslandComponentEntry, IslandComponentMap } from '../src/vite';
 
 describe('parseScriptImports', () => {
@@ -73,34 +76,34 @@ describe('parseScriptImports', () => {
 
 describe('scanIslandDirectiveNames', () => {
   it('finds self-closing island tags', () => {
-    const template = `<IslandCounter client:load />`;
+    const template = `<IslandCounter v-client.load />`;
     expect(scanIslandDirectiveNames(template)).toEqual(new Set(['IslandCounter']));
   });
 
   it('finds non-self-closing island tags', () => {
-    const template = `<IslandCounter client:load></IslandCounter>`;
+    const template = `<IslandCounter v-client.load></IslandCounter>`;
     expect(scanIslandDirectiveNames(template)).toEqual(new Set(['IslandCounter']));
   });
 
   it('finds multiple different island components', () => {
     const template = `
-      <IslandCounter client:load />
-      <IslandClock client:idle />
-      <IslandMedia client:media="(min-width: 768px)" />
+      <IslandCounter v-client.load />
+      <IslandClock v-client.idle />
+      <IslandMedia v-client.media="'(min-width: 768px)'" />
     `;
     expect(scanIslandDirectiveNames(template)).toEqual(new Set(['IslandCounter', 'IslandClock', 'IslandMedia']));
   });
 
   it('deduplicates same component used with different directives', () => {
     const template = `
-      <Foo client:load />
-      <Foo client:idle />
+      <Foo v-client.load />
+      <Foo v-client.idle />
     `;
     expect(scanIslandDirectiveNames(template)).toEqual(new Set(['Foo']));
   });
 
   it('ignores lowercase HTML tags', () => {
-    const template = `<div client:load></div>`;
+    const template = `<div v-client.load></div>`;
     expect(scanIslandDirectiveNames(template).size).toBe(0);
   });
 
@@ -109,10 +112,15 @@ describe('scanIslandDirectiveNames', () => {
     expect(scanIslandDirectiveNames(template).size).toBe(0);
   });
 
+  it('does not detect components with legacy client:* syntax (Phase 4: removed)', () => {
+    const template = `<OldComp client:load />`;
+    expect(scanIslandDirectiveNames(template).size).toBe(0);
+  });
+
   it('handles nested islands', () => {
     const template = `
-      <Outer client:load>
-        <Inner client:visible />
+      <Outer v-client.load>
+        <Inner v-client.visible />
       </Outer>
     `;
     expect(scanIslandDirectiveNames(template)).toEqual(new Set(['Outer', 'Inner']));
@@ -161,8 +169,8 @@ import IslandMedia from '../components/IslandMedia.vue';
 
 <template>
   <div>
-    <IslandCounter client:load />
-    <IslandMedia client:media="(min-width: 768px)" />
+    <IslandCounter v-client.load />
+    <IslandMedia v-client.media="'(min-width: 768px)'" />
   </div>
 </template>
     `;
@@ -195,7 +203,7 @@ import Foo from './Foo.vue';
 import IslandCounter from './IslandCounter.vue';
 export default { components: { IslandCounter } };
 </script>
-<template><IslandCounter client:load /></template>
+<template><IslandCounter v-client.load /></template>
     `;
     const entries = collectIslandComponents(sfc, '/src/pages/test.vue');
     expect(entries).toHaveLength(1);
@@ -212,9 +220,9 @@ export default { components: { IslandCounter } };
 // No import for GloballyRegistered
 </script>
 <template>
-  <GloballyRegistered client:load />
-  <IslandCounter client:load />
-  <IslandCounter2 client:idle />
+  <GloballyRegistered v-client.load />
+  <IslandCounter v-client.load />
+  <IslandCounter2 v-client.idle />
 </template>
     `;
     // Note: GloballyRegistered has no import → should be skipped with warning
@@ -232,13 +240,26 @@ export default { components: { IslandCounter } };
 import Foo from './Foo.vue';
 </script>
 <template>
-  <Foo client:load />
-  <Foo client:idle />
+  <Foo v-client.load />
+  <Foo v-client.idle />
 </template>
     `;
     const entries = collectIslandComponents(sfc, '/src/pages/test.vue');
     expect(entries).toHaveLength(1);
     expect(entries[0].name).toBe('Foo');
+  });
+
+  it('does not collect components using legacy client:* syntax (Phase 4: removed)', () => {
+    const sfc = `
+<script setup lang="ts">
+import Foo from './Foo.vue';
+</script>
+<template>
+  <Foo client:load />
+</template>
+    `;
+    const entries = collectIslandComponents(sfc, '/src/pages/test.vue');
+    expect(entries).toEqual([]);
   });
 });
 
@@ -315,7 +336,7 @@ describe('transformVueSfcIslands (integration with collection)', () => {
     const sfc = `
 <template>
   <div>
-    <IslandCounter client:load />
+    <IslandCounter v-client.load />
   </div>
 </template>
     `;
@@ -327,132 +348,165 @@ describe('transformVueSfcIslands (integration with collection)', () => {
   });
 });
 
-describe('P9-04: server:defer directive transform', () => {
-  it('wraps a self-closing server:defer component in <Suspense>', () => {
+describe('P9-04: defineServerIsland runtime (replaces server:defer directive)', () => {
+  /**
+   * 用 SSR `renderToString` 渲染组件并返回 HTML 字符串。
+   *
+   * 同步组件会立即解析,Suspense 不会进入 fallback 分支,因此对 fallback
+   * 行为的断言通过手动调用 wrapper setup 的 render 函数来验证(见
+   * `getWrapperVdom` 辅助函数)。
+   */
+  async function renderHtml(Comp: any, props?: any, slots?: any): Promise<string> {
+    const Root = defineComponent({
+      setup() {
+        return () => h(Comp, props, slots);
+      }
+    });
+    return renderToString(h(Root));
+  }
+
+  /**
+   * 直接调用 wrapper 组件的 setup 函数,获取其 render 函数,再调用 render
+   * 函数得到 vdom。这样可以断言 Suspense 的 slot 结构(default + fallback)。
+   */
+  function getWrapperVdom(Wrapped: any, ctxOverrides: Record<string, unknown> = {}) {
+    const setupFn = Wrapped.setup;
+    const slots = (ctxOverrides.slots as any) ?? {};
+    const attrs = (ctxOverrides.attrs as any) ?? {};
+    const renderFn = setupFn({}, { slots, attrs, emit: () => {}, expose: () => {} });
+    return renderFn();
+  }
+
+  it('returns a Vue component (object with setup)', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'hi') });
+    const Wrapped = defineServerIsland(Inner);
+    expect(typeof Wrapped).toBe('object');
+    expect(Wrapped).toHaveProperty('setup');
+  });
+
+  it('wraps the inner component in a <Suspense> boundary', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineServerIsland(Inner) as any;
+    const vdom = getWrapperVdom(Wrapped);
+    expect(vdom.type).toBe(Suspense);
+    expect(vdom.children).toHaveProperty('default');
+    expect(vdom.children).toHaveProperty('fallback');
+  });
+
+  it('uses default <ubean-defer-fallback> placeholder when no fallback provided', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineServerIsland(Inner) as any;
+    const vdom = getWrapperVdom(Wrapped);
+    expect(vdom.type).toBe(Suspense);
+    const fallbackVnode = vdom.children.fallback();
+    // Default fallback renders `h('ubean-defer-fallback')` → vnode with type 'ubean-defer-fallback'
+    expect(fallbackVnode.type).toBe('ubean-defer-fallback');
+  });
+
+  it('accepts a string fallback (rendered as static text)', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineServerIsland(Inner, { fallback: 'Loading dashboard...' } as ServerIslandOptions) as any;
+    const vdom = getWrapperVdom(Wrapped);
+    const fallbackVnode = vdom.children.fallback();
+    // String fallback returns the string directly (Vue renders as text node)
+    expect(fallbackVnode).toBe('Loading dashboard...');
+  });
+
+  it('accepts a Vue component fallback (rendered as vnode)', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Fallback = defineComponent({
+      name: 'Fallback',
+      setup: () => () => h('div', { class: 'spinner' }, 'Loading...')
+    });
+    const Wrapped = defineServerIsland(Inner, { fallback: Fallback }) as any;
+    const vdom = getWrapperVdom(Wrapped);
+    const fallbackVnode = vdom.children.fallback();
+    // Component fallback wraps the component in a vnode
+    expect(fallbackVnode.type).toBe(Fallback);
+  });
+
+  it('forwards attrs (props) to the inner component', () => {
+    const Inner = defineComponent({
+      name: 'Inner',
+      props: { userId: { type: Number, default: 0 } },
+      setup(props) {
+        return () => h('div', `userId=${props.userId}`);
+      }
+    });
+    const Wrapped = defineServerIsland(Inner) as any;
+    const vdom = getWrapperVdom(Wrapped, { attrs: { userId: 123 } });
+    expect(vdom.type).toBe(Suspense);
+    const defaultVnode = vdom.children.default();
+    expect(defaultVnode.type).toBe(Inner);
+    expect(defaultVnode.props).toMatchObject({ userId: 123 });
+  });
+
+  it('forwards slots to the inner component', () => {
+    const Inner = defineComponent({
+      name: 'Inner',
+      setup(_, { slots }) {
+        return () => h('div', slots.default?.());
+      }
+    });
+    const SlotContent = defineComponent({
+      name: 'SlotContent',
+      setup: () => () => h('span', 'slot-content')
+    });
+    const Wrapped = defineServerIsland(Inner) as any;
+    const vdom = getWrapperVdom(Wrapped, {
+      slots: { default: () => h(SlotContent) }
+    });
+    const defaultVnode = vdom.children.default();
+    expect(defaultVnode.type).toBe(Inner);
+    // The Inner vnode should have received the default slot
+    expect(defaultVnode.children).toBeTruthy();
+    expect(defaultVnode.children).toHaveProperty('default');
+  });
+
+  it('renders the inner component content via SSR (sync component resolves immediately)', async () => {
+    const Inner = defineComponent({
+      name: 'Inner',
+      setup: () => () => h('div', { class: 'inner' }, 'rendered-content')
+    });
+    const Wrapped = defineServerIsland(Inner);
+    const html = await renderHtml(Wrapped);
+    // Inner content is rendered inside the Suspense boundary
+    expect(html).toContain('class="inner"');
+    expect(html).toContain('rendered-content');
+    // No fallback placeholder is emitted (sync component resolves immediately)
+    expect(html).not.toContain('ubean-defer-fallback');
+  });
+
+  it('sets inheritAttrs: false so attrs are not duplicated on root', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineServerIsland(Inner) as any;
+    expect(Wrapped.inheritAttrs).toBe(false);
+  });
+
+  it('names the wrapper component "ServerIsland"', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineServerIsland(Inner) as any;
+    expect(Wrapped.name).toBe('ServerIsland');
+  });
+});
+
+describe('transformVueSfcIslands: server:defer is no longer transformed (Phase 3)', () => {
+  // After Phase 3 refactor, `server:defer` is removed entirely.
+  // Users migrate to `defineServerIsland()` runtime wrapper.
+
+  it('returns code unchanged when only server:defer is present (no v-client.* directive)', () => {
     const sfc = `<template><SlowComp server:defer /></template>`;
     const result = transformVueSfcIslands(sfc, 'test.vue');
-    // The component is wrapped in <Suspense> with a default fallback
-    expect(result.code).toContain('<Suspense>');
-    expect(result.code).toContain('</Suspense>');
-    // Default fallback placeholder
-    expect(result.code).toContain('<ubean-defer-fallback');
-    expect(result.code).toContain('data-component="SlowComp"');
-    // The `server:defer` attribute is stripped from the component tag
-    expect(result.code).not.toContain('server:defer');
-    // The original component tag is preserved inside the Suspense
-    expect(result.code).toContain('<SlowComp');
-    // No client island registration happens for server:defer
-    expect(result.code).not.toContain('<ubean-island');
-    // islandCount stays 0 (server:defer is not a client island)
+    // No transform applied — `server:defer` is treated as a regular attribute
     expect(result.islandCount).toBe(0);
-  });
-
-  it('wraps a non-self-closing server:defer component', () => {
-    const sfc = `<template><SlowComp server:defer></SlowComp></template>`;
-    const result = transformVueSfcIslands(sfc, 'test.vue');
-    expect(result.code).toContain('<Suspense>');
-    expect(result.code).toContain('<SlowComp');
-    expect(result.code).toContain('</SlowComp>');
-    expect(result.code).toContain('</Suspense>');
-  });
-
-  it('extracts inline #fallback slot to the Suspense wrapper', () => {
-    const sfc = `<template>
-  <Dashboard server:defer>
-    <template #fallback>Loading dashboard...</template>
-    <Stats />
-  </Dashboard>
-</template>`;
-    const result = transformVueSfcIslands(sfc, 'test.vue');
-    // Suspense wraps the component
-    expect(result.code).toContain('<Suspense>');
-    // The fallback slot content is moved to the Suspense #fallback slot
-    expect(result.code).toContain('Loading dashboard...');
-    // The <template #fallback> is no longer inside the Dashboard component
-    const dashboardInner = result.code.match(/<Dashboard[^>]*>([\s\S]*?)<\/Dashboard>/)?.[1] ?? '';
-    expect(dashboardInner).not.toContain('#fallback');
-    expect(dashboardInner).not.toContain('Loading dashboard...');
-    // The default content (<Stats />) stays inside Dashboard
-    expect(dashboardInner).toContain('<Stats');
-    // No default placeholder since inline fallback was provided
-    expect(result.code).not.toContain('<ubean-defer-fallback');
-  });
-
-  it('uses default fallback when no inline #fallback slot provided', () => {
-    const sfc = `<template><SlowComp server:defer /></template>`;
-    const result = transformVueSfcIslands(sfc, 'test.vue');
-    expect(result.code).toContain('<ubean-defer-fallback');
-    expect(result.code).toContain('data-component="SlowComp"');
-  });
-
-  it('preserves other props and attributes on the deferred component', () => {
-    const sfc = `<template><SlowComp server:defer class="my-class" id="s1" /></template>`;
-    const result = transformVueSfcIslands(sfc, 'test.vue');
-    // The component still has its other attributes (server:defer is stripped)
-    expect(result.code).toContain('class="my-class"');
-    expect(result.code).toContain('id="s1"');
-    expect(result.code).not.toContain('server:defer');
-  });
-
-  it('handles multiple server:defer components in the same template', () => {
-    const sfc = `<template>
-  <div>
-    <CompA server:defer />
-    <CompB server:defer />
-  </div>
-</template>`;
-    const result = transformVueSfcIslands(sfc, 'test.vue');
-    // Two Suspense wrappers
-    const suspenseCount = (result.code.match(/<Suspense>/g) || []).length;
-    expect(suspenseCount).toBe(2);
-    // Both components wrapped
-    expect(result.code).toContain('data-component="CompA"');
-    expect(result.code).toContain('data-component="CompB"');
-  });
-
-  it('handles nested server:defer components', () => {
-    const sfc = `<template>
-  <Outer server:defer>
-    <Inner server:defer />
-  </Outer>
-</template>`;
-    const result = transformVueSfcIslands(sfc, 'test.vue');
-    // Outer is wrapped in Suspense
-    expect(result.code).toContain('<Suspense>');
-    // Inner is also wrapped (nested transform)
-    const suspenseCount = (result.code.match(/<Suspense>/g) || []).length;
-    expect(suspenseCount).toBe(2);
-  });
-
-  it('coexists with client:* directives in the same template', () => {
-    const sfc = `<template>
-  <div>
-    <ClientIsland client:load />
-    <ServerDeferred server:defer />
-  </div>
-</template>`;
-    const result = transformVueSfcIslands(sfc, 'test.vue');
-    // Client island is converted to <ubean-island>
-    expect(result.code).toContain('<ubean-island');
-    expect(result.code).toContain('data-component="ClientIsland"');
-    expect(result.code).toContain('data-directive="client:load"');
-    // Server deferred is wrapped in <Suspense>
-    expect(result.code).toContain('<Suspense>');
-    expect(result.code).toContain('data-component="ServerDeferred"');
-    // islandCount counts only client islands
-    expect(result.islandCount).toBe(1);
+    expect(result.code).toBe(sfc);
   });
 
   it('does not register server:defer components in the client island registry', () => {
-    // collectIslandComponents should not pick up server:defer (only client:*)
     const sfc = `<script setup>import SlowComp from './SlowComp.vue';</script>
 <template><SlowComp server:defer /></template>`;
     const entries = collectIslandComponents(sfc, '/src/pages/test.vue');
     expect(entries).toHaveLength(0);
-  });
-
-  it('exports SERVER_DEFER_DIRECTIVE constant', () => {
-    expect(SERVER_DEFER_DIRECTIVE).toBe('server:defer');
   });
 
   it('returns empty when template has no directives', () => {
@@ -461,11 +515,139 @@ describe('P9-04: server:defer directive transform', () => {
     expect(result.islandCount).toBe(0);
     expect(result.code).toBe(sfc);
   });
+});
 
-  it('preserves template attributes (e.g. lang)', () => {
-    const sfc = `<template lang="ts"><SlowComp server:defer /></template>`;
-    const result = transformVueSfcIslands(sfc, 'test.vue');
-    expect(result.code).toContain('<template lang="ts">');
-    expect(result.code).toContain('<Suspense>');
+describe('Phase 4: defineIsland runtime (programmatic alternative to v-client.*)', () => {
+  /**
+   * 直接调用 wrapper 组件的 setup 函数,获取其 render 函数,再调用 render
+   * 函数得到 vdom。这样可以断言 `<ubean-island>` 元素的属性结构。
+   */
+  function getWrapperVdom(Wrapped: any, ctxOverrides: Record<string, unknown> = {}) {
+    const setupFn = Wrapped.setup;
+    const slots = (ctxOverrides.slots as any) ?? {};
+    const attrs = (ctxOverrides.attrs as any) ?? {};
+    const renderFn = setupFn({}, { slots, attrs, emit: () => {}, expose: () => {} });
+    return renderFn();
+  }
+
+  it('returns a Vue component (object with setup)', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'hi') });
+    const Wrapped = defineIsland(Inner, 'load');
+    expect(typeof Wrapped).toBe('object');
+    expect(Wrapped).toHaveProperty('setup');
+  });
+
+  it('renders a <ubean-island> element with data-directive="client:load"', () => {
+    const Inner = defineComponent({ name: 'Counter', setup: () => () => h('div', 'count') });
+    const Wrapped = defineIsland(Inner, 'load') as any;
+    const vdom = getWrapperVdom(Wrapped);
+    expect(vdom.type).toBe('ubean-island');
+    expect(vdom.props['data-directive']).toBe('client:load');
+    expect(vdom.props['data-component']).toBe('Counter');
+    expect(vdom.props['data-island-id']).toBe('island-runtime-load');
+  });
+
+  it('renders correct data-directive for each strategy', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'x') });
+    const strategies: IslandStrategy[] = ['load', 'idle', 'visible', 'media', 'only'];
+    for (const s of strategies) {
+      const Wrapped = defineIsland(Inner, s) as any;
+      const vdom = getWrapperVdom(Wrapped);
+      expect(vdom.props['data-directive']).toBe(`client:${s}`);
+    }
+  });
+
+  it('adds data-media attribute for media strategy', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'x') });
+    const Wrapped = defineIsland(Inner, 'media', { mediaQuery: '(max-width: 768px)' }) as any;
+    const vdom = getWrapperVdom(Wrapped);
+    expect(vdom.props['data-directive']).toBe('client:media');
+    expect(vdom.props['data-media']).toBe('(max-width: 768px)');
+  });
+
+  it('does not add data-media when mediaQuery is omitted for media strategy', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'x') });
+    const Wrapped = defineIsland(Inner, 'media') as any;
+    const vdom = getWrapperVdom(Wrapped);
+    expect(vdom.props['data-directive']).toBe('client:media');
+    expect(vdom.props['data-media']).toBeUndefined();
+  });
+
+  it('serializes static props to data-props attribute', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'x') });
+    const Wrapped = defineIsland(Inner, 'load', { props: { count: 5, label: 'hi' } }) as any;
+    const vdom = getWrapperVdom(Wrapped);
+    const propsJson = vdom.props['data-props'];
+    expect(propsJson).toBeTruthy();
+    const decoded = JSON.parse(propsJson.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<'));
+    expect(decoded).toEqual({ count: 5, label: 'hi' });
+  });
+
+  it('merges attrs over static props (attrs win)', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'x') });
+    const Wrapped = defineIsland(Inner, 'load', { props: { count: 1 } }) as any;
+    const vdom = getWrapperVdom(Wrapped, { attrs: { count: 99, title: 'overridden' } });
+    const propsJson = vdom.props['data-props'];
+    const decoded = JSON.parse(propsJson.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<'));
+    expect(decoded.count).toBe(99); // attrs override static props
+    expect(decoded.title).toBe('overridden');
+  });
+
+  it('renders inner component as child for non-only strategies', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineIsland(Inner, 'load') as any;
+    const vdom = getWrapperVdom(Wrapped);
+    // ubean-island should have inner component as child vnode (Vue may
+    // normalize children to an array, so check both forms).
+    expect(vdom.children).toBeTruthy();
+    const child = Array.isArray(vdom.children) ? vdom.children[0] : vdom.children;
+    expect(child.type).toBe(Inner);
+  });
+
+  it('does NOT render inner component for only strategy (SSR placeholder empty)', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineIsland(Inner, 'only') as any;
+    const vdom = getWrapperVdom(Wrapped);
+    expect(vdom.props['data-directive']).toBe('client:only');
+    // children should be null (no SSR rendering for client:only)
+    expect(vdom.children).toBeNull();
+  });
+
+  it('sets inheritAttrs: false so attrs are not duplicated on root', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineIsland(Inner, 'load') as any;
+    expect(Wrapped.inheritAttrs).toBe(false);
+  });
+
+  it('names the wrapper component "ClientIsland"', () => {
+    const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'inner') });
+    const Wrapped = defineIsland(Inner, 'load') as any;
+    expect(Wrapped.name).toBe('ClientIsland');
+  });
+
+  it('falls back to "AnonymousIsland" when Component has no name', () => {
+    const Inner = defineComponent({ setup: () => () => h('div', 'inner') });
+    const Wrapped = defineIsland(Inner, 'load') as any;
+    const vdom = getWrapperVdom(Wrapped);
+    expect(vdom.props['data-component']).toBe('AnonymousIsland');
+  });
+
+  it('renders inner component via SSR (sync component resolves immediately)', async () => {
+    const Inner = defineComponent({
+      name: 'Inner',
+      setup: () => () => h('div', { class: 'inner' }, 'rendered-content')
+    });
+    const Wrapped = defineIsland(Inner, 'load');
+    const Root = defineComponent({
+      setup() {
+        return () => h(Wrapped);
+      }
+    });
+    const html = await renderToString(h(Root));
+    // ubean-island wraps the rendered inner content
+    expect(html).toContain('<ubean-island');
+    expect(html).toContain('data-directive="client:load"');
+    expect(html).toContain('class="inner"');
+    expect(html).toContain('rendered-content');
   });
 });

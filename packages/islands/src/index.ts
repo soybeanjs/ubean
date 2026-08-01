@@ -39,6 +39,14 @@ export type {
 // Bootstrap scripts (injected by SSR renderer / build)
 export { getIslandsBootstrapScript, getIslandsClearScript } from './bootstrap';
 
+// Server Islands runtime (P9-04: replaces `server:defer` directive)
+export { defineServerIsland } from './runtime';
+export type { ServerIslandOptions } from './runtime';
+
+// Client Islands runtime (Phase 4: programmatic alternative to v-client.*)
+export { defineIsland } from './runtime';
+export type { IslandStrategy, IslandOptions } from './runtime';
+
 // Vite plugin & SFC transform
 export {
   ubeanIslandsPlugin,

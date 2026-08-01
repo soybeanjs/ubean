@@ -16,7 +16,7 @@ ubean provides built-in Server Actions (P9-02) — type-safe server-side functio
 | `useAction(actionOrId)` | Vue composable（客户端） |
 | `useFormAction(actionName)` | Vue composable（表单渐进增强） |
 | `callAction(id, args)` | 底层 RPC 调用 |
-| `'use server'` 指令 | Vite 插件自动转换 |
+| `defineAction(fn)` | 显式声明服务端 action（推荐）；Vite 插件自动注入 `filePath`/`name` 用于 action ID 生成 |
 
 ## 1. defineAction — 定义服务端 action
 
@@ -91,12 +91,33 @@ async function handleLogin() {
 - `submit(...args)` — 触发调用
 - `reset()` — 重置状态
 
-## 3. `'use server'` 指令
+## 3. 显式 `defineAction()` 包装器（替代旧 `'use server'` 指令）
 
-在模块顶部或函数前添加 `'use server'` 指令，Vite 插件自动转换：
+`'use server'` 字符串指令已**移除**，改为显式调用 `defineAction(fn)` 包装器。Vite 插件 (`ubeanServerActionsPlugin`) 现在检测 `defineAction(` 调用表达式，自动注入 `filePath` 和 `name` 用于 action ID 生成：
 
 ```typescript
 // src/actions/todos.ts
+import { defineAction } from 'ubean';
+
+export const createTodo = defineAction(async (input: { title: string }) => {
+  await db.insert(todos).values(input);
+  return { success: true };
+});
+
+export const deleteTodo = defineAction(async (id: string) => {
+  await db.delete(todos).where(eq(todos.id, id));
+  return { success: true };
+});
+```
+
+- **Server 端**：`defineAction()` 包裹的函数自动注册到全局 action 注册表
+- **Client 端**：导出被替换为 RPC stub，调用时 POST 到 `/__actions`
+- **Action ID**：由 `base32(sha1(filePath:exportName))` 生成，Vite 插件自动注入 `filePath`/`name`，client/server 自动一致
+
+### 从旧语法迁移
+
+```typescript
+// 迁移前（已移除）：'use server' 字符串指令
 'use server';
 
 export async function createTodo(input: { title: string }) {
@@ -104,23 +125,13 @@ export async function createTodo(input: { title: string }) {
   return { success: true };
 }
 
-export async function deleteTodo(id: string) {
-  await db.delete(todos).where(eq(todos.id, id));
+// 迁移后：显式 defineAction() 包装器
+import { defineAction } from 'ubean';
+
+export const createTodo = defineAction(async (input: { title: string }) => {
+  await db.insert(todos).values(input);
   return { success: true };
-}
-```
-
-- **Server 端**：导出被 `defineAction()` 包裹，自动注册到全局 action 注册表
-- **Client 端**：导出被替换为 RPC stub，调用时 POST 到 `/__actions`
-- **Action ID**：由 `base32(sha1(filePath:exportName))` 生成，client/server 自动一致
-
-也支持函数级指令：
-
-```typescript
-export async function createTodo(input: { title: string }) {
-  'use server';
-  // ...
-}
+});
 ```
 
 ## 4. Form Actions（渐进增强）

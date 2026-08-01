@@ -1,4 +1,4 @@
-import { createApp, h, defineComponent, Suspense } from 'vue';
+import { createApp, h, defineComponent, Suspense, ref, onMounted } from 'vue';
 import type { Component, App as VueApp } from 'vue';
 
 interface DomElement {
@@ -530,7 +530,7 @@ export function defineIsland(
           // 转换后 `<ubean-island>` 标签内保留的 innerHTML)。
           // client:only 场景下不渲染内部组件(与 Vite 插件对 client:only
           // 的处理一致 —— SSR 输出空占位)。
-          strategy === 'only' ? null : h(Component, mergedProps, slots)
+          strategy === 'only' ? undefined : h(Component, mergedProps, slots)
         );
     }
   });
@@ -545,3 +545,90 @@ function escapeIslandProps(props: Record<string, unknown>): string {
 // 本地声明的 ClientDirective 类型(与 vite.ts 的 ClientDirective 等价,
 // 避免循环依赖,不直接 import)。仅在 defineIsland 内部用于类型断言。
 type ClientDirective = 'client:load' | 'client:idle' | 'client:visible' | 'client:media' | 'client:only';
+
+/* -------------------------------------------------------------------------- */
+/* Server Components (Task 9.1 / 9.2): .server.vue / .client.vue runtime       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `.server.vue` 组件在客户端 bundle 中的占位 stub (Task 9.1)。
+ *
+ * Vite 插件在 client 构建中将 `.server.vue` 的 import 重定向到虚拟 stub 模块,
+ * 该模块导出此组件。组件渲染一个空的 `<ubean-server-only>` 元素 —— SSR 已在
+ * 该元素内部渲染了完整 HTML,客户端 Vue 水合时匹配该元素但不触碰其子节点
+ * (SSR 模板通过 `v-once` 标记为静态内容),从而保留服务端渲染的 HTML 不被清除。
+ *
+ * 这保证了 `.server.vue` 组件的 JS 不会发送到客户端 —— 客户端只导入此 stub。
+ */
+export const ServerComponentStub = defineComponent({
+  name: 'ServerComponentStub',
+  setup() {
+    return () => h('ubean-server-only', { 'data-server-only': '' });
+  }
+});
+
+/**
+ * `.client.vue` 组件在 SSR 构建中的通用占位符 (Task 9.2)。
+ *
+ * Vite 插件在 SSR 构建中将 `.client.vue` 的 import 重定向到虚拟模块,
+ * 该模块导出此组件。组件渲染 `<div data-client-only></div>` 占位符,
+ * 与客户端 `defineClientComponent` 初始渲染输出一致,确保水合无 mismatch。
+ *
+ * SSR 使用通用占位符(而非真实组件)避免了在服务端导入可能含浏览器 API
+ * 的 `.client.vue` 组件代码。
+ */
+export const ClientComponentPlaceholder = defineComponent({
+  name: 'ClientComponentPlaceholder',
+  setup() {
+    return () => h('div', { 'data-client-only': '' });
+  }
+});
+
+/**
+ * 定义客户端组件 —— `.client.vue` 在客户端构建中的包装器 (Task 9.2)。
+ *
+ * Vite 插件在 client 构建中为每个 `.client.vue` 生成虚拟包装模块:
+ * ```ts
+ * import RealComp from '/abs/path/Foo.client.vue';
+ * import { defineClientComponent } from '@ubean/islands/runtime';
+ * export default defineClientComponent(RealComp);
+ * ```
+ *
+ * ## 工作机制
+ *
+ * - **SSR**: 由 `ClientComponentPlaceholder` 替代,渲染 `<div data-client-only></div>`
+ * - **客户端初始渲染**: `isClient` 为 false,渲染相同的 `<div data-client-only></div>`,
+ *   与 SSR 输出匹配,水合无 mismatch
+ * - **客户端 `onMounted` 后**: `isClient` 变为 true,渲染真实组件,Vue 自动 patch 替换占位符
+ *
+ * 这种模式确保 `.client.vue` 组件只在客户端渲染,SSR 仅输出占位符,
+ * 且不依赖 islands 注册表 / `hydrateIslands()` 机制。
+ *
+ * ## 用法
+ *
+ * 通常由 Vite 插件自动生成包装模块,用户无需手动调用。如需编程式使用:
+ *
+ * ```ts
+ * import { defineClientComponent } from '@ubean/islands/runtime';
+ * import Widget from './Widget.client.vue';
+ * const WidgetClient = defineClientComponent(Widget);
+ * ```
+ */
+export function defineClientComponent(component: Component): Component {
+  return defineComponent({
+    name: 'ClientComponent',
+    inheritAttrs: false,
+    setup(_, { slots, attrs }) {
+      // isClient: SSR 与客户端初始渲染时均为 false,确保输出与 SSR 占位符一致。
+      // onMounted 仅在客户端执行,触发后 isClient 变为 true,重新渲染真实组件。
+      const isClient = ref(false);
+      onMounted(() => {
+        isClient.value = true;
+      });
+      return () =>
+        isClient.value
+          ? h(component, attrs, slots)
+          : h('div', { 'data-client-only': '' });
+    }
+  });
+}

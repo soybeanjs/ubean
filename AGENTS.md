@@ -529,6 +529,8 @@ const json = serializeVercelConfig(config);
 | `defineIsland(Component, strategy, options?)`                                                       | 客户端 island 运行时包装器(替代 `v-client.*` 的编程式用法);`strategy`: 'load'\|'idle'\|'visible'\|'media'\|'only';`options`: `{ mediaQuery?, props? }` |
 | `defineServerIsland(Component, options?)`                                                           | 服务端 island 运行时包装器(P9-04,替代已移除的 `server:defer` 指令);`options.fallback` 指定 Suspense fallback |
 | `hydrateIslands(options?)`                                                                          | Islands 水合(**框架自动调用**,无需手动执行;`components` 可选,手动传入优先于自动注册)                       |
+| `.server.vue` / `.client.vue` 文件约定                                                               | Server Components (Task 9,P1.5):`.server.vue` 仅 SSR 渲染(客户端不发送 JS);`.client.vue` SSR 渲染 `<div data-client-only>` 占位符,客户端 `onMounted` 后替换为真实组件。Vite 插件自动处理 `resolveId`/`load`/`transform`,用户无需手动调用 |
+| `defineClientComponent(Component)`                                                                   | `.client.vue` 在客户端构建中的运行时包装器(Task 9.2);通常由 Vite 插件自动生成,无需手动调用 |
 
 > **迁移说明**:旧的 `client:*` attribute 语法和 `server:defer` 编译时指令已移除。请改用 `v-client.*` Vue 指令(模板内),或 `defineIsland()` / `defineServerIsland()` 运行时包装(编程式):
 

@@ -98,7 +98,7 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 | # | 能力 | 任务 ID | 理由 |
 |---|---|---|---|
-| 9 | `.server.vue` / `.client.vue` 组件约定 + props 重渲染 | 新建 P9-29 | 与 Islands/PPR 互补，内容场景刚需 |
+| 9 | `.server.vue` / `.client.vue` 组件约定 + props 重渲染 | ✅ 部分实现 (9.1+9.2) | 与 Islands/PPR 互补，内容场景刚需；9.3 配对 + 9.4 props 重渲染待后续迭代 |
 
 ### P2 — 扩展生态（低重要性 / 低需求 / 低难度）
 
@@ -645,6 +645,15 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 - 普通 `.vue` 组件不受影响
 - 与 `v-client.*` 指令正交（`.server.vue` 是文件级约定，`v-client.*` 是使用时声明）
 - 与 PPR 互补：PPR 页面中的 `.server.vue` 组件自动成为静态壳的一部分
+
+**实现状态**（2026-08）：
+
+- ✅ **9.1 `.server.vue`**：`@ubean/islands` Vite 插件 `resolveId` 在 client 构建中将 `.server.vue` import 重定向到通用虚拟 stub (`virtual:ubean-server-component-stub`)，导出 `ServerComponentStub` 组件（渲染空 `<ubean-server-only>`）；SSR 构建正常解析，`transform` 将模板包裹在 `<ubean-server-only v-once>` 中。客户端 bundle 不含 `.server.vue` 组件 JS。
+- ✅ **9.2 `.client.vue`**：`resolveId` 在 SSR 构建中重定向到通用占位符 (`virtual:ubean-client-component-placeholder`)，导出 `ClientComponentPlaceholder`（渲染 `<div data-client-only>`）；client 构建生成文件级包装虚拟模块，导入真实组件并用 `defineClientComponent()` 包装（`isClient` ref + `onMounted` 切换：初始渲染占位符与 SSR 一致 → 水合无 mismatch → `onMounted` 后切换为真实组件）。
+- ⏳ **9.3 配对组件**：待后续迭代（需 import resolver 按 `ssr` flag 解析 `Counter.vue` → `Counter.server.vue` / `Counter.client.vue`）。
+- ⏳ **9.4 props 重渲染**：待后续迭代（需 `POST /__server-component` 端点 + `rerenderOnPropsChange` 选项）。
+
+**测试覆盖**：`packages/islands/test/server-client-components.test.ts`（32 项）— 文件检测、模板包裹（含幂等/多根/script 保留）、runtime 组件 SSR 渲染输出、Vite 插件 `resolveId`/`load`/`transform` 路由逻辑（含 importer 排除、普通 `.vue` 不受影响）。
 
 ---
 

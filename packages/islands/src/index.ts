@@ -47,6 +47,9 @@ export type { ServerIslandOptions } from './runtime';
 export { defineIsland } from './runtime';
 export type { IslandStrategy, IslandOptions } from './runtime';
 
+// Server Components runtime (Task 9.1 / 9.2: .server.vue / .client.vue)
+export { ServerComponentStub, ClientComponentPlaceholder, defineClientComponent } from './runtime';
+
 // Vite plugin & SFC transform
 export {
   ubeanIslandsPlugin,
@@ -56,6 +59,11 @@ export {
   parseScriptImports,
   scanIslandDirectiveNames,
   resolveIslandImportPath,
-  ISLANDS_REGISTRY_VIRTUAL_ID
+  wrapServerComponentTemplate,
+  isServerComponentFile,
+  isClientComponentFile,
+  ISLANDS_REGISTRY_VIRTUAL_ID,
+  SERVER_COMPONENT_STUB_VIRTUAL_ID,
+  CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID
 } from './vite';
 export type { UbeanIslandsPluginOptions, IslandComponentEntry, IslandComponentMap } from './vite';

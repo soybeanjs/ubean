@@ -10,7 +10,7 @@ import {
   transformVueSfcIslands
 } from '../src/vite';
 import { defineServerIsland, defineIsland } from '../src/runtime';
-import type { ServerIslandOptions, IslandStrategy, IslandOptions } from '../src/runtime';
+import type { ServerIslandOptions, IslandStrategy } from '../src/runtime';
 import type { IslandComponentEntry, IslandComponentMap } from '../src/vite';
 
 describe('parseScriptImports', () => {

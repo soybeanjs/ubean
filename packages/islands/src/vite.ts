@@ -32,6 +32,57 @@ function isVueSfc(id: string): boolean {
   return /\.vue(?:\?.*)?$/.test(id) && !id.includes('&type=');
 }
 
+// ============== Server Components (Task 9.1 / 9.2): .server.vue / .client.vue ==============
+
+/**
+ * 判断 id 是否为 `.server.vue` 文件 (Task 9.1)。
+ *
+ * 仅检查路径部分(忽略 `?query`),避免 `?vue&type=template` 子查询误匹配。
+ */
+export function isServerComponentFile(id: string): boolean {
+  return id.split('?')[0].endsWith('.server.vue');
+}
+
+/**
+ * 判断 id 是否为 `.client.vue` 文件 (Task 9.2)。
+ *
+ * 仅检查路径部分(忽略 `?query`)。注意:从虚拟包装模块内部对真实文件的
+ * import 不会被此函数拦截(由 `resolveId` 中的 importer 检查排除)。
+ */
+export function isClientComponentFile(id: string): boolean {
+  return id.split('?')[0].endsWith('.client.vue');
+}
+
+/** `.server.vue` 在 client 构建中的通用虚拟 stub 模块 ID */
+export const SERVER_COMPONENT_STUB_VIRTUAL_ID = 'virtual:ubean-server-component-stub';
+const SERVER_COMPONENT_STUB_RESOLVED_ID = `\0${SERVER_COMPONENT_STUB_VIRTUAL_ID}`;
+
+/** `.client.vue` 在 SSR 构建中的通用占位符虚拟模块 ID */
+export const CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID = 'virtual:ubean-client-component-placeholder';
+const CLIENT_COMPONENT_PLACEHOLDER_RESOLVED_ID = `\0${CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID}`;
+
+/** `.client.vue` 在 client 构建中文件级包装虚拟模块 ID 前缀 */
+const CLIENT_COMPONENT_WRAPPER_PREFIX = '\0virtual:ubean-client-component:';
+
+/**
+ * 将 `.server.vue` SFC 的 `<template>` 内容包裹在 `<ubean-server-only v-once>` 中。
+ *
+ * SSR 渲染输出 `<ubean-server-only v-once>真实内容</ubean-server-only>`,
+ * 客户端 stub 渲染 `<ubean-server-only></ubean-server-only>` (无子节点)。
+ * `v-once` 标记内容为静态,Vue 水合时保留 SSR HTML 不清除。
+ *
+ * 仅在 SSR 上下文运行(client 构建中 `.server.vue` 被 `resolveId` 重定向到 stub,
+ * 真实文件不会被加载/转换)。
+ */
+export function wrapServerComponentTemplate(code: string): string | null {
+  const tpl = extractTemplateBlock(code);
+  if (!tpl) return null;
+  // 已包裹则跳过(幂等)
+  if (tpl.content.trim().startsWith('<ubean-server-only')) return null;
+  const newContent = `<ubean-server-only v-once>${tpl.content}</ubean-server-only>`;
+  return `${code.slice(0, tpl.start)}<template${tpl.attrs}>${newContent}</template>${code.slice(tpl.end)}`;
+}
+
 /**
  * 判断 id 是否为 SFC 主模块（非 `?vue&type=...` 子查询）。
  *
@@ -659,34 +710,97 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
       devServer = server;
     },
 
-    resolveId(id) {
+    async resolveId(id, importer, options) {
+      // Islands registry 虚拟模块
       if (id === ISLANDS_REGISTRY_VIRTUAL_ID) return ISLANDS_REGISTRY_RESOLVED_ID;
+
+      if (!enabled) return undefined;
+
+      // --- Task 9.1: .server.vue → client 构建重定向到通用 stub ---
+      // SSR 构建时正常解析到真实文件 (return undefined 走默认解析)
+      if (!options?.ssr && isServerComponentFile(id)) {
+        return SERVER_COMPONENT_STUB_RESOLVED_ID;
+      }
+
+      // --- Task 9.2: .client.vue → SSR 构建重定向到通用占位符 ---
+      // client 构建时重定向到文件级包装模块 (import 真实组件 + defineClientComponent)
+      // 排除从包装模块内部对真实文件的 import (通过 importer 前缀检查)
+      if (isClientComponentFile(id) && !importer?.startsWith(CLIENT_COMPONENT_WRAPPER_PREFIX)) {
+        if (options?.ssr) {
+          // SSR: 通用占位符,不导入真实组件 (避免浏览器 API 在服务端报错)
+          return CLIENT_COMPONENT_PLACEHOLDER_RESOLVED_ID;
+        }
+        // client: 解析真实路径,生成文件级包装虚拟模块
+        const resolved = await this.resolve(id, importer, { skipSelf: true });
+        if (!resolved) return undefined;
+        return `${CLIENT_COMPONENT_WRAPPER_PREFIX}${resolved.id}`;
+      }
+
       return undefined;
     },
 
     load(id) {
-      if (id !== ISLANDS_REGISTRY_RESOLVED_ID) return undefined;
-      return generateRegistryModule(islandComponents);
+      // Islands registry 虚拟模块
+      if (id === ISLANDS_REGISTRY_RESOLVED_ID) {
+        return generateRegistryModule(islandComponents);
+      }
+
+      // Task 9.1: .server.vue client stub — 导出 ServerComponentStub
+      if (id === SERVER_COMPONENT_STUB_RESOLVED_ID) {
+        return `import { ServerComponentStub } from '@ubean/islands/runtime';\nexport default ServerComponentStub;`;
+      }
+
+      // Task 9.2: .client.vue SSR placeholder — 导出 ClientComponentPlaceholder
+      if (id === CLIENT_COMPONENT_PLACEHOLDER_RESOLVED_ID) {
+        return `import { ClientComponentPlaceholder } from '@ubean/islands/runtime';\nexport default ClientComponentPlaceholder;`;
+      }
+
+      // Task 9.2: .client.vue client wrapper — import 真实组件 + defineClientComponent
+      if (id.startsWith(CLIENT_COMPONENT_WRAPPER_PREFIX)) {
+        const realPath = id.slice(CLIENT_COMPONENT_WRAPPER_PREFIX.length);
+        return (
+          `import RealComp from ${JSON.stringify(realPath)};\n` +
+          `import { defineClientComponent } from '@ubean/islands/runtime';\n` +
+          `export default defineClientComponent(RealComp);`
+        );
+      }
+
+      return undefined;
     },
 
     transform(code, id) {
       if (!enabled) return null;
       if (!isVueSfc(id)) return null;
-      if (!ANY_DIRECTIVE_RE.test(code)) return null;
+
+      // --- Task 9.1: .server.vue 模板包裹 (仅 SSR 上下文执行) ---
+      // client 构建中 .server.vue 被 resolveId 重定向到 stub,真实文件不会被加载
+      let serverWrapped = false;
+      if (isServerComponentFile(id)) {
+        const wrapped = wrapServerComponentTemplate(code);
+        if (wrapped !== null) {
+          code = wrapped;
+          serverWrapped = true;
+        }
+      }
+
+      // --- 现有: v-client.* 指令转换 + 组件收集 ---
+      if (!ANY_DIRECTIVE_RE.test(code) && !serverWrapped) return null;
 
       const absolutePath = id.split('?')[0];
       const filePath = absolutePath.replace(viteConfig.root, '').replace(/^[/\\]/, '');
-      const result = transformVueSfcIslands(code, filePath);
+
+      // 仅当存在 v-client.* 指令时才运行 islands 模板转换
+      let result = { code, islandCount: 0 };
+      if (ANY_DIRECTIVE_RE.test(code)) {
+        result = transformVueSfcIslands(code, filePath);
+      }
 
       // 仅对 SFC 主模块运行收集逻辑（?vue&type=template 等子查询只有模板片段，无 <script>）
-      if (isMainVueSfc(id)) {
+      if (isMainVueSfc(id) && ANY_DIRECTIVE_RE.test(code)) {
         const collected = collectIslandComponents(code, absolutePath);
         const registryChanged = updateRegistry(collected, absolutePath);
 
         // 仅在 HMR 更新时触发 full-reload，避免首次加载时的重载循环。
-        // 首次加载时 transform 也会运行并更新 registry（changed=true），
-        // 但此时页面还在加载中，无需 reload——客户端会直接拿到最新的 virtual module。
-        // 通过追踪已转换过的文件来区分「首次加载」与「HMR 更新」。
         const isHmrUpdate = transformedFiles.has(absolutePath);
         transformedFiles.add(absolutePath);
 

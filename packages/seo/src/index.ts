@@ -110,6 +110,86 @@ export function useSeoMeta<T extends Record<string, any>>(meta: T): T {
   return meta;
 }
 
+/**
+ * 计算 meta tag 的去重 key。
+ * - 优先用 `name` 属性(如 description / keywords / robots / twitter:*)
+ * - 其次用 `property` 属性(如 og:title / og:description)
+ * - 两者都没有时不参与去重(保留全部)
+ */
+function metaTagKey(tag: MetaTag): string | null {
+  if (tag.name) return `name:${tag.name}`;
+  if (tag.property) return `property:${tag.property}`;
+  return null;
+}
+
+/**
+ * 计算 link tag 的去重 key。
+ * 基于 rel + 可选的 hreflang / type / sizes 组合,后定义覆盖先定义:
+ * - canonical:仅 rel 去重(页面级 canonical 覆盖布局级)
+ * - alternate:rel + hreflang 去重(不同 hreflang 共存)
+ * - icon:rel + sizes(+type)去重(不同尺寸/类型共存)
+ */
+function linkTagKey(tag: LinkTag): string | null {
+  if (!tag.rel) return null;
+  const parts = [`rel:${tag.rel}`];
+  if (tag.hreflang) parts.push(`hreflang:${tag.hreflang}`);
+  if (tag.type) parts.push(`type:${tag.type}`);
+  if (tag.sizes) parts.push(`sizes:${tag.sizes}`);
+  return parts.join('|');
+}
+
+/**
+ * 对 meta tag 数组去重(后定义覆盖先定义)。
+ * 同 `name` 或同 `property` 的 tag 仅保留最后一个;无 name/property 的保留全部。
+ * 不修改入参数组,返回新数组。
+ */
+export function dedupeMetaTags(tags: MetaTag[]): MetaTag[] {
+  const result: MetaTag[] = [];
+  const seen = new Map<string, number>();
+  for (const tag of tags) {
+    const key = metaTagKey(tag);
+    if (key === null) {
+      // 无 name/property,无法去重,直接保留
+      result.push(tag);
+      continue;
+    }
+    const existingIdx = seen.get(key);
+    if (existingIdx === undefined) {
+      seen.set(key, result.length);
+      result.push(tag);
+    } else {
+      // 后定义覆盖先定义(last-wins)
+      result[existingIdx] = tag;
+    }
+  }
+  return result;
+}
+
+/**
+ * 对 link tag 数组去重(后定义覆盖先定义)。
+ * 同 `rel`(+hreflang+type+sizes)的 link 仅保留最后一个;无 rel 的保留全部。
+ * 不修改入参数组,返回新数组。
+ */
+export function dedupeLinkTags(tags: LinkTag[]): LinkTag[] {
+  const result: LinkTag[] = [];
+  const seen = new Map<string, number>();
+  for (const tag of tags) {
+    const key = linkTagKey(tag);
+    if (key === null) {
+      result.push(tag);
+      continue;
+    }
+    const existingIdx = seen.get(key);
+    if (existingIdx === undefined) {
+      seen.set(key, result.length);
+      result.push(tag);
+    } else {
+      result[existingIdx] = tag;
+    }
+  }
+  return result;
+}
+
 export function mergeMetadata(...metadatas: (SeoMetadata | undefined | null)[]): SeoMetadata {
   const result: SeoMetadata = {};
 
@@ -143,7 +223,27 @@ export function mergeMetadata(...metadatas: (SeoMetadata | undefined | null)[]):
     }
   }
 
+  // 数组字段去重:后定义覆盖先定义(name/property 维度、rel+hreflang/type/sizes 维度)
+  // 对齐 @unhead/vue 的 dedupe 语义,避免布局级 + 页面级 metadata 合并时产生重复标签
+  if (result.meta) result.meta = dedupeMetaTags(result.meta);
+  if (result.link) result.link = dedupeLinkTags(result.link);
+
   return result;
+}
+
+/**
+ * 按"全局 → 布局 → 页面"优先级合并 SEO metadata(Task 8)。
+ * 页面级覆盖布局级,布局级覆盖全局级;`meta`/`link` 数组自动去重(last-wins)。
+ *
+ * 与 `mergeMetadata` 的关系:`mergeSeoLayers(g, l, p)` 等价于
+ * `mergeMetadata(g, l, p)`,仅以命名参数显式表达三层优先级,便于阅读。
+ */
+export function mergeSeoLayers(
+  global?: SeoMetadata | null,
+  layout?: SeoMetadata | null,
+  page?: SeoMetadata | null
+): SeoMetadata {
+  return mergeMetadata(global, layout, page);
 }
 
 export function buildMetaTags(meta: SeoMetadata): MetaTag[] {

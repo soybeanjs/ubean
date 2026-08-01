@@ -92,7 +92,7 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 | 5 | Draft / Preview mode | ✅ 已实现 | 内容管理场景刚需，CMS 集成前置 |
 | 6 | 流式 metadata | P9-24 | SEO 优化，Next.js 已有 |
 | 7 | 动态路由 matchers | ✅ 已实现 | SvelteKit 有，rou3 底层支持 |
-| 8 | metadata 自动 dedupe | 增强 | 当前 useSeoMeta 无去重 |
+| 8 | metadata 自动 dedupe | ✅ 已实现 | 当前 useSeoMeta 无去重 |
 
 ### P1.5 — Server Components（Nuxt 风格）
 

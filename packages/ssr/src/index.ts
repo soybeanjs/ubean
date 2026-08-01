@@ -10,7 +10,10 @@ import {
   safeJsonStringify,
   __clearDeferred,
   __resolveDeferred,
-  __serializeDeferred
+  __serializeDeferred,
+  __clearDataPayload,
+  __resolveDataPayload,
+  __serializeDataPayload
 } from '@ubean/pages';
 import type {
   PageObject,
@@ -265,6 +268,7 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     renderContext?: PageRenderContext
   ): Promise<PageRenderResult> => {
     __clearDeferred();
+    __clearDataPayload();
     const { app, head, appConfig } = await prepareRender(options, pageObj, renderContext);
     const appHtml = await renderToString(app);
 
@@ -277,19 +281,26 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     const deferredData = await __resolveDeferred();
     const deferredScript = __serializeDeferred(deferredData);
 
+    // 解析 useData payload(关键数据,SSR 已解析,客户端水合避免二次请求)
+    const dataPayload = __resolveDataPayload();
+    const dataScript = __serializeDataPayload(dataPayload);
+
     if (!shellHtml) {
-      // 无 shell 时,直接拼接 HTML + deferred script
-      return deferredScript ? appHtml + deferredScript : appHtml;
+      // 无 shell 时,直接拼接 HTML + data script + deferred script
+      const tail = (dataScript ? dataScript : '') + (deferredScript ? deferredScript : '');
+      return tail ? appHtml + tail : appHtml;
     }
 
     const htmlWithApp = shellHtml.replace(SSR_CONTENT_MARKER, appHtml);
     let html = transformHtmlTemplate(head, htmlWithApp);
 
-    // 注入 deferred script(在 app div 之后,STATE_DATA_ID 之前)
-    if (deferredScript) {
+    // 注入 data + deferred script(在 app div 之后,STATE_DATA_ID 之前)
+    // 顺序: data payload → deferred → state (data 是关键数据,最先可用)
+    const preStateScripts = (dataScript ? `${dataScript}\n  ` : '') + (deferredScript ? `${deferredScript}\n  ` : '');
+    if (preStateScripts) {
       html = html.replace(
         new RegExp(`(<script id="${STATE_DATA_ID}")`),
-        `${deferredScript}\n  $1`
+        `${preStateScripts}$1`
       );
     }
 
@@ -337,13 +348,17 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
       async start(controller) {
         try {
           __clearDeferred();
+          __clearDataPayload();
           const { app, head, appConfig } = await prepareRender(options, pageObj, renderContext);
 
           // 无 shell:直接流式 app HTML
           if (!shellHtml) {
             const appStream = renderToNodeStream(app);
             await pumpVueStream(appStream, controller);
-            // 即使无 shell,也解析并输出 deferred 数据
+            // 即使无 shell,也解析并输出 data + deferred 数据
+            const dataPayload = __resolveDataPayload();
+            const dataScript = __serializeDataPayload(dataPayload);
+            if (dataScript) controller.enqueue(encoder.encode(dataScript));
             const deferredData = await __resolveDeferred();
             const deferredScript = __serializeDeferred(deferredData);
             if (deferredScript) controller.enqueue(encoder.encode(deferredScript));
@@ -357,6 +372,9 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
             // 无标记,回退为:流式 app HTML + 尾部(无法注入,直接拼接)
             const appStream = renderToNodeStream(app);
             await pumpVueStream(appStream, controller);
+            const dataPayload = __resolveDataPayload();
+            const dataScript = __serializeDataPayload(dataPayload);
+            if (dataScript) controller.enqueue(encoder.encode(dataScript));
             const deferredData = await __resolveDeferred();
             const deferredScript = __serializeDeferred(deferredData);
             if (deferredScript) controller.enqueue(encoder.encode(deferredScript));
@@ -396,6 +414,11 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
           // without waiting for client hydration.
           const dynamicHeadTags = collectDynamicHeadTags(head, staticHeadTags);
 
+          // 解析 useData payload(关键数据,SSR 已解析,客户端水合避免二次请求)
+          // 在 Vue 流之后、deferred + state script 之前注入
+          const dataPayload = __resolveDataPayload();
+          const dataScript = __serializeDataPayload(dataPayload);
+
           // 解析 deferred promises(useDeferredData 注册的非关键数据)
           // 在 Vue 流之后、state script 之前注入,客户端水合时立即可用
           const deferredData = await __resolveDeferred();
@@ -407,10 +430,12 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
             state ? safeJsonStringify(state) : ''
           }</script>`;
 
-          // 4. 输出 dynamic head tags + deferred script + state script + tail 部分
+          // 4. 输出 dynamic head tags + data script + deferred script + state script + tail 部分
+          //    顺序: data(关键) → deferred(非关键) → state(用户状态)
           //    浏览器会将 <meta>/<title>/<link> 标签自动移入 <head>
           const tailContent =
             (dynamicHeadTags ? `${dynamicHeadTags}\n` : '') +
+            (dataScript ? `${dataScript}\n  ` : '') +
             (deferredScript ? `${deferredScript}\n  ` : '') +
             stateScript +
             tailPart;

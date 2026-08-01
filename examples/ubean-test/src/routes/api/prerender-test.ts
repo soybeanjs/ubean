@@ -6,12 +6,15 @@ import {
   prerender,
   collectPrerenderRoutes,
   extractLinks,
+  extractDataPayload,
   matchGlob,
   matchAnyGlob,
   routeToFilePath,
+  routeToDataFilePath,
   writePrerenderedFile,
   resolvePrerenderConfig,
-  generatePrerenderManifest
+  generatePrerenderManifest,
+  DATA_PAYLOAD_ID
 } from 'ubean';
 import type { ScannedPageRoute } from 'ubean';
 
@@ -832,6 +835,101 @@ export const GET = defineHandler(async c => {
       }
     }
 
+    // Test 13: extractDataPayload - SSG payload 提取(roadmap Task 3)
+    // 验证预渲染时将 __UBEAN_DATA__ 内联 script 拆分为独立 __data.json 文件,
+    // HTML 中替换为 preload link + 引导脚本。
+    case 'payloadExtract': {
+      const tmpDir = await mkdtemp(join(tmpdir(), 'ubean-prerender-payload-'));
+      try {
+        const mockPages: ScannedPageRoute[] = [
+          {
+            path: '/',
+            fullPath: 'index.vue',
+            relativePath: 'index.vue',
+            dirname: '.',
+            basename: 'index.vue',
+            name: 'index',
+            route: '/',
+            isReuse: false,
+            isMarkdown: false
+          },
+          {
+            path: '/about',
+            fullPath: 'about.vue',
+            relativePath: 'about.vue',
+            dirname: '.',
+            basename: 'about.vue',
+            name: 'about',
+            route: '/about',
+            isReuse: false,
+            isMarkdown: false
+          }
+        ];
+
+        const payload = {
+          'test-key': { data: { value: 'x' }, error: null, timestamp: 123 }
+        };
+        const payloadJson = JSON.stringify(payload);
+
+        const result = await prerender({
+          cwd: tmpDir,
+          outputDir: '.output/public',
+          pages: mockPages,
+          prerender: {
+            all: true,
+            crawlLinks: false,
+            concurrency: 2,
+            failOnError: false,
+            staticDir: '.output/public'
+          },
+          fetcher: async () => ({
+            html: `<!DOCTYPE html><html><head><title>test</title><script id="${DATA_PAYLOAD_ID}" type="application/json">${payloadJson}</script></head><body><div id="app">content</div></body></html>`,
+            statusCode: 200
+          })
+        });
+
+        // Read generated files
+        const rootDataPath = routeToDataFilePath('/', join(tmpDir, '.output/public'));
+        const aboutDataPath = routeToDataFilePath('/about', join(tmpDir, '.output/public'));
+        const rootDataRaw = await readFile(rootDataPath, 'utf-8');
+        const aboutDataRaw = await readFile(aboutDataPath, 'utf-8');
+        const rootHtml = await readFile(join(tmpDir, '.output/public/index.html'), 'utf-8');
+        const aboutHtml = await readFile(join(tmpDir, '.output/public/about/index.html'), 'utf-8');
+
+        // Also verify the standalone extractDataPayload function
+        const standalone = extractDataPayload(
+          `<script id="${DATA_PAYLOAD_ID}" type="application/json">${payloadJson}</script>`,
+          '/about'
+        );
+
+        return c.json({
+          generatedRoutes: result.generated,
+          generatedCount: result.generated.length,
+          // __data.json written with correct content
+          rootDataPath: rootDataPath.replace(tmpDir, ''),
+          aboutDataPath: aboutDataPath.replace(tmpDir, ''),
+          rootDataMatches: JSON.parse(rootDataRaw).test?.key === undefined && JSON.stringify(JSON.parse(rootDataRaw)) === JSON.stringify(payload),
+          aboutDataMatches: JSON.stringify(JSON.parse(aboutDataRaw)) === JSON.stringify(payload),
+          // HTML no longer has inline script
+          rootHtmlNoInlineScript: !rootHtml.includes(`id="${DATA_PAYLOAD_ID}"`),
+          aboutHtmlNoInlineScript: !aboutHtml.includes(`id="${DATA_PAYLOAD_ID}"`),
+          // HTML has preload link
+          rootHtmlHasPreload: rootHtml.includes('rel="preload"') && rootHtml.includes('href="/__data.json"'),
+          aboutHtmlHasPreload: aboutHtml.includes('rel="preload"') && aboutHtml.includes('href="/about/__data.json"'),
+          // HTML has bootstrap script setting __UBEAN_DATA_PAYLOAD__
+          rootHtmlHasBootstrap: rootHtml.includes('window.__UBEAN_DATA_PAYLOAD__'),
+          aboutHtmlHasBootstrap: aboutHtml.includes('window.__UBEAN_DATA_PAYLOAD__'),
+          // Standalone function returns expected shape
+          standaloneExtractsData: standalone !== null && JSON.stringify(standalone.data) === JSON.stringify(payload),
+          standaloneDataUrl: standalone?.dataUrl,
+          standaloneHtmlHasPreload: standalone?.html.includes('rel="preload"'),
+          standaloneHtmlNoInlineScript: standalone?.html.includes(`id="${DATA_PAYLOAD_ID}"`) === false
+        });
+      } finally {
+        await rm(tmpDir, { recursive: true, force: true });
+      }
+    }
+
     default:
       return c.json({
         actions: [
@@ -850,7 +948,8 @@ export const GET = defineHandler(async c => {
           'failOnError',
           'manifest',
           'filePath',
-          'concurrency'
+          'concurrency',
+          'payloadExtract'
         ]
       });
   }

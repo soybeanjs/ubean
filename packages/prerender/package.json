@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@ubean/config": "workspace:*",
+    "@ubean/pages": "workspace:*",
     "@ubean/routing": "workspace:*",
     "@ubean/utils": "workspace:*"
   },

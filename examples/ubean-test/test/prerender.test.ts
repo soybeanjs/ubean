@@ -952,7 +952,8 @@ describe('Prerender / SSG system', () => {
           'failOnError',
           'manifest',
           'filePath',
-          'concurrency'
+          'concurrency',
+          'payloadExtract'
         ])
       );
     });
@@ -1237,6 +1238,60 @@ describe('Prerender / SSG system', () => {
       expect(data.respectedConcurrency).toBe(true);
       expect(data.maxConcurrentObserved).toBeLessThanOrEqual(3);
       expect(data.generatedCount).toBe(10);
+    });
+
+    it('action=payloadExtract extracts SSG payload to __data.json and rewrites HTML', async () => {
+      const res = await getJson('/api/prerender-test?action=payloadExtract');
+      expect(res.status).toBe(200);
+      const data = res.data as {
+        generatedRoutes: string[];
+        generatedCount: number;
+        rootDataPath: string;
+        aboutDataPath: string;
+        rootDataMatches: boolean;
+        aboutDataMatches: boolean;
+        rootHtmlNoInlineScript: boolean;
+        aboutHtmlNoInlineScript: boolean;
+        rootHtmlHasPreload: boolean;
+        aboutHtmlHasPreload: boolean;
+        rootHtmlHasBootstrap: boolean;
+        aboutHtmlHasBootstrap: boolean;
+        standaloneExtractsData: boolean;
+        standaloneDataUrl?: string;
+        standaloneHtmlHasPreload?: boolean;
+        standaloneHtmlNoInlineScript?: boolean;
+      };
+
+      // Both routes were prerendered
+      expect(data.generatedCount).toBe(2);
+      expect(data.generatedRoutes).toContain('/');
+      expect(data.generatedRoutes).toContain('/about');
+
+      // __data.json files written at expected paths
+      expect(data.rootDataPath).toBe('/.output/public/__data.json');
+      expect(data.aboutDataPath).toBe('/.output/public/about/__data.json');
+
+      // __data.json content matches the inline payload
+      expect(data.rootDataMatches).toBe(true);
+      expect(data.aboutDataMatches).toBe(true);
+
+      // HTML no longer contains the inline __UBEAN_DATA__ script
+      expect(data.rootHtmlNoInlineScript).toBe(true);
+      expect(data.aboutHtmlNoInlineScript).toBe(true);
+
+      // HTML contains preload link with correct dataUrl
+      expect(data.rootHtmlHasPreload).toBe(true);
+      expect(data.aboutHtmlHasPreload).toBe(true);
+
+      // HTML contains bootstrap script setting __UBEAN_DATA_PAYLOAD__
+      expect(data.rootHtmlHasBootstrap).toBe(true);
+      expect(data.aboutHtmlHasBootstrap).toBe(true);
+
+      // Standalone extractDataPayload() also works as expected
+      expect(data.standaloneExtractsData).toBe(true);
+      expect(data.standaloneDataUrl).toBe('/about/__data.json');
+      expect(data.standaloneHtmlHasPreload).toBe(true);
+      expect(data.standaloneHtmlNoInlineScript).toBe(true);
     });
   });
 });

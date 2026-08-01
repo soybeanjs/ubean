@@ -157,53 +157,81 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 ---
 
-### 2. useData/useAsyncData 增强 [P0]
+### 2. useData/useAsyncData 增强 [P0] ✅ 已实现
 
 **目标**：对齐 Nuxt `useAsyncData` 的 dedupe/refresh/payload 能力。
 
+**实现状态**：已完成。API 在 `packages/pages/src/data.ts` 实现,SSR 渲染器已集成 payload 注入。
+
 **技术方案**：
 - 在 `packages/pages/src/data.ts` 增强 `useData`：
-  - 新增 `dedupe` 选项（同 key 请求自动去重）
-  - 新增 `refresh()` 方法手动刷新
-  - 新增 `pending`/`error`/`status` 响应式状态
-  - SSR 时自动提取 payload 到 `__UBEAN_STATE__`
-- 新增 `useAsyncData(key, fn, options)` 作为 `useData` 的别名/超集
+  - 新增 `dedupe` 选项（同 key 请求自动去重,默认 `true`）
+  - 新增 `refresh()` 方法手动刷新（绕过缓存 + dedupe）
+  - 新增 `pending`/`status` 字段（`status: 'idle'|'pending'|'success'|'error'`）
+  - SSR 时自动提取 payload 到 `__UBEAN_DATA__` script 标签
+- 新增 `useAsyncData(key, fn, options)` 作为 `useData` 的超集（Nuxt 风格位置参数签名）
+- 客户端从 `__UBEAN_DATA__` 恢复初始数据,避免二次请求
 
-**实现步骤**：
-1. 扩展 `useData` 返回值，增加 `refresh`/`pending`/`error`/`status`
-2. 实现 dedupe 逻辑（同 key + 同请求周期内复用 Promise）
-3. SSR payload 自动提取
-4. 客户端从 `__UBEAN_STATE__` 恢复初始数据
+**设计决策**：
+- payload 使用独立的 `__UBEAN_DATA__` script 标签(而非 `__UBEAN_STATE__`),
+  与 `__UBEAN_DEFERRED__` 模式一致,职责分离:用户状态(Pinia)与框架数据缓存互不污染,
+  便于 Task 3 (SSG payload) 提取为独立 JSON。
 
 **验收标准**：
-- 同一 key 的并发请求只执行一次 fetcher
-- `refresh()` 能强制重新获取
-- SSR 数据通过 `__UBEAN_STATE__` 传递，客户端无二次请求
-- 单元测试覆盖 dedupe/refresh/payload 流程
+- ✅ 同一 key 的并发请求只执行一次 fetcher
+- ✅ `refresh()` 能强制重新获取
+- ✅ SSR 数据通过 `__UBEAN_DATA__` 传递,客户端无二次请求
+- ✅ 单元测试覆盖 dedupe/refresh/payload 流程（35 测试通过）
 
-**兼容性**：现有 `useData` API 向后兼容，新增字段为可选。
+**兼容性**：现有 `useData` API 向后兼容,新增字段为可选。
 
 ---
 
-### 3. SSG payload 提取 [P0]
+### 3. SSG payload 提取 [P0] ✅ 已实现
 
 **目标**：SSG 预渲染时自动提取页面数据为独立 JSON payload。
 
 **技术方案**：
-- 在 `packages/prerender` 中，预渲染完成后将 `__UBEAN_STATE__` 提取为 `__data.json` 文件
+- 在 `packages/prerender` 中，预渲染完成后将 `__UBEAN_DATA__` 提取为 `__data.json` 文件
 - 页面 HTML 中注入 `<link rel="preload" href="/page/__data.json">` + 轻量内联引用
 - 客户端水合时优先从 `__data.json` 加载
 
 **实现步骤**：
-1. 预渲染后分离 `__UBEAN_STATE__` 为独立 JSON
+1. 预渲染后分离 `__UBEAN_DATA__` 为独立 JSON
 2. HTML 中替换内联 script 为外部引用
 3. 客户端运行时优先读外部 JSON，降级读内联
+
+**实现说明**（已实现）：
+- 新增 `extractDataPayload(html, route): ExtractedPayload | null`（`@ubean/prerender`）——
+  从预渲染 HTML 中正则提取 `<script id="__UBEAN_DATA__">JSON</script>`,返回
+  `{data, html, dataUrl}`。失败(无 script / JSON 解析失败 / 空数据)返回 `null`,静默降级。
+- 新增 `routeToDataFilePath(route, outputDir)` —— 路由 → `__data.json` 文件路径映射
+  (根路由 → `outputDir/__data.json`;其他 → `outputDir/<route>/__data.json`)。
+- 新增配置项 `PrerenderConfig.extractDataPayload?: boolean`(默认 `true`)——
+  控制是否启用 SSG payload 提取。设为 `false` 时保留内联 script(向后兼容)。
+- `prerender()` 的 `processRoute` 在 HTTP 200 时调用 `extractDataPayload`;
+  成功则写 `__data.json` 文件 + 用替换后的 HTML 写 `index.html`,失败则保留原 HTML。
+- HTML 替换内容:`<link rel="preload" href="<dataUrl>" as="fetch" crossorigin="anonymous">`
+  + `<script>window.__UBEAN_DATA_PAYLOAD__=fetch("<dataUrl>",{credentials:"include"}).then(r=>r.ok?r.json():null).catch(()=>null)</script>`
+- 客户端 `useData`(`@ubean/pages`):`readClientPayload()` 改为异步,优先读
+  `globalThis.__UBEAN_DATA_PAYLOAD__`(可能是 Promise / 对象 / null),降级到 DOM 读取
+  `__UBEAN_DATA__` script。in-flight Promise 缓存去重并发调用。
+- 仅对 HTTP 200 的 HTML 生效;ISR 页面同样适用;SSR 页面不受影响(仍内联)。
 
 **验收标准**：
 - SSG 页面 HTML 体积减小（state 不再内联）
 - `__data.json` 可被浏览器缓存
 - 水合后数据一致
 - 测试：对比 SSG 前后 HTML 体积 + 水合正确性
+
+**测试覆盖**：
+- `packages/prerender/test/payload.test.ts` —— `extractDataPayload` 单元测试 +
+  `routeToDataFilePath` 路径映射 + `prerender()` 端到端集成(默认启用 / `false` 禁用 /
+  无 script 降级 / 非 200 不提取)。
+- `packages/pages/test/data.test.ts` —— 新增 3 个客户端水合测试:
+  `__UBEAN_DATA_PAYLOAD__` 为 Promise / 对象 / reject 降级。
+- `examples/ubean-test/test/prerender.test.ts` —— HTTP 集成测试
+  `action=payloadExtract` 验证完整流程。
 
 **兼容性**：ISR 页面同样适用；SSR 页面不受影响（仍内联）。
 

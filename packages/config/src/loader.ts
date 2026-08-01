@@ -95,7 +95,8 @@ export function resolvePrerenderConfig(config?: PrerenderConfig): ResolvedPreren
     crawlLinks: config?.crawlLinks ?? true,
     concurrency: config?.concurrency ?? 4,
     failOnError: config?.failOnError ?? false,
-    staticDir: config?.staticDir ?? 'dist/public'
+    staticDir: config?.staticDir ?? 'dist/public',
+    extractDataPayload: config?.extractDataPayload ?? true
   };
 }
 

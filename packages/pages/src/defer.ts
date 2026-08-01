@@ -119,23 +119,26 @@ let clientCache: Record<string, unknown> | null | undefined;
  * SSR 环境返回 `null`。
  */
 function readClientCache(): Record<string, unknown> | null {
-  if (clientCache !== undefined) return clientCache;
-  if (typeof document === 'undefined') {
-    clientCache = null;
-    return clientCache;
-  }
+  const cached = clientCache;
+  if (cached !== undefined) return cached;
 
-  const el = document.getElementById(DEFERRED_DATA_ID);
-  if (!el?.textContent) {
-    clientCache = {};
-    return clientCache;
+  let result: Record<string, unknown> | null;
+  if (typeof document === 'undefined') {
+    result = null;
+  } else {
+    const el = document.getElementById(DEFERRED_DATA_ID);
+    if (!el?.textContent) {
+      result = {};
+    } else {
+      try {
+        result = JSON.parse(el.textContent);
+      } catch {
+        result = {};
+      }
+    }
   }
-  try {
-    clientCache = JSON.parse(el.textContent);
-  } catch {
-    clientCache = {};
-  }
-  return clientCache;
+  clientCache = result;
+  return result;
 }
 
 /**

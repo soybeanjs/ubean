@@ -2,11 +2,24 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolvePrerenderConfig } from '@ubean/config';
 import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
 import type { ScannedPageRoute } from '@ubean/routing';
+import { DATA_PAYLOAD_ID } from '@ubean/pages';
 import type { RouteRule } from '@ubean/types';
 import { matchGlob } from '@ubean/utils';
 import { join, dirname } from 'pathe';
 
 const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
+
+/**
+ * 匹配 `__UBEAN_DATA__` 内联 script 的正则。
+ *
+ * 预渲染时从中提取 JSON payload,替换为 `<link rel="preload">` + 引导脚本
+ * (引导脚本通过 fetch 加载 `__data.json`,设置全局 `__UBEAN_DATA_PAYLOAD__`)。
+ *
+ * 使用 `[\s\S]*?` 非贪婪匹配,避免多个 script 之间的过度匹配。
+ */
+const DATA_PAYLOAD_REGEX = new RegExp(
+  '<script id="' + DATA_PAYLOAD_ID + '" type="application/json">([\\s\\S]*?)</script>'
+);
 
 export interface PrerendererOptions {
   cwd: string;
@@ -229,6 +242,85 @@ export function routeToFilePath(route: string, outputDir: string): string {
   return join(outputDir, route, 'index.html');
 }
 
+/**
+ * 将路由路径映射到对应的 `__data.json` 文件路径。
+ *
+ * 规则(与 `routeToFilePath` 对应,但产物是 JSON payload 而非 HTML):
+ * - `/` → `outputDir/__data.json`
+ * - `/about` → `outputDir/about/__data.json`
+ * - `/dashboard/settings` → `outputDir/dashboard/settings/__data.json`
+ *
+ * 与 HTML 不同,这里不需要处理扩展名路由(`.html`/`.txt` 等)—— payload
+ * 仅对页面路由有意义,扩展名路由(如 `/robots.txt`)不参与 payload 提取。
+ */
+export function routeToDataFilePath(route: string, outputDir: string): string {
+  if (route === '/' || route === '') {
+    return join(outputDir, '__data.json');
+  }
+  return join(outputDir, route, '__data.json');
+}
+
+/**
+ * `extractDataPayload` 的返回结构。
+ */
+export interface ExtractedPayload {
+  /** 从 `__UBEAN_DATA__` 解析出的 payload 数据。 */
+  data: Record<string, unknown>;
+  /** 替换内联 script 后的 HTML(包含 preload link + 引导脚本)。 */
+  html: string;
+  /** `__data.json` 的 URL(用于 preload + fetch)。 */
+  dataUrl: string;
+}
+
+/**
+ * 从预渲染 HTML 中提取 `__UBEAN_DATA__` payload,替换为外部引用。
+ *
+ * 流程:
+ * 1. 用正则匹配 `<script id="__UBEAN_DATA__">JSON</script>`
+ * 2. JSON.parse 提取的数据(解析失败/为空 → 返回 null)
+ * 3. 计算 `dataUrl`(根路由 → `/__data.json`,其他 → `<route>/__data.json`)
+ * 4. 用 `<link rel="preload">` + 引导脚本替换内联 script
+ *    (引导脚本通过 `fetch(dataUrl)` 加载 payload,设置全局 `__UBEAN_DATA_PAYLOAD__`)
+ *
+ * 返回 `null` 表示不进行提取(无 script / JSON 解析失败 / payload 为空对象)。
+ *
+ * @param html 预渲染后的完整 HTML
+ * @param route 当前路由路径(用于计算 dataUrl)
+ */
+export function extractDataPayload(html: string, route: string): ExtractedPayload | null {
+  const match = DATA_PAYLOAD_REGEX.exec(html);
+  if (!match) return null;
+
+  const jsonText = match[1];
+  let data: Record<string, unknown>;
+  try {
+    data = JSON.parse(jsonText);
+  } catch {
+    return null;
+  }
+
+  // 空对象 payload 不提取(无意义,徒增一次请求)
+  if (!data || typeof data !== 'object' || Object.keys(data).length === 0) {
+    return null;
+  }
+
+  const dataUrl = route === '/' || route === '' ? '/__data.json' : `${route}/__data.json`;
+
+  // 替换内联 script 为 preload + 引导脚本:
+  // - `<link rel="preload">` 让浏览器尽早开始下载 __data.json
+  // - 引导脚本通过 fetch 加载 payload,设置全局 `__UBEAN_DATA_PAYLOAD__`
+  //   (客户端 useData 会优先读这个全局变量,降级到 DOM 读取)
+  // - `crossorigin="anonymous"` 因为 __data.json 通常无需凭据
+  //   (引导脚本的 fetch 仍带 `credentials:"include"` 以支持 cookie-based 页面)
+  const replacement =
+    `<link rel="preload" href="${dataUrl}" as="fetch" crossorigin="anonymous">` +
+    `<script>window.__UBEAN_DATA_PAYLOAD__=fetch(${JSON.stringify(dataUrl)},{credentials:"include"}).then(r=>r.ok?r.json():null).catch(()=>null)</script>`;
+
+  const modifiedHtml = html.slice(0, match.index) + replacement + html.slice(match.index + match[0].length);
+
+  return { data, html: modifiedHtml, dataUrl };
+}
+
 export async function writePrerenderedFile(filePath: string, html: string): Promise<void> {
   await mkdir(dirname(filePath), { recursive: true });
   await writeFile(filePath, html, 'utf-8');
@@ -318,8 +410,22 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
           }
         }
 
+        // SSG payload 提取(roadmap Task 3):仅对 200 OK 的 HTML 提取,
+        // 将内联 `__UBEAN_DATA__` script 拆分为独立的 `__data.json` 文件,
+        // HTML 中替换为 `<link rel="preload">` + 引导脚本。
+        // 失败(无 script / JSON 解析失败 / 空数据)静默降级,保留原 HTML。
+        let htmlToWrite = resp.html;
+        if (config.extractDataPayload && resp.statusCode === 200 && resp.html) {
+          const extracted = extractDataPayload(resp.html, route);
+          if (extracted) {
+            const dataFilePath = routeToDataFilePath(route, outputDir);
+            await writePrerenderedFile(dataFilePath, JSON.stringify(extracted.data));
+            htmlToWrite = extracted.html;
+          }
+        }
+
         const filePath = routeToFilePath(route, outputDir);
-        await writePrerenderedFile(filePath, resp.html);
+        await writePrerenderedFile(filePath, htmlToWrite);
         generated.push(route);
         result.html = undefined;
       } else {

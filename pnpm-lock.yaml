@@ -965,6 +965,9 @@ importers:
       '@ubean/config':
         specifier: workspace:*
         version: link:../config
+      '@ubean/pages':
+        specifier: workspace:*
+        version: link:../pages
       '@ubean/routing':
         specifier: workspace:*
         version: link:../routing

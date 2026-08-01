@@ -513,7 +513,7 @@ const json = serializeVercelConfig(config);
 | `useRouter()` / `createUbeanRouter(options)`                                                                                                                      | 路由                                                                                                            |
 | `useCacheViews()` / `enablePageCache` / `disablePageCache` / `excludePageCache` / `includePageCache` / `invalidatePageCache` / `isPageCached` / `resetRouteCache` | 页面 KeepAlive 缓存运行时控制（自动导入自 `ubean/runtime/vue`）；`getNamedPageWrapper` 从 `@ubean/runtime` 导出 |
 | `useHead()` / `useSeoMeta()`                                                                                                                                      | 动态 head/SEO（响应式）；静态 head 用 `definePage({ head })`                                                    |
-| `useData(key, fetcher)` / `invalidateData(key)` / `invalidateAll()`                                                                                               | 页面数据                                                                                                        |
+| `useData(options)` / `useAsyncData(key, fn, options?)` / `invalidateData(key)` / `invalidateAll()`                                                                                               | 页面数据:P0 — `useData` 增强(dedupe/refresh/pending/status);`useAsyncData` Nuxt 风格超集;SSR payload 自动注入 `__UBEAN_DATA__`,客户端水合无二次请求         |
 | `defer(factory)` / `useDeferredData(key, deferred)`                                                                                                               | 流式延迟数据:P0 — SSR 不阻塞初始渲染,数据在主内容后流式注入;客户端水合时从 `__UBEAN_DEFERRED__` 立即读取         |
 | `withViewTransition(fn)` / `supportsViewTransitions()`                                                                                                            | View Transitions                                                                                                |
 | `<Link to="...">` / `<Head>`                                                                                                                                      | 全局注册组件（无需导入）                                                                                        |
@@ -538,10 +538,11 @@ const json = serializeVercelConfig(config);
 | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
 | `prerender(options)` / `collectPrerenderRoutes(pages, options)`    | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)          |
 | `extractPrerenderRoutesFromRules(routeRules)`                      | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤) |
+| `extractDataPayload(html, route)` / `routeToDataFilePath(...)`     | SSG payload 提取(Task 3):从 HTML 中提取 `__UBEAN_DATA__` 为 `__data.json`,返回 `{data, html, dataUrl}` |
 | `generatePrerenderManifest(result, baseUrl)`                       | 生成清单                                                                                       |
 | `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`  | 路由 → 文件路径映射/写入                                                                       |
 | `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob` | 链接提取/通配符匹配                                                                            |
-| `resolvePrerenderConfig(config)`                                   | 配置解析与默认值                                                                               |
+| `resolvePrerenderConfig(config)`                                   | 配置解析与默认值(`extractDataPayload` 默认 `true`)                                            |
 
 ### i18n
 

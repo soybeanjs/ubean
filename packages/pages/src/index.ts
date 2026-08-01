@@ -20,6 +20,7 @@ export {
 export {
   defineDataKey,
   useData,
+  useAsyncData,
   invalidateData,
   invalidateAll,
   clearDataCache,
@@ -29,7 +30,13 @@ export {
   getInvalidatedKeysForAction,
   createInternalFetch,
   createStreamResponse,
-  createSseStream
+  createSseStream,
+  DATA_PAYLOAD_ID,
+  __registerDataPayload,
+  __resolveDataPayload,
+  __clearDataPayload,
+  __serializeDataPayload,
+  __resetDataPayloadCache
 } from './data';
 
 export type { PageHead, PageHead as PageHeadMeta } from '@ubean/types';
@@ -49,7 +56,10 @@ export type {
   DataKey,
   DataCacheEntry,
   UseDataOptions,
+  UseAsyncDataOptions,
   DataResult,
+  DataStatus,
+  DataPayloadEntry,
   DependencyDeclaration,
   InternalFetchOptions,
   StreamHelper

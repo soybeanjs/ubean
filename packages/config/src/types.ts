@@ -453,6 +453,22 @@ export interface PrerenderConfig {
 
   /** 静态产物输出目录,相对 cwd。默认 'dist/public'。 */
   staticDir?: string;
+
+  /**
+   * 是否从预渲染 HTML 中提取 `__UBEAN_DATA__` payload 为独立 `__data.json` 文件。
+   *
+   * - true(默认):将内联 `<script id="__UBEAN_DATA__">JSON</script>` 拆分为
+   *   `__data.json` 文件,HTML 中替换为 `<link rel="preload">` + 引导脚本
+   *   (引导脚本通过 `fetch('/<route>/__data.json')` 加载 payload,设置全局
+   *   `__UBEAN_DATA_PAYLOAD__`)。客户端 `useData` 优先读全局,降级到 DOM。
+   * - false:保留内联 script(行为与未启用 SSG 提取时一致)。
+   *
+   * 仅对 HTTP 200 的 HTML 生效;失败(无 script / JSON 解析失败 / 空数据)
+   * 静默降级,保留原 HTML。
+   *
+   * 详见 `docs/roadmap.md` Task 3。
+   */
+  extractDataPayload?: boolean;
 }
 
 /**
@@ -469,6 +485,7 @@ export interface ResolvedPrerenderConfig {
   concurrency: number;
   failOnError: boolean;
   staticDir: string;
+  extractDataPayload: boolean;
 }
 
 export interface PrerenderRoute {

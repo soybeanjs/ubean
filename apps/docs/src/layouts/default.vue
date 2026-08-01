@@ -56,61 +56,64 @@ watch(() => route.path, () => {
 
 <template>
   <div
-    class="[--app-header-main:3.75rem] [--app-topbar:0rem] [--app-header:calc(var(--app-header-main)+var(--app-topbar))] min-h-full pt-[--app-header] text-sm"
+    class="[--app-header-main:3.75rem] [--app-topbar:0rem] [--app-header:calc(var(--app-header-main)+var(--app-topbar))] relative min-h-full pt-[--app-header] text-sm"
   >
-    <AppHeader />
-
-    <div
-      v-if="shouldShowSidebar"
-      class="lt-md:!hidden fixed top-[calc(var(--app-header)+0.5rem)] start-0 z-49 w-55 h-[calc(100vh-var(--app-header)-0.5rem)] p-3"
-    >
-      <SiderMenu />
-    </div>
-
-    <div
-      :class="shouldShowSidebar ? 'lt-md:ms-0 md:ms-55' : 'ms-0'"
-      class="px-4 py-5 md:px-8 md:pb-7 md:pt-5 xl:px-10 lt-md:pt-12!"
-    >
-      <!-- Mobile sidebar trigger (lt-md only). The fixed sidebar is hidden on
-           small screens; this button opens a drawer with the same SiderMenu. -->
-      <button
-        v-if="shouldShowSidebar"
-        type="button"
-        class="docs-border mb-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-active md:!hidden"
-        @click="mobileSidebarOpen = true"
-      >
-        <SIcon icon="lucide:panel-left" class="size-4" />
-        <span>{{ isZh ? '菜单' : 'Menu' }}</span>
-      </button>
-
-      <SDrawer
-        v-if="shouldShowSidebar"
-        v-model:open="mobileSidebarOpen"
-        side="left"
-        :modal="true"
-        class="w-72"
-      >
-        <SiderMenu @select="mobileSidebarOpen = false" />
-      </SDrawer>
+    <BackgroundDecoration />
+    <div class="relative z-10">
+      <AppHeader />
 
       <div
-        class="mx-auto min-w-0"
-        :class="shouldReserveOutlineSpace ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start xl:gap-8' : ''"
+        v-if="shouldShowSidebar"
+        class="lt-md:!hidden fixed top-[calc(var(--app-header)+0.5rem)] start-0 z-49 w-55 h-[calc(100vh-var(--app-header)-0.5rem)] p-3"
       >
-        <div class="min-w-0">
-          <RouterView />
-        </div>
+        <SiderMenu />
+      </div>
 
-        <aside v-if="shouldReserveOutlineSpace" class="lt-xl:hidden xl:w-72 xl:min-w-0">
-          <div
-            class="fixed top-[calc(var(--app-header)+1.25rem)] end-8 z-40 w-72 transition-opacity duration-200"
-            :class="hasDocOutline ? 'opacity-100' : 'pointer-events-none opacity-0'"
-          >
-            <div class="docs-border max-h-[calc(100vh-var(--app-header)-2.5rem)] overflow-auto p-3 rounded-xl">
-              <SAnchor :items="anchorItems" :offset-top="124" :target-offset="124" />
-            </div>
+      <div
+        :class="shouldShowSidebar ? 'lt-md:ms-0 md:ms-55' : 'ms-0'"
+        class="px-4 py-5 md:px-8 md:pb-7 md:pt-5 xl:px-10 lt-md:pt-12!"
+      >
+        <!-- Mobile sidebar trigger (lt-md only). The fixed sidebar is hidden on
+             small screens; this button opens a drawer with the same SiderMenu. -->
+        <button
+          v-if="shouldShowSidebar"
+          type="button"
+          class="docs-border mb-4 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:bg-active md:!hidden"
+          @click="mobileSidebarOpen = true"
+        >
+          <SIcon icon="lucide:panel-left" class="size-4" />
+          <span>{{ isZh ? '菜单' : 'Menu' }}</span>
+        </button>
+
+        <SDrawer
+          v-if="shouldShowSidebar"
+          v-model:open="mobileSidebarOpen"
+          side="left"
+          :modal="true"
+          class="w-72"
+        >
+          <SiderMenu @select="mobileSidebarOpen = false" />
+        </SDrawer>
+
+        <div
+          class="mx-auto min-w-0"
+          :class="shouldReserveOutlineSpace ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start xl:gap-8' : ''"
+        >
+          <div class="min-w-0">
+            <RouterView />
           </div>
-        </aside>
+
+          <aside v-if="shouldReserveOutlineSpace" class="lt-xl:hidden xl:w-72 xl:min-w-0">
+            <div
+              class="fixed top-[calc(var(--app-header)+1.25rem)] end-8 z-40 w-72 transition-opacity duration-200"
+              :class="hasDocOutline ? 'opacity-100' : 'pointer-events-none opacity-0'"
+            >
+              <div class="docs-border max-h-[calc(100vh-var(--app-header)-2.5rem)] overflow-auto p-3 rounded-xl">
+                <SAnchor :items="anchorItems" :offset-top="124" :target-offset="124" />
+              </div>
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   </div>

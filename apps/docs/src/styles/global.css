@@ -72,6 +72,16 @@ body,
   min-height: 100%;
 }
 
+/* Page background: the soft vertical gradient sits behind the
+   BackgroundDecoration component (grid + orbs + particles) so the
+   decorative layer inherits the same brand-colored backdrop on every
+   page, matching the soybean-ui docs visual identity. */
+body {
+  background: var(--docs-page-bg-solid);
+  background-image: var(--docs-page-bg);
+  background-attachment: fixed;
+}
+
 button,
 input,
 select,

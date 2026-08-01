@@ -9,6 +9,8 @@ title: Islands Auto-Registry
 > Status legend: ⬜ Not started | 🔄 In progress | ✅ Completed | ⏸️ Deferred
 >
 > Current overall status: **Completed (all tasks ✅, including auto-hydration)**. Document version: v1.1 (2026-07-29).
+>
+> **Syntax note**: This proposal was written using the legacy `client:*` attribute syntax. Since P9-29, the recommended syntax is the `v-client.*` Vue directive (`v-client.load` / `v-client.idle` / `v-client.visible` / `v-client.media` / `v-client.only`); both forms are fully equivalent and are detected by the same scanner. The examples below are retained verbatim for historical context. See [Islands → Directive Reference](/guide/islands#directive-reference) for the migration table.
 
 ---
 

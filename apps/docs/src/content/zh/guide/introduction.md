@@ -15,7 +15,7 @@ ubean 基于 Vite-Plus 构建，借鉴了 Void（Inertia 式 SSR 页面路由）
 
 - **全栈 SSR** — Vue SSR 配合 Inertia 式页面路由、群岛架构和原生视图过渡。
 - **文件式路由** — 类型安全的 API 路由（`defineHandler`）和页面路由（`definePage` 宏），自动生成类型安全的路由助手。
-- **群岛架构** — 通过 `client:load|idle|visible|media|only` 指令实现部分水合，自动注册并自动水合。
+- **群岛架构** — 通过 `v-client.*` 指令（`v-client.load|idle|visible|media|only`）实现部分水合，自动注册并自动水合。
 - **多平台部署** — 支持 Node、Cloudflare、Vercel、Netlify、Bun、Deno 预设及能力矩阵。
 - **开发者工具** — 基于 iframe 的检查面板，包含页面、API、中间件、定时任务、环境变量和 AI 助手。
 - **内置国际化** — 零依赖的 i18n 系统，支持三种路由策略和 SSR 水合。

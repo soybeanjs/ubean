@@ -200,7 +200,7 @@ packages/
 - **入口**: `@ubean/runtime`、`@ubean/runtime/app`、`@ubean/runtime/define-app`
 
 #### `@ubean/islands`
-- **职责**: Islands 架构 —— Vite 插件(`client:load/idle/visible/media/only` 指令转换)、bootstrap 脚本、客户端 hydrate 运行时、**组件自动注册**（扫描 `client:*` 指令 + 解析 `<script setup>` import → 生成 `virtual:ubean-islands-registry` 虚拟模块）
+- **职责**: Islands 架构 —— Vite 插件（`v-client.*` / 旧版 `client:*` 指令转换）、bootstrap 脚本、客户端 hydrate 运行时、**组件自动注册**（扫描 `v-client.*` / `client:*` 指令 + 解析 `<script setup>` import → 生成 `virtual:ubean-islands-registry` 虚拟模块）
 - **来源**: `core/islands/`、`runtime/vue/islands.ts`
 - **依赖**: `vue`(SFC 编译)、`@ubean/utils`
 - **入口**: `@ubean/islands/vite`、`@ubean/islands/runtime`

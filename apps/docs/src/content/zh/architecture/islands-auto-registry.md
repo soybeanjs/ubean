@@ -9,6 +9,8 @@ title: Islands Auto-Registry
 > 状态图例：⬜ 待开始 | 🔄 进行中 | ✅ 已完成 | ⏸️ 暂缓
 >
 > 当前整体状态：**已完成（所有任务 ✅，含自动水合）**。文档版本：v1.1（2026-07-29）。
+>
+> **语法说明**：本方案撰写时使用的是旧版 `client:*` 属性语法。自 P9-29 起,推荐使用 `v-client.*` Vue 指令（`v-client.load` / `v-client.idle` / `v-client.visible` / `v-client.media` / `v-client.only`）；两种语法完全等价,由同一扫描器检测。下文示例保留原样以记录历史上下文。迁移对照表见 **[Islands → 指令参考](/zh/guide/islands#directive-reference)**。
 
 ---
 

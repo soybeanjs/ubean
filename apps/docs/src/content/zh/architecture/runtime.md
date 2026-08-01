@@ -1362,7 +1362,7 @@ meta:
 
 Welcome to our company...
 
-<Counter client:visible />
+<Counter v-client.visible />
 ```
 
 - YAML frontmatter 通过 `front-matter` 解析，提取 `title`/`description`/`layout`/`meta`
@@ -1391,7 +1391,7 @@ import Counter from '~/components/Counter.vue'
 
 This is **MDX** with real compilation.
 
-<Counter client:visible />
+<Counter v-client.visible />
 ```
 
 若未安装 `@mdx-js/mdx`，ubean 会自动 fallback 为 plain Markdown 渲染（将 HTML 包裹在 Vue 组件中通过 `v-html` 输出），功能上等价于普通 `.md` 文件。
@@ -1445,7 +1445,7 @@ export default defineConfig({
 
 #### Client 指令
 
-在 Vue 模板中通过指令标记孤岛组件的 hydration 策略：
+在 Vue 模板中通过指令标记孤岛组件的 hydration 策略。下方展示的是原始 `client:*` HTML 属性语法（仍向后兼容）；推荐的 `v-client.*` Vue 指令语法见下一节。
 
 ```vue
 <template>

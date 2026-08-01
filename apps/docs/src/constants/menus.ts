@@ -90,19 +90,22 @@ export const menuSections: MenuSection[] = [
     label: 'Architecture',
     labelZh: '架构',
     items: [
+      // Core concepts — entry point & mental model
       { label: 'Overview', labelZh: '概览', to: '/architecture/overview', status: 'implemented' },
       { label: 'Architecture', labelZh: '架构', to: '/architecture/architecture', status: 'implemented' },
+      // Internals — how the framework works under the hood
       { label: 'Routing', labelZh: '路由', to: '/architecture/routing', status: 'implemented' },
       { label: 'Runtime', labelZh: '运行时', to: '/architecture/runtime', status: 'implemented' },
       { label: 'Engineering', labelZh: '工程化', to: '/architecture/engineering', status: 'implemented' },
-      { label: 'Roadmap', labelZh: '路线图', to: '/architecture/roadmap', status: 'implemented' },
+      // Community & comparison
       { label: 'Ecosystem', labelZh: '生态系统', to: '/architecture/ecosystem', status: 'implemented' },
       { label: 'Framework Comparison', labelZh: '框架对比', to: '/architecture/framework-comparison', status: 'implemented' },
+      { label: 'Roadmap', labelZh: '路线图', to: '/architecture/roadmap', status: 'implemented' },
+      // Design records & proposals (historical context)
       { label: 'Subpackage Splitting', labelZh: '子包拆分', to: '/architecture/subpackage-splitting', status: 'historical' },
-      { label: 'App Modes', labelZh: '应用模式', to: '/architecture/modes', status: 'historical' },
       { label: 'Islands Auto-Registry', labelZh: '群岛自动注册', to: '/architecture/islands-auto-registry', status: 'proposal' },
-      { label: 'ubean-studio', to: '/architecture/ubean-studio', status: 'proposal' },
-      { label: 'Test Checklist', labelZh: '测试清单', to: '/architecture/test', status: 'implemented' }
+      { label: 'App Modes (ADR)', labelZh: '应用模式 (ADR)', to: '/architecture/modes', status: 'historical' },
+      { label: 'ubean-studio', to: '/architecture/ubean-studio', status: 'proposal' }
     ]
   }
 ];

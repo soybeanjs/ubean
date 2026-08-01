@@ -1362,7 +1362,7 @@ meta:
 
 Welcome to our company...
 
-<Counter client:visible />
+<Counter v-client.visible />
 ```
 
 - YAML frontmatter is parsed by `front-matter`, extracting `title`/`description`/`layout`/`meta`
@@ -1391,7 +1391,7 @@ import Counter from '~/components/Counter.vue'
 
 This is **MDX** with real compilation.
 
-<Counter client:visible />
+<Counter v-client.visible />
 ```
 
 If `@mdx-js/mdx` is not installed, ubean automatically falls back to plain Markdown rendering (wrapping the HTML in a Vue component output via `v-html`), functionally equivalent to a regular `.md` file.
@@ -1445,7 +1445,7 @@ Modeled after void's islands implementation (Import Attributes approach), ubean 
 
 #### Client Directives
 
-Mark island component hydration strategy via directives in Vue templates:
+Mark island component hydration strategy via directives in Vue templates. The original `client:*` HTML-attribute syntax (shown below) is still supported for backward compatibility; the recommended `v-client.*` Vue directive syntax is documented in the next section.
 
 ```vue
 <template>

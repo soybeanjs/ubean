@@ -200,7 +200,7 @@ packages/
 - **Entries**: `@ubean/runtime`, `@ubean/runtime/app`, `@ubean/runtime/define-app`
 
 #### `@ubean/islands`
-- **Responsibility**: Islands architecture — Vite plugin (`client:load/idle/visible/media/only` directive transformation), bootstrap script, client hydrate runtime, **component auto-registration** (scan `client:*` directives + parse `<script setup>` imports → generate `virtual:ubean-islands-registry` virtual module)
+- **Responsibility**: Islands architecture — Vite plugin (`v-client.*` / legacy `client:*` directive transformation), bootstrap script, client hydrate runtime, **component auto-registration** (scan `v-client.*` / `client:*` directives + parse `<script setup>` imports → generate `virtual:ubean-islands-registry` virtual module)
 - **Source**: `core/islands/`, `runtime/vue/islands.ts`
 - **Dependencies**: `vue` (SFC compilation), `@ubean/utils`
 - **Entries**: `@ubean/islands/vite`, `@ubean/islands/runtime`

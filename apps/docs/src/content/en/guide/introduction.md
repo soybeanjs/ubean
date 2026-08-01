@@ -15,7 +15,7 @@ ubean (pronounced "you-bean") is built on top of Vite-Plus and draws inspiration
 
 - **Full-stack SSR** — Vue SSR with Inertia-style page routing, islands architecture, and native view transitions.
 - **File-based Routing** — Typed API routes (`defineHandler`) and page routes (`definePage` macro) with auto-generated type-safe route helpers.
-- **Islands Architecture** — Partial hydration via `client:load|idle|visible|media|only` directives, auto-registered and auto-hydrated.
+- **Islands Architecture** — Partial hydration via the `v-client.*` directive (`v-client.load|idle|visible|media|only`), auto-registered and auto-hydrated.
 - **Multi-platform Deploy** — Presets for Node, Cloudflare, Vercel, Netlify, Bun, and Deno with a capability matrix.
 - **DevTools** — An iframe-based inspector panel with Pages, API, Middleware, Cron, Env, and an AI assistant.
 - **Built-in i18n** — Zero-dependency internationalization with three routing strategies and SSR hydration.

@@ -280,7 +280,7 @@ export interface PiniaSerializedState {
 
 5. **Hydrate before mount**: The ubean client entry ensures `hydrateState` runs before `app.mount()`. If you customize the entry, preserve this ordering — otherwise stores initialize with defaults and hydration is lost.
 
-6. **Pinia + Islands**: Pinia state is available in the main Vue app. Islands (`client:load`, `client:idle`, etc.) are separate Vue subtrees — they don't automatically share the main app's Pinia instance. If an island needs Pinia, install it on the island's app or pass state via props.
+6. **Pinia + Islands**: Pinia state is available in the main Vue app. Islands (`v-client.load`, `v-client.idle`, etc.) are separate Vue subtrees — they don't automatically share the main app's Pinia instance. If an island needs Pinia, install it on the island's app or pass state via props.
 
 ## Troubleshooting
 

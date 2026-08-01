@@ -4,14 +4,11 @@ title: Modes
 
 # ubean 应用模式(App Mode)设计方案
 
-> **状态:✅ 已实施(2026-07)**
+> **状态:✅ 已实施(2026-07) — 设计决策记录(ADR)**
 >
-> 本文档为原始设计方案。`AppMode` 类型与 `mode`/`ssr` 配置字段已落地到 [`@ubean/config`](../packages/config/src/types.ts)(`'fullstack' | 'spa' | 'ssg' | 'backend'`)。
-> 本文档保留作为设计决策记录;实际 API 以 [AGENTS.md](../AGENTS.md) 与 [skills/ubean/docs](../skills/ubean/docs) 为准。
->
-> ---
->
-> 本文档描述 ubean 框架的 `mode` 配置字段设计,支持前端-only、后端-only、全栈、SSG 等多种应用形态。
+> `AppMode` 类型与 `mode`/`ssr` 配置字段已落地到 [`@ubean/config`](../packages/config/src/types.ts)(`'fullstack' | 'spa' | 'ssg' | 'backend'`)。
+> 本文档保留作为**架构决策记录(ADR)** — 记录设计缘由、实现内部和关键决策。
+> 面向用户的 API、模式选择指南和各模式行为详见指南中的 **[应用模式](/zh/guide/app-modes)**。
 
 ## 1. 背景与目标
 
@@ -50,36 +47,9 @@ export type AppMode = 'fullstack' | 'spa' | 'ssg' | 'backend';
 
 > **设计决策**:不再保留 `ssr` 作为独立 mode。原本的 `ssr` mode 与 `fullstack` 行为完全一致,只是"语义强调",但实际配置语义重复,容易让用户误以为有差异。改为 `fullstack` 模式下的 `ssr: boolean` 选项,既能强调"是否需要 SSR",又避免了 mode 数量膨胀。
 
-### 2.2 模式语义
+### 2.2 模式语义、选择与配置关系
 
-| Mode | Client bundle | SSR bundle | Server bundle | Prerender | 说明 |
-|---|---|---|---|---|---|
-| `fullstack`(默认,`ssr: true`) | ✅ | ✅ | ✅ | 可选 | 当前默认行为,Vue 页面 + Hono API + SSR |
-| `fullstack` + `ssr: false` | ✅ | ❌ | ✅ | ❌ | Vue 页面 + Hono API,无 SSR 渲染(适合无 SEO 需求的全栈应用) |
-| `spa` | ✅ | ❌ | ❌ | ❌ | 纯客户端渲染,仅静态 HTML + JS,无服务端 |
-| `ssg` | ✅ | ✅(临时) | ❌ | ✅(强制) | 构建时用 SSR 渲染静态 HTML,产物为纯静态文件 |
-| `backend` | ❌ | ❌ | ✅ | ❌ | 纯 Hono API 服务,无 Vue 页面、无 SSR |
-
-### 2.3 模式选择指南
-
-| 场景 | 推荐 mode | 说明 |
-|---|---|---|
-| 全栈应用(页面 + API + SEO) | `fullstack`(默认) | 最常用,含 SSR |
-| 全栈应用(页面 + API,无 SEO) | `fullstack` + `ssr: false` | 后台管理系统等 |
-| 纯 API 服务(无前端) | `backend` | 微服务、BFF |
-| 营销站/博客(静态) | `ssg` | SEO 友好,部署到 CDN |
-| 纯前端应用(无 API) | `spa` | 无 SEO 需求,无服务端 |
-
-### 2.4 与现有配置的关系
-
-| 配置字段 | 与 mode 的关系 | 说明 |
-|---|---|---|
-| `build.preset` | 正交 | `mode` 控制架构(有无前端/后端),`preset` 控制部署平台(node/cf) |
-| `routing.mode` | 正交 | `routing.mode` 控制路由文件生成方式(virtual/file),与 `mode` 无关 |
-| `prerender.enabled` | mode 覆盖 | `ssg` 模式强制 `prerender.enabled = true`;`spa`/`backend`/`fullstack`+`ssr:false` 模式强制 `false` |
-| `ssr` | mode 内选项 | 仅 `mode === 'fullstack'` 时生效;`spa`/`ssg`/`backend` 模式下 `ssr` 字段被忽略 |
-| `icon`/`pwa`/`auth` 等 | 正交 | 扩展模块按需加载,不受 `mode` 影响 |
-| `i18n` | 正交 | i18n 配置与 `mode` 独立 |
+> 模式语义表、选择指南和配置关系矩阵均已在用户指南中记录:**[应用模式](/zh/guide/app-modes)**。本文档聚焦于设计缘由与实现内部;指南为「是什么」和「如何使用」的权威参考。
 
 ## 3. 架构设计
 
@@ -340,134 +310,7 @@ Dev server 的请求处理保持不变 — `app.fetch(webReq)` 已能正确处�
 
 ## 4. 各模式详细行为
 
-### 4.1 `fullstack` 模式(默认,`ssr: true`)
-
-**完全等同当前行为,零改动。**
-
-- 构建:`dist/public/`(客户端) + `dist/server/`(服务端)
-- Dev:Vite middleware + Hono app
-- Preview:Node server (`server.mjs`)
-- Prerender:可选(由 `prerender.enabled` 控制)
-
-### 4.2 `fullstack` 模式 + `ssr: false`
-
-**全栈但无 SSR,适合后台管理系统等无 SEO 需求的全栈应用。**
-
-构建流程:
-1. ✅ 生成客户端 + 服务端虚拟模块(服务端仍需启动 Hono app 处理 API 路由)
-2. ✅ 构建 client bundle → `dist/public/`
-3. ❌ 跳过 SSR bundle 构建(节省约 40% 构建时间)
-4. ✅ 构建 server bundle(包含 Hono app + API 路由,但无 Vue 渲染器)
-5. ❌ 跳过 prerender(无 SSR 无法预渲染)
-
-产物结构:
-```
-dist/
-├── public/          # 客户端产物
-│   ├── index.html
-│   ├── assets/
-│   └── favicon.svg
-└── server/          # 服务端产物(仅 API,无 SSR 渲染器)
-    ├── entry.mjs
-    ├── server.mjs
-    └── package.json
-```
-
-Dev 行为:
-- 等同 `fullstack` + `ssr:true`(dev 模式不区分 SSR on/off)
-- HMR 正常工作
-
-Preview 行为:
-- 启动 Node server(同 `fullstack`),API 路由正常响应,页面请求由客户端渲染
-
-### 4.3 `spa` 模式
-
-**纯客户端渲染,无服务端。**
-
-构建流程:
-1. ✅ 生成客户端虚拟模块(`ubean:pages`、`ubean:app`、`virtual:ubean-client-entry`)
-2. ✅ 构建 client bundle → `dist/public/`
-3. ✅ 生成 `index.html`(包含 `<script type="module">` 指向客户端入口)
-4. ❌ 跳过 SSR bundle 构建
-5. ❌ 跳过 server entry 生成
-6. ❌ 跳过 prerender
-
-产物结构:
-```
-dist/
-└── public/
-    ├── index.html
-    ├── assets/
-    │   ├── app-[hash].js
-    │   └── ...
-    └── favicon.svg
-```
-
-Dev 行为:
-- Vite dev server 仍然 middleware 模式,但 `app.fetch()` 对所有路由返回客户端 HTML
-- HMR 正常工作
-
-Preview 行为:
-- 启动静态文件服务器 serve `dist/public/`
-
-### 4.4 `ssg` 模式
-
-**静态站点生成,构建时预渲染。**
-
-构建流程:
-1. ✅ 生成客户端 + SSR 虚拟模块(SSR 仅用于构建时渲染)
-2. ✅ 构建 client bundle → `dist/public/`
-3. ✅ 构建 SSR bundle → `dist/server/`(临时)
-4. ✅ 强制执行 prerender → 生成 `dist/public/**/*.html`
-5. ✅ 删除临时 `dist/server/` 目录
-
-产物结构:
-```
-dist/
-└── public/
-    ├── index.html          # 预渲染的首页
-    ├── about/
-    │   └── index.html      # 预渲染的 /about
-    ├── blog/
-    │   ├── post-1/
-    │   │   └── index.html
-    │   └── ...
-    ├── assets/             # 客户端 JS/CSS
-    └── favicon.svg
-```
-
-Dev 行为:
-- 等同 `fullstack`(dev 模式不预渲染,实时 SSR)
-
-Preview 行为:
-- 启动静态文件服务器 serve `dist/public/`
-
-### 4.5 `backend` 模式
-
-**纯 API 后端,无前端。**
-
-构建流程:
-1. ✅ 生成 API 路由虚拟模块(`ubean:routes`、`ubean:app-config`、`ubean:locales`)
-2. ❌ 跳过页面相关虚拟模块(`ubean:pages`、`ubean:meta`、`virtual:ubean-pages` 等)
-3. ❌ 跳过 Vue 插件加载
-4. ❌ 跳过 client bundle 构建
-5. ✅ 构建 SSR/server bundle → `dist/server/`(包含 Hono app + API 路由)
-
-产物结构:
-```
-dist/
-└── server/
-    ├── entry.mjs
-    ├── server.mjs          # Node 入口
-    └── package.json
-```
-
-Dev 行为:
-- Vite middleware 模式,但不加载 Vue 插件
-- `app.fetch()` 直接处理 API 请求,无页面渲染
-
-Preview 行为:
-- 启动 Node server(等同 `fullstack`)
+> 各模式的构建流程、产物结构、Dev 行为和 Preview 行为(`fullstack`、`fullstack`+`ssr:false`、`spa`、`ssg`、`backend`)均已在用户指南中记录:**[应用模式 → 模式详情](/zh/guide/app-modes#mode-details)**。本文档仅保留实现内部(§3)和决策记录(§6)。
 
 ## 5. 实施策略
 

@@ -4,14 +4,11 @@ title: Modes
 
 # Modes
 
-> **Status: ✅ Implemented (2026-07)**
+> **Status: ✅ Implemented (2026-07) — Design Decision Record**
 >
-> This document is the original design proposal. The `AppMode` type and the `mode`/`ssr` config fields have landed in [`@ubean/config`](../packages/config/src/types.ts) (`'fullstack' | 'spa' | 'ssg' | 'backend'`).
-> This document is retained as a design decision record; the authoritative API is defined by [AGENTS.md](../AGENTS.md) and [skills/ubean/docs](../skills/ubean/docs).
->
-> ---
->
-> This document describes the design of ubean's `mode` config field, which supports multiple application shapes including frontend-only, backend-only, full-stack, and SSG.
+> The `AppMode` type and the `mode`/`ssr` config fields have landed in [`@ubean/config`](../packages/config/src/types.ts) (`'fullstack' | 'spa' | 'ssg' | 'backend'`).
+> This document is retained as an **architecture decision record (ADR)** — it captures the design rationale, implementation internals, and key decisions.
+> For the user-facing API, mode selection guide, and per-mode behavior, see **[App Modes](/guide/app-modes)** in the Guide.
 
 ## 1. Background and Goals
 
@@ -50,36 +47,9 @@ export type AppMode = 'fullstack' | 'spa' | 'ssg' | 'backend';
 
 > **Design decision**: `ssr` is no longer kept as a standalone mode. The original `ssr` mode behaved identically to `fullstack` — it was only a "semantic emphasis", but the duplicated config semantics led users to assume differences. Replacing it with an `ssr: boolean` option under `fullstack` mode both emphasizes "whether SSR is needed" and avoids mode proliferation.
 
-### 2.2 Mode Semantics
+### 2.2 Mode Semantics, Selection & Config
 
-| Mode | Client bundle | SSR bundle | Server bundle | Prerender | Description |
-|---|---|---|---|---|---|
-| `fullstack` (default, `ssr: true`) | ✅ | ✅ | ✅ | optional | Current default behavior: Vue pages + Hono API + SSR |
-| `fullstack` + `ssr: false` | ✅ | ❌ | ✅ | ❌ | Vue pages + Hono API, no SSR rendering (suitable for full-stack apps without SEO needs) |
-| `spa` | ✅ | ❌ | ❌ | ❌ | Pure client-side rendering; static HTML + JS only, no server |
-| `ssg` | ✅ | ✅ (temporary) | ❌ | ✅ (forced) | SSR renders static HTML at build time; output is purely static files |
-| `backend` | ❌ | ❌ | ✅ | ❌ | Pure Hono API service; no Vue pages, no SSR |
-
-### 2.3 Mode Selection Guide
-
-| Scenario | Recommended mode | Notes |
-|---|---|---|
-| Full-stack app (pages + API + SEO) | `fullstack` (default) | Most common; includes SSR |
-| Full-stack app (pages + API, no SEO) | `fullstack` + `ssr: false` | Admin dashboards, etc. |
-| Pure API service (no frontend) | `backend` | Microservices, BFF |
-| Marketing site / blog (static) | `ssg` | SEO-friendly; deploy to CDN |
-| Pure frontend app (no API) | `spa` | No SEO needs, no server |
-
-### 2.4 Relationship to Existing Config
-
-| Config field | Relationship to mode | Notes |
-|---|---|---|
-| `build.preset` | Orthogonal | `mode` controls architecture (frontend/backend presence); `preset` controls deployment platform (node/cf) |
-| `routing.mode` | Orthogonal | `routing.mode` controls route file generation (virtual/file); unrelated to `mode` |
-| `prerender.enabled` | Overridden by mode | `ssg` forces `prerender.enabled = true`; `spa`/`backend`/`fullstack`+`ssr:false` force it to `false` |
-| `ssr` | Sub-option of mode | Only effective when `mode === 'fullstack'`; ignored under `spa`/`ssg`/`backend` |
-| `icon`/`pwa`/`auth`, etc. | Orthogonal | Extensions load on demand; unaffected by `mode` |
-| `i18n` | Orthogonal | i18n config is independent of `mode` |
+> The mode semantics table, selection guide, and config relationship matrix are documented in the user-facing guide: **[App Modes](/guide/app-modes)**. This design doc focuses on the *why* and implementation internals; the guide is the authoritative reference for *what* and *how to use*.
 
 ## 3. Architecture Design
 
@@ -340,134 +310,7 @@ The dynamic `import()` mechanism in [packages/modules/src/index.ts](../packages/
 
 ## 4. Detailed Behavior per Mode
 
-### 4.1 `fullstack` Mode (default, `ssr: true`)
-
-**Identical to current behavior; zero changes.**
-
-- Build: `dist/public/` (client) + `dist/server/` (server)
-- Dev: Vite middleware + Hono app
-- Preview: Node server (`server.mjs`)
-- Prerender: optional (controlled by `prerender.enabled`)
-
-### 4.2 `fullstack` Mode + `ssr: false`
-
-**Full-stack but no SSR. Suitable for full-stack apps without SEO needs, such as admin dashboards.**
-
-Build flow:
-1. ✅ Generate client + server virtual modules (the server still needs to start the Hono app to handle API routes)
-2. ✅ Build client bundle → `dist/public/`
-3. ❌ Skip SSR bundle build (saves about 40% of build time)
-4. ✅ Build server bundle (contains the Hono app + API routes, but no Vue renderer)
-5. ❌ Skip prerender (no SSR, cannot prerender)
-
-Artifact structure:
-```
-dist/
-├── public/          # client artifacts
-│   ├── index.html
-│   ├── assets/
-│   └── favicon.svg
-└── server/          # server artifacts (API only, no SSR renderer)
-    ├── entry.mjs
-    ├── server.mjs
-    └── package.json
-```
-
-Dev behavior:
-- Same as `fullstack` + `ssr:true` (dev mode does not distinguish SSR on/off)
-- HMR works normally
-
-Preview behavior:
-- Starts the Node server (same as `fullstack`); API routes respond normally, page requests are rendered client-side
-
-### 4.3 `spa` Mode
-
-**Pure client-side rendering, no server.**
-
-Build flow:
-1. ✅ Generate client virtual modules (`ubean:pages`, `ubean:app`, `virtual:ubean-client-entry`)
-2. ✅ Build client bundle → `dist/public/`
-3. ✅ Generate `index.html` (containing `<script type="module">` pointing to the client entry)
-4. ❌ Skip SSR bundle build
-5. ❌ Skip server entry generation
-6. ❌ Skip prerender
-
-Artifact structure:
-```
-dist/
-└── public/
-    ├── index.html
-    ├── assets/
-    │   ├── app-[hash].js
-    │   └── ...
-    └── favicon.svg
-```
-
-Dev behavior:
-- Vite dev server still uses middleware mode, but `app.fetch()` returns client HTML for all routes
-- HMR works normally
-
-Preview behavior:
-- Starts a static file server serving `dist/public/`
-
-### 4.4 `ssg` Mode
-
-**Static site generation; prerender at build time.**
-
-Build flow:
-1. ✅ Generate client + SSR virtual modules (SSR is only used for build-time rendering)
-2. ✅ Build client bundle → `dist/public/`
-3. ✅ Build SSR bundle → `dist/server/` (temporary)
-4. ✅ Force prerender → generate `dist/public/**/*.html`
-5. ✅ Delete the temporary `dist/server/` directory
-
-Artifact structure:
-```
-dist/
-└── public/
-    ├── index.html          # prerendered home page
-    ├── about/
-    │   └── index.html      # prerendered /about
-    ├── blog/
-    │   ├── post-1/
-    │   │   └── index.html
-    │   └── ...
-    ├── assets/             # client JS/CSS
-    └── favicon.svg
-```
-
-Dev behavior:
-- Same as `fullstack` (dev mode does not prerender; real-time SSR)
-
-Preview behavior:
-- Starts a static file server serving `dist/public/`
-
-### 4.5 `backend` Mode
-
-**Pure API backend, no frontend.**
-
-Build flow:
-1. ✅ Generate API route virtual modules (`ubean:routes`, `ubean:app-config`, `ubean:locales`)
-2. ❌ Skip page-related virtual modules (`ubean:pages`, `ubean:meta`, `virtual:ubean-pages`, etc.)
-3. ❌ Skip Vue plugin loading
-4. ❌ Skip client bundle build
-5. ✅ Build SSR/server bundle → `dist/server/` (contains the Hono app + API routes)
-
-Artifact structure:
-```
-dist/
-└── server/
-    ├── entry.mjs
-    ├── server.mjs          # Node entry
-    └── package.json
-```
-
-Dev behavior:
-- Vite middleware mode, but Vue plugins are not loaded
-- `app.fetch()` directly handles API requests; no page rendering
-
-Preview behavior:
-- Starts the Node server (same as `fullstack`)
+> The per-mode build flow, artifact structure, dev behavior, and preview behavior for each mode (`fullstack`, `fullstack`+`ssr:false`, `spa`, `ssg`, `backend`) are documented in the user-facing guide: **[App Modes → Mode Details](/guide/app-modes#mode-details)**. This design doc retains only the implementation internals (§3) and decision records (§6).
 
 ## 5. Implementation Strategy
 

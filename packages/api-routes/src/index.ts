@@ -1,6 +1,12 @@
 export { defineHandler, defineHandlerMeta, defineMiddleware, isHandlerChain, extractRouteMeta } from './handler';
 
-export { registerRoutes, registerApiRoutes, registerPageRoutes, createRouteLoader } from './router';
+export {
+  registerRoutes,
+  registerApiRoutes,
+  registerPageRoutes,
+  createRouteLoader,
+  sortPagesForRegistration
+} from './router';
 export type { RouteRegistrar, RegisterOptions } from './router';
 
 export { compileRouteRules, matchRouteRules, createRouteRulesMiddleware, normalizeIsrRule } from './route-rules';

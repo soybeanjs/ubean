@@ -1,7 +1,9 @@
 .docs-header-shell[data-scrolled='true'] {
   .docs-header-frame {
+    background: var(--docs-shell-bg);
     background: color-mix(in srgb, var(--docs-shell-bg) 76%, transparent);
-    border: 1px solid color-mix(in srgb, rgba(148, 163, 184, 0.24) 74%, var(--docs-shell-border));
+    border: 1px solid var(--docs-shell-border);
+    border-color: color-mix(in srgb, rgba(148, 163, 184, 0.24) 74%, var(--docs-shell-border));
     box-shadow:
       0 20px 44px -30px #0f172a2e,
       var(--docs-shell-inset);
@@ -13,8 +15,10 @@
 
 .docs-topbar-shell[data-scrolled='true'] {
   .docs-topbar-frame {
+    background: var(--docs-shell-bg);
     background: color-mix(in srgb, var(--docs-shell-bg) 76%, transparent);
-    border: 1px solid color-mix(in srgb, rgba(148, 163, 184, 0.24) 74%, var(--docs-shell-border));
+    border: 1px solid var(--docs-shell-border);
+    border-color: color-mix(in srgb, rgba(148, 163, 184, 0.24) 74%, var(--docs-shell-border));
     border-top: 0;
     box-shadow:
       0 20px 44px -30px #0f172a2e,

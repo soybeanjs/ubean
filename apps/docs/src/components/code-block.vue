@@ -44,7 +44,7 @@ watch(() => props.code, renderCode);
     <div ref="wrapper" class="md-code-block overflow-auto text-sm" :data-lang="lang" />
     <button
       type="button"
-      class="absolute end-2 top-2 rounded-md border border-border/50 bg-background/80 p-1.5 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      class="docs-border absolute end-2 top-2 rounded-md bg-background/80 p-1.5 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       :aria-label="copied ? 'Copied' : 'Copy code'"
       @click="copy"
     >

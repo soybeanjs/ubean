@@ -66,6 +66,14 @@ export interface RegisterOptions {
    * 启用 `routeRules[*].isr` 时必须传入,否则 ISR 规则被忽略。
    */
   cacheStore?: IsrCacheStore;
+  /**
+   * Pre-rendered no-FOUC color-mode script (from `getColorModeScript`).
+   * Injected as the first child of `<head>` in every SSR/prerendered HTML
+   * response so the correct theme class is set before first paint.
+   * `transformIndexHtml` only runs in dev — SSG/prerender bypasses it, so
+   * the script must be injected here to cover production HTML.
+   */
+  colorModeScript?: string;
 }
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
@@ -93,6 +101,25 @@ function convertUbeanRoutePath(path: string): string {
     return `:${name}`;
   });
   return honoPath;
+}
+
+/**
+ * Sort page routes so catch-all routes (`/**:slug`, converted to Hono `*`)
+ * are registered last. Hono's RegExpRouter matches in registration order,
+ * so a catch-all registered before a specific path (e.g. `/`) would swallow
+ * it. File-system sort order puts `[...slug].vue` before `index.vue`
+ * (`[` < `i`), which is wrong for Hono — this sort corrects it.
+ *
+ * Stable: non-catch-all pages keep their original relative order.
+ */
+export function sortPagesForRegistration<T extends { route: string }>(pages: readonly T[]): T[] {
+  return [...pages].sort((a, b) => {
+    const aCatchall = /\/\*\*:/.test(a.route);
+    const bCatchall = /\/\*\*:/.test(b.route);
+    if (aCatchall && !bCatchall) return 1;
+    if (!aCatchall && bCatchall) return -1;
+    return 0;
+  });
 }
 
 function middlewarePathToHonoPath(relativePath: string): string {
@@ -373,6 +400,9 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   const ssrExclude = options.ssrExclude ?? [];
   const streaming = options.streaming === true;
   const cacheStore = options.cacheStore;
+  const colorModeScript = options.colorModeScript;
+  const injectColorMode = (html: string): string =>
+    colorModeScript ? html.replace('<head>', `<head>\n    ${colorModeScript}`) : html;
 
   async function handlePageRequest(
     c: Context<UbeanEnv>,
@@ -585,7 +615,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       'app',
       renderContext as Parameters<typeof renderPage>[4]
     );
-    return c.html(html, method === 'POST' && actionErrors ? { status: 422 } : undefined);
+    return c.html(injectColorMode(html), method === 'POST' && actionErrors ? { status: 422 } : undefined);
   }
 
   // Build name → page map so reuse routes can resolve their target page's
@@ -595,7 +625,12 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   const pageByName = new Map<string, ScannedPageRoute>();
   for (const p of pages) pageByName.set(p.name, p);
 
-  for (const page of pages) {
+  // Register specific routes before catch-all routes. Hono's RegExpRouter
+  // matches in registration order, so a catch-all ('*') registered before
+  // '/' would swallow the homepage. See `sortPagesForRegistration`.
+  const sortedPages = sortPagesForRegistration(pages);
+
+  for (const page of sortedPages) {
     // Reuse routes are no longer skipped — they need their own Hono route
     // handler registered at their path. The component resolution already
     // uses `page.reuseTarget` (see handlePageRequest), and the loader is
@@ -711,7 +746,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
         'app',
         renderContext as Parameters<typeof renderPage>[4]
       );
-      return c.html(html, 404);
+      return c.html(injectColorMode(html), 404);
     });
   }
 }

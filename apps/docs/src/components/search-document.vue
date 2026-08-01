@@ -32,6 +32,7 @@ function onSelect(route: string) {
       <SInput
         v-model="query"
         placeholder="Type to search…"
+        aria-label="Search docs"
         autofocus
         @input="onInput"
       >
@@ -40,12 +41,13 @@ function onSelect(route: string) {
         </template>
       </SInput>
 
-      <div v-if="loading" class="py-4 text-center text-xs text-muted-foreground">Searching…</div>
-      <div v-else-if="results.length" class="mt-2 flex max-h-80 flex-col gap-0.5 overflow-auto">
+      <div v-if="loading" class="py-4 text-center text-xs text-muted-foreground" role="status">Searching…</div>
+      <div v-else-if="results.length" class="mt-2 flex max-h-80 flex-col gap-0.5 overflow-auto" role="listbox" aria-label="Search results">
         <button
           v-for="r in results"
           :key="r.item.route"
           type="button"
+          role="option"
           class="rounded-md px-2 py-1.5 text-start transition-colors hover:bg-active focus-visible:bg-active focus-visible:outline-none"
           @click="onSelect(r.item.route)"
         >

@@ -144,7 +144,7 @@ useHead(computed(() => {
     const title = r.frontmatter.title ? String(r.frontmatter.title) : 'ubean docs';
     const description = r.frontmatter.description ? String(r.frontmatter.description) : undefined;
     return {
-      title: title === 'ubean — Full-stack Vue Meta-framework' ? title : `${title} · ubean`,
+      title: title === 'ubean - Full-stack Vue Meta-framework' ? title : `${title} · ubean`,
       ...(description ? { meta: [{ name: 'description', content: description }] } : {})
     };
   }

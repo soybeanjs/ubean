@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Toolbar: theme toggle + locale toggle.
 // Locale detection uses route.path (not useI18n().locale) for SSR consistency
-// — the i18n state may not be synced during SSR, causing hydration mismatches
+// the i18n state may not be synced during SSR, causing hydration mismatches
 // if the toolbar label differs between server and client.
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -39,14 +39,16 @@ function toggleTheme() {
       variant="pure"
       :icon="isDark ? 'lucide:moon' : 'lucide:sun'"
       shape="circle"
-      aria-label="Toggle theme"
+      :aria-label="isDark ? 'Switch to light theme' : 'Switch to dark theme'"
+      :aria-pressed="isDark"
       @click="toggleTheme"
     />
     <SButton
       variant="pure"
       shape="circle"
       size="sm"
-      :aria-label="`Switch to ${isZh ? 'en' : 'zh'}`"
+      :aria-label="`Switch to ${isZh ? 'English' : 'Chinese'}`"
+      :aria-pressed="isZh"
       @click="toggleLocale"
     >
       <span class="text-xs font-semibold">{{ isZh ? 'EN' : '中' }}</span>

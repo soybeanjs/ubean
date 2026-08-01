@@ -8,6 +8,7 @@ import { ubeanIslandsPlugin } from '@ubean/islands';
 import { resolveModules } from '@ubean/modules';
 import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/routing';
+import { getColorModeScript, resolveColorModeConfig } from '@ubean/runtime';
 import { findUserViteConfig } from '@ubean/utils';
 import {
   ubeanVuePlugin,
@@ -246,6 +247,12 @@ async function generateVirtualModulesToDisk(
       : null
   );
 
+  // Pre-render the no-FOUC color-mode script at build time so the SSG/prerender
+  // path (which bypasses Vite's `transformIndexHtml`) can inject it into every
+  // HTML response. Dev mode is handled by `transformIndexHtml` in the vite plugin.
+  const colorModeScript =
+    config.colorMode !== false ? getColorModeScript(resolveColorModeConfig(config.colorMode)) : '';
+
   const rendererImport = ssrEnabled ? `import { createVueRenderer } from 'ubean/vue-ssr';` : '';
   const rendererSetup = ssrEnabled
     ? `
@@ -389,6 +396,7 @@ export async function createApp(options = {}) {
     ssrExclude: ${JSON.stringify(config.ssr?.exclude ?? [])},
     streaming: ${JSON.stringify(config.ssr?.streaming ?? false)},
     notFoundPage: _notFoundPage || undefined,
+    colorModeScript: ${JSON.stringify(colorModeScript)},
     ...options
   });
 
@@ -734,9 +742,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
           // `ssr.noExternal: ['ubean']` above. Keeping it would externalize
           // ubean, causing Node to load it from node_modules where the
           // virtual module import is unresolved.
-          external: presetBuildConfig.external.filter(
-            e => !(e instanceof RegExp && e.source.startsWith('^ubean'))
-          ),
+          external: presetBuildConfig.external.filter(e => !(e instanceof RegExp && e.source.startsWith('^ubean'))),
           output: {
             format: presetBuildConfig.format,
             entryFileNames: 'entry.mjs',

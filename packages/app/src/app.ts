@@ -123,6 +123,12 @@ export interface UbeanAppOptions {
   };
   /** `pages/404.vue` 自动检测的 404 页面,注册为 Hono 兜底处理器 */
   notFoundPage?: ScannedPageRoute;
+  /**
+   * Pre-rendered no-FOUC color-mode script (from `getColorModeScript`).
+   * Injected into `<head>` of every SSR/prerendered HTML response. Covers
+   * the SSG/prerender path that bypasses Vite's `transformIndexHtml`.
+   */
+  colorModeScript?: string;
 }
 
 export interface UbeanAppPlugin {
@@ -254,6 +260,7 @@ export class UbeanApp {
       streaming: this.options.streaming,
       i18nConfig: this.options.i18nConfig,
       notFoundPage: this.options.notFoundPage,
+      colorModeScript: this.options.colorModeScript,
       // P9-03: 注入全局 cacheStore 供 ISR 使用。仅当配置了 isr 规则时
       // `useCacheStore()` 才会被初始化(见 `_setupBaseMiddleware`);无 isr
       // 规则时 `useCacheStore` 返回默认内存存储,不影响行为。

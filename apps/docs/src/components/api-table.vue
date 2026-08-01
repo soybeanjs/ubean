@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// <ApiTable> — renders API Reference Entries from public/api/<pkg>.json (TypeDoc output).
+// <ApiTable> renders API Reference Entries from public/api/<pkg>.json (TypeDoc output).
 // Per DESIGN.md D4/D6/D15. Uses @soybeanjs/ui's STable in its data-driven form
 // (columns/data/row-key + per-column slots), mirroring the reference's type-data.vue.
 // Falls back gracefully when build:api emitted a stub (no dist/*.d.ts).
@@ -134,7 +134,7 @@ function rowKey(row: ApiParam | ApiProperty) {
       <section v-for="entry in data.entries" :key="entry.name" :id="entry.name" class="scroll-mt-24">
         <div class="flex items-center gap-2 mb-2">
           <STag size="sm" variant="soft" color="primary" shape="rounded">{{ labels.kind[entry.kind] || entry.kind }}</STag>
-          <h3 class="text-lg font-mono font-semibold">{{ entry.name }}</h3>
+          <h2 class="text-lg font-mono font-semibold">{{ entry.name }}</h2>
         </div>
         <p v-if="entry.summary" class="text-sm text-muted-foreground mb-3">{{ entry.summary }}</p>
 
@@ -145,7 +145,7 @@ function rowKey(row: ApiParam | ApiProperty) {
 
         <!-- Parameters -->
         <div v-if="entry.parameters && entry.parameters.length" class="my-4">
-          <h4 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">{{ labels.parameters }}</h4>
+          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">{{ labels.parameters }}</h3>
           <div class="min-w-0 overflow-x-auto">
             <STable
               :columns="paramColumns"
@@ -161,10 +161,10 @@ function rowKey(row: ApiParam | ApiProperty) {
                 <span class="font-mono text-xs">{{ row.type }}</span>
               </template>
               <template #default="{ row }">
-                <span class="font-mono text-xs text-muted-foreground">{{ row.default || '—' }}</span>
+                <span class="font-mono text-xs text-muted-foreground">{{ row.default || '-' }}</span>
               </template>
               <template #description="{ row }">
-                <span class="text-xs">{{ row.description || '—' }}</span>
+                <span class="text-xs">{{ row.description || '-' }}</span>
               </template>
             </STable>
           </div>
@@ -172,7 +172,7 @@ function rowKey(row: ApiParam | ApiProperty) {
 
         <!-- Properties -->
         <div v-if="entry.properties && entry.properties.length" class="my-4">
-          <h4 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">{{ labels.properties }}</h4>
+          <h3 class="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-2">{{ labels.properties }}</h3>
           <div class="min-w-0 overflow-x-auto">
             <STable
               :columns="propColumns"
@@ -188,7 +188,7 @@ function rowKey(row: ApiParam | ApiProperty) {
                 <span class="font-mono text-xs">{{ row.type }}</span>
               </template>
               <template #description="{ row }">
-                <span class="text-xs">{{ row.description || '—' }}</span>
+                <span class="text-xs">{{ row.description || '-' }}</span>
               </template>
             </STable>
           </div>

@@ -21,7 +21,7 @@ const statusLabel: Record<string, string> = {
 
 <template>
   <nav
-    class="docs-subtle-card h-full overflow-auto border border-border/50 p-3 dark:border-border"
+    class="docs-subtle-card h-full overflow-auto p-3"
   >
     <div v-for="section in menuSections" :key="section.value" class="mb-4">
       <div class="px-3 py-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -31,10 +31,15 @@ const statusLabel: Record<string, string> = {
         <li v-for="item in section.items" :key="item.to">
           <SLink
             :to="item.to"
-            class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            class="relative flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             :class="isActive(item.to) ? 'bg-primary/10 font-medium text-foreground' : 'text-muted-foreground hover:bg-active hover:text-foreground'"
             @click="emit('select')"
           >
+            <span
+              v-if="isActive(item.to)"
+              aria-hidden="true"
+              class="absolute start-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary"
+            />
             <span class="truncate">{{ item.label }}</span>
             <span v-if="item.status" class="ms-auto text-xs opacity-70">{{ statusLabel[item.status] }}</span>
           </SLink>

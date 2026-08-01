@@ -65,7 +65,9 @@
 
   code:not(pre code) {
     --uno: 'rounded-xl border px-2.5 py-1 font-semibold text-primary';
+    background: var(--docs-chip-bg);
     background: color-mix(in srgb, hsl(var(--primary) / 0.1) 72%, var(--docs-chip-bg));
+    border-color: hsl(var(--primary) / 0.16);
     border-color: color-mix(in srgb, hsl(var(--primary) / 0.16) 70%, transparent);
   }
 
@@ -79,6 +81,7 @@
 
   .md-code-block {
     --uno: 'relative my-8 border border-border rounded-xl overflow-hidden';
+    background: var(--docs-surface-strong);
     background: color-mix(in srgb, var(--docs-surface-strong) 96%, transparent);
     box-shadow: var(--docs-shadow), var(--docs-panel-inset);
     -webkit-backdrop-filter: saturate(170%) blur(var(--docs-panel-blur));
@@ -103,8 +106,10 @@
   }
 
   blockquote {
-    --uno: 'my-6 rounded-4 border px-5 py-4';
+    --uno: 'my-6 rounded-xl border px-5 py-4';
+    background: var(--docs-panel-bg);
     background: color-mix(in srgb, hsl(var(--primary) / 0.08) 68%, var(--docs-panel-bg));
+    border-color: hsl(var(--primary) / 0.2);
     border-color: color-mix(in srgb, hsl(var(--primary) / 0.2) 64%, transparent);
     box-shadow: var(--docs-panel-shadow), var(--docs-panel-inset);
 
@@ -114,8 +119,10 @@
   }
 
   details {
-    --uno: 'my-6 overflow-hidden rounded-4 border';
+    --uno: 'my-6 overflow-hidden rounded-xl border';
+    background: var(--docs-panel-bg);
     background: color-mix(in srgb, var(--docs-panel-bg) 92%, transparent);
+    border-color: var(--docs-panel-border);
     border-color: color-mix(in srgb, var(--docs-panel-border) 78%, transparent);
     box-shadow: var(--docs-panel-shadow), var(--docs-panel-inset);
   }
@@ -126,7 +133,9 @@
 
   details[open] > summary {
     --uno: 'border-b';
+    background: var(--docs-chip-bg);
     background: color-mix(in srgb, var(--docs-chip-bg) 82%, transparent);
+    border-color: var(--docs-panel-border);
     border-color: color-mix(in srgb, var(--docs-panel-border) 76%, transparent);
   }
 
@@ -138,8 +147,10 @@
     --uno: 'my-6 w-full overflow-hidden text-sm';
     border-collapse: separate;
     border-spacing: 0;
-    border: 1px solid color-mix(in srgb, var(--docs-panel-border) 80%, transparent);
+    border: 1px solid var(--docs-panel-border);
+    border-color: color-mix(in srgb, var(--docs-panel-border) 80%, transparent);
     border-radius: var(--docs-panel-radius);
+    background: var(--docs-panel-bg);
     background: color-mix(in srgb, var(--docs-panel-bg) 96%, transparent);
     box-shadow: var(--docs-panel-shadow), var(--docs-panel-inset);
     -webkit-backdrop-filter: saturate(160%) blur(8px);
@@ -157,6 +168,7 @@
   }
 
   > table tbody tr:nth-child(even) td {
+    background: var(--docs-chip-bg);
     background: color-mix(in srgb, var(--docs-chip-bg) 44%, transparent);
   }
 
@@ -166,7 +178,9 @@
 
   .code-btn {
     --uno: 'inline-flex items-center rounded-full border px-3 py-1 font-mono text-xs font-semibold text-primary text-center text-nowrap';
+    background: var(--docs-chip-bg);
     background: color-mix(in srgb, hsl(var(--primary) / 0.09) 72%, var(--docs-chip-bg));
+    border-color: hsl(var(--primary) / 0.18);
     border-color: color-mix(in srgb, hsl(var(--primary) / 0.18) 64%, transparent);
   }
 

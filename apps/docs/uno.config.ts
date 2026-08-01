@@ -16,9 +16,11 @@ export default defineConfig<Theme>({
     filesystem: [resolve(SRC_DIR, '**/*.{vue,md,ts}')]
   },
   transformers: [transformerDirectives(), transformerVariantGroup()],
-  // presetWind3({dark:'class'}) + presetAnimations() are bundled inside
-  // presetShadcn, so they need not be listed explicitly. Keep presetSoybean
-  // for its flex/grid shortcuts.
+  // Dark mode strategy: 'class' (toggled via <html class="dark">).
+  // presetShadcn internally calls presetWind3({ dark: 'class' }) + presetAnimations().
+  // All `dark:` variants in this codebase (e.g. dark:border-border, dark:from-primary)
+  // depend on this strategy. If presetShadcn's default ever changes, dark mode
+  // toggling will break silently. Keep presetSoybean for its flex/grid shortcuts.
   presets: [
     presetSoybean(),
     presetShadcn({
@@ -34,6 +36,12 @@ export default defineConfig<Theme>({
     }
   },
   shortcuts: {
+    // Unified docs border: light-mode uses 50% opacity for the soft frosted
+    // look; dark-mode uses full opacity so borders remain visible against
+    // the dark panel backgrounds. Reuse this for any panel/outline surface
+    // instead of repeating the `border border-border/50 dark:border-border`
+    // utility chain (P1-S1).
+    'docs-border': 'border border-border/50 dark:border-border',
     'docs-card':
       'bg-card/25! border-border/50! dark:border-border! divide-border/50! dark:divide-border! rounded-xl! shadow!',
     'docs-subtle-card':

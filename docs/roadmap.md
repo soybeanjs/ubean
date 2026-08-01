@@ -98,7 +98,7 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 | # | 能力 | 任务 ID | 理由 |
 |---|---|---|---|
-| 9 | `.server.vue` / `.client.vue` 组件约定 + props 重渲染 | ✅ 部分实现 (9.1+9.2) | 与 Islands/PPR 互补，内容场景刚需；9.3 配对 + 9.4 props 重渲染待后续迭代 |
+| 9 | `.server.vue` / `.client.vue` 组件约定 + props 重渲染 | ✅ 已完成 (9.1+9.2+9.3+9.4) | 与 Islands/PPR 互补，内容场景刚需；9.1 `.server.vue` + 9.2 `.client.vue` + 9.3 配对组件 + 9.4 props 重渲染均已实现 |
 
 ### P2 — 扩展生态（低重要性 / 低需求 / 低难度）
 
@@ -650,10 +650,13 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 - ✅ **9.1 `.server.vue`**：`@ubean/islands` Vite 插件 `resolveId` 在 client 构建中将 `.server.vue` import 重定向到通用虚拟 stub (`virtual:ubean-server-component-stub`)，导出 `ServerComponentStub` 组件（渲染空 `<ubean-server-only>`）；SSR 构建正常解析，`transform` 将模板包裹在 `<ubean-server-only v-once>` 中。客户端 bundle 不含 `.server.vue` 组件 JS。
 - ✅ **9.2 `.client.vue`**：`resolveId` 在 SSR 构建中重定向到通用占位符 (`virtual:ubean-client-component-placeholder`)，导出 `ClientComponentPlaceholder`（渲染 `<div data-client-only>`）；client 构建生成文件级包装虚拟模块，导入真实组件并用 `defineClientComponent()` 包装（`isClient` ref + `onMounted` 切换：初始渲染占位符与 SSR 一致 → 水合无 mismatch → `onMounted` 后切换为真实组件）。
-- ⏳ **9.3 配对组件**：待后续迭代（需 import resolver 按 `ssr` flag 解析 `Counter.vue` → `Counter.server.vue` / `Counter.client.vue`）。
-- ⏳ **9.4 props 重渲染**：待后续迭代（需 `POST /__server-component` 端点 + `rerenderOnPropsChange` 选项）。
+- ✅ **9.3 配对组件**：`resolveId` 检测普通 `.vue` 相对导入 (`import Foo from './Foo.vue'`)，用 `node:fs.existsSync` 检查兄弟文件。两者都存在时重定向到配对 wrapper 虚拟模块 (`\0virtual:ubean-paired-component:`)，`load` 钩子按 `ssr` 选项生成不同内容：SSR 直接 `re-export` 真实 `.server.vue`；client 导入 `.server.vue` (→ stub) + `.client.vue` (→ 真实，通过 importer 检查跳过 `defineClientComponent` 包装) 并调用 `definePairedComponent(ServerComp, ClientComp)`（`isClient` ref + `onMounted` 切换：初始渲染 ServerComp(stub) → 水合后切换 ClientComp）。仅存在一个兄弟时重定向到该兄弟（由现有 `.server.vue`/`.client.vue` 规则处理）。
+- ✅ **9.4 props 重渲染**：Vite 插件 `transform` 扫描 `.vue` `<script setup>` / `.ts` 中的 `defineServerIsland(Identifier, { rerenderOnPropsChange: true })` 调用（跳过注释/字符串/函数声明），通过 `parseScriptImports` 解析 identifier 的 import 路径并注入为第 3 参数：`defineServerIsland(Comp, opts, "/abs/path.server.vue")`。运行时 `defineServerIsland` 在 SSR 端将组件注册到全局注册表 (`registerServerComponent`)；客户端 `onMounted` 后 `POST {path, props}` 到 `/__server-component` 并用返回 HTML 替换 `<ubean-server-island>` 容器 `innerHTML`，`watch(attrs)` 在 props 变化时重复此流程。中间件 `createServerComponentMiddleware()`（`@ubean/islands/server` 子路径导出）查找注册表中的组件，用 `renderToString(h(Comp, props))` 重新渲染并返回 HTML 片段 (`Content-Type: text/html`, `Cache-Control: no-store`, `x-ubean-server-component: true`)。`createUbeanApp()` 自动挂载该端点。
 
-**测试覆盖**：`packages/islands/test/server-client-components.test.ts`（32 项）— 文件检测、模板包裹（含幂等/多根/script 保留）、runtime 组件 SSR 渲染输出、Vite 插件 `resolveId`/`load`/`transform` 路由逻辑（含 importer 排除、普通 `.vue` 不受影响）。
+**测试覆盖**：
+- `packages/islands/test/server-client-components.test.ts`（32 项）— 9.1/9.2 文件检测、模板包裹（含幂等/多根/script 保留）、runtime 组件 SSR 渲染输出、Vite 插件 `resolveId`/`load`/`transform` 路由逻辑（含 importer 排除、普通 `.vue` 不受影响）
+- `packages/islands/test/paired-components.test.ts`（20 项）— 9.3 配对组件 `resolveId` 兄弟文件检测（含 bare specifier / 绝对路径 / 无 importer / 虚拟模块 importer 排除）、`load` 钩子 SSR/client 分支（含格式错误 ID）、`definePairedComponent` runtime（SSR 渲染 ServerComp / `inheritAttrs: false` / 组件名 / attrs/slots 透传 / 与 `ServerComponentStub` 配合）
+- `packages/islands/test/server-component-rerender.test.ts`（47 项）— 9.4 Vite `transform` 注入组件路径（含 `.ts`/`.vue` SFC、跳过注释/字符串/JSDoc/函数声明、幂等、多调用从后向前注入、bare specifier、嵌套对象选项、子查询跳过）、服务端组件注册表（register/get/clear）、`defineServerIsland` runtime（SSR 端注册、无路径退化、不注册场景、`<ubean-server-island>` 容器渲染、attrs/slots 透传、fallback 生效）、`createServerComponentMiddleware`（200/400/404/500、Content-Type、响应头、无 props 默认 `{}`、GET 不匹配）、中间件辅助函数（`isServerComponentRequest`/`isServerComponentResponse`）、端到端（`defineServerIsland` 注册 → 中间件重新渲染）
 
 ---
 

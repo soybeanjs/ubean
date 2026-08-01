@@ -22,8 +22,12 @@
       "types": "./dist/runtime.d.ts",
       "import": "./dist/runtime.js"
     },
-    "./virtual-registry": {
-      "types": "./dist/virtual-registry.d.ts",
+    "./server": {
+      "types": "./dist/server-component.d.ts",
+      "import": "./dist/server-component.js"
+    },
+    "./virtual-registration": {
+      "types": "./dist/virtual-registration.d.ts",
       "import": null
     }
   },
@@ -34,6 +38,8 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@ubean/types": "workspace:*",
+    "hono": "4.12.32",
     "vue": "^3.5.40"
   },
   "devDependencies": {

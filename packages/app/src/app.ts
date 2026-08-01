@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { createActionsMiddleware, ACTIONS_ENDPOINT } from '@ubean/actions';
+import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
 import {
   registerRoutes,
   setInternalFetcher,
@@ -285,6 +286,13 @@ export class UbeanApp {
     // IDs return 404. Form actions (`?/name`) are handled by the page route
     // POST handler in `registerRoutes`, not here.
     this.hono.on('POST', ACTIONS_ENDPOINT, createActionsMiddleware());
+
+    // Task 9.4: Server Component props re-render — mount the
+    // `/__server-component` POST endpoint for `defineServerIsland(Comp, {
+    // rerenderOnPropsChange: true })` to refresh server-rendered HTML when
+    // client-side props change. The endpoint looks up the component by path
+    // from the global registry populated during SSR; unknown paths return 404.
+    this.hono.on('POST', SERVER_COMPONENT_ENDPOINT, createServerComponentMiddleware());
 
     if (this.options.openAPI) {
       const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};

@@ -316,16 +316,21 @@ await revalidatePath('getUser:*');
 
 通配符:`*` 单段,`**` 多段递归;处理顺序:redirect > rewrite > headers(合并) > cache;渲染字段 `ssr`/`isr`/`prerender`/`ppr` 由 router 在页面请求阶段处理,优先级:`routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`;`ppr: true` 隐含 `prerender: true` + 强制流式 SSR,router 附加 `X-PPR: true` 响应头
 
-### Partial Prerendering / Server Islands (P9-04)
+### Partial Prerendering / Server Islands (P9-04 + Task 9.4)
 
 | API                                                | 说明                                                                                                                             |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
 | `routeRules: { '/path': { ppr: true } }`           | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)                         |
-| `defineServerIsland(Component, options?)`          | 运行时包装器(替代已移除的 `server:defer` 指令):将异步组件包裹在 `<Suspense>` 中,`options.fallback` 指定 fallback(字符串/组件/默认占位) |
-| `ServerIslandOptions`                              | `{ fallback?: Component \| string }` 类型                                                                                         |
+| `defineServerIsland(Component, options?)`          | 运行时包装器(替代已移除的 `server:defer` 指令):将异步组件包裹在 `<Suspense>` 中,`options.fallback` 指定 fallback(字符串/组件/默认占位);Task 9.4 起 `options.rerenderOnPropsChange: true` 启用 props 变化触发服务端重渲染 |
+| `ServerIslandOptions`                              | `{ fallback?: Component \| string; rerenderOnPropsChange?: boolean }` 类型(Task 9.4 扩展)                                       |
+| `registerServerComponent(path, Component)`         | Task 9.4:将组件注册到全局服务端组件注册表(路径 → 组件);SSR 构建中由 `defineServerIsland` 在 `rerenderOnPropsChange: true` 时自动调用 |
+| `getServerComponent(path)`                         | Task 9.4:从注册表取出组件(由 `createServerComponentMiddleware` 调用);未注册返回 `undefined`                                       |
+| `SERVER_COMPONENT_ENDPOINT`                        | Task 9.4:`POST /__server-component` 端点常量                                                                                     |
+| `createServerComponentMiddleware()`                | Task 9.4:Hono 中间件,处理 `POST /__server-component` 请求,用新 props 重新渲染注册表中的组件并返回 HTML 片段(从 `@ubean/islands/server` 导入,由 `createUbeanApp()` 自动挂载) |
 
 - 传入 `defineServerIsland()` 的组件必须为异步(`async setup()` 或 `defineAsyncComponent`)才能触发 Suspense 流式
 - 对齐 Next.js 16 PPR / Astro 5 `server:defer` 语义
+- **Task 9.4 props 重渲染**:当 `rerenderOnPropsChange: true` 且 Vite 插件自动注入了组件绝对路径(第 3 参数)时:SSR 端将组件注册到全局注册表;客户端 `onMounted` 后立即 `POST {path, props}` 到 `/__server-component`,用返回的 HTML 替换 `<ubean-server-island>` 容器 `innerHTML`,`watch(attrs)` 在 props 变化时重复此流程。未注入路径时退化为 `false` 行为(向后兼容)
 - **迁移说明**:旧的 `server:defer` 编译时指令已移除。请改用 `defineServerIsland()` 运行时包装:
 
 ```typescript
@@ -334,6 +339,12 @@ await revalidatePath('getUser:*');
 import { defineServerIsland } from 'ubean';
 import SlowComp from './SlowComp.vue';
 const SlowIsland = defineServerIsland(SlowComp, { fallback: 'Loading...' });
+
+// Task 9.4:props 变化时重新请求服务端渲染
+const ReactiveIsland = defineServerIsland(SlowComp, {
+  fallback: 'Loading...',
+  rerenderOnPropsChange: true // Vite 插件自动注入组件路径
+});
 ```
 
 ### 中间件工厂
@@ -527,10 +538,11 @@ const json = serializeVercelConfig(config);
 | `<Link to="...">` / `<Head>`                                                                                                                                      | 全局注册组件（无需导入）                                                                                        |
 | `<Comp v-client.load / v-client.idle / v-client.visible / v-client.media="'...'" / v-client.only />` | Islands 指令(**推荐** Vue 指令语法,P9-29;框架自动水合,无需手动调用 `hydrateIslands`)               |
 | `defineIsland(Component, strategy, options?)`                                                       | 客户端 island 运行时包装器(替代 `v-client.*` 的编程式用法);`strategy`: 'load'\|'idle'\|'visible'\|'media'\|'only';`options`: `{ mediaQuery?, props? }` |
-| `defineServerIsland(Component, options?)`                                                           | 服务端 island 运行时包装器(P9-04,替代已移除的 `server:defer` 指令);`options.fallback` 指定 Suspense fallback |
+| `defineServerIsland(Component, options?)`                                                           | 服务端 island 运行时包装器(P9-04,替代已移除的 `server:defer` 指令);`options.fallback` 指定 Suspense fallback;Task 9.4 起 `options.rerenderOnPropsChange: true` 启用 props 变化触发服务端重渲染(Vite 插件自动注入组件路径) |
 | `hydrateIslands(options?)`                                                                          | Islands 水合(**框架自动调用**,无需手动执行;`components` 可选,手动传入优先于自动注册)                       |
 | `.server.vue` / `.client.vue` 文件约定                                                               | Server Components (Task 9,P1.5):`.server.vue` 仅 SSR 渲染(客户端不发送 JS);`.client.vue` SSR 渲染 `<div data-client-only>` 占位符,客户端 `onMounted` 后替换为真实组件。Vite 插件自动处理 `resolveId`/`load`/`transform`,用户无需手动调用 |
 | `defineClientComponent(Component)`                                                                   | `.client.vue` 在客户端构建中的运行时包装器(Task 9.2);通常由 Vite 插件自动生成,无需手动调用 |
+| `definePairedComponent(ServerComp, ClientComp)`                                                     | Task 9.3 配对组件运行时包装器:`isClient` ref + `onMounted` 切换,初始渲染 ServerComp(SSR 输出)→ 水合后切换 ClientComp;通常由 Vite 插件在检测到同名 `.server.vue` + `.client.vue` 时自动生成虚拟包装模块,无需手动调用 |
 
 > **迁移说明**:旧的 `client:*` attribute 语法和 `server:defer` 编译时指令已移除。请改用 `v-client.*` Vue 指令(模板内),或 `defineIsland()` / `defineServerIsland()` 运行时包装(编程式):
 
@@ -752,13 +764,15 @@ export default defineConfig({
 
 ## 7. 内置路由
 
-| 路由             | 说明                 |
-| ---------------- | -------------------- |
-| `/_health`       | 健康检查             |
-| `/_openapi.json` | OpenAPI schema       |
-| `/_scalar`       | Scalar UI            |
-| `/_iconify`      | 本地 SVG 服务（dev） |
-| `/_devtools`     | DevTools（dev）      |
+| 路由                  | 说明                                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/_health`            | 健康检查                                                                                                      |
+| `/_openapi.json`      | OpenAPI schema                                                                                                |
+| `/_scalar`            | Scalar UI                                                                                                     |
+| `/_iconify`           | 本地 SVG 服务（dev）                                                                                          |
+| `/_devtools`          | DevTools（dev）                                                                                               |
+| `POST /__actions`     | Server Actions RPC 端点(P9-02,由 `createActionsMiddleware` 处理)                                             |
+| `POST /__server-component` | Task 9.4:Server Component props 重渲染端点(由 `createServerComponentMiddleware` 处理,`@ubean/islands/server`) |
 
 ## 8. 常见陷阱（不要做）
 

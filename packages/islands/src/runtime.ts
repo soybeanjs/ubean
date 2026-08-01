@@ -1,10 +1,11 @@
-import { createApp, h, defineComponent, Suspense, ref, onMounted } from 'vue';
+import { createApp, h, defineComponent, Suspense, ref, onMounted, watch } from 'vue';
 import type { Component, App as VueApp } from 'vue';
 
 interface DomElement {
   getAttribute(name: string): string | null;
   setAttribute(name: string, value: string): void;
   hasAttribute(name: string): boolean;
+  innerHTML: string;
 }
 
 interface NodeListOf<T> {
@@ -300,8 +301,46 @@ function resolveComponent(
 }
 
 /* -------------------------------------------------------------------------- */
-/* Server Islands (P9-04): defineServerIsland                                  */
+/* Server Islands (P9-04 + Task 9.4): defineServerIsland                       */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * `POST /__server-component` 端点 — 接收 `{ path, props }`,在服务端用注册表中的
+ * 组件重新渲染并返回 HTML 片段。由 `createServerComponentMiddleware()` 处理。
+ */
+export const SERVER_COMPONENT_ENDPOINT = '/__server-component';
+
+/**
+ * 全局服务端组件注册表:组件绝对路径 → Vue 组件对象。
+ *
+ * SSR 构建中,`defineServerIsland(Comp, { rerenderOnPropsChange: true }, '/abs/path')`
+ * 会调用 `registerServerComponent(path, Comp)` 将真实组件注册到此处。
+ * 客户端构建中 `Comp` 是 stub,不会注册。
+ *
+ * 中间件 `createServerComponentMiddleware()` 通过 `getServerComponent(path)` 取出
+ * 组件,用 `renderToString(h(Comp, props))` 重新渲染并返回 HTML。
+ */
+const serverComponentRegistry = new Map<string, Component>();
+
+/**
+ * 注册服务端组件到全局注册表 (SSR 构建中由 `defineServerIsland` 自动调用)。
+ */
+export function registerServerComponent(path: string, component: Component): void {
+  serverComponentRegistry.set(path, component);
+}
+
+/**
+ * 从全局注册表取出服务端组件 (由 `createServerComponentMiddleware` 调用)。
+ * 未注册时返回 `undefined`。
+ */
+export function getServerComponent(path: string): Component | undefined {
+  return serverComponentRegistry.get(path);
+}
+
+/** 清空注册表 (仅用于测试)。 */
+export function _clearServerComponentRegistry(): void {
+  serverComponentRegistry.clear();
+}
 
 /**
  * `defineServerIsland` 的选项。
@@ -318,6 +357,17 @@ export interface ServerIslandOptions {
    * 流式 SSR 阶段 fallback 先输出,异步组件解析后通过 Suspense 边界流式输出。
    */
   fallback?: Component | string;
+  /**
+   * Task 9.4: 是否在 props 变化时重新请求服务端组件 HTML 并替换 DOM。
+   *
+   * - `false` (默认): 仅 SSR 渲染一次,客户端水合后不再请求服务端。
+   * - `true`: 客户端 `onMounted` 后立即请求一次,并 `watch` props 变化重新请求,
+   *   用返回的 HTML 替换容器 `innerHTML`。SSR 端会将组件注册到全局注册表供中间件查找。
+   *
+   * 需配合 Vite 插件自动注入的第 3 参数 (组件绝对路径) 使用。当 `true` 但未提供
+   * 路径时 (例如手动调用未走 Vite 插件),退化为 `false` 行为。
+   */
+  rerenderOnPropsChange?: boolean;
 }
 
 /**
@@ -335,6 +385,17 @@ export interface ServerIslandOptions {
  *
  * 传入的 `Component` 必须是异步的(`async setup()` 或 `defineAsyncComponent`)
  * 才能触发 Suspense 流式行为;同步组件会立即解析,Suspense 退化为透明包装。
+ *
+ * ## Task 9.4: Props 重渲染
+ *
+ * 当 `options.rerenderOnPropsChange: true` 且 Vite 插件注入了组件路径 (第 3 参数):
+ *
+ * - **SSR**: `defineServerIsland` 将组件注册到全局注册表 (`registerServerComponent`),
+ *   供 `POST /__server-component` 中间件查找。SSR 渲染输出与不带此选项时一致。
+ * - **客户端**: 包装组件外层渲染 `<ubean-server-island>` 容器 (带 ref),内部仍是
+ *   `<Suspense><Component /></Suspense>` (client 构建中 `Component` 是 stub)。
+ *   `onMounted` 后立即 `POST {path, props}` 到 `/__server-component`,用返回的 HTML
+ *   替换容器 `innerHTML`;`watch(attrs)` 在 props 变化时重复此流程。
  *
  * ## Props/Slots 透传
  *
@@ -372,6 +433,11 @@ export interface ServerIslandOptions {
  *
  * // 3. 默认占位(fallback 未提供时渲染 <ubean-defer-fallback/>)
  * const DashboardIsland = defineServerIsland(Dashboard);
+ *
+ * // 4. Task 9.4: props 变化时重渲染 (Vite 插件会自动注入第 3 参数)
+ * const DashboardIsland = defineServerIsland(Dashboard, {
+ *   rerenderOnPropsChange: true
+ * });
  * ```
  *
  * 在 SFC 中使用包装后的组件:
@@ -389,13 +455,73 @@ export interface ServerIslandOptions {
  *   <DashboardIsland :userId="123" />
  * </template>
  * ```
+ *
+ * @param Component 服务端组件 (通常是 `.server.vue` 导入)
+ * @param options 选项
+ * @param __serverComponentPath 组件绝对路径 (由 Vite 插件自动注入,勿手动传)
  */
-export function defineServerIsland(Component: Component, options?: ServerIslandOptions): Component {
+export function defineServerIsland(
+  Component: Component,
+  options?: ServerIslandOptions,
+  __serverComponentPath?: string
+): Component {
   const fallback = options?.fallback;
+  const rerenderOnPropsChange = options?.rerenderOnPropsChange === true && !!__serverComponentPath;
+
+  // SSR 端: 注册组件到全局注册表,供中间件按路径查找并重新渲染。
+  // 客户端构建中 Component 是 stub,不应注册 (typeof window !== 'undefined' 守卫)。
+  if (rerenderOnPropsChange && typeof window === 'undefined' && __serverComponentPath) {
+    registerServerComponent(__serverComponentPath, Component);
+  }
+
   return defineComponent({
     name: 'ServerIsland',
     inheritAttrs: false,
     setup(_, { slots, attrs }) {
+      // Task 9.4: 启用 rerenderOnPropsChange 时,用 <ubean-server-island> 容器包裹,
+      // 客户端 onMounted 后 fetch HTML 并替换 innerHTML,watch props 重新 fetch。
+      if (rerenderOnPropsChange) {
+        const containerRef = ref<DomElement | null>(null);
+
+        const fetchAndReplace = async () => {
+          const el = containerRef.value;
+          if (!el) return;
+          try {
+            const res = await _fetchServerComponent(__serverComponentPath!, { ...attrs });
+            if (res.ok) {
+              el.innerHTML = await res.text();
+            }
+          } catch {
+            // 静默失败,保留上次内容 (或 stub 的空内容)
+          }
+        };
+
+        onMounted(() => {
+          // 立即 fetch 一次以填充 stub 占位 (客户端构建中 Component 是 stub)
+          void fetchAndReplace();
+          // watch attrs 变化重新 fetch (deep 以捕获嵌套对象引用变化)
+          watch(() => ({ ...attrs }), fetchAndReplace, { deep: true });
+        });
+
+        return () =>
+          h(
+            'ubean-server-island',
+            { ref: containerRef },
+            [
+              h(Suspense, null, {
+                default: () => h(Component, attrs, slots),
+                fallback:
+                  typeof fallback === 'string'
+                    ? () => fallback
+                    : fallback
+                      ? () => h(fallback)
+                      : () => h('ubean-defer-fallback')
+              })
+            ]
+          );
+      }
+
+      // 默认行为: 不带容器,直接 Suspense 包裹 (与 Task 9.4 之前一致)
       return () =>
         h(
           Suspense,
@@ -412,6 +538,23 @@ export function defineServerIsland(Component: Component, options?: ServerIslandO
         );
     }
   });
+}
+
+/**
+ * 内部: POST 到 `/__server-component` 获取重新渲染的 HTML 片段。
+ *
+ * 抽出为独立函数便于测试时 mock。使用全局 `fetch`。
+ */
+async function _fetchServerComponent(
+  path: string,
+  props: Record<string, unknown>
+): Promise<{ ok: boolean; text: () => Promise<string> }> {
+  const res = await (globalThis as { fetch: typeof fetch }).fetch(SERVER_COMPONENT_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, props })
+  });
+  return { ok: res.ok, text: () => res.text() };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -629,6 +772,57 @@ export function defineClientComponent(component: Component): Component {
         isClient.value
           ? h(component, attrs, slots)
           : h('div', { 'data-client-only': '' });
+    }
+  });
+}
+
+/**
+ * 定义配对组件 — `Foo.vue` 同时存在 `.server.vue` + `.client.vue` 兄弟文件时,
+ * Vite 插件生成的虚拟包装模块调用此函数 (Task 9.3)。
+ *
+ * ## 工作机制
+ *
+ * - **SSR**: 配对 wrapper 模块直接 re-export `.server.vue`,根本不会调用本函数
+ *   (见 `vite.ts` `load` 钩子 SSR 分支)。SSR 渲染真实服务端组件内容。
+ * - **客户端初始渲染**: `isClient` 为 false,渲染 `ServerComp` —— 但在客户端构建中
+ *   `.server.vue` 已被重定向到 `ServerComponentStub`(渲染空的
+ *   `<ubean-server-only>` 元素),与 SSR 输出的 `<ubean-server-only v-once>真实内容
+ *   </ubean-server-only>` 标签匹配,Vue 水合时元素标签一致 (内部子节点因 `v-once`
+ *   标记为静态而被保留,虽有 mismatch 但 Vue 通常能容忍)。
+ * - **客户端 `onMounted` 后**: `isClient` 变为 true,渲染 `ClientComp` (真实客户端
+ *   组件),Vue 自动 patch 替换 stub 内容。
+ *
+ * ## 局限性
+ *
+ * SSR 渲染的 HTML 在客户端水合时不会被完美保留 —— Vue 会尝试 patch stub 的空
+ * `<ubean-server-only>` 与 SSR 输出的有内容版本,可能导致 SSR 内容被清除后再渲染
+ * 客户端组件。这是已知的折中 (与 React Server Components 的 hydration 流程类似)。
+ *
+ * 通常由 Vite 插件自动生成包装模块,用户无需手动调用。如需编程式使用:
+ *
+ * ```ts
+ * import { definePairedComponent } from '@ubean/islands/runtime';
+ * import ServerComp from './Foo.server.vue';
+ * import ClientComp from './Foo.client.vue';
+ * const Foo = definePairedComponent(ServerComp, ClientComp);
+ * ```
+ */
+export function definePairedComponent(ServerComp: Component, ClientComp: Component): Component {
+  return defineComponent({
+    name: 'PairedComponent',
+    inheritAttrs: false,
+    setup(_, { slots, attrs }) {
+      // isClient: SSR 与客户端初始渲染时均为 false,渲染 ServerComp (客户端构建中
+      // 是 stub,与 SSR 输出的 <ubean-server-only> 标签匹配)。
+      // onMounted 仅在客户端执行,触发后切换为 ClientComp。
+      const isClient = ref(false);
+      onMounted(() => {
+        isClient.value = true;
+      });
+      return () =>
+        isClient.value
+          ? h(ClientComp, attrs, slots)
+          : h(ServerComp, attrs, slots);
     }
   });
 }

@@ -203,7 +203,7 @@ function rowKey(row: ApiParam | ApiProperty) {
     </div>
 
     <!-- Error -->
-    <p v-else-if="error" class="text-destructive text-sm">Failed to load API data: {{ error }}</p>
-    <p v-else class="text-muted-foreground text-sm">Loading…</p>
+    <p v-else-if="error" class="text-destructive text-sm">{{ labels.errorPrefix }}{{ error }}</p>
+    <p v-else class="text-muted-foreground text-sm">{{ labels.loading }}</p>
   </div>
 </template>

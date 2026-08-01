@@ -8,12 +8,14 @@ import AppLogo from './app-logo.vue';
 import ToolBar from './tool-bar.vue';
 import HeaderNav from './header-nav.vue';
 import SearchDocument from './search-document.vue';
+import { useLocalePrefix } from '~/composables/use-locale-prefix';
 
 const { version } = pkg;
 const route = useRoute();
 const isScrolled = shallowRef(false);
+const { localePrefix } = useLocalePrefix();
 
-const showTopBar = computed(() => route.path !== '/');
+const showTopBar = computed(() => route.path !== '/' && route.path !== '/zh');
 
 function syncScrollState() {
   isScrolled.value = (window.scrollY || 0) > 24;
@@ -38,7 +40,7 @@ onUnmounted(() => {
   >
     <div class="docs-header-frame lt-md:group-data-[scrolled=true]:py-2">
       <div class="flex min-w-0 items-center gap-4 lg:gap-6 xl:gap-8">
-        <SLink to="/" class="group flex items-center gap-3">
+        <SLink :to="localePrefix || '/'" class="group flex items-center gap-3">
           <AppLogo class="size-8 transition-transform duration-300 group-hover:scale-110" />
           <h1 class="text-lg font-bold bg-clip-text text-transparent whitespace-nowrap bg-gradient-to-r from-primary-600 to-primary dark:from-primary dark:to-primary-300">
             ubean

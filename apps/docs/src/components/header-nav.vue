@@ -2,12 +2,18 @@
 // Top-level nav: 4 primary destinations. Horizontal by default, vertical in the mobile popover.
 import { computed } from 'vue';
 import { menuSections } from '~/constants/menus';
+import { useLocalePrefix } from '~/composables/use-locale-prefix';
 
 const props = defineProps<{ orientation?: 'horizontal' | 'vertical' }>();
+const { isZh, localizedTo } = useLocalePrefix();
 
 // Use the first item of each of the first 4 sections as the nav target.
 const navItems = computed(() =>
-  menuSections.slice(0, 4).map(s => ({ label: s.label, to: s.items[0].to }))
+  menuSections.slice(0, 4).map(s => ({
+    label: s.label,
+    labelZh: s.labelZh,
+    to: s.items[0].to
+  }))
 );
 </script>
 
@@ -19,11 +25,11 @@ const navItems = computed(() =>
     <SLink
       v-for="item in navItems"
       :key="item.to"
-      :to="item.to"
+      :to="localizedTo(item.to)"
       class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-active transition-colors"
       active-class="text-foreground bg-active"
     >
-      {{ item.label }}
+      {{ isZh ? (item.labelZh || item.label) : item.label }}
     </SLink>
   </nav>
 </template>

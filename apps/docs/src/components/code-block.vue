@@ -2,7 +2,8 @@
 // Shiki-powered code block for explicit inline samples in Vue pages.
 // Markdown fences use @ubean/markdown's highlighter hook instead; this component
 // is for <CodeBlock code="..." lang="ts" /> usage. Shares the same theme config.
-import { ref, watch, onMounted, useTemplateRef } from 'vue';
+import { ref, watch, onMounted, useTemplateRef, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import { codeToHtml } from 'shiki';
 
 interface Props {
@@ -10,6 +11,9 @@ interface Props {
   lang: string;
 }
 const props = defineProps<Props>();
+
+const route = useRoute();
+const isZh = computed(() => route.path === '/zh' || route.path.startsWith('/zh/'));
 
 const wrapper = useTemplateRef('wrapper');
 const copied = ref(false);
@@ -45,7 +49,7 @@ watch(() => props.code, renderCode);
     <button
       type="button"
       class="docs-border absolute end-2 top-2 rounded-md bg-background/80 p-1.5 opacity-0 backdrop-blur transition-opacity group-hover:opacity-100 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-      :aria-label="copied ? 'Copied' : 'Copy code'"
+      :aria-label="copied ? (isZh ? '已复制' : 'Copied') : (isZh ? '复制代码' : 'Copy code')"
       @click="copy"
     >
       <SIcon :icon="copied ? 'lucide:check' : 'lucide:copy'" class="size-4" :class="copied ? 'text-success' : ''" />

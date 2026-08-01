@@ -10,7 +10,8 @@ definePage({
 });
 
 const route = useRoute();
-const prefix = computed(() => route.path.startsWith('/zh') ? '/zh' : '');
+const isZh = computed(() => route.path.startsWith('/zh'));
+const prefix = computed(() => isZh.value ? '/zh' : '');
 const homeTo = computed(() => `${prefix.value}/`);
 </script>
 
@@ -19,13 +20,13 @@ const homeTo = computed(() => `${prefix.value}/`);
     <p class="mb-2 text-7xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-primary-600 to-primary dark:from-primary dark:to-primary-300">
       404
     </p>
-    <h1 class="mb-3 text-2xl font-bold">Page not found</h1>
+    <h1 class="mb-3 text-2xl font-bold">{{ isZh ? '页面未找到' : 'Page not found' }}</h1>
     <p class="mb-8 max-w-md text-muted-foreground">
-      The page you're looking for doesn't exist or has been moved.
+      {{ isZh ? '您访问的页面不存在或已被移动。' : "The page you're looking for doesn't exist or has been moved." }}
     </p>
     <SButtonLink size="lg" shape="rounded" :to="homeTo">
       <SIcon icon="lucide:home" />
-      Back to home
+      {{ isZh ? '返回首页' : 'Back to home' }}
     </SButtonLink>
   </main>
 </template>

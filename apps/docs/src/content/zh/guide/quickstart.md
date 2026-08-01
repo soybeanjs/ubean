@@ -1,7 +1,6 @@
 ---
 title: 快速开始
 description: 几分钟内开始使用 ubean。
-status: translated-stub
 ---
 
 # 快速开始

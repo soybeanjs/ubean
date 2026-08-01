@@ -144,7 +144,15 @@
   }
 
   > table {
-    --uno: 'my-6 w-full overflow-hidden text-sm';
+    --uno: 'my-6 w-full text-sm';
+    /* Make the table a scrollable block for horizontal overflow (MDN recommended
+       pattern for responsive tables). display:block turns the <table> into a
+       scroll container; the browser generates an anonymous table box for the
+       inner thead/tbody/tr/td so the table layout is preserved. */
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
     border-collapse: separate;
     border-spacing: 0;
     border: 1px solid var(--docs-panel-border);
@@ -159,11 +167,18 @@
 
   > table thead th {
     --uno: 'px-4 py-3 text-start text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground';
+    /* min-width prevents header columns from collapsing too narrow when
+       the table is wider than the viewport. */
+    min-width: 5rem;
+    white-space: nowrap;
     background: var(--docs-table-head-bg);
   }
 
   > table tbody td {
     --uno: 'px-4 py-3 align-top text-sm leading-6 text-muted-foreground';
+    /* Allow long code cells to wrap instead of forcing the table wider. */
+    overflow-wrap: break-word;
+    word-break: break-word;
     border-top: 1px solid var(--docs-table-row-border);
   }
 

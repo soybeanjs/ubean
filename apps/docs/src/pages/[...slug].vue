@@ -39,6 +39,13 @@ interface Resolved {
   headings?: { level: number; text: string; id: string }[];
   pkg?: string;
   notFound?: boolean;
+  /** When the zh content is a translated-stub, this holds the English
+   * fallback component so the page shows useful content instead of the
+   * "not translated" placeholder. */
+  fallbackComponent?: any;
+  /** English fallback headings (used for the sidebar outline when the
+   * zh content is a stub). */
+  fallbackHeadings?: { level: number; text: string; id: string }[];
 }
 
 function resolveContent(path: string): Resolved {
@@ -78,12 +85,26 @@ function resolveContent(path: string): Resolved {
   // under their parent h2. extractHeadings returns headings in document order.
   const allHeadings = extractHeadings(raw).filter(h => h.level === 2 || h.level === 3);
 
-  return {
+  const result: Resolved = {
     kind: 'md',
     component: (mod as any).default,
     frontmatter,
     headings: allHeadings
   };
+
+  // Dynamic fallback: when the zh content is a translated-stub, load the
+  // English version so the page shows useful content instead of a placeholder.
+  if (locale === 'zh' && frontmatter.status === 'translated-stub') {
+    const enKey = `../content/en${normalized}.md`;
+    const enMod = mdModules[enKey];
+    const enRaw = mdRaw[enKey];
+    if (enMod && enRaw) {
+      result.fallbackComponent = (enMod as any).default;
+      result.fallbackHeadings = extractHeadings(enRaw).filter(h => h.level === 2 || h.level === 3);
+    }
+  }
+
+  return result;
 }
 
 /** Build a nested h2→h3 outline tree from flat headings (D16). */
@@ -121,10 +142,17 @@ watch(() => route.path, (p) => {
 });
 
 // Sync outline whenever the page changes.
+// When the zh content is a stub with an English fallback, use the fallback's
+// headings so the outline matches the actually-displayed (English) content.
 watchEffect(() => {
   const r = resolved.value;
-  if (r.kind === 'md' && r.headings && !r.notFound) {
-    setDocOutline(buildNestedOutline(r.headings));
+  if (r.kind === 'md' && !r.notFound) {
+    const headings = r.fallbackComponent ? r.fallbackHeadings : r.headings;
+    if (headings) {
+      setDocOutline(buildNestedOutline(headings));
+    } else {
+      resetDocOutline();
+    }
   } else {
     resetDocOutline();
   }
@@ -155,6 +183,13 @@ onUnmounted(() => resetDocOutline());
 
 const pageTitle = computed(() => resolved.value.frontmatter?.title || '');
 const pageStatus = computed(() => resolved.value.frontmatter?.status as string | undefined);
+/** When true, the zh content is a translated-stub and we show the English
+ * fallback with a notice banner instead of the stub placeholder. */
+const isStubFallback = computed(() => !!resolved.value.fallbackComponent);
+const displayComponent = computed(() =>
+  resolved.value.fallbackComponent || resolved.value.component
+);
+const isZh = computed(() => route.path === '/zh' || route.path.startsWith('/zh/'));
 </script>
 
 <template>
@@ -168,7 +203,7 @@ const pageStatus = computed(() => resolved.value.frontmatter?.status as string |
         />
         <div class="relative px-5 py-6 sm:px-8 sm:py-8 xl:px-10 xl:py-10">
           <h1 class="mb-2 text-3xl font-bold">{{ `@ubean/${resolved.pkg}` }}</h1>
-          <p class="mb-6 text-muted-foreground">API reference generated from package type definitions.</p>
+          <p class="mb-6 text-muted-foreground">{{ isZh ? '基于包类型定义生成的 API 参考。' : 'API reference generated from package type definitions.' }}</p>
           <ApiTable :pkg="resolved.pkg!" />
         </div>
       </article>
@@ -180,15 +215,25 @@ const pageStatus = computed(() => resolved.value.frontmatter?.status as string |
         <h1 v-if="pageTitle" class="text-3xl font-bold">{{ pageTitle }}</h1>
         <StatusBadge v-if="pageStatus" :status="pageStatus" />
       </div>
-      <DocMd :component="resolved.component" :path="route.path" />
+      <!-- Translation fallback notice: shown when the zh content is a stub
+           and the English version is displayed instead. -->
+      <div
+        v-if="isStubFallback"
+        class="docs-border mb-4 flex items-center gap-2 rounded-lg bg-warning/5 px-4 py-3 text-sm text-muted-foreground"
+        role="status"
+      >
+        <SIcon icon="lucide:languages" class="size-4 shrink-0 text-warning" />
+        <span>此页面尚未翻译完成，当前显示英文内容。Translation in progress — showing English content.</span>
+      </div>
+      <DocMd :component="displayComponent" :path="route.path" />
     </template>
 
     <!-- Not found -->
     <template v-else>
       <div class="py-16 text-center">
         <div class="mb-2 text-5xl font-bold text-muted-foreground">404</div>
-        <p class="mb-4 text-muted-foreground">This page doesn't exist in the docs.</p>
-        <SButton variant="outline" shape="rounded" @click="router.push('/')">Back to home</SButton>
+        <p class="mb-4 text-muted-foreground">{{ isZh ? '此页面不存在。' : "This page doesn't exist in the docs." }}</p>
+        <SButton variant="outline" shape="rounded" @click="router.push(isZh ? '/zh' : '/')">{{ isZh ? '返回首页' : 'Back to home' }}</SButton>
       </div>
     </template>
   </main>

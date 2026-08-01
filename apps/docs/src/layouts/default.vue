@@ -11,6 +11,7 @@ import { useScrollLock } from '~/composables/use-scroll-lock';
 
 const route = useRoute();
 const docOutline = useDocOutline();
+const isZh = computed(() => route.path === '/zh' || route.path.startsWith('/zh/'));
 
 // Per D16: map the UI-agnostic DocOutlineItem tree → SAnchor's AnchorOptionData
 // (title, href:'#'+value, children). Keeps the composable decoupled from the
@@ -79,7 +80,7 @@ watch(() => route.path, () => {
         @click="mobileSidebarOpen = true"
       >
         <SIcon icon="lucide:panel-left" class="size-4" />
-        <span>Menu</span>
+        <span>{{ isZh ? '菜单' : 'Menu' }}</span>
       </button>
 
       <SDrawer

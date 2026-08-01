@@ -18,6 +18,8 @@ export function useApiI18n() {
       properties: isZh ? '属性' : 'Properties',
       empty: isZh ? '暂无 API 条目。请先在仓库根目录运行 pnpm build 后再执行 pnpm build:api。' : 'No API entries. Run "pnpm build" at the repo root, then "pnpm build:api".',
       stub: isZh ? '存根数据' : 'Stub data',
+      loading: isZh ? '加载中…' : 'Loading…',
+      errorPrefix: isZh ? '加载 API 数据失败：' : 'Failed to load API data: ',
       kind: {
         function: isZh ? '函数' : 'Function',
         interface: isZh ? '接口' : 'Interface',

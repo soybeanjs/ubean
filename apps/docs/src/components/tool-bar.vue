@@ -39,7 +39,7 @@ function toggleTheme() {
       variant="pure"
       :icon="isDark ? 'lucide:moon' : 'lucide:sun'"
       shape="circle"
-      :aria-label="isDark ? 'Switch to light theme' : 'Switch to dark theme'"
+      :aria-label="isDark ? (isZh ? '切换到浅色主题' : 'Switch to light theme') : (isZh ? '切换到深色主题' : 'Switch to dark theme')"
       :aria-pressed="isDark"
       @click="toggleTheme"
     />
@@ -47,7 +47,7 @@ function toggleTheme() {
       variant="pure"
       shape="circle"
       size="sm"
-      :aria-label="`Switch to ${isZh ? 'English' : 'Chinese'}`"
+      :aria-label="isZh ? '切换到英文' : 'Switch to Chinese'"
       :aria-pressed="isZh"
       @click="toggleLocale"
     >

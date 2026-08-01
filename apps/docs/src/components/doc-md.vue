@@ -3,7 +3,12 @@
 // unplugin-vue-markdown wraps the rendered markdown in a `.markdown-wrapper`
 // div (configured via ubean.config.ts → markdown.wrapperClass). This component
 // provides the outer article "card" with border + gradient header (D22 port).
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+
 const props = defineProps<{ component: any; path?: string }>();
+const route = useRoute();
+const isZh = computed(() => route.path === '/zh' || route.path.startsWith('/zh/'));
 </script>
 
 <template>
@@ -23,6 +28,6 @@ const props = defineProps<{ component: any; path?: string }>();
         </div>
       </div>
     </article>
-    <div v-else class="text-muted-foreground">Content unavailable.</div>
+    <div v-else class="text-muted-foreground">{{ isZh ? '内容不可用。' : 'Content unavailable.' }}</div>
   </div>
 </template>

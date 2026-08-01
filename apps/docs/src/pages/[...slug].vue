@@ -120,7 +120,7 @@ watch(() => route.path, (p) => {
   resolved.value = resolveContent(p);
 });
 
-// Sync outline + head whenever the page changes.
+// Sync outline whenever the page changes.
 watchEffect(() => {
   const r = resolved.value;
   if (r.kind === 'md' && r.headings && !r.notFound) {
@@ -128,18 +128,28 @@ watchEffect(() => {
   } else {
     resetDocOutline();
   }
+});
 
+// Head must be registered once during setup. Calling useHead() inside
+// watchEffect works on the first synchronous run, but re-runs outside the
+// setup context on subsequent navigations, raising "useHead() was called
+// without provide context". Pass a computed so it stays reactive when
+// resolved.value changes (useHead accepts ComputedRef<ReactiveHead>).
+useHead(computed(() => {
+  const r = resolved.value;
   if (r.kind === 'api' && r.pkg) {
-    useHead({ title: `@ubean/${r.pkg} · ubean` });
-  } else if (r.kind === 'md' && r.frontmatter) {
+    return { title: `@ubean/${r.pkg} · ubean` };
+  }
+  if (r.kind === 'md' && r.frontmatter) {
     const title = r.frontmatter.title ? String(r.frontmatter.title) : 'ubean docs';
     const description = r.frontmatter.description ? String(r.frontmatter.description) : undefined;
-    useHead({
+    return {
       title: title === 'ubean — Full-stack Vue Meta-framework' ? title : `${title} · ubean`,
       ...(description ? { meta: [{ name: 'description', content: description }] } : {})
-    });
+    };
   }
-});
+  return {};
+}));
 
 onUnmounted(() => resetDocOutline());
 

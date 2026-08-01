@@ -1,8 +1,13 @@
 <script setup lang="ts">
 // Home page: hero + features + comparison + ecosystem per DESIGN.md D14.
+import { computed } from 'vue';
+import { useRoute } from 'vue-router';
+
 definePage({
   layout: 'home'
 });
+
+const route = useRoute();
 
 const features = [
   { icon: 'lucide:server', title: 'Full-stack SSR', desc: 'Vue SSR with Inertia-style page routing, islands architecture, and view transitions.' },
@@ -17,6 +22,13 @@ const ecosystem = [
   '@ubean/auth', '@ubean/icon', '@ubean/pwa', '@ubean/image',
   '@ubean/content', '@ubean/fonts', '@ubean/electron', '@ubean/ui', '@ubean/pinia'
 ];
+
+// Derive locale from the route path for SSR-safe localized links.
+// Using route.path (not useI18n().locale) ensures server and client render
+// the same paths, preventing hydration mismatches.
+const prefix = computed(() => route.path === '/zh' || route.path.startsWith('/zh/') ? '/zh' : '');
+const getStartedTo = computed(() => `${prefix.value}/guide/quickstart`);
+const comparisonTo = computed(() => `${prefix.value}/architecture/framework-comparison`);
 </script>
 
 <template>
@@ -30,11 +42,11 @@ const ecosystem = [
         A full-stack Vue meta-framework built on Vite, Hono and Vue.
       </p>
       <div class="mt-10 flex items-center justify-center gap-4">
-        <SButton size="lg" shape="rounded" to="/guide/quickstart">
+        <SButtonLink size="lg" shape="rounded" :to="getStartedTo">
           Get Started
-          <template #suffix><SIcon icon="lucide:arrow-right" /></template>
-        </SButton>
-        <SButton
+          <SIcon icon="lucide:arrow-right" />
+        </SButtonLink>
+        <SButtonLink
           size="lg"
           variant="outline"
           shape="rounded"
@@ -42,9 +54,9 @@ const ecosystem = [
           target="_blank"
           rel="noopener noreferrer"
         >
-          <template #icon><SIcon icon="lucide:github" /></template>
+          <SIcon icon="lucide:github" />
           GitHub
-        </SButton>
+        </SButtonLink>
       </div>
     </section>
 
@@ -67,10 +79,10 @@ const ecosystem = [
     <section class="mx-auto max-w-6xl px-6 py-16">
       <h2 class="text-2xl font-bold mb-4">How does ubean compare?</h2>
       <p class="text-muted-foreground mb-8">A full comparison lives in the Architecture section.</p>
-      <SButton variant="outline" shape="rounded" to="/architecture/framework-comparison">
+      <SButtonLink variant="outline" shape="rounded" :to="comparisonTo">
         View framework comparison
-        <template #suffix><SIcon icon="lucide:arrow-right" /></template>
-      </SButton>
+        <SIcon icon="lucide:arrow-right" />
+      </SButtonLink>
     </section>
 
     <!-- Ecosystem -->

@@ -26,6 +26,7 @@
     "@soybeanjs/unocss-shadcn": "^0.29.3",
     "@types/node": "^26.1.2",
     "typedoc": "^0.28.0",
+    "typescript": "6.0.3",
     "unocss": "^66.7.5",
     "vue-tsc": "^3.3.8"
   }

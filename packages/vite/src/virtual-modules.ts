@@ -466,7 +466,7 @@ export function resolveAppConfig(mode) {
   return merged;
 }
 
-export function createApp() {
+export async function createApp() {
   const config = resolveAppConfig('client');
   const head = createClientHead();
 
@@ -482,15 +482,15 @@ export function createApp() {
     head.push(headInput);
   }
 
-  // Resolve the auto-detected loading component from pages/loading.vue.
-  // defineApp({ loadingComponent }) takes priority over the auto-detected file.
-  const _autoLoadingComponent = resolveLoadingComponent();
-  const loadingComponent = config.loadingComponent || (_autoLoadingComponent ? () => _autoLoadingComponent : undefined);
-
-  // Resolve the auto-detected error component from pages/error.vue.
-  // defineApp({ errorComponent }) takes priority over the auto-detected file.
-  const _autoErrorComponent = resolveErrorComponent();
-  const errorComponent = config.errorComponent || (_autoErrorComponent ? () => _autoErrorComponent : undefined);
+  // Resolve the auto-detected loading/error components from pages/loading.vue
+  // and pages/error.vue. These loaders return Promises (dynamic imports), so
+  // they MUST be awaited — otherwise 'resolveComp' markRaw's the unresolved
+  // Promise object and passes it to <Suspense>/<ErrorBoundary> as the
+  // 'component' prop, causing "Hydration node mismatch: server <div> vs
+  // client Symbol(v-fgt)" (rendering a Promise produces a fragment).
+  // defineApp({ loadingComponent/errorComponent }) takes priority.
+  const loadingComponent = config.loadingComponent || (await resolveLoadingComponent()) || undefined;
+  const errorComponent = config.errorComponent || (await resolveErrorComponent()) || undefined;
 
   const initialPage = getInitialPageData();
   const instance = createUbeanApp({
@@ -553,17 +553,16 @@ export function createApp() {
   return instance;
 }
 
-export function createSSRApp(initialPage) {
+export async function createSSRApp(initialPage) {
   const config = resolveAppConfig('server');
   const head = createServerHead();
 
   // SSR doesn't need Suspense fallback (server resolves async synchronously),
-  // but we still pass it for consistency.
-  const _autoLoadingComponent = resolveLoadingComponent();
-  const loadingComponent = config.loadingComponent || (_autoLoadingComponent ? () => _autoLoadingComponent : undefined);
+  // but we still pass it for consistency. Await the loaders so resolved
+  // Component values (not Promises) are passed to createUbeanSSRApp.
+  const loadingComponent = config.loadingComponent || (await resolveLoadingComponent()) || undefined;
 
-  const _autoErrorComponent = resolveErrorComponent();
-  const errorComponent = config.errorComponent || (_autoErrorComponent ? () => _autoErrorComponent : undefined);
+  const errorComponent = config.errorComponent || (await resolveErrorComponent()) || undefined;
 
   const { app, router } = createUbeanSSRApp(initialPage, {
     routes,

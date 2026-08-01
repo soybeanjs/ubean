@@ -96,7 +96,7 @@ export default defineConfig({
   // file tree above) + the home page. crawlLinks catches anything we missed.
   prerender: {
     all: false,
-    include: ['/', ...collectContentRoutes()],
+    include: ['/', '/zh', ...collectContentRoutes()],
     crawlLinks: true,
     failOnError: false
   },

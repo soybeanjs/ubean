@@ -4,6 +4,7 @@
 // div (configured via ubean.config.ts → markdown.wrapperClass). This component
 // provides the outer article "card" with border + gradient header (D22 port).
 import { shallowRef } from 'vue';
+
 const props = defineProps<{ component: any; path?: string }>();
 const contentRef = shallowRef<HTMLElement | null>(null);
 </script>

@@ -3,10 +3,10 @@
 import { useRouter } from 'vue-router';
 import { useDocSearch } from '~/composables/use-doc-search';
 
+const router = useRouter();
 const { query, results, loading, open, onInput, close } = useDocSearch();
 
 function onSelect(route: string) {
-  const router = useRouter();
   router.push(route);
   close();
 }
@@ -21,21 +21,21 @@ function onSelect(route: string) {
         class="w-64 lt-md:w-12 lt-md:px-2"
         aria-label="Search docs"
       >
-        <template #icon>
+        <template #leading>
           <SIcon icon="lucide:search" />
         </template>
         <span class="lt-md:hidden text-muted-foreground">Search docs…</span>
       </SButton>
     </template>
 
-    <div class="docs-subtle-card w-80 border border-border/50 p-2 dark:border-border md:w-96">
+    <div class="docs-subtle-card w-72 max-w-[calc(100vw-1.5rem)] p-2 md:w-96">
       <SInput
         v-model="query"
         placeholder="Type to search…"
         autofocus
         @input="onInput"
       >
-        <template #prefix>
+        <template #leading>
           <SIcon icon="lucide:search" class="text-muted-foreground" />
         </template>
       </SInput>

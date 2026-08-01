@@ -1,23 +1,29 @@
 <script setup lang="ts">
-// Toolbar: theme toggle + locale toggle. Adapted from the reference's tool-bar.vue.
-// Per DESIGN.md D17: locale switching uses switchLocalePath + router.push (not
-// useI18n().setLocale, which only mutates internal state and does not navigate).
+// Toolbar: theme toggle + locale toggle.
+// Locale detection uses route.path (not useI18n().locale) for SSR consistency
+// — the i18n state may not be synced during SSR, causing hydration mismatches
+// if the toolbar label differs between server and client.
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useI18n, useColorMode, switchLocalePath } from 'ubean/runtime/vue';
+import { useColorMode } from 'ubean/runtime/vue';
 
-const { locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { value: mode, toggle: toggleMode } = useColorMode();
 
 const isDark = computed(() => mode.value === 'dark');
-const isZh = computed(() => locale.value === 'zh');
+const isZh = computed(() => route.path === '/zh' || route.path.startsWith('/zh/'));
 
 function toggleLocale() {
-  const next = isZh.value ? 'en' : 'zh';
-  const target = switchLocalePath(next, route.path);
-  if (target && target !== route.path) {
+  let target: string;
+  if (isZh.value) {
+    // Switch to English: strip /zh prefix
+    target = route.path === '/zh' ? '/' : route.path.replace(/^\/zh/, '');
+  } else {
+    // Switch to Chinese: add /zh prefix
+    target = route.path === '/' ? '/zh' : `/zh${route.path}`;
+  }
+  if (target !== route.path) {
     router.push(target);
   }
 }

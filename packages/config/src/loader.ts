@@ -189,6 +189,7 @@ const configDefaults: ResolvedConfig = {
     mdx: false,
     theme: 'one-dark',
     markdownExit: { html: true, linkify: true, breaks: false },
+    wrapperClass: 'markdown-wrapper',
     headings: { anchorLinks: true },
     components: { autoImport: true },
     remarkPlugins: [],

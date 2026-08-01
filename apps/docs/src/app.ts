@@ -1,4 +1,4 @@
-import { defineApp, configureColorMode } from 'ubean/runtime/vue';
+import { defineApp, configureColorMode, setLocale, getLocale } from 'ubean/runtime/vue';
 import '@fontsource-variable/manrope';
 import 'uno.css';
 import './styles/global.css';
@@ -30,5 +30,20 @@ export default defineApp({
     ],
     htmlAttrs: { lang: 'en' }
   },
-  rootId: 'app'
+  rootId: 'app',
+  // Sync the i18n locale from the URL path on every client-side navigation.
+  // The server-side i18n middleware sets the locale for SSR/SSG, but SPA
+  // navigations (e.g. clicking the locale toggle) bypass the server. Without
+  // this guard, useI18n().locale stays stale after navigating to /zh, causing
+  // the toolbar toggle to display the wrong label.
+  router: {
+    setup(router) {
+      router.beforeEach((to) => {
+        const target = to.path === '/zh' || to.path.startsWith('/zh/') ? 'zh' : 'en';
+        if (target !== getLocale()) {
+          setLocale(target);
+        }
+      });
+    }
+  }
 });

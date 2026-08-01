@@ -89,7 +89,7 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 | # | 能力 | 任务 ID | 理由 |
 |---|---|---|---|
-| 5 | Draft / Preview mode | P9-23 | 内容管理场景刚需，CMS 集成前置 |
+| 5 | Draft / Preview mode | ✅ 已实现 | 内容管理场景刚需，CMS 集成前置 |
 | 6 | 流式 metadata | P9-24 | SEO 优化，Next.js 已有 |
 | 7 | 动态路由 matchers | 增强 | SvelteKit 有，rou3 底层支持 |
 | 8 | metadata 自动 dedupe | 增强 | 当前 useSeoMeta 无去重 |
@@ -319,6 +319,62 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 - 测试：enable/disable/isEnabled 流程
 
 **兼容性**：可选中间件，不启用时零开销。
+
+---
+
+#### 实现说明（Task 5 / P9-23 ✅ 已实现）
+
+**实现位置**：`packages/server/src/draft-mode.ts`
+
+**API 设计**：
+- `createDraftModeMiddleware(options)` / `defineDraftMode(options)` — 中间件,读取并验证
+  cookie 后在 context 上注入 `DraftModeController`(内部 key `__ubean_draft_mode__`)。
+- `enableDraftMode(c)` / `disableDraftMode(c)` — 在路由处理函数中调用,标记 pendingAction,
+  中间件在 `await next()` 后根据 pendingAction 设置/清除 cookie。
+- `isDraftMode(c)` — 读取 `isEnabled`(未注册中间件返回 false)。
+- `useDraftMode(c)` — 组合式 API,返回 `{ isEnabled, enable, disable }`;未注册中间件时
+  返回安全回退(`isEnabled: false` + `enable/disable` 抛错),零开销。
+- `DraftModeOptions`:`{ secret(必填), cookieName='ubean_draft', ttl=3600, cookie={...}, exclude=[] }`。
+
+**安全机制**：
+- cookie 值格式 `expiry.signature`,签名使用 HMAC-SHA256 + base64url。
+- 验证使用 `timingSafeEqual` 时序安全比较,防止 timing attack。
+- 签名长度不等时直接返回 null,避免 `timingSafeEqual` 抛错。
+- cookie 携带 expiry 时间戳,中间件拒绝已过期 token。
+- 客户端无法伪造签名或延长有效期。
+
+**工作流程**：
+1. 中间件读取 `cookie` 头,正则解析 `ubean_draft` 值。
+2. 验证签名 → 检查 expiry > Date.now() → 在 context 标记 `enabled`。
+3. 路由处理函数调用 `enableDraftMode(c)` → controller 标记 `pendingAction='enable'`。
+4. `await next()` 后,中间件根据 pendingAction 设置 `Set-Cookie`(enable 写入签名 token + Max-Age=ttl;disable 写入空值 + Max-Age=0)。
+
+**与 spec 的差异**（合理调整）：
+- cookie 名 `ubean_draft`（spec 写作 `__ubean_draft`，实现采用无下划线前缀，可通过 `cookieName` 配置）。
+- 状态通过内部 context key 注入而非 `c.var.draftMode`（实现细节，对外通过 `useDraftMode(c)`/`isDraftMode(c)` 暴露，API 形状与 spec 一致）。
+- 同时提供 `defineDraftMode` 别名，与 `defineCors`/`defineCsrf` 风格对齐。
+
+**验收标准**：
+- ✅ 未启用时 `isEnabled === false`（`noCookie` / 未注册中间件场景）
+- ✅ 启用后请求携带 cookie，`isEnabled === true`（`roundTrip` 场景）
+- ✅ cookie 签名验证防伪造（篡改签名 / 错误密钥 / 无分隔符 / 过期 token 全部拒绝）
+- ✅ 测试：enable/disable/isEnabled 流程（单元 + 集成）
+
+**测试覆盖**：
+- `packages/server/test/draft-mode.test.ts` —— 26 个单元测试,覆盖:
+  Detection（无 cookie / 有效 cookie / 篡改签名 / 无分隔符 / 过期 / 错误密钥）、
+  enableDraftMode（Set-Cookie / 同请求立即生效 / Max-Age=TTL）、
+  disableDraftMode（Max-Age=0 / 同请求立即生效）、
+  isDraftMode（未注册中间件返回 false / 有效 cookie 返回 true）、
+  useDraftMode（组合式形状 / enable/disable / 未注册时回退 / 未注册时 isEnabled=false）、
+  Configuration（自定义 cookieName / cookie 选项 / exclude / 无 secret 抛错 / 默认选项）、
+  Round-trip（enable → 后续请求 isEnabled=true / disable → 后续 isEnabled=false / 同请求 enable+disable 后者胜出）、
+  defineDraftMode 别名。
+- `examples/ubean-test/test/draft-mode.test.ts` —— 8 个 HTTP 集成测试:
+  noCookie / enable / disable / tampered / expired / wrongSecret / roundTrip / composable,
+  通过 `/api/draft-mode-test?action=xxx` 端点验证端到端行为。
+
+**兼容性**：可选中间件,未注册时 `isDraftMode` 返回 false、`useDraftMode` 返回安全回退,零开销。
 
 ---
 

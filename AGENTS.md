@@ -343,6 +343,7 @@ const SlowIsland = defineServerIsland(SlowComp, { fallback: 'Loading...' });
 | `after(callback)` / `createAfterMiddleware()`                                                              | 响应后执行(P9-14):fire-and-forget 回调不阻塞 TTFB;AsyncLocalStorage 请求作用域                                                          |
 | `createFetchMemoizationMiddleware(options)` / `createMemoizedFetch(options)`                               | 请求 memoization(P9-15):请求内相同 GET URL 自动去重                                                                                     |
 | `createDataCacheMiddleware(options)` / `FetchCacheOptions` / `FetchInitWithNext`                          | fetch Data Cache(Task 4):跨请求缓存 GET 响应,识别 `next: { revalidate, tags, noStore }`;与 `revalidateTag`/`revalidatePath` 集成失效 |
+| `createDraftModeMiddleware(options)` / `defineDraftMode(options)` / `enableDraftMode(c)` / `disableDraftMode(c)` / `isDraftMode(c)` / `useDraftMode(c)` / `DraftModeOptions` / `DraftMode` | Draft/Preview Mode(Task 5/P9-23):对齐 Next.js `draftMode()`;HMAC-SHA256 签名 cookie(`ubean_draft`,默认 1h TTL)+ 时序安全比较;中间件读取并验证 cookie 后注入 `DraftModeController`;`enable/disable` 通过 pendingAction 在响应阶段设置/清除 cookie;未注册中间件时 `isDraftMode` 返回 false、`useDraftMode` 返回安全回退(零开销) |
 
 ### SEO 与可观测性
 

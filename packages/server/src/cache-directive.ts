@@ -17,6 +17,11 @@
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
+import {
+  revalidateDataCacheTag,
+  revalidateDataCachePath,
+  clearDataCache
+} from './fetch-memo';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                    */
@@ -357,6 +362,9 @@ export async function revalidateTag(tag: string): Promise<number> {
     }
   }
 
+  // 同时失效 fetch Data Cache(Task 4):带该标签的 fetch 缓存条目
+  deleted += await revalidateDataCacheTag(tag);
+
   return deleted;
 }
 
@@ -388,17 +396,20 @@ export async function revalidatePath(pattern: string | RegExp): Promise<number> 
   const store = useComponentCacheStore();
   let deleted = 0;
 
-  if (!store.keys) return 0;
+  if (store.keys) {
+    const allKeys = await store.keys();
+    const regex = pattern instanceof RegExp ? pattern : globToRegex(pattern);
 
-  const allKeys = await store.keys();
-  const regex = pattern instanceof RegExp ? pattern : globToRegex(pattern);
-
-  for (const key of allKeys) {
-    if (regex.test(key)) {
-      await store.delete(key);
-      deleted++;
+    for (const key of allKeys) {
+      if (regex.test(key)) {
+        await store.delete(key);
+        deleted++;
+      }
     }
   }
+
+  // 同时失效 fetch Data Cache(Task 4):缓存键匹配的 fetch 缓存条目
+  deleted += await revalidateDataCachePath(pattern);
 
   return deleted;
 }
@@ -409,6 +420,8 @@ export async function revalidatePath(pattern: string | RegExp): Promise<number> 
 export async function clearComponentCache(): Promise<void> {
   const store = useComponentCacheStore();
   await store.clear();
+  // 同时清空 fetch Data Cache(Task 4)
+  clearDataCache();
 }
 
 /* -------------------------------------------------------------------------- */

@@ -83,7 +83,7 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 | 1 | `defer()` 流式非关键数据 | 新建 | 与已有 PPR + Suspense 架构互补，竞品全部支持 |
 | 2 | useData/useAsyncData 增强 | 增强 | 当前实现较薄，缺 dedupe/refresh/payload 提取 |
 | 3 | SSG payload 提取 | 增强 | `__UBEAN_STATE__` 存在但 SSG 无独立 payload |
-| 4 | fetch Data Cache | 新建 | 与组件级缓存互补，对齐 Next.js Data Cache |
+| 4 | fetch Data Cache | ✅ 已实现 | 与组件级缓存互补，对齐 Next.js Data Cache |
 
 ### P1 — 重要功能补全（中重要性 / 中需求 / 中等难度）
 
@@ -237,7 +237,7 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 ---
 
-### 4. fetch Data Cache [P0]
+### 4. fetch Data Cache [P0] ✅ 已实现
 
 **目标**：对齐 Next.js Data Cache，`fetch()` 自动缓存 + `revalidateTag`/`revalidatePath` 失效。
 
@@ -253,13 +253,46 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 3. 集成 `revalidateTag`/`revalidatePath` 失效缓存
 4. dev 模式默认 no-cache，prod 默认按配置
 
+**实现说明**（已实现）：
+- 新增 `createDataCacheMiddleware(options)` 中间件（`@ubean/server`）——
+  在请求作用域内包装 `globalThis.fetch`，对带 `next: { revalidate, tags }` 选项的
+  GET/HEAD 请求按 TTL 跨请求缓存响应。
+- 新增 `FetchCacheOptions` 接口（`revalidate` / `tags` / `noStore`）+
+  `FetchInitWithNext` 扩展 `RequestInit`。
+- 缓存键 = `method:url:sorted(headers)`，排除自动设置的 header
+  （User-Agent / Accept-Encoding / Connection / Host / Content-Length），
+  保证相同语义请求命中同一缓存键。
+- 缓存值：序列化的 `Response`（status / statusText / headers / body ArrayBuffer），
+  命中时通过 `deserializeResponse` 重建可消费的 `Response` 实例。
+- 仅缓存 2xx 响应（4xx/5xx 不缓存，允许后续重试）；仅缓存 GET/HEAD。
+- TTL 语义：`revalidate: N` → N 秒后过期；`revalidate: 0` / `noStore: true` → 不缓存；
+  仅有 `tags` 无 `revalidate` → 永久缓存直到被失效（对齐 Next.js）。
+- dev 模式（`NODE_ENV !== 'production'`）默认 no-cache，可通过 `forceDevCache: true`
+  强制启用（用于测试）。
+- **失效集成**：`cache-directive.ts` 的 `revalidateTag` / `revalidatePath` /
+  `clearComponentCache` 现在同时失效 fetch Data Cache 条目
+  （分别调用 `revalidateDataCacheTag` / `revalidateDataCachePath` / `clearDataCache`）。
+  用户调用 `revalidateTag('users')` 会一次性失效所有带 `users` 标签的组件缓存 + fetch 缓存。
+- 标签反向索引（tag → 缓存键集合）加速 `revalidateTag`；LRU 驱逐（上限 1000 条，超限淘汰最旧 20%）。
+
 **验收标准**：
-- `fetch(url, { next: { revalidate: 60 } })` 返回缓存响应
-- `revalidateTag('xxx')` 后对应 fetch 缓存失效
-- 无 `next` 选项的 fetch 不缓存（默认行为不变）
-- 测试：缓存命中/失效/降级场景
+- ✅ `fetch(url, { next: { revalidate: 60 } })` 返回缓存响应
+- ✅ `revalidateTag('xxx')` 后对应 fetch 缓存失效
+- ✅ 无 `next` 选项的 fetch 不缓存（默认行为不变）
+- ✅ 测试：缓存命中/失效/降级场景
+
+**测试覆盖**：
+- `packages/server/test/data-cache.test.ts` —— 28 个单元测试,覆盖:
+  基本缓存命中/未命中、无 next 不缓存、noStore/revalidate:0 退出、
+  POST/4xx/5xx 不缓存、TTL 过期、headers 缓存键、
+  revalidateTag/revalidatePath 失效、与组件缓存集成、dev 模式行为、
+  响应重建正确性、exclude、clearDataCache/getDataCacheSize、中间件恢复 fetch。
+- `examples/ubean-test/test/data-cache.test.ts` —— HTTP 集成测试(7 个 action):
+  cacheHit / noNextNoCache / noStore / revalidateTag / revalidatePath /
+  errorNotCached / devNoCache,通过 `/api/data-cache-test?action=xxx` 端点验证端到端行为。
 
 **兼容性**：仅影响服务端 fetch；用户可通过 `next: { noStore: true }` 退出缓存。
+无 `next` 选项的 fetch 行为完全不变（走原始 fetch 路径）。
 
 ---
 

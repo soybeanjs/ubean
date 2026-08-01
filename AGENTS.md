@@ -238,8 +238,8 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `defineCachedFunction(fn, options)`              | 显式缓存包装器(替代已移除的 `"use cache"` 指令);对齐 Next.js 16 `unstable_cache`  |
 | `cacheLife(seconds)`                             | 设置当前缓存作用域 TTL(秒),须在 `defineCachedFunction` 函数体内调用    |
 | `cacheTag(...tags)`                              | 为当前缓存作用域添加标签,用于 `revalidateTag()` 精确失效               |
-| `revalidateTag(tag)` / `revalidateTags(...tags)` | 按标签失效组件缓存条目,返回删除数量                                    |
-| `revalidatePath(pattern)`                        | 按 glob/正则失效缓存键匹配的条目                                       |
+| `revalidateTag(tag)` / `revalidateTags(...tags)` | 按标签失效组件缓存 + fetch Data Cache 条目,返回删除总数(Task 4 起 Data Cache 也参与失效) |
+| `revalidatePath(pattern)`                        | 按 glob/正则失效组件缓存键 + fetch Data Cache 键匹配的条目                              |
 | `wrapWithCache(fn, options)`                     | ⚠️ 已弃用别名(等价于 `defineCachedFunction`,保留用于过渡)             |
 | `useComponentCacheStore(store?)`                 | 获取/设置组件级缓存存储                                                |
 | `createComponentMemoryStore(maxEntries)`         | 内存组件缓存存储(带标签反向索引)                                       |
@@ -342,6 +342,7 @@ const SlowIsland = defineServerIsland(SlowComp, { fallback: 'Loading...' });
 | `createSessionMiddleware(options)` / `useSession(c)` / `createStorageSessionStore(...)`                    | 通用 Sessions API(P9-11):cookie 模式(signed cookie) + storage 模式(SessionStore);`Session<T>` 接口(get/set/delete/has/all/save/destroy) |
 | `after(callback)` / `createAfterMiddleware()`                                                              | 响应后执行(P9-14):fire-and-forget 回调不阻塞 TTFB;AsyncLocalStorage 请求作用域                                                          |
 | `createFetchMemoizationMiddleware(options)` / `createMemoizedFetch(options)`                               | 请求 memoization(P9-15):请求内相同 GET URL 自动去重                                                                                     |
+| `createDataCacheMiddleware(options)` / `FetchCacheOptions` / `FetchInitWithNext`                          | fetch Data Cache(Task 4):跨请求缓存 GET 响应,识别 `next: { revalidate, tags, noStore }`;与 `revalidateTag`/`revalidatePath` 集成失效 |
 
 ### SEO 与可观测性
 

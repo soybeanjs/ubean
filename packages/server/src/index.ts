@@ -232,9 +232,17 @@ export type { Session, SessionData, SessionStore, SessionOptions } from './sessi
 export { after, createAfterMiddleware, flushAfterCallbacks, getAfterCallbackCount } from './after';
 
 /* -------------------------------------------------------------------------- */
-/* 请求 memoization (P9-15)                                                    */
+/* 请求 memoization (P9-15) + fetch Data Cache (Task 4)                        */
 /* -------------------------------------------------------------------------- */
 export { createFetchMemoizationMiddleware, createMemoizedFetch } from './fetch-memo';
+export {
+  createDataCacheMiddleware,
+  revalidateDataCacheTag,
+  revalidateDataCachePath,
+  clearDataCache,
+  getDataCacheSize
+} from './fetch-memo';
+export type { FetchCacheOptions, FetchInitWithNext, DataCacheMiddlewareOptions } from './fetch-memo';
 
 /* -------------------------------------------------------------------------- */
 /* Draft/Preview Mode (P9-23)                                                  */

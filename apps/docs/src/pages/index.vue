@@ -1,8 +1,6 @@
 <script setup lang="ts">
-// Home page: hero + features + comparison + ecosystem per DESIGN.md D14.
 import { computed } from 'vue';
 import { useRoute } from 'vue-router';
-import CodeBlock from '~/components/code-block.vue';
 
 definePage({
   layout: 'home'
@@ -11,14 +9,6 @@ definePage({
 const route = useRoute();
 const isZh = computed(() => route.path === '/zh' || route.path.startsWith('/zh/'));
 
-const heroCode = `// ubean.config.ts
-import { defineConfig } from 'ubean';
-
-export default defineConfig({
-  modules: ['@ubean/auth', '@ubean/ui', '@ubean/pinia'],
-  ssr: true,
-  i18n: { defaultLocale: 'en', locales: ['en', 'zh'] }
-});`;
 
 const features = [
   {
@@ -109,9 +99,6 @@ const L = computed(() => isZh.value ? 'zh' : 'en');
           GitHub
         </SButtonLink>
       </div>
-      <div class="mx-auto mt-14 max-w-2xl text-left">
-        <CodeBlock :code="heroCode" lang="ts" />
-      </div>
     </section>
 
     <!-- Features (bento layout: featured cards span 2 columns) -->
@@ -119,7 +106,7 @@ const L = computed(() => isZh.value ? 'zh' : 'en');
       <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <div
           v-for="f in features"
-          :key="f.title"
+          :key="String(f.title)"
           class="docs-border relative overflow-hidden rounded-xl p-6 transition-colors hover:border-primary/40"
           :class="f.span"
         >

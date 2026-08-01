@@ -58,7 +58,6 @@ watch(() => route.path, () => {
   <div
     class="[--app-header-main:3.75rem] [--app-topbar:0rem] [--app-header:calc(var(--app-header-main)+var(--app-topbar))] relative min-h-full pt-[--app-header] text-sm"
   >
-    <BackgroundDecoration />
     <div class="relative z-10">
       <AppHeader />
 
@@ -73,8 +72,10 @@ watch(() => route.path, () => {
         :class="shouldShowSidebar ? 'lt-md:ms-0 md:ms-55' : 'ms-0'"
         class="px-4 py-5 md:px-8 md:pb-7 md:pt-5 xl:px-10 lt-md:pt-12!"
       >
-        <!-- Mobile sidebar trigger (lt-md only). The fixed sidebar is hidden on
-             small screens; this button opens a drawer with the same SiderMenu. -->
+        <!--
+ Mobile sidebar trigger (lt-md only). The fixed sidebar is hidden on
+             small screens; this button opens a drawer with the same SiderMenu.
+-->
         <button
           v-if="shouldShowSidebar"
           type="button"

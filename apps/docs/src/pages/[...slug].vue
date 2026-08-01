@@ -215,8 +215,10 @@ const isZh = computed(() => route.path === '/zh' || route.path.startsWith('/zh/'
         <h1 v-if="pageTitle" class="text-3xl font-bold">{{ pageTitle }}</h1>
         <StatusBadge v-if="pageStatus" :status="pageStatus" />
       </div>
-      <!-- Translation fallback notice: shown when the zh content is a stub
-           and the English version is displayed instead. -->
+      <!--
+ Translation fallback notice: shown when the zh content is a stub
+           and the English version is displayed instead.
+-->
       <div
         v-if="isStubFallback"
         class="docs-border mb-4 flex items-center gap-2 rounded-lg bg-warning/5 px-4 py-3 text-sm text-muted-foreground"

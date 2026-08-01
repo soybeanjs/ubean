@@ -33,6 +33,8 @@ export type { IsrCacheStore, IsrCacheEntry, IsrCacheEntryInternal, IsrServeOptio
 export { setInternalFetcher, getInternalFetcher, clearInternalFetcher, createInternalAdapter } from './internal-fetch';
 export type { InternalFetchOptions } from './internal-fetch';
 
+export { isBotUserAgent } from './bot-detection';
+
 export { registerOpenAPIRoutes } from './openapi';
 export type { OpenAPIGenerationOptions } from './openapi';
 

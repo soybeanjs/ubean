@@ -401,6 +401,77 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 ---
 
+#### 实现说明（Task 6 / P9-24 ✅ 已实现）
+
+**核心结论**:流式 metadata 的主体能力(响应式 `useSeoMeta` + 流式 `<head>` 注入)
+**已由现有架构天然支持**,无需新增代码:
+
+- `packages/ssr/src/index.ts` 的 `collectDynamicHeadTags()` 在流式渲染完成后捕获
+  动态 head 条目(`useHead`/`useSeoMeta` 注册的响应式 title/meta/link),注入到
+  响应尾部。浏览器会自动把 `<meta>`/`<title>`/`<link>` 移动到 `<head>`(HTML5 规范)。
+- `renderToStreamFn` 依次流式输出:静态 head → app HTML → 动态 head tags →
+  数据 → deferred → state → tail。
+- `useSeoMeta`(packages/seo/src/index.ts)委托给 `@unhead/vue`,后者原生支持
+  响式 Ref/Computed,异步数据加载后 metadata 自动更新。
+- 已有测试:`packages/ssr/test/streaming.test.ts` 4 个用例覆盖 useHead 注入、
+  动态 title、tail 放置位置、静态 head 不重复。
+
+**本次新增 —— 爬虫降级(P9-24)**:
+
+社交预览爬虫(Facebook OG、Twitter、Slack、LinkedIn、WhatsApp 等)只解析初始
+`<head>`,不会执行流式尾部的 metadata 注入,导致 OG/Twitter Card 标签缺失。
+本任务新增爬虫 UA 检测,在流式 SSR 启用时自动为爬虫降级为缓冲渲染,
+保证 metadata 出现在初始 `<head>` 中。
+
+**实现位置**:
+- `packages/api-routes/src/bot-detection.ts` —— `isBotUserAgent(ua)` 函数,
+  基于大小写不敏感子串匹配,覆盖主流搜索引擎(Google/Bing/Baidu/Yandex/DuckDuckGo/
+  Yahoo/Sogou/Apple/ByteDance/Petal/Exabot/Alexa)、社交预览(Facebook/Twitter/
+  LinkedIn/Slack/Telegram/WhatsApp/Skype/Discord/Pinterest/Reddit)、
+  SEO/监控(Ahrefs/Semrush/MJ12/DotBot/Pingdom/GTmetrix/PageSpeed/Stackdriver)
+  及通用 `crawler`/`spider`/`bot/`/`bot;`/`fetcher`/`scraper`/`preview` token。
+- `packages/api-routes/src/router.ts` —— `RegisterOptions.botFallback`(默认 `true`),
+  在主页面处理器与 404 处理器的流式决策点检查 UA:命中爬虫则走缓冲 `renderPage`,
+  否则走 `renderPageToStream`。
+- `packages/app/src/app.ts` —— `UbeanAppOptions.botFallback` 透传到 `registerRoutes`。
+
+**API 设计**:
+- `isBotUserAgent(ua: string | undefined | null): boolean` —— 公开导出(通过
+  `@ubean/api-routes` 与 `ubean` 主包),供用户在自定义中间件中复用。
+- `botFallback?: boolean` —— `RegisterOptions` / `UbeanAppOptions` 字段,默认 `true`。
+  仅在 `streaming` 启用时实际生效;设为 `false` 可禁用爬虫检测(不推荐)。
+- 无新增配置项 —— 爬虫降级是流式 SSR 的安全默认行为,无需用户显式开启。
+
+**与 spec 的差异**(合理调整):
+- spec 写作"爬虫检测时降级为同步(等待 metadata 完成)" —— 实现采用缓冲渲染
+  (`renderPage`)而非"等待 metadata"。原因:流式 SSR 的 metadata 是在流尾部注入的,
+  "等待"等同于完整缓冲;直接走缓冲路径更简单且语义一致,metadata 自然出现在
+  初始 `<head>` 中。
+- UA 检测基于子串匹配(非正则歧义解析),覆盖主流爬虫;空 UA 视为非爬虫
+  (部分正常请求也带空 UA,避免误伤)。
+
+**验收标准**:
+- ✅ 异步数据加载后 title/description 正确更新(由 `@unhead/vue` 响应式支持,
+  已有 `packages/ssr/test/streaming.test.ts` 覆盖)
+- ✅ 爬虫请求获得完整 metadata(缓冲渲染,metadata 在初始 `<head>`)
+- ✅ 非爬虫请求 metadata 可流式延迟(浏览器自动移动到 `<head>`)
+- ✅ 测试:流式输出中 metadata 出现在数据就绪后(已有测试)+ 爬虫降级单元/集成测试
+
+**测试覆盖**:
+- `packages/api-routes/test/bot-detection.test.ts` —— 50 个单元测试,覆盖:
+  搜索引擎爬虫(13 种)、社交预览爬虫(11 种)、SEO/监控爬虫(8 种)、
+  通用爬虫子串(4 类)、浏览器 UA 不误判(7 种)、边界情况
+  (空/undefined/null、大小写不敏感、"robot" 子串不误判)。
+- `examples/ubean-test/test/streaming-metadata.test.ts` —— 5 个 HTTP 集成测试:
+  detect(Googlebot/Chrome)、botUAs(7 个批量)、browserUAs(3 个批量)、empty,
+  通过 `/api/streaming-metadata-test?action=xxx` 验证 `isBotUserAgent` 通过
+  `ubean` 主包导出的端到端可达性。
+
+**兼容性**:爬虫降级仅在 `streaming: true` 时生效;未启用流式 SSR 时无任何影响。
+`botFallback` 默认 `true`,现有应用无需改动即获得爬虫安全行为。
+
+---
+
 ### 7. 动态路由 matchers [P1]
 
 **目标**：对齐 SvelteKit matchers，支持自定义路由参数验证。

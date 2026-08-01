@@ -105,6 +105,12 @@ export interface UbeanAppOptions {
    * renderer 不支持流式时自动降级为缓冲渲染。
    */
   streaming?: boolean;
+  /**
+   * 爬虫降级(P9-24):当 `streaming` 启用且检测到爬虫/社交预览 UA 时,
+   * 自动降级为缓冲渲染以保证 metadata 出现在初始 `<head>`。
+   * 默认 `true`。设为 `false` 可禁用爬虫检测(不推荐)。
+   */
+  botFallback?: boolean;
   publicDir?: string;
   healthEndpoint?: boolean;
   openAPI?:
@@ -258,6 +264,7 @@ export class UbeanApp {
       pageAssetTags: this.options.pageAssetTags ?? {},
       ssrExclude: this.options.ssrExclude,
       streaming: this.options.streaming,
+      botFallback: this.options.botFallback,
       i18nConfig: this.options.i18nConfig,
       notFoundPage: this.options.notFoundPage,
       colorModeScript: this.options.colorModeScript,

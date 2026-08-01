@@ -12,6 +12,7 @@ import { extractRouteMeta, isHandlerChain } from './handler';
 import { serveIsr } from './isr';
 import type { IsrCacheStore } from './isr';
 import { normalizeIsrRule } from './route-rules';
+import { isBotUserAgent } from './bot-detection';
 
 /**
  * Structural type for the route registrar app.
@@ -56,6 +57,13 @@ export interface RegisterOptions {
    * 显著改善 TTFB/LCP。回退:renderer 不支持流式时自动降级为缓冲渲染。
    */
   streaming?: boolean;
+  /**
+   * 爬虫降级(P9-24 / Task 6 流式 metadata):当 `streaming` 启用且检测到
+   * 爬虫/社交预览 UA(Facebook OG、Twitter、Slack 等)时,自动降级为缓冲渲染,
+   * 保证动态 `<head>` metadata 出现在初始响应中(社交爬虫只解析初始 `<head>`,
+   * 不会执行流式尾部的 metadata 注入)。默认 `true`(仅在 streaming 启用时生效)。
+   */
+  botFallback?: boolean;
   /**
    * `pages/404.vue` 自动检测的 404 页面。
    * 注册为 Vue Router catch-all 路由的兜底,同时注册 Hono 的 `GET *` 兜底处理器。
@@ -399,6 +407,8 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   const pageAssetTags = options.pageAssetTags as Parameters<typeof renderPage>[1] | undefined;
   const ssrExclude = options.ssrExclude ?? [];
   const streaming = options.streaming === true;
+  // P9-24: 爬虫降级默认开启(仅在 streaming 启用时实际生效)。
+  const botFallback = options.botFallback !== false;
   const cacheStore = options.cacheStore;
   const colorModeScript = options.colorModeScript;
   const injectColorMode = (html: string): string =>
@@ -592,7 +602,11 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     // 回退:renderer 不支持流式时,renderPageToStream 内部自动降级为缓冲渲染。
     // P9-04: PPR 路由也走此分支(ppr: true → routeStreaming = true),
     //         响应头附加 `X-PPR: true` 标记,便于调试与可观测性。
-    if (routeStreaming && renderer) {
+    // P9-24: 爬虫/社交预览 UA 降级为缓冲渲染,保证动态 `<head>` metadata
+    //         出现在初始响应中(社交爬虫只解析初始 `<head>`)。
+    const userAgent = c.req.header('user-agent');
+    const isBot = botFallback && isBotUserAgent(userAgent);
+    if (routeStreaming && renderer && !isBot) {
       const stream = renderPageToStream(
         pageObj as Parameters<typeof renderPageToStream>[0],
         pageAssetTags ?? {},
@@ -724,8 +738,10 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       const excluded = matchAnyGlob('/*', _ssrExclude);
       const renderer = excluded ? null : (pageRendererOpt ?? null);
 
-      // 流式 SSR(与主页面处理器一致)
-      if (streaming && renderer) {
+      // 流式 SSR(与主页面处理器一致);P9-24: 爬虫 UA 降级为缓冲渲染。
+      const userAgent = c.req.header('user-agent');
+      const isBot = botFallback && isBotUserAgent(userAgent);
+      if (streaming && renderer && !isBot) {
         const stream = renderPageToStream(
           pageObj as Parameters<typeof renderPageToStream>[0],
           pageAssetTagsOpt ?? {},

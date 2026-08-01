@@ -100,6 +100,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **拦截路由 (Intercepting Routes, P9-18)**：`(..)target/`、`(.)target/`、`(...)target/` 目录约定，拦截导航到 `target` 路由（分别从父级、同级、根级拦截）；虚拟模块注册为 `__intercept_` 前缀的独立路由，`meta` 含 `interceptFrom`/`interceptTarget`/`isIntercepting`
 - **reuse 路由**：`xxx.reuse.ts` / `xxx.reuse.vue`；未显式声明 `cache` 时自动继承 target 的 `cache` 值，可显式 `cache: false` 关闭
 - **动态路由**：`[id].vue` → `/user/:id`
+- **动态路由 matchers（Task 7, P1）**：`[id=matcherName].vue` 语法，使用名为 `matcherName` 的 matcher 校验参数；matcher 通过 `defineMatcher(name, fn)` 注册到进程单例，返回 falsy 视为不匹配（路由跳过，走下一候选或 404）。支持 `[id=numeric].vue`（页面）、`[...slug=any].vue`（catch-all）、`[[page=numeric]].vue`（optional）、`[id=numeric].get.ts`（API 路由）。服务端由 Hono 中间件校验（matcher 拒绝返回 404）；客户端需在 `defineApp({ router: { setup } })` 中调用 `router.beforeEach(createMatcherGuard())` 启用校验（纯 SSR 应用可省略）
 - **预设页面**（`src/pages/` 根目录下自动检测，不作为常规路由注册）：
   - `404.vue`（或 `.ts`/`.md`）→ Vue Router catch-all `/:pathMatch(.*)*` + Hono `GET *` 兜底处理器；未匹配的浏览器导航返回 404 状态码并渲染该组件；API/`_` 前缀路径仍走默认 JSON 404
   - `loading.vue`（或 `.ts`/`.md`）→ `<Suspense>` fallback 组件，在 SPA 导航懒加载页面组件期间显示；仅客户端生效（SSR 同步解析无需 loading）
@@ -165,6 +166,10 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `definePage(meta)`                         | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`middleware`/`requiresAuth`/`cache`/`head`） |
 | `defineMeta(meta)`                         | 定义路由 meta                                                                                           |
 | `validator` / `describeRoute` / `resolver` | 来自 `hono-openapi`，请求验证 + OpenAPI                                                                 |
+| `defineMatcher(name, fn)`                  | 注册动态路由 matcher（Task 7），`fn: (value: string) => boolean \| null \| undefined`，返回 falsy 跳过路由 |
+| `getMatcher` / `hasMatcher` / `listMatcherNames` / `clearMatchers` | matcher 注册表读取/清理（`clearMatchers` 仅供测试）                                      |
+| `validateParams(matchers, params)`         | 批量校验参数（服务端中间件与客户端守卫复用）                                                            |
+| `createMatcherGuard(options?)`             | 创建 vue-router `beforeEach` 守卫，校验 `route.meta.matchers`，失败跳转 `notFoundRouteName`（默认 `NotFound`） |
 | `registerRoutes(app, scanResult)`          | 路由挂载（内部用 `app.on(method, path, ...)`，**不要**用 `app[method](path, ...)`）                     |
 
 ### 应用入口

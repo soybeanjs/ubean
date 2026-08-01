@@ -13,6 +13,23 @@ const OPTIONAL_PARAM_REGEX = /\[\[([^\]]+)\]\]/g;
 const ROUTE_GROUP_REGEX = /\(([^(/\\]+)\)[/\\]/g;
 const ROUTE_GROUP_TRAILING_REGEX = /\(([^(/\\]+)\)$/;
 
+/**
+ * `[id=numeric]` / `[...slug=anything]` matcher 语法解析(Task 7, P1)。
+ *
+ * 捕获组:
+ *   $1 = 可选的 `...`(catch-all 前缀)
+ *   $2 = 参数名(id / slug / ...)
+ *   $3 = 可选的 `=matcherName`
+ *
+ * 命名子组便于在 replacer 中按名引用,而非按位置索引。
+ *
+ * 不匹配的情况:
+ *   - `[id]`(无 `=`)—— 由 `DYNAMIC_PARAM_REGEX` 处理
+ *   - `[[id]]`(可选参数)—— 由 `OPTIONAL_PARAM_REGEX` 处理
+ *   - `[...slug]`(无 `=`)—— 由 `CATCH_ALL_REGEX` 处理
+ */
+const DYNAMIC_PARAM_WITH_MATCHER_REGEX = /\[(\.{3})?([A-Za-z_][\w-]*)(?:=([A-Za-z_][\w-]*))?\]/g;
+
 const INDEX_FILE_REGEX = /\/index$/;
 
 export function stripRouteGroups(path: string): string {
@@ -25,10 +42,54 @@ export interface ParsedRoutePath {
   route: string;
   method?: string;
   env?: string;
+  /**
+   * 路由参数 → matcher 名称的映射(Task 7, P1)。
+   *
+   * 由 `[paramName=matcherName]` 语法解析得到,例如 `[id=numeric].vue` →
+   * `{ id: 'numeric' }`。无 matcher 语法的路由此项为 `undefined`。
+   *
+   * matcher 函数本身在运行时由 `defineMatcher(name, fn)` 注册,扫描阶段只
+   * 记录名称映射,不加载函数。
+   */
+  matchers?: Record<string, string>;
+}
+
+/**
+ * 解析 `[param=matcher]` 语法,从原始路径中提取 matcher 名称映射,并把
+ * `=matcher` 后缀剥离,以便后续的 `DYNAMIC_PARAM_REGEX` / `CATCH_ALL_REGEX`
+ * 正则能正确识别为普通动态参数。
+ *
+ * 匹配 `[name]` / `[...name]` / `[[name]]` / `[[name=matcher]]` 形式(可选参数
+ * `[[...]]` 的 matcher 也能识别,因 regex 匹配内层 `[name=matcher]` 后由
+ * `OPTIONAL_PARAM_REGEX` 进一步处理为 `:name?`)。
+ *
+ * @example
+ * parseMatchers('users/[id=numeric]') → { cleaned: 'users/[id]', matchers: { id: 'numeric' } }
+ * parseMatchers('blog/[...slug=any]') → { cleaned: 'blog/[...slug]', matchers: { slug: 'any' } }
+ * parseMatchers('users/[id]')         → { cleaned: 'users/[id]', matchers: undefined }
+ */
+export function parseMatchers(filePath: string): { cleaned: string; matchers?: Record<string, string> } {
+  const matchers: Record<string, string> = {};
+  let hasMatchers = false;
+
+  // 使用 replacer 函数:剥离 `=matcher` 部分,并记录 matcher 映射
+  const cleaned = filePath.replace(DYNAMIC_PARAM_WITH_MATCHER_REGEX, (full, dots, name, matcherName) => {
+    if (matcherName) {
+      matchers[name] = matcherName;
+      hasMatchers = true;
+    }
+    // 重新组装为 `[name]` 或 `[...name]`(去除 `=matcher` 后缀)
+    return dots ? `[${dots}${name}]` : `[${name}]`;
+  });
+
+  return hasMatchers ? { cleaned, matchers } : { cleaned: filePath };
 }
 
 export function filePathToRoute(filePath: string, prefix = '/'): ParsedRoutePath {
-  let route = filePath;
+  // Task 7:先剥离 `[id=matcher]` 中的 `=matcher` 后缀并提取 matcher 映射,
+  // 后续正则才能正确识别为普通 `[id]` 动态参数。
+  const { cleaned: matcherStripped, matchers } = parseMatchers(filePath);
+  let route = matcherStripped;
   let method: string | undefined;
   let env: string | undefined;
 
@@ -64,7 +125,7 @@ export function filePathToRoute(filePath: string, prefix = '/'): ParsedRoutePath
 
   route = route.replace(INDEX_FILE_REGEX, '') || '/';
 
-  return { route, method, env };
+  return { route, method, env, matchers };
 }
 
 /* -------------------------------------------------------------------------- */

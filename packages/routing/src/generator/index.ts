@@ -200,6 +200,13 @@ ${items}
 
     // Existing keys take precedence (do not overwrite definePage meta)
     const merged: Record<string, unknown> = { ...extra, ...base };
+
+    // Task 7 (P1): 将 `page.matchers` 注入到 route meta 中,供客户端
+    // `createMatcherGuard()` `beforeEach` 守卫读取并校验。无 matchers 时不注入。
+    if (page.matchers && Object.keys(page.matchers).length > 0) {
+      merged.matchers = page.matchers;
+    }
+
     return Object.keys(merged).length > 0 ? merged : null;
   }
 

@@ -289,7 +289,8 @@ async function scanApiRoutes(srcDir: string, dirName: string | string[], ignore:
           env: parsed.env as 'dev' | 'prod' | 'prerender' | undefined,
           exports: detected.exports,
           hasMeta: detected.hasMeta,
-          fileMeta: detected.fileMeta
+          fileMeta: detected.fileMeta,
+          matchers: parsed.matchers
         });
       }
     }
@@ -419,7 +420,8 @@ async function scanPages(
         continue;
       }
 
-      const { route } = filePathToRoute(fileBase);
+      // Task 7: `filePathToRoute` 解析 `[id=matcher]` 语法并返回 matchers 映射。
+      const { route, matchers } = filePathToRoute(fileBase);
       const name = routeToName(route);
 
       let pageMeta = null;
@@ -466,7 +468,8 @@ async function scanPages(
         frontmatter,
         slot,
         interceptFrom,
-        interceptTarget
+        interceptTarget,
+        matchers
       });
     }
   }

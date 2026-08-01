@@ -34,6 +34,16 @@ export interface ScannedApiRoute extends ScannedFile {
   exports: string[];
   hasMeta: boolean;
   fileMeta?: RouteMeta;
+  /**
+   * 路由参数 → matcher 名称映射(Task 7, P1)。
+   *
+   * 由文件路由 `[param=matcher]` 语法解析得到,例如 `routes/api/users/[id=numeric].ts`
+   * → `{ id: 'numeric' }`。运行时 router 在匹配到该路由后,调用对应名称的 matcher
+   * 函数校验参数值,失败则视为不匹配(返回 404,让 Hono 继续匹配下一候选路由)。
+   *
+   * 与 `ScannedPageRoute.matchers` 同义,但作用于 API 路由。
+   */
+  matchers?: Record<string, string>;
 }
 
 export interface ScannedMiddleware extends ScannedFile {
@@ -65,6 +75,17 @@ export interface ScannedPageRoute extends ScannedFile {
    */
   interceptFrom?: string;
   interceptTarget?: string;
+  /**
+   * 路由参数 → matcher 名称映射(Task 7, P1)。
+   *
+   * 由文件路由 `[param=matcher]` 语法解析得到,例如 `[id=numeric].vue` →
+   * `{ id: 'numeric' }`。运行时 router 在匹配到该路由后,会调用对应名称的
+   * matcher 函数校验参数值,失败则视为不匹配(走下一候选路由或 404)。
+   *
+   * matcher 函数通过 `defineMatcher(name, fn)` 注册到全局注册表(进程单例)。
+   * 无 matcher 语法的路由此项为 `undefined`(默认行为,不校验)。
+   */
+  matchers?: Record<string, string>;
 }
 
 export interface ScannedLayout extends ScannedFile {

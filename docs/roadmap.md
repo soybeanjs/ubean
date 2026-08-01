@@ -91,7 +91,7 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 |---|---|---|---|
 | 5 | Draft / Preview mode | ✅ 已实现 | 内容管理场景刚需，CMS 集成前置 |
 | 6 | 流式 metadata | P9-24 | SEO 优化，Next.js 已有 |
-| 7 | 动态路由 matchers | 增强 | SvelteKit 有，rou3 底层支持 |
+| 7 | 动态路由 matchers | ✅ 已实现 | SvelteKit 有，rou3 底层支持 |
 | 8 | metadata 自动 dedupe | 增强 | 当前 useSeoMeta 无去重 |
 
 ### P1.5 — Server Components（Nuxt 风格）
@@ -490,6 +490,93 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 - `[id=numeric].vue` 仅匹配数字 id
 - matcher 返回 false 时路由不匹配
 - 测试：matcher 通过/拒绝场景
+
+---
+
+#### 实现说明（Task 7 ✅ 已实现）
+
+**核心结论**:对齐 SvelteKit matchers API,支持 `[param=matcher]` 文件路由约定,
+在路由匹配阶段调用用户注册的 matcher 函数校验参数,失败则跳过该路由(走下一候选
+或最终 404)。服务端(Hono 中间件)与客户端(Vue Router `beforeEach` 守卫)双重校验。
+
+**实现位置**:
+- `packages/routing/src/matchers.ts` —— matcher 注册表与校验逻辑(新增文件):
+  - `defineMatcher(name, fn)` / `getMatcher` / `hasMatcher` / `listMatcherNames` /
+    `clearMatchers`:进程单例注册表 API(`MatcherFunction = (value: string) => boolean | null | undefined`)
+  - `validateParams(matchers, params)`:批量校验参数,未注册的 matcher 保守返回 `false`
+    (对齐 SvelteKit 的 error 行为,但用 `false` 而非抛出,避免阻塞路由表初始化);
+    matcher 抛异常时捕获并视为不匹配;数组参数(`:path*`)逐元素校验
+  - `createMatcherGuard(options)`:返回 vue-router `beforeEach` 守卫,读取
+    `route.meta.matchers` 校验 `to.params`,失败时跳转到 `notFoundRouteName`
+    (默认 `'NotFound'`);可选 `onReject` 回调用于日志/监控
+- `packages/utils/src/path.ts` —— `[id=name]` 语法解析:
+  - `DYNAMIC_PARAM_WITH_MATCHER_REGEX` 捕获 `[name]` / `[...name]` / `[name=matcher]` /
+    `[...name=matcher]` 形式
+  - `parseMatchers(filePath)`:剥离 `=matcher` 后缀并返回 `{ cleaned, matchers }` 映射
+  - `filePathToRoute` 内部先调用 `parseMatchers`,后续正则(`DYNAMIC_PARAM_REGEX` 等)
+    才能正确识别为普通 `[id]` 动态参数;`ParsedRoutePath` 新增 `matchers?` 字段
+- `packages/routing/src/types.ts` —— `ScannedApiRoute` / `ScannedPageRoute` 新增
+  `matchers?: Record<string, string>` 字段
+- `packages/routing/src/scan.ts` —— `scanPages` / `scanApiRoutes` 从 `filePathToRoute`
+  捕获 `matchers` 并写入扫描结果
+- `packages/routing/src/generator/index.ts` —— `computeMeta` 将 `page.matchers` 注入到
+  route meta,供客户端 `createMatcherGuard()` 读取
+- `packages/api-routes/src/router.ts` —— API 与页面路由注册时,在 `metaMiddleware` 之后、
+  handler 之前插入 `matcherMiddleware`:无 matchers 直接 `next()`(零开销);有 matchers
+  则调用 `validateParams`,失败返回 404 JSON(让 Hono 继续匹配下一候选路由)
+- `packages/routing/src/index.ts` / `packages/utils/src/index.ts` —— 导出 matcher API
+- `ubean` 主包通过 `export * from '@ubean/routing'` 自动导出全部 matcher API
+
+**API 设计**:
+- `defineMatcher(name, fn): MatcherFunction` —— 注册命名 matcher,同名覆盖,返回 `fn`
+- `getMatcher(name)` / `hasMatcher(name)` / `listMatcherNames()` / `clearMatchers()` ——
+  注册表读取/清理(`clearMatchers` 仅供测试)
+- `validateParams(matchers, params): boolean` —— 批量校验(供服务端中间件与客户端守卫复用)
+- `createMatcherGuard(options?): NavigationGuard` —— 创建 vue-router `beforeEach` 守卫,
+  options: `{ notFoundRouteName?: string; onReject?: (to) => void }`
+- 文件约定:`[id=numeric].vue` / `[...slug=any].vue` / `[[page=numeric]].vue` /
+  `[id=numeric].get.ts`(API 路由);与现有动态路由 / catch-all / optional 参数语法兼容
+
+**与 spec 的差异**(合理调整):
+- spec 写作"rou3 匹配时调用 matcher" —— 实现采用 Hono 中间件层校验(在路由匹配后、
+  handler 前),而非 rou3 内部回调。原因:rou3 的 matcher 钩子需要返回 regex 修改,
+  而 ubean 的路由表由 `convertUbeanRoutePath` 转换为 Hono 路径,在中间件层校验更简单
+  且与现有 `metaMiddleware` / 用户 middleware 链一致;matcher 拒绝时返回 404,Hono
+  自动继续匹配下一候选路由(语义等价于"跳过该路由")
+- 客户端校验是**可选的**:不调用 `createMatcherGuard()` 时,纯 SSR 应用完全依赖服务端
+  中间件拦截;纯 SPA 应用(`ssr: false`)建议在 `defineApp({ router: { setup } })` 中
+  注册守卫,否则客户端导航到 `/users/abc` 会渲染页面而非 404
+
+**验收标准**:
+- ✅ `[id=numeric].vue` 仅匹配数字 id(matcher 拒绝时返回 404,走下一候选路由)
+- ✅ matcher 返回 false 时路由不匹配(`validateParams` 返回 `false`,中间件返回 404)
+- ✅ 测试:matcher 通过/拒绝场景(64 个单元测试覆盖注册表、校验、语法解析、守卫、集成)
+
+**测试覆盖**:
+- `packages/routing/test/matchers.test.ts` —— 64 个单元测试,覆盖:
+  - 注册表 API(`defineMatcher` / `getMatcher` / `hasMatcher` / `listMatcherNames` /
+    `clearMatchers`):注册/覆盖/清空/类型校验(8 tests)
+  - `validateParams`:通过/拒绝/未注册/参数缺失/undefined/null/数组参数/异常捕获/
+    nullish 返回值/多 matcher 全通过/真实 numeric/uuid/slug/base64 matcher(20 tests)
+  - `createMatcherGuard`:返回函数/无 matchers 放行/matcher 通过/拒绝跳转 NotFound/
+    自定义 notFoundRouteName/未注册 matcher/onReject 回调/空 matchers 放行(10 tests)
+  - `parseMatchers` 语法解析:`[id=name]` / `[...slug=name]` / 多段 / 无 matcher /
+    可选参数 `[[id]]` / `[[id=name]]` / 混合 / 无括号 / matcher 名含下划线连字符(12 tests)
+  - `filePathToRoute` 集成:`[id=numeric].vue` / `[...slug=any].vue` /
+    `[[page=numeric]].vue` / 普通 `[id].vue` / `index.vue` / 嵌套多 matcher /
+    混合 matcher / API 路由 method 后缀 / method+env 后缀 / catch-all / 路由组(13 tests)
+  - 真实场景:numeric / uuid / slug / base64 matcher 边界值(4 tests,含 30+ 断言)
+- `packages/routing/test/` 其余测试(nested-layouts 11 + parallel-intercept 14)无回归
+- `packages/api-routes/test/` 129 个测试(form-actions / isr / page-routing /
+  bot-detection / route-rules)无回归
+
+**兼容性**:
+- 无 matcher 语法的路由(`[id].vue`)行为完全不变,`matchers` 为 `undefined`,
+  `matcherMiddleware` 直接 `next()`(零开销)
+- 与现有动态路由 / catch-all(`[...slug]`)/ optional(`[[page]]`)/ 路由组(`(group)`)/
+  并行路由(`@slot`)/ 拦截路由(`(..)target`)语法完全兼容
+- API 路由与页面路由均支持 matcher;SSR 与 SPA 均支持(SSR 服务端中间件拦截,
+  SPA 客户端守卫拦截)
 
 ---
 

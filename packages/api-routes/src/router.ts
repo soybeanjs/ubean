@@ -3,6 +3,7 @@ import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayou
 import { isServerAction } from '@ubean/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/types';
 import { matchAnyGlob } from '@ubean/utils';
+import { validateParams as _validateParams } from '@ubean/routing';
 import {
   parseFormActionName as _parseFormActionName,
   handleActionResponse as _handleActionResponse,
@@ -242,6 +243,7 @@ export async function registerApiRoutes(app: RouteRegistrar, options: RegisterOp
   interface RouteEntry {
     definition: MiddlewareHandler[] | Function;
     fileMeta?: Record<string, unknown>;
+    matchers?: Record<string, string>;
   }
 
   const routesByPath = new Map<string, Map<Method, RouteEntry>>();
@@ -283,15 +285,34 @@ export async function registerApiRoutes(app: RouteRegistrar, options: RegisterOp
 
       const resolved = resolveRouteExport(mod, method);
       if (resolved) {
-        pathMethods.set(method, { definition: resolved, fileMeta: first.fileMeta });
+        pathMethods.set(method, {
+          definition: resolved,
+          fileMeta: first.fileMeta,
+          matchers: first.matchers
+        });
       }
     }
   }
 
   for (const [honoPath, pathMethods] of routesByPath) {
     for (const [method, entry] of pathMethods) {
-      const { definition, fileMeta } = entry;
+      const { definition, fileMeta, matchers } = entry;
       const matchingMiddleware = getMatchingMiddleware(honoPath);
+
+      // Task 7 (P1): API 路由 matchers —— 在 metaMiddleware 之后、handler 之前
+      // 插入参数校验。matcher 拒绝时返回 404,让 Hono 继续匹配下一候选路由。
+      // 无 matchers 的路由此中间件直接 `next()`(零开销)。
+      const matcherMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
+        if (!matchers) {
+          await next();
+          return;
+        }
+        const params = c.req.param();
+        if (!_validateParams(matchers, params)) {
+          return c.json({ error: 'Not Found', path: c.req.path, method: c.req.method }, 404);
+        }
+        await next();
+      };
 
       if (isHandlerChain(definition)) {
         const routeMeta = { ...extractRouteMeta(definition) } as RouteMeta;
@@ -311,7 +332,7 @@ export async function registerApiRoutes(app: RouteRegistrar, options: RegisterOp
           await next();
         };
 
-        const honoHandlers = [metaMiddleware, ...matchingMiddleware, ...definition];
+        const honoHandlers = [metaMiddleware, matcherMiddleware, ...matchingMiddleware, ...definition];
         app.on(method.toLowerCase(), honoPath, ...honoHandlers);
       } else {
         const routeMeta = { requiresAuth: true, ...fileMeta } as RouteMeta;
@@ -339,7 +360,7 @@ export async function registerApiRoutes(app: RouteRegistrar, options: RegisterOp
           meta: routeMeta
         });
 
-        const honoHandlers = [metaMiddleware, ...matchingMiddleware, handlerWrapper];
+        const honoHandlers = [metaMiddleware, matcherMiddleware, ...matchingMiddleware, handlerWrapper];
         app.on(method.toLowerCase(), honoPath, ...honoHandlers);
       }
     }
@@ -658,6 +679,25 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       await next();
     };
 
+    // Task 7 (P1): 动态路由 matchers —— 在 metaMiddleware 之后、页面 handler 之前
+    // 插入参数校验中间件。若 `page.matchers` 存在且任一 matcher 返回 falsy,
+    // 立即返回 404(不调用 `next()`,跳过该路由,让 Hono 继续匹配下一候选路由
+    // 或最终落入 404 catch-all)。无 matchers 的路由此中间件直接 `next()`(零开销)。
+    const matcherMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
+      if (!page.matchers) {
+        await next();
+        return;
+      }
+      const params = c.req.param();
+      if (!_validateParams(page.matchers, params)) {
+        // matcher 拒绝:返回 404 让 Hono 继续匹配其他候选路由。
+        // 注意:这里返回 JSON 404 仅在被 catch-all 兜底前可见;Hono 的 `*`
+        // 兜底处理器(`notFoundPage`)会重新接管浏览器导航请求的 HTML 404 渲染。
+        return c.json({ error: 'Not Found', path: c.req.path, method: c.req.method }, 404);
+      }
+      await next();
+    };
+
     // For reuse routes, the loader key points to the target page's
     // `relativePath` so `pageLoaders[loaderKey]` finds the target's module.
     const loaderKey =
@@ -668,16 +708,16 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     const pageHandler = (method: 'GET' | 'POST') => async (c: Context<UbeanEnv>) =>
       handlePageRequest(c, page, method, loaderKey);
 
-    app.on(['GET'], honoPath, metaMiddleware, ...matchingMiddleware, pageHandler('GET'));
-    app.on(['POST'], honoPath, metaMiddleware, ...matchingMiddleware, pageHandler('POST'));
+    app.on(['GET'], honoPath, metaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('GET'));
+    app.on(['POST'], honoPath, metaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('POST'));
 
     for (const { path: localePath } of getLocalePrefixedPaths(honoPath)) {
       const localeMetaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
         c.set('route', { meta: pageMeta, path: c.req.path, method: c.req.method });
         await next();
       };
-      app.on(['GET'], localePath, localeMetaMiddleware, ...matchingMiddleware, pageHandler('GET'));
-      app.on(['POST'], localePath, localeMetaMiddleware, ...matchingMiddleware, pageHandler('POST'));
+      app.on(['GET'], localePath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('GET'));
+      app.on(['POST'], localePath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('POST'));
     }
   }
 

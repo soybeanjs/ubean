@@ -13,13 +13,8 @@ import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import {
-  extractDataPayload,
-  routeToDataFilePath,
-  prerender,
-  writePrerenderedFile
-} from '../src/index';
 import { DATA_PAYLOAD_ID } from '@ubean/pages';
+import { extractDataPayload, routeToDataFilePath, prerender, writePrerenderedFile } from '../src/index';
 
 const PAYLOAD_OPEN = `<script id="${DATA_PAYLOAD_ID}" type="application/json">`;
 const PAYLOAD_CLOSE = `</script>`;
@@ -170,7 +165,7 @@ describe('prerender() — extractDataPayload integration', () => {
           concurrency: 2,
           staticDir: '.output/public'
         },
-        fetcher: async route => ({
+        fetcher: async () => ({
           html: wrapPayload(JSON.stringify(payload)),
           statusCode: 200
         })

@@ -504,38 +504,30 @@ export function defineServerIsland(
         });
 
         return () =>
-          h(
-            'ubean-server-island',
-            { ref: containerRef },
-            [
-              h(Suspense, null, {
-                default: () => h(Component, attrs, slots),
-                fallback:
-                  typeof fallback === 'string'
-                    ? () => fallback
-                    : fallback
-                      ? () => h(fallback)
-                      : () => h('ubean-defer-fallback')
-              })
-            ]
-          );
+          h('ubean-server-island', { ref: containerRef }, [
+            h(Suspense, null, {
+              default: () => h(Component, attrs, slots),
+              fallback:
+                typeof fallback === 'string'
+                  ? () => fallback
+                  : fallback
+                    ? () => h(fallback)
+                    : () => h('ubean-defer-fallback')
+            })
+          ]);
       }
 
       // 默认行为: 不带容器,直接 Suspense 包裹 (与 Task 9.4 之前一致)
       return () =>
-        h(
-          Suspense,
-          null,
-          {
-            default: () => h(Component, attrs, slots),
-            fallback:
-              typeof fallback === 'string'
-                ? () => fallback
-                : fallback
-                  ? () => h(fallback)
-                  : () => h('ubean-defer-fallback')
-          }
-        );
+        h(Suspense, null, {
+          default: () => h(Component, attrs, slots),
+          fallback:
+            typeof fallback === 'string'
+              ? () => fallback
+              : fallback
+                ? () => h(fallback)
+                : () => h('ubean-defer-fallback')
+        });
     }
   });
 }
@@ -641,11 +633,7 @@ export interface IslandOptions {
  * </template>
  * ```
  */
-export function defineIsland(
-  Component: Component,
-  strategy: IslandStrategy,
-  options?: IslandOptions
-): Component {
+export function defineIsland(Component: Component, strategy: IslandStrategy, options?: IslandOptions): Component {
   const mediaQuery = options?.mediaQuery;
   const staticProps = options?.props;
   // 内部使用 legacy directive 字符串(`client:load` 等),与 Vite 插件转换
@@ -768,10 +756,7 @@ export function defineClientComponent(component: Component): Component {
       onMounted(() => {
         isClient.value = true;
       });
-      return () =>
-        isClient.value
-          ? h(component, attrs, slots)
-          : h('div', { 'data-client-only': '' });
+      return () => (isClient.value ? h(component, attrs, slots) : h('div', { 'data-client-only': '' }));
     }
   });
 }
@@ -819,10 +804,7 @@ export function definePairedComponent(ServerComp: Component, ClientComp: Compone
       onMounted(() => {
         isClient.value = true;
       });
-      return () =>
-        isClient.value
-          ? h(ClientComp, attrs, slots)
-          : h(ServerComp, attrs, slots);
+      return () => (isClient.value ? h(ClientComp, attrs, slots) : h(ServerComp, attrs, slots));
     }
   });
 }

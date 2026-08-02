@@ -131,7 +131,7 @@ function rowKey(row: ApiParam | ApiProperty) {
 
     <!-- Entries -->
     <div v-else-if="data && data.entries" class="flex flex-col gap-6">
-      <section v-for="entry in data.entries" :key="entry.name" :id="entry.name" class="scroll-mt-24">
+      <section v-for="entry in data.entries" :id="entry.name" :key="entry.name" class="scroll-mt-24">
         <div class="flex items-center gap-2 mb-2">
           <STag size="sm" variant="soft" color="primary" shape="rounded">{{ labels.kind[entry.kind] || entry.kind }}</STag>
           <h2 class="text-lg font-mono font-semibold">{{ entry.name }}</h2>

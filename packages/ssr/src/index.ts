@@ -298,10 +298,7 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
     // 顺序: data payload → deferred → state (data 是关键数据,最先可用)
     const preStateScripts = (dataScript ? `${dataScript}\n  ` : '') + (deferredScript ? `${deferredScript}\n  ` : '');
     if (preStateScripts) {
-      html = html.replace(
-        new RegExp(`(<script id="${STATE_DATA_ID}")`),
-        `${preStateScripts}$1`
-      );
+      html = html.replace(new RegExp(`(<script id="${STATE_DATA_ID}")`), `${preStateScripts}$1`);
     }
 
     // 有 state 时返回 { html, state },由 renderPage 注入到 __UBEAN_STATE__

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { h, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
+import { ServerComponentStub, ClientComponentPlaceholder, defineClientComponent } from '../src/runtime';
 import {
   isServerComponentFile,
   isClientComponentFile,
@@ -9,11 +10,6 @@ import {
   SERVER_COMPONENT_STUB_VIRTUAL_ID,
   CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID
 } from '../src/vite';
-import {
-  ServerComponentStub,
-  ClientComponentPlaceholder,
-  defineClientComponent
-} from '../src/runtime';
 
 // ============== Task 9.1: .server.vue 文件检测 ==============
 
@@ -102,7 +98,11 @@ describe('Task 9.1: wrapServerComponentTemplate', () => {
 
 describe('Task 9.1: ServerComponentStub (client stub)', () => {
   async function renderHtml(Comp: any): Promise<string> {
-    const Root = defineComponent({ setup() { return () => h(Comp); } });
+    const Root = defineComponent({
+      setup() {
+        return () => h(Comp);
+      }
+    });
     return renderToString(h(Root));
   }
 
@@ -123,7 +123,11 @@ describe('Task 9.1: ServerComponentStub (client stub)', () => {
 
 describe('Task 9.2: ClientComponentPlaceholder (SSR placeholder)', () => {
   async function renderHtml(Comp: any): Promise<string> {
-    const Root = defineComponent({ setup() { return () => h(Comp); } });
+    const Root = defineComponent({
+      setup() {
+        return () => h(Comp);
+      }
+    });
     return renderToString(h(Root));
   }
 
@@ -144,7 +148,11 @@ describe('Task 9.2: ClientComponentPlaceholder (SSR placeholder)', () => {
 
 describe('Task 9.2: defineClientComponent (client wrapper)', () => {
   async function renderHtml(Comp: any, props?: any): Promise<string> {
-    const Root = defineComponent({ setup() { return () => h(Comp, props); } });
+    const Root = defineComponent({
+      setup() {
+        return () => h(Comp, props);
+      }
+    });
     return renderToString(h(Root));
   }
 
@@ -161,7 +169,9 @@ describe('Task 9.2: defineClientComponent (client wrapper)', () => {
     const Inner = defineComponent({
       name: 'Inner',
       props: { msg: { type: String, default: '' } },
-      setup(props) { return () => h('div', `msg=${props.msg}`); }
+      setup(props) {
+        return () => h('div', `msg=${props.msg}`);
+      }
     });
     const Wrapped = defineClientComponent(Inner);
     // SSR: 渲染占位符,不渲染真实组件
@@ -237,12 +247,7 @@ describe('Task 9.1/9.2: Vite plugin resolveId / load', () => {
   it('9.2: .client.vue 从包装模块内部 import 时不被拦截 (importer 检查)', async () => {
     const plugin = getPlugin();
     const wrapperImporter = '\0virtual:ubean-client-component:/project/src/Foo.client.vue';
-    const id = await plugin.resolveId.call(
-      {},
-      '/project/src/Foo.client.vue',
-      wrapperImporter,
-      { ssr: false }
-    );
+    const id = await plugin.resolveId.call({}, '/project/src/Foo.client.vue', wrapperImporter, { ssr: false });
     // importer 是包装模块 → 不拦截,返回 undefined 走默认解析
     expect(id).toBeUndefined();
   });

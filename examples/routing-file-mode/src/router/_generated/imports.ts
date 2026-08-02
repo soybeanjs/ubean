@@ -53,11 +53,11 @@ export interface RouteRecord {
 }
 
 export const layouts: Record<LayoutKey, RawRouteComponent> = {
-  default: () => import("@/layouts/default.vue")
+  default: () => import('@/layouts/default.vue')
 };
 
 export const views: Record<RouteFileKey, RawRouteComponent> = {
-  About: () => import("@/pages/about.vue"),
-  Index: () => import("@/pages/index.vue"),
-  UsersId: () => import("@/pages/users/[id].vue")
+  About: () => import('@/pages/about.vue'),
+  Index: () => import('@/pages/index.vue'),
+  UsersId: () => import('@/pages/users/[id].vue')
 };

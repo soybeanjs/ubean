@@ -40,12 +40,7 @@ export type {
 export { getIslandsBootstrapScript, getIslandsClearScript } from './bootstrap';
 
 // Server Islands runtime (P9-04: replaces `server:defer` directive; Task 9.4: props rerender)
-export {
-  defineServerIsland,
-  registerServerComponent,
-  getServerComponent,
-  SERVER_COMPONENT_ENDPOINT
-} from './runtime';
+export { defineServerIsland, registerServerComponent, getServerComponent, SERVER_COMPONENT_ENDPOINT } from './runtime';
 export type { ServerIslandOptions } from './runtime';
 
 // Client Islands runtime (Phase 4: programmatic alternative to v-client.*)
@@ -53,7 +48,12 @@ export { defineIsland } from './runtime';
 export type { IslandStrategy, IslandOptions } from './runtime';
 
 // Server Components runtime (Task 9.1 / 9.2 / 9.3: .server.vue / .client.vue / paired)
-export { ServerComponentStub, ClientComponentPlaceholder, defineClientComponent, definePairedComponent } from './runtime';
+export {
+  ServerComponentStub,
+  ClientComponentPlaceholder,
+  defineClientComponent,
+  definePairedComponent
+} from './runtime';
 
 // Vite plugin & SFC transform
 export {

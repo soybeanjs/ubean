@@ -66,7 +66,10 @@ describe('isBotUserAgent (P9-24 bot detection)', () => {
       ['DotBot', 'Mozilla/5.0 (compatible; DotBot/1.2; +https://opensiteexplorer.org/dotbot; help@moz.com)'],
       ['Pingdom', 'Mozilla/5.0 (compatible; Pingdom.com_bot_version_1.4)'],
       ['GTmetrix', 'Mozilla/5.0 (X11; U; Linux i686 (x86_64); en-US; rv:1.9.0.19) Gecko/2010051407 GTmetrix'],
-      ['PageSpeed', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko; PageSpeed Insights) Chrome/95.0.4638.54 Safari/537.36'],
+      [
+        'PageSpeed',
+        'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko; PageSpeed Insights) Chrome/95.0.4638.54 Safari/537.36'
+      ],
       ['Google Stackdriver Monitoring', 'GoogleStackdriverMonitoring-UptimeChecks']
     ];
 
@@ -94,13 +97,31 @@ describe('isBotUserAgent (P9-24 bot detection)', () => {
 
   describe('浏览器 UA 不误判', () => {
     const browsers = [
-      ['Chrome (Mac)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'],
-      ['Chrome (Windows)', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'],
+      [
+        'Chrome (Mac)',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      ],
+      [
+        'Chrome (Windows)',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      ],
       ['Firefox (Mac)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 14.2; rv:121.0) Gecko/20100101 Firefox/121.0'],
-      ['Safari (iPhone)', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1'],
-      ['Edge (Windows)', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'],
-      ['Opera', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0'],
-      ['Chrome (Android)', 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36']
+      [
+        'Safari (iPhone)',
+        'Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1'
+      ],
+      [
+        'Edge (Windows)',
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0'
+      ],
+      [
+        'Opera',
+        'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 OPR/106.0.0.0'
+      ],
+      [
+        'Chrome (Android)',
+        'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36'
+      ]
     ];
 
     for (const [name, ua] of browsers) {

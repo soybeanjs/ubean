@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 /**
  * Draft / Preview Mode (Task 5) —— HTTP 集成测试入口
  *
@@ -15,7 +16,6 @@
  * - composable:      useDraftMode() 返回 { isEnabled, enable, disable } 且功能正常
  */
 import { Hono } from 'hono';
-import { createHmac } from 'node:crypto';
 import {
   defineHandler,
   createDraftModeMiddleware,
@@ -220,16 +220,7 @@ export const GET = defineHandler(async c => {
 
     default:
       return c.json({
-        actions: [
-          'noCookie',
-          'enable',
-          'disable',
-          'tampered',
-          'expired',
-          'wrongSecret',
-          'roundTrip',
-          'composable'
-        ]
+        actions: ['noCookie', 'enable', 'disable', 'tampered', 'expired', 'wrongSecret', 'roundTrip', 'composable']
       });
   }
 });

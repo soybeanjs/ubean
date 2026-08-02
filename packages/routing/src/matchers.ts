@@ -193,11 +193,7 @@ export interface MatcherGuardOptions {
   /**
    * 自定义拒绝回调,在跳转 404 之前调用。可用于日志、监控、自定义错误页等。
    */
-  onReject?: (to: {
-    path: string;
-    params: Record<string, unknown>;
-    matchers: Record<string, string>;
-  }) => void;
+  onReject?: (to: { path: string; params: Record<string, unknown>; matchers: Record<string, string> }) => void;
 }
 
 /**

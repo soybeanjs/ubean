@@ -459,7 +459,7 @@ export function transformActionsForServer(code: string, filePath: string, root: 
       if (injectName) injectParts.push(`name: ${JSON.stringify(injectName)}`);
       if (injectParts.length === 0) continue; // 无需注入
 
-      const injectText = injectParts.join(', ') + ', ';
+      const injectText = `${injectParts.join(', ')}, `;
       // 在 `{` 后插入(若有内容则前面加属性,后续属性在后,逗号已含)
       const insertPos = call.optionsBraceStart + 1;
       result = result.slice(0, insertPos) + injectText + result.slice(insertPos);

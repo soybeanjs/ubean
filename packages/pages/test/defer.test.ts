@@ -141,7 +141,10 @@ describe('useDeferredData() — SSR 路径', () => {
 
   it('SSR: 注册 promise,返回 pending=true, data=undefined', () => {
     // window 未定义 → SSR 路径
-    const { data, pending, error } = useDeferredData('test', defer(() => Promise.resolve(42)));
+    const { data, pending, error } = useDeferredData(
+      'test',
+      defer(() => Promise.resolve(42))
+    );
 
     expect(pending.value).toBe(true);
     expect(data.value).toBe(undefined);
@@ -149,7 +152,10 @@ describe('useDeferredData() — SSR 路径', () => {
   });
 
   it('SSR: 注册后 __resolveDeferred 能解析到数据', async () => {
-    useDeferredData('ssr-key', defer(() => Promise.resolve('ssr-value')));
+    useDeferredData(
+      'ssr-key',
+      defer(() => Promise.resolve('ssr-value'))
+    );
 
     const results = await __resolveDeferred();
     expect(results['ssr-key']).toBe('ssr-value');
@@ -192,16 +198,17 @@ describe('useDeferredData() — 客户端路径', () => {
       querySelector: vi.fn()
     };
     (globalThis as any).document = {
-      getElementById: vi.fn((id: string) =>
-        id === DEFERRED_DATA_ID && deferredJson ? scriptEl : null
-      )
+      getElementById: vi.fn((id: string) => (id === DEFERRED_DATA_ID && deferredJson ? scriptEl : null))
     };
   }
 
   it('客户端水合: 从 DOM 读取已解析数据,立即显示', () => {
     mockDocument(JSON.stringify({ comments: [{ id: 1, text: 'hello' }] }));
 
-    const { data, pending, error } = useDeferredData('comments', defer(() => Promise.resolve()));
+    const { data, pending, error } = useDeferredData(
+      'comments',
+      defer(() => Promise.resolve())
+    );
 
     expect(pending.value).toBe(false);
     expect(data.value).toEqual([{ id: 1, text: 'hello' }]);
@@ -211,7 +218,10 @@ describe('useDeferredData() — 客户端路径', () => {
   it('客户端水合: 错误数据设置 error', () => {
     mockDocument(JSON.stringify({ fail: { __deferredError: 'fetch failed' } }));
 
-    const { data, pending, error } = useDeferredData('fail', defer(() => Promise.resolve()));
+    const { data, pending, error } = useDeferredData(
+      'fail',
+      defer(() => Promise.resolve())
+    );
 
     expect(pending.value).toBe(false);
     expect(data.value).toBe(undefined);
@@ -225,8 +235,14 @@ describe('useDeferredData() — 客户端路径', () => {
     }));
     (globalThis as any).document = { getElementById };
 
-    useDeferredData('cached', defer(() => Promise.resolve()));
-    useDeferredData('other', defer(() => Promise.resolve()));
+    useDeferredData(
+      'cached',
+      defer(() => Promise.resolve())
+    );
+    useDeferredData(
+      'other',
+      defer(() => Promise.resolve())
+    );
 
     // 第二次调用应该使用缓存,不再次访问 DOM
     expect(getElementById).toHaveBeenCalledTimes(1);

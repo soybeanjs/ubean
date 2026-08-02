@@ -9,12 +9,7 @@
  * - 不变性:入参数组不被修改
  */
 import { describe, it, expect } from 'vitest';
-import {
-  dedupeMetaTags,
-  dedupeLinkTags,
-  mergeMetadata,
-  mergeSeoLayers
-} from '../src/index';
+import { dedupeMetaTags, dedupeLinkTags, mergeMetadata, mergeSeoLayers } from '../src/index';
 import type { MetaTag, LinkTag, SeoMetadata } from '../src/index';
 
 describe('Task 8 — metadata 自动 dedupe', () => {
@@ -87,11 +82,7 @@ describe('Task 8 — metadata 自动 dedupe', () => {
     });
 
     it('无 name/property 的 tag 保留全部(无法去重)', () => {
-      const tags: MetaTag[] = [
-        { content: 'a' },
-        { content: 'b' },
-        { content: 'c' }
-      ];
+      const tags: MetaTag[] = [{ content: 'a' }, { content: 'b' }, { content: 'c' }];
       const result = dedupeMetaTags(tags);
       expect(result).toHaveLength(3);
     });
@@ -205,10 +196,7 @@ describe('Task 8 — metadata 自动 dedupe', () => {
     });
 
     it('无 rel 的 link 保留全部(无法去重)', () => {
-      const tags: LinkTag[] = [
-        { rel: '', href: 'a' } as LinkTag,
-        { rel: '', href: 'b' } as LinkTag
-      ];
+      const tags: LinkTag[] = [{ rel: '', href: 'a' } as LinkTag, { rel: '', href: 'b' } as LinkTag];
       const result = dedupeLinkTags(tags);
       expect(result).toHaveLength(2);
     });
@@ -334,13 +322,9 @@ describe('Task 8 — metadata 自动 dedupe', () => {
     });
 
     it('undefined / null 入参被跳过,去重仍正常', () => {
-      const merged = mergeMetadata(
-        undefined,
-        null,
-        { meta: [{ name: 'description', content: 'a' }] },
-        undefined,
-        { meta: [{ name: 'description', content: 'b' }] }
-      );
+      const merged = mergeMetadata(undefined, null, { meta: [{ name: 'description', content: 'a' }] }, undefined, {
+        meta: [{ name: 'description', content: 'b' }]
+      });
       expect(merged.meta).toHaveLength(1);
       expect(merged.meta![0].content).toBe('b');
     });

@@ -77,7 +77,4 @@ export {
   __resetDeferredCache
 } from './defer';
 
-export type {
-  DeferredValue,
-  UseDeferredDataResult
-} from './defer';
+export type { DeferredValue, UseDeferredDataResult } from './defer';

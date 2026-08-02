@@ -2,7 +2,6 @@ import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { createActionsMiddleware, ACTIONS_ENDPOINT } from '@ubean/actions';
-import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
 import {
   registerRoutes,
   setInternalFetcher,
@@ -11,6 +10,7 @@ import {
 } from '@ubean/api-routes';
 import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/api-routes';
 import { errorToResponse, isUbeanError, UbeanError } from '@ubean/error';
+import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
 import type {
   ScannedApiRoute,
   ScannedMiddleware,

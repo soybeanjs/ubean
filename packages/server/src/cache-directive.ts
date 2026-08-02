@@ -17,11 +17,7 @@
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
-import {
-  revalidateDataCacheTag,
-  revalidateDataCachePath,
-  clearDataCache
-} from './fetch-memo';
+import { revalidateDataCacheTag, revalidateDataCachePath, clearDataCache } from './fetch-memo';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                    */

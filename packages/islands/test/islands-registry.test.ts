@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { h, defineComponent, Suspense } from 'vue';
 import { renderToString } from 'vue/server-renderer';
+import { defineServerIsland, defineIsland } from '../src/runtime';
+import type { ServerIslandOptions, IslandStrategy } from '../src/runtime';
 import {
   parseScriptImports,
   scanIslandDirectiveNames,
@@ -9,8 +11,6 @@ import {
   generateRegistryModule,
   transformVueSfcIslands
 } from '../src/vite';
-import { defineServerIsland, defineIsland } from '../src/runtime';
-import type { ServerIslandOptions, IslandStrategy } from '../src/runtime';
 import type { IslandComponentEntry, IslandComponentMap } from '../src/vite';
 
 describe('parseScriptImports', () => {
@@ -579,7 +579,12 @@ describe('Phase 4: defineIsland runtime (programmatic alternative to v-client.*)
     const vdom = getWrapperVdom(Wrapped);
     const propsJson = vdom.props['data-props'];
     expect(propsJson).toBeTruthy();
-    const decoded = JSON.parse(propsJson.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<'));
+    const decoded = JSON.parse(
+      propsJson
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+    );
     expect(decoded).toEqual({ count: 5, label: 'hi' });
   });
 
@@ -588,7 +593,12 @@ describe('Phase 4: defineIsland runtime (programmatic alternative to v-client.*)
     const Wrapped = defineIsland(Inner, 'load', { props: { count: 1 } }) as any;
     const vdom = getWrapperVdom(Wrapped, { attrs: { count: 99, title: 'overridden' } });
     const propsJson = vdom.props['data-props'];
-    const decoded = JSON.parse(propsJson.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<'));
+    const decoded = JSON.parse(
+      propsJson
+        .replace(/&quot;/g, '"')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+    );
     expect(decoded.count).toBe(99); // attrs override static props
     expect(decoded.title).toBe('overridden');
   });

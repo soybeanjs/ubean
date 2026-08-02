@@ -288,7 +288,7 @@ async function executeFetch<T>(
   options: UseDataOptions<T>,
   key: DataKey,
   registry: DataRegistry,
-  context?: object
+  _context?: object
 ): Promise<{ data: T; error: null } | { data: undefined; error: Error }> {
   const dedupe = options.dedupe !== false;
 
@@ -348,10 +348,7 @@ async function executeFetch<T>(
   }
 }
 
-export async function useData<T>(
-  options: UseDataOptions<T>,
-  context?: object
-): Promise<DataResult<T>> {
+export async function useData<T>(options: UseDataOptions<T>, context?: object): Promise<DataResult<T>> {
   const registry = getRegistry(context);
   const key = options.key || Symbol();
 

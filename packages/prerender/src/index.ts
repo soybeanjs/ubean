@@ -1,8 +1,8 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolvePrerenderConfig } from '@ubean/config';
 import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
-import type { ScannedPageRoute } from '@ubean/routing';
 import { DATA_PAYLOAD_ID } from '@ubean/pages';
+import type { ScannedPageRoute } from '@ubean/routing';
 import type { RouteRule } from '@ubean/types';
 import { matchGlob } from '@ubean/utils';
 import { join, dirname } from 'pathe';
@@ -17,9 +17,7 @@ const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
  *
  * 使用 `[\s\S]*?` 非贪婪匹配,避免多个 script 之间的过度匹配。
  */
-const DATA_PAYLOAD_REGEX = new RegExp(
-  '<script id="' + DATA_PAYLOAD_ID + '" type="application/json">([\\s\\S]*?)</script>'
-);
+const DATA_PAYLOAD_REGEX = new RegExp(`<script id="${DATA_PAYLOAD_ID}" type="application/json">([\\s\\S]*?)</script>`);
 
 export interface PrerendererOptions {
   cwd: string;

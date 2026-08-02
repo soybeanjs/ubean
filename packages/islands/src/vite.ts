@@ -1,5 +1,5 @@
-import { resolve, dirname } from 'node:path';
 import { existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
 import type { Plugin, ResolvedConfig as ViteResolvedConfig } from 'vite';
 import { legacyDirectiveToStrategy, strategyToLegacyDirective } from './directive';
 
@@ -264,20 +264,45 @@ function findBalanced(code: string, openChar: string, closeChar: string, startId
 
   while (i < code.length && depth > 0) {
     const ch = code[i];
-    if (escaped) { escaped = false; i++; continue; }
-    if (ch === '\\') { escaped = true; i++; continue; }
-    if (inString) {
-      if (inString === '`' && ch === '$' && code[i + 1] === '{') { inTemplateExpr++; i += 2; continue; }
-      if (inString === '`' && ch === '}' && inTemplateExpr > 0) { inTemplateExpr--; i++; continue; }
-      if (ch === inString) inString = null;
-      i++; continue;
+    if (escaped) {
+      escaped = false;
+      i++;
+      continue;
     }
-    if (ch === '"' || ch === "'" || ch === '`') { inString = ch; i++; continue; }
-    if (ch === '/' && code[i + 1] === '/') { while (i < code.length && code[i] !== '\n') i++; continue; }
+    if (ch === '\\') {
+      escaped = true;
+      i++;
+      continue;
+    }
+    if (inString) {
+      if (inString === '`' && ch === '$' && code[i + 1] === '{') {
+        inTemplateExpr++;
+        i += 2;
+        continue;
+      }
+      if (inString === '`' && ch === '}' && inTemplateExpr > 0) {
+        inTemplateExpr--;
+        i++;
+        continue;
+      }
+      if (ch === inString) inString = null;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      inString = ch;
+      i++;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '/') {
+      while (i < code.length && code[i] !== '\n') i++;
+      continue;
+    }
     if (ch === '/' && code[i + 1] === '*') {
       i += 2;
       while (i < code.length && !(code[i] === '*' && code[i + 1] === '/')) i++;
-      i += 2; continue;
+      i += 2;
+      continue;
     }
     if (ch === openChar) depth++;
     else if (ch === closeChar) {
@@ -302,20 +327,45 @@ function findTopLevelCommas(code: string, argStart: number, end: number): number
 
   while (i < end) {
     const ch = code[i];
-    if (escaped) { escaped = false; i++; continue; }
-    if (ch === '\\') { escaped = true; i++; continue; }
-    if (inString) {
-      if (inString === '`' && ch === '$' && code[i + 1] === '{') { inTemplateExpr++; i += 2; continue; }
-      if (inString === '`' && ch === '}' && inTemplateExpr > 0) { inTemplateExpr--; i++; continue; }
-      if (ch === inString) inString = null;
-      i++; continue;
+    if (escaped) {
+      escaped = false;
+      i++;
+      continue;
     }
-    if (ch === '"' || ch === "'" || ch === '`') { inString = ch; i++; continue; }
-    if (ch === '/' && code[i + 1] === '/') { while (i < end && code[i] !== '\n') i++; continue; }
+    if (ch === '\\') {
+      escaped = true;
+      i++;
+      continue;
+    }
+    if (inString) {
+      if (inString === '`' && ch === '$' && code[i + 1] === '{') {
+        inTemplateExpr++;
+        i += 2;
+        continue;
+      }
+      if (inString === '`' && ch === '}' && inTemplateExpr > 0) {
+        inTemplateExpr--;
+        i++;
+        continue;
+      }
+      if (ch === inString) inString = null;
+      i++;
+      continue;
+    }
+    if (ch === '"' || ch === "'" || ch === '`') {
+      inString = ch;
+      i++;
+      continue;
+    }
+    if (ch === '/' && code[i + 1] === '/') {
+      while (i < end && code[i] !== '\n') i++;
+      continue;
+    }
     if (ch === '/' && code[i + 1] === '*') {
       i += 2;
       while (i < end && !(code[i] === '*' && code[i + 1] === '/')) i++;
-      i += 2; continue;
+      i += 2;
+      continue;
     }
     if (ch === '(' || ch === '[' || ch === '{') depth++;
     else if (ch === ')' || ch === ']' || ch === '}') depth--;

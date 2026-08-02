@@ -405,9 +405,7 @@ function deserializeResponse(serialized: SerializedResponse): Response {
  * });
  * ```
  */
-export function createDataCacheMiddleware(
-  options: DataCacheMiddlewareOptions = {}
-): MiddlewareHandler<UbeanEnv> {
+export function createDataCacheMiddleware(options: DataCacheMiddlewareOptions = {}): MiddlewareHandler<UbeanEnv> {
   const dev = options.dev ?? isDevMode();
   const skipCache = dev && !options.forceDevCache;
   const { exclude } = options;
@@ -424,9 +422,7 @@ export function createDataCacheMiddleware(
       }
 
       // 仅缓存 GET/HEAD(对齐 Next.js Data Cache 行为)
-      const method = (
-        init?.method ?? (input instanceof Request ? input.method : 'GET')
-      ).toUpperCase();
+      const method = (init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
       if (method !== 'GET' && method !== 'HEAD') {
         return originalFetch(input, init);
       }

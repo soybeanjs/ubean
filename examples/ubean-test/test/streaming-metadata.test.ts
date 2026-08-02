@@ -17,7 +17,8 @@ describe.skipIf(!process.env.UBEAN_TEST_BASE_URL)('流式 metadata 爬虫降级 
   });
 
   it('detect: Chrome UA 不被识别为爬虫', async () => {
-    const ua = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    const ua =
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
     const res = await getJson(`/api/streaming-metadata-test?action=detect&ua=${encodeURIComponent(ua)}`);
     expect(res.status).toBe(200);
     expect(res.data).toMatchObject({ isBot: false });

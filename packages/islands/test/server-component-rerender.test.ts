@@ -1,12 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { h, defineComponent } from 'vue';
-import { renderToString } from 'vue/server-renderer';
 import { Hono } from 'hono';
-
-import {
-  injectServerComponentPath,
-  ubeanIslandsPlugin
-} from '../src/vite';
+import { renderToString } from 'vue/server-renderer';
 import {
   defineServerIsland,
   registerServerComponent,
@@ -20,6 +15,7 @@ import {
   isServerComponentRequest,
   isServerComponentResponse
 } from '../src/server-component';
+import { injectServerComponentPath, ubeanIslandsPlugin } from '../src/vite';
 
 // ============== Task 9.4: injectServerComponentPath (Vite transform) ==============
 
@@ -286,7 +282,11 @@ describe('Task 9.4: defineServerIsland runtime (rerenderOnPropsChange)', () => {
   });
 
   async function renderHtml(Comp: any, props?: any): Promise<string> {
-    const Root = defineComponent({ setup() { return () => h(Comp, props); } });
+    const Root = defineComponent({
+      setup() {
+        return () => h(Comp, props);
+      }
+    });
     return renderToString(h(Root));
   }
 
@@ -344,7 +344,10 @@ describe('Task 9.4: defineServerIsland runtime (rerenderOnPropsChange)', () => {
   it('rerenderOnPropsChange: 透传 slots 给内部组件 (SSR)', async () => {
     const Comp = defineComponent({
       name: 'Dashboard',
-      setup: (_p: any, { slots }: any) => () => h('div', slots.default?.())
+      setup:
+        (_p: any, { slots }: any) =>
+        () =>
+          h('div', slots.default?.())
     });
     const Island = defineServerIsland(Comp, { rerenderOnPropsChange: true }, '/abs/Dashboard.server.vue');
     const Root = defineComponent({
@@ -358,10 +361,14 @@ describe('Task 9.4: defineServerIsland runtime (rerenderOnPropsChange)', () => {
 
   it('rerenderOnPropsChange: fallback 仍生效', async () => {
     const Comp = defineComponent({ name: 'Dashboard', setup: () => () => h('div', 'content') });
-    const Island = defineServerIsland(Comp, {
-      rerenderOnPropsChange: true,
-      fallback: 'Loading...'
-    }, '/abs/Dashboard.server.vue');
+    const Island = defineServerIsland(
+      Comp,
+      {
+        rerenderOnPropsChange: true,
+        fallback: 'Loading...'
+      },
+      '/abs/Dashboard.server.vue'
+    );
     const html = await renderHtml(Island);
     // SSR 渲染真实内容 (Suspense 在 SSR 同步解析时直接输出内容)
     expect(html).toContain('content');

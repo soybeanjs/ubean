@@ -19,7 +19,6 @@ import {
   clearDataCache,
   getDataCacheSize,
   revalidateDataCacheTag,
-  revalidateDataCachePath,
   revalidateTag,
   revalidatePath,
   clearComponentCache,
@@ -40,7 +39,7 @@ function createCountingFetch() {
 }
 
 /** 创建带 Data Cache 中间件的 Hono 应用(强制启用 dev 缓存)。 */
-function createApp(mockFetch: typeof globalThis.fetch) {
+function createApp() {
   const app = new Hono();
   app.use('*', createDataCacheMiddleware({ dev: false }));
   return app;
@@ -58,7 +57,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data');
         await fetch('https://api.example.com/data');
@@ -78,7 +77,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         const res = await fetch('https://api.example.com/data', {
           next: { revalidate: 60 }
@@ -106,7 +105,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/users/1', { next: { revalidate: 60 } });
         await fetch('https://api.example.com/users/2', { next: { revalidate: 60 } });
@@ -125,7 +124,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', { next: { tags: ['data'] } });
         return c.json({ count: getCount() });
@@ -150,7 +149,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', { next: { noStore: true } });
         await fetch('https://api.example.com/data', { next: { noStore: true } });
@@ -169,7 +168,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', { next: { revalidate: 0 } });
         await fetch('https://api.example.com/data', { next: { revalidate: 0 } });
@@ -190,7 +189,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', {
           method: 'POST',
@@ -263,7 +262,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', { next: { revalidate: 1 } });
         return c.json({ count: getCount() });
@@ -290,7 +289,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', {
           next: { revalidate: 60 },
@@ -316,7 +315,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', {
           next: { revalidate: 60 },
@@ -344,7 +343,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/users/1', {
           next: { revalidate: 60, tags: ['users'] }
@@ -375,7 +374,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/a', { next: { tags: ['tag-a'] } });
         await fetch('https://api.example.com/b', { next: { tags: ['tag-b'] } });
@@ -404,7 +403,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', { next: { tags: ['direct'] } });
         return c.json({ size: getDataCacheSize() });
@@ -427,7 +426,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/users/1', { next: { tags: ['x'] } });
         await fetch('https://api.example.com/users/2', { next: { tags: ['x'] } });
@@ -451,7 +450,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/users/1', { next: { tags: ['x'] } });
         await fetch('https://api.example.com/users/2', { next: { tags: ['x'] } });
@@ -473,7 +472,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', { next: { tags: ['shared'] } });
         return c.json({ size: getDataCacheSize() });
@@ -495,7 +494,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/data', { next: { tags: ['x'] } });
         return c.json({ size: getDataCacheSize() });
@@ -661,7 +660,7 @@ describe('Task 4: fetch Data Cache', () => {
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
 
-      const app = createApp(mock as any);
+      const app = createApp();
       app.get('/', async c => {
         await fetch('https://api.example.com/a', { next: { tags: ['x'] } });
         await fetch('https://api.example.com/b', { next: { tags: ['x'] } });

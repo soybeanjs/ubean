@@ -908,7 +908,9 @@ export const GET = defineHandler(async c => {
           // __data.json written with correct content
           rootDataPath: rootDataPath.replace(tmpDir, ''),
           aboutDataPath: aboutDataPath.replace(tmpDir, ''),
-          rootDataMatches: JSON.parse(rootDataRaw).test?.key === undefined && JSON.stringify(JSON.parse(rootDataRaw)) === JSON.stringify(payload),
+          rootDataMatches:
+            JSON.parse(rootDataRaw).test?.key === undefined &&
+            JSON.stringify(JSON.parse(rootDataRaw)) === JSON.stringify(payload),
           aboutDataMatches: JSON.stringify(JSON.parse(aboutDataRaw)) === JSON.stringify(payload),
           // HTML no longer has inline script
           rootHtmlNoInlineScript: !rootHtml.includes(`id="${DATA_PAYLOAD_ID}"`),

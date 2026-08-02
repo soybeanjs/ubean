@@ -10,7 +10,7 @@
 //
 // Usage: node scripts/build-search.mjs
 import { readFileSync, writeFileSync, existsSync, readdirSync, mkdirSync } from 'node:fs';
-import { resolve, dirname, relative, join, sep } from 'node:path';
+import { resolve, dirname, relative, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -43,7 +43,7 @@ function extractHeadings(body) {
     const m = line.match(/^(#{2,3})\s+(.+)$/);
     if (m) {
       const text = m[2].replace(/[`*_~]/g, '').trim();
-      const id = text.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
+      // const id = text.toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
       headings.push(text);
     }
   }
@@ -62,7 +62,7 @@ function makeBodyExcerpt(body, maxLen = 300) {
     .replace(/\n{3,}/g, '\n\n')            // collapse newlines
     .replace(/\s+/g, ' ')                   // collapse whitespace
     .trim();
-  if (text.length > maxLen) text = text.slice(0, maxLen) + '…';
+  if (text.length > maxLen) text = `${text.slice(0, maxLen)  }…`;
   return text;
 }
 

@@ -172,7 +172,7 @@ describe('useData() — dedupe', () => {
     const fetcher = async () => {
       fetchCount++;
       // simulate async work so the second call arrives while first is in-flight
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise(r => setTimeout(r, 10));
       return { count: fetchCount };
     };
 
@@ -190,7 +190,7 @@ describe('useData() — dedupe', () => {
     let fetchCount = 0;
     const fetcher = async () => {
       fetchCount++;
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise(r => setTimeout(r, 10));
       return { count: fetchCount };
     };
 
@@ -223,14 +223,11 @@ describe('useData() — dedupe', () => {
     let fetchCount = 0;
     const fetcher = async () => {
       fetchCount++;
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise(r => setTimeout(r, 10));
       return fetchCount;
     };
 
-    await Promise.all([
-      useData({ key: 'dedupe-default', fetcher }),
-      useData({ key: 'dedupe-default', fetcher })
-    ]);
+    await Promise.all([useData({ key: 'dedupe-default', fetcher }), useData({ key: 'dedupe-default', fetcher })]);
 
     expect(fetchCount).toBe(1);
   });
@@ -245,11 +242,7 @@ describe('useAsyncData()', () => {
   });
 
   it('accepts (key, fn, options) signature and returns DataResult', async () => {
-    const result = await useAsyncData(
-      'posts',
-      async () => [{ id: 1, title: 'Hello' }],
-      { ttl: 60_000 }
-    );
+    const result = await useAsyncData('posts', async () => [{ id: 1, title: 'Hello' }], { ttl: 60_000 });
 
     expect(result.data).toEqual([{ id: 1, title: 'Hello' }]);
     expect(result.status).toBe('success');
@@ -261,14 +254,11 @@ describe('useAsyncData()', () => {
     let fetchCount = 0;
     const fn = async () => {
       fetchCount++;
-      await new Promise((r) => setTimeout(r, 10));
+      await new Promise(r => setTimeout(r, 10));
       return fetchCount;
     };
 
-    const [r1, r2] = await Promise.all([
-      useAsyncData('dedupe-async', fn),
-      useAsyncData('dedupe-async', fn)
-    ]);
+    const [r1, r2] = await Promise.all([useAsyncData('dedupe-async', fn), useAsyncData('dedupe-async', fn)]);
 
     expect(fetchCount).toBe(1);
     expect(r1.data).toBe(1);
@@ -442,9 +432,7 @@ describe('useData() — client hydration from payload', () => {
   function mockDocument(payloadJson: string | null) {
     const scriptEl = { textContent: payloadJson };
     (globalThis as any).document = {
-      getElementById: vi.fn((id: string) =>
-        id === DATA_PAYLOAD_ID && payloadJson ? scriptEl : null
-      )
+      getElementById: vi.fn((id: string) => (id === DATA_PAYLOAD_ID && payloadJson ? scriptEl : null))
     };
   }
 

@@ -1,3 +1,4 @@
+import { h } from 'vue';
 /**
  * Hono middleware for the `POST /__server-component` endpoint (Task 9.4).
  *
@@ -26,9 +27,8 @@
  * 便于客户端与中间件链识别。
  */
 import type { MiddlewareHandler } from 'hono';
-import { h } from 'vue';
-import { renderToString } from 'vue/server-renderer';
 import type { UbeanEnv } from '@ubean/types';
+import { renderToString } from 'vue/server-renderer';
 import { SERVER_COMPONENT_ENDPOINT, getServerComponent } from './runtime';
 
 // 重新导出常量,让消费者从 `@ubean/islands/server` 即可获取端点路径,
@@ -108,11 +108,7 @@ export function isServerComponentResponse(response: Response): boolean {
   return response.headers.get(SERVER_COMPONENT_RESPONSE_HEADER) === 'true';
 }
 
-function _htmlError(
-  c: Parameters<MiddlewareHandler<UbeanEnv>>[0],
-  message: string,
-  status: number
-) {
+function _htmlError(c: Parameters<MiddlewareHandler<UbeanEnv>>[0], message: string, status: number) {
   return c.body(message, status as 400, {
     'Content-Type': 'text/plain; charset=utf-8',
     'Cache-Control': 'no-store',

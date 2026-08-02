@@ -42,11 +42,7 @@ export function defer<T>(factory: (() => Promise<T>) | Promise<T>): DeferredValu
  * 判断值是否为 DeferredValue(类型守卫)。
  */
 export function isDeferredValue<T>(value: unknown): value is DeferredValue<T> {
-  return (
-    value !== null &&
-    typeof value === 'object' &&
-    (value as Record<string, unknown>).__isDeferred === true
-  );
+  return value !== null && typeof value === 'object' && (value as Record<string, unknown>).__isDeferred === true;
 }
 
 // ============== SSR 内部:per-request 注册表 ==============
@@ -78,7 +74,7 @@ export async function __resolveDeferred(): Promise<Record<string, unknown>> {
 
   const results: Record<string, unknown> = {};
   await Promise.allSettled(
-    entries.map(async (entry) => {
+    entries.map(async entry => {
       try {
         results[entry.key] = await entry.promise;
       } catch (err) {
@@ -185,10 +181,7 @@ export interface UseDeferredDataResult<T> {
  * </template>
  * ```
  */
-export function useDeferredData<T>(
-  key: string,
-  deferred: DeferredValue<T>
-): UseDeferredDataResult<T> {
+export function useDeferredData<T>(key: string, deferred: DeferredValue<T>): UseDeferredDataResult<T> {
   const data = shallowRef<T | undefined>(undefined);
   const pending = ref(true);
   const error = shallowRef<Error | null>(null);
@@ -203,14 +196,8 @@ export function useDeferredData<T>(
     const cached = cache?.[key];
 
     if (cached !== undefined) {
-      if (
-        cached !== null &&
-        typeof cached === 'object' &&
-        '__deferredError' in (cached as Record<string, unknown>)
-      ) {
-        error.value = new Error(
-          String((cached as Record<string, unknown>).__deferredError)
-        );
+      if (cached !== null && typeof cached === 'object' && '__deferredError' in (cached as Record<string, unknown>)) {
+        error.value = new Error(String((cached as Record<string, unknown>).__deferredError));
       } else {
         data.value = cached as T;
       }
@@ -220,11 +207,11 @@ export function useDeferredData<T>(
       pending.value = true;
       deferred
         .factory()
-        .then((result) => {
+        .then(result => {
           data.value = result;
           pending.value = false;
         })
-        .catch((err) => {
+        .catch(err => {
           error.value = err instanceof Error ? err : new Error(String(err));
           pending.value = false;
         });

@@ -1,9 +1,10 @@
 import type { Context, Next, MiddlewareHandler, Hono } from 'hono';
+import { validateParams as _validateParams } from '@ubean/routing';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/routing';
 import { isServerAction } from '@ubean/types';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/types';
 import { matchAnyGlob } from '@ubean/utils';
-import { validateParams as _validateParams } from '@ubean/routing';
+import { isBotUserAgent } from './bot-detection';
 import {
   parseFormActionName as _parseFormActionName,
   handleActionResponse as _handleActionResponse,
@@ -13,7 +14,6 @@ import { extractRouteMeta, isHandlerChain } from './handler';
 import { serveIsr } from './isr';
 import type { IsrCacheStore } from './isr';
 import { normalizeIsrRule } from './route-rules';
-import { isBotUserAgent } from './bot-detection';
 
 /**
  * Structural type for the route registrar app.

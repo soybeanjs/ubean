@@ -10,8 +10,8 @@ vi.mock('node:fs', () => ({
 
 // 在 mock 之后导入 — `existsSync` 此处是 mock 函数,可在每个测试中配置返回值。
 import { existsSync } from 'node:fs';
-import { ubeanIslandsPlugin } from '../src/vite';
 import { definePairedComponent, ServerComponentStub } from '../src/runtime';
+import { ubeanIslandsPlugin } from '../src/vite';
 
 const mockedExistsSync = vi.mocked(existsSync);
 
@@ -106,12 +106,7 @@ describe('Task 9.3: resolveId paired component resolution', () => {
     const plugin = getPlugin();
     // 模拟从配对 wrapper 内部 import .client.vue
     const wrapperImporter = '\0virtual:ubean-paired-component:/project/src/Foo.server.vue|/project/src/Foo.client.vue';
-    const id = await plugin.resolveId.call(
-      {},
-      '/project/src/Foo.client.vue',
-      wrapperImporter,
-      { ssr: false }
-    );
+    const id = await plugin.resolveId.call({}, '/project/src/Foo.client.vue', wrapperImporter, { ssr: false });
     // 不重定向到 client wrapper,走默认解析 (返回 undefined)
     expect(id).toBeUndefined();
   });
@@ -141,7 +136,7 @@ describe('Task 9.3: load paired component wrapper module', () => {
     const code = plugin.load(wrapperId, { ssr: false });
     expect(code).toContain('import ServerComp from "/project/src/Foo.server.vue"');
     expect(code).toContain('import ClientComp from "/project/src/Foo.client.vue"');
-    expect(code).toContain('import { definePairedComponent } from \'@ubean/islands/runtime\'');
+    expect(code).toContain("import { definePairedComponent } from '@ubean/islands/runtime'");
     expect(code).toContain('export default definePairedComponent(ServerComp, ClientComp)');
   });
 
@@ -164,7 +159,11 @@ describe('Task 9.3: load paired component wrapper module', () => {
 
 describe('Task 9.3: definePairedComponent runtime', () => {
   async function renderHtml(Comp: any, props?: any): Promise<string> {
-    const Root = defineComponent({ setup() { return () => h(Comp, props); } });
+    const Root = defineComponent({
+      setup() {
+        return () => h(Comp, props);
+      }
+    });
     return renderToString(h(Root));
   }
 
@@ -213,7 +212,10 @@ describe('Task 9.3: definePairedComponent runtime', () => {
   it('透传 slots 给 ServerComp (SSR)', async () => {
     const ServerComp = defineComponent({
       name: 'ServerComp',
-      setup: (_props: any, { slots }: any) => () => h('div', slots.default?.())
+      setup:
+        (_props: any, { slots }: any) =>
+        () =>
+          h('div', slots.default?.())
     });
     const ClientComp = defineComponent({ name: 'C', setup: () => () => h('div') });
     const Paired = definePairedComponent(ServerComp, ClientComp);

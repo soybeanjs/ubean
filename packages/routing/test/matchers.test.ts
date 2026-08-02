@@ -91,13 +91,13 @@ describe('Task 7: validateParams', () => {
   });
 
   it('returns true when all matchers pass', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
-    defineMatcher('slug', (v) => /^[a-z0-9-]+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
+    defineMatcher('slug', v => /^[a-z0-9-]+$/.test(v));
     expect(validateParams({ id: 'numeric', slug: 'slug' }, { id: '42', slug: 'hello-world' })).toBe(true);
   });
 
   it('returns false when a matcher rejects', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     expect(validateParams({ id: 'numeric' }, { id: 'abc' })).toBe(false);
   });
 
@@ -122,12 +122,12 @@ describe('Task 7: validateParams', () => {
   });
 
   it('validates each element of array params (all pass)', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     expect(validateParams({ ids: 'numeric' }, { ids: ['1', '2', '3'] })).toBe(true);
   });
 
   it('validates each element of array params (one fails)', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     expect(validateParams({ ids: 'numeric' }, { ids: ['1', 'abc', '3'] })).toBe(false);
   });
 
@@ -159,15 +159,15 @@ describe('Task 7: validateParams', () => {
   });
 
   it('validates multiple matchers, all must pass', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
-    defineMatcher('positive', (v) => Number(v) > 0);
+    defineMatcher('numeric', v => /^\d+$/.test(v));
+    defineMatcher('positive', v => Number(v) > 0);
     expect(validateParams({ id: 'numeric', val: 'positive' }, { id: '42', val: '5' })).toBe(true);
     expect(validateParams({ id: 'numeric', val: 'positive' }, { id: '42', val: '-5' })).toBe(false);
     expect(validateParams({ id: 'numeric', val: 'positive' }, { id: 'abc', val: '5' })).toBe(false);
   });
 
   it('real-world numeric matcher', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     expect(validateParams({ id: 'numeric' }, { id: '42' })).toBe(true);
     expect(validateParams({ id: 'numeric' }, { id: '0' })).toBe(true);
     expect(validateParams({ id: 'numeric' }, { id: '123456789' })).toBe(true);
@@ -179,17 +179,14 @@ describe('Task 7: validateParams', () => {
   });
 
   it('real-world uuid matcher', () => {
-    defineMatcher(
-      'uuid',
-      (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
-    );
+    defineMatcher('uuid', v => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v));
     expect(validateParams({ id: 'uuid' }, { id: '550e8400-e29b-41d4-a716-446655440000' })).toBe(true);
     expect(validateParams({ id: 'uuid' }, { id: 'not-a-uuid' })).toBe(false);
     expect(validateParams({ id: 'uuid' }, { id: '550e8400' })).toBe(false);
   });
 
   it('real-world slug matcher', () => {
-    defineMatcher('slug', (v) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v));
+    defineMatcher('slug', v => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v));
     expect(validateParams({ slug: 'slug' }, { slug: 'hello-world' })).toBe(true);
     expect(validateParams({ slug: 'slug' }, { slug: 'hello' })).toBe(true);
     expect(validateParams({ slug: 'slug' }, { slug: 'Hello-World' })).toBe(false);
@@ -230,7 +227,7 @@ describe('Task 7: createMatcherGuard', () => {
   });
 
   it('passes through when matcher validates successfully', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     const guard = createMatcherGuard();
     const result = guard({
       path: '/users/42',
@@ -241,7 +238,7 @@ describe('Task 7: createMatcherGuard', () => {
   });
 
   it('redirects to NotFound route when matcher rejects', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     const guard = createMatcherGuard();
     const result = guard({
       path: '/users/abc',
@@ -252,7 +249,7 @@ describe('Task 7: createMatcherGuard', () => {
   });
 
   it('redirects to custom notFoundRouteName when provided', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     const guard = createMatcherGuard({ notFoundRouteName: 'Custom404' });
     const result = guard({
       path: '/users/abc',
@@ -275,10 +272,10 @@ describe('Task 7: createMatcherGuard', () => {
   });
 
   it('invokes onReject callback when matcher rejects', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     const calls: Array<{ path: string; matchers: Record<string, string> }> = [];
     const guard = createMatcherGuard({
-      onReject: (to) => calls.push({ path: to.path, matchers: to.matchers })
+      onReject: to => calls.push({ path: to.path, matchers: to.matchers })
     });
     guard({
       path: '/users/abc',
@@ -289,7 +286,7 @@ describe('Task 7: createMatcherGuard', () => {
   });
 
   it('does not invoke onReject when matcher passes', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     const calls: unknown[] = [];
     const guard = createMatcherGuard({ onReject: () => calls.push(true) });
     guard({
@@ -461,7 +458,7 @@ describe('Task 7: real-world matcher scenarios', () => {
   afterEach(() => clearMatchers());
 
   it('numeric matcher accepts digits only', () => {
-    defineMatcher('numeric', (v) => /^\d+$/.test(v));
+    defineMatcher('numeric', v => /^\d+$/.test(v));
     expect(validateParams({ id: 'numeric' }, { id: '0' })).toBe(true);
     expect(validateParams({ id: 'numeric' }, { id: '42' })).toBe(true);
     expect(validateParams({ id: 'numeric' }, { id: '99999999' })).toBe(true);
@@ -475,10 +472,7 @@ describe('Task 7: real-world matcher scenarios', () => {
   });
 
   it('uuid matcher accepts valid UUIDs', () => {
-    defineMatcher(
-      'uuid',
-      (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v)
-    );
+    defineMatcher('uuid', v => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v));
     const validUuids = [
       '550e8400-e29b-41d4-a716-446655440000',
       '00000000-0000-0000-0000-000000000000',
@@ -494,7 +488,7 @@ describe('Task 7: real-world matcher scenarios', () => {
   });
 
   it('slug matcher accepts kebab-case lowercase', () => {
-    defineMatcher('slug', (v) => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v));
+    defineMatcher('slug', v => /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v));
     expect(validateParams({ slug: 'slug' }, { slug: 'hello' })).toBe(true);
     expect(validateParams({ slug: 'slug' }, { slug: 'hello-world' })).toBe(true);
     expect(validateParams({ slug: 'slug' }, { slug: 'hello-world-foo' })).toBe(true);
@@ -507,7 +501,7 @@ describe('Task 7: real-world matcher scenarios', () => {
   });
 
   it('base64 matcher accepts URL-safe base64', () => {
-    defineMatcher('base64', (v) => /^[A-Za-z0-9_-]+$/.test(v) && v.length > 0);
+    defineMatcher('base64', v => /^[A-Za-z0-9_-]+$/.test(v) && v.length > 0);
     expect(validateParams({ token: 'base64' }, { token: 'abc123' })).toBe(true);
     expect(validateParams({ token: 'base64' }, { token: 'ABC_-xyz' })).toBe(true);
     expect(validateParams({ token: 'base64' }, { token: '' })).toBe(false);

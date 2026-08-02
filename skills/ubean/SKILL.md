@@ -398,7 +398,7 @@ Use these keys in `dependsOn` for built-in modules:
 ### 1. Full-Stack Framework
 
 - Server-side rendering (SSR) with Vue + `@vue/server-renderer`
-- Client-side hydration with `createUbeanApp` / `createUbeanSSRApp`
+- Client-side hydration with `createUbeanVueApp` / `createUbeanSSRApp`
 - Islands architecture for partial hydration (`client:load|idle|visible|media|only`) with auto-registration and auto-hydration (zero-config, no manual `hydrateIslands()` call needed)
 - View Transitions API for native page transitions
 

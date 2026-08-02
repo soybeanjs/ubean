@@ -548,9 +548,9 @@ function createRootComponent(
   });
 }
 
-export function createUbeanApp(options: UbeanAppOptions): UbeanAppInstance {
+export function createUbeanVueApp(options: UbeanAppOptions): UbeanAppInstance {
   if (!options.head) {
-    throw new Error('[ubean] createUbeanApp requires a head instance from @unhead/vue/client');
+    throw new Error('[ubean] createUbeanVueApp requires a head instance from @unhead/vue/client');
   }
 
   const initial =

@@ -247,7 +247,7 @@ export function getCacheEnabled(): Ref<boolean> {
 /**
  * Seed the cache include list from route metadata.
  *
- * Called once during app bootstrap (`createUbeanApp`) to honor pages that
+ * Called once during app bootstrap (`createUbeanVueApp`) to honor pages that
  * declared `definePage({ cache: true })`. Routes without `meta.cache` are
  * left untouched so runtime toggling remains possible.
  */

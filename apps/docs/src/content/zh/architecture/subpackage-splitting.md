@@ -194,7 +194,7 @@ packages/
 ### Layer 4 — Vue 专属模块
 
 #### `@ubean/runtime`
-- **职责**: Vue 客户端运行时 —— `createUbeanApp`、`createUbeanSSRApp`、`useRouter`、`useHead`、`usePage`、`Link`、`Head`、`PageView`、`defineApp`、`applyAppConfig`、`createUbeanRouter`、`resolveRoute`、`isActiveRoute`、composables、`useCacheViews`、`usePageTransition`、`useReloadSignal`、`useViewTransition`、`hydrateIslands`、`useI18n`(Vue 集成)、vue-router `RouteMeta` 类型扩展
+- **职责**: Vue 客户端运行时 —— `createUbeanVueApp`、`createUbeanSSRApp`、`useRouter`、`useHead`、`usePage`、`Link`、`Head`、`PageView`、`defineApp`、`applyAppConfig`、`createUbeanRouter`、`resolveRoute`、`isActiveRoute`、composables、`useCacheViews`、`usePageTransition`、`useReloadSignal`、`useViewTransition`、`hydrateIslands`、`useI18n`(Vue 集成)、vue-router `RouteMeta` 类型扩展
 - **来源**: `runtime/vue/`
 - **依赖**: `vue`、`vue-router`、`@unhead/vue`、`@ubean/pages`、`@ubean/i18n`、`@ubean/seo`(type-only)
 - **入口**: `@ubean/runtime`、`@ubean/runtime/app`、`@ubean/runtime/define-app`

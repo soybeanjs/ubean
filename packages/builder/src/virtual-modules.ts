@@ -164,7 +164,10 @@ export function createLocalesVirtualModule(
   srcDir: string = 'src'
 ) {
   return defineVirtualModule('ubean:locales', () => {
-    const defaultCode = JSON.stringify(defaultLocale);
+    // JSON.stringify(undefined) 返回 undefined（值，非字符串），插入模板会变成
+    // "const defaultCode = undefined;" —— 这会让 `defaultCode && ...` 短路逻辑
+    // 仍能工作，但语义上 defaultCode 应为 null（明确的"无默认值"）。
+    const defaultCode = defaultLocale == null ? 'null' : JSON.stringify(defaultLocale);
     const viteSrcDir = toVitePath(srcDir);
     const prefix = viteSrcDir === '/' || viteSrcDir === '' ? '' : viteSrcDir;
     const localesGlob = JSON.stringify(`${prefix}/locales/**/*.{json,json5,yaml,yml,js,mjs,cjs,ts,mts,cts}`);

@@ -37,7 +37,7 @@ ubean/
 │   ├── codegen/            # @ubean/codegen — 类型生成
 │   ├── modules/            # @ubean/modules — 模块系统
 │   ├── auto-imports/       # @ubean/auto-imports — 自动导入
-│   ├── runtime/            # @ubean/runtime — Vue 客户端运行时（另有同名 createUbeanApp → Vue 实例，见陷阱）
+│   ├── runtime/            # @ubean/runtime — Vue 客户端运行时（createUbeanVueApp → Vue 实例；Hono 工厂为 @ubean/app 的 createUbeanApp）
 │   ├── islands/            # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
 │   ├── ssr/                # @ubean/ssr — Vue SSR 渲染器
 │   ├── vite/               # @ubean/vite — Vue 专属 Vite 插件
@@ -88,6 +88,28 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）                                               | 自定义 SSR           |
 
 > **注意**：客户端自动导入必须用 `ubean/runtime/vue` 入口，不能从 `ubean` 主入口导入（会触发 Vite 在浏览器环境预构建服务端依赖）。详见第 8 节陷阱 #8。
+
+### 2.3 `@ubean/server` 语义聚合子路径（ADR-0003 OPT-06）
+
+`@ubean/server` 除主入口 `.`（barrel 便利入口）外，提供以下语义聚合子路径。新代码推荐按能力域从子路径导入，避免 barrel 触发全量子模块类型解析。
+
+| 子路径                          | 聚合自                                                                          | 能力域                           |
+| ------------------------------- | ------------------------------------------------------------------------------- | -------------------------------- |
+| `@ubean/server/cache`           | `cache` + `cache-directive`                                                     | 路由级缓存 + 组件级缓存          |
+| `@ubean/server/db`              | `database`                                                                      | 数据库（db0/drizzle 集成）       |
+| `@ubean/server/realtime`        | `websocket` + `sse`                                                             | 实时通信（WS + SSE）             |
+| `@ubean/server/security`        | `security-headers` + `csrf` + `sessions`                                        | 安全（CSP/CSRF/Sessions）        |
+| `@ubean/server/queue`           | `queue`                                                                         | 消息队列                         |
+| `@ubean/server/cron`            | `cron` + `cron-scheduler`                                                       | 定时任务                         |
+| `@ubean/server/storage`         | `storage`                                                                       | KV / 对象存储                    |
+| `@ubean/server/observability`   | `observability`                                                                 | 链路追踪 / OpenTelemetry         |
+| `@ubean/server/email`           | `email`                                                                         | 邮件发送                         |
+| `@ubean/server/analytics`       | `analytics` + `feature-flags`                                                   | 分析 / A-B 实验                  |
+| `@ubean/server/static`          | `static`                                                                        | 静态文件服务                     |
+| `@ubean/server/middleware`      | `cors` + `rate-limit` + `after` + `fetch-memo` + `draft-mode` + `single-flight` | 请求生命周期中间件               |
+| `@ubean/server/cache-directive` | `cache-directive`                                                               | 组件级缓存（独立保留，向后兼容） |
+
+> 主入口 `@ubean/server` 保持 re-export 全部符号（便利入口），行为不变。子路径与内部文件非 1:1（`./cache` 聚合两个内部文件，`./realtime`/`./security`/`./cron`/`./analytics`/`./middleware` 同理）。
 
 ## 3. 核心约定
 
@@ -177,12 +199,12 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 应用入口
 
-| API                                                             | 说明                                                                       |
-| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `defineApp(options): ResolvedAppConfig`                         | 基于选项的应用配置（**不是**工厂函数）                                     |
-| `applyAppConfig(app, config, mode)`                             | 应用配置到 Vue 实例                                                        |
-| `createUbeanApp(options)`（`@ubean/app` / `ubean/runtime/app`） | 创建 ubean **Hono** 应用（`UbeanApp`）                                     |
-| `createUbeanApp(options)`（`@ubean/runtime`）                   | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）；与上者同名不同义 |
+| API                                                             | 说明                                                                                                                            |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `defineApp(options): ResolvedAppConfig`                         | 基于选项的应用配置（**不是**工厂函数）                                                                                          |
+| `applyAppConfig(app, config, mode)`                             | 应用配置到 Vue 实例                                                                                                             |
+| `createUbeanApp(options)`（`@ubean/app` / `ubean/runtime/app`） | 创建 ubean **Hono** 应用（`UbeanApp`）。`createUbeanApp` 全仓专指 Hono 工厂（ADR-0001）                                         |
+| `createUbeanVueApp(options)`（`@ubean/runtime`）                | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。原 `createUbeanApp` 已重命名（ADR-0001），主入口 `ubean` 不导出此函数 |
 
 `DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
 
@@ -790,7 +812,7 @@ export default defineConfig({
 6. **不要**在 `definePage` 中使用顶层 `title` 字段 — 用 `head` 字段
 7. **不要**用 `#ubean-` 作为虚拟模块前缀 — 会因 URL hash 导致 404，用 `virtual:ubean-`
 8. **不要**从 `ubean` 主入口自动导入客户端 API — 会触发 Vite 在浏览器环境预构建服务端依赖（unocss、oxc-parser WASM），客户端自动导入用 `ubean/runtime/vue` 入口
-   8b. **注意** `createUbeanApp` 同名双义 — `@ubean/app` 返回 Hono `UbeanApp`；`@ubean/runtime` 返回 Vue `{ app, router, head, page }`。服务端入口用 `ubean/runtime/app`（Hono），客户端勿混用
+   8b. **注意** `createUbeanApp` 已消歧（ADR-0001）— `@ubean/app` / `ubean/runtime/app` 返回 Hono `UbeanApp`；`@ubean/runtime` 的 Vue 工厂已重命名为 `createUbeanVueApp`（返回 `{ app, router, head, page }`）。服务端入口用 `ubean/runtime/app`（Hono），客户端用 `createUbeanVueApp`。`production.ts:319` 的 `export { createUbeanApp }` 是 Hono 版 re-export（无歧义，预期行为）
 9. **不要**将 async 函数直接传给 `server.middlewares.use()` — 必须包装在 `Promise.resolve().then().catch()` 中
 10. **不要**用模板替换生成 Service Worker 中的 RUNTIME 全局 — 用硬编码字符串 `'ubean-runtime'`
 11. **不要**在 `macros.ts` 的 `MACRO_NAMES` 中包含 `defineHandlerMeta` 和 `defineMiddleware` — 只保留 `definePage`，否则运行时函数调用会被 build strip，导致语法错误

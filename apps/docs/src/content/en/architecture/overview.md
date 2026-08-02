@@ -280,12 +280,12 @@ Full write-up: repo root [`docs/architecture-analysis.md`](../../../../../../doc
 | --- | --- |
 | Package count | **37** packages under `packages/*` (not the older 38/40 figures) |
 | Dependency layers | High fan-in on `@ubean/types` / `routing` / `utils`; aggregator `ubean` fans out to 27 |
-| Naming collision | `createUbeanApp` means Hono in `@ubean/app` vs Vue app in `@ubean/runtime` |
+| Naming collision (resolved) | `createUbeanApp` now means Hono in `@ubean/app` / `ubean/runtime/app` only; the Vue factory in `@ubean/runtime` was renamed to `createUbeanVueApp` (ADR-0001) |
 | Index fix | Former path `packages/build` hit CodeGraph's default `build/` ignore; renamed to `packages/builder` (package name stays `@ubean/build`) |
 | Test gaps | Weak package-local tests for `build` / `cli` / `config`; rely on `examples/ubean-test` |
 | Docs location | Guide/architecture live under `apps/docs`; root `docs/` holds roadmap + this analysis |
 
-Priority backlog: disambiguate dual `createUbeanApp` → fix build indexing → add core unit tests → plan `@ubean/server` subpath splits.
+Priority backlog: ~~disambiguate dual `createUbeanApp`~~ (done, ADR-0001) → fix build indexing (done, OPT-02) → add core unit tests → plan `@ubean/server` subpath splits.
 
 ---
 

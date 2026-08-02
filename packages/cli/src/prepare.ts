@@ -18,13 +18,15 @@ async function ensureBuildDir(cwd: string, buildDir: string): Promise<void> {
   }
 }
 
-type PackageManager = 'pnpm' | 'yarn' | 'bun' | 'npm';
+export type PackageManager = 'pnpm' | 'yarn' | 'bun' | 'npm';
 
 /**
  * Detects the package manager used in the project by inspecting lockfiles.
  * Priority: pnpm > yarn > bun > npm (npm as default fallback).
+ *
+ * 导出供单测复用（OPT-04 4c）。
  */
-function detectPackageManager(cwd: string): PackageManager {
+export function detectPackageManager(cwd: string): PackageManager {
   if (existsSync(join(cwd, 'pnpm-lock.yaml'))) return 'pnpm';
   if (existsSync(join(cwd, 'yarn.lock'))) return 'yarn';
   if (existsSync(join(cwd, 'bun.lockb')) || existsSync(join(cwd, 'bun.lock'))) return 'bun';
@@ -36,8 +38,10 @@ function detectPackageManager(cwd: string): PackageManager {
  * Examples:
  *   pnpm → ['add', '@ubean/ui@^0.1.3']
  *   npm  → ['install', '@ubean/ui@^0.1.3']
+ *
+ * 导出供单测复用（OPT-04 4c）。
  */
-function buildInstallCommand(pm: PackageManager, packages: string[]): { cmd: string; args: string[] } {
+export function buildInstallCommand(pm: PackageManager, packages: string[]): { cmd: string; args: string[] } {
   switch (pm) {
     case 'pnpm':
       return { cmd: 'pnpm', args: ['add', ...packages] };
@@ -54,8 +58,10 @@ function buildInstallCommand(pm: PackageManager, packages: string[]): { cmd: str
  * Extracts the bare package name from a module path.
  *   '@ubean/ui/vite'      → '@ubean/ui'
  *   '@ubean/electron/vite' → '@ubean/electron'
+ *
+ * 导出供单测复用（OPT-04 4c）。
  */
-function extractPackageName(modulePath: string): string {
+export function extractPackageName(modulePath: string): string {
   if (modulePath.startsWith('@')) {
     return modulePath.split('/').slice(0, 2).join('/');
   }
@@ -66,8 +72,10 @@ function extractPackageName(modulePath: string): string {
  * Reads the `ubean` package version from the project's package.json so we can
  * install matching versions of `@ubean/*` extension packages.
  * Returns `null` if ubean isn't declared or version can't be parsed.
+ *
+ * 导出供单测复用（OPT-04 4c）。
  */
-function getUbeanVersion(cwd: string): string | null {
+export function getUbeanVersion(cwd: string): string | null {
   try {
     const pkgPath = join(cwd, 'package.json');
     if (!existsSync(pkgPath)) return null;

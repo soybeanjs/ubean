@@ -474,5 +474,77 @@ DevTools 面板的 UI 实现必须使用 `@soybeanjs/ui` 组件库，遵循以�
 - 使用 `pnpm` 作为包管理器，遵循 workspace catalog 版本管理
 - UI 相关依赖（@soybeanjs/ui 等）仅在需要时引入，不强制用户安装
 - DevTools 相关依赖作为 devDependencies 或按需动态导入
+- **DevTools AI scaffold 为可选能力**（[ADR-0004](../../../../docs/adr/0004-devtools-ai-sdk-optional-deps.md)）：`ai` / `@ai-sdk/openai-compatible` 在 `@ubean/devtools` 中为 `optionalDependencies`，运行时通过动态 `import()` 加载。未安装时框架与普通 DevTools 功能不受影响，仅触发 AI 助手功能时报清晰错误（含安装指引）。如需启用 AI 助手：`pnpm add ai @ai-sdk/openai-compatible`
 
 ---
+
+## 10. CodeGraph 工作流约定
+
+> 改动核心符号前，先用 CodeGraph 核查影响面，而非凭直觉或文档措辞估计。来源：[ADR-0005](../../../docs/adr/0005-opt09-impl-opt11-timing-opt01-subitem.md)。
+
+### 10.1 何时执行
+
+修改以下任一核心符号时，PR 描述必须附 `codegraph impact` 结果（简要 blast radius）：
+
+- `defineHandler` / `defineHandlerMeta` / `defineMiddleware`（路由/API 处理器协议）
+- `scanProject`（路由扫描）
+- `registerRoutes`（路由注册）
+- `ubeanPlugin`（Vite 插件主入口）
+- `macros`（`definePage` 等编译期宏）
+- `createUbeanApp` / `createUbeanVueApp`（应用工厂）
+- `resolveModules`（模块系统）
+
+### 10.2 执行步骤
+
+```bash
+codegraph sync                    # 同步索引（packages/builder 已可索引，见 OPT-02）
+codegraph impact <symbol>         # 查影响面
+```
+
+将输出中「直接引用 / 传递引用」计数与关键文件列表摘入 PR 描述。
+
+### 10.3 与 PR 的关系
+
+- **本约定先行**：约定文本独立于代码 PR 落地。
+- **首个样板**：`createUbeanApp` → `createUbeanVueApp` 重命名 PR（OPT-01）作为首个遵循本约定的样板，PR 描述附 `codegraph impact createUbeanApp` 结果。
+- 勿将 `codegraph impact` 输出塞入本约定自身的非代码 PR——「定规」与「首用」分离。
+
+## 11. 扩展包接入契约表
+
+> 所有「扩展包」（有 `./vite` 子路径导出 **且不在主包 `ubean` 的 `dependencies` 中** 的包）须在下表登记一行。CI（与包树校验共用脚本，见 [OPT-09](../../../docs/optimize.md#总览)）会从 `packages/*/package.json` 派生扩展集，断言每个都在本表出现。来源：[ADR-0006](../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md)。
+
+### 11.1 契约表
+
+| 包 | config key | `/vite` 插件 | runtime 入口 | peerDeps | 核心依赖形态 | 默认行为 |
+| --- | --- | --- | --- | --- | --- | --- |
+| `@ubean/auth` | `auth` | `ubeanAuthPlugin` | `./runtime` (`useAuth`) | hono, vite, vue（均 optional） | **hard**（`better-auth` 在 `dependencies`） | 挂载 `/api/auth/*`；better-auth 优先，降级为内置 email/password |
+| `@ubean/icon` | `icon` | `ubeanIconPlugin` | `./runtime` | vue（optional） | none（仅 consola/defu/pathe） | Iconify `customCollections`；dev `/_iconify` 路由先本地 SVG 后回退 API |
+| `@ubean/pwa` | `pwa` | `ubeanPwaPlugin` | `./runtime` (`usePwa`) | vite, vue（均 optional） | **hard**（`vite-plugin-pwa` 在 `dependencies`） | 生成 manifest+sw；`registerType: autoUpdate`；5 种缓存策略 |
+| `@ubean/image` | `image` | `ubeanImagePlugin` | `./runtime` | vite, vue（均 optional） | none（仅 defu/ohash/pathe/ufo） | 图片优化与变换 |
+| `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` | vite（optional） | none（仅 defu/pathe/scule + `@ubean/utils`） | markdown/MDX/YAML/JSON 内容集合 |
+| `@ubean/fonts` | `fonts` | `ubeanFontsPlugin` | `./runtime` | vite（optional） | none（仅 defu/ohash/pathe/ufo） | Google Fonts / 本地字体 / 自托管 / metrics |
+| `@ubean/electron` | `electron` | `ubeanElectronPlugin` | — | electron, vite（均 optional） | **hard**（`vite-plugin-electron` 在 `dependencies`） | 封装 `vite-plugin-electron`；`electron: true` 启用，自动禁用 SSR |
+| `@ubean/pinia` | `pinia` | `ubeanPiniaPlugin` | `./runtime` | **pinia（强制）**, vue（optional） | **peer**（`pinia` 在 `peerDependencies` 非 optional） | SSR 状态水合 + dev 预构建；不自动注入 Pinia 实例 |
+| `@ubean/ui` | `ui` | `ubeanUiPlugin` | — | **@soybeanjs/ui（强制）**, vite（optional） | **peer**（`@soybeanjs/ui` 在 `peerDependencies` 非 optional） | `UiResolver` 自动导入 + `styles.css` 注入（`css: true` 可关） |
+
+### 11.2 核心依赖形态三值
+
+- **hard**：核心库在 `dependencies`，安装扩展即自动安装（auth/pwa/electron）。
+- **peer**：核心库在 `peerDependencies` 且**非** optional，用户必须自行安装（pinia/ui）。
+- **optional-peer**：在 `peerDependencies` 且 `optional: true`（如各包对 vite/vue）。
+- **none**：无重核心库，仅工具函数依赖（icon/image/content/fonts）。
+
+### 11.3 已识别的不一致
+
+`hard` 与 `peer` 混用是已知不一致：auth/pwa/electron 自动装核心库，pinia/ui 要求用户手动装。新增扩展包应明确选择一种并在本表登记；后续可视情况统一（见 [OPT-07](../../../docs/optimize.md#总览)）。
+
+### 11.4 新增扩展包清单
+
+新增扩展包 PR 必须同时：
+
+1. 在 `package.json` 提供 `./vite` 子路径导出（使其被 CI 派生为扩展集）；
+2. 在本表 11.1 增加一行（缺行 CI 失败）；
+3. 按 11.2 标注核心依赖形态。
+
+---
+

@@ -194,7 +194,7 @@ packages/
 ### Layer 4 — Vue-Specific Modules
 
 #### `@ubean/runtime`
-- **Responsibility**: Vue client runtime — `createUbeanApp`, `createUbeanSSRApp`, `useRouter`, `useHead`, `usePage`, `Link`, `Head`, `PageView`, `defineApp`, `applyAppConfig`, `createUbeanRouter`, `resolveRoute`, `isActiveRoute`, composables, `useCacheViews`, `usePageTransition`, `useReloadSignal`, `useViewTransition`, `hydrateIslands`, `useI18n` (Vue integration), vue-router `RouteMeta` type extension
+- **Responsibility**: Vue client runtime — `createUbeanVueApp`, `createUbeanSSRApp`, `useRouter`, `useHead`, `usePage`, `Link`, `Head`, `PageView`, `defineApp`, `applyAppConfig`, `createUbeanRouter`, `resolveRoute`, `isActiveRoute`, composables, `useCacheViews`, `usePageTransition`, `useReloadSignal`, `useViewTransition`, `hydrateIslands`, `useI18n` (Vue integration), vue-router `RouteMeta` type extension
 - **Source**: `runtime/vue/`
 - **Dependencies**: `vue`, `vue-router`, `@unhead/vue`, `@ubean/pages`, `@ubean/i18n`, `@ubean/seo` (type-only)
 - **Entries**: `@ubean/runtime`, `@ubean/runtime/app`, `@ubean/runtime/define-app`

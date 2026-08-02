@@ -48,7 +48,7 @@ export type {
   UseAsyncDataReturn
 } from './composables';
 export {
-  createUbeanApp,
+  createUbeanVueApp,
   createUbeanSSRApp,
   usePage,
   useRouter,

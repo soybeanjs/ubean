@@ -9,7 +9,7 @@ export type VirtualModuleTransform = (id: string, code: string) => string | Prom
 export interface VirtualModule {
   id: string;
   resolve(id: string, importer?: string): string | undefined;
-  load(): string | Promise<string>;
+  load(id?: string): string | Promise<string>;
 }
 
 export class VirtualModuleRegistry {
@@ -30,9 +30,15 @@ export class VirtualModuleRegistry {
   }
 
   async load(id: string): Promise<string | undefined> {
-    const mod = this.modules.get(id);
-    if (!mod) return undefined;
-    return mod.load();
+    // 1. 精确匹配（性能快路径）
+    const exactMod = this.modules.get(id);
+    if (exactMod) return exactMod.load(id);
+    // 2. 前缀匹配（defineVirtualModulePrefix 注册的模块）
+    for (const [modId, mod] of this.modules) {
+      if (modId === id) continue;
+      if (mod.resolve(id)) return mod.load(id);
+    }
+    return undefined;
   }
 
   invalidate(id: string): void {

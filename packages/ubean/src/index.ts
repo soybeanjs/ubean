@@ -6,7 +6,7 @@
  * 冲突处理策略(显式 re-export 优先于 `export *`):
  * - `useRouter`:来自 `@ubean/routing`(服务端 rou3 router 实例,无参数),与 `@ubean/runtime` 的 Vue composable 版冲突 → 保留 routing 版本
  * - `createUbeanRouter`:来自 `@ubean/runtime`(Vue Router,接受 options),与 `@ubean/routing` 的服务端版本冲突 → 保留 runtime 版本(对齐原 ubean 行为)
- * - `createUbeanApp`:来自 `@ubean/app`(Hono 应用工厂),与 `@ubean/runtime` 的 Vue 应用工厂冲突 → 保留 app 版本
+ * - `createUbeanApp`:来自 `@ubean/app`(Hono 应用工厂)。`@ubean/runtime` 的 Vue 应用工厂已重命名为 `createUbeanVueApp`(ADR-0001),不再同名冲突。主入口选择性 export 不含 `createUbeanVueApp`(见 ADR-0005 待决子项)
  * - `useSeoMeta`:来自 `@ubean/seo`(自定义实现),与 `@ubean/runtime` 重新导出的 `@unhead/vue` 版本冲突 → 保留 seo 版本
  * - `defineMiddleware`:来自 `@ubean/api-routes`(真实实现),与 `@ubean/runtime` 的 no-op 宏冲突 → 保留 api-routes 版本
  * - `defineDataKey`:来自 `@ubean/pages`,与 `@ubean/runtime` 的 own 实现冲突 → 保留 pages 版本

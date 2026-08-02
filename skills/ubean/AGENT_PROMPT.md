@@ -18,7 +18,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
 
 1. **Full-Stack Rendering**
    - Server-side rendering (SSR) with Vue + `@vue/server-renderer`
-   - Client-side hydration via `createUbeanApp` / `createUbeanSSRApp`
+   - Client-side hydration via `createUbeanVueApp` / `createUbeanSSRApp`
    - Islands architecture for partial hydration (`client:load|idle|visible|media|only`)
    - View Transitions API for native page transitions
 

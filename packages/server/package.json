@@ -14,9 +14,57 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./cache": {
+      "types": "./dist/cache-entry.d.ts",
+      "import": "./dist/cache-entry.js"
+    },
     "./cache-directive": {
       "types": "./dist/cache-directive.d.ts",
       "import": "./dist/cache-directive.js"
+    },
+    "./db": {
+      "types": "./dist/database.d.ts",
+      "import": "./dist/database.js"
+    },
+    "./realtime": {
+      "types": "./dist/realtime.d.ts",
+      "import": "./dist/realtime.js"
+    },
+    "./security": {
+      "types": "./dist/security.d.ts",
+      "import": "./dist/security.js"
+    },
+    "./queue": {
+      "types": "./dist/queue.d.ts",
+      "import": "./dist/queue.js"
+    },
+    "./cron": {
+      "types": "./dist/cron-entry.d.ts",
+      "import": "./dist/cron-entry.js"
+    },
+    "./storage": {
+      "types": "./dist/storage.d.ts",
+      "import": "./dist/storage.js"
+    },
+    "./observability": {
+      "types": "./dist/observability.d.ts",
+      "import": "./dist/observability.js"
+    },
+    "./email": {
+      "types": "./dist/email.d.ts",
+      "import": "./dist/email.js"
+    },
+    "./analytics": {
+      "types": "./dist/analytics-entry.d.ts",
+      "import": "./dist/analytics-entry.js"
+    },
+    "./static": {
+      "types": "./dist/static.d.ts",
+      "import": "./dist/static.js"
+    },
+    "./middleware": {
+      "types": "./dist/middleware.d.ts",
+      "import": "./dist/middleware.js"
     }
   },
   "scripts": {

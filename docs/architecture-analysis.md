@@ -196,6 +196,8 @@ CLI / DevServer
 
 #### A. 同名 `createUbeanApp` 语义分叉
 
+> **⛔ 已由 [ADR-0001](./adr/0001-rename-vue-create-ubean-app.md) 超越（2026-08-02）**：grilling 核查发现聚合器主入口已不 re-export Vue 版（`packages/ubean/src/index.ts` 选择性 export 刻意省略 `createUbeanApp`），AGENTS 已记录双义（L184–185/L793）；真实危害为团队/上手心智。决策：Vue 工厂重命名为 `createUbeanVueApp`，硬重命名随下个 major；另发现 `production.ts:319` 第三处 re-export（Hono 版，无歧义，保留）。下文为审计时快照，保留作历史记录。
+
 CodeGraph 检出两个导出同名函数：
 
 | 位置 | 角色 |
@@ -236,6 +238,8 @@ CodeGraph 对多个核心符号标注「no covering tests」。结合仓库内 t
 
 #### D. `@ubean/server` 职责过重
 
+> **⛔ 已由 [ADR-0003](./adr/0003-server-subpaths-rejustification.md) 超越（2026-08-02）**：grilling 证伪 tree-shaking 半边——barrel 是函数 re-export 可 tree-shake，重依赖（unstorage/db0/crossws）已在子模块内 `import()` 动态加载、未入静态 `dependencies`。重订理由为心智模型 + `tsc`/IDE 类型解析成本；采用语义聚合子路径（`./realtime`=ws+sse 等）。下文为审计时快照。
+
 单包已含：cache、component cache、data cache、db、queue、cron、ws、sse、cors、csrf、sessions、security-headers、draft-mode、observability、feature-flags、email、analytics 等。
 
 **建议**: 按能力拆分子路径或子包（渐进式，避免大爆炸）：
@@ -248,6 +252,8 @@ CodeGraph 对多个核心符号标注「no covering tests」。结合仓库内 t
 runtime 同时持有 Vue 应用工厂、router、page view、i18n、head、islands 桥接、search 等；app 持有 Hono 与 global hooks。边界总体正确，但 runtime 内 `createUbeanApp` 命名加剧混淆（见 A）。
 
 #### F. DevTools 体量
+
+> **⛔ 部分由 [ADR-0004](./adr/0004-devtools-ai-sdk-optional-deps.md) 超越（2026-08-02）**：「评估安装体积影响」已确认为真实传递硬依赖链 `ubean → @ubean/devtools → ai@7.0.40 + @ai-sdk/openai-compatible`（均硬 `dependencies`），每次 `npm install ubean` 传递安装 Vercel AI SDK。决策：改 `optionalDependencies` + AI scaffold 懒加载。依赖方向审计与 client/RPC 边界建议仍适用。
 
 `devtools` 索引文件数最高（~45）。建议：
 
@@ -319,13 +325,17 @@ codegraph explore <area>     # 新人上手某子系统
 | 工程规范 | [apps/docs/.../architecture/engineering.md](../apps/docs/src/content/zh/architecture/engineering.md) |
 | 路线图 | [roadmap.md](./roadmap.md) |
 | **优化任务（按优先级）** | [optimize.md](./optimize.md) |
-| **本分析（CodeGraph）** | 本文件 |
+| **优化术语表** | [glossary.md](./glossary.md) |
+| **架构决策记录（ADR）** | [adr/](./adr/)（0001 createUbeanApp 重命名 / 0002 序列重排+测试边界 / 0003 server 子路径 / 0004 devtools AI SDK / 0005 OPT-09 实现+OPT-11 时序+OPT-01 子项 / 0006 OPT-07 契约表+OPT-08 优先级） |
+| **本分析（CodeGraph）** | 本文件（2026-08-02 快照；§6/§9 部分已被 ADR 超越，见各节标注） |
 
 ---
 
 ## 9. 建议落地顺序（可执行 backlog）
 
 > 已拆解为带 ID / 验收标准的任务清单，见 **[optimize.md](./optimize.md)**（OPT-01 … OPT-11）。
+>
+> **⛔ 执行顺序已由 [ADR-0002](./adr/0002-sequencing-enablers-and-test-boundaries.md) 重排（2026-08-02）**：enabler 领头——OPT-09（包树 CI 校验）/ OPT-11（CodeGraph 进 PR 流）由 P2 提前为 P1 并先行，再走 OPT-01 → 04 → 05 → 06 → 07 →（08/10 并行）。下文旧顺序保留作历史记录；当前顺序见 [optimize.md · 建议执行顺序](./optimize.md#建议执行顺序)。
 
 1. **文档纠偏** — 包数量、包树、文档导航（README / AGENTS）✅ OPT-03  
 2. **消歧 `createUbeanApp`** — 重命名或子路径隔离 + 文档表格 → OPT-01  

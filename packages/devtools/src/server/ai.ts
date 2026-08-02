@@ -699,10 +699,25 @@ You can also ask me questions in natural language, or configure a DeepSeek/OpenA
     const { messages, apiKey, apiBase, model, requestId } = options;
 
     // Dynamic import — makes `ai` and `@ai-sdk/openai-compatible` optional.
-    const [{ streamText, stepCountIs }, { createOpenAICompatible }] = await Promise.all([
-      import('ai'),
-      import('@ai-sdk/openai-compatible')
-    ]);
+    // If the packages are not installed (optionalDependencies), throw a clear
+    // error guiding the user to install them (ADR-0004 OPT-10).
+    let streamText: typeof import('ai').streamText;
+    let stepCountIs: typeof import('ai').stepCountIs;
+    let createOpenAICompatible: typeof import('@ai-sdk/openai-compatible').createOpenAICompatible;
+    try {
+      const [aiMod, compatMod] = await Promise.all([import('ai'), import('@ai-sdk/openai-compatible')]);
+      streamText = aiMod.streamText;
+      stepCountIs = aiMod.stepCountIs;
+      createOpenAICompatible = compatMod.createOpenAICompatible;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(
+        `AI SDK packages are not installed. The DevTools AI assistant requires \`ai\` and \`@ai-sdk/openai-compatible\` to be installed. ` +
+          `Install them with: pnpm add ai @ai-sdk/openai-compatible (or npm/yarn/bun equivalent). ` +
+          `Original error: ${msg}`,
+        { cause: err }
+      );
+    }
 
     const provider = createOpenAICompatible({
       baseURL: apiBase,

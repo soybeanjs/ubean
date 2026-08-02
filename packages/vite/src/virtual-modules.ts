@@ -351,7 +351,7 @@ ${serverImport}
 ${clientImport}
 
 import {
-  createUbeanApp,
+  createUbeanVueApp,
   createUbeanSSRApp,
   usePage,
   useRouter,
@@ -370,7 +370,7 @@ import {
 } from 'ubean/runtime/vue';
 
 export {
-  createUbeanApp,
+  createUbeanVueApp,
   createUbeanSSRApp,
   usePage,
   useRouter,
@@ -493,7 +493,7 @@ export async function createApp() {
   const errorComponent = config.errorComponent || (await resolveErrorComponent()) || undefined;
 
   const initialPage = getInitialPageData();
-  const instance = createUbeanApp({
+  const instance = createUbeanVueApp({
     routes,
     resolveLayoutComponent,
     defaultLayout,

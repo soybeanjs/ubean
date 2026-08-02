@@ -1513,7 +1513,7 @@ The `v-client` directive uses a dual-layer architecture:
 2. **Runtime (Vue directive)**: When the Vite plugin is not enabled (CSR-only apps, unit tests, component libraries), the `vClient` directive is registered as a normal Vue directive on the app, tagging elements with attributes like `data-client-directive` so that `hydrateIslands()` can still discover and process them.
 
 ```typescript
-// 框架自动注册（createUbeanApp 内部）：
+// 框架自动注册（createUbeanVueApp 内部）：
 app.directive('client', vClient);
 
 // 手动注册（独立 Vue 应用）：

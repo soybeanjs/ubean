@@ -393,7 +393,11 @@ async function scanPages(
       // `users/404.vue` remain regular routes at `/users/404`.
       if (!isReuse && dirPart === '' && (pageBase === '404' || pageBase === 'loading' || pageBase === 'error')) {
         const { route: specialRoute } = filePathToRoute(fileBase);
-        const specialName = routeToName(specialRoute);
+        // Special-case the 404 page name: `routeToName('/404')` returns '404'
+        // (digit-only segments don't capitalize), but the runtime convention is
+        // 'NotFound' — virtual-modules.ts hardcodes `name: 'NotFound'` for the
+        // catch-all route, and router.ts uses `component: 'NotFound'`.
+        const specialName = pageBase === '404' ? 'NotFound' : routeToName(specialRoute);
         const specialPage: ScannedPageRoute = {
           fullPath,
           relativePath,

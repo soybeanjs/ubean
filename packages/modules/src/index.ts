@@ -21,7 +21,7 @@ const logger = consola.withTag('ubean-modules');
  *   '@ubean/electron/vite' → '@ubean/electron'
  *   'some-pkg/sub'        → 'some-pkg'
  */
-function extractPackageName(modulePath: string): string {
+export function extractPackageName(modulePath: string): string {
   if (modulePath.startsWith('@')) {
     return modulePath.split('/').slice(0, 2).join('/');
   }
@@ -52,19 +52,19 @@ const BUILTIN_CORE_KEYS = new Set(['__ubean_core__', '__ubean_vue__', '__ubean_i
 
 const MODULE_DEF_KEYS = new Set(['vitePlugin', 'setup', 'hooks', 'dependsOn']);
 
-function isModuleDefinition(obj: unknown): obj is ModuleDefinition {
+export function isModuleDefinition(obj: unknown): obj is ModuleDefinition {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   const keys = Object.keys(obj as object);
   return keys.some(k => MODULE_DEF_KEYS.has(k));
 }
 
-function isVitePlugin(obj: unknown): obj is VitePlugin {
+export function isVitePlugin(obj: unknown): obj is VitePlugin {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return false;
   const p = obj as Record<string, unknown>;
   return typeof p.name === 'string' && !isModuleDefinition(obj);
 }
 
-function getModuleKey(mod: unknown, index: number): string {
+export function getModuleKey(mod: unknown, index: number): string {
   if (typeof mod === 'string') {
     return mod;
   }
@@ -87,7 +87,7 @@ function getModuleKey(mod: unknown, index: number): string {
   return `__module_${index}__`;
 }
 
-function getModuleName(mod: unknown, key: string): string {
+export function getModuleName(mod: unknown, key: string): string {
   if (typeof mod === 'string') {
     const parts = mod.split('/');
     return parts[parts.length - 1] || mod;
@@ -111,7 +111,7 @@ function getModuleName(mod: unknown, key: string): string {
   return key;
 }
 
-function extractPlugins(mod: unknown): VitePlugin[] {
+export function extractPlugins(mod: unknown): VitePlugin[] {
   if (!mod) return [];
 
   if (Array.isArray(mod)) {

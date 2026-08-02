@@ -1,6 +1,7 @@
 # AGENTS.md
 
-> 本文件供 AI 助手快速了解 ubean 项目。所有 API 信息已对照源码验证（截至 2026-07）。
+> 本文件供 AI 助手快速了解 ubean 项目。所有 API 信息已对照源码验证（截至 2026-08）。  
+> CodeGraph 全库结构审计见 [docs/architecture-analysis.md](docs/architecture-analysis.md)。
 
 ## 1. 项目概述
 
@@ -9,14 +10,14 @@ ubean/（npm 包名：`ubean`，**不是** `@ubean/core`）是一个基于 Vite-
 - **HTTP 框架**：Hono
 - **构建工具**：Vite-Plus
 - **前端框架**：Vue 3（仅支持 Vue）
-- **包管理器**：pnpm 11.x（monorepo + catalog）
+- **包管理器**：pnpm 11.x（monorepo + catalog；根 `packageManager` 当前为 `pnpm@11.17.0`）
 - **目标平台**：Node.js（`node-server`）、Cloudflare Workers、Vercel（Serverless + Edge）、Netlify、Bun、Deno
 
 ## 2. 仓库结构
 
 ```
 ubean/
-├── packages/                # 40 个子包（monorepo）
+├── packages/                # 37 个包（monorepo）
 │   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
 │   ├── types/              # @ubean/types — 共享类型
 │   ├── utils/              # @ubean/utils — 工具函数
@@ -28,19 +29,19 @@ ubean/
 │   ├── i18n/               # @ubean/i18n — 国际化（纯函数）
 │   ├── routing/            # @ubean/routing — 路由扫描 + rou3 router
 │   ├── api-routes/         # @ubean/api-routes — API 路由处理器
-│   ├── actions/            # @ubean/actions — Server Actions / Form Actions（defineAction + 'use server' 指令转换）
+│   ├── actions/            # @ubean/actions — Server Actions / Form Actions（defineAction + Vite 插件注入 ID）
 │   ├── server/             # @ubean/server — 服务端运行时（cache/db/queue/cron/ws/sse）
-│   ├── app/                # @ubean/app — Hono 应用工厂
+│   ├── app/                # @ubean/app — Hono 应用工厂（createUbeanApp → UbeanApp）
 │   ├── config/             # @ubean/config — 配置加载
 │   ├── preset/             # @ubean/preset — 平台预设（standard/node/cloudflare/vercel/netlify/bun/deno）
 │   ├── codegen/            # @ubean/codegen — 类型生成
 │   ├── modules/            # @ubean/modules — 模块系统
 │   ├── auto-imports/       # @ubean/auto-imports — 自动导入
-│   ├── runtime/            # @ubean/runtime — Vue 客户端运行时
+│   ├── runtime/            # @ubean/runtime — Vue 客户端运行时（另有同名 createUbeanApp → Vue 实例，见陷阱）
 │   ├── islands/            # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
 │   ├── ssr/                # @ubean/ssr — Vue SSR 渲染器
 │   ├── vite/               # @ubean/vite — Vue 专属 Vite 插件
-│   ├── build/              # @ubean/build — 构建时核心（virtual + vite 插件）
+│   ├── builder/            # @ubean/build — 构建时核心（目录名 builder，包名仍为 @ubean/build）
 │   ├── prerender/          # @ubean/prerender — SSG 预渲染
 │   ├── dev-server/         # @ubean/dev-server — Dev server
 │   ├── cli/                # @ubean/cli — CLI 命令
@@ -54,12 +55,14 @@ ubean/
 │   ├── electron/           # @ubean/electron — Electron 桌面应用（vite-plugin-electron 封装）
 │   ├── pinia/              # @ubean/pinia — Pinia 集成（SSR 状态水合 + dev 预构建优化）
 │   └── ui/                 # @ubean/ui — @soybeanjs/ui 集成（UiResolver + styles.css 自动注入）
+├── apps/
+│   └── docs/               # 官方文档站（指南 / 集成 / API / 架构正文）
 ├── examples/                # 示例项目
 │   ├── ubean-test/         # 完整全栈示例 + 测试（virtual 模式）
 │   ├── frontend-only/      # 纯前端示例（无 API/SSR）
 │   └── routing-file-mode/  # 路由文件生成模式示例
-├── skills/ubean/            # AI Skill（含使用指南和 API 参考）
-├── docs/                     # 架构/工程/路线图文档
+├── skills/ubean/            # AI Skill（CLI 命令文档与 agent 提示词）
+├── docs/                     # 仓库级工程文档（roadmap、CodeGraph 架构分析）
 └── AGENTS.md                 # 本文件
 ```
 
@@ -67,9 +70,9 @@ ubean/
 
 ubean 采用 **monorepo + 聚合器** 架构：
 
-- **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含 4 个子路径导出（见下文）。
-- **子包 `@ubean/*`**（其余 39 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
-- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`pinia: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径。
+- **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含多个子路径导出（见下文）。
+- **子包 `@ubean/*`**（其余 36 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`pinia: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径；**不**进入主包硬依赖。
 
 ### 2.2 主包子路径导出
 
@@ -158,27 +161,28 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 路由与处理器
 
-| API                                        | 说明                                                                                                    |
-| ------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `defineHandler(...handlers)`               | 包装 API 路由处理器，返回 `UbeanHandlerChain`                                                           |
-| `defineHandlerMeta(meta)`                  | 路由元数据（`requiresAuth`/`cache`/`rateLimit`），返回带 `.__meta` 的 pass-through 中间件               |
-| `defineMiddleware(handler)`                | 包装中间件                                                                                              |
-| `definePage(meta)`                         | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`middleware`/`requiresAuth`/`cache`/`head`） |
-| `defineMeta(meta)`                         | 定义路由 meta                                                                                           |
-| `validator` / `describeRoute` / `resolver` | 来自 `hono-openapi`，请求验证 + OpenAPI                                                                 |
-| `defineMatcher(name, fn)`                  | 注册动态路由 matcher（Task 7），`fn: (value: string) => boolean \| null \| undefined`，返回 falsy 跳过路由 |
-| `getMatcher` / `hasMatcher` / `listMatcherNames` / `clearMatchers` | matcher 注册表读取/清理（`clearMatchers` 仅供测试）                                      |
-| `validateParams(matchers, params)`         | 批量校验参数（服务端中间件与客户端守卫复用）                                                            |
-| `createMatcherGuard(options?)`             | 创建 vue-router `beforeEach` 守卫，校验 `route.meta.matchers`，失败跳转 `notFoundRouteName`（默认 `NotFound`） |
-| `registerRoutes(app, scanResult)`          | 路由挂载（内部用 `app.on(method, path, ...)`，**不要**用 `app[method](path, ...)`）                     |
+| API                                                                | 说明                                                                                                           |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `defineHandler(...handlers)`                                       | 包装 API 路由处理器，返回 `UbeanHandlerChain`                                                                  |
+| `defineHandlerMeta(meta)`                                          | 路由元数据（`requiresAuth`/`cache`/`rateLimit`），返回带 `.__meta` 的 pass-through 中间件                      |
+| `defineMiddleware(handler)`                                        | 包装中间件                                                                                                     |
+| `definePage(meta)`                                                 | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`middleware`/`requiresAuth`/`cache`/`head`）        |
+| `defineMeta(meta)`                                                 | 定义路由 meta                                                                                                  |
+| `validator` / `describeRoute` / `resolver`                         | 来自 `hono-openapi`，请求验证 + OpenAPI                                                                        |
+| `defineMatcher(name, fn)`                                          | 注册动态路由 matcher（Task 7），`fn: (value: string) => boolean \| null \| undefined`，返回 falsy 跳过路由     |
+| `getMatcher` / `hasMatcher` / `listMatcherNames` / `clearMatchers` | matcher 注册表读取/清理（`clearMatchers` 仅供测试）                                                            |
+| `validateParams(matchers, params)`                                 | 批量校验参数（服务端中间件与客户端守卫复用）                                                                   |
+| `createMatcherGuard(options?)`                                     | 创建 vue-router `beforeEach` 守卫，校验 `route.meta.matchers`，失败跳转 `notFoundRouteName`（默认 `NotFound`） |
+| `registerRoutes(app, scanResult)`                                  | 路由挂载（内部用 `app.on(method, path, ...)`，**不要**用 `app[method](path, ...)`）                            |
 
 ### 应用入口
 
-| API                                     | 说明                                   |
-| --------------------------------------- | -------------------------------------- |
-| `defineApp(options): ResolvedAppConfig` | 基于选项的应用配置（**不是**工厂函数） |
-| `applyAppConfig(app, config, mode)`     | 应用配置到 Vue 实例                    |
-| `createUbeanApp(options)`               | 创建 ubean Hono 应用                   |
+| API                                                             | 说明                                                                       |
+| --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `defineApp(options): ResolvedAppConfig`                         | 基于选项的应用配置（**不是**工厂函数）                                     |
+| `applyAppConfig(app, config, mode)`                             | 应用配置到 Vue 实例                                                        |
+| `createUbeanApp(options)`（`@ubean/app` / `ubean/runtime/app`） | 创建 ubean **Hono** 应用（`UbeanApp`）                                     |
+| `createUbeanApp(options)`（`@ubean/runtime`）                   | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）；与上者同名不同义 |
 
 `DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
 
@@ -238,17 +242,17 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 组件级缓存 (P9-08)
 
-| API                                              | 说明                                                                   |
-| ------------------------------------------------ | ---------------------------------------------------------------------- |
-| `defineCachedFunction(fn, options)`              | 显式缓存包装器(替代已移除的 `"use cache"` 指令);对齐 Next.js 16 `unstable_cache`  |
-| `cacheLife(seconds)`                             | 设置当前缓存作用域 TTL(秒),须在 `defineCachedFunction` 函数体内调用    |
-| `cacheTag(...tags)`                              | 为当前缓存作用域添加标签,用于 `revalidateTag()` 精确失效               |
+| API                                              | 说明                                                                                     |
+| ------------------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `defineCachedFunction(fn, options)`              | 显式缓存包装器(替代已移除的 `"use cache"` 指令);对齐 Next.js 16 `unstable_cache`         |
+| `cacheLife(seconds)`                             | 设置当前缓存作用域 TTL(秒),须在 `defineCachedFunction` 函数体内调用                      |
+| `cacheTag(...tags)`                              | 为当前缓存作用域添加标签,用于 `revalidateTag()` 精确失效                                 |
 | `revalidateTag(tag)` / `revalidateTags(...tags)` | 按标签失效组件缓存 + fetch Data Cache 条目,返回删除总数(Task 4 起 Data Cache 也参与失效) |
-| `revalidatePath(pattern)`                        | 按 glob/正则失效组件缓存键 + fetch Data Cache 键匹配的条目                              |
-| `wrapWithCache(fn, options)`                     | ⚠️ 已弃用别名(等价于 `defineCachedFunction`,保留用于过渡)             |
-| `useComponentCacheStore(store?)`                 | 获取/设置组件级缓存存储                                                |
-| `createComponentMemoryStore(maxEntries)`         | 内存组件缓存存储(带标签反向索引)                                       |
-| `clearComponentCache()`                          | 清空所有组件级缓存                                                     |
+| `revalidatePath(pattern)`                        | 按 glob/正则失效组件缓存键 + fetch Data Cache 键匹配的条目                               |
+| `wrapWithCache(fn, options)`                     | ⚠️ 已弃用别名(等价于 `defineCachedFunction`,保留用于过渡)                                |
+| `useComponentCacheStore(store?)`                 | 获取/设置组件级缓存存储                                                                  |
+| `createComponentMemoryStore(maxEntries)`         | 内存组件缓存存储(带标签反向索引)                                                         |
+| `clearComponentCache()`                          | 清空所有组件级缓存                                                                       |
 
 ```typescript
 // 显式缓存包装(替代已移除的 "use cache" 指令)
@@ -318,15 +322,15 @@ await revalidatePath('getUser:*');
 
 ### Partial Prerendering / Server Islands (P9-04 + Task 9.4)
 
-| API                                                | 说明                                                                                                                             |
-| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `routeRules: { '/path': { ppr: true } }`           | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)                         |
-| `defineServerIsland(Component, options?)`          | 运行时包装器(替代已移除的 `server:defer` 指令):将异步组件包裹在 `<Suspense>` 中,`options.fallback` 指定 fallback(字符串/组件/默认占位);Task 9.4 起 `options.rerenderOnPropsChange: true` 启用 props 变化触发服务端重渲染 |
-| `ServerIslandOptions`                              | `{ fallback?: Component \| string; rerenderOnPropsChange?: boolean }` 类型(Task 9.4 扩展)                                       |
-| `registerServerComponent(path, Component)`         | Task 9.4:将组件注册到全局服务端组件注册表(路径 → 组件);SSR 构建中由 `defineServerIsland` 在 `rerenderOnPropsChange: true` 时自动调用 |
-| `getServerComponent(path)`                         | Task 9.4:从注册表取出组件(由 `createServerComponentMiddleware` 调用);未注册返回 `undefined`                                       |
-| `SERVER_COMPONENT_ENDPOINT`                        | Task 9.4:`POST /__server-component` 端点常量                                                                                     |
-| `createServerComponentMiddleware()`                | Task 9.4:Hono 中间件,处理 `POST /__server-component` 请求,用新 props 重新渲染注册表中的组件并返回 HTML 片段(从 `@ubean/islands/server` 导入,由 `createUbeanApp()` 自动挂载) |
+| API                                        | 说明                                                                                                                                                                                                                     |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `routeRules: { '/path': { ppr: true } }`   | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)                                                                                                                 |
+| `defineServerIsland(Component, options?)`  | 运行时包装器(替代已移除的 `server:defer` 指令):将异步组件包裹在 `<Suspense>` 中,`options.fallback` 指定 fallback(字符串/组件/默认占位);Task 9.4 起 `options.rerenderOnPropsChange: true` 启用 props 变化触发服务端重渲染 |
+| `ServerIslandOptions`                      | `{ fallback?: Component \| string; rerenderOnPropsChange?: boolean }` 类型(Task 9.4 扩展)                                                                                                                                |
+| `registerServerComponent(path, Component)` | Task 9.4:将组件注册到全局服务端组件注册表(路径 → 组件);SSR 构建中由 `defineServerIsland` 在 `rerenderOnPropsChange: true` 时自动调用                                                                                     |
+| `getServerComponent(path)`                 | Task 9.4:从注册表取出组件(由 `createServerComponentMiddleware` 调用);未注册返回 `undefined`                                                                                                                              |
+| `SERVER_COMPONENT_ENDPOINT`                | Task 9.4:`POST /__server-component` 端点常量                                                                                                                                                                             |
+| `createServerComponentMiddleware()`        | Task 9.4:Hono 中间件,处理 `POST /__server-component` 请求,用新 props 重新渲染注册表中的组件并返回 HTML 片段(从 `@ubean/islands/server` 导入,由 `createUbeanApp()` 自动挂载)                                              |
 
 - 传入 `defineServerIsland()` 的组件必须为异步(`async setup()` 或 `defineAsyncComponent`)才能触发 Suspense 流式
 - 对齐 Next.js 16 PPR / Astro 5 `server:defer` 语义
@@ -349,35 +353,35 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 
 ### 中间件工厂
 
-| API                                                                                                        | 说明                                                                                                                                    |
-| ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `createCorsMiddleware(options)` / `defineCors(options)`                                                    | CORS                                                                                                                                    |
-| `createRateLimitMiddleware(options)` / `defineRateLimit(options)`                                          | 限流                                                                                                                                    |
-| `createCsrfMiddleware(options)` / `defineCsrf(options)` / `generateCsrfToken(length)`                      | CSRF 保护(P9-12):double-submit cookie 模式(默认)/origin 校验/both 模式;支持自定义 cookie/header/field 名、exclude 路径                  |
-| `createSecurityHeadersMiddleware(options)` / `defineSecurityHeaders(options)` / `serializeCsp(directives)` | 安全头(P9-13):CSP/HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy/Cross-Origin-*                         |
-| `createSessionMiddleware(options)` / `useSession(c)` / `createStorageSessionStore(...)`                    | 通用 Sessions API(P9-11):cookie 模式(signed cookie) + storage 模式(SessionStore);`Session<T>` 接口(get/set/delete/has/all/save/destroy) |
-| `after(callback)` / `createAfterMiddleware()`                                                              | 响应后执行(P9-14):fire-and-forget 回调不阻塞 TTFB;AsyncLocalStorage 请求作用域                                                          |
-| `createFetchMemoizationMiddleware(options)` / `createMemoizedFetch(options)`                               | 请求 memoization(P9-15):请求内相同 GET URL 自动去重                                                                                     |
-| `createDataCacheMiddleware(options)` / `FetchCacheOptions` / `FetchInitWithNext`                          | fetch Data Cache(Task 4):跨请求缓存 GET 响应,识别 `next: { revalidate, tags, noStore }`;与 `revalidateTag`/`revalidatePath` 集成失效 |
+| API                                                                                                                                                                                        | 说明                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `createCorsMiddleware(options)` / `defineCors(options)`                                                                                                                                    | CORS                                                                                                                                                                                                                                                                                                                          |
+| `createRateLimitMiddleware(options)` / `defineRateLimit(options)`                                                                                                                          | 限流                                                                                                                                                                                                                                                                                                                          |
+| `createCsrfMiddleware(options)` / `defineCsrf(options)` / `generateCsrfToken(length)`                                                                                                      | CSRF 保护(P9-12):double-submit cookie 模式(默认)/origin 校验/both 模式;支持自定义 cookie/header/field 名、exclude 路径                                                                                                                                                                                                        |
+| `createSecurityHeadersMiddleware(options)` / `defineSecurityHeaders(options)` / `serializeCsp(directives)`                                                                                 | 安全头(P9-13):CSP/HSTS/X-Frame-Options/X-Content-Type-Options/Referrer-Policy/Permissions-Policy/Cross-Origin-*                                                                                                                                                                                                               |
+| `createSessionMiddleware(options)` / `useSession(c)` / `createStorageSessionStore(...)`                                                                                                    | 通用 Sessions API(P9-11):cookie 模式(signed cookie) + storage 模式(SessionStore);`Session<T>` 接口(get/set/delete/has/all/save/destroy)                                                                                                                                                                                       |
+| `after(callback)` / `createAfterMiddleware()`                                                                                                                                              | 响应后执行(P9-14):fire-and-forget 回调不阻塞 TTFB;AsyncLocalStorage 请求作用域                                                                                                                                                                                                                                                |
+| `createFetchMemoizationMiddleware(options)` / `createMemoizedFetch(options)`                                                                                                               | 请求 memoization(P9-15):请求内相同 GET URL 自动去重                                                                                                                                                                                                                                                                           |
+| `createDataCacheMiddleware(options)` / `FetchCacheOptions` / `FetchInitWithNext`                                                                                                           | fetch Data Cache(Task 4):跨请求缓存 GET 响应,识别 `next: { revalidate, tags, noStore }`;与 `revalidateTag`/`revalidatePath` 集成失效                                                                                                                                                                                          |
 | `createDraftModeMiddleware(options)` / `defineDraftMode(options)` / `enableDraftMode(c)` / `disableDraftMode(c)` / `isDraftMode(c)` / `useDraftMode(c)` / `DraftModeOptions` / `DraftMode` | Draft/Preview Mode(Task 5/P9-23):对齐 Next.js `draftMode()`;HMAC-SHA256 签名 cookie(`ubean_draft`,默认 1h TTL)+ 时序安全比较;中间件读取并验证 cookie 后注入 `DraftModeController`;`enable/disable` 通过 pendingAction 在响应阶段设置/清除 cookie;未注册中间件时 `isDraftMode` 返回 false、`useDraftMode` 返回安全回退(零开销) |
 
 ### SEO 与可观测性
 
-| API                                                                                       | 说明                                                                                                                                                                                                                                                          |
-| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API                                                                                               | 说明                                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `useSeoMeta()` / `mergeMetadata()` / `mergeSeoLayers()` / `dedupeMetaTags()` / `dedupeLinkTags()` | SEO meta。`mergeMetadata`/`mergeSeoLayers` 自动对 `meta`/`link` 数组去重(last-wins):meta 按 `name`/`property`,link 按 `rel`+`hreflang`/`type`/`sizes`。`mergeSeoLayers(global, layout, page)` 三层合并(page>layout>global)。`dedupeMetaTags`/`dedupeLinkTags` 独立去重工具(Task 8) |
-| `isBotUserAgent(ua)`                                                                      | 爬虫/社交预览 UA 检测(P9-24 / Task 6 流式 metadata):流式 SSR 启用时,router 自动为爬虫降级为缓冲渲染,保证动态 `<head>` metadata 出现在初始响应中(社交爬虫只解析初始 `<head>`)。`botFallback` 选项默认 `true`,仅在 `streaming: true` 时生效 |
-| `createRobotsResponse()` / `createSitemapResponse()`                                      | robots.txt / sitemap.xml                                                                                                                                                                                                                                      |
-| `defineManifest()` / `createManifestResponse()`                                           | PWA manifest                                                                                                                                                                                                                                                  |
-| `getRequestId()` / `createObservabilityTracer()`                                          | 请求 ID / 可观测性                                                                                                                                                                                                                                            |
-| `createTracingMiddleware(options)`                                                        | tracing 中间件                                                                                                                                                                                                                                                |
-| `registerSeoConventions(app, {srcDir})`                                                   | P9-05 文件约定 SEO:扫描 `src/sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.ts`/`icon.ts`/`apple-icon.ts`,自动注册 GET 路由                                                                                                                           |
-| `listSeoConventions({srcDir})`                                                            | 列出 srcDir 下存在的约定文件 kind(不加载)                                                                                                                                                                                                                     |
-| `defineJsonLd()` / `useSchemaOrg()` / `renderJsonLdScript()`                              | P9-07 JSON-LD 结构化数据:`defineJsonLd(schema)` 定义、`useSchemaOrg(schema)` Vue composable、`renderJsonLdScript(schema)` 序列化为 `<script type="application/ld+json">` 标签(自动转义 `</script>`/U+2028/U+2029)                                             |
-| `schemaOrg.*`                                                                             | Schema.org 工厂:`organization`/`website`/`article`/`breadcrumb`/`product`                                                                                                                                                                                     |
-| `ImageResponse` / `renderOgImage()` / `renderArticleOgImage()`                            | P9-06 OG Image 动态生成(`@ubean/seo/og-image`):`ImageResponse` 类对齐 Next.js(ReadableStream 懒渲染)、`renderOgImage(input, options)` 一步到位渲染默认模板、`renderArticleOgImage(input, options)` 文章模板。`satori`/`@resvg/resvg-js` 为 optional peer 依赖 |
-| `defaultTemplate()` / `articleTemplate()` / `renderToImage()`                             | P9-06 Satori VDOM 模板(渐变背景/标题自适应字号/可选描述/站点名/logo/作者日期)与底层渲染(返回 `{ body, contentType }`)                                                                                                                                         |
-| `loadDefaultFont()` / `loadFontFromUrl()` / `loadFontFromFile()` / `isOgImageSupported()` | P9-06 字体加载辅助(默认 Inter from Google Fonts / URL / 本地文件)与能力检测                                                                                                                                                                                   |
+| `isBotUserAgent(ua)`                                                                              | 爬虫/社交预览 UA 检测(P9-24 / Task 6 流式 metadata):流式 SSR 启用时,router 自动为爬虫降级为缓冲渲染,保证动态 `<head>` metadata 出现在初始响应中(社交爬虫只解析初始 `<head>`)。`botFallback` 选项默认 `true`,仅在 `streaming: true` 时生效                                          |
+| `createRobotsResponse()` / `createSitemapResponse()`                                              | robots.txt / sitemap.xml                                                                                                                                                                                                                                                           |
+| `defineManifest()` / `createManifestResponse()`                                                   | PWA manifest                                                                                                                                                                                                                                                                       |
+| `getRequestId()` / `createObservabilityTracer()`                                                  | 请求 ID / 可观测性                                                                                                                                                                                                                                                                 |
+| `createTracingMiddleware(options)`                                                                | tracing 中间件                                                                                                                                                                                                                                                                     |
+| `registerSeoConventions(app, {srcDir})`                                                           | P9-05 文件约定 SEO:扫描 `src/sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.ts`/`icon.ts`/`apple-icon.ts`,自动注册 GET 路由                                                                                                                                                |
+| `listSeoConventions({srcDir})`                                                                    | 列出 srcDir 下存在的约定文件 kind(不加载)                                                                                                                                                                                                                                          |
+| `defineJsonLd()` / `useSchemaOrg()` / `renderJsonLdScript()`                                      | P9-07 JSON-LD 结构化数据:`defineJsonLd(schema)` 定义、`useSchemaOrg(schema)` Vue composable、`renderJsonLdScript(schema)` 序列化为 `<script type="application/ld+json">` 标签(自动转义 `</script>`/U+2028/U+2029)                                                                  |
+| `schemaOrg.*`                                                                                     | Schema.org 工厂:`organization`/`website`/`article`/`breadcrumb`/`product`                                                                                                                                                                                                          |
+| `ImageResponse` / `renderOgImage()` / `renderArticleOgImage()`                                    | P9-06 OG Image 动态生成(`@ubean/seo/og-image`):`ImageResponse` 类对齐 Next.js(ReadableStream 懒渲染)、`renderOgImage(input, options)` 一步到位渲染默认模板、`renderArticleOgImage(input, options)` 文章模板。`satori`/`@resvg/resvg-js` 为 optional peer 依赖                      |
+| `defaultTemplate()` / `articleTemplate()` / `renderToImage()`                                     | P9-06 Satori VDOM 模板(渐变背景/标题自适应字号/可选描述/站点名/logo/作者日期)与底层渲染(返回 `{ body, contentType }`)                                                                                                                                                              |
+| `loadDefaultFont()` / `loadFontFromUrl()` / `loadFontFromFile()` / `isOgImageSupported()`         | P9-06 字体加载辅助(默认 Inter from Google Fonts / URL / 本地文件)与能力检测                                                                                                                                                                                                        |
 
 ### 内部调用
 
@@ -409,7 +413,9 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 // 旧用法(已移除):
 // async function addToCart(itemId: string) { 'use server'; ... }
 // 新用法:
-const addToCart = defineAction(async (itemId: string) => { /* ... */ });
+const addToCart = defineAction(async (itemId: string) => {
+  /* ... */
+});
 ```
 
 ### 全局 Hooks（P9-09）
@@ -527,22 +533,22 @@ const json = serializeVercelConfig(config);
 
 ### Vue 运行时
 
-| API                                                                                                                                                               | 说明                                                                                                            |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `useRouter()` / `createUbeanRouter(options)`                                                                                                                      | 路由                                                                                                            |
-| `useCacheViews()` / `enablePageCache` / `disablePageCache` / `excludePageCache` / `includePageCache` / `invalidatePageCache` / `isPageCached` / `resetRouteCache` | 页面 KeepAlive 缓存运行时控制（自动导入自 `ubean/runtime/vue`）；`getNamedPageWrapper` 从 `@ubean/runtime` 导出 |
-| `useHead()` / `useSeoMeta()`                                                                                                                                      | 动态 head/SEO（响应式）；静态 head 用 `definePage({ head })`                                                    |
-| `useData(options)` / `useAsyncData(key, fn, options?)` / `invalidateData(key)` / `invalidateAll()`                                                                                               | 页面数据:P0 — `useData` 增强(dedupe/refresh/pending/status);`useAsyncData` Nuxt 风格超集;SSR payload 自动注入 `__UBEAN_DATA__`,客户端水合无二次请求         |
-| `defer(factory)` / `useDeferredData(key, deferred)`                                                                                                               | 流式延迟数据:P0 — SSR 不阻塞初始渲染,数据在主内容后流式注入;客户端水合时从 `__UBEAN_DEFERRED__` 立即读取         |
-| `withViewTransition(fn)` / `supportsViewTransitions()`                                                                                                            | View Transitions                                                                                                |
-| `<Link to="...">` / `<Head>`                                                                                                                                      | 全局注册组件（无需导入）                                                                                        |
-| `<Comp v-client.load / v-client.idle / v-client.visible / v-client.media="'...'" / v-client.only />` | Islands 指令(**推荐** Vue 指令语法,P9-29;框架自动水合,无需手动调用 `hydrateIslands`)               |
-| `defineIsland(Component, strategy, options?)`                                                       | 客户端 island 运行时包装器(替代 `v-client.*` 的编程式用法);`strategy`: 'load'\|'idle'\|'visible'\|'media'\|'only';`options`: `{ mediaQuery?, props? }` |
-| `defineServerIsland(Component, options?)`                                                           | 服务端 island 运行时包装器(P9-04,替代已移除的 `server:defer` 指令);`options.fallback` 指定 Suspense fallback;Task 9.4 起 `options.rerenderOnPropsChange: true` 启用 props 变化触发服务端重渲染(Vite 插件自动注入组件路径) |
-| `hydrateIslands(options?)`                                                                          | Islands 水合(**框架自动调用**,无需手动执行;`components` 可选,手动传入优先于自动注册)                       |
-| `.server.vue` / `.client.vue` 文件约定                                                               | Server Components (Task 9,P1.5):`.server.vue` 仅 SSR 渲染(客户端不发送 JS);`.client.vue` SSR 渲染 `<div data-client-only>` 占位符,客户端 `onMounted` 后替换为真实组件。Vite 插件自动处理 `resolveId`/`load`/`transform`,用户无需手动调用 |
-| `defineClientComponent(Component)`                                                                   | `.client.vue` 在客户端构建中的运行时包装器(Task 9.2);通常由 Vite 插件自动生成,无需手动调用 |
-| `definePairedComponent(ServerComp, ClientComp)`                                                     | Task 9.3 配对组件运行时包装器:`isClient` ref + `onMounted` 切换,初始渲染 ServerComp(SSR 输出)→ 水合后切换 ClientComp;通常由 Vite 插件在检测到同名 `.server.vue` + `.client.vue` 时自动生成虚拟包装模块,无需手动调用 |
+| API                                                                                                                                                               | 说明                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useRouter()` / `createUbeanRouter(options)`                                                                                                                      | 路由                                                                                                                                                                                                                                     |
+| `useCacheViews()` / `enablePageCache` / `disablePageCache` / `excludePageCache` / `includePageCache` / `invalidatePageCache` / `isPageCached` / `resetRouteCache` | 页面 KeepAlive 缓存运行时控制（自动导入自 `ubean/runtime/vue`）；`getNamedPageWrapper` 从 `@ubean/runtime` 导出                                                                                                                          |
+| `useHead()` / `useSeoMeta()`                                                                                                                                      | 动态 head/SEO（响应式）；静态 head 用 `definePage({ head })`                                                                                                                                                                             |
+| `useData(options)` / `useAsyncData(key, fn, options?)` / `invalidateData(key)` / `invalidateAll()`                                                                | 页面数据:P0 — `useData` 增强(dedupe/refresh/pending/status);`useAsyncData` Nuxt 风格超集;SSR payload 自动注入 `__UBEAN_DATA__`,客户端水合无二次请求                                                                                      |
+| `defer(factory)` / `useDeferredData(key, deferred)`                                                                                                               | 流式延迟数据:P0 — SSR 不阻塞初始渲染,数据在主内容后流式注入;客户端水合时从 `__UBEAN_DEFERRED__` 立即读取                                                                                                                                 |
+| `withViewTransition(fn)` / `supportsViewTransitions()`                                                                                                            | View Transitions                                                                                                                                                                                                                         |
+| `<Link to="...">` / `<Head>`                                                                                                                                      | 全局注册组件（无需导入）                                                                                                                                                                                                                 |
+| `<Comp v-client.load / v-client.idle / v-client.visible / v-client.media="'...'" / v-client.only />`                                                              | Islands 指令(**推荐** Vue 指令语法,P9-29;框架自动水合,无需手动调用 `hydrateIslands`)                                                                                                                                                     |
+| `defineIsland(Component, strategy, options?)`                                                                                                                     | 客户端 island 运行时包装器(替代 `v-client.*` 的编程式用法);`strategy`: 'load'\|'idle'\|'visible'\|'media'\|'only';`options`: `{ mediaQuery?, props? }`                                                                                   |
+| `defineServerIsland(Component, options?)`                                                                                                                         | 服务端 island 运行时包装器(P9-04,替代已移除的 `server:defer` 指令);`options.fallback` 指定 Suspense fallback;Task 9.4 起 `options.rerenderOnPropsChange: true` 启用 props 变化触发服务端重渲染(Vite 插件自动注入组件路径)                |
+| `hydrateIslands(options?)`                                                                                                                                        | Islands 水合(**框架自动调用**,无需手动执行;`components` 可选,手动传入优先于自动注册)                                                                                                                                                     |
+| `.server.vue` / `.client.vue` 文件约定                                                                                                                            | Server Components (Task 9,P1.5):`.server.vue` 仅 SSR 渲染(客户端不发送 JS);`.client.vue` SSR 渲染 `<div data-client-only>` 占位符,客户端 `onMounted` 后替换为真实组件。Vite 插件自动处理 `resolveId`/`load`/`transform`,用户无需手动调用 |
+| `defineClientComponent(Component)`                                                                                                                                | `.client.vue` 在客户端构建中的运行时包装器(Task 9.2);通常由 Vite 插件自动生成,无需手动调用                                                                                                                                               |
+| `definePairedComponent(ServerComp, ClientComp)`                                                                                                                   | Task 9.3 配对组件运行时包装器:`isClient` ref + `onMounted` 切换,初始渲染 ServerComp(SSR 输出)→ 水合后切换 ClientComp;通常由 Vite 插件在检测到同名 `.server.vue` + `.client.vue` 时自动生成虚拟包装模块,无需手动调用                      |
 
 > **迁移说明**:旧的 `client:*` attribute 语法和 `server:defer` 编译时指令已移除。请改用 `v-client.*` Vue 指令(模板内),或 `defineIsland()` / `defineServerIsland()` 运行时包装(编程式):
 
@@ -556,15 +562,15 @@ const json = serializeVercelConfig(config);
 
 ### 预渲染
 
-| API                                                                | 说明                                                                                           |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `prerender(options)` / `collectPrerenderRoutes(pages, options)`    | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)          |
-| `extractPrerenderRoutesFromRules(routeRules)`                      | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤) |
+| API                                                                | 说明                                                                                                   |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `prerender(options)` / `collectPrerenderRoutes(pages, options)`    | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)                  |
+| `extractPrerenderRoutesFromRules(routeRules)`                      | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤)         |
 | `extractDataPayload(html, route)` / `routeToDataFilePath(...)`     | SSG payload 提取(Task 3):从 HTML 中提取 `__UBEAN_DATA__` 为 `__data.json`,返回 `{data, html, dataUrl}` |
-| `generatePrerenderManifest(result, baseUrl)`                       | 生成清单                                                                                       |
-| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`  | 路由 → 文件路径映射/写入                                                                       |
-| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob` | 链接提取/通配符匹配                                                                            |
-| `resolvePrerenderConfig(config)`                                   | 配置解析与默认值(`extractDataPayload` 默认 `true`)                                            |
+| `generatePrerenderManifest(result, baseUrl)`                       | 生成清单                                                                                               |
+| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`  | 路由 → 文件路径映射/写入                                                                               |
+| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob` | 链接提取/通配符匹配                                                                                    |
+| `resolvePrerenderConfig(config)`                                   | 配置解析与默认值(`extractDataPayload` 默认 `true`)                                                     |
 
 ### i18n
 
@@ -764,14 +770,14 @@ export default defineConfig({
 
 ## 7. 内置路由
 
-| 路由                  | 说明                                                                                                          |
-| --------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `/_health`            | 健康检查                                                                                                      |
-| `/_openapi.json`      | OpenAPI schema                                                                                                |
-| `/_scalar`            | Scalar UI                                                                                                     |
-| `/_iconify`           | 本地 SVG 服务（dev）                                                                                          |
-| `/_devtools`          | DevTools（dev）                                                                                               |
-| `POST /__actions`     | Server Actions RPC 端点(P9-02,由 `createActionsMiddleware` 处理)                                             |
+| 路由                       | 说明                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `/_health`                 | 健康检查                                                                                                      |
+| `/_openapi.json`           | OpenAPI schema                                                                                                |
+| `/_scalar`                 | Scalar UI                                                                                                     |
+| `/_iconify`                | 本地 SVG 服务（dev）                                                                                          |
+| `/_devtools`               | DevTools（dev）                                                                                               |
+| `POST /__actions`          | Server Actions RPC 端点(P9-02,由 `createActionsMiddleware` 处理)                                              |
 | `POST /__server-component` | Task 9.4:Server Component props 重渲染端点(由 `createServerComponentMiddleware` 处理,`@ubean/islands/server`) |
 
 ## 8. 常见陷阱（不要做）
@@ -784,6 +790,7 @@ export default defineConfig({
 6. **不要**在 `definePage` 中使用顶层 `title` 字段 — 用 `head` 字段
 7. **不要**用 `#ubean-` 作为虚拟模块前缀 — 会因 URL hash 导致 404，用 `virtual:ubean-`
 8. **不要**从 `ubean` 主入口自动导入客户端 API — 会触发 Vite 在浏览器环境预构建服务端依赖（unocss、oxc-parser WASM），客户端自动导入用 `ubean/runtime/vue` 入口
+   8b. **注意** `createUbeanApp` 同名双义 — `@ubean/app` 返回 Hono `UbeanApp`；`@ubean/runtime` 返回 Vue `{ app, router, head, page }`。服务端入口用 `ubean/runtime/app`（Hono），客户端勿混用
 9. **不要**将 async 函数直接传给 `server.middlewares.use()` — 必须包装在 `Promise.resolve().then().catch()` 中
 10. **不要**用模板替换生成 Service Worker 中的 RUNTIME 全局 — 用硬编码字符串 `'ubean-runtime'`
 11. **不要**在 `macros.ts` 的 `MACRO_NAMES` 中包含 `defineHandlerMeta` 和 `defineMiddleware` — 只保留 `definePage`，否则运行时函数调用会被 build strip，导致语法错误
@@ -811,19 +818,20 @@ pnpm dev              # 启动开发服务器（examples/ubean-test）
 pnpm build            # 构建
 ```
 
-要求：Node.js、pnpm `11.11.0`
+要求：Node.js、pnpm `11.17.0`（见根 `packageManager`）
 
 ## 10. 文档导航
 
-| 资源     | 路径                                                                 | 内容                                                        |
-| -------- | -------------------------------------------------------------------- | ----------------------------------------------------------- |
-| 架构文档 | [docs/](docs/)                                                       | 架构、工程规范、路线图、子包拆分、应用模式                  |
-| 使用指南 | [skills/ubean/docs/guide/](skills/ubean/docs/guide/)                 | 快速开始、页面路由、i18n、Islands、路由模式                 |
-| 集成指南 | [skills/ubean/docs/integrations/](skills/ubean/docs/integrations/)   | Auth、Database、Icons、Pinia、UI、Electron                  |
-| API 参考 | [skills/ubean/docs/reference/api/](skills/ubean/docs/reference/api/) | Cache、Database、Env、i18n、Route Helpers、Response Helpers |
-| CLI 命令 | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)       | CLI 命令文档                                                |
-| 示例项目 | [examples/ubean-test/](examples/ubean-test/)                         | 完整全栈示例 + 测试（virtual 路由模式）                     |
-| 示例项目 | [examples/frontend-only/](examples/frontend-only/)                   | 纯前端示例（无 API/SSR）                                    |
-| 示例项目 | [examples/routing-file-mode/](examples/routing-file-mode/)           | 路由文件生成模式示例                                        |
-| 应用模式 | [docs/modes.md](docs/modes.md)                                       | 全栈/前端/后端/SSG/SSR 模式设计方案                         |
-| 子包拆分 | [docs/subpackage-splitting.md](docs/subpackage-splitting.md)         | monorepo 拆分方案与包架构                                   |
+| 资源                      | 路径                                                                                                                           | 内容                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| CodeGraph 架构分析        | [docs/architecture-analysis.md](docs/architecture-analysis.md)                                                                 | 全库结构审计、依赖分层、改进建议                                |
+| 架构优化任务              | [docs/optimize.md](docs/optimize.md)                                                                                           | 按优先级拆解的 OPT-xx 任务清单                                  |
+| 路线图                    | [docs/roadmap.md](docs/roadmap.md)                                                                                             | 未实现功能规划                                                  |
+| 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)                                                                               | 中英文档源（overview / routing / runtime / guide / reference…） |
+| 应用模式 ADR              | [apps/docs/src/content/zh/architecture/modes.md](apps/docs/src/content/zh/architecture/modes.md)                               | 全栈/SPA/SSG/backend 模式设计                                   |
+| 子包拆分                  | [apps/docs/src/content/zh/architecture/subpackage-splitting.md](apps/docs/src/content/zh/architecture/subpackage-splitting.md) | monorepo 拆分方案与包架构                                       |
+| CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)                                                                 | CLI 命令文档                                                    |
+| AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                                                                                 | Agent 技能入口                                                  |
+| 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                                                                                   | 完整全栈示例 + 测试（virtual 路由模式）                         |
+| 示例项目                  | [examples/frontend-only/](examples/frontend-only/)                                                                             | 纯前端示例（无 API/SSR）                                        |
+| 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)                                                                     | 路由文件生成模式示例                                            |

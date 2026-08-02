@@ -99,7 +99,7 @@ packages/
 ├── config/                   # @ubean/config
 ├── codegen/                  # @ubean/codegen
 ├── modules/                  # @ubean/modules
-├── build/                    # @ubean/build(框架无关 Vite 插件)
+├── builder/                  # @ubean/build（目录名 builder，包名仍为 @ubean/build）
 ├── dev-server/               # @ubean/dev-server
 ├── cli/                      # @ubean/cli
 │

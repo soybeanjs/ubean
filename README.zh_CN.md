@@ -106,7 +106,7 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 
 ### 仓库布局
 
-ubean 是一个由 pnpm 工作区管理的 **38 包 monorepo**。公开包 `ubean`（`packages/ubean/`）是聚合器，re-export 所有 `@ubean/*` 子包。每个子包独立构建、类型检查，并可在高级场景中单独消费。
+ubean 是一个由 pnpm 工作区管理的 **37 包 monorepo**（`packages/*`、`apps/*`、`examples/*`）。公开包 `ubean`（`packages/ubean/`）是聚合器，re-export 所有 `@ubean/*` 子包。每个子包独立构建、类型检查，并可在高级场景中单独消费。基于 CodeGraph 的结构审计与改进建议见 [docs/architecture-analysis.md](docs/architecture-analysis.md)。
 
 ```
 packages/
@@ -121,6 +121,7 @@ packages/
 ├── i18n/           # @ubean/i18n — 零依赖 i18n（纯函数）
 ├── routing/        # @ubean/routing — 路由扫描器 + rou3 router
 ├── api-routes/     # @ubean/api-routes — API 路由处理程序 (defineHandler)
+├── actions/        # @ubean/actions — Server Actions / Form Actions (defineAction)
 ├── server/         # @ubean/server — 服务端运行时 (cache/db/queue/cron/ws/sse)
 ├── app/            # @ubean/app — Hono 应用工厂 (createUbeanApp)
 ├── config/         # @ubean/config — 配置加载器 (c12 + defu)
@@ -132,11 +133,11 @@ packages/
 ├── islands/        # @ubean/islands — Islands 局部水合
 ├── ssr/            # @ubean/ssr — Vue SSR 渲染器 (createVueRenderer)
 ├── vite/           # @ubean/vite — Vue 专属 Vite 插件
-├── build/          # @ubean/build — 构建时核心（虚拟模块 + Vite 插件）
+├── builder/        # @ubean/build — 构建时核心（目录名 builder，包名仍为 @ubean/build）
 ├── prerender/      # @ubean/prerender — SSG 预渲染
 ├── dev-server/     # @ubean/dev-server — 开发服务器
 ├── cli/            # @ubean/cli — CLI 命令 (citty)
-├── devtools/      # @ubean/devtools — 开发者工具 (RPC、AI、CRUD 脚手架)
+├── devtools/       # @ubean/devtools — 开发者工具 (RPC、AI、CRUD 脚手架)
 ├── auth/           # @ubean/auth — Better Auth 集成 + fallback
 ├── icon/           # @ubean/icon — Iconify 集成 + 自定义集合
 ├── pwa/            # @ubean/pwa — PWA manifest + service worker
@@ -144,7 +145,12 @@ packages/
 ├── content/        # @ubean/content — 内容集合
 ├── fonts/          # @ubean/fonts — 字体优化 + 自托管
 ├── electron/       # @ubean/electron — Electron 桌面应用 (vite-plugin-electron)
+├── pinia/          # @ubean/pinia — Pinia 集成（SSR 水合 + optimizeDeps）
 └── ui/             # @ubean/ui — @soybeanjs/ui 集成 (UiResolver + styles.css)
+
+apps/docs/          # 文档站（源码位于 src/content/{en,zh}/）
+examples/           # ubean-test / frontend-only / routing-file-mode
+docs/               # 仓库级工程文档（roadmap、架构分析）
 ```
 
 ### 用户应用布局

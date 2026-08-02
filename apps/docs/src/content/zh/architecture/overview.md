@@ -284,3 +284,20 @@ my-app/
 ```
 
 ---
+
+## 4. CodeGraph 结构审计（2026-08）
+
+仓库级全文见根目录 [`docs/architecture-analysis.md`](../../../../../../docs/architecture-analysis.md)（CodeGraph v1.5：510 files / 5,445 nodes / 20,567 edges）。摘要：
+
+| 结论 | 说明 |
+| --- | --- |
+| 包数量 | **37** 个 `packages/*`（非旧文档中的 38/40） |
+| 依赖分层 | `@ubean/types` / `routing` / `utils` 高扇入；`ubean` 聚合器扇出 27 |
+| 同名陷阱 | `createUbeanApp` 在 `@ubean/app`（Hono）与 `@ubean/runtime`（Vue）语义分叉 |
+| 索引修复 | 原 `packages/build` 触发 CodeGraph 对 `build/` 的默认忽略；已改名为 `packages/builder`（包名仍为 `@ubean/build`） |
+| 测试缺口 | `build` / `cli` / `config` 包内单测偏弱，依赖 `examples/ubean-test` 集成覆盖 |
+| 文档站位置 | 架构/指南正文在 `apps/docs`；根 `docs/` 仅 roadmap + 本分析 |
+
+优先改进：消歧同名 API → 修复 build 索引 → 补核心包单测 → 规划 `@ubean/server` 子路径拆分。
+
+---

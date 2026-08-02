@@ -106,7 +106,7 @@ The `ubean` main package provides several subpath exports in addition to the def
 
 ### Repository Layout
 
-ubean is a **38-package monorepo** managed by pnpm workspaces. The public package `ubean` (`packages/ubean/`) is the aggregator that re-exports all `@ubean/*` subpackages. Each subpackage is independently built, type-checked, and consumable individually in advanced scenarios.
+ubean is a **37-package monorepo** managed by pnpm workspaces (`packages/*`, `apps/*`, `examples/*`). The public package `ubean` (`packages/ubean/`) is the aggregator that re-exports all `@ubean/*` subpackages. Each subpackage is independently built, type-checked, and consumable individually in advanced scenarios. For a CodeGraph-backed structure audit and improvement backlog, see [docs/architecture-analysis.md](docs/architecture-analysis.md).
 
 ```
 packages/
@@ -121,6 +121,7 @@ packages/
 ├── i18n/           # @ubean/i18n — zero-dependency i18n (pure functions)
 ├── routing/        # @ubean/routing — route scanner + rou3 router
 ├── api-routes/     # @ubean/api-routes — API route handlers (defineHandler)
+├── actions/        # @ubean/actions — Server Actions / Form Actions (defineAction)
 ├── server/         # @ubean/server — server runtime (cache/db/queue/cron/ws/sse)
 ├── app/            # @ubean/app — Hono app factory (createUbeanApp)
 ├── config/         # @ubean/config — config loader (c12 + defu)
@@ -132,7 +133,7 @@ packages/
 ├── islands/        # @ubean/islands — Islands partial hydration
 ├── ssr/            # @ubean/ssr — Vue SSR renderer (createVueRenderer)
 ├── vite/           # @ubean/vite — Vue-specific Vite plugin
-├── build/          # @ubean/build — build-time core (virtual modules + Vite plugins)
+├── builder/        # @ubean/build — build-time core (dir: builder; package name stays @ubean/build)
 ├── prerender/      # @ubean/prerender — SSG prerendering
 ├── dev-server/     # @ubean/dev-server — dev server
 ├── cli/            # @ubean/cli — CLI commands (citty)
@@ -144,7 +145,12 @@ packages/
 ├── content/        # @ubean/content — content collections
 ├── fonts/          # @ubean/fonts — font optimization + self-hosting
 ├── electron/       # @ubean/electron — Electron desktop apps (vite-plugin-electron)
+├── pinia/          # @ubean/pinia — Pinia integration (SSR hydration + optimizeDeps)
 └── ui/             # @ubean/ui — @soybeanjs/ui integration (UiResolver + styles.css)
+
+apps/docs/          # Documentation site (source under src/content/{en,zh}/)
+examples/           # ubean-test / frontend-only / routing-file-mode
+docs/               # Repo-level engineering docs (roadmap, architecture analysis)
 ```
 
 ### User App Layout

@@ -23,7 +23,7 @@
     { "path": "./packages/islands" },
     { "path": "./packages/ssr" },
     { "path": "./packages/vite" },
-    { "path": "./packages/build" },
+    { "path": "./packages/builder" },
     { "path": "./packages/prerender" },
     { "path": "./packages/dev" },
     { "path": "./packages/cli" },

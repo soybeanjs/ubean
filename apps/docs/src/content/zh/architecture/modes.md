@@ -14,7 +14,7 @@ title: Modes
 
 ### 1.1 现状问题
 
-当前 ubean 的构建流程(见 [packages/build/src/production.ts](../packages/build/src/production.ts))**无条件构建 client bundle + SSR bundle + server bundle**,即使项目是纯前端应用也会产出完整的 `dist/server/` 目录,造成:
+当前 ubean 的构建流程(见 [packages/builder/src/production.ts](../packages/builder/src/production.ts))**无条件构建 client bundle + SSR bundle + server bundle**,即使项目是纯前端应用也会产出完整的 `dist/server/` 目录,造成:
 
 1. **产物冗余** — `frontend-only` 示例仍会输出 `dist/server/entry.mjs`、`server.mjs` 等文件,实际从未使用
 2. **构建耗时** — SSR bundle 构建约占整体构建时间的 40%,纯前端项目浪费明显
@@ -105,7 +105,7 @@ const configDefaults: ResolvedConfig = {
 
 ### 3.2 构建层
 
-核心改动在 [packages/build/src/production.ts](../packages/build/src/production.ts) 的 `buildProduction` 函数。
+核心改动在 [packages/builder/src/production.ts](../packages/builder/src/production.ts) 的 `buildProduction` 函数。
 
 #### 3.2.1 构建流程分支
 
@@ -148,7 +148,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
 #### 3.2.2 虚拟模块按需生成
 
-在 [packages/build/src/virtual-modules.ts](../packages/build/src/virtual-modules.ts) 的 `generateVirtualModulesToDisk` 中:
+在 [packages/builder/src/virtual-modules.ts](../packages/builder/src/virtual-modules.ts) 的 `generateVirtualModulesToDisk` 中:
 
 | 虚拟模块 | fullstack + ssr:true | fullstack + ssr:false | spa | ssg | backend |
 |---|---|---|---|---|---|
@@ -166,7 +166,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
 #### 3.2.3 Vue 插件按需加载
 
-在 [production.ts#L499-L511](../packages/build/src/production.ts#L499-L511) 的 `builtinPlugins` 中:
+在 [production.ts#L499-L511](../packages/builder/src/production.ts#L499-L511) 的 `builtinPlugins` 中:
 
 ```typescript
 const builtinPlugins: VitePlugin[] = [];
@@ -358,7 +358,7 @@ SSG 的本质是"在构建时执行 SSR 生成静态 HTML"。如果不构建 SSR
 
 ### 6.4 为什么 `backend` 模式仍保留 `ubeanPlugin`?
 
-`ubeanPlugin`([packages/build/src/vite.ts](../packages/build/src/vite.ts))负责路由扫描和核心虚拟模块生成,这些在 `backend` 模式下仍然需要(API 路由扫描)。仅 Vue 专属插件(`ubeanVuePlugin`、`ubeanIslandsPlugin`)按需跳过。
+`ubeanPlugin`([packages/builder/src/vite.ts](../packages/builder/src/vite.ts))负责路由扫描和核心虚拟模块生成,这些在 `backend` 模式下仍然需要(API 路由扫描)。仅 Vue 专属插件(`ubeanVuePlugin`、`ubeanIslandsPlugin`)按需跳过。
 
 ### 6.5 为什么移除 `ssr` mode,改为 `fullstack` + `ssr: false`?
 
@@ -382,8 +382,8 @@ SSG 的本质是"在构建时执行 SSR 生成静态 HTML"。如果不构建 SSR
 
 - [packages/config/src/types.ts](../packages/config/src/types.ts) — 配置类型定义
 - [packages/config/src/loader.ts](../packages/config/src/loader.ts) — 配置加载与默认值
-- [packages/build/src/production.ts](../packages/build/src/production.ts) — 构建流程
-- [packages/build/src/virtual-modules.ts](../packages/build/src/virtual-modules.ts) — 虚拟模块生成
+- [packages/builder/src/production.ts](../packages/builder/src/production.ts) — 构建流程
+- [packages/builder/src/virtual-modules.ts](../packages/builder/src/virtual-modules.ts) — 虚拟模块生成
 - [packages/cli/src/build.ts](../packages/cli/src/build.ts) — CLI build 命令
 - [packages/cli/src/preview.ts](../packages/cli/src/preview.ts) — CLI preview 命令
 - [packages/dev-server/src/vite-server.ts](../packages/dev-server/src/vite-server.ts) — Dev server

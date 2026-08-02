@@ -14,7 +14,7 @@ title: Modes
 
 ### 1.1 Current Problems
 
-ubean's current build pipeline (see [packages/build/src/production.ts](../packages/build/src/production.ts)) **unconditionally builds the client bundle + SSR bundle + server bundle**, so even pure frontend projects emit a full `dist/server/` directory. This causes:
+ubean's current build pipeline (see [packages/builder/src/production.ts](../packages/builder/src/production.ts)) **unconditionally builds the client bundle + SSR bundle + server bundle**, so even pure frontend projects emit a full `dist/server/` directory. This causes:
 
 1. **Redundant artifacts** — the `frontend-only` example still outputs `dist/server/entry.mjs`, `server.mjs`, and other files that are never used.
 2. **Build time waste** — building the SSR bundle accounts for roughly 40% of total build time, a clear waste for pure frontend projects.
@@ -105,7 +105,7 @@ const configDefaults: ResolvedConfig = {
 
 ### 3.2 Build Layer
 
-The core change is in the `buildProduction` function of [packages/build/src/production.ts](../packages/build/src/production.ts).
+The core change is in the `buildProduction` function of [packages/builder/src/production.ts](../packages/builder/src/production.ts).
 
 #### 3.2.1 Build Pipeline Branching
 
@@ -148,7 +148,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
 #### 3.2.2 On-Demand Virtual Module Generation
 
-In `generateVirtualModulesToDisk` of [packages/build/src/virtual-modules.ts](../packages/build/src/virtual-modules.ts):
+In `generateVirtualModulesToDisk` of [packages/builder/src/virtual-modules.ts](../packages/builder/src/virtual-modules.ts):
 
 | Virtual module | fullstack + ssr:true | fullstack + ssr:false | spa | ssg | backend |
 |---|---|---|---|---|---|
@@ -166,7 +166,7 @@ In `generateVirtualModulesToDisk` of [packages/build/src/virtual-modules.ts](../
 
 #### 3.2.3 Conditional Vue Plugin Loading
 
-In `builtinPlugins` at [production.ts#L499-L511](../packages/build/src/production.ts#L499-L511):
+In `builtinPlugins` at [production.ts#L499-L511](../packages/builder/src/production.ts#L499-L511):
 
 ```typescript
 const builtinPlugins: VitePlugin[] = [];
@@ -358,7 +358,7 @@ Auto-installing dependencies introduces side effects (npm registry calls, lockfi
 
 ### 6.4 Why does `backend` mode still keep `ubeanPlugin`?
 
-`ubeanPlugin` ([packages/build/src/vite.ts](../packages/build/src/vite.ts)) handles route scanning and core virtual module generation, which are still needed in `backend` mode (API route scanning). Only the Vue-specific plugins (`ubeanVuePlugin`, `ubeanIslandsPlugin`) are skipped on demand.
+`ubeanPlugin` ([packages/builder/src/vite.ts](../packages/builder/src/vite.ts)) handles route scanning and core virtual module generation, which are still needed in `backend` mode (API route scanning). Only the Vue-specific plugins (`ubeanVuePlugin`, `ubeanIslandsPlugin`) are skipped on demand.
 
 ### 6.5 Why remove the `ssr` mode in favor of `fullstack` + `ssr: false`?
 
@@ -382,8 +382,8 @@ Changing to an `ssr: boolean` option:
 
 - [packages/config/src/types.ts](../packages/config/src/types.ts) — config type definitions
 - [packages/config/src/loader.ts](../packages/config/src/loader.ts) — config loading and defaults
-- [packages/build/src/production.ts](../packages/build/src/production.ts) — build pipeline
-- [packages/build/src/virtual-modules.ts](../packages/build/src/virtual-modules.ts) — virtual module generation
+- [packages/builder/src/production.ts](../packages/builder/src/production.ts) — build pipeline
+- [packages/builder/src/virtual-modules.ts](../packages/builder/src/virtual-modules.ts) — virtual module generation
 - [packages/cli/src/build.ts](../packages/cli/src/build.ts) — CLI build command
 - [packages/cli/src/preview.ts](../packages/cli/src/preview.ts) — CLI preview command
 - [packages/dev-server/src/vite-server.ts](../packages/dev-server/src/vite-server.ts) — dev server

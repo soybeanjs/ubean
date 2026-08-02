@@ -193,7 +193,7 @@ ubean/
 │   │
 │   │   ── Vue client runtime ──
 │   ├── runtime/                     # @ubean/runtime — app, client, composables, define-app, head, i18n, islands, page-macro, page-runtime, party-town, router, view-transitions, color-mode, cache-views, search
-│   ├── build/                       # @ubean/build — Vite build plugin (vite.ts, macros.ts, production.ts, virtual-modules.ts, virtual-registry.ts)
+│   ├── builder/                     # @ubean/build — Vite build plugin (dir: builder; package name stays @ubean/build)
 │   ├── vite/                        # @ubean/vite — Vue Vite plugin
 │   ├── islands/                     # @ubean/islands — Islands (vite.ts, runtime.ts, directive.ts, bootstrap.ts)
 │   ├── ssr/                         # @ubean/ssr — createVueRenderer (PPR + streaming)
@@ -269,6 +269,23 @@ my-app/
 ├── package.json
 └── tsconfig.json
 ```
+
+---
+
+## 4. CodeGraph Structure Audit (2026-08)
+
+Full write-up: repo root [`docs/architecture-analysis.md`](../../../../../../docs/architecture-analysis.md) (CodeGraph v1.5: 510 files / 5,445 nodes / 20,567 edges). Highlights:
+
+| Finding | Detail |
+| --- | --- |
+| Package count | **37** packages under `packages/*` (not the older 38/40 figures) |
+| Dependency layers | High fan-in on `@ubean/types` / `routing` / `utils`; aggregator `ubean` fans out to 27 |
+| Naming collision | `createUbeanApp` means Hono in `@ubean/app` vs Vue app in `@ubean/runtime` |
+| Index fix | Former path `packages/build` hit CodeGraph's default `build/` ignore; renamed to `packages/builder` (package name stays `@ubean/build`) |
+| Test gaps | Weak package-local tests for `build` / `cli` / `config`; rely on `examples/ubean-test` |
+| Docs location | Guide/architecture live under `apps/docs`; root `docs/` holds roadmap + this analysis |
+
+Priority backlog: disambiguate dual `createUbeanApp` → fix build indexing → add core unit tests → plan `@ubean/server` subpath splits.
 
 ---
 

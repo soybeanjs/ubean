@@ -35,6 +35,8 @@ coverage
 *.sw?
 .pnpm-store
 
+.vitest-attachments
+__screenshots__
 .VSCodeCounter
 
 .temp

@@ -22,8 +22,11 @@
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
     "@types/node": "^26.1.2",
+    "@vitest/browser": "^4.1.0",
+    "@vitest/browser-playwright": "^4.1.0",
     "eslint": "^10.8.0",
-    "vite-plus": "0.2.6"
+    "vite-plus": "0.2.6",
+    "vitest": "4.1.10"
   },
   "packageManager": "pnpm@11.17.0"
 }

@@ -1,5 +1,7 @@
 # ubean 框架未实现功能规划文档
 
+> **所有规划任务（P0~P3）均已实现完成。** 本文档保留作为历史参考和功能索引。
+
 > 基于 [framework-comparison.md](../apps/docs/src/content/zh/architecture/framework-comparison.md) 对比分析，梳理 ubean 当前未实现的功能特性，按优先级制定实现计划。
 > 更新日期：2026-08-01
 
@@ -104,20 +106,20 @@ ubean 已有的能力与 Nuxt Server Components 高度重叠：
 
 | # | 能力 | 任务 ID | 理由 |
 |---|---|---|---|
-| 10 | 第三方脚本优化 (Partytown) | P9-22 | 性能优化，需求不紧迫 |
-| 11 | Color mode | P9-21 | 已委托 @soybeanjs/ui，可考虑内置集成 |
-| 12 | 全文搜索 (Pagefind) | P9-26 | 文档站场景 |
-| 13 | Analytics | P9-27 | 仅 observability，可第三方委托 |
-| 14 | Email 发送 | P9-25 | 第三方即可，无需内置 |
-| 15 | A/B 测试 / Feature flags | P9-28 | 高级特性，需求极低 |
+| 10 | 第三方脚本优化 (Partytown) | ✅ 已实现 (P9-22) | 性能优化，需求不紧迫 |
+| 11 | Color mode | ✅ 已实现 (P9-21) | 已委托 @soybeanjs/ui，可考虑内置集成 |
+| 12 | 全文搜索 (Pagefind) | ✅ 已实现 (P9-26) | 文档站场景 |
+| 13 | Analytics | ✅ 已实现 (P9-27) | 仅 observability，可第三方委托 |
+| 14 | Email 发送 | ✅ 已实现 (P9-25) | 第三方即可，无需内置 |
+| 15 | A/B 测试 / Feature flags | ✅ 已实现 (P9-28) | 高级特性，需求极低 |
 
 ### P3 — 平台扩展（低需求 / 高难度）
 
 | # | 能力 | 任务 ID | 理由 |
 |---|---|---|---|
-| 16 | AWS/Azure 平台预设 | 新建 | Nitro 有，需求低 |
-| 17 | CDN/Edge 缓存集成 | 新建 | 需平台特定适配 |
-| 18 | Single-flight mutations | P9-16 | SolidStart 独有，需求不普遍 |
+| 16 | AWS/Azure 平台预设 | ✅ 已实现 | Nitro 有，需求低 |
+| 17 | CDN/Edge 缓存集成 | ✅ 已实现 | 需平台特定适配 |
+| 18 | Single-flight mutations | ✅ 已实现 (P9-16) | SolidStart 独有，需求不普遍 |
 
 ### 不实现（设计差异）
 

@@ -1,5 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { awsPreset } from './aws';
+import { azurePreset } from './azure';
 import { bunPreset } from './bun';
 import { cloudflarePreset, cloudflareDevPreset } from './cloudflare';
 import { denoPreset } from './deno';
@@ -48,6 +50,16 @@ function detectByConfigFiles(cwd: string): string | null {
     return 'deno';
   }
 
+  // AWS SAM
+  if (existsSync(join(cwd, 'template.yaml')) || existsSync(join(cwd, 'samconfig.toml'))) {
+    return 'aws';
+  }
+
+  // Azure Static Web Apps
+  if (existsSync(join(cwd, 'staticwebapp.config.json'))) {
+    return 'azure';
+  }
+
   if (existsSync(join(cwd, 'package.json'))) {
     try {
       const pkg = JSON.parse(readFileSync(join(cwd, 'package.json'), 'utf-8'));
@@ -64,6 +76,14 @@ function detectByConfigFiles(cwd: string): string | null {
       // Netlify
       if ('netlify-cli' in deps || 'netlify-lambda' in deps) {
         return 'netlify';
+      }
+      // AWS
+      if ('aws-sam-cli' in deps || 'aws-cdk' in deps || '@aws-sdk/client-lambda' in deps) {
+        return 'aws';
+      }
+      // Azure
+      if ('@azure/static-web-apps-cli' in deps || '@azure/functions' in deps) {
+        return 'azure';
       }
     } catch {}
   }
@@ -87,6 +107,16 @@ function detectByEnvironment(env: Record<string, string | undefined>, g: Record<
   // Netlify
   if (env.NETLIFY || env.NETLIFY_DEV || env.NETLIFY_IMAGES_CDN_DOMAIN !== undefined) {
     return 'netlify';
+  }
+
+  // AWS Lambda
+  if (env.AWS_LAMBDA_FUNCTION_NAME || env.AWS_EXECUTION_ENV || env.AWS_LAMBDA_RUNTIME_API) {
+    return 'aws';
+  }
+
+  // Azure Functions / Static Web Apps
+  if (env.AZURE_FUNCTIONS_ENVIRONMENT || env.WEBSITE_SITE_NAME || env.AZURE_HTTP_FUNCTION) {
+    return 'azure';
   }
 
   // Deno (检测 globalThis.Deno)
@@ -157,7 +187,9 @@ export function detectPreset(hints: PresetDetectionHints = {}): PresetDetectionR
         cloudflare: 'detected wrangler.toml or Cloudflare dependencies',
         vercel: 'detected vercel.json or Vercel dependencies',
         netlify: 'detected netlify.toml or Netlify dependencies',
-        deno: 'detected deno.json'
+        deno: 'detected deno.json',
+        aws: 'detected template.yaml (AWS SAM) or AWS dependencies',
+        azure: 'detected staticwebapp.config.json or Azure dependencies'
       };
       return {
         preset,
@@ -202,6 +234,9 @@ export function listDetectablePresets(): PresetDefinition[] {
     getPresetDef(vercelEdgePreset),
     getPresetDef(netlifyPreset),
     getPresetDef(bunPreset),
-    getPresetDef(denoPreset)
+    getPresetDef(denoPreset),
+    // Task 16: AWS/Azure 平台预设
+    getPresetDef(awsPreset),
+    getPresetDef(azurePreset)
   ];
 }

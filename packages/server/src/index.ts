@@ -380,6 +380,24 @@ export type {
 } from './feature-flags';
 
 /* -------------------------------------------------------------------------- */
+/* CDN / Edge Cache (Task 17)                                                  */
+/* -------------------------------------------------------------------------- */
+export {
+  defineSurrogateKeys,
+  getSurrogateKeys,
+  setGlobalPurgeAdapter,
+  getGlobalPurgeAdapter,
+  purgeKeys,
+  purgeUrls,
+  createCacheControlMiddleware,
+  createCloudflarePurgeAdapter,
+  createFastlyPurgeAdapter,
+  createMockPurgeAdapter,
+  _resetCdnCache
+} from './cdn-cache';
+export type { SurrogateKeyHeader, CdnPurgeAdapter, PurgeResult, CacheControlOptions } from './cdn-cache';
+
+/* -------------------------------------------------------------------------- */
 /* 从 @ubean/types re-export 共享类型(方便消费者单入口导入)                       */
 /* -------------------------------------------------------------------------- */
 export type {

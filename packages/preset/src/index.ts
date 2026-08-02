@@ -1,3 +1,5 @@
+import { awsPreset } from './aws';
+import { azurePreset } from './azure';
 import { bunPreset } from './bun';
 import { cloudflarePreset, cloudflareDevPreset } from './cloudflare';
 import { denoPreset } from './deno';
@@ -22,7 +24,10 @@ const builtinPresets: Preset[] = [
   vercelEdgePreset,
   netlifyPreset,
   bunPreset,
-  denoPreset
+  denoPreset,
+  // Task 16: AWS/Azure 平台预设
+  awsPreset,
+  azurePreset
 ];
 
 export function registerBuiltinPresets(): void {
@@ -59,6 +64,8 @@ export { vercelPreset, vercelEdgePreset };
 export { netlifyPreset };
 export { bunPreset };
 export { denoPreset };
+export { awsPreset };
+export { azurePreset };
 export { generateWranglerConfig, serializeWranglerToml } from './cloudflare';
 export type { WranglerConfig } from './cloudflare';
 export { generateVercelConfig, serializeVercelConfig } from './vercel';
@@ -69,6 +76,10 @@ export { generateBunfigConfig, serializeBunfigConfig } from './bun';
 export type { BunfigConfig } from './bun';
 export { generateDenoConfig, serializeDenoConfig } from './deno';
 export type { DenoConfig } from './deno';
+export { generateAwsSamConfig, serializeAwsSamConfig } from './aws';
+export type { AwsSamTemplate, AwsSamResource } from './aws';
+export { generateStaticWebAppConfig, serializeStaticWebAppConfig } from './azure';
+export type { StaticWebAppConfig } from './azure';
 export type {
   Preset,
   ResolvedPreset,

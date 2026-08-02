@@ -28,7 +28,7 @@
     "@ubean/islands": "workspace:*",
     "@ubean/server": "workspace:*",
     "@ubean/types": "workspace:*",
-    "hono": "4.12.32",
+    "hono": "4.12.33",
     "hookable": "^6.1.1",
     "pathe": "^2.0.3"
   },

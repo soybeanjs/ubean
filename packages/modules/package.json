@@ -30,9 +30,9 @@
   },
   "devDependencies": {
     "@types/node": "^26.1.2",
-    "hono": "4.12.32",
+    "hono": "4.12.33",
     "typescript": "7.0.2",
-    "vite": "^8.1.5",
+    "vite": "^8.2.0",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {

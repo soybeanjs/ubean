@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "@ubean/types": "workspace:*",
-    "hono": "4.12.32",
+    "hono": "4.12.33",
     "vue": "^3.5.40"
   },
   "devDependencies": {

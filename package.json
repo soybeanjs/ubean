@@ -15,18 +15,18 @@
     "test": "pnpm -r --parallel test -- --passWithNoTests",
     "test:watch": "pnpm -r --parallel test:watch -- --passWithNoTests",
     "typecheck": "pnpm build && pnpm -r --parallel typecheck",
-    "upkg": "soy ncu"
+    "upkg": "ncu -u -w"
   },
   "devDependencies": {
     "@soybeanjs/cli": "^1.8.1",
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
     "@types/node": "^26.1.2",
-    "@vitest/browser": "^4.1.0",
-    "@vitest/browser-playwright": "^4.1.0",
+    "@vitest/browser": "^4.1.10",
+    "@vitest/browser-playwright": "^4.1.10",
     "eslint": "^10.8.0",
-    "vite-plus": "0.2.6",
+    "vite-plus": "0.2.7",
     "vitest": "4.1.10"
   },
-  "packageManager": "pnpm@11.17.0"
+  "packageManager": "pnpm@11.18.0"
 }

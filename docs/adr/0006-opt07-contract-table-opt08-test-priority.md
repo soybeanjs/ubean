@@ -1,6 +1,6 @@
 # ADR-0006 · OPT-07 扩展契约表设计 + OPT-08 测试优先级
 
-- **状态**: accepted（OPT-07 待实施）/ implemented（OPT-08，2026-08-02）
+- **状态**: implemented（OPT-07 + OPT-08，2026-08-02）
 - **日期**: 2026-08-02
 - **关联任务**: OPT-07、OPT-08
 - **决策者**: grilling 会话（用户 + 助手）
@@ -49,6 +49,16 @@
 
 - OPT-07：`engineering.md` 契约表覆盖全部派生扩展包（有 `./vite` 导出者）；缺行时 CI 失败；三值核心依赖形态列填齐。
 - OPT-08：`@ubean/utils` / `@ubean/modules` 各有可运行 vitest 套件；纯函数主路径+边界覆盖；`resolveModules` 至少有 builtin-skip + 去重 + topo 排序回归用例。
+
+## OPT-07 实施记录（2026-08-02）
+
+| 项 | 实施情况 |
+| --- | --- |
+| 契约表 | `engineering.md` §11 新增四小节：11.1 契约表（6 列 × 9 行，覆盖全部派生扩展包）+ 11.2 核心依赖形态四值说明 + 11.3 已识别的不一致（hard 与 peer 混用）+ 11.4 新增扩展包清单（3 步骤） |
+| 派生规则 | `scripts/verify-packages.mjs` 读 `packages/ubean/package.json` 的 `dependencies` 排除核心包，派生出 9 个扩展包：auth/icon/pwa/image/content/fonts/electron/pinia/ui |
+| 核心依赖形态四值 | hard（auth: better-auth, pwa: vite-plugin-pwa, electron: vite-plugin-electron）/ peer（pinia: pinia, ui: @soybeanjs/ui）/ optional-peer（各包对 vite/vue）/ none（icon/image/content/fonts 仅工具函数依赖） |
+| CI 校验 | `.github/workflows/ci.yml` 含 `Verify package tree & extension contract` 步骤；`scripts/verify-packages.mjs` 与 OPT-09 共用，既校验 AGENTS 包树又校验 engineering.md 扩展覆盖 |
+| 验证 | `node scripts/verify-packages.mjs` ✅（37 包，9 扩展，全部覆盖） |
 
 ## OPT-08 实施记录（2026-08-02）
 

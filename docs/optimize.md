@@ -26,7 +26,7 @@
 | OPT-04 | P1 | done | 核心包包内单测：`config` / `build`（`packages/builder`） / `cli`（快照单测 + 可度量门禁） | [ADR-0002](./adr/0002-sequencing-enablers-and-test-boundaries.md) |
 | OPT-05 | P1 | done | 补强 `app` init 与 `routing` 扫描边角用例（5a 纯注册断言） | [ADR-0002](./adr/0002-sequencing-enablers-and-test-boundaries.md) |
 | OPT-06 | P1 | done | `@ubean/server` 子路径 exports 拆分（重订理由 + 语义聚合） | [ADR-0003](./adr/0003-server-subpaths-rejustification.md) |
-| OPT-07 | P1 | decided | 扩展包接入契约表（派生扩展集 + prose 表 + 存在性 CI） | [ADR-0006](./adr/0006-opt07-contract-table-opt08-test-priority.md) |
+| OPT-07 | P1 | done | 扩展包接入契约表（派生扩展集 + prose 表 + 存在性 CI） | [ADR-0006](./adr/0006-opt07-contract-table-opt08-test-priority.md) |
 | OPT-08 | P2 | done | 高扇入弱测包补测：`utils` / `modules`（纯函数必做 + resolveModules 应做） | [ADR-0006](./adr/0006-opt07-contract-table-opt08-test-priority.md) |
 | OPT-09 | P1 | done | AGENTS 包树 CI 校验（package.json name 真理源 + 存在性+计数 + 仅 AGENTS） | [ADR-0002](./adr/0002-sequencing-enablers-and-test-boundaries.md) · [ADR-0005](./adr/0005-opt09-impl-opt11-timing-opt01-subitem.md) |
 | OPT-10 | P2 | done | DevTools AI SDK 传递硬依赖治理（确认并修复，改 optionalDeps + 懒加载） | [ADR-0004](./adr/0004-devtools-ai-sdk-optional-deps.md) |

@@ -10,7 +10,6 @@
     "build:api": "node scripts/build-api.mjs",
     "build:search": "node scripts/build-search.mjs",
     "preview": "ubean preview",
-    "prepare": "ubean prepare",
     "typecheck": "vue-tsc --noEmit --skipLibCheck"
   },
   "dependencies": {

@@ -1,6 +1,6 @@
-# ubean 优化词汇表
+# ubean 架构词汇表
 
-> 由 `grill-with-docs` 会话（2026-08-02）沉淀。术语在相关 ADR 与 `optimize.md` 中按此定义使用。
+> 术语在相关 ADR（`docs/adr/`）中按此定义使用。
 
 ## 应用工厂
 

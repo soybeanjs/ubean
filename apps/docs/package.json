@@ -10,7 +10,7 @@
     "build:api": "node scripts/build-api.mjs",
     "build:search": "node scripts/build-search.mjs",
     "preview": "ubean preview",
-    "typecheck": "vue-tsc --noEmit --skipLibCheck"
+    "type-check": "vue-tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "@fontsource-variable/manrope": "^5.3.0",

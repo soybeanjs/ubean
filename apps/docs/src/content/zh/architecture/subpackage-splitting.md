@@ -186,7 +186,7 @@ packages/
 - **入口**: `@ubean/seo`
 
 #### `@ubean/pages`
-- **职责**: 页面数据协议 + 同构数据层 —— `PageObject`、`PageRenderer`、`buildPageShell`、`buildClientOnlyShell`、`renderPage`、`pageJsonResponse`、`useData`、`invalidateData`、`invalidateAll`、`clearDataCache`、`declareDependencies`、`withDependencies`、`createInternalFetch`、`createStreamResponse`、`createSseStream`、`defineDataKey`
+- **职责**: 页面数据协议 + 同构数据层 —— `PageObject`、`PageRenderer`、`buildPageShell`、`buildClientOnlyShell`、`renderPage`、`pageJsonResponse`、`useData`、`invalidateData`、`invalidateAll`、`clearPageData`、`declareDependencies`、`withDependencies`、`createInternalFetch`、`createStreamResponse`、`createSseStream`、`defineDataKey`
 - **来源**: `runtime/pages/`
 - **依赖**: `@ubean/types`(type-only)
 - **入口**: `@ubean/pages`

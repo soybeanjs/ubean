@@ -10,13 +10,13 @@
  * - revalidateTag / revalidatePath 失效(含与组件缓存集成)
  * - dev 模式默认 no-cache + forceDevCache 强制启用
  * - 缓存键包含 headers(不同 header 不命中)
- * - clearDataCache / getDataCacheSize
+ * - clearFetchDataCache / getDataCacheSize
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Hono } from 'hono';
 import {
   createDataCacheMiddleware,
-  clearDataCache,
+  clearFetchDataCache,
   getDataCacheSize,
   revalidateDataCacheTag,
   revalidateTag,
@@ -46,7 +46,7 @@ function createApp() {
 }
 
 beforeEach(() => {
-  clearDataCache();
+  clearFetchDataCache();
   clearComponentCacheStore();
 });
 
@@ -655,7 +655,7 @@ describe('Task 4: fetch Data Cache', () => {
   });
 
   describe('工具函数', () => {
-    it('clearDataCache 清空所有条目', async () => {
+    it('clearFetchDataCache 清空所有条目', async () => {
       const { mock } = createCountingFetch();
       const originalFetch = globalThis.fetch;
       globalThis.fetch = mock as any;
@@ -670,7 +670,7 @@ describe('Task 4: fetch Data Cache', () => {
       await app.request('http://example.com/');
       expect(getDataCacheSize()).toBe(2);
 
-      clearDataCache();
+      clearFetchDataCache();
       expect(getDataCacheSize()).toBe(0);
 
       globalThis.fetch = originalFetch;

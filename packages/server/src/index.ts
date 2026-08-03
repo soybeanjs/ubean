@@ -239,7 +239,7 @@ export {
   createDataCacheMiddleware,
   revalidateDataCacheTag,
   revalidateDataCachePath,
-  clearDataCache,
+  clearFetchDataCache,
   getDataCacheSize
 } from './fetch-memo';
 export type { FetchCacheOptions, FetchInitWithNext, DataCacheMiddlewareOptions } from './fetch-memo';

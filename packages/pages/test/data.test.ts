@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 const {
   useData,
   useAsyncData,
-  clearDataCache,
+  clearPageData,
   invalidateData,
   __clearDataPayload,
   __resolveDataPayload,
@@ -16,7 +16,7 @@ const {
 
 describe('useData() — backward compatibility', () => {
   beforeEach(() => {
-    clearDataCache();
+    clearPageData();
     __clearDataPayload();
   });
 
@@ -81,7 +81,7 @@ describe('useData() — backward compatibility', () => {
 
 describe('useData() — new fields (pending/status/refresh)', () => {
   beforeEach(() => {
-    clearDataCache();
+    clearPageData();
     __clearDataPayload();
   });
 
@@ -163,7 +163,7 @@ describe('useData() — new fields (pending/status/refresh)', () => {
 
 describe('useData() — dedupe', () => {
   beforeEach(() => {
-    clearDataCache();
+    clearPageData();
     __clearDataPayload();
   });
 
@@ -237,7 +237,7 @@ describe('useData() — dedupe', () => {
 
 describe('useAsyncData()', () => {
   beforeEach(() => {
-    clearDataCache();
+    clearPageData();
     __clearDataPayload();
   });
 
@@ -292,7 +292,7 @@ describe('useAsyncData()', () => {
 
 describe('SSR payload registry', () => {
   beforeEach(() => {
-    clearDataCache();
+    clearPageData();
     __clearDataPayload();
   });
 
@@ -406,7 +406,7 @@ describe('useData() — client hydration from payload', () => {
   beforeEach(() => {
     __clearDataPayload();
     __resetDataPayloadCache();
-    clearDataCache();
+    clearPageData();
     originalWindow = (globalThis as any).window;
     originalDocument = (globalThis as any).document;
     // Simulate client environment

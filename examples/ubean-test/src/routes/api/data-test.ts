@@ -8,7 +8,7 @@ import {
   declareDependencies,
   withDependencies,
   getInvalidatedKeysForAction,
-  clearDataCache
+  clearPageData
 } from 'ubean';
 
 export const GET = defineHandler(async c => {
@@ -16,7 +16,7 @@ export const GET = defineHandler(async c => {
 
   switch (action) {
     case 'cache': {
-      clearDataCache();
+      clearPageData();
       const key = 'test-cache';
       const result1 = await useData({
         key,
@@ -37,7 +37,7 @@ export const GET = defineHandler(async c => {
     }
 
     case 'invalidateByKey': {
-      clearDataCache();
+      clearPageData();
       const key = 'test-invalidate-key';
       await useData({
         key,
@@ -50,7 +50,7 @@ export const GET = defineHandler(async c => {
     }
 
     case 'invalidateByTag': {
-      clearDataCache();
+      clearPageData();
       const key = 'test-invalidate-tag';
       await useData({
         key,
@@ -81,7 +81,7 @@ export const GET = defineHandler(async c => {
     }
 
     case 'ttl': {
-      clearDataCache();
+      clearPageData();
       const key = 'test-ttl';
       const r1 = await useData({
         key,
@@ -106,7 +106,7 @@ export const GET = defineHandler(async c => {
     }
 
     case 'defineDataKey': {
-      clearDataCache();
+      clearPageData();
       const sym = defineDataKey('my-symbol-key');
       await useData({
         key: sym,
@@ -132,7 +132,7 @@ export const GET = defineHandler(async c => {
     }
 
     case 'actionInvalidation': {
-      clearDataCache();
+      clearPageData();
       const key = 'action-test';
       await useData({
         key,
@@ -149,7 +149,7 @@ export const GET = defineHandler(async c => {
     }
 
     case 'error': {
-      clearDataCache();
+      clearPageData();
       const key = 'test-error';
       const result = await useData({
         key,

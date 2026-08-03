@@ -186,7 +186,7 @@ packages/
 - **Entry**: `@ubean/seo`
 
 #### `@ubean/pages`
-- **Responsibility**: Page data protocol + isomorphic data layer — `PageObject`, `PageRenderer`, `buildPageShell`, `buildClientOnlyShell`, `renderPage`, `pageJsonResponse`, `useData`, `invalidateData`, `invalidateAll`, `clearDataCache`, `declareDependencies`, `withDependencies`, `createInternalFetch`, `createStreamResponse`, `createSseStream`, `defineDataKey`
+- **Responsibility**: Page data protocol + isomorphic data layer — `PageObject`, `PageRenderer`, `buildPageShell`, `buildClientOnlyShell`, `renderPage`, `pageJsonResponse`, `useData`, `invalidateData`, `invalidateAll`, `clearPageData`, `declareDependencies`, `withDependencies`, `createInternalFetch`, `createStreamResponse`, `createSseStream`, `defineDataKey`
 - **Source**: `runtime/pages/`
 - **Dependencies**: `@ubean/types` (type-only)
 - **Entry**: `@ubean/pages`

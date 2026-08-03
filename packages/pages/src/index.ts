@@ -23,7 +23,7 @@ export {
   useAsyncData,
   invalidateData,
   invalidateAll,
-  clearDataCache,
+  clearPageData,
   hasData,
   declareDependencies,
   withDependencies,

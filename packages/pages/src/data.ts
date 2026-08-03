@@ -511,7 +511,7 @@ export function invalidateAll(context?: object): void {
   registry.inflight.clear();
 }
 
-export function clearDataCache(context?: object): void {
+export function clearPageData(context?: object): void {
   invalidateAll(context);
 }
 

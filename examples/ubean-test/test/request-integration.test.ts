@@ -25,7 +25,7 @@ import {
   invalidateData,
   invalidateAll,
   hasData,
-  clearDataCache,
+  clearPageData,
   declareDependencies,
   withDependencies,
   getInvalidatedKeysForAction
@@ -323,7 +323,7 @@ describe('Request integration - Internal fetch', () => {
 
 describe('Request integration - useData cache', () => {
   beforeEach(() => {
-    clearDataCache();
+    clearPageData();
   });
 
   describe('useData() - basic caching', () => {
@@ -462,7 +462,7 @@ describe('Request integration - useData cache', () => {
     });
   });
 
-  describe('invalidateAll() / clearDataCache()', () => {
+  describe('invalidateAll() / clearPageData()', () => {
     it('invalidateAll clears everything', async () => {
       await useData({ key: 'all-1', fetcher: async () => 1 });
       await useData({ key: 'all-2', tags: ['t'], fetcher: async () => 2 });
@@ -472,9 +472,9 @@ describe('Request integration - useData cache', () => {
       expect(hasData('all-2')).toBe(false);
     });
 
-    it('clearDataCache is an alias for invalidateAll', async () => {
+    it('clearPageData is an alias for invalidateAll', async () => {
       await useData({ key: 'clear-1', fetcher: async () => 1 });
-      clearDataCache();
+      clearPageData();
       expect(hasData('clear-1')).toBe(false);
     });
   });
@@ -663,13 +663,13 @@ describe('Request integration - useData cache', () => {
 
 describe('Request integration - cross-subsystem scenarios', () => {
   beforeEach(() => {
-    clearDataCache();
+    clearPageData();
     clearInternalFetcher();
   });
 
   afterEach(() => {
     clearInternalFetcher();
-    clearDataCache();
+    clearPageData();
   });
 
   it('useData fetcher can use createInternalAdapter + createRequest to fetch from routes', async () => {

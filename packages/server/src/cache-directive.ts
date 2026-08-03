@@ -17,7 +17,7 @@
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { revalidateDataCacheTag, revalidateDataCachePath, clearDataCache } from './fetch-memo';
+import { revalidateDataCacheTag, revalidateDataCachePath, clearFetchDataCache } from './fetch-memo';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                    */
@@ -417,7 +417,7 @@ export async function clearComponentCache(): Promise<void> {
   const store = useComponentCacheStore();
   await store.clear();
   // 同时清空 fetch Data Cache(Task 4)
-  clearDataCache();
+  clearFetchDataCache();
 }
 
 /* -------------------------------------------------------------------------- */

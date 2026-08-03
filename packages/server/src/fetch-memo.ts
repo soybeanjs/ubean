@@ -522,8 +522,8 @@ export async function revalidateDataCachePath(pattern: string | RegExp): Promise
   return deleted;
 }
 
-/** 清空所有 Data Cache 条目(主要用于测试)。 */
-export function clearDataCache(): void {
+/** 清空所有 fetch Data Cache 条目(主要用于测试)。 */
+export function clearFetchDataCache(): void {
   dataCacheStore.clear();
   dataCacheTagIndex.clear();
 }

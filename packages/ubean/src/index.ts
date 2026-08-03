@@ -10,7 +10,7 @@
  * - `useSeoMeta`:来自 `@ubean/seo`(自定义实现),与 `@ubean/runtime` 重新导出的 `@unhead/vue` 版本冲突 → 保留 seo 版本
  * - `defineMiddleware`:来自 `@ubean/api-routes`(真实实现),与 `@ubean/runtime` 的 no-op 宏冲突 → 保留 api-routes 版本
  * - `defineDataKey`:来自 `@ubean/pages`,与 `@ubean/runtime` 的 own 实现冲突 → 保留 pages 版本
- * - `clearDataCache`:来自 `@ubean/pages`(接受可选 context 参数),与 `@ubean/server`(无参数)冲突 → 保留 pages 版本
+ * - `clearDataCache`:来自 `@ubean/pages`(接受可选 context 参数),与 `@ubean/server`(无参数)冲突 → 保留 pages 版本;server 版以 `clearFetchDataCache` 别名导出
  * - i18n 函数:来自 `@ubean/i18n`(纯函数版),与 `@ubean/runtime` 的 Vue reactive 包装版冲突 → 保留 i18n 版本
  * - `UbeanAppOptions` 类型:来自 `@ubean/app`,与 `@ubean/runtime` 的 Vue 版本冲突 → 保留 app 版本
  * - `InternalFetchOptions` 类型:来自 `@ubean/pages`,与 `@ubean/api-routes` 版本冲突 → 保留 pages 版本
@@ -209,6 +209,10 @@ export { rawSql as sqlRawAlias } from '@ubean/server';
 // 这些名称在多个子包中存在不同实现/类型,显式选择与原 ubean 一致的来源
 export { useRouter } from '@ubean/routing'; // 服务端 rou3 router 单例
 export { defineDataKey, clearDataCache } from '@ubean/pages'; // pages 模块的 defineDataKey
+// `clearDataCache` 在 @ubean/pages(带可选 context 参数,= invalidateAll 别名)与
+// @ubean/server(无参,清空 fetch Data Cache)间同名冲突 → 保留 pages 版原名,
+// server 版以 `clearFetchDataCache` 别名导出,两套语义均可在主包使用
+export { clearDataCache as clearFetchDataCache } from '@ubean/server';
 export type { InternalFetchOptions, PageAssetTags, PageRenderer } from '@ubean/pages';
 
 // ============== CLI scaffold 库(对齐原 ubean 主入口导出)==============

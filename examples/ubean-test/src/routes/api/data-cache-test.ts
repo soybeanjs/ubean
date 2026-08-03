@@ -8,7 +8,7 @@ import { Hono } from 'hono';
 import {
   defineHandler,
   createDataCacheMiddleware,
-  clearDataCache,
+  clearFetchDataCache,
   getDataCacheSize,
   revalidateTag,
   revalidatePath
@@ -64,7 +64,7 @@ export const GET = defineHandler(async c => {
   const action = c.req.query('action') || 'info';
 
   // 每个 action 开始前清空 Data Cache,保证测试隔离
-  clearDataCache();
+  clearFetchDataCache();
 
   switch (action) {
     // 验证 next: { revalidate: 60 } 跨请求缓存命中

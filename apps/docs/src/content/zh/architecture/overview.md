@@ -1,20 +1,21 @@
 ---
 title: Overview
+description: ubean 框架概览：项目结构、设计约定与核心思想。
 ---
 
 # 项目概览与约定
 
 ## 1. 项目概述
 
-**ubean** 是一个基于 Vite-Plus 的 Vue 专属全栈元框架，融合了 void 的 Inertia 式 SSR 页面路由和 nitro 的跨平台部署能力。
+**ubean** 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，融合了 void 的 Inertia 式 SSR 页面路由和 nitro 的跨平台部署能力，以 37 个单用途包的 monorepo 形式组织。
 
 ### 1.1 核心定位
 
 - **Vue 专属**: 仅支持 Vue 3，深度集成 Vue 生态
-- **基于 Vite-Plus**: 使用 vite-plus 作为构建工具链核心
-- **跨平台部署**: 借鉴 nitro 的 preset 系统，支持 Node.js、Bun、Deno、Cloudflare、Vercel 等多平台
+- **构建工具链**: 基于 Vite（vite-plus 工作流），Hono 作为 HTTP 框架
+- **跨平台部署**: 借鉴 nitro 的 preset 系统，支持 Node.js、Bun、Deno、Cloudflare、Vercel、Netlify 等多平台
 - **函数式编程**: 严格遵循 TypeScript 函数式编程范式
-- **完整测试**: 基于 vitest 实现全量测试覆盖
+- **完整测试**: 基于 vitest 实现全量测试覆盖（全仓库 1000+ 测试）
 
 ### 1.2 本地参考项目
 
@@ -137,8 +138,8 @@ title: Overview
 | --------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `packages/ubean` 核心 | 仅保留 Node 与 edge 共用的依赖                                               | Hono、Hookable、rou3、Standard Schema 类型                      |
 | Vue 集成              | Vue 及 Vue Router 使用 `peerDependencies`；SSR renderer 按 server entry 引入 | `vue`、`vue-router`、`@vue/server-renderer`                     |
-| preset 包             | 每个平台独立包和 CI；不被核心包静态导入                                      | `@ubean/preset-cloudflare`                                      |
-| 浏览器传输适配器      | 仅在浏览器 client entry 打包；不进入 Node、edge 或 SSR bundle                | `ubean/client-xhr`（上传进度）、数据库驱动                      |
+| preset 包             | `@ubean/preset` 内置全部平台预设；不被核心包静态导入                         | `standard`/`node`/`cloudflare`/`vercel`/`netlify`/`bun`/`deno`  |
+| 浏览器传输适配器      | 仅在浏览器 client entry 打包；不进入 Node、edge 或 SSR bundle                | 数据库驱动、上传进度适配器                                      |
 | DevTools 与 Auth/PWA  | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`、`@ubean/pwa`                  |
 | 资源与内容扩展        | 独立包；依赖及平台实现按功能拆分，核心不静态引入                             | `@ubean/icon`、`@ubean/image`、`@ubean/content`、`@ubean/fonts` |
 | 状态管理与 UI 集成    | 独立包；底层库作为 peerDependency 由用户控制版本                             | `@ubean/pinia`、`@ubean/ui`                                     |
@@ -152,98 +153,43 @@ title: Overview
 
 ## 3. 目录结构
 
-> 以下是仓库当前的**实际目录结构**（截至 2026-07）。早期规划曾列出更细的子目录（如 `core/app/`、`build/rollup/`、`build/vite/`、按域拆分的 `types/runtime/` 等），当前实现已将它们合并或精简，请以本文为准。
+> 以下是仓库当前的**实际目录结构**（截至 2026-08）。早期规划曾列出更细的单体子目录（`core/app/`、`build/rollup/`、按域拆分的 `types/runtime/` 等），当前实现已拆分为独立子包，请以本文为准。
 
 ```
 ubean/
-├── packages/
-│   ├── ubean/                       # 主包 (npm name: "ubean")
-│   │   ├── bin/ubean.mjs            # CLI 二进制入口
-│   │   ├── src/
-│   │   │   ├── core/                # 构建时核心
-│   │   │   │   ├── auto-imports/    # unimport 自动导入预设 (UBEAN_CLIENT/SERVER_PRESET)
-│   │   │   │   ├── build/           # 生产构建
-│   │   │   │   │   ├── virtual/     # 虚拟模块生成 (modules.ts, registry.ts)
-│   │   │   │   │   └── vite/        # Vite 插件 (plugin.ts, build.ts, macros.ts)
-│   │   │   │   ├── cli/             # ubean CLI (citty)
-│   │   │   │   │   ├── shared/      # fs-ops, templates
-│   │   │   │   │   ├── build.ts, dev.ts, preview.ts, prepare.ts
-│   │   │   │   │   ├── init.ts, page.ts, env.ts, config.ts
-│   │   │   │   │   ├── devtools.ts, scaffold-commands.ts
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── codegen/         # 类型生成 (routes.d.ts, pages.d.ts)
-│   │   │   │   ├── config/          # c12 配置加载 (loader.ts, types.ts)
-│   │   │   │   ├── dev/             # 开发服务器 (runner.ts, server.ts, vite-server.ts, watcher.ts)
-│   │   │   │   ├── devtools/        # DevTools 共享 (define-tab.ts, types.ts)
-│   │   │   │   ├── islands/         # Islands 转换 (transform.ts, types.ts)
-│   │   │   │   ├── markdown/        # Markdown/MDX 页面
-│   │   │   │   ├── modules/         # 模块系统 (builtins.ts, kit.ts, index.ts)
-│   │   │   │   ├── prerender/       # SSG 预渲染
-│   │   │   │   ├── preset/          # 平台 preset (standard/node/cloudflare + _resolve.ts, capabilities.ts)
-│   │   │   │   ├── routing/         # 路由扫描 (scan.ts, detect-exports.ts, define-page.ts, route-name.ts)
-│   │   │   │   ├── utils/           # port 等工具
-│   │   │   │   ├── vue/             # Vue SSR 插件 + renderer + 虚拟模块
-│   │   │   │   └── log.ts
-│   │   │   ├── runtime/             # 运行时（服务端 + 可客户端部分）
-│   │   │   │   ├── internal/         # OpenAPI 内部路由
-│   │   │   │   ├── pages/            # Pages 协议 (protocol.ts, data.ts)
-│   │   │   │   ├── vue/              # Vue 运行时 (app.ts, client.ts, define-app.ts, composables.ts, i18n.ts, islands.ts, router.ts, view-transitions.ts, head.ts, page-macro.ts)
-│   │   │   │   ├── app.ts            # createUbeanApp
-│   │   │   │   ├── handler.ts        # defineHandler / defineHandlerMeta
-│   │   │   │   ├── router.ts         # registerRoutes / 路由挂载
-│   │   │   │   ├── cache.ts          # useCacheStore / createCacheMiddleware
-│   │   │   │   ├── database.ts       # defineDatabase / useDatabase / runMigrations
-│   │   │   │   ├── storage.ts        # useStorage / useKV (unstorage 封装)
-│   │   │   │   ├── websocket.ts     # defineWebSocket / rooms
-│   │   │   │   ├── sse.ts            # SSE 流
-│   │   │   │   ├── queue.ts          # defineQueue
-│   │   │   │   ├── cron.ts, cron-scheduler.ts  # defineScheduled
-│   │   │   │   ├── rate-limit.ts, cors.ts  # 中间件工厂
-│   │   │   │   ├── env.ts            # defineEnv
-│   │   │   │   ├── error.ts, observability.ts, seo.ts
-│   │   │   │   ├── route-rules.ts, static.ts, internal-fetch.ts
-│   │   │   │   ├── i18n.ts, i18n-routing.ts    # 零依赖 i18n
-│   │   │   │   └── client.ts        # 客户端入口辅助
-│   │   │   ├── types/handler.ts
-│   │   │   ├── utils/path.ts
-│   │   │   └── index.ts             # 公共导出
-│   │   ├── test/                    # 单元 + 集成 + e2e 测试
-│   │   ├── package.json
-│   │   ├── tsconfig.json
-│   │   └── vite.config.ts
-│   │
-│   ├── devtools/                    # 独立 DevTools 包 (@ubean/devtools 风格)
-│   │   ├── client/                  # iframe 内 Vue 应用 (views, components, composables)
-│   │   ├── src/                     # 服务端 (rpc.ts, ai.ts, crud.ts, hooks.ts, middleware.ts)
+├── packages/                     # 37 个单用途包（monorepo）
+│   ├── ubean/                    # 主包 (npm name: "ubean") — 纯聚合器，re-export 全部子包
+│   │   ├── bin/ubean.mjs         # CLI 二进制入口
+│   │   ├── src/                  # runtime 入口 + 子路径导出（runtime/vue, runtime/app, vite…）
+│   │   ├── test/                 # 单元 + 集成测试
 │   │   └── package.json
-│   │
-│   ├── ubean-auth/                  # @ubean/auth (Better Auth 集成 + fallback)
-│   ├── ubean-icon/                  # @ubean/icon (Iconify + 自定义集合)
-│   ├── ubean-pwa/                   # @ubean/pwa (manifest + sw)
-│   ├── ubean-image/                 # @ubean/image
-│   ├── ubean-content/               # @ubean/content
-│   ├── ubean-fonts/                 # @ubean/fonts
-│   ├── ubean-electron/              # @ubean/electron (Electron 桌面应用)
-│   ├── ubean-pinia/                 # @ubean/pinia (Pinia 集成 + SSR 状态水合)
-│   └── ubean-ui/                    # @ubean/ui (@soybeanjs/ui 集成)
-│
+│   ├── types/                    # @ubean/types — 共享类型
+│   ├── utils/                    # @ubean/utils — 工具函数
+│   ├── error/ env/ seo/ pages/ markdown/ i18n/     # 基础域包
+│   ├── routing/                  # @ubean/routing — 路由扫描 + rou3 router
+│   ├── api-routes/ actions/      # @ubean/api-routes / @ubean/actions
+│   ├── server/ app/ config/ preset/ codegen/       # 服务端运行时 / Hono 工厂 / 配置 / 平台预设 / 类型生成
+│   ├── modules/ auto-imports/ runtime/ islands/    # 模块系统 / 自动导入 / Vue 客户端运行时 / Islands
+│   ├── ssr/ vite/ builder/ prerender/ dev-server/  # SSR 渲染器 / Vite 插件 / 构建编排 / SSG / 开发服务器
+│   ├── cli/ devtools/            # CLI / DevTools 独立包
+│   └── auth/ icon/ pwa/ image/ content/ fonts/     # 扩展包（按需加载，不进入主包硬依赖）
+│       electron/ pinia/ ui/
+├── apps/
+│   └── docs/                     # 官方文档站（指南 / 集成 / API / 架构正文，dogfooding）
 ├── examples/
-│   └── ubean-test/                  # 完整示例项目 (pages/, routes/api/, crons/, middleware/, layouts/, locales/, app.ts, ubean.config.ts)
-│
-├── skills/
-│   └── ubean/                       # ubean AI Skill
-│       ├── SKILL.md                 # Skill 路由定义
-│       ├── AGENT_PROMPT.md          # Agent 提示词
-│       ├── command/ubean.md         # CLI 命令文档
-│       └── docs/                    # 内置文档 (guide, integrations, reference/api)
-│
-├── docs/                            # 架构/工程/路线图文档
+│   ├── ubean-test/               # 完整全栈示例 + 测试（virtual 路由模式）
+│   ├── frontend-only/            # 纯前端示例（无 API/SSR）
+│   └── routing-file-mode/        # 路由文件生成模式示例
+├── skills/ubean/                 # AI Skill（CLI 命令文档与 agent 提示词）
+├── docs/                         # 仓库级工程文档（roadmap、设计提案、ADR、领域词汇表）
+├── scripts/                      # CI 校验脚本（verify-packages.mjs 等）
 ├── .github/workflows/ci.yml
 ├── README.md, README.zh_CN.md
-├── eslint.config.mjs
 ├── package.json, pnpm-workspace.yaml, pnpm-lock.yaml
 └── tsconfig.json
 ```
+
+> 包架构详情（聚合器模式、子路径导出、扩展包机制）见 [架构 §1](architecture.md#1-分层架构)。
 
 ### 用户应用目录结构
 
@@ -282,22 +228,3 @@ my-app/
 ├── package.json
 └── tsconfig.json
 ```
-
----
-
-## 4. CodeGraph 结构审计（2026-08）
-
-仓库级全文见根目录 [`docs/architecture-analysis.md`](../../../../../../docs/architecture-analysis.md)（CodeGraph v1.5：510 files / 5,445 nodes / 20,567 edges）。摘要：
-
-| 结论 | 说明 |
-| --- | --- |
-| 包数量 | **37** 个 `packages/*`（非旧文档中的 38/40） |
-| 依赖分层 | `@ubean/types` / `routing` / `utils` 高扇入；`ubean` 聚合器扇出 27 |
-| 同名陷阱（已消歧） | `createUbeanApp` 现专指 `@ubean/app` / `ubean/runtime/app` 的 Hono 工厂；`@ubean/runtime` 的 Vue 工厂已重命名为 `createUbeanVueApp`（ADR-0001） |
-| 索引修复 | 原 `packages/build` 触发 CodeGraph 对 `build/` 的默认忽略；已改名为 `packages/builder`（包名仍为 `@ubean/build`） |
-| 测试缺口 | `build` / `cli` / `config` 包内单测偏弱，依赖 `examples/ubean-test` 集成覆盖 |
-| 文档站位置 | 架构/指南正文在 `apps/docs`；根 `docs/` 仅 roadmap + 本分析 |
-
-优先改进：~~消歧同名 API~~（已完成，ADR-0001）→ ~~修复 build 索引~~（已完成，OPT-02）→ 补核心包单测 → 规划 `@ubean/server` 子路径拆分。
-
----

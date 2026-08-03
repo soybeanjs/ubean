@@ -1,10 +1,11 @@
 ---
 title: Env
+description: "Type-safe environment variables with defineEnv: validation, public exposure, and CLI commands."
 ---
 
 # Environment Variables
 
-ubean provides `defineEnv()` for type-safe environment variable validation. The schema is defined in `env.ts` (project root) and consumed across server and client.
+ubean provides `defineEnv()` for type-safe environment variable validation. The schema is defined in a project file (e.g. `env.ts`) and consumed across server and client.
 
 ## defineEnv()
 
@@ -12,60 +13,60 @@ ubean provides `defineEnv()` for type-safe environment variable validation. The 
 // env.ts
 import { defineEnv } from 'ubean';
 
-export const env = defineEnv({
-  DATABASE_URL: {
-    type: 'string',
-    required: true
-  },
-  PORT: {
-    type: 'number',
-    default: 9527
-  },
-  DEBUG: {
-    type: 'boolean',
-    default: false
+export const { env } = defineEnv({
+  server: {
+    DATABASE_URL: {
+      type: String,
+      required: true
+    },
+    PORT: {
+      type: Number,
+      default: 9527
+    },
+    DEBUG: {
+      type: Boolean,
+      default: false
+    }
   }
 });
 ```
 
-### Schema Options
+`defineEnv()` accepts a single config object with three top-level fields:
+
+| Field    | Type                 | Description                                                       |
+| -------- | -------------------- | ----------------------------------------------------------------- |
+| server   | EnvSchema            | Server-only variables (never exposed to the client)               |
+| public   | EnvSchema            | Public variables (exposed to the client via `import.meta.env`)    |
+| mode     | `'warn' \| 'throw'`  | Behavior when validation fails (default: `'warn'` — logs, no throw) |
+
+### Schema entries
+
+Each entry declares the variable type via the **constructor** (`String`, `Number`, `Boolean`), plus optional `default` and `required`:
 
 | Option     | Type                          | Description                         |
 | ---------- | ----------------------------- | ----------------------------------- |
-| `type`     | `'string' \| 'number' \| 'boolean'` | Variable type                |
-| `default`  | `string \| number \| boolean` | Default value if unset              |
-| `required` | `boolean`                     | Throw if missing                    |
-| `warn`     | `boolean`                     | Warn (instead of throw) if missing  |
-| `validate` | `(value: string) => boolean`  | Custom validation function          |
+| `type`     | `String \| Number \| Boolean` | Variable type (constructor)         |
+| `default`  | string \| number \| boolean   | Default value if unset              |
+| `required` | boolean                       | Fail validation if missing          |
+
+Standard Schema v1 compatible schemas (e.g. valibot, zod) are also accepted as entry values — anything with `safeParse`/`safeParseAsync`.
 
 ### Example
 
 ```typescript
-export default defineEnv({
-  // Required string
-  DATABASE_URL: {
-    type: 'string',
-    required: true
-  },
+// env.ts
+import { defineEnv } from 'ubean';
 
-  // Number with default
-  PORT: {
-    type: 'number',
-    default: 9527
+export const { env } = defineEnv({
+  server: {
+    DATABASE_URL: { type: String, required: true },
+    API_KEY: { type: String, required: true }
   },
-
-  // Boolean with default
-  DEBUG: {
-    type: 'boolean',
-    default: false
+  public: {
+    APP_NAME: { type: String, default: 'ubean-app' },
+    API_URL: { type: String, default: '/api' }
   },
-
-  // Enum validation
-  NODE_ENV: {
-    type: 'string',
-    default: 'development',
-    validate: value => ['development', 'production', 'test'].includes(value)
-  }
+  mode: 'throw'
 });
 ```
 
@@ -73,152 +74,92 @@ export default defineEnv({
 
 ### Server-Side
 
-In API routes and middleware:
+Access validated values through the `env` proxy returned by `defineEnv()`:
 
 ```typescript
 // src/routes/api/hello.ts
 import { defineHandler } from 'ubean';
+import { env } from '../../env';
 
 export const GET = defineHandler(c => {
-  const port = process.env.PORT;
-  const dbUrl = process.env.DATABASE_URL;
-  return c.json({ port, dbUrl });
+  return c.json({ port: env.PORT, dbUrl: env.DATABASE_URL });
 });
 ```
 
+Raw `process.env` access also works in server code.
+
 ### Client-Side
 
-Only variables prefixed with `PUBLIC_` (or `VITE_`) are exposed to the client via `import.meta.env`:
+Only variables prefixed with `UBEAN_PUBLIC_`, `VITE_`, or `PUBLIC_` are exposed to the client via `import.meta.env`:
 
 ```vue
 <script setup lang="ts">
-const appName = import.meta.env.VITE_APP_NAME;
+const appName = import.meta.env.UBEAN_PUBLIC_APP_NAME;
 const apiUrl = import.meta.env.VITE_API_URL;
 </script>
 ```
 
-## .env Files
-
-ubean loads `.env` files in this order (later files override earlier):
-
-1. `.env` — Base environment
-2. `.env.local` — Local overrides (gitignored)
-3. `.env.<NODE_ENV>` — Environment-specific (`.env.production`, `.env.development`)
-
-```
-# .env
-APP_NAME=ubean
-DATABASE_URL=postgres://localhost:5432/ubean
-
-# .env.local (gitignored)
-DATABASE_URL=postgres://localhost:5432/ubean_dev
-
-# .env.production
-NODE_ENV=production
-DATABASE_URL=postgres://prod-db:5432/ubean
-```
-
 ## CLI Commands
 
+`ubean env` manages variables in `.env` files (plain key/value lines):
+
 ```bash
-# List environment variables
+# Create .env and .env.example from a template
+ubean env init
+
+# List variables (--public to show only public ones)
 ubean env list
+ubean env list --public
 
-# Add variable
-ubean env add DATABASE_URL "postgres://..."
+# Add or update a variable (--public prefixes with UBEAN_PUBLIC_)
+ubean env add DATABASE_URL "postgres://localhost:5432/ubean"
+ubean env add API_URL "/api" --public
+ubean env add API_URL "/api" --force   # overwrite existing
 
-# Update variable
-ubean env update DATABASE_URL "postgres://new-host:5432/..."
-
-# Delete variable
-ubean env delete DATABASE_URL
-
-# Validate schema
-ubean env validate
+# Remove a variable
+ubean env remove DATABASE_URL
 ```
 
-## Public vs Private
-
-### Public Variables
-
-Variables prefixed with `PUBLIC_` or `VITE_` are exposed to the client:
-
-```
-VITE_APP_NAME=ubean
-VITE_API_URL=https://api.example.com
-```
-
-```typescript
-// Available in client code
-const appName = import.meta.env.VITE_APP_NAME;
-```
-
-### Private Variables
-
-Other variables are server-only:
-
-```
-DATABASE_URL=postgres://...
-API_KEY=secret-key
-JWT_SECRET=super-secret
-```
-
-```typescript
-// Only available in server code (API routes, middleware, loaders)
-// Reference via process.env on the server
-```
+Public variables are auto-detected by the `UBEAN_PUBLIC_`, `VITE_`, or `PUBLIC_` prefixes.
 
 ## Validation
 
-### Type Validation
+### Validation mode
+
+Set `mode: 'throw'` to fail fast at startup when a required variable is missing or mis-typed; the default `'warn'` logs errors instead:
 
 ```typescript
-export default defineEnv({
-  PORT: {
-    type: 'number',
-    default: 9527,
-    validate: value => {
-      const num = parseInt(value, 10);
-      return num > 0 && num < 65536;
-    }
-  }
+export const { env } = defineEnv({
+  server: {
+    DATABASE_URL: { type: String, required: true }
+  },
+  mode: 'throw' // throw at startup if DATABASE_URL is missing
 });
 ```
 
-### Required Variables
+### Manual validation
+
+Call `.validate()` on the result to check a custom source (e.g. a test fixture or a request-specific env):
 
 ```typescript
-export default defineEnv({
-  DATABASE_URL: {
-    type: 'string',
-    required: true   // Throws if missing
-  },
-  API_KEY: {
-    type: 'string',
-    required: true,
-    warn: true        // Warn instead of throw
-  }
+const { validate } = defineEnv({
+  server: { DATABASE_URL: { type: String, required: true } }
 });
+
+const result = validate(source); // source: Record<string, string | undefined>
+if (!result.success) {
+  console.error(result.errors); // [{ key, message, value }]
+}
 ```
 
 ## TypeScript Support
 
-ubean generates `.ubean/env.d.ts` with types derived from your `defineEnv` schema:
-
-```typescript
-// .ubean/env.d.ts (auto-generated)
-interface UbeanEnv {
-  DATABASE_URL: string;
-  PORT: number;
-  DEBUG: boolean;
-}
-```
+The `env` proxy is fully typed: `InferEnvOutput<S>` derives `string` / `number` / `boolean` from each entry's constructor, so `env.DATABASE_URL` is typed as `string` without extra declaration files.
 
 ## Best Practices
 
-1. **Never commit secrets**: Use `.env.local` for secrets (gitignored)
-2. **Use PUBLIC_ prefix**: Only expose necessary variables to client
-3. **Validate all variables**: Use `validate` option for custom rules
+1. **Never commit secrets**: Use `.env.local` for secrets (gitignored); commit `.env.example` instead
+2. **Use `UBEAN_PUBLIC_` prefix**: Only expose necessary variables to the client
+3. **Validate at startup**: Prefer `mode: 'throw'` for production deployments
 4. **Provide defaults**: Use `default` for optional variables
-5. **Document variables**: Add comments to `defineEnv` schema
-6. **Use NODE_ENV**: Branch logic on `NODE_ENV` (development/production/test)
+5. **Document variables**: Add comments to the `defineEnv` schema

@@ -11,7 +11,6 @@ import { useHead } from '@unhead/vue';
 import { parseFrontmatter, extractHeadings } from '@ubean/markdown';
 import ApiTable from '~/components/api-table.vue';
 import DocMd from '~/components/doc-md.vue';
-import StatusBadge from '~/components/status-badge.vue';
 import { setDocOutline, resetDocOutline } from '~/composables/use-doc-outline';
 import type { DocOutlineItem } from '~/composables/use-doc-outline';
 
@@ -182,7 +181,6 @@ useHead(computed(() => {
 onUnmounted(() => resetDocOutline());
 
 const pageTitle = computed(() => resolved.value.frontmatter?.title || '');
-const pageStatus = computed(() => resolved.value.frontmatter?.status as string | undefined);
 /** When true, the zh content is a translated-stub and we show the English
  * fallback with a notice banner instead of the stub placeholder. */
 const isStubFallback = computed(() => !!resolved.value.fallbackComponent);
@@ -211,9 +209,8 @@ const isZh = computed(() => route.path === '/zh' || route.path.startsWith('/zh/'
 
     <!-- Markdown content page -->
     <template v-else-if="!resolved.notFound">
-      <div v-if="pageTitle || pageStatus" class="mb-6 flex items-center gap-3">
+      <div v-if="pageTitle" class="mb-6 flex items-center gap-3">
         <h1 v-if="pageTitle" class="text-3xl font-bold">{{ pageTitle }}</h1>
-        <StatusBadge v-if="pageStatus" :status="pageStatus" />
       </div>
       <!--
  Translation fallback notice: shown when the zh content is a stub

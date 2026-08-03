@@ -1,5 +1,6 @@
 ---
 title: Ui
+description: UI components from @soybeanjs/ui, integrated via @ubean/ui.
 ---
 
 # UI Components (@soybeanjs/ui)

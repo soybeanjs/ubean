@@ -1,5 +1,6 @@
 ---
 title: Route Helpers
+description: "Routing helpers: useRouter, the Link component, and navigation utilities."
 ---
 
 # Route Helpers
@@ -94,7 +95,7 @@ There are two ways to register navigation guards:
 
 #### 1. Global guards via `defineApp({ router })` — **recommended**
 
-Register once at app startup in `src/app.ts`. Guards run on **both client and SSR**, and can intercept the first navigation. See [Navigation Guards guide](/docs/guide/pages-routing/overview#navigation-guards-client--ssr) for details.
+Register once at app startup in `src/app.ts`. Guards run on **both client and SSR**, and can intercept the first navigation. See [Navigation Guards guide](/guide/pages-routing/overview#navigation-guards-client--ssr) for details.
 
 ```typescript
 // src/app.ts

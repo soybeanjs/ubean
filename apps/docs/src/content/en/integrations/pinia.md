@@ -1,5 +1,6 @@
 ---
 title: Pinia
+description: Pinia state management through the built-in @ubean/pinia module.
 ---
 
 # Pinia State Management (@ubean/pinia)
@@ -291,7 +292,7 @@ export interface PiniaSerializedState {
 - Inspect the rendered HTML for `<script id="__UBEAN_STATE__" type="application/json">` — it should contain the serialized state
 - Verify `hydrateState` runs before `app.mount()` (it does in the default client entry)
 
-### Warning: "hydrateState 被调用但 app 上未检测到 $pinia"
+### Warning: "hydrateState was called but no $pinia was detected on the app"
 
 This means `hydratePiniaState` was called but `createPinia()` was not registered as a plugin. Fix:
 

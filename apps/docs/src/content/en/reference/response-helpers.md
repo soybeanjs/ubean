@@ -1,5 +1,6 @@
 ---
 title: Response Helpers
+description: Response helpers for API routes, built on Hono’s context object.
 ---
 
 # Response Helpers

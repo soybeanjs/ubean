@@ -17,7 +17,7 @@ Goal: ship a single documentation site at `apps/docs` that **dogfoods the ubean 
 - **Multi-version switching** (the "版本控制" requirement). ubean is at `v0.0.1`; a version switcher has no data to switch between. v1 ships single-version, but the routing/content layout stays extensible so a `/v{n}/` prefix or frontmatter-driven filtering can be added later without rearchitecting. Tracked as a phase-2 item.
 - **Live playground / interactive component editor.** The reference's `playground-gallery.vue`, `component-api.vue`, `type-table.vue`, `component-changelog.vue`, `tailwind-palette.vue` are component-library-specific and are **not** ported.
 - **API reference for all 39 packages.** v1 covers a curated subset of ~7 (see §6).
-- **Translation of every historical/proposal doc.** Those ship as-is with status badges; full bidirectional translation is a content task, not an architecture one.
+- **Translation of every architecture doc.** Full bidirectional translation of the Architecture section is a content task, not an architecture one. (Per ADR-0007, dev-task docs live in repo `docs/`, outside the public site.)
 
 ## 3. Decision Log
 
@@ -90,10 +90,14 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Rationale:** Honest, no information loss, preserves decision history, sets reader expectations.
 **Alternatives:** exclude (loses history); separate "Design History" section (more sectioning overhead).
 
+> ⚠️ **Reversed by [ADR-0007](../../docs/adr/0007-docs-content-classification.md):** dev-task docs (roadmap, ubean-studio, framework-comparison, modes, subpackage-splitting, islands-auto-registry) moved back to repo `docs/`; the site's Architecture section now holds only explanatory content. `status-badge.vue` was removed.
+
 ### D14. Home page — hero + features + comparison + ecosystem
 **Decision:** Hero (name, tagline, primary CTAs: Get Started / GitHub), 3–6 feature cards (Full-stack SSR, File-based routing, Islands, Multi-platform, DevTools, i18n), a framework comparison table (rendered from `framework-comparison.md`), and an ecosystem/package grid.
 **Rationale:** Richer first impression for a framework; the comparison table is high-value content that already exists. Accepts the maintenance tradeoff (comparison may need updates).
 **Alternatives:** hero + features + quickstart only (faster but underwhelming); minimal hero (too thin for a framework).
+
+> **Updated:** the framework-comparison block was removed from the home page during the ADR-0007 restructure; `framework-comparison.md` now lives in repo `docs/`.
 
 ### D15. `<ApiTable>` rendering — data-driven `STable` (columns/data/slots)
 **Decision:** Render API parameter/property tables with `@soybeanjs/ui`'s `STable` in its data-driven form: `:columns` (array of `{key, dataIndex, title, minWidth}`) + `:data` (array of row objects) + `:row-key` + per-column named slots (`#name`, `#type`, …). Mirrors the reference's [`tables/type-data.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/components/tables/type-data.vue).
@@ -244,13 +248,13 @@ apps/docs/
     │   ├── en/
     │   │   ├── guide/         # quickstart, app-modes, routing-modes, pages-routing/*, i18n, islands
     │   │   ├── integrations/  # auth, database, electron, icons, pinia, ui
-    │   │   ├── architecture/  # overview, routing, runtime, engineering, roadmap, ecosystem,
-    │   │   │                   #   framework-comparison, subpackage-splitting, modes,
-    │   │   │                   #   islands-auto-registry, ubean-studio (with status badges)
-    │   │   └── reference/      # API reference landing pages (per package)
+    │   │   ├── architecture/  # overview, architecture, routing, runtime (explanatory only, per ADR-0007)
+    │   │   ├── ecosystem/     # ecosystem
+    │   │   ├── contributing/  # engineering
+    │   │   └── reference/     # API reference landing pages + reference guides (cache/env/i18n/...)
     │   └── zh/                 # mirror of en/
     ├── pages/
-    │   ├── index.vue          # home (hero + features + comparison + ecosystem)
+    │   ├── index.vue          # home (hero + features + ecosystem)
     │   ├── [...slug].vue       # renders content/{locale}/*.md by route, or ApiTable for /reference/api/*
     │   ├── 404.vue
     │   └── loading.vue
@@ -269,14 +273,13 @@ apps/docs/
     │   ├── header-nav.vue    # top-level nav
     │   ├── top-bar.vue       # context bar (breadcrumb)
     │   ├── api-table.vue     # ← NEW: renders TypeDoc JSON
-    │   ├── status-badge.vue  # ← NEW: ✅/⬜ for architecture docs
     │   └── doc-md.vue        # markdown render wrapper (sets outline)
     ├── composables/
     │   ├── use-doc-outline.ts
     │   ├── use-search.ts     # fuse index loader + query
     │   └── use-api-i18n.ts   # api labels i18n
     └── constants/
-        └── menus.ts          # sidebar IA (5 sections)
+        └── menus.ts          # sidebar IA (8 sections)
 ```
 
 **Route map (EN default, zh-CN prefixed):**
@@ -295,11 +298,14 @@ apps/docs/
 | `/integrations/{auth,database,electron,icons,pinia,ui}` | `content/en/integrations/*.md` |
 | `/reference/api/ubean`             | `public/api/ubean.json` via `<ApiTable>` |
 | `/reference/api/{runtime,routing,config,auth,ui,pinia}` | `public/api/<pkg>.json` |
-| `/architecture/{overview,routing,runtime,engineering,roadmap,ecosystem,framework-comparison,subpackage-splitting,modes,islands-auto-registry,ubean-studio}` | `content/en/architecture/*.md` |
+| `/architecture/{overview,architecture,routing,runtime}` | `content/en/architecture/*.md` |
+| `/reference/{cache,database,env,i18n,response-helpers,route-helpers}` | `content/en/reference/*.md` |
+| `/ecosystem/ecosystem`             | `content/en/ecosystem/ecosystem.md` |
+| `/contributing/engineering`        | `content/en/contributing/engineering.md` |
 | `/zh/...`                          | mirror of the above from `content/zh/`  |
 | `/:pathMatch(.*)*`                 | `pages/404.vue`                          |
 
-## 6. Sidebar IA (5 sections)
+## 6. Sidebar IA (8 sections)
 
 Defined in `src/constants/menus.ts`:
 
@@ -307,7 +313,10 @@ Defined in `src/constants/menus.ts`:
 2. **Guide** — Pages Routing (Overview, Loaders, Actions), i18n, Islands
 3. **Integrations** — Auth, Database, Electron, Icons, Pinia, UI
 4. **Reference** — the 7 generated API packages (ubean, runtime, routing, config, auth, ui, pinia)
-5. **Architecture** — Overview, Routing, Runtime, Engineering, Roadmap, Ecosystem, Framework Comparison, Subpackage Splitting, Modes, Islands Auto-Registry, ubean-studio (each with status badge)
+5. **Reference Guides** — Cache, Database, Env, I18n, Response Helpers, Route Helpers
+6. **Architecture** — Overview, Architecture, Routing, Runtime (explanatory only, per ADR-0007)
+7. **Ecosystem** — Ecosystem
+8. **Contributing** — Engineering
 
 ## 7. Risks & Mitigations
 

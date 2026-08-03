@@ -9,7 +9,7 @@ description: ubean is a full-stack Vue meta-framework built on Vite, Hono and Vu
 
 ## What is ubean?
 
-ubean (pronounced "you-bean") is built on top of Vite-Plus and draws inspiration from Void (Inertia-style SSR page routing) and Nitro (cross-platform deployment). It is designed to give Vue developers a batteries-included framework with first-class TypeScript support, file-based routing, and a modular extension system.
+ubean (pronounced "you-bean") is built on Vite, Hono, and Vue 3, fusing void's Inertia-style SSR page routing with Nitro's cross-platform deployment capabilities. It is designed to give Vue developers a batteries-included framework with first-class TypeScript support, file-based routing, and a modular extension system.
 
 ## Key Features
 
@@ -18,7 +18,7 @@ ubean (pronounced "you-bean") is built on top of Vite-Plus and draws inspiration
 - **Islands Architecture** — Partial hydration via the `v-client.*` directive (`v-client.load|idle|visible|media|only`), auto-registered and auto-hydrated.
 - **Multi-platform Deploy** — Presets for Node, Cloudflare, Vercel, Netlify, Bun, and Deno with a capability matrix.
 - **DevTools** — An iframe-based inspector panel with Pages, API, Middleware, Cron, Env, and an AI assistant.
-- **Built-in i18n** — Zero-dependency internationalization with three routing strategies and SSR hydration.
+- **Built-in i18n** — Zero-dependency internationalization with four routing strategies and SSR hydration.
 - **Markdown Pages** — First-class `.md` page support with frontmatter, shiki code highlighting, and per-page SEO.
 - **SSG / Prerender** — Static site generation for SEO-critical and read-mostly pages.
 
@@ -28,7 +28,7 @@ ubean (pronounced "you-bean") is built on top of Vite-Plus and draws inspiration
 ┌─────────────────────────────────────────────────┐
 │                   ubean app                     │
 │  src/pages/    src/layouts/   src/components/   │
-│  src/api/      src/middleware/  src/crons/      │
+│  src/routes/   src/middleware/  src/crons/      │
 └───────────────────┬─────────────────────────────┘
                     │
          ┌──────────┴──────────┐

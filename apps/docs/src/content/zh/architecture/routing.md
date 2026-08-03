@@ -1,5 +1,6 @@
 ---
 title: Routing
+description: ubean 路由设计：命名导出 API 路由、文件式页面、路由规则与中间件。
 ---
 
 # 路由设计

@@ -1,5 +1,6 @@
 ---
 title: App Modes
+description: Application modes (fullstack / spa / ssg / backend) and how the mode field drives the build.
 ---
 
 # Application Modes
@@ -101,7 +102,7 @@ export default defineConfig({
 | `false`                | Force CSR for matching routes (treats them as if in `ssr.exclude`)        |
 | `'streaming'`          | Force streaming SSR for matching routes (overrides `SsrOptions.streaming`) |
 
-Combine with `routeRules.isr` for incremental static regeneration, or `routeRules.prerender` for build-time prerendering. See [Route Rules](/docs/guide/pages-routing/overview#per-route-rendering-rules-p9-03) for the full field reference.
+Combine with `routeRules.isr` for incremental static regeneration, or `routeRules.prerender` for build-time prerendering. See [Route Rules](/guide/pages-routing/overview#per-route-rendering-rules-p9-03) for the full field reference.
 
 ### `spa`
 

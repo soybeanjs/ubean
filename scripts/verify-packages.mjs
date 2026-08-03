@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(fileURLToPath(import.meta.url), '..', '..');
 const packagesDir = join(root, 'packages');
 const agentsPath = join(root, 'AGENTS.md');
-const engineeringPath = join(root, 'apps/docs/src/content/zh/architecture/engineering.md');
+const engineeringPath = join(root, 'apps/docs/src/content/zh/contributing/engineering.md');
 const mainPkgPath = join(packagesDir, 'ubean', 'package.json');
 
 let failed = false;

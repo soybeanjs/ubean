@@ -1,5 +1,6 @@
 ---
 title: Database
+description: "Database operations: defineDatabase, useDatabase, and the in-memory fallback."
 ---
 
 # Database Operations

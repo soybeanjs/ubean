@@ -1,5 +1,6 @@
 ---
 title: Electron
+description: Build Electron desktop apps with the built-in @ubean/electron module.
 ---
 
 # Electron (Desktop Apps)

@@ -1,5 +1,6 @@
 ---
 title: Overview
+description: "File-based pages and routing: conventions, route rules, rendering modes, and navigation."
 ---
 
 # Pages and Routing Overview
@@ -405,7 +406,7 @@ export default defineConfig({
 });
 ```
 
-Supported rule fields (processed in order: `redirect` > `rewrite` > `headers` (merged) > `cache` (→ `Cache-Control`)):
+Supported rule fields (processed in order: `redirect` > `headers` (merged) > `cache` (→ `Cache-Control`); `rewrite` is matched and exposed via `c.get('routeRule')` but has no runtime handler yet):
 
 - `*` matches a single path segment
 - `**` matches multiple segments recursively
@@ -451,7 +452,7 @@ export default defineConfig({
 - `isr` → GET requests are served from ISR cache (HIT / STALE / MISS, marked via `X-ISR` header); the renderer runs on MISS (and on STALE when `swr` is enabled, in the background)
 - `prerender` → `collectPrerenderRoutes()` automatically collects these patterns at build time (merged with `prerender.include` / `prerender.all`)
 
-See also [Cache Operations](/docs/reference/api/cache) for `CacheStore.peek()` and ISR internals.
+See also [Cache Operations](/reference/cache) for `CacheStore.peek()` and ISR internals.
 
 ## Data Fetching
 
@@ -459,15 +460,16 @@ Use `useData()` (auto-imported from `ubean`) for declarative data fetching with 
 
 ```vue
 <script setup lang="ts">
-const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
-  fetch('/api/posts').then(r => r.json())
-);
+const { data, error, loading, refresh, invalidate } = await useData({
+  key: 'posts',
+  fetcher: () => fetch('/api/posts').then(r => r.json())
+});
 </script>
 ```
 
 ## Next Steps
 
-- [Data Fetching (useData)](/docs/guide/pages-routing/loaders)
-- [Form Actions](/docs/guide/pages-routing/actions)
-- [API Routes](/docs/guide/api-routes)
-- [Internationalization](/docs/guide/i18n)
+- [Data Fetching (useData)](/guide/pages-routing/loaders)
+- [Form Actions](/guide/pages-routing/actions)
+- [Route Helpers](/reference/route-helpers)
+- [Internationalization](/guide/i18n)

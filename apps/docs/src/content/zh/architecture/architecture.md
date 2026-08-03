@@ -1,245 +1,196 @@
 ---
 title: Architecture
+description: ubean 的架构设计：五层职责划分、包布局与配置系统。
 ---
 
-# 架构与配置
+# 架构
 
-## 4.1 整体架构图
+## 1. 分层架构
+
+ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分为五层。仓库以 **37 个单用途包**（`packages/*`）组织，主包 `ubean` 是纯聚合器，re-export 所有 `@ubean/*` 子包。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         ubean 框架架构                               │
+│                        ubean 框架分层                                │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │                     CLI 层 (citty)                          │   │
-│  │  ubean dev | ubean build | ubean prepare | ubean preview    │   │
+│  │                 CLI 层（@ubean/cli）                         │   │
+│  │  ubean dev | build | preview | prepare                       │   │
+│  │  init | page | env | config | devtools | scaffold            │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                   核心层 (Core)                              │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │   │
-│  │  │ Config   │  │ Routing  │  │  Build   │  │  Preset  │   │   │
-│  │  │ Loader   │  │  Scan    │  │  System  │  │ Resolver │   │   │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │   │
-│  │  │  Hooks   │  │ Dev      │  │ Prerender│  │  Types   │   │   │
-│  │  │ System   │  │ Server   │  │  / SSG   │  │  System  │   │   │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │   │
+│  │              构建核心层（build-time）                          │   │
+│  │  @ubean/config  配置加载（defineConfig / c12）               │   │
+│  │  @ubean/routing 路由扫描（pages/routes/layouts/middleware）  │   │
+│  │  @ubean/build   生产构建编排（client + server + prerender）  │   │
+│  │  @ubean/prerender  SSG 预渲染（routeRules 驱动）             │   │
+│  │  @ubean/modules 模块系统（builtin 模块 + kit hooks）         │   │
+│  │  @ubean/codegen 类型生成（routes.d.ts / typed-router）       │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                 Vite 插件层 (Vite-Plus)                      │   │
-│  │  ┌──────────────────────────────────────────────────────┐  │   │
-│  │  │ ubeanPlugin()           │ ubeanVue()                 │  │   │
-│  │  │ - Virtual modules       │ - Vue SFC 处理             │  │   │
-│  │  │ - Client stubs          │ - SSR 渲染                 │  │   │
-│  │  │ - Env schema            │ - 客户端路由               │  │   │
-│  │  │ - Dev triggers          │ - Islands                  │  │   │
-│  │  │ - Binding injection     │ - Head 管理                │  │   │
-│  │  └──────────────────────────────────────────────────────┘  │   │
+│  │                 Vite 插件层（@ubean/vite）                   │   │
+│  │  ubeanPlugin()  虚拟模块 / 客户端 stub / 宏转换             │   │
+│  │  ubeanVue()     Vue SFC / islands / SSR 入口 / head 管理    │   │
+│  │  扩展包 /vite 子路径：icon / pwa / auth / image / ...       │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                  运行时层 (Runtime)                          │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │   │
-│  │  │ Hono Server │  │  Router     │  │ Route Rules         │ │   │
-│  │  │             │  │  (rou3)     │  │ (cache/headers/     │ │   │
-│  │  │             │  │             │  │  redirects/ISR)     │ │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────────────┘ │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │   │
-│  │  │ Plugins     │  │ Storage     │  │ Database/Drizzle    │ │   │
-│  │  │ (hookable)  │  │ (unstorage) │  │                     │ │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────────────┘ │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │   │
-│  │  │ WebSocket   │  │ SSE/Streams │  │ Cache/ISR           │ │   │
-│  │  │ (crossws)   │  │             │  │                     │ │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────────────┘ │   │
+│  │                运行时层（runtime）                            │   │
+│  │  @ubean/app     Hono 应用工厂（createUbeanApp）              │   │
+│  │  @ubean/runtime Vue 客户端运行时（createUbeanVueApp）        │   │
+│  │  @ubean/ssr     Vue SSR 渲染器（流式 / PPR）                 │   │
+│  │  @ubean/server  cache / db / queue / cron / ws / sse / ...   │   │
+│  │  @ubean/pages   页面数据协议（loaders / actions）            │   │
+│  │  @ubean/actions Server Actions / Form Actions                │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                 平台适配层 (Presets)                         │   │
-│  │  Node.js │ Bun │ Deno │ Cloudflare │ Vercel │ Netlify │ ...│   │
+│  │               平台预设层（@ubean/preset）                    │   │
+│  │  standard │ node │ cloudflare │ vercel │ vercel-edge        │   │
+│  │  netlify │ bun │ deno（detectPreset 自动识别）              │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 4.2 核心数据流
+### 1.1 包组织原则
 
-#### 4.2.1 开发模式流程
+- **聚合器主包**：`packages/ubean`（npm 名 `ubean`）不包含框架逻辑，仅 re-export 全部子包，保持与单体时代一致的 API 表面。
+- **单职责子包**：其余 36 个包按能力域拆分（`@ubean/types` / `@ubean/routing` / `@ubean/app` / `@ubean/ssr` …），各自独立构建与类型检查。
+- **扩展包按需加载**：`auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` 通过 `ubean.config.ts` 顶层字段启用，构建时动态 `import()` 对应 `/vite` 子路径，**不进入主包硬依赖**。
+- **入口边界**：服务端代码从 `ubean` 主入口或 `ubean/runtime/app` 导入；浏览器端必须从 `ubean/runtime/vue` 导入，避免把服务端构建工具带入浏览器 bundle。
+
+## 2. 核心数据流
+
+### 2.1 开发模式
 
 ```
 ubean dev
   │
-  ├─► 加载配置 (ubean.config.ts)
-  │    └─► 解析 preset (自动检测或手动指定)
+  ├─► 加载配置（ubean.config.ts + 默认值合并，c12）
+  │    └─► 解析 preset（detectPreset 自动识别或手动指定）
   │
-  ├─► 扫描项目文件
-  │    ├─► routes/        → API 路由
-  │    ├─► pages/         → 页面路由 + .server.ts
-  │    ├─► middleware/    → 全局中间件
-  │    ├─► plugins/       → 运行时插件
-  │    └─► public/        → 静态资源
+  ├─► 扫描项目文件（@ubean/routing）
+  │    ├─► src/routes/     → API 路由（defineHandler 命名导出）
+  │    ├─► src/pages/      → Vue 页面路由（definePage 宏）
+  │    ├─► src/layouts/    → 布局（按路径层级解析）
+  │    ├─► src/middleware/ → Hono 中间件（global → /*，目录前缀 → 子路径）
+  │    ├─► src/crons/      → 定时任务（defineScheduled）
+  │    └─► public/         → 静态资源（ETag / Cache-Control）
   │
-  ├─► 启动 Vite 开发服务器 (vite-plus)
-  │    ├─► ubeanPlugin()
-  │    │    ├─► 虚拟模块注册
-  │    │    ├─► 客户端 stub 注入
-  │    │    └─► 环境变量 schema 验证
-  │    └─► ubeanVue()
-  │         ├─► Vue SFC 处理
-  │         └─► SSR/HMR 配置
+  ├─► 启动 Vite 开发服务器（@ubean/dev-server + @ubean/vite）
+  │    ├─► ubeanPlugin()   虚拟模块、客户端 stub、宏转换
+  │    └─► ubeanVue()      Vue SFC、SSR 渲染管线、HMR
   │
-  ├─► 启动 Worker 运行时 (env-runner)
-  │    └─► Hono 服务端处理请求
+  ├─► 启动 Hono 开发服务器（@ubean/app，路由规则 + 中间件 + ISR）
   │
-  └─► 文件监听 → 热更新 → 自动刷新
+  └─► 文件监听 → HMR / 路由重建 → 自动刷新
 ```
 
-#### 4.2.2 构建模式流程
+### 2.2 构建模式
 
 ```
 ubean build
   │
-  ├─► 加载配置 + 解析 preset
-  ├─► 扫描项目文件
-  ├─► 生成虚拟模块
-  │    ├─► 路由清单
-  │    ├─► 运行时配置
-  │    ├─► 插件注册表
-  │    └─► 平台 polyfills
+  ├─► 加载配置 + 解析 preset + 扫描项目文件
   │
-  ├─► 客户端构建 (Vite)
-  │    └─► Vue SSR 客户端包
+  ├─► 生成虚拟模块与类型
+  │    ├─► 路由清单（virtual:ubean-pages / routes）
+  │    ├─► 模块注册表（registry.ts）
+  │    ├─► .ubean/routes.d.ts + typed-router.d.ts
+  │    └─► islands 注册表
   │
-  ├─► 服务端构建 (Rollup/Rolldown)
-  │    ├─► 入口: preset 对应的 server entry
-  │    ├─► 打包所有路由/中间件/插件
-  │    ├─► 平台特定处理
-  │    └─► 输出到 .output/server/
+  ├─► 客户端构建（Vite）
+  │    └─► Vue 客户端 bundle（水合入口）
   │
-  ├─► 静态资源处理
-  │    └─► 输出到 .output/public/
+  ├─► 服务端构建（Vite SSR / Rolldown）
+  │    ├─► 入口：preset 对应的 server entry
+  │    ├─► 打包全部路由 / 中间件 / 模块插件
+  │    └─► 输出到 outputDir/server
   │
-  ├─► 预渲染 (如启用 SSG)
+  ├─► 预渲染（mode: 'ssg' 或 routeRules.prerender / ppr）
   │    └─► 生成静态 HTML
   │
-  └─► 生成平台配置文件
-       └─► vercel.json / wrangler.toml / netlify.toml / ...
+  └─► 生成平台产物（vercel.json / wrangler.toml / netlify.toml / …）
 ```
 
-## 4.3 配置系统
+## 3. 配置系统
+
+配置入口为 `ubean.config.ts`，通过 `defineConfig` 声明（配置加载与类型定义位于 `@ubean/config`）。默认值由 `loadUbeanConfig` 合并，全部字段见 [API 参考](/reference/api/config)。
 
 ```typescript
 // ubean.config.ts
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  // 平台预设: 自动检测或手动指定
-  preset: 'node-server', // node-server | bun | deno | cloudflare | vercel | ...
+  // 应用模式：fullstack（默认）| spa | ssg | backend
+  mode: 'fullstack',
 
-  // 源代码目录
-  srcDir: './',
-  routesDir: './routes',
-  pagesDir: './pages',
-  middlewareDir: './middleware',
-  publicDir: './public',
+  // 源码目录（默认 <rootDir>/src）
+  srcDir: 'src',
 
-  // 服务端目录
-  serverDir: './server',
+  // SSR 配置：true（默认）| false | { exclude, streaming }
+  ssr: true,
 
-  // 输出配置
-  output: {
-    dir: './.output',
-    serverDir: './.output/server',
-    publicDir: './.output/public'
+  // 目录约定（默认值即可，可按需覆盖）
+  dir: {
+    pages: 'src/pages',
+    routes: 'src/routes',
+    layouts: 'src/layouts',
+    middleware: 'src/middleware',
+    public: 'public'
   },
 
-  // 路由规则
+  // 路由规则：per-route 渲染控制（缓存 / 重定向 / ISR / PPR）
   routeRules: {
-    '/**': { cache: { maxAge: 60 } },
-    '/api/**': { cors: true },
     '/blog/**': { isr: 3600 },
     '/old-page': { redirect: '/new-page' }
   },
 
-  // 运行时配置 (可通过 useRuntimeConfig() 访问)
-  runtimeConfig: {
-    apiSecret: '', // 仅服务端
-    public: {
-      apiBase: '/api' // 客户端可访问
-    }
-  },
+  // 预渲染（SSG）：all: true 或 include 列表
+  prerender: { all: true },
 
-  // 环境变量验证 Schema
-  env: {
-    DATABASE_URL: { type: 'string', required: true },
-    API_KEY: { type: 'string', secret: true }
-  },
-
-  // 存储配置
-  storage: {
-    data: { driver: 'fs', base: './data' },
-    redis: { driver: 'redis', url: '...' }
-  },
-
-  // 数据库配置
-  database: {
-    default: {
-      connector: 'sqlite', // sqlite | postgresql | mysql | d1 | libsql
-      options: {
-        /* ... */
-      }
-    }
-  },
-
-  // 插件
-  plugins: [],
-
-  // 模块
+  // 模块系统：字符串包名 / 元组 / 实例
   modules: [],
 
-  // Vue 配置
-  vue: {
-    ssr: true,
-    islands: false
+  // 扩展包（按需启用，构建时动态加载对应 /vite 插件）
+  icon: true,        // @ubean/icon
+  pwa: true,         // @ubean/pwa
+  auth: true,        // @ubean/auth
+  ui: { css: false }, // @ubean/ui（UnoCSS 模式）
+  pinia: true,       // @ubean/pinia
+
+  // DevTools 面板（默认关闭）
+  devtools: { enabled: true },
+
+  // 内置零依赖 i18n（非 vue-i18n）
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en', 'zh'],
+    strategy: 'prefix_except_default'
   },
 
-  // OpenAPI 文档配置
-  openAPI: {
-    meta: {
-      title: 'My Ubean App',
-      description: 'API documentation',
-      version: '1.0.0'
-    },
-    route: '/_openapi.json', // OpenAPI JSON 端点
-    production: 'runtime', // 'runtime' | 'prerender' | false
-    ui: {
-      scalar: { route: '/_scalar' }, // Scalar UI (默认开启, false 禁用)
-      swagger: false // Swagger UI (默认关闭)
-    }
-  },
-
-  // 构建配置
-  build: {
-    minify: true,
-    sourcemap: false
+  // Markdown 页面（unplugin-vue-markdown + shiki 高亮）
+  markdown: {
+    enabled: true,
+    theme: { light: 'one-light', dark: 'one-dark-pro' }
   },
 
   // 开发服务器
-  devServer: {
-    port: 9527,
-    host: 'localhost',
-    watch: []
-  },
+  dev: { port: 9527, host: 'localhost' },
 
-  // 框架信息
-  framework: {
-    name: 'ubean',
-    version: '0.1.0'
-  }
+  // 构建选项
+  build: { minify: true, sourcemap: false }
 });
 ```
+
+**要点**：
+
+- 平台 preset 通过 `build.preset` 指定；未指定时 `detectPreset()` 会根据 `vercel.json` / `netlify.toml` / `deno.json` 及运行时全局自动识别。
+- 扩展包顶层字段均支持 `true` 或选项对象两种形式。
+- `routeRules` 支持 `ssr`（`boolean | 'streaming'`）/ `prerender` / `isr`（`number | { ttl, swr? }`）/ `ppr`，按规则与路径特异性排序，运行时可经 `c.get('routeRule')` 读取。
 
 应用约定式目录结构详见 [项目概览与约定 §3](overview.md#3-目录结构)。

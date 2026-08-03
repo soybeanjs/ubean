@@ -1,5 +1,6 @@
 ---
 title: Actions
+description: Server actions and form actions with defineAction and useAction.
 ---
 
 # Server Actions & Form Actions
@@ -8,17 +9,17 @@ ubean provides built-in Server Actions (P9-02) — type-safe server-side functio
 
 ## Core API
 
-| API | 说明 |
+| API | Description |
 | --- | --- |
-| `defineAction(handlerOrSchema, handler?, opts?)` | 定义服务端 action |
-| `fail(status, errors)` | 返回字段级验证错误（SvelteKit 风格） |
-| `ActionError` | 用户可读错误类（含 `code`/`status`） |
-| `useAction(actionOrId)` | Vue composable（客户端） |
-| `useFormAction(actionName)` | Vue composable（表单渐进增强） |
-| `callAction(id, args)` | 底层 RPC 调用 |
-| `defineAction(fn)` | 显式声明服务端 action（推荐）；Vite 插件自动注入 `filePath`/`name` 用于 action ID 生成 |
+| `defineAction(handlerOrSchema, handler?, opts?)` | Defines a server action |
+| `fail(status, errors)` | Returns field-level validation errors (SvelteKit style) |
+| `ActionError` | User-readable error class (with `code`/`status`) |
+| `useAction(actionOrId)` | Vue composable (client) |
+| `useFormAction(actionName)` | Vue composable (progressive-enhancement forms) |
+| `callAction(id, args)` | Low-level RPC call |
+| `defineAction(fn)` | Explicitly declares a server action (recommended); the Vite plugin auto-injects `filePath`/`name` for action ID generation |
 
-## 1. defineAction — 定义服务端 action
+## 1. defineAction — Defining a Server Action
 
 ```typescript
 // src/actions/auth.ts
@@ -34,9 +35,9 @@ export const login = defineAction(async (input: { email: string; password: strin
 });
 ```
 
-### 带 schema 验证
+### With Schema Validation
 
-支持任何 Standard Schema v1 兼容库（valibot/zod/arktype 等）或有 `safeParse`/`parse` 方法的对象：
+Supports any Standard Schema v1 compatible library (valibot/zod/arktype, etc.) or any object with `safeParse`/`parse` methods:
 
 ```typescript
 import { defineAction } from 'ubean';
@@ -48,12 +49,12 @@ const schema = v.object({
 });
 
 export const register = defineAction(schema, async (data, ctx) => {
-  // data 已验证，类型为 { email: string; password: string }
+  // data is already validated, typed as { email: string; password: string }
   return { registered: true, email: data.email };
 });
 ```
 
-## 2. useAction — 客户端调用
+## 2. useAction — Calling from the Client
 
 ```vue
 <script setup lang="ts">
@@ -65,9 +66,9 @@ const { submit, pending, data, error, errors, reset } = useAction(login);
 async function handleLogin() {
   const result = await submit({ email: 'alice@example.com', password: 'secret' });
   if (result.data) {
-    // 成功
+    // success
   } else if (result.errors) {
-    // 字段级验证错误
+    // field-level validation errors
   }
 }
 </script>
@@ -81,19 +82,19 @@ async function handleLogin() {
 </template>
 ```
 
-`useAction` 返回：
-- `pending: Ref<boolean>` — 提交中
-- `data: Ref<TOutput | null>` — 成功返回值
-- `error: Ref<{ message, code? } | null>` — `ActionError` 或异常
-- `errors: Ref<Record<string, string> | null>` — `fail()` 返回的字段错误
-- `status: Ref<number>` — HTTP 状态码
-- `result: Ref<ActionResult | null>` — 完整结果
-- `submit(...args)` — 触发调用
-- `reset()` — 重置状态
+`useAction` returns:
+- `pending: Ref<boolean>` — submitting in progress
+- `data: Ref<TOutput | null>` — the successful return value
+- `error: Ref<{ message, code? } | null>` — an `ActionError` or thrown exception
+- `errors: Ref<Record<string, string> | null>` — field errors returned by `fail()`
+- `status: Ref<number>` — HTTP status code
+- `result: Ref<ActionResult | null>` — the full result
+- `submit(...args)` — triggers the call
+- `reset()` — resets state
 
-## 3. 显式 `defineAction()` 包装器（替代旧 `'use server'` 指令）
+## 3. Explicit `defineAction()` Wrapper (replaces the legacy `'use server'` directive)
 
-`'use server'` 字符串指令已**移除**，改为显式调用 `defineAction(fn)` 包装器。Vite 插件 (`ubeanServerActionsPlugin`) 现在检测 `defineAction(` 调用表达式，自动注入 `filePath` 和 `name` 用于 action ID 生成：
+The `'use server'` string directive has been **removed** in favor of the explicit `defineAction(fn)` wrapper. The Vite plugin (`ubeanServerActionsPlugin`) now detects `defineAction(` call expressions and auto-injects `filePath` and `name` for action ID generation:
 
 ```typescript
 // src/actions/todos.ts
@@ -110,14 +111,14 @@ export const deleteTodo = defineAction(async (id: string) => {
 });
 ```
 
-- **Server 端**：`defineAction()` 包裹的函数自动注册到全局 action 注册表
-- **Client 端**：导出被替换为 RPC stub，调用时 POST 到 `/__actions`
-- **Action ID**：由 `base32(sha1(filePath:exportName))` 生成，Vite 插件自动注入 `filePath`/`name`，client/server 自动一致
+- **Server side**: functions wrapped by `defineAction()` are automatically registered in the global action registry
+- **Client side**: the export is replaced with an RPC stub that POSTs to `/__actions` when called
+- **Action ID**: generated from `act_` + `base32(fnv1a(filePath:exportName))` (two FNV-1a 32-bit hashes combined into 60 bits → 12 lowercase base32 chars); the Vite plugin auto-injects `filePath`/`name` so client and server stay in sync
 
-### 从旧语法迁移
+### Migrating from the Legacy Syntax
 
 ```typescript
-// 迁移前（已移除）：'use server' 字符串指令
+// Before (removed): 'use server' string directive
 'use server';
 
 export async function createTodo(input: { title: string }) {
@@ -125,7 +126,7 @@ export async function createTodo(input: { title: string }) {
   return { success: true };
 }
 
-// 迁移后：显式 defineAction() 包装器
+// After: explicit defineAction() wrapper
 import { defineAction } from 'ubean';
 
 export const createTodo = defineAction(async (input: { title: string }) => {
@@ -134,9 +135,9 @@ export const createTodo = defineAction(async (input: { title: string }) => {
 });
 ```
 
-## 4. Form Actions（渐进增强）
+## 4. Form Actions (Progressive Enhancement)
 
-页面模块可导出 `actions` map，POST 表单通过 `?/<actionName>` URL 分发（SvelteKit 风格）：
+Page modules can export an `actions` map; POST forms are dispatched via the `?/<actionName>` URL (SvelteKit style):
 
 ```vue
 <!-- src/pages/login.vue -->
@@ -160,14 +161,14 @@ export const actions = {
 </script>
 
 <template>
-  <!-- 不带 JS 也能工作（原生 POST 表单） -->
+  <!-- Works without JS too (native POST form) -->
   <form method="POST" action="?/login">
     <input name="email" type="email" required />
     <input name="password" type="password" required />
     <button type="submit">Login</button>
   </form>
 
-  <!-- 或用 useFormAction 做 SPA 式提交 -->
+  <!-- Or use useFormAction for SPA-style submission -->
   <form @submit.prevent="onSubmit">
     <input name="email" v-model="email" type="email" required />
     <input name="password" v-model="password" type="password" required />
@@ -183,33 +184,28 @@ import { useFormAction } from 'ubean/runtime/vue';
 
 const email = ref('');
 const password = ref('');
-const { action, pending, submit, data, errors } = useFormAction('login');
-
-async function onSubmit(event: Event) {
-  const form = event.target as HTMLFormElement;
-  await submit(new FormData(form));
-}
+const { action, pending, onSubmit, data, errors } = useFormAction('login');
 </script>
 ```
 
-- `?/login` → 调用 `actions.login`
-- `?/register` → 调用 `actions.register`
-- 无 `?/name` → 调用 `actions.default`
-- 表单 action 返回 `Response`（重定向）时，页面请求自动转换为 JSON `{ redirect }` + `X-Ubean-Redirect` header
+- `?/login` → calls `actions.login`
+- `?/register` → calls `actions.register`
+- No `?/name` → calls `actions.default`
+- When a form action returns a `Response` (redirect), the page request is automatically converted to JSON `{ redirect }` + `X-Ubean-Redirect` header
 
-## 5. Action 返回值约定
+## 5. Action Return-Value Conventions
 
-| 场景 | 返回值 | 客户端 `result` |
+| Scenario | Return value | Client `result` |
 | --- | --- | --- |
-| 成功 | `return { ... }` | `{ data: { ... }, status: 200 }` |
-| 字段错误 | `return fail(400, { field: 'msg' })` | `{ errors: { field: 'msg' }, status: 400 }` |
-| 用户错误 | `throw new ActionError('msg', { code })` | `{ error: { message, code }, status: 400 }` |
-| 重定向 | `return new Response(null, { status: 302, headers: { Location } })` | `{ response, status: 302 }` |
-| 未知异常 | `throw new Error('boom')` | `{ error: { message: 'boom' }, status: 500 }` |
+| Success | `return { ... }` | `{ data: { ... }, status: 200 }` |
+| Field error | `return fail(400, { field: 'msg' })` | `{ errors: { field: 'msg' }, status: 400 }` |
+| User error | `throw new ActionError('msg', { code })` | `{ error: { message, code }, status: 400 }` |
+| Redirect | `return new Response(null, { status: 302, headers: { Location } })` | `{ data: { redirect }, status: 302 }` |
+| Unexpected error | `throw new Error('boom')` | `{ error: { message: 'boom' }, status: 500 }` |
 
-## 6. 传统 API 路由（替代方案）
+## 6. Traditional API Routes (Alternative)
 
-Server Actions 适用于表单提交和类型安全的 RPC 调用。对于 RESTful API 或需要 OpenAPI 文档的场景，仍使用 `defineHandler`：
+Server Actions are for form submissions and type-safe RPC calls. For RESTful APIs or scenarios that need OpenAPI documentation, use `defineHandler` instead:
 
 ```typescript
 // src/routes/api/submit.ts
@@ -230,10 +226,10 @@ export const POST = defineHandler(
 );
 ```
 
-## 最佳实践
+## Best Practices
 
-1. **Schema 验证**：在 `defineAction` 第一个参数传 schema，框架自动验证输入
-2. **渐进增强**：用 `useFormAction` 时确保原生 `<form method="POST" action="?/name">` 也能工作
-3. **错误分类**：用 `fail()` 返回字段错误（表单友好），用 `ActionError` 抛用户错误
-4. **Action 文件位置**：`src/actions/` 目录或页面模块内联 `export const actions`
-5. **不要在 action 中直接访问 `process`**：Server Actions 运行在 Node 和 Cloudflare Workers 上
+1. **Schema validation**: pass a schema as the first argument to `defineAction`; the framework validates input automatically
+2. **Progressive enhancement**: when using `useFormAction`, ensure the native `<form method="POST" action="?/name">` also works
+3. **Error classification**: use `fail()` for field errors (form-friendly) and `ActionError` for user-facing errors
+4. **Action file location**: `src/actions/` directory, or inline `export const actions` in a page module
+5. **Don't access `process` directly in actions**: Server Actions run on both Node and Cloudflare Workers

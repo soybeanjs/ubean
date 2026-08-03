@@ -1,4 +1,7 @@
-// Sidebar Information Architecture (5 sections) per DESIGN.md §6.
+// Sidebar Information Architecture (8 sections) per DESIGN.md §6, as revised by
+// ADR-0007 (D13 reversal): Architecture holds only explanatory content
+// (overview/architecture/routing/runtime); engineering moved to a dedicated
+// Contributing section; ecosystem is a top-level section.
 // Drives <SiderMenu> and the home page's section links.
 // Labels are bilingual (EN + ZH) so the sidebar can switch language with
 // the current locale without a separate i18n message file.
@@ -7,8 +10,6 @@ export interface MenuItem {
   /** Chinese label; falls back to `label` when undefined. */
   labelZh?: string;
   to: string;
-  /** Architecture docs carry a status badge; undefined for other sections. */
-  status?: 'implemented' | 'historical' | 'proposal';
 }
 
 export interface MenuSection {
@@ -90,22 +91,27 @@ export const menuSections: MenuSection[] = [
     label: 'Architecture',
     labelZh: '架构',
     items: [
-      // Core concepts — entry point & mental model
-      { label: 'Overview', labelZh: '概览', to: '/architecture/overview', status: 'implemented' },
-      { label: 'Architecture', labelZh: '架构', to: '/architecture/architecture', status: 'implemented' },
-      // Internals — how the framework works under the hood
-      { label: 'Routing', labelZh: '路由', to: '/architecture/routing', status: 'implemented' },
-      { label: 'Runtime', labelZh: '运行时', to: '/architecture/runtime', status: 'implemented' },
-      { label: 'Engineering', labelZh: '工程化', to: '/architecture/engineering', status: 'implemented' },
-      // Community & comparison
-      { label: 'Ecosystem', labelZh: '生态系统', to: '/architecture/ecosystem', status: 'implemented' },
-      { label: 'Framework Comparison', labelZh: '框架对比', to: '/architecture/framework-comparison', status: 'implemented' },
-      { label: 'Roadmap', labelZh: '路线图', to: '/architecture/roadmap', status: 'implemented' },
-      // Design records & proposals (historical context)
-      { label: 'Subpackage Splitting', labelZh: '子包拆分', to: '/architecture/subpackage-splitting', status: 'historical' },
-      { label: 'Islands Auto-Registry', labelZh: '群岛自动注册', to: '/architecture/islands-auto-registry', status: 'proposal' },
-      { label: 'App Modes (ADR)', labelZh: '应用模式 (ADR)', to: '/architecture/modes', status: 'historical' },
-      { label: 'ubean-studio', to: '/architecture/ubean-studio', status: 'proposal' }
+      // Explanatory content only — how the framework works under the hood (ADR-0007)
+      { label: 'Overview', labelZh: '概览', to: '/architecture/overview' },
+      { label: 'Architecture', labelZh: '架构', to: '/architecture/architecture' },
+      { label: 'Routing', labelZh: '路由', to: '/architecture/routing' },
+      { label: 'Runtime', labelZh: '运行时', to: '/architecture/runtime' }
+    ]
+  },
+  {
+    value: 'ecosystem',
+    label: 'Ecosystem',
+    labelZh: '生态系统',
+    items: [
+      { label: 'Ecosystem', labelZh: '生态系统', to: '/ecosystem/ecosystem' }
+    ]
+  },
+  {
+    value: 'contributing',
+    label: 'Contributing',
+    labelZh: '参与贡献',
+    items: [
+      { label: 'Engineering', labelZh: '工程化', to: '/contributing/engineering' }
     ]
   }
 ];

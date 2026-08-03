@@ -1,10 +1,11 @@
 ---
 title: Cache
+description: "Route-level HTTP cache: CacheStore, defineCachedFunction, cacheLife/cacheTag, and invalidation."
 ---
 
 # Cache Operations
 
-ubean ships a route-level HTTP cache built around a swappable `CacheStore`. It is not a generic key/value cache client — for arbitrary application caching use `unstorage` (re-exported as `useStorage`/`useKV`).
+ubean ships a route-level HTTP cache built around a swappable `CacheStore`. It is not a generic key/value cache client — for arbitrary application caching use ubean's built-in storage layer (`useStorage`/`useKV` from `@ubean/server`).
 
 ## useCacheStore()
 
@@ -112,27 +113,29 @@ Cacheability is enforced automatically:
 Wrap an arbitrary function with caching. This is the explicit, function-call replacement for the removed `"use cache"` string directive. Useful for memoizing expensive computations (DB queries, remote fetches, derived data) with TTL- and tag-based invalidation.
 
 ```typescript
-import { defineCachedFunction } from 'ubean';
+import { defineCachedFunction, cacheLife, cacheTag } from 'ubean';
 
-// Wrap a function with a 60s TTL and tags for targeted invalidation
+// Wrap a function; declare TTL and tags inside the function body
 export const getUserProfile = defineCachedFunction(
   async (userId: string) => {
+    cacheLife(60);                          // 60s TTL
+    cacheTag('users', `user:${userId}`);    // attach tags for invalidation
     const user = await db.query.users.findById(userId);
     return user;
   },
-  { ttl: 60, tags: (userId) => [`user:${userId}`] }
+  { name: 'getUserProfile' }                // name is required (cache key base)
 );
 
-// Invalidate by tag (or pattern) from a mutation handler
+// Invalidate by tag from a mutation handler
 import { revalidateTag } from 'ubean';
-await revalidateTag('user:42');
+await revalidateTag('users'); // invalidates every entry tagged 'users'
 ```
 
-| Option  | Type                          | Description                                                       |
-| ------- | ----------------------------- | ----------------------------------------------------------------- |
-| ttl     | number                        | Cache TTL in seconds (0 disables caching)                         |
-| tags    | string[] \| (...args) => string[] | Tags attached to the entry for tag-based invalidation         |
-| name    | string                        | Explicit cache key (defaults to function name + serialized args) |
+| Option      | Type                | Description                                                       |
+| ----------- | ------------------- | ----------------------------------------------------------------- |
+| name        | string (required)   | Cache key prefix (e.g. `'getUserProfile'`)                        |
+| defaultTtl  | number              | TTL in seconds when `cacheLife()` is not called (default 60)      |
+| getKey      | (...args) => string | Custom cache key generator (defaults to `name + JSON.stringify(args)`) |
 
 > **Deprecated alias**: `wrapWithCache(fn, options)` is kept as a deprecated alias for `defineCachedFunction()`. Prefer `defineCachedFunction()` in new code.
 
@@ -149,12 +152,15 @@ async function getUserProfile(userId: string) {
 
 // After: explicit defineCachedFunction() wrapper
 export const getUserProfile = defineCachedFunction(
-  async (userId: string) => db.query.users.findById(userId),
-  { ttl: 60 }
+  async (userId: string) => {
+    cacheLife(60);
+    return db.query.users.findById(userId);
+  },
+  { name: 'getUserProfile' }
 );
 ```
 
-The `cacheLife(seconds)` / `cacheTag(...tags)` macros and the `revalidateTag()` / `revalidateTags()` / `revalidatePath()` invalidation APIs are unchanged.
+The `cacheLife()` / `cacheTag()` runtime helpers and the `revalidateTag()` / `revalidateTags()` / `revalidatePath()` invalidation APIs remain available.
 
 ## invalidateRouteCache()
 
@@ -185,7 +191,7 @@ export default defineConfig({
 });
 ```
 
-The middleware sets `X-Cache: HIT|MISS` and `Age` headers on cached responses for observability.
+The middleware sets an `X-Cache: HIT` header and an `Age` header on cached responses for observability (a `MISS` marker is not emitted).
 
 ## ISR (Incremental Static Regeneration)
 
@@ -226,7 +232,7 @@ Use `invalidateRouteCache()` to invalidate ISR entries (same API as HTTP cache):
 import { invalidateRouteCache } from 'ubean';
 
 // After publishing a new blog post, invalidate all /blog/* ISR entries
-await invalidateRouteCache(/^ISR:\/blog\//);
+await invalidateRouteCache(/^isr:\/blog\//);
 ```
 
 ### Relationship to other rendering modes
@@ -276,17 +282,17 @@ useCacheStore(redisStore);
 ubean does **not** ship these APIs (common in other frameworks' cache modules):
 
 - `useCache()` / `defineCache()` — use `useCacheStore()` + `cachedEventHandler` instead
-- Tag-based invalidation, cache groups, `remember()`, `rememberForever()`
-- Built-in Redis/Memcached/file drivers — implement `CacheStore` yourself or use `unstorage` (`useStorage`) for generic key/value caching
+- Cache groups and `remember()` / `rememberForever()` helpers — use `defineCachedFunction` + `revalidateTag` instead
+- Built-in Redis/Memcached/file drivers — implement the `CacheStore` interface yourself, or mount a driver on ubean's storage layer
 
-For arbitrary application-level key/value caching (not HTTP response caching), prefer `useStorage` / `useKV`:
+For arbitrary application-level key/value caching (not HTTP response caching), prefer the built-in `useStorage` / `useKV` (from `@ubean/server`, re-exported by `ubean`):
 
 ```typescript
 import { useStorage } from 'ubean';
 
 const storage = useStorage();
-await storage.setItem('user:1', { name: 'John' });
-const user = await storage.getItem('user:1');
+await storage.set('user:1', { name: 'John' });
+const user = await storage.get('user:1');
 ```
 
 ## Best Practices

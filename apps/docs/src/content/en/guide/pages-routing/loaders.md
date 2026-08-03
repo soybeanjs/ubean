@@ -1,21 +1,25 @@
 ---
 title: Loaders
+description: "Declarative data fetching with useData: caching, TTL, and invalidation."
 ---
 
 # Data Fetching (useData)
 
-ubean provides `useData()` for declarative data fetching with caching, TTL, dependencies, and invalidation. It is auto-imported from `ubean` (in the `UBEAN_SERVER_PRESET`).
+ubean provides `useData()` for declarative data fetching with caching, TTL, and invalidation. It is auto-imported from `ubean` (in the `UBEAN_SERVER_PRESET`).
 
 > ubean does **not** provide `defineLoader`. Use `useData()` inside `<script setup>` for server-side or client-side data fetching.
 
 ## Basic Usage
 
+`useData` takes a single options object — `key` (a stable string) plus `fetcher` (the async function that loads the data). It is `await`ed directly in `<script setup>`:
+
 ```vue
 <script setup lang="ts">
 // useData is auto-imported
-const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
-  fetch('/api/posts').then(r => r.json())
-);
+const { data, error, loading, refresh, invalidate } = await useData({
+  key: 'posts',
+  fetcher: () => fetch('/api/posts').then(r => r.json())
+});
 </script>
 
 <template>
@@ -31,9 +35,12 @@ const { data, error, loading, refresh, invalidate } = await useData('posts', () 
 
 ```vue
 <script setup lang="ts">
-const { data } = await useData('user', async () => {
-  const res = await fetch('/api/user');
-  return res.json();
+const { data } = await useData({
+  key: 'user',
+  fetcher: async () => {
+    const res = await fetch('/api/user');
+    return res.json();
+  }
 });
 </script>
 ```
@@ -46,10 +53,10 @@ Use `useRouter()` to read route params inside the fetcher:
 <script setup lang="ts">
 const router = useRouter();
 
-const { data: post } = await useData(
-  () => `post-${router.currentRoute.value.params.id}`,
-  () => fetch(`/api/posts/${router.currentRoute.value.params.id}`).then(r => r.json())
-);
+const { data: post } = await useData({
+  key: `post-${router.currentRoute.value.params.id}`,
+  fetcher: () => fetch(`/api/posts/${router.currentRoute.value.params.id}`).then(r => r.json())
+});
 </script>
 ```
 
@@ -59,37 +66,36 @@ Combine multiple `useData` calls:
 
 ```vue
 <script setup lang="ts">
-const { data: posts } = await useData('posts', () =>
-  fetch('/api/posts').then(r => r.json())
-);
+const { data: posts } = await useData({
+  key: 'posts',
+  fetcher: () => fetch('/api/posts').then(r => r.json())
+});
 
-const { data: user } = await useData('user', () =>
-  fetch('/api/user').then(r => r.json())
-);
+const { data: user } = await useData({
+  key: 'user',
+  fetcher: () => fetch('/api/user').then(r => r.json())
+});
 </script>
 ```
 
 ## Dependent Data
 
-Use a computed key to refetch when dependencies change:
+Cache keys are static strings — `useData` fetches once per key per mount. To refetch when a dependency changes, call `refresh()` (e.g., from a watcher):
 
 ```vue
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 
 const router = useRouter();
 const postId = computed(() => router.currentRoute.value.params.id as string);
 
-const { data: post } = await useData(
-  () => `post-${postId.value}`,
-  () => fetch(`/api/posts/${postId.value}`).then(r => r.json())
-);
+const { data: post, refresh } = await useData({
+  key: `post-${postId.value}`,
+  fetcher: () => fetch(`/api/posts/${postId.value}`).then(r => r.json())
+});
 
-// Comments depend on post being loaded
-const { data: comments } = await useData(
-  () => `comments-${postId.value}`,
-  () => fetch(`/api/posts/${postId.value}/comments`).then(r => r.json())
-);
+// Refetch when the route param changes
+watch(postId, () => refresh());
 </script>
 ```
 
@@ -97,11 +103,12 @@ const { data: comments } = await useData(
 
 ```vue
 <script setup lang="ts">
-const { data } = await useData('config', () => fetch('/api/config').then(r => r.json()), {
-  // Cache key options
-  ttl: 60_000,          // Cache for 60 seconds
-  defineDataKey: true,   // Auto-derive key from function
-  server: true           // Execute on server during SSR
+const { data } = await useData({
+  key: 'config',
+  fetcher: () => fetch('/api/config').then(r => r.json()),
+  ttl: 60_000,   // Cache for 60 seconds
+  tags: ['config'], // Tag for group invalidation (invalidateData('config'))
+  dedupe: true   // Share in-flight requests with the same key (default)
 });
 </script>
 ```
@@ -110,15 +117,18 @@ const { data } = await useData('config', () => fetch('/api/config').then(r => r.
 
 ```vue
 <script setup lang="ts">
-const { data, refresh, invalidate } = await useData('posts', fetchPosts);
+const { data, refresh, invalidate } = await useData({
+  key: 'posts',
+  fetcher: fetchPosts
+});
 
 async function handleRefresh() {
   await refresh();
 }
 
-// Invalidate by key (refetches on next access)
-async function handleInvalidate() {
-  await invalidate('posts');
+// Invalidate this key (refetches on next access)
+function handleInvalidate() {
+  invalidate();
 }
 </script>
 ```
@@ -127,12 +137,15 @@ async function handleInvalidate() {
 
 ```vue
 <script setup lang="ts">
-const { data, error } = await useData('posts', async () => {
-  const res = await fetch('/api/posts');
-  if (!res.ok) {
-    throw new Error(`Failed: ${res.status}`);
+const { data, error } = await useData({
+  key: 'posts',
+  fetcher: async () => {
+    const res = await fetch('/api/posts');
+    if (!res.ok) {
+      throw new Error(`Failed: ${res.status}`);
+    }
+    return res.json();
   }
-  return res.json();
 });
 </script>
 
@@ -178,4 +191,4 @@ export const GET = defineHandler(async c => {
 2. **Handle errors**: Always handle the `error` state in templates
 3. **Use TTLs**: Set TTLs for data that changes infrequently
 4. **Invalidate after mutations**: Call `invalidate()` after writes to refetch
-5. **Server execution**: Use `server: true` to fetch during SSR for initial render
+5. **SSR payloads**: Data fetched via `useData` during SSR is serialized into the `__UBEAN_DATA__` payload and hydrated on the client automatically — no extra config needed

@@ -1,252 +1,196 @@
 ---
 title: Architecture
+description: "How ubean is architected: its five layers, package layout, and configuration system."
 ---
 
 # Architecture
 
-## 4.1 Overall Architecture Diagram
+## 1. Layered Architecture
+
+ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized into five layers. The repository is structured as **37 single-purpose packages** (`packages/*`); the main `ubean` package is a thin aggregator that re-exports every `@ubean/*` subpackage.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                       ubean Framework Architecture                   │
+│                       ubean Framework Layers                         │
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                     │
 │  ┌─────────────────────────────────────────────────────────────┐   │
-│  │                     CLI Layer (citty)                        │   │
-│  │  ubean dev | ubean build | ubean prepare | ubean preview    │   │
+│  │                  CLI Layer (@ubean/cli)                      │   │
+│  │  ubean dev | build | preview | prepare                       │   │
+│  │  init | page | env | config | devtools | scaffold            │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                   Core Layer (Core)                          │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │   │
-│  │  │ Config   │  │ Routing  │  │  Build   │  │  Preset  │   │   │
-│  │  │ Loader   │  │  Scan    │  │  System  │  │ Resolver │   │   │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │   │
-│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │   │
-│  │  │  Hooks   │  │ Dev      │  │ Prerender│  │  Types   │   │   │
-│  │  │ System   │  │ Server   │  │  / SSG   │  │  System  │   │   │
-│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │   │
+│  │               Build Core Layer (build-time)                  │   │
+│  │  @ubean/config   config loading (defineConfig / c12)        │   │
+│  │  @ubean/routing  route scanning (pages/routes/layouts/...)  │   │
+│  │  @ubean/build    production build orchestration             │   │
+│  │  @ubean/prerender  SSG prerendering (routeRules-driven)     │   │
+│  │  @ubean/modules  module system (builtins + kit hooks)       │   │
+│  │  @ubean/codegen  type generation (routes.d.ts / typed-router)│  │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                 Vite Plugin Layer (Vite-Plus)                │   │
-│  │  ┌──────────────────────────────────────────────────────┐  │   │
-│  │  │ ubeanPlugin()           │ ubeanVue()                 │  │   │
-│  │  │ - Virtual modules       │ - Vue SFC processing       │  │   │
-│  │  │ - Client stubs          │ - SSR rendering            │  │   │
-│  │  │ - Env schema            │ - Client routing           │  │   │
-│  │  │ - Dev triggers          │ - Islands                  │  │   │
-│  │  │ - Binding injection     │ - Head management          │  │   │
-│  │  └──────────────────────────────────────────────────────┘  │   │
+│  │               Vite Plugin Layer (@ubean/vite)               │   │
+│  │  ubeanPlugin()  virtual modules / client stubs / macros    │   │
+│  │  ubeanVue()     Vue SFC / islands / SSR entry / head        │   │
+│  │  extension /vite subpaths: icon / pwa / auth / image / ...  │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                  Runtime Layer (Runtime)                     │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │   │
-│  │  │ Hono Server │  │  Router     │  │ Route Rules         │ │   │
-│  │  │             │  │  (rou3)     │  │ (cache/headers/     │ │   │
-│  │  │             │  │             │  │  redirects/ISR)     │ │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────────────┘ │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │   │
-│  │  │ Plugins     │  │ Storage     │  │ Database/Drizzle    │ │   │
-│  │  │ (hookable)  │  │ (unstorage) │  │                     │ │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────────────┘ │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐ │   │
-│  │  │ WebSocket   │  │ SSE/Streams │  │ Cache/ISR           │ │   │
-│  │  │ (crossws)   │  │             │  │                     │ │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────────────┘ │   │
+│  │                Runtime Layer (runtime)                       │   │
+│  │  @ubean/app     Hono app factory (createUbeanApp)           │   │
+│  │  @ubean/runtime Vue client runtime (createUbeanVueApp)      │   │
+│  │  @ubean/ssr     Vue SSR renderer (streaming / PPR)          │   │
+│  │  @ubean/server  cache / db / queue / cron / ws / sse / ...  │   │
+│  │  @ubean/pages   page data protocol (loaders / actions)      │   │
+│  │  @ubean/actions Server Actions / Form Actions               │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                 Platform Adapter Layer (Presets)             │   │
-│  │  Node.js │ Bun │ Deno │ Cloudflare │ Vercel │ Netlify │ ...│   │
+│  │               Platform Preset Layer (@ubean/preset)         │   │
+│  │  standard │ node │ cloudflare │ vercel │ vercel-edge        │   │
+│  │  netlify │ bun │ deno (auto-detected by detectPreset)       │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-## 4.2 Core Data Flow
+### 1.1 Package Organization
 
-#### 4.2.1 Dev Mode Flow
+- **Aggregator main package**: `packages/ubean` (npm: `ubean`) contains no framework logic — it re-exports all subpackages, preserving the same API surface as the original single package.
+- **Single-purpose subpackages**: the remaining 36 packages are split by capability (`@ubean/types` / `@ubean/routing` / `@ubean/app` / `@ubean/ssr` …), each built and type-checked independently.
+- **Extensions loaded on demand**: `auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` are enabled via top-level `ubean.config.ts` fields; the build dynamically `import()`s the matching `/vite` subpath. They **never** become hard dependencies of the main package.
+- **Entry boundaries**: server code imports from the `ubean` main entry or `ubean/runtime/app`; browser code must import from `ubean/runtime/vue` to keep server-side build tooling out of the browser bundle.
+
+## 2. Core Data Flow
+
+### 2.1 Dev Mode
 
 ```
 ubean dev
   │
-  ├─► Load config (ubean.config.ts)
-  │    └─► Resolve preset (auto-detect or manual)
+  ├─► Load config (ubean.config.ts + defaults merged via c12)
+  │    └─► Resolve preset (detectPreset auto-detection or build.preset)
   │
-  ├─► Scan project files
-  │    ├─► routes/        → API routes
-  │    ├─► pages/         → Page routes + .server.ts
-  │    ├─► middleware/    → Global middleware
-  │    ├─► plugins/       → Runtime plugins
-  │    └─► public/        → Static assets
+  ├─► Scan project files (@ubean/routing)
+  │    ├─► src/routes/     → API routes (defineHandler named exports)
+  │    ├─► src/pages/      → Vue page routes (definePage macro)
+  │    ├─► src/layouts/    → layouts (resolved by path hierarchy)
+  │    ├─► src/middleware/ → Hono middleware (global → /*, prefix → subpath)
+  │    ├─► src/crons/      → scheduled tasks (defineScheduled)
+  │    └─► public/         → static assets (ETag / Cache-Control)
   │
-  ├─► Start Vite dev server (vite-plus)
-  │    ├─► ubeanPlugin()
-  │    │    ├─► Virtual module registration
-  │    │    ├─► Client stub injection
-  │    │    └─► Environment variable schema validation
-  │    └─► ubeanVue()
-  │         ├─► Vue SFC processing
-  │         └─► SSR/HMR config
+  ├─► Start Vite dev server (@ubean/dev-server + @ubean/vite)
+  │    ├─► ubeanPlugin()   virtual modules, client stubs, macro transforms
+  │    └─► ubeanVue()     Vue SFC, SSR render pipeline, HMR
   │
-  ├─► Start Worker runtime (env-runner)
-  │    └─► Hono server handles requests
+  ├─► Start Hono dev server (@ubean/app: route rules + middleware + ISR)
   │
-  └─► File watch → hot reload → auto refresh
+  └─► File watch → HMR / route rebuild → auto refresh
 ```
 
-#### 4.2.2 Build Mode Flow
+### 2.2 Build Mode
 
 ```
 ubean build
   │
-  ├─► Load config + resolve preset
-  ├─► Scan project files
-  ├─► Generate virtual modules
-  │    ├─► Route manifest
-  │    ├─► Runtime config
-  │    ├─► Plugin registry
-  │    └─► Platform polyfills
+  ├─► Load config + resolve preset + scan project files
+  │
+  ├─► Generate virtual modules and types
+  │    ├─► Route manifest (virtual:ubean-pages / routes)
+  │    ├─► Module registry (registry.ts)
+  │    ├─► .ubean/routes.d.ts + typed-router.d.ts
+  │    └─► islands registry
   │
   ├─► Client build (Vite)
-  │    └─► Vue SSR client bundle
+  │    └─► Vue client bundle (hydration entry)
   │
-  ├─► Server build (Rollup/Rolldown)
+  ├─► Server build (Vite SSR / Rolldown)
   │    ├─► Entry: server entry for the preset
-  │    ├─► Bundle all routes/middleware/plugins
-  │    ├─► Platform-specific processing
-  │    └─► Output to .output/server/
+  │    ├─► Bundle all routes / middleware / module plugins
+  │    └─► Output to outputDir/server
   │
-  ├─► Static asset processing
-  │    └─► Output to .output/public/
-  │
-  ├─► Prerender (if SSG enabled)
+  ├─► Prerender (mode: 'ssg' or routeRules.prerender / ppr)
   │    └─► Generate static HTML
   │
-  └─► Generate platform config files
-       └─► vercel.json / wrangler.toml / netlify.toml / ...
+  └─► Emit platform artifacts (vercel.json / wrangler.toml / netlify.toml / …)
 ```
 
-## 4.3 Configuration System
+## 3. Configuration System
+
+The configuration entry point is `ubean.config.ts`, declared with `defineConfig` (loading and types live in `@ubean/config`). Defaults are merged by `loadUbeanConfig`; the full field list is in the [API Reference](/reference/api/config).
 
 ```typescript
 // ubean.config.ts
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  // Platform preset: auto-detect or manual
-  preset: 'node-server', // node-server | bun | deno | cloudflare | vercel | ...
+  // App mode: fullstack (default) | spa | ssg | backend
+  mode: 'fullstack',
 
-  // Source directories
-  srcDir: './',
-  routesDir: './routes',
-  pagesDir: './pages',
-  middlewareDir: './middleware',
-  publicDir: './public',
+  // Source directory (default: <rootDir>/src)
+  srcDir: 'src',
 
-  // Server directory
-  serverDir: './server',
+  // SSR config: true (default) | false | { exclude, streaming }
+  ssr: true,
 
-  // Output config
-  output: {
-    dir: './.output',
-    serverDir: './.output/server',
-    publicDir: './.output/public'
+  // Directory conventions (defaults are fine; override as needed)
+  dir: {
+    pages: 'src/pages',
+    routes: 'src/routes',
+    layouts: 'src/layouts',
+    middleware: 'src/middleware',
+    public: 'public'
   },
 
-  // Route rules
+  // Route rules: per-route rendering control (cache / redirect / ISR / PPR)
   routeRules: {
-    '/**': { cache: { maxAge: 60 } },
-    '/api/**': { cors: true },
     '/blog/**': { isr: 3600 },
     '/old-page': { redirect: '/new-page' }
   },
 
-  // Runtime config (accessible via useRuntimeConfig())
-  runtimeConfig: {
-    apiSecret: '', // server-only
-    public: {
-      apiBase: '/api' // client-accessible
-    }
-  },
+  // Prerendering (SSG): all: true or an include list
+  prerender: { all: true },
 
-  // Environment variable validation schema
-  env: {
-    DATABASE_URL: { type: 'string', required: true },
-    API_KEY: { type: 'string', secret: true }
-  },
-
-  // Storage config
-  storage: {
-    data: { driver: 'fs', base: './data' },
-    redis: { driver: 'redis', url: '...' }
-  },
-
-  // Database config
-  database: {
-    default: {
-      connector: 'sqlite', // sqlite | postgresql | mysql | d1 | libsql
-      options: {
-        /* ... */
-      }
-    }
-  },
-
-  // Plugins
-  plugins: [],
-
-  // Modules
+  // Module system: package names / tuples / instances
   modules: [],
 
-  // Vue config
-  vue: {
-    ssr: true,
-    islands: false
+  // Extensions (opt-in; the matching /vite plugin is loaded at build time)
+  icon: true,         // @ubean/icon
+  pwa: true,          // @ubean/pwa
+  auth: true,         // @ubean/auth
+  ui: { css: false }, // @ubean/ui (UnoCSS mode)
+  pinia: true,        // @ubean/pinia
+
+  // DevTools panel (disabled by default)
+  devtools: { enabled: true },
+
+  // Built-in zero-dependency i18n (not vue-i18n)
+  i18n: {
+    defaultLocale: 'en',
+    locales: ['en', 'zh'],
+    strategy: 'prefix_except_default'
   },
 
-  // OpenAPI docs config
-  openAPI: {
-    meta: {
-      title: 'My Ubean App',
-      description: 'API documentation',
-      version: '1.0.0'
-    },
-    route: '/_openapi.json', // OpenAPI JSON endpoint
-    production: 'runtime', // 'runtime' | 'prerender' | false
-    ui: {
-      scalar: { route: '/_scalar' }, // Scalar UI (enabled by default, false to disable)
-      swagger: false // Swagger UI (disabled by default)
-    }
-  },
-
-  // Build config
-  build: {
-    minify: true,
-    sourcemap: false
+  // Markdown pages (unplugin-vue-markdown + shiki highlighting)
+  markdown: {
+    enabled: true,
+    theme: { light: 'one-light', dark: 'one-dark-pro' }
   },
 
   // Dev server
-  devServer: {
-    port: 9527,
-    host: 'localhost',
-    watch: []
-  },
+  dev: { port: 9527, host: 'localhost' },
 
-  // Framework info
-  framework: {
-    name: 'ubean',
-    version: '0.1.0'
-  }
+  // Build options
+  build: { minify: true, sourcemap: false }
 });
 ```
 
-For the convention-based app directory structure, see [Overview §3](overview.md#3-directory-structure).
+**Key points**:
 
-## Next Steps
+- The platform preset is set via `build.preset`; when omitted, `detectPreset()` auto-detects from `vercel.json` / `netlify.toml` / `deno.json` and runtime globals.
+- Extension top-level fields accept either `true` or an options object.
+- `routeRules` supports `ssr` (`boolean | 'streaming'`) / `prerender` / `isr` (`number | { ttl, swr? }`) / `ppr`, sorted by rule and path specificity, and readable at runtime via `c.get('routeRule')`.
 
-- [Overview](/architecture/overview) — project overview, tech stack and directory structure.
-- [Routing](/architecture/routing) — file-based routing scan and route conventions.
-- [Runtime](/architecture/runtime) — runtime server, middleware, and plugins.
-- [Quick Start](/guide/quickstart) — create your first ubean project.
+See [Overview §3](overview.md#3-directory-structure) for the convention-based app directory structure.

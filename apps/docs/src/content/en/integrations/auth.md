@@ -1,5 +1,6 @@
 ---
 title: Auth
+description: "Authentication with @ubean/auth: Better Auth integration and a built-in email/password fallback."
 ---
 
 # Authentication
@@ -38,24 +39,24 @@ export default defineConfig({
   plugins: [
     ubeanAuthPlugin({
       basePath: '/api/auth',
-      // Better Auth options (forwarded to betterAuth())
+      // Better Auth options (forwarded to betterAuth()) —
+      // object form, or a function: betterAuth: ({ defaults }) => ({ ... })
+      betterAuth: {
+        database: { /* Drizzle / Kysely / ... */ },
+        emailAndPassword: { enabled: true }
+      },
       socialProviders: {
         google: {
           clientId: process.env.GOOGLE_CLIENT_ID!,
           clientSecret: process.env.GOOGLE_CLIENT_SECRET!
         }
-      },
-      // or pass a custom better-auth instance
-      betterAuthOptions: {
-        database: { /* Drizzle / Kysely / ... */ },
-        emailAndPassword: { enabled: true }
       }
     })
   ]
 });
 ```
 
-The plugin mounts the `/api/auth/*` routes automatically in dev and bundles them at build time — **no route files are needed**.
+In development, the plugin mounts the `/api/auth/*` routes automatically — **no route files are needed** in dev. For production builds, mount the handler yourself via `createAuthHandler()` (below) or a custom server integration.
 
 ## Server-side access
 
@@ -66,10 +67,10 @@ Use `createAuthHandler()` to mount the auth handler manually (e.g. inside an exi
 import { defineHandler } from 'ubean';
 import { createAuthHandler } from '@ubean/auth';
 
-const handler = createAuthHandler();
+const { handler } = createAuthHandler();
 
 export const ALL = defineHandler(async c => {
-  return handler(c);
+  return handler(c.req.raw); // handler expects a standard Request
 });
 ```
 
@@ -83,7 +84,7 @@ import { getServerSession } from '@ubean/auth';
 export const GET = defineHandler({
   requiresAuth: true
 }, async c => {
-  const session = await getServerSession(c);
+  const session = await getServerSession(c.req.raw);
   return c.json({ user: session?.user });
 });
 ```
@@ -92,13 +93,13 @@ export const GET = defineHandler({
 
 | Function                 | Description                                            |
 | ------------------------ | ------------------------------------------------------ |
-| `createAuthHandler(opts)` | Returns a Hono handler that proxies to Better Auth    |
-| `authMiddleware`         | Middleware that attaches the session to the context    |
-| `getUser(c)`             | Resolve the current user from a request               |
-| `getSession(c)`          | Resolve the full session object                        |
-| `requireAuth(c)`         | Throws `HTTPException` if not authenticated            |
-| `getServerSession(c)`    | Server-only session lookup (works in loaders/actions)  |
-| `protectRoute(c, opts)`   | Programmatic route guard                               |
+| `createAuthHandler(opts)` | Creates the auth backend; returns `{ handler, resolveAuth, getOptions }` |
+| `authMiddleware()`       | Hono middleware that attaches `user` / `session` to the context |
+| `getUser()`              | Current user from the request context (no args)        |
+| `getSession()`           | Full `{ user, session }` from the request context      |
+| `requireAuth(c?)`        | Throws a 401 `Error` if not authenticated; returns the user |
+| `getServerSession(req?)` | Server-only session lookup from a `Request` (or the current context) |
+| `protectRoute(redirectTo = '/login')` | Client-side route guard that redirects when unauthenticated |
 
 ## Client-side usage
 
@@ -228,6 +229,6 @@ Mount it via directory convention: `middleware/admin/auth.ts` applies to `/admin
 
 1. **Prefer `@ubean/auth` over hand-rolled auth** — Better Auth handles session rotation, CSRF, and OAuth edge cases.
 2. **Always set `requiresAuth: true`** on protected routes rather than guarding inside the handler body.
-3. **Use `getServerSession(c)` for SSR data loading** — it reads cookies directly without an extra round trip.
-4. **Rotate secrets** — store `JWT_SECRET` / provider secrets in `defineEnv()` with `.secret()`.
+3. **Use `getServerSession(c.req.raw)` for SSR data loading** — it reads cookies directly without an extra round trip.
+4. **Rotate secrets** — store `JWT_SECRET` / provider secrets in `defineEnv()` with `{ type: String, required: true }`.
 5. **Combine with `defineRateLimit`** for login endpoints to mitigate brute force.

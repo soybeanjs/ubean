@@ -1,5 +1,6 @@
 ---
 title: Runtime
+description: "The ubean runtime: defineApp, app configuration, dev server, presets, and the CLI command system."
 ---
 
 # Runtime
@@ -1594,7 +1595,7 @@ export default defineApp({
 | Components in `node_modules` | Works normally (bare specifiers passed to Vite as-is) |
 | Adding a new island usage in dev mode | Transform re-scans → updates registry → invalidates virtual module → full-reload (only triggered on HMR updates, not on initial load) |
 
-> See [Islands Auto-Registration](islands-auto-registry.md) for the detailed design.
+> See [Islands](/guide/islands) for the detailed design.
 
 #### Comparison with void's Import Attributes
 
@@ -2679,5 +2680,5 @@ import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/pinia';
 
 - [Overview](overview.md) — high-level architecture and design principles
 - [Routing](routing.md) — file-based routing, layouts, and route rules
-- [App Modes](modes.md) — fullstack / SPA / SSG / backend modes
-- [Islands Auto-Registration](islands-auto-registry.md) — zero-config island hydration details
+- [App Modes](/guide/app-modes) — fullstack / SPA / SSG / backend modes
+- [Islands](/guide/islands) — zero-config island hydration details

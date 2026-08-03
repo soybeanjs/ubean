@@ -68,7 +68,7 @@ const ecosystem = [
 // Derive locale from the route path for SSR-safe localized links.
 const prefix = computed(() => isZh.value ? '/zh' : '');
 const getStartedTo = computed(() => `${prefix.value}/guide/quickstart`);
-const comparisonTo = computed(() => `${prefix.value}/architecture/framework-comparison`);
+const architectureTo = computed(() => `${prefix.value}/architecture/overview`);
 const L = computed(() => isZh.value ? 'zh' : 'en');
 </script>
 
@@ -124,16 +124,6 @@ const L = computed(() => isZh.value ? 'zh' : 'en');
       </div>
     </section>
 
-    <!-- Comparison (rendered from architecture/framework-comparison.md at that route) -->
-    <section class="mx-auto max-w-6xl px-6 py-16">
-      <h2 class="text-2xl font-bold mb-4">{{ isZh ? 'ubean 与其他框架对比' : 'How does ubean compare?' }}</h2>
-      <p class="text-muted-foreground mb-8">{{ isZh ? '完整的对比分析请见架构部分。' : 'A full comparison lives in the Architecture section.' }}</p>
-      <SButtonLink variant="outline" shape="rounded" :to="comparisonTo">
-        {{ isZh ? '查看框架对比' : 'View framework comparison' }}
-        <SIcon icon="lucide:arrow-right" />
-      </SButtonLink>
-    </section>
-
     <!-- Ecosystem -->
     <section class="mx-auto max-w-6xl px-6 py-16">
       <h2 class="text-2xl font-bold mb-8">{{ isZh ? '生态系统' : 'Ecosystem' }}</h2>
@@ -163,7 +153,7 @@ const L = computed(() => isZh.value ? 'zh' : 'en');
           <SLink :to="`${prefix}/guide/quickstart`" class="transition-colors hover:text-foreground">
             {{ isZh ? '文档' : 'Docs' }}
           </SLink>
-          <SLink :to="`${prefix}/architecture/framework-comparison`" class="transition-colors hover:text-foreground">
+          <SLink :to="architectureTo" class="transition-colors hover:text-foreground">
             {{ isZh ? '架构' : 'Architecture' }}
           </SLink>
         </div>

@@ -1,5 +1,6 @@
 ---
 title: Ecosystem
+description: Capability survey of Nuxt, Next.js, SvelteKit, and Analog, and ubean’s adoption order.
 ---
 
 # Ecosystem
@@ -326,6 +327,6 @@ export const useCounterStore = defineStore('counter', {
 ## Next Steps
 
 - [Routing](/architecture/routing) — file-based routing and route rules
-- [App Modes](/architecture/modes) — fullstack / spa / ssg / backend
+- [App Modes](/guide/app-modes) — fullstack / spa / ssg / backend
 - [Quickstart](/guide/quickstart) — get a project running in minutes
 - [ubean API Reference](/reference/api/ubean) — core runtime exports

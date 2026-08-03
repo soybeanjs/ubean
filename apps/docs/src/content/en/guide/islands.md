@@ -366,7 +366,7 @@ const Chart = defineServerIsland(AsyncChart);
 3. **Use `v-client.idle`**: Defer non-critical islands
 4. **Keep islands small**: Break large components into smaller islands
 5. **Reserve space**: Avoid layout shifts by reserving space for hydrated content
-6. **Static pages with no islands**: Pages without any `v-client.*` directive ship zero client JS
+6. **Static pages with no islands**: Pages without any `v-client.*` directive and no client-side interactivity avoid island hydration overhead entirely
 
 ## Best Practices
 

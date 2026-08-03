@@ -9,7 +9,7 @@ description: ubean 是基于 Vite、Hono 和 Vue 构建的全栈 Vue 元框架�
 
 ## 什么是 ubean？
 
-ubean 基于 Vite-Plus 构建，借鉴了 Void（Inertia 式 SSR 页面路由）和 Nitro（跨平台部署）的设计理念。它旨在为 Vue 开发者提供一个开箱即用的框架，具备一流的 TypeScript 支持、文件式路由和模块化扩展系统。
+ubean 基于 Vite、Hono 与 Vue 3 构建，融合了 void 的 Inertia 式 SSR 页面路由和 Nitro 的跨平台部署能力。它旨在为 Vue 开发者提供一个开箱即用的框架，具备一流的 TypeScript 支持、文件式路由和模块化扩展系统。
 
 ## 核心特性
 
@@ -18,7 +18,7 @@ ubean 基于 Vite-Plus 构建，借鉴了 Void（Inertia 式 SSR 页面路由）
 - **群岛架构** — 通过 `v-client.*` 指令（`v-client.load|idle|visible|media|only`）实现部分水合，自动注册并自动水合。
 - **多平台部署** — 支持 Node、Cloudflare、Vercel、Netlify、Bun、Deno 预设及能力矩阵。
 - **开发者工具** — 基于 iframe 的检查面板，包含页面、API、中间件、定时任务、环境变量和 AI 助手。
-- **内置国际化** — 零依赖的 i18n 系统，支持三种路由策略和 SSR 水合。
+- **内置国际化** — 零依赖的 i18n 系统，支持四种路由策略和 SSR 水合。
 - **Markdown 页面** — 一流的 `.md` 页面支持，包含 frontmatter、shiki 代码高亮和逐页 SEO。
 - **SSG / 预渲染** — 为 SEO 关键和以阅读为主的页面生成静态站点。
 

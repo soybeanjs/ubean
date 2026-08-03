@@ -1,20 +1,21 @@
 ---
 title: Overview
+description: "High-level overview of ubean: origins, project structure, and design conventions."
 ---
 
 # Overview
 
 ## 1. Project Overview
 
-**ubean** is a Vue-specific full-stack meta-framework based on Vite-Plus, fusing void's Inertia-style SSR page routing with nitro's cross-platform deployment capabilities.
+**ubean** is a full-stack meta-framework built on Vite, Hono, and Vue 3, fusing void's Inertia-style SSR page routing with nitro's cross-platform deployment capabilities, organized as a monorepo of 37 single-purpose packages.
 
 ### 1.1 Core Positioning
 
 - **Vue-specific**: Only supports Vue 3, deeply integrated with the Vue ecosystem
-- **Based on Vite-Plus**: Uses vite-plus as the core build toolchain
-- **Cross-platform deployment**: Borrows nitro's preset system, supporting Node.js, Bun, Deno, Cloudflare, Vercel and other platforms
+- **Build toolchain**: Built on Vite (vite-plus workflow), with Hono as the HTTP framework
+- **Cross-platform deployment**: Borrows nitro's preset system, supporting Node.js, Bun, Deno, Cloudflare, Vercel, Netlify and other platforms
 - **Functional programming**: Strictly follows the TypeScript functional programming paradigm
-- **Complete testing**: Full test coverage based on vitest
+- **Complete testing**: Full test coverage based on vitest (1000+ tests across the repo)
 
 ### 1.2 Local Reference Projects
 
@@ -137,8 +138,8 @@ Dependencies are split by runtime boundary; each sub-package keeps minimal deps 
 | --- | --- | --- |
 | Foundation sub-packages | Only dependencies shared by Node and edge | `@ubean/types`, `@ubean/env`, `@ubean/utils` (Hono, Hookable, rou3, Standard Schema types) |
 | Vue Integration | Vue and Vue Router as `peerDependencies`; SSR renderer pulled in via server entry | `vue`, `vue-router`, `@vue/server-renderer` |
-| Preset Packages | Each platform is an independent package and CI; not statically imported by the core | `@ubean/preset-cloudflare` |
-| Browser Transport Adapters | Only bundled in the browser client entry; do not enter Node, edge, or SSR bundles | `ubean/client-xhr` (upload progress), database drivers |
+| Preset Packages | `@ubean/preset` ships all platform presets; not statically imported by the core | `standard`/`node`/`cloudflare`/`vercel`/`netlify`/`bun`/`deno` |
+| Browser Transport Adapters | Only bundled in the browser client entry; do not enter Node, edge, or SSR bundles | database drivers, upload-progress adapters |
 | DevTools and Auth/PWA | Standalone packages, not in the production bundle by default | `@ubean/devtools`, `@ubean/auth`, `@ubean/pwa` |
 | Asset and Content Extensions | Standalone packages; dependencies and platform implementations split by feature, not statically imported by core | `@ubean/icon`, `@ubean/image`, `@ubean/content`, `@ubean/fonts` |
 | State Management and UI Integration | Standalone packages; underlying libraries are peerDependencies so users control versions | `@ubean/pinia`, `@ubean/ui` |
@@ -152,7 +153,7 @@ Dependencies are split by runtime boundary; each sub-package keeps minimal deps 
 
 ## 3. Directory Structure
 
-> The repository is split into ~30 single-purpose packages under `packages/`. `packages/ubean` is a thin aggregator that re-exports from all sub-packages — it does not contain the framework logic itself. See [Subpackage Splitting](/architecture/subpackage-splitting) for the design rationale.
+> The repository is split into 37 single-purpose packages under `packages/`. `packages/ubean` is a thin aggregator that re-exports from all sub-packages — it does not contain the framework logic itself.
 
 ```
 ubean/
@@ -214,23 +215,29 @@ ubean/
 │   ├── pwa/                         # @ubean/pwa — manifest + service worker
 │   ├── electron/                    # @ubean/electron — Electron desktop apps
 │   │
+├── apps/
+│   └── docs/                       # Official documentation site (this site, dogfooding)
 ├── examples/
-│   └── ubean-test/                  # Complete example project (pages/, routes/api/, crons/, middleware/, layouts/, locales/, app.ts, ubean.config.ts)
+│   ├── ubean-test/                 # Complete full-stack example + tests (virtual routing mode)
+│   ├── frontend-only/              # Frontend-only example (no API/SSR)
+│   └── routing-file-mode/          # Route file generation mode example
 │
-├── skills/
-│   └── ubean/                       # ubean AI Skill
+├── skills/ubean/                   # ubean AI Skill
 │       ├── SKILL.md                 # Skill routing definition
 │       ├── AGENT_PROMPT.md          # Agent prompt
 │       ├── command/ubean.md         # CLI command docs
 │       └── docs/                    # Built-in docs (guide, integrations, reference/api)
 │
-├── apps/docs/                       # Documentation site (this site)
+├── docs/                           # Repo-level engineering docs (roadmap, proposals, ADRs)
+├── scripts/                        # CI verification scripts (verify-packages.mjs)
 ├── .github/workflows/ci.yml
 ├── README.md, README.zh_CN.md
 ├── eslint.config.mjs
 ├── package.json, pnpm-workspace.yaml, pnpm-lock.yaml
 └── tsconfig.json
 ```
+
+> Package-architecture details (aggregator pattern, subpath exports, extension mechanism) — see [Architecture §1](architecture.md#1-layered-architecture).
 
 ### User App Directory Structure
 
@@ -272,26 +279,8 @@ my-app/
 
 ---
 
-## 4. CodeGraph Structure Audit (2026-08)
-
-Full write-up: repo root [`docs/architecture-analysis.md`](../../../../../../docs/architecture-analysis.md) (CodeGraph v1.5: 510 files / 5,445 nodes / 20,567 edges). Highlights:
-
-| Finding | Detail |
-| --- | --- |
-| Package count | **37** packages under `packages/*` (not the older 38/40 figures) |
-| Dependency layers | High fan-in on `@ubean/types` / `routing` / `utils`; aggregator `ubean` fans out to 27 |
-| Naming collision (resolved) | `createUbeanApp` now means Hono in `@ubean/app` / `ubean/runtime/app` only; the Vue factory in `@ubean/runtime` was renamed to `createUbeanVueApp` (ADR-0001) |
-| Index fix | Former path `packages/build` hit CodeGraph's default `build/` ignore; renamed to `packages/builder` (package name stays `@ubean/build`) |
-| Test gaps | Weak package-local tests for `build` / `cli` / `config`; rely on `examples/ubean-test` |
-| Docs location | Guide/architecture live under `apps/docs`; root `docs/` holds roadmap + this analysis |
-
-Priority backlog: ~~disambiguate dual `createUbeanApp`~~ (done, ADR-0001) → fix build indexing (done, OPT-02) → add core unit tests → plan `@ubean/server` subpath splits.
-
----
-
 ## Next Steps
 
 - [Architecture](/architecture/architecture) — framework architecture, data flow, and configuration system.
 - [Routing](/architecture/routing) — file-based routing scan and route conventions.
-- [Roadmap](/architecture/roadmap) — delivery milestones and key technical decisions.
 - [Quick Start](/guide/quickstart) — create your first ubean project.

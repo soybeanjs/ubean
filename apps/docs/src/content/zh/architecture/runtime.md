@@ -1,5 +1,6 @@
 ---
 title: Runtime
+description: ubean 运行时：defineApp、应用配置、开发服务器、预设与 CLI 命令体系。
 ---
 
 # 运行时与开发体验 (defineApp)
@@ -1595,7 +1596,7 @@ export default defineApp({
 | `node_modules` 中的组件 | 正常工作（bare specifier 原样传递给 Vite 解析） |
 | dev 模式新增 island 用法 | transform 重新扫描 → 更新 registry → 失效虚拟模块 → full-reload（仅 HMR 更新时触发，初次加载不触发） |
 
-> 详细设计见 [Islands 自动注册方案](islands-auto-registry.md)。
+> 详细设计见 [Islands](/zh/guide/islands)。
 
 #### 对比 void 的 Import Attributes
 

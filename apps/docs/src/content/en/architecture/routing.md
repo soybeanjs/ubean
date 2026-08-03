@@ -1,5 +1,6 @@
 ---
 title: Routing
+description: "How ubean routing works: named-export API routes, file-based pages, route rules, and middleware."
 ---
 
 # Routing

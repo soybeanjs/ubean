@@ -1,12 +1,13 @@
 ---
 title: Database
+description: The database layer with defineDatabase/useDatabase, built on the db0 connector abstraction.
 ---
 
 # Database Integrations
 
 ubean's database layer (`defineDatabase` / `useDatabase`) is built on the `db0` connector abstraction and ships with an in-memory fallback. For richer query APIs, bring your own ORM and wire it through a virtual module so handlers import a shared client instance.
 
-See [Database Operations](../reference/api/database.md) for the full built-in API reference.
+See [Database Operations](/reference/database) for the full built-in API reference.
 
 ## Drizzle ORM
 
@@ -253,5 +254,5 @@ Older versions of this document used APIs that do not exist in ubean. When migra
 1. **Prefer ORMs over raw SQL** for non-trivial schemas — type safety pays off quickly.
 2. **Register the client once** — create it in `setup()` and expose via `addVirtualImports`; never instantiate per-request.
 3. **Use migrations** — both Drizzle and Prisma ship their own tooling; integrate them via npm scripts.
-4. **Store credentials in `defineEnv()`** with `.secret()` — never commit `.env` files with real secrets.
+4. **Store credentials in `defineEnv()`** with `{ type: String, required: true }` — never commit `.env` files with real secrets.
 5. **Close connections on shutdown** — call `closeDatabases()` (built-in layer) or `await mongoose.disconnect()` / `await prisma.$disconnect()` from a `shutdown` hook.

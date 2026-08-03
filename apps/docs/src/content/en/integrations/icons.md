@@ -1,5 +1,6 @@
 ---
 title: Icons
+description: "The two icon systems: @ubean/icon collections and @soybeanjs/ui’s SIcon."
 ---
 
 # Icons
@@ -35,23 +36,39 @@ export default defineConfig({
 
 ### Enable with Custom Options
 
+The `icon` config field is a simple toggle (`icon: true` enables the module with defaults); it does not carry icon behavior options. Fine-grained behavior is configured via the `ubeanIconPlugin` Vite plugin (`@ubean/icon/vite`):
+
 ```typescript
-// ubean.config.ts
-import { defineConfig } from 'ubean';
+// vite.config.ts
+import { defineConfig } from 'vite';
+import { ubeanIconPlugin } from '@ubean/icon/vite';
 
 export default defineConfig({
-  icon: {
-    mode: 'svg', // 'svg' or 'css'
-    collections: ['mdi', 'fa'], // Iconify collections to preload
-    aliases: {
-      home: 'mdi:home',
-      user: 'fa:user'
-    },
-    fallbackToApi: true, // Fetch from Iconify API if not locally loaded
-    iconifyApiEnabled: true
-  }
+  plugins: [
+    ubeanIconPlugin({
+      collections: {
+        mdi: () => import('@iconify-json/mdi').then(m => m.icons) // lazy collection
+      },
+      customCollections: {
+        brand: './src/icons/brand'
+      },
+      fallbackToApi: true,      // fetch missing icons from the Iconify API
+      iconifyApiEnabled: true   // master switch for the API fallback
+    })
+  ]
 });
 ```
+
+| Option            | Type                                                                | Description                                    |
+| ----------------- | ------------------------------------------------------------------- | ---------------------------------------------- |
+| collections       | `Record<string, IconifyCollection \| (() => Promise<IconifyCollection>)>` | Iconify collections to register         |
+| customCollections | `Record<string, string \| { dir, prefix?, normalizeIconName? }>`    | Local SVG directory collections (object form)  |
+| fallbackToApi     | boolean                                                             | Fetch missing icons from the Iconify API (default `true`) |
+| iconifyApiEnabled | boolean                                                             | Master switch for API fallback (default `true`) |
+| iconApiEndpoint   | string                                                              | Iconify API base URL (default `https://api.iconify.design`) |
+| ssr               | boolean                                                             | Enable server-side SVG rendering (default `true`) |
+| cssSelectorPrefix | string                                                              | CSS-mode class prefix (default `'i-'`)         |
+| cssWherePseudo    | boolean                                                              | Scope CSS rules with `:where()` (default `true`) |
 
 ### Custom collections
 
@@ -74,12 +91,13 @@ export default defineConfig({
 });
 ```
 
-### Basic Usage (UbeanIcon / Icon component)
+### Basic Usage (Icon component)
+
+The component is exported as `Icon` (its internal component name is `UbeanIcon`):
 
 ```vue
 <script setup lang="ts">
 import { Icon } from '@ubean/icon';
-// or: import { UbeanIcon } from '@ubean/icon';
 </script>
 
 <template>
@@ -153,7 +171,7 @@ const iconDataAsync = await getIcon('mdi:home');
 
 ### Local SVG serving (dev)
 
-When `fallbackToApi` is disabled, the `/_iconify` dev route serves local SVGs before falling back to the Iconify API. `parseSvgToIconData()` extracts `body` + `width`/`height`/`viewBox` from raw SVG files.
+When `iconifyApiEnabled` and `fallbackToApi` are both on, a `/_iconify` dev route serves SVGs locally first (from custom collections), falling back to the Iconify API for anything else. `parseSvgToIconData()` extracts `body` + `width`/`height`/`viewBox` from raw SVG files.
 
 ---
 
@@ -267,7 +285,7 @@ import { SIcon } from '@soybeanjs/ui';
 
 | Feature            | @ubean/icon (UbeanIcon)                           | @soybeanjs/ui (SIcon)                  |
 | ------------------ | ------------------------------------------------- | -------------------------------------- |
-| Component name      | `<Icon>` / `<UbeanIcon>`                          | `<SIcon>`                              |
+| Component          | `<Icon>` (internal name `UbeanIcon`)                | `<SIcon>`                              |
 | Icon prop          | `name` (e.g. `name="mdi:home"`)                   | `icon` (e.g. `icon="mdi:home"`)        |
 | Purpose            | Build-time + runtime icon engine                  | UI-styled icon component               |
 | Dependencies       | None (built-in module, opt-in via `icon: true`)   | Requires @soybeanjs/ui                 |
@@ -281,10 +299,10 @@ import { SIcon } from '@soybeanjs/ui';
 
 ## Recommendation
 
-- **Use UbeanIcon** for general icon needs, custom icon collections, server-side icon generation, or when not using @soybeanjs/ui
+- **Use `Icon`** for general icon needs, custom icon collections, server-side icon generation, or when not using @soybeanjs/ui
 - **Use SIcon** when building UI with @soybeanjs/ui components for consistent theming and styling across your application
 - Both systems use the same Iconify icon naming (`collection:icon` format)
-- You can use both in the same project if needed: UbeanIcon for infrastructure/non-UI icons, SIcon for UI components
+- You can use both in the same project if needed: Icon for infrastructure/non-UI icons, SIcon for UI components
 
 ## Icon Collections
 
@@ -303,9 +321,9 @@ import { SIcon } from '@soybeanjs/ui';
 
 ## Best Practices
 
-1. **Choose one primary system**: Prefer SIcon for UI, UbeanIcon for framework features
+1. **Choose one primary system**: Prefer SIcon for UI, Icon for framework features
 2. **Use consistent size**: Align icon sizes with your design system
 3. **Accessibility**: Always provide ariaLabel for meaningful icons
-4. **Preload critical icons**: Configure collections in ubean.config.ts for frequently used sets
+4. **Preload critical icons**: Configure `collections` in the `ubeanIconPlugin` options for frequently used sets
 5. **Custom SVGs**: Use custom collections for brand-specific icons
 6. **Performance**: Leverage tree-shaking and avoid loading unnecessary collections

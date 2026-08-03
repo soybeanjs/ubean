@@ -1,5 +1,6 @@
 ---
 title: Ecosystem
+description: 对 Nuxt、Next.js、SvelteKit 与 Analog 的能力调研及 ubean 的采纳顺序。
 ---
 
 # 生态能力演进

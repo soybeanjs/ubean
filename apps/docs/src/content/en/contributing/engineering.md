@@ -1,5 +1,6 @@
 ---
 title: Engineering
+description: "Engineering standards for ubean: coding conventions, testing, and the release process."
 ---
 
 # Engineering
@@ -163,12 +164,14 @@ Testing is not a final wrap-up task. Every implementation phase must add or upda
 
 Coverage is used to find blind spots; it is not a release standard that replaces contract tests. Core runtime and public APIs are included by default; only generated code, platform-non-executable shims, and approved adapter branches may be excluded, with the reason documented next to the config.
 
-### 6.4 Current Verification Baseline (2026-07-12)
+### 6.4 Current Verification Baseline (2026-08-03)
 
-- `pnpm test` (main package): 35 test files, 822 tests passing.
-- Extension package tests: `@ubean/icon` 32, `@ubean/auth` 13, `@ubean-pwa` 19 — all passing.
+- Main package (`ubean`): 38 test files, **799 tests passing** (81 DevTools tests moved to the standalone `@ubean/devtools` package).
+- Core subpackages: `@ubean/islands` 199 (directive / paired-components / server-client-components / islands-registry / server-component-rerender), `@ubean/ssr` 18, `@ubean/actions` 69, `@ubean/api-routes` route-rules 27, `@ubean/devtools` 81, examples/ubean-test prerender 92.
+- Extension packages: `@ubean/icon` 32, `@ubean/auth` 13, `@ubean/pwa` 19, `@ubean/image` 42, `@ubean/content` 18, `@ubean/fonts` 21, `@ubean/seo` 114.
+- **~1075 tests passing** across the whole repo.
 - `pnpm typecheck`: passes. The TypeScript 7 and `vue-tsc` compatibility layer is provided via the workspace override `typescript: npm:typescript-native-bridge@0.0.0`; its native dependency `koffi` must be explicitly allowed in the `allowBuilds` list of `pnpm-workspace.yaml`.
-- `pnpm build`: passes (main package + all extension packages: ubean-icon, ubean-pwa, ubean-auth, ubean-image, ubean-content, ubean-fonts).
+- `pnpm build`: passes (main package + all 8 extension packages, including `@ubean/devtools` and `@ubean/islands`).
 - Tasks marked ✅ on the roadmap must have corresponding source code, a public call path, and verification proportionate to the risk; command skeletons, regex extractions, or unconnected runtime paths must not be marked as fully delivered.
 
 ### 6.5 Test Configuration
@@ -248,7 +251,7 @@ describe('route utils', () => {
 
 ## 7. CLI Command Design
 
-The CLI command list and framework implementation are detailed in [Runtime & Developer Experience §4.13](runtime.md#413-cli-command-system).
+The CLI command list and framework implementation are detailed in [Runtime & Developer Experience §4.13](/architecture/runtime#413-cli-command-system).
 
 ---
 

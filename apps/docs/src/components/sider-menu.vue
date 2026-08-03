@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Sidebar menu: renders the 5-section IA from constants/menus.ts.
+// Sidebar menu: renders the 8-section IA from constants/menus.ts.
 // Mobile drawer variant is driven by the parent (default.vue could wrap in SDrawer).
 import { useRoute } from 'vue-router';
 import { menuSections } from '~/constants/menus';
@@ -14,12 +14,6 @@ function isActive(to: string) {
   // the actual path may be '/guide/introduction' or '/zh/guide/introduction'.
   return route.path === to || route.path === `/zh${to}` || route.path.startsWith(`${to}/`) || route.path.startsWith(`/zh${to}/`);
 }
-
-const statusLabel: Record<string, string> = {
-  implemented: '✅',
-  historical: '📝',
-  proposal: '⬜'
-};
 </script>
 
 <template>
@@ -44,7 +38,6 @@ const statusLabel: Record<string, string> = {
               class="absolute start-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-full bg-primary"
             />
             <span class="truncate">{{ isZh ? (item.labelZh || item.label) : item.label }}</span>
-            <span v-if="item.status" class="ms-auto text-xs opacity-70">{{ statusLabel[item.status] }}</span>
           </SLink>
         </li>
       </ul>

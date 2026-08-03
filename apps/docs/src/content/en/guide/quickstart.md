@@ -1,5 +1,6 @@
 ---
 title: Quickstart
+description: Get a ubean project running in minutes.
 ---
 
 # Quick Start
@@ -9,7 +10,7 @@ Get started with ubean in minutes.
 ## Prerequisites
 
 - Node.js >= 18.0.0
-- pnpm `11.11.0` (required — ubean uses pnpm catalog and workspace features)
+- pnpm `11.18.0` (required — ubean uses pnpm catalog and workspace features)
 
 ## Create a Project
 
@@ -61,7 +62,7 @@ pnpm install
 pnpm dev
 ```
 
-Visit `http://localhost:5173` to see your application.
+Visit `http://localhost:9527` to see your application.
 
 ## Building for Production
 

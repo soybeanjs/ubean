@@ -587,6 +587,27 @@ export interface UbeanConfig {
    */
   pinia?: boolean | UbeanPiniaOptions;
   /**
+   * AI 集成配置（`AI 大模型封装`，`true` 启用默认配置）。
+   *
+   * 启用后注册 `@ubean/ai` 的 Vite 插件，自动导入 `useChat`/`useAgent`/
+   * `useAIProvider` 组合式函数，并注入 provider 配置。
+   *
+   * @example
+   * ```ts
+   * // ubean.config.ts — 最简启用
+   * export default defineConfig({ ai: true });
+   *
+   * // 指定 provider 预设与默认 provider
+   * export default defineConfig({
+   *   ai: {
+   *     providers: [{ id: 'deepseek', baseURL: 'https://api.deepseek.com/v1' }],
+   *     defaultProvider: 'deepseek'
+   *   }
+   * });
+   * ```
+   */
+  ai?: boolean | BuiltinModuleOptions;
+  /**
    * DevTools 配置（默认 `false` 禁用）。
    *
    * - `true` 启用（使用默认配置）
@@ -783,6 +804,7 @@ export interface ResolvedConfig extends Required<
     | 'routing'
     | 'devtools'
     | 'favicon'
+    | 'ai'
   >
 > {
   rootDir: string;
@@ -796,6 +818,7 @@ export interface ResolvedConfig extends Required<
   electron: boolean | ElectronModuleConfig;
   ui: boolean | UiModuleConfig;
   pinia: boolean | UbeanPiniaOptions;
+  ai: boolean | BuiltinModuleOptions;
   devtools: ResolvedDevToolsConfig;
   dir: Required<NonNullable<UbeanConfig['dir']>>;
   prerender: ResolvedPrerenderConfig;

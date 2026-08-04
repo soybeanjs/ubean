@@ -168,6 +168,7 @@ const configDefaults: ResolvedConfig = {
   electron: false,
   ui: false,
   pinia: false,
+  ai: false,
   devtools: { enabled: false, route: '/_devtools', ai: { enabled: false } },
   dir: {
     pages: 'pages',

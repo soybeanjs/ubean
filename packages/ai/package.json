@@ -1,0 +1,72 @@
+{
+  "name": "@ubean/ai",
+  "version": "0.1.0",
+  "description": "AI large-model integration for the ubean framework: defineAgent + defineAgentTool + Vue runtime (thin orchestration over the Vercel AI SDK)",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js"
+    },
+    "./runtime/vue": {
+      "types": "./dist/runtime/vue.d.ts",
+      "import": "./dist/runtime/vue.js"
+    },
+    "./gateway": {
+      "types": "./dist/gateway.d.ts",
+      "import": "./dist/gateway.js"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "@ubean/build": "workspace:*",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "hono": "4.12.33",
+    "typescript": "7.0.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vue": "^3.5.40"
+  },
+  "peerDependencies": {
+    "@ai-sdk/openai-compatible": "^1.0.0 || ^2.0.0 || ^3.0.0",
+    "ai": "^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0",
+    "hono": "^4.0.0",
+    "vite": "^5.0.0 || ^6.0.0",
+    "vue": "^3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    },
+    "@ai-sdk/openai-compatible": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  }
+}

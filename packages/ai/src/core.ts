@@ -12,6 +12,8 @@
  * with a clear install error when they are missing.
  */
 import type { Handler } from 'hono';
+import { safeParse } from 'valibot';
+import { toJsonSchema } from '@valibot/to-json-schema';
 import type {
   AgentConfig,
   AgentInput,
@@ -159,9 +161,20 @@ export function defineAgent<T = unknown>(config: AgentConfig): UbeanAgent<T> {
     const tools: Record<string, any> = {};
     for (const [name, tool] of Object.entries(config.tools ?? {})) {
       const toolName = tool.name || name;
+      // Convert the valibot schema to an AI SDK Schema: JSON Schema (for the
+      // model) + a valibot safeParse validator (for runtime arg validation).
+      const inputSchema = ai.jsonSchema(toJsonSchema(tool.input), {
+        validate: value => {
+          const result = safeParse(tool.input, value);
+          if (result.success) {
+            return { success: true, value: result.output };
+          }
+          return { success: false, error: new Error(result.issues.map(i => i.message).join('; ')) };
+        }
+      });
       tools[toolName] = ai.tool({
         description: tool.description,
-        inputSchema: tool.input,
+        inputSchema,
         execute: async (args: unknown, ctx: { toolCallId?: string; abortSignal?: AbortSignal }) => {
           const toolCtx: AgentToolContext = {
             runId: (input.meta?.runId as string | undefined) ?? 'run',

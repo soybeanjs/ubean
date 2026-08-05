@@ -12,7 +12,16 @@ export default defineConfig({
     outDir: 'dist',
     entry: ['src/index.ts', 'src/vite.ts', 'src/runtime/vue.ts', 'src/gateway.ts'],
     deps: {
-      neverBundle: ['vue', 'ai', '@ai-sdk/openai-compatible', 'hono', 'zod', /^node:/]
+      neverBundle: [
+        'vue',
+        'ai',
+        '@ai-sdk/openai-compatible',
+        'hono',
+        'valibot',
+        '@valibot/to-json-schema',
+        'zod',
+        /^node:/
+      ]
     }
   },
   test: {

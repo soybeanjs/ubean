@@ -195,19 +195,22 @@ importers:
     dependencies:
       '@ai-sdk/openai-compatible':
         specifier: ^1.0.0 || ^2.0.0 || ^3.0.0
-        version: 3.0.20(zod@3.25.76)
+        version: 3.0.20(zod@4.4.3)
       '@ubean/build':
         specifier: workspace:*
         version: link:../builder
+      '@valibot/to-json-schema':
+        specifier: ^1.0.0
+        version: 1.7.1(valibot@1.4.2(typescript@6.0.3))
       ai:
         specifier: ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0
-        version: 7.0.48(zod@3.25.76)
+        version: 7.0.48(zod@4.4.3)
+      valibot:
+        specifier: ^1.0.0
+        version: 1.4.2(typescript@6.0.3)
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.7
         version: '@voidzero-dev/vite-plus-core@0.2.7(@types/node@26.1.2)(@vitejs/devtools@0.4.10)(jiti@2.7.0)(terser@5.49.0)(typescript@6.0.3)(yaml@2.9.0)'
-      zod:
-        specifier: ^3.25.0
-        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^26.1.2
@@ -6937,9 +6940,6 @@ packages:
   zigpty@0.2.1:
     resolution: {integrity: sha512-MR9JqJx2wf5f4wz8zpx050AlqrmWeIW+1h0SO5iEyhG3HFRjY5luC3szS2ux2EGuPjE5OU9ZAuiCBeMWBTrqZw==}
 
-  zod@3.25.76:
-    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
-
   zod@4.4.3:
     resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
@@ -6948,42 +6948,18 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/gateway@4.0.37(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.4
-      '@ai-sdk/provider-utils': 5.0.18(zod@3.25.76)
-      '@vercel/oidc': 3.2.0
-      zod: 3.25.76
-
   '@ai-sdk/gateway@4.0.37(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 4.0.4
       '@ai-sdk/provider-utils': 5.0.18(zod@4.4.3)
       '@vercel/oidc': 3.2.0
       zod: 4.4.3
-    optional: true
-
-  '@ai-sdk/openai-compatible@3.0.20(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.4
-      '@ai-sdk/provider-utils': 5.0.18(zod@3.25.76)
-      zod: 3.25.76
 
   '@ai-sdk/openai-compatible@3.0.20(zod@4.4.3)':
     dependencies:
       '@ai-sdk/provider': 4.0.4
       '@ai-sdk/provider-utils': 5.0.18(zod@4.4.3)
       zod: 4.4.3
-    optional: true
-
-  '@ai-sdk/provider-utils@5.0.18(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 4.0.4
-      '@standard-schema/spec': 1.1.0
-      '@workflow/serde': 4.1.0
-      eventsource-parser: 3.1.0
-      undici: 7.29.0
-      zod: 3.25.76
 
   '@ai-sdk/provider-utils@5.0.18(zod@4.4.3)':
     dependencies:
@@ -6993,7 +6969,6 @@ snapshots:
       eventsource-parser: 3.1.0
       undici: 7.29.0
       zod: 4.4.3
-    optional: true
 
   '@ai-sdk/provider@4.0.4':
     dependencies:
@@ -9692,20 +9667,12 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@7.0.48(zod@3.25.76):
-    dependencies:
-      '@ai-sdk/gateway': 4.0.37(zod@3.25.76)
-      '@ai-sdk/provider': 4.0.4
-      '@ai-sdk/provider-utils': 5.0.18(zod@3.25.76)
-      zod: 3.25.76
-
   ai@7.0.48(zod@4.4.3):
     dependencies:
       '@ai-sdk/gateway': 4.0.37(zod@4.4.3)
       '@ai-sdk/provider': 4.0.4
       '@ai-sdk/provider-utils': 5.0.18(zod@4.4.3)
       zod: 4.4.3
-    optional: true
 
   ajv@6.15.0:
     dependencies:
@@ -13104,8 +13071,6 @@ snapshots:
       '@yuku-parser/binding-win32-x64': 0.5.48
 
   zigpty@0.2.1: {}
-
-  zod@3.25.76: {}
 
   zod@4.4.3: {}
 

@@ -1,6 +1,6 @@
 {
   "name": "@ubean/ai",
-  "version": "0.1.0",
+  "version": "0.1.13",
   "description": "AI large-model integration for the ubean framework: defineAgent + defineAgentTool + Vue runtime (thin orchestration over the Vercel AI SDK)",
   "files": [
     "dist"
@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "@ubean/build": "workspace:*",
-    "zod": "^3.25.0"
+    "@valibot/to-json-schema": "^1.0.0",
+    "valibot": "^1.0.0"
   },
   "devDependencies": {
     "@types/node": "^26.1.2",

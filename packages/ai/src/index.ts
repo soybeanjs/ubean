@@ -6,9 +6,9 @@
  * adapters) and `runtime/vue.ts` (Vue composables); the client entry is
  * `@ubean/ai/runtime/vue`.
  */
-// Convenience re-export of the zod instance so tool schemas can be written
-// without importing `zod` directly. `z` is a value, not a type.
-export { z } from 'zod';
+// Convenience namespace re-export of valibot so tool schemas can be written
+// without importing `valibot` directly, e.g. `v.object({ key: v.string() })`.
+export * as v from 'valibot';
 
 // ---------------------------------------------------------------------------
 // Kernel exports (values)

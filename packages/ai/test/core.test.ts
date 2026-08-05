@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { z } from 'zod';
+import { object, string } from 'valibot';
 import { resetAIState } from '../src/core';
 import { deepseek, openrouter, omniRoute, openai, anthropic, google, groq, allGatewayProviders } from '../src/gateway';
 import { defineProvider, configureAI, resolveModel, defineAgentTool } from '../src/index';
@@ -72,7 +72,7 @@ describe('defineAgentTool()', () => {
     const tool = defineAgentTool({
       name: 'lookup',
       description: '查表',
-      input: z.object({ key: z.string() }),
+      input: object({ key: string() }),
       execute: async ({ key }) => ({ key })
     });
     expect(tool.name).toBe('lookup');

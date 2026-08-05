@@ -1,5 +1,5 @@
 import type { Handler } from 'hono';
-import type { z } from 'zod';
+import type { GenericSchema, InferOutput } from 'valibot';
 
 /**
  * @ubean/ai type definitions.
@@ -79,15 +79,15 @@ export interface AgentToolContext {
  * A declarative ubean tool. `execute` may use ubean server helpers
  * (defineHandler, fetch, storage, ...) and must return a JSON-serializable value.
  */
-export interface AgentTool<TInput extends z.ZodType = z.ZodType> {
+export interface AgentTool<TInput extends GenericSchema = GenericSchema> {
   /** Unique tool name sent to the model (lowercase, safe identifier). */
   name: string;
   /** Description used by the model for tool selection. */
   description: string;
-  /** Zod schema describing the tool's arguments. */
+  /** Valibot schema describing the tool's arguments. */
   input: TInput;
   /** Executes the tool; `args` is the parsed input. */
-  execute: (args: z.infer<TInput>, ctx: AgentToolContext) => unknown | Promise<unknown>;
+  execute: (args: InferOutput<TInput>, ctx: AgentToolContext) => unknown | Promise<unknown>;
 }
 
 /** A map of named tools. */
@@ -236,5 +236,5 @@ export interface UbeanAI {
   /** Build an agent from declarative config. */
   defineAgent<T = unknown>(config: AgentConfig): UbeanAgent<T>;
   /** Build a declarative tool. */
-  defineAgentTool<T extends z.ZodType>(tool: AgentTool<T>): AgentTool<T>;
+  defineAgentTool<T extends GenericSchema>(tool: AgentTool<T>): AgentTool<T>;
 }

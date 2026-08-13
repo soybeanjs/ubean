@@ -19,7 +19,7 @@ A high-level comparison of ubean against the mainstream meta-frameworks (as of 2
 | ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ (SWR) | ✅ routeRules.isr + SWR |
 | Per-route render rules | ⚠️ partial | ✅ routeRules | ❌ | ❌ | ✅ | ✅ routeRules |
 | PPR / Server Islands | ✅ stable | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Server Components | ✅ RSC | ✅ | ❌ | ❌ | ❌ | ❌ (Vue ecosystem) |
+| Server Components | ✅ RSC | ✅ (`.server.vue`) | ❌ | ❌ | ❌ | ✅（`.server.vue` + match） |
 | Server Actions / Form Actions | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Islands (partial hydration) | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | Built-in DB / Queue / Cron / WS | ❌ | ⚠️ partial | ❌ | ❌ | ❌ | ✅ |

@@ -19,7 +19,7 @@ ubean 与主流元框架（截至 2026 年）**Next.js 16**、**Nuxt 4**、**Sve
 | ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ (SWR) | ✅ routeRules.isr + SWR |
 | 每路由渲染规则 | ⚠️ 部分 | ✅ routeRules | ❌ | ❌ | ✅ | ✅ routeRules |
 | PPR / Server Islands | ✅ 稳定 | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Server Components | ✅ RSC | ✅ | ❌ | ❌ | ❌ | ❌（Vue 生态） |
+| Server Components | ✅ RSC | ✅ (`.server.vue`) | ❌ | ❌ | ❌ | ✅（`.server.vue` + 配对） |
 | Server Actions / Form Actions | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
 | Islands（部分水合） | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | 内置 DB / Queue / Cron / WS | ❌ | ⚠️ 部分 | ❌ | ❌ | ❌ | ✅ |
@@ -32,7 +32,7 @@ ubean 与主流元框架（截至 2026 年）**Next.js 16**、**Nuxt 4**、**Sve
 
 ### 渲染
 
-ubean 覆盖完整的渲染谱系：流式 SSR、SSG、ISR（含 SWR）、通过 `routeRules` 实现每路由渲染规则（`ssr` / `prerender` / `isr` / `ppr`），以及通过 `defineServerIsland()` 将异步组件包裹进 `<Suspense>` 实现的 Partial Prerendering。Vue 的 SFC / `<script setup>` 生态意味着没有 Server Components —— 部分水合以 islands 为模型。
+ubean 覆盖完整的渲染谱系：流式 SSR、SSG、ISR（含 SWR）、通过 `routeRules` 实现每路由渲染规则（`ssr` / `prerender` / `isr` / `ppr`），以及通过 `defineServerIsland()` 将异步组件包裹进 `<Suspense>` 实现的 Partial Prerendering。对于纯服务端渲染，ubean 通过 `.server.vue` 后缀支持 **Server Components**（配合 `.server.vue` + `.client.vue` 配对实现服务端/客户端分离）——这些组件仅在服务端渲染、向客户端发送零 JS，并在 props 变化时通过 `POST /__server-component` 请求原地重渲染。`v-client.*` islands 模型仍是客户端部分水合的机制。
 
 ### 数据与变更
 

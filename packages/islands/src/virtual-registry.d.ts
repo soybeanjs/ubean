@@ -2,7 +2,7 @@
  * `virtual:ubean-islands-registry` 的 TypeScript 类型声明。
  *
  * 此虚拟模块由 `ubeanIslandsPlugin` 在构建/开发期生成,导出扫描到的 island 组件注册表。
- * 详见 `docs/islands-auto-registry.md`（方案 C）。
+ * 自动注册机制详见站点指南 [Islands](/guide/islands)（Automatic Hydration 一节）。
  *
  * 用户项目通常无需手动引用此声明 —— 只要 `tsconfig.json` 的 `include` 涵盖了
  * `node_modules/@ubean/islands/dist/**`,TypeScript 会自动发现此 ambient 声明。

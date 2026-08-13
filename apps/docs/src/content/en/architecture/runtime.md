@@ -1669,7 +1669,7 @@ Auto-generates `.ubean/auto-imports.d.ts` and `.ubean/components.d.ts`, which ar
 
 ubean provides lightweight built-in internationalization support (without pulling in vue-i18n, keeping zero extra dependencies), including a translation engine, route middleware, and file scanning.
 
-> **Current status note**: The core translation engine (`t()`/`setLocale()`/`defineLocale()`) and i18n route middleware (three strategies, Accept-Language/cookie detection, auto-redirect) are complete. Vue reactivity integration, automatic locales-file loading, SSR hydration, HTML lang/dir binding, pluralization, and Intl formatting are follow-up enhancement tasks; see roadmap **P6-31~P6-35**.
+> **Current status note**: The core translation engine (`t()`/`setLocale()`/`defineLocale()`) and i18n route middleware (three strategies, Accept-Language/cookie detection, auto-redirect) are complete. Vue reactivity integration, automatic locales-file loading, SSR hydration, HTML lang/dir binding, pluralization, and Intl formatting are follow-up enhancement tasks.
 
 #### File Conventions
 

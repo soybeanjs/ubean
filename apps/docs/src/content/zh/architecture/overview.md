@@ -181,7 +181,7 @@ ubean/
 │   ├── frontend-only/            # 纯前端示例（无 API/SSR）
 │   └── routing-file-mode/        # 路由文件生成模式示例
 ├── skills/ubean/                 # AI Skill（CLI 命令文档与 agent 提示词）
-├── docs/                         # 仓库级工程文档（roadmap、设计提案、ADR、领域词汇表）
+├── docs/                         # 仓库级工程文档（ADR、领域词汇表、产品方案）
 ├── scripts/                      # CI 校验脚本（verify-packages.mjs 等）
 ├── .github/workflows/ci.yml
 ├── README.md, README.zh_CN.md

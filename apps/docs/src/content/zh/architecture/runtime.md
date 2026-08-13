@@ -1670,7 +1670,7 @@ export default defineConfig({
 
 ubean 提供轻量内置国际化支持（不引入 vue-i18n，保持零额外依赖），包括翻译引擎、路由中间件和文件扫描。
 
-> **当前状态说明**：核心翻译引擎（`t()`/`setLocale()`/`defineLocale()`）和 i18n 路由中间件（三种策略、Accept-Language/cookie检测、自动重定向）已完成。Vue响应式集成、locales文件自动加载、SSR hydration、HTML lang/dir绑定、pluralization和Intl格式化为后续增强任务，详见 roadmap **P6-31~P6-35**。
+> **当前状态说明**：核心翻译引擎（`t()`/`setLocale()`/`defineLocale()`）和 i18n 路由中间件（三种策略、Accept-Language/cookie检测、自动重定向）已完成。Vue响应式集成、locales文件自动加载、SSR hydration、HTML lang/dir绑定、pluralization和Intl格式化为后续增强任务。
 
 #### 文件约定
 

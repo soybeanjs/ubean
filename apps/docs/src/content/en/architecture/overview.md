@@ -228,7 +228,7 @@ ubean/
 │       ├── command/ubean.md         # CLI command docs
 │       └── docs/                    # Built-in docs (guide, integrations, reference/api)
 │
-├── docs/                           # Repo-level engineering docs (roadmap, proposals, ADRs)
+├── docs/                           # Repo-level engineering docs (ADRs, glossary, product plan)
 ├── scripts/                        # CI verification scripts (verify-packages.mjs)
 ├── .github/workflows/ci.yml
 ├── README.md, README.zh_CN.md

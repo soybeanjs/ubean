@@ -465,8 +465,6 @@ export interface PrerenderConfig {
    *
    * 仅对 HTTP 200 的 HTML 生效;失败(无 script / JSON 解析失败 / 空数据)
    * 静默降级,保留原 HTML。
-   *
-   * 详见 `docs/roadmap.md` Task 3。
    */
   extractDataPayload?: boolean;
 }
@@ -537,8 +535,6 @@ export interface UbeanConfig {
    * - `spa`:纯客户端渲染,无 SSR、无服务端 bundle
    * - `ssg`:静态站点生成,构建时预渲染,产物为纯静态文件
    * - `backend`:纯 API 后端,无 Vue 页面、无 SSR
-   *
-   * 详见 [docs/modes.md](../../docs/modes.md)。
    */
   mode?: AppMode;
 

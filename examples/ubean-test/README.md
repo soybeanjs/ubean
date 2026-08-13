@@ -114,5 +114,3 @@ src/
 - [页面路由指南](../../skills/ubean/docs/guide/pages-routing/overview.md)
 - [Islands 架构](../../skills/ubean/docs/guide/islands.md)
 - [i18n 国际化](../../skills/ubean/docs/guide/i18n.md)
-- [子包拆分方案](../../docs/subpackage-splitting.md)
-- [应用模式设计](../../docs/modes.md)

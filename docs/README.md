@@ -9,11 +9,8 @@
 | 文档 | 类型 | 说明 |
 | --- | --- | --- |
 | [ubean-studio.md](ubean-studio.md) | 产品方案 + 任务清单 | ubean-studio 产品方案与 ST 任务清单 |
-| [roadmap.md](roadmap.md) | 路线图 + 任务跟踪 | 未实现功能规划与 Phase 任务跟踪 |
-| [framework-comparison.md](framework-comparison.md) | 差距分析 | 与主流元框架（Next.js/Nuxt/Remix…）的能力差距分析 |
-| [modes.md](modes.md) | 设计提案（历史） | 全栈/SPA/SSG/backend 应用模式设计 |
-| [subpackage-splitting.md](subpackage-splitting.md) | 设计提案（历史） | monorepo 子包拆分方案与包架构 |
-| [islands-auto-registry.md](islands-auto-registry.md) | 设计提案（已实施） | Islands 组件自动注册机制设计 |
+
+> 已完成的开发任务型文档（路线图、元框架差距分析、应用模式、子包拆分、Islands 自动注册）已清理；其中用户向内容（应用模式、Islands、包架构）已整合进 `apps/docs` 公开站点，元框架对比见 [Framework Comparison](../apps/docs/src/content/en/architecture/framework-comparison.md)。
 
 ## 决策记录（ADR）
 

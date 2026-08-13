@@ -63,7 +63,7 @@ ubean/
 │   ├── frontend-only/      # 纯前端示例（无 API/SSR）
 │   └── routing-file-mode/  # 路由文件生成模式示例
 ├── skills/ubean/            # AI Skill（CLI 命令文档与 agent 提示词）
-├── docs/                     # 仓库级工程文档（roadmap、CodeGraph 架构分析）
+├── docs/                     # 仓库级工程文档（ADR、领域词汇表、产品方案）
 └── AGENTS.md                 # 本文件
 ```
 
@@ -861,19 +861,14 @@ pnpm build            # 构建
 
 ## 10. 文档导航
 
-| 资源                      | 路径                                                           | 内容                                                            |
-| ------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- |
-| 文档索引                  | [docs/README.md](docs/README.md)                               | 仓库级工程文档索引                                              |
-| 路线图                    | [docs/roadmap.md](docs/roadmap.md)                             | 未实现功能规划                                                  |
-| 产品方案与任务清单        | [docs/ubean-studio.md](docs/ubean-studio.md)                   | ubean-studio 产品方案 + ST 任务清单                             |
-| 框架对比                  | [docs/framework-comparison.md](docs/framework-comparison.md)   | 主流元框架差距分析                                              |
-| 应用模式                  | [docs/modes.md](docs/modes.md)                                 | 全栈/SPA/SSG/backend 模式设计（历史设计提案）                   |
-| 子包拆分                  | [docs/subpackage-splitting.md](docs/subpackage-splitting.md)   | monorepo 拆分方案与包架构（历史设计提案）                       |
-| Islands 自动注册          | [docs/islands-auto-registry.md](docs/islands-auto-registry.md) | 已实施设计提案                                                  |
-| 领域词汇表                | [docs/glossary.md](docs/glossary.md)                           | 领域建模词汇表 + ADR 决策索引                                   |
-| 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)               | 中英文档源（overview / routing / runtime / guide / reference…） |
-| CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md) | CLI 命令文档                                                    |
-| AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                 | Agent 技能入口                                                  |
-| 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                   | 完整全栈示例 + 测试（virtual 路由模式）                         |
-| 示例项目                  | [examples/frontend-only/](examples/frontend-only/)             | 纯前端示例（无 API/SSR）                                        |
-| 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)     | 路由文件生成模式示例                                            |
+| 资源                      | 路径                                                           | 内容                                                                                   |
+| ------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 文档索引                  | [docs/README.md](docs/README.md)                               | 仓库级工程文档索引                                                                     |
+| 产品方案与任务清单        | [docs/ubean-studio.md](docs/ubean-studio.md)                   | ubean-studio 产品方案 + ST 任务清单                                                    |
+| 领域词汇表                | [docs/glossary.md](docs/glossary.md)                           | 领域建模词汇表 + ADR 决策索引                                                          |
+| 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)               | 中英文档源（overview / routing / runtime / framework-comparison / guide / reference…） |
+| CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md) | CLI 命令文档                                                                           |
+| AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                 | Agent 技能入口                                                                         |
+| 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                   | 完整全栈示例 + 测试（virtual 路由模式）                                                |
+| 示例项目                  | [examples/frontend-only/](examples/frontend-only/)             | 纯前端示例（无 API/SSR）                                                               |
+| 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)     | 路由文件生成模式示例                                                                   |

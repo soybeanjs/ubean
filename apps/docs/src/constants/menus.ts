@@ -95,7 +95,8 @@ export const menuSections: MenuSection[] = [
       { label: 'Overview', labelZh: '概览', to: '/architecture/overview' },
       { label: 'Architecture', labelZh: '架构', to: '/architecture/architecture' },
       { label: 'Routing', labelZh: '路由', to: '/architecture/routing' },
-      { label: 'Runtime', labelZh: '运行时', to: '/architecture/runtime' }
+      { label: 'Runtime', labelZh: '运行时', to: '/architecture/runtime' },
+      { label: 'Framework Comparison', labelZh: '框架对比', to: '/architecture/framework-comparison' }
     ]
   },
   {

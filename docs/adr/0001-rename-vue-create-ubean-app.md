@@ -2,8 +2,10 @@
 
 - **状态**: accepted
 - **日期**: 2026-08-02
-- **关联任务**: [optimize.md OPT-01](../optimize.md#总览)
+- **关联任务**: optimize.md OPT-01（原 `optimize.md` 已归档删除，见 git 历史）
 - **决策者**: grilling 会话（用户 + 助手）
+
+> 归档说明：源任务文档 `optimize.md`（OPT-* 优化任务）已随任务完成归档删除，本 ADR 保留为历史决策记录。
 
 ## 背景
 

@@ -17,7 +17,7 @@ ubean/（npm 包名：`ubean`，**不是** `@ubean/core`）是一个基于 Vite-
 
 ```
 ubean/
-├── packages/                # 37 个包（monorepo）
+├── packages/                # 38 个包（monorepo）
 │   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
 │   ├── types/              # @ubean/types — 共享类型
 │   ├── utils/              # @ubean/utils — 工具函数
@@ -46,6 +46,7 @@ ubean/
 │   ├── dev-server/         # @ubean/dev-server — Dev server
 │   ├── cli/                # @ubean/cli — CLI 命令
 │   ├── devtools/           # @ubean/devtools — DevTools 独立包
+│   ├── ai/                 # @ubean/ai — AI 大模型集成（defineAgent/defineAgentTool + Vue runtime，薄封装 Vercel AI SDK）
 │   ├── auth/               # @ubean/auth — Better Auth 集成
 │   ├── icon/               # @ubean/icon — Iconify 集成
 │   ├── pwa/                # @ubean/pwa — PWA manifest + service worker
@@ -71,8 +72,8 @@ ubean/
 ubean 采用 **monorepo + 聚合器** 架构：
 
 - **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含多个子路径导出（见下文）。
-- **子包 `@ubean/*`**（其余 36 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
-- **扩展包**（`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`pinia: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径；**不**进入主包硬依赖。
+- **子包 `@ubean/*`**（其余 37 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **扩展包**（`ai`/`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`pinia: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径；**不**进入主包硬依赖。
 
 ### 2.2 主包子路径导出
 
@@ -166,7 +167,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - `UbeanConfig` 的 `modules` 字段支持字符串包名、元组和实例
 - 平台预设：`standard`、`node`、`cloudflare`、`vercel`、`vercel-edge`、`netlify`、`bun`、`deno`（`default` → `standard`，`cf` → `cloudflare`，`node-server` → `node`，`vercel-serverless`/`vercel-node` → `vercel`，`netlify-functions` → `netlify`，`bun-runtime` → `bun`，`deno-deploy`/`deno-runtime` → `deno`）；`detectPreset()` 自动识别 `vercel.json`/`netlify.toml`/`deno.json`/`deno.jsonc` 配置文件、`VERCEL`/`NETLIFY` 环境变量、`globalThis.Deno`/`globalThis.Bun`/`process.versions.bun` 运行时全局,以及 `package.json` 中的 `vercel`/`@vercel/*`/`netlify-cli` 依赖
 - 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）
-- 扩展模块顶层字段：`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`，均支持 `true` 或选项对象形式启用
+- 扩展模块顶层字段：`ai`/`auth`/`icon`/`pwa`/`image`/`content`/`fonts`/`electron`/`pinia`/`ui`，均支持 `true` 或选项对象形式启用
 - SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
 - Per-route 渲染规则（P9-03 + P9-04）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）/ `ppr`（`boolean`）覆盖全局设置；优先级 `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`；`ppr: true` 隐含 `prerender: true` + 强制流式 SSR（等价 `ssr: 'streaming'`）
 
@@ -607,6 +608,22 @@ const json = serializeVercelConfig(config);
 
 ## 5. 扩展包 API
 
+### @ubean/ai
+
+```typescript
+import { ubeanAiPlugin, defineAiConfig } from '@ubean/ai/vite';
+import { defineAgent, defineAgentTool, defineProvider, configureAI, resolveModel } from '@ubean/ai';
+import { useChat, useAgent, useAIProvider } from '@ubean/ai/runtime/vue';
+import { deepseek, openrouter, openai, anthropic, google, groq, allGatewayProviders } from '@ubean/ai/gateway';
+```
+
+- **底层实现**：[Vercel AI SDK](https://ai-sdk.dev/)（`ai` + `@ai-sdk/openai-compatible`，ubean 仅提供薄编排层，agent loop / tool-calling / streaming 由 AI SDK 代理）
+- `ubean.config.ts` 中 `ai: true` 或 `ai: { ... }` 启用
+- **kernel**：`defineAgent(config)`（声明式配置，代理循环委托 AI SDK）、`defineAgentTool(fn)`；`defineProvider` / `configureAI` / `resolveModel` 负责 provider 解析与注册
+- **Vue runtime**（`@ubean/ai/runtime/vue`）：`useChat`（自研轻量实现，直接消费 `UbeanAgent.asHandler()` 输出的 SSE 流，SSR-safe）、`useAgent`、`useAIProvider`
+- **gateway 适配器**（`@ubean/ai/gateway`）：仅提供 provider 预设（DeepSeek / OpenRouter / OmniRoute / OpenAI / Anthropic / Google / Groq），**不**实现网关服务（路由/回退/成本优化留待外部网关，如 OmniRoute）
+- 可选 peer 依赖：`ai` / `@ai-sdk/openai-compatible` / `hono` / `vite` / `vue`（均 optional，缺失时通过懒加载优雅降级并给出安装指引）
+
 ### @ubean/auth
 
 ```typescript
@@ -844,19 +861,19 @@ pnpm build            # 构建
 
 ## 10. 文档导航
 
-| 资源                      | 路径                                                                                                   | 内容                                                              |
-| ------------------------- | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| 文档索引                  | [docs/README.md](docs/README.md)                                                                       | 仓库级工程文档索引                                                |
-| 路线图                    | [docs/roadmap.md](docs/roadmap.md)                                                                     | 未实现功能规划                                                    |
-| 产品方案与任务清单        | [docs/ubean-studio.md](docs/ubean-studio.md)                                                           | ubean-studio 产品方案 + ST 任务清单                               |
-| 框架对比                  | [docs/framework-comparison.md](docs/framework-comparison.md)                                           | 主流元框架差距分析                                                |
-| 应用模式                  | [docs/modes.md](docs/modes.md)                                                                         | 全栈/SPA/SSG/backend 模式设计（历史设计提案）                     |
-| 子包拆分                  | [docs/subpackage-splitting.md](docs/subpackage-splitting.md)                                           | monorepo 拆分方案与包架构（历史设计提案）                         |
-| Islands 自动注册          | [docs/islands-auto-registry.md](docs/islands-auto-registry.md)                                         | 已实施设计提案                                                    |
-| 领域词汇表                | [docs/glossary.md](docs/glossary.md)                                                                   | 领域建模词汇表 + ADR 决策索引                                     |
-| 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)                                                       | 中英文档源（overview / routing / runtime / guide / reference…）   |
-| CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)                                         | CLI 命令文档                                                      |
-| AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                                                         | Agent 技能入口                                                    |
-| 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                                                           | 完整全栈示例 + 测试（virtual 路由模式）                           |
-| 示例项目                  | [examples/frontend-only/](examples/frontend-only/)                                                     | 纯前端示例（无 API/SSR）                                          |
-| 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)                                             | 路由文件生成模式示例                                              |
+| 资源                      | 路径                                                           | 内容                                                            |
+| ------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------- |
+| 文档索引                  | [docs/README.md](docs/README.md)                               | 仓库级工程文档索引                                              |
+| 路线图                    | [docs/roadmap.md](docs/roadmap.md)                             | 未实现功能规划                                                  |
+| 产品方案与任务清单        | [docs/ubean-studio.md](docs/ubean-studio.md)                   | ubean-studio 产品方案 + ST 任务清单                             |
+| 框架对比                  | [docs/framework-comparison.md](docs/framework-comparison.md)   | 主流元框架差距分析                                              |
+| 应用模式                  | [docs/modes.md](docs/modes.md)                                 | 全栈/SPA/SSG/backend 模式设计（历史设计提案）                   |
+| 子包拆分                  | [docs/subpackage-splitting.md](docs/subpackage-splitting.md)   | monorepo 拆分方案与包架构（历史设计提案）                       |
+| Islands 自动注册          | [docs/islands-auto-registry.md](docs/islands-auto-registry.md) | 已实施设计提案                                                  |
+| 领域词汇表                | [docs/glossary.md](docs/glossary.md)                           | 领域建模词汇表 + ADR 决策索引                                   |
+| 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)               | 中英文档源（overview / routing / runtime / guide / reference…） |
+| CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md) | CLI 命令文档                                                    |
+| AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                 | Agent 技能入口                                                  |
+| 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                   | 完整全栈示例 + 测试（virtual 路由模式）                         |
+| 示例项目                  | [examples/frontend-only/](examples/frontend-only/)             | 纯前端示例（无 API/SSR）                                        |
+| 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)     | 路由文件生成模式示例                                            |

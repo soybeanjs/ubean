@@ -40,11 +40,11 @@
     "@ubean/vite": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.8",
     "consola": "^3.4.2",
-    "oxc-transform": "^0.142.0",
+    "oxc-transform": "^0.144.0",
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

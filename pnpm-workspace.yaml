@@ -3,8 +3,8 @@ packages:
   - 'apps/*'
   - 'examples/*'
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.2.7
-  vite-plus: 0.2.7
+  vite: npm:@voidzero-dev/vite-plus-core@0.2.9
+  vite-plus: 0.2.9
 overrides:
   vite: 'catalog:'
   kysely: '0.28.5'
@@ -19,5 +19,9 @@ allowBuilds:
   koffi: true
   electron: true
 minimumReleaseAgeExclude:
-  - '@ai-sdk/gateway@4.0.37'
-  - ai@7.0.48
+  - '@ai-sdk/gateway@4.0.51'
+  - ai@7.0.64
+  - '@unhead/bundler@3.3.2'
+  - '@unhead/vue@3.3.2'
+  - pinia@4.0.3
+  - unhead@3.3.2

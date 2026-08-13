@@ -18,15 +18,15 @@
     "upkg": "ncu -u -w"
   },
   "devDependencies": {
-    "@soybeanjs/cli": "^1.8.1",
+    "@soybeanjs/cli": "^1.8.2",
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "@vitest/browser": "^4.1.10",
     "@vitest/browser-playwright": "^4.1.10",
-    "eslint": "^10.8.0",
-    "vite-plus": "0.2.7",
+    "eslint": "^10.8.1",
+    "vite-plus": "0.2.9",
     "vitest": "4.1.10"
   },
-  "packageManager": "pnpm@11.18.0"
+  "packageManager": "pnpm@11.21.0"
 }

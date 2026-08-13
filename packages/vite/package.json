@@ -28,14 +28,14 @@
     "@ubean/markdown": "workspace:*",
     "@ubean/routing": "workspace:*",
     "@ubean/runtime": "workspace:*",
-    "oxc-transform": "^0.142.0",
+    "oxc-transform": "^0.144.0",
     "pathe": "^2.0.3",
-    "unplugin-auto-import": "21.0.0",
+    "unplugin-auto-import": "21.1.0",
     "unplugin-vue-components": "^32.1.0",
     "unplugin-vue-markdown": "^32.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

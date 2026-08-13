@@ -39,11 +39,11 @@
   },
   "dependencies": {
     "@ubean/types": "workspace:*",
-    "hono": "4.12.33",
-    "vue": "^3.5.40"
+    "hono": "4.13.1",
+    "vue": "^3.5.41"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

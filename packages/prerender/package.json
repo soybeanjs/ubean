@@ -28,7 +28,7 @@
     "@ubean/utils": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "pathe": "^2.0.3",
     "typescript": "7.0.2",
     "vite-plus": "catalog:"

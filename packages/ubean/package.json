@@ -45,7 +45,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@hono/standard-validator": "^0.3.0",
+    "@hono/standard-validator": "^0.4.0",
     "@standard-community/standard-json": "^0.3.5",
     "@standard-community/standard-openapi": "^0.2.9",
     "@ubean/actions": "workspace:*",
@@ -76,15 +76,15 @@
     "@ubean/utils": "workspace:*",
     "@ubean/vite": "workspace:*",
     "consola": "^3.4.2",
-    "hono": "4.12.33",
+    "hono": "4.13.1",
     "hono-openapi": "^1.3.1"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.40"
+    "vue": "^3.5.41"
   },
   "peerDependencies": {
     "vue": "^3.0.0"

@@ -33,12 +33,12 @@
     "@ubean/build": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
-    "pinia": "^4.0.2",
+    "@types/node": "^26.2.0",
+    "pinia": "^4.0.3",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.40"
+    "vue": "^3.5.41"
   },
   "peerDependencies": {
     "pinia": "^2.0.0 || ^3.0.0",

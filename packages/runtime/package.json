@@ -34,12 +34,12 @@
     "@ubean/islands": "workspace:*",
     "@ubean/pages": "workspace:*",
     "@ubean/types": "workspace:*",
-    "@unhead/vue": "^3.2.3",
-    "vue": "^3.5.40",
+    "@unhead/vue": "^3.3.2",
+    "vue": "^3.5.41",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "typescript": "7.0.2",
     "vite-plus": "catalog:"
   },

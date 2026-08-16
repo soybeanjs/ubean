@@ -75,7 +75,7 @@
   },
   "dependencies": {
     "@ubean/types": "workspace:*",
-    "hono": "4.13.1",
+    "hono": "4.13.2",
     "hookable": "^6.1.1",
     "pathe": "^2.0.3"
   },

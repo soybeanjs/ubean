@@ -16,7 +16,7 @@
   "devDependencies": {
     "@types/node": "^26.2.0",
     "typescript": "7.0.2",
-    "vue-tsc": "^3.3.9"
+    "vue-tsc": "^3.3.10"
   },
   "peerDependencies": {},
   "optionalDependencies": {}

@@ -21,7 +21,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "hono": "4.13.1"
+    "hono": "4.13.2"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

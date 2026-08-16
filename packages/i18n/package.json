@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@ubean/types": "workspace:*",
-    "hono": "4.13.1"
+    "hono": "4.13.2"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

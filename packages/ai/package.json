@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
-    "hono": "4.13.1",
+    "hono": "4.13.2",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",

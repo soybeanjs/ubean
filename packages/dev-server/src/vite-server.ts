@@ -8,15 +8,15 @@ import type { UbeanApp } from '@ubean/app';
 import { ubeanPlugin } from '@ubean/build/vite';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands';
+import { getLogger } from '@ubean/logger';
 import { resolveModules } from '@ubean/modules';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/routing';
 import { createVueRenderer } from '@ubean/ssr';
 import { findAvailablePort, findUserViteConfig } from '@ubean/utils';
 import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '@ubean/vite';
-import { consola } from 'consola';
 import type { DevRunnerDevtoolsOptions } from './runner';
 
-const logger = consola.withTag('ubean-dev');
+const logger = getLogger('dev-server');
 
 export interface ViteDevServerOptions {
   cwd: string;

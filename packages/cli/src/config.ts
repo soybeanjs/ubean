@@ -1,9 +1,9 @@
+import { getLogger } from '@ubean/logger';
 import type { CommandDef } from 'citty';
-import { consola } from 'consola';
 import { createFsOps } from './shared/fs-ops';
 import { renderTemplate } from './shared/templates';
 
-const logger = consola.withTag('ubean-cli');
+const logger = getLogger('cli');
 
 const CONFIG_TEMPLATE = `import { defineConfig } from 'ubean';
 
@@ -97,13 +97,13 @@ export const configCommand: CommandDef = {
         const content = renderTemplate(CONFIG_TEMPLATE, { variables: { preset } });
 
         if (args.dry) {
-          logger.success('[dry-run] Would create ubean.config.ts');
-          logger.log(`\n${content}`);
+          logger.info('[dry-run] Would create ubean.config.ts');
+          logger.info(`\n${content}`);
           return;
         }
 
         await fs.writeFile('ubean.config.ts', content);
-        logger.success('Created ubean.config.ts');
+        logger.info('Created ubean.config.ts');
       }
     },
 
@@ -123,9 +123,9 @@ export const configCommand: CommandDef = {
         }
 
         logger.info(`Config file: ${configFile}`);
-        logger.log('');
+        logger.info('');
         const content = await fs.readFile(configFile);
-        logger.log(content);
+        logger.info(content);
       }
     },
 
@@ -135,7 +135,7 @@ export const configCommand: CommandDef = {
         description: 'Show a full example configuration with all options'
       },
       async run() {
-        logger.log(CONFIG_EXAMPLE_FULL);
+        logger.info(CONFIG_EXAMPLE_FULL);
       }
     },
 
@@ -154,7 +154,7 @@ export const configCommand: CommandDef = {
           process.exit(1);
         }
 
-        logger.log(fs.resolve(configFile));
+        logger.info(fs.resolve(configFile));
       }
     }
   }

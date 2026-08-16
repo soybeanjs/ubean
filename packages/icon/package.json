@@ -30,7 +30,6 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "consola": "^3.4.2",
     "defu": "6.1.7",
     "pathe": "^2.0.3"
   },

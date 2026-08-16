@@ -223,7 +223,8 @@ export type { FsOps, FsOpsOptions, BackupOptions, ScaffoldOptions, ScaffoldResul
 export { defineDevToolsTab, getCustomTabs, clearCustomTabs } from '@ubean/devtools';
 export type { DevToolsTabDefinition } from '@ubean/devtools';
 
-// ============== logger(内联 consola,与原 ubean `core/log` 行为一致)==============
-import { consola } from 'consola';
-
-export const logger = consola.withTag('ubean');
+// ============== logger(基于 tslog@5 的统一日志系统)==============
+export { logger, getLogger, createUbeanLogger } from '@ubean/logger';
+export type { UbeanLogger, UbeanLoggerOptions, LogLevelName, RequestLoggerOptions } from '@ubean/logger';
+// Hono 请求日志中间件(需要 hono,独立子路径避免核心 logger 引入 hono)
+export { createRequestLoggerMiddleware } from '@ubean/logger/hono';

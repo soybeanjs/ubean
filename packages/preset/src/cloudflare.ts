@@ -32,7 +32,7 @@ export const cloudflarePreset = definePreset(
       outputDir: 'dist/cloudflare',
       format: 'esm',
       minify: false,
-      externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'cloudflare:workers'],
+      externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'cloudflare:workers'],
       rollupConfig: {
         external: ['cloudflare:*', 'node:*']
       }

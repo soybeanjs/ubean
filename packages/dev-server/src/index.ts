@@ -1,7 +1,7 @@
+import { getLogger } from '@ubean/logger';
 import type { CapabilityDiagnosisResult } from '@ubean/preset';
-import { consola } from 'consola';
 
-const logger = consola.withTag('ubean-dev');
+const logger = getLogger('dev-server');
 
 export {
   createDevRunner,
@@ -50,6 +50,6 @@ export function logDiagnostics(diagnostics: CapabilityDiagnosisResult): void {
   }
 
   if (errors.length === 0 && warnings.length === 0) {
-    logger.success('All capability checks passed');
+    logger.info('All capability checks passed');
   }
 }

@@ -1,8 +1,8 @@
+import { getLogger } from '@ubean/logger';
 import type { CommandDef } from 'citty';
-import { consola } from 'consola';
 import { createFsOps } from './shared';
 
-const logger = consola.withTag('ubean-cli');
+const logger = getLogger('cli');
 
 interface EnvVar {
   key: string;
@@ -132,9 +132,9 @@ export const envCommand: CommandDef = {
         await writeEnvFile(fs, file, vars, args.dry as boolean);
 
         if (args.dry) {
-          logger.success(`[dry-run] Would ${existing ? 'update' : 'add'} ${key}=${value} in ${file}`);
+          logger.info(`[dry-run] Would ${existing ? 'update' : 'add'} ${key}=${value} in ${file}`);
         } else {
-          logger.success(`${existing ? 'Updated' : 'Added'} ${key} in ${file}`);
+          logger.info(`${existing ? 'Updated' : 'Added'} ${key} in ${file}`);
         }
 
         if (key.startsWith('UBEAN_PUBLIC_') || key.startsWith('VITE_') || key.startsWith('PUBLIC_')) {
@@ -181,10 +181,10 @@ export const envCommand: CommandDef = {
         vars.splice(index, 1);
 
         if (args.dry) {
-          logger.success(`[dry-run] Would remove ${key} from ${file}`);
+          logger.info(`[dry-run] Would remove ${key} from ${file}`);
         } else {
           await writeEnvFile(fs, file, vars);
-          logger.success(`Removed ${key} from ${file}`);
+          logger.info(`Removed ${key} from ${file}`);
         }
       }
     },
@@ -227,7 +227,7 @@ export const envCommand: CommandDef = {
         logger.info(`Variables in ${file} (${filtered.length}):`);
         for (const v of filtered) {
           const suffix = v.public ? ' [public]' : '';
-          logger.log(`  ${v.key}=${v.value}${suffix}`);
+          logger.info(`  ${v.key}=${v.value}${suffix}`);
         }
 
         const publicCount = vars.filter(v => v.public).length;
@@ -284,10 +284,10 @@ SESSION_SECRET=your-session-secret
             continue;
           }
           if (args.dry) {
-            logger.success(`[dry-run] Would create ${file}`);
+            logger.info(`[dry-run] Would create ${file}`);
           } else {
             await fs.writeFile(file, content);
-            logger.success(`Created ${file}`);
+            logger.info(`Created ${file}`);
           }
         }
 

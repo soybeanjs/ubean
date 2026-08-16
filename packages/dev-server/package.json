@@ -25,13 +25,13 @@
     "@ubean/build": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/islands": "workspace:*",
+    "@ubean/logger": "workspace:*",
     "@ubean/modules": "workspace:*",
     "@ubean/preset": "workspace:*",
     "@ubean/routing": "workspace:*",
     "@ubean/ssr": "workspace:*",
     "@ubean/utils": "workspace:*",
     "@ubean/vite": "workspace:*",
-    "consola": "^3.4.2",
     "pathe": "^2.0.3"
   },
   "devDependencies": {

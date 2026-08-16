@@ -1,8 +1,8 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Context, MiddlewareHandler } from 'hono';
 import { defu } from 'defu';
+import { getLogger } from '@ubean/logger';
 import type { BetterAuthOptions, Session, User } from 'better-auth';
-import { consola } from 'consola';
 import type {
   AuthClient,
   AuthError,
@@ -12,6 +12,8 @@ import type {
   ResolvedAuthOptions,
   UbeanAuthOptions
 } from './types';
+
+const logger = getLogger('auth');
 
 const AUTH_CONTEXT_SYMBOL = Symbol.for('ubean.authContext.v1');
 
@@ -85,8 +87,8 @@ function defineAuth(
 }
 
 function createFallbackAuth(resolved: ResolvedAuthOptions) {
-  consola.warn('[auth] better-auth not installed, using minimal fallback auth implementation');
-  consola.warn('[auth] Install better-auth with: pnpm add better-auth');
+  logger.warn('[auth] better-auth not installed, using minimal fallback auth implementation');
+  logger.warn('[auth] Install better-auth with: pnpm add better-auth');
 
   const users = new Map<string, { id: string; email: string; password: string; name: string; createdAt: Date }>();
   const sessions = new Map<string, { userId: string; token: string; expiresAt: Date }>();

@@ -38,6 +38,7 @@ ubean/
 │   ├── modules/            # @ubean/modules — 模块系统
 │   ├── auto-imports/       # @ubean/auto-imports — 自动导入
 │   ├── runtime/            # @ubean/runtime — Vue 客户端运行时（createUbeanVueApp → Vue 实例；Hono 工厂为 @ubean/app 的 createUbeanApp）
+│   ├── logger/             # @ubean/logger — 统一日志(tslog@5, 命名 Logger 工厂 + Hono 请求日志中间件)
 │   ├── islands/            # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
 │   ├── ssr/                # @ubean/ssr — Vue SSR 渲染器
 │   ├── vite/               # @ubean/vite — Vue 专属 Vite 插件
@@ -405,6 +406,17 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 | `ImageResponse` / `renderOgImage()` / `renderArticleOgImage()`                                    | P9-06 OG Image 动态生成(`@ubean/seo/og-image`):`ImageResponse` 类对齐 Next.js(ReadableStream 懒渲染)、`renderOgImage(input, options)` 一步到位渲染默认模板、`renderArticleOgImage(input, options)` 文章模板。`satori`/`@resvg/resvg-js` 为 optional peer 依赖                      |
 | `defaultTemplate()` / `articleTemplate()` / `renderToImage()`                                     | P9-06 Satori VDOM 模板(渐变背景/标题自适应字号/可选描述/站点名/logo/作者日期)与底层渲染(返回 `{ body, contentType }`)                                                                                                                                                              |
 | `loadDefaultFont()` / `loadFontFromUrl()` / `loadFontFromFile()` / `isOgImageSupported()`         | P9-06 字体加载辅助(默认 Inter from Google Fonts / URL / 本地文件)与能力检测                                                                                                                                                                                                        |
+
+### 日志
+
+| API                                       | 说明                                                                                                                       |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `logger`                                  | 默认全局 tslog 实例(名称 `ubean`),从 `ubean` 主入口导出                                                                    |
+| `createUbeanLogger(options)`              | 创建命名 tslog 实例;`options` 透传 tslog v5 分组 settings(type/pretty/json/mask/stack/meta/minLevel)                       |
+| `getLogger(scope?, options?)`             | 获取 scope 子 logger(继承父 logger 的 settings/minLevel);不传 scope 返回全局 `logger`                                      |
+| `createRequestLoggerMiddleware(options?)` | Hono 请求日志中间件;记录 method/path/status/duration/error;支持 `exclude`(glob/regex/谓词)、`slowThreshold`、`logQuery`    |
+| `@ubean/logger/hono`                      | `createRequestLoggerMiddleware` 所在子路径;hono 标记为 optional peer,避免核心 logger 引入 hono                             |
+| 环境变量控制                              | `LOG_LEVEL`/`TSLOG_LEVEL` 设 minLevel(silly/trace/debug/info/warn/error/fatal);`TSLOG_TYPE` 设输出格式(json/pretty/hidden) |
 
 ### 内部调用
 

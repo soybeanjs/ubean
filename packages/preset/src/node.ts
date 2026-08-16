@@ -12,7 +12,7 @@ export const nodePreset = definePreset(
         'hono',
         'c12',
         'citty',
-        'consola',
+        'tslog',
         'defu',
         'hookable',
         'pathe',

@@ -53,7 +53,7 @@ export const denoPreset = definePreset(
       outputDir: 'dist/deno',
       format: 'esm',
       // Deno 原生支持 TypeScript,无需 bundle 依赖
-      externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'node:*']
+      externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'node:*']
     },
     output: {
       dir: 'dist/deno',

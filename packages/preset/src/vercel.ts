@@ -79,7 +79,7 @@ export const vercelPreset = definePreset(
     build: {
       outputDir: 'dist/vercel',
       format: 'esm',
-      externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod']
+      externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod']
     },
     output: {
       dir: 'dist/vercel',
@@ -129,7 +129,7 @@ export const vercelEdgePreset = definePreset(
       outputDir: 'dist/vercel-edge',
       format: 'esm',
       minify: true,
-      externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod'],
+      externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod'],
       rollupConfig: {
         external: ['node:*']
       }

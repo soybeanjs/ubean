@@ -68,7 +68,7 @@ The following is the workspace aggregate manifest; actual ownership must follow 
   "hookable": "^6.x",
   "citty": "^0.2.x",
   "c12": "^4.x",
-  "consola": "^3.x",
+  "tslog": "^5.x",
   "tinyglobby": "^0.2.x",
   "magic-string": "^0.30.x",
   "estree-walker": "^3.x",

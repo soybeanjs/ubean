@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { consola } from 'consola';
+import { getLogger } from '@ubean/logger';
 import { resolveAuthOptions } from './core';
 import type { UbeanAuthOptions, ResolvedAuthOptions } from './types';
 
@@ -7,6 +7,8 @@ const VIRTUAL_AUTH_CLIENT_ID = 'virtual:ubean-auth/client';
 const RESOLVED_VIRTUAL_AUTH_CLIENT_ID = `\0${VIRTUAL_AUTH_CLIENT_ID}`;
 const VIRTUAL_AUTH_SERVER_ID = 'virtual:ubean-auth/server';
 const RESOLVED_VIRTUAL_AUTH_SERVER_ID = `\0${VIRTUAL_AUTH_SERVER_ID}`;
+
+const logger = getLogger('auth');
 
 export function ubeanAuthPlugin(userOptions: UbeanAuthOptions = {}): Plugin {
   const options: ResolvedAuthOptions = resolveAuthOptions(userOptions);
@@ -68,13 +70,13 @@ export function ubeanAuthPlugin(userOptions: UbeanAuthOptions = {}): Plugin {
             res.end(text);
           })
           .catch(error => {
-            consola.error('[auth] Error handling auth request:', error);
+            logger.error('[auth] Error handling auth request:', error);
             res.statusCode = 500;
             res.end(JSON.stringify({ error: 'Internal auth error' }));
           });
       });
 
-      consola.success(`[auth] Better Auth routes mounted at ${options.basePath}/*`);
+      logger.info(`[auth] Better Auth routes mounted at ${options.basePath}/*`);
     }
   };
 }

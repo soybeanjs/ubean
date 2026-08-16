@@ -5,6 +5,7 @@ import type { Plugin as VitePlugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import type { ResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands';
+import { getLogger } from '@ubean/logger';
 import { resolveModules } from '@ubean/modules';
 import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/routing';
@@ -18,7 +19,6 @@ import {
   createServerEntryVirtualModule,
   createClientEntryVirtualModule
 } from '@ubean/vite';
-import { consola } from 'consola';
 import { join, resolve, relative } from 'pathe';
 import {
   createRoutingVirtualModule,
@@ -30,7 +30,7 @@ import {
 import { useVirtualRegistry } from './virtual-registry';
 import { ubeanPlugin } from './vite';
 
-const logger = consola.withTag('ubean-build');
+const logger = getLogger('build');
 
 export interface BuildOptions {
   cwd: string;
@@ -826,7 +826,7 @@ assets = { directory = "./public" }
 
   await writeFile(join(outDirs.root, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8');
 
-  logger.success(`Build complete! Output: ${outDirs.root}`);
+  logger.info(`Build complete! Output: ${outDirs.root}`);
   if (hasPages) {
     logger.info(`  Client assets: ${outDirs.public}`);
   }

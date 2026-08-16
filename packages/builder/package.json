@@ -32,6 +32,7 @@
   "dependencies": {
     "@ubean/config": "workspace:*",
     "@ubean/islands": "workspace:*",
+    "@ubean/logger": "workspace:*",
     "@ubean/modules": "workspace:*",
     "@ubean/preset": "workspace:*",
     "@ubean/routing": "workspace:*",
@@ -39,7 +40,6 @@
     "@ubean/utils": "workspace:*",
     "@ubean/vite": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.8",
-    "consola": "^3.4.2",
     "oxc-transform": "^0.144.0",
     "pathe": "^2.0.3"
   },

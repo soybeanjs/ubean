@@ -10,9 +10,9 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts', 'src/cli.ts'],
+    entry: ['src/index.ts', 'src/hono.ts'],
     deps: {
-      neverBundle: [/^@ubean\//, /^node:/, 'citty', 'pathe', 'kolorist']
+      neverBundle: ['hono', 'tslog', /^node:/, /^@ubean\//]
     }
   }
 });

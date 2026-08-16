@@ -25,7 +25,7 @@ import type { Preset } from '../preset/types';
 // 2. External dependencies
 import { resolve, join } from 'pathe';
 import { defu } from 'defu';
-import { consola } from 'consola';
+import { getLogger } from '@ubean/logger';
 
 // 3. Internal dependencies
 import { readConfig } from './loader';

@@ -24,7 +24,6 @@ export default defineConfig({
         /^node:/,
         'hono',
         'hono-openapi',
-        'consola',
         'vite',
         /^@vitejs\//,
         /^@voidzero-dev\//,

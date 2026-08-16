@@ -25,7 +25,7 @@ import type { Preset } from '../preset/types';
 // 2. 外部依赖
 import { resolve, join } from 'pathe';
 import { defu } from 'defu';
-import { consola } from 'consola';
+import { getLogger } from '@ubean/logger';
 
 // 3. 内部依赖
 import { readConfig } from './loader';
@@ -522,7 +522,7 @@ codegraph impact <symbol>         # 查影响面
 | --- | --- | --- | --- | --- | --- | --- |
 | `@ubean/ai` | `ai` | `ubeanAiPlugin` | `./runtime/vue` (`useChat`/`useAgent`/`useAIProvider`) | **ai, @ai-sdk/openai-compatible（optional）**, hono, vite, vue | **optional-peer**（`ai`/`@ai-sdk/openai-compatible` 在 `peerDependencies` 且 optional） | 薄封装 Vercel AI SDK；`defineAgent`/`defineAgentTool` + provider 预设；客户端自动导入 `useChat`/`useAgent`/`useAIProvider` |
 | `@ubean/auth` | `auth` | `ubeanAuthPlugin` | `./runtime` (`useAuth`) | hono, vite, vue（均 optional） | **hard**（`better-auth` 在 `dependencies`） | 挂载 `/api/auth/*`；better-auth 优先，降级为内置 email/password |
-| `@ubean/icon` | `icon` | `ubeanIconPlugin` | `./runtime` | vue（optional） | none（仅 consola/defu/pathe） | Iconify `customCollections`；dev `/_iconify` 路由先本地 SVG 后回退 API |
+| `@ubean/icon` | `icon` | `ubeanIconPlugin` | `./runtime` | vue（optional） | none（仅 defu/pathe） | Iconify `customCollections`；dev `/_iconify` 路由先本地 SVG 后回退 API |
 | `@ubean/pwa` | `pwa` | `ubeanPwaPlugin` | `./runtime` (`usePwa`) | vite, vue（均 optional） | **hard**（`vite-plugin-pwa` 在 `dependencies`） | 生成 manifest+sw；`registerType: autoUpdate`；5 种缓存策略 |
 | `@ubean/image` | `image` | `ubeanImagePlugin` | `./runtime` | vite, vue（均 optional） | none（仅 defu/ohash/pathe/ufo） | 图片优化与变换 |
 | `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` | vite（optional） | none（仅 defu/pathe/scule + `@ubean/utils`） | markdown/MDX/YAML/JSON 内容集合 |

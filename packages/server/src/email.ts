@@ -30,6 +30,8 @@
  * ```
  */
 
+import { getLogger } from '@ubean/logger';
+
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                     */
 /* -------------------------------------------------------------------------- */
@@ -187,7 +189,7 @@ function getNestedValue(obj: Record<string, unknown>, path: string): unknown {
 /* -------------------------------------------------------------------------- */
 
 function createLogTransport(config: LogEmailProviderConfig): EmailTransport {
-  const logger = config.logger || ((msg: string) => console.log(msg));
+  const logger = config.logger || ((msg: string) => getLogger('email').info(msg));
   return {
     async send(options: EmailOptions): Promise<EmailResult> {
       const lines: string[] = [

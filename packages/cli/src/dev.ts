@@ -2,6 +2,7 @@ import { createUbeanApp } from '@ubean/app';
 import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/codegen';
 import { loadUbeanConfig } from '@ubean/config';
 import { createDevRunner, createDevWatcher, logDiagnostics } from '@ubean/dev-server';
+import { getLogger } from '@ubean/logger';
 import {
   resolvePresetByName,
   registerBuiltinPresets,
@@ -12,11 +13,10 @@ import {
 import { scanProject } from '@ubean/routing';
 import type { ScanResult } from '@ubean/routing';
 import type { CommandDef } from 'citty';
-import { consola } from 'consola';
 import { green, cyan, dim, bold } from 'kolorist';
 import { resolve } from 'pathe';
 
-const logger = consola.withTag('ubean-cli');
+const logger = getLogger('cli');
 
 /**
  * Best-effort loader for the optional `@ubean/devtools` peer dependency.
@@ -76,7 +76,7 @@ export const devCommand: CommandDef = {
   },
   async run({ args }) {
     const cwd = resolve(args.cwd || process.cwd());
-    logger.start('Starting ubean dev server...');
+    logger.info('Starting ubean dev server...');
 
     registerBuiltinPresets();
     const config = await loadUbeanConfig(cwd);
@@ -177,12 +177,12 @@ export const devCommand: CommandDef = {
           lines.push(`  → ${label('DevTools:')}   ${cyan(`${url}${config.devtools.route}`)}`);
         }
         lines.push(`  → ${dim('Press Ctrl+C to stop')}`);
-        logger.box(lines.join('\n'));
+        logger.info(lines.join('\n'));
 
         // 异步生成 OpenAPI 类型声明(不阻塞 server 启动)
         generateOpenApiTypesFromServer(url, { outDir: resolve(cwd, '.ubean') })
           .then(filePath => {
-            logger.success(`OpenAPI types generated: ${filePath}`);
+            logger.info(`OpenAPI types generated: ${filePath}`);
           })
           .catch(err => {
             logger.warn(`Failed to generate OpenAPI types: ${err instanceof Error ? err.message : String(err)}`);
@@ -192,7 +192,7 @@ export const devCommand: CommandDef = {
         logger.info('Reloading...');
       },
       onAfterReload() {
-        logger.success('Reloaded');
+        logger.info('Reloaded');
       }
     });
 
@@ -284,7 +284,7 @@ async function buildApp(
   });
 
   app.hooks.hook('request:start', c => {
-    logger.log(`${c.req.method} ${c.req.path}`);
+    logger.info(`${c.req.method} ${c.req.path}`);
   });
 
   return { app, layouts: result.layouts, scanResult: result };

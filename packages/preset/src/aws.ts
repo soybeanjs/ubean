@@ -51,7 +51,7 @@ export const awsPreset = definePreset(
     build: {
       outputDir: 'dist/aws',
       format: 'esm',
-      externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod', '@aws-sdk/*']
+      externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod', '@aws-sdk/*']
     },
     output: {
       dir: 'dist/aws',

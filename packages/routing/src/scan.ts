@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
+import { getLogger } from '@ubean/logger';
 import type { PageHead } from '@ubean/types';
 import { filePathToRoute, capitalize } from '@ubean/utils';
-import { consola } from 'consola';
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
 import { extractDefinePage } from './define-page';
@@ -92,7 +92,7 @@ import type {
   AppEntry
 } from './types';
 
-const logger = consola.withTag('ubean-routing');
+const logger = getLogger('routing');
 
 /**
  * Optional peer dependency loader for `@ubean/markdown`.

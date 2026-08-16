@@ -34,8 +34,8 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@ubean/logger": "workspace:*",
     "better-auth": "^1.6.29",
-    "consola": "^3.4.2",
     "defu": "6.1.7"
   },
   "devDependencies": {

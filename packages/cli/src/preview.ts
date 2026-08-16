@@ -6,10 +6,10 @@ import { createServer } from 'node:http';
 import type { Server } from 'node:http';
 import { extname, normalize } from 'node:path';
 import { loadUbeanConfig } from '@ubean/config';
+import { getLogger } from '@ubean/logger';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
 import { findAvailablePort, waitForPort } from '@ubean/utils';
 import type { CommandDef } from 'citty';
-import { consola } from 'consola';
 import { green, cyan, dim, bold } from 'kolorist';
 import { resolve, join } from 'pathe';
 
@@ -121,7 +121,7 @@ function startStaticServer(opts: { root: string; port: number; host: string; mod
   return server.listen(port, host);
 }
 
-const logger = consola.withTag('ubean-cli');
+const logger = getLogger('cli');
 
 export const previewCommand: CommandDef = {
   meta: {
@@ -150,7 +150,7 @@ export const previewCommand: CommandDef = {
   },
   async run({ args }) {
     const cwd = resolve(args.cwd || process.cwd());
-    logger.start('Starting ubean preview server...');
+    logger.info('Starting ubean preview server...');
 
     registerBuiltinPresets();
     const config = await loadUbeanConfig(cwd);
@@ -189,7 +189,7 @@ export const previewCommand: CommandDef = {
 
     const printBanner = (port: number, modeLabel: string) => {
       const bannerUrl = `http://${host}:${port}`;
-      logger.box(
+      logger.info(
         `${green(bold('🚀 ubean preview server ready'))}\n\n` +
           `  → ${label('Local:')}      ${cyan(bannerUrl)}\n` +
           `  → ${label('Mode:')}       ${dim(modeLabel)}\n` +

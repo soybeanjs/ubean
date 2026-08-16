@@ -24,8 +24,8 @@
   "dependencies": {
     "@ubean/app": "workspace:*",
     "@ubean/config": "workspace:*",
+    "@ubean/logger": "workspace:*",
     "@ubean/types": "workspace:*",
-    "consola": "^3.4.2",
     "hookable": "^6.1.1"
   },
   "devDependencies": {

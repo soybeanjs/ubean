@@ -1,6 +1,6 @@
 import { join, extname } from 'node:path';
+import { getLogger } from '@ubean/logger';
 import type { CommandDef } from 'citty';
-import { consola } from 'consola';
 import {
   createFsOps,
   renderPageTemplate,
@@ -13,7 +13,7 @@ import {
   toCamelCase
 } from './shared';
 
-const logger = consola.withTag('ubean-cli');
+const logger = getLogger('cli');
 
 export type ScaffoldType = 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin';
 
@@ -404,7 +404,7 @@ export const pageCommand: CommandDef = {
         });
 
         for (const file of result.created) {
-          logger.success(`${args.dry ? '[dry-run] Would create' : 'Created'} ${file}`);
+          logger.info(`${args.dry ? '[dry-run] Would create' : 'Created'} ${file}`);
         }
         for (const file of result.skipped) {
           logger.warn(`Skipped ${file} (already exists, use --force to overwrite)`);
@@ -447,7 +447,7 @@ export const pageCommand: CommandDef = {
         });
 
         for (const file of result.created) {
-          logger.success(`${args.dry ? '[dry-run] Would create' : 'Created'} ${file}`);
+          logger.info(`${args.dry ? '[dry-run] Would create' : 'Created'} ${file}`);
         }
         for (const file of result.skipped) {
           logger.warn(`Skipped ${file} (already exists, use --force to overwrite)`);
@@ -502,7 +502,7 @@ export const pageCommand: CommandDef = {
         });
 
         for (const file of result.deleted) {
-          logger.success(
+          logger.info(
             `${args.dry ? '[dry-run] Would delete' : args.force ? 'Deleted' : 'Deleted (backup created)'} ${file}`
           );
         }
@@ -549,7 +549,7 @@ export const pageCommand: CommandDef = {
         });
 
         for (const file of result.restored) {
-          logger.success(`${args.dry ? '[dry-run] Backup exists for' : 'Recovered'} ${file}`);
+          logger.info(`${args.dry ? '[dry-run] Backup exists for' : 'Recovered'} ${file}`);
         }
         for (const err of result.errors) {
           logger.error(err);
@@ -580,7 +580,7 @@ export const pageCommand: CommandDef = {
 
         logger.info(`Found ${files.length} ${type}(s):`);
         for (const file of files) {
-          logger.log(`  ${file}`);
+          logger.info(`  ${file}`);
         }
       }
     }

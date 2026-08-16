@@ -1,6 +1,6 @@
 import type { Plugin as VitePlugin } from 'vite';
 import type { ModuleDefinition, ResolvedModule, ResolvedConfig } from '@ubean/config';
-import { consola } from 'consola';
+import { getLogger } from '@ubean/logger';
 import { createHooks } from 'hookable';
 import { BUILTIN_MODULES, isBuiltinDisabled, extractBuiltinOptions } from './builtins';
 import { createModuleKitContext, topologicalSort } from './kit';
@@ -12,7 +12,7 @@ import type {
   DevToolsCustomTab
 } from './kit';
 
-const logger = consola.withTag('ubean-modules');
+const logger = getLogger('modules');
 
 /**
  * Extracts the bare package name from a module path.

@@ -53,7 +53,7 @@ export const bunPreset = definePreset(
       outputDir: 'dist/bun',
       format: 'esm',
       // Bun 原生支持 TypeScript,无需 bundle 依赖
-      externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'bun:sqlite']
+      externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'bun:sqlite']
     },
     output: {
       dir: 'dist/bun',

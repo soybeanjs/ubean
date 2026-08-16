@@ -6,14 +6,14 @@ import type { BuildManifest } from '@ubean/build/production';
 import { generateTypes } from '@ubean/codegen';
 import { loadUbeanConfig, resolvePrerenderConfig, resolveSsrConfig } from '@ubean/config';
 import type { AppMode } from '@ubean/config';
+import { getLogger } from '@ubean/logger';
 import { prerender } from '@ubean/prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
 import { scanProject } from '@ubean/routing';
 import type { CommandDef } from 'citty';
-import { consola } from 'consola';
 import { resolve, join } from 'pathe';
 
-const logger = consola.withTag('ubean-cli');
+const logger = getLogger('cli');
 
 /**
  * Creates a fetcher that invokes the built SSR entry to render real HTML.
@@ -103,7 +103,7 @@ export const buildCommand: CommandDef = {
   },
   async run({ args }) {
     const cwd = resolve(args.cwd || process.cwd());
-    logger.start('Building ubean application...');
+    logger.info('Building ubean application...');
 
     try {
       registerBuiltinPresets();
@@ -228,7 +228,7 @@ export const buildCommand: CommandDef = {
         });
       }
 
-      logger.success(`Build complete for preset "${resolvedPreset.name}"!`);
+      logger.info(`Build complete for preset "${resolvedPreset.name}"!`);
       logger.info(`  Output directory: ${resolve(cwd, config.build.outputDir)}`);
       if (manifest.entry) {
         logger.info(`  Server entry: ${manifest.entry}`);

@@ -1,5 +1,5 @@
+import { getLogger } from '@ubean/logger';
 import type { CommandDef } from 'citty';
-import { consola } from 'consola';
 import { resolve, basename } from 'pathe';
 import { createFsOps } from './shared/fs-ops';
 import {
@@ -9,7 +9,7 @@ import {
   scaffoldBlogTemplate
 } from './shared/unify-template';
 
-const logger = consola.withTag('ubean-cli');
+const logger = getLogger('cli');
 
 interface InitOptions {
   cwd: string;

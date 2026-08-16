@@ -46,7 +46,7 @@ export const netlifyPreset = definePreset(
     build: {
       outputDir: 'dist/netlify',
       format: 'esm',
-      externals: ['hono', 'c12', 'citty', 'consola', 'defu', 'hookable', 'pathe', 'ufo', 'zod']
+      externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod']
     },
     output: {
       dir: 'dist/netlify',

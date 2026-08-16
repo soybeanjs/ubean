@@ -3,13 +3,13 @@ import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { generateTypes } from '@ubean/codegen';
 import { loadUbeanConfig } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
+import { getLogger } from '@ubean/logger';
 import { BUILTIN_MODULES, isBuiltinDisabled } from '@ubean/modules';
 import { scanProject } from '@ubean/routing';
 import type { CommandDef } from 'citty';
-import { consola } from 'consola';
 import { join, resolve } from 'pathe';
 
-const logger = consola.withTag('ubean-cli');
+const logger = getLogger('cli');
 
 async function ensureBuildDir(cwd: string, buildDir: string): Promise<void> {
   const fullPath = join(cwd, buildDir);
@@ -158,7 +158,7 @@ async function ensureBuiltinModules(cwd: string, config: ResolvedConfig, autoIns
       stdio: 'inherit',
       env: { ...process.env }
     });
-    logger.success(`Installed: ${packagesToInstall.join(', ')}`);
+    logger.info(`Installed: ${packagesToInstall.join(', ')}`);
   } catch (err) {
     logger.error(`Failed to auto-install packages: ${err instanceof Error ? err.message : String(err)}`);
     for (const m of missing) {
@@ -187,7 +187,7 @@ export const prepareCommand: CommandDef = {
   },
   async run({ args }) {
     const cwd = resolve(args.cwd || process.cwd());
-    logger.start(`Preparing ubean project at ${cwd}...`);
+    logger.info(`Preparing ubean project at ${cwd}...`);
 
     const config = await loadUbeanConfig(cwd);
 
@@ -224,9 +224,9 @@ export const prepareCommand: CommandDef = {
     });
 
     for (const file of codegenResult.generated) {
-      logger.success(`Generated ${file.replace(`${cwd}/`, '')}`);
+      logger.info(`Generated ${file.replace(`${cwd}/`, '')}`);
     }
 
-    logger.success('Prepare complete!');
+    logger.info('Prepare complete!');
   }
 };

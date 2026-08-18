@@ -39,7 +39,7 @@ export default defineConfig({
 });
 ```
 
-> 📌 `typed-router.d.ts` is not written to `outputDir`; it is always generated to `.ubean/typed-router.d.ts` — the same directory as other pure-type declaration outputs (`auto-imports.d.ts`, `components.d.ts`), all of which are gitignored. It provides types via module augmentation (`declare module '@ubean/routing'`); as long as `tsconfig.json`'s `include` covers `.ubean/*`, the types take effect globally.
+> 📌 `typed-router.d.ts` is not written to `outputDir`; it is always generated to `.ubean/typed-router.d.ts` — the same directory as other pure-type declaration outputs (`auto-imports.d.ts`, `components.d.ts`), all of which are gitignored. It provides types via module augmentation (`declare module '@ubean/scan'`); as long as `tsconfig.json`'s `include` covers `.ubean/*`, the types take effect globally.
 
 ### Full Option Reference
 
@@ -102,7 +102,7 @@ src/router/_generated/        # Physical route files (editable meta, incremental
 **Pros**:
 - The IDE can jump directly to `routes.ts` to inspect route definitions
 - Manual `meta` edits are supported — the generator updates incrementally and never overwrites user modifications
-- The generated `.d.ts` provides strongly-typed route name/path autocompletion via module augmentation (`declare module '@ubean/routing'`), active globally
+- The generated `.d.ts` provides strongly-typed route name/path autocompletion via module augmentation (`declare module '@ubean/scan'`), active globally
 
 **Cons**:
 - Decide whether to add `src/router/_generated/` to `.gitignore` (recommended to commit for PR review, or ignore to avoid polluting git history)
@@ -157,23 +157,23 @@ export default defineConfig({
 
 ## Frontend-Only Projects
 
-For pure SPA projects that don't depend on a backend (SSR/API routes), you can use only the `@ubean/vite`, `@ubean/runtime`, `@ubean/routing`, and `@ubean/pages` subpackages without pulling in `@ubean/build`, `@ubean/app`, or `@ubean/server`.
+For pure SPA projects that don't depend on a backend (SSR/API routes), you can use only the `@ubean/vite`, `@ubean/runtime`, `@ubean/scan`, and `@ubean/pages` subpackages without pulling in `@ubean/build`, `@ubean/app`, or `@ubean/server`.
 
 ```ts
 // vite.config.ts (frontend-only)
 import { defineConfig } from 'vite-plus';
-import { ubeanVuePlugin } from '@ubean/vite';
+import { ubeanVite } from '@ubean/vite';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 
 export default defineConfig({
-  plugins: [...ubeanVuePlugin(), ubeanIslandsPlugin()]
+  plugins: [...ubeanVite(), ubeanIslandsPlugin()]
 });
 ```
 
-In this case, the route generation mode defaults to `virtual` (handled internally by `@ubean/vite`). To switch to `file` mode, pass it through `ubeanVuePlugin` options:
+In this case, the route generation mode defaults to `virtual` (handled internally by `@ubean/vite`). To switch to `file` mode, pass it through `ubeanVite` options:
 
 ```ts
-ubeanVuePlugin({
+ubeanVite({
   routing: { mode: 'file' }
 });
 ```
@@ -218,7 +218,7 @@ Aligned with elegant-router, ubean plans to provide the following commands in `@
 | Physical file mode | ✅ Supported | ✅ Default |
 | Hybrid mode | ✅ `both` | ❌ |
 | Incremental meta protection | ✅ | ❌ (fully regenerated) |
-| Framework-agnostic | ✅ (`@ubean/routing` doesn't depend on Vue) | ❌ (Vue-only) |
+| Framework-agnostic | ✅ (`@ubean/scan` doesn't depend on Vue) | ❌ (Vue-only) |
 | Type generation | `typed-router.d.ts` | `typed-router.d.ts` |
 | CLI route management | Planned | ✅ Built-in |
 

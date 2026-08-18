@@ -1,5 +1,7 @@
 import { ref, computed, onMounted } from 'vue';
-import { createAuthClient } from './core';
+// Import from './client' (browser-safe), NOT './core' — core statically imports
+// `node:async_hooks` which would pollute the browser bundle of this entry.
+import { createAuthClient } from './client';
 import type { AuthSession, AuthClient, UseAuthReturn, User, AuthError } from './types';
 
 export function useAuth(basePath: string = '/api/auth'): UseAuthReturn {

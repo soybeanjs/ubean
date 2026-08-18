@@ -7,7 +7,7 @@
  * - Includes slot/intercept metadata in route meta
  */
 import { describe, it, expect } from 'vitest';
-import type { ScannedPageRoute } from '@ubean/routing';
+import type { ScannedPageRoute } from '@ubean/scan';
 import { createVuePagesVirtualModule } from '../src/virtual-modules';
 
 function makePage(overrides: Partial<ScannedPageRoute> = {}): ScannedPageRoute {
@@ -42,7 +42,7 @@ describe('P9-18: createVuePagesVirtualModule — parallel routes', () => {
     const code = mod.load();
     // Should use `components` (plural) with named views
     expect(code).toContain('components: { default: Page_Dashboard, "analytics": Page_DashboardAnalytics }');
-    expect(code).toContain('parallelSlots: ["analytics"]');
+    expect(code).toContain('"parallelSlots":["analytics"]');
   });
 
   it('groups multiple slots into named views', () => {
@@ -68,7 +68,7 @@ describe('P9-18: createVuePagesVirtualModule — parallel routes', () => {
     expect(code).toContain('default: Page_Dashboard');
     expect(code).toContain('"modal": Page_DashboardModal');
     expect(code).toContain('"sidebar": Page_DashboardSidebar');
-    expect(code).toContain('parallelSlots: ["modal","sidebar"]');
+    expect(code).toContain('"parallelSlots":["modal","sidebar"]');
   });
 
   it('uses component (singular) for regular routes without slots', () => {
@@ -109,9 +109,9 @@ describe('P9-18: createVuePagesVirtualModule — intercepting routes', () => {
     const mod = createVuePagesVirtualModule([interceptPage], []);
     const code = mod.load();
     expect(code).toContain('"__intercept_PhotoId"');
-    expect(code).toContain('interceptFrom: "/"');
-    expect(code).toContain('interceptTarget: "photo"');
-    expect(code).toContain('isIntercepting: true');
+    expect(code).toContain('"interceptFrom":"/"');
+    expect(code).toContain('"interceptTarget":"photo"');
+    expect(code).toContain('"isIntercepting":true');
   });
 
   it('keeps intercepting routes separate from regular routes', () => {
@@ -145,8 +145,8 @@ describe('P9-18: createVuePagesVirtualModule — intercepting routes', () => {
     });
     const mod = createVuePagesVirtualModule([interceptPage], []);
     const code = mod.load();
-    expect(code).toContain('interceptFrom: "/dashboard"');
-    expect(code).toContain('interceptTarget: "user"');
+    expect(code).toContain('"interceptFrom":"/dashboard"');
+    expect(code).toContain('"interceptTarget":"user"');
   });
 });
 

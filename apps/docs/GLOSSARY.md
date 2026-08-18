@@ -25,7 +25,7 @@
 
 **API Reference Page** — a route under `/reference/api/<pkg>/` that renders one package's API Reference Entries via the `<ApiTable>` component, reading `public/api/<pkg>.json`.
 
-**Curated Subset** — the 7 packages v1 generates API reference for: `ubean`, `@ubean/runtime`, `@ubean/routing`, `@ubean/config`, `@ubean/auth`, `@ubean/ui`, `@ubean/pinia`. Other packages are added incrementally.
+**Curated Subset** — the 7 packages v1 generates API reference for: `ubean`, `@ubean/runtime`, `@ubean/scan`, `@ubean/config`, `@ubean/auth`, `@ubean/ui`, `@ubean/pinia`. Other packages are added incrementally.
 
 **`build:api`** — the pre-build script (`pnpm build:api`) that runs TypeDoc over the Curated Subset's built `dist/*.d.ts` and emits `public/api/<pkg>.json`. Must run before `ubean build` and (in dev) before first `ubean dev` after a package API change.
 

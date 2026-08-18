@@ -6,7 +6,7 @@
  * compatibility with single-string layouts.
  */
 import { describe, it, expect } from 'vitest';
-import type { ScannedPageRoute, ScannedLayout } from '@ubean/routing';
+import type { ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 import { createVuePagesVirtualModule } from '../src/virtual-modules';
 
 function makePage(overrides: Partial<ScannedPageRoute> = {}): ScannedPageRoute {
@@ -83,13 +83,15 @@ describe('P9-17: createVuePagesVirtualModule — nested layouts', () => {
     expect(code).toContain('layout: ["default"]');
   });
 
-  it('generates undefined for empty array', () => {
+  it('serializes empty array layout as-is (extract 层负责归一化为 undefined)', () => {
     const page = makePage({
       layout: []
     });
     const mod = createVuePagesVirtualModule([page], []);
     const code = mod.load();
-    expect(code).toContain('layout: undefined');
+    // 统一生成器对 meta 做 JSON 序列化,layout 原样透传(真实管线中
+    // extractDefinePageFromCode 已把空数组归一化为 undefined)
+    expect(code).toContain('"layout":[]');
   });
 
   it('generates single string layout (backward compat)', () => {
@@ -99,11 +101,12 @@ describe('P9-17: createVuePagesVirtualModule — nested layouts', () => {
     expect(code).toContain('layout: "admin"');
   });
 
-  it('generates undefined for single "default" string', () => {
+  it('serializes single "default" string as-is (extract 层负责归一化为 undefined)', () => {
     const page = makePage({ layout: 'default' });
     const mod = createVuePagesVirtualModule([page], []);
     const code = mod.load();
-    expect(code).toContain('layout: undefined');
+    // 同上:统一生成器透传,真实管线中 extract 层已归一化
+    expect(code).toContain('"layout":"default"');
   });
 
   it('includes layout names in pages export', () => {

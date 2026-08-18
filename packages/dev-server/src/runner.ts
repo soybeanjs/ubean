@@ -1,7 +1,7 @@
 import type { UbeanApp } from '@ubean/app';
 import type { ResolvedConfig } from '@ubean/config';
 import type { Preset, CapabilitySet, CapabilityDiagnosisResult } from '@ubean/preset';
-import type { ScannedLayout } from '@ubean/routing';
+import type { ScannedLayout } from '@ubean/scan';
 import { createViteDevServer } from './vite-server';
 import type { ViteDevServerInstance } from './vite-server';
 

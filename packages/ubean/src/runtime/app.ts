@@ -7,7 +7,7 @@
  * - `applyServerConfig(app, config)` — 应用服务端配置
  *
  * 注意:`createUbeanApp` 在此子路径专指 Hono 工厂(ADR-0001)。
- * `@ubean/runtime` 主入口的 Vue 应用工厂已重命名为 `createUbeanVueApp`。
+ * `@ubean/runtime` 主入口的 Vue 应用工厂已重命名为 `createUbeanClientApp`。
  *
  * ```ts
  * import { createUbeanApp, defineServer, applyServerConfig } from 'ubean/runtime/app';

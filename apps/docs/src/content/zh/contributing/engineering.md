@@ -167,7 +167,7 @@ type InferLoaderData<T> = T extends () => Promise<{ data: infer D }> ? D : never
 ### 6.4 当前验证基线（2026-08-03）
 
 - 主包（`ubean`）：38 个测试文件、**799 个测试通过**（81 个 DevTools 测试已移至 `@ubean/devtools` 独立包）。
-- 核心子包：`@ubean/islands` 199（directive / paired-components / server-client-components / islands-registry / server-component-rerender）、`@ubean/ssr` 18、`@ubean/actions` 69、`@ubean/api-routes` route-rules 27、`@ubean/devtools` 81、examples/ubean-test prerender 92。
+- 核心子包：`@ubean/islands` 199（directive / paired-components / server-client-components / islands-registry / server-component-rerender）、`@ubean/ssr` 18、`@ubean/actions` 69、`@ubean/routes` route-rules 27、`@ubean/devtools` 81、examples/ubean-test prerender 92。
 - 扩展包：`@ubean/icon` 32、`@ubean/auth` 13、`@ubean/pwa` 19、`@ubean/image` 42、`@ubean/content` 18、`@ubean/fonts` 21、`@ubean/seo` 114。
 - 全仓库合计 **约 1075 个测试**通过。
 - `pnpm typecheck`：通过。TypeScript 7 与 `vue-tsc` 的兼容层通过 workspace override `typescript: npm:typescript-native-bridge@0.0.0` 提供；其原生依赖 `koffi` 必须在 `pnpm-workspace.yaml` 的 `allowBuilds` 中显式允许。
@@ -494,7 +494,7 @@ DevTools 面板的 UI 实现必须使用 `@soybeanjs/ui` 组件库，遵循以�
 - `registerRoutes`（路由注册）
 - `ubeanPlugin`（Vite 插件主入口）
 - `macros`（`definePage` 等编译期宏）
-- `createUbeanApp` / `createUbeanVueApp`（应用工厂）
+- `createUbeanApp` / `createUbeanClientApp`（应用工厂）
 - `resolveModules`（模块系统）
 
 ### 10.2 执行步骤
@@ -509,7 +509,7 @@ codegraph impact <symbol>         # 查影响面
 ### 10.3 与 PR 的关系
 
 - **本约定先行**：约定文本独立于代码 PR 落地。
-- **首个样板**：`createUbeanApp` → `createUbeanVueApp` 重命名 PR（OPT-01）作为首个遵循本约定的样板，PR 描述附 `codegraph impact createUbeanApp` 结果。
+- **首个样板**：`createUbeanApp` → `createUbeanClientApp` 重命名 PR（OPT-01）作为首个遵循本约定的样板，PR 描述附 `codegraph impact createUbeanApp` 结果。
 - 勿将 `codegraph impact` 输出塞入本约定自身的非代码 PR——「定规」与「首用」分离。
 
 ## 11. 扩展包接入契约表

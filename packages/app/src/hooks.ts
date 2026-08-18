@@ -40,7 +40,7 @@
  */
 
 import type { Context } from 'hono';
-import type { UbeanEnv } from '@ubean/types';
+import type { UbeanEnv } from '@ubean/shared';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                    */

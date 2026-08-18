@@ -1,5 +1,5 @@
 import { writeFile, mkdir } from 'node:fs/promises';
-import type { ScanResult, ScannedApiRoute } from '@ubean/routing';
+import type { ScanResult, ScannedApiRoute } from '@ubean/scan';
 import { join, relative, isAbsolute } from 'pathe';
 
 export interface RouteTypesOptions {

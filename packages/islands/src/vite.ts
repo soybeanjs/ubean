@@ -2,8 +2,7 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import type { Plugin, ResolvedConfig as ViteResolvedConfig } from 'vite';
 import { legacyDirectiveToStrategy, strategyToLegacyDirective } from './directive';
-
-export type ClientDirective = 'client:load' | 'client:idle' | 'client:visible' | 'client:media' | 'client:only';
+import type { ClientDirective } from './types';
 
 /**
  * `v-client.*` 指令属性名(Phase 4: 唯一支持的客户端 island 语法)。

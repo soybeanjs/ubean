@@ -13,8 +13,8 @@
  */
 import { ref } from 'vue';
 import type { Ref } from 'vue';
-import { ACTION_BRAND } from '@ubean/types';
-import type { ActionHandler, ActionResult, ServerAction } from '@ubean/types';
+import { ACTION_BRAND } from '@ubean/shared';
+import type { ActionHandler, ActionResult, ServerAction } from '@ubean/shared';
 import { ACTIONS_ENDPOINT, ACTION_RESPONSE_HEADER, buildFormActionUrl } from './index';
 
 /**

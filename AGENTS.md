@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> 本文件供 AI 助手快速了解 ubean 项目。所有 API 信息已对照源码验证（截至 2026-08）。  
+> 本文件供 AI 助手快速了解 ubean 项目。所有 API 信息已对照源码验证（截至 2026-08）。
 > 仓库级工程文档索引见 [docs/README.md](docs/README.md)。
 
 ## 1. 项目概述
@@ -27,8 +27,8 @@ ubean/
 │   ├── pages/              # @ubean/pages — 页面数据协议
 │   ├── markdown/           # @ubean/markdown — Markdown 解析
 │   ├── i18n/               # @ubean/i18n — 国际化（纯函数）
-│   ├── routing/            # @ubean/routing — 路由扫描 + rou3 router
-│   ├── api-routes/         # @ubean/api-routes — API 路由处理器
+│   ├── scan/              # @ubean/scan — 项目扫描器 (scanProject + 路由元数据)
+│   ├── routes/            # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 router)
 │   ├── actions/            # @ubean/actions — Server Actions / Form Actions（defineAction + Vite 插件注入 ID）
 │   ├── server/             # @ubean/server — 服务端运行时（cache/db/queue/cron/ws/sse）
 │   ├── app/                # @ubean/app — Hono 应用工厂（createUbeanApp → UbeanApp）
@@ -37,7 +37,7 @@ ubean/
 │   ├── codegen/            # @ubean/codegen — 类型生成
 │   ├── modules/            # @ubean/modules — 模块系统
 │   ├── auto-imports/       # @ubean/auto-imports — 自动导入
-│   ├── runtime/            # @ubean/runtime — Vue 客户端运行时（createUbeanVueApp → Vue 实例；Hono 工厂为 @ubean/app 的 createUbeanApp）
+│   ├── runtime/            # @ubean/runtime — Vue 客户端运行时（createUbeanClientApp → Vue 实例；Hono 工厂为 @ubean/app 的 createUbeanApp）
 │   ├── logger/             # @ubean/logger — 统一日志(tslog@5, 命名 Logger 工厂 + Hono 请求日志中间件)
 │   ├── islands/            # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
 │   ├── ssr/                # @ubean/ssr — Vue SSR 渲染器
@@ -206,7 +206,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `defineApp(options): ResolvedAppConfig`                         | 基于选项的应用配置（**不是**工厂函数）                                                                                          |
 | `applyAppConfig(app, config, mode)`                             | 应用配置到 Vue 实例                                                                                                             |
 | `createUbeanApp(options)`（`@ubean/app` / `ubean/runtime/app`） | 创建 ubean **Hono** 应用（`UbeanApp`）。`createUbeanApp` 全仓专指 Hono 工厂（ADR-0001）                                         |
-| `createUbeanVueApp(options)`（`@ubean/runtime`）                | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。原 `createUbeanApp` 已重命名（ADR-0001），主入口 `ubean` 不导出此函数 |
+| `createUbeanClientApp(options)`（`@ubean/runtime`）             | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。原 `createUbeanApp` 已重命名（ADR-0001），主入口 `ubean` 不导出此函数 |
 
 `DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
 
@@ -841,7 +841,7 @@ export default defineConfig({
 6. **不要**在 `definePage` 中使用顶层 `title` 字段 — 用 `head` 字段
 7. **不要**用 `#ubean-` 作为虚拟模块前缀 — 会因 URL hash 导致 404，用 `virtual:ubean-`
 8. **不要**从 `ubean` 主入口自动导入客户端 API — 会触发 Vite 在浏览器环境预构建服务端依赖（unocss、oxc-parser WASM），客户端自动导入用 `ubean/runtime/vue` 入口
-   8b. **注意** `createUbeanApp` 已消歧（ADR-0001）— `@ubean/app` / `ubean/runtime/app` 返回 Hono `UbeanApp`；`@ubean/runtime` 的 Vue 工厂已重命名为 `createUbeanVueApp`（返回 `{ app, router, head, page }`）。服务端入口用 `ubean/runtime/app`（Hono），客户端用 `createUbeanVueApp`。`production.ts:319` 的 `export { createUbeanApp }` 是 Hono 版 re-export（无歧义，预期行为）
+   8b. **注意** `createUbeanApp` 已消歧（ADR-0001）— `@ubean/app` / `ubean/runtime/app` 返回 Hono `UbeanApp`；`@ubean/runtime` 的 Vue 工厂已重命名为 `createUbeanClientApp`（返回 `{ app, router, head, page }`）。服务端入口用 `ubean/runtime/app`（Hono），客户端用 `createUbeanClientApp`。`production.ts:319` 的 `export { createUbeanApp }` 是 Hono 版 re-export（无歧义，预期行为）
 9. **不要**将 async 函数直接传给 `server.middlewares.use()` — 必须包装在 `Promise.resolve().then().catch()` 中
 10. **不要**用模板替换生成 Service Worker 中的 RUNTIME 全局 — 用硬编码字符串 `'ubean-runtime'`
 11. **不要**在 `macros.ts` 的 `MACRO_NAMES` 中包含 `defineHandlerMeta` 和 `defineMiddleware` — 只保留 `definePage`，否则运行时函数调用会被 build strip，导致语法错误

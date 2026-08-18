@@ -152,7 +152,7 @@ See the [`@soybeanjs/ui` docs](https://www.npmjs.com/package/@soybeanjs/ui) for 
 
 2. **`ubeanUiPlugin` registers** `UiResolver()` (from `@soybeanjs/ui/resolver`) into ubean's module extension registry (`@ubean/build/registry`).
 
-3. **`ubeanVuePlugin` reads** the registry when constructing `unplugin-vue-components` and merges all registered resolvers into the `resolvers` array. This makes `S*` components resolvable from any `.vue` / `.md` file.
+3. **`ubeanVite` reads** the registry when constructing `unplugin-vue-components` and merges all registered resolvers into the `resolvers` array. This makes `S*` components resolvable from any `.vue` / `.md` file.
 
 4. **CSS injection** (when `css !== false`): `ubeanUiPlugin` calls `registerCssImport('@soybeanjs/ui/styles.css')`. The `virtual:ubean-client-entry` virtual module prepends `import '@soybeanjs/ui/styles.css';` to the client entry, so the prebuilt stylesheet ships with the client bundle automatically.
 

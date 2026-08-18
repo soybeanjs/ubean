@@ -23,7 +23,7 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │               Build Core Layer (build-time)                  │   │
 │  │  @ubean/config   config loading (defineConfig / c12)        │   │
-│  │  @ubean/routing  route scanning (pages/routes/layouts/...)  │   │
+│  │  @ubean/scan  route scanning (pages/routes/layouts/...)  │   │
 │  │  @ubean/build    production build orchestration             │   │
 │  │  @ubean/prerender  SSG prerendering (routeRules-driven)     │   │
 │  │  @ubean/modules  module system (builtins + kit hooks)       │   │
@@ -33,14 +33,14 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │               Vite Plugin Layer (@ubean/vite)               │   │
 │  │  ubeanPlugin()  virtual modules / client stubs / macros    │   │
-│  │  ubeanVue()     Vue SFC / islands / SSR entry / head        │   │
+│  │  ubeanVite()     Vue SFC / islands / SSR entry / head        │   │
 │  │  extension /vite subpaths: icon / pwa / auth / image / ...  │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │                Runtime Layer (runtime)                       │   │
 │  │  @ubean/app     Hono app factory (createUbeanApp)           │   │
-│  │  @ubean/runtime Vue client runtime (createUbeanVueApp)      │   │
+│  │  @ubean/runtime Vue client runtime (createUbeanClientApp)      │   │
 │  │  @ubean/ssr     Vue SSR renderer (streaming / PPR)          │   │
 │  │  @ubean/server  cache / db / queue / cron / ws / sse / ...  │   │
 │  │  @ubean/pages   page data protocol (loaders / actions)      │   │
@@ -59,7 +59,7 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 ### 1.1 Package Organization
 
 - **Aggregator main package**: `packages/ubean` (npm: `ubean`) contains no framework logic — it re-exports all subpackages, preserving the same API surface as the original single package.
-- **Single-purpose subpackages**: the remaining 36 packages are split by capability (`@ubean/types` / `@ubean/routing` / `@ubean/app` / `@ubean/ssr` …), each built and type-checked independently.
+- **Single-purpose subpackages**: the remaining 36 packages are split by capability (`@ubean/types` / `@ubean/scan` / `@ubean/app` / `@ubean/ssr` …), each built and type-checked independently.
 - **Extensions loaded on demand**: `auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` are enabled via top-level `ubean.config.ts` fields; the build dynamically `import()`s the matching `/vite` subpath. They **never** become hard dependencies of the main package.
 - **Entry boundaries**: server code imports from the `ubean` main entry or `ubean/runtime/app`; browser code must import from `ubean/runtime/vue` to keep server-side build tooling out of the browser bundle.
 
@@ -73,7 +73,7 @@ ubean dev
   ├─► Load config (ubean.config.ts + defaults merged via c12)
   │    └─► Resolve preset (detectPreset auto-detection or build.preset)
   │
-  ├─► Scan project files (@ubean/routing)
+  ├─► Scan project files (@ubean/scan)
   │    ├─► src/routes/     → API routes (defineHandler named exports)
   │    ├─► src/pages/      → Vue page routes (definePage macro)
   │    ├─► src/layouts/    → layouts (resolved by path hierarchy)
@@ -83,7 +83,7 @@ ubean dev
   │
   ├─► Start Vite dev server (@ubean/dev-server + @ubean/vite)
   │    ├─► ubeanPlugin()   virtual modules, client stubs, macro transforms
-  │    └─► ubeanVue()     Vue SFC, SSR render pipeline, HMR
+  │    └─► ubeanVite()     Vue SFC, SSR render pipeline, HMR
   │
   ├─► Start Hono dev server (@ubean/app: route rules + middleware + ISR)
   │

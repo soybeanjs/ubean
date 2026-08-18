@@ -1,15 +1,7 @@
-import type {
-  CompiledRoute,
-  CompiledPage,
-  CompiledLayout,
-  CompiledMiddleware,
-  ScannedApiRoute,
-  ScannedMiddleware,
-  ScannedPageRoute,
-  ScannedLocale
-} from '@ubean/routing';
+import type { CompiledRoute, CompiledPage, CompiledLayout, CompiledMiddleware } from '@ubean/routes';
+import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLocale } from '@ubean/scan';
 import { relative, isAbsolute } from 'pathe';
-import { defineVirtualModule } from './virtual-registry';
+import { defineVirtualModule } from '@ubean/build-core';
 
 function toVitePath(p: string): string {
   return p.replace(/\\/g, '/');

@@ -21,6 +21,10 @@
     "./og-image": {
       "types": "./dist/og-image.d.ts",
       "import": "./dist/og-image.js"
+    },
+    "./json-ld": {
+      "types": "./dist/json-ld.d.ts",
+      "import": "./dist/json-ld.js"
     }
   },
   "scripts": {

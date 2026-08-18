@@ -1,5 +1,5 @@
 import type { Context, Next } from 'hono';
-import type { RouteRule } from '@ubean/types';
+import type { RouteRule } from '@ubean/shared';
 
 export interface CacheEntry {
   body: ArrayBuffer;

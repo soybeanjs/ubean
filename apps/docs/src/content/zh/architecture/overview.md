@@ -166,8 +166,8 @@ ubean/
 │   ├── types/                    # @ubean/types — 共享类型
 │   ├── utils/                    # @ubean/utils — 工具函数
 │   ├── error/ env/ seo/ pages/ markdown/ i18n/     # 基础域包
-│   ├── routing/                  # @ubean/routing — 路由扫描 + rou3 router
-│   ├── api-routes/ actions/      # @ubean/api-routes / @ubean/actions
+│   ├── scan/                    # @ubean/scan — 项目扫描 (scanProject + 路由元数据)
+│   ├── routes/ actions/         # @ubean/routes / @ubean/actions
 │   ├── server/ app/ config/ preset/ codegen/       # 服务端运行时 / Hono 工厂 / 配置 / 平台预设 / 类型生成
 │   ├── modules/ auto-imports/ runtime/ islands/    # 模块系统 / 自动导入 / Vue 客户端运行时 / Islands
 │   ├── ssr/ vite/ builder/ prerender/ dev-server/  # SSR 渲染器 / Vite 插件 / 构建编排 / SSG / 开发服务器

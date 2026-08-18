@@ -7,13 +7,13 @@ import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
 import { ubeanPlugin } from '@ubean/build/vite';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
-import { ubeanIslandsPlugin } from '@ubean/islands';
+import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import { getLogger } from '@ubean/logger';
 import { resolveModules } from '@ubean/modules';
-import type { ScannedLayout, ScannedPageRoute } from '@ubean/routing';
+import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
+import { findAvailablePort, findUserViteConfig } from '@ubean/shared/node';
 import { createVueRenderer } from '@ubean/ssr';
-import { findAvailablePort, findUserViteConfig } from '@ubean/utils';
-import { ubeanVuePlugin, VUE_PLUGIN_INCLUDE } from '@ubean/vite';
+import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/vite';
 import type { DevRunnerDevtoolsOptions } from './runner';
 
 const logger = getLogger('dev-server');
@@ -344,7 +344,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
   // 检测用户是否提供了 vite.config.{ts,js,mjs}
   // 如果有,由用户的 vite.config 提供 ubeanPlugin()(无参调用,从缓存获取 config)
-  // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVuePlugin + ubeanIslandsPlugin)
+  // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVite + ubeanIslandsPlugin)
   // 如果没有,由 builtin 提供全部 ubean 插件,避免重复注册导致 Markdown
   // 等插件被注册两次(会让 .md 文件被双重转换,产出畸形 HTML)。
   const userViteConfig = findUserViteConfig(cwd);
@@ -391,7 +391,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       ? []
       : [
           ubeanPlugin({ config }),
-          ...(isBackendMode ? [] : ubeanVuePlugin({ config })),
+          ...(isBackendMode ? [] : ubeanVite({ config })),
           ...(isBackendMode ? [] : [ubeanIslandsPlugin()])
         ]),
     ...viteDevtoolsPlugins,

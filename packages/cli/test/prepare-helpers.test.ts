@@ -64,44 +64,44 @@ describe('detectPackageManager()', () => {
 
 describe('buildInstallCommand()', () => {
   it('pnpm → add', () => {
-    expect(buildInstallCommand('pnpm', ['@ubean/ui'])).toEqual({
+    expect(buildInstallCommand('pnpm', ['@ubean/integrations'])).toEqual({
       cmd: 'pnpm',
-      args: ['add', '@ubean/ui']
+      args: ['add', '@ubean/integrations']
     });
   });
 
   it('yarn → add', () => {
-    expect(buildInstallCommand('yarn', ['@ubean/ui'])).toEqual({
+    expect(buildInstallCommand('yarn', ['@ubean/integrations'])).toEqual({
       cmd: 'yarn',
-      args: ['add', '@ubean/ui']
+      args: ['add', '@ubean/integrations']
     });
   });
 
   it('bun → add', () => {
-    expect(buildInstallCommand('bun', ['@ubean/ui'])).toEqual({
+    expect(buildInstallCommand('bun', ['@ubean/integrations'])).toEqual({
       cmd: 'bun',
-      args: ['add', '@ubean/ui']
+      args: ['add', '@ubean/integrations']
     });
   });
 
   it('npm → install', () => {
-    expect(buildInstallCommand('npm', ['@ubean/ui'])).toEqual({
+    expect(buildInstallCommand('npm', ['@ubean/integrations'])).toEqual({
       cmd: 'npm',
-      args: ['install', '@ubean/ui']
+      args: ['install', '@ubean/integrations']
     });
   });
 
   it('多包列表', () => {
-    expect(buildInstallCommand('pnpm', ['@ubean/ui', '@ubean/auth'])).toEqual({
+    expect(buildInstallCommand('pnpm', ['@ubean/integrations', '@ubean/auth'])).toEqual({
       cmd: 'pnpm',
-      args: ['add', '@ubean/ui', '@ubean/auth']
+      args: ['add', '@ubean/integrations', '@ubean/auth']
     });
   });
 
   it('带版本范围', () => {
-    expect(buildInstallCommand('pnpm', ['@ubean/ui@^0.1.3'])).toEqual({
+    expect(buildInstallCommand('pnpm', ['@ubean/integrations@^0.1.3'])).toEqual({
       cmd: 'pnpm',
-      args: ['add', '@ubean/ui@^0.1.3']
+      args: ['add', '@ubean/integrations@^0.1.3']
     });
   });
 
@@ -115,12 +115,12 @@ describe('buildInstallCommand()', () => {
 
 describe('extractPackageName()', () => {
   it('scoped 模块路径 → 取前两段', () => {
-    expect(extractPackageName('@ubean/ui/vite')).toBe('@ubean/ui');
-    expect(extractPackageName('@ubean/electron/vite')).toBe('@ubean/electron');
+    expect(extractPackageName('@ubean/integrations/pwa')).toBe('@ubean/integrations');
+    expect(extractPackageName('@ubean/integrations/electron')).toBe('@ubean/integrations');
   });
 
   it('scoped 模块（无子路径）→ 原样返回', () => {
-    expect(extractPackageName('@ubean/ui')).toBe('@ubean/ui');
+    expect(extractPackageName('@ubean/integrations')).toBe('@ubean/integrations');
   });
 
   it('非 scoped 模块路径 → 取第一段', () => {

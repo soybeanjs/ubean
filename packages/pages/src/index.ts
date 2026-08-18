@@ -39,7 +39,7 @@ export {
   __resetDataPayloadCache
 } from './data';
 
-export type { PageHead, PageHead as PageHeadMeta } from '@ubean/types';
+export type { PageHead, PageHead as PageHeadMeta } from '@ubean/shared';
 
 export type {
   PageObject,

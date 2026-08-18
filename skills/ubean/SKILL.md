@@ -90,7 +90,7 @@ ubean is a **monorepo** of 39 packages. The public package `ubean` is an **aggre
 | Package          | Responsibility                                                        |
 | ---------------- | --------------------------------------------------------------------- |
 | `@ubean/types`   | Shared type definitions                                               |
-| `@ubean/routing` | Route scanner + rou3 router + AST extractor                           |
+| `@ubean/scan`    | Route scanner + rou3 router + AST extractor                           |
 | `@ubean/build`   | Build-time core (virtual modules + Vite plugins)                      |
 | `@ubean/runtime` | Vue client runtime (composables, router, islands hydrate)             |
 | `@ubean/server`  | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
@@ -398,7 +398,7 @@ Use these keys in `dependsOn` for built-in modules:
 ### 1. Full-Stack Framework
 
 - Server-side rendering (SSR) with Vue + `@vue/server-renderer`
-- Client-side hydration with `createUbeanVueApp` / `createUbeanSSRApp`
+- Client-side hydration with `createUbeanClientApp` / `createUbeanSSRApp`
 - Islands architecture for partial hydration (`client:load|idle|visible|media|only`) with auto-registration and auto-hydration (zero-config, no manual `hydrateIslands()` call needed)
 - View Transitions API for native page transitions
 

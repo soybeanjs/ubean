@@ -17,8 +17,8 @@ const logger = getLogger('modules');
 /**
  * Extracts the bare package name from a module path.
  * Examples:
- *   '@ubean/ui/vite'      → '@ubean/ui'
- *   '@ubean/electron/vite' → '@ubean/electron'
+ *   '@ubean/integrations/pwa' → '@ubean/integrations'
+ *   '@ubean/icon/vite'        → '@ubean/icon'
  *   'some-pkg/sub'        → 'some-pkg'
  */
 export function extractPackageName(modulePath: string): string {
@@ -177,7 +177,6 @@ export interface ResolveModulesOptions {
 export interface ResolveModulesResult {
   plugins: VitePlugin[];
   modules: ResolvedModule[];
-  setupFns: Array<(kit?: ModuleKitContext) => void | Promise<void>>;
   hooks: ReturnType<typeof createHooks<ModuleHooks>>;
   serverHandlers: ServerHandlerRegistration[];
   devServerHandlers: DevServerHandlerRegistration[];
@@ -434,7 +433,6 @@ export async function resolveModules(options: ResolveModulesOptions): Promise<Re
   return {
     plugins,
     modules: resolvedModules,
-    setupFns: [],
     hooks: moduleHooks,
     serverHandlers,
     devServerHandlers,

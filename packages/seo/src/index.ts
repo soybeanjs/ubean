@@ -508,16 +508,14 @@ export function defineSitemapConfig(urls: SitemapUrl[] | (() => SitemapUrl[] | P
 export { formatRobotsTxt, formatSitemapXml, escapeXml };
 
 /* -------------------------------------------------------------------------- */
-/* P9-05 文件约定 SEO                                                          */
+/* P9-05 文件约定 SEO / P9-06 OG Image                                          */
 /* -------------------------------------------------------------------------- */
-export * from './conventions';
+// NOTE: `./conventions` and `./og-image` are NOT re-exported from this main
+// entry — both statically import `node:fs`, and this barrel must stay
+// browser-safe. Import them from the `@ubean/seo/conventions` and
+// `@ubean/seo/og-image` subpaths (Node-only) instead.
 
 /* -------------------------------------------------------------------------- */
-/* P9-06 OG Image 动态生成                                                     */
-/* -------------------------------------------------------------------------- */
-export * from './og-image';
-
-/* -------------------------------------------------------------------------- */
-/* P9-07 JSON-LD / Schema.org 结构化数据                                       */
+/* P9-07 JSON-LD / Schema.org 结构化数据 (zero-dependency, browser-safe)        */
 /* -------------------------------------------------------------------------- */
 export * from './json-ld';

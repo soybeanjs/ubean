@@ -7,8 +7,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import { fail, ActionError, isActionFailure, isServerAction } from '@ubean/types';
-import type { ServerAction, UbeanEnv } from '@ubean/types';
+import { fail, ActionError, isActionFailure, isServerAction } from '@ubean/shared';
+import type { ServerAction, UbeanEnv } from '@ubean/shared';
 import {
   defineAction,
   createActionId,

@@ -398,7 +398,7 @@ export {
 export type { SurrogateKeyHeader, CdnPurgeAdapter, PurgeResult, CacheControlOptions } from './cdn-cache';
 
 /* -------------------------------------------------------------------------- */
-/* 从 @ubean/types re-export 共享类型(方便消费者单入口导入)                       */
+/* 从 @ubean/shared re-export 共享类型(方便消费者单入口导入)                      */
 /* -------------------------------------------------------------------------- */
 export type {
   RouteRule,
@@ -413,4 +413,4 @@ export type {
   UbeanContext,
   UbeanVariables,
   UbeanBindings
-} from '@ubean/types';
+} from '@ubean/shared';

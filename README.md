@@ -54,9 +54,9 @@ The `ssr` option only applies within `fullstack` mode — `spa` and `backend` al
 
 | Layer     | Capability                                          | Key API                                | Package                             |
 | --------- | --------------------------------------------------- | -------------------------------------- | ----------------------------------- |
-| Routing   | File-based API routes (named HTTP method exports)   | `defineHandler`                        | `@ubean/api-routes`                 |
-| Routing   | File-based Vue SSR pages                            | `definePage` macro                     | `@ubean/routing` + `@ubean/runtime` |
-| Routing   | Route metadata (auth / cache / rateLimit)           | `defineHandlerMeta`                    | `@ubean/api-routes`                 |
+| Routing   | File-based API routes (named HTTP method exports)   | `defineHandler`                        | `@ubean/routes`                 |
+| Routing   | File-based Vue SSR pages                            | `definePage` macro                     | `@ubean/scan` + `@ubean/runtime` |
+| Routing   | Route metadata (auth / cache / rateLimit)           | `defineHandlerMeta`                    | `@ubean/routes`                 |
 | Routing   | OpenAPI 3.1 validation + Scalar UI                  | `validator` / `describeRoute`          | `hono-openapi` (re-exported)        |
 | Routing   | Type-safe route paths (generated)                   | `.ubean/routes.d.ts`                   | `@ubean/codegen`                    |
 | App       | Vue app customization (plugins, guards, head)       | `defineApp`                            | `@ubean/runtime`                    |
@@ -73,7 +73,7 @@ The `ssr` option only applies within `fullstack` mode — `spa` and `backend` al
 | Server    | In-process handler dispatch                         | `internalFetch`                        | `@ubean/pages`                      |
 | Config    | Typed config definition                             | `defineConfig`                         | `@ubean/config`                     |
 | Config    | Typed environment variables                         | `defineEnv`                            | `@ubean/env`                        |
-| Config    | Middleware definition                               | `defineMiddleware`                     | `@ubean/api-routes`                 |
+| Config    | Middleware definition                               | `defineMiddleware`                     | `@ubean/routes`                 |
 | i18n      | Zero-dependency internationalization                | `defineLocale` / `t` / `useI18n`       | `@ubean/i18n` + `@ubean/runtime`    |
 | SSR       | Vue server-side renderer                            | `createVueRenderer`                    | `@ubean/ssr`                        |
 | Islands   | Partial hydration boundaries                        | `ubeanIslandsPlugin`                   | `@ubean/islands`                    |
@@ -119,8 +119,8 @@ packages/
 ├── pages/          # @ubean/pages — page data protocol (loader/action)
 ├── markdown/       # @ubean/markdown — Markdown/MDX page parsing
 ├── i18n/           # @ubean/i18n — zero-dependency i18n (pure functions)
-├── routing/        # @ubean/routing — route scanner + rou3 router
-├── api-routes/     # @ubean/api-routes — API route handlers (defineHandler)
+├── scan/           # @ubean/scan — project scanner (scanProject + route metadata)
+├── routes/         # @ubean/routes — server routes runtime (defineHandler + rou3 router)
 ├── actions/        # @ubean/actions — Server Actions / Form Actions (defineAction)
 ├── server/         # @ubean/server — server runtime (cache/db/queue/cron/ws/sse)
 ├── app/            # @ubean/app — Hono app factory (createUbeanApp)

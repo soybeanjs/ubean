@@ -28,9 +28,9 @@
     "@ubean/logger": "workspace:*",
     "@ubean/modules": "workspace:*",
     "@ubean/preset": "workspace:*",
-    "@ubean/routing": "workspace:*",
+    "@ubean/scan": "workspace:*",
+    "@ubean/shared": "workspace:*",
     "@ubean/ssr": "workspace:*",
-    "@ubean/utils": "workspace:*",
     "@ubean/vite": "workspace:*",
     "pathe": "^2.0.3"
   },

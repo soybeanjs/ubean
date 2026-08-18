@@ -7,9 +7,9 @@ import {
   setInternalFetcher,
   registerOpenAPIRoutes,
   createRouteRulesMiddleware
-} from '@ubean/api-routes';
-import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/api-routes';
-import { errorToResponse, isUbeanError, UbeanError } from '@ubean/error';
+} from '@ubean/routes';
+import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/routes';
+import { errorToResponse, isUbeanError, UbeanError } from '@ubean/shared';
 import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
 import type {
   ScannedApiRoute,
@@ -17,16 +17,13 @@ import type {
   ScannedPageRoute,
   ScannedLayout,
   ScannedCronTask
-} from '@ubean/routing';
-import {
-  createCacheMiddleware,
-  resolveRouteCacheRules,
-  useCacheStore,
-  createMemoryStore,
-  serveStatic,
-  createWebSocketMiddleware
-} from '@ubean/server';
-import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '@ubean/types';
+} from '@ubean/scan';
+// Semantic subpath imports (ADR-0003 OPT-06) — avoids pulling the whole
+// `@ubean/server` barrel (30 modules) into type resolution for this package.
+import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from '@ubean/server/cache';
+import { serveStatic } from '@ubean/server/static';
+import { createWebSocketMiddleware } from '@ubean/server/realtime';
+import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '@ubean/shared';
 import { requestId } from 'hono/request-id';
 import { createHooks } from 'hookable';
 import type { Hookable } from 'hookable';
@@ -434,8 +431,8 @@ export type { DefineServerOptions, ResolvedServerConfig, ServerHooks } from './d
 /* Convenience type re-exports                                                 */
 /* -------------------------------------------------------------------------- */
 
-export type { RouteRule, RouteMeta, UbeanEnv, UbeanMiddleware, ComposedHandler } from '@ubean/types';
+export type { RouteRule, RouteMeta, UbeanEnv, UbeanMiddleware, ComposedHandler } from '@ubean/shared';
 
-export type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/routing';
+export type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 
-export type { RouteRegistrar, RegisterOptions } from '@ubean/api-routes';
+export type { RouteRegistrar, RegisterOptions } from '@ubean/routes';

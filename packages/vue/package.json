@@ -1,0 +1,67 @@
+{
+  "name": "@ubean/vue",
+  "version": "0.1.13",
+  "description": "Lean Vue client kernel & page-routing owner for ubean — plugin-first page routing outlet, page cache (keep-alive), transitions, reload signal, definePage macro + file-routing Vite plugin (/vite: multi-dir scan, reuse routes, markdown & page-head opt-in). Runtime deps: vue + vue-router only.",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vite": {
+      "types": "./dist/vite.d.ts",
+      "import": "./dist/vite.js"
+    },
+    "./generator": {
+      "types": "./dist/generator/index.d.ts",
+      "import": "./dist/generator/index.js"
+    }
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "typecheck": "tsc --noEmit --skipLibCheck"
+  },
+  "dependencies": {
+    "pathe": "^2.0.3",
+    "scule": "^1.3.0",
+    "tinyglobby": "^0.2.17",
+    "ufo": "^1.6.4",
+    "vue": "^3.5.41",
+    "vue-router": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@ubean/markdown": "workspace:*",
+    "@unhead/vue": "^3.3.2",
+    "@vue/server-renderer": "^3.5.41",
+    "happy-dom": "^20.11.2",
+    "typescript": "7.0.2",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vitest": "4.1.10"
+  },
+  "peerDependencies": {
+    "@ubean/markdown": ">=0.1.0",
+    "@unhead/vue": ">=2.0.0",
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@ubean/markdown": {
+      "optional": true
+    },
+    "@unhead/vue": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
+  }
+}

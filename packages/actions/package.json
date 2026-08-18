@@ -30,8 +30,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/types": "workspace:*",
-    "@ubean/utils": "workspace:*",
+    "@ubean/shared": "workspace:*",
     "hono": "4.13.2"
   },
   "devDependencies": {

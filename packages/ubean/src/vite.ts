@@ -21,7 +21,7 @@
  *
  * 对于需要细粒度控制的场景，可直接从子包导入：
  * - `@ubean/build/vite` → `ubeanPlugin as ubeanCorePlugin`（框架无关）
- * - `@ubean/vite` → `ubeanVuePlugin`（Vue 专属：页面/入口虚拟模块 + 自动导入）
+ * - `@ubean/vite` → `ubeanVite`（Vue 专属：页面/入口虚拟模块 + 自动导入）
  * - `@ubean/islands/vite` → `ubeanIslandsPlugin`（Islands SFC transform）
  */
 
@@ -31,17 +31,17 @@ import { ubeanPlugin as ubeanCorePlugin } from '@ubean/build/vite';
 import type { UbeanPluginOptions } from '@ubean/build/vite';
 import { loadUbeanConfigSync } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
-import { ubeanVuePlugin } from '@ubean/vite';
-import type { UbeanVuePluginOptions } from '@ubean/vite';
+import { ubeanVite } from '@ubean/vite';
+import type { UbeanViteOptions } from '@ubean/vite';
 
-export type { UbeanPluginOptions, UbeanVuePluginOptions };
+export type { UbeanPluginOptions, UbeanViteOptions };
 
 /**
  * ubean 默认 Vite 插件组合（无参数版本）。
  *
  * 返回一个扁平的 `Plugin[]`，包含：
  * 1. `ubeanCorePlugin` — 框架无关的核心插件（路由扫描、虚拟模块、宏转换）
- * 2. `ubeanVuePlugin` — Vue 专属插件（页面/入口虚拟模块、自动导入、组件解析）
+ * 2. `ubeanVite` — Vue 专属插件（页面/入口虚拟模块、自动导入、组件解析）
  * 3. `ubeanIslandsPlugin` — Islands 架构插件（SFC 中 `v-client.*` 指令转换）
  * 4. `ubeanServerActionsPlugin` — Server Actions 插件（`defineAction()` 调用转换）
  *
@@ -55,7 +55,7 @@ export function ubeanPlugin(): Plugin[] {
 
   return [
     ubeanCorePlugin({ config }),
-    ...ubeanVuePlugin({ config }),
+    ...ubeanVite({ config }),
     ubeanIslandsPlugin(),
     ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() })
   ];

@@ -1,6 +1,6 @@
-export { ubeanVuePlugin } from './plugin';
-export type { UbeanVuePluginOptions } from './plugin';
-export { VUE_PLUGIN_INCLUDE } from './plugin';
+export { ubeanVite, VUE_PLUGIN_INCLUDE } from './plugin';
+export type { UbeanViteOptions } from './plugin';
+export { ubeanVite as default } from './plugin';
 
 export {
   createVuePagesVirtualModule,

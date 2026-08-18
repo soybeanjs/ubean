@@ -54,7 +54,7 @@ export function ubeanAiPlugin(userOptions: UbeanAiOptions = {}): Plugin {
   }
 
   // Register a component/composable resolver so the runtime composables are
-  // auto-imported in SFCs. The core ubeanVuePlugin merges registered resolvers
+  // auto-imported in SFCs. The core ubeanVite merges registered resolvers
   // into unplugin-vue-components.
   if (autoImportEnabled) {
     registerComponentResolver((name: string) => {

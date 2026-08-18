@@ -14,6 +14,7 @@ export default defineConfig({
       'src/index.ts',
       'src/vite.ts',
       'src/vue-ssr.ts',
+      'src/client/index.ts',
       'src/runtime/vue.ts',
       'src/runtime/app.ts',
       'src/runtime/i18n.ts'

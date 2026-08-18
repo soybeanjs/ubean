@@ -8,16 +8,8 @@
  * 不做整串快照（含绝对路径/CWD 敏感内容），改为对关键片段断言。
  */
 import { describe, it, expect } from 'vitest';
-import type {
-  CompiledRoute,
-  CompiledPage,
-  CompiledLayout,
-  CompiledMiddleware,
-  ScannedApiRoute,
-  ScannedMiddleware,
-  ScannedPageRoute,
-  ScannedLocale
-} from '@ubean/routing';
+import type { CompiledRoute, CompiledPage, CompiledLayout, CompiledMiddleware } from '@ubean/routes';
+import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLocale } from '@ubean/scan';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,

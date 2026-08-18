@@ -1,10 +1,12 @@
 import type { Plugin } from 'vite';
+import { transformMacros } from '@ubean/build-core';
+import { useVirtualRegistry } from '@ubean/build-core';
 import { loadUbeanConfig, tryGetConfig } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
-import { createUbeanRouter, scanProject } from '@ubean/routing';
-import type { ScanResult, ScannedPageRoute } from '@ubean/routing';
+import { createServerRouter } from '@ubean/routes';
+import { scanProject } from '@ubean/scan';
+import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
 import { join, relative, resolve } from 'pathe';
-import { transformMacros } from './macros';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -12,7 +14,6 @@ import {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from './virtual-modules';
-import { useVirtualRegistry } from './virtual-registry';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];
 const VIRTUAL_PREFIX = '\0ubean:';
@@ -33,10 +34,10 @@ export interface UbeanPluginOptions {
  * - 虚拟模块(`ubean:routes`、`ubean:pages`、`ubean:meta`、`ubean:app-config`、`ubean:locales`)
  * - 宏转换(`definePage` / `defineMeta` 在 `.ts` / `.vue` 中被剥离)
  * - 文件监听(dev 模式下扫描 `routes` / `middleware` / `pages` / `layouts` / `plugins` / `locales`)
- * - 实体路由文件生成(当 `routing.mode` 为 `'file'` 或 `'both'` 时触发 `@ubean/routing/generator`)
+ * - 实体路由文件生成(当 `routing.mode` 为 `'file'` 或 `'both'` 时触发 `@ubean/vue/generator`)
  *
  * Vue 专属的虚拟模块(`virtual:ubean-pages`、`virtual:ubean-app` 等)由 `@ubean/vite` 的
- * `ubeanVuePlugin` 提供,二者共用 `useVirtualRegistry()` 注册表。
+ * `ubeanVite` 提供,二者共用 `useVirtualRegistry()` 注册表。
  *
  * @example 在 vite.config.ts 中使用(自动加载 ubean.config)
  * ```typescript
@@ -163,7 +164,7 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
       ignore: ubeanConfig.scanOptions?.ignore
     });
 
-    const router = createUbeanRouter();
+    const router = createServerRouter();
 
     for (const mw of result.middlewares) {
       router.addMiddleware(mw);
@@ -226,7 +227,7 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     virtualRegistry.register(createLocalesVirtualModule(result.locales, result.defaultLocale, viteSrcPrefix || '/'));
 
     // 实体文件模式:在 dev 启动 / 文件变更时重新生成 `src/router/_generated/`
-    // 当 `routing.mode` 为 `'file'` 或 `'both'` 时触发,委托给 `@ubean/routing/generator`
+    // 当 `routing.mode` 为 `'file'` 或 `'both'` 时触发,委托给 `@ubean/vue/generator`
     // (动态 import 以保持该依赖为可选 — 前端-only 项目不需要安装 generator 相关代码)
     await maybeGenerateRouteFiles(ubeanConfig, result).catch(err => {
       // 生成失败不阻塞 dev server,虚拟模块仍可用
@@ -243,15 +244,15 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
  * - `'file'`:额外生成 `routes.ts`/`imports.ts` 到 `outputDir`(实体文件,可编辑 `meta`)
  * - `'both'`:同 `'file'`,且虚拟模块也加载实体文件
  *
- * `typed-router.d.ts` 包含 `@ubean/routing` 和 `vue-router`/`vue-router/auto-routes`
+ * `typed-router.d.ts` 包含 `@ubean/scan` 和 `vue-router`/`vue-router/auto-routes`
  * 的模块增强(让 `useRoute<Name>(name)` 能推断 `route.params` 类型),所有模式
  * 都会生成到 `.ubean/typed-router.d.ts`,与 `auto-imports.d.ts`/`components.d.ts`
  * 等其他纯类型声明产物同目录,由 `.gitignore` 忽略。
  *
- * 由于 `@ubean/routing/generator` 通过动态 import 加载,前端-only 项目
+ * 由于 `@ubean/vue/generator` 通过动态 import 加载,前端-only 项目
  * (不依赖实体路由文件)即使没有安装 generator 相关依赖也能运行。
  *
- * 注意:`@ubean/config` 与 `@ubean/routing/generator` 的 `getRouteMeta` /
+ * 注意:`@ubean/config` 与 `@ubean/vue/generator` 的 `getRouteMeta` /
  * `onGenerated` 签名略有差异(配置层面向用户,生成器层面向内部)。本函数
  * 负责适配:把 `(filePath, frontmatter) => meta` 包装为 `(page) => meta`,
  * 把 `GeneratorResult` 转换为 `string[]` 文件路径列表。
@@ -275,8 +276,8 @@ async function maybeGenerateRouteFiles(config: UbeanResolvedConfig, scanResult: 
       ? (page: ScannedPageRoute) => configGetRouteMeta(page.relativePath, page.frontmatter ?? {})
       : undefined;
 
-  // 动态 import:保持 `@ubean/routing/generator` 为可选依赖
-  const { generateRouteFiles } = await import('@ubean/routing/generator');
+  // 动态 import:保持 `@ubean/vue/generator` 为可选依赖
+  const { generateRouteFiles } = await import('@ubean/vue/generator');
 
   const result = await generateRouteFiles(scanResult, {
     cwd: config.rootDir,

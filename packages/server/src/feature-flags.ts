@@ -22,7 +22,7 @@
  * 对齐 LaunchDarkly / Statsig / GrowthBook 的核心 API 形态。
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/types';
+import type { UbeanEnv } from '@ubean/shared';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                     */

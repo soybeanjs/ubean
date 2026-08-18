@@ -3,7 +3,7 @@
 // and emits apps/docs/public/api/<pkg>.json for the <ApiTable> renderer.
 //
 // Per DESIGN.md D4/D5/D6:
-//  - Curated subset (7): ubean, @ubean/runtime, @ubean/routing, @ubean/config,
+//  - Curated subset (7): ubean, @ubean/runtime, @ubean/scan, @ubean/config,
 //    @ubean/auth, @ubean/ui, @ubean/pinia.
 //  - Reads BUILT dist/*.d.ts (run `pnpm build` at repo root first).
 //  - Maps TypeDoc's verbose JSON → the small ubean-specific ApiDoc schema
@@ -30,7 +30,7 @@ const PACKAGES_ROOT = resolve(APP_ROOT, '../../packages');
 const CURATED = [
   { pkg: 'ubean', distDir: resolve(PACKAGES_ROOT, 'ubean/dist') },
   { pkg: 'runtime', distDir: resolve(PACKAGES_ROOT, 'runtime/dist') },
-  { pkg: 'routing', distDir: resolve(PACKAGES_ROOT, 'routing/dist') },
+  { pkg: 'scan', distDir: resolve(PACKAGES_ROOT, 'scan/dist') },
   { pkg: 'config', distDir: resolve(PACKAGES_ROOT, 'config/dist') },
   { pkg: 'auth', distDir: resolve(PACKAGES_ROOT, 'auth/dist') },
   { pkg: 'ui', distDir: resolve(PACKAGES_ROOT, 'ui/dist') },

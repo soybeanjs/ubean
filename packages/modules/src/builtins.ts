@@ -1,11 +1,17 @@
 export interface BuiltinModuleDefinition {
-  key: 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'electron' | 'ui' | 'pinia' | 'ai';
+  key: 'icon' | 'pwa' | 'auth' | 'image' | 'fonts' | 'electron' | 'ui' | 'pinia' | 'ai' | 'content';
   modulePath: string;
   factoryExport?: string;
   pluginName: string;
 }
 
 export const BUILTIN_MODULES: BuiltinModuleDefinition[] = [
+  {
+    key: 'content',
+    modulePath: '@ubean/content/vite',
+    factoryExport: 'ubeanContentPlugin',
+    pluginName: 'ubean:content'
+  },
   {
     key: 'icon',
     modulePath: '@ubean/icon/vite',
@@ -14,7 +20,7 @@ export const BUILTIN_MODULES: BuiltinModuleDefinition[] = [
   },
   {
     key: 'pwa',
-    modulePath: '@ubean/pwa/vite',
+    modulePath: '@ubean/integrations/pwa',
     factoryExport: 'ubeanPwaPlugin',
     pluginName: 'ubean:pwa'
   },
@@ -32,25 +38,25 @@ export const BUILTIN_MODULES: BuiltinModuleDefinition[] = [
   },
   {
     key: 'fonts',
-    modulePath: '@ubean/fonts/vite',
+    modulePath: '@ubean/integrations/fonts',
     factoryExport: 'ubeanFontsPlugin',
     pluginName: 'ubean:fonts'
   },
   {
     key: 'electron',
-    modulePath: '@ubean/electron/vite',
+    modulePath: '@ubean/integrations/electron',
     factoryExport: 'ubeanElectronPlugin',
     pluginName: 'ubean:electron'
   },
   {
     key: 'ui',
-    modulePath: '@ubean/ui/vite',
+    modulePath: '@ubean/integrations/ui',
     factoryExport: 'ubeanUiPlugin',
     pluginName: 'ubean:ui'
   },
   {
     key: 'pinia',
-    modulePath: '@ubean/pinia/vite',
+    modulePath: '@ubean/integrations/pinia',
     factoryExport: 'ubeanPiniaPlugin',
     pluginName: 'ubean:pinia'
   },

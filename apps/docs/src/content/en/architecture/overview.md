@@ -178,7 +178,7 @@ ubean/
 │   ├── i18n/                        # @ubean/i18n — zero-dependency i18n + routing
 │   │
 │   │   ── Server runtime ──
-│   ├── api-routes/                  # @ubean/api-routes — handler.ts, router.ts, openapi.ts, route-rules.ts, isr.ts
+│   ├── routes/                     # @ubean/routes — handler.ts, server-router.ts, router.ts, openapi.ts, route-rules.ts, isr.ts
 │   ├── actions/                     # @ubean/actions — Server Actions (define, dispatch, registry, vite)
 │   ├── server/                      # @ubean/server — cache, database, storage, websocket, sse, queue, cron, cors, rate-limit, sessions, email, observability, security-headers
 │   ├── app/                         # @ubean/app — createUbeanApp (Hono factory), hooks, define-server
@@ -190,7 +190,7 @@ ubean/
 │   ├── config/                      # @ubean/config — c12 config loading (loader.ts, types.ts, routing.ts)
 │   ├── codegen/                     # @ubean/codegen — type generation (route-types.ts, openapi-types.ts)
 │   ├── modules/                     # @ubean/modules — module system (builtins.ts, kit.ts)
-│   ├── routing/                     # @ubean/routing — route scanning (scan.ts, define-page.ts, detect-exports.ts, route-name.ts, generator/)
+│   ├── scan/                        # @ubean/scan — route scanning (scan.ts, define-page.ts, detect-exports.ts, route-name.ts, generator/)
 │   │
 │   │   ── Vue client runtime ──
 │   ├── runtime/                     # @ubean/runtime — app, client, composables, define-app, head, i18n, islands, page-macro, page-runtime, party-town, router, view-transitions, color-mode, cache-views, search

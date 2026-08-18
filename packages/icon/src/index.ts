@@ -14,8 +14,10 @@ import {
 } from './runtime';
 import type { IconifyCollection, ResolvedIconData } from './types';
 
-export { ubeanIconPlugin, addIconCollection } from './vite';
-export type { UbeanIconOptions } from './vite';
+// NOTE: the Vite plugin (`ubeanIconPlugin`) is NOT re-exported from this main
+// entry — `./vite` pulls in `node:fs` and this entry also carries the browser
+// `Icon` component. Import build-time APIs from the `@ubean/icon/vite`
+// subpath instead.
 export {
   parseIconName,
   normalizeIconName,
@@ -25,6 +27,7 @@ export {
   getIconSync,
   getIcon,
   getLoadedCollection,
+  resolveAlias,
   getIconData,
   resolveIconData,
   generateSvg,
@@ -46,7 +49,8 @@ export type {
   ResolvedIconData,
   IconCollectionLoader,
   CustomCollectionDirConfig,
-  ResolvedCustomCollection
+  ResolvedCustomCollection,
+  ScannedIconUsage
 } from './types';
 
 export interface UbeanIconProps {

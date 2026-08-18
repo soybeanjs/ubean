@@ -1,7 +1,7 @@
 import type { Plugin as VitePlugin } from 'vite';
-import type { RouteRule } from '@ubean/types';
+import type { RouteRule } from '@ubean/shared';
 
-export type { RouteRule } from '@ubean/types';
+export type { RouteRule } from '@ubean/shared';
 
 /* -------------------------------------------------------------------------- */
 /* Module System                                                                */
@@ -79,7 +79,7 @@ export interface UiModuleConfig {
  * `pinia: true` 即可启用 Vite 预构建优化。
  *
  * 注意:SSR 状态水合需要在 `src/app.ts` 中显式配置
- * `serializeState` / `hydrateState`(从 `@ubean/pinia/runtime` 导入)。
+ * `serializeState` / `hydrateState`(从 `@ubean/integrations` 导入)。
  */
 export interface UbeanPiniaOptions {
   /** 是否禁用 */
@@ -305,7 +305,7 @@ export interface RoutingConfig {
 export interface ResolvedRoutingConfig extends Required<
   Omit<RoutingConfig, 'getRouteName' | 'getRoutePath' | 'getRouteLayout' | 'getRouteMeta' | 'onGenerated'>
 > {
-  // 函数字段保持可选(默认值由 `@ubean/routing` 的扫描器实现提供)
+  // 函数字段保持可选(默认值由 `@ubean/scan` 的扫描器实现提供)
   getRouteName?: RoutingConfig['getRouteName'];
   getRoutePath?: RoutingConfig['getRoutePath'];
   getRouteLayout?: RoutingConfig['getRouteLayout'];
@@ -564,7 +564,7 @@ export interface UbeanConfig {
    * Pinia 集成配置（`true` 启用 Vite 预构建优化）。
    *
    * 注意:`pinia: true` 仅启用 Vite 插件优化。SSR 状态水合需要在 `src/app.ts`
-   * 中显式配置 `serializeState` / `hydrateState`(从 `@ubean/pinia/runtime` 导入)。
+   * 中显式配置 `serializeState` / `hydrateState`(从 `@ubean/integrations` 导入)。
    *
    * @example
    * ```ts
@@ -573,7 +573,7 @@ export interface UbeanConfig {
    *
    * // src/app.ts
    * import { createPinia } from 'pinia';
-   * import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+   * import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
    * export default defineApp({
    *   plugins: [createPinia()],
    *   serializeState: serializePiniaState,
@@ -658,6 +658,12 @@ export interface UbeanConfig {
     /** Rehype plugins passed to @mdx-js/mdx (only used when `mdx: true`). */
     rehypePlugins?: any[];
   };
+  /**
+   * Content collections (P9 + structure.md 提升): `@ubean/content` is now a
+   * first-class builtin module — enable via `content: true` or pass
+   * `UbeanContentOptions` (sources / ignores / navigation / markdown).
+   */
+  content?: boolean | import('@ubean/content/vite').UbeanContentOptions;
   colorMode?:
     | {
         /** Default preference: 'system' | 'light' | 'dark' | string (default: 'system'). */
@@ -792,6 +798,7 @@ export interface ResolvedConfig extends Required<
     | 'preview'
     | 'prerender'
     | 'ssr'
+    | 'content'
     | 'icon'
     | 'pwa'
     | 'auth'
@@ -806,6 +813,7 @@ export interface ResolvedConfig extends Required<
   rootDir: string;
   srcDir: string;
   modules: ModuleConfiguration[];
+  content: boolean | NonNullable<UbeanConfig['content']>;
   icon: boolean | BuiltinModuleOptions;
   pwa: boolean | BuiltinModuleOptions;
   auth: boolean | BuiltinModuleOptions;

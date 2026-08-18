@@ -24,8 +24,8 @@
   "dependencies": {
     "@ubean/config": "workspace:*",
     "@ubean/pages": "workspace:*",
-    "@ubean/routing": "workspace:*",
-    "@ubean/utils": "workspace:*"
+    "@ubean/scan": "workspace:*",
+    "@ubean/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

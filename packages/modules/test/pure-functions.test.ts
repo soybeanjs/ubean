@@ -21,12 +21,12 @@ import {
 
 describe('extractPackageName()', () => {
   it('scoped 包：@scope/name/sub → @scope/name', () => {
-    expect(extractPackageName('@ubean/ui/vite')).toBe('@ubean/ui');
-    expect(extractPackageName('@ubean/electron/vite')).toBe('@ubean/electron');
+    expect(extractPackageName('@ubean/integrations/pwa')).toBe('@ubean/integrations');
+    expect(extractPackageName('@ubean/integrations/electron')).toBe('@ubean/integrations');
   });
 
   it('scoped 包无子路径：原样返回', () => {
-    expect(extractPackageName('@ubean/ui')).toBe('@ubean/ui');
+    expect(extractPackageName('@ubean/integrations')).toBe('@ubean/integrations');
   });
 
   it('非 scoped 包：取首段', () => {
@@ -94,7 +94,7 @@ describe('isVitePlugin()', () => {
 
 describe('getModuleKey()', () => {
   it('字符串模块 → 字符串本身', () => {
-    expect(getModuleKey('@ubean/ui/vite', 0)).toBe('@ubean/ui/vite');
+    expect(getModuleKey('@ubean/integrations/ui', 0)).toBe('@ubean/integrations/ui');
   });
 
   it('元组 [namedFactory] → factory.name', () => {
@@ -137,7 +137,7 @@ describe('getModuleKey()', () => {
 
 describe('getModuleName()', () => {
   it('字符串模块 → 末段', () => {
-    expect(getModuleName('@ubean/ui/vite', 'key')).toBe('vite');
+    expect(getModuleName('@ubean/integrations/ui', 'key')).toBe('ui');
     expect(getModuleName('some-pkg/sub', 'key')).toBe('sub');
   });
 

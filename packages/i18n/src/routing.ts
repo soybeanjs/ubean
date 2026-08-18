@@ -1,5 +1,5 @@
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/types';
+import type { UbeanEnv } from '@ubean/shared';
 import { useI18n } from './index';
 import type { I18nRoutingStrategy } from './index';
 

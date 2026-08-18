@@ -1,7 +1,7 @@
 {
   "name": "@ubean/codegen",
   "version": "0.1.13",
-  "description": "Type generation for ubean (generateTypes, routes.d.ts, pages.d.ts, openapi.d.ts)",
+  "description": "Type & auto-import generation for ubean (generateTypes, routes.d.ts, pages.d.ts, auto-imports.d.ts, components.d.ts, openapi.d.ts)",
   "files": [
     "dist"
   ],
@@ -22,14 +22,23 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/auto-imports": "workspace:*",
-    "@ubean/routing": "workspace:*",
+    "@ubean/scan": "workspace:*",
     "openapi-typescript": "^7.13.0",
-    "pathe": "^2.0.3"
+    "pathe": "^2.0.3",
+    "tinyglobby": "^0.2.17",
+    "unimport": "^6.4.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
     "typescript": "7.0.2",
     "vite-plus": "catalog:"
+  },
+  "peerDependencies": {
+    "@ubean/scan": "workspace:*"
+  },
+  "peerDependenciesMeta": {
+    "@ubean/scan": {
+      "optional": true
+    }
   }
 }

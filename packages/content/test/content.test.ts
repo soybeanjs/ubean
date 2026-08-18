@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getDirname, getBasename, getExtension, getStem, normalizePath, pathToTitle } from '@ubean/utils';
+import { getDirname, getBasename, getExtension, getStem, normalizePath, pathToTitle } from '@ubean/shared';
 import {
   generateId,
   parseFrontmatter,

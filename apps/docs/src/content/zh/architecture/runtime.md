@@ -1515,7 +1515,7 @@ export default defineConfig({
 2. **运行时（Vue 指令）**：当 Vite 插件未启用时（CSR-only 应用、单元测试、组件库），`vClient` 指令作为普通 Vue 指令注册在应用上，为元素标记 `data-client-directive` 等属性，使 `hydrateIslands()` 仍能发现并处理它们。
 
 ```typescript
-// 框架自动注册（createUbeanVueApp 内部）：
+// 框架自动注册（createUbeanClientApp 内部）：
 app.directive('client', vClient);
 
 // 手动注册（独立 Vue 应用）：

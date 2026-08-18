@@ -25,7 +25,7 @@
     "@ubean/app": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/logger": "workspace:*",
-    "@ubean/types": "workspace:*",
+    "@ubean/shared": "workspace:*",
     "hookable": "^6.1.1"
   },
   "devDependencies": {

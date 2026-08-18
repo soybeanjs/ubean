@@ -5,7 +5,7 @@
 ## 应用工厂
 
 - **`createUbeanApp`**（Hono 工厂）：`@ubean/app` / `ubean/runtime/app` 导出，返回 `UbeanApp`（Hono 应用）。ADR-0001 后此名**专指** Hono 工厂。
-- **`createUbeanVueApp`**（Vue 工厂）：ADR-0001 将原 `@ubean/runtime` 的同名 Vue 工厂重命名而来，返回 `UbeanAppInstance`（`{ app, router, head, page }`）。唯一真实消费者是 `@ubean/vite` 的虚拟模块生成器。
+- **`createUbeanClientApp`**（Vue 工厂）：ADR-0001 将原 `@ubean/runtime` 的同名 Vue 工厂重命名而来，返回 `UbeanAppInstance`（`{ app, router, head, page }`）。唯一真实消费者是 `@ubean/vite` 的虚拟模块生成器。
 - **聚合器（aggregator）**：`ubean` 主包，纯 re-export 全部 `@ubean/*` 子包，对外维持单一包名 API 表面。其选择性 `export { ... } from '@ubean/runtime'` 块用于消歧（见 ADR-0001）。
 
 ## 导入入口

@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/types": "workspace:*"
+    "@ubean/shared": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

@@ -23,8 +23,8 @@ import type {
   PageHead,
   PageRenderResult
 } from '@ubean/pages';
-import { applyAppConfig } from '@ubean/runtime/define-app';
-import type { ResolvedAppConfig } from '@ubean/runtime/define-app';
+import { applyAppConfig } from '@ubean/client/define-app';
+import type { ResolvedAppConfig } from '@ubean/client/define-app';
 import { createHead, transformHtmlTemplate, renderSSRHead } from '@unhead/vue/server';
 
 export interface VueRendererSimpleOptions {
@@ -184,7 +184,7 @@ async function prepareRender(
     }
     renderApp = app;
   } else {
-    const { createUbeanSSRApp } = await import('@ubean/runtime/app');
+    const { createUbeanSSRApp } = await import('@ubean/client/app');
     const { app: createdApp, router } = createUbeanSSRApp(pageObj, {
       routes: options.routes,
       resolveLayoutComponent: options.resolveLayoutComponent,

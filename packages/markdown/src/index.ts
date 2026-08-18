@@ -54,64 +54,165 @@ export function parseFrontmatter(source: string): { data: MarkdownFrontmatter; c
   return { data, content };
 }
 
-function parseYamlSimple(yaml: string): MarkdownFrontmatter {
-  const result: Record<string, unknown> = {};
-  const lines = yaml.split('\n');
+/* -------------------------------------------------------------------------- */
+/* Minimal YAML subset parser (indentation-aware)                              */
+/*                                                                            */
+/* Supports: nested maps, block sequences (`- item`, `- key: value` map        */
+/* items), dotted keys (`a.b: v`), quoted strings, inline arrays, booleans,   */
+/* null and numbers. Not supported: anchors, multi-line strings (`|`/`>`),    */
+/* flow maps (`{}`).                                                          */
+/* -------------------------------------------------------------------------- */
 
-  for (const line of lines) {
-    const trimmed = line.trimEnd();
-    if (!trimmed || trimmed.startsWith('#')) continue;
+interface YamlLine {
+  indent: number;
+  content: string;
+}
 
-    const colonIdx = trimmed.indexOf(':');
-    if (colonIdx === -1) continue;
+function tokenizeYaml(yaml: string): YamlLine[] {
+  const lines: YamlLine[] = [];
+  for (const raw of yaml.split('\n')) {
+    const trimmed = raw.trimEnd();
+    if (!trimmed.trim() || trimmed.trimStart().startsWith('#')) continue;
+    let indent = 0;
+    while (indent < trimmed.length && trimmed[indent] === ' ') indent++;
+    lines.push({ indent, content: trimmed.trim() });
+  }
+  return lines;
+}
 
-    const key = trimmed.slice(0, colonIdx).trim();
-    let value: unknown = trimmed.slice(colonIdx + 1).trim();
+function parseYamlScalar(raw: string): unknown {
+  if (raw === 'true' || raw === 'false') return raw === 'true';
+  if (raw === 'null' || raw === '~') return null;
+  if (raw !== '' && !isNaN(Number(raw))) {
+    const num = Number(raw);
+    if (isFinite(num)) return num;
+  }
+  if ((raw.startsWith('"') && raw.endsWith('"')) || (raw.startsWith("'") && raw.endsWith("'"))) {
+    return raw.slice(1, -1);
+  }
+  if (raw.startsWith('[') && raw.endsWith(']')) {
+    return raw
+      .slice(1, -1)
+      .split(',')
+      .map(v => v.trim())
+      .filter(v => v !== '')
+      .map(v => {
+        if (v === 'true') return true;
+        if (v === 'false') return false;
+        if (v === 'null') return null;
+        if (!isNaN(Number(v))) return Number(v);
+        return v.replace(/^["']|["']$/g, '');
+      });
+  }
+  return raw;
+}
 
-    if (!key) continue;
+function isSequenceItem(content: string): boolean {
+  return content === '-' || content.startsWith('- ');
+}
 
-    if (value === '') {
-      value = true;
-    } else if (value === 'true' || value === 'false') {
-      value = value === 'true';
-    } else if (value === 'null' || value === '~') {
-      value = null;
-    } else if (!isNaN(Number(value)) && value !== '') {
-      const num = Number(value);
-      if (isFinite(num)) value = num;
-    } else if (
-      typeof value === 'string' &&
-      ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'")))
-    ) {
-      value = value.slice(1, -1);
-    } else if (typeof value === 'string' && value.startsWith('[') && value.endsWith(']')) {
-      value = value
-        .slice(1, -1)
-        .split(',')
-        .map(v => v.trim())
-        .filter(v => v !== '')
-        .map(v => {
-          if (v === 'true') return true;
-          if (v === 'false') return false;
-          if (v === 'null') return null;
-          if (!isNaN(Number(v))) return Number(v);
-          return v.replace(/^["']|["']$/g, '');
-        });
+/** `- key: value` starts an inline map item (continuation keys align after the dash). */
+function isInlineMapStart(rest: string): boolean {
+  const colonIdx = rest.indexOf(':');
+  return colonIdx > 0 && (rest.length === colonIdx + 1 || rest[colonIdx + 1] === ' ');
+}
+
+function assignYamlKey(map: Record<string, unknown>, key: string, value: unknown): void {
+  const nestedKeys = key.split('.');
+  let current = map;
+  for (let i = 0; i < nestedKeys.length - 1; i++) {
+    const k = nestedKeys[i];
+    if (typeof current[k] !== 'object' || current[k] === null) {
+      current[k] = {};
     }
+    current = current[k] as Record<string, unknown>;
+  }
+  current[nestedKeys[nestedKeys.length - 1]] = value;
+}
 
-    const nestedKeys = key.split('.');
-    let current = result;
-    for (let i = 0; i < nestedKeys.length - 1; i++) {
-      const k = nestedKeys[i];
-      if (!(k in current) || typeof current[k] !== 'object') {
-        current[k] = {};
+function parseYamlBlock(lines: YamlLine[], start: number, indent: number): { value: unknown; next: number } {
+  const first = lines[start];
+
+  // Sequence block: `- item` / `- key: value` items at the same indent.
+  if (isSequenceItem(first.content)) {
+    const items: unknown[] = [];
+    let i = start;
+    while (i < lines.length && lines[i].indent === indent && isSequenceItem(lines[i].content)) {
+      const rest = lines[i].content === '-' ? '' : lines[i].content.slice(2).trim();
+      if (rest === '') {
+        // `-` alone: value is the nested block below (or null).
+        if (i + 1 < lines.length && lines[i + 1].indent > indent) {
+          const res = parseYamlBlock(lines, i + 1, lines[i + 1].indent);
+          items.push(res.value);
+          i = res.next;
+        } else {
+          items.push(null);
+          i += 1;
+        }
+      } else if (isInlineMapStart(rest)) {
+        // `- key: value` — the first key of a map item. Continuation keys
+        // align at `indent + 2` (right after the dash). Synthesize a sub
+        // block where the dash line becomes a normal key line.
+        const synthesized: YamlLine[] = [{ indent: indent + 2, content: rest }];
+        let j = i + 1;
+        while (j < lines.length && lines[j].indent > indent) {
+          synthesized.push(lines[j]);
+          j += 1;
+        }
+        const res = parseYamlBlock(synthesized, 0, indent + 2);
+        items.push(res.value);
+        i = j;
+      } else {
+        items.push(parseYamlScalar(rest));
+        i += 1;
       }
-      current = current[k] as Record<string, unknown>;
     }
-    current[nestedKeys[nestedKeys.length - 1]] = value;
+    return { value: items, next: i };
   }
 
-  return result as MarkdownFrontmatter;
+  // Map block: `key: value` entries at the same indent.
+  const map: Record<string, unknown> = {};
+  let i = start;
+  while (i < lines.length && lines[i].indent === indent && !isSequenceItem(lines[i].content)) {
+    const colonIdx = lines[i].content.indexOf(':');
+    if (colonIdx === -1) {
+      i += 1;
+      continue;
+    }
+    const key = lines[i].content.slice(0, colonIdx).trim();
+    const rawValue = lines[i].content.slice(colonIdx + 1).trim();
+    if (!key) {
+      i += 1;
+      continue;
+    }
+    if (rawValue === '') {
+      if (i + 1 < lines.length && lines[i + 1].indent > indent) {
+        // Nested map/sequence block below the key.
+        const res = parseYamlBlock(lines, i + 1, lines[i + 1].indent);
+        assignYamlKey(map, key, res.value);
+        i = res.next;
+      } else {
+        // Bare `key:` with no children — kept as `true` for backward
+        // compatibility with the previous flat parser.
+        assignYamlKey(map, key, true);
+        i += 1;
+      }
+    } else {
+      assignYamlKey(map, key, parseYamlScalar(rawValue));
+      i += 1;
+    }
+  }
+  return { value: map, next: i };
+}
+
+function parseYamlSimple(yaml: string): MarkdownFrontmatter {
+  const lines = tokenizeYaml(yaml);
+  if (lines.length === 0) return {} as MarkdownFrontmatter;
+  const { value } = parseYamlBlock(lines, 0, lines[0].indent);
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return {} as MarkdownFrontmatter;
+  }
+  return value as MarkdownFrontmatter;
 }
 
 function slugify(text: string): string {

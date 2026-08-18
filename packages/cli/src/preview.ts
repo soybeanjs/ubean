@@ -8,7 +8,7 @@ import { extname, normalize } from 'node:path';
 import { loadUbeanConfig } from '@ubean/config';
 import { getLogger } from '@ubean/logger';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
-import { findAvailablePort, waitForPort } from '@ubean/utils';
+import { findAvailablePort, waitForPort } from '@ubean/shared/node';
 import type { CommandDef } from 'citty';
 import { green, cyan, dim, bold } from 'kolorist';
 import { resolve, join } from 'pathe';

@@ -1,7 +1,7 @@
 import type { Plugin as VitePlugin } from 'vite';
 import type { MiddlewareHandler } from 'hono';
 import type { UbeanApp } from '@ubean/app';
-import type { UbeanEnv } from '@ubean/types';
+import type { UbeanEnv } from '@ubean/shared';
 
 export interface DevToolsCustomTab {
   id: string;

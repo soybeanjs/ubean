@@ -1,4 +1,4 @@
-import type { Span, SpanAttributes, SpanContext, SpanEndOptions, SpanOptions } from '@ubean/types';
+import type { Span, SpanAttributes, SpanContext, SpanEndOptions, SpanOptions } from '@ubean/shared';
 import { createHooks } from 'hookable';
 import type { Hookable } from 'hookable';
 
@@ -10,7 +10,7 @@ export type {
   SpanEvent,
   SpanOptions,
   SpanStatus
-} from '@ubean/types';
+} from '@ubean/shared';
 
 const REQUEST_ID_HEADER = 'x-request-id';
 

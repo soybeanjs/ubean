@@ -3,16 +3,17 @@ import { mkdir, writeFile, rm, cp, readFile } from 'node:fs/promises';
 import { build as viteBuild } from 'vite';
 import type { Plugin as VitePlugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
+import { useVirtualRegistry } from '@ubean/build-core';
+import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
 import type { ResolvedConfig } from '@ubean/config';
-import { ubeanIslandsPlugin } from '@ubean/islands';
+import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import { getLogger } from '@ubean/logger';
 import { resolveModules } from '@ubean/modules';
 import type { Preset } from '@ubean/preset';
-import type { ScanResult } from '@ubean/routing';
-import { getColorModeScript, resolveColorModeConfig } from '@ubean/runtime';
-import { findUserViteConfig } from '@ubean/utils';
+import type { ScanResult } from '@ubean/scan';
+import { findUserViteConfig } from '@ubean/shared/node';
 import {
-  ubeanVuePlugin,
+  ubeanVite,
   VUE_PLUGIN_INCLUDE,
   createVuePagesVirtualModule,
   createVueAppEntryVirtualModule,
@@ -27,7 +28,6 @@ import {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from './virtual-modules';
-import { useVirtualRegistry } from './virtual-registry';
 import { ubeanPlugin } from './vite';
 
 const logger = getLogger('build');
@@ -586,9 +586,9 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual);
 
   // 检测用户是否提供了 vite.config — 如有则由用户配置提供 ubeanPlugin()
-  // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVuePlugin + ubeanIslandsPlugin)
+  // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVite + ubeanIslandsPlugin)
   // 此处仅补充 vue 插件(用户容易遗漏 include/isCustomElement 配置),
-  // ubeanVuePlugin/ubeanIslandsPlugin 由用户的 ubeanPlugin() 提供,避免重复注册。
+  // ubeanVite/ubeanIslandsPlugin 由用户的 ubeanPlugin() 提供,避免重复注册。
   const userViteConfig = findUserViteConfig(cwd);
 
   const builtinPlugins: VitePlugin[] = [];
@@ -608,7 +608,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     // 无用户 vite.config:由 builtin 提供全部 ubean 插件
     builtinPlugins.push(ubeanPlugin({ config }));
     if (hasPages) {
-      builtinPlugins.push(...ubeanVuePlugin({ config }), ubeanIslandsPlugin());
+      builtinPlugins.push(...ubeanVite({ config }), ubeanIslandsPlugin());
     }
   }
 

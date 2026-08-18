@@ -17,7 +17,7 @@ import type { Context } from 'hono';
  *
  * Both produce a serializable `ActionResult` consumed by the client.
  */
-import type { ActionResult, ActionContext, ServerAction, UbeanEnv } from '@ubean/types';
+import type { ActionResult, ActionContext, ServerAction, UbeanEnv } from '@ubean/shared';
 import { buildActionContext, normalizeActionResult, parseActionInput, validateActionInput } from './define';
 import { getAction } from './registry';
 
@@ -85,7 +85,16 @@ export async function runAction<TInput, TOutput>(
   try {
     result = await action.handler(input as TInput, ctx);
   } catch (err) {
+    // Response passthrough: handlers may throw a Response (e.g. redirect).
+    if (err instanceof Response) {
+      return { response: err, status: err.status };
+    }
     error = err;
+  }
+
+  // Response passthrough: handlers may return a Response (e.g. redirect).
+  if (result instanceof Response) {
+    return { response: result, status: result.status };
   }
 
   const normalized = normalizeActionResult(result, error);

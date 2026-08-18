@@ -14,8 +14,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import { getInternalFetcher, clearInternalFetcher } from '@ubean/api-routes';
-import type { UbeanEnv } from '@ubean/types';
+import { getInternalFetcher, clearInternalFetcher } from '@ubean/routes';
+import type { UbeanEnv } from '@ubean/shared';
 import {
   setGlobalHooks,
   getGlobalHooks,

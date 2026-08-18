@@ -27,7 +27,7 @@ import { h } from 'vue';
  * 便于客户端与中间件链识别。
  */
 import type { MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/types';
+import type { UbeanEnv } from '@ubean/shared';
 import { renderToString } from 'vue/server-renderer';
 import { SERVER_COMPONENT_ENDPOINT, getServerComponent } from './runtime';
 

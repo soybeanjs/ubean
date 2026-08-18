@@ -5,7 +5,7 @@ import { loadUbeanConfig } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
 import { getLogger } from '@ubean/logger';
 import { BUILTIN_MODULES, isBuiltinDisabled } from '@ubean/modules';
-import { scanProject } from '@ubean/routing';
+import { scanProject } from '@ubean/scan';
 import type { CommandDef } from 'citty';
 import { join, resolve } from 'pathe';
 
@@ -36,8 +36,8 @@ export function detectPackageManager(cwd: string): PackageManager {
 /**
  * Builds the install command args for a given package manager and package list.
  * Examples:
- *   pnpm → ['add', '@ubean/ui@^0.1.3']
- *   npm  → ['install', '@ubean/ui@^0.1.3']
+ *   pnpm → ['add', '@ubean/integrations@^0.1.3']
+ *   npm  → ['install', '@ubean/integrations@^0.1.3']
  *
  * 导出供单测复用（OPT-04 4c）。
  */
@@ -56,8 +56,8 @@ export function buildInstallCommand(pm: PackageManager, packages: string[]): { c
 
 /**
  * Extracts the bare package name from a module path.
- *   '@ubean/ui/vite'      → '@ubean/ui'
- *   '@ubean/electron/vite' → '@ubean/electron'
+ *   '@ubean/integrations/pwa' → '@ubean/integrations'
+ *   '@ubean/icon/vite'        → '@ubean/icon'
  *
  * 导出供单测复用（OPT-04 4c）。
  */

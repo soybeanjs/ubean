@@ -41,8 +41,8 @@ import type { Context } from 'hono';
  * - Return `fail(status, { field: 'message' })` for field-level validation
  *   errors (SvelteKit-style).
  */
-import { ACTION_BRAND, ActionError, isActionFailure } from '@ubean/types';
-import type { ActionContext, ActionHandler, ActionSchema, ServerAction, UbeanEnv } from '@ubean/types';
+import { ACTION_BRAND, ActionError, isActionFailure } from '@ubean/shared';
+import type { ActionContext, ActionHandler, ActionSchema, ServerAction, UbeanEnv } from '@ubean/shared';
 import { createActionId } from './id';
 import { registerAction } from './registry';
 
@@ -292,8 +292,8 @@ export function buildActionContext(c: Context<UbeanEnv>): ActionContext {
   };
 }
 
-// Re-export commonly used types and helpers from @ubean/types
-export { ActionError, fail, isActionFailure, isServerAction } from '@ubean/types';
+// Re-export commonly used types and helpers from @ubean/shared
+export { ActionError, fail, isActionFailure, isServerAction } from '@ubean/shared';
 export type {
   ActionContext,
   ActionFailure,
@@ -302,4 +302,4 @@ export type {
   ActionResult,
   ServerAction,
   ActionId
-} from '@ubean/types';
+} from '@ubean/shared';

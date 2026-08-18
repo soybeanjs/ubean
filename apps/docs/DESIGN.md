@@ -49,7 +49,7 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Alternatives:** Vite plugin (couples dev startup to TypeDoc); CI-generated committed JSON (stale risk).
 
 ### D6. Generator scope — curated 7 packages
-**Decision:** v1 generates API JSON for: `ubean` (aggregator), `@ubean/runtime`, `@ubean/routing`, `@ubean/config`, `@ubean/auth`, `@ubean/ui`, `@ubean/pinia`.
+**Decision:** v1 generates API JSON for: `ubean` (aggregator), `@ubean/runtime`, `@ubean/scan`, `@ubean/config`, `@ubean/auth`, `@ubean/ui`, `@ubean/pinia`.
 **Rationale:** Covers the most-used surface (config + routing + runtime + the four most common extensions). Other packages added incrementally.
 **Alternatives:** all 39 packages (noise, effort); main `ubean` only (loses sub-package granularity).
 

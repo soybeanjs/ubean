@@ -9,7 +9,7 @@ import type { AppMode } from '@ubean/config';
 import { getLogger } from '@ubean/logger';
 import { prerender } from '@ubean/prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
-import { scanProject } from '@ubean/routing';
+import { scanProject } from '@ubean/scan';
 import type { CommandDef } from 'citty';
 import { resolve, join } from 'pathe';
 

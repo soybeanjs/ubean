@@ -66,7 +66,7 @@ export const menuSections: MenuSection[] = [
     items: [
       { label: 'ubean (main)', to: '/reference/api/ubean' },
       { label: '@ubean/runtime', to: '/reference/api/runtime' },
-      { label: '@ubean/routing', to: '/reference/api/routing' },
+      { label: '@ubean/scan', to: '/reference/api/scan' },
       { label: '@ubean/config', to: '/reference/api/config' },
       { label: '@ubean/auth', to: '/reference/api/auth' },
       { label: '@ubean/ui', to: '/reference/api/ui' },

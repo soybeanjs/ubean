@@ -10,8 +10,8 @@ import {
   diagnoseCapabilities,
   NODE_REQUIREMENTS
 } from '@ubean/preset';
-import { scanProject } from '@ubean/routing';
-import type { ScanResult } from '@ubean/routing';
+import { scanProject } from '@ubean/scan';
+import type { ScanResult } from '@ubean/scan';
 import type { CommandDef } from 'citty';
 import { green, cyan, dim, bold } from 'kolorist';
 import { resolve } from 'pathe';

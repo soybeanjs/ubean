@@ -72,8 +72,8 @@ export {
 } from './define';
 export type { DefineActionOptions } from './define';
 
-// Re-export common types and helpers from @ubean/types
-export { ActionError, fail, isActionFailure, isServerAction, ACTION_BRAND } from '@ubean/types';
+// Re-export common types and helpers from @ubean/shared
+export { ActionError, fail, isActionFailure, isServerAction, ACTION_BRAND } from '@ubean/shared';
 export type {
   ActionContext,
   ActionFailure,
@@ -82,7 +82,7 @@ export type {
   ActionResult,
   ServerAction,
   ActionId
-} from '@ubean/types';
+} from '@ubean/shared';
 
 // Action ID generation
 export { createActionId, isValidActionId } from './id';

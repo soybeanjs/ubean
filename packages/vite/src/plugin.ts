@@ -2,12 +2,12 @@ import type { Plugin } from 'vite';
 import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
-import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '@ubean/auto-imports';
-import { useVirtualRegistry, getComponentResolvers } from '@ubean/build';
+import { useVirtualRegistry, getComponentResolvers } from '@ubean/build-core';
+import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolvePartyTownConfig } from '@ubean/client';
+import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '@ubean/codegen';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanMdxPlugin } from '@ubean/markdown';
-import { scanProject } from '@ubean/routing';
-import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolvePartyTownConfig } from '@ubean/runtime';
+import { scanProject } from '@ubean/scan';
 import { transformSync } from 'oxc-transform';
 import { join } from 'pathe';
 import type { InlinePreset } from 'unimport';
@@ -18,7 +18,7 @@ import {
   createServerEntryVirtualModule
 } from './virtual-modules';
 
-export interface UbeanVuePluginOptions {
+export interface UbeanViteOptions {
   config: UbeanResolvedConfig;
   ssr?: boolean;
 }
@@ -62,12 +62,11 @@ function parseResolvedVirtualId(resolvedId: string): string | undefined {
   return VIRTUAL_IDS.includes(virtualId) ? virtualId : undefined;
 }
 
-export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
-  const { config: ubeanConfig } = _options;
+export function ubeanVite(options: UbeanViteOptions): Plugin[] {
+  const { config: ubeanConfig } = options;
   const virtualRegistry = useVirtualRegistry();
   const srcDir = join(ubeanConfig.rootDir, ubeanConfig.srcDir);
   const dtsDir = join(ubeanConfig.rootDir, '.ubean');
-
   const markdownEnabled = ubeanConfig.markdown?.enabled !== false;
   const mdxEnabled = ubeanConfig.markdown?.mdx === true;
   const autoImportEnabled = ubeanConfig.imports.autoImport !== false;
@@ -278,11 +277,11 @@ export function ubeanVuePlugin(_options: UbeanVuePluginOptions): Plugin[] {
 
   function ubeanComponentsResolver(componentName: string) {
     if (UBEAN_BUILTIN_COMPONENTS.includes(componentName)) {
-      return { name: componentName, from: 'ubean/runtime/vue' };
+      return { name: componentName, from: 'ubean/client' };
     }
   }
 
-  // Merge built-in resolver with any registered by extension modules (e.g. UiResolver from @ubean/ui)
+  // Merge built-in resolver with any registered by extension modules (e.g. UiResolver from @ubean/integrations/ui)
   // Use a dynamic resolver that reads from the registry at resolution time, so that
   // resolvers registered by built-in modules (loaded later via resolveModules) are picked up.
   const dynamicResolvers = [
@@ -417,3 +416,5 @@ async function runPagefindIndexing(
     });
   });
 }
+
+export default ubeanVite;

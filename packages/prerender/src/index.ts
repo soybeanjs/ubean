@@ -2,9 +2,9 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { resolvePrerenderConfig } from '@ubean/config';
 import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
 import { DATA_PAYLOAD_ID } from '@ubean/pages';
-import type { ScannedPageRoute } from '@ubean/routing';
-import type { RouteRule } from '@ubean/types';
-import { matchGlob } from '@ubean/utils';
+import type { ScannedPageRoute } from '@ubean/scan';
+import type { RouteRule } from '@ubean/shared';
+import { matchGlob } from '@ubean/shared';
 import { join, dirname } from 'pathe';
 
 const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;

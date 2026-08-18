@@ -156,8 +156,8 @@ function makeScanResult(): ScanResultLike {
       {
         route: '/reuse-template',
         name: 'ReuseTemplate',
-        relativePath: 'pages/reuse-template.reuse.vue',
-        fullPath: '/project/src/pages/reuse-template.reuse.vue',
+        relativePath: 'pages/reuse-template.reuse.ts',
+        fullPath: '/project/src/pages/reuse-template.reuse.ts',
         isReuse: true
       }
     ],

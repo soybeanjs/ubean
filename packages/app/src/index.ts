@@ -47,8 +47,8 @@ export type {
 /* 便捷类型 re-export(消费者单入口导入)                                          */
 /* -------------------------------------------------------------------------- */
 
-export type { RouteRule, RouteMeta, UbeanEnv, UbeanMiddleware, ComposedHandler } from '@ubean/types';
+export type { RouteRule, RouteMeta, UbeanEnv, UbeanMiddleware, ComposedHandler } from '@ubean/shared';
 
-export type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/routing';
+export type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 
-export type { RouteRegistrar, RegisterOptions } from '@ubean/api-routes';
+export type { RouteRegistrar, RegisterOptions } from '@ubean/routes';

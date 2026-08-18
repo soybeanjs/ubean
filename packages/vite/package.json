@@ -1,7 +1,7 @@
 {
   "name": "@ubean/vite",
   "version": "0.1.13",
-  "description": "Vue-specific Vite plugin for ubean (ubeanVuePlugin, virtual modules: pages, app, server, client-entry)",
+  "description": "Vue-specific Vite plugin for ubean (ubeanVite, virtual modules: pages, app, server, client-entry)",
   "files": [
     "dist"
   ],
@@ -22,12 +22,13 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/auto-imports": "workspace:*",
-    "@ubean/build": "workspace:*",
+    "@ubean/build-core": "workspace:*",
+    "@ubean/client": "workspace:*",
+    "@ubean/codegen": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/markdown": "workspace:*",
-    "@ubean/routing": "workspace:*",
-    "@ubean/runtime": "workspace:*",
+    "@ubean/scan": "workspace:*",
+    "@ubean/vue": "workspace:*",
     "oxc-transform": "^0.144.0",
     "pathe": "^2.0.3",
     "unplugin-auto-import": "21.1.0",

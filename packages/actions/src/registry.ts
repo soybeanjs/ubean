@@ -17,7 +17,7 @@
  * virtual module and the runtime middleware share the same store without
  * passing references through user code.
  */
-import type { ActionId, ServerAction } from '@ubean/types';
+import type { ActionId, ServerAction } from '@ubean/shared';
 
 const _registry = new Map<ActionId, ServerAction>();
 

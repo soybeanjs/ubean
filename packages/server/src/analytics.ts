@@ -15,7 +15,7 @@
  * 对齐 Astro 5 `astro:analytics` 实验性 API、SvelteKit 的 hook 模式。
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/types';
+import type { UbeanEnv } from '@ubean/shared';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                     */

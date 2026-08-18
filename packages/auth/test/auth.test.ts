@@ -1,12 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import {
-  resolveAuthOptions,
-  createAuthHandler,
-  createAuthClient,
-  defineAuth,
-  authMiddleware,
-  getUser
-} from '../src/core';
+import { resolveAuthOptions, createAuthHandler, defineAuth, authMiddleware, getUser } from '../src/core';
+import { createAuthClient } from '../src/client';
 import type { UbeanAuthOptions } from '../src/types';
 
 describe('ubean-auth core', () => {

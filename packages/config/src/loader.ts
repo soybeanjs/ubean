@@ -160,6 +160,7 @@ const configDefaults: ResolvedConfig = {
   mode: 'fullstack',
   ssr: { enabled: true, all: true, exclude: [], streaming: false },
   modules: [],
+  content: false,
   icon: false,
   pwa: false,
   auth: false,

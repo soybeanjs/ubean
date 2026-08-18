@@ -1,4 +1,4 @@
-import { normalizePath, getDirname, getBasename, getExtension, getStem, pathToTitle } from '@ubean/utils';
+import { normalizePath, getDirname, getBasename, getExtension, getStem, pathToTitle } from '@ubean/shared';
 import { kebabCase } from 'scule';
 import type {
   ContentDocument,

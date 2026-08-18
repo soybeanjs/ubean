@@ -39,8 +39,8 @@
     "@ubean/modules": "workspace:*",
     "@ubean/prerender": "workspace:*",
     "@ubean/preset": "workspace:*",
-    "@ubean/routing": "workspace:*",
-    "@ubean/utils": "workspace:*",
+    "@ubean/scan": "workspace:*",
+    "@ubean/shared": "workspace:*",
     "citty": "^0.2.2",
     "kolorist": "^1.8.0",
     "pathe": "^2.0.3"

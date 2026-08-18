@@ -22,9 +22,9 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@ubean/client": "workspace:*",
     "@ubean/islands": "workspace:*",
     "@ubean/pages": "workspace:*",
-    "@ubean/runtime": "workspace:*",
     "@unhead/vue": "^3.3.2",
     "@vue/server-renderer": "^3.5.41",
     "vue": "^3.5.41",

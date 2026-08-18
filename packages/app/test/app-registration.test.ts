@@ -8,7 +8,7 @@
  * 不引入 supertest/HTTP 集成测（ADR-0002 测试边界）。
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { clearInternalFetcher } from '@ubean/api-routes';
+import { clearInternalFetcher } from '@ubean/routes';
 import { clearGlobalHooks } from '../src/hooks';
 import { UbeanApp } from '../src/app';
 import type { UbeanAppPlugin } from '../src/app';

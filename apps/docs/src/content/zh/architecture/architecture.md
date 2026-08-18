@@ -23,7 +23,7 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │              构建核心层（build-time）                          │   │
 │  │  @ubean/config  配置加载（defineConfig / c12）               │   │
-│  │  @ubean/routing 路由扫描（pages/routes/layouts/middleware）  │   │
+│  │  @ubean/scan 路由扫描（pages/routes/layouts/middleware）  │   │
 │  │  @ubean/build   生产构建编排（client + server + prerender）  │   │
 │  │  @ubean/prerender  SSG 预渲染（routeRules 驱动）             │   │
 │  │  @ubean/modules 模块系统（builtin 模块 + kit hooks）         │   │
@@ -33,14 +33,14 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │                 Vite 插件层（@ubean/vite）                   │   │
 │  │  ubeanPlugin()  虚拟模块 / 客户端 stub / 宏转换             │   │
-│  │  ubeanVue()     Vue SFC / islands / SSR 入口 / head 管理    │   │
+│  │  ubeanVite()     Vue SFC / islands / SSR 入口 / head 管理    │   │
 │  │  扩展包 /vite 子路径：icon / pwa / auth / image / ...       │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │                运行时层（runtime）                            │   │
 │  │  @ubean/app     Hono 应用工厂（createUbeanApp）              │   │
-│  │  @ubean/runtime Vue 客户端运行时（createUbeanVueApp）        │   │
+│  │  @ubean/runtime Vue 客户端运行时（createUbeanClientApp）        │   │
 │  │  @ubean/ssr     Vue SSR 渲染器（流式 / PPR）                 │   │
 │  │  @ubean/server  cache / db / queue / cron / ws / sse / ...   │   │
 │  │  @ubean/pages   页面数据协议（loaders / actions）            │   │
@@ -59,7 +59,7 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 ### 1.1 包组织原则
 
 - **聚合器主包**：`packages/ubean`（npm 名 `ubean`）不包含框架逻辑，仅 re-export 全部子包，保持与单体时代一致的 API 表面。
-- **单职责子包**：其余 36 个包按能力域拆分（`@ubean/types` / `@ubean/routing` / `@ubean/app` / `@ubean/ssr` …），各自独立构建与类型检查。
+- **单职责子包**：其余 36 个包按能力域拆分（`@ubean/types` / `@ubean/scan` / `@ubean/app` / `@ubean/ssr` …），各自独立构建与类型检查。
 - **扩展包按需加载**：`auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` 通过 `ubean.config.ts` 顶层字段启用，构建时动态 `import()` 对应 `/vite` 子路径，**不进入主包硬依赖**。
 - **入口边界**：服务端代码从 `ubean` 主入口或 `ubean/runtime/app` 导入；浏览器端必须从 `ubean/runtime/vue` 导入，避免把服务端构建工具带入浏览器 bundle。
 
@@ -73,7 +73,7 @@ ubean dev
   ├─► 加载配置（ubean.config.ts + 默认值合并，c12）
   │    └─► 解析 preset（detectPreset 自动识别或手动指定）
   │
-  ├─► 扫描项目文件（@ubean/routing）
+  ├─► 扫描项目文件（@ubean/scan）
   │    ├─► src/routes/     → API 路由（defineHandler 命名导出）
   │    ├─► src/pages/      → Vue 页面路由（definePage 宏）
   │    ├─► src/layouts/    → 布局（按路径层级解析）
@@ -83,7 +83,7 @@ ubean dev
   │
   ├─► 启动 Vite 开发服务器（@ubean/dev-server + @ubean/vite）
   │    ├─► ubeanPlugin()   虚拟模块、客户端 stub、宏转换
-  │    └─► ubeanVue()      Vue SFC、SSR 渲染管线、HMR
+  │    └─► ubeanVite()      Vue SFC、SSR 渲染管线、HMR
   │
   ├─► 启动 Hono 开发服务器（@ubean/app，路由规则 + 中间件 + ISR）
   │

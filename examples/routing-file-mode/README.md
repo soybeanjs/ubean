@@ -49,7 +49,7 @@ src/router/_generated/        # 实体路由文件(可编辑 meta,增量保护)
 
 > ⚠️ **不要手动创建或编辑 `src/router/_generated/imports.ts` 或 `.ubean/typed-router.d.ts`** — 这两个文件每次都会被完全重新生成。只有 `routes.ts` 中的 `meta` 字段支持增量保护(见下文)。
 >
-> `typed-router.d.ts` 通过 `declare module '@ubean/routing'` 模块增强提供类型,只要 `tsconfig.json` 的 `include` 包含 `.ubean/*`,类型即自动全局生效,无需显式 `import`。
+> `typed-router.d.ts` 通过 `declare module '@ubean/scan'` 模块增强提供类型,只要 `tsconfig.json` 的 `include` 包含 `.ubean/*`,类型即自动全局生效,无需显式 `import`。
 
 ## 项目结构
 
@@ -137,9 +137,9 @@ examples/routing-file-mode/
 类型导入示例:
 
 ```ts
-// typed-router.d.ts 通过 `declare module '@ubean/routing'` 模块增强提供类型,
-// tsconfig.json 的 `include` 已包含 .ubean/*,类型自动全局生效,直接从 @ubean/routing 导入即可。
-import type { RouteKey, RoutePath, RouteLayoutKey } from '@ubean/routing';
+// typed-router.d.ts 通过 `declare module '@ubean/scan'` 模块增强提供类型,
+// tsconfig.json 的 `include` 已包含 .ubean/*,类型自动全局生效,直接从 @ubean/scan 导入即可。
+import type { RouteKey, RoutePath, RouteLayoutKey } from '@ubean/scan';
 ```
 
 如果需要从生成文件中导入运行时数据(如自定义路由守卫),使用 `~router/*`:

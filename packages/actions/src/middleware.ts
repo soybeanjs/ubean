@@ -22,7 +22,7 @@
  * response back into a typed `ActionResult`.
  */
 import type { MiddlewareHandler } from 'hono';
-import type { UbeanEnv, ActionResult } from '@ubean/types';
+import type { UbeanEnv, ActionResult } from '@ubean/shared';
 import { dispatchAction } from './dispatch';
 
 /**
@@ -86,6 +86,12 @@ export function createActionsMiddleware(): MiddlewareHandler<UbeanEnv> {
 
     // Dispatch the action — returns an ActionResult.
     const result = await dispatchAction(actionId, c, preParsedInput);
+
+    // Response passthrough: when the handler returned/threw a raw Response
+    // (e.g. a redirect), return it verbatim instead of JSON-serializing it.
+    if (result.response) {
+      return result.response;
+    }
 
     return _jsonResult(c, result, result.status);
   };

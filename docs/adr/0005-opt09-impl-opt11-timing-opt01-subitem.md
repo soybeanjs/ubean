@@ -13,7 +13,7 @@ enabler 领头序列（ADR-0002）的首批任务进入实现设计阶段。gril
 
 1. **OPT-09 计划措辞有事实错误**：「对比 `packages/*` 目录名与文档中的包列表」。实际目录名 ≠ 包名——两处不匹配：`builder`→`@ubean/build`、`ubean`→`ubean`（无 scope）。AGENTS §2 树（L44）已显式记录 `builder/`→`@ubean/build` 映射。故真理源须为 `package.json` 的 `name` 字段，非目录名。
 2. **OPT-11 × OPT-01 时序悖论**：ADR-0002 既要求 OPT-11 先于 OPT-01，又指定 OPT-01 重命名 PR 为 OPT-11 的首块样板。二者不可同时成立。
-3. **ADR-0001 待决子项**：是否将 `createUbeanVueApp` 纳入主 `ubean` 聚合器入口的选择性导出。
+3. **ADR-0001 待决子项**：是否将 `createUbeanClientApp` 纳入主 `ubean` 聚合器入口的选择性导出。
 
 ## 决策
 
@@ -36,7 +36,7 @@ enabler 领头序列（ADR-0002）的首批任务进入实现设计阶段。gril
 
 ### 3. OPT-01 待决子项收尾
 
-- **不将 `createUbeanVueApp` 纳入主 `ubean` 聚合器入口**。
+- **不将 `createUbeanClientApp` 纳入主 `ubean` 聚合器入口**。
 - 依据：现状 Vue 工厂不在主入口导出（仅 `@ubean/runtime` 直连可达），唯一真实消费者是内部虚拟模块生成器。纳入主入口会扩大对外 API 表面，与重命名「降漂移/降心智负担」初衷部分冲突。
 - 结果：ADR-0001 的唯一待决子项关闭，OPT-01 实现设计完整，可实施。
 
@@ -46,11 +46,11 @@ enabler 领头序列（ADR-0002）的首批任务进入实现设计阶段。gril
 | --- | --- |
 | OPT-09 | 实现设计钉死：package.json name 真理源 + 存在性+计数 + 仅 AGENTS |
 | OPT-11 | 落地物明确为 engineering.md 约定文本，先于 OPT-01 |
-| OPT-01 | 待决子项关闭（createUbeanVueApp 不入主入口），可实施 |
+| OPT-01 | 待决子项关闭（createUbeanClientApp 不入主入口），可实施 |
 | `optimize.md` | OPT-09/11/01 行验收/方案更新 |
 
 ## 验收（细化）
 
 - OPT-09：故意删改 AGENTS 包名或计数时 CI 失败；`packages/builder`→`@ubean/build` 这类 dir≠name 不误报。
 - OPT-11：`engineering.md` 含 codegraph 工作流约定段落；OPT-01 PR 描述附 `codegraph impact createUbeanApp` 结果。
-- OPT-01：主 `ubean` 入口选择性 export 仍不含 Vue 应用工厂；`@ubean/runtime` 导出 `createUbeanVueApp`。
+- OPT-01：主 `ubean` 入口选择性 export 仍不含 Vue 应用工厂；`@ubean/runtime` 导出 `createUbeanClientApp`。

@@ -1,4 +1,4 @@
-# ADR-0001 · 将 Vue 应用工厂 `createUbeanApp` 重命名为 `createUbeanVueApp`
+# ADR-0001 · 将 Vue 应用工厂 `createUbeanApp` 重命名为 `createUbeanClientApp`
 
 - **状态**: accepted
 - **日期**: 2026-08-02
@@ -29,7 +29,7 @@ grilling 阶段对实际代码的核查结论：
 
 ## 决策
 
-1. **重命名**：`@ubean/runtime` 的 Vue 工厂 `createUbeanApp` → **`createUbeanVueApp`**。
+1. **重命名**：`@ubean/runtime` 的 Vue 工厂 `createUbeanApp` → **`createUbeanClientApp`**。
    - 与 `createUbeanSSRApp`、`createUbeanRouter`（Vue 版）命名族一致，语义最清晰。
 2. **硬重命名，无弃用别名**，随下一个 **major** 版本发布。
    - 依据：零外部真实 `import` 消费者，破坏面仅限内部虚拟模块生成器与若干 JSDoc 注释。
@@ -47,11 +47,11 @@ grilling 阶段对实际代码的核查结论：
 | `packages/islands/src/server-component.ts` | JSDoc 注释更新（L49） |
 | `packages/ubean/src/runtime/app.ts` | JSDoc 注释更新（L5/L10） |
 | `AGENTS.md` | L40/L184/L185/L793 双义表更新为新命名 |
-| `packages/ubean/src/index.ts` | 顶部冲突处理策略注释更新（L9）：Hono 版仍由 `@ubean/app` 提供；如需将 `createUbeanVueApp` 纳入主入口选择性导出，见「待决子项」 |
+| `packages/ubean/src/index.ts` | 顶部冲突处理策略注释更新（L9）：Hono 版仍由 `@ubean/app` 提供；如需将 `createUbeanClientApp` 纳入主入口选择性导出，见「待决子项」 |
 
 ## 待决子项
 
-- **是否将 `createUbeanVueApp` 纳入主入口 `ubean` 的选择性导出**？现状：Vue 工厂不在主入口导出（仅 `@ubean/runtime` 直连可达），且唯一消费者是内部虚拟模块。倾向：保持不纳入主入口，避免扩大对外表面。待实施时确认。
+- **是否将 `createUbeanClientApp` 纳入主入口 `ubean` 的选择性导出**？现状：Vue 工厂不在主入口导出（仅 `@ubean/runtime` 直连可达），且唯一消费者是内部虚拟模块。倾向：保持不纳入主入口，避免扩大对外表面。待实施时确认。
 
 ## 验收（细化原 OPT-01）
 

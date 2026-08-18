@@ -1,9 +1,26 @@
 import { mkdir } from 'node:fs/promises';
-import { generateAutoImports } from '@ubean/auto-imports';
-import type { AutoImportOptions } from '@ubean/auto-imports';
-import type { ScanResult } from '@ubean/routing';
+import type { ScanResult } from '@ubean/scan';
 import { join } from 'pathe';
+import { generateAutoImports } from './auto-imports';
+import type { AutoImportOptions } from './auto-imports';
 import { generateRouteTypes, generatePageTypes } from './route-types';
+
+// Auto-import presets & orchestration (absorbed from the former
+// `@ubean/auto-imports` package — single home for all .d.ts generation).
+export {
+  VUE_PRESET,
+  VUE_MACROS_PRESET,
+  UBEAN_CLIENT_PRESET,
+  UBEAN_SERVER_PRESET,
+  HONO_OPENAPI_PRESET,
+  BUILTIN_PRESETS,
+  generateAutoImports,
+  getBuiltinComposables,
+  getUbeanAutoImportConfig,
+  getUbeanComponentsConfig,
+  generateImportsTransform
+} from './auto-imports';
+export type { Import, InlinePreset, AutoImportOptions, ComponentInfo, AutoImportResult } from './auto-imports';
 
 export { generateRouteTypes, generatePageTypes } from './route-types';
 export type { RouteTypesOptions, PageTypesOptions } from './route-types';

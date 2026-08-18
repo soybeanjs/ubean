@@ -28,7 +28,7 @@
  * ```
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/types';
+import type { UbeanEnv } from '@ubean/shared';
 
 interface MemoEntry {
   promise: Promise<Response>;

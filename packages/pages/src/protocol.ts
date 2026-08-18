@@ -1,4 +1,4 @@
-import type { PageHead } from '@ubean/types';
+import type { PageHead } from '@ubean/shared';
 
 export type { PageHead };
 

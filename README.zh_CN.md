@@ -54,9 +54,9 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 
 | 层       | 能力                                        | 关键 API                               | 包                                  |
 | -------- | ------------------------------------------- | -------------------------------------- | ----------------------------------- |
-| 路由     | 基于文件的 API 路由（命名 HTTP 方法导出）   | `defineHandler`                        | `@ubean/api-routes`                 |
-| 路由     | 基于文件的 Vue SSR 页面                     | `definePage` 宏                        | `@ubean/routing` + `@ubean/runtime` |
-| 路由     | 路由元数据（auth / cache / rateLimit）      | `defineHandlerMeta`                    | `@ubean/api-routes`                 |
+| 路由     | 基于文件的 API 路由（命名 HTTP 方法导出）   | `defineHandler`                        | `@ubean/routes`                 |
+| 路由     | 基于文件的 Vue SSR 页面                     | `definePage` 宏                        | `@ubean/scan` + `@ubean/runtime` |
+| 路由     | 路由元数据（auth / cache / rateLimit）      | `defineHandlerMeta`                    | `@ubean/routes`                 |
 | 路由     | OpenAPI 3.1 验证 + Scalar UI                | `validator` / `describeRoute`          | `hono-openapi`（重新导出）          |
 | 路由     | 类型安全的路由路径（生成）                  | `.ubean/routes.d.ts`                   | `@ubean/codegen`                    |
 | 应用     | Vue 应用定制（插件、守卫、head）            | `defineApp`                            | `@ubean/runtime`                    |
@@ -73,7 +73,7 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 | 服务器   | 进程内处理程序调度                          | `internalFetch`                        | `@ubean/pages`                      |
 | 配置     | 类型化配置定义                              | `defineConfig`                         | `@ubean/config`                     |
 | 配置     | 类型化环境变量                              | `defineEnv`                            | `@ubean/env`                        |
-| 配置     | 中间件定义                                  | `defineMiddleware`                     | `@ubean/api-routes`                 |
+| 配置     | 中间件定义                                  | `defineMiddleware`                     | `@ubean/routes`                 |
 | i18n     | 零依赖国际化                                | `defineLocale` / `t` / `useI18n`       | `@ubean/i18n` + `@ubean/runtime`    |
 | SSR      | Vue 服务端渲染器                            | `createVueRenderer`                    | `@ubean/ssr`                        |
 | Islands  | 局部水合边界                                | `ubeanIslandsPlugin`                   | `@ubean/islands`                    |
@@ -119,8 +119,8 @@ packages/
 ├── pages/          # @ubean/pages — 页面数据协议 (loader/action)
 ├── markdown/       # @ubean/markdown — Markdown/MDX 页面解析
 ├── i18n/           # @ubean/i18n — 零依赖 i18n（纯函数）
-├── routing/        # @ubean/routing — 路由扫描器 + rou3 router
-├── api-routes/     # @ubean/api-routes — API 路由处理程序 (defineHandler)
+├── scan/           # @ubean/scan — 项目扫描器 (scanProject + 路由元数据)
+├── routes/         # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 router)
 ├── actions/        # @ubean/actions — Server Actions / Form Actions (defineAction)
 ├── server/         # @ubean/server — 服务端运行时 (cache/db/queue/cron/ws/sse)
 ├── app/            # @ubean/app — Hono 应用工厂 (createUbeanApp)

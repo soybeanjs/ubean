@@ -22,7 +22,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/types": "workspace:*",
+    "@ubean/shared": "workspace:*",
     "c12": "^4.0.0-beta.5",
     "defu": "6.1.7",
     "jiti": "^2.7.0",
@@ -30,16 +30,17 @@
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "@ubean/content": "workspace:*",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "@ubean/preset": "workspace:*",
+    "@ubean/content": "workspace:*",
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0"
   },
   "peerDependenciesMeta": {
-    "@ubean/preset": {
+    "@ubean/content": {
       "optional": true
     },
     "vite": {

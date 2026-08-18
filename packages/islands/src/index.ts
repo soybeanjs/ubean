@@ -55,21 +55,7 @@ export {
   definePairedComponent
 } from './runtime';
 
-// Vite plugin & SFC transform
-export {
-  ubeanIslandsPlugin,
-  transformVueSfcIslands,
-  collectIslandComponents,
-  generateRegistryModule,
-  parseScriptImports,
-  scanIslandDirectiveNames,
-  resolveIslandImportPath,
-  wrapServerComponentTemplate,
-  isServerComponentFile,
-  isClientComponentFile,
-  injectServerComponentPath,
-  ISLANDS_REGISTRY_VIRTUAL_ID,
-  SERVER_COMPONENT_STUB_VIRTUAL_ID,
-  CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID
-} from './vite';
-export type { UbeanIslandsPluginOptions, IslandComponentEntry, IslandComponentMap } from './vite';
+// NOTE: the Vite plugin (`ubeanIslandsPlugin` and friends) is intentionally
+// NOT re-exported from this main entry — it pulls in `node:fs`/`node:path`
+// and would transitively pollute any browser bundle that imports this module.
+// Import build-time APIs from the `@ubean/islands/vite` subpath instead.

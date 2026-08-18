@@ -190,7 +190,7 @@ Dual semantics:
 - **Build time (recommended):** the `/vite` plugin extracts the argument object, merges it into the generated route table, and strips the call from the output (zero runtime cost).
 - **Runtime fallback:** without the plugin the function is a no-op — no errors, no side effects; pages register with file-derived paths/names. `cache` can be restored at runtime via `enablePageCache(name)`.
 
-> `middleware` was removed from the macro — it was never consumed by any runtime. Use `meta: { middleware: [...] }` and consume it in your own navigation guard.
+> Use `meta: { middleware: [...] }` and consume it in your own navigation guard.
 
 ### Reuse Routes
 
@@ -292,7 +292,7 @@ The plugin also exposes standalone helpers: `scanPages`, `scanClientPages`, `ext
 
 ## Physical Route File Generator
 
-The `/generator` subpath generates editable route files on disk (originally `@ubean/scan/generator`, now owned by `@ubean/vue`; the old path re-exports for backward compatibility):
+The `/generator` subpath generates editable route files on disk (`@ubean/vue/generator`):
 
 ```ts
 import { generateRouteFiles } from '@ubean/vue/generator';
@@ -490,4 +490,4 @@ isActiveRoute('/users/7', '/users', false); // → true (prefix match)
 - **Runtime boundary:** the main entry (`@ubean/vue`) must never statically import `node:*`, `@ubean/*`, `@unhead/vue`, `vite`, or `tinyglobby` (enforced by tests). Build-time-only code lives behind the `/vite` and `/generator` subpaths.
 - **Lazy optional peers:** `@ubean/markdown` (markdown pages) and `@unhead/vue` (head) are optional peers, dynamically imported only when their features are enabled.
 - **Global singletons** (cache store, transition name, reload counters) live on `globalThis` so duplicated module instances (dep re-optimization, HMR `?t=` variants) share one state — prevents SSR hydration mismatches and KeepAlive cache misses.
-- **Ownership:** `@ubean/scan` (aggregator) depends on `@ubean/vue` — never the reverse. The aggregator re-exports page-routing types, functions, and the generator (`@ubean/scan/generator` → `@ubean/vue/generator`) for backward compatibility.
+- **Ownership:** `@ubean/scan` (aggregator) depends on `@ubean/vue` — never the reverse. The aggregator re-exports page-routing types, functions, and the generator.

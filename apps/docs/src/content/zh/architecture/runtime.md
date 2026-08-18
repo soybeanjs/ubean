@@ -11,8 +11,6 @@ description: ubean 运行时：defineApp、应用配置、开发服务器、预�
 
 用户在项目根目录（或 `srcDir`）创建 `app.ts`（可选 `app.server.ts` / `app.client.ts` 区分服务端/客户端），通过 `defineApp(options)` 导出一个**配置对象**（不是工厂函数）。ubean 在创建 Vue 实例后通过 `applyAppConfig(app, config, mode)` 将该配置应用到 `app` 上，从而支持注册插件、全局组件、provide/inject、错误组件、View Transitions 等。
 
-> ⚠️ 注意：早期设计曾计划将 `defineApp` 设计为接收 `({ app, router, ssrContext }) => app` 的工厂函数。**当前实现已废弃该模式**，`defineApp` 接受 options 对象并返回 `ResolvedAppConfig`。如果需要命令式访问 app 实例，请使用 `onAppCreated` / `onClientReady` 回调。
-
 ```typescript
 // app.ts
 import { defineApp } from 'ubean';
@@ -66,7 +64,7 @@ export default defineApp({
     }
   },
 
-  // 命令式访问 app 实例（替代旧的工厂函数）
+  // 命令式访问 app 实例
   onAppCreated(app) {
     // 注册全局指令
     app.directive('focus', {
@@ -166,7 +164,7 @@ export interface DefineAppOptions {
   rootAttrs?: Record<string, string>;
   /** 路由钩子配置 — 注册 beforeEach/beforeResolve/afterEach 等导航守卫 */
   router?: RouterConfig;
-  /** App 创建后回调（替代旧工厂函数中直接操作 app） */
+  /** App 创建后回调 */
   onAppCreated?: (app: VueApp) => void | Promise<void>;
   /** 客户端 mount 完成后回调 */
   onClientReady?: (app: VueApp) => void | Promise<void>;
@@ -179,7 +177,7 @@ export interface DefineAppOptions {
   /**
    * SSR 状态序列化钩子 — 在 renderToString 完成后调用。
    * 返回的对象会被序列化到 HTML 的 `__UBEAN_STATE__` script 标签中。
-   * 配合 @ubean/pinia 等状态管理扩展使用。
+   * 配合 @ubean/integrations/pinia 等状态管理扩展使用。
    */
   serializeState?: (app: VueApp) => Record<string, unknown> | Promise<Record<string, unknown>>;
   /**
@@ -241,7 +239,7 @@ ubean 通过 `defineApp({ router })` 暴露 vue-router 的全局导航守卫注�
 
 **执行环境**:Client 和 SSR 都会执行。在 `app.ts` + `app.server.ts` / `app.client.ts` 中各自定义的 `setup` 会**累加执行**(顺序:shared 先,client/server 后),因此 shared 可放通用守卫(如埋点),client/server 可放环境专用守卫(如 SSR 鉴权重定向)。
 
-**注册约束**:`setup` 函数本身必须**同步**完成守卫注册(虽然守卫函数体可以返回 Promise)。不要在 `setup` 中执行异步操作(如发起 API 请求),否则会阻塞首次导航。如需异步逻辑,应放在守卫函数体内:
+**注册约束**:`setup` 函数本身必须**同步**完成守卫注册(虽然守卫函数体可以返回 Promise)。异步逻辑（如 API 请求）放在守卫函数体内:
 
 ```typescript
 // app.ts
@@ -1446,65 +1444,43 @@ export default defineConfig({
 
 #### Client 指令
 
-在 Vue 模板中通过指令标记孤岛组件的 hydration 策略。下方展示的是原始 `client:*` HTML 属性语法（仍向后兼容）；推荐的 `v-client.*` Vue 指令语法见下一节。
-
-```vue
-<template>
-  <!-- 页面加载后立即 hydrate -->
-  <Counter client:load />
-
-  <!-- 空闲时 hydrate (requestIdleCallback) -->
-  <HeavyChart client:idle />
-
-  <!-- 进入视口时 hydrate (IntersectionObserver) -->
-  <Comments client:visible />
-
-  <!-- 媒体查询匹配时 hydrate -->
-  <MobileNav client:media="(max-width: 768px)" />
-
-  <!-- 仅服务端渲染，不发送客户端 JS -->
-  <StaticFooter client:only="server" />
-</template>
-```
+在 Vue 模板中通过指令标记孤岛组件的 hydration 策略。推荐的 `v-client.*` Vue 指令语法见下一节。
 
 #### `v-client.*` Vue 指令语法（P9-29，推荐）
 
-`client:load` 等 HTML 属性语法在 Vue 模板中不属于标准 Vue 指令，IDE 和 eslint-plugin-vue 无法提供类型检查与自动补全。P9-29 将其重构为 **Vue 自定义指令** `v-client.*`，提供完整的 TypeScript 类型定义，同时保持与旧语法完全等价的编译时转换行为。
+`v-client.*` 是 **Vue 自定义指令**，提供完整的 TypeScript 类型定义，使 IDE 和 eslint-plugin-vue 能提供类型检查与自动补全。
 
 ```vue
 <template>
-  <!-- v-client.load：页面加载后立即 hydrate（等价 client:load） -->
+  <!-- v-client.load：页面加载后立即 hydrate -->
   <Counter v-client.load />
 
-  <!-- v-client.idle：空闲时 hydrate（等价 client:idle） -->
+  <!-- v-client.idle：空闲时 hydrate -->
   <HeavyChart v-client.idle />
 
-  <!-- v-client.visible：进入视口时 hydrate（等价 client:visible） -->
+  <!-- v-client.visible：进入视口时 hydrate -->
   <Comments v-client.visible />
 
-  <!-- v-client.media：媒体查询匹配时 hydrate（等价 client:media） -->
+  <!-- v-client.media：媒体查询匹配时 hydrate -->
   <!-- 注意：值是 Vue 表达式，字符串需加引号 -->
   <MobileNav v-client.media="'(max-width: 768px)'" />
 
-  <!-- v-client.only：仅客户端渲染，跳过 SSR（等价 client:only） -->
-  <ClientOnlyWidget v-client.only />
+  <!-- v-client.only：仅客户端渲染，跳过 SSR -->
+  <ClientWidget v-client.only />
 </template>
 ```
 
-#### 语法迁移对照
+#### `v-client.*` 指令速查
 
-| 旧语法 (`client:*`)                        | 新语法 (`v-client.*`)                          | 说明                     |
-| ------------------------------------------ | --------------------------------------------- | ------------------------ |
-| `<Comp client:load />`                     | `<Comp v-client.load />`                     | 立即水合                  |
-| `<Comp client:idle />`                     | `<Comp v-client.idle />`                     | 空闲时水合                |
-| `<Comp client:visible />`                  | `<Comp v-client.visible />`                  | 可见时水合                |
-| `<Comp client:media="(max-width: 768px)"/>`| `<Comp v-client.media="'(max-width: 768px)'" />` | 媒体查询水合（值需引号） |
-| `<Comp client:only />`                     | `<Comp v-client.only />`                     | 仅客户端                  |
+| 指令 | 说明 |
+| --- | --- |
+| `v-client.load` | 页面加载后立即水合 |
+| `v-client.idle` | 空闲时水合（requestIdleCallback） |
+| `v-client.visible` | 进入视口时水合（IntersectionObserver） |
+| `v-client.media` | 媒体查询匹配时水合（值为 Vue 表达式，字符串需加引号） |
+| `v-client.only` | 仅客户端渲染，跳过 SSR |
 
-> **注意**：两种语法完全等价，可在同一项目中混用。新代码推荐使用 `v-client.*` 语法。
->
-> `v-client.media` 的值是 Vue 表达式，字符串字面量需要加引号（`"'(max-width: 768px)'"`），
-> 也可使用变量（`v-client.media="mediaQuery"`）。旧语法 `client:media="(max-width: 768px)"` 的值是纯字符串。
+> `v-client.media` 的值是 Vue 表达式，字符串字面量需要加引号（`"'(max-width: 768px)'"`），也可使用变量（`v-client.media="mediaQuery"`）。
 
 #### 双层设计
 
@@ -1548,8 +1524,6 @@ const strategy = resolveClientStrategy({ idle: true }); // → 'idle'
 | --- | --- |
 | `vClient` | Vue 自定义指令对象（`Directive<HTMLElement, string \| undefined>`） |
 | `resolveClientStrategy(modifiers)` | 从修饰符解析策略（`{ idle: true }` → `'idle'`） |
-| `strategyToLegacyDirective(strategy)` | 策略转旧指令名（`'idle'` → `'client:idle'`） |
-| `legacyDirectiveToStrategy(directive)` | 旧指令名转策略（`'client:idle'` → `'idle'`） |
 | `applyStrategy(el, strategy, mediaQuery?)` | 直接对 DOM 元素应用策略 |
 | `cleanupStrategy(el)` | 清理策略资源（observer/timer） |
 
@@ -2466,7 +2440,7 @@ export default defineConfig({
 - SSR 首屏加载不触发过渡动画（仅客户端路由切换触发）
 - 保持页面滚动位置，避免过渡期间布局跳动
 
-## 4.25 PWA 渐进式Web应用（官方可选 `@ubean/pwa`）
+## 4.25 PWA 渐进式Web应用（官方可选 `@ubean/integrations/pwa`）
 
 提供零配置 Service Worker 注册、Web App Manifest 生成和离线缓存策略，参考 vite-plugin-pwa。
 
@@ -2474,7 +2448,7 @@ export default defineConfig({
 
 ```ts
 // vite.config.ts
-import { ubeanPwaPlugin } from '@ubean/pwa/vite';
+import { ubeanPwaPlugin } from '@ubean/integrations/pwa';
 
 export default {
   plugins: [
@@ -2501,7 +2475,7 @@ export default {
 
 ```vue
 <script setup lang="ts">
-import { usePwa } from '@ubean/pwa';
+import { usePwa } from '@ubean/integrations/pwa';
 
 const {
   isInstalled, // 是否已安装为 PWA
@@ -2547,14 +2521,14 @@ const {
 
 ---
 
-## 4.26 Pinia 状态管理（官方可选 `@ubean/pinia`）
+## 4.26 Pinia 状态管理（官方可选 `@ubean/integrations/pinia`）
 
-ubean 通过 `@ubean/pinia` 提供 Pinia 集成的薄封装层。它不重新导出 Pinia API,而是负责两件事:
+ubean 通过 `@ubean/integrations/pinia` 子路径提供 Pinia 集成的薄封装层。它不重新导出 Pinia API,而是负责两件事:
 
 1. **dev 预构建优化** — 将 `pinia` 加入 Vite 的 `optimizeDeps.include`,避免首次请求扫描延迟
 2. **SSR 状态水合辅助** — 提供 `serializePiniaState` / `hydratePiniaState` 函数,配合 `defineApp({ serializeState, hydrateState })` 钩子完成服务端状态序列化与客户端水合
 
-Pinia 本身仍从 `pinia` 包导入(`createPinia`/`defineStore`/`storeToRefs` 等),`@ubean/pinia` 仅提供集成胶水。
+Pinia 本身仍从 `pinia` 包导入(`createPinia`/`defineStore`/`storeToRefs` 等),`@ubean/integrations/pinia` 仅提供集成胶水。
 
 ### 快速启用
 
@@ -2572,7 +2546,7 @@ export default defineConfig({
 ```ts
 // src/app.ts
 import { createPinia } from 'pinia';
-import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
 import { defineApp } from 'ubean';
 
 export default defineApp({
@@ -2658,9 +2632,9 @@ export default defineConfig({
 ### 程序化 API
 
 ```ts
-import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/pinia/vite';
-import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
-import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/pinia';
+import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/integrations/pinia';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
+import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integrations/pinia';
 ```
 
 - `ubeanPiniaPlugin(options?: UbeanPiniaOptions): Plugin[]` — Vite 插件,通常由模块系统自动调用
@@ -2670,7 +2644,7 @@ import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/pinia';
 
 ### 设计要点
 
-- **零侵入**:Pinia 本身仍从 `pinia` 包导入,`@ubean/pinia` 仅提供 Vite 插件和 SSR 水合辅助函数,不重新导出 Pinia API
+- **零侵入**:Pinia 本身仍从 `pinia` 包导入,`@ubean/integrations/pinia` 仅提供 Vite 插件和 SSR 水合辅助函数,不重新导出 Pinia API
 - **协议复用**:通过 ubean 的 `serializeState`/`hydrateState` 钩子集成,不引入并行的状态模型
 - **安全降级**:`serializePiniaState` 在未检测到 `$pinia` 时返回空对象;`hydratePiniaState` 在 `state` 为 null 或不含 `pinia` 字段时 no-op,允许在 CSR 模式或无 SSR state 时安全调用
 - **配置错误提示**:若 `hydrateState` 被调用但 app 上未检测到 `$pinia`(未注册 `createPinia()` 插件),会在控制台输出明确警告

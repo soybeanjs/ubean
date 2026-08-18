@@ -197,7 +197,7 @@ definePage({
 - **构建期（推荐）**：`/vite` 插件提取参数对象，合并进生成的路由表，并把调用从产物中剥除（零运行时开销）。
 - **运行时兜底**：无插件环境下函数是 no-op —— 不报错、无副作用，页面按文件派生的路径/名称注册；`cache` 可在运行时用 `enablePageCache(name)` 补齐。
 
-> 宏中的 `middleware` 已移除 —— 此前该字段从未被任何运行时消费。需要按路由声明守卫请用 `meta: { middleware: [...] }` 并在自己的导航守卫中消费。
+> 需要按路由声明守卫时用 `meta: { middleware: [...] }` 并在自己的导航守卫中消费。
 
 ### reuse 路由
 
@@ -299,7 +299,7 @@ ubeanVueVite({
 
 ## 实体路由文件生成器
 
-`/generator` 子路径在磁盘上生成可编辑的路由文件（原 `@ubean/scan/generator`，现由 `@ubean/vue` 所有；旧路径 re-export 保持向后兼容）：
+`/generator` 子路径在磁盘上生成可编辑的路由文件（`@ubean/vue/generator`）：
 
 ```ts
 import { generateRouteFiles } from '@ubean/vue/generator';
@@ -389,7 +389,7 @@ Props：`to`（字符串或位置对象）、`href`、`replace`、`activeClass`�
 ## 组合式函数
 
 - **`usePage<T>()`** —— 精简版页面数据访问：原样返回 `PAGE_KEY` 注入的数据（`props` / `component` / `errors`），未注入时返回共享空对象。**不含**路由态（`url` / `params` / `query` / `meta`）—— 请直接用 vue-router 的 `useRoute()`。框架运行时（`@ubean/client`）在其上叠加自己的路由感知 `usePage` 提供完整 PageObject 协议。
-- **`useRouter()`** —— 不再提供：请直接导入 vue-router 的 `useRouter()`，`push` / `replace` 保留 `RouteNamedMap` 类型化重载。（`@ubean/client` 仅作纯 re-export 以维持 auto-import 面不变。）
+- **`useRouter()`** —— 请直接导入 vue-router 的 `useRouter()`，`push` / `replace` 保留 `RouteNamedMap` 类型化重载（`@ubean/client` 仅作纯 re-export）。
 - **`useCacheViews()`** —— 见[页面缓存](#页面缓存keep-alive)。
 - **`usePageTransition()`** —— `{ name, set, clear, enabled }` 全局过渡名。
 - **`useReloadSignal()`** —— `{ counter, reloading, reload(routeName?, duration?) }`。
@@ -493,8 +493,8 @@ isActiveRoute('/users/7', '/users', false); // → true（前缀匹配）
 
 ## 架构说明
 
-- **插件优先**：`ubeanVue`（主入口，Vue 插件，`app.use`）与 `ubeanVueVite`（`/vite` 子路径，Vite 插件工厂）是两个接线入口，命名消歧、不再同名。内核不产出应用工厂与 router 工厂 —— 两者都用原生 `vue` / `vue-router` API 自行创建。
+- **插件优先**：`ubeanVue`（主入口，Vue 插件，`app.use`）与 `ubeanVueVite`（`/vite` 子路径，Vite 插件工厂）是两个独立命名的接线入口。内核不产出应用工厂与 router 工厂 —— 两者都用原生 `vue` / `vue-router` API 自行创建。
 - **运行时边界**：主入口（`@ubean/vue`）禁止静态导入 `node:*`、`@ubean/*`、`@unhead/vue`、`vite`、`tinyglobby`（由测试强制）。构建期代码全部在 `/vite` 与 `/generator` 子路径之后。
 - **懒加载可选 peer**：`@ubean/markdown`（markdown 页面）与 `@unhead/vue`（head）为 optional peer，仅在对应功能开启时动态导入。
 - **全局单例**（缓存 store、过渡名、重载计数）挂在 `globalThis` 上，使重复模块实例（依赖重新优化、HMR `?t=` 变体）共享同一状态 —— 避免 SSR 水合不匹配与 KeepAlive 缓存失效。
-- **所有权方向**：`@ubean/scan`（聚合层）依赖 `@ubean/vue` —— 永不反向。聚合层为向后兼容 re-export 页面路由类型、函数与生成器（`@ubean/scan/generator` → `@ubean/vue/generator`）。
+- **所有权方向**：`@ubean/scan`（聚合层）依赖 `@ubean/vue` —— 永不反向。聚合层 re-export 页面路由类型、函数与生成器。

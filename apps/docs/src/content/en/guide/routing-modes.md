@@ -157,7 +157,7 @@ export default defineConfig({
 
 ## Frontend-Only Projects
 
-For pure SPA projects that don't depend on a backend (SSR/API routes), you can use only the `@ubean/vite`, `@ubean/runtime`, `@ubean/scan`, and `@ubean/pages` subpackages without pulling in `@ubean/build`, `@ubean/app`, or `@ubean/server`.
+For pure SPA projects that don't depend on a backend (SSR/API routes), you can use only the `@ubean/vite`, `@ubean/client`, `@ubean/scan`, and `@ubean/pages` subpackages without pulling in `@ubean/build`, `@ubean/app`, or `@ubean/server`.
 
 ```ts
 // vite.config.ts (frontend-only)

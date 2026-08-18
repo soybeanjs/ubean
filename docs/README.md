@@ -9,9 +9,9 @@
 | 文档 | 类型 | 说明 |
 | --- | --- | --- |
 | [ubean-studio.md](ubean-studio.md) | 产品方案 + 任务清单 | ubean-studio 产品方案与 ST 任务清单 |
-| [structure.md](structure.md) | 结构评估报告 | packages 体系评估与优化建议（39 → 24 包，客户端边界、循环依赖、合并/拆分清单） |
+| [soybean-admin-next.md](soybean-admin-next.md) | 下一代 SoybeanAdmin | 下一代 SoybeanAdmin 技术选型与开发计划（提取 ubean 客户端内核路线） |
 
-> 已完成的开发任务型文档（路线图、元框架差距分析、应用模式、子包拆分、Islands 自动注册）已清理；其中用户向内容（应用模式、Islands、包架构）已整合进 `apps/docs` 公开站点，元框架对比见 [Framework Comparison](../apps/docs/src/content/en/architecture/framework-comparison.md)。
+> 用户向内容（应用模式、Islands、包架构）已整合进 `apps/docs` 公开站点，元框架对比见 [Framework Comparison](../apps/docs/src/content/en/architecture/framework-comparison.md)。
 
 ## 决策记录（ADR）
 

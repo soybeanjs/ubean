@@ -369,7 +369,7 @@ If you split your config into `app.ts` (shared) + `app.server.ts` and/or `app.cl
 ### Constraints
 
 - `setup` itself must register guards **synchronously** (the guard functions can return Promises).
-- Don't `await` API calls inside `setup` — that delays the first navigation. Put async logic inside the guard callback instead.
+- Keep `setup` free of `await` API calls — they delay the first navigation. Put async logic inside the guard callback instead.
 
 ### Guards vs backend middleware
 

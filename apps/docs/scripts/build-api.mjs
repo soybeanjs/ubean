@@ -3,8 +3,8 @@
 // and emits apps/docs/public/api/<pkg>.json for the <ApiTable> renderer.
 //
 // Per DESIGN.md D4/D5/D6:
-//  - Curated subset (7): ubean, @ubean/runtime, @ubean/scan, @ubean/config,
-//    @ubean/auth, @ubean/ui, @ubean/pinia.
+//  - Curated subset (7): ubean, @ubean/client, @ubean/vue, @ubean/scan,
+//    @ubean/config, @ubean/auth, @ubean/integrations.
 //  - Reads BUILT dist/*.d.ts (run `pnpm build` at repo root first).
 //  - Maps TypeDoc's verbose JSON → the small ubean-specific ApiDoc schema
 //    consumed by <ApiTable> (see src/components/api-table.vue). Per Risks §7:
@@ -29,12 +29,12 @@ const TSCONFIG = resolve(APP_ROOT, 'tsconfig.typedoc.json');
 const PACKAGES_ROOT = resolve(APP_ROOT, '../../packages');
 const CURATED = [
   { pkg: 'ubean', distDir: resolve(PACKAGES_ROOT, 'ubean/dist') },
-  { pkg: 'runtime', distDir: resolve(PACKAGES_ROOT, 'runtime/dist') },
+  { pkg: 'client', distDir: resolve(PACKAGES_ROOT, 'client/dist') },
+  { pkg: 'vue', distDir: resolve(PACKAGES_ROOT, 'vue/dist') },
   { pkg: 'scan', distDir: resolve(PACKAGES_ROOT, 'scan/dist') },
   { pkg: 'config', distDir: resolve(PACKAGES_ROOT, 'config/dist') },
   { pkg: 'auth', distDir: resolve(PACKAGES_ROOT, 'auth/dist') },
-  { pkg: 'ui', distDir: resolve(PACKAGES_ROOT, 'ui/dist') },
-  { pkg: 'pinia', distDir: resolve(PACKAGES_ROOT, 'pinia/dist') }
+  { pkg: 'integrations', distDir: resolve(PACKAGES_ROOT, 'integrations/dist') }
 ];
 
 // ---------------------------------------------------------------------------

@@ -16,7 +16,7 @@ Goal: ship a single documentation site at `apps/docs` that **dogfoods the ubean 
 
 - **Multi-version switching** (the "版本控制" requirement). ubean is at `v0.0.1`; a version switcher has no data to switch between. v1 ships single-version, but the routing/content layout stays extensible so a `/v{n}/` prefix or frontmatter-driven filtering can be added later without rearchitecting. Tracked as a phase-2 item.
 - **Live playground / interactive component editor.** The reference's `playground-gallery.vue`, `component-api.vue`, `type-table.vue`, `component-changelog.vue`, `tailwind-palette.vue` are component-library-specific and are **not** ported.
-- **API reference for all 39 packages.** v1 covers a curated subset of ~7 (see §6).
+- **API reference for all 33 packages.** v1 covers a curated subset of ~7 (see §6).
 - **Translation of every architecture doc.** Full bidirectional translation of the Architecture section is a content task, not an architecture one. (Per ADR-0007, dev-task docs live in repo `docs/`, outside the public site.)
 
 ## 3. Decision Log
@@ -49,9 +49,9 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Alternatives:** Vite plugin (couples dev startup to TypeDoc); CI-generated committed JSON (stale risk).
 
 ### D6. Generator scope — curated 7 packages
-**Decision:** v1 generates API JSON for: `ubean` (aggregator), `@ubean/runtime`, `@ubean/scan`, `@ubean/config`, `@ubean/auth`, `@ubean/ui`, `@ubean/pinia`.
-**Rationale:** Covers the most-used surface (config + routing + runtime + the four most common extensions). Other packages added incrementally.
-**Alternatives:** all 39 packages (noise, effort); main `ubean` only (loses sub-package granularity).
+**Decision:** v1 generates API JSON for: `ubean` (aggregator), `@ubean/client`, `@ubean/vue`, `@ubean/scan`, `@ubean/config`, `@ubean/auth`, `@ubean/integrations`.
+**Rationale:** Covers the most-used surface (config + scan/vue routing + client runtime + the most common extensions). Other packages added incrementally.
+**Alternatives:** all 33 packages (noise, effort); main `ubean` only (loses sub-package granularity).
 
 ### D7. i18n — EN + zh-CN, both directions, ubean built-in i18n
 **Decision:** Ship both locales. Use ubean's built-in zero-dependency i18n (`useI18n`, `defineLocale`), **not** vue-i18n (per project convention). Strategy: `prefix_except_default`. EN is default (unprefixed); zh-CN at `/zh/*`.
@@ -63,10 +63,10 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Rationale:** The reference is purpose-built for a component registry; most of its bespoke components have no framework equivalent. The shell (header/sidebar/outline/search/theme) is the valuable, reusable part.
 **Alternatives:** full port (dead code, component-library assumptions); fresh design (loses proven patterns, slower).
 
-### D9. Styling — `@ubean/ui` UnoCSS mode + `@soybeanjs/unocss-shadcn`
+### D9. Styling — `@ubean/integrations/ui` UnoCSS mode + `@soybeanjs/unocss-shadcn`
 **Decision:** `ubean.config.ts` sets `ui: { css: false }` (UnoCSS mode) + `@soybeanjs/unocss-shadcn` preset in `uno.config.ts`. This mirrors both the reference's visual system and the existing ubean DevTools styling convention.
 **Rationale:** Consistent with project memory ("DevTools UI: UnoCSS with `@soybeanjs/unocss-shadcn` preset"). Utility-first, no scoped CSS. Same component primitives (`S*`) as the reference.
-**Alternatives:** `@ubean/ui` CSS mode + Tailwind (diverges from reference + DevTools); direct `@soybeanjs/ui` (bypasses ubean integration, more manual).
+**Alternatives:** `@ubean/integrations/ui` CSS mode + Tailwind (diverges from reference + DevTools); direct `@soybeanjs/ui` (bypasses ubean integration, more manual).
 
 ### D10. Search — prerender-time fuse.js index
 **Decision:** At prerender time, walk all markdown content + generated API JSON, build a fuse.js index (title + heading + body excerpt + route), emit to `public/search-index.json`. Client fetches it once and searches in-memory.
@@ -90,14 +90,14 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Rationale:** Honest, no information loss, preserves decision history, sets reader expectations.
 **Alternatives:** exclude (loses history); separate "Design History" section (more sectioning overhead).
 
-> ⚠️ **Reversed by [ADR-0007](../../docs/adr/0007-docs-content-classification.md):** dev-task docs (roadmap, ubean-studio, framework-comparison, modes, subpackage-splitting, islands-auto-registry) moved back to repo `docs/`; the site's Architecture section now holds only explanatory content. `status-badge.vue` was removed.
+> ⚠️ **Reversed by [ADR-0007](../../docs/adr/0007-docs-content-classification.md):** dev-task docs (roadmap, ubean-studio, modes, subpackage-splitting, islands-auto-registry) moved back to repo `docs/`; the site's Architecture section now holds only explanatory content. `status-badge.vue` was removed.
 
 ### D14. Home page — hero + features + comparison + ecosystem
 **Decision:** Hero (name, tagline, primary CTAs: Get Started / GitHub), 3–6 feature cards (Full-stack SSR, File-based routing, Islands, Multi-platform, DevTools, i18n), a framework comparison table (rendered from `framework-comparison.md`), and an ecosystem/package grid.
 **Rationale:** Richer first impression for a framework; the comparison table is high-value content that already exists. Accepts the maintenance tradeoff (comparison may need updates).
 **Alternatives:** hero + features + quickstart only (faster but underwhelming); minimal hero (too thin for a framework).
 
-> **Updated:** the framework-comparison block was removed from the home page during the ADR-0007 restructure; `framework-comparison.md` now lives in repo `docs/`.
+> **Updated:** the framework-comparison block was removed from the home page during the ADR-0007 restructure; `framework-comparison.md` now lives in the site content (`src/content/{en,zh}/architecture/`).
 
 ### D15. `<ApiTable>` rendering — data-driven `STable` (columns/data/slots)
 **Decision:** Render API parameter/property tables with `@soybeanjs/ui`'s `STable` in its data-driven form: `:columns` (array of `{key, dataIndex, title, minWidth}`) + `:data` (array of row objects) + `:row-key` + per-column named slots (`#name`, `#type`, …). Mirrors the reference's [`tables/type-data.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/components/tables/type-data.vue).
@@ -297,7 +297,7 @@ apps/docs/
 | `/guide/islands`                   | `content/en/guide/islands.md`            |
 | `/integrations/{auth,database,electron,icons,pinia,ui}` | `content/en/integrations/*.md` |
 | `/reference/api/ubean`             | `public/api/ubean.json` via `<ApiTable>` |
-| `/reference/api/{runtime,routing,config,auth,ui,pinia}` | `public/api/<pkg>.json` |
+| `/reference/api/{client,vue,scan,config,auth,integrations}` | `public/api/<pkg>.json` |
 | `/architecture/{overview,architecture,routing,runtime}` | `content/en/architecture/*.md` |
 | `/reference/{cache,database,env,i18n,response-helpers,route-helpers}` | `content/en/reference/*.md` |
 | `/ecosystem/ecosystem`             | `content/en/ecosystem/ecosystem.md` |
@@ -312,7 +312,7 @@ Defined in `src/constants/menus.ts`:
 1. **Getting Started** — Introduction, Quick Start, App Modes, Routing Modes
 2. **Guide** — Pages Routing (Overview, Loaders, Actions), i18n, Islands
 3. **Integrations** — Auth, Database, Electron, Icons, Pinia, UI
-4. **Reference** — the 7 generated API packages (ubean, runtime, routing, config, auth, ui, pinia)
+4. **Reference** — the 7 generated API packages (ubean, client, vue, scan, config, auth, integrations)
 5. **Reference Guides** — Cache, Database, Env, I18n, Response Helpers, Route Helpers
 6. **Architecture** — Overview, Architecture, Routing, Runtime (explanatory only, per ADR-0007)
 7. **Ecosystem** — Ecosystem
@@ -333,6 +333,6 @@ Defined in `src/constants/menus.ts`:
 
 - **Version switching (phase 2):** `/v{n}/` prefix + per-version content trees, or frontmatter `since`/`deprecated` filtering. Architecture in §5 keeps the content tree shape compatible with either.
 - **Live code playground:** a `<Playground>` island for runnable ubean examples. Depends on `@ubean/islands` + a sandboxed runner; out of scope for v1.
-- **API reference for remaining 32 packages:** incremental, as each package stabilizes.
+- **API reference for remaining 26 packages:** incremental, as each package stabilizes.
 - **Dev-time TypeDoc watcher:** rerun `build:api` on `packages/*/dist/*.d.ts` change for smoother DX.
 - **Search relevance tuning:** fuse.js weights (title > heading > body) need empirical tuning after content lands.

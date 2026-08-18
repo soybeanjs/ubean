@@ -50,13 +50,15 @@ ubean ships with optional extension packages under the `@ubean/` scope:
 | --- | --- |
 | `@ubean/auth` | Authentication (better-auth integration with email/password fallback) |
 | `@ubean/icon` | Local SVG icon collections with Iconify API fallback |
-| `@ubean/pwa` | Progressive Web App (manifest + service worker) |
+| `@ubean/integrations/pwa` | Progressive Web App (manifest + service worker) |
 | `@ubean/image` | Image optimization and transformation |
 | `@ubean/content` | Content collections and Markdown processing |
-| `@ubean/fonts` | Font optimization and subsetting |
-| `@ubean/electron` | Electron desktop app integration |
-| `@ubean/ui` | SoybeanUI integration (component resolver + styles) |
-| `@ubean/pinia` | Pinia state management with SSR hydration helpers |
+| `@ubean/integrations/fonts` | Font optimization and subsetting |
+| `@ubean/integrations/electron` | Electron desktop app integration |
+| `@ubean/integrations/ui` | SoybeanUI integration (component resolver + styles) |
+| `@ubean/integrations/pinia` | Pinia state management with SSR hydration helpers |
+
+> The PWA, fonts, Electron, UI, and Pinia integrations are subpaths of `@ubean/integrations` — they are not standalone packages.
 
 ## Next Steps
 

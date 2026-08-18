@@ -70,7 +70,7 @@ pnpm dev
 
 ## Package Architecture
 
-ubean is a **monorepo** of 39 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package (`ubean`) and get the full API surface via `import { ... } from 'ubean'`.
+ubean is a **monorepo** of 33 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package (`ubean`) and get the full API surface via `import { ... } from 'ubean'`.
 
 ### Subpath Exports
 
@@ -87,19 +87,19 @@ ubean is a **monorepo** of 39 packages. The public package `ubean` is an **aggre
 
 ### Key Subpackages
 
-| Package          | Responsibility                                                        |
-| ---------------- | --------------------------------------------------------------------- |
-| `@ubean/types`   | Shared type definitions                                               |
-| `@ubean/scan`    | Route scanner + rou3 router + AST extractor                           |
-| `@ubean/build`   | Build-time core (virtual modules + Vite plugins)                      |
-| `@ubean/runtime` | Vue client runtime (composables, router, islands hydrate)             |
-| `@ubean/server`  | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
-| `@ubean/app`     | Hono app factory + server config                                      |
-| `@ubean/config`  | Config loading (c12 + defu)                                           |
-| `@ubean/vite`    | Vue-specific Vite plugin (pages/entry virtual modules + auto-imports) |
-| `@ubean/cli`     | CLI commands (init/dev/build/preview/page/env)                        |
+| Package         | Responsibility                                                        |
+| --------------- | --------------------------------------------------------------------- |
+| `@ubean/shared` | Shared types, errors, env + common utils (protocol leaf)              |
+| `@ubean/scan`   | Route scanner + rou3 router + AST extractor                           |
+| `@ubean/build`  | Build-time core (virtual modules + Vite plugins)                      |
+| `@ubean/client` | Pure client kernel (composables, router, page cache, islands hydrate) |
+| `@ubean/server` | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
+| `@ubean/app`    | Hono app factory + server config                                      |
+| `@ubean/config` | Config loading (c12 + defu)                                           |
+| `@ubean/vite`   | Vue-specific Vite plugin (pages/entry virtual modules + auto-imports) |
+| `@ubean/cli`    | CLI commands (init/dev/build/preview/page/env)                        |
 
-Extension packages (`@ubean/auth`, `@ubean/icon`, `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`, `@ubean/electron`, `@ubean/pinia`, `@ubean/ui`) are loaded on-demand via `ubean.config.ts` flags (`icon: true`, `pwa: true`, `electron: true`, `pinia: true`, `ui: true`, etc.).
+Extension packages (`@ubean/auth`, `@ubean/icon`, `@ubean/image`, `@ubean/content`) and thin integration modules (`@ubean/integrations/{pwa,fonts,electron,pinia,ui}`) are loaded on-demand via `ubean.config.ts` flags (`icon: true`, `pwa: true`, `electron: true`, `pinia: true`, `ui: true`, etc.).
 
 ## Commands
 
@@ -311,9 +311,9 @@ export const GET = defineHandler(
 - `/docs/integrations/database`: Database integrations (Drizzle, db0)
 - `/docs/integrations/auth`: Authentication (`@ubean/auth`)
 - `/docs/integrations/icons`: Icons (`@ubean/icon`)
-- `/docs/integrations/electron`: Desktop apps (`@ubean/electron`)
-- `/docs/integrations/pinia`: State management (`@ubean/pinia`)
-- `/docs/integrations/ui`: UI components (`@ubean/ui`)
+- `/docs/integrations/electron`: Desktop apps (`@ubean/integrations/electron`)
+- `/docs/integrations/pinia`: State management (`@ubean/integrations/pinia`)
+- `/docs/integrations/ui`: UI components (`@ubean/integrations/ui`)
 
 ## Configuration
 
@@ -330,13 +330,13 @@ export default defineConfig({
   modules: [],
   // Top-level shortcuts for official extension packages (default: false)
   icon: false, // @ubean/icon
-  pwa: false, // @ubean/pwa
+  pwa: false, // @ubean/integrations/pwa
   auth: false, // @ubean/auth
   image: false, // @ubean/image
-  fonts: false, // @ubean/fonts
-  electron: false, // @ubean/electron (enabling auto-disables SSR unless explicitly set)
-  pinia: false, // @ubean/pinia (Pinia integration: dev optimizeDeps + SSR state hydration helpers)
-  ui: false, // @ubean/ui (@soybeanjs/ui: UiResolver + styles.css auto-injection)
+  fonts: false, // @ubean/integrations/fonts
+  electron: false, // @ubean/integrations/electron (enabling auto-disables SSR unless explicitly set)
+  pinia: false, // @ubean/integrations/pinia (Pinia integration: dev optimizeDeps + SSR state hydration helpers)
+  ui: false, // @ubean/integrations/ui (@soybeanjs/ui: UiResolver + styles.css auto-injection)
   // Route generation mode (virtual | file | both)
   routing: { mode: 'virtual' },
   // i18n routing
@@ -351,7 +351,7 @@ export default defineConfig({
 
 > **App modes**: `mode` controls which build steps run. `fullstack` (default) builds client + SSR + server; `spa` builds client only; `ssg` prerenders to static HTML; `backend` builds API server only. See [App Modes](/docs/guide/app-modes) and [Route Generation Modes](/docs/guide/routing-modes).
 >
-> **Electron**: `electron: true` enables `@ubean/electron` with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR (desktop apps don't need SSR unless explicitly set via `ssr: true`).
+> **Electron**: `electron: true` enables `@ubean/integrations/electron` with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR (desktop apps don't need SSR unless explicitly set via `ssr: true`).
 
 ### Module Configuration
 
@@ -381,17 +381,17 @@ export default defineConfig({
 
 Use these keys in `dependsOn` for built-in modules:
 
-| Key        | Module                                                       |
-| ---------- | ------------------------------------------------------------ |
-| `icon`     | @ubean/icon (icon system, UbeanIcon component)               |
-| `pwa`      | @ubean/pwa (PWA support)                                     |
-| `auth`     | @ubean/auth (authentication)                                 |
-| `image`    | @ubean/image (image optimization)                            |
-| `fonts`    | @ubean/fonts (font optimization)                             |
-| `content`  | @ubean/content (content management)                          |
-| `electron` | @ubean/electron (desktop apps, auto-disables SSR)            |
-| `pinia`    | @ubean/pinia (Pinia: dev optimizeDeps + SSR state hydration) |
-| `ui`       | @ubean/ui (@soybeanjs/ui: UiResolver + styles.css)           |
+| Key        | Module                                                                    |
+| ---------- | ------------------------------------------------------------------------- |
+| `icon`     | @ubean/icon (icon system, UbeanIcon component)                            |
+| `pwa`      | @ubean/integrations/pwa (PWA support)                                     |
+| `auth`     | @ubean/auth (authentication)                                              |
+| `image`    | @ubean/image (image optimization)                                         |
+| `fonts`    | @ubean/integrations/fonts (font optimization)                             |
+| `content`  | @ubean/content (content management)                                       |
+| `electron` | @ubean/integrations/electron (desktop apps, auto-disables SSR)            |
+| `pinia`    | @ubean/integrations/pinia (Pinia: dev optimizeDeps + SSR state hydration) |
+| `ui`       | @ubean/integrations/ui (@soybeanjs/ui: UiResolver + styles.css)           |
 
 ## Key Features
 
@@ -464,13 +464,13 @@ Use these keys in `dependsOn` for built-in modules:
 
 - `@ubean/icon`: Iconify-based icons with custom local SVG collections, `/_iconify` dev route
 - `@ubean/auth`: Better Auth integration with email/password fallback, `useAuth()` composable
-- `@ubean/pwa`: Manifest + Service Worker generation, `usePwa()` composable
+- `@ubean/integrations/pwa`: Manifest + Service Worker generation, `usePwa()` composable
 - `@ubean/image`: Multi-provider image optimization (IPX/Cloudinary/Imgix/...)
 - `@ubean/content`: Markdown/YAML/JSON content collections with `queryContent()`
-- `@ubean/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
-- `@ubean/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR
-- `@ubean/pinia`: Pinia integration; `pinia: true` enables dev `optimizeDeps` pre-bundling; pair with `defineApp({ serializeState: serializePiniaState, hydrateState: hydratePiniaState })` for SSR state hydration (Pinia itself imported from `pinia`)
-- `@ubean/ui`: @soybeanjs/ui integration; `ui: true` enables UiResolver (component auto-import) + styles.css injection; `ui: { css: false }` for UnoCSS mode (@soybeanjs/unocss-shadcn)
+- `@ubean/integrations/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
+- `@ubean/integrations/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR
+- `@ubean/integrations/pinia`: Pinia integration; `pinia: true` enables dev `optimizeDeps` pre-bundling; pair with `defineApp({ serializeState: serializePiniaState, hydrateState: hydratePiniaState })` for SSR state hydration (Pinia itself imported from `pinia`)
+- `@ubean/integrations/ui`: @soybeanjs/ui integration; `ui: true` enables UiResolver (component auto-import) + styles.css injection; `ui: { css: false }` for UnoCSS mode (@soybeanjs/unocss-shadcn)
 
 ## Project Structure (user project)
 
@@ -627,6 +627,6 @@ console.log(c(42.99, 'USD'));
   - Extension packages: icon, auth, pwa, image, content, fonts
   - Prerender / SSG
   - Built-in cron, queue, storage, database, WebSocket, SSE
-  - `@ubean/electron` desktop app support (default main/preload entries, auto-disable SSR)
-  - `@ubean/ui` @soybeanjs/ui integration (UiResolver component auto-import + styles.css auto-injection)
-  - `@ubean/pinia` Pinia integration (dev optimizeDeps + SSR state hydration helpers via `defineApp({ serializeState, hydrateState })`)
+  - `@ubean/integrations/electron` desktop app support (default main/preload entries, auto-disable SSR)
+  - `@ubean/integrations/ui` @soybeanjs/ui integration (UiResolver component auto-import + styles.css auto-injection)
+  - `@ubean/integrations/pinia` Pinia integration (dev optimizeDeps + SSR state hydration helpers via `defineApp({ serializeState, hydrateState })`)

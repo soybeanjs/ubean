@@ -7,7 +7,7 @@ description: "High-level overview of ubean: origins, project structure, and desi
 
 ## 1. Project Overview
 
-**ubean** is a full-stack meta-framework built on Vite, Hono, and Vue 3, fusing void's Inertia-style SSR page routing with nitro's cross-platform deployment capabilities, organized as a monorepo of 37 single-purpose packages.
+**ubean** is a full-stack meta-framework built on Vite, Hono, and Vue 3, fusing void's Inertia-style SSR page routing with nitro's cross-platform deployment capabilities, organized as a monorepo of 33 packages (the `ubean` aggregator plus 32 `@ubean/*` subpackages).
 
 ### 1.1 Core Positioning
 
@@ -39,7 +39,7 @@ description: "High-level overview of ubean: origins, project structure, and desi
 | Platform Adaptation | Cloudflare-focused | 30+ platform presets | ✅ nitro-style preset system |
 | Deployment Platform | Void Cloud (proprietary) | Independent per-platform | ❌ Removed, replaced with generic deployment |
 | Authentication | Better Auth built-in | None built-in | ✅ Standalone extension `@ubean/auth` (Better Auth integration + built-in fallback) |
-| State Management | None built-in | None built-in | ✅ Standalone extension `@ubean/pinia` (Pinia integration + SSR state hydration) |
+| State Management | None built-in | None built-in | ✅ Extension `@ubean/integrations/pinia` (Pinia integration + SSR state hydration) |
 | Database | Drizzle ORM + D1/PG | db0 abstraction layer | ✅ Drizzle ORM + multi-database drivers |
 | Environment Variables | defineEnv + Schema validation | runtimeConfig | ✅ defineEnv + type-safe validation |
 | Cache/ISR | KV + Edge Cache | routeRules cache | ✅ Fusion of both |
@@ -136,13 +136,13 @@ Dependencies are split by runtime boundary; each sub-package keeps minimal deps 
 
 | Scope | Dependency Strategy | Example |
 | --- | --- | --- |
-| Foundation sub-packages | Only dependencies shared by Node and edge | `@ubean/types`, `@ubean/env`, `@ubean/utils` (Hono, Hookable, rou3, Standard Schema types) |
+| Foundation sub-packages | Only dependencies shared by Node and edge | `@ubean/shared` (Hono, Hookable, rou3, Standard Schema types) |
 | Vue Integration | Vue and Vue Router as `peerDependencies`; SSR renderer pulled in via server entry | `vue`, `vue-router`, `@vue/server-renderer` |
 | Preset Packages | `@ubean/preset` ships all platform presets; not statically imported by the core | `standard`/`node`/`cloudflare`/`vercel`/`netlify`/`bun`/`deno` |
 | Browser Transport Adapters | Only bundled in the browser client entry; do not enter Node, edge, or SSR bundles | database drivers, upload-progress adapters |
-| DevTools and Auth/PWA | Standalone packages, not in the production bundle by default | `@ubean/devtools`, `@ubean/auth`, `@ubean/pwa` |
-| Asset and Content Extensions | Standalone packages; dependencies and platform implementations split by feature, not statically imported by core | `@ubean/icon`, `@ubean/image`, `@ubean/content`, `@ubean/fonts` |
-| State Management and UI Integration | Standalone packages; underlying libraries are peerDependencies so users control versions | `@ubean/pinia`, `@ubean/ui` |
+| DevTools and Auth/PWA | Standalone packages / integration subpaths, not in the production bundle by default | `@ubean/devtools`, `@ubean/auth`, `@ubean/integrations/pwa` |
+| Asset and Content Extensions | Standalone packages; dependencies and platform implementations split by feature, not statically imported by core | `@ubean/icon`, `@ubean/image`, `@ubean/content`, `@ubean/integrations/fonts` |
+| State Management and UI Integration | Subpaths of `@ubean/integrations`; underlying libraries are peerDependencies so users control versions | `@ubean/integrations/pinia`, `@ubean/integrations/ui` |
 
 - If docs examples use `zod`, it must be marked as a user-project dependency; the framework core only depends on the Standard Schema spec and is not bound to a specific validation library.
 - `@ubean/icon` lists `@iconify/vue` as a Vue peer dependency; `@iconify-json/<collection>` is installed by users on demand as a dev dependency; adding the full `@iconify/json` to framework or app default dependencies is forbidden.
@@ -153,7 +153,7 @@ Dependencies are split by runtime boundary; each sub-package keeps minimal deps 
 
 ## 3. Directory Structure
 
-> The repository is split into 37 single-purpose packages under `packages/`. `packages/ubean` is a thin aggregator that re-exports from all sub-packages — it does not contain the framework logic itself.
+> The repository is split into 33 packages under `packages/` — the `ubean` aggregator plus 32 `@ubean/*` subpackages. `packages/ubean` is a thin aggregator that re-exports from all sub-packages — it does not contain the framework logic itself.
 
 ```
 ubean/
@@ -162,20 +162,20 @@ ubean/
 │   │   ├── bin/ubean.mjs            # CLI binary entry
 │   │   ├── src/
 │   │   │   ├── runtime/             # App/i18n/vue runtime shims (app.ts, i18n.ts, vue.ts)
+│   │   │   ├── client/              # Client runtime re-exports (ubean/client first-class subpath)
 │   │   │   ├── index.ts             # Public exports (re-exports all sub-packages)
 │   │   │   ├── vite.ts              # Combined Vite plugin entry
 │   │   │   └── vue-ssr.ts           # Vue SSR bridge
 │   │   └── package.json
 │   │
-│   │   ── Foundation (leaf packages) ──
-│   ├── types/                       # @ubean/types — shared type definitions
-│   ├── utils/                       # @ubean/utils — glob, path, port, string, vite-config
-│   ├── error/                       # @ubean/error — error handling
-│   ├── env/                         # @ubean/env — defineEnv + schema validation
+│   │   ── Foundation ──
+│   ├── shared/                      # @ubean/shared — shared types, utils, error, env
+│   ├── vue/                         # @ubean/vue — page-routing owner (matchers, virtual pages, generator, /vite plugin)
+│   ├── markdown/                    # @ubean/markdown — Markdown/MDX pages
 │   ├── seo/                         # @ubean/seo — conventions, json-ld, og-image
 │   ├── pages/                       # @ubean/pages — Pages protocol (protocol.ts, data.ts)
-│   ├── markdown/                    # @ubean/markdown — Markdown/MDX pages
 │   ├── i18n/                        # @ubean/i18n — zero-dependency i18n + routing
+│   ├── logger/                      # @ubean/logger — structured logging
 │   │
 │   │   ── Server runtime ──
 │   ├── routes/                     # @ubean/routes — handler.ts, server-router.ts, router.ts, openapi.ts, route-rules.ts, isr.ts
@@ -184,49 +184,48 @@ ubean/
 │   ├── app/                         # @ubean/app — createUbeanApp (Hono factory), hooks, define-server
 │   │
 │   │   ── Build-time ──
-│   ├── auto-imports/                # @ubean/auto-imports — unimport presets
-│   ├── prerender/                   # @ubean/prerender — SSG prerender
-│   ├── preset/                      # @ubean/preset — platform presets (node, cloudflare, bun, deno, netlify, vercel, standard)
-│   ├── config/                      # @ubean/config — c12 config loading (loader.ts, types.ts, routing.ts)
-│   ├── codegen/                     # @ubean/codegen — type generation (route-types.ts, openapi-types.ts)
-│   ├── modules/                     # @ubean/modules — module system (builtins.ts, kit.ts)
-│   ├── scan/                        # @ubean/scan — route scanning (scan.ts, define-page.ts, detect-exports.ts, route-name.ts, generator/)
-│   │
-│   │   ── Vue client runtime ──
-│   ├── runtime/                     # @ubean/runtime — app, client, composables, define-app, head, i18n, islands, page-macro, page-runtime, party-town, router, view-transitions, color-mode, cache-views, search
+│   ├── build-core/                  # @ubean/build-core — virtual-registry / macros / registry (zero-dependency)
 │   ├── builder/                     # @ubean/build — Vite build plugin (dir: builder; package name stays @ubean/build)
 │   ├── vite/                        # @ubean/vite — Vue Vite plugin
-│   ├── islands/                     # @ubean/islands — Islands (vite.ts, runtime.ts, directive.ts, bootstrap.ts)
-│   ├── ssr/                         # @ubean/ssr — createVueRenderer (PPR + streaming)
+│   ├── codegen/                     # @ubean/codegen — unimport presets + type generation (route-types.ts, openapi-types.ts)
+│   ├── config/                      # @ubean/config — c12 config loading (loader.ts, types.ts, routing.ts)
+│   ├── preset/                      # @ubean/preset — platform presets (node, cloudflare, bun, deno, netlify, vercel, standard)
+│   ├── modules/                     # @ubean/modules — module system (builtins.ts, kit.ts)
+│   ├── prerender/                   # @ubean/prerender — SSG prerender
 │   │
-│   │   ── CLI & Dev ──
-│   ├── cli/                         # @ubean/cli — citty-based CLI (build, dev, preview, prepare, init, page, env, config, devtools, scaffold-commands)
+│   │   ── Route scanning ──
+│   ├── scan/                        # @ubean/scan — route scanning aggregator (scan.ts, define-page.ts, detect-exports.ts, generator/)
+│   │
+│   │   ── Client runtime ──
+│   ├── client/                      # @ubean/client — framework Vue client runtime (app, composables, define-app, head, i18n, router, color-mode, search)
+│   │
+│   │   ── Services & tools ──
+│   ├── ssr/                         # @ubean/ssr — createVueRenderer (PPR + streaming)
+│   ├── islands/                     # @ubean/islands — Islands (vite.ts, runtime.ts, directive.ts, bootstrap.ts)
 │   ├── dev-server/                  # @ubean/dev-server — runner.ts, server.ts, vite-server.ts, watcher.ts
+│   ├── cli/                         # @ubean/cli — citty-based CLI (build, dev, preview, prepare, init, page, env, config, devtools, scaffold-commands)
 │   ├── devtools/                    # @ubean/devtools — client/ (Vue iframe app) + src/ (node rpc, server, shared)
 │   │
 │   │   ── Extensions (opt-in) ──
+│   ├── ai/                          # @ubean/ai — AI assistant integration
 │   ├── auth/                        # @ubean/auth — Better Auth integration + fallback
-│   ├── pinia/                       # @ubean/pinia — Pinia integration + SSR state hydration
-│   ├── ui/                          # @ubean/ui — @soybeanjs/ui integration
 │   ├── icon/                        # @ubean/icon — Iconify + custom collections
 │   ├── image/                       # @ubean/image — image optimization
 │   ├── content/                     # @ubean/content — content collections
-│   ├── fonts/                       # @ubean/fonts — font optimization
-│   ├── pwa/                         # @ubean/pwa — manifest + service worker
-│   ├── electron/                    # @ubean/electron — Electron desktop apps
+│   ├── integrations/                # @ubean/integrations — pwa / fonts / electron / ui / pinia subpaths
 │   │
 ├── apps/
 │   └── docs/                       # Official documentation site (this site, dogfooding)
 ├── examples/
 │   ├── ubean-test/                 # Complete full-stack example + tests (virtual routing mode)
+│   ├── client-only-spa/            # Pure client SPA example (reuses the @ubean/vue kernel)
 │   ├── frontend-only/              # Frontend-only example (no API/SSR)
 │   └── routing-file-mode/          # Route file generation mode example
 │
 ├── skills/ubean/                   # ubean AI Skill
 │       ├── SKILL.md                 # Skill routing definition
 │       ├── AGENT_PROMPT.md          # Agent prompt
-│       ├── command/ubean.md         # CLI command docs
-│       └── docs/                    # Built-in docs (guide, integrations, reference/api)
+│       └── command/ubean.md         # CLI command docs
 │
 ├── docs/                           # Repo-level engineering docs (ADRs, glossary, product plan)
 ├── scripts/                        # CI verification scripts (verify-packages.mjs)

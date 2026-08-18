@@ -1,11 +1,11 @@
 ---
 title: Electron
-description: Build Electron desktop apps with the built-in @ubean/electron module.
+description: Build Electron desktop apps with the built-in @ubean/integrations/electron integration.
 ---
 
 # Electron (Desktop Apps)
 
-`@ubean/electron` is ubean's **built-in desktop app module** that wraps [`vite-plugin-electron`](https://github.com/electron-vite/vite-plugin-electron) to provide Electron integration with sensible defaults. It handles main/preload/renderer build coordination, Hot Restart, Hot Reload, HMR, and auto-starts the desktop app on build completion.
+`@ubean/integrations/electron` is ubean's **built-in desktop app integration** that wraps [`vite-plugin-electron`](https://github.com/electron-vite/vite-plugin-electron) to provide Electron integration with sensible defaults. It handles main/preload/renderer build coordination, Hot Restart, Hot Reload, HMR, and auto-starts the desktop app on build completion.
 
 ## Features
 
@@ -18,13 +18,13 @@ description: Build Electron desktop apps with the built-in @ubean/electron modul
 
 ## Installation
 
-`@ubean/electron` is a built-in module. Install it as a dev dependency in your project:
+`@ubean/integrations/electron` is a built-in integration (a subpath of `@ubean/integrations`). Install it as a dev dependency in your project:
 
 ```bash
-pnpm add -D @ubean/electron electron
+pnpm add -D @ubean/integrations/electron electron
 ```
 
-> `electron` is a peer dependency — you control its version. `@ubean/electron` supports Electron `^28` through `^37`.
+> `electron` is a peer dependency — you control its version. `@ubean/integrations/electron` supports Electron `^28` through `^37`.
 
 ## Configuration
 
@@ -210,7 +210,7 @@ onMounted(async () => {
 
 ## How It Works
 
-`@ubean/electron` is a thin wrapper around `vite-plugin-electron/simple`. The plugin:
+`@ubean/integrations/electron` is a thin wrapper around `vite-plugin-electron/simple`. The plugin:
 
 1. **Builds the main process** (`electron/main.ts` → `dist/main/index.js`) with Node.js target
 2. **Builds the preload script** (`electron/preload.ts` → `dist/preload/index.js`) with Electron renderer context
@@ -236,14 +236,14 @@ import {
   defineElectronConfig,
   DEFAULT_MAIN_ENTRY,
   DEFAULT_PRELOAD_INPUT
-} from '@ubean/electron';
+} from '@ubean/integrations/electron';
 
 import type {
   ElectronOptions,
   ElectronMainOptions,
   ElectronPreloadOptions,
   ElectronRendererOptions
-} from '@ubean/electron';
+} from '@ubean/integrations/electron';
 
 // Use defaults directly
 const defaultEntry = DEFAULT_MAIN_ENTRY;       // 'electron/main.ts'
@@ -260,7 +260,7 @@ const config = defineElectronConfig({
 
 ## Packaging
 
-`@ubean/electron` handles the build pipeline but does not package the app for distribution. Use [`electron-builder`](https://www.electron.build/) for packaging:
+`@ubean/integrations/electron` handles the build pipeline but does not package the app for distribution. Use [`electron-builder`](https://www.electron.build/) for packaging:
 
 ```bash
 pnpm add -D electron-builder
@@ -303,6 +303,6 @@ linux:
 
 4. **External native modules**: If you use native modules like `better-sqlite3` or `node-pty`, mark them as external in the main process Vite config and rebuild them for Electron with `electron-rebuild`.
 
-5. **Don't enable SSR unless needed**: Desktop apps almost never need SSR. Let `@ubean/electron` auto-disable it.
+5. **Enable SSR only when needed**: Desktop apps almost never need SSR. Let `@ubean/integrations/electron` auto-disable it.
 
 6. **Type the preload bridge**: Always declare types for `window.electronAPI` to get end-to-end type safety between main and renderer.

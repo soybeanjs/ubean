@@ -52,40 +52,42 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 
 ## 功能一览
 
-| 层       | 能力                                        | 关键 API                               | 包                                  |
-| -------- | ------------------------------------------- | -------------------------------------- | ----------------------------------- |
+| 层       | 能力                                        | 关键 API                               | 包                              |
+| -------- | ------------------------------------------- | -------------------------------------- | ------------------------------- |
 | 路由     | 基于文件的 API 路由（命名 HTTP 方法导出）   | `defineHandler`                        | `@ubean/routes`                 |
-| 路由     | 基于文件的 Vue SSR 页面                     | `definePage` 宏                        | `@ubean/scan` + `@ubean/runtime` |
+| 路由     | 基于文件的 Vue SSR 页面                     | `definePage` 宏                        | `@ubean/vue` + `@ubean/scan`    |
 | 路由     | 路由元数据（auth / cache / rateLimit）      | `defineHandlerMeta`                    | `@ubean/routes`                 |
-| 路由     | OpenAPI 3.1 验证 + Scalar UI                | `validator` / `describeRoute`          | `hono-openapi`（重新导出）          |
-| 路由     | 类型安全的路由路径（生成）                  | `.ubean/routes.d.ts`                   | `@ubean/codegen`                    |
-| 应用     | Vue 应用定制（插件、守卫、head）            | `defineApp`                            | `@ubean/runtime`                    |
-| 应用     | Hono 应用工厂                               | `createUbeanApp`                       | `@ubean/app`                        |
-| 服务器   | 数据库层（多驱动）                          | `defineDatabase` / `useDatabase`       | `@ubean/server`                     |
-| 服务器   | 存储（unstorage 封装）                      | `useStorage` / `useKV`                 | `@ubean/server`                     |
-| 服务器   | 缓存（内存 + 外部）                         | `useCacheStore` / `cachedEventHandler` | `@ubean/server`                     |
-| 服务器   | 队列处理                                    | `defineQueue`                          | `@ubean/server`                     |
-| 服务器   | 定时任务（cron）                            | `defineScheduled`                      | `@ubean/server`                     |
-| 服务器   | WebSocket（crossws）                        | `defineWebSocket`                      | `@ubean/server`                     |
-| 服务器   | SSE 流                                      | SSE 工具                               | `@ubean/server`                     |
-| 服务器   | 限流 + CORS                                 | 中间件工厂                             | `@ubean/server`                     |
-| 服务器   | 路由规则（重定向 / 重写 / headers / cache） | `routeRules` 配置                      | `@ubean/server`                     |
-| 服务器   | 进程内处理程序调度                          | `internalFetch`                        | `@ubean/pages`                      |
-| 配置     | 类型化配置定义                              | `defineConfig`                         | `@ubean/config`                     |
-| 配置     | 类型化环境变量                              | `defineEnv`                            | `@ubean/env`                        |
+| 路由     | OpenAPI 3.1 验证 + Scalar UI                | `validator` / `describeRoute`          | `hono-openapi`（重新导出）      |
+| 路由     | 类型安全的路由路径（生成）                  | `.ubean/routes.d.ts`                   | `@ubean/codegen`                |
+| 路由     | 动态路由 matchers（`[param=matcher]`）      | `defineMatcher` / `createMatcherGuard` | `@ubean/vue`                    |
+| 应用     | Vue 应用定制（插件、守卫、head）            | `defineApp`                            | `@ubean/client`                 |
+| 应用     | Hono 应用工厂                               | `createUbeanApp`                       | `@ubean/app`                    |
+| 服务器   | 数据库层（多驱动）                          | `defineDatabase` / `useDatabase`       | `@ubean/server`                 |
+| 服务器   | 存储（unstorage 封装）                      | `useStorage` / `useKV`                 | `@ubean/server`                 |
+| 服务器   | 缓存（内存 + 外部）                         | `useCacheStore` / `cachedEventHandler` | `@ubean/server`                 |
+| 服务器   | 队列处理                                    | `defineQueue`                          | `@ubean/server`                 |
+| 服务器   | 定时任务（cron）                            | `defineScheduled`                      | `@ubean/server`                 |
+| 服务器   | WebSocket（crossws）                        | `defineWebSocket`                      | `@ubean/server`                 |
+| 服务器   | SSE 流                                      | SSE 工具                               | `@ubean/server`                 |
+| 服务器   | 限流 + CORS                                 | 中间件工厂                             | `@ubean/server`                 |
+| 服务器   | 路由规则（重定向 / 重写 / headers / cache） | `routeRules` 配置                      | `@ubean/server`                 |
+| 服务器   | 进程内处理程序调度                          | `internalFetch`                        | `@ubean/pages`                  |
+| 配置     | 类型化配置定义                              | `defineConfig`                         | `@ubean/config`                 |
+| 配置     | 类型化环境变量                              | `defineEnv`                            | `@ubean/shared`                 |
 | 配置     | 中间件定义                                  | `defineMiddleware`                     | `@ubean/routes`                 |
-| i18n     | 零依赖国际化                                | `defineLocale` / `t` / `useI18n`       | `@ubean/i18n` + `@ubean/runtime`    |
-| SSR      | Vue 服务端渲染器                            | `createVueRenderer`                    | `@ubean/ssr`                        |
-| Islands  | 局部水合边界                                | `ubeanIslandsPlugin`                   | `@ubean/islands`                    |
-| DevTools | RPC、AI 助手、API playground、CRUD 脚手架   | `devtools: true` 配置                  | `@ubean/devtools`                   |
-| 扩展     | Better Auth 集成 + fallback                 | `auth: true` 配置                      | `@ubean/auth`                       |
-| 扩展     | Iconify + 自定义 SVG 集合                   | `icon: true` 配置                      | `@ubean/icon`                       |
-| 扩展     | PWA manifest + service worker               | `pwa: true` 配置                       | `@ubean/pwa`                        |
-| 扩展     | 图片优化                                    | `image: true` 配置                     | `@ubean/image`                      |
-| 扩展     | 内容集合 + Markdown                         | `content: true` 配置                   | `@ubean/content`                    |
-| 扩展     | 字体优化 + 自托管                           | `fonts: true` 配置                     | `@ubean/fonts`                      |
-| 扩展     | Electron 桌面应用                           | `electron: true` 配置                  | `@ubean/electron`                   |
-| 扩展     | @soybeanjs/ui 集成                          | `ui: true` 配置                        | `@ubean/ui`                         |
+| i18n     | 零依赖国际化                                | `defineLocale` / `t` / `useI18n`       | `@ubean/i18n` + `@ubean/client` |
+| SSR      | Vue 服务端渲染器                            | `createVueRenderer`                    | `@ubean/ssr`                    |
+| Islands  | 局部水合边界                                | `ubeanIslandsPlugin`                   | `@ubean/islands`                |
+| DevTools | RPC、AI 助手、API playground、CRUD 脚手架   | `devtools: true` 配置                  | `@ubean/devtools`               |
+| 扩展     | Better Auth 集成 + fallback                 | `auth: true` 配置                      | `@ubean/auth`                   |
+| 扩展     | Iconify + 自定义 SVG 集合                   | `icon: true` 配置                      | `@ubean/icon`                   |
+| 扩展     | PWA manifest + service worker               | `pwa: true` 配置                       | `@ubean/integrations/pwa`       |
+| 扩展     | 图片优化                                    | `image: true` 配置                     | `@ubean/image`                  |
+| 扩展     | 内容集合 + Markdown                         | `content: true` 配置                   | `@ubean/content`                |
+| 扩展     | 字体优化 + 自托管                           | `fonts: true` 配置                     | `@ubean/integrations/fonts`     |
+| 扩展     | Electron 桌面应用                           | `electron: true` 配置                  | `@ubean/integrations/electron`  |
+| 扩展     | @soybeanjs/ui 集成                          | `ui: true` 配置                        | `@ubean/integrations/ui`        |
+| 扩展     | Pinia 集成 + SSR 水合                       | `pinia: true` 配置                     | `@ubean/integrations/pinia`     |
 
 ### 包入口点
 
@@ -95,62 +97,75 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 | -------------------- | ----------------------------------------- | -------------------- |
 | `ubean`              | 主入口 —— re-export 所有子包              | 服务端代码、API 路由 |
 | `ubean/vite`         | 组合式 Vite 插件（build + vue + islands） | `vite.config.ts`     |
+| `ubean/client`       | 一等客户端入口（`@ubean/client`）         | 客户端代码、SPA 入口 |
 | `ubean/runtime/vue`  | 浏览器 Vue 客户端运行时（无服务端依赖）   | 客户端自动导入       |
 | `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`）  | `src/server.ts`      |
 | `ubean/runtime/i18n` | 服务端纯函数 i18n                         | 构建时语言环境处理   |
 | `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）     | 自定义 SSR 配置      |
 
-**新手关键规则：** 客户端自动导入**必须**使用 `ubean/runtime/vue` 入口，**绝不能**使用 `ubean` 主入口。在浏览器代码中从 `ubean` 导入会触发 Vite 预构建服务端依赖（Hono、数据库驱动、存储适配器）—— 严重的性能损耗，且可能在非 Node 环境引发运行时错误。
+**新手关键规则：** 客户端自动导入**必须**使用 `ubean/runtime/vue` 或 `ubean/client` 入口，**绝不能**使用 `ubean` 主入口。在浏览器代码中从 `ubean` 导入会触发 Vite 预构建服务端依赖（Hono、数据库驱动、存储适配器）—— 严重的性能损耗，且可能在非 Node 环境引发运行时错误。
+
+**客户端内核分层：** `@ubean/vue` 是精简客户端内核（仅 vue + vue-router），拥有页面路由全部能力（文件扫描、虚拟模块、页面缓存、过渡、matchers）；`@ubean/client` 在其上叠加框架运行时（app 工厂、unhead/SEO、i18n、数据层、islands 水合）；`ubean/client` 子路径 re-export 之。独立 SPA 可直接依赖 `@ubean/vue`，不拉入框架构建工具链。
 
 ## 项目结构
 
 ### 仓库布局
 
-ubean 是一个由 pnpm 工作区管理的 **37 包 monorepo**（`packages/*`、`apps/*`、`examples/*`）。公开包 `ubean`（`packages/ubean/`）是聚合器，re-export 所有 `@ubean/*` 子包。每个子包独立构建、类型检查，并可在高级场景中单独消费。基于 CodeGraph 的结构审计与改进建议见 [docs/architecture-analysis.md](docs/architecture-analysis.md)。
+ubean 是一个由 pnpm 工作区管理的 **33 包 monorepo**（`packages/*`、`apps/*`、`examples/*`）。公开包 `ubean`（`packages/ubean/`）是聚合器，re-export 所有 `@ubean/*` 子包。每个子包独立构建、类型检查，并可在高级场景中单独消费。工程文档索引见 [docs/README.md](docs/README.md)。
 
 ```
 packages/
 ├── ubean/          # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/*
-├── types/          # @ubean/types — 共享类型
-├── utils/          # @ubean/utils — 工具函数
-├── error/          # @ubean/error — 错误类
-├── env/            # @ubean/env — 类型化环境变量
+│
+│   ── 基础 / 共享层 ──
+├── shared/         # @ubean/shared — 共享类型、错误、环境变量、工具（合并 types/utils/error/env）
+├── vue/            # @ubean/vue — 精简 Vue 客户端内核 + 页面路由所有者（仅 vue + vue-router）
+├── markdown/       # @ubean/markdown — Markdown/MDX 页面解析
 ├── seo/            # @ubean/seo — SEO meta 管理
 ├── pages/          # @ubean/pages — 页面数据协议 (loader/action)
-├── markdown/       # @ubean/markdown — Markdown/MDX 页面解析
 ├── i18n/           # @ubean/i18n — 零依赖 i18n（纯函数）
-├── scan/           # @ubean/scan — 项目扫描器 (scanProject + 路由元数据)
-├── routes/         # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 router)
+├── logger/         # @ubean/logger — tslog 日志封装
+│
+│   ── 服务端运行时 ──
+├── routes/         # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 router + ISR + OpenAPI)
 ├── actions/        # @ubean/actions — Server Actions / Form Actions (defineAction)
 ├── server/         # @ubean/server — 服务端运行时 (cache/db/queue/cron/ws/sse)
 ├── app/            # @ubean/app — Hono 应用工厂 (createUbeanApp)
+│
+│   ── 构建时工具 ──
+├── build-core/     # @ubean/build-core — 构建基础设施（virtual-registry/macros/registry，零依赖）
+├── builder/        # @ubean/build — 核心 Vite 插件（框架无关 ubeanPlugin）
+├── vite/           # @ubean/vite — Vue 专属 Vite 插件 (ubeanVite)
+├── codegen/        # @ubean/codegen — 类型生成 (routes.d.ts + 自动导入预设)
 ├── config/         # @ubean/config — 配置加载器 (c12 + defu)
 ├── preset/         # @ubean/preset — 平台预设 (node/cloudflare + capabilities)
-├── codegen/        # @ubean/codegen — 类型生成 (routes.d.ts, pages.d.ts)
 ├── modules/        # @ubean/modules — 模块系统 (builtins + kit)
-├── auto-imports/   # @ubean/auto-imports — unimport 自动导入预设
-├── runtime/        # @ubean/runtime — Vue 客户端运行时
-├── islands/        # @ubean/islands — Islands 局部水合
-├── ssr/            # @ubean/ssr — Vue SSR 渲染器 (createVueRenderer)
-├── vite/           # @ubean/vite — Vue 专属 Vite 插件
-├── builder/        # @ubean/build — 构建时核心（目录名 builder，包名仍为 @ubean/build）
 ├── prerender/      # @ubean/prerender — SSG 预渲染
+│
+│   ── 路由扫描 ──
+├── scan/           # @ubean/scan — 项目扫描器 + 路由元数据聚合（页面扫描委托 @ubean/vue）
+│
+│   ── 客户端运行时 ──
+├── client/         # @ubean/client — 框架客户端运行时（基于 @ubean/vue 内核）
+│
+│   ── 服务 / 工具 ──
+├── ssr/            # @ubean/ssr — Vue SSR 渲染器 (createVueRenderer)
+├── islands/        # @ubean/islands — Islands 局部水合
 ├── dev-server/     # @ubean/dev-server — 开发服务器
-├── cli/            # @ubean/cli — CLI 命令 (citty)
+├── cli/            # @ubean/cli — CLI 命令
 ├── devtools/       # @ubean/devtools — 开发者工具 (RPC、AI、CRUD 脚手架)
+│
+│   ── 扩展包 ──
+├── ai/             # @ubean/ai — AI 集成（Vercel AI SDK 薄编排）
 ├── auth/           # @ubean/auth — Better Auth 集成 + fallback
 ├── icon/           # @ubean/icon — Iconify 集成 + 自定义集合
-├── pwa/            # @ubean/pwa — PWA manifest + service worker
 ├── image/          # @ubean/image — 图片优化
 ├── content/        # @ubean/content — 内容集合
-├── fonts/          # @ubean/fonts — 字体优化 + 自托管
-├── electron/       # @ubean/electron — Electron 桌面应用 (vite-plugin-electron)
-├── pinia/          # @ubean/pinia — Pinia 集成（SSR 水合 + optimizeDeps）
-└── ui/             # @ubean/ui — @soybeanjs/ui 集成 (UiResolver + styles.css)
+└── integrations/   # @ubean/integrations — pwa / fonts / electron / ui / pinia 子路径
 
 apps/docs/          # 文档站（源码位于 src/content/{en,zh}/）
-examples/           # ubean-test / frontend-only / routing-file-mode
-docs/               # 仓库级工程文档（roadmap、架构分析）
+examples/           # ubean-test / client-only-spa / frontend-only / routing-file-mode
+docs/               # 仓库级工程文档（ADR、领域词汇表、产品方案）
 ```
 
 ### 用户应用布局
@@ -252,17 +267,17 @@ export default defineConfig({
 
 ### 启用内置模块
 
-内置模块（`icon`、`pwa`、`auth`、`image`、`fonts`、`electron`、`ui`）通过 `ubean.config.ts` 按需启用。启用某个模块时需要安装对应的 `@ubean/*` 包：
+内置模块（`icon`、`pwa`、`auth`、`image`、`fonts`、`electron`、`ui`、`pinia`）通过 `ubean.config.ts` 按需启用。启用某个模块时需要安装对应的 `@ubean/*` 包：
 
 ```ts
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  ui: true, // @ubean/ui —— 自动注入 @soybeanjs/ui styles.css + UiResolver
+  ui: true, // @ubean/integrations/ui —— 自动注入 @soybeanjs/ui styles.css + UiResolver
   icon: true, // @ubean/icon —— Iconify 集成
-  pwa: true, // @ubean/pwa —— manifest + service worker
+  pwa: true, // @ubean/integrations/pwa —— manifest + service worker
   auth: true, // @ubean/auth —— Better Auth 集成
-  electron: true // @ubean/electron —— 桌面应用（自动关闭 SSR）
+  electron: true // @ubean/integrations/electron —— 桌面应用（自动关闭 SSR）
 });
 ```
 
@@ -290,17 +305,17 @@ v0.1 目标平台为 **Node.js**（`node-server`）和 **Cloudflare Workers**。
 
 ### 已实现的能力
 
-- **路由：** `routes/` API 文件路由，支持 `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` 命名导出，由 `defineHandler` 包装；`pages/` Vue SSR 页面、layouts、路由组、reuse 路由、loader/action 与类型化导航；`defineHandlerMeta` 路由元数据（`requiresAuth`、`cache`、`rateLimit`）；来自 `hono-openapi` 的 `validator` / `describeRoute` / `resolver` 用于请求验证和 OpenAPI 3.1 生成；在 `.ubean/routes.d.ts` 生成 `paths` 类型。
+- **路由：** `routes/` API 文件路由，支持 `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` 命名导出，由 `defineHandler` 包装；`pages/` Vue SSR 页面、layouts、路由组、reuse 路由、并行/拦截路由、动态参数 matchers、特殊页面与类型化导航；`defineHandlerMeta` 路由元数据（`requiresAuth`、`cache`、`rateLimit`）；来自 `hono-openapi` 的 `validator` / `describeRoute` / `resolver` 用于请求验证和 OpenAPI 3.1 生成；在 `.ubean/routes.d.ts` 生成 `paths` 类型。
 - **应用：** `defineApp` 基于选项的定制（含 `router.setup` 用于在 client 与 SSR 两端注册全局导航守卫）、`definePage` 宏、`defineMiddleware`、`defineLocale`、`defineEnv`、`defineScheduled`（cron）、`defineQueue`。
 - **服务器：** 内置数据库层（`defineDatabase` / `useDatabase`）、存储（`useStorage` / `useKV`）、缓存（`useCacheStore` / `cachedEventHandler`）、限流、CORS、route rules（重定向 / 重写 / headers / cache）与 SSG 预渲染。WebSocket（`defineWebSocket`）、SSE 流、`internalFetch`（直接在进程内调度框架 handler，不发起网络请求）。
 - **DevTools：** RPC、AI 助手、API playground 与 CRUD 脚手架。
-- **扩展包：** `@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/pwa`、`@ubean/image`、`@ubean/content`、`@ubean/fonts`、`@ubean/electron`（基于 vite-plugin-electron 的桌面应用，默认 main/preload 入口，自动关闭 SSR）、`@ubean/ui`（@soybeanjs/ui 集成，UiResolver + styles.css 自动注入）。
+- **扩展包：** `@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/image`、`@ubean/content`，以及 `@ubean/integrations`（PWA / 字体 / 基于 vite-plugin-electron 的 Electron 桌面应用，默认 main/preload 入口，自动关闭 SSR / @soybeanjs/ui 集成，UiResolver + styles.css 自动注入 / Pinia SSR 水合）。
 
 > 注意：上述能力虽已实现并通过类型检查和基础测试，但部分子系统（尤其是数据库层、队列 worker 和 cron 调度器）尚未经过负载测试和生产硬化。请将 v0.1 视为预览版。
 
 ## 开发
 
-要求：Node.js、pnpm `11.11.0`。
+要求：Node.js、pnpm `11.22.0`。
 
 ```bash
 pnpm install
@@ -321,10 +336,10 @@ pnpm lint
 ## 规划与贡献
 
 - [文档索引](docs/README.md) 包含架构参考、历史设计记录与待办提案。
-- 使用指南与 API 参考位于 [skills/ubean/docs](skills/ubean/docs)。
+- 使用指南与 API 参考位于 [skills/ubean/SKILL.md](skills/ubean/SKILL.md) 以及文档站的 [apps/docs/src/content](apps/docs/src/content)。
 - [AGENTS.md](AGENTS.md) 是 AI 助手和贡献者的权威快速参考 —— 包列表、核心 API、约定与常见陷阱。
 - 每项功能应随实现提交对应的单元测试、真实 fixture，以及适用的 `dev`、`build`、`preview` 或浏览器端到端验证。
-- 对公开 API、preset 能力或生成类型的变更，需要同步更新规划、测试和迁移说明。
+- 对公开 API、preset 能力或生成类型的变更，需要同步更新规划、测试和文档。
 
 ## 许可证
 

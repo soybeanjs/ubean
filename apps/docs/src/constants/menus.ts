@@ -65,12 +65,12 @@ export const menuSections: MenuSection[] = [
     labelZh: 'API 参考',
     items: [
       { label: 'ubean (main)', to: '/reference/api/ubean' },
-      { label: '@ubean/runtime', to: '/reference/api/runtime' },
+      { label: '@ubean/client', to: '/reference/api/client' },
+      { label: '@ubean/vue', to: '/reference/api/vue' },
       { label: '@ubean/scan', to: '/reference/api/scan' },
       { label: '@ubean/config', to: '/reference/api/config' },
       { label: '@ubean/auth', to: '/reference/api/auth' },
-      { label: '@ubean/ui', to: '/reference/api/ui' },
-      { label: '@ubean/pinia', to: '/reference/api/pinia' }
+      { label: '@ubean/integrations', to: '/reference/api/integrations' }
     ]
   },
   {

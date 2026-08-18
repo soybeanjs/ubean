@@ -7,7 +7,7 @@ description: "How ubean is architected: its five layers, package layout, and con
 
 ## 1. Layered Architecture
 
-ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized into five layers. The repository is structured as **37 single-purpose packages** (`packages/*`); the main `ubean` package is a thin aggregator that re-exports every `@ubean/*` subpackage.
+ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized into five layers. The repository is structured as **33 packages** (`packages/*`); the main `ubean` package is a thin aggregator that re-exports every `@ubean/*` subpackage.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -25,6 +25,7 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 │  │  @ubean/config   config loading (defineConfig / c12)        │   │
 │  │  @ubean/scan  route scanning (pages/routes/layouts/...)  │   │
 │  │  @ubean/build    production build orchestration             │   │
+│  │  @ubean/build-core  virtual-registry / macros / registry   │   │
 │  │  @ubean/prerender  SSG prerendering (routeRules-driven)     │   │
 │  │  @ubean/modules  module system (builtins + kit hooks)       │   │
 │  │  @ubean/codegen  type generation (routes.d.ts / typed-router)│  │
@@ -40,7 +41,7 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │                Runtime Layer (runtime)                       │   │
 │  │  @ubean/app     Hono app factory (createUbeanApp)           │   │
-│  │  @ubean/runtime Vue client runtime (createUbeanClientApp)      │   │
+│  │  @ubean/client Vue client runtime (createUbeanClientApp)      │   │
 │  │  @ubean/ssr     Vue SSR renderer (streaming / PPR)          │   │
 │  │  @ubean/server  cache / db / queue / cron / ws / sse / ...  │   │
 │  │  @ubean/pages   page data protocol (loaders / actions)      │   │
@@ -59,8 +60,8 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 ### 1.1 Package Organization
 
 - **Aggregator main package**: `packages/ubean` (npm: `ubean`) contains no framework logic — it re-exports all subpackages, preserving the same API surface as the original single package.
-- **Single-purpose subpackages**: the remaining 36 packages are split by capability (`@ubean/types` / `@ubean/scan` / `@ubean/app` / `@ubean/ssr` …), each built and type-checked independently.
-- **Extensions loaded on demand**: `auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` are enabled via top-level `ubean.config.ts` fields; the build dynamically `import()`s the matching `/vite` subpath. They **never** become hard dependencies of the main package.
+- **Single-purpose subpackages**: the remaining 32 packages are split by capability (`@ubean/shared` / `@ubean/scan` / `@ubean/vue` / `@ubean/app` / `@ubean/ssr` …), each built and type-checked independently.
+- **Extensions loaded on demand**: `auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` are enabled via top-level `ubean.config.ts` fields (the pwa/fonts/electron/pinia/ui integrations live in `@ubean/integrations`); the build dynamically `import()`s the matching `/vite` subpath. They **never** become hard dependencies of the main package.
 - **Entry boundaries**: server code imports from the `ubean` main entry or `ubean/runtime/app`; browser code must import from `ubean/runtime/vue` to keep server-side build tooling out of the browser bundle.
 
 ## 2. Core Data Flow
@@ -158,10 +159,10 @@ export default defineConfig({
 
   // Extensions (opt-in; the matching /vite plugin is loaded at build time)
   icon: true,         // @ubean/icon
-  pwa: true,          // @ubean/pwa
+  pwa: true,          // @ubean/integrations/pwa
   auth: true,         // @ubean/auth
-  ui: { css: false }, // @ubean/ui (UnoCSS mode)
-  pinia: true,        // @ubean/pinia
+  ui: { css: false }, // @ubean/integrations/ui (UnoCSS mode)
+  pinia: true,        // @ubean/integrations/pinia
 
   // DevTools panel (disabled by default)
   devtools: { enabled: true },

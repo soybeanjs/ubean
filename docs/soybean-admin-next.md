@@ -63,57 +63,55 @@ SoybeanAdmin (current)              SoybeanAdmin Next (new)
 
 | 层 | 包 | 定位 | 独立可用性 |
 | --- | --- | --- | --- |
-| L1 扫描内核 | `@ubean/routing` | 文件式路由扫描（pages/layouts、`definePage` 宏、路由命名、`[id]`/`(group)`/`.reuse`）、文件生成、typed-router.d.ts | ✅ 框架无关，无 Vue/Vite 运行时依赖 |
-| L2 客户端运行时 | `@ubean/runtime` | `<PageView>`（KeepAlive+Transition+Suspense+ErrorBoundary）、`useCacheViews`/`enablePageCache`/`getNamedPageWrapper`、`<Link>`/`<Head>`、布局链、页面过渡/重载 | ✅ 仅依赖 vue + vue-router + unhead |
-| L3 完整框架 | `ubean` | SSR、文件式 API 路由、中间件、crons、数据库、DevTools 等全栈能力 | 内部复用 L1+L2 |
+| L1 扫描内核 | `@ubean/scan` | 项目扫描聚合（API 路由/中间件/crons + 页面扫描委托 `@ubean/vue`） | ✅ 框架无关 |
+| L2 客户端内核 | `@ubean/vue` | **页面路由唯一所有者**：文件式路由扫描与虚拟模块（`/vite`）、`definePage` 宏、页面缓存（KeepAlive）、过渡/重载、`<PageView>`/`<Link>`/`<SlotView>`、matchers、typed-router.d.ts（`/generator`） | ✅ 仅依赖 vue + vue-router |
+| L2.5 框架客户端运行时 | `@ubean/client` | 在 `@ubean/vue` 之上叠加 app 工厂（`createUbeanClientApp`）、unhead/`<Head>`、i18n、数据层、islands 水合 | ✅ 经 `ubean/client` 子路径独立消费 |
+| L3 完整框架 | `ubean` | SSR、文件式 API 路由、中间件、crons、数据库、DevTools 等全栈能力 | 内部复用 L1-L2.5 |
 
-**自动导入预设**早已按此边界拆分：`UBEAN_CLIENT_PRESET`（来自 `ubean/runtime/vue`，纯客户端）与 `UBEAN_SERVER_PRESET`（来自 `ubean`，含构建工具，仅服务端文件使用）。
+**自动导入预设**早已按此边界拆分：`UBEAN_CLIENT_PRESET`（来自 `ubean/client`，纯客户端）与 `UBEAN_SERVER_PRESET`（来自 `ubean`，含构建工具，仅服务端文件使用）。
 
-因此 ubean 缺的只是 **一个一等公民的独立分发入口**：`ubean/client`。
+因此独立分发入口已就绪：`ubean/client`（一等客户端子路径，re-export `@ubean/client`）。
 
-### 2.2 ubean/client 子路径入口设计
+### 2.2 客户端内核子路径设计
 
-在 `ubean` 主包新增客户端专用子路径导出，复用现有 `@ubean/routing` + `@ubean/runtime` + `@ubean/pages`，并新增一个轻量「客户端专用 Vite 插件」`ubeanClientPlugin`。
+`@ubean/vue` 是页面路由内核（Vue 插件 `ubeanVue`，`app.use` 安装），`ubean/client` 是其一等客户端分发入口：
 
 ```
-ubean/
-├── ubean/client/            # 客户端运行时聚合（Vue 插件 ubeanClient，app.use 安装）
-│   ├── ubeanClient          # 默认导出：Vue 插件（install(app, options)）
-│   ├── PageView / Link / Head / SlotView
-│   ├── useRouter / usePage
-│   ├── useCacheViews / enablePageCache / disablePageCache / ...
-│   ├── getNamedPageWrapper / initCachedViewsFromRoutes
-│   ├── usePageTransition / reloadPage / useReloadSignal
-│   └── definePage（编译时宏）
-├── ubean/client/vite        # 独立客户端 Vite 插件 ubeanClientPlugin（构建期）
-└── ubean/client/types       # 客户端类型（RouteName / LayoutName / typed-router.d.ts 模块增强）
+@ubean/vue/
+├── ubeanVue                # 默认导出：Vue 插件（install(app, options)）
+├── PageView / Link / SlotView / LayoutChainRenderer / ErrorBoundary
+├── useCacheViews / enablePageCache / disablePageCache / ...
+├── getNamedPageWrapper / initCachedViewsFromRoutes
+├── usePageTransition / reloadPage / useReloadSignal
+├── definePage（编译时宏）
+├── /vite                   # 文件式路由 Vite 插件 ubeanVueVite（扫描 + 虚拟模块）
+└── /generator              # 物理路由文件生成器（file 模式 + typed-router.d.ts）
 ```
 
 **依赖边界（仅客户端）**：
 
 | 包含 | 不包含 |
 | --- | --- |
-| `@ubean/routing`（扫描内核） | SSR / Hono |
-| `@ubean/runtime`（Vue 客户端运行时） | 文件式 API 路由 |
+| `@ubean/vue`（页面路由内核） | SSR / Hono |
+| `@ubean/client`（框架客户端运行时，re-export `@ubean/vue`） | 文件式 API 路由 |
 | `@ubean/pages`（PageObject 协议） | server entry / middleware |
-| vue + vue-router + @unhead/vue | crons / queues / 数据库 |
+| vue + vue-router（`@ubean/vue` 仅此两项）+ 可选 unhead | crons / queues / 数据库 |
 | 可选：`@ubean/i18n`、colorMode、view-transitions 等纯客户端能力 | DevTools / CLI 服务端能力 |
 
-### 2.3 ubeanClientPlugin 独立 Vite 插件
+### 2.3 ubeanVueVite 独立 Vite 插件
 
-`ubeanClientPlugin` 是 `ubeanVite` 的客户端子集，能力如下：
+`ubeanVueVite`（`@ubean/vue/vite`）是客户端文件式路由插件，能力如下：
 
 | 能力 | 说明 |
 | --- | --- |
-| 页面扫描 | 只扫描 `src/pages/` + `src/layouts/`（可配置 `dirs`），不扫描 routes/middleware/crons/queues 等 |
-| 路由模式 | `virtual`（默认，零配置）/ `file`（物理文件）/ `both`（混合） |
-| 客户端虚拟模块 | 注册 `virtual:ubean-client-pages`（pages/layouts/特殊页 404/loading/error） |
+| 页面扫描 | 扫描 `src/pages/` + `src/layouts/`（可配置 `pagesDir`/`layoutsDir`），不扫描 routes/middleware/crons/queues 等 |
+| 路由模式 | `virtual`（默认，零配置）/ `file`（物理文件，`/generator` 生成）/ `both`（混合） |
+| 客户端虚拟模块 | 注册 `virtual:ubean-vue-routes`（pages/layouts/特殊页 404/loading/error + matchers + head） |
 | 类型生成 | `.ubean/typed-router.d.ts`（RouteName / LayoutName / RoutePath 类型） |
-| 自动导入 | 仅 `UBEAN_CLIENT_PRESET`（definePage / useCacheViews / PageView 等） |
-| 全局组件 | 注册 `<Link>` / `<Head>` / `<PageView>` / `<SlotView>` |
-| 页面缓存初始化 | 启动时 `initCachedViewsFromRoutes()`，读取 `definePage({ cache: true })` |
-| 文件监听 | pages / layouts / app 变更自动重扫，HMR 生效 |
-| 纯客户端扩展 | 可选启用 colorMode（无 FOUC 脚本）、view-transitions、内置 i18n |
+| 特殊页面 | `404.vue` / `loading.vue` / `error.vue` 自动检测 |
+| 页面级 head（opt-in） | `head: true` 时提取 `definePage({ head })` / frontmatter 到 `route.meta.head` |
+| Markdown（opt-in） | `markdown: true` 时支持 `.md` / `.mdx` 页面（`@ubean/markdown` 按需加载） |
+| 文件监听 | pages / layouts 变更自动重扫，HMR 生效 |
 
 **独立 SPA 使用方式**：
 
@@ -121,25 +119,26 @@ ubean/
 // vite.config.ts
 import { defineConfig } from 'vite-plus';
 import vue from '@vitejs/plugin-vue';
-import { ubeanClientPlugin } from 'ubean/client/vite';
+import { ubeanVueVite } from '@ubean/vue/vite';
 
 export default defineConfig({
-  plugins: [vue(), ubeanClientPlugin({ routing: { mode: 'file' } })]
+  plugins: [vue(), ubeanVueVite({ routing: { mode: 'file' } })]
 });
 ```
 
 ```ts
 // src/main.ts（独立 SPA 入口）
-import { createUbeanClientApp } from 'ubean/client';
+import { createApp } from 'vue';
 import { createWebHistory, createRouter } from 'vue-router';
-// routes 由 ubean/client 生成（虚拟模块或 _generated/routes.ts）
+import { ubeanVue } from '@ubean/vue';
+// routes 由 @ubean/vue/vite 生成（虚拟模块或 _generated/routes.ts）
 ```
 
-**ubean 集成使用方式**：使用完整 `ubeanVite`（frontend-only 模式本身就是 `ubeanClientPlugin` 的超集），或完整元框架（SSR + API 路由）。同一套路由/缓存内核，无缝切换。
+**ubean 集成使用方式**：使用完整 `ubeanVite`（`@ubean/vite`）或完整元框架（SSR + API 路由）。同一套路由/缓存内核，无缝切换。
 
 ### 2.4 elegant-router 去留
 
-- **决策**：SoybeanAdmin Next **不再依赖 elegant-router**，路由与页面缓存统一由 `ubean/client` 提供。
+- **决策**：SoybeanAdmin Next **不再依赖 elegant-router**，路由与页面缓存统一由 `ubean/client`（内核 `@ubean/vue`）提供。
 - elegant-router 保留为社区独立的文件式路由插件（适用于完全不想引入 ubean 依赖的项目），但与 SoybeanAdmin Next 主路线解耦。
 - ubean 文档中「与 elegant-router 的差异」继续保留，作为选型参考。
 
@@ -154,7 +153,7 @@ import { createWebHistory, createRouter } from 'vue-router';
 | **构建工具** | Vite 8 | Vite 8 + vite-plus | vite-plus 提供统一工程化入口 |
 | **UI 框架** | Vue 3.5 | Vue 3.5+ | 一致 |
 | **UI 组件库** | NaiveUI 2.44 | `@soybeanjs/ui` | 生态统一，Soybean 自有组件 |
-| **路由内核** | `@elegant-router/vue` 0.3.8 | `ubean/client`（提取自 `@ubean/routing` + `@ubean/runtime`） | 独立可用 + 可整合 ubean |
+| **路由内核** | `@elegant-router/vue` 0.3.8 | `ubean/client`（提取自 `@ubean/vue` + `@ubean/scan`） | 独立可用 + 可整合 ubean |
 | **状态管理** | Pinia 3.x | Pinia 3.x+ | 一致 |
 | **CSS 引擎** | UnoCSS 66.x | UnoCSS 66.x | 一致，预设升级 |
 | **国际化** | vue-i18n 11.x | vue-i18n 11.x（可选 `@ubean/i18n`） | 保持一致或切换内置 i18n |
@@ -258,8 +257,8 @@ apps/admin/
 
 | 维度 | 独立 SPA 模式 | ubean 集成模式 |
 | --- | --- | --- |
-| Vite 插件 | `ubeanClientPlugin` | `ubeanVite`（或完整框架） |
-| 路由内核 | `ubean/client` | 同一内核（`@ubean/routing` + `@ubean/runtime`） |
+| Vite 插件 | `ubeanVueVite`（`@ubean/vue/vite`） | `ubeanVite`（或完整框架） |
+| 路由内核 | `ubean/client`（内核 `@ubean/vue`） | 同一内核（`@ubean/vue` + `@ubean/scan`） |
 | 页面目录 | `src/pages/` | `src/pages/`（一致） |
 | 布局 | `src/layouts/` 自动扫描 | `src/layouts/` 自动扫描（一致） |
 | 页面缓存 | ✅ KeepAlive + `definePage({ cache })` | ✅ 一致 |
@@ -304,8 +303,6 @@ apps/admin/
 
 `ubean/client` 子路径入口需要在 ubean 主仓库落地，是独立小改，不阻塞 SoybeanAdmin Next 的独立开发。
 
-> 变更点清单、详细设计、实施顺序与风险已整理至 **[docs/optimize.md](./optimize.md)**（UB-01~UB-05）。
-
 ---
 
 ## 7. 开发阶段与里程碑
@@ -316,10 +313,10 @@ apps/admin/
 
 | 任务 | 交付物 | 优先级 |
 | --- | --- | --- |
-| 【ubean】落地 `ubean/client` 内核（UB-01~UB-05，见 [docs/optimize.md](./optimize.md)） | 独立客户端内核可用 | P0 |
+| 【ubean】落地 `ubean/client` 内核 | 独立客户端内核可用 | P0 |
 | 初始化 pnpm monorepo + vite-plus 配置 | 可运行的空项目 | P0 |
 | 配置 `@soybeanjs/ui` + UnoCSS（shadcn preset） | UI 组件可渲染 | P0 |
-| 接入 `ubean/client/vite`，`pages/` 文件式路由 | 路由自动生成，页面可访问 | P0 |
+| 接入 `ubeanVueVite`（`@ubean/vue/vite`），`pages/` 文件式路由 | 路由自动生成，页面可访问 | P0 |
 | 搭建基础布局（`layouts/base/` + `layouts/blank/`） | 侧边栏、顶部栏、Tab 标签 | P0 |
 | 实现登录页面（pwd-login / register / reset-pwd） | 登录流程完整 | P0 |
 | 实现异常页面（403 / 404 / 500） | 异常页展示 | P0 |
@@ -390,11 +387,11 @@ apps/admin/
 | 任务 | 交付物 | 优先级 |
 | --- | --- | --- |
 | 设计 ubean 集成入口（`app.ts` + `ubean.config.ts`） | 集成规范文档 | P0 |
-| 模式切换：独立 SPA（`ubeanClientPlugin`）↔ ubean 全栈（`ubeanVite`） | 可切换的脚手架 | P1 |
+| 模式切换：独立 SPA（`ubeanVueVite`）↔ ubean 全栈（`ubeanVite`） | 可切换的脚手架 | P1 |
 | ubean 集成时启用 SSR | SSR 渲染 | P2 |
 | ubean 集成时使用文件式 API 路由 | 后端 API 文件路由 | P2 |
 | ubean 集成时使用 `@ubean/icon` 图标模块 | 图标优化 | P2 |
-| ubean 集成时使用 `@ubean/pinia` SSR 状态水合 | SSR 状态同步 | P2 |
+| ubean 集成时使用 `@ubean/integrations/pinia` SSR 状态水合 | SSR 状态同步 | P2 |
 
 ### Phase 5：质量与发布
 
@@ -422,8 +419,8 @@ apps/admin/
 ### ADR-02：路由与页面缓存内核
 
 - **决策**：提取 ubean 客户端内核为 `ubean/client`，替换「改造 elegant-router」方案
-- **理由**：`@ubean/routing`（框架无关扫描内核）+ `@ubean/runtime`（纯客户端运行时）本就可独立使用；`ubean/client` 提供一等公民的独立入口，独立 SPA 与 ubean 集成共用同一实现，「贴合 ubean」构造性成立、零双份维护
-- **影响**：需在 ubean 主仓库落地 `ubean/client` 子路径（见 [docs/optimize.md](./optimize.md)）；SoybeanAdmin Next 不再依赖 elegant-router
+- **理由**：`@ubean/scan`（框架无关扫描内核）+ `@ubean/client`（纯客户端运行时）本就可独立使用；`ubean/client` 提供一等公民的独立入口，独立 SPA 与 ubean 集成共用同一实现，「贴合 ubean」构造性成立、零双份维护
+- **影响**：需在 ubean 主仓库落地 `ubean/client` 子路径；SoybeanAdmin Next 不再依赖 elegant-router
 
 ### ADR-03：Monorepo 策略
 
@@ -445,9 +442,9 @@ apps/admin/
 
 ### ADR-06：独立/集成边界
 
-- **决策**：`ubean/client` 严格保持纯客户端依赖，自动导入只使用 `ubean/runtime/vue` 入口
+- **决策**：`ubean/client` 严格保持纯客户端依赖，自动导入只使用 `ubean/client`（或 `ubean/runtime/vue`）入口
 - **理由**：避免拉入 vite/oxc-parser 等构建依赖进浏览器产物（ubean 工程规范经验）；确保独立 SPA 产物最小化
-- **影响**：`ubean/client/vite` 插件只注册 `UBEAN_CLIENT_PRESET`，不注册 `UBEAN_SERVER_PRESET`
+- **影响**：客户端文件式路由插件（`ubeanVueVite`）只注册 `UBEAN_CLIENT_PRESET`，不注册 `UBEAN_SERVER_PRESET`
 
 ---
 
@@ -456,7 +453,7 @@ apps/admin/
 | 差异维度 | SoybeanAdmin v2.2.0 | SoybeanAdmin Next |
 | --- | --- | --- |
 | **UI 组件库** | NaiveUI | `@soybeanjs/ui` |
-| **路由内核** | `@elegant-router/vue` 0.3.x | `ubean/client`（提取自 `@ubean/routing` + `@ubean/runtime`） |
+| **路由内核** | `@elegant-router/vue` 0.3.x | `ubean/client`（提取自 `@ubean/scan` + `@ubean/client`） |
 | **构建工具** | 裸 Vite + 自定义脚本 | vite-plus |
 | **Mock 方案** | ApiFox 在线 Mock | 无内置 Mock，对接真实后端 |
 | **内部包** | 6 个 `@sa/*` 包 | 极简，复用 `@soybeanjs/*` + `@ubean/*` 生态 |

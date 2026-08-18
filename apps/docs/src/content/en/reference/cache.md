@@ -110,7 +110,7 @@ Cacheability is enforced automatically:
 
 ## defineCachedFunction()
 
-Wrap an arbitrary function with caching. This is the explicit, function-call replacement for the removed `"use cache"` string directive. Useful for memoizing expensive computations (DB queries, remote fetches, derived data) with TTL- and tag-based invalidation.
+Wrap an arbitrary function with caching. Useful for memoizing expensive computations (DB queries, remote fetches, derived data) with TTL- and tag-based invalidation.
 
 ```typescript
 import { defineCachedFunction, cacheLife, cacheTag } from 'ubean';
@@ -136,31 +136,6 @@ await revalidateTag('users'); // invalidates every entry tagged 'users'
 | name        | string (required)   | Cache key prefix (e.g. `'getUserProfile'`)                        |
 | defaultTtl  | number              | TTL in seconds when `cacheLife()` is not called (default 60)      |
 | getKey      | (...args) => string | Custom cache key generator (defaults to `name + JSON.stringify(args)`) |
-
-> **Deprecated alias**: `wrapWithCache(fn, options)` is kept as a deprecated alias for `defineCachedFunction()`. Prefer `defineCachedFunction()` in new code.
-
-### Migration from legacy syntax
-
-The `"use cache"` string directive and its `ubeanCacheDirectivePlugin` Vite plugin (previously exported from `@ubean/server/vite`) have been **removed**. Migrate to the explicit `defineCachedFunction()` wrapper:
-
-```typescript
-// Before (removed): "use cache" string directive
-async function getUserProfile(userId: string) {
-  'use cache';
-  return await db.query.users.findById(userId);
-}
-
-// After: explicit defineCachedFunction() wrapper
-export const getUserProfile = defineCachedFunction(
-  async (userId: string) => {
-    cacheLife(60);
-    return db.query.users.findById(userId);
-  },
-  { name: 'getUserProfile' }
-);
-```
-
-The `cacheLife()` / `cacheTag()` runtime helpers and the `revalidateTag()` / `revalidateTags()` / `revalidatePath()` invalidation APIs remain available.
 
 ## invalidateRouteCache()
 

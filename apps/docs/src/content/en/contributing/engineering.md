@@ -142,7 +142,7 @@ type InferLoaderData<T> = T extends () => Promise<{ data: infer D }> ? D : never
 3. **Browser end-to-end tests** (`test/e2e/`)
 
 - Use Playwright to verify SSR hydration, client navigation, form actions, and error pages
-- Only run against officially supported presets; do not replace formal platform smoke tests with simulators
+- Only run against officially supported presets; formal platform smoke tests remain the authoritative verification (simulators are supplementary)
 
 1. **Type tests**
    - Use `expectTypeOf` to verify type inference
@@ -168,7 +168,7 @@ Coverage is used to find blind spots; it is not a release standard that replaces
 
 - Main package (`ubean`): 38 test files, **799 tests passing** (81 DevTools tests moved to the standalone `@ubean/devtools` package).
 - Core subpackages: `@ubean/islands` 199 (directive / paired-components / server-client-components / islands-registry / server-component-rerender), `@ubean/ssr` 18, `@ubean/actions` 69, `@ubean/routes` route-rules 27, `@ubean/devtools` 81, examples/ubean-test prerender 92.
-- Extension packages: `@ubean/icon` 32, `@ubean/auth` 13, `@ubean/pwa` 19, `@ubean/image` 42, `@ubean/content` 18, `@ubean/fonts` 21, `@ubean/seo` 114.
+- Extension packages: `@ubean/icon` 32, `@ubean/auth` 13, `@ubean/integrations/pwa` 19, `@ubean/image` 42, `@ubean/content` 18, `@ubean/integrations/fonts` 21, `@ubean/seo` 114.
 - **~1075 tests passing** across the whole repo.
 - `pnpm typecheck`: passes. The TypeScript 7 and `vue-tsc` compatibility layer is provided via the workspace override `typescript: npm:typescript-native-bridge@0.0.0`; its native dependency `koffi` must be explicitly allowed in the `allowBuilds` list of `pnpm-workspace.yaml`.
 - `pnpm build`: passes (main package + all 8 extension packages, including `@ubean/devtools` and `@ubean/islands`).
@@ -467,7 +467,7 @@ The adaptation implementation for each platform (preset) must first reference th
    - Focus on: vite-plugin development, dev-mode middleware, client injection
 
 3. **Reference principles**:
-   - Do not copy code directly; learn the architecture design and implementation patterns
+   - Study the architecture design and implementation patterns and adapt them to ubean's API
    - Keep ubean's API design consistent
    - All adapter layers must have corresponding test cases
    - Platform-specific capabilities must be declared via the capability matrix

@@ -1,11 +1,11 @@
 ---
 title: Ui
-description: UI components from @soybeanjs/ui, integrated via @ubean/ui.
+description: UI components from @soybeanjs/ui, integrated via @ubean/integrations/ui.
 ---
 
 # UI Components (@soybeanjs/ui)
 
-`@ubean/ui` is ubean's **built-in UI module** that integrates [`@soybeanjs/ui`](https://www.npmjs.com/package/@soybeanjs/ui) — a shadcn-style Vue component library. The module is a thin orchestration layer that wires `@soybeanjs/ui`'s component resolver and (optionally) prebuilt styles into ubean's Vite pipeline. The component library itself is consumed directly from `@soybeanjs/ui`.
+`@ubean/integrations/ui` is ubean's **built-in UI integration** that integrates [`@soybeanjs/ui`](https://www.npmjs.com/package/@soybeanjs/ui) — a shadcn-style Vue component library. The module is a thin orchestration layer that wires `@soybeanjs/ui`'s component resolver and (optionally) prebuilt styles into ubean's Vite pipeline. The component library itself is consumed directly from `@soybeanjs/ui`.
 
 ## Features
 
@@ -19,13 +19,13 @@ description: UI components from @soybeanjs/ui, integrated via @ubean/ui.
 
 ## Installation
 
-`@ubean/ui` is a built-in module. Install it as a dependency in your project:
+`@ubean/integrations/ui` is a built-in integration (a subpath of `@ubean/integrations`). Install it as a dependency in your project:
 
 ```bash
-pnpm add @ubean/ui @soybeanjs/ui
+pnpm add @ubean/integrations/ui @soybeanjs/ui
 ```
 
-> `@soybeanjs/ui` is a peer dependency — you control its version. `@ubean/ui` requires `@soybeanjs/ui@>=0.29.0`.
+> `@soybeanjs/ui` is a peer dependency — you control its version. `@ubean/integrations/ui` requires `@soybeanjs/ui@>=0.29.0`.
 
 ### UnoCSS mode (optional)
 
@@ -146,11 +146,11 @@ See the [`@soybeanjs/ui` docs](https://www.npmjs.com/package/@soybeanjs/ui) for 
 
 ## How It Works
 
-`@ubean/ui` is a thin wrapper. When `ui: true` is set:
+`@ubean/integrations/ui` is a thin wrapper. When `ui: true` is set:
 
-1. **Module system loads** `@ubean/ui/vite` and calls `ubeanUiPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.ui)` — `{ css: false }` when configured as an object, `{}` when `true`).
+1. **Module system loads** `@ubean/integrations/ui` and calls `ubeanUiPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.ui)` — `{ css: false }` when configured as an object, `{}` when `true`).
 
-2. **`ubeanUiPlugin` registers** `UiResolver()` (from `@soybeanjs/ui/resolver`) into ubean's module extension registry (`@ubean/build/registry`).
+2. **`ubeanUiPlugin` registers** `UiResolver()` (from `@soybeanjs/ui/resolver`) into ubean's module extension registry (in `@ubean/build-core`).
 
 3. **`ubeanVite` reads** the registry when constructing `unplugin-vue-components` and merges all registered resolvers into the `resolvers` array. This makes `S*` components resolvable from any `.vue` / `.md` file.
 
@@ -163,8 +163,8 @@ See the [`@soybeanjs/ui` docs](https://www.npmjs.com/package/@soybeanjs/ui) for 
 ## Programmatic API
 
 ```typescript
-import { ubeanUiPlugin, defineUiConfig } from '@ubean/ui/vite';
-import type { UiOptions } from '@ubean/ui';
+import { ubeanUiPlugin, defineUiConfig } from '@ubean/integrations/ui';
+import type { UiOptions } from '@ubean/integrations/ui';
 ```
 
 ### `ubeanUiPlugin(options?: UiOptions): Plugin[]`
@@ -260,7 +260,7 @@ For UnoCSS mode, ensure `@soybeanjs/unocss-shadcn`'s generated styles are includ
    </template>
    ```
 
-3. **Don't mix styling modes**: Pick one (prebuilt CSS or UnoCSS) and stick with it across the project. Mixing leads to duplicate style declarations and inconsistent theming.
+3. **Pick one styling mode**: Choose prebuilt CSS or UnoCSS and use it consistently across the project. Mixing leads to duplicate style declarations and inconsistent theming.
 
 4. **Customize via CSS variables, not overrides**: Both modes respect shadcn's CSS variable system. Override variables in `:root` / `.dark` instead of writing component-scoped CSS — this keeps your styles portable across component library upgrades.
 
@@ -274,7 +274,7 @@ For UnoCSS mode, ensure `@soybeanjs/unocss-shadcn`'s generated styles are includ
 
 - Verify `ui: true` (or `ui: { css: ... }`) is set in `ubean.config.ts`
 - Run `ubean prepare` to regenerate `.ubean/components.d.ts`
-- Check that `@ubean/ui` and `@soybeanjs/ui` are installed (not just one of them)
+- Check that `@ubean/integrations/ui` and `@soybeanjs/ui` are installed (not just one of them)
 - Ensure the component name starts with `S` (e.g. `SButton`, not `Button`)
 
 ### Styles missing in prebuilt CSS mode
@@ -293,7 +293,7 @@ For UnoCSS mode, ensure `@soybeanjs/unocss-shadcn`'s generated styles are includ
 
 - Run `ubean prepare` to regenerate type declarations
 - Verify `tsconfig.json` includes `.ubean/components.d.ts`
-- If using explicit imports, ensure you import from `@soybeanjs/ui` (not `@ubean/ui`)
+- If using explicit imports, ensure you import from `@soybeanjs/ui` (not `@ubean/integrations/ui`)
 
 ## Examples
 

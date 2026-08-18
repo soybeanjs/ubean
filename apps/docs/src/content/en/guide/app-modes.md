@@ -157,5 +157,4 @@ Pure API backend, no frontend.
 
 - `mode` defaults to `fullstack` and `ssr` defaults to `true` — existing projects need no changes (zero breaking change).
 - `fullstack` + `ssr: true` (default) build flow is identical to pre-`mode` behavior.
-- The legacy `ssr` mode alias was removed; use `fullstack` + `ssr: false` instead.
 - `fullstack` + `ssr: false` still generates a server bundle because API routes need it. If you need neither SSR nor API, use `spa`.

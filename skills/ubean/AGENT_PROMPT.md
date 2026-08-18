@@ -67,12 +67,12 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
 8. **Extension Packages** (`@ubean/*` scope, kebab-case)
    - `@ubean/icon`: Iconify-based icons with custom local SVG collections, `/_iconify` dev route
    - `@ubean/auth`: Better Auth integration with email/password fallback, `useAuth()` composable
-   - `@ubean/pwa`: Manifest + Service Worker generation, `usePwa()` composable
+   - `@ubean/integrations/pwa`: Manifest + Service Worker generation, `usePwa()` composable
    - `@ubean/image`: Multi-provider image optimization (IPX/Cloudinary/Imgix/...)
    - `@ubean/content`: Markdown/YAML/JSON content collections with `queryContent()`
-   - `@ubean/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
-   - `@ubean/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries and auto-disables SSR
-   - `@ubean/ui`: @soybeanjs/ui integration; `ui: true` enables UiResolver (component auto-import) + `styles.css` auto-injection; `ui: { css: false }` for UnoCSS mode (@soybeanjs/unocss-shadcn)
+   - `@ubean/integrations/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
+   - `@ubean/integrations/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries and auto-disables SSR
+   - `@ubean/integrations/ui`: @soybeanjs/ui integration; `ui: true` enables UiResolver (component auto-import) + `styles.css` auto-injection; `ui: { css: false }` for UnoCSS mode (@soybeanjs/unocss-shadcn)
 
 ### Project Structure
 
@@ -288,10 +288,10 @@ export default defineConfig({
   ssr: true, // only effective when mode === 'fullstack'
   modules: [],
   icon: false, // @ubean/icon
-  pwa: false, // @ubean/pwa
+  pwa: false, // @ubean/integrations/pwa
   auth: false, // @ubean/auth
-  electron: false, // @ubean/electron (enabling auto-disables SSR unless explicitly set)
-  ui: false, // @ubean/ui (@soybeanjs/ui: UiResolver + styles.css auto-injection)
+  electron: false, // @ubean/integrations/electron (enabling auto-disables SSR unless explicitly set)
+  ui: false, // @ubean/integrations/ui (@soybeanjs/ui: UiResolver + styles.css auto-injection)
   routing: { mode: 'virtual' }, // virtual (default) | file | both
   i18n: {
     defaultLocale: 'en',
@@ -426,13 +426,13 @@ Just create a file and return JSON (omits `defineHandler`, wrong file pattern li
 
 ## Constraints
 
-- Do not provide misleading information
-- Do not recommend deprecated patterns
-- Do not use the wrong package name `@ubean/core` — the correct package is `ubean`
-- Do not invent APIs that don't exist (e.g. `defineEventHandler`, `defineLoader`, `defineAction`, `navigateTo`, `redirectTo`)
-- Do not use `$fetch` / `ofetch` as auto-imported globals — ubean does not bundle a browser HTTP client; use native `fetch` or [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)
-- Do not provide incomplete code examples
-- Do not make assumptions about the user's environment
+- Provide accurate information
+- Recommend current, supported APIs
+- Use the package name `ubean` (not `@ubean/core`)
+- Use only APIs exported by `ubean` / `@ubean/*` (e.g. `defineHandler`); `defineEventHandler`, `defineLoader`, `navigateTo`, `redirectTo` are not part of the framework
+- ubean does not bundle a browser HTTP client — use native `fetch` or [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch) (not `$fetch` / `ofetch` globals)
+- Provide complete, runnable code examples
+- Base responses on the user's stated environment
 
 ## Success Metrics
 

@@ -7,7 +7,7 @@ description: ubean 框架概览：项目结构、设计约定与核心思想。
 
 ## 1. 项目概述
 
-**ubean** 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，融合了 void 的 Inertia 式 SSR 页面路由和 nitro 的跨平台部署能力，以 37 个单用途包的 monorepo 形式组织。
+**ubean** 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，融合了 void 的 Inertia 式 SSR 页面路由和 nitro 的跨平台部署能力，以 33 个单用途包（ubean 聚合器 + 32 个 `@ubean/*` 子包）的 monorepo 形式组织。
 
 ### 1.1 核心定位
 
@@ -39,7 +39,7 @@ description: ubean 框架概览：项目结构、设计约定与核心思想。
 | 平台适配       | Cloudflare 为主             | 30+ 平台 preset          | ✅ nitro 风格 preset 系统                                   |
 | 部署平台       | Void Cloud (自有平台)       | 各平台独立部署           | ❌ 移除，改为通用部署                                       |
 | 登录认证       | Better Auth 内置            | 无内置                   | ✅ 独立扩展包 `@ubean/auth`（Better Auth集成+内置fallback） |
-| 状态管理       | 无内置                      | 无内置                   | ✅ 独立扩展包 `@ubean/pinia`（Pinia 集成 + SSR 状态水合）   |
+| 状态管理       | 无内置                      | 无内置                   | ✅ 扩展子路径 `@ubean/integrations/pinia`（Pinia 集成 + SSR 状态水合）   |
 | 数据库         | Drizzle ORM + D1/PG         | db0 抽象层               | ✅ Drizzle ORM + 多数据库驱动                               |
 | 环境变量       | defineEnv + Schema 验证     | runtimeConfig            | ✅ defineEnv + 类型安全验证                                 |
 | 缓存/ISR       | KV + Edge Cache             | routeRules 缓存          | ✅ 融合两者                                                 |
@@ -140,9 +140,9 @@ description: ubean 框架概览：项目结构、设计约定与核心思想。
 | Vue 集成              | Vue 及 Vue Router 使用 `peerDependencies`；SSR renderer 按 server entry 引入 | `vue`、`vue-router`、`@vue/server-renderer`                     |
 | preset 包             | `@ubean/preset` 内置全部平台预设；不被核心包静态导入                         | `standard`/`node`/`cloudflare`/`vercel`/`netlify`/`bun`/`deno`  |
 | 浏览器传输适配器      | 仅在浏览器 client entry 打包；不进入 Node、edge 或 SSR bundle                | 数据库驱动、上传进度适配器                                      |
-| DevTools 与 Auth/PWA  | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`、`@ubean/pwa`                  |
-| 资源与内容扩展        | 独立包；依赖及平台实现按功能拆分，核心不静态引入                             | `@ubean/icon`、`@ubean/image`、`@ubean/content`、`@ubean/fonts` |
-| 状态管理与 UI 集成    | 独立包；底层库作为 peerDependency 由用户控制版本                             | `@ubean/pinia`、`@ubean/ui`                                     |
+| DevTools 与 Auth/PWA  | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`、`@ubean/integrations/pwa`     |
+| 资源与内容扩展        | 独立包；依赖及平台实现按功能拆分，核心不静态引入                             | `@ubean/icon`、`@ubean/image`、`@ubean/content`、`@ubean/integrations/fonts` |
+| 状态管理与 UI 集成    | 集成包子路径；底层库作为 peerDependency 由用户控制版本                       | `@ubean/integrations/pinia`、`@ubean/integrations/ui`           |
 
 - 文档示例若使用 `zod`，必须标记为用户项目依赖；框架核心仅依赖 Standard Schema 规范，不绑定某个验证库。
 - `@ubean/icon` 将 `@iconify/vue` 作为 Vue peer dependency，`@iconify-json/<collection>` 由用户按需安装为开发依赖；禁止将全量 `@iconify/json` 加入框架或应用默认依赖。
@@ -157,27 +157,26 @@ description: ubean 框架概览：项目结构、设计约定与核心思想。
 
 ```
 ubean/
-├── packages/                     # 37 个单用途包（monorepo）
+├── packages/                     # 33 个单用途包（ubean 聚合器 + 32 个 @ubean/* 子包）
 │   ├── ubean/                    # 主包 (npm name: "ubean") — 纯聚合器，re-export 全部子包
 │   │   ├── bin/ubean.mjs         # CLI 二进制入口
-│   │   ├── src/                  # runtime 入口 + 子路径导出（runtime/vue, runtime/app, vite…）
+│   │   ├── src/                  # 入口 + 子路径导出（client, runtime/vue, runtime/app, vite…）
 │   │   ├── test/                 # 单元 + 集成测试
 │   │   └── package.json
-│   ├── types/                    # @ubean/types — 共享类型
-│   ├── utils/                    # @ubean/utils — 工具函数
-│   ├── error/ env/ seo/ pages/ markdown/ i18n/     # 基础域包
+│   ├── shared/                   # @ubean/shared — 共享类型 / 工具函数 / 错误 / 环境变量
+│   ├── vue/ markdown/ seo/ pages/ i18n/ logger/   # 基础/共享：Vue 页面路由内核、Markdown、SEO、页面协议、i18n、日志
+│   ├── routes/ actions/ server/ app/              # 服务端运行时：API 路由、Server Actions、Hono 服务、应用工厂
+│   ├── build-core/ builder/ vite/ codegen/        # 构建时：build-core（零依赖）、@ubean/build、Vite 插件、类型生成
+│   │   config/ preset/ modules/ prerender/
 │   ├── scan/                    # @ubean/scan — 项目扫描 (scanProject + 路由元数据)
-│   ├── routes/ actions/         # @ubean/routes / @ubean/actions
-│   ├── server/ app/ config/ preset/ codegen/       # 服务端运行时 / Hono 工厂 / 配置 / 平台预设 / 类型生成
-│   ├── modules/ auto-imports/ runtime/ islands/    # 模块系统 / 自动导入 / Vue 客户端运行时 / Islands
-│   ├── ssr/ vite/ builder/ prerender/ dev-server/  # SSR 渲染器 / Vite 插件 / 构建编排 / SSG / 开发服务器
-│   ├── cli/ devtools/            # CLI / DevTools 独立包
-│   └── auth/ icon/ pwa/ image/ content/ fonts/     # 扩展包（按需加载，不进入主包硬依赖）
-│       electron/ pinia/ ui/
+│   ├── client/                  # @ubean/client — Vue 客户端运行时（createUbeanClientApp + 客户端自动导入）
+│   ├── ssr/ islands/ dev-server/ cli/ devtools/   # 服务/工具：SSR 渲染、Islands、开发服务器、CLI、DevTools
+│   └── ai/ auth/ icon/ image/ content/ integrations/   # 扩展（integrations 含 pwa/fonts/electron/ui/pinia 子路径）
 ├── apps/
 │   └── docs/                     # 官方文档站（指南 / 集成 / API / 架构正文，dogfooding）
 ├── examples/
 │   ├── ubean-test/               # 完整全栈示例 + 测试（virtual 路由模式）
+│   ├── client-only-spa/          # 纯客户端 SPA 示例（复用 @ubean/vue 内核）
 │   ├── frontend-only/            # 纯前端示例（无 API/SSR）
 │   └── routing-file-mode/        # 路由文件生成模式示例
 ├── skills/ubean/                 # AI Skill（CLI 命令文档与 agent 提示词）

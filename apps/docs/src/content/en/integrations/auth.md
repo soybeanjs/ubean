@@ -196,7 +196,7 @@ await signIn.social('github', { callbackURL: '/dashboard' });
 
 ## Middleware pattern (custom JWT)
 
-If you need a custom JWT flow (e.g. legacy token exchange), define a plain ubean middleware. **Do not use `defineEventHandler`** — it does not exist; use `defineHandler` with void-style named exports.
+If you need a custom JWT flow (e.g. token exchange), define a plain ubean middleware. For custom middleware use `defineHandler` with void-style named exports.
 
 ```typescript
 // middleware/auth.ts

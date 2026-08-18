@@ -1,24 +1,24 @@
 # client-only-spa · 独立使用 ubean 客户端内核
 
-演示**不依赖 ubean 全栈框架**、只用 `@ubean/client` 内核构建纯 SPA:
+演示**不依赖 ubean 全栈框架**、只用 `@ubean/vue` 精简内核构建纯 SPA:
 
-- 依赖仅 `@ubean/client` + `vue`/`vue-router`(peer) —— 不安装 `ubean` 聚合包
+- 依赖仅 `@ubean/vue` + `vue`/`vue-router` —— 不安装 `ubean` 聚合包
 - 无 SSR / server entry / API 路由 / CLI(`ubean dev|build` 一概不用,纯 `vite`)
-- 构建侧唯一来自内核的是 `@ubean/client/vite` 的 `ubeanClientPlugin`(仅注册 auto-import 预设)
+- 构建侧由 `@ubean/vue/vite` 的 `ubeanVueVite` 提供文件式路由(扫描 `src/pages/` + 生成 `virtual:ubean-vue-routes` + 编译期 `definePage` 提取)
 
 ## 与全栈 ubean 的差异
 
-| 能力         | 全栈 ubean                           | 本示例(独立 SPA)                       |
-| ------------ | ------------------------------------ | -------------------------------------- |
-| 路由来源     | 文件系统扫描(`src/pages/`)+ 虚拟模块 | 手写 `src/routes.ts`                   |
-| 页面缓存声明 | `definePage({ cache: true })` 宏     | 路由 `meta: { pageName, cache: true }` |
-| 布局解析     | `layouts/` 目录自动扫描              | `resolveLayoutComponent` 回调          |
-| i18n 注册    | `locales/` 扫描 + SSR 注入           | `main.ts` 手动 `defineLocale()`        |
-| 应用工厂     | 框架虚拟模块调用                     | `createUbeanClientApp()` 直接调用      |
-| SFC 编译     | `ubeanVite` 内置                     | 应用自带 `@vitejs/plugin-vue`          |
+| 能力         | 全栈 ubean                           | 本示例(独立 SPA)                                         |
+| ------------ | ------------------------------------ | -------------------------------------------------------- |
+| 路由来源     | 文件系统扫描(`src/pages/`)+ 虚拟模块 | `@ubean/vue/vite` 文件式路由(`virtual:ubean-vue-routes`) |
+| 页面缓存声明 | `definePage({ cache: true })` 宏     | 路由 `meta: { pageName, cache: true }`                   |
+| 布局解析     | `layouts/` 目录自动扫描              | `resolveLayoutComponent` 回调                            |
+| i18n 注册    | `locales/` 扫描 + SSR 注入           | `main.ts` 手动 `defineLocale()`                          |
+| 应用装配     | 框架虚拟模块调用                     | 原生 vue `createApp` + `app.use(ubeanVue, { routes })`   |
+| SFC 编译     | `ubeanVite` 内置                     | 应用自带 `@vitejs/plugin-vue`                            |
 
 运行时行为完全一致:`PageView` 的 keep-alive/过渡/reload 协议、`Link` 组件、
-页面缓存 API、i18n 响应式、色彩模式均来自同一份 `@ubean/client` 实现。
+页面缓存 API、i18n 响应式、色彩模式均来自同一份 `@ubean/vue` 实现(`@ubean/client` 在其上叠加框架运行时)。
 
 ## 运行
 

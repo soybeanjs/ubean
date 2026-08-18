@@ -52,40 +52,42 @@ The `ssr` option only applies within `fullstack` mode — `spa` and `backend` al
 
 ## Features at a Glance
 
-| Layer     | Capability                                          | Key API                                | Package                             |
-| --------- | --------------------------------------------------- | -------------------------------------- | ----------------------------------- |
+| Layer     | Capability                                          | Key API                                | Package                         |
+| --------- | --------------------------------------------------- | -------------------------------------- | ------------------------------- |
 | Routing   | File-based API routes (named HTTP method exports)   | `defineHandler`                        | `@ubean/routes`                 |
-| Routing   | File-based Vue SSR pages                            | `definePage` macro                     | `@ubean/scan` + `@ubean/runtime` |
+| Routing   | File-based Vue SSR pages                            | `definePage` macro                     | `@ubean/vue` + `@ubean/scan`    |
 | Routing   | Route metadata (auth / cache / rateLimit)           | `defineHandlerMeta`                    | `@ubean/routes`                 |
-| Routing   | OpenAPI 3.1 validation + Scalar UI                  | `validator` / `describeRoute`          | `hono-openapi` (re-exported)        |
-| Routing   | Type-safe route paths (generated)                   | `.ubean/routes.d.ts`                   | `@ubean/codegen`                    |
-| App       | Vue app customization (plugins, guards, head)       | `defineApp`                            | `@ubean/runtime`                    |
-| App       | Hono app factory                                    | `createUbeanApp`                       | `@ubean/app`                        |
-| Server    | Database layer (multi-driver)                       | `defineDatabase` / `useDatabase`       | `@ubean/server`                     |
-| Server    | Storage (unstorage wrapper)                         | `useStorage` / `useKV`                 | `@ubean/server`                     |
-| Server    | Cache (memory + external)                           | `useCacheStore` / `cachedEventHandler` | `@ubean/server`                     |
-| Server    | Queue processing                                    | `defineQueue`                          | `@ubean/server`                     |
-| Server    | Scheduled tasks (cron)                              | `defineScheduled`                      | `@ubean/server`                     |
-| Server    | WebSocket (crossws)                                 | `defineWebSocket`                      | `@ubean/server`                     |
-| Server    | SSE streaming                                       | SSE utilities                          | `@ubean/server`                     |
-| Server    | Rate limiting + CORS                                | Middleware factories                   | `@ubean/server`                     |
-| Server    | Route rules (redirect / rewrite / headers / cache)  | `routeRules` config                    | `@ubean/server`                     |
-| Server    | In-process handler dispatch                         | `internalFetch`                        | `@ubean/pages`                      |
-| Config    | Typed config definition                             | `defineConfig`                         | `@ubean/config`                     |
-| Config    | Typed environment variables                         | `defineEnv`                            | `@ubean/env`                        |
+| Routing   | OpenAPI 3.1 validation + Scalar UI                  | `validator` / `describeRoute`          | `hono-openapi` (re-exported)    |
+| Routing   | Type-safe route paths (generated)                   | `.ubean/routes.d.ts`                   | `@ubean/codegen`                |
+| Routing   | Dynamic route matchers (`[param=matcher]`)          | `defineMatcher` / `createMatcherGuard` | `@ubean/vue`                    |
+| App       | Vue app customization (plugins, guards, head)       | `defineApp`                            | `@ubean/client`                 |
+| App       | Hono app factory                                    | `createUbeanApp`                       | `@ubean/app`                    |
+| Server    | Database layer (multi-driver)                       | `defineDatabase` / `useDatabase`       | `@ubean/server`                 |
+| Server    | Storage (unstorage wrapper)                         | `useStorage` / `useKV`                 | `@ubean/server`                 |
+| Server    | Cache (memory + external)                           | `useCacheStore` / `cachedEventHandler` | `@ubean/server`                 |
+| Server    | Queue processing                                    | `defineQueue`                          | `@ubean/server`                 |
+| Server    | Scheduled tasks (cron)                              | `defineScheduled`                      | `@ubean/server`                 |
+| Server    | WebSocket (crossws)                                 | `defineWebSocket`                      | `@ubean/server`                 |
+| Server    | SSE streaming                                       | SSE utilities                          | `@ubean/server`                 |
+| Server    | Rate limiting + CORS                                | Middleware factories                   | `@ubean/server`                 |
+| Server    | Route rules (redirect / rewrite / headers / cache)  | `routeRules` config                    | `@ubean/server`                 |
+| Server    | In-process handler dispatch                         | `internalFetch`                        | `@ubean/pages`                  |
+| Config    | Typed config definition                             | `defineConfig`                         | `@ubean/config`                 |
+| Config    | Typed environment variables                         | `defineEnv`                            | `@ubean/shared`                 |
 | Config    | Middleware definition                               | `defineMiddleware`                     | `@ubean/routes`                 |
-| i18n      | Zero-dependency internationalization                | `defineLocale` / `t` / `useI18n`       | `@ubean/i18n` + `@ubean/runtime`    |
-| SSR       | Vue server-side renderer                            | `createVueRenderer`                    | `@ubean/ssr`                        |
-| Islands   | Partial hydration boundaries                        | `ubeanIslandsPlugin`                   | `@ubean/islands`                    |
-| DevTools  | RPC, AI assistant, API playground, CRUD scaffolding | `devtools: true` config                | `@ubean/devtools`                   |
-| Extension | Better Auth integration + fallback                  | `auth: true` config                    | `@ubean/auth`                       |
-| Extension | Iconify + custom SVG collections                    | `icon: true` config                    | `@ubean/icon`                       |
-| Extension | PWA manifest + service worker                       | `pwa: true` config                     | `@ubean/pwa`                        |
-| Extension | Image optimization                                  | `image: true` config                   | `@ubean/image`                      |
-| Extension | Content collections + Markdown                      | `content: true` config                 | `@ubean/content`                    |
-| Extension | Font optimization + self-hosting                    | `fonts: true` config                   | `@ubean/fonts`                      |
-| Extension | Electron desktop apps                               | `electron: true` config                | `@ubean/electron`                   |
-| Extension | @soybeanjs/ui integration                           | `ui: true` config                      | `@ubean/ui`                         |
+| i18n      | Zero-dependency internationalization                | `defineLocale` / `t` / `useI18n`       | `@ubean/i18n` + `@ubean/client` |
+| SSR       | Vue server-side renderer                            | `createVueRenderer`                    | `@ubean/ssr`                    |
+| Islands   | Partial hydration boundaries                        | `ubeanIslandsPlugin`                   | `@ubean/islands`                |
+| DevTools  | RPC, AI assistant, API playground, CRUD scaffolding | `devtools: true` config                | `@ubean/devtools`               |
+| Extension | Better Auth integration + fallback                  | `auth: true` config                    | `@ubean/auth`                   |
+| Extension | Iconify + custom SVG collections                    | `icon: true` config                    | `@ubean/icon`                   |
+| Extension | PWA manifest + service worker                       | `pwa: true` config                     | `@ubean/integrations/pwa`       |
+| Extension | Image optimization                                  | `image: true` config                   | `@ubean/image`                  |
+| Extension | Content collections + Markdown                      | `content: true` config                 | `@ubean/content`                |
+| Extension | Font optimization + self-hosting                    | `fonts: true` config                   | `@ubean/integrations/fonts`     |
+| Extension | Electron desktop apps                               | `electron: true` config                | `@ubean/integrations/electron`  |
+| Extension | @soybeanjs/ui integration                           | `ui: true` config                      | `@ubean/integrations/ui`        |
+| Extension | Pinia integration + SSR hydration                   | `pinia: true` config                   | `@ubean/integrations/pinia`     |
 
 ### Package Entry Points
 
@@ -95,62 +97,75 @@ The `ubean` main package provides several subpath exports in addition to the def
 | -------------------- | --------------------------------------------- | -------------------------- |
 | `ubean`              | Main entry — re-exports all subpackages       | Server code, API routes    |
 | `ubean/vite`         | Composite Vite plugin (build + vue + islands) | `vite.config.ts`           |
+| `ubean/client`       | First-class client entry (`@ubean/client`)    | Client code, SPA entry     |
 | `ubean/runtime/vue`  | Browser Vue client runtime (no server deps)   | Client auto-imports        |
 | `ubean/runtime/app`  | Server Hono app entry (`createUbeanApp`)      | `src/server.ts`            |
 | `ubean/runtime/i18n` | Server pure-function i18n                     | Build-time locale handling |
 | `ubean/vue-ssr`      | Vue SSR renderer (`createVueRenderer`)        | Custom SSR setup           |
 
-**Critical rule for newcomers:** client auto-imports **must** use the `ubean/runtime/vue` entry, never the `ubean` main entry. Importing from `ubean` in browser code triggers Vite to pre-bundle server-side dependencies (Hono, database drivers, storage adapters) — a severe performance penalty and a potential source of runtime errors in non-Node environments.
+**Critical rule for newcomers:** client auto-imports **must** use the `ubean/runtime/vue` or `ubean/client` entry, never the `ubean` main entry. Importing from `ubean` in browser code triggers Vite to pre-bundle server-side dependencies (Hono, database drivers, storage adapters) — a severe performance penalty and a potential source of runtime errors in non-Node environments.
+
+**Client kernel layering:** `@ubean/vue` is the lean client kernel (vue + vue-router only) that owns page routing (file-based scan, virtual modules, page cache, transitions, matchers); `@ubean/client` is the framework client runtime layered on top (app factories, unhead/SEO, i18n, data layer, islands hydration); the `ubean/client` subpath re-exports it. Standalone SPAs can depend on `@ubean/vue` directly without pulling in the framework build tooling.
 
 ## Project Structure
 
 ### Repository Layout
 
-ubean is a **37-package monorepo** managed by pnpm workspaces (`packages/*`, `apps/*`, `examples/*`). The public package `ubean` (`packages/ubean/`) is the aggregator that re-exports all `@ubean/*` subpackages. Each subpackage is independently built, type-checked, and consumable individually in advanced scenarios. For a CodeGraph-backed structure audit and improvement backlog, see [docs/architecture-analysis.md](docs/architecture-analysis.md).
+ubean is a **33-package monorepo** managed by pnpm workspaces (`packages/*`, `apps/*`, `examples/*`). The public package `ubean` (`packages/ubean/`) is the aggregator that re-exports all `@ubean/*` subpackages. Each subpackage is independently built, type-checked, and consumable individually in advanced scenarios. See [docs/README.md](docs/README.md) for the engineering documentation index.
 
 ```
 packages/
 ├── ubean/          # Main package (npm: "ubean") — aggregator, re-exports all @ubean/*
-├── types/          # @ubean/types — shared types
-├── utils/          # @ubean/utils — utility functions
-├── error/          # @ubean/error — error classes
-├── env/            # @ubean/env — typed environment variables
+│
+│   ── Foundation / shared layer ──
+├── shared/         # @ubean/shared — shared types, errors, env, utils (merged types/utils/error/env)
+├── vue/            # @ubean/vue — lean Vue client kernel & page-routing owner (vue + vue-router only)
+├── markdown/       # @ubean/markdown — Markdown/MDX page parsing
 ├── seo/            # @ubean/seo — SEO meta management
 ├── pages/          # @ubean/pages — page data protocol (loader/action)
-├── markdown/       # @ubean/markdown — Markdown/MDX page parsing
 ├── i18n/           # @ubean/i18n — zero-dependency i18n (pure functions)
-├── scan/           # @ubean/scan — project scanner (scanProject + route metadata)
-├── routes/         # @ubean/routes — server routes runtime (defineHandler + rou3 router)
+├── logger/         # @ubean/logger — tslog-based logging
+│
+│   ── Server runtime ──
+├── routes/         # @ubean/routes — server routes runtime (defineHandler + rou3 router + ISR + OpenAPI)
 ├── actions/        # @ubean/actions — Server Actions / Form Actions (defineAction)
 ├── server/         # @ubean/server — server runtime (cache/db/queue/cron/ws/sse)
 ├── app/            # @ubean/app — Hono app factory (createUbeanApp)
+│
+│   ── Build-time tools ──
+├── build-core/     # @ubean/build-core — build infra (virtual-registry/macros/registry, zero-dep)
+├── builder/        # @ubean/build — core Vite plugin (framework-agnostic ubeanPlugin)
+├── vite/           # @ubean/vite — Vue-specific Vite plugin (ubeanVite)
+├── codegen/        # @ubean/codegen — type generation (routes.d.ts + auto-import presets)
 ├── config/         # @ubean/config — config loader (c12 + defu)
 ├── preset/         # @ubean/preset — platform presets (node/cloudflare + capabilities)
-├── codegen/        # @ubean/codegen — type generation (routes.d.ts, pages.d.ts)
 ├── modules/        # @ubean/modules — module system (builtins + kit)
-├── auto-imports/   # @ubean/auto-imports — unimport auto-import presets
-├── runtime/        # @ubean/runtime — Vue client runtime
-├── islands/        # @ubean/islands — Islands partial hydration
-├── ssr/            # @ubean/ssr — Vue SSR renderer (createVueRenderer)
-├── vite/           # @ubean/vite — Vue-specific Vite plugin
-├── builder/        # @ubean/build — build-time core (dir: builder; package name stays @ubean/build)
 ├── prerender/      # @ubean/prerender — SSG prerendering
+│
+│   ── Route scanning ──
+├── scan/           # @ubean/scan — project scanner + route metadata aggregator (delegates pages to @ubean/vue)
+│
+│   ── Client runtime ──
+├── client/         # @ubean/client — framework client runtime (layered over @ubean/vue)
+│
+│   ── Services / tools ──
+├── ssr/            # @ubean/ssr — Vue SSR renderer (createVueRenderer)
+├── islands/        # @ubean/islands — Islands partial hydration
 ├── dev-server/     # @ubean/dev-server — dev server
-├── cli/            # @ubean/cli — CLI commands (citty)
+├── cli/            # @ubean/cli — CLI commands
 ├── devtools/       # @ubean/devtools — devtools (RPC, AI, CRUD scaffolding)
+│
+│   ── Extensions ──
+├── ai/             # @ubean/ai — AI integration (Vercel AI SDK orchestration)
 ├── auth/           # @ubean/auth — Better Auth integration + fallback
 ├── icon/           # @ubean/icon — Iconify integration + custom collections
-├── pwa/            # @ubean/pwa — PWA manifest + service worker
 ├── image/          # @ubean/image — image optimization
 ├── content/        # @ubean/content — content collections
-├── fonts/          # @ubean/fonts — font optimization + self-hosting
-├── electron/       # @ubean/electron — Electron desktop apps (vite-plugin-electron)
-├── pinia/          # @ubean/pinia — Pinia integration (SSR hydration + optimizeDeps)
-└── ui/             # @ubean/ui — @soybeanjs/ui integration (UiResolver + styles.css)
+└── integrations/   # @ubean/integrations — pwa / fonts / electron / ui / pinia subpaths
 
 apps/docs/          # Documentation site (source under src/content/{en,zh}/)
-examples/           # ubean-test / frontend-only / routing-file-mode
-docs/               # Repo-level engineering docs (roadmap, architecture analysis)
+examples/           # ubean-test / client-only-spa / frontend-only / routing-file-mode
+docs/               # Repo-level engineering docs (ADR, glossary, product plan)
 ```
 
 ### User App Layout
@@ -252,17 +267,17 @@ Add scripts to `package.json`:
 
 ### Enabling Built-in Modules
 
-Built-in modules (`icon`, `pwa`, `auth`, `image`, `fonts`, `electron`, `ui`) are opt-in via `ubean.config.ts`. When you enable one, the corresponding `@ubean/*` package is required:
+Built-in modules (`icon`, `pwa`, `auth`, `image`, `fonts`, `electron`, `ui`, `pinia`) are opt-in via `ubean.config.ts`. When you enable one, the corresponding `@ubean/*` package is required:
 
 ```ts
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  ui: true, // @ubean/ui — auto-injects @soybeanjs/ui styles.css + UiResolver
+  ui: true, // @ubean/integrations/ui — auto-injects @soybeanjs/ui styles.css + UiResolver
   icon: true, // @ubean/icon — Iconify integration
-  pwa: true, // @ubean/pwa — manifest + service worker
+  pwa: true, // @ubean/integrations/pwa — manifest + service worker
   auth: true, // @ubean/auth — Better Auth integration
-  electron: true // @ubean/electron — desktop app (auto-disables SSR)
+  electron: true // @ubean/integrations/electron — desktop app (auto-disables SSR)
 });
 ```
 
@@ -290,17 +305,17 @@ The v0.1 target platforms are **Node.js** (`node-server`) and **Cloudflare Worke
 
 ### Implemented Capabilities
 
-- **Routing:** `routes/` API file routing with named `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` exports wrapped by `defineHandler`; `pages/` Vue SSR pages, layouts, route groups, reuse routes, loaders/actions, and typed navigation; `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`); `validator` / `describeRoute` / `resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation; generated `paths` types at `.ubean/routes.d.ts`.
+- **Routing:** `routes/` API file routing with named `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` exports wrapped by `defineHandler`; `pages/` Vue SSR pages, layouts, route groups, reuse routes, parallel/intercepting routes, dynamic param matchers, special pages, and typed navigation; `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`); `validator` / `describeRoute` / `resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation; generated `paths` types at `.ubean/routes.d.ts`.
 - **App:** `defineApp` options-based customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineLocale`, `defineEnv`, `defineScheduled` (cron), `defineQueue`.
 - **Server:** Built-in database layer (`defineDatabase` / `useDatabase`), storage (`useStorage` / `useKV`), cache (`useCacheStore` / `cachedEventHandler`), rate limiting, CORS, route rules (redirect / rewrite / headers / cache), and SSG prerendering. WebSocket (`defineWebSocket`), SSE streaming, and `internalFetch` (dispatches framework handlers in-process without a network request).
 - **DevTools:** RPC, AI assistant, API playground, and CRUD scaffolding.
-- **Extension packages:** `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/pwa`, `@ubean/image`, `@ubean/content`, `@ubean/fonts`, `@ubean/electron` (desktop apps via vite-plugin-electron, with default main/preload entries and auto SSR disable), `@ubean/ui` (@soybeanjs/ui integration with UiResolver and styles.css auto-injection).
+- **Extension packages:** `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/image`, `@ubean/content`, and `@ubean/integrations` (PWA / fonts / Electron desktop apps via vite-plugin-electron with default main/preload entries and auto SSR disable / @soybeanjs/ui with UiResolver and styles.css auto-injection / Pinia SSR hydration).
 
 > Note: While the above capabilities are implemented and pass type-checks and basic tests, several subsystems (especially the database layer, queue workers, and cron scheduler) have not been load-tested or hardened for production traffic. Treat the v0.1 release as a preview.
 
 ## Development
 
-Requirements: Node.js and pnpm `11.11.0`.
+Requirements: Node.js and pnpm `11.22.0`.
 
 ```bash
 pnpm install
@@ -321,10 +336,10 @@ pnpm lint
 ## Planning and Contributions
 
 - The [documentation index](docs/README.md) contains the architecture reference, historical design records, and pending proposals.
-- Usage guides and API references live in [skills/ubean/docs](skills/ubean/docs).
+- Usage guides and API references live in [skills/ubean/SKILL.md](skills/ubean/SKILL.md) and the docs site under [apps/docs/src/content](apps/docs/src/content).
 - [AGENTS.md](AGENTS.md) is the canonical quick reference for AI assistants and contributors — package list, core APIs, conventions, and common pitfalls.
 - Each feature should include unit tests, a real fixture, and the applicable `dev`, `build`, `preview`, or browser end-to-end verification.
-- Changes to public APIs, preset capabilities, or generated types must update the plan, tests, and migration guidance together.
+- Changes to public APIs, preset capabilities, or generated types must update the plan, tests, and documentation together.
 
 ## License
 

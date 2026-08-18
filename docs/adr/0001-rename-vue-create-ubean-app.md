@@ -18,14 +18,14 @@
 
 grilling 阶段对实际代码的核查结论：
 
-1. **聚合器已消歧**。`packages/ubean/src/index.ts` 的选择性 `export { ... } from '@ubean/runtime'` 块（L51–145）刻意未包含 `createUbeanApp`，因此 `import { createUbeanApp } from 'ubean'` 仅得 Hono 版本。原 OPT-01 措辞「消除聚合器 re-export 时的语义歧义」描述的状态已不存在。
+1. **聚合器已消歧**。`packages/ubean/src/index.ts` 的选择性 `export type { ... } from '@ubean/runtime'` 块刻意未包含 `createUbeanApp`，因此 `import { createUbeanApp } from 'ubean'` 仅得 Hono 版本。原 OPT-01 措辞「消除聚合器 re-export 时的语义歧义」描述的状态已不存在。
 2. **AGENTS 已记录双义**（L184–185、L793）。文档纠偏验收项部分已满足。
 3. **第三处出现**：`packages/builder/src/production.ts:319` 在生成的 server entry 模板里 `export { createUbeanApp }`，来源为 `ubean/runtime/app`（Hono 版），无歧义。optimize.md 未提及此处。
 4. **Vue 工厂的真实消费者仅一处**：`packages/vite/src/virtual-modules.ts:496`（虚拟模块生成器内部调用）。其余命中均为 JSDoc 注释。examples / apps 中**零**外部 `import`。
 
 ## 真实危害（grilling 结论）
 
-聚合器层面歧义已消，但**团队/上手心智**仍是首要危害：任何人直接 `import { createUbeanApp } from '@ubean/runtime'` 会拿到 Vue 工厂而非 Hono，与命名直觉相悖。重命名是根治手段，纯文档不足以消除。
+聚合器层面歧义已消，但**团队/上手心智**仍是首要危害：任何人直接 `import { createUbeanApp } from '@ubean/client'` 会拿到 Vue 工厂而非 Hono，与命名直觉相悖。重命名是根治手段，纯文档不足以消除。
 
 ## 决策
 
@@ -51,7 +51,7 @@ grilling 阶段对实际代码的核查结论：
 
 ## 待决子项
 
-- **是否将 `createUbeanClientApp` 纳入主入口 `ubean` 的选择性导出**？现状：Vue 工厂不在主入口导出（仅 `@ubean/runtime` 直连可达），且唯一消费者是内部虚拟模块。倾向：保持不纳入主入口，避免扩大对外表面。待实施时确认。
+- **是否将 `createUbeanClientApp` 纳入主入口 `ubean` 的选择性导出**？现状：Vue 工厂不在主入口导出（仅 `@ubean/client` 直连可达），且唯一消费者是内部虚拟模块。倾向：保持不纳入主入口，避免扩大对外表面。待实施时确认。
 
 ## 验收（细化原 OPT-01）
 

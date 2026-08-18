@@ -240,15 +240,6 @@ export const GET = defineHandler(async c => {
 });
 ```
 
-## Important corrections
-
-Older versions of this document used APIs that do not exist in ubean. When migrating, replace:
-
-- `import { defineEventHandler } from '@ubean/core'` → `import { defineHandler } from 'ubean'`
-- `routes/api/users.get.ts` → `routes/api/users.ts` with `export const GET = defineHandler(...)`
-- Standalone `json(...)` helper → `c.json(...)` on the Hono context
-- `defineConfig({ database: { driver, connection } })` — this config field does **not** exist. Use a `modules` setup with `kit.addVirtualImports` (shown above), or call `defineDatabase({ connector })` at app startup.
-
 ## Best Practices
 
 1. **Prefer ORMs over raw SQL** for non-trivial schemas — type safety pays off quickly.

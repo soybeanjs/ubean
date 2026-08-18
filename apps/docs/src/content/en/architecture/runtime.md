@@ -11,8 +11,6 @@ Unlike void's hardcoded `createSSRApp(App)`, ubean provides a `defineApp` functi
 
 Users create `app.ts` in the project root (or `srcDir`) — optionally `app.server.ts` / `app.client.ts` to split server/client concerns — and export a **configuration object** (not a factory function) via `defineApp(options)`. After ubean creates the Vue instance, it applies this config to `app` through `applyAppConfig(app, config, mode)`, thereby supporting plugin registration, global components, provide/inject, error components, View Transitions, and so on.
 
-> ⚠️ Note: An earlier design planned `defineApp` as a factory function receiving `({ app, router, ssrContext }) => app`. **That pattern is now deprecated.** `defineApp` accepts an options object and returns a `ResolvedAppConfig`. If you need imperative access to the app instance, use the `onAppCreated` / `onClientReady` callbacks.
-
 ```typescript
 // app.ts
 import { defineApp } from 'ubean';
@@ -179,7 +177,7 @@ export interface DefineAppOptions {
   /**
    * SSR 状态序列化钩子 — 在 renderToString 完成后调用。
    * 返回的对象会被序列化到 HTML 的 `__UBEAN_STATE__` script 标签中。
-   * 配合 @ubean/pinia 等状态管理扩展使用。
+   * 配合 @ubean/integrations/pinia 等状态管理扩展使用。
    */
   serializeState?: (app: VueApp) => Record<string, unknown> | Promise<Record<string, unknown>>;
   /**
@@ -241,7 +239,7 @@ ubean exposes vue-router's global navigation guard registration entry via `defin
 
 **Environment**: Runs on both client and SSR. The `setup` functions defined in `app.ts` and in `app.server.ts` / `app.client.ts` are **cumulative** (order: shared first, then client/server), so shared guards (e.g. analytics) can live in `app.ts`, while environment-specific guards (e.g. SSR auth redirects) can live in `app.server.ts` / `app.client.ts`.
 
-**Registration constraint**: The `setup` function itself must complete guard registration **synchronously** (although the guard body may return a Promise). Do not perform async work inside `setup` (such as firing API requests), or it will block the first navigation. Put async logic inside the guard body instead:
+**Registration constraint**: The `setup` function itself must complete guard registration **synchronously** (although the guard body may return a Promise). Keep `setup` free of async work (such as firing API requests) — it would block the first navigation. Put async logic inside the guard body instead:
 
 ```typescript
 // app.ts
@@ -1446,64 +1444,31 @@ Modeled after void's islands implementation (Import Attributes approach), ubean 
 
 #### Client Directives
 
-Mark island component hydration strategy via directives in Vue templates. The original `client:*` HTML-attribute syntax (shown below) is still supported for backward compatibility; the recommended `v-client.*` Vue directive syntax is documented in the next section.
-
-```vue
-<template>
-  <!-- 页面加载后立即 hydrate -->
-  <Counter client:load />
-
-  <!-- 空闲时 hydrate (requestIdleCallback) -->
-  <HeavyChart client:idle />
-
-  <!-- 进入视口时 hydrate (IntersectionObserver) -->
-  <Comments client:visible />
-
-  <!-- 媒体查询匹配时 hydrate -->
-  <MobileNav client:media="(max-width: 768px)" />
-
-  <!-- 仅服务端渲染，不发送客户端 JS -->
-  <StaticFooter client:only="server" />
-</template>
-```
+Mark island component hydration strategy via directives in Vue templates. Use the `v-client.*` Vue directive syntax, documented in the next section.
 
 #### `v-client.*` Vue Directive Syntax (P9-29, Recommended)
 
-The `client:load` HTML-attribute syntax is not a standard Vue directive in Vue templates, so IDE and eslint-plugin-vue cannot provide type-checking or autocompletion. P9-29 refactors it into a **Vue custom directive** `v-client.*`, providing full TypeScript type definitions while keeping compile-time transformation behavior fully equivalent to the legacy syntax.
+The `v-client.*` Vue custom directive provides full TypeScript type definitions, so IDE and `eslint-plugin-vue` provide type-checking and autocompletion.
 
 ```vue
 <template>
-  <!-- v-client.load：页面加载后立即 hydrate（等价 client:load） -->
+  <!-- v-client.load：页面加载后立即 hydrate -->
   <Counter v-client.load />
 
-  <!-- v-client.idle：空闲时 hydrate（等价 client:idle） -->
+  <!-- v-client.idle：空闲时 hydrate -->
   <HeavyChart v-client.idle />
 
-  <!-- v-client.visible：进入视口时 hydrate（等价 client:visible） -->
+  <!-- v-client.visible：进入视口时 hydrate -->
   <Comments v-client.visible />
 
-  <!-- v-client.media：媒体查询匹配时 hydrate（等价 client:media） -->
+  <!-- v-client.media：媒体查询匹配时 hydrate -->
   <!-- 注意：值是 Vue 表达式，字符串需加引号 -->
   <MobileNav v-client.media="'(max-width: 768px)'" />
 
-  <!-- v-client.only：仅客户端渲染，跳过 SSR（等价 client:only） -->
-  <ClientOnlyWidget v-client.only />
+  <!-- v-client.only：仅客户端渲染，跳过 SSR -->
+  <ClientWidget v-client.only />
 </template>
 ```
-
-#### Syntax Migration Comparison
-
-| Legacy syntax (`client:*`) | New syntax (`v-client.*`) | Description |
-| --- | --- | --- |
-| `<Comp client:load />` | `<Comp v-client.load />` | Hydrate immediately |
-| `<Comp client:idle />` | `<Comp v-client.idle />` | Hydrate when idle |
-| `<Comp client:visible />` | `<Comp v-client.visible />` | Hydrate when visible |
-| `<Comp client:media="(max-width: 768px)"/>` | `<Comp v-client.media="'(max-width: 768px)'" />` | Hydrate on media query (value must be quoted) |
-| `<Comp client:only />` | `<Comp v-client.only />` | Client only |
-
-> **Note**: The two syntaxes are fully equivalent and can be mixed within the same project. New code is recommended to use the `v-client.*` syntax.
->
-> The value of `v-client.media` is a Vue expression, so string literals must be quoted (`"'(max-width: 768px)'"`); you can also use a variable (`v-client.media="mediaQuery"`). The legacy syntax `client:media="(max-width: 768px)"` takes the value as a plain string.
 
 #### Dual-Layer Design
 
@@ -1547,8 +1512,6 @@ const strategy = resolveClientStrategy({ idle: true }); // → 'idle'
 | --- | --- |
 | `vClient` | Vue custom directive object (`Directive<HTMLElement, string \| undefined>`) |
 | `resolveClientStrategy(modifiers)` | Resolve strategy from modifiers (`{ idle: true }` → `'idle'`) |
-| `strategyToLegacyDirective(strategy)` | Strategy to legacy directive name (`'idle'` → `'client:idle'`) |
-| `legacyDirectiveToStrategy(directive)` | Legacy directive name to strategy (`'client:idle'` → `'idle'`) |
 | `applyStrategy(el, strategy, mediaQuery?)` | Apply a strategy directly to a DOM element |
 | `cleanupStrategy(el)` | Clean up strategy resources (observer/timer) |
 
@@ -2465,7 +2428,7 @@ Supports naming shared elements via the `view-transition-name` CSS property to a
 - SSR first-screen load does not trigger transitions (only client-side route switches trigger them)
 - Preserves page scroll position, avoiding layout jumps during transitions
 
-## 4.25 PWA Progressive Web App (Official, Optional `@ubean/pwa`)
+## 4.25 PWA Progressive Web App (Official, Optional `@ubean/integrations/pwa`)
 
 Provides zero-config Service Worker registration, Web App Manifest generation, and offline caching strategies, modeled after vite-plugin-pwa.
 
@@ -2473,7 +2436,7 @@ Provides zero-config Service Worker registration, Web App Manifest generation, a
 
 ```ts
 // vite.config.ts
-import { ubeanPwaPlugin } from '@ubean/pwa/vite';
+import { ubeanPwaPlugin } from '@ubean/integrations/pwa';
 
 export default {
   plugins: [
@@ -2500,7 +2463,7 @@ export default {
 
 ```vue
 <script setup lang="ts">
-import { usePwa } from '@ubean/pwa';
+import { usePwa } from '@ubean/integrations';
 
 const {
   isInstalled, // 是否已安装为 PWA
@@ -2546,14 +2509,14 @@ Default runtimeCaching rules auto-cover: images (`/img/**`, `/assets/**`), fonts
 
 ---
 
-## 4.26 Pinia State Management (Official, Optional `@ubean/pinia`)
+## 4.26 Pinia State Management (Official, Optional `@ubean/integrations/pinia`)
 
-ubean provides a thin integration wrapper for Pinia via `@ubean/pinia`. It does not re-export the Pinia API; instead, it is responsible for two things:
+ubean provides a thin integration wrapper for Pinia via `@ubean/integrations/pinia`. It does not re-export the Pinia API; instead, it is responsible for two things:
 
 1. **dev pre-bundle optimization** — adds `pinia` to Vite's `optimizeDeps.include` to avoid the dependency-scan latency on the first request
 2. **SSR state hydration helper** — provides `serializePiniaState` / `hydratePiniaState` functions that work with the `defineApp({ serializeState, hydrateState })` hooks to complete server-side state serialization and client-side hydration
 
-Pinia itself is still imported from the `pinia` package (`createPinia`/`defineStore`/`storeToRefs`, etc.); `@ubean/pinia` only provides the integration glue.
+Pinia itself is still imported from the `pinia` package (`createPinia`/`defineStore`/`storeToRefs`, etc.); `@ubean/integrations/pinia` only provides the integration glue.
 
 ### Quick Start
 
@@ -2571,7 +2534,7 @@ Then register the Pinia plugin and SSR hydration hooks in `src/app.ts`:
 ```ts
 // src/app.ts
 import { createPinia } from 'pinia';
-import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
 import { defineApp } from 'ubean';
 
 export default defineApp({
@@ -2657,9 +2620,9 @@ export default defineConfig({
 ### Programmatic API
 
 ```ts
-import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/pinia/vite';
-import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
-import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/pinia';
+import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/integrations/pinia';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
+import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integrations/pinia';
 ```
 
 - `ubeanPiniaPlugin(options?: UbeanPiniaOptions): Plugin[]` — Vite plugin, usually auto-invoked by the module system
@@ -2669,7 +2632,7 @@ import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/pinia';
 
 ### Design Points
 
-- **Non-invasive**: Pinia itself is still imported from the `pinia` package; `@ubean/pinia` only provides the Vite plugin and SSR hydration helpers, and does not re-export the Pinia API
+- **Non-invasive**: Pinia itself is still imported from the `pinia` package; `@ubean/integrations/pinia` only provides the Vite plugin and SSR hydration helpers, and does not re-export the Pinia API
 - **Protocol reuse**: Integrates via ubean's `serializeState`/`hydrateState` hooks, introducing no parallel state model
 - **Safe degradation**: `serializePiniaState` returns an empty object when `$pinia` is not detected; `hydratePiniaState` is a no-op when `state` is null or lacks the `pinia` field — safe to call in CSR mode or when there's no SSR state
 - **Misconfiguration hints**: If `hydrateState` is called but no `$pinia` is detected on the app (the `createPinia()` plugin was not registered), a clear warning is logged to the console

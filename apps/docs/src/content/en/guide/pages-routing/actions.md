@@ -92,9 +92,9 @@ async function handleLogin() {
 - `submit(...args)` — triggers the call
 - `reset()` — resets state
 
-## 3. Explicit `defineAction()` Wrapper (replaces the legacy `'use server'` directive)
+## 3. Explicit `defineAction()` Wrapper
 
-The `'use server'` string directive has been **removed** in favor of the explicit `defineAction(fn)` wrapper. The Vite plugin (`ubeanServerActionsPlugin`) now detects `defineAction(` call expressions and auto-injects `filePath` and `name` for action ID generation:
+The Vite plugin (`ubeanServerActionsPlugin`) detects `defineAction(` call expressions and auto-injects `filePath` and `name` for action ID generation:
 
 ```typescript
 // src/actions/todos.ts
@@ -114,26 +114,6 @@ export const deleteTodo = defineAction(async (id: string) => {
 - **Server side**: functions wrapped by `defineAction()` are automatically registered in the global action registry
 - **Client side**: the export is replaced with an RPC stub that POSTs to `/__actions` when called
 - **Action ID**: generated from `act_` + `base32(fnv1a(filePath:exportName))` (two FNV-1a 32-bit hashes combined into 60 bits → 12 lowercase base32 chars); the Vite plugin auto-injects `filePath`/`name` so client and server stay in sync
-
-### Migrating from the Legacy Syntax
-
-```typescript
-// Before (removed): 'use server' string directive
-'use server';
-
-export async function createTodo(input: { title: string }) {
-  await db.insert(todos).values(input);
-  return { success: true };
-}
-
-// After: explicit defineAction() wrapper
-import { defineAction } from 'ubean';
-
-export const createTodo = defineAction(async (input: { title: string }) => {
-  await db.insert(todos).values(input);
-  return { success: true };
-});
-```
 
 ## 4. Form Actions (Progressive Enhancement)
 
@@ -232,4 +212,4 @@ export const POST = defineHandler(
 2. **Progressive enhancement**: when using `useFormAction`, ensure the native `<form method="POST" action="?/name">` also works
 3. **Error classification**: use `fail()` for field errors (form-friendly) and `ActionError` for user-facing errors
 4. **Action file location**: `src/actions/` directory, or inline `export const actions` in a page module
-5. **Don't access `process` directly in actions**: Server Actions run on both Node and Cloudflare Workers
+5. **Access environment variables via `defineEnv` in actions**: Server Actions run on both Node and Cloudflare Workers

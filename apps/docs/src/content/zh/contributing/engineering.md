@@ -168,7 +168,7 @@ type InferLoaderData<T> = T extends () => Promise<{ data: infer D }> ? D : never
 
 - 主包（`ubean`）：38 个测试文件、**799 个测试通过**（81 个 DevTools 测试已移至 `@ubean/devtools` 独立包）。
 - 核心子包：`@ubean/islands` 199（directive / paired-components / server-client-components / islands-registry / server-component-rerender）、`@ubean/ssr` 18、`@ubean/actions` 69、`@ubean/routes` route-rules 27、`@ubean/devtools` 81、examples/ubean-test prerender 92。
-- 扩展包：`@ubean/icon` 32、`@ubean/auth` 13、`@ubean/pwa` 19、`@ubean/image` 42、`@ubean/content` 18、`@ubean/fonts` 21、`@ubean/seo` 114。
+- 扩展包：`@ubean/icon` 32、`@ubean/auth` 13、`@ubean/integrations`（pwa 19 / fonts 21）、`@ubean/image` 42、`@ubean/content` 18、`@ubean/seo` 114。
 - 全仓库合计 **约 1075 个测试**通过。
 - `pnpm typecheck`：通过。TypeScript 7 与 `vue-tsc` 的兼容层通过 workspace override `typescript: npm:typescript-native-bridge@0.0.0` 提供；其原生依赖 `koffi` 必须在 `pnpm-workspace.yaml` 的 `allowBuilds` 中显式允许。
 - `pnpm build`：通过（主包 + 全部 8 个扩展包，含 `@ubean/devtools` 与 `@ubean/islands`）。
@@ -467,7 +467,7 @@ DevTools 面板的 UI 实现必须使用 `@soybeanjs/ui` 组件库，遵循以�
    - 重点关注：vite-plugin 开发、dev 模式中间件、客户端注入
 
 3. **参考原则**：
-   - 不要直接复制代码，而是学习架构设计和实现模式
+   - 参考现有实现时学习架构设计与实现模式
    - 保持 ubean 的 API 设计一致性
    - 所有适配层必须有对应的测试用例
    - 平台特定能力必须通过 capability 矩阵声明
@@ -515,6 +515,8 @@ codegraph impact <symbol>         # 查影响面
 ## 11. 扩展包接入契约表
 
 > 所有「扩展包」（有 `./vite` 子路径导出 **且不在主包 `ubean` 的 `dependencies` 中** 的包）须在下表登记一行。CI（`scripts/verify-packages.mjs`，与包树校验共用脚本）会从 `packages/*/package.json` 派生扩展集，断言每个都在本表出现。来源：[ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md)。
+>
+> **注意**：`pwa` / `fonts` / `electron` / `pinia` / `ui` 是 `@ubean/integrations` 的子路径（`@ubean/integrations/pwa` 等），Vite 插件由子路径主入口导出，运行时会话辅助函数（如 `serializePiniaState` / `hydratePiniaState`）由 `@ubean/integrations` 主入口导出。
 
 ### 11.1 契约表
 
@@ -523,24 +525,24 @@ codegraph impact <symbol>         # 查影响面
 | `@ubean/ai` | `ai` | `ubeanAiPlugin` | `./runtime/vue` (`useChat`/`useAgent`/`useAIProvider`) | **ai, @ai-sdk/openai-compatible（optional）**, hono, vite, vue | **optional-peer**（`ai`/`@ai-sdk/openai-compatible` 在 `peerDependencies` 且 optional） | 薄封装 Vercel AI SDK；`defineAgent`/`defineAgentTool` + provider 预设；客户端自动导入 `useChat`/`useAgent`/`useAIProvider` |
 | `@ubean/auth` | `auth` | `ubeanAuthPlugin` | `./runtime` (`useAuth`) | hono, vite, vue（均 optional） | **hard**（`better-auth` 在 `dependencies`） | 挂载 `/api/auth/*`；better-auth 优先，降级为内置 email/password |
 | `@ubean/icon` | `icon` | `ubeanIconPlugin` | `./runtime` | vue（optional） | none（仅 defu/pathe） | Iconify `customCollections`；dev `/_iconify` 路由先本地 SVG 后回退 API |
-| `@ubean/pwa` | `pwa` | `ubeanPwaPlugin` | `./runtime` (`usePwa`) | vite, vue（均 optional） | **hard**（`vite-plugin-pwa` 在 `dependencies`） | 生成 manifest+sw；`registerType: autoUpdate`；5 种缓存策略 |
+| `@ubean/integrations/pwa` | `pwa` | `ubeanPwaPlugin`（子路径主入口） | `@ubean/integrations` (`usePwa`) | vite, vue（均 optional） | **hard**（`vite-plugin-pwa` 在 `dependencies`） | 生成 manifest+sw；`registerType: autoUpdate`；5 种缓存策略 |
 | `@ubean/image` | `image` | `ubeanImagePlugin` | `./runtime` | vite, vue（均 optional） | none（仅 defu/ohash/pathe/ufo） | 图片优化与变换 |
-| `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` | vite（optional） | none（仅 defu/pathe/scule + `@ubean/utils`） | markdown/MDX/YAML/JSON 内容集合 |
-| `@ubean/fonts` | `fonts` | `ubeanFontsPlugin` | `./runtime` | vite（optional） | none（仅 defu/ohash/pathe/ufo） | Google Fonts / 本地字体 / 自托管 / metrics |
-| `@ubean/electron` | `electron` | `ubeanElectronPlugin` | — | electron, vite（均 optional） | **hard**（`vite-plugin-electron` 在 `dependencies`） | 封装 `vite-plugin-electron`；`electron: true` 启用，自动禁用 SSR |
-| `@ubean/pinia` | `pinia` | `ubeanPiniaPlugin` | `./runtime` | **pinia（强制）**, vue（optional） | **peer**（`pinia` 在 `peerDependencies` 非 optional） | SSR 状态水合 + dev 预构建；不自动注入 Pinia 实例 |
-| `@ubean/ui` | `ui` | `ubeanUiPlugin` | — | **@soybeanjs/ui（强制）**, vite（optional） | **peer**（`@soybeanjs/ui` 在 `peerDependencies` 非 optional） | `UiResolver` 自动导入 + `styles.css` 注入（`css: true` 可关） |
+| `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` | vite（optional） | none（仅 defu/pathe/scule + `@ubean/shared`） | markdown/MDX/YAML/JSON 内容集合 |
+| `@ubean/integrations/fonts` | `fonts` | `ubeanFontsPlugin`（子路径主入口） | `@ubean/integrations` | vite（optional） | none（仅 defu/ohash/pathe/ufo） | Google Fonts / 本地字体 / 自托管 / metrics |
+| `@ubean/integrations/electron` | `electron` | `ubeanElectronPlugin`（子路径主入口） | — | electron, vite（均 optional） | **hard**（`vite-plugin-electron` 在 `dependencies`） | 封装 `vite-plugin-electron`；`electron: true` 启用，自动禁用 SSR |
+| `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin`（子路径主入口） | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia（强制）**, vue（optional） | **peer**（`pinia` 在 `peerDependencies` 非 optional） | SSR 状态水合 + dev 预构建；不自动注入 Pinia 实例 |
+| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin`（子路径主入口） | — | **@soybeanjs/ui（强制）**, vite（optional） | **peer**（`@soybeanjs/ui` 在 `peerDependencies` 非 optional） | `UiResolver` 自动导入 + `styles.css` 注入（`css: true` 可关） |
 
 ### 11.2 核心依赖形态三值
 
-- **hard**：核心库在 `dependencies`，安装扩展即自动安装（auth/pwa/electron）。
+- **hard**：核心库在 `dependencies`，安装扩展即自动安装（auth 与 `@ubean/integrations/pwa`、`@ubean/integrations/electron`）。
 - **peer**：核心库在 `peerDependencies` 且**非** optional，用户必须自行安装（pinia/ui）。
 - **optional-peer**：在 `peerDependencies` 且 `optional: true`（如各包对 vite/vue）。
 - **none**：无重核心库，仅工具函数依赖（icon/image/content/fonts）。
 
 ### 11.3 已识别的不一致
 
-`hard` 与 `peer` 混用是已知不一致：auth/pwa/electron 自动装核心库，pinia/ui 要求用户手动装。新增扩展包应明确选择一种并在本表登记；后续可视情况统一（见 [ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md)）。
+`hard` 与 `peer` 混用是已知不一致：auth 与 `@ubean/integrations/pwa`、`@ubean/integrations/electron` 自动装核心库，`@ubean/integrations/pinia`、`@ubean/integrations/ui` 要求用户手动装。新增扩展包应明确选择一种并在本表登记；后续可视情况统一（见 [ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md)）。
 
 ### 11.4 新增扩展包清单
 

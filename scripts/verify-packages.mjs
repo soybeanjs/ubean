@@ -11,6 +11,9 @@
  * 的包。主包 `ubean` 自身也不是扩展。此规则与 AGENTS §2.1「扩展包不进入主包硬依赖」对齐，
  * 自动排除同样有 ./vite 导出但是核心依赖的包（@ubean/actions / @ubean/build / @ubean/islands）。
  *
+ * 补充（包结构重构后）：`@ubean/vue`（客户端内核）也提供 ./vite 导出，但经 `@ubean/client` /
+ * `@ubean/scan` 传递依赖、属于框架必需内核而非按需扩展，需显式排除。
+ *
  * 来源：ADR-0005（OPT-09 实现）、ADR-0006（OPT-07 契约表 + 派生规则细化）。
  */
 import { readFileSync, readdirSync, statSync } from 'node:fs';
@@ -22,6 +25,9 @@ const packagesDir = join(root, 'packages');
 const agentsPath = join(root, 'AGENTS.md');
 const engineeringPath = join(root, 'apps/docs/src/content/zh/contributing/engineering.md');
 const mainPkgPath = join(packagesDir, 'ubean', 'package.json');
+
+// 有 ./vite 导出但是框架必需内核（非按需扩展）的包，从扩展集排除
+const CORE_VUE_VITE_PKGS = new Set(['@ubean/vue']);
 
 let failed = false;
 const fail = msg => {
@@ -51,9 +57,10 @@ const entries = readdirSync(packagesDir)
   .filter(Boolean);
 
 const names = entries.map(e => e.name).filter(Boolean);
-// 扩展集派生：有 ./vite 导出 AND 不是主包自身 AND 不在主包 dependencies 中
+// 扩展集派生：有 ./vite 导出 AND 不是主包自身 AND 不在主包 dependencies AND 不是内核包
 const extensions = entries.filter(
-  e => e.hasViteExport && e.name && e.name !== mainPkgName && !mainHardDeps.has(e.name)
+  e =>
+    e.hasViteExport && e.name && e.name !== mainPkgName && !mainHardDeps.has(e.name) && !CORE_VUE_VITE_PKGS.has(e.name)
 );
 
 if (names.length === 0) {

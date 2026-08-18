@@ -1,6 +1,6 @@
 ---
 title: UI 组件库
-description: 了解如何在 ubean 中集成 @ubean/ui（SoybeanUI）组件库。
+description: 了解如何在 ubean 中集成 @ubean/integrations/ui（SoybeanUI）组件库。
 status: translated-stub
 ---
 

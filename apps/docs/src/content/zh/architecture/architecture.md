@@ -7,7 +7,7 @@ description: ubean 的架构设计：五层职责划分、包布局与配置系�
 
 ## 1. 分层架构
 
-ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分为五层。仓库以 **37 个单用途包**（`packages/*`）组织，主包 `ubean` 是纯聚合器，re-export 所有 `@ubean/*` 子包。
+ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分为五层。仓库以 **33 个单用途包**（ubean 聚合器 + 32 个 `@ubean/*` 子包）组织，主包 `ubean` 是纯聚合器，re-export 所有 `@ubean/*` 子包。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -25,6 +25,7 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 │  │  @ubean/config  配置加载（defineConfig / c12）               │   │
 │  │  @ubean/scan 路由扫描（pages/routes/layouts/middleware）  │   │
 │  │  @ubean/build   生产构建编排（client + server + prerender）  │   │
+│  │  @ubean/build-core 零依赖宏 / 虚拟注册表（registry）        │   │
 │  │  @ubean/prerender  SSG 预渲染（routeRules 驱动）             │   │
 │  │  @ubean/modules 模块系统（builtin 模块 + kit hooks）         │   │
 │  │  @ubean/codegen 类型生成（routes.d.ts / typed-router）       │   │
@@ -40,7 +41,7 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │                运行时层（runtime）                            │   │
 │  │  @ubean/app     Hono 应用工厂（createUbeanApp）              │   │
-│  │  @ubean/runtime Vue 客户端运行时（createUbeanClientApp）        │   │
+│  │  @ubean/client Vue 客户端运行时（createUbeanClientApp）         │   │
 │  │  @ubean/ssr     Vue SSR 渲染器（流式 / PPR）                 │   │
 │  │  @ubean/server  cache / db / queue / cron / ws / sse / ...   │   │
 │  │  @ubean/pages   页面数据协议（loaders / actions）            │   │
@@ -59,9 +60,9 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 ### 1.1 包组织原则
 
 - **聚合器主包**：`packages/ubean`（npm 名 `ubean`）不包含框架逻辑，仅 re-export 全部子包，保持与单体时代一致的 API 表面。
-- **单职责子包**：其余 36 个包按能力域拆分（`@ubean/types` / `@ubean/scan` / `@ubean/app` / `@ubean/ssr` …），各自独立构建与类型检查。
-- **扩展包按需加载**：`auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` 通过 `ubean.config.ts` 顶层字段启用，构建时动态 `import()` 对应 `/vite` 子路径，**不进入主包硬依赖**。
-- **入口边界**：服务端代码从 `ubean` 主入口或 `ubean/runtime/app` 导入；浏览器端必须从 `ubean/runtime/vue` 导入，避免把服务端构建工具带入浏览器 bundle。
+- **单职责子包**：其余 32 个包按能力域拆分（`@ubean/shared` / `@ubean/scan` / `@ubean/app` / `@ubean/ssr` …），各自独立构建与类型检查。
+- **扩展包按需加载**：`auth` / `icon` / `image` / `content` 通过 `ubean.config.ts` 顶层字段启用，构建时动态 `import()` 对应 `/vite` 子路径，**不进入主包硬依赖**；`pwa` / `fonts` / `electron` / `pinia` / `ui` 是 `@ubean/integrations` 的子路径（`@ubean/integrations/pwa` 等），其 Vite 插件由子路径主入口导出。
+- **入口边界**：服务端代码从 `ubean` 主入口或 `ubean/runtime/app` 导入；浏览器端必须从 `ubean/runtime/vue` 或 `ubean/client`（一等客户端子路径）导入，避免把服务端构建工具带入浏览器 bundle。
 
 ## 2. 核心数据流
 
@@ -158,10 +159,10 @@ export default defineConfig({
 
   // 扩展包（按需启用，构建时动态加载对应 /vite 插件）
   icon: true,        // @ubean/icon
-  pwa: true,         // @ubean/pwa
+  pwa: true,         // @ubean/integrations/pwa
   auth: true,        // @ubean/auth
-  ui: { css: false }, // @ubean/ui（UnoCSS 模式）
-  pinia: true,       // @ubean/pinia
+  ui: { css: false }, // @ubean/integrations/ui（UnoCSS 模式）
+  pinia: true,       // @ubean/integrations/pinia
 
   // DevTools 面板（默认关闭）
   devtools: { enabled: true },

@@ -1,6 +1,6 @@
 ---
 title: Pinia
-description: 了解如何在 ubean 中集成 @ubean/pinia 进行状态管理并支持 SSR 水合。
+description: 了解如何在 ubean 中集成 @ubean/integrations/pinia 进行状态管理并支持 SSR 水合。
 status: translated-stub
 ---
 

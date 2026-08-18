@@ -36,8 +36,6 @@ The directive goes on the **component element**, not a plain `<div>`:
 </template>
 ```
 
-> **Removed syntax**: the `client:load` / `client:idle` / `client:visible` / `client:media` / `client:only` attribute syntax has been **removed**. Use the `v-client.*` Vue directive instead — it is a standard Vue directive, so IDE and `eslint-plugin-vue` provide type-checking and autocompletion. See [Directive Reference](#directive-reference) for the full migration table.
-
 ## Hydration Strategies
 
 ### `v-client.load`
@@ -257,20 +255,6 @@ has no corresponding static import in <script setup>. It will not be auto-regist
 Add it manually via hydrateIslands({ components: { GloballyRegistered: YourComp } }).
 ```
 
-## Directive Reference
-
-The legacy `client:*` attribute syntax has been **removed**. Use the `v-client.*` Vue directive (the only supported template syntax). The Vite plugin (`ubean:islands`) still transforms `v-client.*` to `<ubean-island>` placeholders — only legacy `client:*` syntax handling was removed.
-
-| Removed | Replacement | Behavior |
-| --- | --- | --- |
-| `<Comp client:load />` | `<Comp v-client.load />` | Hydrate immediately |
-| `<Comp client:idle />` | `<Comp v-client.idle />` | Hydrate when idle |
-| `<Comp client:visible />` | `<Comp v-client.visible />` | Hydrate when visible |
-| `<Comp client:media="(max-width: 768px)"/>` | `<Comp v-client.media="'(max-width: 768px)'" />` | Hydrate on media query (value is a Vue expression, so quote strings) |
-| `<Comp client:only />` | `<Comp v-client.only />` | Client only |
-
-> The `v-client.media` value is a Vue expression — string literals must be quoted (`"'(max-width: 768px)'"`). The removed `client:media="(max-width: 768px)"` treated the value as a plain string.
-
 ## Programmatic Islands: `defineIsland()`
 
 For programmatic use (e.g. dynamic component resolution where a template directive is impractical), use the `defineIsland(Component, strategy, options?)` runtime wrapper. It applies the same hydration strategy as the `v-client.*` directive.
@@ -301,7 +285,7 @@ const ProfileIsland = defineIsland(UserProfile, 'visible', {
 
 ## Server Islands: `defineServerIsland()`
 
-The `<Comp server:defer />` compile-time directive has been **removed**. Use the `defineServerIsland(Component, options?)` runtime wrapper instead. It wraps an async component in `<Suspense>` with a fallback, sets `inheritAttrs: false`, and forwards attrs + slots to the inner Component.
+Use the `defineServerIsland(Component, options?)` runtime wrapper for server islands. It wraps an async component in `<Suspense>` with a fallback, sets `inheritAttrs: false`, and forwards attrs + slots to the inner Component.
 
 ```typescript
 import { defineServerIsland } from 'ubean';
@@ -317,47 +301,6 @@ const ChartWithFallback = defineServerIsland(AsyncChart, {
 ```
 
 `ServerIslandOptions = { fallback?: Component | string }` — when omitted, a `<ubean-defer-fallback>` placeholder is used. During prerender only the fallback (static shell) is rendered; during streaming SSR the resolved async component is streamed out via the Suspense boundary.
-
-## Migration from legacy syntax
-
-The following directive-based syntaxes have been removed in favor of explicit function-call APIs:
-
-| Removed syntax | Replacement | Where |
-| --- | --- | --- |
-| `<Comp server:defer />` compile-time directive | `defineServerIsland(Component, options?)` runtime wrapper | Server Islands |
-| `<Comp client:load />` / `client:idle` / `client:visible` / `client:media` / `client:only` attribute syntax | `v-client.*` Vue directive (template) or `defineIsland(Component, strategy, options?)` (programmatic) | Client Islands |
-
-**Template migration** — rename the attribute to the directive form (and quote `media` string literals):
-
-```vue
-<!-- Before (removed) -->
-<Counter client:load />
-<MobileNav client:media="(max-width: 768px)" />
-
-<!-- After -->
-<Counter v-client.load />
-<MobileNav v-client.media="'(max-width: 768px)'" />
-```
-
-**Server Island migration** — replace the `server:defer` directive with `defineServerIsland()`:
-
-```vue
-<!-- Before (removed) -->
-<template>
-  <AsyncChart server:defer />
-</template>
-
-<!-- After -->
-<script setup lang="ts">
-import { defineServerIsland } from 'ubean';
-import AsyncChart from '~/components/AsyncChart.vue';
-const Chart = defineServerIsland(AsyncChart);
-</script>
-
-<template>
-  <Chart />
-</template>
-```
 
 ## Performance Tips
 

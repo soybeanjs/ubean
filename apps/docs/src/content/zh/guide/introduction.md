@@ -24,19 +24,19 @@ ubean 基于 Vite、Hono 与 Vue 3 构建，融合了 void 的 Inertia 式 SSR �
 
 ## 扩展包
 
-ubean 在 `@ubean/` 作用域下提供了可选的扩展包：
+ubean 在 `@ubean/` 作用域下提供了可选的扩展包（`pwa` / `fonts` / `electron` / `ui` / `pinia` 为 `@ubean/integrations` 的子路径）：
 
 | 包名 | 用途 |
 | --- | --- |
 | `@ubean/auth` | 身份认证（集成 better-auth，支持邮箱/密码降级） |
 | `@ubean/icon` | 本地 SVG 图标集，支持 Iconify API 回退 |
-| `@ubean/pwa` | 渐进式 Web 应用（manifest + service worker） |
+| `@ubean/integrations/pwa` | 渐进式 Web 应用（manifest + service worker） |
 | `@ubean/image` | 图片优化与转换 |
 | `@ubean/content` | 内容集与 Markdown 处理 |
-| `@ubean/fonts` | 字体优化与子集化 |
-| `@ubean/electron` | Electron 桌面应用集成 |
-| `@ubean/ui` | SoybeanUI 集成（组件解析器 + 样式） |
-| `@ubean/pinia` | Pinia 状态管理，支持 SSR 水合助手 |
+| `@ubean/integrations/fonts` | 字体优化与子集化 |
+| `@ubean/integrations/electron` | Electron 桌面应用集成 |
+| `@ubean/integrations/ui` | SoybeanUI 集成（组件解析器 + 样式） |
+| `@ubean/integrations/pinia` | Pinia 状态管理，支持 SSR 水合助手 |
 
 ## 下一步
 

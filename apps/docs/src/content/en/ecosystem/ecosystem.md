@@ -56,7 +56,7 @@ On top of the existing Head management, provide a structured, mergeable SEO laye
 - `useSeoMeta()` or `defineSeo()` supports title template, description, canonical, robots, alternate locale, Open Graph, and Twitter fields.
 - Root layout, nested layouts, page, and content frontmatter use a deterministic bottom-up merge order; duplicate tags are deduplicated by key.
 - Conventional `sitemap.ts`, `robots.ts`, `manifest.ts`, icons, and `og-image.ts` are supported.
-- Dynamic OG images are an optional `@ubean/og`, implemented on top of Satori/resvg, etc.; its fonts and images are accessed only through the controlled asset interfaces of `@ubean/fonts` and `@ubean/image`.
+- Dynamic OG images are an optional `@ubean/og`, implemented on top of Satori/resvg, etc.; its fonts and images are accessed only through the controlled asset interfaces of `@ubean/integrations/fonts` and `@ubean/image`.
 
 ## 4. Official resource and content extensions (M5)
 
@@ -107,7 +107,7 @@ export default defineContentConfig({
 - Production builds write parsed results as a content dump; Node/Edge restore the query store via a driver to avoid reading the full file set on cold start. Browser SQLite, full-text search, remote Git sources, and a visual editor are not included in the first release.
 - `<ContentRenderer>`, Prose components, Shiki, table of contents, and navigation belong to the `@ubean/content` Vue layer. Vue components can be embedded in Markdown, but only an explicitly registered allowlist is permitted, and props must be validatable; raw HTML is sanitized by default and arbitrary expression execution is forbidden.
 
-### 4.3 `@ubean/fonts`: modeled on Nuxt Fonts
+### 4.3 `@ubean/integrations/fonts`: modeled on Nuxt Fonts
 
 At build time, scan the `font-family` declarations actually used in CSS/Vue SFCs, resolve them via `local -> provider`, and self-host the used fonts as hashed public assets.
 
@@ -149,13 +149,13 @@ export default {
 - The dev server `/_iconify` route checks the local custom collection first and returns the SVG on hit, otherwise falls back to the Iconify API
 - Node SSR can serve icons locally on demand; SSG/Edge use the offline bundle or an explicit remote provider
 
-### 4.5 `@ubean/pwa`: modeled on vite-plugin-pwa / Nuxt PWA
+### 4.5 `@ubean/integrations/pwa`: modeled on vite-plugin-pwa / Nuxt PWA
 
 Provides progressive web app support, including Web App Manifest generation, Service Worker registration, and caching strategies. Opt-in by default.
 
 ```ts
 // vite.config.ts
-import { ubeanPwaPlugin } from '@ubean/pwa/vite';
+import { ubeanPwaPlugin } from '@ubean/integrations/pwa';
 
 export default {
   plugins: [
@@ -185,7 +185,7 @@ export default {
 
 ```vue
 <script setup lang="ts">
-import { usePwa } from '@ubean/pwa';
+import { usePwa } from '@ubean/integrations';
 
 const { needRefresh, updateServiceWorker, isOfflineReady, isInstalled } = usePwa();
 </script>
@@ -260,9 +260,9 @@ const { user, isAuthenticated, isLoading, signIn, signUp, signOut, session } = u
 - Auto-registers fetchSession (onMounted + focus/visibilitychange listeners)
 - Supports all Better Auth features: OAuth social login, session management, account linking, etc.
 
-### 4.7 `@ubean/pinia`: modeled on Nuxt Pinia / official Pinia SSR
+### 4.7 `@ubean/integrations/pinia`: modeled on Nuxt Pinia / official Pinia SSR
 
-[Pinia](https://pinia.vuejs.org/) is the officially recommended state management library for Vue. ubean provides a thin wrapper via `@ubean/pinia` that handles dev pre-bundle optimization and SSR state hydration helpers without re-exporting the Pinia API.
+[Pinia](https://pinia.vuejs.org/) is the officially recommended state management library for Vue. ubean provides a thin wrapper via `@ubean/integrations/pinia` that handles dev pre-bundle optimization and SSR state hydration helpers without re-exporting the Pinia API.
 
 ```ts
 // ubean.config.ts
@@ -276,7 +276,7 @@ export default defineConfig({
 ```ts
 // src/app.ts — register the Pinia plugin + SSR hydration hooks
 import { createPinia } from 'pinia';
-import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
 import { defineApp } from 'ubean';
 
 export default defineApp({
@@ -302,7 +302,7 @@ export const useCounterStore = defineStore('counter', {
 - SSR state hydration integrates via the `defineApp({ serializeState, hydrateState })` hooks; state is serialized into an `__UBEAN_STATE__` script tag in the HTML
 - `serializePiniaState(app)` extracts state from `app.config.globalProperties.$pinia.state.value`
 - `hydratePiniaState(app, state)` is called after `applyAppConfig` (which registers the `createPinia()` plugin) and before `app.mount()`, injecting SSR state into the client pinia instance
-- **Zero intrusion**: Pinia itself is still imported from the `pinia` package; `@ubean/pinia` only provides integration glue and SSR hydration helpers
+- **Zero intrusion**: Pinia itself is still imported from the `pinia` package; `@ubean/integrations/pinia` only provides integration glue and SSR hydration helpers
 - **Safe degradation**: serialization returns an empty object when `$pinia` is not detected; hydration is a no-op when `state` is null or lacks a `pinia` field
 
 ## 5. Deferred Capabilities
@@ -311,9 +311,9 @@ export const useCounterStore = defineStore('counter', {
 | ----------------------------------------------------------- | --------------------------------- | ----------------------------------------------------------------------------- |
 | Partial Prerendering                                        | Deferred                          | Must first validate loader invalidation, streams, Suspense error boundaries, cache, and hydration semantics |
 | Generic Remote Functions/RPC                                | Deferred                          | OpenAPI client and Pages action already cover the main needs; avoids parallel auth/cache models |
-| PWA / Service Worker                                        | ✅ `@ubean/pwa` opt-in extension provided | Provides only versioned asset manifest, registration entry, and explicit cache strategy; does not cache business data by default |
+| PWA / Service Worker                                        | ✅ `@ubean/integrations/pwa` opt-in extension provided | Provides only versioned asset manifest, registration entry, and explicit cache strategy; does not cache business data by default |
 | Auth                                                        | ✅ `@ubean/auth` opt-in extension provided | Better Auth integration + built-in fallback; supports email/password and social login |
-| State management (Pinia)                                    | ✅ `@ubean/pinia` opt-in extension provided | Dev pre-bundle optimization + SSR state hydration helpers; Pinia itself is installed directly by the user |
+| State management (Pinia)                                    | ✅ `@ubean/integrations/pinia` opt-in extension provided | Dev pre-bundle optimization + SSR state hydration helpers; Pinia itself is installed directly by the user |
 | Content browser SQLite, full-text search, remote Git source, Studio | Future extension                  | The first release prioritizes stability of collections, typed queries, renderers, and the static dump |
 
 ## 6. Acceptance Requirements

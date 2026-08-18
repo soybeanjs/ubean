@@ -47,7 +47,7 @@ src/router/_generated/        # 实体路由文件(可编辑 meta,增量保护)
 └── typed-router.d.ts          # 类型定义(RouteKey / RoutePath / RouteLayoutKey / ReuseRouteKey)
 ```
 
-> ⚠️ **不要手动创建或编辑 `src/router/_generated/imports.ts` 或 `.ubean/typed-router.d.ts`** — 这两个文件每次都会被完全重新生成。只有 `routes.ts` 中的 `meta` 字段支持增量保护(见下文)。
+> ⚠️ `src/router/_generated/imports.ts` 与 `.ubean/typed-router.d.ts` 均由生成器每次完全重写，手动修改会被覆盖；只有 `routes.ts` 中的 `meta` 字段支持增量保护(见下文)。
 >
 > `typed-router.d.ts` 通过 `declare module '@ubean/scan'` 模块增强提供类型,只要 `tsconfig.json` 的 `include` 包含 `.ubean/*`,类型即自动全局生效,无需显式 `import`。
 

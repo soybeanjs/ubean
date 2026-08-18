@@ -1,6 +1,6 @@
 ---
 title: Electron
-description: 了解如何在 ubean 中集成 @ubean/electron 构建桌面应用。
+description: 了解如何在 ubean 中集成 @ubean/integrations/electron 构建桌面应用。
 status: translated-stub
 ---
 

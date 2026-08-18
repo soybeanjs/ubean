@@ -56,7 +56,7 @@ Pages 的 loader/action 必须形成单一数据协议：
 - `useSeoMeta()` 或 `defineSeo()` 支持 title template、description、canonical、robots、alternate locale、Open Graph 与 Twitter 字段。
 - root layout、嵌套 layout、page 与 content frontmatter 采用确定的由低到高合并顺序；重复 tag 用 key 去重。
 - 支持约定式 `sitemap.ts`、`robots.ts`、`manifest.ts`、icons 与 `og-image.ts`。
-- 动态 OG 图为可选 `@ubean/og`，基于 Satori/resvg 等实现；其字体与图片仅通过 `@ubean/fonts`、`@ubean/image` 的受控资产接口访问。
+- 动态 OG 图为可选 `@ubean/og`，基于 Satori/resvg 等实现；其字体与图片仅通过 `@ubean/integrations/fonts`、`@ubean/image` 的受控资产接口访问。
 
 ## 4. 官方资源与内容扩展（M5）
 
@@ -107,7 +107,7 @@ export default defineContentConfig({
 - 生产构建将解析结果写为内容 dump；Node/Edge 通过驱动恢复查询库，避免冷启动全量读文件。浏览器 SQLite、全文搜索、远程 Git source 与可视化编辑器不进入初版。
 - `<ContentRenderer>`、Prose 组件、Shiki、目录与导航属于 `@ubean/content` Vue 层。Markdown 中可嵌入 Vue 组件，但只能使用显式注册的 allowlist，props 必须可校验；默认消毒原始 HTML，禁止任意表达式执行。
 
-### 4.3 `@ubean/fonts`：参考 Nuxt Fonts
+### 4.3 `@ubean/integrations/fonts`：参考 Nuxt Fonts
 
 构建期扫描 CSS/Vue SFC 中实际使用的 `font-family`，按 `local -> provider` 解析并将使用到的字体自托管到带 hash 的公共资产。
 
@@ -149,13 +149,13 @@ export default {
 - Dev server `/_iconify` 路由优先查找本地 custom collection，命中则直接返回 SVG，否则 fallback 到 Iconify API
 - Node SSR 可本地按需服务，SSG/Edge 使用离线 bundle 或明确 remote provider
 
-### 4.5 `@ubean/pwa`：参考 vite-plugin-pwa / Nuxt PWA
+### 4.5 `@ubean/integrations/pwa`：参考 vite-plugin-pwa / Nuxt PWA
 
 提供渐进式 Web 应用支持，包括 Web App Manifest 生成、Service Worker 注册与缓存策略，默认 opt-in。
 
 ```ts
 // vite.config.ts
-import { ubeanPwaPlugin } from '@ubean/pwa/vite';
+import { ubeanPwaPlugin } from '@ubean/integrations/pwa';
 
 export default {
   plugins: [
@@ -185,7 +185,7 @@ export default {
 
 ```vue
 <script setup lang="ts">
-import { usePwa } from '@ubean/pwa';
+import { usePwa } from '@ubean/integrations/pwa';
 
 const { needRefresh, updateServiceWorker, isOfflineReady, isInstalled } = usePwa();
 </script>
@@ -260,9 +260,9 @@ const { user, isAuthenticated, isLoading, signIn, signUp, signOut, session } = u
 - 自动注册 fetchSession（onMounted + focus/visibilitychange 监听）
 - 支持 Better Auth 全部特性：OAuth 社交登录、session 管理、账号关联等
 
-### 4.7 `@ubean/pinia`：参考 Nuxt Pinia / Pinia 官方 SSR
+### 4.7 `@ubean/integrations/pinia`：参考 Nuxt Pinia / Pinia 官方 SSR
 
-[Pinia](https://pinia.vuejs.org/) 是 Vue 官方推荐的状态管理库。ubean 通过 `@ubean/pinia` 提供薄封装层,负责 dev 预构建优化和 SSR 状态水合辅助,不重新导出 Pinia API。
+[Pinia](https://pinia.vuejs.org/) 是 Vue 官方推荐的状态管理库。ubean 通过 `@ubean/integrations/pinia` 子路径提供薄封装层,负责 dev 预构建优化和 SSR 状态水合辅助,不重新导出 Pinia API。
 
 ```ts
 // ubean.config.ts
@@ -276,7 +276,7 @@ export default defineConfig({
 ```ts
 // src/app.ts — 注册 Pinia 插件 + SSR 水合钩子
 import { createPinia } from 'pinia';
-import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
 import { defineApp } from 'ubean';
 
 export default defineApp({
@@ -302,7 +302,7 @@ export const useCounterStore = defineStore('counter', {
 - SSR 状态水合通过 `defineApp({ serializeState, hydrateState })` 钩子集成,状态序列化到 HTML 的 `__UBEAN_STATE__` script 标签
 - `serializePiniaState(app)` 从 `app.config.globalProperties.$pinia.state.value` 提取状态
 - `hydratePiniaState(app, state)` 在 `applyAppConfig`(注册 `createPinia()` 插件)后、`app.mount()` 前调用,将 SSR state 注入客户端 pinia 实例
-- **零侵入**:Pinia 本身仍从 `pinia` 包导入,`@ubean/pinia` 仅提供集成胶水和 SSR 水合辅助
+- **零侵入**:Pinia 本身仍从 `pinia` 包导入,`@ubean/integrations/pinia` 仅提供集成胶水和 SSR 水合辅助
 - **安全降级**:未检测到 `$pinia` 时序列化返回空对象;`state` 为 null 或不含 `pinia` 字段时水合 no-op
 
 ## 5. 延后能力
@@ -311,9 +311,9 @@ export const useCounterStore = defineStore('counter', {
 | ---------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------------ |
 | Partial Prerendering                                 | 暂缓                                | 需先验证 loader 失效、streams、Suspense 错误边界、缓存与 hydration 语义        |
 | 通用 Remote Functions/RPC                            | 暂缓                                | OpenAPI client 与 Pages action 已覆盖主要需求，避免并行鉴权/缓存模型           |
-| PWA / Service Worker                                 | ✅ `@ubean/pwa` 已提供 opt-in 扩展  | 仅提供版本化 asset manifest、注册入口和显式 cache strategy；不默认缓存业务数据 |
+| PWA / Service Worker                                 | ✅ `@ubean/integrations/pwa` 已提供 opt-in 扩展  | 仅提供版本化 asset manifest、注册入口和显式 cache strategy；不默认缓存业务数据 |
 | 认证 (Auth)                                          | ✅ `@ubean/auth` 已提供 opt-in 扩展 | Better Auth 集成 + 内置fallback，支持email/password与社交登录                  |
-| 状态管理 (Pinia)                                     | ✅ `@ubean/pinia` 已提供 opt-in 扩展 | dev 预构建优化 + SSR 状态水合辅助;Pinia 本身由用户直接安装                     |
+| 状态管理 (Pinia)                                     | ✅ `@ubean/integrations/pinia` 已提供 opt-in 扩展 | dev 预构建优化 + SSR 状态水合辅助;Pinia 本身由用户直接安装                     |
 | 内容浏览器 SQLite、全文搜索、远程 Git source、Studio | 后续扩展                            | 初版优先保证 collection、类型查询、renderer 与静态 dump 的稳定性               |
 
 ## 6. 验收要求

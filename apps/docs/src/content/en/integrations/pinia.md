@@ -1,11 +1,11 @@
 ---
 title: Pinia
-description: Pinia state management through the built-in @ubean/pinia module.
+description: Pinia state management through the built-in @ubean/integrations/pinia integration.
 ---
 
-# Pinia State Management (@ubean/pinia)
+# Pinia State Management (@ubean/integrations/pinia)
 
-`@ubean/pinia` is ubean's **built-in state management module** that integrates [Pinia](https://pinia.vuejs.org/) — the official Vue state management library. The module is a thin orchestration layer that wires Pinia's dev optimization and SSR state hydration into ubean's Vite pipeline and SSR protocol. Pinia itself is consumed directly from the `pinia` package.
+`@ubean/integrations/pinia` is ubean's **built-in state management integration** that integrates [Pinia](https://pinia.vuejs.org/) — the official Vue state management library. The module is a thin orchestration layer that wires Pinia's dev optimization and SSR state hydration into ubean's Vite pipeline and SSR protocol. Pinia itself is consumed directly from the `pinia` package.
 
 ## Features
 
@@ -18,13 +18,13 @@ description: Pinia state management through the built-in @ubean/pinia module.
 
 ## Installation
 
-`@ubean/pinia` is a built-in module. Install it together with `pinia` in your project:
+`@ubean/integrations/pinia` is a built-in integration (a subpath of `@ubean/integrations`). Install it together with `pinia` in your project:
 
 ```bash
-pnpm add @ubean/pinia pinia
+pnpm add @ubean/integrations/pinia pinia
 ```
 
-> `pinia` is a peer dependency — you control its version. `@ubean/pinia` supports `pinia@^2.0.0 || ^3.0.0`.
+> `pinia` is a peer dependency — you control its version. `@ubean/integrations/pinia` supports `pinia@^2.0.0 || ^3.0.0`.
 
 ## Configuration
 
@@ -46,7 +46,7 @@ Then register Pinia and the SSR hydration hooks in `src/app.ts`:
 ```typescript
 // src/app.ts
 import { createPinia } from 'pinia';
-import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
 import { defineApp } from 'ubean';
 
 export default defineApp({
@@ -179,9 +179,9 @@ For page loaders, prefer the loader/action data protocol over Pinia for request-
 
 ## How It Works
 
-`@ubean/pinia` is a thin wrapper. When `pinia: true` is set:
+`@ubean/integrations/pinia` is a thin wrapper. When `pinia: true` is set:
 
-1. **Module system loads** `@ubean/pinia/vite` and calls `ubeanPiniaPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.pinia)` — `{ optimizeDeps: false }` when configured as an object, `{}` when `true`).
+1. **Module system loads** `@ubean/integrations/pinia` and calls `ubeanPiniaPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.pinia)` — `{ optimizeDeps: false }` when configured as an object, `{}` when `true`).
 
 2. **Dev optimizeDeps**: `ubeanPiniaPlugin` adds `pinia` to Vite's `optimizeDeps.include`, ensuring Pinia is pre-bundled for fast first page load in dev. This avoids the dependency scanning delay on the first request.
 
@@ -219,9 +219,9 @@ For page loaders, prefer the loader/action data protocol over Pinia for request-
 ## Programmatic API
 
 ```typescript
-import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/pinia/vite';
-import { serializePiniaState, hydratePiniaState } from '@ubean/pinia/runtime';
-import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/pinia';
+import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/integrations/pinia';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
+import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integrations/pinia';
 ```
 
 ### `ubeanPiniaPlugin(options?: UbeanPiniaOptions): Plugin[]`
@@ -273,9 +273,9 @@ export interface PiniaSerializedState {
 
 1. **Always pair `pinia: true` with the app.ts hooks**: `pinia: true` only enables dev pre-bundling. SSR state hydration requires `serializePiniaState` / `hydratePiniaState` in `defineApp`. Without them, SSR-rendered stores reset to defaults on client hydration.
 
-2. **One Pinia instance per app**: Call `createPinia()` once in `defineApp({ plugins: [createPinia()] })`. Do not create multiple Pinia instances — state hydration assumes a single `$pinia` on the app.
+2. **One Pinia instance per app**: Call `createPinia()` once in `defineApp({ plugins: [createPinia()] })`. State hydration assumes a single `$pinia` on the app.
 
-3. **Don't share server-side Pinia state across requests**: Each SSR request creates a fresh Vue app (and thus a fresh Pinia). Do not hoist a Pinia instance to module scope — it leaks state between requests.
+3. **Keep server-side Pinia state scoped to a single request**: Each SSR request creates a fresh Vue app (and thus a fresh Pinia). Keep the Pinia instance local to the request — module-scope instances leak state between requests.
 
 4. **Use loaders for request-scoped data**: For data that varies per request (e.g., user-specific data, route params), prefer ubean's page loader/action protocol. Pinia is best for client-side shared state (UI state, cached data, user preferences) that needs to survive route changes.
 
@@ -299,7 +299,7 @@ This means `hydratePiniaState` was called but `createPinia()` was not registered
 ```typescript
 // src/app.ts
 import { createPinia } from 'pinia';
-import { hydratePiniaState } from '@ubean/pinia/runtime';
+import { hydratePiniaState } from '@ubean/integrations';
 
 export default defineApp({
   plugins: [createPinia()], // <-- this is required
@@ -313,11 +313,11 @@ export default defineApp({
 - Run `ubean dev` and check Vite's optimizeDeps output — `pinia` should appear in `optimizeDeps.include`
 - If using a custom Vite config, ensure `ubeanPiniaPlugin`'s output isn't being filtered out
 
-### Type errors for `@ubean/pinia/runtime`
+### Type errors for `@ubean/integrations`
 
 - Run `ubean prepare` to regenerate type declarations
-- Verify `tsconfig.json` includes the `@ubean/pinia` types
-- Ensure you import from `@ubean/pinia/runtime` (not `@ubean/pinia`) for the runtime helpers
+- Verify `tsconfig.json` includes the `@ubean/integrations/pinia` types
+- Ensure you import from `@ubean/integrations` (not `@ubean/integrations/pinia`) for the runtime helpers
 
 ## Examples
 

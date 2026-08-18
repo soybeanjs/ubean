@@ -17,7 +17,7 @@ description: ubean 路由设计：命名导出 API 路由、文件式页面、�
 
 #### defineHandler API 设计
 
-参考 hono-ssr 的 `createDefineRoute` 类型推导模式，`defineHandler` 默认接受**多个 handler 组成的中间件链**（单个 handler 是链长度为 1 的特例）。`defineHandlerMeta` 作为独立的 handler 函数导出，直接传入 `defineHandler` 链中；请求验证和 OpenAPI 文档定义使用 hono-openapi 提供的 `validator` 和 `describeRoute` 中间件（从 ubean 直接重导出），不再使用自定义的 `defineValidator`，`defineHandlerMeta` 也不再接收 `{ openAPI: {...} }` 形式的配置。
+参考 hono-ssr 的 `createDefineRoute` 类型推导模式，`defineHandler` 默认接受**多个 handler 组成的中间件链**（单个 handler 是链长度为 1 的特例）。`defineHandlerMeta` 作为独立的 handler 函数导出，直接传入 `defineHandler` 链中；请求验证和 OpenAPI 文档定义使用 hono-openapi 提供的 `validator` 和 `describeRoute` 中间件（从 ubean 直接重导出），`defineHandlerMeta` 仅接收 ubean 特有的元数据字段。
 
 **核心设计原则**：
 
@@ -221,7 +221,7 @@ function resolver<S extends StandardSchemaV1>(schema: S): { schema: S };
 
 #### RouteMeta 类型设计
 
-`defineHandlerMeta` 仅用于 ubean 特有的元数据，不再包含 OpenAPI 字段：
+`defineHandlerMeta` 仅用于 ubean 特有的元数据，不包含 OpenAPI 字段：
 
 ```typescript
 // src/types/handler.ts

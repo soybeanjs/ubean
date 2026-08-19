@@ -26,6 +26,12 @@ async function mountApp() {
   app.provide(ERROR_KEY, errorComponent);
   app.mount(el);
 
+  // 等待初始导航完成(start → 首个路由解析 + 异步页面组件加载)。
+  // 否则 `currentRoute` 停留在 START_LOCATION,PageView 渲染空内容;
+  // CI 环境异步解析较慢,若不等待会偶发收到空字符串。
+  await router.isReady();
+  await nextTick();
+
   const settle = async (ms = 120) => {
     await nextTick();
     await new Promise(r => setTimeout(r, ms));

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://r2.soybeanjs.tech/soybeanjs/logo-ubean.png?v=202608192131" alt="ubean logo" width="120" />
+  <img src="https://r2.soybeanjs.tech/soybeanjs/logo-ubean.png?v=202608192144" alt="ubean logo" width="120" />
 </p>
 
 <h1 align="center">ubean</h1>

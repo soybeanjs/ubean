@@ -42,11 +42,11 @@
     "@ubean/markdown": "workspace:*",
     "@unhead/vue": "^3.3.2",
     "@vue/server-renderer": "^3.5.41",
-    "happy-dom": "^20.11.2",
+    "happy-dom": "^20.11.6",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   },
   "peerDependencies": {
     "@ubean/markdown": ">=0.1.0",

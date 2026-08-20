@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@ubean/shared": "workspace:*",
-    "hono": "4.13.2",
+    "hono": "4.13.3",
     "vue": "^3.5.41"
   },
   "devDependencies": {

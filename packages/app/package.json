@@ -28,7 +28,7 @@
     "@ubean/scan": "workspace:*",
     "@ubean/server": "workspace:*",
     "@ubean/shared": "workspace:*",
-    "hono": "4.13.2",
+    "hono": "4.13.3",
     "hookable": "^6.1.1",
     "pathe": "^2.0.3"
   },

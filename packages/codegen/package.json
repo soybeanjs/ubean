@@ -1,6 +1,6 @@
 {
   "name": "@ubean/codegen",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "description": "Type & auto-import generation for ubean (generateTypes, routes.d.ts, pages.d.ts, auto-imports.d.ts, components.d.ts, openapi.d.ts)",
   "files": [
     "dist"

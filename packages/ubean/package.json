@@ -1,6 +1,6 @@
 {
   "name": "ubean",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "description": "Vue-first full-stack meta-framework built on Vite-Plus with Hono (aggregator of all @ubean/* subpackages)",
   "bin": {
     "ubean": "./bin/ubean.mjs"
@@ -53,7 +53,6 @@
     "@standard-community/standard-json": "^0.3.5",
     "@standard-community/standard-openapi": "^0.2.9",
     "@ubean/actions": "workspace:*",
-    "@ubean/routes": "workspace:*",
     "@ubean/app": "workspace:*",
     "@ubean/build": "workspace:*",
     "@ubean/cli": "workspace:*",
@@ -71,6 +70,7 @@
     "@ubean/pages": "workspace:*",
     "@ubean/prerender": "workspace:*",
     "@ubean/preset": "workspace:*",
+    "@ubean/routes": "workspace:*",
     "@ubean/scan": "workspace:*",
     "@ubean/seo": "workspace:*",
     "@ubean/server": "workspace:*",

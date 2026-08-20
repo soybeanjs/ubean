@@ -1,6 +1,6 @@
 {
   "name": "@ubean/app",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "description": "Hono app factory and server config for ubean (createUbeanApp, defineServer)",
   "files": [
     "dist"
@@ -23,9 +23,9 @@
   },
   "dependencies": {
     "@ubean/actions": "workspace:*",
+    "@ubean/islands": "workspace:*",
     "@ubean/routes": "workspace:*",
     "@ubean/scan": "workspace:*",
-    "@ubean/islands": "workspace:*",
     "@ubean/server": "workspace:*",
     "@ubean/shared": "workspace:*",
     "hono": "4.13.2",

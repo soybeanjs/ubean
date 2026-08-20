@@ -1,6 +1,6 @@
 {
   "name": "@ubean/actions",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "description": "Server Actions / Form Actions for ubean (defineAction, registry, dispatch, middleware)",
   "files": [
     "dist"

@@ -1,5 +1,152 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.1.13...main) (2026-08-20)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- implement P9-04 Partial Prerendering / Server Islands &nbsp;-&nbsp; by @soybeanjs [<samp>(1c083)</samp>](https://github.com/soybeanjs/ubean/commit/1c083b8)
+- add AWS/Azure presets + CDN/edge cache (roadmap P2/P3 complete) &nbsp;-&nbsp; by @soybeanjs [<samp>(c0db0)</samp>](https://github.com/soybeanjs/ubean/commit/c0db028)
+- **actions**:
+  - implement Server Actions / Form Actions (P9-02) &nbsp;-&nbsp; by @soybeanjs [<samp>(c6ef5)</samp>](https://github.com/soybeanjs/ubean/commit/c6ef531)
+- **ai**:
+  - add @ubean/ai package with defineAgent + Vue runtime (thins over Vercel AI SDK) &nbsp;-&nbsp; by @soybeanjs [<samp>(e646d)</samp>](https://github.com/soybeanjs/ubean/commit/e646d80)
+- **api-routes**:
+  - per-route rendering rules + ISR (P9-03) &nbsp;-&nbsp; by @soybeanjs [<samp>(c3961)</samp>](https://github.com/soybeanjs/ubean/commit/c396127)
+  - add bot detection for streaming SSR metadata fallback [P1] &nbsp;-&nbsp; by @soybeanjs [<samp>(8b18d)</samp>](https://github.com/soybeanjs/ubean/commit/8b18d36)
+- **app**:
+  - add global hooks handle/handleFetch/handleError (P9-09) &nbsp;-&nbsp; by @soybeanjs [<samp>(c6cf9)</samp>](https://github.com/soybeanjs/ubean/commit/c6cf9b1)
+- **apps**:
+  - init apps docs &nbsp;-&nbsp; by @soybeanjs [<samp>(0e76d)</samp>](https://github.com/soybeanjs/ubean/commit/0e76dba)
+- **content**:
+  - add Live Content Collections (P9-19) &nbsp;-&nbsp; by @soybeanjs [<samp>(73d81)</samp>](https://github.com/soybeanjs/ubean/commit/73d8104)
+- **docs**:
+  - polish UI styles and finalize docs refactor &nbsp;-&nbsp; by @soybeanjs [<samp>(c7650)</samp>](https://github.com/soybeanjs/ubean/commit/c765026)
+  - add architecture optimization tasks document &nbsp;-&nbsp; by @soybeanjs [<samp>(29de8)</samp>](https://github.com/soybeanjs/ubean/commit/29de810)
+- **islands**:
+  - refactor client directives to v-client.* Vue directive (P9-29) &nbsp;-&nbsp; by @soybeanjs [<samp>(ff598)</samp>](https://github.com/soybeanjs/ubean/commit/ff59864)
+  - add .server.vue / .client.vue Server Components [P1.5] &nbsp;-&nbsp; by @soybeanjs [<samp>(bb8be)</samp>](https://github.com/soybeanjs/ubean/commit/bb8be57)
+  - implement 9.3 paired components and 9.4 props re-render &nbsp;-&nbsp; by @soybeanjs [<samp>(53e33)</samp>](https://github.com/soybeanjs/ubean/commit/53e332d)
+- **logger**:
+  - add "@ubean/logger" use tslog and remove consola &nbsp;-&nbsp; by @soybeanjs [<samp>(01b35)</samp>](https://github.com/soybeanjs/ubean/commit/01b35fe)
+- **markdown**:
+  - add real MDX compilation (P9-20) &nbsp;-&nbsp; by @soybeanjs [<samp>(6284c)</samp>](https://github.com/soybeanjs/ubean/commit/6284c4d)
+- **pages**:
+  - add defer() streaming deferred data API [P0] &nbsp;-&nbsp; by @soybeanjs [<samp>(5e660)</samp>](https://github.com/soybeanjs/ubean/commit/5e66050)
+- **prerender**:
+  - extract SSG payload to __data.json + useData hydration [P0] &nbsp;-&nbsp; by @soybeanjs [<samp>(aa8ee)</samp>](https://github.com/soybeanjs/ubean/commit/aa8ee73)
+- **preset**:
+  - add Vercel/Netlify/Bun/Deno platform presets (P9-10) &nbsp;-&nbsp; by @soybeanjs [<samp>(7caa3)</samp>](https://github.com/soybeanjs/ubean/commit/7caa392)
+- **routing**:
+  - add parallel routes and intercepting routes (P9-18) &nbsp;-&nbsp; by @soybeanjs [<samp>(5d414)</samp>](https://github.com/soybeanjs/ubean/commit/5d41414)
+  - add dynamic route matchers [P1] &nbsp;-&nbsp; by @soybeanjs [<samp>(8f5b5)</samp>](https://github.com/soybeanjs/ubean/commit/8f5b5e5)
+- **runtime**:
+  - add nested layouts support (P9-17) &nbsp;-&nbsp; by @soybeanjs [<samp>(17998)</samp>](https://github.com/soybeanjs/ubean/commit/1799806)
+  - add color mode support (P9-21) &nbsp;-&nbsp; by @soybeanjs [<samp>(1a2d4)</samp>](https://github.com/soybeanjs/ubean/commit/1a2d495)
+  - add Partytown integration and useScript composable (P9-22) &nbsp;-&nbsp; by @soybeanjs [<samp>(cad0c)</samp>](https://github.com/soybeanjs/ubean/commit/cad0caa)
+  - add Pagefind full-text search integration (P9-26) &nbsp;-&nbsp; by @soybeanjs [<samp>(f33d6)</samp>](https://github.com/soybeanjs/ubean/commit/f33d66a)
+- **seo**:
+  - implement file convention SEO (P9-05) &nbsp;-&nbsp; by @soybeanjs [<samp>(6f3ec)</samp>](https://github.com/soybeanjs/ubean/commit/6f3ec64)
+  - add JSON-LD / Schema.org structured data module (P9-07) &nbsp;-&nbsp; by @soybeanjs [<samp>(16c7b)</samp>](https://github.com/soybeanjs/ubean/commit/16c7bd5)
+  - add OG Image dynamic generation module (P9-06) &nbsp;-&nbsp; by @soybeanjs [<samp>(42940)</samp>](https://github.com/soybeanjs/ubean/commit/42940d4)
+  - add metadata dedupe and layered merge [P1] &nbsp;-&nbsp; by @soybeanjs [<samp>(d0f63)</samp>](https://github.com/soybeanjs/ubean/commit/d0f63ef)
+- **server**:
+  - add component-level cache directive (P9-08) &nbsp;-&nbsp; by @soybeanjs [<samp>(d34ea)</samp>](https://github.com/soybeanjs/ubean/commit/d34ea43)
+  - add CSRF protection and security headers middleware (P9-12, P9-13) &nbsp;-&nbsp; by @soybeanjs [<samp>(87511)</samp>](https://github.com/soybeanjs/ubean/commit/8751143)
+  - add Sessions API, after(), and fetch memoization (P9-11, P9-14, P9-15) &nbsp;-&nbsp; by @soybeanjs [<samp>(44a9a)</samp>](https://github.com/soybeanjs/ubean/commit/44a9ae3)
+  - add single-flight, draft-mode, email, analytics, feature-flags (P9-16, P9-23, P9-25, P9-27, P9-28) &nbsp;-&nbsp; by @soybeanjs [<samp>(a06ca)</samp>](https://github.com/soybeanjs/ubean/commit/a06cadb)
+  - add fetch Data Cache with revalidateTag/revalidatePath [P0] &nbsp;-&nbsp; by @soybeanjs [<samp>(f8676)</samp>](https://github.com/soybeanjs/ubean/commit/f8676df)
+- **ssr**:
+  - implement streaming SSR (P9-01) &nbsp;-&nbsp; by @soybeanjs [<samp>(afef0)</samp>](https://github.com/soybeanjs/ubean/commit/afef08c)
+  - add streaming metadata support (P9-24) &nbsp;-&nbsp; by @soybeanjs [<samp>(fd08a)</samp>](https://github.com/soybeanjs/ubean/commit/fd08ad7)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **api-routes**:
+  - normalize array layout for 404 page (P9-17 followup) &nbsp;-&nbsp; by @soybeanjs [<samp>(f0849)</samp>](https://github.com/soybeanjs/ubean/commit/f0849c8)
+  - fix 3 failing ISR cache unit tests &nbsp;-&nbsp; by @soybeanjs [<samp>(aaa0a)</samp>](https://github.com/soybeanjs/ubean/commit/aaa0a98)
+- **test**:
+  - fix ubean-test test &nbsp;-&nbsp; by @soybeanjs [<samp>(38801)</samp>](https://github.com/soybeanjs/ubean/commit/3880177)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **docs**:
+  - optimize docs apps style &nbsp;-&nbsp; by @soybeanjs [<samp>(d11ee)</samp>](https://github.com/soybeanjs/ubean/commit/d11ee13)
+  - optimize docs locale &nbsp;-&nbsp; by @soybeanjs [<samp>(c41d7)</samp>](https://github.com/soybeanjs/ubean/commit/c41d774)
+- **favicon**:
+  - optimize favicon config &nbsp;-&nbsp; by @soybeanjs [<samp>(c3e2e)</samp>](https://github.com/soybeanjs/ubean/commit/c3e2e94)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- complete architecture optimization tasks OPT-01~OPT-11 &nbsp;-&nbsp; by @soybeanjs [<samp>(c8383)</samp>](https://github.com/soybeanjs/ubean/commit/c8383b9)
+- **ai**:
+  - replace zod with valibot for tool schemas &nbsp;-&nbsp; by @soybeanjs [<samp>(db245)</samp>](https://github.com/soybeanjs/ubean/commit/db245a0)
+- **api**:
+  - rename clear cache api avoid conflict &nbsp;-&nbsp; by @soybeanjs [<samp>(fab12)</samp>](https://github.com/soybeanjs/ubean/commit/fab1229)
+- **framework**:
+  - migrate directives to function-call APIs &nbsp;-&nbsp; by @soybeanjs [<samp>(03eac)</samp>](https://github.com/soybeanjs/ubean/commit/03eac2f)
+- **packages**:
+  - rename "packages/build" to "packages/builder" &nbsp;-&nbsp; by @soybeanjs [<samp>(617f6)</samp>](https://github.com/soybeanjs/ubean/commit/617f63f)
+  - refactor packages structure &nbsp;-&nbsp; by @soybeanjs [<samp>(360e8)</samp>](https://github.com/soybeanjs/ubean/commit/360e8f8)
+- **ubean**:
+  - rename clearDataCache in server &nbsp;-&nbsp; by @soybeanjs [<samp>(4b695)</samp>](https://github.com/soybeanjs/ubean/commit/4b695ce)
+  - simplify `.reuse.ts` content &nbsp;-&nbsp; by @soybeanjs [<samp>(49c12)</samp>](https://github.com/soybeanjs/ubean/commit/49c12f5)
+- **website**:
+  - optimize docs &nbsp;-&nbsp; by @soybeanjs [<samp>(33c03)</samp>](https://github.com/soybeanjs/ubean/commit/33c030d)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- mark Phase 9 as complete in roadmap &nbsp;-&nbsp; by @soybeanjs [<samp>(aa986)</samp>](https://github.com/soybeanjs/ubean/commit/aa98688)
+- mark OPT-07 as done — extension contract table implemented &nbsp;-&nbsp; by @soybeanjs [<samp>(0a5fc)</samp>](https://github.com/soybeanjs/ubean/commit/0a5fcc5)
+- clean up completed task artifacts from docs/ &nbsp;-&nbsp; by @soybeanjs [<samp>(3c4e1)</samp>](https://github.com/soybeanjs/ubean/commit/3c4e167)
+- **apps**:
+  - update docs &nbsp;-&nbsp; by @soybeanjs [<samp>(dd3be)</samp>](https://github.com/soybeanjs/ubean/commit/dd3beed)
+- **projects**:
+  - add meta framework comparison and update roadmap &nbsp;-&nbsp; by @soybeanjs [<samp>(083f1)</samp>](https://github.com/soybeanjs/ubean/commit/083f1af)
+  - add @ubean/ai package documentation and update monorepo stats &nbsp;-&nbsp; by @soybeanjs [<samp>(2582e)</samp>](https://github.com/soybeanjs/ubean/commit/2582e12)
+  - update logo link in README &nbsp;-&nbsp; by @soybeanjs [<samp>(74be2)</samp>](https://github.com/soybeanjs/ubean/commit/74be2be)
+  - update logo link &nbsp;-&nbsp; by @soybeanjs [<samp>(010ea)</samp>](https://github.com/soybeanjs/ubean/commit/010ea41)
+- **roadmap**:
+  - mark Task 1/2/3/6 as implemented in priority table &nbsp;-&nbsp; by @soybeanjs [<samp>(29ad8)</samp>](https://github.com/soybeanjs/ubean/commit/29ad8b9)
+- **ubean**:
+  - restructure docs site and align content with code &nbsp;-&nbsp; by @soybeanjs [<samp>(0bbcf)</samp>](https://github.com/soybeanjs/ubean/commit/0bbcfb5)
+  - consolidate completed dev-task docs into the docs site &nbsp;-&nbsp; by @soybeanjs [<samp>(77be8)</samp>](https://github.com/soybeanjs/ubean/commit/77be86c)
+  - update framework comparison table and nuxt server components support details &nbsp;-&nbsp; by @soybeanjs [<samp>(b2efa)</samp>](https://github.com/soybeanjs/ubean/commit/b2efa50)
+  - align docs with refactored packages and drop legacy content &nbsp;-&nbsp; by @soybeanjs [<samp>(1042e)</samp>](https://github.com/soybeanjs/ubean/commit/1042ee0)
+- **website**:
+  - add i18n support and fix multiple site issues &nbsp;-&nbsp; by @soybeanjs [<samp>(f9782)</samp>](https://github.com/soybeanjs/ubean/commit/f9782c2)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**:
+  - update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(e6343)</samp>](https://github.com/soybeanjs/ubean/commit/e6343d9)
+  - update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(c792d)</samp>](https://github.com/soybeanjs/ubean/commit/c792d58)
+  - update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(08fee)</samp>](https://github.com/soybeanjs/ubean/commit/08fee62)
+- **docs**:
+  - bump docs package version to 0.1.13 &nbsp;-&nbsp; by @soybeanjs [<samp>(b1369)</samp>](https://github.com/soybeanjs/ubean/commit/b136925)
+- **projects**:
+  - remove prepare script in apps docs &nbsp;-&nbsp; by @soybeanjs [<samp>(9b13f)</samp>](https://github.com/soybeanjs/ubean/commit/9b13f9a)
+  - update script &nbsp;-&nbsp; by @soybeanjs [<samp>(862f4)</samp>](https://github.com/soybeanjs/ubean/commit/862f447)
+- **ubean**:
+  - add clearDataCache export and resolve its import conflict &nbsp;-&nbsp; by @soybeanjs [<samp>(75b96)</samp>](https://github.com/soybeanjs/ubean/commit/75b968c)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **projects**:
+  - add e2e test &nbsp;-&nbsp; by @soybeanjs [<samp>(820e1)</samp>](https://github.com/soybeanjs/ubean/commit/820e1fb)
+  - fix test &nbsp;-&nbsp; by @soybeanjs [<samp>(48167)</samp>](https://github.com/soybeanjs/ubean/commit/4816722)
+- **server**:
+  - add draft-mode HTTP integration tests + mark Task 5 done [P1] &nbsp;-&nbsp; by @soybeanjs [<samp>(e5e4b)</samp>](https://github.com/soybeanjs/ubean/commit/e5e4b36)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **projects**:
+  - format code &nbsp;-&nbsp; by @soybeanjs [<samp>(c23cb)</samp>](https://github.com/soybeanjs/ubean/commit/c23cbdb)
+  - fix lint error and format code &nbsp;-&nbsp; by @soybeanjs [<samp>(34ed3)</samp>](https://github.com/soybeanjs/ubean/commit/34ed308)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.1.12...main) (2026-07-30)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

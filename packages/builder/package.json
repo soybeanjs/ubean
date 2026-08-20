@@ -1,6 +1,6 @@
 {
   "name": "@ubean/build",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "description": "Core Vite plugin (framework-agnostic) for ubean (ubeanPlugin, virtual modules: routes/pages/meta/app-config/locales, macros)",
   "files": [
     "dist"
@@ -41,8 +41,8 @@
     "@ubean/scan": "workspace:*",
     "@ubean/shared": "workspace:*",
     "@ubean/ssr": "workspace:*",
-    "@ubean/vue": "workspace:*",
     "@ubean/vite": "workspace:*",
+    "@ubean/vue": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.8",
     "oxc-transform": "^0.144.0",
     "pathe": "^2.0.3"

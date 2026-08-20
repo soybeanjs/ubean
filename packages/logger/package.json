@@ -1,6 +1,6 @@
 {
   "name": "@ubean/logger",
-  "version": "0.1.13",
+  "version": "0.2.0",
   "description": "Unified logging for ubean built on tslog (scoped loggers, env-driven minLevel, Hono request-logger middleware)",
   "files": [
     "dist"

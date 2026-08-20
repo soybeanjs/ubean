@@ -1,6 +1,6 @@
 {
   "name": "@ubean/routes",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Server routes runtime for ubean (defineHandler, defineMiddleware, registerRoutes, rou3 server router, route rules, ISR, internal-fetch, OpenAPI)",
   "files": [
     "dist"

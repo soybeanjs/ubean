@@ -1,6 +1,6 @@
 {
   "name": "@ubean/integrations",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Thin integration bundles for ubean (pwa, fonts, electron, ui, pinia)",
   "files": [
     "dist"

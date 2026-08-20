@@ -1,6 +1,6 @@
 {
   "name": "@ubean/build-core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Build-infrastructure foundation for ubean (virtual module registry, module extension registry, macro transforms) — shared by @ubean/build and @ubean/vite to keep their dependency direction acyclic",
   "files": [
     "dist"

@@ -1,6 +1,6 @@
 {
   "name": "@ubean/icon",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Icon module for ubean with Iconify integration",
   "files": [
     "dist"

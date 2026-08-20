@@ -1,6 +1,6 @@
 {
   "name": "@ubean/preset",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Deployment presets for ubean (standard, node, cloudflare, vercel, netlify, bun, deno)",
   "files": [
     "dist"

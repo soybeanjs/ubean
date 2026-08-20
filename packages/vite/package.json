@@ -27,6 +27,7 @@
     "@ubean/codegen": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/markdown": "workspace:*",
+    "@ubean/pages": "workspace:*",
     "@ubean/scan": "workspace:*",
     "@ubean/vue": "workspace:*",
     "oxc-transform": "^0.144.0",

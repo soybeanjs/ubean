@@ -7,6 +7,7 @@ import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolve
 import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '@ubean/codegen';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanMdxPlugin } from '@ubean/markdown';
+import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
 import { transformSync } from 'oxc-transform';
 import { join } from 'pathe';
@@ -192,12 +193,16 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
           }
         }
       }
-      // Inject a default SVG favicon link if the user hasn't declared any
-      // <link rel="icon"> of their own. Resolves to /favicon.svg under the
-      // public/ dir — users override by adding their own favicon.svg or
-      // by declaring head.link in definePage().
+      // Inject the resolved favicon if the user hasn't declared any
+      // <link rel="icon"> of their own. Reads config.favicon — the same
+      // value the SSR shell uses — so the dev HTML stays in sync with the
+      // prerendered output. Null (favicon: false or none found) injects
+      // nothing. Users override by adding their own link or via definePage().
       if (!/<link\b[^>]*rel=["']icon["']/i.test(result)) {
-        result = result.replace('<head>', '<head>\n    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />');
+        const faviconLink = renderFaviconLink(ubeanConfig.favicon ?? undefined);
+        if (faviconLink) {
+          result = result.replace('<head>', `<head>\n    ${faviconLink}`);
+        }
       }
       if (result.includes(CLIENT_ENTRY_URL) || result.includes(VIRTUAL_CLIENT)) return result;
       return result.replace('</body>', `  <script type="module" src="${CLIENT_ENTRY_URL}"></script>\n</body>`);

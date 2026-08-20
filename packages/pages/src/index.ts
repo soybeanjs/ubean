@@ -7,6 +7,7 @@ export {
   buildClientOnlyShell,
   insertSsrContent,
   insertStateContent,
+  renderFaviconLink,
   renderPage,
   renderPageToStream,
   PAGE_DATA_ID,

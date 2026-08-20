@@ -148,7 +148,7 @@ function faviconMimeType(href: string): string | null {
  * 生成 favicon `<link>` 标签字符串。
  * 当 `favicon` 为空/未设置时返回空字符串。
  */
-function renderFaviconLink(favicon?: string): string {
+export function renderFaviconLink(favicon?: string): string {
   if (!favicon) return '';
   const type = faviconMimeType(favicon);
   const typeAttr = type ? ` type="${escapeAttr(type)}"` : '';

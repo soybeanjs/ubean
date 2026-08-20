@@ -1375,6 +1375,9 @@ importers:
       '@ubean/markdown':
         specifier: workspace:*
         version: link:../markdown
+      '@ubean/pages':
+        specifier: workspace:*
+        version: link:../pages
       '@ubean/scan':
         specifier: workspace:*
         version: link:../scan

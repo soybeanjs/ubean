@@ -198,7 +198,7 @@ Dual semantics:
 
 ```ts
 // src/pages/about2.reuse.ts
-export default definePage({ reuse: 'About' });
+definePage({ reuse: 'About' });
 // → route /about2 renders the About page component
 ```
 

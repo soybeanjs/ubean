@@ -16,8 +16,8 @@ describe('stripMacros()', () => {
     expect(result).toBe('\nexport default {}');
   });
 
-  it('剥离 export default definePage(...)（reuse.ts 场景）', () => {
-    const code = `export default definePage({ reuse: 'about' });`;
+  it('剥离 reuse 文件的 definePage(...)（reuse.ts 场景，无需 export）', () => {
+    const code = `definePage({ reuse: 'about' });`;
     const result = stripMacros(code);
     expect(result).toBe('');
   });

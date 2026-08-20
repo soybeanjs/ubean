@@ -5,7 +5,7 @@ import { definePage } from 'ubean';
 // [...slug].vue catch-all which tries to load content/zh/index.md (not
 // present) and returns a 404. The layout must be set explicitly because
 // reuse routes only inherit `cache` from their target, not `layout`.
-export default definePage({
+definePage({
   reuse: 'Index',
   path: '/zh',
   layout: 'home'

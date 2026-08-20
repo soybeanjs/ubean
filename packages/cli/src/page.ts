@@ -170,7 +170,7 @@ function getTemplateContent(
     case 'reuse': {
       return `import { definePage } from 'ubean';
 
-export default definePage({
+definePage({
   name: '${name}'
 });
 `;

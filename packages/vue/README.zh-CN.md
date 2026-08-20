@@ -205,7 +205,7 @@ definePage({
 
 ```ts
 // src/pages/about2.reuse.ts
-export default definePage({ reuse: 'About' });
+definePage({ reuse: 'About' });
 // → /about2 路由渲染 About 页面组件
 ```
 

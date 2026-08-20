@@ -348,7 +348,7 @@ const ABOUT_PAGE = `<script setup lang="ts"></script>
 
 const ABOUT_REUSE = `import { definePage } from 'ubean';
 
-export default definePage({
+definePage({
   reuse: 'About'
 });
 `;

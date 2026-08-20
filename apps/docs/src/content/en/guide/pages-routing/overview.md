@@ -238,10 +238,10 @@ When a `.reuse.ts` page does **not** explicitly declare `cache`, it inherits the
 definePage({ cache: true });
 
 // pages/about2.reuse.ts — inherits cache: true automatically
-export default definePage({ reuse: 'About' });
+definePage({ reuse: 'About' });
 
 // pages/about3.reuse.ts — explicitly disable cache (overrides inheritance)
-export default definePage({ reuse: 'About', cache: false });
+definePage({ reuse: 'About', cache: false });
 ```
 
 | Reuse page `cache` value | Behavior |

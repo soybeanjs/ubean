@@ -250,13 +250,13 @@ When a `.reuse.ts` page does **not** explicitly declare `cache`, it inherits the
 definePage({ cache: true });
 
 // pages/about2.reuse.ts — inherits cache: true from About (no need to repeat)
-export default definePage({ reuse: 'About' });
+definePage({ reuse: 'About' });
 
 // pages/about3.reuse.ts — explicitly disable cache (overrides inheritance)
-export default definePage({ reuse: 'About', cache: false });
+definePage({ reuse: 'About', cache: false });
 
 // pages/about4.reuse.ts — explicitly enable cache even if target is not cached
-export default definePage({ reuse: 'About', cache: true });
+definePage({ reuse: 'About', cache: true });
 ```
 
 Each cached reuse route is an independent KeepAlive instance keyed by its own route name.

@@ -11,8 +11,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { scanPages } from '../src/scan-pages';
 import { extractDefinePageFromCode } from '../src/extract-page';
+import { scanPages } from '../src/scan-pages';
 
 let tmpDir: string;
 let pagesDir: string;
@@ -107,7 +107,7 @@ describe('默认页面扩展名(vue/tsx/jsx)', () => {
 describe('.reuse.ts / .reuse.js 独立约定', () => {
   it('默认扩展去掉 ts 后 .reuse.ts 仍被扫描', async () => {
     writeFile('about.vue', `<template>About</template>`);
-    writeFile('about2.reuse.ts', `export default definePage({ reuse: 'About' });`);
+    writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
     const reuse = result.pages.find(p => p.isReuse);
     expect(reuse).toBeDefined();
@@ -116,14 +116,14 @@ describe('.reuse.ts / .reuse.js 独立约定', () => {
 
   it('.reuse.js 同样被扫描(JS 元数据变体)', async () => {
     writeFile('about.vue', `<template>About</template>`);
-    writeFile('about2.reuse.js', `export default definePage({ reuse: 'About' });`);
+    writeFile('about2.reuse.js', `definePage({ reuse: 'About' });`);
     const result = await scan();
     expect(result.pages.filter(p => p.isReuse)).toHaveLength(1);
   });
 
   it('markdown 关闭时 .reuse.ts 仍被扫描', async () => {
     writeFile('about.vue', `<template>About</template>`);
-    writeFile('about2.reuse.ts', `export default definePage({ reuse: 'About' });`);
+    writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan(false);
     expect(result.pages.filter(p => p.isReuse)).toHaveLength(1);
   });

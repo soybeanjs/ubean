@@ -1,6 +1,6 @@
 # Changelog
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.13...main) (2026-08-20)
+## [v0.2.0](https://github.com/soybeanjs/ubean/compare/v0.1.13...v0.2.0) (2026-08-20)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -147,7 +147,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.12...main) (2026-07-30)
+## [v0.1.13](https://github.com/soybeanjs/ubean/compare/v0.1.12...v0.1.13) (2026-07-30)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -161,7 +161,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.11...main) (2026-07-30)
+## [v0.1.12](https://github.com/soybeanjs/ubean/compare/v0.1.11...v0.1.12) (2026-07-30)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -175,7 +175,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.10...main) (2026-07-30)
+## [v0.1.11](https://github.com/soybeanjs/ubean/compare/v0.1.10...v0.1.11) (2026-07-30)
 
 ### &nbsp;&nbsp;&nbsp;🛠 Optimizations
 
@@ -185,54 +185,53 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.9...main) (2026-07-30)
+## [v0.1.10](https://github.com/soybeanjs/ubean/compare/v0.1.9...v0.1.10) (2026-07-30)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
-- **runtime**: fix page cache &nbsp;-&nbsp; by **Soybean** [<samp>(686cb)</samp>](https://github.com/soybeanjs/ubean/commit/686cbcb)
+- **runtime**: fix page cache &nbsp;-&nbsp; by @soybeanjs [<samp>(686cb)</samp>](https://github.com/soybeanjs/ubean/commit/686cbcb)
 
 ### &nbsp;&nbsp;&nbsp;🏡 Chore
 
-- **deps**: update deps &nbsp;-&nbsp; by **Soybean** [<samp>(1b46c)</samp>](https://github.com/soybeanjs/ubean/commit/1b46cec)
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(1b46c)</samp>](https://github.com/soybeanjs/ubean/commit/1b46cec)
 
 ### &nbsp;&nbsp;&nbsp;❤️ Contributors
 
-[Soybean](mailto:soybeanjs@outlook.com)
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.8...main) (2026-07-29)
+## [v0.1.9](https://github.com/soybeanjs/ubean/compare/v0.1.8...v0.1.9) (2026-07-29)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
-- **cli**: optimize init template &nbsp;-&nbsp; by **Soybean** [<samp>(21b19)</samp>](https://github.com/soybeanjs/ubean/commit/21b19f6)
-- **islands**: add auto-registration via virtual module &nbsp;-&nbsp; by **Soybean** [<samp>(1ee16)</samp>](https://github.com/soybeanjs/ubean/commit/1ee1605)
+- **cli**: optimize init template &nbsp;-&nbsp; by @soybeanjs [<samp>(21b19)</samp>](https://github.com/soybeanjs/ubean/commit/21b19f6)
+- **islands**: add auto-registration via virtual module &nbsp;-&nbsp; by @soybeanjs [<samp>(1ee16)</samp>](https://github.com/soybeanjs/ubean/commit/1ee1605)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
-- **islands**: resolve island hydration failure and infinite HMR reload &nbsp;-&nbsp; by **Soybean** [<samp>(5c244)</samp>](https://github.com/soybeanjs/ubean/commit/5c2440e)
-- **test**: fix test &nbsp;-&nbsp; by **Soybean** [<samp>(6b5bd)</samp>](https://github.com/soybeanjs/ubean/commit/6b5bd36)
+- **islands**: resolve island hydration failure and infinite HMR reload &nbsp;-&nbsp; by @soybeanjs [<samp>(5c244)</samp>](https://github.com/soybeanjs/ubean/commit/5c2440e)
+- **test**: fix test &nbsp;-&nbsp; by @soybeanjs [<samp>(6b5bd)</samp>](https://github.com/soybeanjs/ubean/commit/6b5bd36)
 
 ### &nbsp;&nbsp;&nbsp;🛠 Optimizations
 
-- **projects**: optimize code &nbsp;-&nbsp; by **Soybean** [<samp>(a2b4d)</samp>](https://github.com/soybeanjs/ubean/commit/a2b4d12)
+- **projects**: optimize code &nbsp;-&nbsp; by @soybeanjs [<samp>(a2b4d)</samp>](https://github.com/soybeanjs/ubean/commit/a2b4d12)
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation
 
-- add islands auto registry scheme doc and update example &nbsp;-&nbsp; by **Soybean** [<samp>(a8000)</samp>](https://github.com/soybeanjs/ubean/commit/a800092)
-- **islands**: update islands auto hydration &nbsp;-&nbsp; by **Soybean** [<samp>(cba14)</samp>](https://github.com/soybeanjs/ubean/commit/cba1492)
+- add islands auto registry scheme doc and update example &nbsp;-&nbsp; by @soybeanjs [<samp>(a8000)</samp>](https://github.com/soybeanjs/ubean/commit/a800092)
+- **islands**: update islands auto hydration &nbsp;-&nbsp; by @soybeanjs [<samp>(cba14)</samp>](https://github.com/soybeanjs/ubean/commit/cba1492)
 
 ### &nbsp;&nbsp;&nbsp;🎨 Styles
 
-- **projects**: fix lint error and format code &nbsp;-&nbsp; by **Soybean** [<samp>(6cb02)</samp>](https://github.com/soybeanjs/ubean/commit/6cb0252)
+- **projects**: fix lint error and format code &nbsp;-&nbsp; by @soybeanjs [<samp>(6cb02)</samp>](https://github.com/soybeanjs/ubean/commit/6cb0252)
 
 ### &nbsp;&nbsp;&nbsp;❤️ Contributors
 
-[Soybean](mailto:soybeanjs@outlook.com)
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.7...main) (2026-07-29)
+## [v0.1.8](https://github.com/soybeanjs/ubean/compare/v0.1.7...v0.1.8) (2026-07-28)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
-- **islands**: add auto-registration via virtual module — scan `client:*` directives and `<script setup>` imports to generate `virtual:ubean-islands-registry`, eliminating manual `components` map in `app.ts` &nbsp;-&nbsp; by @soybeanjs
 - **modules**: add @ubean/pinia &nbsp;-&nbsp; by @soybeanjs [<samp>(19f4c)</samp>](https://github.com/soybeanjs/ubean/commit/19f4c8b)
 
 ### &nbsp;&nbsp;&nbsp;🛠 Optimizations
@@ -247,7 +246,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.6...main) (2026-07-27)
+## [v0.1.7](https://github.com/soybeanjs/ubean/compare/v0.1.6...v0.1.7) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -257,7 +256,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.5...main) (2026-07-27)
+## [v0.1.6](https://github.com/soybeanjs/ubean/compare/v0.1.5...v0.1.6) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;💅 Refactors
 
@@ -267,17 +266,17 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.4...main) (2026-07-27)
+## [v0.1.5](https://github.com/soybeanjs/ubean/compare/v0.1.4...v0.1.5) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
-- **icon**: fix icon options &nbsp;-&nbsp; by **Soybean** [<samp>(96e1e)</samp>](https://github.com/soybeanjs/ubean/commit/96e1e12)
+- **icon**: fix icon options &nbsp;-&nbsp; by @soybeanjs [<samp>(96e1e)</samp>](https://github.com/soybeanjs/ubean/commit/96e1e12)
 
 ### &nbsp;&nbsp;&nbsp;❤️ Contributors
 
-[Soybean](mailto:soybeanjs@outlook.com)
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.3...main) (2026-07-27)
+## [v0.1.4](https://github.com/soybeanjs/ubean/compare/v0.1.3...v0.1.4) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -295,7 +294,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.1.2...main) (2026-07-27)
+## [v0.1.3](https://github.com/soybeanjs/ubean/compare/v0.1.2...v0.1.3) (2026-07-27)
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation
 

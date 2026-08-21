@@ -6,7 +6,7 @@ defineProps<{ class?: string }>();
 
 <template>
   <img
-    src="https://r2.soybeanjs.tech/soybeanjs/logo-ubean.svg?v=202608192144"
+    src="https://r2.soybeanjs.tech/soybeanjs/logo-ubean.svg?v=202608211738"
     alt="ubean logo"
     class="size-8"
     :class="$props.class"

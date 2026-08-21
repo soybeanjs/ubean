@@ -807,71 +807,50 @@ const ZH_LOCALE = `{
 // ============ 共享基础模板(minimal/starter/blog 使用) ============
 
 /** ubean logo SVG — 所有模板共用 */
-const FAVICON_SVG = `<svg width="100%" height="100%" version="1.1" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg"
-  xmlns:xlink="http://www.w3.org/1999/xlink">
+const FAVICON_SVG = `<svg width="100%" height="100%" version="1.1" viewBox="0 0 1000 1000" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <g>
-    <path
-      d="M 200,866 C 100,866 50,779.4 100,692.8 L 200,519.6 C 220,485 240,490 265,499.6 S 360,542.68 360,542.68 C 480.5,601 498,642.5 500,720 C 498,811 462,856 420,866"
-      fill="url(#LinearGradient)" fill-rule="nonzero" opacity="1" stroke="none" />
-    <path
-      d="M 420,866 C 455,861 478,846 500,827 C 614,696 615,597 500,517 C 394,444 333,374 380,207.82 L 260,415.67 C 240.22,450 254.37,465.1 275.28,481.79 S 360,542.68 360,542.68 C 480.5,601 498,642.5 500,720 C 498,811 462,856 420,866"
-      fill="url(#LinearGradient_2)" fill-rule="nonzero" opacity="1" stroke="none" />
-    <path d="M 500,517 C 394,444 333,374 380,207.82 L 400,173.2 C 367,295 421,350 603,428 C 572,440 524,474 500,517"
-      fill="url(#LinearGradient_3)" fill-rule="nonzero" opacity="1" stroke="none" />
-    <path d="M 500,827 L 660,660 C 738,589 710,482 603,428 C 572,440 524,474 500,517 C 615,597 614,696 500,827"
-      fill="url(#LinearGradient_4)" fill-rule="nonzero" opacity="1" stroke="none" />
-    <path d="M 400,173.2 C 367,295 421,350 603,428 C 690,389, 750,445 788,500 L 600,173.2 C 550,86.6 450,86.6 400,173.2"
-      fill="url(#LinearGradient_5)" fill-rule="nonzero" opacity="1" stroke="none" />
-    <path
-      d="M 500,827 L 660,660 C 738,589 710,482 603,428 C 690,389, 750,445 788,500 C 816,554 797,606 750,640 L 500,827"
-      fill="url(#LinearGradient_6)" fill-rule="nonzero" opacity="1" stroke="none" />
-    <path
-      d="M 788,500 C 816,554 797,606 750,640 L 500,827 C 497,851 513,862 540,866 L 800,866 C 900,866 950,779.4 900,692.8 L 788,500"
-      fill="url(#LinearGradient_7)" fill-rule="nonzero" opacity="1" stroke="none" />
-
-  <!--左下角图案-->
+    <path d="M 200,866 C 100,866 50,779.4 100,692.8 L 200,519.6 C 220,485 240,490 265,499.6 S 360,542.68 360,542.68 C 480.5,601 498,642.5 500,720 C 498,811 462,856 420,866" fill="url(#LinearGradient)" fill-rule="nonzero" opacity="1" stroke="none"/>
+    <path d="M 420,866 C 455,861 478,846 500,827 C 614,696 615,597 500,517 C 394,444 333,374 380,207.82 L 260,415.67 C 240.22,450 254.37,465.1 275.28,481.79 S 360,542.68 360,542.68 C 480.5,601 498,642.5 500,720 C 498,811 462,856 420,866" fill="url(#LinearGradient_2)" fill-rule="nonzero" opacity="1" stroke="none"/>
+    <path d="M 500,517 C 394,444 333,374 380,207.82 L 400,173.2 C 367,295 421,350 603,428 C 572,440 524,474 500,517" fill="url(#LinearGradient_3)" fill-rule="nonzero" opacity="1" stroke="none"/>
+    <path d="M 500,827 L 660,660 C 738,589 710,482 603,428 C 572,440 524,474 500,517 C 615,597 614,696 500,827" fill="url(#LinearGradient_4)" fill-rule="nonzero" opacity="1" stroke="none"/>
+    <path d="M 400,173.2 C 367,295 421,350 603,428 C 690,389, 750,445 788,500 L 600,173.2 C 550,86.6 450,86.6 400,173.2" fill="url(#LinearGradient_5)" fill-rule="nonzero" opacity="1" stroke="none"/>
+    <path d="M 500,827 L 660,660 C 738,589 710,482 603,428 C 690,389, 750,445 788,500 C 816,554 797,606 750,640 L 500,827" fill="url(#LinearGradient_6)" fill-rule="nonzero" opacity="1" stroke="none"/>
+    <path d="M 788,500 C 816,554 797,606 750,640 L 500,827 C 497,851 513,862 540,866 L 800,866 C 900,866 950,779.4 900,692.8 L 788,500" fill="url(#LinearGradient_7)" fill-rule="nonzero" opacity="1" stroke="none"/>
+  </g>
+<!--左下角图案-->
   <g transform="translate(130, 675) scale(7)">
     <g viewBox="0 0 24 24">
-      	<path fill="#ffffff" d="M4.528 5.118a1 1 0 0 1 1.027.05l5.554 3.703A2 2 0 0 1 12 10.535V21a1 1 0 0 1-1.555.832l-5.554-3.703A2 2 0 0 1 4 16.465V6a1 1 0 0 1 .528-.882m4-2a1 1 0 0 1 1.027.05l5.554 3.703A2 2 0 0 1 16 8.535V19a1 1 0 0 1-1.555.832l-.945-.63v-8.667a3.5 3.5 0 0 0-1.559-2.912L8 4.995V4a1 1 0 0 1 .528-.882m4-2a1 1 0 0 1 1.027.05l5.554 3.703A2 2 0 0 1 20 6.535V17a1 1 0 0 1-1.555.832l-.945-.63V8.534a3.5 3.5 0 0 0-1.559-2.912L12 2.995V2a1 1 0 0 1 .528-.882" />
-
+      <path fill="#ffffff" d="M4.528 5.118a1 1 0 0 1 1.027.05l5.554 3.703A2 2 0 0 1 12 10.535V21a1 1 0 0 1-1.555.832l-5.554-3.703A2 2 0 0 1 4 16.465V6a1 1 0 0 1 .528-.882m4-2a1 1 0 0 1 1.027.05l5.554 3.703A2 2 0 0 1 16 8.535V19a1 1 0 0 1-1.555.832l-.945-.63v-8.667a3.5 3.5 0 0 0-1.559-2.912L8 4.995V4a1 1 0 0 1 .528-.882m4-2a1 1 0 0 1 1.027.05l5.554 3.703A2 2 0 0 1 20 6.535V17a1 1 0 0 1-1.555.832l-.945-.63V8.534a3.5 3.5 0 0 0-1.559-2.912L12 2.995V2a1 1 0 0 1 .528-.882"/>
     </g>
   </g>
-  </g>
   <defs>
-    <linearGradient gradientTransform="matrix(104.391 -73.3432 73.3432 104.391 277.441 710.122)"
-      gradientUnits="userSpaceOnUse" id="LinearGradient" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stop-color="#30a772" />
-      <stop offset="1" stop-color="#30e191" />
+    <linearGradient gradientTransform="matrix(104.391 -73.3432 73.3432 104.391 277.441 710.122)" gradientUnits="userSpaceOnUse" id="LinearGradient" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#373ebf"/>
+      <stop offset="1" stop-color="#5058e6"/>
     </linearGradient>
-    <linearGradient gradientTransform="matrix(-173.747 557.324 -557.324 -173.747 508.829 258.172)"
-      gradientUnits="userSpaceOnUse" id="LinearGradient_2" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stop-color="#98f6cc" />
-      <stop offset="1" stop-color="#4aefa5" />
+    <linearGradient gradientTransform="matrix(-173.747 557.324 -557.324 -173.747 508.829 258.172)" gradientUnits="userSpaceOnUse" id="LinearGradient_2" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#c2d6ff"/>
+      <stop offset="1" stop-color="#646cff"/>
     </linearGradient>
-    <linearGradient gradientTransform="matrix(157.951 295.666 -295.666 157.951 382.944 193.642)"
-      gradientUnits="userSpaceOnUse" id="LinearGradient_3" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stop-color="#30e191" />
-      <stop offset="1" stop-color="#30a772" />
+    <linearGradient gradientTransform="matrix(157.951 295.666 -295.666 157.951 382.944 193.642)" gradientUnits="userSpaceOnUse" id="LinearGradient_3" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#5058e6"/>
+      <stop offset="1" stop-color="#373ebf"/>
     </linearGradient>
-    <linearGradient gradientTransform="matrix(-44.3023 219.578 -219.578 -44.3023 619.69 469.652)"
-      gradientUnits="userSpaceOnUse" id="LinearGradient_4" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stop-color="#6ff3b7" />
-      <stop offset="1" stop-color="#30e191" />
+    <linearGradient gradientTransform="matrix(-44.3023 219.578 -219.578 -44.3023 619.69 469.652)" gradientUnits="userSpaceOnUse" id="LinearGradient_4" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#91a7ff"/>
+      <stop offset="1" stop-color="#5058e6"/>
     </linearGradient>
-    <linearGradient gradientTransform="matrix(125.52 334.256 -334.256 125.52 539.723 235.139)"
-      gradientUnits="userSpaceOnUse" id="LinearGradient_5" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stop-color="#4aefa5" />
-      <stop offset="1" stop-color="#98f6cc" />
+    <linearGradient gradientTransform="matrix(125.52 334.256 -334.256 125.52 539.723 235.139)" gradientUnits="userSpaceOnUse" id="LinearGradient_5" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#646cff"/>
+      <stop offset="1" stop-color="#c2d6ff"/>
     </linearGradient>
-    <linearGradient gradientTransform="matrix(-241.23 357.206 -357.206 -241.23 754.054 449.312)"
-      gradientUnits="userSpaceOnUse" id="LinearGradient_6" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stop-color="#98f6cc" />
-      <stop offset="1" stop-color="#4aefa5" />
+    <linearGradient gradientTransform="matrix(-241.23 357.206 -357.206 -241.23 754.054 449.312)" gradientUnits="userSpaceOnUse" id="LinearGradient_6" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#c2d6ff"/>
+      <stop offset="1" stop-color="#646cff"/>
     </linearGradient>
-    <linearGradient gradientTransform="matrix(125.978 210.065 -210.065 125.978 596.433 613.665)"
-      gradientUnits="userSpaceOnUse" id="LinearGradient_7" x1="0" x2="1" y1="0" y2="0">
-      <stop offset="0" stop-color="#30a772" />
-      <stop offset="1" stop-color="#30e191" />
+    <linearGradient gradientTransform="matrix(125.978 210.065 -210.065 125.978 596.433 613.665)" gradientUnits="userSpaceOnUse" id="LinearGradient_7" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#373ebf"/>
+      <stop offset="1" stop-color="#5058e6"/>
     </linearGradient>
   </defs>
 </svg>

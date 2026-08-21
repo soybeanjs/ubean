@@ -56,7 +56,7 @@ export default defineConfig({
   mode: 'ssg',
   srcDir: 'src',
 
-  favicon: 'https://r2.soybeanjs.tech/soybeanjs/logo-ubean.svg?v=202608192144',
+  favicon: 'https://r2.soybeanjs.tech/soybeanjs/logo-ubean.svg?v=202608211738',
 
   // @ubean/ui in UnoCSS mode (no styles.css injection). uno.config.ts carries
   // presetSoybean + presetShadcn, mirroring the ubean DevTools styling convention.

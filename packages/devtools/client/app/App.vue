@@ -287,7 +287,7 @@ onUnmounted(() => {
         class="flex flex-col items-center justify-center h-full py-20 px-5 gap-3.5 text-muted-foreground"
       >
         <img
-          src="https://r2.soybeanjs.tech/soybeanjs/logo-ubean.svg?v=202608192144"
+          src="https://r2.soybeanjs.tech/soybeanjs/logo-ubean.svg?v=202608211738"
           alt="ubean"
           class="size-10 op-fade"
         />

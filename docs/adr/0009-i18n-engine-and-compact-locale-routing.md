@@ -2,8 +2,9 @@
 
 - **状态**: accepted
 - **日期**: 2026-08-21
-- **关联**: [docs/i18n-vue-i18n.md](../i18n-vue-i18n.md)
+- **关联**: 用户指南 [apps/docs i18n](../../apps/docs/src/content/zh/guide/i18n.md)；剩余双模块图债见 [roadmap RM-D01](../roadmap.md)
 - **决策者**: grill-with-docs 会话（Q1=1、Q2=2；明确不做兼容）
+- **任务清单**: 已落地后删除（原 `docs/i18n-vue-i18n.md`，git 可查）
 
 ubean 把「翻译」「语言路由」「语言检测」「请求级实例」揉进 `@ubean/i18n` 的进程单例。翻译能力是 vue-i18n 的子集；Hono 有语言前缀而 vue-router 没有；`setLocale` 既不加载文案也不改 URL。
 

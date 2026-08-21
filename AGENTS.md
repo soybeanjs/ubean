@@ -865,16 +865,17 @@ pnpm build            # 构建
 
 ## 10. 文档导航
 
-| 资源                      | 路径                                                           | 内容                                                                                   |
-| ------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 文档索引                  | [docs/README.md](docs/README.md)                               | 仓库级工程文档索引                                                                     |
-| 领域词汇表                | [docs/glossary.md](docs/glossary.md)                           | 领域建模词汇表 + ADR 决策索引                                                          |
-| 产品方案与任务清单        | [docs/ubean-studio.md](docs/ubean-studio.md)                   | ubean-studio 产品方案 + ST 任务清单                                                    |
-| i18n 重设计（已落地）     | [docs/i18n-vue-i18n.md](docs/i18n-vue-i18n.md)                 | vue-i18n 11 引擎 + 约束前缀语言路由（ADR-0009）                                        |
-| 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)               | 中英文档源（overview / routing / runtime / framework-comparison / guide / reference…） |
-| CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md) | CLI 命令文档                                                                           |
-| AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                 | Agent 技能入口                                                                         |
-| 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                   | 完整全栈示例 + 测试（virtual 路由模式）                                                |
-| 示例项目                  | [examples/client-only-spa/](examples/client-only-spa/)         | 纯客户端 SPA 示例（复用 @ubean/vue 内核）                                              |
-| 示例项目                  | [examples/frontend-only/](examples/frontend-only/)             | 纯前端示例（无 API/SSR）                                                               |
-| 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)     | 路由文件生成模式示例                                                                   |
+| 资源                      | 路径                                                                                                               | 内容                                                                                   |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| 文档索引                  | [docs/README.md](docs/README.md)                                                                                   | 仓库级工程文档索引                                                                     |
+| 路线图（2026Q4–2027H1）   | [docs/roadmap.md](docs/roadmap.md)                                                                                 | i18n 落地后还债与用户缺口（ADR-0010；任务 ID 不进站点）                                |
+| 领域词汇表                | [docs/glossary.md](docs/glossary.md)                                                                               | 领域建模词汇表 + ADR 决策索引                                                          |
+| i18n 决策                 | [docs/adr/0009-i18n-engine-and-compact-locale-routing.md](docs/adr/0009-i18n-engine-and-compact-locale-routing.md) | vue-i18n 11 + 约束前缀；任务清单已删                                                   |
+| 竞品北极星                | [docs/adr/0010-competitive-north-star-and-gap-filter.md](docs/adr/0010-competitive-north-star-and-gap-filter.md)   | 对标 Next 能力 / Nuxt 约定；RSC 刻意不做                                               |
+| 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)                                                                   | 中英文档源（overview / routing / runtime / framework-comparison / guide / reference…） |
+| CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)                                                     | CLI 命令文档                                                                           |
+| AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                                                                     | Agent 技能入口                                                                         |
+| 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                                                                       | 完整全栈示例 + 测试（virtual 路由模式）                                                |
+| 示例项目                  | [examples/client-only-spa/](examples/client-only-spa/)                                                             | 纯客户端 SPA 示例（复用 @ubean/vue 内核）                                              |
+| 示例项目                  | [examples/frontend-only/](examples/frontend-only/)                                                                 | 纯前端示例（无 API/SSR）                                                               |
+| 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)                                                         | 路由文件生成模式示例                                                                   |

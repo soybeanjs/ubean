@@ -37,7 +37,7 @@
 
 `defineAgent` 的 agent 循环、tool calling、流式**全部委托给 AI SDK**（`streamText`/`generateText` + `stopWhen: stepCountIs(maxSteps)`），`@ubean/ai` 只做**声明式配置层 + ubean 工具注册**。
 
-**不实现**：agent loop、状态持久化、权限系统、审计 —— 这些留给 pi 生态（与 ubean-studio §0.2「不自建 agent loop」决策一致）。`@ubean/ai` 与 pi-agent 可共存：pi 管重型 coding agent，`@ubean/ai` 管应用内轻量 agent。
+**不实现**：agent loop、状态持久化、权限系统、审计 —— 留给应用侧或独立 agent 宿主。`@ubean/ai` 只管应用内轻量 agent。
 
 ### D4：`useChat` 自研（非 `@ai-sdk/vue`）
 

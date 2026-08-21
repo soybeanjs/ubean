@@ -1,93 +1,99 @@
 ---
 title: Framework Comparison
-description: "How ubean compares to Next.js, Nuxt, SvelteKit, SolidStart, and Astro — and where its differentiators lie."
+description: How ubean compares to Next.js, Nuxt, SvelteKit, SolidStart, Astro, TanStack Start, and Analog — scored by what the default path actually does.
 ---
 
 # Framework Comparison
 
-A high-level comparison of ubean against the mainstream meta-frameworks (as of 2026): **Next.js 16**, **Nuxt 4**, **SvelteKit 2**, **SolidStart 1.x**, and **Astro 5/6**. The matrix helps you decide when ubean fits — and when another framework might be a better choice.
+As of **2026-08**. Peers: **Next.js 16**, **Nuxt 4**, **SvelteKit 2**, **SolidStart**, **Astro 5/6**, **TanStack Start**, and **Analog 2.7**. Use the matrix to decide when ubean fits — and when another framework is a better choice.
+
+The ubean column is scored by **whether the default path actually does the thing**, not by whether a TypeScript field exists. `⚠️` means partial, in-memory defaults, or APIs that are not mounted by `createUbeanApp`.
 
 ## Overview Matrix
 
-| Dimension | Next.js | Nuxt | SvelteKit | SolidStart | Astro | **ubean** |
-| --- | --- | --- | --- | --- | --- | --- |
-| UI framework | React 19 | Vue 3 | Svelte 5 | Solid | Multi | **Vue 3** |
-| Build tool | Turbopack | Vite | Vite | Vinxi (Vite+Nitro) | Vite | **Vite** |
-| HTTP layer | Node/Runtime | Nitro (Hono) | Node/Hono | Nitro | Node/Hono | **Hono** |
-| Streaming SSR | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| SSG | ✅ | ✅ | ✅ | ✅ | ✅ (default) | ✅ |
-| ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ (SWR) | ✅ routeRules.isr + SWR |
-| Per-route render rules | ⚠️ partial | ✅ routeRules | ❌ | ❌ | ✅ | ✅ routeRules |
-| PPR / Server Islands | ✅ stable | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Server Components | ✅ RSC | ✅ (`.server.vue`) | ❌ | ❌ | ❌ | ✅（`.server.vue` + match） |
-| Server Actions / Form Actions | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Islands (partial hydration) | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
-| Built-in DB / Queue / Cron / WS | ❌ | ⚠️ partial | ❌ | ❌ | ❌ | ✅ |
-| Built-in Auth | ❌ (Auth.js) | ⚠️ | ❌ | ❌ | ❌ | ✅ extension |
-| Built-in i18n | ❌ | ⚠️ module | ❌ | ❌ | ⚠️ routing | ✅ vue-i18n 11 |
-| Built-in DevTools | ⚠️ | ✅ | ❌ | ❌ | ✅ Toolbar | ✅ + AI assistant |
-| Platform presets | Vercel/Node/Edge | 12+ | 6+ | 20+ | 4+ | **8** (Node/CF/Vercel/Netlify/Bun/Deno) |
+| Dimension | Next.js | Nuxt | SvelteKit | SolidStart | Astro | TanStack Start | Analog | **ubean** |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| UI framework | React 19 | Vue 3 | Svelte 5 | Solid | Multi | React (router-first) | Angular | **Vue 3** |
+| Build tool | Turbopack | Vite | Vite | Vite / Nitro-family | Vite | Vite / Rsbuild | Vite + Nitro | **Vite** |
+| HTTP layer | Own runtime | Nitro | Adapters | Nitro | Adapters | Start server | Nitro | **Hono** |
+| Streaming SSR | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ experimental | ✅ |
+| SSG | ✅ | ✅ | ✅ | ✅ | ✅ (default) | ✅ | ✅ | ✅ |
+| ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ SWR | ⚠️ | ⚠️ | ⚠️ rules exist; default store is in-process memory |
+| Per-route render rules | ⚠️ partial | ✅ routeRules | ⚠️ | ⚠️ | ✅ | ✅ `ssr` / `data-only` | ⚠️ | ⚠️ `ssr`/`isr`/`prerender` wired; **rewrite not executed, proxy is types-only** |
+| PPR / static shell | ✅ | ❌ | ❌ | ❌ | ✅ Server Islands | ❌ | ❌ | ⚠️ `ppr: true` forces streaming SSR; not a Next-style static shell |
+| Server Components | ✅ RSC | ✅ `.server.vue` | ❌ | ❌ | ❌ | ❌ (server functions) | ❌ | ✅ `.server.vue` (**not** RSC) |
+| Server Actions / server functions | ✅ | ❌ first-class | ✅ form actions | ✅ | ✅ | ✅ `createServerFn` | ✅ 2.7 | ✅ `defineAction` + `?/<name>` |
+| Islands (partial hydration) | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ `v-client.*` |
+| Built-in DB / Queue / Cron / WS | ❌ | ⚠️ partial | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ APIs exist; DB/Queue/Storage **default to memory** |
+| Built-in Auth | ❌ Auth.js | ⚠️ module | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ extension (Better Auth) |
+| Built-in i18n | ❌ | ⚠️ module | ❌ | ❌ | ⚠️ routing | ❌ | ❌ | ✅ vue-i18n 11 + compact locale paths |
+| Built-in DevTools | ⚠️ | ✅ | ❌ | ❌ | ✅ Toolbar | ❌ | ❌ | ✅ + AI assistant |
+| Platform presets | Vercel-first | 12+ | 6+ | Many runtimes | 4+ | Many hosts | Nitro | **9** (Node / CF / Vercel / Edge / Netlify / Bun / Deno + cf-dev) |
+
+## How to read the ubean column
+
+- **Wired**: streaming SSR, SSG, file-based routing (including parallel and intercepting routes), Server Actions, `.server.vue`, Islands, vue-i18n 11, OpenAPI + Scalar, preset generators.
+- **API exists, default path incomplete**: ISR / component-cache stores are in-process memory; CSRF, sessions, and fetch Data Cache live on `@ubean/server` and are **not** mounted by `createUbeanApp`; the image dev `/_ipx` handler currently **302s to the original file**.
+- **Deliberately out of scope**: React Server Components, a multi-UI runtime, and a second in-house i18n engine. Need RSC? Use Next.js. Need a multi-framework content site? Use Astro.
 
 ## Feature Highlights
 
 ### Rendering
 
-ubean covers the full rendering spectrum: streaming SSR, SSG, ISR (with SWR), per-route render rules via `routeRules` (`ssr` / `prerender` / `isr` / `ppr`), and Partial Prerendering through `defineServerIsland()` wrapping async components in `<Suspense>`. Vue's SFC/`<script setup>` ecosystem means there are no Server Components — islands are the model for partial hydration instead.
+Streaming SSR, SSG, ISR (at the rules layer), and `routeRules` for `ssr` / `prerender` / `isr`. Today `ppr: true` means forced streaming SSR plus prerender discovery — **not** Next.js Partial Prerendering with a static shell. Server-only UI uses `.server.vue` (optionally paired with `.client.vue`). Shipping less client JS uses `v-client.*` islands. `defineServerIsland()` wraps async components in `<Suspense>`; that is a streaming hole, not a static shell.
 
-### Data & Mutations
+### Data and mutations
 
-- **Server Actions / Form Actions**: `defineAction()` explicit wrapper plus SvelteKit-style `?/<name>` form actions, with a stable action ID (`base32(SHA-1)`) and a client runtime (`callAction` / `useAction` / `useFormAction`).
-- **Request memoization & single-flight mutations**: fetch dedup per request scope and request-scoped revalidation (`defineRevalidation` / `invalidate`) to avoid post-mutation waterfalls.
-- **`after()`**: response-time callbacks (logging, analytics, cache invalidation) without blocking TTFB.
+- **Server Actions / Form Actions**: `defineAction()` plus SvelteKit-style `?/<name>` URLs, stable action IDs, and `callAction` / `useAction` / `useFormAction`.
+- **`useData` / `useAsyncData` / `defer`**: SSR payload hydration. Browser HTTP should use [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch); ubean does not ship an HTTP client.
+- **`after()`**: post-response work that does not block TTFB.
+- CSRF, sessions, and cross-request Data Cache must be enabled explicitly. They are not on for a new app.
 
 ### Routing
 
-File-based routes with parallel routes (`@slotName/` → Vue Router named views + `<SlotView>`), intercepting routes (`(..)target`), route groups, nested layouts, `404`/`loading`/`error` convention files, typed routes, and View Transitions.
+File-based routes, parallel routes (`@slotName/` → Vue Router named views + `<SlotView>`), intercepting routes, groups, nested layouts, and `404` / `loading` / `error` convention files. `routeRules.redirect` and headers run. **rewrite / proxy are not runtime behaviors yet**.
 
-### Security & Sessions
+### Internationalization
 
-Sessions API (cookie or storage-backed), CSRF protection (double-submit cookie + origin check), and configurable security headers (CSP / HSTS / X-Frame-Options / Referrer-Policy / Permissions-Policy).
+Config lives only on `ubean.config.ts` → `i18n`. Vue uses vue-i18n 11 (`legacy: false`). Hono and vue-router share `compileLocalePaths()`. `createUbeanApp` mounts the middleware. Import `useI18n` / `setLocale` from `ubean/runtime/vue`.
 
-### Developer Experience
+### Developer experience
 
-- **OpenAPI auto-generation** (`/_openapi.json` + Scalar UI) — a differentiator most frameworks lack.
-- **vue-i18n 11 + compact locale routing** (4 strategies shared by Hono and vue-router, Intlify messages, SSR hydration).
-- **Islands architecture** (`v-client.*` directive + `defineIsland()` / `defineServerIsland()` wrappers).
-- **Electron** desktop apps out of the box; multi-provider image optimization; a full CLI scaffold (`page` / `api` / `layout` / `middleware` / `cron` / `plugin` / `env` / `config`).
+- **OpenAPI** (`/_openapi.json` + Scalar) — first-class in few meta-frameworks.
+- **Islands** (`v-client.*` + runtime wrappers) — uncommon in Vue meta-frameworks.
+- **Electron, PWA, Pinia, UI** load from top-level `ubean.config.ts` fields and stay out of the core dependency graph.
+- CLI scaffolds: `page` / `api` / `layout` / `middleware` / `cron`, and more.
 
-## Deployment Platforms
+## Deployment platforms
 
 | Platform | ubean |
 | --- | --- |
 | Node.js | ✅ |
-| Cloudflare | ✅ |
+| Cloudflare | ✅ preset; KV / Queue still need platform drivers — memory is not a substitute |
 | Vercel | ✅ Serverless + Edge |
 | Netlify | ✅ Functions |
 | Bun | ✅ native TS + `bun:sqlite` |
-| Deno | ✅ KV / cron / Queue |
+| Deno | ✅ preset; Deno KV / cron / Queue need explicit wiring |
 
-Every preset extends `node` and ships its own capability matrix, build configuration, and config-file generator. The platform is auto-detected via config file, environment variables, or `package.json` dependencies.
+Every preset extends `node` and can generate its config file. Detection uses config files, environment variables, or `package.json` dependencies.
 
-## Where ubean Stands Out
+## When ubean fits
 
-| Differentiator | Detail |
+1. You want a **Vue-only** full-stack framework (pages + API + SSR), not React / Angular / multi-UI.
+2. You want **Islands** to ship less client JS, with optional `.server.vue`.
+3. You want **Hono-native** + Vite, deploying to Node / Bun / Deno / Cloudflare / Vercel / Netlify.
+4. You want in-framework **OpenAPI** and **vue-i18n 11 locale routing**, not a pile of extra modules.
+
+## When to pick someone else
+
+| Need | Better fit |
 | --- | --- |
-| **Built-in full-stack primitives** | DB / Queue / Cron / WebSocket / SSE / Cache in one dependency, where competitors require third-party glue |
-| **AI-powered DevTools** | Embedded ai-sdk integration with multiple views |
-| **OpenAPI auto-generation** | `/_openapi.json` + Scalar UI — rare among meta-frameworks |
-| **vue-i18n 11 i18n** | 4 compact-prefix strategies + Intlify messages + SSR hydration |
-| **Islands for Vue** | `v-client.*` directive + runtime wrappers — uncommon in the Vue ecosystem |
-| **Electron built-in** | Desktop apps out of the box |
-| **Hono-native** | Edge-runtime friendly and lightweight |
+| React Server Components / mature PPR static shells | Next.js |
+| Largest Vue module ecosystem, `useFetch` habits, Nitro preset count | Nuxt |
+| Progressive enhancement + minimal `load` functions | SvelteKit |
+| Type-safe router + `createServerFn` at the center | TanStack Start |
+| Islands-default content sites, multi-UI | Astro |
+| Angular + Vite meta-framework | Analog |
+| Fine-grained reactivity + Solid | SolidStart |
 
-## Good-Fit Checklist
-
-Consider ubean when you want:
-
-1. A **Vue-specific** full-stack framework (pages + API + SSR in one tool)
-2. **Islands** partial hydration to ship less client JavaScript
-3. **Built-in** full-stack primitives (DB, queue, cron, WebSocket, SSE, cache, i18n) without vendor lock-in
-4. **Multi-platform** deployment (Node / Bun / Deno / Cloudflare / Vercel / Netlify) from one codebase
-5. A **DevTools + AI** workflow integrated into the framework
-
-If you require React Server Components (choose Next.js) or a framework-agnostic content site (Astro), those remain better fits.
+TanStack Start and Analog are **not** drop-in substitutes (different UI runtimes). They are listed because they represent the other 2026 Vite meta-framework path: router-first, typed server functions, selective SSR. ubean aims at those *capabilities* on the Vue side — it does not port those runtimes.

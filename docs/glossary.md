@@ -45,6 +45,14 @@
 
 - **开发任务型内容（dev-task content）**：面向贡献者/开发者自身、以推进开发为目的的文档——设计提案、实施计划、任务跟踪、差距分析、产品规划。生命周期强耦合（含状态表格、任务 ID、时间预估），随迭代频繁变更。归属根 `docs/`（仓库内部，中文）。判据：① 含任务清单/状态表格/里程碑；② 含"实施计划/时间预估/分阶段"章节；③ 以"差距分析/缺失功能"为主体；④ 面向贡献流程（测试门槛、工程规范）。
 - **架构说明性内容（architecture-explanation content）**：面向用户/评估者、以帮助理解与选型为目的的文档——解释框架机制、设计理念。生命周期弱耦合（稳定知识，仅在机制变化时更新）。归属 `apps/docs`（公开站点，中英双语）。
+- **任务清单（task list）**：开发任务型文档里的 ID 表。全部完成后**删除正文**（git 留历史）；决策进 ADR，词汇进 glossary。别的产品（studio、SoybeanAdmin）的方案不进本仓 `docs/`。
+
+## 产品规划（ADR-0010 沉淀）
+
+- **真缺口（real gap）**：缺失能力同时满足「用户习惯缺口或架构还债」以及「性能或差异化」。进入路线图任务 ID。对照 [docs/roadmap.md](roadmap.md)。
+  _Avoid_: 竞品差距（过载：竞品有 ≠ 我们该做）
+- **刻意不做（wontfix by positioning）**：竞品有、但与 Vue 专属 / 非 RSC / 不自研 i18n 引擎等北极星冲突的能力。记录在路线图「刻意不做」表，不进任务队列。
+- **北极星对标（competitive north star）**：学 Next 的能力（流式、缓存、Actions、route rules）而不是 RSC；学 Nuxt 的约定；Astro 只对 Islands；TanStack Start / Analog 只找类型安全数据层切口。
 
 ## 真理源与校验（第二轮 grilling 沉淀）
 

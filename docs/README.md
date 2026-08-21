@@ -1,37 +1,39 @@
 # 仓库级工程文档（docs/）
 
-> 本目录存放 **开发任务型（dev-task）** 文档：面向贡献者/开发者自身，推进 ubean 框架开发的设计提案、实施计划、任务跟踪与差距分析。
+> **开发任务型（dev-task）**：给本仓库贡献者推进 *ubean 开源框架* 用。分类见 [ADR-0007](adr/0007-docs-content-classification.md)。
 >
-> 分类标准见 [ADR-0007](adr/0007-docs-content-classification.md)（二维分类：受众 × 生命周期耦合度）。**架构说明性（architecture-explanation）** 内容——面向用户理解与选型框架的稳定知识——归 `apps/docs/src/content/`（公开站点，中英双语），不放在本目录。
+> 用户向说明归 `apps/docs`（公开站点，中英双语），不放这里。
+>
+> **任务清单落地后删除正文**，决策留在 ADR，词汇留在 glossary。git 保留历史。别的产品（studio、SoybeanAdmin）的方案不进本目录。
 
-## 文档索引
+## 仍在推进
 
-| 文档 | 类型 | 说明 |
-| --- | --- | --- |
-| [ubean-studio.md](ubean-studio.md) | 产品方案 + 任务清单 | ubean-studio 产品方案与 ST 任务清单 |
-| [soybean-admin-next.md](soybean-admin-next.md) | 下一代 SoybeanAdmin | 下一代 SoybeanAdmin 技术选型与开发计划（提取 ubean 客户端内核路线） |
-| [i18n-vue-i18n.md](i18n-vue-i18n.md) | 设计方案 + 任务清单 | 翻译引擎切换 vue-i18n 11 + 约束前缀语言路由（ADR-0009） |
+| 文档 | 说明 |
+| --- | --- |
+| [roadmap.md](roadmap.md) | 2026 Q4 还债 / 2027 H1 用户可见缺口（ADR-0010） |
 
-> 用户向内容（应用模式、Islands、包架构）已整合进 `apps/docs` 公开站点，元框架对比见 [Framework Comparison](../apps/docs/src/content/en/architecture/framework-comparison.md)。
+## 长期参考
+
+| 文档 | 说明 |
+| --- | --- |
+| [glossary.md](glossary.md) | 领域词汇表 |
+| [adr/](adr/) | 决策记录（为什么这样做；不是任务跟踪） |
 
 ## 决策记录（ADR）
 
-- [0001-rename-vue-create-ubean-app.md](adr/0001-rename-vue-create-ubean-app.md) — renameVue / createUbeanApp 命名
-- [0002-sequencing-enablers-and-test-boundaries.md](adr/0002-sequencing-enablers-and-test-boundaries.md) — 构建时序使能项与测试边界
-- [0003-server-subpaths-rejustification.md](adr/0003-server-subpaths-rejustification.md) — `@ubean/server` 语义聚合子路径
-- [0004-devtools-ai-sdk-optional-deps.md](adr/0004-devtools-ai-sdk-optional-deps.md) — DevTools AI SDK 可选依赖
-- [0005-opt09-impl-opt11-timing-opt01-subitem.md](adr/0005-opt09-impl-opt11-timing-opt01-subitem.md) — OPT-09 实施 + OPT-11 时序 + OPT-01 子项
-- [0006-opt07-contract-table-opt08-test-priority.md](adr/0006-opt07-contract-table-opt08-test-priority.md) — OPT-07 扩展契约表 + OPT-08 测试优先级
-- [0007-docs-content-classification.md](adr/0007-docs-content-classification.md) — 文档内容分类标准与站点/仓库文档边界
-- [0008-ai-package-architecture.md](adr/0008-ai-package-architecture.md) — `@ubean/ai` 包架构
-- [0009-i18n-engine-and-compact-locale-routing.md](adr/0009-i18n-engine-and-compact-locale-routing.md) — 翻译引擎 vue-i18n 11 + 约束前缀语言路由
-
-## 领域词汇表
-
-[glossary.md](glossary.md) — 领域建模词汇表（ubiquitous language），记录文档分类、真理源等关键术语。
+- [0001](adr/0001-rename-vue-create-ubean-app.md) — `createUbeanApp` 命名消歧
+- [0002](adr/0002-sequencing-enablers-and-test-boundaries.md) — 构建时序使能项与测试边界
+- [0003](adr/0003-server-subpaths-rejustification.md) — `@ubean/server` 语义聚合子路径
+- [0004](adr/0004-devtools-ai-sdk-optional-deps.md) — DevTools AI SDK 可选依赖
+- [0005](adr/0005-opt09-impl-opt11-timing-opt01-subitem.md) — OPT-09 / OPT-11 / OPT-01
+- [0006](adr/0006-opt07-contract-table-opt08-test-priority.md) — OPT-07 扩展契约表 + OPT-08
+- [0007](adr/0007-docs-content-classification.md) — 站点 / 仓库文档边界
+- [0008](adr/0008-ai-package-architecture.md) — `@ubean/ai` 包架构
+- [0009](adr/0009-i18n-engine-and-compact-locale-routing.md) — vue-i18n 11 + 约束前缀语言路由
+- [0010](adr/0010-competitive-north-star-and-gap-filter.md) — 竞品北极星与「值得做」过滤器
 
 ## 相关目录
 
-- **站点文档（公开，双语）**：[apps/docs/src/content/](../apps/docs/src/content/) — 用户向的 guide / integrations / reference / architecture / contributing / ecosystem
-- **站点设计档案**：[apps/docs/DESIGN.md](../apps/docs/DESIGN.md) — 文档站的 D1–D27 设计决策（D13 已被 ADR-0007 逆转）
-- **AI 助手导航**：[AGENTS.md](../AGENTS.md) §10 文档导航表
+- 站点正文：[apps/docs/src/content/](../apps/docs/src/content/)
+- 站点设计档案：[apps/docs/DESIGN.md](../apps/docs/DESIGN.md)（D13 已被 ADR-0007 逆转）
+- 助手导航：[AGENTS.md](../AGENTS.md) §10

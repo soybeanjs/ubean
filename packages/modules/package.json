@@ -1,6 +1,6 @@
 {
   "name": "@ubean/modules",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Module system for ubean (resolveModules, defineModule, BUILTIN_MODULES)",
   "files": [
     "dist"

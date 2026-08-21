@@ -1,5 +1,20 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.2.1...main) (2026-08-21)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **projects**: update logo link and svg &nbsp;-&nbsp; by @soybeanjs [<samp>(b40b3)</samp>](https://github.com/soybeanjs/ubean/commit/b40b38d)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(8cd62)</samp>](https://github.com/soybeanjs/ubean/commit/8cd623b)
+- **vite**: remove oxc-transform dependency and switch to vite built-in transform &nbsp;-&nbsp; by @soybeanjs [<samp>(ed30e)</samp>](https://github.com/soybeanjs/ubean/commit/ed30e30)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.2.0...main) (2026-08-20)
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation

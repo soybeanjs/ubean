@@ -17,10 +17,11 @@ export function createVuePagesVirtualModule(
   layouts: ScannedLayout[],
   notFoundPage?: ScannedPageRoute,
   loadingPage?: ScannedPageRoute,
-  errorPage?: ScannedPageRoute
+  errorPage?: ScannedPageRoute,
+  localeVueParam?: string
 ) {
   return defineVirtualModule('virtual:ubean-pages', () =>
-    generatePagesModuleSource({ pages, layouts, notFoundPage, loadingPage, errorPage })
+    generatePagesModuleSource({ pages, layouts, notFoundPage, loadingPage, errorPage }, { vueParam: localeVueParam })
   );
 }
 
@@ -69,8 +70,27 @@ import {
   createDefaultAppConfig,
   createClientHead,
   createServerHead,
-  hydrateIslands
+  hydrateIslands,
+  configureI18nRuntime
 } from 'ubean/client';
+
+import { i18nConfig as _i18nConfig, loadLocale as _loadLocale } from 'ubean:locales';
+
+if (_i18nConfig && _i18nConfig.enabled !== false) {
+  configureI18nRuntime({
+    config: {
+      defaultLocale: _i18nConfig.defaultLocale,
+      locales: (_i18nConfig.locales || []).map(l => typeof l === 'string' ? l : l.code),
+      strategy: _i18nConfig.strategy || 'prefix_except_default',
+      fallbackLocale: _i18nConfig.fallbackLocale || _i18nConfig.defaultLocale,
+      cookieName: (_i18nConfig.detectBrowserLanguage && _i18nConfig.detectBrowserLanguage.cookieName) || 'ubean_locale',
+      baseUrl: _i18nConfig.baseUrl || '',
+      vueI18n: _i18nConfig.vueI18n
+    },
+    loadLocale: _loadLocale,
+    locales: (_i18nConfig.locales || []).map(l => typeof l === 'string' ? { code: l } : l)
+  });
+}
 
 export {
   createUbeanClientApp,

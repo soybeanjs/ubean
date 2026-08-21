@@ -6,12 +6,12 @@ import { I18nPage } from '../pages/i18n.page';
  * Spec 04: i18n (Internationalization)
  *
  * Covers:
- * - Built-in i18n (no vue-i18n dependency)
+ * - vue-i18n 11 Composition API (`legacy: false`)
  * - Locale info display (current, fallback, available)
- * - Locale switcher (setLocale)
+ * - Locale switcher (`setLocale` → URL + messages)
  * - Translations (t function with interpolation)
  * - useSwitchLocalePath / useLocalePath
- * - i18n routing strategy: prefix_except_default
+ * - i18n routing strategy: prefix_except_default (vue-router + Hono aligned)
  * - Server-side i18n API (/api/i18n-test)
  */
 describe('i18n', () => {
@@ -65,12 +65,18 @@ describe('i18n', () => {
     it('switches locale when clicking a locale button', async () => {
       const page = await new I18nPage().open();
       const beforeLocale = await page.currentLocale();
-      // Click the other locale button
       const targetLocale = beforeLocale === 'en' ? 'zh' : 'en';
       await page.switchLocale(targetLocale);
-      // The active button should now be the target locale
       const activeButton = await page.activeLocaleButton();
       expect(activeButton).toBe(targetLocale);
+    });
+
+    it('SPA navigation to /zh/about matches and stays Chinese after hydrate', async () => {
+      const page = await new I18nPage().open();
+      await page.switchLocale('zh');
+      await page.waitForFunction('return /\\/zh/.test(location.pathname)', 8000);
+      const url = await page.url();
+      expect(url).toMatch(/\/zh/);
     });
   });
 
@@ -86,11 +92,12 @@ describe('i18n', () => {
       expect(res.status).toBe(200);
     });
 
-    it('returns 404 for /en/about (default locale has no prefix)', async () => {
-      // With prefix_except_default, the default locale (en) has NO prefix.
-      // /en/about is not a valid route — it returns 404.
+    it('redirects /en/about to /about (default locale has no prefix)', async () => {
+      // prefix_except_default: a default-locale prefix is not a registered page
+      // path. The i18n middleware 302s it to the unprefixed canonical URL.
       const res = await api.get('/en/about');
-      expect(res.status).toBe(404);
+      expect(res.status).toBe(302);
+      expect(res.headers['location']).toBe('/about');
     });
   });
 

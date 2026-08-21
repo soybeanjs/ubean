@@ -10,6 +10,7 @@
 | --- | --- | --- |
 | [ubean-studio.md](ubean-studio.md) | 产品方案 + 任务清单 | ubean-studio 产品方案与 ST 任务清单 |
 | [soybean-admin-next.md](soybean-admin-next.md) | 下一代 SoybeanAdmin | 下一代 SoybeanAdmin 技术选型与开发计划（提取 ubean 客户端内核路线） |
+| [i18n-vue-i18n.md](i18n-vue-i18n.md) | 设计方案 + 任务清单 | 翻译引擎切换 vue-i18n 11 + 约束前缀语言路由（ADR-0009） |
 
 > 用户向内容（应用模式、Islands、包架构）已整合进 `apps/docs` 公开站点，元框架对比见 [Framework Comparison](../apps/docs/src/content/en/architecture/framework-comparison.md)。
 
@@ -22,6 +23,8 @@
 - [0005-opt09-impl-opt11-timing-opt01-subitem.md](adr/0005-opt09-impl-opt11-timing-opt01-subitem.md) — OPT-09 实施 + OPT-11 时序 + OPT-01 子项
 - [0006-opt07-contract-table-opt08-test-priority.md](adr/0006-opt07-contract-table-opt08-test-priority.md) — OPT-07 扩展契约表 + OPT-08 测试优先级
 - [0007-docs-content-classification.md](adr/0007-docs-content-classification.md) — 文档内容分类标准与站点/仓库文档边界
+- [0008-ai-package-architecture.md](adr/0008-ai-package-architecture.md) — `@ubean/ai` 包架构
+- [0009-i18n-engine-and-compact-locale-routing.md](adr/0009-i18n-engine-and-compact-locale-routing.md) — 翻译引擎 vue-i18n 11 + 约束前缀语言路由
 
 ## 领域词汇表
 

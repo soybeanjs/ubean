@@ -75,7 +75,7 @@ The `ssr` option only applies within `fullstack` mode — `spa` and `backend` al
 | Config    | Typed config definition                             | `defineConfig`                         | `@ubean/config`                 |
 | Config    | Typed environment variables                         | `defineEnv`                            | `@ubean/shared`                 |
 | Config    | Middleware definition                               | `defineMiddleware`                     | `@ubean/routes`                 |
-| i18n      | Zero-dependency internationalization                | `defineLocale` / `t` / `useI18n`       | `@ubean/i18n` + `@ubean/client` |
+| i18n      | vue-i18n 11 + compact locale routing                | `useI18n` / `setLocale` / `t`          | `@ubean/i18n` + `@ubean/client` |
 | SSR       | Vue server-side renderer                            | `createVueRenderer`                    | `@ubean/ssr`                    |
 | Islands   | Partial hydration boundaries                        | `ubeanIslandsPlugin`                   | `@ubean/islands`                |
 | DevTools  | RPC, AI assistant, API playground, CRUD scaffolding | `devtools: true` config                | `@ubean/devtools`               |
@@ -123,7 +123,7 @@ packages/
 ├── markdown/       # @ubean/markdown — Markdown/MDX page parsing
 ├── seo/            # @ubean/seo — SEO meta management
 ├── pages/          # @ubean/pages — page data protocol (loader/action)
-├── i18n/           # @ubean/i18n — zero-dependency i18n (pure functions)
+├── i18n/           # @ubean/i18n — @intlify/core + compact locale routing
 ├── logger/         # @ubean/logger — tslog-based logging
 │
 │   ── Server runtime ──
@@ -306,7 +306,7 @@ The v0.1 target platforms are **Node.js** (`node-server`) and **Cloudflare Worke
 ### Implemented Capabilities
 
 - **Routing:** `routes/` API file routing with named `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` exports wrapped by `defineHandler`; `pages/` Vue SSR pages, layouts, route groups, reuse routes, parallel/intercepting routes, dynamic param matchers, special pages, and typed navigation; `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`); `validator` / `describeRoute` / `resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation; generated `paths` types at `.ubean/routes.d.ts`.
-- **App:** `defineApp` options-based customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineLocale`, `defineEnv`, `defineScheduled` (cron), `defineQueue`.
+- **App:** `defineApp` options-based customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineEnv`, `defineScheduled` (cron), `defineQueue`. i18n is `ubean.config.ts` `i18n` + vue-i18n 11 (`setLocale` / `useI18n` from `ubean/runtime/vue`).
 - **Server:** Built-in database layer (`defineDatabase` / `useDatabase`), storage (`useStorage` / `useKV`), cache (`useCacheStore` / `cachedEventHandler`), rate limiting, CORS, route rules (redirect / rewrite / headers / cache), and SSG prerendering. WebSocket (`defineWebSocket`), SSE streaming, and `internalFetch` (dispatches framework handlers in-process without a network request).
 - **DevTools:** RPC, AI assistant, API playground, and CRUD scaffolding.
 - **Extension packages:** `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/image`, `@ubean/content`, and `@ubean/integrations` (PWA / fonts / Electron desktop apps via vite-plugin-electron with default main/preload entries and auto SSR disable / @soybeanjs/ui with UiResolver and styles.css auto-injection / Pinia SSR hydration).

@@ -1642,97 +1642,28 @@ export default defineConfig({
 
 ## 4.19 i18n 国际化
 
-ubean 提供轻量内置国际化支持（不引入 vue-i18n，保持零额外依赖），包括翻译引擎、路由中间件和文件扫描。
+ubean 用 vue-i18n 11（`legacy: false`）做 Vue 翻译引擎，用 `@intlify/core` + ALS 做 handler 翻译。语言路由是约束前缀：`compileLocalePaths()` 的结果同时注入 vue-router 与 Hono。配置写在 `ubean.config.ts` 的 `i18n`，中间件由 `createUbeanApp` 自动挂载。
 
-> **当前状态说明**：核心翻译引擎（`t()`/`setLocale()`/`defineLocale()`）和 i18n 路由中间件（三种策略、Accept-Language/cookie检测、自动重定向）已完成。Vue响应式集成、locales文件自动加载、SSR hydration、HTML lang/dir绑定、pluralization和Intl格式化为后续增强任务。
-
-#### 文件约定
-
-```
-locales/
-├── en.ts
-├── zh-CN.ts
-├── ja.ts
-└── index.ts          // 配置入口（可选）
-```
-
-```typescript
-// locales/zh-CN.ts
-export default defineLocale({
-  name: '简体中文',
-  dir: 'ltr', // 文字方向 (ltr|rtl)
-  messages: {
-    welcome: '欢迎',
-    'nav.home': '首页',
-    'user.greeting': '你好，{name}'
-  }
-});
-```
-
-> **注意**：pluralization（复数）、日期/数字/货币格式化（Intl）为 P6-34/P6-35 计划功能，当前版本使用参数插值（`{name}`）即可满足大部分场景。
-
-#### Locale 检测与路由策略
-
-支持三种 locale 路由策略：
+详见 [指南 · 国际化](/guide/i18n) 与 [API · i18n](/reference/i18n)。
 
 ```typescript
 // ubean.config.ts
 export default defineConfig({
   i18n: {
-    defaultLocale: 'zh-CN',
-    locales: ['zh-CN', 'en', 'ja'],
-    strategy: 'prefix_except_default', // prefix | prefix_except_default | no_prefix
-    detectBrowserLocale: true, // 检测 Accept-Language
-    cookieName: 'ubean_locale', // locale cookie 名
-    fallbackLocale: 'en'
+    defaultLocale: 'en',
+    locales: [
+      { code: 'en', language: 'en' },
+      { code: 'zh', language: 'zh-CN' }
+    ],
+    strategy: 'prefix_except_default',
+    detectBrowserLanguage: { redirectOn: 'root' }
   }
 });
 ```
 
-**策略说明**：
-
-- `prefix_except_default`：默认语言无前缀（/about），其他语言前缀（/en/about）— 默认
-- `prefix`：所有语言均有前缀（/zh-CN/about、/en/about）
-- `no_prefix`：无 URL 前缀，通过 cookie/header 切换
-
-#### Composables
-
-```typescript
-// 服务端/客户端通用
-const { t, locale, locales, setLocale, getLocale } = useI18n();
-
-t('welcome'); // '欢迎'
-t('user.greeting', { name: '张三' }); // '你好，张三'
-
-// 切换 locale（注意：当前版本切换后组件不会自动重渲染，P6-31 将提供响应式版本）
-setLocale('en');
-
-// 路由工具
-switchLocalePath('en'); // 生成当前路径的 en 版本（如 /about → /en/about）
-const paths = localeRoutes(); // { 'zh-CN': '/about', en: '/en/about', ja: '/ja/about' }
-```
-
-#### `<Link>` 组件自动处理 locale 前缀
-
-```vue
-<Link to="/about">About</Link>
-<!-- 当前 locale=en 时渲染为 <a href="/en/about"> -->
-<!-- 当前 locale=zh-CN 时渲染为 <a href="/about"> (default, prefix_except_default) -->
-```
-
-```vue
-<Link :to="{ name: 'About', locale: 'ja' }">日本語</Link>
-<!-- 强制指定 locale 前缀 -->
-```
-
-#### Loader 中获取 locale
-
-```typescript
-export const loader = defineLoader(c => {
-  const locale = getLocale(c);
-  // 根据 locale 返回不同数据
-});
-```
+- Vue：`useI18n` / `setLocale` 从 `ubean/runtime/vue` 导入（自动导入）。切换语言必须走框架 `setLocale`。
+- Handler：`t()` 读请求 ALS；无 ALS 抛错。`getRequestLocale(c)` 读中间件写入的 locale。
+- `<Link to="/about" locale="zh">` 经 `LOCALIZE_PATH_KEY` 本地化；vue-router 能匹配 `/zh/about`。
 
 ## 4.19b Color Mode 深浅色（P9-21）
 

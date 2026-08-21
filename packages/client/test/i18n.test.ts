@@ -1,47 +1,90 @@
 /**
- * @ubean/client i18n Vue 包装层测试
- *
- * 重点回归(浏览器验证曾发现的响应性丢失):模块级 `t()` / `localizePath()`
- * 必须建立对 `localeRef` 的响应式依赖,`setLocale` 才能驱动 effect 重算。
+ * @ubean/client i18n — vue-i18n 封装
  */
 import { describe, it, expect } from 'vitest';
-import { effect, stop } from 'vue';
-import { defineLocale, setLocale, getLocale, t, localizePath } from '../src/i18n';
+import { createApp, h } from 'vue';
+import {
+  createUbeanI18n,
+  configureI18nRuntime,
+  localizePath,
+  switchLocalePath,
+  bindI18nRuntime,
+  setLocale
+} from '../src/i18n';
 
-describe('i18n Vue 包装层', () => {
-  it('defineLocale 注册后 t() 按 locale 解析;setLocale 切换生效', () => {
-    defineLocale({ code: 'zh', dir: 'ltr', isDefault: true, messages: { 'nav.home': '首页', greeting: '你好,{name}' } });
-    defineLocale({ code: 'en', dir: 'ltr', messages: { 'nav.home': 'Home', greeting: 'Hello,{name}' } });
-
-    expect(t('nav.home')).toBe('首页'); // 默认 zh
-    expect(t('greeting', { name: 'ubean' })).toBe('你好,ubean');
-
-    setLocale('en');
-    expect(getLocale()).toBe('en');
-    expect(t('nav.home')).toBe('Home');
-
-    setLocale('zh');
-    expect(t('nav.home')).toBe('首页');
+describe('createUbeanI18n', () => {
+  it('legacy: false 且 messages 可 t()', () => {
+    configureI18nRuntime({
+      config: {
+        defaultLocale: 'en',
+        locales: ['en', 'zh'],
+        strategy: 'prefix_except_default',
+        fallbackLocale: 'en',
+        cookieName: 'ubean_locale',
+        baseUrl: ''
+      }
+    });
+    const i18n = createUbeanI18n({
+      locale: 'zh',
+      fallbackLocale: 'en',
+      messages: {
+        zh: { hello: '你好 {name}' },
+        en: { hello: 'Hello {name}' }
+      }
+    });
+    expect(i18n.mode).toBe('composition');
+    expect(i18n.global.t('hello', { name: 'ubean' })).toBe('你好 ubean');
   });
 
-  it('t() / localizePath() 建立响应式依赖 —— setLocale 驱动 effect 重算(回归)', () => {
-    defineLocale({ code: 'zh', dir: 'ltr', isDefault: true, messages: { 'nav.home': '首页' } });
-    defineLocale({ code: 'en', dir: 'ltr', messages: { 'nav.home': 'Home' } });
+  it('localizePath 按 runtime config 加前缀', () => {
+    expect(localizePath('/about', 'zh')).toBe('/zh/about');
+    expect(localizePath('/about', 'en')).toBe('/about');
+  });
 
-    let translated = '';
-    const runner = effect(() => {
-      translated = t('nav.home');
-      void localizePath('/about');
+  it('switchLocalePath prefix_except_default 给非默认语言加前缀', () => {
+    expect(switchLocalePath('zh', '/i18n')).toBe('/zh/i18n');
+    expect(switchLocalePath('en', '/zh/i18n')).toBe('/i18n');
+  });
+
+  it('setLocale 写入 composer locale 并 router.replace 到前缀路径', async () => {
+    const i18n = createUbeanI18n({
+      locale: 'en',
+      fallbackLocale: 'en',
+      messages: { en: {}, zh: {} }
     });
+    const replaced: string[] = [];
+    bindI18nRuntime(i18n, {
+      currentRoute: { value: { path: '/i18n', fullPath: '/i18n' } },
+      replace: async (to: string) => {
+        replaced.push(to);
+      }
+    } as never);
+    await setLocale('zh');
+    expect(String(i18n.global.locale.value)).toBe('zh');
+    expect(replaced).toEqual(['/zh/i18n']);
+  });
 
-    expect(translated).toBe('首页');
+  it('vue-router optional locale param 从 /i18n replace 到 /zh/i18n', async () => {
+    const { createRouter, createMemoryHistory } = await import('vue-router');
+    const router = createRouter({
+      history: createMemoryHistory(),
+      routes: [
+        { path: '/:locale(zh)?/i18n', name: 'i18n', component: { render: () => null } },
+        { path: '/:locale(zh)?/:pathMatch(.*)*', name: 'NotFound', component: { render: () => null } }
+      ]
+    });
+    await router.push('/i18n');
+    await router.isReady();
+    expect(router.currentRoute.value.path).toBe('/i18n');
+    await router.replace('/zh/i18n');
+    expect(router.currentRoute.value.path).toBe('/zh/i18n');
+    expect(router.currentRoute.value.params.locale).toBe('zh');
+  });
 
-    setLocale('en');
-    expect(translated).toBe('Home'); // effect 依赖 localeRef,sync 调度立即重算
-
-    setLocale('zh');
-    expect(translated).toBe('首页');
-
-    stop(runner);
+  it('app.use(i18n) 可挂载', () => {
+    const i18n = createUbeanI18n({ locale: 'en', messages: { en: {} } });
+    const app = createApp({ render: () => h('div') });
+    app.use(i18n);
+    expect(app._context.provides).toBeTruthy();
   });
 });

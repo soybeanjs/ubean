@@ -12,7 +12,7 @@ export default defineConfig({
     outDir: 'dist',
     entry: ['src/index.ts', 'src/app.ts', 'src/define-app.ts', 'src/server.ts'],
     deps: {
-      neverBundle: ['vue', 'vue-router', '@unhead/vue', /^@ubean\//, /^node:/]
+      neverBundle: ['vue', 'vue-router', 'vue-i18n', '@unhead/vue', /^@ubean\//, /^node:/]
     }
   },
   test: {

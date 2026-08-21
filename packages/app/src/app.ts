@@ -2,27 +2,17 @@ import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { createActionsMiddleware, ACTIONS_ENDPOINT } from '@ubean/actions';
-import {
-  registerRoutes,
-  setInternalFetcher,
-  registerOpenAPIRoutes,
-  createRouteRulesMiddleware
-} from '@ubean/routes';
-import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/routes';
-import { errorToResponse, isUbeanError, UbeanError } from '@ubean/shared';
+import { createI18nMiddleware, ensureLocaleMessages } from '@ubean/i18n';
 import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
-import type {
-  ScannedApiRoute,
-  ScannedMiddleware,
-  ScannedPageRoute,
-  ScannedLayout,
-  ScannedCronTask
-} from '@ubean/scan';
+import { registerRoutes, setInternalFetcher, registerOpenAPIRoutes, createRouteRulesMiddleware } from '@ubean/routes';
+import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/routes';
+import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout, ScannedCronTask } from '@ubean/scan';
 // Semantic subpath imports (ADR-0003 OPT-06) — avoids pulling the whole
 // `@ubean/server` barrel (30 modules) into type resolution for this package.
 import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from '@ubean/server/cache';
-import { serveStatic } from '@ubean/server/static';
 import { createWebSocketMiddleware } from '@ubean/server/realtime';
+import { serveStatic } from '@ubean/server/static';
+import { errorToResponse, isUbeanError, UbeanError } from '@ubean/shared';
 import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '@ubean/shared';
 import { requestId } from 'hono/request-id';
 import { createHooks } from 'hookable';
@@ -121,9 +111,13 @@ export interface UbeanAppOptions {
         openAPIPath?: string;
       };
   i18nConfig?: {
+    enabled?: boolean;
     strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
     defaultLocale?: string;
-    locales?: string[];
+    locales?: string[] | Array<{ code: string }>;
+    detectBrowserLanguage?: false | { cookieName?: string; redirectOn?: 'root' | 'all'; alwaysRedirect?: boolean };
+    fallbackLocale?: string;
+    baseUrl?: string;
   };
   /** `pages/404.vue` 自动检测的 404 页面,注册为 Hono 兜底处理器 */
   notFoundPage?: ScannedPageRoute;
@@ -181,6 +175,22 @@ export class UbeanApp {
     });
 
     this.hono.use('*', requestId());
+
+    const i18nCfg = this.options.i18nConfig;
+    const i18nEnabled = i18nCfg?.enabled !== false && (i18nCfg?.locales?.length ?? 0) > 0;
+    if (i18nEnabled && i18nCfg) {
+      const locales = (i18nCfg.locales || []).map(l => (typeof l === 'string' ? l : l.code));
+      this.hono.use(
+        '*',
+        createI18nMiddleware({
+          defaultLocale: i18nCfg.defaultLocale || 'en',
+          locales,
+          strategy: i18nCfg.strategy || 'prefix_except_default',
+          detectBrowserLanguage: i18nCfg.detectBrowserLanguage,
+          loadMessages: (locale, fallback) => ensureLocaleMessages(locale, fallback)
+        })
+      );
+    }
 
     if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
       this.hono.use('*', createRouteRulesMiddleware(this.options.routeRules));
@@ -263,7 +273,18 @@ export class UbeanApp {
       ssrExclude: this.options.ssrExclude,
       streaming: this.options.streaming,
       botFallback: this.options.botFallback,
-      i18nConfig: this.options.i18nConfig,
+      i18nConfig: this.options.i18nConfig
+        ? {
+            strategy: this.options.i18nConfig.strategy,
+            defaultLocale: this.options.i18nConfig.defaultLocale,
+            locales: (this.options.i18nConfig.locales || []).map(l => (typeof l === 'string' ? l : l.code)),
+            cookieName:
+              this.options.i18nConfig.detectBrowserLanguage === false
+                ? undefined
+                : this.options.i18nConfig.detectBrowserLanguage?.cookieName || 'ubean_locale',
+            baseUrl: this.options.i18nConfig.baseUrl
+          }
+        : undefined,
       notFoundPage: this.options.notFoundPage,
       colorModeScript: this.options.colorModeScript,
       // P9-03: 注入全局 cacheStore 供 ISR 使用。仅当配置了 isr 规则时

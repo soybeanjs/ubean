@@ -35,6 +35,10 @@ export class I18nPage extends BasePage {
   /** Click the locale switcher button with the given locale label. */
   async switchLocale(locale: string): Promise<void> {
     await this.click(`section:nth-of-type(2) button:text-is("${locale}")`);
+    await this.waitForFunction(
+      `return document.querySelector('.grid.grid-cols-2 > div:nth-child(2)')?.textContent?.trim() === ${JSON.stringify(locale)}`,
+      8000
+    );
   }
 
   /** Full text of the common.hello translation row (includes label). */

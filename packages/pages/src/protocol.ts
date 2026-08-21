@@ -31,6 +31,15 @@ export interface PageRenderContext {
   locale?: string;
   localeDir?: 'ltr' | 'rtl';
   messages?: Record<string, unknown>;
+  fallbackLocale?: string;
+  fallbackMessages?: Record<string, unknown>;
+  routing?: {
+    defaultLocale: string;
+    locales: string[];
+    strategy: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
+  };
+  cookieName?: string;
+  baseUrl?: string;
   /** All registered locales (metadata only, no messages) — sent to the
    *  client so it can register every available locale during hydration,
    *  preventing `availableLocales` hydration mismatches. */
@@ -226,7 +235,17 @@ export function buildPageShell(
   const messages = renderContext?.messages;
   const availableLocales = renderContext?.availableLocales;
   const localeScript = locale
-    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}), ...(availableLocales?.length ? { availableLocales } : {}) })}</script>`
+    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({
+        locale,
+        dir: localeDir,
+        ...(messages ? { messages } : {}),
+        ...(renderContext?.fallbackLocale ? { fallbackLocale: renderContext.fallbackLocale } : {}),
+        ...(renderContext?.fallbackMessages ? { fallbackMessages: renderContext.fallbackMessages } : {}),
+        ...(renderContext?.routing ? { routing: renderContext.routing } : {}),
+        ...(renderContext?.cookieName ? { cookieName: renderContext.cookieName } : {}),
+        ...(renderContext?.baseUrl ? { baseUrl: renderContext.baseUrl } : {}),
+        ...(availableLocales?.length ? { availableLocales } : {})
+      })}</script>`
     : '';
 
   const { headTags, htmlAttrsStr, bodyAttrsStr } = renderHeadTags(pageObj.head);
@@ -294,7 +313,17 @@ export function buildClientOnlyShell(
   const messages = renderContext?.messages;
   const availableLocales = renderContext?.availableLocales;
   const localeScript = locale
-    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({ locale, dir: localeDir, ...(messages ? { messages } : {}), ...(availableLocales?.length ? { availableLocales } : {}) })}</script>`
+    ? `<script id="${LOCALE_DATA_ID}" type="application/json">${safeJsonStringify({
+        locale,
+        dir: localeDir,
+        ...(messages ? { messages } : {}),
+        ...(renderContext?.fallbackLocale ? { fallbackLocale: renderContext.fallbackLocale } : {}),
+        ...(renderContext?.fallbackMessages ? { fallbackMessages: renderContext.fallbackMessages } : {}),
+        ...(renderContext?.routing ? { routing: renderContext.routing } : {}),
+        ...(renderContext?.cookieName ? { cookieName: renderContext.cookieName } : {}),
+        ...(renderContext?.baseUrl ? { baseUrl: renderContext.baseUrl } : {}),
+        ...(availableLocales?.length ? { availableLocales } : {})
+      })}</script>`
     : '';
 
   const { headTags, htmlAttrsStr: pageHtmlAttrsStr, bodyAttrsStr } = renderHeadTags(pageObj.head);

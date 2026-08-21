@@ -53,8 +53,8 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Rationale:** Covers the most-used surface (config + scan/vue routing + client runtime + the most common extensions). Other packages added incrementally.
 **Alternatives:** all 33 packages (noise, effort); main `ubean` only (loses sub-package granularity).
 
-### D7. i18n — EN + zh-CN, both directions, ubean built-in i18n
-**Decision:** Ship both locales. Use ubean's built-in zero-dependency i18n (`useI18n`, `defineLocale`), **not** vue-i18n (per project convention). Strategy: `prefix_except_default`. EN is default (unprefixed); zh-CN at `/zh/*`.
+### D7. i18n — EN + zh-CN, both directions, vue-i18n 11
+**Decision:** Ship both locales. Use ubean's vue-i18n 11 integration (`useI18n` / `setLocale` from `ubean/runtime/vue`). Strategy: `prefix_except_default`. EN is default (unprefixed); zh-CN at `/zh/*`.
 **Rationale:** `skills/ubean/docs` is English-first; `docs/` is Chinese-first. Two-way translation serves both audiences. Dogfooding ubean's i18n validates the framework. EN-default matches international convention.
 **Alternatives:** EN only (limits reach); zh-CN default (less conventional for OSS); both prefixed + root redirect (redirect hop complicates prerender).
 

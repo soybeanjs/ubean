@@ -3,6 +3,7 @@ import type { ScanResult } from '@ubean/scan';
 import { join } from 'pathe';
 import { generateAutoImports } from './auto-imports';
 import type { AutoImportOptions } from './auto-imports';
+import { generateI18nTypes } from './i18n-types';
 import { generateRouteTypes, generatePageTypes } from './route-types';
 
 // Auto-import presets & orchestration (absorbed from the former
@@ -24,6 +25,8 @@ export type { Import, InlinePreset, AutoImportOptions, ComponentInfo, AutoImport
 
 export { generateRouteTypes, generatePageTypes } from './route-types';
 export type { RouteTypesOptions, PageTypesOptions } from './route-types';
+export { generateI18nTypes, messagesToTsType } from './i18n-types';
+export type { I18nTypesOptions } from './i18n-types';
 export { generateOpenApiTypes, generateOpenApiTypesFromServer } from './openapi-types';
 export type { GenerateOpenApiTypesOptions } from './openapi-types';
 
@@ -36,6 +39,7 @@ export interface CodegenOptions extends Omit<AutoImportOptions, 'cwd' | 'srcDir'
 export interface CodegenResult {
   routeTypesPath: string;
   pageTypesPath: string;
+  i18nTypesPath?: string | null;
   autoImportsDtsPath?: string;
   componentsDtsPath?: string;
   generated: string[];
@@ -54,6 +58,9 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
   const pageTypesPath = await generatePageTypes(result, { outDir });
   generated.push(pageTypesPath);
 
+  const i18nTypesPath = await generateI18nTypes(result, { outDir });
+  if (i18nTypesPath) generated.push(i18nTypesPath);
+
   const autoImportsResult = await generateAutoImports(result, {
     cwd,
     srcDir,
@@ -64,5 +71,5 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
   const { autoImportsDtsPath, componentsDtsPath } = autoImportsResult;
   generated.push(autoImportsDtsPath, componentsDtsPath);
 
-  return { routeTypesPath, pageTypesPath, autoImportsDtsPath, componentsDtsPath, generated };
+  return { routeTypesPath, pageTypesPath, i18nTypesPath, autoImportsDtsPath, componentsDtsPath, generated };
 }

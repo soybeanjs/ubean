@@ -1630,97 +1630,28 @@ Auto-generates `.ubean/auto-imports.d.ts` and `.ubean/components.d.ts`, which ar
 
 ## 4.19 i18n Internationalization
 
-ubean provides lightweight built-in internationalization support (without pulling in vue-i18n, keeping zero extra dependencies), including a translation engine, route middleware, and file scanning.
+ubean uses vue-i18n 11 (`legacy: false`) as the Vue message engine and `@intlify/core` + ALS in handlers. Locale routing is compact prefixes: `compileLocalePaths()` feeds both vue-router and Hono. Configure `i18n` in `ubean.config.ts`; `createUbeanApp` mounts detection middleware automatically.
 
-> **Current status note**: The core translation engine (`t()`/`setLocale()`/`defineLocale()`) and i18n route middleware (three strategies, Accept-Language/cookie detection, auto-redirect) are complete. Vue reactivity integration, automatic locales-file loading, SSR hydration, HTML lang/dir binding, pluralization, and Intl formatting are follow-up enhancement tasks.
-
-#### File Conventions
-
-```
-locales/
-├── en.ts
-├── zh-CN.ts
-├── ja.ts
-└── index.ts          // 配置入口（可选）
-```
-
-```typescript
-// locales/zh-CN.ts
-export default defineLocale({
-  name: '简体中文',
-  dir: 'ltr', // 文字方向 (ltr|rtl)
-  messages: {
-    welcome: '欢迎',
-    'nav.home': '首页',
-    'user.greeting': '你好，{name}'
-  }
-});
-```
-
-> **Note**: Pluralization and date/number/currency formatting (Intl) are planned for P6-34/P6-35; the current version uses parameter interpolation (`{name}`), which covers most scenarios.
-
-#### Locale Detection & Routing Strategy
-
-Supports three locale routing strategies:
+See [Guide · I18n](/guide/i18n) and [API · i18n](/reference/i18n).
 
 ```typescript
 // ubean.config.ts
 export default defineConfig({
   i18n: {
-    defaultLocale: 'zh-CN',
-    locales: ['zh-CN', 'en', 'ja'],
-    strategy: 'prefix_except_default', // prefix | prefix_except_default | no_prefix
-    detectBrowserLocale: true, // 检测 Accept-Language
-    cookieName: 'ubean_locale', // locale cookie 名
-    fallbackLocale: 'en'
+    defaultLocale: 'en',
+    locales: [
+      { code: 'en', language: 'en' },
+      { code: 'zh', language: 'zh-CN' }
+    ],
+    strategy: 'prefix_except_default',
+    detectBrowserLanguage: { redirectOn: 'root' }
   }
 });
 ```
 
-**Strategy descriptions**:
-
-- `prefix_except_default`: the default locale has no prefix (`/about`); others are prefixed (`/en/about`) — default
-- `prefix`: all locales are prefixed (`/zh-CN/about`, `/en/about`)
-- `no_prefix`: no URL prefix; switching via cookie/header
-
-#### Composables
-
-```typescript
-// 服务端/客户端通用
-const { t, locale, locales, setLocale, getLocale } = useI18n();
-
-t('welcome'); // '欢迎'
-t('user.greeting', { name: '张三' }); // '你好，张三'
-
-// 切换 locale（注意：当前版本切换后组件不会自动重渲染，P6-31 将提供响应式版本）
-setLocale('en');
-
-// 路由工具
-switchLocalePath('en'); // 生成当前路径的 en 版本（如 /about → /en/about）
-const paths = localeRoutes(); // { 'zh-CN': '/about', en: '/en/about', ja: '/ja/about' }
-```
-
-#### `<Link>` Component Auto-handles Locale Prefix
-
-```vue
-<Link to="/about">About</Link>
-<!-- 当前 locale=en 时渲染为 <a href="/en/about"> -->
-<!-- 当前 locale=zh-CN 时渲染为 <a href="/about"> (default, prefix_except_default) -->
-```
-
-```vue
-<Link :to="{ name: 'About', locale: 'ja' }">日本語</Link>
-<!-- 强制指定 locale 前缀 -->
-```
-
-#### Getting Locale in a Loader
-
-```typescript
-export const loader = defineLoader(c => {
-  const locale = getLocale(c);
-  // 根据 locale 返回不同数据
-});
-```
+- Vue: import `useI18n` / `setLocale` from `ubean/runtime/vue` (auto-imported). Switching locale must go through framework `setLocale`.
+- Handlers: `t()` reads request ALS and throws without it. `getRequestLocale(c)` reads the locale set by middleware.
+- `<Link to="/about" locale="zh">` localizes via `LOCALIZE_PATH_KEY`; vue-router matches `/zh/about`.
 
 ## 4.19b Color Mode (Dark/Light) (P9-21)
 

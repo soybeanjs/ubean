@@ -1,18 +1,18 @@
 import type { Context, Next, MiddlewareHandler, Hono } from 'hono';
+import { compileLocalePaths } from '@ubean/i18n';
 import { validateParams as _validateParams } from '@ubean/scan';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
-import { isServerAction } from '@ubean/shared';
+import { isServerAction, matchAnyGlob } from '@ubean/shared';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/shared';
-import { matchAnyGlob } from '@ubean/shared';
 import { isBotUserAgent } from './bot-detection';
+import { extractRouteMeta, isHandlerChain } from './handler';
+import { serveIsr } from './isr';
+import type { IsrCacheStore } from './isr';
 import {
   parseFormActionName as _parseFormActionName,
   handleActionResponse as _handleActionResponse,
   runServerAction as _runServerAction
 } from './page-actions';
-import { extractRouteMeta, isHandlerChain } from './handler';
-import { serveIsr } from './isr';
-import type { IsrCacheStore } from './isr';
 import { normalizeIsrRule } from './route-rules';
 
 /**
@@ -43,9 +43,12 @@ export interface RegisterOptions {
   pageAssetTags?: unknown;
   pageLoaders?: Record<string, () => Promise<any>>;
   i18nConfig?: {
+    enabled?: boolean;
     strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
     defaultLocale?: string;
     locales?: string[];
+    cookieName?: string;
+    baseUrl?: string;
   };
   /**
    * 不进行 SSR 的路由模式列表(glob)。
@@ -406,18 +409,15 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     return loadedUserMiddleware.filter(mw => matchMiddlewarePath(mw.mountPath, routePath)).map(mw => mw.handler);
   }
 
-  function getLocalePrefixedPaths(honoPath: string): Array<{ locale: string; path: string }> {
-    if (!i18nConfig) return [];
-    const { strategy, defaultLocale, locales = [] } = i18nConfig;
-    if (strategy === 'no_prefix') return [];
-
-    const result: Array<{ locale: string; path: string }> = [];
-    for (const locale of locales) {
-      if (strategy === 'prefix_except_default' && locale === defaultLocale) continue;
-      const cleanPath = honoPath === '/' ? '' : honoPath;
-      result.push({ locale, path: `/${locale}${cleanPath}` });
+  function getHonoLocalePaths(honoPath: string): Array<{ locale: string; path: string }> {
+    if (!i18nConfig?.locales?.length || i18nConfig.strategy === 'no_prefix' || honoPath === '*') {
+      return [{ locale: i18nConfig?.defaultLocale || 'en', path: honoPath }];
     }
-    return result;
+    return compileLocalePaths(honoPath === '/' ? '/' : honoPath, {
+      defaultLocale: i18nConfig.defaultLocale || 'en',
+      locales: i18nConfig.locales,
+      strategy: i18nConfig.strategy || 'prefix_except_default'
+    }).hono;
   }
 
   const hasDefaultLayout = layouts.some(l => l.isDefault);
@@ -556,11 +556,28 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     const currentLocale = (c.get('locale') as string) || '';
     const renderContext: Record<string, unknown> = { locale: currentLocale, localeDir: 'ltr' as const };
 
+    // Routing config must be in the SSR payload even if message catalogs fail
+    // to load — the client hydrates `switchLocalePath` / `setLocale` from it.
+    if (i18nConfig) {
+      renderContext.routing = {
+        defaultLocale: i18nConfig.defaultLocale || 'en',
+        locales: i18nConfig.locales || [],
+        strategy: i18nConfig.strategy || 'prefix_except_default'
+      };
+      if (i18nConfig.cookieName) renderContext.cookieName = i18nConfig.cookieName;
+      if (i18nConfig.baseUrl) renderContext.baseUrl = i18nConfig.baseUrl;
+    }
+
     // Load i18n lazily — only needed when rendering HTML pages
     const i18nMod = await loadI18n();
     if (i18nMod && currentLocale) {
       renderContext.localeDir = i18nMod.getLocaleDir(currentLocale);
       renderContext.messages = i18nMod.getLocaleMessages(currentLocale);
+      const fallback = i18nMod.getFallbackLocale();
+      renderContext.fallbackLocale = fallback;
+      if (fallback !== currentLocale) {
+        renderContext.fallbackMessages = i18nMod.getLocaleMessages(fallback);
+      }
       renderContext.availableLocales = i18nMod.getRegisteredLocalesMeta();
     }
 
@@ -673,12 +690,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     const matchingMiddleware = getMatchingMiddleware(honoPath);
     const pageMeta = { requiresAuth: page.pageMeta?.requiresAuth ?? true } as RouteMeta;
 
-    const metaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
-      c.set('route', { meta: pageMeta, path: c.req.path, method: c.req.method });
-      await next();
-    };
-
-    // Task 7 (P1): 动态路由 matchers —— 在 metaMiddleware 之后、页面 handler 之前
+    // Task 7 (P1): 动态路由 matchers —— 在 localeMetaMiddleware 之后、页面 handler 之前
     // 插入参数校验中间件。若 `page.matchers` 存在且任一 matcher 返回 falsy,
     // 立即返回 404(不调用 `next()`,跳过该路由,让 Hono 继续匹配下一候选路由
     // 或最终落入 404 catch-all)。无 matchers 的路由此中间件直接 `next()`(零开销)。
@@ -707,16 +719,13 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     const pageHandler = (method: 'GET' | 'POST') => async (c: Context<UbeanEnv>) =>
       handlePageRequest(c, page, method, loaderKey);
 
-    app.on(['GET'], honoPath, metaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('GET'));
-    app.on(['POST'], honoPath, metaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('POST'));
-
-    for (const { path: localePath } of getLocalePrefixedPaths(honoPath)) {
+    for (const { path: mountPath } of getHonoLocalePaths(honoPath)) {
       const localeMetaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
         c.set('route', { meta: pageMeta, path: c.req.path, method: c.req.method });
         await next();
       };
-      app.on(['GET'], localePath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('GET'));
-      app.on(['POST'], localePath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('POST'));
+      app.on(['GET'], mountPath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('GET'));
+      app.on(['POST'], mountPath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('POST'));
     }
   }
 
@@ -760,6 +769,11 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       if (i18nMod && currentLocale) {
         renderContext.localeDir = i18nMod.getLocaleDir(currentLocale);
         renderContext.messages = i18nMod.getLocaleMessages(currentLocale);
+        const fallback = i18nMod.getFallbackLocale();
+        renderContext.fallbackLocale = fallback;
+        if (fallback !== currentLocale) {
+          renderContext.fallbackMessages = i18nMod.getLocaleMessages(fallback);
+        }
         renderContext.availableLocales = i18nMod.getRegisteredLocalesMeta();
       }
 

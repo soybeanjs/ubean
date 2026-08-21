@@ -23,6 +23,7 @@ export {
   DEFAULT_PRERENDER_EXCLUDE
 } from './loader';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
+export { resolveI18nConfig, localeCodesOf } from './i18n';
 
 export type {
   UbeanConfig,
@@ -44,5 +45,11 @@ export type {
   ResolvedSsrConfig,
   DevToolsConfig,
   ResolvedDevToolsConfig,
-  AppMode
+  AppMode,
+  I18nRoutingStrategy,
+  I18nLocaleObject,
+  I18nDetectBrowserLanguage,
+  I18nVueI18nOptions,
+  I18nConfig,
+  ResolvedI18nConfig
 } from './types';

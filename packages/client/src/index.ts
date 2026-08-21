@@ -132,30 +132,24 @@ export { hydrateIslands, collectIslands, hydrateIsland } from '@ubean/islands/ru
 export type { IslandHydrateOptions, IslandRecord, HydrateIslandsOptions } from '@ubean/islands/runtime';
 export {
   useI18n,
-  defineLocale,
+  createUbeanI18n,
+  installUbeanI18n,
+  configureI18nRuntime,
+  getI18nRuntimeConfig,
   initClientI18n,
   t,
   setLocale,
   getLocale,
-  onLocaleChange,
-  getLocaleDir,
-  getLocaleName,
-  getRegisteredLocales,
-  detectLocale,
-  detectBrowserLocale,
-  addLocale,
-  mergeLocale,
-  clearLocales,
-  getI18nConfig,
-  setI18nConfig,
   localizePath,
   switchLocalePath,
-  getDefaultLocale,
   extractLocaleFromPath,
   useSwitchLocalePath,
-  useLocalePath
+  useLocalePath,
+  useLocaleRoute,
+  useLocaleHead
 } from './i18n';
-export type { VueI18nInstance } from './i18n';
+export type { I18n as VueI18nInstance } from 'vue-i18n';
+export type { I18nRuntimeConfig, LocaleLoader, LocaleMessages } from './i18n';
 export {
   useColorMode,
   configureColorMode,

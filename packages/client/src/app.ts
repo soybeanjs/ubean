@@ -18,8 +18,9 @@ import {
   shallowRef
 } from 'vue';
 import type { App, Component, ConcreteComponent } from 'vue';
-import type { RouteRecordRaw } from 'vue-router';
 import { useRoute } from 'vue-router';
+import type { RouteRecordRaw } from 'vue-router';
+import type { I18n } from 'vue-i18n';
 import { vClient } from '@ubean/islands/directive';
 import type { PageObject } from '@ubean/pages';
 // Lean kernel (single source of truth lives in @ubean/vue)
@@ -42,7 +43,7 @@ import type { ViewTransitionOptions } from '@ubean/vue';
 import { useHead as useUnheadHead } from '@unhead/vue';
 import type { VueHeadClient } from '@unhead/vue';
 import { Head as UnheadHeadComponent } from '@unhead/vue/components';
-import { localizePath, initClientI18n } from './i18n';
+import { localizePath, initClientI18n, createUbeanI18n, bindI18nRuntime, getI18nRuntimeConfig } from './i18n';
 // Framework router factory (the lean kernel ships no factory — see ./router.ts)
 import { createUbeanRouter } from './router';
 
@@ -99,6 +100,11 @@ export interface UbeanAppOptions {
    * 通过 Vue 的 `errorCaptured` 生命周期实现错误边界。
    */
   errorComponent?: Component | (() => Component);
+  /**
+   * vue-i18n instance (`legacy: false`). Created by `createUbeanI18n`.
+   * Installed with `app.use(i18n)` before the router.
+   */
+  i18n?: I18n;
 }
 
 export interface UbeanAppInstance {
@@ -213,7 +219,7 @@ function createRootComponent(
       // i18n bridge: `@ubean/vue`'s Link localizes internal paths through
       // this hook. `localizePath` (./i18n) tracks `localeRef`, so Links
       // re-render on locale switches. Lean `@ubean/vue` SPAs never load this.
-      provide(LOCALIZE_PATH_KEY, (path: string) => localizePath(path));
+      provide(LOCALIZE_PATH_KEY, (path: string, locale?: string) => localizePath(path, locale));
 
       return () => h(LayoutWrapper);
     }
@@ -271,8 +277,12 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
   );
 
   const app = options.hydrate ? _createSSRApp(RootComponent) : _createApp(RootComponent);
+  const i18n = options.i18n ?? createUbeanI18n();
+  app.use(i18n);
   app.use(head);
   app.use(router);
+  bindI18nRuntime(i18n, router);
+  app.provide('ubean:i18n-runtime-config', getI18nRuntimeConfig());
   app.component('Link', Link);
   app.component('PageView', PageView);
   app.component('SlotView', SlotView);
@@ -319,8 +329,12 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   );
 
   const app = _createSSRApp(RootComponent);
+  const i18n = options.i18n ?? createUbeanI18n();
+  app.use(i18n);
   app.use(head);
   app.use(router);
+  bindI18nRuntime(i18n, router);
+  app.provide('ubean:i18n-runtime-config', getI18nRuntimeConfig());
   app.component('Link', Link);
   app.component('PageView', PageView);
   app.component('SlotView', SlotView);

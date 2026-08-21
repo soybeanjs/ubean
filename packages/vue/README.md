@@ -365,7 +365,7 @@ On SSR (via `SSR_KEY`), KeepAlive/Transition/Suspense/ErrorBoundary are skipped.
 
 Internal links render via `RouterLink`; external links (`http*`, `//`, `#`) render as native `<a target="_blank" rel="noopener noreferrer">`.
 
-Props: `to` (string or location object), `href`, `replace`, `activeClass`, `exactActiveClass`, `noActiveClass`. Path localization is opt-in via `LOCALIZE_PATH_KEY` (the framework runtime provides it; lean SPAs render paths verbatim).
+Props: `to` (string or location object), `href`, `replace`, `activeClass`, `exactActiveClass`, `noActiveClass`, optional `locale`. Path localization is opt-in via `LOCALIZE_PATH_KEY` (the framework runtime provides it; lean SPAs render paths verbatim).
 
 ### `<SlotView>`
 

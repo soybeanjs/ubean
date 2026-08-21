@@ -62,13 +62,13 @@ export default defineConfig({
   // presetSoybean + presetShadcn, mirroring the ubean DevTools styling convention.
   ui: { css: false },
 
-  // Built-in zero-dependency i18n (NOT vue-i18n). EN is default (unprefixed),
-  // zh-CN prefixed under /zh/*. Content is per-locale (see src/content/{en,zh}).
+  // vue-i18n 11. EN is default (unprefixed), zh prefixed under /zh/*.
+  // Content is per-locale (see src/content/{en,zh}).
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'zh'],
     strategy: 'prefix_except_default',
-    detectBrowserLocale: false
+    detectBrowserLanguage: false
   },
 
   // Markdown pages: enable shiki themes for fence highlighting.

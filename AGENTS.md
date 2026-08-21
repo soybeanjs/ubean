@@ -26,7 +26,7 @@ ubean/
 │   ├── markdown/            # @ubean/markdown — Markdown 解析
 │   ├── seo/                 # @ubean/seo — SEO meta
 │   ├── pages/               # @ubean/pages — 页面数据协议
-│   ├── i18n/                # @ubean/i18n — 国际化（纯函数）
+│   ├── i18n/                # @ubean/i18n — 国际化（@intlify/core + 约束前缀路由）
 │   ├── logger/              # @ubean/logger — 统一日志(tslog@5, 命名 Logger 工厂 + Hono 请求日志中间件)
 │   │
 │   │   ── 服务端运行时 ──
@@ -168,10 +168,10 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 3.4 i18n
 
-- 内置零依赖 i18n（`runtime/i18n.ts`、`i18n-routing.ts`），Vue 端用 `useI18n()`
-- 路由策略：`prefix` / `prefix_except_default` / `no_prefix`
-- 检测顺序：URL path → cookie（`ubean_locale`）→ Accept-Language → defaultLocale
-- 不匹配时 302 重定向，设置 `Content-Language` header
+- **i18n**：`ubean.config.ts` 的 `i18n`；Vue 端 `vue-i18n` 11（`legacy: false`），handler 端 `@intlify/core` + ALS；语言路由 Hono 与 vue-router 共用 `compileLocalePaths`
+- 路由策略：`prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`；中间件由 `createUbeanApp` 自动挂载，cookie **写入**
+- 检测顺序：URL path → cookie（`ubean_locale`）→ Accept-Language → defaultLocale；默认 `redirectOn: 'root'`
+- 切换语言走框架 `setLocale`（load + cookie + 导航）；客户端从 `ubean/runtime/vue` 导入 `useI18n` / `setLocale`
 
 ### 3.5 配置
 
@@ -607,14 +607,13 @@ const json = serializeVercelConfig(config);
 
 ### i18n
 
-| API                                                                                          | 说明                                                                                              |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `useI18n()`                                                                                  | 返回 `t`/`setLocale`/`d`/`n`/`c`/`relativeTime`/`list`/`onLocaleChange`/`addLocale`/`mergeLocale` |
-| `defineLocale(config)`                                                                       | 定义区域设置                                                                                      |
-| `t(key, params, locale?)`                                                                    | 独立翻译函数                                                                                      |
-| `formatDate` / `formatNumber` / `formatCurrency` / `formatRelativeTime` / `formatList`       | 独立 Intl 格式化函数                                                                              |
-| `addLocale(code, messages)` / `mergeLocale(code, messages)` / `clearLocales()`               | 区域注册                                                                                          |
-| `createI18nMiddleware(options)` / `switchLocalePath(locale)` / `getLocalePath(path, locale)` | i18n 路由                                                                                         |
+| API                                                                | 说明                                                               |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `useI18n()` / `t` / `d` / `n`                                      | vue-i18n Composition API（经 `ubean/runtime/vue`）                 |
+| `setLocale(code)`                                                  | 框架切换：loadLocale + cookie + `router.replace(switchLocalePath)` |
+| `useLocalePath` / `useSwitchLocalePath` / `useLocaleHead`          | 路径与 SEO head composable                                         |
+| `t()` / `d()` / `n()`（handler）                                   | `ubean/runtime/i18n`，读请求 ALS                                   |
+| `compileLocalePaths` / `createI18nMiddleware` / `getRequestLocale` | 约束前缀路径编译 + 自动检测中间件                                  |
 
 ## 5. 扩展包 API
 
@@ -847,7 +846,7 @@ export default defineConfig({
 12. **测试工作目录**：CRUD 测试用临时目录 + `afterEach` 清理，避免 `process.cwd()` 依赖
 13. **SSR 渲染**：layout 循环中在块作用域内 `const child = vnode` 引用，避免闭包捕获导致无限递归
 14. **参考实现**：参考 void/nitro 时学习架构模式后重新实现，保证 API 一致
-15. **i18n**：使用 ubean 内置零依赖 i18n（`useI18n()` / `t()`），不引入 vue-i18n
+15. **i18n**：配置写在 `ubean.config.ts` 的 `i18n`；客户端从 `ubean/runtime/vue` 导入 `useI18n`/`setLocale`（vue-i18n 11，必须 `legacy: false`）；不要从 `ubean` 主入口导入 Vue `useI18n`
 16. **临时文件**：用项目根目录下的 `.temp` 目录存储临时文件
 17. **Islands 水合**：常规 islands 由框架在客户端入口自动水合（双重 rAF 时机 + SPA 导航后）；仅在需要传入手动注册组件（escape hatch）时在 `onClientReady` 中额外调用 `hydrateIslands()`
 
@@ -871,6 +870,7 @@ pnpm build            # 构建
 | 文档索引                  | [docs/README.md](docs/README.md)                               | 仓库级工程文档索引                                                                     |
 | 领域词汇表                | [docs/glossary.md](docs/glossary.md)                           | 领域建模词汇表 + ADR 决策索引                                                          |
 | 产品方案与任务清单        | [docs/ubean-studio.md](docs/ubean-studio.md)                   | ubean-studio 产品方案 + ST 任务清单                                                    |
+| i18n 重设计（已落地）     | [docs/i18n-vue-i18n.md](docs/i18n-vue-i18n.md)                 | vue-i18n 11 引擎 + 约束前缀语言路由（ADR-0009）                                        |
 | 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)               | 中英文档源（overview / routing / runtime / framework-comparison / guide / reference…） |
 | CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md) | CLI 命令文档                                                                           |
 | AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                 | Agent 技能入口                                                                         |

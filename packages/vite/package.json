@@ -22,10 +22,12 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@intlify/unplugin-vue-i18n": "catalog:",
     "@ubean/build-core": "workspace:*",
     "@ubean/client": "workspace:*",
     "@ubean/codegen": "workspace:*",
     "@ubean/config": "workspace:*",
+    "@ubean/i18n": "workspace:*",
     "@ubean/markdown": "workspace:*",
     "@ubean/pages": "workspace:*",
     "@ubean/scan": "workspace:*",
@@ -33,7 +35,8 @@
     "pathe": "^2.0.3",
     "unplugin-auto-import": "21.1.0",
     "unplugin-vue-components": "^32.1.0",
-    "unplugin-vue-markdown": "^32.0.0"
+    "unplugin-vue-markdown": "^32.0.0",
+    "vue-i18n": "catalog:"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

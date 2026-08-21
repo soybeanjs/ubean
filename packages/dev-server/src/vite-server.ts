@@ -201,14 +201,11 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         return;
       }
 
-      // Load locales through Vite SSR module graph (supports HMR)
+      // Locales load per-request via createI18nMiddleware.loadMessages
       try {
-        const localesMod = await viteServer!.ssrLoadModule('ubean:locales');
-        if (localesMod?.loadLocales) {
-          await localesMod.loadLocales();
-        }
+        await viteServer!.ssrLoadModule('ubean:locales');
       } catch (err) {
-        logger.warn('[ubean] Failed to load locales:', err);
+        logger.warn('[ubean] Failed to resolve locales module:', err);
       }
 
       // Apply user's defineServer config (plugins, hooks, onAppCreated)
@@ -438,7 +435,8 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       ]
     },
     ssr: {
-      noExternal: ['ubean']
+      noExternal: ['ubean'],
+      external: ['@ubean/i18n']
     }
   });
 

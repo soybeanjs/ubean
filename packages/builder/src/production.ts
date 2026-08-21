@@ -21,6 +21,7 @@ import {
   createClientEntryVirtualModule
 } from '@ubean/vite';
 import { join, resolve, relative } from 'pathe';
+import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -132,7 +133,8 @@ async function generateVirtualModulesToDisk(
         scanResult.layouts,
         scanResult.notFoundPage,
         scanResult.loadingPage,
-        scanResult.errorPage
+        scanResult.errorPage,
+        localeVueParamFromI18n(config.i18n)
       )
     );
     registry.register(createVueAppEntryVirtualModule(scanResult.appEntry));
@@ -148,7 +150,14 @@ async function generateVirtualModulesToDisk(
     )
   );
 
-  registry.register(createLocalesVirtualModule(scanResult.locales, scanResult.defaultLocale, viteSrcPrefix || '/'));
+  registry.register(
+    createLocalesVirtualModule(
+      scanResult.locales,
+      scanResult.defaultLocale,
+      viteSrcPrefix || '/',
+      serializeI18nConfig(config.i18n)
+    )
+  );
 
   if (hasServer) {
     registry.register(createServerEntryVirtualModule(scanResult.serverEntry));
@@ -308,10 +317,10 @@ const _pageRenderer = null;`;
   if (hasServer) {
     const serverEntry = `// Auto-generated server entry
 import { createUbeanApp, applyServerConfig } from 'ubean/runtime/app';
+import 'ubean:locales';
 ${rendererImport}
 import { resolveAppConfig as _resolveAppConfig } from 'virtual:ubean-app';
 import { resolveServerConfig as _resolveServerConfig } from 'virtual:ubean-server';
-import { loadLocales } from 'ubean:locales';
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -404,7 +413,6 @@ export async function createApp(options = {}) {
   const _serverConfig = _resolveServerConfig('prod');
   await applyServerConfig(app, _serverConfig);
 
-  await loadLocales();
   await app.init();
 
   // Call onServerReady after init completes

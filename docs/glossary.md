@@ -54,3 +54,16 @@
 - **强制 peer（mandatory peer）**：核心依赖形态之一——在 `peerDependencies` 但非 `optional:true`，用户必须自行安装（如 `@ubean/integrations/ui` 的 `@soybeanjs/ui`）。区别于 optional-peer（optional:true）与 hard（`dependencies` 自动装）。
 - **定规与首用**：OPT-11（约定文本）与 OPT-01（首个遵循该约定的样板 PR）的关系。**定规先行**——约定独立于代码 PR 先落地；首用随后。勿将 `codegraph impact` 输出塞入定规自身的非代码 PR（见 ADR-0005）。
 - **dir≠name 不匹配**：包目录名与 `package.json` `name` 不一致的情况。当前两处：`packages/builder`→`@ubean/build`、`packages/ubean`→`ubean`（无 scope）。CI 校验须用 name 字段否则误报。
+
+## 国际化（ADR-0009 沉淀）
+
+- **翻译引擎（message engine）**：把 message key 变成字符串（插值、复数、链接文案、日期/数字格式）。ubean 采用 Intlify：Vue 侧 `vue-i18n`，非 Vue 侧 `@intlify/core`。
+  _Avoid_: i18n（过载）、vue-i18n（仅指 Vue 插件层）
+- **语言路由（locale routing）**：URL 如何携带 locale。策略名与 Nuxt 对齐（`prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`），实现是 **约束前缀**（`compileLocalePaths`），不是 vue-i18n，也不是 Nuxt 的 `___locale` 路由名复制。
+  _Avoid_: i18n routing（与翻译引擎混淆）
+- **语言检测（locale detection）**：从 path / cookie / `Accept-Language` / `defaultLocale` 决定当前 locale，以及是否 302。检测顺序与 `redirectOn` 由框架中间件拥有。
+- **语言实例（i18n instance）**：一次 Vue app 或一次 HTTP 请求持有的引擎状态（locale + messages）。反面是进程单例 `globalThis.__ubean_i18n_state__`（已废弃）。
+  _Avoid_: 全局 i18n、i18n store
+- **约束前缀（compact locale path）**：每个页面最多两条 path——默认语言的裸路径，加上 `/:locale(zh|ja)/path` 这种 **code 白名单** 前缀。Hono 与 vue-router 共用同一编译结果。
+  _Avoid_: locale prefix duplication、Nuxt named route suffix
+- **框架 setLocale**：加载目标语言文案、写 locale cookie、导航到对应语言 URL。不是 vue-i18n Composer 上直接赋值 `locale`。

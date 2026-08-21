@@ -379,33 +379,6 @@ const GLOBAL_MIDDLEWARE = [
   ''
 ].join('\n');
 
-const I18N_MIDDLEWARE = [
-  "import { defineMiddleware, createI18nMiddleware, setI18nConfig } from 'ubean';",
-  '',
-  '// Set global i18n config (used by localizePath, switchLocalePath, etc.)',
-  '// Locale messages are auto-loaded by ubean:locales virtual module.',
-  'setI18nConfig({',
-  "  defaultLocale: 'en',",
-  "  strategy: 'prefix_except_default',",
-  "  locales: ['en', 'zh']",
-  '});',
-  '',
-  '// Create i18n middleware instance once.',
-  'const i18nHandler = createI18nMiddleware({',
-  "  strategy: 'prefix_except_default',",
-  "  defaultLocale: 'en',",
-  "  locales: ['en', 'zh'],",
-  '  detectFromHeader: true,',
-  '  detectFromCookie: true,',
-  '  redirectOnLocaleMismatch: false',
-  '});',
-  '',
-  'export default defineMiddleware(async (c, next) => {',
-  '  return i18nHandler(c, next);',
-  '});',
-  ''
-].join('\n');
-
 // ============ API 路由 ============
 
 const HELLO_API = `import { pipe, description, object, string, number } from 'valibot';
@@ -1063,7 +1036,6 @@ export async function scaffoldUnifyTemplate(fs: FsOps, options: UnifyTemplateOpt
 
   // 中间件
   await fs.writeFile('src/middleware/01.global.ts', GLOBAL_MIDDLEWARE);
-  await fs.writeFile('src/middleware/02.i18n.ts', I18N_MIDDLEWARE);
 
   // API 路由
   await fs.writeFile('src/routes/api/hello-world.ts', HELLO_API);

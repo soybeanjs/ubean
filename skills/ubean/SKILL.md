@@ -34,7 +34,7 @@ Use this skill when working with ubean framework projects, including:
 - Developing pages with file-based routing (`pages/**/*.vue`, `definePage` macro)
 - Building API routes with Hono (`routes/**`, `defineHandler`, named exports `GET`/`POST`/...)
 - Using hono-openapi `validator` / `describeRoute` / `resolver` for typed requests and OpenAPI
-- Configuring internationalization (i18n) with `defineLocale` / `useI18n`
+- Configuring internationalization (i18n) with `ubean.config.ts` `i18n` + `useI18n` / `setLocale`
 - Using islands architecture (`client:load|idle|visible|media|only`)
 - Configuring modules and platform presets (`standard` / `node` / `cloudflare` / `vercel` / `vercel-edge` / `netlify` / `bun` / `deno`)
 - Debugging with ubean DevTools
@@ -80,7 +80,7 @@ ubean is a **monorepo** of 33 packages. The public package `ubean` is an **aggre
 | `ubean/vite`         | Default Vite plugin combo (build + vue + islands) for `vite.config.ts`          |
 | `ubean/runtime/vue`  | Browser-side Vue client runtime (avoids pulling server deps into client bundle) |
 | `ubean/runtime/app`  | Server Hono app entry (`createUbeanApp` / `defineServer`) for `src/server.ts`   |
-| `ubean/runtime/i18n` | Server-side pure-function i18n                                                  |
+| `ubean/runtime/i18n` | Server-side i18n (`@intlify/core` + ALS `t()` + `compileLocalePaths`)           |
 | `ubean/vue-ssr`      | Vue SSR renderer (`createVueRenderer`)                                          |
 
 > **Critical**: Client-side auto-imports MUST use `ubean/runtime/vue`, not `ubean` main entry — the latter triggers Vite to pre-bundle server-side dependencies (unocss, oxc-parser WASM) in the browser environment.
@@ -429,12 +429,12 @@ Use these keys in `dependsOn` for built-in modules:
 
 ### 5. Internationalization
 
-- Built-in zero-dependency i18n (`runtime/i18n.ts`, `i18n-routing.ts`)
-- 3 routing strategies: `prefix` / `prefix_except_default` / `no_prefix`
-- Detection order: URL path → cookie (`ubean_locale`) → Accept-Language → defaultLocale
-- Vue reactive `useI18n()` with `t` / `d` / `n` / `c` / `relativeTime` / `list`
-- Pluralization (pipe syntax), linked messages (`@:key`), missing key handlers
-- SSR hydration: locale injected via `<script id="__UBEAN_LOCALE__">`, auto syncs `<html lang/dir>`
+- vue-i18n 11 (`legacy: false`) on Vue; `@intlify/core` + ALS in handlers
+- Compact locale routing: `compileLocalePaths` shared by Hono and vue-router
+- 4 strategies: `prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`
+- Detection order: URL path → cookie (`ubean_locale`, written) → Accept-Language → defaultLocale
+- Framework `setLocale` = load messages + cookie + `router.replace`; import from `ubean/runtime/vue`
+- SSR hydration via `<script id="__UBEAN_LOCALE__">`; auto `<html lang/dir>` + hreflang
 
 ### 6. DevTools
 
@@ -619,7 +619,7 @@ console.log(c(42.99, 'USD'));
   - SSR with Vue + `@unhead/vue` head management
   - File-based routing (API + Pages) with `defineHandler` / `definePage`
   - hono-openapi integration (`validator` / `describeRoute` / `resolver`)
-  - i18n with pluralization, Intl formatting, locale-prefixed routing, SSR hydration
+  - i18n with vue-i18n 11, compact locale routing, SSR hydration
   - Islands architecture (`client:*` directives)
   - View Transitions API
   - DevTools with CRUD + AI assistant

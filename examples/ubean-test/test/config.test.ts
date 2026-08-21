@@ -42,7 +42,9 @@ describe('Config system - defineConfig / loadUbeanConfig', () => {
       expect(config.i18n).toBeDefined();
       expect(config.i18n?.defaultLocale).toBe('en');
       // defu merges arrays by concatenation, so defaults ['en'] is appended
-      expect(config.i18n?.locales).toEqual(expect.arrayContaining(['en', 'zh']));
+      expect(config.i18n?.locales?.map(l => (typeof l === 'string' ? l : l.code))).toEqual(
+        expect.arrayContaining(['en', 'zh'])
+      );
       expect(config.i18n?.strategy).toBe('prefix_except_default');
     });
 

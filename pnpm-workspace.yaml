@@ -5,6 +5,9 @@ packages:
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.2.9
   vite-plus: 0.2.9
+  vue-i18n: 11.4.8
+  '@intlify/core': 11.4.8
+  '@intlify/unplugin-vue-i18n': 11.2.4
 overrides:
   vite: 'catalog:'
   kysely: '0.28.5'

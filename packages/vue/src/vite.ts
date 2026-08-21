@@ -1,8 +1,7 @@
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import type { Plugin, ViteDevServer } from 'vite';
 import { join, relative, isAbsolute } from 'pathe';
-import { scanPages } from './scan-pages';
-import { extractSlotAndIntercept } from './scan-pages';
+import { scanPages, extractSlotAndIntercept } from './scan-pages';
 import type { ScanPagesResult } from './types';
 import { generatePagesModuleSource, generateTypedRouter, generateVirtualModuleDts } from './virtual-pages';
 
@@ -252,6 +251,7 @@ export function ubeanVueVite(options: UbeanVueViteOptions = {}): Plugin {
 }
 
 export { scanPages, extractSlotAndIntercept, generatePagesModuleSource, generateTypedRouter, generateVirtualModuleDts };
+export type { LocaleRouteCompileOptions, PagesModuleInput } from './virtual-pages';
 // 路由纯函数 / 名称生成 / definePage 提取(聚合层 `@ubean/scan` 与
 // 框架层从这里 re-export,单一来源)
 export { filePathToRoute, stripRouteGroups, parseMatchers } from './route-path';

@@ -174,7 +174,7 @@ ubean/
 │   ├── markdown/                    # @ubean/markdown — Markdown/MDX pages
 │   ├── seo/                         # @ubean/seo — conventions, json-ld, og-image
 │   ├── pages/                       # @ubean/pages — Pages protocol (protocol.ts, data.ts)
-│   ├── i18n/                        # @ubean/i18n — zero-dependency i18n + routing
+│   ├── i18n/                        # @ubean/i18n — @intlify/core + compact locale routing
 │   ├── logger/                      # @ubean/logger — structured logging
 │   │
 │   │   ── Server runtime ──

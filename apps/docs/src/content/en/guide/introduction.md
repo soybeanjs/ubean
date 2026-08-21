@@ -18,7 +18,7 @@ ubean (pronounced "you-bean") is built on Vite, Hono, and Vue 3, fusing void's I
 - **Islands Architecture** — Partial hydration via the `v-client.*` directive (`v-client.load|idle|visible|media|only`), auto-registered and auto-hydrated.
 - **Multi-platform Deploy** — Presets for Node, Cloudflare, Vercel, Netlify, Bun, and Deno with a capability matrix.
 - **DevTools** — An iframe-based inspector panel with Pages, API, Middleware, Cron, Env, and an AI assistant.
-- **Built-in i18n** — Zero-dependency internationalization with four routing strategies and SSR hydration.
+- **Built-in i18n** — vue-i18n 11 with four compact-prefix routing strategies and SSR hydration.
 - **Markdown Pages** — First-class `.md` page support with frontmatter, shiki code highlighting, and per-page SEO.
 - **SSG / Prerender** — Static site generation for SEO-critical and read-mostly pages.
 

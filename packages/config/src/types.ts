@@ -520,6 +520,52 @@ export interface PrerenderResult {
  */
 export type AppMode = 'fullstack' | 'spa' | 'ssg' | 'backend';
 
+export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
+
+export interface I18nLocaleObject {
+  code: string;
+  language?: string;
+  name?: string;
+  dir?: 'ltr' | 'rtl';
+  files?: string[];
+}
+
+export interface I18nDetectBrowserLanguage {
+  cookieName: string;
+  redirectOn: 'root' | 'all';
+  alwaysRedirect: boolean;
+}
+
+export interface I18nVueI18nOptions {
+  fallbackLocale?: string;
+  fallbackWarn?: boolean;
+  missingWarn?: boolean;
+  datetimeFormats?: Record<string, unknown>;
+  numberFormats?: Record<string, unknown>;
+  modifiers?: Record<string, unknown>;
+  escapeParameter?: boolean;
+}
+
+export interface I18nConfig {
+  defaultLocale?: string;
+  locales?: Array<string | I18nLocaleObject>;
+  strategy?: I18nRoutingStrategy;
+  baseUrl?: string;
+  detectBrowserLanguage?: false | Partial<I18nDetectBrowserLanguage>;
+  vueI18n?: I18nVueI18nOptions;
+}
+
+export interface ResolvedI18nConfig {
+  enabled: boolean;
+  defaultLocale: string;
+  locales: I18nLocaleObject[];
+  strategy: I18nRoutingStrategy;
+  baseUrl: string;
+  detectBrowserLanguage: false | I18nDetectBrowserLanguage;
+  vueI18n: I18nVueI18nOptions;
+  fallbackLocale: string;
+}
+
 /* -------------------------------------------------------------------------- */
 /* UbeanConfig                                                                  */
 /* -------------------------------------------------------------------------- */
@@ -750,14 +796,7 @@ export interface UbeanConfig {
     dirs?: string[];
     directoryAsNamespace?: boolean;
   };
-  i18n?: {
-    defaultLocale?: string;
-    locales?: string[];
-    strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
-    detectBrowserLocale?: boolean;
-    cookieName?: string;
-    fallbackLocale?: string;
-  };
+  i18n?: false | I18nConfig;
   routing?: RoutingConfig;
   routeRules?: Record<string, RouteRule>;
   prerender?: PrerenderConfig;
@@ -808,6 +847,7 @@ export interface ResolvedConfig extends Required<
     | 'devtools'
     | 'favicon'
     | 'ai'
+    | 'i18n'
   >
 > {
   rootDir: string;
@@ -833,7 +873,7 @@ export interface ResolvedConfig extends Required<
   markdown: Required<NonNullable<UbeanConfig['markdown']>>;
   imports: Required<NonNullable<UbeanConfig['imports']>>;
   components: Required<NonNullable<UbeanConfig['components']>>;
-  i18n: Required<NonNullable<UbeanConfig['i18n']>>;
+  i18n: ResolvedI18nConfig;
   routing: ResolvedRoutingConfig;
   /**
    * 解析后的 favicon HREF（如 `/favicon.ico`），`null` 表示禁用。

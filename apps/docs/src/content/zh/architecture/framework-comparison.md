@@ -24,7 +24,7 @@ ubean 与主流元框架（截至 2026 年）**Next.js 16**、**Nuxt 4**、**Sve
 | Islands（部分水合） | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | 内置 DB / Queue / Cron / WS | ❌ | ⚠️ 部分 | ❌ | ❌ | ❌ | ✅ |
 | 内置 Auth | ❌ (Auth.js) | ⚠️ | ❌ | ❌ | ❌ | ✅ 扩展 |
-| 内置 i18n | ❌ | ⚠️ 模块 | ❌ | ❌ | ⚠️ 路由 | ✅ 零依赖 |
+| 内置 i18n | ❌ | ⚠️ 模块 | ❌ | ❌ | ⚠️ 路由 | ✅ vue-i18n 11 |
 | 内置 DevTools | ⚠️ | ✅ | ❌ | ❌ | ✅ Toolbar | ✅ + AI 助手 |
 | 平台预设 | Vercel/Node/Edge | 12+ | 6+ | 20+ | 4+ | **8**（Node/CF/Vercel/Netlify/Bun/Deno） |
 
@@ -51,7 +51,7 @@ Sessions API（cookie 或存储后端）、CSRF 保护（double-submit cookie + 
 ### 开发者体验
 
 - **OpenAPI 自动生成**（`/_openapi.json` + Scalar UI）——多数框架缺少的差异化能力。
-- **零依赖 i18n**（4 种路由策略 + Intl + plural + linked messages，无需 vue-i18n）。
+- **vue-i18n 11 + 约束前缀语言路由**（4 种策略由 Hono 与 vue-router 共用、Intlify 文案、SSR 水合）。
 - **Islands 架构**（`v-client.*` 指令 + `defineIsland()` / `defineServerIsland()` 包装器）。
 - **Electron** 桌面应用开箱即用；多 provider 图片优化；完整 CLI 脚手架（`page` / `api` / `layout` / `middleware` / `cron` / `plugin` / `env` / `config`）。
 
@@ -75,7 +75,7 @@ Sessions API（cookie 或存储后端）、CSRF 保护（double-submit cookie + 
 | **内置全栈原语** | DB / Queue / Cron / WebSocket / SSE / Cache 一站式，竞品多需第三方拼接 |
 | **AI 驱动 DevTools** | 内置 ai-sdk 集成，多个视图 |
 | **OpenAPI 自动生成** | `/_openapi.json` + Scalar UI —— 元框架中罕见 |
-| **零依赖 i18n** | 4 种策略 + Intl + plural + linked messages |
+| **vue-i18n 11 i18n** | 4 种约束前缀策略 + Intlify 文案 + SSR 水合 |
 | **Vue 生态 Islands** | `v-client.*` 指令 + 运行时包装器 —— Vue 生态中少见 |
 | **Electron 内置** | 桌面应用开箱即用 |
 | **Hono 原生** | 边缘运行时友好、轻量 |

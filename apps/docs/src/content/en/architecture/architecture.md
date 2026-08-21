@@ -167,7 +167,7 @@ export default defineConfig({
   // DevTools panel (disabled by default)
   devtools: { enabled: true },
 
-  // Built-in zero-dependency i18n (not vue-i18n)
+  // vue-i18n 11 + compact locale routing
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'zh'],

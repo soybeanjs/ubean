@@ -11,7 +11,7 @@
  * - `defineMiddleware`:来自 `@ubean/routes`(真实实现),与 `@ubean/client` 的 no-op 宏冲突 → 保留 routes 版本
  * - `defineDataKey`:来自 `@ubean/pages`,与 `@ubean/client` 的 own 实现冲突 → 保留 pages 版本
  * - 原 `clearDataCache` 同名冲突已通过重命名消歧:`@ubean/pages` → `clearPageData`(页面数据层,= invalidateAll 别名);`@ubean/server` → `clearFetchDataCache`(fetch Data Cache)
- * - i18n 函数:来自 `@ubean/i18n`(纯函数版),与 `@ubean/client` 的 Vue reactive 包装版冲突 → 保留 i18n 版本
+ * - i18n 函数:来自 `@ubean/i18n`(ALS + 路径编译),与 `@ubean/client` 的 Vue composable 版冲突 → 保留 i18n 版本
  * - `UbeanAppOptions` 类型:来自 `@ubean/app`,与 `@ubean/client` 的 Vue 版本冲突 → 保留 app 版本
  * - `InternalFetchOptions` 类型:来自 `@ubean/pages`,与 `@ubean/routes` 版本冲突 → 保留 pages 版本
  * - `PageHead` 类型:来自 `@ubean/scan`(re-export `@ubean/vue`,页面路由唯一所有者的权威版本),与 `@ubean/shared` 的下沉副本冲突 → 保留 scan 版本
@@ -122,29 +122,21 @@ export {
   withViewTransition,
   useViewTransitionState,
   getNavigationType,
-  // i18n(Vue reactive 版本,使用别名避免与 @ubean/i18n 纯函数版冲突)
+  // i18n(Vue composable 版本; 服务端 ALS 版从 `@ubean/i18n` / `ubean/runtime/i18n` 导出)
   useI18n as useVueI18n,
-  defineLocale as defineVueLocale,
+  createUbeanI18n,
+  configureI18nRuntime,
   t as tVue,
   setLocale as setVueLocale,
   getLocale as getVueLocale,
-  onLocaleChange as onVueLocaleChange,
-  getLocaleDir as getVueLocaleDir,
-  getLocaleName as getVueLocaleName,
-  getRegisteredLocales as getVueRegisteredLocales,
-  detectLocale as detectVueLocale,
-  detectBrowserLocale as detectVueBrowserLocale,
-  addLocale as addVueLocale,
-  mergeLocale as mergeVueLocale,
-  clearLocales as clearVueLocales,
-  getI18nConfig as getVueI18nConfig,
-  setI18nConfig as setVueI18nConfig,
   localizePath as localizeVuePath,
   switchLocalePath as switchVueLocalePath,
-  getDefaultLocale as getDefaultVueLocale,
   extractLocaleFromPath as extractVueLocaleFromPath,
   useSwitchLocalePath,
-  useLocalePath
+  useLocalePath,
+  useLocaleRoute,
+  useLocaleHead,
+  getI18nRuntimeConfig
 } from '@ubean/client';
 
 export type {
@@ -170,6 +162,7 @@ export type {
   HydrateIslandsOptions,
   ViewTransitionOptions,
   VueI18nInstance,
+  I18nRuntimeConfig,
   HeadClient
 } from '@ubean/client';
 
@@ -198,11 +191,12 @@ export { validator, describeRoute, resolver, openAPIRouteHandler } from 'hono-op
 export {
   createI18nMiddleware,
   switchLocalePath,
-  getLocalePath,
+  getRequestLocale,
   getPathWithoutLocale,
-  localeRoutes
+  compileLocalePaths,
+  extractLocaleFromPath
 } from '@ubean/i18n/routing';
-export type { I18nRoutingOptions, I18nRoutingStrategy } from '@ubean/i18n/routing';
+export type { I18nMiddlewareOptions, I18nRoutingStrategy } from '@ubean/i18n/routing';
 
 // ============== 数据库别名(对齐原 ubean 的 `raw as sqlRawAlias`)==============
 export { rawSql as sqlRawAlias } from '@ubean/server';

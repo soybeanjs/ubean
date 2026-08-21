@@ -1,12 +1,12 @@
 import type { Plugin } from 'vite';
-import { transformMacros } from '@ubean/build-core';
-import { useVirtualRegistry } from '@ubean/build-core';
+import { transformMacros, useVirtualRegistry } from '@ubean/build-core';
 import { loadUbeanConfig, tryGetConfig } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { createServerRouter } from '@ubean/routes';
 import { scanProject } from '@ubean/scan';
 import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
 import { join, relative, resolve } from 'pathe';
+import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -224,7 +224,14 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
       createAppVirtualModule(result.apiRoutes, result.middlewares, result.pages, viteSrcPrefix || '/')
     );
 
-    virtualRegistry.register(createLocalesVirtualModule(result.locales, result.defaultLocale, viteSrcPrefix || '/'));
+    virtualRegistry.register(
+      createLocalesVirtualModule(
+        result.locales,
+        result.defaultLocale,
+        viteSrcPrefix || '/',
+        serializeI18nConfig(ubeanConfig.i18n)
+      )
+    );
 
     // 实体文件模式:在 dev 启动 / 文件变更时重新生成 `src/router/_generated/`
     // 当 `routing.mode` 为 `'file'` 或 `'both'` 时触发,委托给 `@ubean/vue/generator`
@@ -291,7 +298,8 @@ async function maybeGenerateRouteFiles(config: UbeanResolvedConfig, scanResult: 
     routeLazy: routing.routeLazy,
     layoutLazy: routing.layoutLazy,
     getRouteMeta: generatorGetRouteMeta,
-    headerComment: undefined
+    headerComment: undefined,
+    localeVueParam: localeVueParamFromI18n(config.i18n)
   });
 
   // 适配 GeneratorResult → string[]:配置层 `onGenerated` 期望"已生成的文件路径数组"

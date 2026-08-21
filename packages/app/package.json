@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@ubean/actions": "workspace:*",
+    "@ubean/i18n": "workspace:*",
     "@ubean/islands": "workspace:*",
     "@ubean/routes": "workspace:*",
     "@ubean/scan": "workspace:*",

@@ -49,7 +49,7 @@ const features = [
   {
     icon: 'lucide:languages',
     title: { en: 'i18n', zh: '国际化' },
-    desc: { en: 'Built-in zero-dependency i18n with 3 routing strategies and SSR hydration.', zh: '内置零依赖 i18n 系统，支持 3 种路由策略和 SSR 水合。' }
+    desc: { en: 'vue-i18n 11 with compact locale routing and SSR hydration.', zh: 'vue-i18n 11 + 约束前缀语言路由，支持 SSR 水合。' }
   }
 ];
 

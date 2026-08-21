@@ -44,11 +44,11 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - Route guards: `defineApp({ router: { setup(router) { router.beforeEach(...) } } })` registers navigation guards on both client and SSR
 
 5. **Internationalization**
-   - Built-in zero-dependency i18n (`runtime/i18n.ts`, `i18n-routing.ts`)
-   - 3 routing strategies: `prefix` / `prefix_except_default` / `no_prefix`
+   - vue-i18n 11 (`legacy: false`) on Vue; `@intlify/core` + ALS in handlers
+   - Compact locale routing shared by Hono and vue-router (`compileLocalePaths`)
+   - 4 routing strategies: `prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`
    - Detection order: URL path → cookie (`ubean_locale`) → Accept-Language → defaultLocale
-   - Vue reactive `useI18n()` with `t` / `d` / `n` / `c` / `relativeTime` / `list`
-   - Pluralization (pipe syntax), linked messages (`@:key`), missing key handlers
+   - Framework `setLocale` from `ubean/runtime/vue` (load + cookie + navigate)
    - SSR hydration: locale injected via `<script id="__UBEAN_LOCALE__">`, auto syncs `<html lang/dir>`
 
 6. **DevTools**

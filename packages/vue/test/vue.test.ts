@@ -23,6 +23,7 @@ import {
   Link,
   SSR_KEY,
   PAGE_KEY,
+  LOCALIZE_PATH_KEY,
   definePage,
   usePage,
   useCacheViews,
@@ -219,6 +220,27 @@ describe('PageView / Link 渲染', () => {
     });
     const html = await renderAt('/', Root);
     expect(html).toContain('href="/zh/about"'); // 不做本地化改写
+  });
+
+  it('提供 LOCALIZE_PATH_KEY 时按 locale prop 前缀', async () => {
+    const Root = defineComponent({
+      setup() {
+        provide(SSR_KEY, true);
+        provide(LOCALIZE_PATH_KEY, (path: string, locale?: string) => {
+          if (locale && locale !== 'en') return `/${locale}${path === '/' ? '' : path}`;
+          return path;
+        });
+        return () =>
+          h('div', [
+            h(Link, { to: '/about' }, { default: () => 'current' }),
+            h(Link, { to: '/about', locale: 'zh' }, { default: () => 'zh-link' })
+          ]);
+      }
+    });
+    const html = await renderAt('/', Root);
+    expect(html).toContain('href="/about"');
+    expect(html).toContain('href="/zh/about"');
+    expect(html).toContain('zh-link');
   });
 });
 
@@ -596,6 +618,13 @@ const s = '括号)内部';
       }
     };
     const code = generatePagesModuleSource(scan);
+    expect(code).toContain('path: "/"');
+    expect(code).toContain('path: "/about"');
+
+    const withLocale = generatePagesModuleSource(scan, { vueParam: ':locale(zh)?' });
+    expect(withLocale).toContain('path: "/:locale(zh)?"');
+    expect(withLocale).toContain('path: "/:locale(zh)?/about"');
+    expect(withLocale).toContain('path: "/:locale(zh)?/:pathMatch(.*)*"');
 
     // 无 TS 语法(虚拟模块按 JS 解析)
     expect(code).not.toContain('import type');

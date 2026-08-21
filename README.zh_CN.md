@@ -75,7 +75,7 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 | 配置     | 类型化配置定义                              | `defineConfig`                         | `@ubean/config`                 |
 | 配置     | 类型化环境变量                              | `defineEnv`                            | `@ubean/shared`                 |
 | 配置     | 中间件定义                                  | `defineMiddleware`                     | `@ubean/routes`                 |
-| i18n     | 零依赖国际化                                | `defineLocale` / `t` / `useI18n`       | `@ubean/i18n` + `@ubean/client` |
+| i18n     | vue-i18n 11 + 约束前缀语言路由              | `useI18n` / `setLocale` / `t`          | `@ubean/i18n` + `@ubean/client` |
 | SSR      | Vue 服务端渲染器                            | `createVueRenderer`                    | `@ubean/ssr`                    |
 | Islands  | 局部水合边界                                | `ubeanIslandsPlugin`                   | `@ubean/islands`                |
 | DevTools | RPC、AI 助手、API playground、CRUD 脚手架   | `devtools: true` 配置                  | `@ubean/devtools`               |
@@ -123,7 +123,7 @@ packages/
 ├── markdown/       # @ubean/markdown — Markdown/MDX 页面解析
 ├── seo/            # @ubean/seo — SEO meta 管理
 ├── pages/          # @ubean/pages — 页面数据协议 (loader/action)
-├── i18n/           # @ubean/i18n — 零依赖 i18n（纯函数）
+├── i18n/           # @ubean/i18n — @intlify/core + 约束前缀语言路由
 ├── logger/         # @ubean/logger — tslog 日志封装
 │
 │   ── 服务端运行时 ──
@@ -306,7 +306,7 @@ v0.1 目标平台为 **Node.js**（`node-server`）和 **Cloudflare Workers**。
 ### 已实现的能力
 
 - **路由：** `routes/` API 文件路由，支持 `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` 命名导出，由 `defineHandler` 包装；`pages/` Vue SSR 页面、layouts、路由组、reuse 路由、并行/拦截路由、动态参数 matchers、特殊页面与类型化导航；`defineHandlerMeta` 路由元数据（`requiresAuth`、`cache`、`rateLimit`）；来自 `hono-openapi` 的 `validator` / `describeRoute` / `resolver` 用于请求验证和 OpenAPI 3.1 生成；在 `.ubean/routes.d.ts` 生成 `paths` 类型。
-- **应用：** `defineApp` 基于选项的定制（含 `router.setup` 用于在 client 与 SSR 两端注册全局导航守卫）、`definePage` 宏、`defineMiddleware`、`defineLocale`、`defineEnv`、`defineScheduled`（cron）、`defineQueue`。
+- **应用：** `defineApp` 基于选项的定制（含 `router.setup` 用于在 client 与 SSR 两端注册全局导航守卫）、`definePage` 宏、`defineMiddleware`、`defineEnv`、`defineScheduled`（cron）、`defineQueue`。i18n 写在 `ubean.config.ts` 的 `i18n`，Vue 端 vue-i18n 11（从 `ubean/runtime/vue` 导入 `setLocale` / `useI18n`）。
 - **服务器：** 内置数据库层（`defineDatabase` / `useDatabase`）、存储（`useStorage` / `useKV`）、缓存（`useCacheStore` / `cachedEventHandler`）、限流、CORS、route rules（重定向 / 重写 / headers / cache）与 SSG 预渲染。WebSocket（`defineWebSocket`）、SSE 流、`internalFetch`（直接在进程内调度框架 handler，不发起网络请求）。
 - **DevTools：** RPC、AI 助手、API playground 与 CRUD 脚手架。
 - **扩展包：** `@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/image`、`@ubean/content`，以及 `@ubean/integrations`（PWA / 字体 / 基于 vite-plugin-electron 的 Electron 桌面应用，默认 main/preload 入口，自动关闭 SSR / @soybeanjs/ui 集成，UiResolver + styles.css 自动注入 / Pinia SSR 水合）。

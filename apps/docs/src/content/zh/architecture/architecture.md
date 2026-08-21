@@ -167,7 +167,7 @@ export default defineConfig({
   // DevTools 面板（默认关闭）
   devtools: { enabled: true },
 
-  // 内置零依赖 i18n（非 vue-i18n）
+  // vue-i18n 11 + 约束前缀语言路由
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'zh'],

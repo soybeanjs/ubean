@@ -1,7 +1,7 @@
+import { defineVirtualModule } from '@ubean/build-core';
 import type { CompiledRoute, CompiledPage, CompiledLayout, CompiledMiddleware } from '@ubean/routes';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLocale } from '@ubean/scan';
 import { relative, isAbsolute } from 'pathe';
-import { defineVirtualModule } from '@ubean/build-core';
 
 function toVitePath(p: string): string {
   return p.replace(/\\/g, '/');
@@ -153,20 +153,19 @@ export default { routeLoaders, middlewareLoaders, pageLoaders, apiRoutes, middle
 export function createLocalesVirtualModule(
   _locales: ScannedLocale[],
   defaultLocale: string | undefined,
-  srcDir: string = 'src'
+  srcDir: string = 'src',
+  i18nConfigJson?: string
 ) {
   return defineVirtualModule('ubean:locales', () => {
-    // JSON.stringify(undefined) 返回 undefined（值，非字符串），插入模板会变成
-    // "const defaultCode = undefined;" —— 这会让 `defaultCode && ...` 短路逻辑
-    // 仍能工作，但语义上 defaultCode 应为 null（明确的"无默认值"）。
     const defaultCode = defaultLocale == null ? 'null' : JSON.stringify(defaultLocale);
     const viteSrcDir = toVitePath(srcDir);
     const prefix = viteSrcDir === '/' || viteSrcDir === '' ? '' : viteSrcDir;
     const localesGlob = JSON.stringify(`${prefix}/locales/**/*.{json,json5,yaml,yml,js,mjs,cjs,ts,mts,cts}`);
     const srcPrefix = JSON.stringify(`${prefix || ''}/locales/`);
+    const configLiteral = i18nConfigJson ?? 'null';
 
     return `
-import { defineLocale, setLocale, mergeLocale } from 'ubean/runtime/i18n';
+export const i18nConfig = ${configLiteral};
 
 const localeModules = import.meta.glob([${localesGlob}], { eager: false });
 
@@ -208,94 +207,93 @@ function setNestedValue(obj, path, value) {
   current[path[path.length - 1]] = value;
 }
 
-let loaded = false;
+const cache = new Map();
 
-export async function loadLocales() {
-  if (loaded) return;
-  loaded = true;
+function codesFromConfig() {
+  if (!i18nConfig || !i18nConfig.locales) return [];
+  return i18nConfig.locales.map(l => typeof l === 'string' ? l : l.code);
+}
 
-  const localeData = new Map();
+export const localeCodes = codesFromConfig();
+const defaultCode = ${defaultCode};
+
+let i18nRuntime = null;
+if (import.meta.env.SSR) {
+  i18nRuntime = await import('ubean/runtime/i18n');
+  if (i18nConfig && i18nConfig.fallbackLocale) {
+    i18nRuntime.setFallbackLocale(i18nConfig.fallbackLocale);
+  } else if (defaultCode) {
+    i18nRuntime.setFallbackLocale(defaultCode);
+  }
+}
+
+async function collectMessages(code) {
+  const localeData = { messages: {}, options: { isDefault: false, name: undefined, dir: 'ltr', language: undefined } };
+  const configLoc = i18nConfig && i18nConfig.locales
+    ? i18nConfig.locales.find(l => (typeof l === 'string' ? l : l.code) === code)
+    : undefined;
+  if (configLoc && typeof configLoc === 'object') {
+    localeData.options.name = configLoc.name;
+    localeData.options.dir = configLoc.dir || 'ltr';
+    localeData.options.language = configLoc.language;
+    localeData.options.isDefault = configLoc.code === (i18nConfig && i18nConfig.defaultLocale);
+  }
 
   for (const [path, loader] of Object.entries(localeModules)) {
+    const parsed = parseLocalePath(path);
+    if (parsed.code !== code) continue;
     try {
-      const { code, namespace, isDefault } = parseLocalePath(path);
       const mod = await loader();
       const data = mod.default || mod;
       const hasMeta = typeof data.name === 'string' || data.dir === 'ltr' || data.dir === 'rtl' || typeof data.isDefault === 'boolean';
       const isWrapper = hasMeta && typeof data.messages === 'object' && data.messages !== null;
       const messages = isWrapper ? data.messages : data;
-      const options = {
-        name: isWrapper ? data.name : undefined,
-        dir: isWrapper ? (data.dir || 'ltr') : 'ltr',
-        isDefault: isDefault || (isWrapper ? data.isDefault : false)
-      };
-
-      if (!localeData.has(code)) {
-        localeData.set(code, { messages: {}, options: { isDefault: options.isDefault || isDefault, name: options.name, dir: options.dir } });
+      if (isWrapper) {
+        if (data.name) localeData.options.name = data.name;
+        if (data.dir) localeData.options.dir = data.dir;
+        if (data.isDefault) localeData.options.isDefault = true;
       }
-      const entry = localeData.get(code);
-      if (options.name) entry.options.name = options.name;
-      if (options.dir) entry.options.dir = options.dir;
-      if (options.isDefault) entry.options.isDefault = true;
-
-      if (namespace) {
-        setNestedValue(entry.messages, namespace.split('.'), messages);
+      if (parsed.isDefault) localeData.options.isDefault = true;
+      if (parsed.namespace) {
+        setNestedValue(localeData.messages, parsed.namespace.split('.'), messages);
       } else {
-        Object.assign(entry.messages, messages);
+        Object.assign(localeData.messages, messages);
       }
     } catch (e) {
       console.warn('[ubean] Failed to load locale:', path, e);
     }
   }
+  return localeData;
+}
 
-  for (const [code, { messages, options }] of localeData.entries()) {
-    defineLocale({
-      code,
-      messages,
-      name: options.name,
-      dir: options.dir,
-      isDefault: options.isDefault
-    });
+export async function loadLocale(code) {
+  if (cache.has(code)) return cache.get(code);
+  const { messages, options } = await collectMessages(code);
+  if (i18nRuntime) {
+    i18nRuntime.setLocaleMessages(code, messages);
+    i18nRuntime.setLocaleMeta(code, options);
   }
+  cache.set(code, messages);
+  return messages;
+}
 
-  const defaultCode = ${defaultCode};
-  if (defaultCode && localeData.has(defaultCode)) {
-    setLocale(defaultCode);
-  } else if (localeData.size > 0) {
-    const firstDefault = [...localeData.entries()].find(([, v]) => v.options.isDefault);
-    if (firstDefault) {
-      setLocale(firstDefault[0]);
-    } else {
-      setLocale([...localeData.keys()][0]);
-    }
-  }
+export async function loadLocales() {
+  const codes = localeCodes.length ? localeCodes : [...new Set(Object.keys(localeModules).map(p => parseLocalePath(p).code))];
+  await Promise.all(codes.map(loadLocale));
 }
 
 export async function reloadLocale(path) {
   if (!path.includes('/locales/')) return;
-  try {
-    const loader = localeModules[path];
-    if (loader) {
-      const { code, namespace } = parseLocalePath(path);
-      const mod = await loader();
-      const data = mod.default || mod;
-      const hasMeta = typeof data.name === 'string' || data.dir === 'ltr' || data.dir === 'rtl' || typeof data.isDefault === 'boolean';
-      const isWrapper = hasMeta && typeof data.messages === 'object' && data.messages !== null;
-      const messages = isWrapper ? data.messages : data;
-      const merged = {};
-      if (namespace) {
-        setNestedValue(merged, namespace.split('.'), messages);
-      } else {
-        Object.assign(merged, messages);
-      }
-      mergeLocale(code, merged);
-    }
-  } catch (e) {
-    console.warn('[ubean] Failed to reload locale:', path, e);
-  }
+  cache.clear();
+  const { code } = parseLocalePath(path);
+  await loadLocale(code);
 }
 
-export default { loadLocales, reloadLocale };
+if (i18nRuntime) {
+  i18nRuntime.registerLocaleLoader(loadLocale);
+}
+
+export default { loadLocale, loadLocales, reloadLocale, localeCodes, i18nConfig };
 
 if (import.meta.hot) {
   import.meta.hot.accept((mod) => {

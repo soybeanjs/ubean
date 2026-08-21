@@ -2,6 +2,10 @@ import { createSSRApp, defineComponent, h, provide, reactive } from 'vue';
 import type { App, Component } from 'vue';
 import { renderToString, renderToNodeStream } from '@vue/server-renderer';
 import type { RouteRecordRaw } from 'vue-router';
+import { createUbeanI18n } from '@ubean/client';
+import { applyAppConfig } from '@ubean/client/define-app';
+import type { ResolvedAppConfig } from '@ubean/client/define-app';
+import { buildLocaleHead } from '@ubean/i18n/browser';
 import { getIslandsBootstrapScript } from '@ubean/islands';
 import {
   SSR_CONTENT_MARKER,
@@ -23,8 +27,6 @@ import type {
   PageHead,
   PageRenderResult
 } from '@ubean/pages';
-import { applyAppConfig } from '@ubean/client/define-app';
-import type { ResolvedAppConfig } from '@ubean/client/define-app';
 import { createHead, transformHtmlTemplate, renderSSRHead } from '@unhead/vue/server';
 
 export interface VueRendererSimpleOptions {
@@ -151,20 +153,51 @@ async function prepareRender(
     pushPageHead(head, appConfig.head);
   }
 
-  // 2. Locale head
+  // 2. Locale head (lang/dir + hreflang / canonical / og:locale)
   if (renderContext?.locale) {
-    head.push({
-      htmlAttrs: {
-        lang: renderContext.locale,
-        dir: renderContext.localeDir || 'ltr'
-      }
-    });
+    const routing = renderContext.routing;
+    if (routing && renderContext.availableLocales?.length) {
+      const tags = buildLocaleHead({
+        path: pageObj.url.split('?')[0] || '/',
+        locale: renderContext.locale,
+        locales: renderContext.availableLocales,
+        routing,
+        baseUrl: renderContext.baseUrl
+      });
+      head.push({
+        htmlAttrs: tags.htmlAttrs,
+        link: tags.link as never,
+        meta: tags.meta as never
+      });
+    } else {
+      head.push({
+        htmlAttrs: {
+          lang: renderContext.locale,
+          dir: renderContext.localeDir || 'ltr'
+        }
+      });
+    }
   }
 
   // 3. Page-specific head (overrides app-level defaults)
   if (pageObj.head) {
     pushPageHead(head, pageObj.head);
   }
+
+  const i18n = renderContext?.locale
+    ? createUbeanI18n({
+        locale: renderContext.locale,
+        fallbackLocale: renderContext.fallbackLocale || renderContext.locale,
+        messages: {
+          [renderContext.locale]: (renderContext.messages || {}) as Record<string, unknown>,
+          ...(renderContext.fallbackLocale &&
+          renderContext.fallbackMessages &&
+          renderContext.fallbackLocale !== renderContext.locale
+            ? { [renderContext.fallbackLocale]: renderContext.fallbackMessages }
+            : {})
+        }
+      })
+    : undefined;
 
   let renderApp: App;
   if (isSimpleOptions(options)) {
@@ -179,6 +212,7 @@ async function prepareRender(
         : await resolveSingleLayout(pageObj.layout, options.defaultLayout || null, options.resolveLayoutComponent);
 
     const app = createSimpleApp(pageObj, pageComponent, layout, head);
+    if (i18n) app.use(i18n);
     if (appConfig) {
       await applyServerAppConfig(app, appConfig);
     }
@@ -189,7 +223,8 @@ async function prepareRender(
       routes: options.routes,
       resolveLayoutComponent: options.resolveLayoutComponent,
       defaultLayout: options.defaultLayout,
-      head
+      head,
+      i18n
     });
     if (appConfig) {
       await applyServerAppConfig(createdApp, appConfig);

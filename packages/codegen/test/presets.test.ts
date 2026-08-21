@@ -14,14 +14,25 @@ describe('auto-import presets(自 @ubean/auto-imports 并入)', () => {
     expect(UBEAN_CLIENT_PRESET.from).toBe('ubean/client');
     const names = UBEAN_CLIENT_PRESET.imports as string[];
     // 内核核心符号抽查
-    for (const sym of ['definePage', 'defineApp', 't', 'useI18n', 'useCacheViews', 'enablePageCache', 'usePageTransition', 'reloadPage']) {
+    for (const sym of [
+      'definePage',
+      'defineApp',
+      't',
+      'useI18n',
+      'setLocale',
+      'useLocalePath',
+      'useCacheViews',
+      'enablePageCache',
+      'usePageTransition',
+      'reloadPage'
+    ]) {
       expect(names).toContain(sym);
     }
   });
 
   it('UBEAN_SERVER_PRESET 源自主入口 ubean', () => {
     expect(UBEAN_SERVER_PRESET.from).toBe('ubean');
-    expect((UBEAN_SERVER_PRESET.imports as string[])).toContain('defineHandlerMeta');
+    expect(UBEAN_SERVER_PRESET.imports as string[]).toContain('defineHandlerMeta');
   });
 
   it('VUE_PRESET / VUE_MACROS_PRESET / HONO_OPENAPI_PRESET 形态完整', () => {

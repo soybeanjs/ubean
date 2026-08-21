@@ -3,6 +3,7 @@ import { defu } from 'defu';
 import { loadConfig } from 'c12';
 import { createJiti } from 'jiti';
 import { resolve, join } from 'pathe';
+import { resolveI18nConfig } from './i18n';
 import { resolveRoutingConfig } from './routing';
 import type {
   UbeanConfig,
@@ -200,14 +201,7 @@ const configDefaults: ResolvedConfig = {
   },
   imports: { autoImport: true, dirs: [], global: false },
   components: { autoImport: true, dirs: [], directoryAsNamespace: false },
-  i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
-    strategy: 'prefix_except_default',
-    detectBrowserLocale: true,
-    cookieName: 'ubean_locale',
-    fallbackLocale: 'en'
-  },
+  i18n: resolveI18nConfig(),
   routing: resolveRoutingConfig(),
   routeRules: {},
   prerender: resolvePrerenderConfig(),
@@ -243,6 +237,7 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   resolved.ssr = resolveSsrConfig(config.ssr);
   // 重新解析 devtools(同 prerender,defu 浅合并会让 enabled 失真)
   resolved.devtools = resolveDevToolsConfig(config.devtools);
+  resolved.i18n = resolveI18nConfig(config.i18n);
   // 解析 favicon(自动检测 public 目录或使用用户配置的路径)
   const publicDir = join(resolved.rootDir, resolved.dir.public);
   resolved.favicon = resolveFavicon(config.favicon, publicDir);

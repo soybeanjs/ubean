@@ -58,7 +58,7 @@ let _warnedOutIn = false;
  * (`@ubean/client`) provides the reactive `localizePath`; when absent,
  * `Link` renders paths verbatim — this package never imports i18n itself.
  */
-export const LOCALIZE_PATH_KEY: InjectionKey<(path: string) => string> = Symbol('ubean-localize-path');
+export const LOCALIZE_PATH_KEY: InjectionKey<(path: string, locale?: string) => string> = Symbol('ubean-localize-path');
 
 /**
  * Layout chain context — provided by `LayoutChainRenderer` so that `<PageView />`
@@ -398,7 +398,9 @@ export const Link = defineComponent({
     prefetch: { type: Boolean, default: false },
     activeClass: { type: String, default: 'router-link-active' },
     exactActiveClass: { type: String, default: 'router-link-exact-active' },
-    noActiveClass: { type: Boolean, default: false }
+    noActiveClass: { type: Boolean, default: false },
+    /** Target locale for path localization; omit to use the current locale. */
+    locale: { type: String, default: undefined }
   },
   setup(props, { slots, attrs }) {
     const localize = inject(LOCALIZE_PATH_KEY, null);
@@ -408,7 +410,10 @@ export const Link = defineComponent({
       if (typeof path === 'string' && (path.startsWith('http') || path.startsWith('//') || path.startsWith('#'))) {
         return path;
       }
-      return localize ? localize(path as string) : (path as string);
+      if (typeof path !== 'string') {
+        return path as string;
+      }
+      return localize ? localize(path, props.locale) : path;
     });
 
     const isExternal = computed(() => {

@@ -24,7 +24,7 @@ A high-level comparison of ubean against the mainstream meta-frameworks (as of 2
 | Islands (partial hydration) | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
 | Built-in DB / Queue / Cron / WS | ❌ | ⚠️ partial | ❌ | ❌ | ❌ | ✅ |
 | Built-in Auth | ❌ (Auth.js) | ⚠️ | ❌ | ❌ | ❌ | ✅ extension |
-| Built-in i18n | ❌ | ⚠️ module | ❌ | ❌ | ⚠️ routing | ✅ zero-dependency |
+| Built-in i18n | ❌ | ⚠️ module | ❌ | ❌ | ⚠️ routing | ✅ vue-i18n 11 |
 | Built-in DevTools | ⚠️ | ✅ | ❌ | ❌ | ✅ Toolbar | ✅ + AI assistant |
 | Platform presets | Vercel/Node/Edge | 12+ | 6+ | 20+ | 4+ | **8** (Node/CF/Vercel/Netlify/Bun/Deno) |
 
@@ -51,7 +51,7 @@ Sessions API (cookie or storage-backed), CSRF protection (double-submit cookie +
 ### Developer Experience
 
 - **OpenAPI auto-generation** (`/_openapi.json` + Scalar UI) — a differentiator most frameworks lack.
-- **Zero-dependency i18n** (4 routing strategies + Intl + plural + linked messages, no vue-i18n).
+- **vue-i18n 11 + compact locale routing** (4 strategies shared by Hono and vue-router, Intlify messages, SSR hydration).
 - **Islands architecture** (`v-client.*` directive + `defineIsland()` / `defineServerIsland()` wrappers).
 - **Electron** desktop apps out of the box; multi-provider image optimization; a full CLI scaffold (`page` / `api` / `layout` / `middleware` / `cron` / `plugin` / `env` / `config`).
 
@@ -75,7 +75,7 @@ Every preset extends `node` and ships its own capability matrix, build configura
 | **Built-in full-stack primitives** | DB / Queue / Cron / WebSocket / SSE / Cache in one dependency, where competitors require third-party glue |
 | **AI-powered DevTools** | Embedded ai-sdk integration with multiple views |
 | **OpenAPI auto-generation** | `/_openapi.json` + Scalar UI — rare among meta-frameworks |
-| **Zero-dependency i18n** | 4 strategies + Intl + plural + linked messages |
+| **vue-i18n 11 i18n** | 4 compact-prefix strategies + Intlify messages + SSR hydration |
 | **Islands for Vue** | `v-client.*` directive + runtime wrappers — uncommon in the Vue ecosystem |
 | **Electron built-in** | Desktop apps out of the box |
 | **Hono-native** | Edge-runtime friendly and lightweight |

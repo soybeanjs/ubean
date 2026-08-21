@@ -1,7 +1,7 @@
 {
   "name": "@ubean/i18n",
   "version": "0.2.2",
-  "description": "Zero-dependency i18n for ubean (defineLocale, t, formatDate, routing)",
+  "description": "i18n for ubean (vue-i18n / @intlify/core, compact locale routing, ALS)",
   "files": [
     "dist"
   ],
@@ -17,6 +17,10 @@
     "./routing": {
       "types": "./dist/routing.d.ts",
       "import": "./dist/routing.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js"
     }
   },
   "scripts": {
@@ -26,6 +30,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@intlify/core": "catalog:",
     "@ubean/shared": "workspace:*",
     "hono": "4.13.3"
   },
@@ -33,5 +38,8 @@
     "@types/node": "^26.2.0",
     "typescript": "7.0.2",
     "vite-plus": "catalog:"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

@@ -14,5 +14,9 @@ export default defineConfig({
     deps: {
       neverBundle: ['c12', 'defu', 'pathe', 'vite', /^node:/, /^@ubean\//]
     }
+  },
+  test: {
+    include: ['test/**/*.test.ts'],
+    environment: 'node'
   }
 });

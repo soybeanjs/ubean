@@ -1,12 +1,15 @@
+import { createRequire } from 'node:module';
 import { transformWithOxc } from 'vite';
 import type { Plugin } from 'vite';
 import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
+import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
 import { useVirtualRegistry, getComponentResolvers } from '@ubean/build-core';
 import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolvePartyTownConfig } from '@ubean/client';
 import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '@ubean/codegen';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
+import { getVueLocaleParam } from '@ubean/i18n';
 import { ubeanMdxPlugin } from '@ubean/markdown';
 import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
@@ -63,6 +66,18 @@ function parseResolvedVirtualId(resolvedId: string): string | undefined {
   return VIRTUAL_IDS.includes(virtualId) ? virtualId : undefined;
 }
 
+function localeVueParamFromConfig(config: UbeanResolvedConfig): string | undefined {
+  if (config.i18n?.enabled === false) return undefined;
+  const codes = (config.i18n?.locales || []).map(l => l.code);
+  if (codes.length === 0) return undefined;
+  const param = getVueLocaleParam({
+    defaultLocale: config.i18n.defaultLocale,
+    locales: codes,
+    strategy: config.i18n.strategy
+  });
+  return param || undefined;
+}
+
 export function ubeanVite(options: UbeanViteOptions): Plugin[] {
   const { config: ubeanConfig } = options;
   const virtualRegistry = useVirtualRegistry();
@@ -106,7 +121,8 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
         result.layouts,
         result.notFoundPage,
         result.loadingPage,
-        result.errorPage
+        result.errorPage,
+        localeVueParamFromConfig(ubeanConfig)
       )
     );
     virtualRegistry.register(createVueAppEntryVirtualModule(result.appEntry));
@@ -124,7 +140,7 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
       await scanAndRegister();
     },
 
-    resolveId(id) {
+    resolveId(id, importer, opts) {
       // 兼容旧 #ubean-xxx ID
       if (HASH_ID_TO_VIRTUAL[id]) {
         return toResolvedVirtualId(HASH_ID_TO_VIRTUAL[id]);
@@ -133,6 +149,10 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
       // the generated TypeScript content with the proper loader.
       if (VIRTUAL_IDS.includes(id)) {
         return toResolvedVirtualId(id);
+      }
+      // Client must never load the ALS / `@intlify/core` entry.
+      if (id === '@ubean/i18n' && !opts?.ssr) {
+        return this.resolve('@ubean/i18n/browser', importer, { skipSelf: true, ...opts });
       }
       return undefined;
     },
@@ -152,13 +172,50 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     },
 
     config() {
+      const require = createRequire(import.meta.url);
+      let vueI18nEntry = 'vue-i18n';
+      let intlifyCoreEntry = '@intlify/core';
+      let intlifyBaseEntry = '@intlify/core-base';
+      try {
+        vueI18nEntry = require.resolve('vue-i18n/dist/vue-i18n.esm-bundler.js');
+      } catch {
+        try {
+          vueI18nEntry = require.resolve('vue-i18n');
+        } catch {
+          /* keep specifier */
+        }
+      }
+      try {
+        intlifyCoreEntry = require.resolve('@intlify/core/dist/core.node.mjs');
+      } catch {
+        /* keep specifier */
+      }
+      try {
+        intlifyBaseEntry = require.resolve('@intlify/core-base/dist/core-base.mjs');
+      } catch {
+        /* keep specifier */
+      }
       return {
         appType: 'custom',
+        resolve: {
+          dedupe: ['vue', 'vue-i18n', '@ubean/client', '@ubean/i18n'],
+          alias: {
+            'vue-i18n': vueI18nEntry,
+            '@intlify/core': intlifyCoreEntry,
+            '@intlify/core-base': intlifyBaseEntry
+          }
+        },
         optimizeDeps: {
-          exclude: ['ubean', ...VIRTUAL_IDS, ...HASH_IDS]
+          // Workspace client/i18n must not be prebundled — a stale dep cache
+          // is a second copy of the runtime store (hydration: SSR /zh, client /).
+          exclude: ['ubean', '@ubean/client', '@ubean/i18n', ...VIRTUAL_IDS, ...HASH_IDS],
+          include: ['vue-i18n']
         },
         ssr: {
-          noExternal: ['ubean']
+          noExternal: ['ubean', 'vue-i18n', '@intlify/core', '@intlify/core-base'],
+          // Linked workspace packages are bundled by Vite SSR by default.
+          // Keep a single Node copy so ALS / catalogs match `@ubean/app`.
+          external: ['@ubean/i18n']
         }
       };
     },
@@ -236,6 +293,17 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
   };
 
   const plugins: Plugin[] = [corePlugin];
+
+  if (ubeanConfig.i18n?.enabled !== false) {
+    plugins.push(
+      VueI18nPlugin({
+        include: [join(srcDir, 'locales/**')],
+        ssr: true,
+        compositionOnly: true,
+        runtimeOnly: false
+      }) as Plugin
+    );
+  }
 
   if (markdownEnabled) {
     const markdownOptions = {

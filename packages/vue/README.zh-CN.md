@@ -372,7 +372,7 @@ SSR 场景（经 `SSR_KEY`）跳过 KeepAlive/Transition/Suspense/ErrorBoundary�
 
 内部链接经 `RouterLink` 渲染；外部链接（`http*`、`//`、`#`）渲染为原生 `<a target="_blank" rel="noopener noreferrer">`。
 
-Props：`to`（字符串或位置对象）、`href`、`replace`、`activeClass`、`exactActiveClass`、`noActiveClass`。路径本地化经 `LOCALIZE_PATH_KEY` opt-in（框架运行时提供；精简 SPA 原样渲染路径）。
+Props：`to`（字符串或位置对象）、`href`、`replace`、`activeClass`、`exactActiveClass`、`noActiveClass`、可选 `locale`。路径本地化经 `LOCALIZE_PATH_KEY` opt-in（框架运行时提供；精简 SPA 原样渲染路径）。
 
 ### `<SlotView>`
 

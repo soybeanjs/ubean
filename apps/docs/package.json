@@ -26,7 +26,7 @@
     "@types/node": "^26.2.0",
     "typedoc": "^0.28.20",
     "typescript": "7.0.2",
-    "unocss": "^66.8.0",
+    "unocss": "^66.8.1",
     "vue-tsc": "^3.3.10"
   }
 }

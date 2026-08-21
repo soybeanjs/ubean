@@ -12,7 +12,7 @@ export default defineConfig({
     outDir: 'dist',
     entry: ['src/index.ts'],
     deps: {
-      neverBundle: ['oxc-transform', 'pathe', /^@ubean\//, /^node:/]
+      neverBundle: ['pathe', /^@ubean\//, /^node:/]
     }
   }
 });

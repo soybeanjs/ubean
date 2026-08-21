@@ -1384,9 +1384,6 @@ importers:
       '@ubean/vue':
         specifier: workspace:*
         version: link:../vue
-      oxc-transform:
-        specifier: ^0.146.0
-        version: 0.146.0
       pathe:
         specifier: ^2.0.3
         version: 2.0.3

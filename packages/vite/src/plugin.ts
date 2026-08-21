@@ -1,3 +1,4 @@
+import { transformWithOxc } from 'vite';
 import type { Plugin } from 'vite';
 import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
@@ -9,7 +10,6 @@ import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanMdxPlugin } from '@ubean/markdown';
 import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
-import { transformSync } from 'oxc-transform';
 import { join } from 'pathe';
 import type { InlinePreset } from 'unimport';
 import {
@@ -142,11 +142,8 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
       if (virtualId) {
         let code = await loadVirtualModule(virtualId);
         if (code && TS_VIRTUAL_IDS.includes(virtualId)) {
-          // Use oxc-transform to strip TypeScript types for SSR compatibility
-          const result = transformSync(`${virtualId}.ts`, code, {
-            lang: 'ts',
-            sourcemap: false
-          });
+          // Use Vite's transformWithOxc to strip TypeScript types for SSR compatibility
+          const result = await transformWithOxc(code, `${virtualId}.ts`);
           code = result.code;
         }
         return code;

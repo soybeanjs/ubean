@@ -9,8 +9,19 @@ import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/rout
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout, ScannedCronTask } from '@ubean/scan';
 // Semantic subpath imports (ADR-0003 OPT-06) — avoids pulling the whole
 // `@ubean/server` barrel (30 modules) into type resolution for this package.
-import { createCacheMiddleware, resolveRouteCacheRules, useCacheStore, createMemoryStore } from '@ubean/server/cache';
+import {
+  createCacheMiddleware,
+  resolveRouteCacheRules,
+  useCacheStore,
+  createMemoryStore,
+  createFsCacheStore
+} from '@ubean/server/cache';
+import type { CacheStore } from '@ubean/server/cache';
+import { createDataCacheMiddleware } from '@ubean/server/middleware';
+import type { DataCacheMiddlewareOptions } from '@ubean/server/middleware';
 import { createWebSocketMiddleware } from '@ubean/server/realtime';
+import { createCsrfMiddleware, createSecurityHeadersMiddleware } from '@ubean/server/security';
+import type { CsrfOptions, SecurityHeadersOptions } from '@ubean/server/security';
 import { serveStatic } from '@ubean/server/static';
 import { errorToResponse, isUbeanError, UbeanError } from '@ubean/shared';
 import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '@ubean/shared';
@@ -127,6 +138,52 @@ export interface UbeanAppOptions {
    * the SSG/prerender path that bypasses Vite's `transformIndexHtml`.
    */
   colorModeScript?: string;
+  /**
+   * CSRF protection. Default `true` (origin check). `false` disables.
+   * Pass `CsrfOptions` to override (e.g. token mode).
+   */
+  csrf?: boolean | CsrfOptions;
+  /**
+   * Security response headers. Default `true`. `false` disables.
+   */
+  securityHeaders?: boolean | SecurityHeadersOptions;
+  /**
+   * Cross-request fetch Data Cache (`next: { revalidate, tags }`).
+   * Default `true`. Dev still skips cache unless `forceDevCache`.
+   */
+  dataCache?: boolean | DataCacheMiddlewareOptions;
+  /**
+   * HTTP / ISR cache store. Default is in-process memory (not shared
+   * across instances). Pass `createFsCacheStore(dir)` for a Node fs backend.
+   */
+  cacheStore?: CacheStore;
+  /** Declarative cache backend. `store: 'fs'` uses `createFsCacheStore`. */
+  cache?: { store?: 'memory' | 'fs'; dir?: string };
+}
+
+const DEFAULT_CSRF_EXCLUDE = ['/_health', '/_openapi.json', '/_scalar', '/_ipx/**', '/_devtools/**', '/_iconify/**'];
+
+const DEFAULT_SECURITY_HEADERS: SecurityHeadersOptions = {
+  strictTransportSecurity: false,
+  contentSecurityPolicy: {
+    'default-src': ["'self'"],
+    'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+    'style-src': ["'self'", "'unsafe-inline'"],
+    'img-src': ["'self'", 'data:', 'blob:', 'https:'],
+    'font-src': ["'self'", 'data:'],
+    'connect-src': ["'self'", 'ws:', 'wss:'],
+    'object-src': ["'none'"],
+    'base-uri': ["'self'"],
+    'form-action': ["'self'"],
+    'frame-ancestors': ["'self'"]
+  }
+};
+
+function resolveToggle<T extends object>(value: boolean | T | undefined, defaultOn: boolean): false | T {
+  if (value === false) return false;
+  if (value === undefined) return defaultOn ? ({} as T) : false;
+  if (value === true) return {} as T;
+  return value;
 }
 
 export interface UbeanAppPlugin {
@@ -176,6 +233,40 @@ export class UbeanApp {
 
     this.hono.use('*', requestId());
 
+    const securityHeaders = resolveToggle(this.options.securityHeaders, true);
+    if (securityHeaders !== false) {
+      this.hono.use(
+        '*',
+        createSecurityHeadersMiddleware({
+          ...DEFAULT_SECURITY_HEADERS,
+          ...securityHeaders
+        })
+      );
+    }
+
+    const csrf = resolveToggle(this.options.csrf, true);
+    if (csrf !== false) {
+      this.hono.use(
+        '*',
+        createCsrfMiddleware({
+          mode: 'origin',
+          ...csrf,
+          exclude: [...DEFAULT_CSRF_EXCLUDE, ...(csrf.exclude ?? [])]
+        })
+      );
+    }
+
+    const dataCache = resolveToggle(this.options.dataCache, true);
+    if (dataCache !== false) {
+      this.hono.use('*', createDataCacheMiddleware(dataCache));
+    }
+
+    if (this.options.cacheStore) {
+      useCacheStore(this.options.cacheStore);
+    } else if (this.options.cache?.store === 'fs') {
+      useCacheStore(createFsCacheStore(this.options.cache.dir || '.ubean/cache'));
+    }
+
     const i18nCfg = this.options.i18nConfig;
     const i18nEnabled = i18nCfg?.enabled !== false && (i18nCfg?.locales?.length ?? 0) > 0;
     if (i18nEnabled && i18nCfg) {
@@ -193,13 +284,20 @@ export class UbeanApp {
     }
 
     if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
-      this.hono.use('*', createRouteRulesMiddleware(this.options.routeRules));
+      this.hono.use(
+        '*',
+        createRouteRulesMiddleware(this.options.routeRules, {
+          dispatch: req => Promise.resolve(this.hono.fetch(req))
+        })
+      );
       const cacheRules = resolveRouteCacheRules(this.options.routeRules);
       // P9-03: 总是初始化全局 cacheStore(即使无 cache 规则),供 ISR 使用。
       // `useCacheStore` 单例,注册一次后续 registerRoutes 可复用。
       const hasIsrRules = Object.values(this.options.routeRules).some(r => r?.isr !== undefined);
       if (Object.keys(cacheRules).length > 0 || hasIsrRules) {
-        useCacheStore(createMemoryStore());
+        if (!this.options.cacheStore && this.options.cache?.store !== 'fs') {
+          useCacheStore(createMemoryStore());
+        }
         if (Object.keys(cacheRules).length > 0) {
           this.hono.use('*', createCacheMiddleware({ rules: cacheRules }));
         }

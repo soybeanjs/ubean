@@ -406,6 +406,11 @@ export async function createApp(options = {}) {
     streaming: ${JSON.stringify(config.ssr?.streaming ?? false)},
     notFoundPage: _notFoundPage || undefined,
     colorModeScript: ${JSON.stringify(colorModeScript)},
+    routeRules: ${JSON.stringify(config.routeRules || {})},
+    csrf: ${JSON.stringify(config.security === false ? false : (config.security?.csrf ?? true))},
+    securityHeaders: ${JSON.stringify(config.security === false ? false : (config.security?.headers ?? true))},
+    dataCache: ${JSON.stringify(config.dataCache ?? true)},
+    cache: ${JSON.stringify(config.cache ?? { store: 'memory' })},
     ...options
   });
 

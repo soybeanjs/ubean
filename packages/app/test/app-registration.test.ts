@@ -96,6 +96,17 @@ describe('UbeanApp 构造器 — 同步挂载', () => {
     // 通过 lazyInit 会触发 init 来间接验证；这里直接检查 init 幂等性
     expect(app).toBeDefined();
   });
+
+  it('默认挂载 CSRF + security headers + dataCache（比全关更多 use("*")）', () => {
+    const secured = new UbeanApp({});
+    const open = new UbeanApp({ csrf: false, securityHeaders: false, dataCache: false });
+    expect(registeredPaths(secured).length).toBeGreaterThan(registeredPaths(open).length);
+  });
+
+  it('csrf: false 时仍可构造', () => {
+    const app = new UbeanApp({ csrf: false, securityHeaders: false, dataCache: false });
+    expect(hasRoute(app, 'GET', '/_health')).toBe(true);
+  });
 });
 
 describe('UbeanApp.init() — 异步挂载', () => {

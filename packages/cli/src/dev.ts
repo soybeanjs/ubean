@@ -280,7 +280,16 @@ async function buildApp(
     i18nConfig: config.i18n,
     ssrExclude: config.ssr.exclude,
     streaming: config.ssr.streaming,
-    notFoundPage: result.notFoundPage
+    notFoundPage: result.notFoundPage,
+    csrf: config.security === false ? false : (config.security?.csrf ?? true),
+    securityHeaders:
+      config.security === false
+        ? false
+        : config.security?.headers === false
+          ? false
+          : (config.security?.headers ?? true),
+    dataCache: config.dataCache,
+    cache: config.cache
   });
 
   app.hooks.hook('request:start', c => {

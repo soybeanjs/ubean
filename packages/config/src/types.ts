@@ -799,6 +799,27 @@ export interface UbeanConfig {
   i18n?: false | I18nConfig;
   routing?: RoutingConfig;
   routeRules?: Record<string, RouteRule>;
+  /**
+   * Default security middleware. `false` disables CSRF and security headers.
+   * Omit to keep framework defaults (CSRF origin check + baseline headers).
+   */
+  security?:
+    | false
+    | {
+        csrf?: boolean | { mode?: 'token' | 'origin' | 'both'; exclude?: string[] };
+        headers?: boolean | Record<string, unknown>;
+      };
+  /**
+   * Mount fetch Data Cache middleware. Default `true`.
+   * Caching still requires `fetch(url, { next: { revalidate, tags } })`.
+   */
+  dataCache?: boolean;
+  /**
+   * HTTP / ISR cache backend. Default `{ store: 'memory' }` (process-local).
+   * `store: 'fs'` writes to `dir` (Node only; not shared on serverless unless
+   * the directory is a network volume).
+   */
+  cache?: { store?: 'memory' | 'fs'; dir?: string };
   prerender?: PrerenderConfig;
   scanOptions?: {
     ignore?: string[];
@@ -848,6 +869,9 @@ export interface ResolvedConfig extends Required<
     | 'favicon'
     | 'ai'
     | 'i18n'
+    | 'security'
+    | 'dataCache'
+    | 'cache'
   >
 > {
   rootDir: string;
@@ -880,4 +904,7 @@ export interface ResolvedConfig extends Required<
    * 由 `resolveFavicon()` 在配置加载时从 `public/` 目录自动检测或使用用户配置的路径。
    */
   favicon: string | null;
+  security: NonNullable<UbeanConfig['security']> | undefined;
+  dataCache: boolean;
+  cache: { store: 'memory' | 'fs'; dir?: string };
 }

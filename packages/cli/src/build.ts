@@ -15,16 +15,21 @@ import { resolve, join } from 'pathe';
 
 const logger = getLogger('cli');
 
+type ContentBuildOptions = {
+  sources?: Record<string, { dir: string; prefix?: string; type?: string }>;
+  defaultDir?: string;
+};
+
 async function loadContentForBuild(
   cwd: string,
-  content: boolean | Record<string, unknown> | undefined
+  content: boolean | ContentBuildOptions | undefined
 ): Promise<{ snapshot: Record<string, unknown[]> | undefined; routes: string[] }> {
   if (!content) return { snapshot: undefined, routes: [] };
   try {
     const mod = await import('@ubean/content');
-    const options = content === true ? {} : (content as { sources?: Record<string, { dir: string; prefix?: string }> });
-    const snapshot = mod.scanContentSources(cwd, options) as Record<string, unknown[]>;
-    const routes = mod.extractContentPageRoutes(Object.values(snapshot).flat() as Array<{ _path?: string }>, {});
+    const options: ContentBuildOptions = content === true ? {} : content;
+    const snapshot = mod.scanContentSources(cwd, options);
+    const routes = mod.extractContentPageRoutes(Object.values(snapshot).flat());
     return { snapshot, routes };
   } catch {
     return { snapshot: undefined, routes: [] };

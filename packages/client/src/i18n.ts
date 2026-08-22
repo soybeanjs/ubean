@@ -1,7 +1,7 @@
 import { computed } from 'vue';
 import type { App, ComputedRef } from 'vue';
-import type { useRouter } from 'vue-router';
 import { useRoute } from 'vue-router';
+import type { useRouter } from 'vue-router';
 import { createI18n, useI18n as useVueI18n } from 'vue-i18n';
 import type { Composer, I18n } from 'vue-i18n';
 import {
@@ -223,7 +223,10 @@ export async function setLocale(code: string): Promise<void> {
     ).split('?')[0];
     const target = switchLocalePathCore(code, currentPath, routingFrom(cfg));
     if (target !== currentPath && router) {
-      navPromise = Promise.resolve(router.replace(target)).catch(() => undefined);
+      navPromise = router.replace(target).then(
+        () => undefined,
+        () => undefined
+      );
     }
   }
 

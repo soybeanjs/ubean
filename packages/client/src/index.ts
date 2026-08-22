@@ -104,13 +104,7 @@ export {
   useServerData,
   getInvalidatedKeysForAction
 } from './composables';
-export type {
-  UbeanVueContext,
-  LinkProps,
-  DataCacheStore,
-  UseAsyncDataOptions,
-  UseAsyncDataReturn
-} from './composables';
+export type { UbeanVueContext, LinkProps, DataCacheStore, UseAsyncDataReturn } from './composables';
 export {
   createUbeanClientApp,
   createUbeanSSRApp,

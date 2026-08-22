@@ -1,5 +1,5 @@
 import type { Context, Hono } from 'hono';
-import { openAPIRouteHandler } from 'hono-openapi';
+import { generateSpecs } from 'hono-openapi';
 import type { UbeanEnv } from '@ubean/shared';
 import { describeActionsOpenApi } from './actions/openapi';
 
@@ -16,24 +16,17 @@ export function registerOpenAPIRoutes(
 ) {
   const { scalarPath = '/_scalar', openAPIPath = '/_openapi.json', title = 'API Reference' } = options;
 
-  const openapiHandler = openAPIRouteHandler(app, {
-    documentation: {
-      info: {
-        title: options.title || 'UBEAN API',
-        version: options.version || '1.0.0',
-        description: options.description
-      },
-      servers: options.baseURL ? [{ url: options.baseURL }] : undefined
-    }
-  });
+  const documentation = {
+    info: {
+      title: options.title || 'UBEAN API',
+      version: options.version || '1.0.0',
+      description: options.description
+    },
+    servers: options.baseURL ? [{ url: options.baseURL }] : undefined
+  };
 
   app.get(openAPIPath, async (c: Context<UbeanEnv>) => {
-    const res = await openapiHandler(c);
-    const contentType = res.headers.get('Content-Type') || '';
-    if (!contentType.includes('json')) {
-      return res;
-    }
-    const spec = (await res.json()) as { paths?: Record<string, unknown> };
+    const spec = await generateSpecs(app, { documentation });
     const { paths } = describeActionsOpenApi();
     return c.json({
       ...spec,

@@ -382,6 +382,24 @@ export const SlotView = defineComponent({
   }
 });
 
+type LinkTo = string | Record<string, unknown>;
+type PathLocalizer = (path: string, locale?: string) => string;
+
+function isExternalHref(path: string): boolean {
+  return path.startsWith('http') || path.startsWith('//') || path.startsWith('#');
+}
+
+function resolveLinkTo(to: LinkTo, localize: PathLocalizer | null, locale?: string): LinkTo {
+  if (typeof to !== 'string') {
+    if (!localize) return to;
+    const path = to.path;
+    if (typeof path !== 'string' || isExternalHref(path)) return to;
+    return { ...to, path: localize(path, locale) };
+  }
+  if (isExternalHref(to) || !localize) return to;
+  return localize(to, locale);
+}
+
 /**
  * Link — internal links render via RouterLink; external links (`http*`,
  * `//`, `#`) render as native `<a target="_blank" rel="noopener noreferrer">`.
@@ -405,21 +423,8 @@ export const Link = defineComponent({
   setup(props, { slots, attrs }) {
     const localize = inject(LOCALIZE_PATH_KEY, null);
 
-    const resolvedTo = computed(() => {
-      const path = props.to ?? props.href ?? '';
-      if (typeof path === 'string' && (path.startsWith('http') || path.startsWith('//') || path.startsWith('#'))) {
-        return path;
-      }
-      if (typeof path !== 'string') {
-        return path as string;
-      }
-      return localize ? localize(path, props.locale) : path;
-    });
-
-    const isExternal = computed(() => {
-      const path = String(resolvedTo.value);
-      return path.startsWith('http') || path.startsWith('//') || path.startsWith('#');
-    });
+    const resolvedTo = computed(() => resolveLinkTo(props.to ?? props.href ?? '', localize, props.locale));
+    const isExternal = computed(() => typeof resolvedTo.value === 'string' && isExternalHref(resolvedTo.value));
 
     return () => {
       if (isExternal.value) {

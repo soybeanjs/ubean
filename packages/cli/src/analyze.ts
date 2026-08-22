@@ -13,6 +13,10 @@ import {
 
 const logger = getLogger('cli');
 
+function readStringArg(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
 export const analyzeCommand: CommandDef = {
   meta: {
     name: 'analyze',
@@ -46,7 +50,7 @@ export const analyzeCommand: CommandDef = {
     if (!existsSync(join(cwd, 'package.json'))) {
       throw new Error(`[ubean] analyze: ${cwd} is not a project root`);
     }
-    await loadUbeanConfig({ cwd }).catch(() => undefined);
+    await loadUbeanConfig(cwd).catch(() => undefined);
 
     const found = findClientManifest(cwd);
     if (!found) {
@@ -64,16 +68,15 @@ export const analyzeCommand: CommandDef = {
       logger.info(`  ${entry.isEntry ? '[entry] ' : ''}${entry.file}  ${(entry.gzip / 1024).toFixed(1)} kB gzip`);
     }
     if (args.write !== false) {
-      const out =
-        typeof args.out === 'string' && args.out.length > 0
-          ? resolve(cwd, args.out)
-          : join(cwd, '.ubean/bundle-baseline.json');
+      const outArg = readStringArg(args.out);
+      const out = outArg ? resolve(cwd, outArg) : join(cwd, '.ubean/bundle-baseline.json');
       writeBundleBaseline(out, baseline);
       logger.info(`wrote ${out}`);
     }
 
-    if (typeof args.check === 'string' && args.check.length > 0) {
-      const checkPath = resolve(cwd, args.check);
+    const checkArg = readStringArg(args.check);
+    if (checkArg) {
+      const checkPath = resolve(cwd, checkArg);
       if (!existsSync(checkPath)) {
         logger.error(`baseline not found: ${checkPath}`);
         throw new Error('missing budget baseline');

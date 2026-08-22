@@ -561,7 +561,7 @@ pnpm --filter ubean-test build
 pnpm analyze   # 或 `ubean analyze`；读 dist/client/.vite/manifest.json
 ```
 
-默认把 gzip 汇总写到 `.ubean/bundle-baseline.json`（`totalGzip` / `entryGzip` / 各 chunk）。Islands 默认页的回归以该文件为准，而不是印象。`ubean analyze --write=false` 只打印不写文件。
+默认把 gzip 汇总写到 `.ubean/bundle-baseline.json`（`totalGzip` / `entryGzip` / 各 chunk）。提交到仓库的回归基线是 `examples/ubean-test/benchmarks/bundle-baseline.json`（`ubean analyze --out`）。快照（2026-08-22，ubean-test 生产客户端）：**113.0 kB gzip** 合计 / **6.6 kB** entry（`app-*.js`）/ 30 个 JS chunk。Islands 默认页的回归以该文件为准，而不是印象。`ubean analyze --write=false` 只打印不写文件。
 
 ---
 

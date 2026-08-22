@@ -1,6 +1,5 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'pathe';
-import { parseContentFile } from './runtime';
+import { scanContentSources } from './scan';
+import type { ScanContentSourcesOptions } from './scan';
 import type { ContentDocument } from './types';
 
 export interface ContentPageRouteOptions {
@@ -9,9 +8,7 @@ export interface ContentPageRouteOptions {
   includeDrafts?: boolean;
 }
 
-export interface DiscoverContentPageRoutesOptions {
-  sources?: Record<string, { dir: string; prefix?: string; type?: string }>;
-  defaultDir?: string;
+export interface DiscoverContentPageRoutesOptions extends ScanContentSourcesOptions {
   includeDrafts?: boolean;
 }
 
@@ -21,21 +18,6 @@ function joinPrefix(prefix: string | undefined, path: string): string {
   const base = prefix.endsWith('/') ? prefix.slice(0, -1) : prefix;
   if (normalized === '/') return base || '/';
   return `${base}${normalized}`;
-}
-
-function walkContentFiles(dir: string, files: string[] = []): string[] {
-  if (!existsSync(dir)) return files;
-  for (const entry of readdirSync(dir)) {
-    const fullPath = join(dir, entry);
-    const stat = statSync(fullPath);
-    if (stat.isDirectory()) {
-      if (entry === 'node_modules' || entry.startsWith('.')) continue;
-      walkContentFiles(fullPath, files);
-    } else if (/\.(md|mdx|json|ya?ml)$/.test(entry)) {
-      files.push(fullPath);
-    }
-  }
-  return files;
 }
 
 /**
@@ -62,24 +44,8 @@ export function extractContentPageRoutes(
  * the same discovery without running Vite.
  */
 export function discoverContentPageRoutes(rootDir: string, options: DiscoverContentPageRoutesOptions = {}): string[] {
-  const sources = options.sources ?? { content: { dir: options.defaultDir ?? 'content' } };
-  const docs: Array<Pick<ContentDocument, '_path' | '_draft' | '_partial'>> = [];
-
-  for (const source of Object.values(sources)) {
-    const contentDir = join(rootDir, source.dir);
-    for (const fullPath of walkContentFiles(contentDir)) {
-      const relative = fullPath.slice(contentDir.length).replace(/^[\\/]/, '');
-      try {
-        const parsed = parseContentFile(readFileSync(fullPath, 'utf-8'), relative, { type: source.type });
-        if (source.prefix) {
-          parsed._path = joinPrefix(source.prefix, parsed._path);
-        }
-        docs.push(parsed);
-      } catch {
-        /* skip unreadable files */
-      }
-    }
-  }
-
-  return extractContentPageRoutes(docs, { includeDrafts: options.includeDrafts });
+  const { includeDrafts, ...scanOptions } = options;
+  const collections = scanContentSources(rootDir, scanOptions);
+  const docs = Object.values(collections).flat();
+  return extractContentPageRoutes(docs, { includeDrafts });
 }

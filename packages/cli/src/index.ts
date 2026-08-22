@@ -54,3 +54,10 @@ export {
   type ScaffoldResult,
   type ScaffoldType
 } from './page';
+export {
+  getScaffoldManifest,
+  SCAFFOLD_CONTRACT_VERSION,
+  type ScaffoldManifest,
+  type ScaffoldTypeManifest,
+  type ScaffoldArgManifest
+} from './scaffold-manifest';

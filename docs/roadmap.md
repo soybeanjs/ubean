@@ -34,7 +34,7 @@
 | `ppr: true` ≠ Next PPR | `router.ts`：强制 `ssr: 'streaming'` + `X-PPR` + prerender 发现 | 没有独立静态壳 / 动态洞。名称超卖 |
 | CSRF / sessions / Data Cache 不在默认链 | `createUbeanApp` 未挂；API 在 `@ubean/server` | 「内置安全」要用户自己接线才算有 |
 | DB / Queue / Storage 默认内存 | `@ubean/server` 连接器 | 预设声称 CF KV / Deno Queue，应用默认仍是进程内存 |
-| ISR 默认进程内存 | `CacheStore` 默认 | 多实例 / serverless 下 HIT 不可跨请求 |
+| ISR 默认进程内存 | `CacheStore` 默认；生产 Node 现为 `fs`（`.ubean/cache`），serverless 仍内存 | 多实例 / serverless 下 HIT 不可跨请求 |
 | 图片 `/_ipx` 开发态 302 原图 | `packages/image/src/vite.ts` | 不能当「多 provider 图片优化」卖 |
 | 每请求新建 SSR Vue app + i18n | `packages/client/src/ssr.ts`；i18n `createUbeanI18n` | 正确隔离，但缺消息编译缓存 / 实例池的上限策略 |
 | Islands 双 rAF + `afterEach` 再水合 | `@ubean/client` / islands | SPA 导航成本固定，未做路由级跳过 |
@@ -50,7 +50,7 @@
 | HTTP | 自有 runtime | Nitro | 适配器 / Hono 可选 | Nitro | 适配器 | Start server | Nitro | Hono 原生 |
 | 流式 SSR | ✅ | ✅（实验可关） | ✅ | ✅ | ✅ | ✅ | ⚠️ 2.7 实验 | ✅ |
 | 每路由 SSR | 部分 | ✅ routeRules | `+page.server` / adapters | 部分 | ✅ | ✅ `ssr` / `data-only` | route rules | ✅ `ssr`/`exclude`/`data-only`；rewrite/proxy 已执行 |
-| ISR / SWR | ✅ | ✅ | ⚠️ 适配器 | ⚠️ | ✅ | ⚠️ | ⚠️ Nitro | ✅ 规则在；**存储默认内存**（可 `cache: { store: 'fs' }`） |
+| ISR / SWR | ✅ | ✅ | ⚠️ 适配器 | ⚠️ | ✅ | ⚠️ | ⚠️ Nitro | ✅ 规则在；**Node 生产默认 fs cache**；serverless 仍内存 |
 | PPR / 静态壳 | ✅ | ❌ | ❌ | ❌ | Server Islands | ❌ | ❌ | ⚠️ **名称为 PPR，实为强制流式** |
 | Server Components | RSC | `.server.vue` | ❌ | ❌ | ❌ | ❌（server functions） | ❌ | ✅ `.server.vue`（非 RSC） |
 | Actions / 服务端函数 | Server Actions | ❌ 一等 | form actions | server fn | actions | **`createServerFn` 类型一等** | 2.7 Server Functions | ✅ `defineAction` / `defineServerFn` + `?/<name>`；同一 `POST /__actions` |
@@ -115,8 +115,10 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 
 | ID | 开口 | 说明 |
 | --- | --- | --- |
-| **RM-S01** | 稳定脚手架 CLI / `ubean/scaffold`：`page` / `api` / `layout` / `middleware` 的机器可读描述（JSON schema 或现有 CLI 的结构化输出） | studio 私有仓调用，不在本仓做 GUI |
-| **RM-S02** | `.ubean/` 生成物契约（`routes.d.ts`、i18n types）保持可被外部 IDE 插件消费 | 不在本仓实现 studio |
+| **RM-S01** ✅ | 稳定脚手架 CLI / `ubean/scaffold`：`page` / `api` / `layout` / `middleware` 的机器可读描述（JSON schema 或现有 CLI 的结构化输出） | studio 私有仓调用，不在本仓做 GUI |
+| **RM-S02** ✅ | `.ubean/` 生成物契约（`routes.d.ts`、i18n types）保持可被外部 IDE 插件消费 | 不在本仓实现 studio |
+
+生产默认存储、content `queryCollection` 生产接线、Actions 并进 `/_openapi.json`、以及 `ubean analyze --out` 的 committed gzip 基线（`examples/ubean-test/benchmarks/`）已随 RM-S01/S02 一起落地。
 
 ## 6. 不做的伪缺口（避免 Q4 被带偏）
 

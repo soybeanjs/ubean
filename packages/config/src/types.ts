@@ -815,11 +815,16 @@ export interface UbeanConfig {
    */
   dataCache?: boolean;
   /**
-   * HTTP / ISR cache backend. Default `{ store: 'memory' }` (process-local).
-   * `store: 'fs'` writes to `dir` (Node only; not shared on serverless unless
-   * the directory is a network volume).
+   * HTTP / ISR cache backend.
+   *
+   * - `auto` (default): production Node/bun/deno/standard writes `.ubean/cache`;
+   *   serverless/edge presets stay process-local memory. Dev always uses memory
+   *   unless you set `fs`.
+   * - `memory`: process-local (not shared across isolates).
+   * - `fs`: writes to `dir` (Node only; not shared on serverless unless the
+   *   directory is a network volume).
    */
-  cache?: { store?: 'memory' | 'fs'; dir?: string };
+  cache?: { store?: 'memory' | 'fs' | 'auto'; dir?: string };
   prerender?: PrerenderConfig;
   scanOptions?: {
     ignore?: string[];
@@ -906,5 +911,5 @@ export interface ResolvedConfig extends Required<
   favicon: string | null;
   security: NonNullable<UbeanConfig['security']> | undefined;
   dataCache: boolean;
-  cache: { store: 'memory' | 'fs'; dir?: string };
+  cache: { store: 'memory' | 'fs' | 'auto'; dir?: string };
 }

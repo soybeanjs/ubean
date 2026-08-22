@@ -206,7 +206,7 @@ const configDefaults: ResolvedConfig = {
   routeRules: {},
   security: undefined,
   dataCache: true,
-  cache: { store: 'memory' },
+  cache: { store: 'auto' },
   prerender: resolvePrerenderConfig(),
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
   favicon: null,

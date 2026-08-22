@@ -1,6 +1,7 @@
 import type { Context, Hono } from 'hono';
 import { openAPIRouteHandler } from 'hono-openapi';
 import type { UbeanEnv } from '@ubean/shared';
+import { describeActionsOpenApi } from './actions/openapi';
 
 export interface OpenAPIGenerationOptions {
   title?: string;
@@ -26,7 +27,19 @@ export function registerOpenAPIRoutes(
     }
   });
 
-  app.get(openAPIPath, openapiHandler);
+  app.get(openAPIPath, async (c: Context<UbeanEnv>) => {
+    const res = await openapiHandler(c);
+    const contentType = res.headers.get('Content-Type') || '';
+    if (!contentType.includes('json')) {
+      return res;
+    }
+    const spec = (await res.json()) as { paths?: Record<string, unknown> };
+    const { paths } = describeActionsOpenApi();
+    return c.json({
+      ...spec,
+      paths: { ...spec.paths, ...paths }
+    });
+  });
 
   app.get(scalarPath, (c: Context<UbeanEnv>) => {
     const scalarHTML = `<!doctype html>

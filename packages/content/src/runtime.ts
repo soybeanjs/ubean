@@ -8,6 +8,8 @@ import {
   parseFrontmatter,
   parseMarkdown
 } from './core';
+import { scanContentSources } from './scan';
+import type { ScanContentSourcesOptions } from './scan';
 import type {
   ContentDocument,
   ContentCollection,
@@ -101,6 +103,24 @@ export function registerContent(collectionName: string, documents: ContentDocume
 
 export function parseContentFile(raw: string, filePath: string, options?: { type?: string }): ContentDocument {
   return parseContent(raw, filePath, options);
+}
+
+/**
+ * Fill the in-memory collection map from disk (production SSR / tests).
+ *
+ * Dev already does this via the Vite plugin; call this from a custom
+ * server entry if you skip the generated production snapshot.
+ */
+export function bootstrapContentFromDisk(
+  rootDir: string,
+  options: ScanContentSourcesOptions = {}
+): Record<string, ContentDocument[]> {
+  configureContentRuntime();
+  const loaded = scanContentSources(rootDir, options);
+  for (const [name, docs] of Object.entries(loaded)) {
+    registerContent(name, docs);
+  }
+  return loaded;
 }
 
 export {

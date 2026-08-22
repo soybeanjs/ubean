@@ -7,6 +7,7 @@ import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
+import { resolveProductionCacheStore } from '@ubean/preset';
 import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
@@ -41,6 +42,8 @@ export interface BuildOptions {
   scanResult: ScanResult;
   minify?: boolean;
   sourcemap?: boolean;
+  /** Inlined content collections for production SSR (`queryCollection`). */
+  contentSnapshot?: Record<string, unknown[]>;
 }
 
 export interface BuildManifest {
@@ -75,7 +78,9 @@ async function generateVirtualModulesToDisk(
   cwd: string,
   config: ResolvedConfig,
   scanResult: ScanResult,
-  virtualDir: string
+  virtualDir: string,
+  preset: Preset,
+  contentSnapshot?: Record<string, unknown[]>
 ) {
   const mode = config.mode;
   const ssrEnabled = (mode === 'fullstack' && config.ssr.enabled) || mode === 'ssg';
@@ -315,6 +320,16 @@ const _pageRenderer = createVueRenderer({
 // --- SSR disabled (mode=${mode}, ssr=${config.ssr.enabled}) ---
 // pageRenderer is null; page requests fall back to a client-only HTML shell.
 const _pageRenderer = null;`;
+  const productionCache = resolveProductionCacheStore(preset.name || 'standard', config.cache);
+  const contentEntries = Object.entries(contentSnapshot ?? {}).filter(([, docs]) => Array.isArray(docs));
+  const contentBootstrap =
+    contentEntries.length > 0
+      ? `
+import { configureContentRuntime, registerContent } from '@ubean/content';
+configureContentRuntime();
+${contentEntries.map(([name, docs]) => `registerContent(${JSON.stringify(name)}, ${JSON.stringify(docs)});`).join('\n')}
+`
+      : '';
   if (hasServer) {
     const serverEntry = `// Auto-generated server entry
 import { createUbeanApp, applyServerConfig } from 'ubean/runtime/app';
@@ -325,7 +340,7 @@ import { resolveServerConfig as _resolveServerConfig } from 'virtual:ubean-serve
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
+${contentBootstrap}
 export { createUbeanApp };
 
 const routeModules = import.meta.glob(${routesGlob}, { eager: false });
@@ -411,7 +426,7 @@ export async function createApp(options = {}) {
     csrf: ${JSON.stringify(config.security === false ? false : (config.security?.csrf ?? true))},
     securityHeaders: ${JSON.stringify(config.security === false ? false : (config.security?.headers ?? true))},
     dataCache: ${JSON.stringify(config.dataCache ?? true)},
-    cache: ${JSON.stringify(config.cache ?? { store: 'memory' })},
+    cache: ${JSON.stringify(productionCache)},
     ...options
   });
 
@@ -574,7 +589,7 @@ export default {
 }
 
 export async function buildProduction(options: BuildOptions): Promise<BuildManifest> {
-  const { cwd, config, preset, scanResult, minify = true, sourcemap = false } = options;
+  const { cwd, config, preset, scanResult, minify = true, sourcemap = false, contentSnapshot } = options;
   const outDirs = getOutDirs(cwd, config.build.outputDir);
   const srcDir = resolve(cwd, config.srcDir);
 
@@ -597,7 +612,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   }
 
   logger.info('Generating virtual modules...');
-  await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual);
+  await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual, preset, contentSnapshot);
 
   // 检测用户是否提供了 vite.config — 如有则由用户配置提供 ubeanPlugin()
   // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVite + ubeanIslandsPlugin)

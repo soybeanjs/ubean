@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "analyze": "ubean analyze",
+    "analyze": "ubean analyze --out benchmarks/bundle-baseline.json",
     "build": "ubean build",
     "dev": "ubean dev",
     "preview": "ubean preview",

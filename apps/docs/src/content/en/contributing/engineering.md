@@ -485,9 +485,11 @@ Claims of "lighter JS" need numbers. After a production build:
 ```bash
 pnpm --filter ubean-test build
 pnpm analyze   # or `ubean analyze`; reads dist/client/.vite/manifest.json
+# committed baseline:
+#   ubean analyze --out examples/ubean-test/benchmarks/bundle-baseline.json
 ```
 
-By default this writes gzip totals to `.ubean/bundle-baseline.json` (`totalGzip` / `entryGzip` / per-chunk). Treat that file as the Islands-page regression baseline. `ubean analyze --write=false` prints without writing.
+By default this writes gzip totals to `.ubean/bundle-baseline.json` (`totalGzip` / `entryGzip` / per-chunk). The committed regression baseline is `examples/ubean-test/benchmarks/bundle-baseline.json` (`ubean analyze --out`). Snapshot (2026-08-22, ubean-test production client): **113.0 kB gzip** total / **6.6 kB** entry (`app-*.js`) / 30 JS chunks. Treat that file as the Islands-page regression baseline. `ubean analyze --write=false` prints without writing.
 
 ---
 

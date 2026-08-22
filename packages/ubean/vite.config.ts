@@ -17,7 +17,8 @@ export default defineConfig({
       'src/client/index.ts',
       'src/runtime/vue.ts',
       'src/runtime/app.ts',
-      'src/runtime/i18n.ts'
+      'src/runtime/i18n.ts',
+      'src/scaffold.ts'
     ],
     deps: {
       neverBundle: [

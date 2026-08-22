@@ -1,4 +1,4 @@
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import type { ScanResult } from '@ubean/scan';
 import { join } from 'pathe';
 import { generateAutoImports } from './auto-imports';
@@ -29,6 +29,29 @@ export { generateI18nTypes, messagesToTsType } from './i18n-types';
 export type { I18nTypesOptions } from './i18n-types';
 export { generateOpenApiTypes, generateOpenApiTypesFromServer } from './openapi-types';
 export type { GenerateOpenApiTypesOptions } from './openapi-types';
+
+export const CODEGEN_CONTRACT_VERSION = 1 as const;
+
+export interface CodegenFileContract {
+  name: string;
+  module: string | null;
+  required: boolean;
+  types: string[];
+}
+
+export const CODEGEN_FILES: readonly CodegenFileContract[] = [
+  { name: 'routes.d.ts', module: 'ubean:routes', required: true, types: ['ApiRouteMap', 'ApiRoutePath', 'ApiMethod'] },
+  { name: 'pages.d.ts', module: 'ubean:pages', required: true, types: ['RouteName', 'LayoutName'] },
+  { name: 'i18n.d.ts', module: 'vue-i18n', required: false, types: ['DefineLocaleMessage'] },
+  { name: 'auto-imports.d.ts', module: null, required: true, types: [] },
+  { name: 'components.d.ts', module: null, required: true, types: [] }
+];
+
+export interface CodegenManifest {
+  contractVersion: typeof CODEGEN_CONTRACT_VERSION;
+  generatedAt: string;
+  files: Array<{ name: string; module: string | null; required: boolean; types: string[]; generated: boolean }>;
+}
 
 export interface CodegenOptions extends Omit<AutoImportOptions, 'cwd' | 'srcDir' | 'buildDir'> {
   cwd: string;
@@ -70,6 +93,18 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
 
   const { autoImportsDtsPath, componentsDtsPath } = autoImportsResult;
   generated.push(autoImportsDtsPath, componentsDtsPath);
+
+  const manifest: CodegenManifest = {
+    contractVersion: CODEGEN_CONTRACT_VERSION,
+    generatedAt: new Date().toISOString(),
+    files: CODEGEN_FILES.map(file => ({
+      ...file,
+      generated: generated.some(path => path.replace(/\\/g, '/').endsWith(`/${file.name}`) || path.endsWith(file.name))
+    }))
+  };
+  const manifestPath = join(outDir, 'codegen.manifest.json');
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
+  generated.push(manifestPath);
 
   return { routeTypesPath, pageTypesPath, i18nTypesPath, autoImportsDtsPath, componentsDtsPath, generated };
 }

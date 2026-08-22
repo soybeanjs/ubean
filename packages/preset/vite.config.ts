@@ -14,5 +14,9 @@ export default defineConfig({
     deps: {
       neverBundle: [/^node:/]
     }
+  },
+  test: {
+    include: ['test/**/*.test.ts'],
+    environment: 'node'
   }
 });

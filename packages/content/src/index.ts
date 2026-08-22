@@ -12,8 +12,12 @@ export {
   fetchContentNavigation,
   fetchContentNavigation as fetchNavigation,
   registerContent,
-  parseContentFile
+  parseContentFile,
+  bootstrapContentFromDisk
 } from './runtime';
+
+export { scanContentSources } from './scan';
+export type { ScanContentSourcesOptions, ContentSourceScanConfig } from './scan';
 
 export {
   parseContent,

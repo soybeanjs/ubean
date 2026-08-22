@@ -90,6 +90,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`）                                                     | `src/server.ts`          |
 | `ubean/runtime/i18n` | 服务端纯函数 i18n                                                                                           | 构建时 i18n              |
 | `ubean/vue-ssr`      | Vue SSR 渲染器（re-export `@ubean/client/ssr` 的 `createVueRenderer`；不要从 `@ubean/client` 主入口导入）   | 自定义 SSR               |
+| `ubean/scaffold`     | 脚手架库 + 机器可读 catalog（`getScaffoldManifest` / `scaffold`）                                           | studio / IDE 插件        |
 
 > **注意**：客户端自动导入必须用 `ubean/runtime/vue` 或 `ubean/client` 入口，不能从 `ubean` 主入口导入（会触发 Vite 在浏览器环境预构建服务端依赖）。`ubean/runtime/vue` 在 `@ubean/client` 之上额外提供 Server Actions 运行时（`callAction`/`useAction`/`useFormAction`）与 islands 注册表桥接的 `hydrateIslands`；`ubean/client` 额外含 `createServerHead`（供框架 SSR 构建使用）。独立 SPA 可直接依赖 `@ubean/vue`（仅 vue + vue-router）。详见第 8 节陷阱 #8。
 
@@ -259,12 +260,17 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | -------------------------------------- | --------------------------------------------- |
 | `useCacheStore(store?)`                | 获取缓存存储                                  |
 | `createMemoryStore(maxEntries)`        | 内存存储                                      |
+| `createFsCacheStore(dir)`              | Node 文件系统存储                             |
+| `createStorageCacheStore(storage)`     | 适配 `UbeanStorage`                           |
+| `resolveProductionCacheStore(preset)`  | 生产默认：Node 系 `fs`，serverless `memory`   |
 | `createCacheMiddleware(options)`       | 缓存中间件（`CacheRule`: `ttl`/`swr`/`name`） |
 | `cachedEventHandler(handler, options)` | 缓存事件处理器                                |
 | `invalidateRouteCache(keyPattern?)`    | 失效缓存                                      |
 | `resolveRouteCacheRules(routeRules)`   | 解析路由缓存规则                              |
 
 `CacheStore` 接口：`get` / `set` / `delete` / `clear` / `peek?`（P9-03:ISR SWR 用,不更新 LRU、不删除过期项）
+
+配置 `cache.store`：`auto`（默认）在**生产** Node/bun/deno/standard 写成 `fs`（`.ubean/cache`），serverless/edge 仍是进程内存。开发态与 `createUbeanApp` 把 `auto` 当内存，避免测试写盘。显式 `memory` / `fs` 始终优先。sessions 仍是 opt-in。
 
 **不存在的 API**：`useCache`、`defineCache`、标签/分组/`remember`
 
@@ -432,7 +438,7 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 | `defineAction(handlerOrSchema, handler?, opts?)`   | 定义服务端 action，支持 Standard Schema / `safeParse`；返回带 `ACTION_BRAND` 的 `ServerAction` |
 | `defineServerFn(...)`                              | `defineAction` 别名：同一 ID 与 `POST /__actions`，供 loader/查询与 mutation 共用              |
 | `invokeServerFn(fn, input?)`                       | 同构调用（服务端走 handler + schema；客户端走 RPC stub）；从 `ubean/runtime/vue` 导入          |
-| `describeActionsOpenApi()`                         | 可选 OpenAPI 片段，仍指向同一 `POST /__actions`，不另开端点                                    |
+| `describeActionsOpenApi()`                         | `POST /__actions` 的 OpenAPI 片段；`registerOpenAPIRoutes` 会自动并入 `/_openapi.json`         |
 | `fail(status, errors)`                             | 在 action handler 中返回字段级验证错误（SvelteKit 风格）                                       |
 | `ActionError`                                      | 用户可读错误类（含 `code`/`status`），在 handler 中 throw                                      |
 | `isServerAction(value)` / `isActionFailure(value)` | 类型守卫                                                                                       |
@@ -596,6 +602,7 @@ const json = serializeVercelConfig(config);
 | `prerender(options)` / `collectPrerenderRoutes(pages, options)`      | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)                  |
 | `extractPrerenderRoutesFromRules(routeRules)`                        | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤)         |
 | `extractContentPageRoutes(docs)` / `discoverContentPageRoutes(root)` | `@ubean/content`：集合文档 → 预渲染 URL；`ubean build` 在 `content` 启用时自动发现                     |
+| `scanContentSources` / `bootstrapContentFromDisk`                    | 扫盘并填充 `queryCollection` 内存表；生产 SSR 由 server-entry 内联 snapshot，不依赖 Vite 插件          |
 | `extractDataPayload(html, route)` / `routeToDataFilePath(...)`       | SSG payload 提取(Task 3):从 HTML 中提取 `__UBEAN_DATA__` 为 `__data.json`,返回 `{data, html, dataUrl}` |
 | `generatePrerenderManifest(result, baseUrl)`                         | 生成清单                                                                                               |
 | `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`    | 路由 → 文件路径映射/写入                                                                               |
@@ -854,7 +861,7 @@ pnpm install          # 安装依赖
 pnpm typecheck        # 类型检查（vue-tsc）
 pnpm lint             # ESLint（Vite-Plus/OXC + Vue）
 pnpm test             # 运行测试（vitest）
-pnpm analyze          # 读 Vite client manifest，写 `.ubean/bundle-baseline.json`（需先 build 示例）
+pnpm analyze          # 读 Vite client manifest；示例基线 `examples/ubean-test/benchmarks/bundle-baseline.json`
 pnpm dev              # 启动开发服务器（examples/ubean-test）
 pnpm build            # 构建
 ```
@@ -867,6 +874,7 @@ pnpm build            # 构建
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
 | 文档索引                  | [docs/README.md](docs/README.md)                                                                                   | 仓库级工程文档索引                                                                     |
 | 路线图（2026Q4–2027H1）   | [docs/roadmap.md](docs/roadmap.md)                                                                                 | i18n 落地后还债与用户缺口（ADR-0010；任务 ID 不进站点）                                |
+| studio 开口契约           | [docs/contracts/](docs/contracts/)                                                                                 | `ubean/scaffold` JSON Schema + `.ubean/` codegen 契约                                  |
 | 领域词汇表                | [docs/glossary.md](docs/glossary.md)                                                                               | 领域建模词汇表 + ADR 决策索引                                                          |
 | i18n 决策                 | [docs/adr/0009-i18n-engine-and-compact-locale-routing.md](docs/adr/0009-i18n-engine-and-compact-locale-routing.md) | vue-i18n 11 + 约束前缀；任务清单已删                                                   |
 | 竞品北极星                | [docs/adr/0010-competitive-north-star-and-gap-filter.md](docs/adr/0010-competitive-north-star-and-gap-filter.md)   | 对标 Next 能力 / Nuxt 约定；RSC 刻意不做                                               |

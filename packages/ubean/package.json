@@ -41,6 +41,10 @@
     "./runtime/i18n": {
       "types": "./dist/runtime/i18n.d.ts",
       "import": "./dist/runtime/i18n.js"
+    },
+    "./scaffold": {
+      "types": "./dist/scaffold.d.ts",
+      "import": "./dist/scaffold.js"
     }
   },
   "scripts": {

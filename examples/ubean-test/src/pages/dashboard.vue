@@ -1,13 +1,13 @@
 <script lang="ts">
-export async function loader() {
-  return { source: 'loader' };
-}
-</script>
-
-<script setup lang="ts">
 definePage({
   ssr: 'data-only'
 });
+
+export async function loader() {
+  return { source: 'loader' };
+}
+
+export default {};
 </script>
 
 <template>

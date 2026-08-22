@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { loadUbeanConfig } from '@ubean/config';
 import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
-import { join, resolve } from 'pathe';
+import { join, relative, resolve } from 'pathe';
 import { findClientManifest, readViteManifest, summarizeBundle, writeBundleBaseline } from './analyze-lib';
 
 const logger = getLogger('cli');
@@ -21,6 +21,10 @@ export const analyzeCommand: CommandDef = {
       type: 'boolean',
       description: 'Write `.ubean/bundle-baseline.json`',
       default: true
+    },
+    out: {
+      type: 'string',
+      description: 'Baseline JSON path (default: .ubean/bundle-baseline.json)'
     }
   },
   async run({ args }) {
@@ -38,6 +42,7 @@ export const analyzeCommand: CommandDef = {
 
     const manifest = readViteManifest(found.manifestPath);
     const baseline = summarizeBundle(found.outDir, manifest);
+    baseline.outDir = relative(cwd, found.outDir).replace(/\\/g, '/') || baseline.outDir;
     logger.info(
       `client JS: ${(baseline.totalGzip / 1024).toFixed(1)} kB gzip (${baseline.entries.length} js chunks, entry ${(baseline.entryGzip / 1024).toFixed(1)} kB)`
     );
@@ -45,7 +50,10 @@ export const analyzeCommand: CommandDef = {
       logger.info(`  ${entry.isEntry ? '[entry] ' : ''}${entry.file}  ${(entry.gzip / 1024).toFixed(1)} kB gzip`);
     }
     if (args.write !== false) {
-      const out = join(cwd, '.ubean/bundle-baseline.json');
+      const out =
+        typeof args.out === 'string' && args.out.length > 0
+          ? resolve(cwd, args.out)
+          : join(cwd, '.ubean/bundle-baseline.json');
       writeBundleBaseline(out, baseline);
       logger.info(`wrote ${out}`);
     }

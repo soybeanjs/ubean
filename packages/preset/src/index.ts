@@ -13,6 +13,8 @@ import { vercelPreset, vercelEdgePreset } from './vercel';
 export * from './capabilities';
 export { detectPreset, resolvePresetWithDetection, listDetectablePresets } from './detect';
 export type { PresetDetectionHints, PresetDetectionResult } from './detect';
+export { resolveProductionCacheStore, isEphemeralCachePreset } from './cache-default';
+export type { CacheStoreKind, CacheStoreConfig, ResolvedCacheStoreConfig } from './cache-default';
 
 const builtinPresets: Preset[] = [
   standardPreset,

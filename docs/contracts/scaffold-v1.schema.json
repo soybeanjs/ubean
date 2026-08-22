@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ubean.dev/contracts/scaffold-v1.schema.json",
+  "title": "ubean scaffold manifest",
+  "description": "Machine-readable catalog of `ubean` scaffold types for studio / IDE plugins (RM-S01). Printed by `ubean scaffold describe` and `getScaffoldManifest()`.",
+  "type": "object",
+  "required": ["contractVersion", "types"],
+  "properties": {
+    "contractVersion": { "const": 1 },
+    "types": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "cli", "baseDir", "extensions", "args"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["page", "api", "layout", "middleware", "reuse", "cron", "plugin"]
+          },
+          "cli": {
+            "type": "boolean",
+            "description": "Whether the type is exposed as a dedicated CLI command or `ubean page add --type`."
+          },
+          "baseDir": {
+            "type": "string",
+            "description": "Directory relative to `src/`."
+          },
+          "extensions": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "required", "description"],
+              "properties": {
+                "name": { "type": "string" },
+                "required": { "type": "boolean" },
+                "description": { "type": "string" },
+                "default": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

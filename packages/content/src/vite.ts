@@ -1,8 +1,9 @@
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import type { Plugin } from 'vite';
 import { defu } from 'defu';
-import { resolve, relative, join } from 'pathe';
-import { configureContentRuntime, registerContent, parseContentFile } from './runtime';
+import { join } from 'pathe';
+import { configureContentRuntime, registerContent } from './runtime';
+import { scanContentSources } from './scan';
+import type { ContentDocument } from './types';
 
 export interface UbeanContentOptions {
   sources?: Record<string, { dir: string; prefix?: string; type?: string }>;
@@ -36,50 +37,15 @@ const RESOLVED_VIRTUAL_CONTENT = `\0${VIRTUAL_CONTENT}`;
 export function ubeanContentPlugin(userOptions: UbeanContentOptions = {}): Plugin {
   const options = defu(userOptions, defaultOptions) as Required<UbeanContentOptions>;
   let rootDir: string;
-  let loadedDocuments: Record<string, any[]> = {};
-
-  function walkDir(dir: string, baseDir: string, files: string[] = []): string[] {
-    if (!existsSync(dir)) return files;
-    const entries = readdirSync(dir);
-    for (const entry of entries) {
-      const fullPath = join(dir, entry);
-      const stat = statSync(fullPath);
-      if (stat.isDirectory()) {
-        if (entry === 'node_modules' || entry.startsWith('.')) continue;
-        walkDir(fullPath, baseDir, files);
-      } else if (/\.(md|mdx|json|ya?ml)$/.test(entry)) {
-        files.push(relative(baseDir, fullPath));
-      }
-    }
-    return files;
-  }
+  let loadedDocuments: Record<string, ContentDocument[]> = {};
 
   function scanContent() {
-    loadedDocuments = {};
     configureContentRuntime();
-
-    for (const [name, sourceConfig] of Object.entries(options.sources || {})) {
-      const contentDir = resolve(rootDir, sourceConfig.dir || options.defaultDir);
-      if (!existsSync(contentDir)) continue;
-
-      const files = walkDir(contentDir, contentDir);
-
-      const documents: any[] = [];
-      for (const file of files) {
-        const fullPath = join(contentDir, file);
-        try {
-          const raw = readFileSync(fullPath, 'utf-8');
-          const parsed = parseContentFile(raw, file, { type: sourceConfig.type });
-          if (sourceConfig.prefix) {
-            parsed._path = sourceConfig.prefix + parsed._path;
-          }
-          documents.push(parsed);
-        } catch (err) {
-          console.warn(`[ubean-content] Failed to parse ${file}:`, err);
-        }
-      }
-
-      loadedDocuments[name] = documents;
+    loadedDocuments = scanContentSources(rootDir, {
+      sources: options.sources,
+      defaultDir: options.defaultDir
+    });
+    for (const [name, documents] of Object.entries(loadedDocuments)) {
       registerContent(name, documents);
     }
   }

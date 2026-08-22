@@ -1,9 +1,9 @@
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
-import { summarizeBundle, writeBundleBaseline } from '../src/analyze-lib';
+import { findClientManifest, summarizeBundle, writeBundleBaseline } from '../src/analyze-lib';
 
 let dir: string;
 
@@ -24,5 +24,16 @@ describe('summarizeBundle', () => {
     expect(baseline.totalGzip).toBe(baseline.entryGzip);
     const out = join(dir, 'baseline.json');
     writeBundleBaseline(out, baseline);
+  });
+});
+
+describe('findClientManifest', () => {
+  it('finds dist/public/.vite/manifest.json', () => {
+    dir = mkdtempSync(join(tmpdir(), 'ubean-analyze-public-'));
+    const viteDir = join(dir, 'dist/public/.vite');
+    mkdirSync(viteDir, { recursive: true });
+    writeFileSync(join(viteDir, 'manifest.json'), '{}');
+    const found = findClientManifest(dir);
+    expect(found?.manifestPath).toBe(join(dir, 'dist/public/.vite/manifest.json'));
   });
 });

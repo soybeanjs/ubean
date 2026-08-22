@@ -222,3 +222,22 @@ export const layoutCommand = createScaffoldCommand('layout');
 export const middlewareCommand = createScaffoldCommand('middleware');
 export const cronCommand = createScaffoldCommand('cron');
 export const pluginCommand = createScaffoldCommand('plugin');
+
+export const scaffoldCommand: CommandDef = {
+  meta: {
+    name: 'scaffold',
+    description: 'Machine-readable scaffold catalog (studio / IDE plugins)'
+  },
+  subCommands: {
+    describe: {
+      meta: {
+        name: 'describe',
+        description: 'Print the scaffold JSON manifest (RM-S01)'
+      },
+      async run() {
+        const { getScaffoldManifest } = await import('./scaffold-manifest');
+        process.stdout.write(`${JSON.stringify(getScaffoldManifest(), null, 2)}\n`);
+      }
+    }
+  }
+};

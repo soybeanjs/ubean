@@ -15,19 +15,19 @@ import { resolve, join } from 'pathe';
 
 const logger = getLogger('cli');
 
-async function loadContentPageRoutes(
+async function loadContentForBuild(
   cwd: string,
   content: boolean | Record<string, unknown> | undefined
-): Promise<string[]> {
-  if (!content) return [];
+): Promise<{ snapshot: Record<string, unknown[]> | undefined; routes: string[] }> {
+  if (!content) return { snapshot: undefined, routes: [] };
   try {
     const mod = await import('@ubean/content');
-    return mod.discoverContentPageRoutes(
-      cwd,
-      content === true ? {} : (content as { sources?: Record<string, { dir: string; prefix?: string }> })
-    );
+    const options = content === true ? {} : (content as { sources?: Record<string, { dir: string; prefix?: string }> });
+    const snapshot = mod.scanContentSources(cwd, options) as Record<string, unknown[]>;
+    const routes = mod.extractContentPageRoutes(Object.values(snapshot).flat() as Array<{ _path?: string }>, {});
+    return { snapshot, routes };
   } catch {
-    return [];
+    return { snapshot: undefined, routes: [] };
   }
 }
 
@@ -201,13 +201,15 @@ export const buildCommand: CommandDef = {
       }
 
       logger.info('Building with Vite...');
+      const { snapshot: contentSnapshot, routes: contentRoutes } = await loadContentForBuild(cwd, config.content);
       const manifest = await buildProduction({
         cwd,
         config,
         preset: resolvedPreset,
         scanResult: result,
         minify: args.minify as boolean,
-        sourcemap: args.sourcemap as boolean
+        sourcemap: args.sourcemap as boolean,
+        contentSnapshot
       });
 
       // P9-03: routeRules 中 `prerender: true` 的路由也触发预渲染
@@ -221,7 +223,7 @@ export const buildCommand: CommandDef = {
           pages: result.pages,
           prerender: config.prerender,
           routeRules: config.routeRules,
-          contentRoutes: await loadContentPageRoutes(cwd, config.content),
+          contentRoutes,
           fetcher
         });
       }

@@ -63,6 +63,7 @@ export function writeBundleBaseline(filePath: string, baseline: BundleBaseline):
 export function findClientManifest(cwd: string): { outDir: string; manifestPath: string } | undefined {
   const candidates = [
     join(cwd, 'dist/client/.vite/manifest.json'),
+    join(cwd, 'dist/public/.vite/manifest.json'),
     join(cwd, 'dist/.vite/manifest.json'),
     join(cwd, '.output/public/.vite/manifest.json')
   ];

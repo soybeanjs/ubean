@@ -17,7 +17,14 @@ import { initCommand } from './init';
 import { pageCommand } from './page';
 import { prepareCommand } from './prepare';
 import { previewCommand } from './preview';
-import { apiCommand, cronCommand, layoutCommand, middlewareCommand, pluginCommand } from './scaffold-commands';
+import {
+  apiCommand,
+  cronCommand,
+  layoutCommand,
+  middlewareCommand,
+  pluginCommand,
+  scaffoldCommand
+} from './scaffold-commands';
 
 const main = defineCommand({
   meta: {
@@ -40,6 +47,7 @@ const main = defineCommand({
     middleware: middlewareCommand,
     cron: cronCommand,
     plugin: pluginCommand,
+    scaffold: scaffoldCommand,
     analyze: analyzeCommand
   }
 });

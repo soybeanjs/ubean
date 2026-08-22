@@ -14,7 +14,14 @@ export {
 } from './router';
 export type { RouteRegistrar, RegisterOptions } from './router';
 
-export { compileRouteRules, matchRouteRules, createRouteRulesMiddleware, normalizeIsrRule } from './route-rules';
+export {
+  compileRouteRules,
+  matchRouteRules,
+  createRouteRulesMiddleware,
+  normalizeIsrRule,
+  applyPathTransform
+} from './route-rules';
+export type { RouteRulesMiddlewareOptions } from './route-rules';
 export type { RouteRule, CompiledRouteRule, IsrRule } from './route-rules';
 
 export {

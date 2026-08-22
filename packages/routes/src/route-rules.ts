@@ -1,7 +1,9 @@
 import type { Context, Next } from 'hono';
 import type { RouteRule, IsrRule } from '@ubean/shared';
+import { applyPathTransform } from './path-transform';
 
 export type { RouteRule, IsrRule } from '@ubean/shared';
+export { applyPathTransform } from './path-transform';
 
 export interface CompiledRouteRule {
   pattern: RegExp;
@@ -9,6 +11,28 @@ export interface CompiledRouteRule {
   /** 原始路径模式(用于路径特异性计算) */
   path: string;
 }
+
+export interface RouteRulesMiddlewareOptions {
+  /**
+   * Internal dispatch used to rematch Hono routes after a rewrite.
+   * Typically `req => app.fetch(req)` from `createUbeanApp`.
+   */
+  dispatch?: (request: Request) => Promise<Response>;
+}
+
+const REWRITE_GUARD = 'x-ubean-rewrite';
+
+const HOP_BY_HOP = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailers',
+  'transfer-encoding',
+  'upgrade',
+  'host'
+]);
 
 function compileRulePath(pattern: string): RegExp {
   const DOUBLE = '__DWC__';
@@ -36,6 +60,7 @@ function ruleSpecificity(rule: RouteRule): number {
   return (
     (rule.redirect ? 3 : 0) +
     (rule.rewrite ? 2 : 0) +
+    (rule.proxy ? 2 : 0) +
     (rule.headers ? 1 : 0) +
     (rule.ssr !== undefined ? 1 : 0) +
     (rule.isr !== undefined ? 1 : 0) +
@@ -57,11 +82,11 @@ function pathSpecificity(pattern: string): number {
   let score = 0;
   for (const seg of segments) {
     if (seg === '**') {
-      score -= 10; // 多段通配符,最不具体
+      score -= 10;
     } else if (seg.includes('*')) {
-      score -= 1; // 单段通配符
+      score -= 1;
     } else {
-      score += 1; // 字面段
+      score += 1;
     }
   }
   return score;
@@ -75,10 +100,8 @@ export function compileRouteRules(rules: Record<string, RouteRule>): CompiledRou
       rule
     }))
     .sort((a, b) => {
-      // 主排序:rule 字段 specificity(redirect > rewrite > headers > ssr/isr/prerender)
       const ruleDiff = ruleSpecificity(b.rule) - ruleSpecificity(a.rule);
       if (ruleDiff !== 0) return ruleDiff;
-      // 次排序(tiebreaker):路径 specificity(字面段多 > 通配符)
       return pathSpecificity(b.path) - pathSpecificity(a.path);
     });
 }
@@ -107,10 +130,12 @@ export function matchRouteRules(path: string, compiledRules: CompiledRouteRule[]
       if (rule.rewrite && !matched.rewrite) {
         matched.rewrite = rule.rewrite;
       }
+      if (rule.proxy && !matched.proxy) {
+        matched.proxy = rule.proxy;
+      }
       if (rule.cache) {
         matched.cache = { ...matched.cache, ...rule.cache };
       }
-      // P9-03: per-route 渲染规则 —— 首次匹配胜出(规则已按 specificity 排序)
       if (rule.ssr !== undefined && matched.ssr === undefined) {
         matched.ssr = rule.ssr;
       }
@@ -120,7 +145,6 @@ export function matchRouteRules(path: string, compiledRules: CompiledRouteRule[]
       if (rule.isr !== undefined && matched.isr === undefined) {
         matched.isr = rule.isr;
       }
-      // P9-04: Partial Prerendering 标记,首次匹配胜出
       if (rule.ppr !== undefined && matched.ppr === undefined) {
         matched.ppr = rule.ppr;
       }
@@ -128,6 +152,19 @@ export function matchRouteRules(path: string, compiledRules: CompiledRouteRule[]
   }
 
   return matched;
+}
+
+function findFirstRulePath(
+  path: string,
+  compiledRules: CompiledRouteRule[],
+  field: 'rewrite' | 'proxy'
+): string | undefined {
+  for (const { pattern, rule, path: rulePath } of compiledRules) {
+    if (pattern.test(path) && rule[field]) {
+      return rulePath;
+    }
+  }
+  return undefined;
 }
 
 function resolveRedirectUrl(
@@ -157,18 +194,44 @@ function buildCacheControlHeader(cache: RouteRule['cache']): string | null {
   return parts.length > 0 ? parts.join(', ') : null;
 }
 
-export function createRouteRulesMiddleware(rules: Record<string, RouteRule>) {
+function cloneForwardHeaders(source: Headers): Headers {
+  const headers = new Headers();
+  source.forEach((value, key) => {
+    if (!HOP_BY_HOP.has(key.toLowerCase())) {
+      headers.set(key, value);
+    }
+  });
+  return headers;
+}
+
+function buildForwardRequest(c: Context, dest: string, extraHeaders?: HeadersInit): Request {
+  const headers = cloneForwardHeaders(c.req.raw.headers);
+  if (extraHeaders) {
+    new Headers(extraHeaders).forEach((value, key) => headers.set(key, value));
+  }
+  const init: RequestInit = {
+    method: c.req.method,
+    headers,
+    redirect: 'manual'
+  };
+  if (c.req.method !== 'GET' && c.req.method !== 'HEAD' && c.req.raw.body) {
+    init.body = c.req.raw.body;
+    (init as RequestInit & { duplex: 'half' }).duplex = 'half';
+  }
+  return new Request(dest, init);
+}
+
+export function createRouteRulesMiddleware(
+  rules: Record<string, RouteRule>,
+  options: RouteRulesMiddlewareOptions = {}
+) {
   const compiled = compileRouteRules(rules);
 
   return async function routeRulesMiddleware(c: Context, next: Next) {
     const path = c.req.path;
     const matched = matchRouteRules(path, compiled);
 
-    // P9-03: 总是将匹配结果写入 context(即使为空对象),让页面渲染器能
-    // 通过 `c.get('routeRule')` 读取 per-route 的 ssr/isr/prerender 字段。
-    // 任何 matched 字段存在时才写入,避免覆盖 undefined 语义。
     if (Object.keys(matched).length > 0) {
-      // 使用变量访问避免 TS 对 unknown Context 的类型推断问题
       (c as unknown as { set: (key: string, value: unknown) => void }).set('routeRule', matched);
     }
 
@@ -191,6 +254,27 @@ export function createRouteRulesMiddleware(rules: Record<string, RouteRule>) {
     const cacheHeader = buildCacheControlHeader(matched.cache);
     if (cacheHeader) {
       c.header('Cache-Control', cacheHeader);
+    }
+
+    if (matched.proxy) {
+      const from = findFirstRulePath(path, compiled, 'proxy') ?? path;
+      const dest = applyPathTransform(path, from, matched.proxy);
+      const upstream = await fetch(buildForwardRequest(c, dest));
+      return new Response(upstream.body, {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers: upstream.headers
+      });
+    }
+
+    if (matched.rewrite && options.dispatch && !c.req.header(REWRITE_GUARD)) {
+      const from = findFirstRulePath(path, compiled, 'rewrite') ?? path;
+      const dest = applyPathTransform(path, from, matched.rewrite);
+      if (dest !== path) {
+        const url = new URL(c.req.url);
+        url.pathname = dest;
+        return options.dispatch(buildForwardRequest(c, url.toString(), { [REWRITE_GUARD]: '1' }));
+      }
     }
 
     await next();

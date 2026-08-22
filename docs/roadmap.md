@@ -22,22 +22,22 @@
 
 请求链（`packages/app/src/app.ts` → `registerRoutes` → `packages/routes/src/router.ts` → `packages/client/src/ssr.ts`）：`handle` hook → requestId → i18n ALS → routeRules+cache → WS → static → 路由 → SSR。这条链是健康的：Hono 一等、页面与 API 同进程、中间件由工厂挂载。
 
-真正的风险不在「功能清单缺一项」，而在**声明的能力宽于默认路径**：
+真正的风险不在「功能清单缺一项」，而在**声明的能力宽于默认路径**。Q4/H1 已收口的不要再当未做债：
 
-| 现象 | 证据 | 为什么是债 |
-| --- | --- | --- |
-| 24 包 + 聚合器 barrel | `packages/*`；主包 `ubean` re-export | Vite client / SSR 双图；已做卫生合并（Wave 1 + Wave 2） |
-| `ssr.external` vs 生产 `ssr.noExternal: ['ubean']` | `packages/vite/src/plugin.ts` vs `packages/builder/src/production.ts` | 开发态为修 ALS 把 `@ubean/i18n` external；生产把 `ubean` 打进 bundle。规则未抽象成「单份 runtime」策略 |
-| `@ubean/vue` vs `@ubean/client` 内核分裂 | vue 零 i18n（正确）；client 持有 unhead / i18n / 数据层 | 独立 SPA 路径与全栈路径的契约要写死，避免再从 vue 拉 i18n |
-| `routeRules.rewrite` 只合并不执行 | `packages/routes/src/route-rules.ts` 写入 `matched.rewrite`；全仓无消费方 | 类型与文档像 Nuxt，运行时像没做 |
-| `routeRules.proxy` 仅类型 | `packages/shared/src/types.ts` 有字段；无 merge、无执行 | 比 rewrite 更空 |
-| `ppr: true` ≠ Next PPR | `router.ts`：强制 `ssr: 'streaming'` + `X-PPR` + prerender 发现 | 没有独立静态壳 / 动态洞。名称超卖 |
-| CSRF / sessions / Data Cache 不在默认链 | `createUbeanApp` 未挂；API 在 `@ubean/server` | 「内置安全」要用户自己接线才算有 |
-| DB / Queue / Storage 默认内存 | `@ubean/server` 连接器 | 预设声称 CF KV / Deno Queue，应用默认仍是进程内存 |
-| ISR 默认进程内存 | `CacheStore` 默认；生产 Node 现为 `fs`（`.ubean/cache`），serverless 仍内存 | 多实例 / serverless 下 HIT 不可跨请求 |
-| 图片 `/_ipx` 开发态 302 原图 | `packages/image/src/vite.ts` | 不能当「多 provider 图片优化」卖 |
-| 每请求新建 SSR Vue app + i18n | `packages/client/src/ssr.ts`；i18n `createUbeanI18n` | 正确隔离，但缺消息编译缓存 / 实例池的上限策略 |
-| Islands 双 rAF + `afterEach` 再水合 | `@ubean/client` / islands | SPA 导航成本固定，未做路由级跳过 |
+| 现象 | 现状 |
+| --- | --- |
+| 24 包 + 聚合器 | 卫生合并完成（Wave 1+2）；`@ubean/vue` 保持独立 |
+| 单份 SSR runtime | `ssrSingletonDevPolicy` / `ssrSingletonProdSsr` 共用 |
+| `routeRules.rewrite` / `proxy` | 已执行（内部再匹配 / 反向代理） |
+| `ppr: true` | 强制流式别名，不是 Next 静态壳 |
+| CSRF / security headers / Data Cache | 默认挂载；sessions 仍 opt-in |
+| ISR 缓存 | Node 生产 `fs`（`.ubean/cache`）；serverless/edge 仍内存 |
+| i18n 消息编译 | 按 locale fingerprint 缓存；不池化 Vue app |
+| Islands `data-hydrated` | 已跳过；SPA 导航仍双 rAF（暂缓） |
+| DB / Queue / Storage 默认内存 | 仍宽于预设能力矩阵；CF/Vercel 有非内存示例，其余暂缓 |
+| SEO `src/sitemap.ts` 等约定 | `registerSeoConventions` 由 `createUbeanApp` 默认调用 |
+| 生产 `/_ipx` | `image: true` 时生产 server-entry 挂同一处理器 |
+| 生产 `src/crons` | 生产 eager glob；Node/bun/deno 启动 `startCronScheduler`，serverless 不装进程内调度器 |
 
 **结论：** 能力面已经够宽（SSR/SSG/ISR/Actions/Islands/`.server.vue`/i18n/OpenAPI/presets）。2026 Q4 的工作是把「类型里有」收成「默认路径真的做」——这同时服务架构健康（40%）和性能（25%），用户可见缺口（35%）放到 2027 H1。
 
@@ -50,7 +50,7 @@
 | HTTP | 自有 runtime | Nitro | 适配器 / Hono 可选 | Nitro | 适配器 | Start server | Nitro | Hono 原生 |
 | 流式 SSR | ✅ | ✅（实验可关） | ✅ | ✅ | ✅ | ✅ | ⚠️ 2.7 实验 | ✅ |
 | 每路由 SSR | 部分 | ✅ routeRules | `+page.server` / adapters | 部分 | ✅ | ✅ `ssr` / `data-only` | route rules | ✅ `ssr`/`exclude`/`data-only`；rewrite/proxy 已执行 |
-| ISR / SWR | ✅ | ✅ | ⚠️ 适配器 | ⚠️ | ✅ | ⚠️ | ⚠️ Nitro | ✅ 规则在；**Node 生产默认 fs cache**；serverless 仍内存 |
+| ISR / SWR | ✅ | ✅ | ⚠️ 适配器 | ⚠️ | ✅ | ⚠️ | ⚠️ Nitro | ⚠️ 规则在；**Node 生产 fs**；serverless 仍内存 |
 | PPR / 静态壳 | ✅ | ❌ | ❌ | ❌ | Server Islands | ❌ | ❌ | ⚠️ **名称为 PPR，实为强制流式** |
 | Server Components | RSC | `.server.vue` | ❌ | ❌ | ❌ | ❌（server functions） | ❌ | ✅ `.server.vue`（非 RSC） |
 | Actions / 服务端函数 | Server Actions | ❌ 一等 | form actions | server fn | actions | **`createServerFn` 类型一等** | 2.7 Server Functions | ✅ `defineAction` / `defineServerFn` + `?/<name>`；同一 `POST /__actions` |

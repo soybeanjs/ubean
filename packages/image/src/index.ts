@@ -4,6 +4,8 @@ import { configureImageRuntime } from './runtime';
 export { NuxtImg, NuxtPicture };
 export { ubeanImagePlugin } from './vite';
 export type { UbeanImageOptions } from './vite';
+export { serveIpxRequest, createIpxHonoHandler, parseIpxModifiers, resolveLocalImage } from './ipx';
+export type { ServeIpxOptions, ServeIpxResult } from './ipx';
 
 export {
   configureImageRuntime,

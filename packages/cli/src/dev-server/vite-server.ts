@@ -455,9 +455,14 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     // in the same Vite module-graph instance that API routes use.
     const cronFiles = app.options.crons || [];
     if (cronFiles.length > 0) {
-      Promise.all(cronFiles.map(c => viteServer!.ssrLoadModule(c.fullPath))).catch(err => {
-        console.error('[ubean] Failed to load cron files:', err);
-      });
+      Promise.all(cronFiles.map(c => viteServer!.ssrLoadModule(c.fullPath)))
+        .then(async () => {
+          const cron = await import('@ubean/server/cron');
+          cron.startCronScheduler();
+        })
+        .catch(err => {
+          console.error('[ubean] Failed to load cron files:', err);
+        });
     }
 
     const layoutMap = new Map<string, string>();

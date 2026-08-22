@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "analyze": "ubean analyze --out benchmarks/bundle-baseline.json",
+    "analyze:check": "ubean analyze --check benchmarks/bundle-baseline.json --write=false",
     "build": "ubean build",
     "dev": "ubean dev",
     "preview": "ubean preview",

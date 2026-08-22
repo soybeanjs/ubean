@@ -136,7 +136,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
   - `loading.vue`（或 `.ts`/`.md`）→ `<Suspense>` fallback 组件，在 SPA 导航懒加载页面组件期间显示；仅客户端生效（SSR 同步解析无需 loading）
   - `error.vue`（或 `.ts`/`.md`）→ 错误边界（ErrorBoundary）组件，当页面组件渲染/异步解析/setup 抛出错误时显示，接收 `error` prop；路由切换时自动重置；仅客户端生效
   - 仅根目录文件被视为特殊页面；`users/404.vue` 仍为常规路由 `/users/404`
-- **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序
+- **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序。开发态加载后启动 `startCronScheduler`；生产 eager glob 打进 server-entry。Node/bun/deno 启动进程内调度器；serverless/edge **不**装（用平台 cron）。
 - **Server Actions（表单 action）**：页面模块可 `export const actions = { name: defineAction(...) }`，POST 表单通过 `?/<actionName>` URL 分发（SvelteKit 风格，渐进增强）；详见第 4 节 Server Actions
 - `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（**没有** 顶层 `title` 字段）。客户端导航守卫用 `defineApp({ router: { setup } })`，不要发明第二套 `middleware/*.global` 文件约定
   - `layout` 支持 `string`（单层）、`string[]`（多层嵌套，P9-17）或 `false`（禁用）；数组按外→内顺序嵌套：`['default', 'admin', 'dashboard']` → `default` 包裹 `admin` 包裹 `dashboard` 包裹页面；数组中的 `'default'` 是字面布局名（引用 `layouts/default.vue`），而单独字符串 `'default'` 表示使用默认布局
@@ -403,7 +403,7 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 | `defineManifest()` / `createManifestResponse()`                                                   | PWA manifest                                                                                                                                                                                                                                                                       |
 | `getRequestId()` / `createObservabilityTracer()`                                                  | 请求 ID / 可观测性                                                                                                                                                                                                                                                                 |
 | `createTracingMiddleware(options)`                                                                | tracing 中间件                                                                                                                                                                                                                                                                     |
-| `registerSeoConventions(app, {srcDir})`                                                           | P9-05 文件约定 SEO:扫描 `src/sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.ts`/`icon.ts`/`apple-icon.ts`,自动注册 GET 路由                                                                                                                                                |
+| `registerSeoConventions(app, {srcDir})`                                                           | P9-05 文件约定 SEO。`createUbeanApp` 在 `init()` 默认调用（`seoConventions: false` 关闭）；生产可传 `seoConventionModules`。扫描 `src/sitemap.ts`/`robots.ts`/`manifest.ts`/`opengraph-image.ts`/`icon.ts`/`apple-icon.ts`                                                         |
 | `listSeoConventions({srcDir})`                                                                    | 列出 srcDir 下存在的约定文件 kind(不加载)                                                                                                                                                                                                                                          |
 | `defineJsonLd()` / `useSchemaOrg()` / `renderJsonLdScript()`                                      | P9-07 JSON-LD 结构化数据:`defineJsonLd(schema)` 定义、`useSchemaOrg(schema)` Vue composable、`renderJsonLdScript(schema)` 序列化为 `<script type="application/ld+json">` 标签(自动转义 `</script>`/U+2028/U+2029)                                                                  |
 | `schemaOrg.*`                                                                                     | Schema.org 工厂:`organization`/`website`/`article`/`breadcrumb`/`product`                                                                                                                                                                                                          |
@@ -862,6 +862,7 @@ pnpm typecheck        # 类型检查（vue-tsc）
 pnpm lint             # ESLint（Vite-Plus/OXC + Vue）
 pnpm test             # 运行测试（vitest）
 pnpm analyze          # 读 Vite client manifest；示例基线 `examples/ubean-test/benchmarks/bundle-baseline.json`
+pnpm analyze:check    # 对照 committed 基线，gzip 相对增长超过 5% 则失败
 pnpm dev              # 启动开发服务器（examples/ubean-test）
 pnpm build            # 构建
 ```

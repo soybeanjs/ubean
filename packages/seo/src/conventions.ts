@@ -15,9 +15,9 @@
  * 设计要点:
  * - 纯运行时实现(无 Vite 插件依赖):用 `fs.access` 检测文件存在,`import()` 加载。
  * - 不强依赖 `@ubean/app` —— 通过最小化的 `SeoConventionApp` 结构类型避免循环依赖。
- * - 调用方负责在 `defineServer({ onAppCreate })` 或 `app.init()` 前调用
- *   `registerSeoConventions(app, { srcDir })`。`@ubean/app` 的 `UbeanAppOptions.seoConventions`
- *   字段会自动调用此函数(参见 `@ubean/app` 的 `app.ts`)。
+ * - 调用方也可手动 `registerSeoConventions(app, { srcDir })`。`createUbeanApp`
+ *   在 `init()` 默认调用（`seoConventions: false` 关闭）；生产可传入已 glob 的
+ *   `seoConventionModules`，避免 serverless 依赖读盘。
  * - 文件不存在时静默跳过(不报错),允许项目按需采用约定。
  * - 已注册的路由(用户在 `routes/` 显式定义)优先级不变 —— 约定文件在 `init()` 中
  *   于用户路由 *之后* 注册,因此 Hono 路由匹配时显式路由优先。
@@ -175,6 +175,52 @@ export async function discoverSeoConventions(options: RegisterSeoConventionsOpti
   return loaded;
 }
 
+function basenameWithoutExt(filePath: string): string {
+  const base = filePath.replaceAll('\\', '/').split('/').pop() || '';
+  return base.replace(/\.(ts|js|mjs|mts|cjs)$/i, '');
+}
+
+/** Map `sitemap.ts` / `/src/robots.js` to a convention kind. */
+export function conventionKindFromPath(filePath: string): SeoConventionKind | undefined {
+  const name = basenameWithoutExt(filePath);
+  return SEO_CONVENTIONS.find(d => d.fileName === name)?.kind;
+}
+
+function mountConvention(
+  app: SeoConventionApp,
+  descriptor: SeoConventionDescriptor,
+  handler: (c?: SeoConventionContext) => unknown
+): void {
+  (app as { get: (path: string, ...handlers: Array<(c: SeoConventionContext) => unknown>) => unknown }).get(
+    descriptor.routePath,
+    async (c: SeoConventionContext) => toResponse(descriptor, handler, c)
+  );
+}
+
+/**
+ * Register convention handlers already loaded (production `import.meta.glob`).
+ * Keys may be absolute or vite-style paths; the basename selects the kind.
+ */
+export async function registerSeoConventionModules(
+  app: SeoConventionApp,
+  modules: Record<string, { default?: unknown }>
+): Promise<SeoConventionKind[]> {
+  const registered: SeoConventionKind[] = [];
+
+  for (const [filePath, mod] of Object.entries(modules)) {
+    const kind = conventionKindFromPath(filePath);
+    if (!kind) continue;
+    const descriptor = SEO_CONVENTIONS.find(d => d.kind === kind);
+    if (!descriptor) continue;
+    const handler = mod?.default;
+    if (typeof handler !== 'function') continue;
+    mountConvention(app, descriptor, handler as (c?: SeoConventionContext) => unknown);
+    registered.push(kind);
+  }
+
+  return registered;
+}
+
 /**
  * 把单个约定文件的 default export 转换为 Hono GET handler。
  *
@@ -234,15 +280,7 @@ export async function registerSeoConventions(
   const registered: SeoConventionKind[] = [];
 
   for (const { descriptor, handler } of loaded) {
-    const routePath = descriptor.routePath;
-    // 用 `app.get` 注册;`UbeanApp` 的 `get` 签名兼容
-    (app as { get: (path: string, ...handlers: Array<(c: SeoConventionContext) => unknown>) => unknown }).get(
-      routePath,
-      async (c: SeoConventionContext) => {
-        const res = await toResponse(descriptor, handler, c);
-        return res;
-      }
-    );
+    mountConvention(app, descriptor, handler);
     registered.push(descriptor.kind);
   }
 

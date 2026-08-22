@@ -42,6 +42,11 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Client JS budget
+        run: |
+          pnpm --filter ubean-test build
+          pnpm --filter ubean-test analyze:check
+
       - name: Verify package tree & extension contract
         # OPT-09 + OPT-07：护栏脚本——AGENTS.md 包名/包数与 packages/*/package.json 一致，
         # engineering.md 契约表覆盖全部派生扩展包。详见 scripts/verify-packages.mjs。

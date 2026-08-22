@@ -168,6 +168,21 @@ export interface UbeanAppOptions {
   cacheStore?: CacheStore;
   /** Declarative cache backend. `store: 'fs'` uses `createFsCacheStore`. */
   cache?: { store?: 'memory' | 'fs'; dir?: string };
+  /**
+   * File-convention SEO (`src/sitemap.ts`, `robots.ts`, …). Default: on when
+   * `rootDir` or `seoConventions.srcDir` is set. `false` disables.
+   */
+  seoConventions?: boolean | { srcDir?: string };
+  /**
+   * Preloaded SEO convention modules (production `import.meta.glob`). When
+   * set, disk discovery is skipped — required on serverless.
+   */
+  seoConventionModules?: Record<string, { default?: unknown }>;
+  /**
+   * Production `/_ipx` handler (from `@ubean/image` when `image` is enabled).
+   * Dev still uses the Vite middleware.
+   */
+  ipxHandler?: MiddlewareHandler<UbeanEnv>;
 }
 
 const actionContextAls = new AsyncLocalStorage<ActionContext>();
@@ -412,6 +427,12 @@ export class UbeanApp {
 
     await registerRoutes(this as unknown as RouteRegistrar, registerOpts);
 
+    if (this.options.ipxHandler) {
+      this.hono.get('/_ipx/*', this.options.ipxHandler);
+    }
+
+    await this._registerSeoConventions();
+
     // P9-02: Server Actions — mount the `/__actions` POST endpoint for
     // RPC-style invocation from the client (`useAction()` / `callAction()`).
     // The endpoint looks up actions by ID from the global registry; unknown
@@ -450,6 +471,29 @@ export class UbeanApp {
 
     this._ready = true;
     return this;
+  }
+
+  private async _registerSeoConventions(): Promise<void> {
+    if (this.options.seoConventions === false) return;
+
+    const explicit = typeof this.options.seoConventions === 'object' ? this.options.seoConventions : {};
+    const srcDir = explicit.srcDir ?? (this.options.rootDir ? join(this.options.rootDir, 'src') : undefined);
+
+    try {
+      const mod = await import('@ubean/seo/conventions');
+      if (this.options.seoConventionModules) {
+        await mod.registerSeoConventionModules(this, this.options.seoConventionModules);
+        return;
+      }
+      if (!srcDir) return;
+      await mod.registerSeoConventions(this, { srcDir });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes("Cannot find module '@ubean/seo") || message.includes('Failed to resolve')) {
+        return;
+      }
+      throw err;
+    }
   }
 
   private _lazyInitPromise: Promise<this> | null = null;

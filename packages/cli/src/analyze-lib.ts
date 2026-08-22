@@ -55,6 +55,36 @@ export function summarizeBundle(outDir: string, manifest: Record<string, Manifes
   };
 }
 
+export function compareBundleBaseline(
+  current: Pick<BundleBaseline, 'totalGzip' | 'entryGzip'>,
+  committed: Pick<BundleBaseline, 'totalGzip' | 'entryGzip'>,
+  options: { maxIncrease?: number } = {}
+): {
+  ok: boolean;
+  maxIncrease: number;
+  totalRatio: number;
+  entryRatio: number;
+  messages: string[];
+} {
+  const maxIncrease = options.maxIncrease ?? 0.05;
+  const totalRatio =
+    committed.totalGzip === 0 ? (current.totalGzip === 0 ? 0 : Infinity) : current.totalGzip / committed.totalGzip - 1;
+  const entryRatio =
+    committed.entryGzip === 0 ? (current.entryGzip === 0 ? 0 : Infinity) : current.entryGzip / committed.entryGzip - 1;
+  const messages: string[] = [];
+  if (totalRatio > maxIncrease) {
+    messages.push(
+      `total gzip ${(current.totalGzip / 1024).toFixed(1)} kB exceeds baseline ${(committed.totalGzip / 1024).toFixed(1)} kB by ${(totalRatio * 100).toFixed(1)}% (max ${(maxIncrease * 100).toFixed(0)}%)`
+    );
+  }
+  if (entryRatio > maxIncrease) {
+    messages.push(
+      `entry gzip ${(current.entryGzip / 1024).toFixed(1)} kB exceeds baseline ${(committed.entryGzip / 1024).toFixed(1)} kB by ${(entryRatio * 100).toFixed(1)}% (max ${(maxIncrease * 100).toFixed(0)}%)`
+    );
+  }
+  return { ok: messages.length === 0, maxIncrease, totalRatio, entryRatio, messages };
+}
+
 export function writeBundleBaseline(filePath: string, baseline: BundleBaseline): void {
   mkdirSync(dirname(filePath), { recursive: true });
   writeFileSync(filePath, `${JSON.stringify(baseline, null, 2)}\n`, 'utf8');

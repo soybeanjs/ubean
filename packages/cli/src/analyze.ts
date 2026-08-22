@@ -1,9 +1,15 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { loadUbeanConfig } from '@ubean/config';
 import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { join, relative, resolve } from 'pathe';
-import { findClientManifest, readViteManifest, summarizeBundle, writeBundleBaseline } from './analyze-lib';
+import {
+  findClientManifest,
+  readViteManifest,
+  summarizeBundle,
+  writeBundleBaseline,
+  compareBundleBaseline
+} from './analyze-lib';
 
 const logger = getLogger('cli');
 
@@ -25,6 +31,14 @@ export const analyzeCommand: CommandDef = {
     out: {
       type: 'string',
       description: 'Baseline JSON path (default: .ubean/bundle-baseline.json)'
+    },
+    check: {
+      type: 'string',
+      description: 'Committed baseline JSON to compare against (fails if gzip grows past --max-increase)'
+    },
+    maxIncrease: {
+      type: 'string',
+      description: 'Allowed relative gzip growth when using --check (default 0.05)'
     }
   },
   async run({ args }) {
@@ -56,6 +70,28 @@ export const analyzeCommand: CommandDef = {
           : join(cwd, '.ubean/bundle-baseline.json');
       writeBundleBaseline(out, baseline);
       logger.info(`wrote ${out}`);
+    }
+
+    if (typeof args.check === 'string' && args.check.length > 0) {
+      const checkPath = resolve(cwd, args.check);
+      if (!existsSync(checkPath)) {
+        logger.error(`baseline not found: ${checkPath}`);
+        throw new Error('missing budget baseline');
+      }
+      const committed = JSON.parse(readFileSync(checkPath, 'utf8')) as { totalGzip?: number; entryGzip?: number };
+      const maxIncrease = Number(args.maxIncrease ?? 0.05);
+      const result = compareBundleBaseline(
+        baseline,
+        { totalGzip: committed.totalGzip ?? 0, entryGzip: committed.entryGzip ?? 0 },
+        { maxIncrease: Number.isFinite(maxIncrease) ? maxIncrease : 0.05 }
+      );
+      if (!result.ok) {
+        for (const message of result.messages) logger.error(message);
+        throw new Error('client JS budget exceeded');
+      }
+      logger.info(
+        `budget ok (total ${(result.totalRatio * 100).toFixed(1)}%, entry ${(result.entryRatio * 100).toFixed(1)}% vs baseline, max ${(result.maxIncrease * 100).toFixed(0)}%)`
+      );
     }
   }
 };

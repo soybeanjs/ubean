@@ -7,7 +7,7 @@ import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
-import { resolveProductionCacheStore } from '@ubean/preset';
+import { resolveProductionCacheStore, isEphemeralCachePreset } from '@ubean/preset';
 import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
@@ -204,6 +204,19 @@ async function generateVirtualModulesToDisk(
   const routesGlob = JSON.stringify(`${viteSrcPrefix}/routes/**/*.{ts,js,mjs}`);
   const middlewareGlob = JSON.stringify(`${viteSrcPrefix}/middleware/**/*.{ts,js,mjs}`);
   const layoutsGlob = JSON.stringify(`${viteSrcPrefix}/layouts/**/*.{vue,ts}`);
+  const cronsDirs = (Array.isArray(config.dir.crons) ? config.dir.crons : [config.dir.crons || 'crons']).map(d =>
+    d.replace(/\\/g, '/')
+  );
+  const cronsGlob = JSON.stringify(
+    cronsDirs.length === 1
+      ? `${viteSrcPrefix}/${cronsDirs[0]}/**/*.{ts,js,mjs}`
+      : `${viteSrcPrefix}/{${cronsDirs.join(',')}}/**/*.{ts,js,mjs}`
+  );
+  const seoGlob = JSON.stringify(
+    `${viteSrcPrefix}/{sitemap,robots,manifest,opengraph-image,icon,apple-icon}.{ts,js,mjs,mts,cjs}`
+  );
+  const enableInProcessCron = !isEphemeralCachePreset(preset.name || 'standard');
+  const enableIpx = Boolean(config.image);
   // Point publicDir to the build output (not the source public/) so preview
   // serves the compiled client assets and copied static files.
   const outputDir = config.build.outputDir || 'dist';
@@ -330,6 +343,14 @@ configureContentRuntime();
 ${contentEntries.map(([name, docs]) => `registerContent(${JSON.stringify(name)}, ${JSON.stringify(docs)});`).join('\n')}
 `
       : '';
+  const ipxImport = enableIpx
+    ? `import { createIpxHonoHandler } from '@ubean/image';
+`
+    : '';
+  const cronImport = enableInProcessCron
+    ? `import { startCronScheduler } from '@ubean/server/cron';
+`
+    : '';
   if (hasServer) {
     const serverEntry = `// Auto-generated server entry
 import { createUbeanApp, applyServerConfig } from 'ubean/runtime/app';
@@ -340,13 +361,15 @@ import { resolveServerConfig as _resolveServerConfig } from 'virtual:ubean-serve
 import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-${contentBootstrap}
+${contentBootstrap}${ipxImport}${cronImport}
 export { createUbeanApp };
 
 const routeModules = import.meta.glob(${routesGlob}, { eager: false });
 const middlewareModules = import.meta.glob(${middlewareGlob}, { eager: false });
 const pageModules = import.meta.glob(${pagesGlob}, { eager: false });
 const layoutModules = import.meta.glob(${layoutsGlob}, { eager: false });
+const cronModules = import.meta.glob(${cronsGlob}, { eager: true });
+const seoConventionModules = import.meta.glob(${seoGlob}, { eager: true });
 
 const _srcPrefix = ${JSON.stringify(viteSrcPrefix)};
 function normalizeKey(p) {
@@ -427,6 +450,9 @@ export async function createApp(options = {}) {
     securityHeaders: ${JSON.stringify(config.security === false ? false : (config.security?.headers ?? true))},
     dataCache: ${JSON.stringify(config.dataCache ?? true)},
     cache: ${JSON.stringify(productionCache)},
+    seoConventions: { srcDir: ${JSON.stringify(srcDirAbs)} },
+    seoConventionModules,
+    ipxHandler: ${enableIpx ? `createIpxHonoHandler({ rootDir: ${JSON.stringify(publicDir)}, staticDir: '.' })` : 'undefined'},
     ...options
   });
 
@@ -435,6 +461,14 @@ export async function createApp(options = {}) {
   await applyServerConfig(app, _serverConfig);
 
   await app.init();
+
+  ${
+    enableInProcessCron
+      ? `if (Object.keys(cronModules).length > 0) {
+    startCronScheduler();
+  }`
+      : ''
+  }
 
   // Call onServerReady after init completes
   if (_serverConfig.onServerReady) {

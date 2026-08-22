@@ -18,7 +18,7 @@ ubean 列按**默认路径是否真的做了**来标，而不是「类型里有�
 | HTTP 层 | 自有 runtime | Nitro | 适配器 | Nitro | 适配器 | Start server | Nitro | **Hono** |
 | 流式 SSR | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ 实验 | ✅ |
 | SSG | ✅ | ✅ | ✅ | ✅ | ✅（默认） | ✅ | ✅ | ✅ |
-| ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ SWR | ⚠️ | ⚠️ | ⚠️ 规则在，默认进程内存 |
+| ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ SWR | ⚠️ | ⚠️ | ⚠️ 规则在；Node 生产 fs（`.ubean/cache`）；serverless 仍内存 |
 | 每路由渲染规则 | ⚠️ 部分 | ✅ routeRules | ⚠️ | ⚠️ | ✅ | ✅ `ssr` / `data-only` | ⚠️ | ✅ `ssr`/`isr`/`prerender`/`rewrite`/`proxy` |
 | PPR / 静态壳 | ✅ | ❌ | ❌ | ❌ | ✅ Server Islands | ❌ | ❌ | ⚠️ `ppr: true` = 强制流式 SSR，不是 Next 级静态壳 |
 | Server Components | ✅ RSC | ✅ `.server.vue` | ❌ | ❌ | ❌ | ❌（用 server functions） | ❌ | ✅ `.server.vue`（**不是** RSC） |
@@ -33,7 +33,7 @@ ubean 列按**默认路径是否真的做了**来标，而不是「类型里有�
 ## 如何读 ubean 这一列
 
 - **已接线**：流式 SSR、SSG、文件路由（含并行 / 拦截路由）、Server Actions / `defineServerFn`、`useFetch`、select SSR（`false` / `'data-only'` / `true`）、`.server.vue`、Islands、vue-i18n 11、OpenAPI + Scalar、平台预设生成器。
-- **有 API、默认不完整**：ISR / 组件缓存默认仍是**进程内存**（可用 `cache: { store: 'fs' }`）；Sessions 仍 opt-in。CSRF（origin）与安全头、fetch Data Cache 中间件默认挂载。图片开发态 `/_ipx` 读本地文件；无变换库时透传原图（`X-IPX-Mode: passthrough`）。CF / Vercel 的 Queue/DB 用 `@ubean/server/drivers`，默认不是内存替代品。
+- **有 API、默认不完整**：ISR 在 Node 生产默认 **fs**（`.ubean/cache`），serverless/edge 仍是进程内存；组件缓存仍是内存。Sessions 仍 opt-in。CSRF（origin）与安全头、fetch Data Cache 中间件默认挂载。`src/sitemap.ts` / `robots.ts` 等 SEO 约定由 `createUbeanApp` 自动注册。启用 `image` 时开发态与生产都挂 `/_ipx`（无变换库则透传，`X-IPX-Mode: passthrough`）。`src/crons` 生产会打进 server-entry；持久运行时启动进程内调度器，serverless 不装。CF / Vercel 的 Queue/DB 用 `@ubean/server/drivers`，默认不是内存替代品。
 - **刻意不做**：React Server Components、多 UI 运行时、自研第二套 i18n 引擎、Nuxt 式客户端 `middleware/*.global`（用 `defineApp({ router: { setup } })` 挂守卫）。需要 RSC 请用 Next.js；需要多框架内容站请用 Astro。
 
 ## 功能亮点

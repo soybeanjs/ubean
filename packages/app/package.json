@@ -35,14 +35,19 @@
   "devDependencies": {
     "@types/node": "^26.2.0",
     "@ubean/pages": "workspace:*",
+    "@ubean/seo": "workspace:*",
     "typescript": "7.0.2",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "@ubean/pages": "workspace:*"
+    "@ubean/pages": "workspace:*",
+    "@ubean/seo": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@ubean/pages": {
+      "optional": true
+    },
+    "@ubean/seo": {
       "optional": true
     }
   }

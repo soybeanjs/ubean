@@ -157,6 +157,27 @@ describe('UbeanApp.init() — 异步挂载', () => {
     expect(hasRoute(app, 'GET', '/_scalar')).toBe(false);
   });
 
+  it('seoConventionModules → init 后挂载 GET /sitemap.xml', async () => {
+    const app = new UbeanApp({
+      seoConventionModules: {
+        '/src/sitemap.ts': { default: () => [{ loc: 'https://example.com/' }] }
+      }
+    });
+    await app.init();
+    expect(hasRoute(app, 'GET', '/sitemap.xml')).toBe(true);
+  });
+
+  it('seoConventions: false → 不挂载约定路由', async () => {
+    const app = new UbeanApp({
+      seoConventions: false,
+      seoConventionModules: {
+        '/src/sitemap.ts': { default: () => [{ loc: 'https://example.com/' }] }
+      }
+    });
+    await app.init();
+    expect(hasRoute(app, 'GET', '/sitemap.xml')).toBe(false);
+  });
+
   it('openAPI: false → init 后不挂载 OpenAPI 路由', async () => {
     const app = new UbeanApp({ openAPI: false });
     await app.init();

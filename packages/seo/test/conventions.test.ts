@@ -9,6 +9,8 @@ import {
   SEO_CONVENTIONS,
   listSeoConventions,
   registerSeoConventions,
+  registerSeoConventionModules,
+  conventionKindFromPath,
   discoverSeoConventions
 } from '../src/conventions';
 import type { SeoConventionApp, SeoConventionContext } from '../src/conventions';
@@ -215,6 +217,21 @@ describe('P9-05 SEO conventions', () => {
       const registered = await registerSeoConventions(app, { srcDir: tmpRoot });
       expect(registered).toEqual([]);
       expect(app.routes.size).toBe(0);
+    });
+
+    it('maps basename to convention kind', () => {
+      expect(conventionKindFromPath('/src/sitemap.ts')).toBe('sitemap');
+      expect(conventionKindFromPath('robots.js')).toBe('robots');
+      expect(conventionKindFromPath('readme.ts')).toBeUndefined();
+    });
+
+    it('registers from preloaded modules without disk', async () => {
+      const app = makeFakeApp();
+      const registered = await registerSeoConventionModules(app, {
+        '/app/src/robots.ts': { default: () => ({ userAgent: '*', allow: '/' }) }
+      });
+      expect(registered).toEqual(['robots']);
+      expect(app.routes.has('/robots.txt')).toBe(true);
     });
   });
 });

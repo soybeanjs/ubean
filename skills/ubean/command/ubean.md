@@ -150,16 +150,20 @@ ubean analyze [options]
 
 **Options:**
 
-| Option  | Description                         | Default         |
-| ------- | ----------------------------------- | --------------- |
-| --cwd   | Project root                        | `process.cwd()` |
-| --write | Write `.ubean/bundle-baseline.json` | true            |
+| Option         | Description                                             | Default                       |
+| -------------- | ------------------------------------------------------- | ----------------------------- |
+| --cwd          | Project root                                            | `process.cwd()`               |
+| --write        | Write `.ubean/bundle-baseline.json`                     | true                          |
+| --out          | Output path                                             | `.ubean/bundle-baseline.json` |
+| --check        | Committed baseline JSON; fail if gzip exceeds threshold | —                             |
+| --max-increase | Allowed relative gzip growth with `--check`             | 0.05                          |
 
 **Examples:**
 
 ```bash
 ubean build && ubean analyze
 ubean analyze --write=false
+ubean analyze --check benchmarks/bundle-baseline.json --write=false
 ```
 
 ### ubean preview

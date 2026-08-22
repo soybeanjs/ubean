@@ -18,7 +18,7 @@ The ubean column is scored by **whether the default path actually does the thing
 | HTTP layer | Own runtime | Nitro | Adapters | Nitro | Adapters | Start server | Nitro | **Hono** |
 | Streaming SSR | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ experimental | ✅ |
 | SSG | ✅ | ✅ | ✅ | ✅ | ✅ (default) | ✅ | ✅ | ✅ |
-| ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ SWR | ⚠️ | ⚠️ | ⚠️ rules exist; default store is in-process memory |
+| ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ SWR | ⚠️ | ⚠️ | ⚠️ rules exist; Node production uses fs (`.ubean/cache`); serverless stays in-process memory |
 | Per-route render rules | ⚠️ partial | ✅ routeRules | ⚠️ | ⚠️ | ✅ | ✅ `ssr` / `data-only` | ⚠️ | ✅ `ssr`/`isr`/`prerender`/`rewrite`/`proxy` |
 | PPR / static shell | ✅ | ❌ | ❌ | ❌ | ✅ Server Islands | ❌ | ❌ | ⚠️ `ppr: true` forces streaming SSR; not a Next-style static shell |
 | Server Components | ✅ RSC | ✅ `.server.vue` | ❌ | ❌ | ❌ | ❌ (server functions) | ❌ | ✅ `.server.vue` (**not** RSC) |
@@ -33,7 +33,7 @@ The ubean column is scored by **whether the default path actually does the thing
 ## How to read the ubean column
 
 - **Wired**: streaming SSR, SSG, file-based routing (including parallel and intercepting routes), Server Actions / `defineServerFn`, `useFetch`, select SSR (`false` / `'data-only'` / `true`), `.server.vue`, Islands, vue-i18n 11, OpenAPI + Scalar, preset generators.
-- **API exists, default path incomplete**: ISR / component-cache stores default to in-process memory (`cache: { store: 'fs' }` is available). Sessions stay opt-in. CSRF (origin), security headers, and fetch Data Cache middleware mount by default. Dev `/_ipx` serves local files; without a transform library it passes the original through (`X-IPX-Mode: passthrough`). CF / Vercel Queue/DB use `@ubean/server/drivers` — memory is not a substitute.
+- **API exists, default path incomplete**: ISR on Node production defaults to **fs** (`.ubean/cache`); serverless/edge stay in-process memory. Component cache stays in memory. Sessions stay opt-in. CSRF (origin), security headers, and fetch Data Cache middleware mount by default. `src/sitemap.ts` / `robots.ts` conventions are registered by `createUbeanApp`. With `image` enabled, `/_ipx` is mounted in both dev and production (passthrough without a transform library, `X-IPX-Mode: passthrough`). Production bundles `src/crons`; persistent runtimes start the in-process scheduler, serverless does not. CF / Vercel Queue/DB use `@ubean/server/drivers` — memory is not a substitute.
 - **Deliberately out of scope**: React Server Components, a multi-UI runtime, a second in-house i18n engine, and Nuxt-style client `middleware/*.global` files (use `defineApp({ router: { setup } })` for guards). Need RSC? Use Next.js. Need a multi-framework content site? Use Astro.
 
 ## Feature Highlights

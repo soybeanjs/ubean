@@ -289,7 +289,8 @@ async function buildApp(
           ? false
           : (config.security?.headers ?? true),
     dataCache: config.dataCache,
-    cache: config.cache
+    cache: config.cache,
+    seoConventions: { srcDir: resolve(cwd, config.srcDir) }
   });
 
   app.hooks.hook('request:start', c => {

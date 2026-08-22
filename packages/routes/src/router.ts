@@ -583,7 +583,8 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
 
     // P9-03: per-route 渲染规则 —— 从 context 读取匹配的 routeRule,
     // 覆盖全局 ssr.exclude / streaming 配置。
-    // P9-04: `ppr: true` 隐式等价于 `ssr: 'streaming'`(强制流式 SSR + 覆盖 exclude)。
+    // `ppr: true` is an alias for forced streaming SSR + prerender discovery.
+    // It is not a Next.js-style static shell with dynamic holes.
     const routeRule = c.get('routeRule') as RouteRule | undefined;
     const perRouteSsr = routeRule?.ssr;
     const isrRule = normalizeIsrRule(routeRule?.isr);
@@ -594,7 +595,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     //   - `ssr: false`  → 强制 CSR(即使全局未排除)
     //   - `ssr: true`   → 强制 SSR(即使命中全局 exclude)
     //   - `ssr: 'streaming'` → 强制 SSR + 流式输出
-    // P9-04: `ppr: true` → 强制 SSR + 流式输出(等价于 `ssr: 'streaming'`)
+    // `ppr: true` → 强制 SSR + 流式输出(等价于 `ssr: 'streaming'`)
     let excluded = matchAnyGlob(page.route, ssrExclude);
     let routeStreaming = streaming;
     if (perRouteSsr === false) {
@@ -637,8 +638,8 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
 
     // 流式 SSR:当启用且 renderer 支持时,返回 ReadableStream 响应。
     // 回退:renderer 不支持流式时,renderPageToStream 内部自动降级为缓冲渲染。
-    // P9-04: PPR 路由也走此分支(ppr: true → routeStreaming = true),
-    //         响应头附加 `X-PPR: true` 标记,便于调试与可观测性。
+    // Streaming responses advertise `X-SSR-Mode`. `ppr: true` also sets
+    // `X-PPR: streaming` so operators know this is not a Next static shell.
     // P9-24: 爬虫/社交预览 UA 降级为缓冲渲染,保证动态 `<head>` metadata
     //         出现在初始响应中(社交爬虫只解析初始 `<head>`)。
     const userAgent = c.req.header('user-agent');
@@ -651,8 +652,11 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
         'app',
         renderContext as Parameters<typeof renderPageToStream>[4]
       );
-      const headers: Record<string, string> = { 'Content-Type': 'text/html; charset=utf-8' };
-      if (pprEnabled) headers['X-PPR'] = 'true';
+      const headers: Record<string, string> = {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-SSR-Mode': 'streaming'
+      };
+      if (pprEnabled) headers['X-PPR'] = 'streaming';
       return c.body(stream, {
         headers,
         ...(method === 'POST' && actionErrors ? { status: 422 } : {})

@@ -14,15 +14,29 @@
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { compile, createCoreContext, datetime, number, registerMessageCompiler, translate } from '@intlify/core';
+import type { LocaleMessage } from '@intlify/core';
 
 registerMessageCompiler(compile);
 
-export type LocaleMessages = Record<string, unknown>;
+export type LocaleMessages = LocaleMessage;
+
+function createI18nCoreContext(locale: string, fallback: string, messages: Record<string, LocaleMessages>) {
+  return createCoreContext({
+    locale,
+    fallbackLocale: fallback,
+    messages,
+    missingWarn: false,
+    fallbackWarn: false,
+    messageCompiler: compile
+  });
+}
+
+export type I18nCoreContext = ReturnType<typeof createI18nCoreContext>;
 
 export interface I18nRequestScope {
   locale: string;
   fallbackLocale: string;
-  ctx: ReturnType<typeof createCoreContext>;
+  ctx: I18nCoreContext;
   t?: (key: string, ...args: unknown[]) => string;
   d?: (value: Date | number | string, ...args: unknown[]) => string;
   n?: (value: number, ...args: unknown[]) => string;
@@ -36,7 +50,7 @@ interface I18nEngineState {
   catalogMeta: Map<string, { name?: string; dir: 'ltr' | 'rtl'; language?: string; isDefault?: boolean }>;
   fallbackLocaleCode: string;
   loadLocale?: LocaleLoader;
-  compiled: Map<string, { key: string; ctx: ReturnType<typeof createCoreContext> }>;
+  compiled: Map<string, { key: string; ctx: I18nCoreContext }>;
 }
 
 const ENGINE_KEY = '__UBEAN_I18N_ENGINE__' as const;
@@ -176,7 +190,7 @@ function catalogFingerprint(locale: string, fallback: string, catalogs: Map<stri
   return `${locale}:${fallback}:${loc ? Object.keys(loc).join(',') : ''}:${fb ? Object.keys(fb).join(',') : ''}`;
 }
 
-export function createRequestContext(locale: string, fallback?: string): ReturnType<typeof createCoreContext> {
+export function createRequestContext(locale: string, fallback?: string): I18nCoreContext {
   const state = getState();
   const { catalogs, fallbackLocaleCode, compiled } = state;
   const fb = fallback ?? fallbackLocaleCode;
@@ -191,14 +205,7 @@ export function createRequestContext(locale: string, fallback?: string): ReturnT
     const fbMsgs = catalogs.get(fb);
     if (fbMsgs) messages[fb] = fbMsgs;
   }
-  const ctx = createCoreContext({
-    locale,
-    fallbackLocale: fb,
-    messages: messages as never,
-    missingWarn: false,
-    fallbackWarn: false,
-    messageCompiler: compile
-  });
+  const ctx = createI18nCoreContext(locale, fb, messages);
   compiled.set(locale, { key: fingerprint, ctx });
   return ctx;
 }
@@ -263,20 +270,17 @@ export function n(value: number, ...args: unknown[]): string {
   return (scope.n ?? bindScope(scope).n!)(value, ...args);
 }
 
+function isMessageDict(value: unknown): value is LocaleMessages {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
 function deepMerge(target: LocaleMessages, source: LocaleMessages): LocaleMessages {
   const result: LocaleMessages = { ...target };
   for (const key of Object.keys(source)) {
     const srcVal = source[key];
     const tgtVal = result[key];
-    if (
-      srcVal &&
-      typeof srcVal === 'object' &&
-      !Array.isArray(srcVal) &&
-      tgtVal &&
-      typeof tgtVal === 'object' &&
-      !Array.isArray(tgtVal)
-    ) {
-      result[key] = deepMerge(tgtVal as LocaleMessages, srcVal as LocaleMessages);
+    if (isMessageDict(srcVal) && isMessageDict(tgtVal)) {
+      result[key] = deepMerge(tgtVal, srcVal);
     } else {
       result[key] = srcVal;
     }

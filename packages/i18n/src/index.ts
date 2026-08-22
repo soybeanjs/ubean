@@ -38,7 +38,7 @@ export {
   registerLocaleLoader,
   ensureLocaleMessages
 } from './context';
-export type { LocaleMessages, I18nRequestScope } from './context';
+export type { LocaleMessages, I18nRequestScope, I18nCoreContext } from './context';
 
 export { detectLocaleFromAcceptLanguage, parseLocaleCookie, serializeLocaleCookie } from './detect';
 

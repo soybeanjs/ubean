@@ -16,6 +16,7 @@
  * - `InternalFetchOptions` 类型:来自 `@ubean/pages`,与 `@ubean/routes` 版本冲突 → 保留 pages 版本
  * - `PageHead` 类型:来自 `@ubean/scan`(re-export `@ubean/vue`,页面路由唯一所有者的权威版本),与 `@ubean/shared` 的下沉副本冲突 → 保留 scan 版本
  * - `PageAssetTags` 类型:来自 `@ubean/pages`,与 `@ubean/app` 版本冲突 → 保留 pages 版本
+ * - `HttpMethod` 类型:来自 `@ubean/scan`(API 路由,含 HEAD/OPTIONS),与 `@ubean/pages` 的 useFetch 子集冲突 → 保留 scan 版本
  */
 
 // ============== 基础层(leaf packages,无内部冲突)==============
@@ -208,7 +209,7 @@ export { defineDataKey } from '@ubean/pages'; // pages 模块的 defineDataKey
 // 原 `clearDataCache` 同名冲突已消歧:pages 版 → `clearPageData`,
 // server 版 → `clearFetchDataCache`,两者均经 `export *` 从主包导出,不再需要别名
 export type { InternalFetchOptions, PageAssetTags, PageRenderer } from '@ubean/pages';
-export type { PageHead } from '@ubean/scan'; // 页面 head 类型以 @ubean/vue(经 scan 聚合)为准
+export type { PageHead, HttpMethod } from '@ubean/scan'; // PageHead 以 vue(经 scan)为准;HttpMethod 为 API 路由方法(含 HEAD/OPTIONS)
 
 // ============== CLI scaffold 库(对齐原 ubean 主入口导出)==============
 // `@ubean/cli` 主入口现在是纯库导出(scaffold/fs-ops/templates),无 `runMain` 副作用

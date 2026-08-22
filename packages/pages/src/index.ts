@@ -40,7 +40,7 @@ export {
   __resetDataPayloadCache
 } from './data';
 export { useFetch, setDefaultFetch, getDefaultFetch } from './fetch';
-export type { UseFetchOptions, FetchClient, HttpMethod } from './fetch';
+export type { UseFetchOptions, FetchClient } from './fetch';
 
 export type { PageHead, PageHead as PageHeadMeta } from '@ubean/shared';
 

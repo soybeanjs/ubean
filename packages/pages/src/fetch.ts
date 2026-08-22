@@ -8,7 +8,7 @@
 import { useAsyncData } from './data';
 import type { DataResult, UseAsyncDataOptions } from './data';
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
 export interface FetchClient {
   get?: <T>(url: string, options?: { query?: Record<string, unknown> }) => Promise<T>;

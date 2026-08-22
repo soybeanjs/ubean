@@ -19,7 +19,7 @@ The ubean column is scored by **whether the default path actually does the thing
 | Streaming SSR | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ experimental | ✅ |
 | SSG | ✅ | ✅ | ✅ | ✅ | ✅ (default) | ✅ | ✅ | ✅ |
 | ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ SWR | ⚠️ | ⚠️ | ⚠️ rules exist; default store is in-process memory |
-| Per-route render rules | ⚠️ partial | ✅ routeRules | ⚠️ | ⚠️ | ✅ | ✅ `ssr` / `data-only` | ⚠️ | ⚠️ `ssr`/`isr`/`prerender` wired; **rewrite not executed, proxy is types-only** |
+| Per-route render rules | ⚠️ partial | ✅ routeRules | ⚠️ | ⚠️ | ✅ | ✅ `ssr` / `data-only` | ⚠️ | ✅ `ssr`/`isr`/`prerender`/`rewrite`/`proxy` |
 | PPR / static shell | ✅ | ❌ | ❌ | ❌ | ✅ Server Islands | ❌ | ❌ | ⚠️ `ppr: true` forces streaming SSR; not a Next-style static shell |
 | Server Components | ✅ RSC | ✅ `.server.vue` | ❌ | ❌ | ❌ | ❌ (server functions) | ❌ | ✅ `.server.vue` (**not** RSC) |
 | Server Actions / server functions | ✅ | ❌ first-class | ✅ form actions | ✅ | ✅ | ✅ `createServerFn` | ✅ 2.7 | ✅ `defineAction` + `?/<name>` |
@@ -33,7 +33,7 @@ The ubean column is scored by **whether the default path actually does the thing
 ## How to read the ubean column
 
 - **Wired**: streaming SSR, SSG, file-based routing (including parallel and intercepting routes), Server Actions, `.server.vue`, Islands, vue-i18n 11, OpenAPI + Scalar, preset generators.
-- **API exists, default path incomplete**: ISR / component-cache stores are in-process memory; CSRF, sessions, and fetch Data Cache live on `@ubean/server` and are **not** mounted by `createUbeanApp`; the image dev `/_ipx` handler currently **302s to the original file**.
+- **API exists, default path incomplete**: ISR / component-cache stores default to in-process memory (`cache: { store: 'fs' }` is available). Sessions stay opt-in. CSRF (origin), security headers, and fetch Data Cache middleware mount by default. Dev `/_ipx` serves local files; without a transform library it passes the original through (`X-IPX-Mode: passthrough`).
 - **Deliberately out of scope**: React Server Components, a multi-UI runtime, and a second in-house i18n engine. Need RSC? Use Next.js. Need a multi-framework content site? Use Astro.
 
 ## Feature Highlights
@@ -51,7 +51,7 @@ Streaming SSR, SSG, ISR (at the rules layer), and `routeRules` for `ssr` / `prer
 
 ### Routing
 
-File-based routes, parallel routes (`@slotName/` → Vue Router named views + `<SlotView>`), intercepting routes, groups, nested layouts, and `404` / `loading` / `error` convention files. `routeRules.redirect` and headers run. **rewrite / proxy are not runtime behaviors yet**.
+File-based routes, parallel routes (`@slotName/` → Vue Router named views + `<SlotView>`), intercepting routes, groups, nested layouts, and `404` / `loading` / `error` convention files. `routeRules.redirect` / `rewrite` / `proxy` / headers all run. `rewrite` rematches internally; `proxy` forwards to the target URL.
 
 ### Internationalization
 

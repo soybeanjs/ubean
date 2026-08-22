@@ -80,20 +80,20 @@ TanStack Start 的切口不是「再做一个 loader 品牌」，而是：**调�
 
 ## 5. 值得做（已过过滤器）
 
-每条都标了门槛位。状态：⬜ 未开始。
+每条都标了门槛位。Q4 还债（D01–D08）已落地。H1 仍为 ⬜。
 
 ### 5.1 2026 Q4 · 还债（架构 40% 优先）
 
 | ID | 任务 | 门槛 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-D01** | 单份 runtime 策略：把 i18n 的 `ssr.external` + `optimizeDeps.exclude` + `globalThis` 桥抽象成框架规则，覆盖 `@ubean/client` / `@ubean/i18n` / 主包 `ubean` | 架构还债 + 性能 | 开发与生产对「必须单例的包」同一策略；回归 ALS / 客户端 i18n 双份用例 |
-| **RM-D02** | 接线 `routeRules.rewrite`：匹配后改写内部 path，再进 router（对齐 Nuxt rewrite 语义） | 用户习惯缺口 + 架构还债 | 类型、中间件、e2e 三处一致；文档不再暗示「已支持」却 404 |
-| **RM-D03** | 接线或删除 `routeRules.proxy`：要么实现反向代理，要么从公共类型拿掉 | 架构还债 | 不出现「类型有、运行时无」 |
-| **RM-D04** | PPR 名实：要么实现静态壳（prerender HTML + 流式洞），要么改名（`streaming` / server islands）并改公开对比 | 架构还债 + 差异化 | 站点与 `X-PPR` 不再暗示 Next 级 PPR |
-| **RM-D05** | 默认安全链：CSRF + security headers 进入 `createUbeanApp`，提供显式 opt-out；sessions 保持 opt-in 但文档一条命令启用 | 用户习惯缺口 + 差异化 | 新应用默认有 CSRF；测试用注册断言证明挂载 |
-| **RM-D06** | Fetch Data Cache / `revalidateTag` 与默认请求路径打通（或官方一键 `dataCache: true`） | 用户习惯缺口 + 性能 | 文档示例不需要手搓三层中间件 |
-| **RM-D07** | ISR / 组件缓存 / Data Cache 的 **非内存** 默认适配：至少 unstorage 一条生产路径（CF KV 或 fs） | 架构还债 + 性能 | serverless 两实例之间能 HIT 或明确文档「内存 = 单进程」 |
-| **RM-D08** | 图片 dev `/_ipx`：真实变换或降级文案；禁止再写「多 provider 优化」除非有一条可用链路 | 架构还债 | 开发态 URL 要么出图要么文档写 302 |
+| **RM-D01** ✅ | 单份 runtime 策略：`ssrSingletonDevPolicy` / `ssrSingletonProdSsr` 供 Vite 与 production 共用 | 架构还债 + 性能 | 开发与生产对「必须单例的包」同一策略 |
+| **RM-D02** ✅ | 接线 `routeRules.rewrite`：`dispatch` 内部再匹配 | 用户习惯缺口 + 架构还债 | 中间件 + 单测 + 生产模板注入 `routeRules` |
+| **RM-D03** ✅ | 接线 `routeRules.proxy`：反向代理 + hop-by-hop 头过滤 | 架构还债 | 类型、merge、运行时一致 |
+| **RM-D04** ✅ | PPR 名实：`ppr` 明确为流式别名；`X-SSR-Mode` / `X-PPR: streaming` | 架构还债 + 差异化 | 不再暗示 Next 静态壳 |
+| **RM-D05** ✅ | 默认 CSRF（origin）+ security headers；`csrf: false` / `security: false` opt-out | 用户习惯缺口 + 差异化 | 注册断言覆盖默认挂载 |
+| **RM-D06** ✅ | `dataCache` 默认挂载（仍需 `fetch(..., { next })` 才缓存） | 用户习惯缺口 + 性能 | 一键 `dataCache: false` 关闭 |
+| **RM-D07** ✅ | `createFsCacheStore` / `createStorageCacheStore`；默认仍是内存 | 架构还债 + 性能 | `cache: { store: 'fs', dir }` |
+| **RM-D08** ✅ | `/_ipx` 开发态读本地文件；无变换库时 `X-IPX-Mode: passthrough`，远程仍 302 | 架构还债 | 不再静默 302 到原图路径 |
 
 ### 5.2 2027 H1 · 用户可见缺口
 

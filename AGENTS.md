@@ -350,13 +350,13 @@ await revalidatePath('getUser:*');
 
 `RouteRule` 字段(P9-03 + P9-04 扩展):`redirect` / `rewrite` / `proxy` / `headers` / `cache` / `ssr`(boolean \| `'streaming'`) / `prerender`(boolean) / `isr`(number \| `{ ttl, swr? }`) / `ppr`(boolean)
 
-通配符:`*` 单段,`**` 多段递归;处理顺序:redirect > rewrite > headers(合并) > cache;渲染字段 `ssr`/`isr`/`prerender`/`ppr` 由 router 在页面请求阶段处理,优先级:`routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`;`ppr: true` 隐含 `prerender: true` + 强制流式 SSR,router 附加 `X-PPR: true` 响应头
+通配符:`*` 单段,`**` 多段递归;处理顺序:redirect > rewrite（内部 `dispatch` 再匹配）> proxy（反向代理）> headers(合并) > cache;渲染字段 `ssr`/`isr`/`prerender`/`ppr` 由 router 在页面请求阶段处理,优先级:`routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`;`ppr: true` 是强制流式 SSR + 预渲染发现的别名（**不是** Next 静态壳）,响应头 `X-SSR-Mode: streaming` + `X-PPR: streaming`
 
 ### Partial Prerendering / Server Islands (P9-04 + Task 9.4)
 
 | API                                        | 说明                                                                                                                                                                                   |
 | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `routeRules: { '/path': { ppr: true } }`   | 启用 PPR:静态壳预渲染 + Suspense 流式动态;隐含 `prerender: true` + 强制流式 SSR(等价 `ssr: 'streaming'`)                                                                               |
+| `routeRules: { '/path': { ppr: true } }`   | 强制流式 SSR + 预渲染发现（等价 `ssr: 'streaming'`，隐含 `prerender: true`）。不是 Next 静态壳                                                                                         |
 | `defineServerIsland(Component, options?)`  | 运行时包装器:将异步组件包裹在 `<Suspense>` 中,`options.fallback` 指定 fallback(字符串/组件/默认占位);Task 9.4 起 `options.rerenderOnPropsChange: true` 启用 props 变化触发服务端重渲染 |
 | `ServerIslandOptions`                      | `{ fallback?: Component \| string; rerenderOnPropsChange?: boolean }` 类型(Task 9.4 扩展)                                                                                              |
 | `registerServerComponent(path, Component)` | Task 9.4:将组件注册到全局服务端组件注册表(路径 → 组件);SSR 构建中由 `defineServerIsland` 在 `rerenderOnPropsChange: true` 时自动调用                                                   |

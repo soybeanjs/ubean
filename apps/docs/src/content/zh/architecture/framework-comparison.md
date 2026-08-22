@@ -19,7 +19,7 @@ ubean 列按**默认路径是否真的做了**来标，而不是「类型里有�
 | 流式 SSR | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ⚠️ 实验 | ✅ |
 | SSG | ✅ | ✅ | ✅ | ✅ | ✅（默认） | ✅ | ✅ | ✅ |
 | ISR | ✅ | ✅ routeRules | ⚠️ | ⚠️ | ✅ SWR | ⚠️ | ⚠️ | ⚠️ 规则在，默认进程内存 |
-| 每路由渲染规则 | ⚠️ 部分 | ✅ routeRules | ⚠️ | ⚠️ | ✅ | ✅ `ssr` / `data-only` | ⚠️ | ⚠️ `ssr`/`isr`/`prerender` 已接线；**rewrite 未执行，proxy 仅类型** |
+| 每路由渲染规则 | ⚠️ 部分 | ✅ routeRules | ⚠️ | ⚠️ | ✅ | ✅ `ssr` / `data-only` | ⚠️ | ✅ `ssr`/`isr`/`prerender`/`rewrite`/`proxy` |
 | PPR / 静态壳 | ✅ | ❌ | ❌ | ❌ | ✅ Server Islands | ❌ | ❌ | ⚠️ `ppr: true` = 强制流式 SSR，不是 Next 级静态壳 |
 | Server Components | ✅ RSC | ✅ `.server.vue` | ❌ | ❌ | ❌ | ❌（用 server functions） | ❌ | ✅ `.server.vue`（**不是** RSC） |
 | Server Actions / 服务端函数 | ✅ | ❌ 一等 | ✅ form actions | ✅ | ✅ | ✅ `createServerFn` | ✅ 2.7 | ✅ `defineAction` + `?/<name>` |
@@ -33,7 +33,7 @@ ubean 列按**默认路径是否真的做了**来标，而不是「类型里有�
 ## 如何读 ubean 这一列
 
 - **已接线**：流式 SSR、SSG、文件路由（含并行 / 拦截路由）、Server Actions、`.server.vue`、Islands、vue-i18n 11、OpenAPI + Scalar、平台预设生成器。
-- **有 API、默认不完整**：ISR / 组件缓存的存储是进程内存；CSRF、Sessions、fetch Data Cache 在 `@ubean/server`，**不**随 `createUbeanApp` 默认挂载；图片开发态 `/_ipx` 目前 **302 回原图**。
+- **有 API、默认不完整**：ISR / 组件缓存默认仍是**进程内存**（可用 `cache: { store: 'fs' }`）；Sessions 仍 opt-in。CSRF（origin）与安全头、fetch Data Cache 中间件默认挂载。图片开发态 `/_ipx` 读本地文件；无变换库时透传原图（`X-IPX-Mode: passthrough`）。
 - **刻意不做**：React Server Components、多 UI 运行时、自研第二套 i18n 引擎。需要 RSC 请用 Next.js；需要多框架内容站请用 Astro。
 
 ## 功能亮点
@@ -51,7 +51,7 @@ ubean 列按**默认路径是否真的做了**来标，而不是「类型里有�
 
 ### 路由
 
-文件式路由：并行路由（`@slotName/` → Vue Router named views + `<SlotView>`）、拦截路由、路由组、嵌套布局、`404` / `loading` / `error`。`routeRules.redirect` 与 headers 已执行；**rewrite / proxy 尚未作为运行时行为接线**。
+文件式路由：并行路由（`@slotName/` → Vue Router named views + `<SlotView>`）、拦截路由、路由组、嵌套布局、`404` / `loading` / `error`。`routeRules.redirect` / `rewrite` / `proxy` / headers 均已执行。`rewrite` 内部再匹配路由；`proxy` 转发到目标 URL。
 
 ### 国际化
 

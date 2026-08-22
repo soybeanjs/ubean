@@ -5,7 +5,7 @@ import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
-import { useVirtualRegistry, getComponentResolvers } from '@ubean/build-core';
+import { useVirtualRegistry, getComponentResolvers, ssrSingletonDevPolicy } from '@ubean/build-core';
 import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolvePartyTownConfig } from '@ubean/client';
 import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '@ubean/codegen';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
@@ -195,10 +195,11 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
       } catch {
         /* keep specifier */
       }
+      const singleton = ssrSingletonDevPolicy();
       return {
         appType: 'custom',
         resolve: {
-          dedupe: ['vue', 'vue-i18n', '@ubean/client', '@ubean/i18n'],
+          ...singleton.resolve,
           alias: {
             'vue-i18n': vueI18nEntry,
             '@intlify/core': intlifyCoreEntry,
@@ -206,17 +207,10 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
           }
         },
         optimizeDeps: {
-          // Workspace client/i18n must not be prebundled — a stale dep cache
-          // is a second copy of the runtime store (hydration: SSR /zh, client /).
-          exclude: ['ubean', '@ubean/client', '@ubean/i18n', ...VIRTUAL_IDS, ...HASH_IDS],
-          include: ['vue-i18n']
+          exclude: [...singleton.optimizeDeps.exclude, ...VIRTUAL_IDS, ...HASH_IDS],
+          include: singleton.optimizeDeps.include
         },
-        ssr: {
-          noExternal: ['ubean', 'vue-i18n', '@intlify/core', '@intlify/core-base'],
-          // Linked workspace packages are bundled by Vite SSR by default.
-          // Keep a single Node copy so ALS / catalogs match `@ubean/app`.
-          external: ['@ubean/i18n']
-        }
+        ssr: singleton.ssr
       };
     },
 

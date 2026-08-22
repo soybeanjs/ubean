@@ -27,3 +27,12 @@ export {
   getCssImports,
   resetModuleRegistry
 } from './registry';
+
+export {
+  SSR_SINGLETON_PACKAGES,
+  SSR_SINGLETON_DEDUPE,
+  SSR_SINGLETON_OPTIMIZE_EXCLUDE,
+  ssrSingletonDevPolicy,
+  ssrSingletonProdSsr,
+  ssrSingletonProdOptimizeExclude
+} from './ssr-singleton';

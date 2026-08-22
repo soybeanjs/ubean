@@ -3,7 +3,7 @@ import { mkdir, writeFile, rm, cp, readFile } from 'node:fs/promises';
 import { build as viteBuild } from 'vite';
 import type { Plugin as VitePlugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { useVirtualRegistry } from '@ubean/build-core';
+import { useVirtualRegistry, ssrSingletonProdOptimizeExclude, ssrSingletonProdSsr } from '@ubean/build-core';
 import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
 import type { ResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
@@ -694,8 +694,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
       plugins: [...plugins],
       resolve: commonResolve,
       optimizeDeps: {
-        exclude: [
-          'ubean',
+        exclude: ssrSingletonProdOptimizeExclude([
           'virtual:ubean-pages',
           'virtual:ubean-app',
           'virtual:ubean-server',
@@ -704,7 +703,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
           '#ubean-app',
           '#ubean-server',
           '#ubean-client-entry'
-        ]
+        ])
       }
     });
 
@@ -737,7 +736,9 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         // (e.g. `virtual:ubean-islands-registry` in `ubean/runtime/vue`) are
         // resolved by Vite plugins rather than leaking as bare `virtual:`
         // imports that Node's ESM loader cannot resolve at prerender time.
-        noExternal: ['ubean']
+        // Shared with the dev plugin via ssrSingletonProdSsr() — do not
+        // also externalize @ubean/i18n here (that would duplicate ALS).
+        ...ssrSingletonProdSsr()
       },
       build: {
         outDir: outDirs.server,

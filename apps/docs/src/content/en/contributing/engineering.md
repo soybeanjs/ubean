@@ -167,7 +167,7 @@ Coverage is used to find blind spots; it is not a release standard that replaces
 ### 6.4 Current Verification Baseline (2026-08-03)
 
 - Main package (`ubean`): 38 test files, **799 tests passing** (81 DevTools tests moved to the standalone `@ubean/devtools` package).
-- Core subpackages: `@ubean/islands` 199 (directive / paired-components / server-client-components / islands-registry / server-component-rerender), `@ubean/ssr` 18, `@ubean/actions` 69, `@ubean/routes` route-rules 27, `@ubean/devtools` 81, examples/ubean-test prerender 92.
+- Core subpackages: `@ubean/islands` 199 (directive / paired-components / server-client-components / islands-registry / server-component-rerender), `@ubean/client/ssr` (former `@ubean/ssr`), `@ubean/routes` (includes Server Actions), `@ubean/devtools` 81, examples/ubean-test prerender 92.
 - Extension packages: `@ubean/icon` 32, `@ubean/auth` 13, `@ubean/integrations/pwa` 19, `@ubean/image` 42, `@ubean/content` 18, `@ubean/integrations/fonts` 21, `@ubean/seo` 114.
 - **~1075 tests passing** across the whole repo.
 - `pnpm typecheck`: passes. The TypeScript 7 and `vue-tsc` compatibility layer is provided via the workspace override `typescript: npm:typescript-native-bridge@0.0.0`; its native dependency `koffi` must be explicitly allowed in the `allowBuilds` list of `pnpm-workspace.yaml`.

@@ -184,7 +184,7 @@ const DEFINE_SERVER_ISLAND_RE = /\bdefineServerIsland\s*\(/g;
  * 预扫描代码,返回所有"非代码"区间 `[start, end)`:注释(块/行)和字符串字面量。
  *
  * 用于跳过注释/字符串内的 `defineServerIsland(` 匹配(如 JSDoc 示例或说明性字符串)。
- * 复用 `@ubean/actions` Vite 插件的成熟模式 (见 lessons #P-lessons)。
+ * 复用 `@ubean/build/actions` Vite 插件的成熟模式 (见 lessons #P-lessons)。
  */
 function findNonCodeRanges(code: string): Array<[number, number]> {
   const ranges: Array<[number, number]> = [];

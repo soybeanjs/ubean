@@ -15,7 +15,8 @@ import { ref } from 'vue';
 import type { Ref } from 'vue';
 import { ACTION_BRAND } from '@ubean/shared';
 import type { ActionHandler, ActionResult, ServerAction } from '@ubean/shared';
-import { ACTIONS_ENDPOINT, ACTION_RESPONSE_HEADER, buildFormActionUrl } from './index';
+import { ACTION_RESPONSE_HEADER, ACTIONS_ENDPOINT } from './actions/constants';
+import { buildFormActionUrl } from './actions/form-action';
 
 /**
  * Create a client-side stub for a server action.
@@ -358,4 +359,4 @@ export function useFormAction(actionName: string = 'default'): UseFormActionRetu
   };
 }
 
-export { invokeServerFn, unwrapActionResult, unwrapServerFnResult } from './invoke';
+export { invokeServerFn, unwrapActionResult, unwrapServerFnResult } from './actions/invoke';

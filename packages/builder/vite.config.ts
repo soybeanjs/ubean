@@ -10,9 +10,17 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts', 'src/vite.ts', 'src/vue.ts', 'src/production.ts', 'src/prerender.ts'],
+    entry: [
+      'src/index.ts',
+      'src/vite.ts',
+      'src/vue.ts',
+      'src/production.ts',
+      'src/prerender.ts',
+      'src/codegen/index.ts',
+      'src/actions-plugin.ts'
+    ],
     deps: {
-      neverBundle: [/^@ubean\//, /^node:/]
+      neverBundle: [/^@ubean\//, /^node:/, 'openapi-typescript', 'pathe', 'unimport', 'tinyglobby']
     }
   },
   test: {

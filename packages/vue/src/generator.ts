@@ -1,4 +1,4 @@
-import type { ScannedPage, ScannedLayout } from '../types';
+import type { ScannedPage, ScannedLayout } from './types';
 
 /**
  * 实体路由文件生成器(页面路由实体文件模式的唯一所有者,原

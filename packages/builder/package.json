@@ -1,7 +1,7 @@
 {
   "name": "@ubean/build",
   "version": "0.2.2",
-  "description": "Vite plugins, production build, and SSG prerender for ubean (core plugin + Vue plugin + prerender)",
+  "description": "Vite plugins, production build, SSG prerender, type codegen, and Server Actions plugin for ubean",
   "files": [
     "dist"
   ],
@@ -29,6 +29,14 @@
     "./prerender": {
       "types": "./dist/prerender.d.ts",
       "import": "./dist/prerender.js"
+    },
+    "./codegen": {
+      "types": "./dist/codegen/index.d.ts",
+      "import": "./dist/codegen/index.js"
+    },
+    "./actions": {
+      "types": "./dist/actions-plugin.d.ts",
+      "import": "./dist/actions-plugin.js"
     }
   },
   "scripts": {
@@ -40,7 +48,6 @@
   "dependencies": {
     "@intlify/unplugin-vue-i18n": "catalog:",
     "@ubean/client": "workspace:*",
-    "@ubean/codegen": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/i18n": "workspace:*",
     "@ubean/islands": "workspace:*",
@@ -50,11 +57,13 @@
     "@ubean/routes": "workspace:*",
     "@ubean/scan": "workspace:*",
     "@ubean/shared": "workspace:*",
-    "@ubean/ssr": "workspace:*",
     "@ubean/vue": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.8",
+    "openapi-typescript": "^7.13.0",
     "oxc-transform": "^0.146.0",
     "pathe": "^2.0.3",
+    "tinyglobby": "^0.2.17",
+    "unimport": "^6.4.0",
     "unplugin-auto-import": "21.1.0",
     "unplugin-vue-components": "^32.1.0",
     "unplugin-vue-markdown": "^32.0.0",
@@ -62,19 +71,16 @@
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "hono": "4.13.3",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
-    "unimport": "^6.3.1",
     "vite": "catalog:"
   },
   "peerDependenciesMeta": {
     "vite": {
-      "optional": true
-    },
-    "unimport": {
       "optional": true
     }
   }

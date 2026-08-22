@@ -17,7 +17,7 @@ import { defineComponent, h } from 'vue';
 import { renderPageToStream, SSR_CONTENT_MARKER, STATE_DATA_ID, STATE_MARKER } from '@ubean/pages';
 import type { PageObject, PageRenderer } from '@ubean/pages';
 import { useHead } from '@unhead/vue';
-import { createVueRenderer } from '../src/index';
+import { createVueRenderer } from '../src/ssr';
 
 /** 读取 ReadableStream<Uint8Array> 为完整字符串。 */
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {

@@ -1,7 +1,6 @@
 import { createUbeanApp } from '@ubean/app';
-import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/codegen';
+import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/build/codegen';
 import { loadUbeanConfig } from '@ubean/config';
-import { createDevRunner, createDevWatcher, logDiagnostics } from '@ubean/dev-server';
 import {
   resolvePresetByName,
   registerBuiltinPresets,
@@ -15,6 +14,7 @@ import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { green, cyan, dim, bold } from 'kolorist';
 import { resolve } from 'pathe';
+import { createDevRunner, createDevWatcher, logDiagnostics } from './dev-server';
 
 const logger = getLogger('cli');
 

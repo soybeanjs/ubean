@@ -164,13 +164,12 @@ ubean/
 │   │   ├── test/                 # 单元 + 集成测试
 │   │   └── package.json
 │   ├── shared/                   # @ubean/shared — 共享类型 / 工具函数 / 错误 / 环境变量
-│   ├── vue/ markdown/ seo/ pages/ i18n/ logger/   # 基础/共享：Vue 页面路由内核、Markdown、SEO、页面协议、i18n、日志
-│   ├── routes/ actions/ server/ app/              # 服务端运行时：API 路由、Server Actions、Hono 服务、应用工厂
-│   ├── build-core/ builder/ vite/ codegen/        # 构建时：build-core（零依赖）、@ubean/build、Vite 插件、类型生成
-│   │   config/ preset/ modules/ prerender/
+│   ├── vue/ markdown/ seo/ pages/ i18n/           # 基础/共享：Vue 页面路由内核、Markdown、SEO、页面协议、i18n
+│   ├── routes/ server/ app/                       # 服务端运行时：API 路由 + Server Actions、Hono 服务、应用工厂
+│   ├── builder/ config/ preset/                   # 构建时：@ubean/build（Vite + prerender + codegen）、配置、预设
 │   ├── scan/                    # @ubean/scan — 项目扫描 (scanProject + 路由元数据)
-│   ├── client/                  # @ubean/client — Vue 客户端运行时（createUbeanClientApp + 客户端自动导入）
-│   ├── ssr/ islands/ dev-server/ cli/ devtools/   # 服务/工具：SSR 渲染、Islands、开发服务器、CLI、DevTools
+│   ├── client/                  # @ubean/client — Vue 客户端运行时（含 ./ssr 渲染器）
+│   ├── islands/ cli/ devtools/  # 服务/工具：Islands、CLI（含 dev server）、DevTools
 │   └── ai/ auth/ icon/ image/ content/ integrations/   # 扩展（integrations 含 pwa/fonts/electron/ui/pinia 子路径）
 ├── apps/
 │   └── docs/                     # 官方文档站（指南 / 集成 / API / 架构正文，dogfooding）

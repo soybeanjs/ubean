@@ -17,7 +17,7 @@ ubean/（npm 包名：`ubean`，**不是** `@ubean/core`）是一个基于 Vite-
 
 ```
 ubean/
-├── packages/                # 28 个包（monorepo）
+├── packages/                # 24 个包（monorepo）
 │   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
 │   │
 │   │   ── 基础 / 共享层（leaf packages）──
@@ -29,14 +29,12 @@ ubean/
 │   ├── i18n/                # @ubean/i18n — 国际化（@intlify/core + 约束前缀路由）
 │   │
 │   │   ── 服务端运行时 ──
-│   ├── routes/              # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 router + ISR + route-rules + OpenAPI + internal-fetch；原 api-routes)
-│   ├── actions/             # @ubean/actions — Server Actions / Form Actions（defineAction + Vite 插件注入 ID）
+│   ├── routes/              # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 + ISR + route-rules + OpenAPI + Server Actions；含 ./runtime)
 │   ├── server/              # @ubean/server — 服务端运行时（cache/db/queue/cron/ws/sse）
 │   ├── app/                 # @ubean/app — Hono 应用工厂（createUbeanApp → UbeanApp）
 │   │
 │   │   ── 构建时工具 ──
-│   ├── builder/             # @ubean/build — Vite 插件（./vite 核心 + ./vue Vue 专属）+ 生产构建 + ./prerender SSG
-│   ├── codegen/             # @ubean/codegen — 类型生成（含原 auto-imports 的 VUE_PRESET/UBEAN_CLIENT_PRESET）
+│   ├── builder/             # @ubean/build — Vite 插件（./vite + ./vue + ./actions）+ 生产构建 + ./prerender SSG + ./codegen
 │   ├── config/              # @ubean/config — 配置加载 + 模块系统（defineModule / resolveModules）
 │   ├── preset/              # @ubean/preset — 平台预设（standard/node/cloudflare/vercel/netlify/bun/deno）
 │   │
@@ -44,13 +42,11 @@ ubean/
 │   ├── scan/                # @ubean/scan — 项目扫描器 + 路由元数据聚合（页面扫描委托 @ubean/vue；原 routing 的扫描部分）
 │   │
 │   │   ── 客户端运行时 ──
-│   ├── client/              # @ubean/client — 框架客户端运行时（基于 @ubean/vue 内核；含 /app、/define-app、/server 子路径；原 runtime）
+│   ├── client/              # @ubean/client — 框架客户端运行时（基于 @ubean/vue 内核；含 /app、/define-app、/server、/ssr 子路径）
 │   │
 │   │   ── 服务 / 工具 ──
-│   ├── ssr/                 # @ubean/ssr — Vue SSR 渲染器
 │   ├── islands/             # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
-│   ├── dev-server/          # @ubean/dev-server — Dev server
-│   ├── cli/                 # @ubean/cli — CLI 命令
+│   ├── cli/                 # @ubean/cli — CLI 命令 + Dev server
 │   ├── devtools/            # @ubean/devtools — DevTools 独立包（opt-in，不进聚合器硬依赖）
 │   │
 │   │   ── 扩展包 ──
@@ -77,7 +73,7 @@ ubean/
 ubean 采用 **monorepo + 聚合器** 架构：
 
 - **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含多个子路径导出（见下文）。
-- **子包 `@ubean/*`**（其余 27 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **子包 `@ubean/*`**（其余 23 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
 - **扩展包**（`ai`/`auth`/`icon`/`image`/`content` 独立包，`pwa`/`fonts`/`electron`/`pinia`/`ui` 为 `@ubean/integrations` 子路径）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`pinia: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径；**不**进入主包硬依赖。
 - **客户端内核分层**：`@ubean/vue`（精简内核，vue + vue-router only）→ `@ubean/client`（框架运行时，app 工厂/unhead/i18n/数据层）→ `ubean/client`（主包一等客户端入口）。独立 SPA 可直接依赖 `@ubean/vue` 或 `ubean/client`，不拉入服务端构建依赖。
 
@@ -93,7 +89,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `ubean/runtime/vue`  | 浏览器端 Vue 客户端运行时（re-export `ubean/client` 全部导出 + Server Actions 运行时 + islands 注册表桥接） | 客户端自动导入           |
 | `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`）                                                     | `src/server.ts`          |
 | `ubean/runtime/i18n` | 服务端纯函数 i18n                                                                                           | 构建时 i18n              |
-| `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）                                                                       | 自定义 SSR               |
+| `ubean/vue-ssr`      | Vue SSR 渲染器（re-export `@ubean/client/ssr` 的 `createVueRenderer`；不要从 `@ubean/client` 主入口导入）   | 自定义 SSR               |
 
 > **注意**：客户端自动导入必须用 `ubean/runtime/vue` 或 `ubean/client` 入口，不能从 `ubean` 主入口导入（会触发 Vite 在浏览器环境预构建服务端依赖）。`ubean/runtime/vue` 在 `@ubean/client` 之上额外提供 Server Actions 运行时（`callAction`/`useAction`/`useFormAction`）与 islands 注册表桥接的 `hydrateIslands`；`ubean/client` 额外含 `createServerHead`（供框架 SSR 构建使用）。独立 SPA 可直接依赖 `@ubean/vue`（仅 vue + vue-router）。详见第 8 节陷阱 #8。
 
@@ -445,7 +441,7 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 | `useFormAction(actionName)`                        | Vue composable：表单 action URL + SPA 提交（渐进增强）                                         |
 | `?/<actionName>` URL 约定                          | 页面模块 `export const actions = { name: defineAction(...) }` → POST 表单分发                  |
 
-> Server Actions 通过 `@ubean/actions` 包实现，Vite 插件 `ubeanServerActionsPlugin` 已包含在默认 `ubeanPlugin()` 中。action ID 由 `base32(sha1(filePath:exportName))` 生成，client/server 自动一致。`@ubean/shared` 提供 `ServerAction`/`ActionContext`/`ActionResult`/`ActionFailure` 等共享类型。
+> Server Actions 通过 `@ubean/routes`（`defineAction` / `POST /__actions`）实现，Vite 插件 `ubeanServerActionsPlugin`（`@ubean/build/actions`）已包含在默认 `ubeanPlugin()` 中。客户端运行时从 `@ubean/routes/runtime` 导入。action ID 由 `base32(sha1(filePath:exportName))` 生成，client/server 自动一致。`@ubean/shared` 提供 `ServerAction`/`ActionContext`/`ActionResult`/`ActionFailure` 等共享类型。
 
 ```typescript
 const addToCart = defineAction(async (itemId: string) => {

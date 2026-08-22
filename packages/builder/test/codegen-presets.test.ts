@@ -7,7 +7,7 @@ import {
   HONO_OPENAPI_PRESET,
   BUILTIN_PRESETS,
   getBuiltinComposables
-} from '../src/auto-imports';
+} from '../src/codegen/auto-imports';
 
 describe('auto-import presets(自 @ubean/auto-imports 并入)', () => {
   it('UBEAN_CLIENT_PRESET 源自一等客户端入口 ubean/client', () => {

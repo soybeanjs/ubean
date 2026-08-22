@@ -7,7 +7,7 @@ description: ubean 的架构设计：五层职责划分、包布局与配置系�
 
 ## 1. 分层架构
 
-ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分为五层。仓库以 **33 个单用途包**（ubean 聚合器 + 32 个 `@ubean/*` 子包）组织，主包 `ubean` 是纯聚合器，re-export 所有 `@ubean/*` 子包。
+ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分为五层。仓库以 **24 个单用途包**（ubean 聚合器 + 23 个 `@ubean/*` 子包）组织，主包 `ubean` 是纯聚合器，re-export 所有 `@ubean/*` 子包。
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -24,8 +24,7 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 │  │              构建核心层（build-time）                          │   │
 │  │  @ubean/config  配置加载 + 模块系统                           │   │
 │  │  @ubean/scan 路由扫描（pages/routes/layouts/middleware）  │   │
-│  │  @ubean/build   Vite 插件 + 生产构建 + prerender             │   │
-│  │  @ubean/codegen 类型生成（routes.d.ts / typed-router）       │   │
+│  │  @ubean/build   Vite 插件 + 生产构建 + prerender + codegen   │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
@@ -38,11 +37,10 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │                运行时层（runtime）                            │   │
 │  │  @ubean/app     Hono 应用工厂（createUbeanApp）              │   │
-│  │  @ubean/client Vue 客户端运行时（createUbeanClientApp）         │   │
-│  │  @ubean/ssr     Vue SSR 渲染器（流式 / PPR）                 │   │
+│  │  @ubean/client Vue 客户端运行时 + SSR 渲染器                  │   │
 │  │  @ubean/server  cache / db / queue / cron / ws / sse / ...   │   │
 │  │  @ubean/pages   页面数据协议（loaders / actions）            │   │
-│  │  @ubean/actions Server Actions / Form Actions                │   │
+│  │  @ubean/routes  API 路由 + Server Actions                    │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
@@ -57,7 +55,7 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 ### 1.1 包组织原则
 
 - **聚合器主包**：`packages/ubean`（npm 名 `ubean`）不包含框架逻辑，仅 re-export 全部子包，保持与单体时代一致的 API 表面。
-- **单职责子包**：其余 32 个包按能力域拆分（`@ubean/shared` / `@ubean/scan` / `@ubean/app` / `@ubean/ssr` …），各自独立构建与类型检查。
+- **单职责子包**：其余 23 个包按能力域拆分（`@ubean/shared` / `@ubean/scan` / `@ubean/app` / `@ubean/client/ssr` …），各自独立构建与类型检查。
 - **扩展包按需加载**：`auth` / `icon` / `image` / `content` 通过 `ubean.config.ts` 顶层字段启用，构建时动态 `import()` 对应 `/vite` 子路径，**不进入主包硬依赖**；`pwa` / `fonts` / `electron` / `pinia` / `ui` 是 `@ubean/integrations` 的子路径（`@ubean/integrations/pwa` 等），其 Vite 插件由子路径主入口导出。
 - **入口边界**：服务端代码从 `ubean` 主入口或 `ubean/runtime/app` 导入；浏览器端必须从 `ubean/runtime/vue` 或 `ubean/client`（一等客户端子路径）导入，避免把服务端构建工具带入浏览器 bundle。
 
@@ -79,7 +77,7 @@ ubean dev
   │    ├─► src/crons/      → 定时任务（defineScheduled）
   │    └─► public/         → 静态资源（ETag / Cache-Control）
   │
-  ├─► 启动 Vite 开发服务器（@ubean/dev-server + @ubean/vite）
+  ├─► 启动 Vite 开发服务器（@ubean/cli + @ubean/build）
   │    ├─► ubeanPlugin()   虚拟模块、客户端 stub、宏转换
   │    └─► ubeanVite()      Vue SFC、SSR 渲染管线、HMR
   │

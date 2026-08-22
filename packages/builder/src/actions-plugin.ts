@@ -30,8 +30,8 @@
  * match are skipped.
  */
 import type { Plugin } from 'vite';
+import { createActionId } from '@ubean/routes';
 import { relative } from 'pathe';
-import { createActionId } from './id';
 
 export interface ServerActionsPluginOptions {
   /**
@@ -506,8 +506,8 @@ export function transformActionsForClient(code: string, filePath: string, root: 
   }
 
   // 注入 import(避免重复)
-  const importStmt = `import { createActionStub as __ubean_createActionStub } from '@ubean/actions/runtime';\n`;
-  if (!result.includes("@ubean/actions/runtime'")) {
+  const importStmt = `import { createActionStub as __ubean_createActionStub } from '@ubean/routes/runtime';\n`;
+  if (!result.includes("@ubean/routes/runtime'")) {
     result = importStmt + result;
   }
 

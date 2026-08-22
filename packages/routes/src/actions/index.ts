@@ -1,5 +1,5 @@
 /**
- * @ubean/actions — Server Actions / Form Actions (P9-02)
+ * Server Actions / Form Actions (P9-02) — lives in `@ubean/routes`.
  *
  * Public API for defining and dispatching server actions.
  *

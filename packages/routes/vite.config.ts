@@ -10,9 +10,13 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts'],
+    entry: ['src/index.ts', 'src/runtime.ts'],
     deps: {
-      neverBundle: ['hono', 'hono-openapi', /^@ubean\//, /^@soybeanjs\//, /^node:/]
+      neverBundle: ['hono', 'hono-openapi', 'vue', /^@ubean\//, /^@soybeanjs\//, /^node:/]
     }
+  },
+  test: {
+    include: ['test/**/*.test.ts'],
+    environment: 'node'
   }
 });

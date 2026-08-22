@@ -20,13 +20,13 @@
 
 ## 2. 架构评估（对照源码，不对照营销表）
 
-请求链（`packages/app/src/app.ts` → `registerRoutes` → `packages/routes/src/router.ts` → `packages/ssr/src/index.ts`）：`handle` hook → requestId → i18n ALS → routeRules+cache → WS → static → 路由 → SSR。这条链是健康的：Hono 一等、页面与 API 同进程、中间件由工厂挂载。
+请求链（`packages/app/src/app.ts` → `registerRoutes` → `packages/routes/src/router.ts` → `packages/client/src/ssr.ts`）：`handle` hook → requestId → i18n ALS → routeRules+cache → WS → static → 路由 → SSR。这条链是健康的：Hono 一等、页面与 API 同进程、中间件由工厂挂载。
 
 真正的风险不在「功能清单缺一项」，而在**声明的能力宽于默认路径**：
 
 | 现象 | 证据 | 为什么是债 |
 | --- | --- | --- |
-| 28 包 + 聚合器 barrel | `packages/*`；主包 `ubean` re-export | Vite client / SSR 双图；已做卫生合并（logger/modules/prerender/vite/build-core） |
+| 24 包 + 聚合器 barrel | `packages/*`；主包 `ubean` re-export | Vite client / SSR 双图；已做卫生合并（Wave 1 + Wave 2） |
 | `ssr.external` vs 生产 `ssr.noExternal: ['ubean']` | `packages/vite/src/plugin.ts` vs `packages/builder/src/production.ts` | 开发态为修 ALS 把 `@ubean/i18n` external；生产把 `ubean` 打进 bundle。规则未抽象成「单份 runtime」策略 |
 | `@ubean/vue` vs `@ubean/client` 内核分裂 | vue 零 i18n（正确）；client 持有 unhead / i18n / 数据层 | 独立 SPA 路径与全栈路径的契约要写死，避免再从 vue 拉 i18n |
 | `routeRules.rewrite` 只合并不执行 | `packages/routes/src/route-rules.ts` 写入 `matched.rewrite`；全仓无消费方 | 类型与文档像 Nuxt，运行时像没做 |
@@ -36,7 +36,7 @@
 | DB / Queue / Storage 默认内存 | `@ubean/server` 连接器 | 预设声称 CF KV / Deno Queue，应用默认仍是进程内存 |
 | ISR 默认进程内存 | `CacheStore` 默认 | 多实例 / serverless 下 HIT 不可跨请求 |
 | 图片 `/_ipx` 开发态 302 原图 | `packages/image/src/vite.ts` | 不能当「多 provider 图片优化」卖 |
-| 每请求新建 SSR Vue app + i18n | `packages/ssr/src/index.ts`；i18n `createUbeanI18n` | 正确隔离，但缺消息编译缓存 / 实例池的上限策略 |
+| 每请求新建 SSR Vue app + i18n | `packages/client/src/ssr.ts`；i18n `createUbeanI18n` | 正确隔离，但缺消息编译缓存 / 实例池的上限策略 |
 | Islands 双 rAF + `afterEach` 再水合 | `@ubean/client` / islands | SPA 导航成本固定，未做路由级跳过 |
 
 **结论：** 能力面已经够宽（SSR/SSG/ISR/Actions/Islands/`.server.vue`/i18n/OpenAPI/presets）。2026 Q4 的工作是把「类型里有」收成「默认路径真的做」——这同时服务架构健康（40%）和性能（25%），用户可见缺口（35%）放到 2027 H1。

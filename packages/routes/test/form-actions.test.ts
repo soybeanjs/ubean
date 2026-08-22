@@ -16,8 +16,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import { defineAction, fail, clearActions } from '@ubean/actions';
 import type { ServerAction, UbeanEnv } from '@ubean/shared';
+import { defineAction, fail, clearActions } from '../src';
 import { parseFormActionName, handleActionResponse, runServerAction } from '../src/page-actions';
 
 /* -------------------------------------------------------------------------- */

@@ -204,7 +204,7 @@ async function loadI18n(): Promise<I18nModule | null> {
 
 /* -------------------------------------------------------------------------- */
 /* Server Actions helpers (P9-02) live in ./page-actions — a thin adapter     */
-/* over @ubean/actions primitives (runAction).                                */
+/* over Server Actions primitives (runAction).                                */
 /* -------------------------------------------------------------------------- */
 
 /* -------------------------------------------------------------------------- */

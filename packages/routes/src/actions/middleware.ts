@@ -23,19 +23,10 @@
  */
 import type { MiddlewareHandler } from 'hono';
 import type { UbeanEnv, ActionResult } from '@ubean/shared';
+import { ACTION_RESPONSE_HEADER, ACTIONS_ENDPOINT } from './constants';
 import { dispatchAction } from './dispatch';
 
-/**
- * The URL path where the actions middleware is mounted.
- */
-export const ACTIONS_ENDPOINT = '/__actions';
-
-/**
- * Header set on action responses so the client can distinguish them from
- * regular API responses. Without this, `callAction()` couldn't tell
- * whether a response was a successful action result or an error page.
- */
-export const ACTION_RESPONSE_HEADER = 'x-ubean-action';
+export { ACTION_RESPONSE_HEADER, ACTIONS_ENDPOINT } from './constants';
 
 /**
  * Create the actions middleware — a Hono handler that mounts the
@@ -45,7 +36,7 @@ export const ACTION_RESPONSE_HEADER = 'x-ubean-action';
  *
  * ```ts
  * import { createUbeanApp } from 'ubean/runtime/app';
- * import { createActionsMiddleware } from '@ubean/actions';
+ * import { createActionsMiddleware } from '@ubean/routes';
  *
  * const app = createUbeanApp();
  * app.on('POST', '/__actions', createActionsMiddleware());

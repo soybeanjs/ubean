@@ -26,7 +26,7 @@
  */
 
 import type { Plugin } from 'vite';
-import { ubeanServerActionsPlugin } from '@ubean/actions/vite';
+import { ubeanServerActionsPlugin } from '@ubean/build/actions';
 import { ubeanPlugin as ubeanCorePlugin } from '@ubean/build/vite';
 import type { UbeanPluginOptions } from '@ubean/build/vite';
 import { ubeanVite } from '@ubean/build/vue';

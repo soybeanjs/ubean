@@ -1,5 +1,5 @@
 /**
- * Framework app factories — consumed by the ubean aggregator & `@ubean/ssr`.
+ * Framework app factories — consumed by the ubean aggregator & `@ubean/client/ssr`.
  *
  * `createUbeanClientApp` / `createUbeanSSRApp` wire the lean kernel from
  * `@ubean/vue` together with framework extras: unhead, i18n path

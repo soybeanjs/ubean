@@ -68,7 +68,7 @@ export type PageRenderFn = (
  * 流式渲染函数:返回一个 `ReadableStream<Uint8Array>`,将完整 HTML 文档
  * 分块流式输出(头部先发送,app HTML 边渲染边输出,state 在尾部注入)。
  *
- * 由 `@ubean/ssr` 的 `createVueRenderer` 实现。当 renderer 提供此方法且
+ * 由 `@ubean/client/ssr` 的 `createVueRenderer` 实现。当 renderer 提供此方法且
  * 应用配置启用了 `streaming` 时,页面处理器会优先使用流式渲染,显著改善
  * TTFB/LCP(浏览器可在 app 渲染期间提前加载 CSS/JS)。
  */

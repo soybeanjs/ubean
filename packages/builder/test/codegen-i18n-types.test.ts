@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { describe, it, expect } from 'vitest';
 import type { ScanResult, ScannedLocale } from '@ubean/scan';
 import { join } from 'pathe';
-import { generateI18nTypes, messagesToTsType } from '../src/i18n-types';
+import { generateI18nTypes, messagesToTsType } from '../src/codegen/i18n-types';
 
 function emptyScan(locales: ScannedLocale[]): ScanResult {
   return {

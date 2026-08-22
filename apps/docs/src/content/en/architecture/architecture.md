@@ -7,7 +7,7 @@ description: "How ubean is architected: its five layers, package layout, and con
 
 ## 1. Layered Architecture
 
-ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized into five layers. The repository is structured as **33 packages** (`packages/*`); the main `ubean` package is a thin aggregator that re-exports every `@ubean/*` subpackage.
+ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized into five layers. The repository is structured as **24 packages** (`packages/*`); the main `ubean` package is a thin aggregator that re-exports every `@ubean/*` subpackage.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -24,8 +24,7 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 │  │               Build Core Layer (build-time)                  │   │
 │  │  @ubean/config   config loading + module system             │   │
 │  │  @ubean/scan  route scanning (pages/routes/layouts/...)  │   │
-│  │  @ubean/build    Vite plugins + production + prerender      │   │
-│  │  @ubean/codegen  type generation (routes.d.ts / typed-router)│  │
+│  │  @ubean/build    Vite plugins + production + prerender + codegen │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
@@ -38,11 +37,10 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │                Runtime Layer (runtime)                       │   │
 │  │  @ubean/app     Hono app factory (createUbeanApp)           │   │
-│  │  @ubean/client Vue client runtime (createUbeanClientApp)      │   │
-│  │  @ubean/ssr     Vue SSR renderer (streaming / PPR)          │   │
+│  │  @ubean/client Vue client runtime + SSR renderer            │   │
 │  │  @ubean/server  cache / db / queue / cron / ws / sse / ...  │   │
 │  │  @ubean/pages   page data protocol (loaders / actions)      │   │
-│  │  @ubean/actions Server Actions / Form Actions               │   │
+│  │  @ubean/routes  API routes + Server Actions                 │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
@@ -57,7 +55,7 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 ### 1.1 Package Organization
 
 - **Aggregator main package**: `packages/ubean` (npm: `ubean`) contains no framework logic — it re-exports all subpackages, preserving the same API surface as the original single package.
-- **Single-purpose subpackages**: the remaining 32 packages are split by capability (`@ubean/shared` / `@ubean/scan` / `@ubean/vue` / `@ubean/app` / `@ubean/ssr` …), each built and type-checked independently.
+- **Single-purpose subpackages**: the remaining 23 packages are split by capability (`@ubean/shared` / `@ubean/scan` / `@ubean/vue` / `@ubean/app` / `@ubean/client/ssr` …), each built and type-checked independently.
 - **Extensions loaded on demand**: `auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` are enabled via top-level `ubean.config.ts` fields (the pwa/fonts/electron/pinia/ui integrations live in `@ubean/integrations`); the build dynamically `import()`s the matching `/vite` subpath. They **never** become hard dependencies of the main package.
 - **Entry boundaries**: server code imports from the `ubean` main entry or `ubean/runtime/app`; browser code must import from `ubean/runtime/vue` to keep server-side build tooling out of the browser bundle.
 
@@ -79,7 +77,7 @@ ubean dev
   │    ├─► src/crons/      → scheduled tasks (defineScheduled)
   │    └─► public/         → static assets (ETag / Cache-Control)
   │
-  ├─► Start Vite dev server (@ubean/dev-server + @ubean/vite)
+  ├─► Start Vite dev server (@ubean/cli + @ubean/build)
   │    ├─► ubeanPlugin()   virtual modules, client stubs, macro transforms
   │    └─► ubeanVite()     Vue SFC, SSR render pipeline, HMR
   │

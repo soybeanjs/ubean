@@ -1,5 +1,5 @@
 /**
- * @ubean/actions unit tests (P9-02)
+ * Server Actions unit tests (P9-02) — `@ubean/routes` + `@ubean/build/actions`
  *
  * Covers: action ID generation, registry, defineAction, dispatcher,
  * middleware (/__actions endpoint), form-action URL parsing, and the
@@ -36,14 +36,14 @@ import {
   normalizeActionResult,
   validateActionInput,
   parseActionInput
-} from '../src/index';
+} from '../../routes/src/index';
 import {
   hasDefineActionCall,
   findDefineActionCalls,
   transformActionsForServer,
   transformActionsForClient,
   ubeanServerActionsPlugin
-} from '../src/vite';
+} from '../src/actions-plugin';
 
 /* -------------------------------------------------------------------------- */
 /* Action ID generation                                                       */
@@ -682,7 +682,7 @@ describe('vite plugin: client transform', () => {
     const result = transformActionsForClient(code, '/root/src/actions/ping.ts', '/root');
     expect(result).not.toBeNull();
     expect(result!).toContain('__ubean_createActionStub');
-    expect(result!).toContain("import { createActionStub as __ubean_createActionStub } from '@ubean/actions/runtime'");
+    expect(result!).toContain("import { createActionStub as __ubean_createActionStub } from '@ubean/routes/runtime'");
     // Original handler should be stripped (replaced by stub)
     expect(result!).not.toContain('async (input)');
   });

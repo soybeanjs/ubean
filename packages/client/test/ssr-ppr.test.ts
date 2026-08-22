@@ -6,7 +6,7 @@
  * - 静态内容(非 deferred)先于 deferred 内容输出
  * - 多个 deferred 组件并行解析,流式输出
  *
- * 注意:这些测试验证 `@ubean/ssr` 的 `renderToStream` 与 Vue 原生 Suspense
+ * 注意:这些测试验证 `@ubean/client/ssr` 的 `renderToStream` 与 Vue 原生 Suspense
  * 流式行为的集成,不直接依赖 `server:defer` 编译时转换(转换由 `@ubean/islands`
  * 的 Vite 插件完成,在 SSR 运行时已是普通 `<Suspense>` 边界)。
  *
@@ -19,7 +19,7 @@ import { describe, it, expect } from 'vitest';
 import { defineComponent, h, Suspense } from 'vue';
 import { SSR_CONTENT_MARKER } from '@ubean/pages';
 import type { PageObject } from '@ubean/pages';
-import { createVueRenderer } from '../src/index';
+import { createVueRenderer } from '../src/ssr';
 
 async function readStream(stream: ReadableStream<Uint8Array>): Promise<string> {
   const reader = stream.getReader();

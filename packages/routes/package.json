@@ -1,7 +1,7 @@
 {
   "name": "@ubean/routes",
   "version": "0.2.2",
-  "description": "Server routes runtime for ubean (defineHandler, defineMiddleware, registerRoutes, rou3 server router, route rules, ISR, internal-fetch, OpenAPI)",
+  "description": "Server routes runtime for ubean (defineHandler, defineMiddleware, registerRoutes, Server Actions, rou3 server router, route rules, ISR, internal-fetch, OpenAPI)",
   "files": [
     "dist"
   ],
@@ -13,6 +13,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime.d.ts",
+      "import": "./dist/runtime.js"
     }
   },
   "scripts": {
@@ -26,7 +30,6 @@
     "@soybeanjs/fetch": "^0.1.0",
     "@standard-community/standard-json": "^0.3.5",
     "@standard-community/standard-openapi": "^0.2.9",
-    "@ubean/actions": "workspace:*",
     "@ubean/i18n": "workspace:*",
     "@ubean/shared": "workspace:*",
     "hono": "4.13.3",
@@ -38,17 +41,22 @@
     "@ubean/pages": "workspace:*",
     "@ubean/scan": "workspace:*",
     "typescript": "7.0.2",
-    "vite-plus": "catalog:"
+    "vite-plus": "catalog:",
+    "vue": "^3.5.41"
   },
   "peerDependencies": {
     "@ubean/pages": "workspace:*",
-    "@ubean/scan": "workspace:*"
+    "@ubean/scan": "workspace:*",
+    "vue": "^3.0.0"
   },
   "peerDependenciesMeta": {
     "@ubean/scan": {
       "optional": true
     },
     "@ubean/pages": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   }

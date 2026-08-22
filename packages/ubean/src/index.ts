@@ -29,17 +29,16 @@ export * from '@ubean/i18n';
 
 // ============== 服务端运行时 ==============
 export * from '@ubean/routes';
-export * from '@ubean/actions';
 export * from '@ubean/server';
 export * from '@ubean/app';
 
 // ============== 构建时工具 ==============
-// 注意: auto-imports 预设已并入 @ubean/codegen(VUE_PRESET/UBEAN_CLIENT_PRESET 等
-// 经下方 `export * from '@ubean/codegen'` 导出)
+// 注意: auto-imports 预设已并入 `@ubean/build/codegen`（VUE_PRESET/UBEAN_CLIENT_PRESET 等
+// 经下方 `export * from '@ubean/build/codegen'` 导出)
 export * from '@ubean/build/prerender';
 export * from '@ubean/preset';
 export * from '@ubean/config';
-export * from '@ubean/codegen';
+export * from '@ubean/build/codegen';
 
 // ============== 路由扫描器 + AST 提取器 ==============
 // 注意:`useRouter`(无参数,返回服务端 UbeanRouter 单例)已随 rou3 router
@@ -176,11 +175,11 @@ export type { UbeanViteOptions } from '@ubean/build/vue';
 export { VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 // `ubeanIslandsPlugin` 来自 `/vite` 子路径;`getIslandsBootstrapScript` 在主入口
 export { ubeanIslandsPlugin } from '@ubean/islands/vite';
-export { ubeanServerActionsPlugin } from '@ubean/actions/vite';
+export { ubeanServerActionsPlugin } from '@ubean/build/actions';
 export { vClient, getIslandsBootstrapScript, defineServerIsland, defineIsland } from '@ubean/islands';
 export type { ServerIslandOptions, IslandStrategy, IslandOptions } from '@ubean/islands';
-export { createVueRenderer } from '@ubean/ssr';
-export type { VueRendererSimpleOptions, VueRendererRouterOptions, VueRendererOptions } from '@ubean/ssr';
+export { createVueRenderer } from '@ubean/client/ssr';
+export type { VueRendererSimpleOptions, VueRendererRouterOptions, VueRendererOptions } from '@ubean/client/ssr';
 
 // ============== Hono-OpenAPI 重新导出(对齐原 ubean 行为)==============
 export { validator, describeRoute, resolver, openAPIRouteHandler } from 'hono-openapi';

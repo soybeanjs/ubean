@@ -1,7 +1,7 @@
 {
   "name": "@ubean/cli",
   "version": "0.2.2",
-  "description": "CLI for ubean (ubean-next binary: dev, build, prepare, init, preview, page, env, config, devtools, api/layout/middleware/cron/plugin scaffolds)",
+  "description": "CLI for ubean (ubean-next binary: dev, build, prepare, init, preview, page, env, config, devtools, api/layout/middleware/cron/plugin scaffolds) plus the Vite dev server runner",
   "bin": {
     "ubean-next": "./bin/ubean-next.mjs"
   },
@@ -32,9 +32,9 @@
   "dependencies": {
     "@ubean/app": "workspace:*",
     "@ubean/build": "workspace:*",
-    "@ubean/codegen": "workspace:*",
+    "@ubean/client": "workspace:*",
     "@ubean/config": "workspace:*",
-    "@ubean/dev-server": "workspace:*",
+    "@ubean/islands": "workspace:*",
     "@ubean/preset": "workspace:*",
     "@ubean/scan": "workspace:*",
     "@ubean/shared": "workspace:*",
@@ -44,18 +44,28 @@
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
+    "@vitejs/plugin-vue": "^6.0.8",
     "typescript": "7.0.2",
+    "vite": "catalog:",
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
     "@ubean/content": "workspace:*",
-    "@ubean/devtools": "workspace:*"
+    "@ubean/devtools": "workspace:*",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "vite": "catalog:"
   },
   "peerDependenciesMeta": {
     "@ubean/content": {
       "optional": true
     },
     "@ubean/devtools": {
+      "optional": true
+    },
+    "@vitejs/plugin-vue": {
+      "optional": true
+    },
+    "vite": {
       "optional": true
     }
   }

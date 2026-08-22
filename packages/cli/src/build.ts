@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { generateTypes } from '@ubean/build/codegen';
 import { prerender } from '@ubean/build/prerender';
 import { buildProduction } from '@ubean/build/production';
 import type { BuildManifest } from '@ubean/build/production';
-import { generateTypes } from '@ubean/codegen';
 import { loadUbeanConfig, resolvePrerenderConfig, resolveSsrConfig } from '@ubean/config';
 import type { AppMode } from '@ubean/config';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';

@@ -30,7 +30,7 @@ ubean unites Vue SSR pages, Hono API routes, type-safe route metadata, and porta
 
 Nuxt, Next.js, and SvelteKit already exist — what does ubean bring that is genuinely different? Three architectural commitments define its identity:
 
-**1. Vue-specific depth, not multi-framework breadth.** ubean targets Vue 3 only. No React adapter, no Svelte renderer, no generic abstractions that sacrifice Vue-specific optimizations. This single-framework constraint enables deep integration — the `definePage` macro is compiled away at build time, Vue Router navigation guards work identically on client and SSR, and the SSR renderer (`createVueRenderer` from `@ubean/ssr`) is purpose-built for Vue's `@vue/server-renderer`. The result is a smaller, faster runtime with zero abstraction overhead.
+**1. Vue-specific depth, not multi-framework breadth.** ubean targets Vue 3 only. No React adapter, no Svelte renderer, no generic abstractions that sacrifice Vue-specific optimizations. This single-framework constraint enables deep integration — the `definePage` macro is compiled away at build time, Vue Router navigation guards work identically on client and SSR, and the SSR renderer (`createVueRenderer` from `@ubean/client/ssr`) is purpose-built for Vue's `@vue/server-renderer`. The result is a smaller, faster runtime with zero abstraction overhead.
 
 **2. Hono as the HTTP core, not h3.** Where Nuxt uses **h3** (its own HTTP abstraction) and nitro uses h3 as the server handler, ubean chooses **Hono** — a lighter, more modern, type-friendly HTTP framework. Every API route is a Hono handler chain; every middleware composes through Hono's native middleware system; request validation plugs directly into `hono-openapi` to generate OpenAPI 3.1 without an intermediary layer. Hono's multi-runtime design (Node.js, Cloudflare Workers, Bun, Deno) also aligns naturally with ubean's preset system.
 
@@ -58,7 +58,7 @@ The `ssr` option only applies within `fullstack` mode — `spa` and `backend` al
 | Routing   | File-based Vue SSR pages                            | `definePage` macro                     | `@ubean/vue` + `@ubean/scan`    |
 | Routing   | Route metadata (auth / cache / rateLimit)           | `defineHandlerMeta`                    | `@ubean/routes`                 |
 | Routing   | OpenAPI 3.1 validation + Scalar UI                  | `validator` / `describeRoute`          | `hono-openapi` (re-exported)    |
-| Routing   | Type-safe route paths (generated)                   | `.ubean/routes.d.ts`                   | `@ubean/codegen`                |
+| Routing   | Type-safe route paths (generated)                   | `.ubean/routes.d.ts`                   | `@ubean/build/codegen`          |
 | Routing   | Dynamic route matchers (`[param=matcher]`)          | `defineMatcher` / `createMatcherGuard` | `@ubean/vue`                    |
 | App       | Vue app customization (plugins, guards, head)       | `defineApp`                            | `@ubean/client`                 |
 | App       | Hono app factory                                    | `createUbeanApp`                       | `@ubean/app`                    |
@@ -76,7 +76,7 @@ The `ssr` option only applies within `fullstack` mode — `spa` and `backend` al
 | Config    | Typed environment variables                         | `defineEnv`                            | `@ubean/shared`                 |
 | Config    | Middleware definition                               | `defineMiddleware`                     | `@ubean/routes`                 |
 | i18n      | vue-i18n 11 + compact locale routing                | `useI18n` / `setLocale` / `t`          | `@ubean/i18n` + `@ubean/client` |
-| SSR       | Vue server-side renderer                            | `createVueRenderer`                    | `@ubean/ssr`                    |
+| SSR       | Vue server-side renderer                            | `createVueRenderer`                    | `@ubean/client/ssr`             |
 | Islands   | Partial hydration boundaries                        | `ubeanIslandsPlugin`                   | `@ubean/islands`                |
 | DevTools  | RPC, AI assistant, API playground, CRUD scaffolding | `devtools: true` config                | `@ubean/devtools`               |
 | Extension | Better Auth integration + fallback                  | `auth: true` config                    | `@ubean/auth`                   |
@@ -111,7 +111,7 @@ The `ubean` main package provides several subpath exports in addition to the def
 
 ### Repository Layout
 
-ubean is a **33-package monorepo** managed by pnpm workspaces (`packages/*`, `apps/*`, `examples/*`). The public package `ubean` (`packages/ubean/`) is the aggregator that re-exports all `@ubean/*` subpackages. Each subpackage is independently built, type-checked, and consumable individually in advanced scenarios. See [docs/README.md](docs/README.md) for the engineering documentation index.
+ubean is a **24-package monorepo** managed by pnpm workspaces (`packages/*`, `apps/*`, `examples/*`). The public package `ubean` (`packages/ubean/`) is the aggregator that re-exports all `@ubean/*` subpackages. Each subpackage is independently built, type-checked, and consumable individually in advanced scenarios. See [docs/README.md](docs/README.md) for the engineering documentation index.
 
 ```
 packages/
@@ -126,14 +126,12 @@ packages/
 ├── i18n/           # @ubean/i18n — @intlify/core + compact locale routing
 │
 │   ── Server runtime ──
-├── routes/         # @ubean/routes — server routes runtime (defineHandler + rou3 router + ISR + OpenAPI)
-├── actions/        # @ubean/actions — Server Actions / Form Actions (defineAction)
+├── routes/         # @ubean/routes — server routes + Server Actions (defineHandler, defineAction, ./runtime)
 ├── server/         # @ubean/server — server runtime (cache/db/queue/cron/ws/sse)
 ├── app/            # @ubean/app — Hono app factory (createUbeanApp)
 │
 │   ── Build-time tools ──
-├── builder/        # @ubean/build — Vite plugins (./vite + ./vue) + production + ./prerender
-├── codegen/        # @ubean/codegen — type generation (routes.d.ts + auto-import presets)
+├── builder/        # @ubean/build — Vite plugins (./vite + ./vue + ./actions) + production + ./prerender + ./codegen
 ├── config/         # @ubean/config — config loader + module system
 ├── preset/         # @ubean/preset — platform presets (node/cloudflare + capabilities)
 │
@@ -141,13 +139,11 @@ packages/
 ├── scan/           # @ubean/scan — project scanner + route metadata aggregator (delegates pages to @ubean/vue)
 │
 │   ── Client runtime ──
-├── client/         # @ubean/client — framework client runtime (layered over @ubean/vue)
+├── client/         # @ubean/client — framework client runtime (layered over @ubean/vue; ./ssr renderer)
 │
 │   ── Services / tools ──
-├── ssr/            # @ubean/ssr — Vue SSR renderer (createVueRenderer)
 ├── islands/        # @ubean/islands — Islands partial hydration
-├── dev-server/     # @ubean/dev-server — dev server
-├── cli/            # @ubean/cli — CLI commands
+├── cli/            # @ubean/cli — CLI commands + dev server
 ├── devtools/       # @ubean/devtools — devtools (RPC, AI, CRUD scaffolding)
 │
 │   ── Extensions ──

@@ -70,7 +70,7 @@ pnpm dev
 
 ## Package Architecture
 
-ubean is a **monorepo** of 33 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package (`ubean`) and get the full API surface via `import { ... } from 'ubean'`.
+ubean is a **monorepo** of 24 packages. The public package `ubean` is an **aggregator** that re-exports all `@ubean/*` subpackages — users install one package (`ubean`) and get the full API surface via `import { ... } from 'ubean'`.
 
 ### Subpath Exports
 

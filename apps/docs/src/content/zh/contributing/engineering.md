@@ -167,7 +167,7 @@ type InferLoaderData<T> = T extends () => Promise<{ data: infer D }> ? D : never
 ### 6.4 当前验证基线（2026-08-03）
 
 - 主包（`ubean`）：38 个测试文件、**799 个测试通过**（81 个 DevTools 测试已移至 `@ubean/devtools` 独立包）。
-- 核心子包：`@ubean/islands` 199（directive / paired-components / server-client-components / islands-registry / server-component-rerender）、`@ubean/ssr` 18、`@ubean/actions` 69、`@ubean/routes` route-rules 27、`@ubean/devtools` 81、examples/ubean-test prerender 92。
+- 核心子包：`@ubean/islands` 199（directive / paired-components / server-client-components / islands-registry / server-component-rerender）、`@ubean/client/ssr`（原 `@ubean/ssr`）、`@ubean/routes`（含 Server Actions）、`@ubean/devtools` 81、examples/ubean-test prerender 92。
 - 扩展包：`@ubean/icon` 32、`@ubean/auth` 13、`@ubean/integrations`（pwa 19 / fonts 21）、`@ubean/image` 42、`@ubean/content` 18、`@ubean/seo` 114。
 - 全仓库合计 **约 1075 个测试**通过。
 - `pnpm typecheck`：通过。TypeScript 7 与 `vue-tsc` 的兼容层通过 workspace override `typescript: npm:typescript-native-bridge@0.0.0` 提供；其原生依赖 `koffi` 必须在 `pnpm-workspace.yaml` 的 `allowBuilds` 中显式允许。

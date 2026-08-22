@@ -21,7 +21,7 @@ export interface PageHeadClient {
 
 /**
  * 将静态 `PageHead` push 进 head 实例(falsy 字段自动跳过)。
- * 与 SSR 侧 `pushPageHead`(@ubean/ssr)语义一致,保证双端同构。
+ * 与 SSR 侧 `pushPageHead`(@ubean/client/ssr)语义一致,保证双端同构。
  */
 export function pushPageHead(head: PageHeadClient, pageHead: PageHead): void {
   const input: Record<string, unknown> = {};

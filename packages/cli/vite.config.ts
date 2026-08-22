@@ -12,7 +12,7 @@ export default defineConfig({
     outDir: 'dist',
     entry: ['src/index.ts', 'src/cli.ts'],
     deps: {
-      neverBundle: [/^@ubean\//, /^node:/, 'citty', 'pathe', 'kolorist']
+      neverBundle: [/^@ubean\//, /^node:/, /^@vitejs\//, 'citty', 'pathe', 'kolorist', 'vite', '@vitejs/plugin-vue']
     }
   }
 });

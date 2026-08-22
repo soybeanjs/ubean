@@ -2,9 +2,6 @@ import { createSSRApp, defineComponent, h, provide, reactive } from 'vue';
 import type { App, Component } from 'vue';
 import { renderToString, renderToNodeStream } from '@vue/server-renderer';
 import type { RouteRecordRaw } from 'vue-router';
-import { createUbeanI18n } from '@ubean/client';
-import { applyAppConfig } from '@ubean/client/define-app';
-import type { ResolvedAppConfig } from '@ubean/client/define-app';
 import { buildLocaleHead } from '@ubean/i18n/browser';
 import { getIslandsBootstrapScript } from '@ubean/islands';
 import {
@@ -28,6 +25,9 @@ import type {
   PageRenderResult
 } from '@ubean/pages';
 import { createHead, transformHtmlTemplate, renderSSRHead } from '@unhead/vue/server';
+import { createUbeanI18n } from './i18n';
+import { applyAppConfig } from './define-app';
+import type { ResolvedAppConfig } from './define-app';
 
 export interface VueRendererSimpleOptions {
   resolvePageComponent: (path: string) => Promise<Component | null>;

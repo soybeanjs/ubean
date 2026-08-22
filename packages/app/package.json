@@ -22,7 +22,6 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/actions": "workspace:*",
     "@ubean/i18n": "workspace:*",
     "@ubean/islands": "workspace:*",
     "@ubean/routes": "workspace:*",

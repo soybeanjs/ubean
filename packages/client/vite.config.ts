@@ -10,9 +10,9 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts', 'src/app.ts', 'src/define-app.ts', 'src/server.ts'],
+    entry: ['src/index.ts', 'src/app.ts', 'src/define-app.ts', 'src/server.ts', 'src/ssr.ts'],
     deps: {
-      neverBundle: ['vue', 'vue-router', 'vue-i18n', '@unhead/vue', /^@ubean\//, /^node:/]
+      neverBundle: ['vue', 'vue-router', 'vue-i18n', '@unhead/vue', '@vue/server-renderer', /^@ubean\//, /^node:/]
     }
   },
   test: {

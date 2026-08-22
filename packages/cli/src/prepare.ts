@@ -1,6 +1,6 @@
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
-import { generateTypes } from '@ubean/codegen';
+import { generateTypes } from '@ubean/build/codegen';
 import { loadUbeanConfig, BUILTIN_MODULES, isBuiltinDisabled } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
 import { scanProject } from '@ubean/scan';

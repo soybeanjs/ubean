@@ -30,7 +30,7 @@ ubean 将 Vue SSR 页面、Hono API 路由、类型安全的路由元数据与�
 
 Nuxt、Next.js、SvelteKit 都已存在 —— ubean 带来了什么真正不同的东西？三大架构承诺定义了它的身份：
 
-**1. Vue 专属深度，而非多框架广度。** ubean 仅针对 Vue 3。没有 React 适配器，没有 Svelte 渲染器，也没有牺牲 Vue 特定优化的通用抽象。这种单框架约束实现了深度集成 —— `definePage` 宏在构建时被编译消除，Vue Router 导航守卫在客户端和 SSR 上工作方式一致，SSR 渲染器（`@ubean/ssr` 的 `createVueRenderer`）专为 Vue 的 `@vue/server-renderer` 定制构建。其结果是更小、更快的运行时，零抽象开销。
+**1. Vue 专属深度，而非多框架广度。** ubean 仅针对 Vue 3。没有 React 适配器，没有 Svelte 渲染器，也没有牺牲 Vue 特定优化的通用抽象。这种单框架约束实现了深度集成 —— `definePage` 宏在构建时被编译消除，Vue Router 导航守卫在客户端和 SSR 上工作方式一致，SSR 渲染器（`@ubean/client/ssr` 的 `createVueRenderer`）专为 Vue 的 `@vue/server-renderer` 定制构建。其结果是更小、更快的运行时，零抽象开销。
 
 **2. Hono 作为 HTTP 核心，而非 h3。** Nuxt 使用 **h3**（其自身的 HTTP 抽象），nitro 使用 h3 作为服务器处理程序，而 ubean 选择 **Hono** —— 一个更轻量、更现代、类型友好的 HTTP 框架。每个 API 路由都是一个 Hono 处理程序链；每个中间件都通过 Hono 原生中间件系统组合；请求验证直接接入 `hono-openapi` 生成 OpenAPI 3.1，无需中间层。Hono 的多运行时设计（Node.js、Cloudflare Workers、Bun、Deno）也与 ubean 的预设系统自然契合。
 
@@ -58,7 +58,7 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 | 路由     | 基于文件的 Vue SSR 页面                     | `definePage` 宏                        | `@ubean/vue` + `@ubean/scan`    |
 | 路由     | 路由元数据（auth / cache / rateLimit）      | `defineHandlerMeta`                    | `@ubean/routes`                 |
 | 路由     | OpenAPI 3.1 验证 + Scalar UI                | `validator` / `describeRoute`          | `hono-openapi`（重新导出）      |
-| 路由     | 类型安全的路由路径（生成）                  | `.ubean/routes.d.ts`                   | `@ubean/codegen`                |
+| 路由     | 类型安全的路由路径（生成）                  | `.ubean/routes.d.ts`                   | `@ubean/build/codegen`          |
 | 路由     | 动态路由 matchers（`[param=matcher]`）      | `defineMatcher` / `createMatcherGuard` | `@ubean/vue`                    |
 | 应用     | Vue 应用定制（插件、守卫、head）            | `defineApp`                            | `@ubean/client`                 |
 | 应用     | Hono 应用工厂                               | `createUbeanApp`                       | `@ubean/app`                    |
@@ -76,7 +76,7 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 | 配置     | 类型化环境变量                              | `defineEnv`                            | `@ubean/shared`                 |
 | 配置     | 中间件定义                                  | `defineMiddleware`                     | `@ubean/routes`                 |
 | i18n     | vue-i18n 11 + 约束前缀语言路由              | `useI18n` / `setLocale` / `t`          | `@ubean/i18n` + `@ubean/client` |
-| SSR      | Vue 服务端渲染器                            | `createVueRenderer`                    | `@ubean/ssr`                    |
+| SSR      | Vue 服务端渲染器                            | `createVueRenderer`                    | `@ubean/client/ssr`             |
 | Islands  | 局部水合边界                                | `ubeanIslandsPlugin`                   | `@ubean/islands`                |
 | DevTools | RPC、AI 助手、API playground、CRUD 脚手架   | `devtools: true` 配置                  | `@ubean/devtools`               |
 | 扩展     | Better Auth 集成 + fallback                 | `auth: true` 配置                      | `@ubean/auth`                   |
@@ -111,7 +111,7 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 
 ### 仓库布局
 
-ubean 是一个由 pnpm 工作区管理的 **33 包 monorepo**（`packages/*`、`apps/*`、`examples/*`）。公开包 `ubean`（`packages/ubean/`）是聚合器，re-export 所有 `@ubean/*` 子包。每个子包独立构建、类型检查，并可在高级场景中单独消费。工程文档索引见 [docs/README.md](docs/README.md)。
+ubean 是一个由 pnpm 工作区管理的 **24 包 monorepo**（`packages/*`、`apps/*`、`examples/*`）。公开包 `ubean`（`packages/ubean/`）是聚合器，re-export 所有 `@ubean/*` 子包。每个子包独立构建、类型检查，并可在高级场景中单独消费。工程文档索引见 [docs/README.md](docs/README.md)。
 
 ```
 packages/
@@ -126,14 +126,12 @@ packages/
 ├── i18n/           # @ubean/i18n — @intlify/core + 约束前缀语言路由
 │
 │   ── 服务端运行时 ──
-├── routes/         # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 router + ISR + OpenAPI)
-├── actions/        # @ubean/actions — Server Actions / Form Actions (defineAction)
+├── routes/         # @ubean/routes — 服务端路由 + Server Actions (defineHandler, defineAction, ./runtime)
 ├── server/         # @ubean/server — 服务端运行时 (cache/db/queue/cron/ws/sse)
 ├── app/            # @ubean/app — Hono 应用工厂 (createUbeanApp)
 │
 │   ── 构建时工具 ──
-├── builder/        # @ubean/build — Vite 插件（./vite + ./vue）+ 生产构建 + ./prerender
-├── codegen/        # @ubean/codegen — 类型生成 (routes.d.ts + 自动导入预设)
+├── builder/        # @ubean/build — Vite 插件（./vite + ./vue + ./actions）+ 生产构建 + ./prerender + ./codegen
 ├── config/         # @ubean/config — 配置加载器 + 模块系统
 ├── preset/         # @ubean/preset — 平台预设 (node/cloudflare + capabilities)
 │
@@ -141,13 +139,11 @@ packages/
 ├── scan/           # @ubean/scan — 项目扫描器 + 路由元数据聚合（页面扫描委托 @ubean/vue）
 │
 │   ── 客户端运行时 ──
-├── client/         # @ubean/client — 框架客户端运行时（基于 @ubean/vue 内核）
+├── client/         # @ubean/client — 框架客户端运行时（基于 @ubean/vue 内核；含 ./ssr）
 │
 │   ── 服务 / 工具 ──
-├── ssr/            # @ubean/ssr — Vue SSR 渲染器 (createVueRenderer)
 ├── islands/        # @ubean/islands — Islands 局部水合
-├── dev-server/     # @ubean/dev-server — 开发服务器
-├── cli/            # @ubean/cli — CLI 命令
+├── cli/            # @ubean/cli — CLI 命令 + 开发服务器
 ├── devtools/       # @ubean/devtools — 开发者工具 (RPC、AI、CRUD 脚手架)
 │
 │   ── 扩展包 ──

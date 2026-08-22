@@ -177,14 +177,12 @@ ubean/
 │   ├── i18n/                        # @ubean/i18n — @intlify/core + compact locale routing
 │   │
 │   │   ── Server runtime ──
-│   ├── routes/                     # @ubean/routes — handler.ts, server-router.ts, router.ts, openapi.ts, route-rules.ts, isr.ts
-│   ├── actions/                     # @ubean/actions — Server Actions (define, dispatch, registry, vite)
+│   ├── routes/                     # @ubean/routes — handlers, router, ISR, OpenAPI, Server Actions (./runtime)
 │   ├── server/                      # @ubean/server — cache, database, storage, websocket, sse, queue, cron, cors, rate-limit, sessions, email, observability, security-headers
 │   ├── app/                         # @ubean/app — createUbeanApp (Hono factory), hooks, define-server
 │   │
 │   │   ── Build-time ──
-│   ├── builder/                     # @ubean/build — Vite plugins (./vite + ./vue) + production + ./prerender
-│   ├── codegen/                     # @ubean/codegen — unimport presets + type generation (route-types.ts, openapi-types.ts)
+│   ├── builder/                     # @ubean/build — Vite plugins (./vite + ./vue + ./actions) + production + ./prerender + ./codegen
 │   ├── config/                      # @ubean/config — c12 config loading + module system
 │   ├── preset/                      # @ubean/preset — platform presets (node, cloudflare, bun, deno, netlify, vercel, standard)
 │   │
@@ -192,13 +190,11 @@ ubean/
 │   ├── scan/                        # @ubean/scan — route scanning aggregator (scan.ts, define-page.ts, detect-exports.ts, generator/)
 │   │
 │   │   ── Client runtime ──
-│   ├── client/                      # @ubean/client — framework Vue client runtime (app, composables, define-app, head, i18n, router, color-mode, search)
+│   ├── client/                      # @ubean/client — framework Vue client runtime (app, composables, define-app, ./ssr renderer)
 │   │
 │   │   ── Services & tools ──
-│   ├── ssr/                         # @ubean/ssr — createVueRenderer (PPR + streaming)
 │   ├── islands/                     # @ubean/islands — Islands (vite.ts, runtime.ts, directive.ts, bootstrap.ts)
-│   ├── dev-server/                  # @ubean/dev-server — runner.ts, server.ts, vite-server.ts, watcher.ts
-│   ├── cli/                         # @ubean/cli — citty-based CLI (build, dev, preview, prepare, init, page, env, config, devtools, scaffold-commands)
+│   ├── cli/                         # @ubean/cli — citty-based CLI + dev server
 │   ├── devtools/                    # @ubean/devtools — client/ (Vue iframe app) + src/ (node rpc, server, shared)
 │   │
 │   │   ── Extensions (opt-in) ──

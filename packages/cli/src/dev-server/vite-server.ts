@@ -7,13 +7,15 @@ import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
 import { ubeanPlugin } from '@ubean/build/vite';
 import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
+import { createVueRenderer } from '@ubean/client/ssr';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
 import { findAvailablePort, findUserViteConfig } from '@ubean/shared/node';
-import { createVueRenderer } from '@ubean/ssr';
+import { createFsOps } from '../shared/fs-ops';
+import { deleteScaffold, recoverScaffold, scaffold } from '../page';
 import type { DevRunnerDevtoolsOptions } from './runner';
 
 const logger = getLogger('dev-server');
@@ -89,37 +91,13 @@ async function sendWebResponse(res: ServerResponse, webRes: Response): Promise<v
   res.end();
 }
 
-/**
- * 从 `@ubean/cli` 懒加载 scaffolding 操作(`createFsOps` / `scaffold` /
- * `deleteScaffold` / `recoverScaffold`),并返回一个透传给 `@ubean/devtools`
- * 的 `scaffoldOps` 对象。
- *
- * 设计理由:`@ubean/cli` 是可选 peerDep —— 前端-only 项目不需要安装 CLI
- * 也能跑 dev server。CLI 缺失时返回 `undefined`,DevTools 不会暴露路由 CRUD
- * 功能,但 dev server 本身仍可正常工作。
- */
-async function loadScaffoldOps(): Promise<
-  { createFsOps: unknown; scaffold: unknown; deleteScaffold: unknown; recoverScaffold: unknown } | undefined
-> {
-  try {
-    const cli = (await import('@ubean/cli')) as {
-      createFsOps?: unknown;
-      scaffold?: unknown;
-      deleteScaffold?: unknown;
-      recoverScaffold?: unknown;
-    };
-    if (!cli.createFsOps || !cli.scaffold || !cli.deleteScaffold || !cli.recoverScaffold) {
-      return undefined;
-    }
-    return {
-      createFsOps: cli.createFsOps,
-      scaffold: cli.scaffold,
-      deleteScaffold: cli.deleteScaffold,
-      recoverScaffold: cli.recoverScaffold
-    };
-  } catch {
-    return undefined;
-  }
+function loadScaffoldOps(): {
+  createFsOps: unknown;
+  scaffold: unknown;
+  deleteScaffold: unknown;
+  recoverScaffold: unknown;
+} {
+  return { createFsOps, scaffold, deleteScaffold, recoverScaffold };
 }
 
 export async function createViteDevServer(options: ViteDevServerOptions): Promise<ViteDevServerInstance> {

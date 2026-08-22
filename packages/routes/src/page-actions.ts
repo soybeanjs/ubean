@@ -1,17 +1,17 @@
 /**
  * Page-level form action helpers (P9-02).
  *
- * Thin adapter over `@ubean/actions` primitives — the duplicated inline
+ * Thin adapter over Server Actions primitives — the duplicated inline
  * implementation (body parsing / schema validation / result normalization)
  * was removed in favor of `runAction`, which now also supports `Response`
  * passthrough for redirects. Only the pages-router-specific contract lives
  * here: `{ data, errors, response }` shape and redirect→JSON conversion.
  */
 import type { Context } from 'hono';
-import { runAction } from '@ubean/actions';
 import type { UbeanEnv, ServerAction } from '@ubean/shared';
+import { runAction } from './actions';
 
-export { parseFormActionName } from '@ubean/actions';
+export { parseFormActionName } from './actions';
 
 /**
  * Shared redirect/non-redirect Response handling for both the legacy
@@ -42,7 +42,7 @@ export function handleActionResponse(
 
 /**
  * Run a `ServerAction` (from a page module's `actions` map) against the
- * current Hono context via `runAction` from `@ubean/actions`.
+ * current Hono context via `runAction`.
  *
  * Returns one of:
  *  - `{ response }` — handler returned/threw a `Response` (redirect)

@@ -2,15 +2,18 @@ import { AsyncLocalStorage } from 'node:async_hooks';
 import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
+import { createI18nMiddleware, ensureLocaleMessages } from '@ubean/i18n';
+import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
 import {
   createActionsMiddleware,
   ACTIONS_ENDPOINT,
   bindActionContextStorage,
-  buildActionContext
-} from '@ubean/actions';
-import { createI18nMiddleware, ensureLocaleMessages } from '@ubean/i18n';
-import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
-import { registerRoutes, setInternalFetcher, registerOpenAPIRoutes, createRouteRulesMiddleware } from '@ubean/routes';
+  buildActionContext,
+  registerRoutes,
+  setInternalFetcher,
+  registerOpenAPIRoutes,
+  createRouteRulesMiddleware
+} from '@ubean/routes';
 import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/routes';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout, ScannedCronTask } from '@ubean/scan';
 // Semantic subpath imports (ADR-0003 OPT-06) — avoids pulling the whole
@@ -63,7 +66,7 @@ export interface UbeanRuntimeHooks {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Page renderer shape (satisfied by `@ubean/ssr`'s `PageRenderer`).
+ * Page renderer shape (satisfied by `@ubean/client/ssr`'s `PageRenderer`).
  * Declared as a type alias to the actual `@ubean/pages`'s `PageRenderer`
  * interface so consumers don't need to install `@ubean/pages` separately
  * to type-check against `UbeanAppOptions.pageRenderer`.

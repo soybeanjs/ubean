@@ -19,8 +19,8 @@
       "import": "./dist/vite.js"
     },
     "./generator": {
-      "types": "./dist/generator/index.d.ts",
-      "import": "./dist/generator/index.js"
+      "types": "./dist/generator.d.ts",
+      "import": "./dist/generator.js"
     }
   },
   "scripts": {

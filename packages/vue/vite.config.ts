@@ -10,7 +10,7 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts', 'src/vite.ts', 'src/generator/index.ts'],
+    entry: ['src/index.ts', 'src/vite.ts', 'src/generator.ts'],
     deps: {
       // Main entry stays external on vue/vue-router only (plus the optional
       // peer @unhead/vue, lazily imported by head.ts). The /vite entry

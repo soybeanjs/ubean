@@ -150,7 +150,7 @@ export function isIsrEntryStale(pathname: string, store: IsrCacheStore): boolean
   if (!memStore.store) return false;
   const entry = memStore.store.get(buildIsrCacheKey(pathname));
   if (!entry?.expiresAt) return false;
-  return Date.now() > entry.expiresAt;
+  return Date.now() >= entry.expiresAt;
 }
 
 /**
@@ -172,7 +172,7 @@ export async function serveIsr(_c: Context<UbeanEnv>, options: IsrServeOptions):
   const rawEntry = store.peek ? await store.peek(key) : await store.get(key);
 
   if (rawEntry) {
-    const isStale = Date.now() > rawEntry.expiresAt;
+    const isStale = Date.now() >= rawEntry.expiresAt;
     const html = new TextDecoder().decode(rawEntry.body);
 
     if (!isStale) {

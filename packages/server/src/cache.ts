@@ -54,7 +54,7 @@ export function createMemoryStore(maxEntries = 200): CacheStore {
       if (!entry) return undefined;
       // 不删除过期 entry —— 保留供 peek() / ISR SWR 读取旧内容。
       // 删除副作用会导致 getStaleIsrCache 无法获取 stale entry。
-      if (Date.now() > entry.expiresAt) {
+      if (Date.now() >= entry.expiresAt) {
         return undefined;
       }
       return entry;
@@ -128,7 +128,7 @@ export function createFsCacheStore(dir: string): CacheStore {
   return {
     async get(key) {
       const entry = await readEntry(key);
-      if (!entry || Date.now() > entry.expiresAt) return undefined;
+      if (!entry || Date.now() >= entry.expiresAt) return undefined;
       return entry;
     },
     async peek(key) {
@@ -172,7 +172,7 @@ export function createStorageCacheStore(storage: UbeanStorage, prefix = 'cache:'
   return {
     async get(key) {
       const entry = await storage.get<CacheEntry>(namespaced(key));
-      if (!entry || Date.now() > entry.expiresAt) return undefined;
+      if (!entry || Date.now() >= entry.expiresAt) return undefined;
       return entry;
     },
     async peek(key) {

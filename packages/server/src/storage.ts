@@ -87,7 +87,7 @@ export function createStorage(options: { driver?: StorageDriver; base?: string }
     const raw = await driver.getItemRaw(relativeKey);
     if (raw === undefined || raw === null) return null;
     const entry = raw as StorageEntry<T>;
-    if (entry.expiresAt && Date.now() > entry.expiresAt) {
+    if (entry.expiresAt && Date.now() >= entry.expiresAt) {
       await driver.removeItem(relativeKey);
       return null;
     }

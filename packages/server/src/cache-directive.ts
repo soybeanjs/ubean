@@ -109,7 +109,7 @@ export function createComponentMemoryStore(maxEntries = 500): ComponentCacheStor
     async get(key) {
       const entry = store.get(key);
       if (!entry) return undefined;
-      if (Date.now() > entry.expiresAt) {
+      if (Date.now() >= entry.expiresAt) {
         removeFromTagIndex(key, entry.tags);
         store.delete(key);
         return undefined;

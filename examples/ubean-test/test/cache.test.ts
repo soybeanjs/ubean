@@ -9,7 +9,7 @@ import {
   resolveRouteCacheRules
 } from 'ubean';
 import type { UbeanContext } from 'ubean';
-import { getJson } from './helper';
+import { getJson, postJson } from './helper';
 
 describe('Cache system', () => {
   describe('createMemoryStore() - memory storage', () => {
@@ -186,12 +186,13 @@ describe('Cache system', () => {
 
   describe('HTTP integration - /api/cache-test (cachedEventHandler)', () => {
     it('returns cached result on second call', async () => {
+      await postJson('/api/cache-test');
       const res1 = await getJson('/api/cache-test');
       const res2 = await getJson('/api/cache-test');
       expect(res1.status).toBe(200);
       expect(res2.status).toBe(200);
-      // Both should return the same timestamp (cached)
       expect((res1.data as { timestamp: number }).timestamp).toBe((res2.data as { timestamp: number }).timestamp);
+      expect(res2.headers.get('x-cache')).toBe('HIT');
     });
   });
 });

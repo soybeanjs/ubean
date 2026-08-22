@@ -260,9 +260,10 @@ function isCacheableRequest(c: Context): boolean {
 
 function isCacheableResponse(res: Response): boolean {
   if (res.status !== 200) return false;
-  if (res.headers.get('set-cookie')) return false;
   const cc = res.headers.get('cache-control');
   if (cc && (cc.includes('private') || cc.includes('no-store'))) return false;
+  // Set-Cookie (e.g. i18n `ubean_locale`) is stripped in serializeResponse.
+  // Rejecting it here made `cachedEventHandler` a no-op in apps with i18n.
   return true;
 }
 
@@ -333,11 +334,11 @@ export function cachedEventHandler<T extends (c: Context) => Response | Promise<
   handler: T,
   options: CacheRule = { ttl: 60 }
 ): T {
-  const store = useCacheStore();
   const ttl = options.ttl;
   const keyBase = options.name;
 
   return (async (c: Context) => {
+    const store = useCacheStore();
     const key = keyBase || buildCacheKey(c);
 
     if (ttl > 0 && isCacheableRequest(c)) {

@@ -12,6 +12,8 @@
 /* -------------------------------------------------------------------------- */
 export {
   createMemoryStore,
+  createFsCacheStore,
+  createStorageCacheStore,
   useCacheStore,
   clearCacheStore,
   createCacheMiddleware,

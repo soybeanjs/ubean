@@ -1,5 +1,8 @@
+import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { Context, Next } from 'hono';
 import type { RouteRule } from '@ubean/shared';
+import type { UbeanStorage } from './storage';
 
 export interface CacheEntry {
   body: ArrayBuffer;
@@ -74,6 +77,125 @@ export function createMemoryStore(maxEntries = 200): CacheStore {
     },
     async clear() {
       store.clear();
+    }
+  };
+}
+
+function encodeCacheKey(key: string): string {
+  return Buffer.from(key).toString('base64url');
+}
+
+interface PersistedCacheEntry {
+  body: string;
+  headers: Record<string, string>;
+  status: number;
+  statusText: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+function toPersisted(entry: CacheEntry): PersistedCacheEntry {
+  return {
+    ...entry,
+    body: Buffer.from(entry.body).toString('base64')
+  };
+}
+
+function fromPersisted(entry: PersistedCacheEntry): CacheEntry {
+  const bytes = Buffer.from(entry.body, 'base64');
+  return {
+    ...entry,
+    body: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
+  };
+}
+
+/**
+ * Node filesystem CacheStore. Survives process restarts; not for Workers.
+ * Pattern invalidation via `store` Map is unavailable — use exact keys.
+ */
+export function createFsCacheStore(dir: string): CacheStore {
+  const fileFor = (key: string) => join(dir, `${encodeCacheKey(key)}.json`);
+
+  async function readEntry(key: string): Promise<CacheEntry | undefined> {
+    try {
+      const raw = await readFile(fileFor(key), 'utf8');
+      return fromPersisted(JSON.parse(raw) as PersistedCacheEntry);
+    } catch {
+      return undefined;
+    }
+  }
+
+  return {
+    async get(key) {
+      const entry = await readEntry(key);
+      if (!entry || Date.now() > entry.expiresAt) return undefined;
+      return entry;
+    },
+    async peek(key) {
+      return readEntry(key);
+    },
+    async set(key, entry, ttl) {
+      await mkdir(dir, { recursive: true });
+      const now = Date.now();
+      const full: CacheEntry = {
+        ...entry,
+        createdAt: now,
+        expiresAt: now + ttl * 1000
+      };
+      await writeFile(fileFor(key), JSON.stringify(toPersisted(full)), 'utf8');
+    },
+    async delete(key) {
+      try {
+        await unlink(fileFor(key));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    async clear() {
+      try {
+        const files = await readdir(dir);
+        await Promise.all(files.filter(f => f.endsWith('.json')).map(f => unlink(join(dir, f))));
+      } catch {
+        /* dir may not exist */
+      }
+    }
+  };
+}
+
+/**
+ * Adapt `UbeanStorage` (memory / KV / custom driver) to CacheStore.
+ */
+export function createStorageCacheStore(storage: UbeanStorage, prefix = 'cache:'): CacheStore {
+  const namespaced = (key: string) => `${prefix}${key}`;
+
+  return {
+    async get(key) {
+      const entry = await storage.get<CacheEntry>(namespaced(key));
+      if (!entry || Date.now() > entry.expiresAt) return undefined;
+      return entry;
+    },
+    async peek(key) {
+      return (await storage.get<CacheEntry>(namespaced(key))) ?? undefined;
+    },
+    async set(key, entry, ttl) {
+      const now = Date.now();
+      const full: CacheEntry = {
+        ...entry,
+        createdAt: now,
+        expiresAt: now + ttl * 1000
+      };
+      await storage.set(namespaced(key), full, ttl);
+    },
+    async delete(key) {
+      const exists = await storage.has(namespaced(key));
+      if (!exists) return false;
+      await storage.remove(namespaced(key));
+      return true;
+    },
+    async clear() {
+      const keys = await storage.keys(prefix);
+      await Promise.all(keys.map(k => storage.remove(k)));
     }
   };
 }

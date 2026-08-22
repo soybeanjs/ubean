@@ -55,7 +55,6 @@
   },
   "peerDependencies": {
     "hono": "^4.0.0",
-    "ubean": "workspace:*",
     "vue": "^3.0.0"
   },
   "peerDependenciesMeta": {

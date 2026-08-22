@@ -47,7 +47,7 @@ ubean/
 │   │   ── 服务 / 工具 ──
 │   ├── islands/             # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
 │   ├── cli/                 # @ubean/cli — CLI 命令 + Dev server
-│   ├── devtools/            # @ubean/devtools — DevTools 独立包（opt-in，不进聚合器硬依赖）
+│   ├── devtools/            # @ubean/devtools — DevTools 独立包（opt-in，不进聚合器硬依赖；禁止 peer `ubean` 以免与 cli 成环）
 │   │
 │   │   ── 扩展包 ──
 │   ├── ai/                  # @ubean/ai — AI 大模型集成（defineAgent/defineAgentTool + Vue runtime，薄封装 Vercel AI SDK）

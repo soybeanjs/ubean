@@ -46,7 +46,7 @@ export default defineConfig({
     outDir: 'dist',
     entry: ['src/index.ts'],
     deps: {
-      neverBundle: ['vue', 'hono', 'ubean', 'hookable', 'pathe', /^node:/]
+      neverBundle: ['vue', 'hono', 'hookable', 'pathe', /^node:/]
     },
     plugins: [externalDtsDevtoolsPlugin()]
   },

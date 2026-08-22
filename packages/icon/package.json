@@ -41,9 +41,13 @@
     "vue": "^3.5.41"
   },
   "peerDependencies": {
+    "vite": "^5.0.0 || ^6.0.0 || ^7.0.0",
     "vue": "^3.0.0"
   },
   "peerDependenciesMeta": {
+    "vite": {
+      "optional": true
+    },
     "vue": {
       "optional": true
     }

@@ -123,6 +123,39 @@ function decodeProps(raw: string | null): Record<string, unknown> {
   }
 }
 
+/**
+ * True when the tree still has islands that have not been hydrated.
+ * Used by the client entry to skip the second rAF on SPA navigations
+ * that did not introduce new islands.
+ */
+export function hasPendingIslands(root?: DomParentNode | null): boolean {
+  return collectIslands(root ?? undefined).some(record => !record.el.hasAttribute('data-hydrated'));
+}
+
+export interface IslandHydrationScheduler {
+  requestAnimationFrame: (cb: () => void) => unknown;
+  hasPending: () => boolean;
+  hydrate: () => void;
+  /**
+   * First mount: always wait two frames so Vue's patch (and async resolve)
+   * finishes. SPA `afterEach`: after the first frame, skip the second when
+   * nothing is pending — nested Suspense islands that appear only on the
+   * second frame are a documented miss; first mount still forces two frames.
+   */
+  forceDoubleFrame?: boolean;
+}
+
+export function scheduleIslandHydration(options: IslandHydrationScheduler): void {
+  const raf = options.requestAnimationFrame;
+  raf(() => {
+    if (!options.forceDoubleFrame && !options.hasPending()) return;
+    raf(() => {
+      if (!options.hasPending()) return;
+      options.hydrate();
+    });
+  });
+}
+
 export function collectIslands(root?: DomParentNode): IslandRecord[] {
   const doc = root ?? _global.document;
   if (!doc) return [];

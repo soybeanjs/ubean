@@ -4,7 +4,10 @@ import {
   createCloudflareQueueDriver,
   dispatchCloudflareQueueBatch,
   createVercelPostgresDatabase,
-  createVercelKvQueueDriver
+  createVercelKvQueueDriver,
+  createBunSqliteDatabase,
+  createDenoKvStorage,
+  createNetlifyBlobsStorage
 } from '../src/drivers';
 
 describe('platform drivers', () => {
@@ -82,5 +85,77 @@ describe('platform drivers', () => {
     expect(id.startsWith('kv_')).toBe(true);
     expect(list).toHaveLength(1);
     expect(JSON.parse(list[0]).body).toEqual({ to: 'a@b.c' });
+  });
+
+  it('Bun sqlite adapter uses positional placeholders', async () => {
+    const seen: Array<{ sql: string; params: unknown[] }> = [];
+    const db = createBunSqliteDatabase({
+      query(sql) {
+        return {
+          all(...params) {
+            seen.push({ sql, params });
+            return [{ n: 2 }];
+          }
+        };
+      }
+    });
+    const rows = await db.sql`select ${2}`;
+    expect(rows).toEqual([{ n: 2 }]);
+    expect(seen[0].sql).toContain('?');
+    expect(seen[0].params).toEqual([2]);
+  });
+
+  it('Deno KV storage driver round-trips keys and values', async () => {
+    const store = new Map<string, unknown>();
+    const kv = {
+      async get(key: Array<string | number | bigint | boolean>) {
+        return { value: store.get(String(key[0])) };
+      },
+      async set(key: Array<string | number | bigint | boolean>, value: unknown) {
+        store.set(String(key[0]), value);
+      },
+      async delete(key: Array<string | number | bigint | boolean>) {
+        store.delete(String(key[0]));
+      },
+      async *list(selector: { prefix: Array<string | number | bigint | boolean> }) {
+        const prefix = selector.prefix[0] != null ? String(selector.prefix[0]) : '';
+        for (const [key, value] of store) {
+          if (!prefix || key.startsWith(prefix)) yield { key: [key], value };
+        }
+      }
+    };
+    const driver = createDenoKvStorage(kv);
+    await driver.setItemRaw('user:1', { id: 1 });
+    expect(await driver.getItemRaw('user:1')).toEqual({ id: 1 });
+    expect(await driver.hasItem('user:1')).toBe(true);
+    expect(await driver.getKeys('user:')).toEqual(['user:1']);
+    await driver.clear('user:');
+    expect(await driver.hasItem('user:1')).toBe(false);
+  });
+
+  it('Netlify Blobs storage driver JSON-encodes values', async () => {
+    const blobs = new Map<string, string>();
+    const driver = createNetlifyBlobsStorage({
+      async get(key) {
+        return blobs.get(key) ?? null;
+      },
+      async set(key, value) {
+        blobs.set(key, value);
+      },
+      async delete(key) {
+        blobs.delete(key);
+      },
+      async list(options) {
+        const prefix = options?.prefix ?? '';
+        return {
+          blobs: [...blobs.keys()].filter(key => key.startsWith(prefix)).map(key => ({ key }))
+        };
+      }
+    });
+    await driver.setItemRaw('page:home', { html: '<p/>' });
+    expect(await driver.getItemRaw('page:home')).toEqual({ html: '<p/>' });
+    expect(await driver.getKeys('page:')).toEqual(['page:home']);
+    await driver.removeItem('page:home');
+    expect(await driver.hasItem('page:home')).toBe(false);
   });
 });

@@ -33,8 +33,8 @@
 | CSRF / security headers / Data Cache | 默认挂载；sessions 仍 opt-in |
 | ISR 缓存 | Node 生产 `fs`（`.ubean/cache`）；serverless/edge 仍内存 |
 | i18n 消息编译 | 按 locale fingerprint 缓存；不池化 Vue app |
-| Islands `data-hydrated` | 已跳过；SPA 导航仍双 rAF（暂缓） |
-| DB / Queue / Storage 默认内存 | 仍宽于预设能力矩阵；CF/Vercel 有非内存示例，其余暂缓 |
+| Islands `data-hydrated` | 已跳过；SPA 导航无 pending 岛时跳过第二帧 rAF（首次 mount 仍强制双 rAF） |
+| DB / Queue / Storage 默认内存 | 仍宽于预设能力矩阵；CF / Vercel / Bun sqlite / Deno KV / Netlify Blobs 有非内存示例 |
 | SEO `src/sitemap.ts` 等约定 | `registerSeoConventions` 由 `createUbeanApp` 默认调用 |
 | 生产 `/_ipx` | `image: true` 时生产 server-entry 挂同一处理器 |
 | 生产 `src/crons` | 生产 eager glob；Node/bun/deno 启动 `startCronScheduler`，serverless 不装进程内调度器 |

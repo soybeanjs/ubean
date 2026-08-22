@@ -80,9 +80,20 @@ export {
   createCloudflareQueueDriver,
   dispatchCloudflareQueueBatch,
   createVercelPostgresDatabase,
-  createVercelKvQueueDriver
+  createVercelKvQueueDriver,
+  createBunSqliteDatabase,
+  createDenoKvStorage,
+  createNetlifyBlobsStorage
 } from './drivers';
-export type { D1DatabaseBinding, CloudflareQueueBinding, PostgresLike, KvListBinding } from './drivers';
+export type {
+  D1DatabaseBinding,
+  CloudflareQueueBinding,
+  PostgresLike,
+  KvListBinding,
+  BunSqliteLike,
+  DenoKvLike,
+  NetlifyBlobsStore
+} from './drivers';
 
 /* -------------------------------------------------------------------------- */
 /* Cron 定时任务                                                                */

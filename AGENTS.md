@@ -252,7 +252,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 **不存在的 API**：`defineMigration`、`defineSeed`、`defineConfig({ database: { driver, connection } })`
 
-平台非内存驱动（`@ubean/server/drivers`）：`createCloudflareD1Database` / `createCloudflareQueueDriver` / `createVercelPostgresDatabase` / `createVercelKvQueueDriver`。示例见 `examples/platform-drivers/`。
+平台非内存驱动（`@ubean/server/drivers`）：`createCloudflareD1Database` / `createCloudflareQueueDriver` / `createVercelPostgresDatabase` / `createVercelKvQueueDriver` / `createBunSqliteDatabase` / `createDenoKvStorage` / `createNetlifyBlobsStorage`。示例见 `examples/platform-drivers/`。默认 DB / Queue / Storage 仍是内存，直到显式接线。
 
 ### 缓存
 
@@ -583,6 +583,7 @@ const json = serializeVercelConfig(config);
 | `defineIsland(Component, strategy, options?)`                                                                                                                     | 客户端 island 运行时包装器(编程式);`strategy`: 'load'\|'idle'\|'visible'\|'media'\|'only';`options`: `{ mediaQuery?, props? }`                                                                                                           |
 | `defineServerIsland(Component, options?)`                                                                                                                         | 服务端 island 运行时包装器(P9-04);`options.fallback` 指定 Suspense fallback;Task 9.4 起 `options.rerenderOnPropsChange: true` 启用 props 变化触发服务端重渲染(Vite 插件自动注入组件路径)                                                 |
 | `hydrateIslands(options?)`                                                                                                                                        | Islands 水合(**框架自动调用**,无需手动执行;`components` 可选,手动传入优先于自动注册)                                                                                                                                                     |
+| `hasPendingIslands(root?)` / `scheduleIslandHydration(options)`                                                                                                   | 是否仍有未水合岛；客户端入口调度（首次 mount 双 rAF，SPA 无 pending 时跳过第二帧）                                                                                                                                                       |
 | `.server.vue` / `.client.vue` 文件约定                                                                                                                            | Server Components (Task 9,P1.5):`.server.vue` 仅 SSR 渲染(客户端不发送 JS);`.client.vue` SSR 渲染 `<div data-client-only>` 占位符,客户端 `onMounted` 后替换为真实组件。Vite 插件自动处理 `resolveId`/`load`/`transform`,用户无需手动调用 |
 | `defineClientComponent(Component)`                                                                                                                                | `.client.vue` 在客户端构建中的运行时包装器(Task 9.2);通常由 Vite 插件自动生成,无需手动调用                                                                                                                                               |
 | `definePairedComponent(ServerComp, ClientComp)`                                                                                                                   | Task 9.3 配对组件运行时包装器:`isClient` ref + `onMounted` 切换,初始渲染 ServerComp(SSR 输出)→ 水合后切换 ClientComp;通常由 Vite 插件在检测到同名 `.server.vue` + `.client.vue` 时自动生成虚拟包装模块,无需手动调用                      |
@@ -852,7 +853,7 @@ export default defineConfig({
 14. **参考实现**：参考 void/nitro 时学习架构模式后重新实现，保证 API 一致
 15. **i18n**：配置写在 `ubean.config.ts` 的 `i18n`；客户端从 `ubean/runtime/vue` 导入 `useI18n`/`setLocale`（vue-i18n 11，必须 `legacy: false`）；不要从 `ubean` 主入口导入 Vue `useI18n`
 16. **临时文件**：用项目根目录下的 `.temp` 目录存储临时文件
-17. **Islands 水合**：常规 islands 由框架在客户端入口自动水合（双重 rAF 时机 + SPA 导航后）；仅在需要传入手动注册组件（escape hatch）时在 `onClientReady` 中额外调用 `hydrateIslands()`
+17. **Islands 水合**：常规 islands 由框架在客户端入口自动水合（首次 mount 双重 rAF；SPA `afterEach` 无 pending 岛时跳过第二帧）；仅在需要传入手动注册组件（escape hatch）时在 `onClientReady` 中额外调用 `hydrateIslands()`
 
 ## 9. 开发命令
 
@@ -883,7 +884,7 @@ pnpm build            # 构建
 | CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)                                                     | CLI 命令文档                                                                           |
 | AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                                                                     | Agent 技能入口                                                                         |
 | 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                                                                       | 完整全栈示例 + 测试（virtual 路由模式）                                                |
-| 示例项目                  | [examples/platform-drivers/](examples/platform-drivers/)                                                           | Cloudflare D1/Queue 与 Vercel Postgres/KV 非内存驱动                                   |
+| 示例项目                  | [examples/platform-drivers/](examples/platform-drivers/)                                                           | Cloudflare D1/Queue、Vercel Postgres/KV、Bun sqlite、Deno KV、Netlify Blobs 非内存驱动 |
 | 示例项目                  | [examples/client-only-spa/](examples/client-only-spa/)                                                             | 纯客户端 SPA 示例（复用 @ubean/vue 内核）                                              |
 | 示例项目                  | [examples/frontend-only/](examples/frontend-only/)                                                                 | 纯前端示例（无 API/SSR）                                                               |
 | 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)                                                         | 路由文件生成模式示例                                                                   |

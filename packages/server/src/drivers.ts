@@ -1,4 +1,5 @@
 import type { QueueDriver, QueueHandler, QueueOptions } from './queue';
+import type { StorageDriver } from './storage';
 
 export interface D1PreparedStatement {
   bind(...values: unknown[]): D1PreparedStatement;
@@ -179,6 +180,179 @@ export function createVercelKvQueueDriver(kv: KvListBinding, prefix = 'ubean:que
     },
     async start() {
       /* pull-based; workers call rpop */
+    }
+  };
+}
+
+export interface BunSqliteStatement {
+  all: (...params: unknown[]) => unknown[];
+  run?: (...params: unknown[]) => unknown;
+}
+
+export interface BunSqliteLike {
+  query: (sql: string) => BunSqliteStatement;
+  exec?: (sql: string) => unknown;
+  run?: (sql: string, ...params: unknown[]) => unknown;
+  close?: () => void;
+}
+
+function toPositionalSql(strings: TemplateStringsArray, values: unknown[]): { sql: string; params: unknown[] } {
+  const sql = strings.reduce((acc, part, index) => {
+    if (index === values.length) return acc + part;
+    return `${acc}${part}?`;
+  }, '');
+  return { sql, params: values };
+}
+
+/**
+ * Wrap `bun:sqlite` `Database` as ubean's `{ sql, exec, close }` shape
+ * for `registerDb0Create` / `defineDatabase({ connector })`.
+ */
+export function createBunSqliteDatabase(db: BunSqliteLike): {
+  sql: (strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown>;
+  exec: (query: string) => Promise<unknown>;
+  close: () => Promise<void>;
+} {
+  return {
+    async sql(strings, ...values) {
+      const { sql, params } = toPositionalSql(strings, values);
+      return db.query(sql).all(...params);
+    },
+    async exec(query) {
+      if (typeof db.exec === 'function') {
+        db.exec(query);
+        return;
+      }
+      if (typeof db.run === 'function') {
+        db.run(query);
+        return;
+      }
+      db.query(query).run?.();
+    },
+    async close() {
+      db.close?.();
+    }
+  };
+}
+
+export type DenoKvKeyPart = string | number | bigint | boolean;
+
+export interface DenoKvEntry {
+  key: DenoKvKeyPart[];
+  value: unknown;
+}
+
+export interface DenoKvLike {
+  get: (key: DenoKvKeyPart[]) => Promise<{ value: unknown } | { value: undefined }>;
+  set: (key: DenoKvKeyPart[], value: unknown) => Promise<unknown>;
+  delete: (key: DenoKvKeyPart[]) => Promise<unknown>;
+  list: (selector: { prefix: DenoKvKeyPart[] }) => AsyncIterable<DenoKvEntry>;
+}
+
+function toDenoKvKey(key: string): DenoKvKeyPart[] {
+  return key ? [key] : [];
+}
+
+function fromDenoKvKey(parts: DenoKvKeyPart[]): string {
+  return parts.map(String).join('');
+}
+
+/**
+ * Wrap `Deno.openKv()` as a `StorageDriver` for `createStorage({ driver })`.
+ * Keys are stored as a single Deno.Kv part so string keys round-trip.
+ */
+export function createDenoKvStorage(kv: DenoKvLike): StorageDriver {
+  const getKeys = async (base?: string): Promise<string[]> => {
+    const prefix = toDenoKvKey(base ?? '');
+    const keys: string[] = [];
+    for await (const entry of kv.list({ prefix })) {
+      const stored = fromDenoKvKey(entry.key);
+      if (!base || stored.startsWith(base)) keys.push(stored);
+    }
+    return keys;
+  };
+
+  return {
+    async getItemRaw(key) {
+      const entry = await kv.get(toDenoKvKey(key));
+      return entry.value ?? null;
+    },
+    async setItemRaw(key, value) {
+      await kv.set(toDenoKvKey(key), value);
+    },
+    async removeItem(key) {
+      await kv.delete(toDenoKvKey(key));
+    },
+    getKeys,
+    async clear(base) {
+      const keys = await getKeys(base);
+      await Promise.all(keys.map(key => kv.delete(toDenoKvKey(key))));
+    },
+    async hasItem(key) {
+      const entry = await kv.get(toDenoKvKey(key));
+      return entry.value !== undefined && entry.value !== null;
+    }
+  };
+}
+
+export interface NetlifyBlobsListResult {
+  blobs?: Array<{ key: string }>;
+}
+
+export interface NetlifyBlobsStore {
+  get: (key: string) => Promise<string | null>;
+  set: (key: string, value: string) => Promise<unknown>;
+  delete: (key: string) => Promise<unknown>;
+  list?: (options?: { prefix?: string }) => Promise<NetlifyBlobsListResult | string[]>;
+}
+
+function encodeBlobValue(value: unknown): string {
+  return JSON.stringify(value);
+}
+
+function decodeBlobValue(raw: string | null): unknown {
+  if (raw == null) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function blobListKeys(result: NetlifyBlobsListResult | string[] | undefined): string[] {
+  if (!result) return [];
+  if (Array.isArray(result)) return result;
+  return (result.blobs ?? []).map(blob => blob.key);
+}
+
+/**
+ * Wrap `@netlify/blobs` `getStore()` as a `StorageDriver`.
+ * Values are JSON-serialized; Netlify preset has `queues: false` (no queue adapter).
+ */
+export function createNetlifyBlobsStorage(store: NetlifyBlobsStore): StorageDriver {
+  const getKeys = async (base?: string): Promise<string[]> => {
+    if (typeof store.list !== 'function') return [];
+    const keys = blobListKeys(await store.list(base ? { prefix: base } : undefined));
+    return base ? keys.filter(key => key.startsWith(base)) : keys;
+  };
+
+  return {
+    async getItemRaw(key) {
+      return decodeBlobValue(await store.get(key));
+    },
+    async setItemRaw(key, value) {
+      await store.set(key, encodeBlobValue(value));
+    },
+    async removeItem(key) {
+      await store.delete(key);
+    },
+    getKeys,
+    async clear(base) {
+      const keys = await getKeys(base);
+      await Promise.all(keys.map(key => store.delete(key)));
+    },
+    async hasItem(key) {
+      return (await store.get(key)) != null;
     }
   };
 }

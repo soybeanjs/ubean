@@ -72,6 +72,8 @@ import {
   createClientHead,
   createServerHead,
   hydrateIslands,
+  hasPendingIslands,
+  scheduleIslandHydration,
   configureI18nRuntime
 } from 'ubean/client';
 
@@ -248,21 +250,29 @@ export async function createApp() {
     if (config.onClientReady) {
       config.onClientReady(instance.app);
     }
-    // 自动水合 Islands:使用双重 requestAnimationFrame 确保 Vue 的渲染
-    // 循环（含异步组件解析和 router.isReady 后的 patch）完全结束后再水合,
-    // 避免 Vue re-render 覆盖已水合的 island 内容。
-    // 用户无需在 onClientReady 中手动调用 hydrateIslands。
-    var doHydrateIslands = function () {
-      requestAnimationFrame(function () {
-        requestAnimationFrame(function () {
-          hydrateIslands({ appContext: instance.app, root: document.getElementById('app') || undefined });
-        });
-      });
+    // Islands: first mount always waits two rAFs so Vue's patch finishes.
+    // SPA afterEach waits one rAF, then skips the second when no pending islands.
+    var appRoot = function () {
+      return document.getElementById('app') || undefined;
     };
-    doHydrateIslands();
-    // SPA 导航后也需要水合新页面中的 islands(router.afterEach 在每次导航完成后触发)
+    var hydrateNow = function () {
+      hydrateIslands({ appContext: instance.app, root: appRoot() });
+    };
+    var pendingIslands = function () {
+      return hasPendingIslands(appRoot());
+    };
+    scheduleIslandHydration({
+      requestAnimationFrame: requestAnimationFrame,
+      hasPending: pendingIslands,
+      hydrate: hydrateNow,
+      forceDoubleFrame: true
+    });
     instance.router.afterEach(function () {
-      doHydrateIslands();
+      scheduleIslandHydration({
+        requestAnimationFrame: requestAnimationFrame,
+        hasPending: pendingIslands,
+        hydrate: hydrateNow
+      });
     });
   };
 

@@ -128,8 +128,19 @@ export type { SeoMetadata, MetaTag, LinkTag } from '@ubean/seo';
 // Islands hydration — single source of truth lives in `@ubean/islands/runtime`
 // (the former in-runtime fork was removed; this re-export keeps the public
 // surface of the old `@ubean/runtime` barrel).
-export { hydrateIslands, collectIslands, hydrateIsland } from '@ubean/islands/runtime';
-export type { IslandHydrateOptions, IslandRecord, HydrateIslandsOptions } from '@ubean/islands/runtime';
+export {
+  hydrateIslands,
+  collectIslands,
+  hydrateIsland,
+  hasPendingIslands,
+  scheduleIslandHydration
+} from '@ubean/islands/runtime';
+export type {
+  IslandHydrateOptions,
+  IslandRecord,
+  HydrateIslandsOptions,
+  IslandHydrationScheduler
+} from '@ubean/islands/runtime';
 export { useData, useAsyncData, invalidateData, useFetch, setDefaultFetch } from '@ubean/pages';
 export type { DataResult, UseAsyncDataOptions, UseFetchOptions } from '@ubean/pages';
 export {

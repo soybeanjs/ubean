@@ -12,7 +12,7 @@ export default defineConfig({
     outDir: 'dist',
     entry: ['src/index.ts', 'src/vite.ts', 'src/runtime.ts'],
     deps: {
-      neverBundle: ['vue', '@iconify/vue', /^node:/]
+      neverBundle: ['vue', 'vite', '@iconify/vue', /^node:/]
     }
   },
   test: {

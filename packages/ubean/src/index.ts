@@ -115,6 +115,8 @@ export {
   hydrateIslands,
   collectIslands,
   hydrateIsland,
+  hasPendingIslands,
+  scheduleIslandHydration,
   // view-transitions
   supportsViewTransitions,
   withViewTransition,

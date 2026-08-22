@@ -1,5 +1,65 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.2.2...main) (2026-08-23)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- land 2027 H1 server functions, select SSR, and analyze &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(a2679)</samp>](https://github.com/soybeanjs/ubean/commit/a267976)
+- land production fs cache, studio contracts, content SSR snapshot, and gzip baseline &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(c6096)</samp>](https://github.com/soybeanjs/ubean/commit/c6096a0)
+- wire SEO conventions, production IPX and crons, and gzip CI gate &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(a4fd9)</samp>](https://github.com/soybeanjs/ubean/commit/a4fd97a)
+- add Bun/Deno/Netlify drivers, skip idle island rAF, and unbundle vite from icon &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(ddcbc)</samp>](https://github.com/soybeanjs/ubean/commit/ddcbccf)
+- **app**:
+  - mount CSRF, security headers, and data cache by default &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(6bbce)</samp>](https://github.com/soybeanjs/ubean/commit/6bbce46)
+- **build-core**:
+  - unify SSR singleton runtime policy &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(4e353)</samp>](https://github.com/soybeanjs/ubean/commit/4e353c0)
+- **image**:
+  - serve local files from /_ipx in development &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(0e2ea)</samp>](https://github.com/soybeanjs/ubean/commit/0e2ea7e)
+- **routes**:
+  - execute rewrite and proxy from routeRules &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(01f36)</samp>](https://github.com/soybeanjs/ubean/commit/01f3694)
+  - treat ppr as a streaming alias &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(8161d)</samp>](https://github.com/soybeanjs/ubean/commit/8161dfe)
+- **server**:
+  - add filesystem and storage cache stores &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(67071)</samp>](https://github.com/soybeanjs/ubean/commit/67071f1)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- resolve remaining monorepo typecheck errors &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(f9025)</samp>](https://github.com/soybeanjs/ubean/commit/f9025e8)
+- **devtools**:
+  - drop the ubean peer that cycled with cli &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(dee77)</samp>](https://github.com/soybeanjs/ubean/commit/dee7706)
+- **i18n**:
+  - type CoreContext from the catalog factory instead of never &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(c11de)</samp>](https://github.com/soybeanjs/ubean/commit/c11dee4)
+- **image**:
+  - adapt IPX Response body to fetch BodyInit &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(0a041)</samp>](https://github.com/soybeanjs/ubean/commit/0a04182)
+- **markdown**:
+  - keep vite external in the DTS pack &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(4a24a)</samp>](https://github.com/soybeanjs/ubean/commit/4a24a9c)
+- **server**:
+  - cache handler responses that also set cookies &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(644fb)</samp>](https://github.com/soybeanjs/ubean/commit/644fb85)
+  - treat entries as expired at expiresAt, not after &nbsp;-&nbsp; by @soybeanjs [<samp>(1bd4a)</samp>](https://github.com/soybeanjs/ubean/commit/1bd4a64)
+- **ubean**:
+  - keep a single HttpMethod export from scan &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(cbdbc)</samp>](https://github.com/soybeanjs/ubean/commit/cbdbce2)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- **packages**:
+  - refactor "@ubean/i18n" based on vue-i18n &nbsp;-&nbsp; by @soybeanjs [<samp>(bf4a3)</samp>](https://github.com/soybeanjs/ubean/commit/bf4a3e2)
+  - merge hygiene packages into shared, config, and build &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(83a32)</samp>](https://github.com/soybeanjs/ubean/commit/83a3263)
+  - fold ssr, actions, dev-server, and codegen into client, routes, cli, and build &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(91555)</samp>](https://github.com/soybeanjs/ubean/commit/9155538)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **projects**:
+  - clear docs &nbsp;-&nbsp; by @soybeanjs [<samp>(08fab)</samp>](https://github.com/soybeanjs/ubean/commit/08fab08)
+  - mark Q4 architecture debt complete &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(188ac)</samp>](https://github.com/soybeanjs/ubean/commit/188ac2f)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**:
+  - update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(92d6e)</samp>](https://github.com/soybeanjs/ubean/commit/92d6edf)
+  - refresh catalog pins and release-age excludes &nbsp;-&nbsp; by @soybeanjs and @cursoragent [<samp>(4800e)</samp>](https://github.com/soybeanjs/ubean/commit/4800ec0)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;[![cursoragent](https://github.com/cursoragent.png?size=48)](https://github.com/cursoragent)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.2.1...main) (2026-08-21)
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation

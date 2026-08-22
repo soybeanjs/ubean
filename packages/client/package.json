@@ -1,6 +1,6 @@
 {
   "name": "@ubean/client",
-  "version": "0.2.2",
+  "version": "0.3.0",
   "description": "Framework client runtime for ubean — layered over the lean @ubean/vue kernel, adding app factories, unhead, i18n, data layer, islands hydration and SSR state helpers",
   "files": [
     "dist"

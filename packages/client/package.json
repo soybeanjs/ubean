@@ -43,7 +43,7 @@
     "@ubean/pages": "workspace:*",
     "@ubean/shared": "workspace:*",
     "@ubean/vue": "workspace:*",
-    "@unhead/vue": "^3.3.2",
+    "@unhead/vue": "^3.4.0",
     "@vue/server-renderer": "^3.5.41",
     "vue": "^3.5.41",
     "vue-i18n": "catalog:",

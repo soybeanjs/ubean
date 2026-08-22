@@ -30,7 +30,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "markdown-exit": "1.1.0-beta.2"
+    "markdown-exit": "1.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",

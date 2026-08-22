@@ -41,8 +41,8 @@
     "@soybeanjs/unocss-preset": "^0.2.0",
     "@soybeanjs/unocss-shadcn": "^0.29.3",
     "@types/node": "^26.2.0",
-    "@vitejs/devtools": "^0.5.1",
-    "@vitejs/devtools-kit": "^0.5.1",
+    "@vitejs/devtools": "^0.5.2",
+    "@vitejs/devtools-kit": "^0.5.2",
     "@vitejs/plugin-vue": "^6.0.8",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
@@ -67,7 +67,7 @@
     }
   },
   "optionalDependencies": {
-    "@ai-sdk/openai-compatible": "3.0.34",
-    "ai": "7.0.73"
+    "@ai-sdk/openai-compatible": "3.0.35",
+    "ai": "7.0.77"
   }
 }

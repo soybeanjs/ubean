@@ -7,7 +7,7 @@ catalog:
   vite-plus: 0.2.9
   vue-i18n: 11.4.8
   '@intlify/core': 11.4.8
-  '@intlify/unplugin-vue-i18n': 11.2.4
+  '@intlify/unplugin-vue-i18n': 11.2.5
 overrides:
   vite: 'catalog:'
   kysely: '0.28.5'

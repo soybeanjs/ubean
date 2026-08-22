@@ -40,7 +40,7 @@
   "devDependencies": {
     "@types/node": "^26.2.0",
     "@ubean/markdown": "workspace:*",
-    "@unhead/vue": "^3.3.2",
+    "@unhead/vue": "^3.4.0",
     "@vue/server-renderer": "^3.5.41",
     "happy-dom": "^20.11.6",
     "typescript": "7.0.2",

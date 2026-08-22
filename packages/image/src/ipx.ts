@@ -193,6 +193,17 @@ export async function serveIpxRequest(pathname: string, options: ServeIpxOptions
   };
 }
 
+/** Node `Buffer` is `Uint8Array<ArrayBufferLike>`; fetch `BodyInit` requires `ArrayBuffer`. */
+function toBodyInit(body: ServeIpxResult['body']): BodyInit | undefined {
+  if (body == null) return undefined;
+  if (typeof body === 'string') return body;
+  const { buffer, byteOffset, byteLength } = body;
+  if (buffer instanceof ArrayBuffer) {
+    return new Uint8Array(buffer, byteOffset, byteLength);
+  }
+  return Uint8Array.from(body);
+}
+
 export function createIpxHonoHandler(options: ServeIpxOptions) {
   return async (c: {
     req: { path: string };
@@ -204,6 +215,6 @@ export function createIpxHonoHandler(options: ServeIpxOptions) {
     if (result.redirect) {
       return c.redirect(result.redirect, 302);
     }
-    return new Response(result.body, { status: result.status, headers: result.headers });
+    return new Response(toBodyInit(result.body), { status: result.status, headers: result.headers });
   };
 }

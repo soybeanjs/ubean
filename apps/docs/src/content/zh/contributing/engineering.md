@@ -25,7 +25,7 @@ import type { Preset } from '../preset/types';
 // 2. 外部依赖
 import { resolve, join } from 'pathe';
 import { defu } from 'defu';
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 
 // 3. 内部依赖
 import { readConfig } from './loader';
@@ -551,6 +551,17 @@ codegraph impact <symbol>         # 查影响面
 1. 在 `package.json` 提供 `./vite` 子路径导出（使其被 CI 派生为扩展集）；
 2. 在本表 11.1 增加一行（缺行 CI 失败）；
 3. 按 11.2 标注核心依赖形态。
+
+## 12. 客户端 JS 预算
+
+声称「更轻」必须带数字。构建之后运行：
+
+```bash
+pnpm --filter ubean-test build
+pnpm analyze   # 或 `ubean analyze`；读 dist/client/.vite/manifest.json
+```
+
+默认把 gzip 汇总写到 `.ubean/bundle-baseline.json`（`totalGzip` / `entryGzip` / 各 chunk）。Islands 默认页的回归以该文件为准，而不是印象。`ubean analyze --write=false` 只打印不写文件。
 
 ---
 

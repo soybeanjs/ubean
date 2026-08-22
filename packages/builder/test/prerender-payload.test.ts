@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { DATA_PAYLOAD_ID } from '@ubean/pages';
-import { extractDataPayload, routeToDataFilePath, prerender, writePrerenderedFile } from '../src/index';
+import { extractDataPayload, routeToDataFilePath, prerender, writePrerenderedFile } from '../src/prerender';
 
 const PAYLOAD_OPEN = `<script id="${DATA_PAYLOAD_ID}" type="application/json">`;
 const PAYLOAD_CLOSE = `</script>`;

@@ -1,5 +1,5 @@
-import { getLogger } from '@ubean/logger';
 import type { CapabilityDiagnosisResult } from '@ubean/preset';
+import { getLogger } from '@ubean/shared/logger';
 
 const logger = getLogger('dev-server');
 

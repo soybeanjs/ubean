@@ -1,7 +1,7 @@
 /**
  * ubean/vite — 默认 Vite 插件组装入口
  *
- * 将 `@ubean/build`、`@ubean/vite`、`@ubean/islands` 三个 Vite 插件
+ * 将 `@ubean/build`（core + Vue）与 `@ubean/islands` 的 Vite 插件
  * 组合为单一 `ubeanPlugin` 入口，对应原 `ubean` 包 `ubeanPlugin` 的行为。
  *
  * 消费者在 `vite.config.ts` 中使用：
@@ -21,7 +21,7 @@
  *
  * 对于需要细粒度控制的场景，可直接从子包导入：
  * - `@ubean/build/vite` → `ubeanPlugin as ubeanCorePlugin`（框架无关）
- * - `@ubean/vite` → `ubeanVite`（Vue 专属：页面/入口虚拟模块 + 自动导入）
+ * - `@ubean/build/vue` → `ubeanVite`（Vue 专属：页面/入口虚拟模块 + 自动导入）
  * - `@ubean/islands/vite` → `ubeanIslandsPlugin`（Islands SFC transform）
  */
 
@@ -29,10 +29,10 @@ import type { Plugin } from 'vite';
 import { ubeanServerActionsPlugin } from '@ubean/actions/vite';
 import { ubeanPlugin as ubeanCorePlugin } from '@ubean/build/vite';
 import type { UbeanPluginOptions } from '@ubean/build/vite';
+import { ubeanVite } from '@ubean/build/vue';
+import type { UbeanViteOptions } from '@ubean/build/vue';
 import { loadUbeanConfigSync } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
-import { ubeanVite } from '@ubean/vite';
-import type { UbeanViteOptions } from '@ubean/vite';
 
 export type { UbeanPluginOptions, UbeanViteOptions };
 

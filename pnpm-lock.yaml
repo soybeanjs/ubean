@@ -192,6 +192,12 @@ importers:
       '@soybeanjs/fetch':
         specifier: ^0.1.0
         version: 0.1.0
+      '@ubean/content':
+        specifier: workspace:*
+        version: link:../../packages/content
+      '@ubean/devtools':
+        specifier: workspace:*
+        version: link:../../packages/devtools
       '@valibot/to-json-schema':
         specifier: ^1.7.1
         version: 1.7.1(valibot@1.4.2(typescript@6.0.3))
@@ -328,9 +334,9 @@ importers:
 
   packages/auth:
     dependencies:
-      '@ubean/logger':
+      '@ubean/shared':
         specifier: workspace:*
-        version: link:../logger
+        version: link:../shared
       better-auth:
         specifier: ^1.7.1
         version: 1.7.1(vitest@4.1.11)(vue@3.5.41(typescript@6.0.3))
@@ -357,26 +363,17 @@ importers:
         specifier: ^3.5.41
         version: 3.5.41(typescript@6.0.3)
 
-  packages/build-core:
-    devDependencies:
-      '@types/node':
-        specifier: ^26.2.0
-        version: 26.2.0
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.9(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(playwright@1.62.1)(vitest@4.1.11))(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(happy-dom@20.11.6)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)
-
   packages/builder:
     dependencies:
-      '@ubean/build-core':
-        specifier: workspace:*
-        version: link:../build-core
+      '@intlify/unplugin-vue-i18n':
+        specifier: 'catalog:'
+        version: 11.2.4(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-dom@3.5.41)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(rollup@4.62.4)(supports-color@10.2.2)(typescript@6.0.3)(vue-i18n@11.4.8(vue@3.5.41(typescript@6.0.3)))(vue@3.5.41(typescript@6.0.3))
       '@ubean/client':
         specifier: workspace:*
         version: link:../client
+      '@ubean/codegen':
+        specifier: workspace:*
+        version: link:../codegen
       '@ubean/config':
         specifier: workspace:*
         version: link:../config
@@ -386,12 +383,12 @@ importers:
       '@ubean/islands':
         specifier: workspace:*
         version: link:../islands
-      '@ubean/logger':
+      '@ubean/markdown':
         specifier: workspace:*
-        version: link:../logger
-      '@ubean/modules':
+        version: link:../markdown
+      '@ubean/pages':
         specifier: workspace:*
-        version: link:../modules
+        version: link:../pages
       '@ubean/preset':
         specifier: workspace:*
         version: link:../preset
@@ -407,9 +404,6 @@ importers:
       '@ubean/ssr':
         specifier: workspace:*
         version: link:../ssr
-      '@ubean/vite':
-        specifier: workspace:*
-        version: link:../vite
       '@ubean/vue':
         specifier: workspace:*
         version: link:../vue
@@ -422,9 +416,24 @@ importers:
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
+      unimport:
+        specifier: ^6.3.1
+        version: 6.4.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(oxc-parser@0.131.0)(rollup@4.62.4)
+      unplugin-auto-import:
+        specifier: 21.1.0
+        version: 21.1.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(@vueuse/core@14.4.0(vue@3.5.41(typescript@6.0.3)))(oxc-parser@0.131.0)(rollup@4.62.4)
+      unplugin-vue-components:
+        specifier: ^32.1.0
+        version: 32.1.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(rollup@4.62.4)(vue@3.5.41(typescript@6.0.3))
+      unplugin-vue-markdown:
+        specifier: ^32.0.0
+        version: 32.0.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(rollup@4.62.4)
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.2.9
         version: '@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(@vitejs/devtools@0.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)'
+      vue-i18n:
+        specifier: 'catalog:'
+        version: 11.4.8(vue@3.5.41(typescript@6.0.3))
     devDependencies:
       '@types/node':
         specifier: ^26.2.0
@@ -450,21 +459,15 @@ importers:
       '@ubean/config':
         specifier: workspace:*
         version: link:../config
+      '@ubean/content':
+        specifier: workspace:*
+        version: link:../content
       '@ubean/dev-server':
         specifier: workspace:*
         version: link:../dev-server
       '@ubean/devtools':
         specifier: workspace:*
         version: link:../devtools
-      '@ubean/logger':
-        specifier: workspace:*
-        version: link:../logger
-      '@ubean/modules':
-        specifier: workspace:*
-        version: link:../modules
-      '@ubean/prerender':
-        specifier: workspace:*
-        version: link:../prerender
       '@ubean/preset':
         specifier: workspace:*
         version: link:../preset
@@ -576,6 +579,9 @@ importers:
       defu:
         specifier: 6.1.7
         version: 6.1.7
+      hookable:
+        specifier: ^6.1.1
+        version: 6.1.1
       jiti:
         specifier: ^2.7.0
         version: 2.7.0
@@ -592,6 +598,9 @@ importers:
       '@ubean/content':
         specifier: workspace:*
         version: link:../content
+      hono:
+        specifier: 4.13.3
+        version: 4.13.3
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -647,12 +656,6 @@ importers:
       '@ubean/islands':
         specifier: workspace:*
         version: link:../islands
-      '@ubean/logger':
-        specifier: workspace:*
-        version: link:../logger
-      '@ubean/modules':
-        specifier: workspace:*
-        version: link:../modules
       '@ubean/preset':
         specifier: workspace:*
         version: link:../preset
@@ -665,9 +668,6 @@ importers:
       '@ubean/ssr':
         specifier: workspace:*
         version: link:../ssr
-      '@ubean/vite':
-        specifier: workspace:*
-        version: link:../vite
       '@vitejs/devtools':
         specifier: ^0.x
         version: 0.5.1(@devframes/json-render@0.9.4(@devframes/hub@0.9.4(crossws@0.4.11(srvx@0.12.7))(devframe@0.9.4(cac@7.0.0)(srvx@0.12.7)))(devframe@0.9.4(cac@7.0.0)(srvx@0.12.7)))(@voidzero-dev/vite-plus-core@0.2.9)(crossws@0.4.11(srvx@0.12.7))(srvx@0.12.7)
@@ -926,25 +926,6 @@ importers:
         specifier: 'catalog:'
         version: 0.2.9(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(playwright@1.62.1)(vitest@4.1.11))(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(happy-dom@20.11.6)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)
 
-  packages/logger:
-    dependencies:
-      tslog:
-        specifier: ^5.1.0
-        version: 5.1.0
-    devDependencies:
-      '@types/node':
-        specifier: ^26.2.0
-        version: 26.2.0
-      hono:
-        specifier: 4.13.3
-        version: 4.13.3
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.9(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(playwright@1.62.1)(vitest@4.1.11))(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(happy-dom@20.11.6)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)
-
   packages/markdown:
     dependencies:
       '@mdx-js/mdx':
@@ -970,40 +951,6 @@ importers:
         specifier: ^3.5.41
         version: 3.5.41(typescript@6.0.3)
 
-  packages/modules:
-    dependencies:
-      '@ubean/app':
-        specifier: workspace:*
-        version: link:../app
-      '@ubean/config':
-        specifier: workspace:*
-        version: link:../config
-      '@ubean/logger':
-        specifier: workspace:*
-        version: link:../logger
-      '@ubean/shared':
-        specifier: workspace:*
-        version: link:../shared
-      hookable:
-        specifier: ^6.1.1
-        version: 6.1.1
-      vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@0.2.9
-        version: '@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(@vitejs/devtools@0.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)'
-    devDependencies:
-      '@types/node':
-        specifier: ^26.2.0
-        version: 26.2.0
-      hono:
-        specifier: 4.13.3
-        version: 4.13.3
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.9(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(playwright@1.62.1)(vitest@4.1.11))(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(happy-dom@20.11.6)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)
-
   packages/pages:
     dependencies:
       '@ubean/shared':
@@ -1016,34 +963,6 @@ importers:
       '@types/node':
         specifier: ^26.2.0
         version: 26.2.0
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.9(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(playwright@1.62.1)(vitest@4.1.11))(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(happy-dom@20.11.6)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)
-
-  packages/prerender:
-    dependencies:
-      '@ubean/config':
-        specifier: workspace:*
-        version: link:../config
-      '@ubean/pages':
-        specifier: workspace:*
-        version: link:../pages
-      '@ubean/scan':
-        specifier: workspace:*
-        version: link:../scan
-      '@ubean/shared':
-        specifier: workspace:*
-        version: link:../shared
-    devDependencies:
-      '@types/node':
-        specifier: ^26.2.0
-        version: 26.2.0
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
       typescript:
         specifier: 6.0.3
         version: 6.0.3
@@ -1114,9 +1033,6 @@ importers:
 
   packages/scan:
     dependencies:
-      '@ubean/logger':
-        specifier: workspace:*
-        version: link:../logger
       '@ubean/shared':
         specifier: workspace:*
         version: link:../shared
@@ -1179,9 +1095,6 @@ importers:
 
   packages/server:
     dependencies:
-      '@ubean/logger':
-        specifier: workspace:*
-        version: link:../logger
       '@ubean/shared':
         specifier: workspace:*
         version: link:../shared
@@ -1222,6 +1135,9 @@ importers:
       scule:
         specifier: ^1.3.0
         version: 1.3.0
+      tslog:
+        specifier: ^5.1.0
+        version: 5.1.0
       ufo:
         specifier: 1.6.4
         version: 1.6.4
@@ -1308,9 +1224,6 @@ importers:
       '@ubean/dev-server':
         specifier: workspace:*
         version: link:../dev-server
-      '@ubean/devtools':
-        specifier: workspace:*
-        version: link:../devtools
       '@ubean/i18n':
         specifier: workspace:*
         version: link:../i18n
@@ -1320,21 +1233,12 @@ importers:
       '@ubean/islands':
         specifier: workspace:*
         version: link:../islands
-      '@ubean/logger':
-        specifier: workspace:*
-        version: link:../logger
       '@ubean/markdown':
         specifier: workspace:*
         version: link:../markdown
-      '@ubean/modules':
-        specifier: workspace:*
-        version: link:../modules
       '@ubean/pages':
         specifier: workspace:*
         version: link:../pages
-      '@ubean/prerender':
-        specifier: workspace:*
-        version: link:../prerender
       '@ubean/preset':
         specifier: workspace:*
         version: link:../preset
@@ -1356,9 +1260,6 @@ importers:
       '@ubean/ssr':
         specifier: workspace:*
         version: link:../ssr
-      '@ubean/vite':
-        specifier: workspace:*
-        version: link:../vite
       hono:
         specifier: 4.13.3
         version: 4.13.3
@@ -1381,70 +1282,6 @@ importers:
       vue:
         specifier: ^3.5.41
         version: 3.5.41(typescript@6.0.3)
-
-  packages/vite:
-    dependencies:
-      '@intlify/unplugin-vue-i18n':
-        specifier: 'catalog:'
-        version: 11.2.4(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-dom@3.5.41)(eslint@10.8.1(jiti@2.7.0)(supports-color@10.2.2))(rollup@4.62.4)(supports-color@10.2.2)(typescript@6.0.3)(vue-i18n@11.4.8(vue@3.5.41(typescript@6.0.3)))(vue@3.5.41(typescript@6.0.3))
-      '@ubean/build-core':
-        specifier: workspace:*
-        version: link:../build-core
-      '@ubean/client':
-        specifier: workspace:*
-        version: link:../client
-      '@ubean/codegen':
-        specifier: workspace:*
-        version: link:../codegen
-      '@ubean/config':
-        specifier: workspace:*
-        version: link:../config
-      '@ubean/i18n':
-        specifier: workspace:*
-        version: link:../i18n
-      '@ubean/markdown':
-        specifier: workspace:*
-        version: link:../markdown
-      '@ubean/pages':
-        specifier: workspace:*
-        version: link:../pages
-      '@ubean/scan':
-        specifier: workspace:*
-        version: link:../scan
-      '@ubean/vue':
-        specifier: workspace:*
-        version: link:../vue
-      pathe:
-        specifier: ^2.0.3
-        version: 2.0.3
-      unimport:
-        specifier: ^6.3.1
-        version: 6.4.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(oxc-parser@0.131.0)(rollup@4.62.4)
-      unplugin-auto-import:
-        specifier: 21.1.0
-        version: 21.1.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(@vueuse/core@14.4.0(vue@3.5.41(typescript@6.0.3)))(oxc-parser@0.131.0)(rollup@4.62.4)
-      unplugin-vue-components:
-        specifier: ^32.1.0
-        version: 32.1.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(rollup@4.62.4)(vue@3.5.41(typescript@6.0.3))
-      unplugin-vue-markdown:
-        specifier: ^32.0.0
-        version: 32.0.0(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(rollup@4.62.4)
-      vite:
-        specifier: npm:@voidzero-dev/vite-plus-core@0.2.9
-        version: '@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(@vitejs/devtools@0.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)'
-      vue-i18n:
-        specifier: 'catalog:'
-        version: 11.4.8(vue@3.5.41(typescript@6.0.3))
-    devDependencies:
-      '@types/node':
-        specifier: ^26.2.0
-        version: 26.2.0
-      typescript:
-        specifier: 6.0.3
-        version: 6.0.3
-      vite-plus:
-        specifier: 'catalog:'
-        version: 0.2.9(@types/node@26.2.0)(@vitest/browser-playwright@4.1.11(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(playwright@1.62.1)(vitest@4.1.11))(@voidzero-dev/vite-plus-core@0.2.9(@types/node@26.2.0)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0))(happy-dom@20.11.6)(jiti@2.7.0)(terser@5.50.0)(typescript@6.0.3)(yaml@2.9.0)
 
   packages/vue:
     dependencies:

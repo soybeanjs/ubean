@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Hono } from 'hono';
-import { createRequestLoggerMiddleware } from '../src/hono';
-import { createUbeanLogger, getLogger, logger } from '../src/index';
+import { createUbeanLogger, getLogger, logger } from '../src/logger';
+import { createRequestLoggerMiddleware } from '../src/logger/hono';
 
 /**
  * tslog v5 transport 契约:
@@ -27,7 +27,7 @@ function makeCapturingLogger(records: CaptureRecord[]) {
   return log;
 }
 
-describe('@ubean/logger', () => {
+describe('@ubean/shared/logger', () => {
   it('exposes a default logger with level methods', () => {
     expect(typeof logger.info).toBe('function');
     expect(typeof logger.warn).toBe('function');

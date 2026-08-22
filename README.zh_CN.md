@@ -118,13 +118,12 @@ packages/
 ├── ubean/          # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/*
 │
 │   ── 基础 / 共享层 ──
-├── shared/         # @ubean/shared — 共享类型、错误、环境变量、工具（合并 types/utils/error/env）
+├── shared/         # @ubean/shared — 共享类型、错误、环境变量、工具、logger
 ├── vue/            # @ubean/vue — 精简 Vue 客户端内核 + 页面路由所有者（仅 vue + vue-router）
 ├── markdown/       # @ubean/markdown — Markdown/MDX 页面解析
 ├── seo/            # @ubean/seo — SEO meta 管理
 ├── pages/          # @ubean/pages — 页面数据协议 (loader/action)
 ├── i18n/           # @ubean/i18n — @intlify/core + 约束前缀语言路由
-├── logger/         # @ubean/logger — tslog 日志封装
 │
 │   ── 服务端运行时 ──
 ├── routes/         # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 router + ISR + OpenAPI)
@@ -133,14 +132,10 @@ packages/
 ├── app/            # @ubean/app — Hono 应用工厂 (createUbeanApp)
 │
 │   ── 构建时工具 ──
-├── build-core/     # @ubean/build-core — 构建基础设施（virtual-registry/macros/registry，零依赖）
-├── builder/        # @ubean/build — 核心 Vite 插件（框架无关 ubeanPlugin）
-├── vite/           # @ubean/vite — Vue 专属 Vite 插件 (ubeanVite)
+├── builder/        # @ubean/build — Vite 插件（./vite + ./vue）+ 生产构建 + ./prerender
 ├── codegen/        # @ubean/codegen — 类型生成 (routes.d.ts + 自动导入预设)
-├── config/         # @ubean/config — 配置加载器 (c12 + defu)
+├── config/         # @ubean/config — 配置加载器 + 模块系统
 ├── preset/         # @ubean/preset — 平台预设 (node/cloudflare + capabilities)
-├── modules/        # @ubean/modules — 模块系统 (builtins + kit)
-├── prerender/      # @ubean/prerender — SSG 预渲染
 │
 │   ── 路由扫描 ──
 ├── scan/           # @ubean/scan — 项目扫描器 + 路由元数据聚合（页面扫描委托 @ubean/vue）

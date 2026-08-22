@@ -17,17 +17,16 @@ ubean/（npm 包名：`ubean`，**不是** `@ubean/core`）是一个基于 Vite-
 
 ```
 ubean/
-├── packages/                # 33 个包（monorepo）
+├── packages/                # 28 个包（monorepo）
 │   ├── ubean/               # 主包 (npm: "ubean") — 聚合器，re-export 所有 @ubean/* 子包
 │   │
 │   │   ── 基础 / 共享层（leaf packages）──
-│   ├── shared/              # @ubean/shared — 共享类型/错误/环境变量/通用工具（原 types/utils/error/env/fonts-core 合并；含 ./node 子路径）
+│   ├── shared/              # @ubean/shared — 共享类型/错误/环境变量/通用工具；含 ./node、./logger、./logger/hono 子路径
 │   ├── vue/                 # @ubean/vue — 精简 Vue 客户端内核 + 页面路由唯一所有者（插件式，vue + vue-router only；含 /vite、/generator 子路径）
 │   ├── markdown/            # @ubean/markdown — Markdown 解析
 │   ├── seo/                 # @ubean/seo — SEO meta
 │   ├── pages/               # @ubean/pages — 页面数据协议
 │   ├── i18n/                # @ubean/i18n — 国际化（@intlify/core + 约束前缀路由）
-│   ├── logger/              # @ubean/logger — 统一日志(tslog@5, 命名 Logger 工厂 + Hono 请求日志中间件)
 │   │
 │   │   ── 服务端运行时 ──
 │   ├── routes/              # @ubean/routes — 服务端路由运行时 (defineHandler + rou3 router + ISR + route-rules + OpenAPI + internal-fetch；原 api-routes)
@@ -36,14 +35,10 @@ ubean/
 │   ├── app/                 # @ubean/app — Hono 应用工厂（createUbeanApp → UbeanApp）
 │   │
 │   │   ── 构建时工具 ──
-│   ├── build-core/          # @ubean/build-core — 构建基础设施（virtual-registry/macros/registry，零依赖，打破 vite↔build 环）
-│   ├── builder/             # @ubean/build — 核心 Vite 插件（框架无关 ubeanPlugin；含 /vite、/production 子路径）
-│   ├── vite/                # @ubean/vite — Vue 专属 Vite 插件（ubeanVite）
+│   ├── builder/             # @ubean/build — Vite 插件（./vite 核心 + ./vue Vue 专属）+ 生产构建 + ./prerender SSG
 │   ├── codegen/             # @ubean/codegen — 类型生成（含原 auto-imports 的 VUE_PRESET/UBEAN_CLIENT_PRESET）
-│   ├── config/              # @ubean/config — 配置加载
+│   ├── config/              # @ubean/config — 配置加载 + 模块系统（defineModule / resolveModules）
 │   ├── preset/              # @ubean/preset — 平台预设（standard/node/cloudflare/vercel/netlify/bun/deno）
-│   ├── modules/             # @ubean/modules — 模块系统
-│   ├── prerender/           # @ubean/prerender — SSG 预渲染
 │   │
 │   │   ── 路由扫描 ──
 │   ├── scan/                # @ubean/scan — 项目扫描器 + 路由元数据聚合（页面扫描委托 @ubean/vue；原 routing 的扫描部分）
@@ -56,7 +51,7 @@ ubean/
 │   ├── islands/             # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
 │   ├── dev-server/          # @ubean/dev-server — Dev server
 │   ├── cli/                 # @ubean/cli — CLI 命令
-│   ├── devtools/            # @ubean/devtools — DevTools 独立包
+│   ├── devtools/            # @ubean/devtools — DevTools 独立包（opt-in，不进聚合器硬依赖）
 │   │
 │   │   ── 扩展包 ──
 │   ├── ai/                  # @ubean/ai — AI 大模型集成（defineAgent/defineAgentTool + Vue runtime，薄封装 Vercel AI SDK）
@@ -82,7 +77,7 @@ ubean/
 ubean 采用 **monorepo + 聚合器** 架构：
 
 - **主包 `ubean`**（`packages/ubean/`）：纯 re-export 所有 `@ubean/*` 子包，对外提供与原单体包一致的 API 表面。用户只需 `import { ... } from 'ubean'` 即可获得全部能力。包含多个子路径导出（见下文）。
-- **子包 `@ubean/*`**（其余 32 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
+- **子包 `@ubean/*`**（其余 27 个包）：按职责拆分，各自独立构建、类型检查。子包之间通过 `@ubean/` scope 互相引用。
 - **扩展包**（`ai`/`auth`/`icon`/`image`/`content` 独立包，`pwa`/`fonts`/`electron`/`pinia`/`ui` 为 `@ubean/integrations` 子路径）：通过 `ubean.config.ts` 的顶层字段（`icon: true`、`pwa: true`、`electron: true`、`pinia: true`、`ui: true` 等）按需加载，构建时动态 `import()` 对应的 `/vite` 子路径；**不**进入主包硬依赖。
 - **客户端内核分层**：`@ubean/vue`（精简内核，vue + vue-router only）→ `@ubean/client`（框架运行时，app 工厂/unhead/i18n/数据层）→ `ubean/client`（主包一等客户端入口）。独立 SPA 可直接依赖 `@ubean/vue` 或 `ubean/client`，不拉入服务端构建依赖。
 
@@ -146,7 +141,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
   - 仅根目录文件被视为特殊页面；`users/404.vue` 仍为常规路由 `/users/404`
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序
 - **Server Actions（表单 action）**：页面模块可 `export const actions = { name: defineAction(...) }`，POST 表单通过 `?/<actionName>` URL 分发（SvelteKit 风格，渐进增强）；详见第 4 节 Server Actions
-- `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`middleware`、`requiresAuth`、`cache`、`head`（**没有** 顶层 `title` 字段）
+- `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（**没有** 顶层 `title` 字段）。客户端导航守卫用 `defineApp({ router: { setup } })`，不要发明第二套 `middleware/*.global` 文件约定
   - `layout` 支持 `string`（单层）、`string[]`（多层嵌套，P9-17）或 `false`（禁用）；数组按外→内顺序嵌套：`['default', 'admin', 'dashboard']` → `default` 包裹 `admin` 包裹 `dashboard` 包裹页面；数组中的 `'default'` 是字面布局名（引用 `layouts/default.vue`），而单独字符串 `'default'` 表示使用默认布局
   - `cache: true` 启用页面 KeepAlive 缓存，框架自动用路由名作为组件 `name`（通过 `getNamedPageWrapper` 包装），`<script setup>` SFC 无需手动 `defineOptions({ name })`
   - 运行时控制：`useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)`
@@ -181,7 +176,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）
 - 扩展模块顶层字段：`ai`/`auth`/`icon`/`image`/`content` 为独立包，`pwa`/`fonts`/`electron`/`pinia`/`ui` 为 `@ubean/integrations` 子路径；均支持 `true` 或选项对象形式启用
 - SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
-- Per-route 渲染规则（P9-03 + P9-04）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）/ `ppr`（`boolean`）覆盖全局设置；优先级 `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`；`ppr: true` 隐含 `prerender: true` + 强制流式 SSR（等价 `ssr: 'streaming'`）
+- Per-route 渲染规则（P9-03 + P9-04）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming' | 'data-only'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）/ `ppr`（`boolean`）覆盖全局设置；优先级 `definePage({ ssr })` > `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`；`ssr: false` 跳过 loader，`'data-only'` 跑 loader 但 HTML 为 CSR shell；`ppr: true` 隐含 `prerender: true` + 强制流式 SSR（等价 `ssr: 'streaming'`）
 
 ### 3.6 模块与扩展包
 
@@ -201,7 +196,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `defineHandler(...handlers)`                                       | 包装 API 路由处理器，返回 `UbeanHandlerChain`                                                                  |
 | `defineHandlerMeta(meta)`                                          | 路由元数据（`requiresAuth`/`cache`/`rateLimit`），返回带 `.__meta` 的 pass-through 中间件                      |
 | `defineMiddleware(handler)`                                        | 包装中间件                                                                                                     |
-| `definePage(meta)`                                                 | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`middleware`/`requiresAuth`/`cache`/`head`）        |
+| `definePage(meta)`                                                 | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`requiresAuth`/`cache`/`head`/`ssr`）               |
 | `defineMeta(meta)`                                                 | 定义路由 meta                                                                                                  |
 | `validator` / `describeRoute` / `resolver`                         | 来自 `hono-openapi`，请求验证 + OpenAPI                                                                        |
 | `defineMatcher(name, fn)`                                          | 注册动态路由 matcher（Task 7），`fn: (value: string) => boolean \| null \| undefined`，返回 falsy 跳过路由     |
@@ -259,6 +254,8 @@ ubean 采用 **monorepo + 聚合器** 架构：
 `Migration` 接口：`{ name: string; up: string; down?: string }`
 
 **不存在的 API**：`defineMigration`、`defineSeed`、`defineConfig({ database: { driver, connection } })`
+
+平台非内存驱动（`@ubean/server/drivers`）：`createCloudflareD1Database` / `createCloudflareQueueDriver` / `createVercelPostgresDatabase` / `createVercelKvQueueDriver`。示例见 `examples/platform-drivers/`。
 
 ### 缓存
 
@@ -348,9 +345,9 @@ await revalidatePath('getUser:*');
 | `compileRouteRules(rules)` / `matchRouteRules(path, rules)` | 路由规则编译/匹配(按规则+路径特异性排序)                     |
 | `createRouteRulesMiddleware(rules)`                         | 路由规则中间件(匹配后通过 `c.get('routeRule')` 暴露合并结果) |
 
-`RouteRule` 字段(P9-03 + P9-04 扩展):`redirect` / `rewrite` / `proxy` / `headers` / `cache` / `ssr`(boolean \| `'streaming'`) / `prerender`(boolean) / `isr`(number \| `{ ttl, swr? }`) / `ppr`(boolean)
+`RouteRule` 字段(P9-03 + P9-04 扩展):`redirect` / `rewrite` / `proxy` / `headers` / `cache` / `ssr`(boolean \| `'streaming'` \| `'data-only'`) / `prerender`(boolean) / `isr`(number \| `{ ttl, swr? }`) / `ppr`(boolean)
 
-通配符:`*` 单段,`**` 多段递归;处理顺序:redirect > rewrite（内部 `dispatch` 再匹配）> proxy（反向代理）> headers(合并) > cache;渲染字段 `ssr`/`isr`/`prerender`/`ppr` 由 router 在页面请求阶段处理,优先级:`routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`;`ppr: true` 是强制流式 SSR + 预渲染发现的别名（**不是** Next 静态壳）,响应头 `X-SSR-Mode: streaming` + `X-PPR: streaming`
+通配符:`*` 单段,`**` 多段递归;处理顺序:redirect > rewrite（内部 `dispatch` 再匹配）> proxy（反向代理）> headers(合并) > cache;渲染字段 `ssr`/`isr`/`prerender`/`ppr` 由 router 在页面请求阶段处理,优先级:`definePage({ ssr })` > `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`;显式 `ssr: false` 跳过 loader,`'data-only'` 跑 loader + CSR shell;glob exclude 仍跑 loader;`ppr: true` 是强制流式 SSR + 预渲染发现的别名（**不是** Next 静态壳）,响应头 `X-SSR-Mode` + 可选 `X-PPR: streaming`
 
 ### Partial Prerendering / Server Islands (P9-04 + Task 9.4)
 
@@ -420,7 +417,7 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 | `createUbeanLogger(options)`              | 创建命名 tslog 实例;`options` 透传 tslog v5 分组 settings(type/pretty/json/mask/stack/meta/minLevel)                       |
 | `getLogger(scope?, options?)`             | 获取 scope 子 logger(继承父 logger 的 settings/minLevel);不传 scope 返回全局 `logger`                                      |
 | `createRequestLoggerMiddleware(options?)` | Hono 请求日志中间件;记录 method/path/status/duration/error;支持 `exclude`(glob/regex/谓词)、`slowThreshold`、`logQuery`    |
-| `@ubean/logger/hono`                      | `createRequestLoggerMiddleware` 所在子路径;hono 标记为 optional peer,避免核心 logger 引入 hono                             |
+| `@ubean/shared/logger/hono`               | `createRequestLoggerMiddleware` 所在子路径;不从 `@ubean/shared` 主入口导出，避免浏览器 barrel 拉入 tslog                   |
 | 环境变量控制                              | `LOG_LEVEL`/`TSLOG_LEVEL` 设 minLevel(silly/trace/debug/info/warn/error/fatal);`TSLOG_TYPE` 设输出格式(json/pretty/hidden) |
 
 ### 内部调用
@@ -430,20 +427,23 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 | `createInternalFetch(options)` / `callInternal(...)` | 进程内调度框架 handler，不发起网络请求 |
 | `internalFetch` 不支持上传进度                       | —                                      |
 
-> 浏览器端 HTTP 请求请直接使用 [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)（`createRequest` / `toFlatRequest` / `createTypedClient` / `toFlatTypedClient`），ubean 不再内置 HTTP 客户端封装。
+> 浏览器端 HTTP 请求请直接使用 [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)（`createRequest` / `toFlatRequest` / `createTypedClient` / `toFlatTypedClient`），ubean 不再内置 HTTP 客户端封装。页面侧用 `useFetch(key, url, options)` 包 `useAsyncData`，经 `setDefaultFetch(createRequest())` 注入该 client。
 
 ### Server Actions（P9-02）
 
-| API                                                | 说明                                                                                 |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `defineAction(handlerOrSchema, handler?, opts?)`   | 定义服务端 action，支持 schema 验证；返回带 `ACTION_BRAND` 的 `ServerAction`         |
-| `fail(status, errors)`                             | 在 action handler 中返回字段级验证错误（SvelteKit 风格）                             |
-| `ActionError`                                      | 用户可读错误类（含 `code`/`status`），在 handler 中 throw                            |
-| `isServerAction(value)` / `isActionFailure(value)` | 类型守卫                                                                             |
-| `callAction(id, args)`                             | 客户端 RPC 调用（POST `/__actions`）                                                 |
-| `useAction(actionOrId)`                            | Vue composable：`pending`/`data`/`error`/`errors`/`status`/`result`/`submit`/`reset` |
-| `useFormAction(actionName)`                        | Vue composable：表单 action URL + SPA 提交（渐进增强）                               |
-| `?/<actionName>` URL 约定                          | 页面模块 `export const actions = { name: defineAction(...) }` → POST 表单分发        |
+| API                                                | 说明                                                                                           |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `defineAction(handlerOrSchema, handler?, opts?)`   | 定义服务端 action，支持 Standard Schema / `safeParse`；返回带 `ACTION_BRAND` 的 `ServerAction` |
+| `defineServerFn(...)`                              | `defineAction` 别名：同一 ID 与 `POST /__actions`，供 loader/查询与 mutation 共用              |
+| `invokeServerFn(fn, input?)`                       | 同构调用（服务端走 handler + schema；客户端走 RPC stub）；从 `ubean/runtime/vue` 导入          |
+| `describeActionsOpenApi()`                         | 可选 OpenAPI 片段，仍指向同一 `POST /__actions`，不另开端点                                    |
+| `fail(status, errors)`                             | 在 action handler 中返回字段级验证错误（SvelteKit 风格）                                       |
+| `ActionError`                                      | 用户可读错误类（含 `code`/`status`），在 handler 中 throw                                      |
+| `isServerAction(value)` / `isActionFailure(value)` | 类型守卫                                                                                       |
+| `callAction(id, args)`                             | 客户端 RPC 调用（POST `/__actions`）                                                           |
+| `useAction(actionOrId)`                            | Vue composable：`pending`/`data`/`error`/`errors`/`status`/`result`/`submit`/`reset`           |
+| `useFormAction(actionName)`                        | Vue composable：表单 action URL + SPA 提交（渐进增强）                                         |
+| `?/<actionName>` URL 约定                          | 页面模块 `export const actions = { name: defineAction(...) }` → POST 表单分发                  |
 
 > Server Actions 通过 `@ubean/actions` 包实现，Vite 插件 `ubeanServerActionsPlugin` 已包含在默认 `ubeanPlugin()` 中。action ID 由 `base32(sha1(filePath:exportName))` 生成，client/server 自动一致。`@ubean/shared` 提供 `ServerAction`/`ActionContext`/`ActionResult`/`ActionFailure` 等共享类型。
 
@@ -573,7 +573,7 @@ const json = serializeVercelConfig(config);
 | `useRouter()` / `createUbeanRouter(options)`                                                                                                                      | 路由                                                                                                                                                                                                                                     |
 | `useCacheViews()` / `enablePageCache` / `disablePageCache` / `excludePageCache` / `includePageCache` / `invalidatePageCache` / `isPageCached` / `resetRouteCache` | 页面 KeepAlive 缓存运行时控制（自动导入自 `ubean/runtime/vue`）；`getNamedPageWrapper` 从 `@ubean/vue` 导出                                                                                                                              |
 | `useHead()` / `useSeoMeta()`                                                                                                                                      | 动态 head/SEO（响应式）；静态 head 用 `definePage({ head })`                                                                                                                                                                             |
-| `useData(options)` / `useAsyncData(key, fn, options?)` / `invalidateData(key)` / `invalidateAll()`                                                                | 页面数据:P0 — `useData` 增强(dedupe/refresh/pending/status);`useAsyncData` Nuxt 风格超集;SSR payload 自动注入 `__UBEAN_DATA__`,客户端水合无二次请求                                                                                      |
+| `useData(options)` / `useAsyncData(key, fn, options?)` / `useFetch(key, url, options?)` / `invalidateData(key)` / `invalidateAll()`                               | 页面数据：`useFetch` 包 `useAsyncData`，经 `setDefaultFetch` 注入 `@soybeanjs/fetch`（不自研 client）                                                                                                                                    |
 | `defer(factory)` / `useDeferredData(key, deferred)`                                                                                                               | 流式延迟数据:P0 — SSR 不阻塞初始渲染,数据在主内容后流式注入;客户端水合时从 `__UBEAN_DEFERRED__` 立即读取                                                                                                                                 |
 | `withViewTransition(fn)` / `supportsViewTransitions()`                                                                                                            | View Transitions                                                                                                                                                                                                                         |
 | `<Link to="...">` / `<Head>`                                                                                                                                      | 全局注册组件（无需导入）                                                                                                                                                                                                                 |
@@ -595,15 +595,16 @@ const json = serializeVercelConfig(config);
 
 ### 预渲染
 
-| API                                                                | 说明                                                                                                   |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| `prerender(options)` / `collectPrerenderRoutes(pages, options)`    | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)                  |
-| `extractPrerenderRoutesFromRules(routeRules)`                      | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤)         |
-| `extractDataPayload(html, route)` / `routeToDataFilePath(...)`     | SSG payload 提取(Task 3):从 HTML 中提取 `__UBEAN_DATA__` 为 `__data.json`,返回 `{data, html, dataUrl}` |
-| `generatePrerenderManifest(result, baseUrl)`                       | 生成清单                                                                                               |
-| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`  | 路由 → 文件路径映射/写入                                                                               |
-| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob` | 链接提取/通配符匹配                                                                                    |
-| `resolvePrerenderConfig(config)`                                   | 配置解析与默认值(`extractDataPayload` 默认 `true`)                                                     |
+| API                                                                  | 说明                                                                                                   |
+| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `prerender(options)` / `collectPrerenderRoutes(pages, options)`      | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)                  |
+| `extractPrerenderRoutesFromRules(routeRules)`                        | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤)         |
+| `extractContentPageRoutes(docs)` / `discoverContentPageRoutes(root)` | `@ubean/content`：集合文档 → 预渲染 URL；`ubean build` 在 `content` 启用时自动发现                     |
+| `extractDataPayload(html, route)` / `routeToDataFilePath(...)`       | SSG payload 提取(Task 3):从 HTML 中提取 `__UBEAN_DATA__` 为 `__data.json`,返回 `{data, html, dataUrl}` |
+| `generatePrerenderManifest(result, baseUrl)`                         | 生成清单                                                                                               |
+| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`    | 路由 → 文件路径映射/写入                                                                               |
+| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob`   | 链接提取/通配符匹配                                                                                    |
+| `resolvePrerenderConfig(config)`                                     | 配置解析与默认值(`extractDataPayload` 默认 `true`)                                                     |
 
 ### i18n
 
@@ -857,6 +858,7 @@ pnpm install          # 安装依赖
 pnpm typecheck        # 类型检查（vue-tsc）
 pnpm lint             # ESLint（Vite-Plus/OXC + Vue）
 pnpm test             # 运行测试（vitest）
+pnpm analyze          # 读 Vite client manifest，写 `.ubean/bundle-baseline.json`（需先 build 示例）
 pnpm dev              # 启动开发服务器（examples/ubean-test）
 pnpm build            # 构建
 ```
@@ -876,6 +878,7 @@ pnpm build            # 构建
 | CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)                                                     | CLI 命令文档                                                                           |
 | AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                                                                     | Agent 技能入口                                                                         |
 | 示例项目                  | [examples/ubean-test/](examples/ubean-test/)                                                                       | 完整全栈示例 + 测试（virtual 路由模式）                                                |
+| 示例项目                  | [examples/platform-drivers/](examples/platform-drivers/)                                                           | Cloudflare D1/Queue 与 Vercel Postgres/KV 非内存驱动                                   |
 | 示例项目                  | [examples/client-only-spa/](examples/client-only-spa/)                                                             | 纯客户端 SPA 示例（复用 @ubean/vue 内核）                                              |
 | 示例项目                  | [examples/frontend-only/](examples/frontend-only/)                                                                 | 纯前端示例（无 API/SSR）                                                               |
 | 示例项目                  | [examples/routing-file-mode/](examples/routing-file-mode/)                                                         | 路由文件生成模式示例                                                                   |

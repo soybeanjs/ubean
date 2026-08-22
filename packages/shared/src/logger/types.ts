@@ -6,7 +6,7 @@ import type { ILogObj, ISettingsParam, Logger } from 'tslog';
  */
 export type LogLevelName = 'silly' | 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
-/** 由 @ubean/logger 创建的 tslog 实例 */
+/** 由 `@ubean/shared/logger` 创建的 tslog 实例 */
 export type UbeanLogger = Logger<ILogObj>;
 
 /**

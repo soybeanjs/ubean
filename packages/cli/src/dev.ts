@@ -2,7 +2,6 @@ import { createUbeanApp } from '@ubean/app';
 import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/codegen';
 import { loadUbeanConfig } from '@ubean/config';
 import { createDevRunner, createDevWatcher, logDiagnostics } from '@ubean/dev-server';
-import { getLogger } from '@ubean/logger';
 import {
   resolvePresetByName,
   registerBuiltinPresets,
@@ -12,6 +11,7 @@ import {
 } from '@ubean/preset';
 import { scanProject } from '@ubean/scan';
 import type { ScanResult } from '@ubean/scan';
+import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { green, cyan, dim, bold } from 'kolorist';
 import { resolve } from 'pathe';

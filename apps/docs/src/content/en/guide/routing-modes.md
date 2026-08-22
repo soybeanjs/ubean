@@ -162,7 +162,7 @@ For pure SPA projects that don't depend on a backend (SSR/API routes), you can u
 ```ts
 // vite.config.ts (frontend-only)
 import { defineConfig } from 'vite-plus';
-import { ubeanVite } from '@ubean/vite';
+import { ubeanVite } from '@ubean/build/vue';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 
 export default defineConfig({

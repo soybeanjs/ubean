@@ -1,11 +1,10 @@
 import { execSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { generateTypes } from '@ubean/codegen';
-import { loadUbeanConfig } from '@ubean/config';
+import { loadUbeanConfig, BUILTIN_MODULES, isBuiltinDisabled } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
-import { getLogger } from '@ubean/logger';
-import { BUILTIN_MODULES, isBuiltinDisabled } from '@ubean/modules';
 import { scanProject } from '@ubean/scan';
+import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { join, resolve } from 'pathe';
 

@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { Context, MiddlewareHandler } from 'hono';
 import { defu } from 'defu';
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 import type { BetterAuthOptions, Session, User } from 'better-auth';
 import type { AuthSession, AuthState, AuthUser, ResolvedAuthOptions, UbeanAuthOptions } from './types';
 

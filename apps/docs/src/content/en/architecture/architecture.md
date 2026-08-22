@@ -22,17 +22,14 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │               Build Core Layer (build-time)                  │   │
-│  │  @ubean/config   config loading (defineConfig / c12)        │   │
+│  │  @ubean/config   config loading + module system             │   │
 │  │  @ubean/scan  route scanning (pages/routes/layouts/...)  │   │
-│  │  @ubean/build    production build orchestration             │   │
-│  │  @ubean/build-core  virtual-registry / macros / registry   │   │
-│  │  @ubean/prerender  SSG prerendering (routeRules-driven)     │   │
-│  │  @ubean/modules  module system (builtins + kit hooks)       │   │
+│  │  @ubean/build    Vite plugins + production + prerender      │   │
 │  │  @ubean/codegen  type generation (routes.d.ts / typed-router)│  │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │               Vite Plugin Layer (@ubean/vite)               │   │
+│  │               Vite Plugin Layer (@ubean/build)              │   │
 │  │  ubeanPlugin()  virtual modules / client stubs / macros    │   │
 │  │  ubeanVite()     Vue SFC / islands / SSR entry / head        │   │
 │  │  extension /vite subpaths: icon / pwa / auth / image / ...  │   │

@@ -6,14 +6,14 @@ import vue from '@vitejs/plugin-vue';
 import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
 import { ubeanPlugin } from '@ubean/build/vite';
+import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
+import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
-import { getLogger } from '@ubean/logger';
-import { resolveModules } from '@ubean/modules';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
+import { getLogger } from '@ubean/shared/logger';
 import { findAvailablePort, findUserViteConfig } from '@ubean/shared/node';
 import { createVueRenderer } from '@ubean/ssr';
-import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/vite';
 import type { DevRunnerDevtoolsOptions } from './runner';
 
 const logger = getLogger('dev-server');

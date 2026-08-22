@@ -118,13 +118,12 @@ packages/
 ├── ubean/          # Main package (npm: "ubean") — aggregator, re-exports all @ubean/*
 │
 │   ── Foundation / shared layer ──
-├── shared/         # @ubean/shared — shared types, errors, env, utils (merged types/utils/error/env)
+├── shared/         # @ubean/shared — shared types, errors, env, utils, logger
 ├── vue/            # @ubean/vue — lean Vue client kernel & page-routing owner (vue + vue-router only)
 ├── markdown/       # @ubean/markdown — Markdown/MDX page parsing
 ├── seo/            # @ubean/seo — SEO meta management
 ├── pages/          # @ubean/pages — page data protocol (loader/action)
 ├── i18n/           # @ubean/i18n — @intlify/core + compact locale routing
-├── logger/         # @ubean/logger — tslog-based logging
 │
 │   ── Server runtime ──
 ├── routes/         # @ubean/routes — server routes runtime (defineHandler + rou3 router + ISR + OpenAPI)
@@ -133,14 +132,10 @@ packages/
 ├── app/            # @ubean/app — Hono app factory (createUbeanApp)
 │
 │   ── Build-time tools ──
-├── build-core/     # @ubean/build-core — build infra (virtual-registry/macros/registry, zero-dep)
-├── builder/        # @ubean/build — core Vite plugin (framework-agnostic ubeanPlugin)
-├── vite/           # @ubean/vite — Vue-specific Vite plugin (ubeanVite)
+├── builder/        # @ubean/build — Vite plugins (./vite + ./vue) + production + ./prerender
 ├── codegen/        # @ubean/codegen — type generation (routes.d.ts + auto-import presets)
-├── config/         # @ubean/config — config loader (c12 + defu)
+├── config/         # @ubean/config — config loader + module system
 ├── preset/         # @ubean/preset — platform presets (node/cloudflare + capabilities)
-├── modules/        # @ubean/modules — module system (builtins + kit)
-├── prerender/      # @ubean/prerender — SSG prerendering
 │
 │   ── Route scanning ──
 ├── scan/           # @ubean/scan — project scanner + route metadata aggregator (delegates pages to @ubean/vue)

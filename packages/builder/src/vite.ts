@@ -1,5 +1,4 @@
 import type { Plugin } from 'vite';
-import { transformMacros, useVirtualRegistry } from '@ubean/build-core';
 import { loadUbeanConfig, tryGetConfig } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { createServerRouter } from '@ubean/routes';
@@ -7,6 +6,7 @@ import { scanProject } from '@ubean/scan';
 import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
 import { join, relative, resolve } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
+import { transformMacros } from './macros';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -14,6 +14,7 @@ import {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from './virtual-modules';
+import { useVirtualRegistry } from './virtual-registry';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];
 const VIRTUAL_PREFIX = '\0ubean:';
@@ -36,7 +37,7 @@ export interface UbeanPluginOptions {
  * - 文件监听(dev 模式下扫描 `routes` / `middleware` / `pages` / `layouts` / `plugins` / `locales`)
  * - 实体路由文件生成(当 `routing.mode` 为 `'file'` 或 `'both'` 时触发 `@ubean/vue/generator`)
  *
- * Vue 专属的虚拟模块(`virtual:ubean-pages`、`virtual:ubean-app` 等)由 `@ubean/vite` 的
+ * Vue 专属的虚拟模块(`virtual:ubean-pages`、`virtual:ubean-app` 等)由 `@ubean/build/vue` 的
  * `ubeanVite` 提供,二者共用 `useVirtualRegistry()` 注册表。
  *
  * @example 在 vite.config.ts 中使用(自动加载 ubean.config)

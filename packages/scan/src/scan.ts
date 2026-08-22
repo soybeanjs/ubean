@@ -1,12 +1,10 @@
 import { readFile } from 'node:fs/promises';
-import { getLogger } from '@ubean/logger';
-import { filePathToRoute } from '@ubean/vue/vite';
-import { scanPages } from '@ubean/vue/vite';
+import { getLogger } from '@ubean/shared/logger';
+import { filePathToRoute, scanPages } from '@ubean/vue/vite';
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
 import { detectHttpExports } from './detect-exports';
 import { HTTP_METHODS, GLOB_SCAN_PATTERN } from './types';
-
 import type {
   ScanOptions,
   ScanResult,

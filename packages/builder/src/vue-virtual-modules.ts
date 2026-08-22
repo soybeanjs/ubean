@@ -1,6 +1,7 @@
-import { defineVirtualModule, getCssImports } from '@ubean/build-core';
 import type { ScannedPageRoute, ScannedLayout, ScannedAppEntry, ScannedServerEntry } from '@ubean/scan';
 import { generatePagesModuleSource } from '@ubean/vue/vite';
+import { getCssImports } from './registry';
+import { defineVirtualModule } from './virtual-registry';
 
 /**
  * 页面虚拟模块(`virtual:ubean-pages`)。
@@ -254,7 +255,7 @@ export async function createApp() {
     var doHydrateIslands = function () {
       requestAnimationFrame(function () {
         requestAnimationFrame(function () {
-          hydrateIslands({ appContext: instance.app });
+          hydrateIslands({ appContext: instance.app, root: document.getElementById('app') || undefined });
         });
       });
     };

@@ -169,13 +169,12 @@ ubean/
 │   │   └── package.json
 │   │
 │   │   ── Foundation ──
-│   ├── shared/                      # @ubean/shared — shared types, utils, error, env
+│   ├── shared/                      # @ubean/shared — shared types, utils, error, env, logger
 │   ├── vue/                         # @ubean/vue — page-routing owner (matchers, virtual pages, generator, /vite plugin)
 │   ├── markdown/                    # @ubean/markdown — Markdown/MDX pages
 │   ├── seo/                         # @ubean/seo — conventions, json-ld, og-image
 │   ├── pages/                       # @ubean/pages — Pages protocol (protocol.ts, data.ts)
 │   ├── i18n/                        # @ubean/i18n — @intlify/core + compact locale routing
-│   ├── logger/                      # @ubean/logger — structured logging
 │   │
 │   │   ── Server runtime ──
 │   ├── routes/                     # @ubean/routes — handler.ts, server-router.ts, router.ts, openapi.ts, route-rules.ts, isr.ts
@@ -184,14 +183,10 @@ ubean/
 │   ├── app/                         # @ubean/app — createUbeanApp (Hono factory), hooks, define-server
 │   │
 │   │   ── Build-time ──
-│   ├── build-core/                  # @ubean/build-core — virtual-registry / macros / registry (zero-dependency)
-│   ├── builder/                     # @ubean/build — Vite build plugin (dir: builder; package name stays @ubean/build)
-│   ├── vite/                        # @ubean/vite — Vue Vite plugin
+│   ├── builder/                     # @ubean/build — Vite plugins (./vite + ./vue) + production + ./prerender
 │   ├── codegen/                     # @ubean/codegen — unimport presets + type generation (route-types.ts, openapi-types.ts)
-│   ├── config/                      # @ubean/config — c12 config loading (loader.ts, types.ts, routing.ts)
+│   ├── config/                      # @ubean/config — c12 config loading + module system
 │   ├── preset/                      # @ubean/preset — platform presets (node, cloudflare, bun, deno, netlify, vercel, standard)
-│   ├── modules/                     # @ubean/modules — module system (builtins.ts, kit.ts)
-│   ├── prerender/                   # @ubean/prerender — SSG prerender
 │   │
 │   │   ── Route scanning ──
 │   ├── scan/                        # @ubean/scan — route scanning aggregator (scan.ts, define-page.ts, detect-exports.ts, generator/)

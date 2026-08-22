@@ -95,8 +95,7 @@ ubean is a **monorepo** of 33 packages. The public package `ubean` is an **aggre
 | `@ubean/client` | Pure client kernel (composables, router, page cache, islands hydrate) |
 | `@ubean/server` | Server runtime (cache/db/queue/cron/ws/sse/storage)                   |
 | `@ubean/app`    | Hono app factory + server config                                      |
-| `@ubean/config` | Config loading (c12 + defu)                                           |
-| `@ubean/vite`   | Vue-specific Vite plugin (pages/entry virtual modules + auto-imports) |
+| `@ubean/config` | Config loading (c12 + defu) + module system                           |
 | `@ubean/cli`    | CLI commands (init/dev/build/preview/page/env)                        |
 
 Extension packages (`@ubean/auth`, `@ubean/icon`, `@ubean/image`, `@ubean/content`) and thin integration modules (`@ubean/integrations/{pwa,fonts,electron,pinia,ui}`) are loaded on-demand via `ubean.config.ts` flags (`icon: true`, `pwa: true`, `electron: true`, `pinia: true`, `ui: true`, etc.).

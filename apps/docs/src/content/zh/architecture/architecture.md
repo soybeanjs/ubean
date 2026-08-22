@@ -22,17 +22,14 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │              构建核心层（build-time）                          │   │
-│  │  @ubean/config  配置加载（defineConfig / c12）               │   │
+│  │  @ubean/config  配置加载 + 模块系统                           │   │
 │  │  @ubean/scan 路由扫描（pages/routes/layouts/middleware）  │   │
-│  │  @ubean/build   生产构建编排（client + server + prerender）  │   │
-│  │  @ubean/build-core 零依赖宏 / 虚拟注册表（registry）        │   │
-│  │  @ubean/prerender  SSG 预渲染（routeRules 驱动）             │   │
-│  │  @ubean/modules 模块系统（builtin 模块 + kit hooks）         │   │
+│  │  @ubean/build   Vite 插件 + 生产构建 + prerender             │   │
 │  │  @ubean/codegen 类型生成（routes.d.ts / typed-router）       │   │
 │  └──────────────────────────┬──────────────────────────────────┘   │
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
-│  │                 Vite 插件层（@ubean/vite）                   │   │
+│  │                 Vite 插件层（@ubean/build）                  │   │
 │  │  ubeanPlugin()  虚拟模块 / 客户端 stub / 宏转换             │   │
 │  │  ubeanVite()     Vue SFC / islands / SSR 入口 / head 管理    │   │
 │  │  扩展包 /vite 子路径：icon / pwa / auth / image / ...       │   │

@@ -3,8 +3,8 @@ import { resolvePrerenderConfig } from '@ubean/config';
 import type { PrerenderConfig, PrerenderRoute, PrerenderResult, ResolvedPrerenderConfig } from '@ubean/config';
 import { DATA_PAYLOAD_ID } from '@ubean/pages';
 import type { ScannedPageRoute } from '@ubean/scan';
-import type { RouteRule } from '@ubean/shared';
 import { matchGlob } from '@ubean/shared';
+import type { RouteRule } from '@ubean/shared';
 import { join, dirname } from 'pathe';
 
 const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
@@ -36,6 +36,8 @@ export interface PrerendererOptions {
    * 受 `PrerenderConfig.exclude` 过滤。
    */
   routeRules?: Record<string, RouteRule>;
+  /** Content collection URLs merged into `include` (see `extractContentPageRoutes`). */
+  contentRoutes?: string[];
   fetcher?: (url: string) => Promise<{ html: string; statusCode: number }>;
 }
 
@@ -105,12 +107,18 @@ export function collectPrerenderRoutes(
     exclude?: string[];
     /** P9-03: routeRules 中 `prerender: true` 的模式会合并到 include 列表 */
     routeRules?: Record<string, RouteRule>;
+    /** Content collection URLs (`extractContentPageRoutes`) merged into include */
+    contentRoutes?: string[];
   } = {}
 ): { routes: string[]; skipped: string[] } {
   const all = options.all === true;
   const exclude = options.exclude ?? [];
   // 合并显式 include 与 routeRules 中 prerender: true 的模式
-  const include = [...(options.include ?? []), ...extractPrerenderRoutesFromRules(options.routeRules)];
+  const include = [
+    ...(options.include ?? []),
+    ...extractPrerenderRoutesFromRules(options.routeRules),
+    ...(options.contentRoutes ?? [])
+  ];
 
   // 候选池:文件系统扫描出的非动态页面
   const allPageRoutes: string[] = [];
@@ -359,7 +367,8 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
     all: config.all,
     include: config.include,
     exclude: config.exclude,
-    routeRules: options.routeRules
+    routeRules: options.routeRules,
+    contentRoutes: options.contentRoutes
   });
 
   const queue = [...initialRoutes];

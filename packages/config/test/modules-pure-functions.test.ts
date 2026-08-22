@@ -8,7 +8,6 @@ import type { Plugin as VitePlugin } from 'vite';
  * 这些函数此前为模块私有，已 export 以支持单测（见 ADR-0006）。
  */
 import { describe, it, expect } from 'vitest';
-import type { ModuleDefinition } from '@ubean/config';
 import {
   extractPackageName,
   isModuleDefinition,
@@ -18,6 +17,7 @@ import {
   extractPlugins,
   topologicalSort
 } from '../src/index';
+import type { ModuleDefinition } from '../types';
 
 describe('extractPackageName()', () => {
   it('scoped 包：@scope/name/sub → @scope/name', () => {

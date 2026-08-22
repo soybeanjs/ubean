@@ -1,4 +1,4 @@
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { resolve, basename } from 'pathe';
 import { createFsOps } from './shared/fs-ops';

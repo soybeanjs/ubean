@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import type { ScannedPageRoute, ScannedLayout } from '@ubean/scan';
-import { createVuePagesVirtualModule } from '../src/virtual-modules';
+import { createVuePagesVirtualModule } from '../src/vue-virtual-modules';
 
 function makePage(overrides: Partial<ScannedPageRoute> = {}): ScannedPageRoute {
   return {

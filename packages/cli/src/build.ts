@@ -1,19 +1,35 @@
 import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { prerender } from '@ubean/build/prerender';
 import { buildProduction } from '@ubean/build/production';
 import type { BuildManifest } from '@ubean/build/production';
 import { generateTypes } from '@ubean/codegen';
 import { loadUbeanConfig, resolvePrerenderConfig, resolveSsrConfig } from '@ubean/config';
 import type { AppMode } from '@ubean/config';
-import { getLogger } from '@ubean/logger';
-import { prerender } from '@ubean/prerender';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
 import { scanProject } from '@ubean/scan';
+import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { resolve, join } from 'pathe';
 
 const logger = getLogger('cli');
+
+async function loadContentPageRoutes(
+  cwd: string,
+  content: boolean | Record<string, unknown> | undefined
+): Promise<string[]> {
+  if (!content) return [];
+  try {
+    const mod = await import('@ubean/content');
+    return mod.discoverContentPageRoutes(
+      cwd,
+      content === true ? {} : (content as { sources?: Record<string, { dir: string; prefix?: string }> })
+    );
+  } catch {
+    return [];
+  }
+}
 
 /**
  * Creates a fetcher that invokes the built SSR entry to render real HTML.
@@ -205,6 +221,7 @@ export const buildCommand: CommandDef = {
           pages: result.pages,
           prerender: config.prerender,
           routeRules: config.routeRules,
+          contentRoutes: await loadContentPageRoutes(cwd, config.content),
           fetcher
         });
       }

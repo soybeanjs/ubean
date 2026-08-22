@@ -25,6 +25,37 @@ export {
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
 export { resolveI18nConfig, localeCodesOf } from './i18n';
 
+export {
+  extractPackageName,
+  isModuleDefinition,
+  isVitePlugin,
+  getModuleKey,
+  getModuleName,
+  extractPlugins,
+  resolveModules,
+  defineModule,
+  BUILTIN_MODULES,
+  getBuiltinModuleByKey,
+  isBuiltinModuleConfig,
+  extractBuiltinOptions,
+  isBuiltinDisabled,
+  createModuleKitContext,
+  topologicalSort
+} from './modules';
+export type {
+  BuiltinModuleDefinition,
+  ModuleKitContext,
+  ModuleHooks,
+  ServerHandlerRegistration,
+  DevServerHandlerRegistration,
+  VirtualImportRegistration,
+  ComponentsDirRegistration,
+  AutoImportRegistration,
+  DevToolsCustomTab,
+  ResolveModulesOptions,
+  ResolveModulesResult
+} from './modules';
+
 export type {
   UbeanConfig,
   ResolvedConfig,

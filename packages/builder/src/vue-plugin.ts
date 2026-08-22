@@ -5,7 +5,6 @@ import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
-import { useVirtualRegistry, getComponentResolvers, ssrSingletonDevPolicy } from '@ubean/build-core';
 import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolvePartyTownConfig } from '@ubean/client';
 import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from '@ubean/codegen';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
@@ -15,12 +14,15 @@ import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
 import { join } from 'pathe';
 import type { InlinePreset } from 'unimport';
+import { getComponentResolvers } from './registry';
+import { ssrSingletonDevPolicy } from './ssr-singleton';
+import { useVirtualRegistry } from './virtual-registry';
 import {
   createVuePagesVirtualModule,
   createVueAppEntryVirtualModule,
   createClientEntryVirtualModule,
   createServerEntryVirtualModule
-} from './virtual-modules';
+} from './vue-virtual-modules';
 
 export interface UbeanViteOptions {
   config: UbeanResolvedConfig;

@@ -25,7 +25,7 @@ import type { Preset } from '../preset/types';
 // 2. External dependencies
 import { resolve, join } from 'pathe';
 import { defu } from 'defu';
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 
 // 3. Internal dependencies
 import { readConfig } from './loader';
@@ -477,6 +477,17 @@ The adaptation implementation for each platform (preset) must first reference th
 - Use `pnpm` as the package manager, following workspace catalog version management
 - UI-related dependencies (@soybeanjs/ui, etc.) are only introduced when needed; users are not forced to install them
 - DevTools-related dependencies are devDependencies or loaded dynamically on demand
+
+## 12. Client JS budget
+
+Claims of "lighter JS" need numbers. After a production build:
+
+```bash
+pnpm --filter ubean-test build
+pnpm analyze   # or `ubean analyze`; reads dist/client/.vite/manifest.json
+```
+
+By default this writes gzip totals to `.ubean/bundle-baseline.json` (`totalGzip` / `entryGzip` / per-chunk). Treat that file as the Islands-page regression baseline. `ubean analyze --write=false` prints without writing.
 
 ---
 

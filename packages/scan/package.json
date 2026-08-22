@@ -30,7 +30,6 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/logger": "workspace:*",
     "@ubean/shared": "workspace:*",
     "@ubean/vue": "workspace:*",
     "pathe": "^2.0.3",

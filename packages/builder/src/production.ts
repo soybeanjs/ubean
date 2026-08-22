@@ -3,25 +3,17 @@ import { mkdir, writeFile, rm, cp, readFile } from 'node:fs/promises';
 import { build as viteBuild } from 'vite';
 import type { Plugin as VitePlugin } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { useVirtualRegistry, ssrSingletonProdOptimizeExclude, ssrSingletonProdSsr } from '@ubean/build-core';
 import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
+import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
-import { getLogger } from '@ubean/logger';
-import { resolveModules } from '@ubean/modules';
 import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/scan';
+import { getLogger } from '@ubean/shared/logger';
 import { findUserViteConfig } from '@ubean/shared/node';
-import {
-  ubeanVite,
-  VUE_PLUGIN_INCLUDE,
-  createVuePagesVirtualModule,
-  createVueAppEntryVirtualModule,
-  createServerEntryVirtualModule,
-  createClientEntryVirtualModule
-} from '@ubean/vite';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
+import { ssrSingletonProdOptimizeExclude, ssrSingletonProdSsr } from './ssr-singleton';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -29,7 +21,16 @@ import {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from './virtual-modules';
+import { useVirtualRegistry } from './virtual-registry';
 import { ubeanPlugin } from './vite';
+import {
+  ubeanVite,
+  VUE_PLUGIN_INCLUDE,
+  createVuePagesVirtualModule,
+  createVueAppEntryVirtualModule,
+  createServerEntryVirtualModule,
+  createClientEntryVirtualModule
+} from './vue';
 
 const logger = getLogger('build');
 

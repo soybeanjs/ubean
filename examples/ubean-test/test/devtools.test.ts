@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from 'ubean';
+import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from '@ubean/devtools';
 import { api } from './helper';
 
 describe('DevTools system', () => {

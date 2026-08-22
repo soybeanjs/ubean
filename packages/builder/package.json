@@ -1,7 +1,7 @@
 {
   "name": "@ubean/build",
   "version": "0.2.2",
-  "description": "Core Vite plugin (framework-agnostic) for ubean (ubeanPlugin, virtual modules: routes/pages/meta/app-config/locales, macros)",
+  "description": "Vite plugins, production build, and SSG prerender for ubean (core plugin + Vue plugin + prerender)",
   "files": [
     "dist"
   ],
@@ -18,9 +18,17 @@
       "types": "./dist/vite.d.ts",
       "import": "./dist/vite.js"
     },
+    "./vue": {
+      "types": "./dist/vue.d.ts",
+      "import": "./dist/vue.js"
+    },
     "./production": {
       "types": "./dist/production.d.ts",
       "import": "./dist/production.js"
+    },
+    "./prerender": {
+      "types": "./dist/prerender.d.ts",
+      "import": "./dist/prerender.js"
     }
   },
   "scripts": {
@@ -30,23 +38,27 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/build-core": "workspace:*",
+    "@intlify/unplugin-vue-i18n": "catalog:",
     "@ubean/client": "workspace:*",
+    "@ubean/codegen": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/i18n": "workspace:*",
     "@ubean/islands": "workspace:*",
-    "@ubean/logger": "workspace:*",
-    "@ubean/modules": "workspace:*",
+    "@ubean/markdown": "workspace:*",
+    "@ubean/pages": "workspace:*",
     "@ubean/preset": "workspace:*",
     "@ubean/routes": "workspace:*",
     "@ubean/scan": "workspace:*",
     "@ubean/shared": "workspace:*",
     "@ubean/ssr": "workspace:*",
-    "@ubean/vite": "workspace:*",
     "@ubean/vue": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.8",
     "oxc-transform": "^0.146.0",
-    "pathe": "^2.0.3"
+    "pathe": "^2.0.3",
+    "unplugin-auto-import": "21.1.0",
+    "unplugin-vue-components": "^32.1.0",
+    "unplugin-vue-markdown": "^32.0.0",
+    "vue-i18n": "catalog:"
   },
   "devDependencies": {
     "@types/node": "^26.2.0",
@@ -55,10 +67,14 @@
     "vite-plus": "catalog:"
   },
   "peerDependencies": {
+    "unimport": "^6.3.1",
     "vite": "catalog:"
   },
   "peerDependenciesMeta": {
     "vite": {
+      "optional": true
+    },
+    "unimport": {
       "optional": true
     }
   }

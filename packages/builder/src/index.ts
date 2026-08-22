@@ -1,10 +1,6 @@
 /**
- * @ubean/build — production build orchestration + framework-agnostic core
- * Vite plugin.
- *
- * The build-infrastructure foundation (virtual module registry, module
- * extension registry, macro transforms) now lives in `@ubean/build-core`
- * and is re-exported here for API compatibility.
+ * @ubean/build — production build orchestration, Vue Vite plugin, prerender,
+ * and the former build-core registries (virtual modules / macros / SSR singleton).
  */
 export {
   VirtualModuleRegistry,
@@ -12,11 +8,11 @@ export {
   resetVirtualRegistry,
   defineVirtualModule,
   defineVirtualModulePrefix
-} from '@ubean/build-core';
+} from './virtual-registry';
 
-export type { VirtualModuleContext, VirtualModuleTransform, VirtualModule } from '@ubean/build-core';
+export type { VirtualModuleContext, VirtualModuleTransform, VirtualModule } from './virtual-registry';
 
-export { transformMacros, stripMacros } from '@ubean/build-core';
+export { transformMacros, stripMacros } from './macros';
 
 export {
   registerComponentResolver,
@@ -24,7 +20,16 @@ export {
   registerCssImport,
   getCssImports,
   resetModuleRegistry
-} from '@ubean/build-core';
+} from './registry';
+
+export {
+  SSR_SINGLETON_PACKAGES,
+  SSR_SINGLETON_DEDUPE,
+  SSR_SINGLETON_OPTIMIZE_EXCLUDE,
+  ssrSingletonDevPolicy,
+  ssrSingletonProdSsr,
+  ssrSingletonProdOptimizeExclude
+} from './ssr-singleton';
 
 export {
   createRoutingVirtualModule,

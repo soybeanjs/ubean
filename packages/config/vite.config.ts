@@ -12,7 +12,7 @@ export default defineConfig({
     outDir: 'dist',
     entry: ['src/index.ts'],
     deps: {
-      neverBundle: ['c12', 'defu', 'pathe', 'vite', /^node:/, /^@ubean\//]
+      neverBundle: ['c12', 'defu', 'pathe', 'vite', 'hookable', 'hono', /^node:/, /^@ubean\//]
     }
   },
   test: {

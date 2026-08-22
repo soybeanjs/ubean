@@ -25,13 +25,10 @@
     "@ubean/build": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/islands": "workspace:*",
-    "@ubean/logger": "workspace:*",
-    "@ubean/modules": "workspace:*",
     "@ubean/preset": "workspace:*",
     "@ubean/scan": "workspace:*",
     "@ubean/shared": "workspace:*",
     "@ubean/ssr": "workspace:*",
-    "@ubean/vite": "workspace:*",
     "pathe": "^2.0.3"
   },
   "devDependencies": {

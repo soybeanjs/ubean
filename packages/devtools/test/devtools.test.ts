@@ -2,8 +2,10 @@ import { mkdtemp, rm, mkdir, writeFile, readFile, unlink, copyFile, access } fro
 import { tmpdir } from 'node:os';
 import { join, resolve, isAbsolute } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from 'ubean';
 import {
+  defineDevToolsTab,
+  getCustomTabs,
+  clearCustomTabs,
   buildDevToolsInfo,
   emptyDevToolsInfo,
   UBEAN_INFO_STATE_KEY,

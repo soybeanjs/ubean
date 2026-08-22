@@ -1,5 +1,5 @@
 import { join, extname } from 'node:path';
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import {
   createFsOps,

@@ -17,6 +17,14 @@
     "./node": {
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js"
+    },
+    "./logger": {
+      "types": "./dist/logger/index.d.ts",
+      "import": "./dist/logger/index.js"
+    },
+    "./logger/hono": {
+      "types": "./dist/logger/hono.d.ts",
+      "import": "./dist/logger/hono.js"
     }
   },
   "scripts": {
@@ -30,6 +38,7 @@
     "hono": "4.13.3",
     "pathe": "^2.0.3",
     "scule": "^1.3.0",
+    "tslog": "^5.1.0",
     "ufo": "1.6.4"
   },
   "devDependencies": {

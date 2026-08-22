@@ -1,7 +1,8 @@
 import type { Plugin as VitePlugin } from 'vite';
-import type { MiddlewareHandler } from 'hono';
-import type { UbeanApp } from '@ubean/app';
+import type { Hono, MiddlewareHandler } from 'hono';
 import type { UbeanEnv } from '@ubean/shared';
+
+type ModuleApp = Hono<UbeanEnv>;
 
 export interface DevToolsCustomTab {
   id: string;
@@ -11,10 +12,10 @@ export interface DevToolsCustomTab {
 }
 
 export interface ModuleHooks {
-  'app:created': (app: UbeanApp) => void | Promise<void>;
-  'app:before:register': (app: UbeanApp) => void | Promise<void>;
-  'app:after:register': (app: UbeanApp) => void | Promise<void>;
-  'app:ready': (app: UbeanApp) => void | Promise<void>;
+  'app:created': (app: ModuleApp) => void | Promise<void>;
+  'app:before:register': (app: ModuleApp) => void | Promise<void>;
+  'app:after:register': (app: ModuleApp) => void | Promise<void>;
+  'app:ready': (app: ModuleApp) => void | Promise<void>;
   'build:before': () => void | Promise<void>;
   'build:after': () => void | Promise<void>;
   'dev:setup': () => void | Promise<void>;

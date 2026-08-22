@@ -1,7 +1,7 @@
 import type { Plugin as VitePlugin } from 'vite';
-import type { ModuleDefinition, ResolvedModule, ResolvedConfig } from '@ubean/config';
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 import { createHooks } from 'hookable';
+import type { ModuleDefinition, ResolvedModule, ResolvedConfig } from '../types';
 import { BUILTIN_MODULES, isBuiltinDisabled, extractBuiltinOptions } from './builtins';
 import { createModuleKitContext, topologicalSort } from './kit';
 import type {

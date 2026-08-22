@@ -30,7 +30,7 @@
  * ```
  */
 
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                     */

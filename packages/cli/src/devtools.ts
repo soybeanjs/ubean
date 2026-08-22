@@ -1,4 +1,4 @@
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 
 const logger = getLogger('cli');

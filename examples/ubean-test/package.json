@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "analyze": "ubean analyze",
     "build": "ubean build",
     "dev": "ubean dev",
     "preview": "ubean preview",
@@ -12,6 +13,8 @@
   },
   "dependencies": {
     "@soybeanjs/fetch": "^0.1.0",
+    "@ubean/content": "workspace:*",
+    "@ubean/devtools": "workspace:*",
     "@valibot/to-json-schema": "^1.7.1",
     "ubean": "workspace:*",
     "valibot": "^1.4.2",

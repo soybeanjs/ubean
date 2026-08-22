@@ -36,11 +36,10 @@ export * from '@ubean/app';
 // ============== 构建时工具 ==============
 // 注意: auto-imports 预设已并入 @ubean/codegen(VUE_PRESET/UBEAN_CLIENT_PRESET 等
 // 经下方 `export * from '@ubean/codegen'` 导出)
-export * from '@ubean/prerender';
+export * from '@ubean/build/prerender';
 export * from '@ubean/preset';
 export * from '@ubean/config';
 export * from '@ubean/codegen';
-export * from '@ubean/modules';
 
 // ============== 路由扫描器 + AST 提取器 ==============
 // 注意:`useRouter`(无参数,返回服务端 UbeanRouter 单例)已随 rou3 router
@@ -172,9 +171,9 @@ export type { UbeanPluginOptions as UbeanCorePluginOptions } from '@ubean/build/
 // 别名 `ubeanPlugin`(对齐原 ubean 主入口导出名)— 指向 build 插件
 // 注意:组合版 `ubeanPlugin`(build + vue + islands)在 `./vite` 子路径导出
 export { ubeanPlugin } from '@ubean/build/vite';
-export { ubeanVite } from '@ubean/vite';
-export type { UbeanViteOptions } from '@ubean/vite';
-export { VUE_PLUGIN_INCLUDE } from '@ubean/vite';
+export { ubeanVite } from '@ubean/build/vue';
+export type { UbeanViteOptions } from '@ubean/build/vue';
+export { VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 // `ubeanIslandsPlugin` 来自 `/vite` 子路径;`getIslandsBootstrapScript` 在主入口
 export { ubeanIslandsPlugin } from '@ubean/islands/vite';
 export { ubeanServerActionsPlugin } from '@ubean/actions/vite';
@@ -215,13 +214,10 @@ export type { PageHead } from '@ubean/scan'; // 页面 head 类型以 @ubean/vue
 export { createFsOps, scaffold, deleteScaffold, recoverScaffold, listScaffoldableFiles } from '@ubean/cli';
 export type { FsOps, FsOpsOptions, BackupOptions, ScaffoldOptions, ScaffoldResult, ScaffoldType } from '@ubean/cli';
 
-// ============== DevTools 自定义 Tab 注册(对齐原 ubean 主入口导出)==============
-// 原位于 `packages/ubean/src/core/devtools/define-tab.ts`,Phase 7 迁移至 @ubean/devtools
-export { defineDevToolsTab, getCustomTabs, clearCustomTabs } from '@ubean/devtools';
-export type { DevToolsTabDefinition } from '@ubean/devtools';
+// DevTools 自定义 Tab 从 `@ubean/devtools` 导入（opt-in，不进入聚合器硬依赖）
 
 // ============== logger(基于 tslog@5 的统一日志系统)==============
-export { logger, getLogger, createUbeanLogger } from '@ubean/logger';
-export type { UbeanLogger, UbeanLoggerOptions, LogLevelName, RequestLoggerOptions } from '@ubean/logger';
+export { logger, getLogger, createUbeanLogger } from '@ubean/shared/logger';
+export type { UbeanLogger, UbeanLoggerOptions, LogLevelName, RequestLoggerOptions } from '@ubean/shared/logger';
 // Hono 请求日志中间件(需要 hono,独立子路径避免核心 logger 引入 hono)
-export { createRequestLoggerMiddleware } from '@ubean/logger/hono';
+export { createRequestLoggerMiddleware } from '@ubean/shared/logger/hono';

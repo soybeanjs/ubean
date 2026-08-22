@@ -10,9 +10,9 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts', 'src/node.ts'],
+    entry: ['src/index.ts', 'src/node.ts', 'src/logger/index.ts', 'src/logger/hono.ts'],
     deps: {
-      neverBundle: [/^@ubean\//, /^node:/]
+      neverBundle: [/^@ubean\//, /^node:/, 'tslog', 'hono']
     }
   },
   test: {

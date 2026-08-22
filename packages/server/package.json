@@ -62,6 +62,10 @@
       "types": "./dist/static.d.ts",
       "import": "./dist/static.js"
     },
+    "./drivers": {
+      "types": "./dist/drivers.d.ts",
+      "import": "./dist/drivers.js"
+    },
     "./middleware": {
       "types": "./dist/middleware.d.ts",
       "import": "./dist/middleware.js"
@@ -74,7 +78,6 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/logger": "workspace:*",
     "@ubean/shared": "workspace:*",
     "hono": "4.13.3",
     "hookable": "^6.1.1",

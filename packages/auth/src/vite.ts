@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite';
-import { getLogger } from '@ubean/logger';
+import { getLogger } from '@ubean/shared/logger';
 import { resolveAuthOptions } from './core';
 import type { UbeanAuthOptions, ResolvedAuthOptions } from './types';
 

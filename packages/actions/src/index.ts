@@ -65,12 +65,23 @@
 // Core defineAction API
 export {
   defineAction,
+  defineServerFn,
   parseActionInput,
   validateActionInput,
   normalizeActionResult,
   buildActionContext
 } from './define';
 export type { DefineActionOptions } from './define';
+
+export { invokeServerFn, unwrapActionResult, unwrapServerFnResult } from './invoke';
+export {
+  bindActionContextStorage,
+  getActionContext,
+  runWithActionContext,
+  createDetachedActionContext
+} from './request-context';
+export type { ActionContextStorage } from './request-context';
+export { describeActionsOpenApi } from './openapi';
 
 // Re-export common types and helpers from @ubean/shared
 export { ActionError, fail, isActionFailure, isServerAction, ACTION_BRAND } from '@ubean/shared';

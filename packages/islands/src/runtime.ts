@@ -180,6 +180,8 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
   if (islands.length === 0) return;
 
   for (const record of islands) {
+    if (record.el.hasAttribute('data-hydrated')) continue;
+
     if (record.directive === 'client:only') {
       const comp = resolveComponent(record.componentName, components, getComponent);
       if (comp) {

@@ -367,6 +367,9 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
   if (typeof parsed.requiresAuth === 'boolean') result.requiresAuth = parsed.requiresAuth;
   if (typeof parsed.cache === 'boolean') result.cache = parsed.cache;
   if (typeof parsed.transition === 'string') result.transition = parsed.transition;
+  if (parsed.ssr === false || parsed.ssr === true || parsed.ssr === 'streaming' || parsed.ssr === 'data-only') {
+    result.ssr = parsed.ssr;
+  }
 
   const head = normalizePageHead(parsed.head);
   if (head) result.head = head;

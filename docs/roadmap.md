@@ -26,7 +26,7 @@
 
 | 现象 | 证据 | 为什么是债 |
 | --- | --- | --- |
-| 33 包 + 聚合器 barrel | `packages/*`；主包 `ubean` re-export | Vite client / SSR 双图；i18n 已踩过 ALS 双模块与客户端 runtime 双份 |
+| 28 包 + 聚合器 barrel | `packages/*`；主包 `ubean` re-export | Vite client / SSR 双图；已做卫生合并（logger/modules/prerender/vite/build-core） |
 | `ssr.external` vs 生产 `ssr.noExternal: ['ubean']` | `packages/vite/src/plugin.ts` vs `packages/builder/src/production.ts` | 开发态为修 ALS 把 `@ubean/i18n` external；生产把 `ubean` 打进 bundle。规则未抽象成「单份 runtime」策略 |
 | `@ubean/vue` vs `@ubean/client` 内核分裂 | vue 零 i18n（正确）；client 持有 unhead / i18n / 数据层 | 独立 SPA 路径与全栈路径的契约要写死，避免再从 vue 拉 i18n |
 | `routeRules.rewrite` 只合并不执行 | `packages/routes/src/route-rules.ts` 写入 `matched.rewrite`；全仓无消费方 | 类型与文档像 Nuxt，运行时像没做 |
@@ -49,12 +49,12 @@
 | 构建 | Turbopack | Vite | Vite | Vite / Nitro 系 | Vite | Vite / Rsbuild | Vite + Nitro | Vite |
 | HTTP | 自有 runtime | Nitro | 适配器 / Hono 可选 | Nitro | 适配器 | Start server | Nitro | Hono 原生 |
 | 流式 SSR | ✅ | ✅（实验可关） | ✅ | ✅ | ✅ | ✅ | ⚠️ 2.7 实验 | ✅ |
-| 每路由 SSR | 部分 | ✅ routeRules | `+page.server` / adapters | 部分 | ✅ | ✅ `ssr` / `data-only` | route rules | ✅ `ssr`/`exclude`；**rewrite 未执行** |
-| ISR / SWR | ✅ | ✅ | ⚠️ 适配器 | ⚠️ | ✅ | ⚠️ | ⚠️ Nitro | ✅ 规则在；**存储默认内存** |
+| 每路由 SSR | 部分 | ✅ routeRules | `+page.server` / adapters | 部分 | ✅ | ✅ `ssr` / `data-only` | route rules | ✅ `ssr`/`exclude`/`data-only`；rewrite/proxy 已执行 |
+| ISR / SWR | ✅ | ✅ | ⚠️ 适配器 | ⚠️ | ✅ | ⚠️ | ⚠️ Nitro | ✅ 规则在；**存储默认内存**（可 `cache: { store: 'fs' }`） |
 | PPR / 静态壳 | ✅ | ❌ | ❌ | ❌ | Server Islands | ❌ | ❌ | ⚠️ **名称为 PPR，实为强制流式** |
 | Server Components | RSC | `.server.vue` | ❌ | ❌ | ❌ | ❌（server functions） | ❌ | ✅ `.server.vue`（非 RSC） |
-| Actions / 服务端函数 | Server Actions | ❌ 一等 | form actions | server fn | actions | **`createServerFn` 类型一等** | 2.7 Server Functions | ✅ `defineAction` + `?/<name>` |
-| 数据层 | fetch cache / `'use cache'` | `useAsyncData` / `useFetch` | `load` | query 生态 | 内容集合 | Router loaders + server fn | `load` | `useData` / `useAsyncData` / `defer`；**无 Nuxt 级 `useFetch` 默认** |
+| Actions / 服务端函数 | Server Actions | ❌ 一等 | form actions | server fn | actions | **`createServerFn` 类型一等** | 2.7 Server Functions | ✅ `defineAction` / `defineServerFn` + `?/<name>`；同一 `POST /__actions` |
+| 数据层 | fetch cache / `'use cache'` | `useAsyncData` / `useFetch` | `load` | query 生态 | 内容集合 | Router loaders + server fn | `load` | `useData` / `useAsyncData` / `useFetch` / `defer`；HTTP client 仍是 `@soybeanjs/fetch` |
 | Islands | ❌ | ❌ | ❌ | ❌ | ✅ 默认 | ❌ | ❌ | ✅ `v-client.*` |
 | i18n | 生态 | `@nuxtjs/i18n` | 生态 | 生态 | 路由辅助 | 生态 | 生态 | ✅ 框架字段 + vue-i18n 11 |
 | 内置 DB/Queue | ❌ | ⚠️ Nitro 存储 | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ **API 有，默认内存** |
@@ -77,10 +77,11 @@ TanStack Start 的切口不是「再做一个 loader 品牌」，而是：**调�
 | 追 Nitro「20+ 预设」数字 | 预设要能跑，不要清单竞赛 |
 | 自研 HTTP 客户端 | 继续 `@soybeanjs/fetch` |
 | 把 studio 排进本路线图 | studio 独立私有仓；开源侧只留开口 |
+| Nuxt 式客户端 `middleware/*.global` 文件约定（RM-U03） | `defineApp({ router: { setup } })` 已覆盖导航守卫；服务端中间件仍是 `src/middleware` |
 
 ## 5. 值得做（已过过滤器）
 
-每条都标了门槛位。Q4 还债（D01–D08）已落地。H1 仍为 ⬜。
+每条都标了门槛位。Q4 还债（D01–D08）已落地。H1：U01/U02/U04–U08 ✅；**U03 刻意不做**（见下表）。
 
 ### 5.1 2026 Q4 · 还债（架构 40% 优先）
 
@@ -99,14 +100,14 @@ TanStack Start 的切口不是「再做一个 loader 品牌」，而是：**调�
 
 | ID | 任务 | 门槛 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-U01** | 类型安全 server function 切口（学 Start 的 `createServerFn` 边界，复用 `defineAction` ID 机制）：从组件/loader 调用，带 Standard Schema，禁止再发明第二套 RPC | 用户习惯缺口 + 差异化 | 一个函数既能当 Action 又能当 loader 数据源；OpenAPI 可选暴露 |
-| **RM-U02** | `useFetch` 级 DX：对 `useAsyncData` + `@soybeanjs/fetch` 做约定封装（key、SSR payload、refresh），不自研 client | 用户习惯缺口 + 差异化 | 文档主路径不再「请自己接 fetch 库」 |
-| **RM-U03** | Vue 导航中间件文件约定（对齐 Nuxt `middleware/*.global` 的**客户端**一半）：与现有 `src/middleware` Hono 链并存、命名不打架 | 用户习惯缺口 | `definePage({ middleware })` 与文件中间件同一注册表 |
-| **RM-U04** | select SSR：`routeRules` / 页面级 `ssr: false \| 'data-only' \| true`，对齐 Start 的三种，而不是只有 exclude 列表 | 用户习惯缺口 + 性能 | 营销页可 CSR、详情页 SSR、数据页只跑 loader |
-| **RM-U05** | 平台驱动补齐：Queue / DB 在 Cloudflare、Vercel 上各有一条**非内存**示例，而不是只生成 `wrangler.toml` | 用户习惯缺口 | ubean-test 或独立 example 可跑 |
-| **RM-U06** | SSR 实例成本：locale 消息编译缓存 + 可选 i18n/app 池上限；Islands 水合按路由跳过已水合岛 | 性能 | 基准：重复请求同页 TTFB / 客户端导航耗时有对比数字 |
-| **RM-U07** | 客户端 JS 预算：官方 `pnpm analyze`（或 Vite 现有分析入口）+ 默认 Islands 页面的基线数字写入 contributing | 性能 + 差异化 | 基线可回归，禁止无数字的「更轻」 |
-| **RM-U08** | 内容集合与 Markdown 页：把 `@ubean/content` 接到文件路由 / 预渲染发现，对标 Astro content 的最小可用集 | 用户习惯缺口 + 差异化 | 文档站或 example 用同一套 content API |
+| **RM-U01** ✅ | 类型安全 server function 切口（学 Start 的 `createServerFn` 边界，复用 `defineAction` ID 机制）：从组件/loader 调用，带 Standard Schema，禁止再发明第二套 RPC | 用户习惯缺口 + 差异化 | `defineServerFn` = `defineAction`；`invokeServerFn`；同一 `POST /__actions`；`describeActionsOpenApi()` 可选暴露 |
+| **RM-U02** ✅ | `useFetch` 级 DX：对 `useAsyncData` + `@soybeanjs/fetch` 做约定封装（key、SSR payload、refresh），不自研 client | 用户习惯缺口 + 差异化 | `useFetch` + `setDefaultFetch`；无 client 时 fallback 原生 `fetch`+JSON |
+| **RM-U03** 刻意不做 | Vue 导航中间件文件约定（对齐 Nuxt `middleware/*.global` 的**客户端**一半） | — | 现有 `defineApp({ router: { setup } })` 已能挂 `beforeEach` / `beforeResolve` / `afterEach`；服务端仍用 `src/middleware`。不再做第二套文件约定 |
+| **RM-U04** ✅ | select SSR：`routeRules` / 页面级 `ssr: false \| 'data-only' \| true` | 用户习惯缺口 + 性能 | `false` 跳过 loader；`'data-only'` 跑 loader + CSR shell；glob exclude 仍跑 loader |
+| **RM-U05** ✅ | 平台驱动补齐：Queue / DB 在 Cloudflare、Vercel 上各有一条**非内存**示例 | 用户习惯缺口 | `@ubean/server/drivers` + `examples/platform-drivers/` |
+| **RM-U06** ✅ | SSR 实例成本：locale 消息编译缓存；Islands 水合跳过已 `data-hydrated` 的岛 | 性能 | **不**池化带状态的 Vue app / `app.use(i18n)` 实例 |
+| **RM-U07** ✅ | 客户端 JS 预算：`ubean analyze` 读 Vite client manifest，写 `.ubean/bundle-baseline.json` | 性能 + 差异化 | contributing 写清命令与基线文件；禁止无数字的「更轻」 |
+| **RM-U08** ✅ | 内容集合与 Markdown 页：`@ubean/content` 接到文件路由 / 预渲染发现 | 用户习惯缺口 + 差异化 | `extractContentPageRoutes` / `discoverContentPageRoutes`；catch-all `pages/blog/[...slug].vue` |
 
 ### 5.3 开源侧给 studio 的开口（不排 studio 里程碑）
 
@@ -119,7 +120,7 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 
 ## 6. 不做的伪缺口（避免 Q4 被带偏）
 
-- 「把 33 包合成 5 个」——blast radius 过大，本周期只做 **runtime 单例策略**（RM-D01），不做大爆炸合并。
+- 「把 28 包合成 5 个」——blast radius 过大；卫生包已并入 shared/config/build，不合并 `@ubean/vue`。
 - 「默认挂 sessions」——有状态、cookie 密钥，opt-in 正确；只默认 CSRF/headers（RM-D05）。
 - 「Next `after()` 再包一层」——已经有 `after()`。
 - 「i18n 再加 custom paths / differentDomains」——ADR-0009 明确不做。
@@ -128,5 +129,5 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 
 1. Q4 结束：公开 `framework-comparison.md` 的 ubean 列与源码一致（rewrite/PPR/IPX/内存存储不再满格）。
 2. Q4 结束：RM-D01–D08 中至少 D01、D02、D04、D05 合并；其余可顺延但不得重新打满营销 ✅。
-3. H1：RM-U01 或 U02 至少一个落地（数据层切口），否则「对标 Start」只是空话。
+3. H1：RM-U01 + U02 数据层切口与 select SSR（U04）已落地；U03 不另做客户端文件中间件。
 4. 全程：CodeGraph `impact` 对 `createUbeanApp` / `registerRoutes` / `ubeanPlugin` 在相关 PR 留下证据；不把任务人天写进文档。

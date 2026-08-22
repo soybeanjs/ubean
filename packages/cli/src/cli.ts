@@ -8,6 +8,7 @@
  */
 import { defineCommand, runMain } from 'citty';
 import { configCommand } from './config';
+import { analyzeCommand } from './analyze';
 import { buildCommand } from './build';
 import { devCommand } from './dev';
 import { devtoolsCommand } from './devtools';
@@ -38,7 +39,8 @@ const main = defineCommand({
     layout: layoutCommand,
     middleware: middlewareCommand,
     cron: cronCommand,
-    plugin: pluginCommand
+    plugin: pluginCommand,
+    analyze: analyzeCommand
   }
 });
 

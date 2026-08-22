@@ -36,6 +36,7 @@ interface I18nEngineState {
   catalogMeta: Map<string, { name?: string; dir: 'ltr' | 'rtl'; language?: string; isDefault?: boolean }>;
   fallbackLocaleCode: string;
   loadLocale?: LocaleLoader;
+  compiled: Map<string, { key: string; ctx: ReturnType<typeof createCoreContext> }>;
 }
 
 const ENGINE_KEY = '__UBEAN_I18N_ENGINE__' as const;
@@ -47,8 +48,12 @@ function getState(): I18nEngineState {
       storage: new AsyncLocalStorage<I18nRequestScope>(),
       catalogs: new Map(),
       catalogMeta: new Map(),
-      fallbackLocaleCode: 'en'
+      fallbackLocaleCode: 'en',
+      compiled: new Map()
     };
+  }
+  if (!g[ENGINE_KEY].compiled) {
+    g[ENGINE_KEY].compiled = new Map();
   }
   return g[ENGINE_KEY];
 }
@@ -62,7 +67,9 @@ export function getFallbackLocale(): string {
 }
 
 export function setLocaleMessages(code: string, messages: LocaleMessages): void {
-  getState().catalogs.set(code, messages);
+  const state = getState();
+  state.catalogs.set(code, messages);
+  state.compiled.delete(code);
 }
 
 export function getLocaleMessages(code: string): LocaleMessages | undefined {
@@ -70,10 +77,12 @@ export function getLocaleMessages(code: string): LocaleMessages | undefined {
 }
 
 export function mergeLocaleMessages(code: string, messages: LocaleMessages): LocaleMessages {
-  const catalogs = getState().catalogs;
+  const state = getState();
+  const catalogs = state.catalogs;
   const existing = catalogs.get(code) || {};
   const merged = deepMerge(existing, messages);
   catalogs.set(code, merged);
+  state.compiled.delete(code);
   return merged;
 }
 
@@ -161,9 +170,20 @@ export async function ensureLocaleMessages(locale: string, fallback?: string): P
   }
 }
 
+function catalogFingerprint(locale: string, fallback: string, catalogs: Map<string, LocaleMessages>): string {
+  const loc = catalogs.get(locale);
+  const fb = locale === fallback ? undefined : catalogs.get(fallback);
+  return `${locale}:${fallback}:${loc ? Object.keys(loc).join(',') : ''}:${fb ? Object.keys(fb).join(',') : ''}`;
+}
+
 export function createRequestContext(locale: string, fallback?: string): ReturnType<typeof createCoreContext> {
-  const { catalogs, fallbackLocaleCode } = getState();
+  const state = getState();
+  const { catalogs, fallbackLocaleCode, compiled } = state;
   const fb = fallback ?? fallbackLocaleCode;
+  const fingerprint = catalogFingerprint(locale, fb, catalogs);
+  const cached = compiled.get(locale);
+  if (cached && cached.key === fingerprint) return cached.ctx;
+
   const messages: Record<string, LocaleMessages> = {};
   const locMsgs = catalogs.get(locale);
   if (locMsgs) messages[locale] = locMsgs;
@@ -171,7 +191,7 @@ export function createRequestContext(locale: string, fallback?: string): ReturnT
     const fbMsgs = catalogs.get(fb);
     if (fbMsgs) messages[fb] = fbMsgs;
   }
-  return createCoreContext({
+  const ctx = createCoreContext({
     locale,
     fallbackLocale: fb,
     messages: messages as never,
@@ -179,6 +199,8 @@ export function createRequestContext(locale: string, fallback?: string): ReturnT
     fallbackWarn: false,
     messageCompiler: compile
   });
+  compiled.set(locale, { key: fingerprint, ctx });
+  return ctx;
 }
 
 function bindScope(scope: I18nRequestScope): I18nRequestScope {

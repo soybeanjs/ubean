@@ -137,6 +137,13 @@ export function defineAction<TInput, TOutput>(
 }
 
 /**
+ * Type-safe server function. Same ID, registry, and `POST /__actions` RPC as
+ * `defineAction` — use this alias when the function is a loader/query as well
+ * as a mutation. Do not invent a second RPC.
+ */
+export const defineServerFn: typeof defineAction = defineAction;
+
+/**
  * Best-effort guess of the caller's file path for action ID generation.
  *
  * Uses `Error.stack` parsing (works in Node and most browsers). Falls back
@@ -207,10 +214,36 @@ export async function parseActionInput(request: Request): Promise<Record<string,
  * Returns `{ success: true, data }` on success, or
  * `{ success: false, errors }` on failure (per-field messages).
  */
+function issuesToErrors(issues: Array<{ message?: string; path?: unknown }> | undefined): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const issue of issues || []) {
+    const key = Array.isArray(issue.path) && issue.path.length > 0 ? String(issue.path[0]) : '_error';
+    errors[key] = issue.message || 'Invalid value';
+  }
+  if (Object.keys(errors).length === 0) errors._error = 'Invalid value';
+  return errors;
+}
+
 export function validateActionInput<T>(
   schema: ActionSchema<T>,
   input: unknown
 ): { success: true; data: T } | { success: false; errors: Record<string, string> } {
+  const standard = schema['~standard'];
+  if (standard && typeof standard.validate === 'function') {
+    const result = standard.validate(input) as
+      | { value: T }
+      | { issues: Array<{ message?: string; path?: unknown }> }
+      | Promise<unknown>;
+    if (result && typeof result === 'object' && 'then' in result) {
+      return { success: false, errors: { _error: 'Async Standard Schema validation is not supported in actions' } };
+    }
+    if (result && typeof result === 'object' && 'issues' in result && result.issues) {
+      return { success: false, errors: issuesToErrors(result.issues) };
+    }
+    if (result && typeof result === 'object' && 'value' in result) {
+      return { success: true, data: result.value as T };
+    }
+  }
   // Prefer safeParse for non-throwing validation
   if (schema.safeParse) {
     const result = schema.safeParse(input);

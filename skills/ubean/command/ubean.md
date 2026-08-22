@@ -138,6 +138,30 @@ ubean build --preset deno
 ubean build --sourcemap
 ```
 
+### ubean analyze
+
+Report the client JS budget from the Vite client manifest (run after `ubean build`). Writes `.ubean/bundle-baseline.json` by default.
+
+**Usage:**
+
+```bash
+ubean analyze [options]
+```
+
+**Options:**
+
+| Option  | Description                         | Default         |
+| ------- | ----------------------------------- | --------------- |
+| --cwd   | Project root                        | `process.cwd()` |
+| --write | Write `.ubean/bundle-baseline.json` | true            |
+
+**Examples:**
+
+```bash
+ubean build && ubean analyze
+ubean analyze --write=false
+```
+
 ### ubean preview
 
 Preview the production build locally.

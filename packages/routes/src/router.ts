@@ -14,6 +14,7 @@ import {
   runServerAction as _runServerAction
 } from './page-actions';
 import { normalizeIsrRule } from './route-rules';
+import { resolveSelectSsr, ssrModeHeader } from './select-ssr';
 
 /**
  * Structural type for the route registrar app.
@@ -515,7 +516,20 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       }
     }
 
-    if (mod?.loader && typeof mod.loader === 'function') {
+    const routeRule = c.get('routeRule') as RouteRule | undefined;
+    const isrRule = normalizeIsrRule(routeRule?.isr);
+    const pprEnabled = routeRule?.ppr === true;
+    const selected = resolveSelectSsr({
+      pageSsr: page.pageMeta?.ssr as boolean | 'streaming' | 'data-only' | undefined,
+      routeRuleSsr: routeRule?.ssr,
+      ppr: pprEnabled,
+      excludedByGlob: matchAnyGlob(page.route, ssrExclude),
+      streaming
+    });
+    const routeStreaming = selected.mode === 'streaming';
+    const renderer = selected.useRenderer ? (pageRenderer ?? null) : null;
+
+    if (selected.runLoader && mod?.loader && typeof mod.loader === 'function') {
       try {
         loaderResult = await mod.loader(c);
         if (loaderResult instanceof Response) return loaderResult;
@@ -581,36 +595,8 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       renderContext.availableLocales = i18nMod.getRegisteredLocalesMeta();
     }
 
-    // P9-03: per-route 渲染规则 —— 从 context 读取匹配的 routeRule,
-    // 覆盖全局 ssr.exclude / streaming 配置。
-    // `ppr: true` is an alias for forced streaming SSR + prerender discovery.
-    // It is not a Next.js-style static shell with dynamic holes.
-    const routeRule = c.get('routeRule') as RouteRule | undefined;
-    const perRouteSsr = routeRule?.ssr;
-    const isrRule = normalizeIsrRule(routeRule?.isr);
-    const pprEnabled = routeRule?.ppr === true;
-
-    // SSR exclude: matched pages skip server rendering → CSR shell.
-    // per-route `ssr` 规则覆盖全局 exclude:
-    //   - `ssr: false`  → 强制 CSR(即使全局未排除)
-    //   - `ssr: true`   → 强制 SSR(即使命中全局 exclude)
-    //   - `ssr: 'streaming'` → 强制 SSR + 流式输出
-    // `ppr: true` → 强制 SSR + 流式输出(等价于 `ssr: 'streaming'`)
-    let excluded = matchAnyGlob(page.route, ssrExclude);
-    let routeStreaming = streaming;
-    if (perRouteSsr === false) {
-      excluded = true;
-    } else if (perRouteSsr === true) {
-      excluded = false;
-    } else if (perRouteSsr === 'streaming') {
-      excluded = false;
-      routeStreaming = true;
-    } else if (pprEnabled) {
-      // PPR 需要流式 SSR(Suspense 边界流式输出动态内容)
-      excluded = false;
-      routeStreaming = true;
-    }
-    const renderer = excluded ? null : (pageRenderer ?? null);
+    const htmlHeaders: Record<string, string> = { 'X-SSR-Mode': ssrModeHeader(selected.mode) };
+    if (pprEnabled) htmlHeaders['X-PPR'] = 'streaming';
 
     // ISR(P9-03):仅对 GET 请求、且配置了 cacheStore 与 isr 规则时启用。
     // 渲染函数封装为同步重新生成入口,供 serveIsr 命中失败时调用。
@@ -628,7 +614,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
             'app',
             renderContext as Parameters<typeof renderPage>[4]
           );
-          return { html, status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } };
+          return { html, status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', ...htmlHeaders } };
         }
       });
       if (isrResponse) {
@@ -652,13 +638,11 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
         'app',
         renderContext as Parameters<typeof renderPageToStream>[4]
       );
-      const headers: Record<string, string> = {
-        'Content-Type': 'text/html; charset=utf-8',
-        'X-SSR-Mode': 'streaming'
-      };
-      if (pprEnabled) headers['X-PPR'] = 'streaming';
       return c.body(stream, {
-        headers,
+        headers: {
+          'Content-Type': 'text/html; charset=utf-8',
+          ...htmlHeaders
+        },
         ...(method === 'POST' && actionErrors ? { status: 422 } : {})
       });
     }
@@ -670,7 +654,10 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       'app',
       renderContext as Parameters<typeof renderPage>[4]
     );
-    return c.html(injectColorMode(html), method === 'POST' && actionErrors ? { status: 422 } : undefined);
+    return c.html(injectColorMode(html), {
+      headers: htmlHeaders,
+      ...(method === 'POST' && actionErrors ? { status: 422 } : {})
+    });
   }
 
   // Build name → page map so reuse routes can resolve their target page's

@@ -1,7 +1,13 @@
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { existsSync } from 'node:fs';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import { createActionsMiddleware, ACTIONS_ENDPOINT } from '@ubean/actions';
+import {
+  createActionsMiddleware,
+  ACTIONS_ENDPOINT,
+  bindActionContextStorage,
+  buildActionContext
+} from '@ubean/actions';
 import { createI18nMiddleware, ensureLocaleMessages } from '@ubean/i18n';
 import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
 import { registerRoutes, setInternalFetcher, registerOpenAPIRoutes, createRouteRulesMiddleware } from '@ubean/routes';
@@ -24,7 +30,7 @@ import { createCsrfMiddleware, createSecurityHeadersMiddleware } from '@ubean/se
 import type { CsrfOptions, SecurityHeadersOptions } from '@ubean/server/security';
 import { serveStatic } from '@ubean/server/static';
 import { errorToResponse, isUbeanError, UbeanError } from '@ubean/shared';
-import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler } from '@ubean/shared';
+import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler, ActionContext } from '@ubean/shared';
 import { requestId } from 'hono/request-id';
 import { createHooks } from 'hookable';
 import type { Hookable } from 'hookable';
@@ -161,6 +167,9 @@ export interface UbeanAppOptions {
   cache?: { store?: 'memory' | 'fs'; dir?: string };
 }
 
+const actionContextAls = new AsyncLocalStorage<ActionContext>();
+bindActionContextStorage(actionContextAls);
+
 const DEFAULT_CSRF_EXCLUDE = ['/_health', '/_openapi.json', '/_scalar', '/_ipx/**', '/_devtools/**', '/_iconify/**'];
 
 const DEFAULT_SECURITY_HEADERS: SecurityHeadersOptions = {
@@ -232,6 +241,10 @@ export class UbeanApp {
     });
 
     this.hono.use('*', requestId());
+
+    this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
+      await actionContextAls.run(buildActionContext(c), () => next());
+    });
 
     const securityHeaders = resolveToggle(this.options.securityHeaders, true);
     if (securityHeaders !== false) {

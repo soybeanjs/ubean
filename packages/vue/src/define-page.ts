@@ -64,6 +64,11 @@ export interface DefineClientPageOptions {
    * `setupPageHeadGuard()` 应用,SSR 链路经服务端扫描结果消费。
    */
   head?: PageHead;
+  /**
+   * Per-page select SSR (`false` | `'data-only'` | `true` | `'streaming'`).
+   * Consumed by the server router; also written to `route.meta.ssr`.
+   */
+  ssr?: boolean | 'streaming' | 'data-only';
   /** 任意扩展 meta,浅合并进 `route.meta`(类型上扩展 vue-router RouteMeta)。 */
   meta?: RouteMeta;
 }

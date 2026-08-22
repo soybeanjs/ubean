@@ -192,3 +192,17 @@ export const GET = defineHandler(async c => {
 3. **Use TTLs**: Set TTLs for data that changes infrequently
 4. **Invalidate after mutations**: Call `invalidate()` after writes to refetch
 5. **SSR payloads**: Data fetched via `useData` during SSR is serialized into the `__UBEAN_DATA__` payload and hydrated on the client automatically — no extra config needed
+
+## useFetch
+
+`useFetch` wraps `useAsyncData`. It does **not** invent an HTTP client: pass a duck-typed `@soybeanjs/fetch` instance via `setDefaultFetch(createRequest())` (or `options.request`). Without a client it falls back to `fetch` + JSON.
+
+```vue
+<script setup lang="ts">
+import { createRequest } from '@soybeanjs/fetch';
+
+setDefaultFetch(createRequest());
+
+const { data, pending, refresh } = await useFetch('posts', '/api/posts');
+</script>
+```

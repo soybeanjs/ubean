@@ -26,7 +26,8 @@ export {
   generateId
 } from './core';
 
-export { defineLiveCollection, getLiveCollection, listLiveCollections, clearLiveCollections } from './live';
+export { extractContentPageRoutes, discoverContentPageRoutes } from './routing';
+export type { ContentPageRouteOptions, DiscoverContentPageRoutesOptions } from './routing';
 
 export type {
   ContentDocument,

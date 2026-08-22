@@ -33,6 +33,16 @@ describe('ALS isolation', () => {
     expect(() => t('hello')).toThrow(/outside request scope/);
   });
 
+  it('同 locale 第二次 createRequestContext 复用编译缓存', () => {
+    setLocaleMessages('en', { hello: 'Hello' });
+    const a = createRequestContext('en', 'en');
+    const b = createRequestContext('en', 'en');
+    expect(a).toBe(b);
+    setLocaleMessages('en', { hello: 'Hi' });
+    const c = createRequestContext('en', 'en');
+    expect(c).not.toBe(a);
+  });
+
   it('registerLocaleLoader 供 ensureLocaleMessages 调用', async () => {
     const loaded: string[] = [];
     registerLocaleLoader(async code => {

@@ -92,8 +92,9 @@ export interface RouteRule {
    * - `true`  强制 SSR(即使命中全局 exclude)
    * - `false` 强制 CSR(即使全局未排除)
    * - `'streaming'` 强制流式 SSR(等同于 `ssr: true` + 流式输出)
+   * - `'data-only'` 跑 loader，返回 CSR shell + 脱水数据（不对页面做 HTML SSR）
    */
-  ssr?: boolean | 'streaming';
+  ssr?: boolean | 'streaming' | 'data-only';
   /**
    * 标记该路由加入 SSG 预渲染队列(P9-03)。
    * 由 `collectPrerenderRoutes` 自动从 `routeRules` 中扫描发现。
@@ -311,6 +312,13 @@ export interface ActionSchema<TOutput = unknown> {
   safeParse?(value: unknown): { success: boolean; data?: TOutput; error?: { issues?: Array<{ message?: string }> } };
   parse?(value: unknown): TOutput;
   _output?: TOutput;
+  '~standard'?: {
+    version: 1;
+    vendor: string;
+    validate: (
+      value: unknown
+    ) => { value: TOutput } | { issues: Array<{ message?: string; path?: unknown }> } | Promise<unknown>;
+  };
 }
 
 /**

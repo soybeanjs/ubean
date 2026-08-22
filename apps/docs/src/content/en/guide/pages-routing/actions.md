@@ -18,6 +18,9 @@ ubean provides built-in Server Actions (P9-02) — type-safe server-side functio
 | `useFormAction(actionName)` | Vue composable (progressive-enhancement forms) |
 | `callAction(id, args)` | Low-level RPC call |
 | `defineAction(fn)` | Explicitly declares a server action (recommended); the Vite plugin auto-injects `filePath`/`name` for action ID generation |
+| `defineServerFn(...)` | Alias of `defineAction` — same ID and `POST /__actions`; use when the function is also a loader/query |
+| `invokeServerFn(fn, input?)` | Isomorphic call from loaders, `useAsyncData`, or the client (`ubean/runtime/vue`) |
+| `describeActionsOpenApi()` | Optional OpenAPI fragment for the same `/__actions` RPC |
 
 ## 1. defineAction — Defining a Server Action
 

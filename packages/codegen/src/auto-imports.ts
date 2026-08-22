@@ -124,6 +124,8 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
     'useRouter',
     'useHead',
     'useViewTransition',
+    'useAsyncData',
+    'useFetch',
     // Page cache (keep-alive) runtime control
     'useCacheViews',
     'enablePageCache',
@@ -154,6 +156,11 @@ export const UBEAN_SERVER_PRESET: InlinePreset = {
   imports: [
     'defineHandlerMeta',
     'useData',
+    'useAsyncData',
+    'useFetch',
+    'defineAction',
+    'defineServerFn',
+    'invokeServerFn',
     'createInternalAdapter',
     'defineScheduled',
     'defineQueue',

@@ -139,3 +139,23 @@ definePage({ layout: ['admin', 'dashboard'] });
     expect(meta!.layout).toEqual(['admin', 'dashboard']);
   });
 });
+
+describe('extractDefinePageFromCode — select SSR', () => {
+  it('extracts ssr: data-only', () => {
+    const meta = extractDefinePageFromCode(`
+<script setup>
+definePage({ ssr: 'data-only' });
+</script>
+`);
+    expect(meta?.ssr).toBe('data-only');
+  });
+
+  it('extracts ssr: false', () => {
+    const meta = extractDefinePageFromCode(`
+<script setup>
+definePage({ ssr: false });
+</script>
+`);
+    expect(meta?.ssr).toBe(false);
+  });
+});

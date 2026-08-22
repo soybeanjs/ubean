@@ -11,6 +11,9 @@ import { fail, ActionError, isActionFailure, isServerAction } from '@ubean/share
 import type { ServerAction, UbeanEnv } from '@ubean/shared';
 import {
   defineAction,
+  defineServerFn,
+  invokeServerFn,
+  describeActionsOpenApi,
   createActionId,
   isValidActionId,
   registerAction,
@@ -761,5 +764,77 @@ describe('vite plugin: plugin instance', () => {
     expect(result).not.toBeNull();
     const out = typeof result === 'string' ? result : (result as { code: string }).code;
     expect(out).toContain('__ubean_createActionStub');
+  });
+});
+
+describe('defineServerFn / invokeServerFn', () => {
+  beforeEach(() => clearActions());
+
+  it('is an alias of defineAction with the same ID registry', () => {
+    const fn = defineServerFn(async (input: { n: number }) => input.n * 2, {
+      name: 'double',
+      filePath: 'src/fn.ts'
+    });
+    expect(isServerAction(fn)).toBe(true);
+    expect(hasAction(fn.id)).toBe(true);
+  });
+
+  it('invokeServerFn unwraps handler output on the server', async () => {
+    const fn = defineServerFn(async (input: { n: number }) => input.n + 1, {
+      name: 'inc',
+      filePath: 'src/fn.ts'
+    });
+    await expect(invokeServerFn(fn, { n: 41 })).resolves.toBe(42);
+  });
+
+  it('describeActionsOpenApi lists registered functions on POST /__actions', () => {
+    defineServerFn(async () => 1, { name: 'listed', filePath: 'src/fn.ts' });
+    const spec = describeActionsOpenApi();
+    expect(spec.paths['/__actions'].post.operationId).toBe('ubeanActionsRpc');
+    expect(spec.paths['/__actions'].post.description).toContain('listed');
+  });
+
+  it('detects defineServerFn in the Vite plugin', () => {
+    expect(hasDefineActionCall('export const x = defineServerFn(async () => 1);')).toBe(true);
+    const code = `export const ping = defineServerFn(async () => 1);`;
+    const client = transformActionsForClient(code, '/root/src/fn.ts', '/root');
+    expect(client).toContain('__ubean_createActionStub');
+  });
+
+  it('validates Standard Schema (~standard.validate)', () => {
+    const schema = {
+      '~standard': {
+        version: 1 as const,
+        vendor: 'test',
+        validate: (value: unknown) => {
+          if (typeof value === 'object' && value && 'ok' in (value as object)) {
+            return { value: value as { ok: boolean } };
+          }
+          return { issues: [{ message: 'nope' }] };
+        }
+      }
+    };
+    expect(validateActionInput(schema, { ok: true }).success).toBe(true);
+    const failResult = validateActionInput(schema, {});
+    expect(failResult.success).toBe(false);
+  });
+
+  it('invokeServerFn validates Standard Schema before calling the handler', async () => {
+    const fn = defineServerFn(
+      {
+        '~standard': {
+          version: 1 as const,
+          vendor: 'test',
+          validate: (value: unknown) => {
+            if (typeof value === 'number') return { value };
+            return { issues: [{ message: 'need number' }] };
+          }
+        }
+      },
+      async (n: number) => n + 1,
+      { name: 'inc-schema', filePath: 'src/fn.ts' }
+    );
+    await expect(invokeServerFn(fn, 1 as never)).resolves.toBe(2);
+    await expect(invokeServerFn(fn, 'x' as never)).rejects.toThrow('need number');
   });
 });

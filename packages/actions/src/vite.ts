@@ -128,7 +128,7 @@ function toProjectRelative(filePath: string, root: string): string {
 /* defineAction 调用检测                                                        */
 /* -------------------------------------------------------------------------- */
 
-const DEFINE_ACTION_RE = /\bdefineAction\s*\(/g;
+const DEFINE_ACTION_RE = /\b(?:defineAction|defineServerFn)\s*\(/g;
 
 interface DefineActionCall {
   /** `defineAction` 标识符起始位置。 */

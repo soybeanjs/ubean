@@ -26,7 +26,8 @@ export default defineConfig({
       'src/storage.ts',
       'src/observability.ts',
       'src/email.ts',
-      'src/static.ts'
+      'src/static.ts',
+      'src/drivers.ts'
     ],
     deps: {
       neverBundle: ['hono', 'vite', /^node:/, /^@ubean\//]

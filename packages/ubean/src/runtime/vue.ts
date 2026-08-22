@@ -40,7 +40,7 @@ export * from '@ubean/client';
 // P9-02: Server Actions client runtime (callAction, useAction, useFormAction).
 // Re-exported here so client code can auto-import from `ubean/runtime/vue`
 // alongside other Vue composables, without pulling server-side code.
-export { callAction, useAction, useFormAction } from '@ubean/actions/runtime';
+export { callAction, useAction, useFormAction, invokeServerFn } from '@ubean/actions/runtime';
 export type { UseActionReturn, UseFormActionReturn } from '@ubean/actions/runtime';
 
 /**

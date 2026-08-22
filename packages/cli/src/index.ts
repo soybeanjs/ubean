@@ -10,6 +10,8 @@
 // ============== 文件操作工具 ==============
 import type { createFsOps } from './shared/fs-ops';
 
+export { summarizeBundle, readViteManifest, writeBundleBaseline, findClientManifest } from './analyze-lib';
+export type { BundleBaseline, BundleBudgetEntry, ManifestChunk } from './analyze-lib';
 export { createFsOps } from './shared/fs-ops';
 export type { FsOpOptions as FsOpsOptions, BackupOptions } from './shared/fs-ops';
 export type FsOps = ReturnType<typeof createFsOps>;

@@ -76,6 +76,7 @@ function buildRouteMeta(page: ScannedPage, extra: Record<string, unknown> = {}):
     reuseTarget: page.isReuse ? page.reuseTarget : undefined,
     transition: page.pageMeta?.transition,
     requiresAuth: page.pageMeta?.requiresAuth === true ? true : undefined,
+    ssr: page.pageMeta?.ssr,
     matchers: page.matchers && Object.keys(page.matchers).length > 0 ? page.matchers : undefined,
     head: page.pageMeta?.head,
     // 用户 definePage({ meta }) 透传(最低优先级,不覆盖框架字段)

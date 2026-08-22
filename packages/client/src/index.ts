@@ -130,6 +130,8 @@ export type { SeoMetadata, MetaTag, LinkTag } from '@ubean/seo';
 // surface of the old `@ubean/runtime` barrel).
 export { hydrateIslands, collectIslands, hydrateIsland } from '@ubean/islands/runtime';
 export type { IslandHydrateOptions, IslandRecord, HydrateIslandsOptions } from '@ubean/islands/runtime';
+export { useData, useAsyncData, invalidateData, useFetch, setDefaultFetch } from '@ubean/pages';
+export type { DataResult, UseAsyncDataOptions, UseFetchOptions } from '@ubean/pages';
 export {
   useI18n,
   createUbeanI18n,

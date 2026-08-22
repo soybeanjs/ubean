@@ -54,6 +54,11 @@ export interface PageMeta {
    * `head: true` 时写入 `route.meta.head` 并参与扫描输出。
    */
   head?: PageHead;
+  /**
+   * Per-page select SSR. Wins over `routeRules.ssr` and the global exclude list.
+   * `false` = CSR without loader; `'data-only'` = loader + CSR shell; `true` = SSR.
+   */
+  ssr?: boolean | 'streaming' | 'data-only';
 }
 
 /** 扫描得到的单个页面(字段与旧 `ScannedPageRoute` 完全兼容)。 */

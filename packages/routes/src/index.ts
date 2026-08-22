@@ -23,6 +23,8 @@ export {
 } from './route-rules';
 export type { RouteRulesMiddlewareOptions } from './route-rules';
 export type { RouteRule, CompiledRouteRule, IsrRule } from './route-rules';
+export { resolveSelectSsr, ssrModeHeader } from './select-ssr';
+export type { SelectSsrMode, SelectSsrValue, ResolveSelectSsrInput, ResolvedSelectSsr } from './select-ssr';
 
 export {
   serveIsr,

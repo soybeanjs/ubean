@@ -54,6 +54,8 @@ declare module 'vue-router' {
     head?: PageHead;
     /** `[param=matcher]` mapping consumed by `createMatcherGuard()`. */
     matchers?: Record<string, string>;
+    /** Select SSR mode from `definePage({ ssr })`. */
+    ssr?: boolean | 'streaming' | 'data-only';
   }
 }
 

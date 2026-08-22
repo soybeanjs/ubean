@@ -9,6 +9,11 @@ export default defineConfig({
     ],
     strategy: 'prefix_except_default'
   },
+  content: {
+    sources: {
+      blog: { dir: 'content/blog', prefix: '/blog' }
+    }
+  },
   devtools: true,
   prerender: {
     include: ['/about']

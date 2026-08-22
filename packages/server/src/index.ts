@@ -75,6 +75,15 @@ export type {
   QueueStats
 } from './queue';
 
+export {
+  createCloudflareD1Database,
+  createCloudflareQueueDriver,
+  dispatchCloudflareQueueBatch,
+  createVercelPostgresDatabase,
+  createVercelKvQueueDriver
+} from './drivers';
+export type { D1DatabaseBinding, CloudflareQueueBinding, PostgresLike, KvListBinding } from './drivers';
+
 /* -------------------------------------------------------------------------- */
 /* Cron 定时任务                                                                */
 /* -------------------------------------------------------------------------- */

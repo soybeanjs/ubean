@@ -138,18 +138,18 @@ Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin 
 
 ## Page Metadata (definePage)
 
-`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout`, `reuse`, `meta`, `middleware`, `requiresAuth`, `cache`, `head`. There is **no top-level `title`** — use `meta: { title }`:
+`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout`, `reuse`, `meta`, `requiresAuth`, `cache`, `head`, `ssr`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
 
 ```vue
 <script setup lang="ts">
 definePage({
   name: 'About',                   // Route name (PascalCase)
   layout: 'default',               // Layout name
+  ssr: true,                       // false | 'data-only' | true | 'streaming'
   meta: {                           // Custom metadata
     title: 'My Page',
     description: 'My page description'
   },
-  middleware: ['auth'],            // Page-level middleware
   requiresAuth: true,               // Auth requirement (meta shortcut)
   cache: true,                      // Enable KeepAlive page caching
   head: {                           // Per-page head tags (@unhead/vue)
@@ -380,7 +380,7 @@ If you split your config into `app.ts` (shared) + `app.server.ts` and/or `app.cl
 | Typical use           | Auth redirect, page title, analytics | Cookie parsing, session injection, CORS   |
 | Network round-trip    | No                                    | Yes                                       |
 
-Auth flows that need cookie/header inspection typically live in backend middleware (which injects user into context); frontend guards then read that state and decide whether to redirect.
+Auth flows that need cookie/header inspection typically live in backend middleware (which injects user into context); frontend guards then read that state and decide whether to redirect. Do **not** add a second client middleware file tree.
 
 ## Route Rules
 
@@ -406,7 +406,7 @@ export default defineConfig({
 });
 ```
 
-Supported rule fields (processed in order: `redirect` > `headers` (merged) > `cache` (→ `Cache-Control`); `rewrite` is matched and exposed via `c.get('routeRule')` but has no runtime handler yet):
+Supported rule fields (processed in order: `redirect` > `rewrite` (internal rematch) > `proxy` > `headers` (merged) > `cache`):
 
 - `*` matches a single path segment
 - `**` matches multiple segments recursively

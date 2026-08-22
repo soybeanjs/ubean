@@ -22,7 +22,7 @@ The ubean column is scored by **whether the default path actually does the thing
 | Per-route render rules | ⚠️ partial | ✅ routeRules | ⚠️ | ⚠️ | ✅ | ✅ `ssr` / `data-only` | ⚠️ | ✅ `ssr`/`isr`/`prerender`/`rewrite`/`proxy` |
 | PPR / static shell | ✅ | ❌ | ❌ | ❌ | ✅ Server Islands | ❌ | ❌ | ⚠️ `ppr: true` forces streaming SSR; not a Next-style static shell |
 | Server Components | ✅ RSC | ✅ `.server.vue` | ❌ | ❌ | ❌ | ❌ (server functions) | ❌ | ✅ `.server.vue` (**not** RSC) |
-| Server Actions / server functions | ✅ | ❌ first-class | ✅ form actions | ✅ | ✅ | ✅ `createServerFn` | ✅ 2.7 | ✅ `defineAction` + `?/<name>` |
+| Server Actions / server functions | ✅ | ❌ first-class | ✅ form actions | ✅ | ✅ | ✅ `createServerFn` | ✅ 2.7 | ✅ `defineAction` / `defineServerFn` + `?/<name>` |
 | Islands (partial hydration) | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ | ✅ `v-client.*` |
 | Built-in DB / Queue / Cron / WS | ❌ | ⚠️ partial | ❌ | ❌ | ❌ | ❌ | ❌ | ⚠️ APIs exist; DB/Queue/Storage **default to memory** |
 | Built-in Auth | ❌ Auth.js | ⚠️ module | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ extension (Better Auth) |
@@ -32,22 +32,22 @@ The ubean column is scored by **whether the default path actually does the thing
 
 ## How to read the ubean column
 
-- **Wired**: streaming SSR, SSG, file-based routing (including parallel and intercepting routes), Server Actions, `.server.vue`, Islands, vue-i18n 11, OpenAPI + Scalar, preset generators.
-- **API exists, default path incomplete**: ISR / component-cache stores default to in-process memory (`cache: { store: 'fs' }` is available). Sessions stay opt-in. CSRF (origin), security headers, and fetch Data Cache middleware mount by default. Dev `/_ipx` serves local files; without a transform library it passes the original through (`X-IPX-Mode: passthrough`).
-- **Deliberately out of scope**: React Server Components, a multi-UI runtime, and a second in-house i18n engine. Need RSC? Use Next.js. Need a multi-framework content site? Use Astro.
+- **Wired**: streaming SSR, SSG, file-based routing (including parallel and intercepting routes), Server Actions / `defineServerFn`, `useFetch`, select SSR (`false` / `'data-only'` / `true`), `.server.vue`, Islands, vue-i18n 11, OpenAPI + Scalar, preset generators.
+- **API exists, default path incomplete**: ISR / component-cache stores default to in-process memory (`cache: { store: 'fs' }` is available). Sessions stay opt-in. CSRF (origin), security headers, and fetch Data Cache middleware mount by default. Dev `/_ipx` serves local files; without a transform library it passes the original through (`X-IPX-Mode: passthrough`). CF / Vercel Queue/DB use `@ubean/server/drivers` — memory is not a substitute.
+- **Deliberately out of scope**: React Server Components, a multi-UI runtime, a second in-house i18n engine, and Nuxt-style client `middleware/*.global` files (use `defineApp({ router: { setup } })` for guards). Need RSC? Use Next.js. Need a multi-framework content site? Use Astro.
 
 ## Feature Highlights
 
 ### Rendering
 
-Streaming SSR, SSG, ISR (at the rules layer), and `routeRules` for `ssr` / `prerender` / `isr`. Today `ppr: true` means forced streaming SSR plus prerender discovery — **not** Next.js Partial Prerendering with a static shell. Server-only UI uses `.server.vue` (optionally paired with `.client.vue`). Shipping less client JS uses `v-client.*` islands. `defineServerIsland()` wraps async components in `<Suspense>`; that is a streaming hole, not a static shell.
+Streaming SSR, SSG, ISR (at the rules layer), and `routeRules` / `definePage` `ssr` (`true` / `'data-only'` / `false` / `'streaming'`) / `prerender` / `isr`. `ssr: false` skips the loader; `'data-only'` runs the loader but returns a CSR shell. Today `ppr: true` means forced streaming SSR plus prerender discovery — **not** Next.js Partial Prerendering with a static shell. Server-only UI uses `.server.vue` (optionally paired with `.client.vue`). Shipping less client JS uses `v-client.*` islands. `defineServerIsland()` wraps async components in `<Suspense>`; that is a streaming hole, not a static shell.
 
 ### Data and mutations
 
-- **Server Actions / Form Actions**: `defineAction()` plus SvelteKit-style `?/<name>` URLs, stable action IDs, and `callAction` / `useAction` / `useFormAction`.
-- **`useData` / `useAsyncData` / `defer`**: SSR payload hydration. Browser HTTP should use [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch); ubean does not ship an HTTP client.
+- **Server Actions / Form Actions**: `defineAction()` / `defineServerFn()` plus SvelteKit-style `?/<name>` URLs, stable action IDs, and `callAction` / `useAction` / `useFormAction` / `invokeServerFn`. Same `POST /__actions`; optionally expose with `describeActionsOpenApi()`.
+- **`useData` / `useAsyncData` / `useFetch` / `defer`**: SSR payload hydration. `useFetch` wraps `useAsyncData`; inject [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch) via `setDefaultFetch(createRequest())`. ubean does not invent an HTTP client.
 - **`after()`**: post-response work that does not block TTFB.
-- CSRF, sessions, and cross-request Data Cache must be enabled explicitly. They are not on for a new app.
+- Sessions stay opt-in. CSRF (origin) and Data Cache middleware mount by default.
 
 ### Routing
 
@@ -62,7 +62,7 @@ Config lives only on `ubean.config.ts` → `i18n`. Vue uses vue-i18n 11 (`legacy
 - **OpenAPI** (`/_openapi.json` + Scalar) — first-class in few meta-frameworks.
 - **Islands** (`v-client.*` + runtime wrappers) — uncommon in Vue meta-frameworks.
 - **Electron, PWA, Pinia, UI** load from top-level `ubean.config.ts` fields and stay out of the core dependency graph.
-- CLI scaffolds: `page` / `api` / `layout` / `middleware` / `cron`, and more.
+- CLI scaffolds: `page` / `api` / `layout` / `middleware` / `cron`, and more. `ubean analyze` reads the Vite client manifest and writes `.ubean/bundle-baseline.json`.
 
 ## Deployment platforms
 
@@ -89,7 +89,7 @@ Every preset extends `node` and can generate its config file. Detection uses con
 | Need | Better fit |
 | --- | --- |
 | React Server Components / mature PPR static shells | Next.js |
-| Largest Vue module ecosystem, `useFetch` habits, Nitro preset count | Nuxt |
+| Largest Vue module ecosystem, Nitro preset count | Nuxt |
 | Progressive enhancement + minimal `load` functions | SvelteKit |
 | Type-safe router + `createServerFn` at the center | TanStack Start |
 | Islands-default content sites, multi-UI | Astro |

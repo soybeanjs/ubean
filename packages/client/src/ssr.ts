@@ -219,7 +219,11 @@ async function prepareRender(
     renderApp = app;
   } else {
     const { createUbeanSSRApp } = await import('@ubean/client/app');
-    const { app: createdApp, router } = createUbeanSSRApp(pageObj, {
+    const {
+      app: createdApp,
+      router,
+      preloadLayouts
+    } = createUbeanSSRApp(pageObj, {
       routes: options.routes,
       resolveLayoutComponent: options.resolveLayoutComponent,
       defaultLayout: options.defaultLayout,
@@ -230,6 +234,9 @@ async function prepareRender(
       await applyServerAppConfig(createdApp, appConfig);
     }
     await router.isReady();
+    // 布局链在 UbeanLayoutView 内部异步解析,而 renderToString 不会等待微任务
+    // 后续 —— 不在这里预加载的话,首帧 HTML 会是裸 PageView,不含任何布局。
+    await preloadLayouts();
     renderApp = createdApp;
   }
 

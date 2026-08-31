@@ -112,6 +112,13 @@ export interface UbeanAppInstance {
   router: ReturnType<typeof createUbeanRouter>;
   head: VueHeadClient;
   page: PageObject;
+  /**
+   * 解析当前路由的布局链并写入 `UbeanLayoutView`。布局组件是异步加载的,
+   * 而 `renderToString` / 水合首帧不会等待组件内部的异步加载 —— 在首次渲染前
+   * await 该函数(SSR: `router.isReady()` 后;客户端水合: mount 前),
+   * 布局才会出现在初始输出中。
+   */
+  preloadLayouts: () => Promise<void>;
 }
 
 /**
@@ -150,21 +157,32 @@ function createLayoutWrapper(
     return raw;
   }
 
-  return defineComponent({
+  /**
+   * Load the layout chain for a route into `layoutComps` (outer → inner).
+   * `route.meta.layout` is read synchronously, so calling this from a
+   * `watchEffect` still tracks the route dependency. The write happens after
+   * an `await`, so the first render only includes layouts when this was
+   * awaited beforehand (see `preloadLayouts` on the app instance).
+   */
+  async function loadLayoutsForRoute(route: { meta: { layout?: string | string[] | false } }): Promise<void> {
+    const layoutField = route.meta.layout as string | string[] | false | undefined;
+    const resolved = layoutField === undefined ? (defaultLayout ?? undefined) : layoutField;
+    const names = normalizeLayoutNames(resolved, defaultLayout);
+    if (names.length === 0) {
+      layoutComps.value = [];
+      return;
+    }
+    const comps = await Promise.all(names.map(n => loadLayout(n)));
+    layoutComps.value = comps;
+  }
+
+  const LayoutView = defineComponent({
     name: 'UbeanLayoutView',
     setup() {
       const route = useRoute();
 
-      watchEffect(async () => {
-        const layoutField = route.meta.layout as string | string[] | false | undefined;
-        const resolved = layoutField === undefined ? (defaultLayout ?? undefined) : layoutField;
-        const names = normalizeLayoutNames(resolved, defaultLayout);
-        if (names.length === 0) {
-          layoutComps.value = [];
-          return;
-        }
-        const comps = await Promise.all(names.map(n => loadLayout(n)));
-        layoutComps.value = comps;
+      watchEffect(() => {
+        void loadLayoutsForRoute(route);
       });
 
       return () => {
@@ -178,6 +196,8 @@ function createLayoutWrapper(
       };
     }
   });
+
+  return { LayoutView, loadLayoutsForRoute };
 }
 
 /**
@@ -260,7 +280,10 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
     setup: options.routerSetup
   });
 
-  const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
+  const { LayoutView: ClientLayoutWrapper, loadLayoutsForRoute: loadClientLayouts } = createLayoutWrapper(
+    options.resolveLayoutComponent,
+    options.defaultLayout || null
+  );
 
   // Seed the keep-alive include list from routes that declared
   // `definePage({ cache: true })`. Runtime toggling via
@@ -268,7 +291,7 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
   initCachedViewsFromRoutes(options.routes as Array<{ name?: string | symbol; meta?: { cache?: boolean } }>);
 
   const RootComponent = createRootComponent(
-    LayoutWrapper,
+    ClientLayoutWrapper,
     page,
     transitionOpts,
     false,
@@ -289,7 +312,13 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
   app.directive('client', vClient);
   app.config.globalProperties.$ubean = { page, head, router };
 
-  return { app, router, head, page };
+  return {
+    app,
+    router,
+    head,
+    page,
+    preloadLayouts: () => loadClientLayouts(router.currentRoute.value)
+  };
 }
 
 export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAppOptions, 'initialPage'>) {
@@ -311,7 +340,10 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
     setup: options.routerSetup
   });
 
-  const LayoutWrapper = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
+  const { LayoutView: SsrLayoutWrapper, loadLayoutsForRoute: loadSsrLayouts } = createLayoutWrapper(
+    options.resolveLayoutComponent,
+    options.defaultLayout || null
+  );
 
   // Seed the keep-alive include list on SSR too, so the server-rendered
   // cachedViews list matches the client's initial state. Without this,
@@ -320,7 +352,7 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   initCachedViewsFromRoutes(options.routes as Array<{ name?: string | symbol; meta?: { cache?: boolean } }>);
 
   const RootComponent = createRootComponent(
-    LayoutWrapper,
+    SsrLayoutWrapper,
     page,
     { enabled: false },
     true,
@@ -341,7 +373,12 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   app.directive('client', vClient);
   app.config.globalProperties.$ubean = { page, head, router };
 
-  return { app, router, head };
+  return {
+    app,
+    router,
+    head,
+    preloadLayouts: () => loadSsrLayouts(router.currentRoute.value)
+  };
 }
 
 export const Head = UnheadHeadComponent;

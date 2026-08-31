@@ -14,6 +14,8 @@ describe('Pages & Layouts', () => {
       const res = await api('/about');
       expect(res.status).toBe(200);
       expect(res.text).toContain('<html');
+      // Page content must be server-rendered
+      expect(res.text).toContain('关于 ubean-test');
     });
 
     it('renders features page', async () => {
@@ -26,9 +28,29 @@ describe('Pages & Layouts', () => {
     it('default layout wraps page content', async () => {
       const res = await api('/');
       expect(res.status).toBe(200);
-      // The default layout should wrap the page
       expect(res.text).toContain('<html');
-      expect(res.text).toContain('<div');
+      // The default layout markup (header/nav/footer/main) must be present in
+      // the SSR output and wrap the page content — guards against the layout
+      // being skipped because its async load was not awaited before render.
+      const appStart = res.text.indexOf('<div id="app"');
+      expect(appStart).toBeGreaterThan(-1);
+      expect(res.text.slice(appStart)).toContain('class="layout"');
+      expect(res.text.slice(appStart)).toContain('class="header"');
+      expect(res.text.slice(appStart)).toContain('class="footer"');
+    });
+
+    it('about page SSR includes default layout around page content', async () => {
+      const res = await api('/about');
+      expect(res.status).toBe(200);
+      const appStart = res.text.indexOf('<div id="app"');
+      const appHtml = res.text.slice(appStart);
+      // Layout wraps the page: layout → main → page content
+      const layoutIdx = appHtml.indexOf('class="layout"');
+      const mainIdx = appHtml.indexOf('class="main"');
+      const pageIdx = appHtml.indexOf('class="about"');
+      expect(layoutIdx).toBeGreaterThan(-1);
+      expect(mainIdx).toBeGreaterThan(layoutIdx);
+      expect(pageIdx).toBeGreaterThan(mainIdx);
     });
 
     it('dashboard pages use layout', async () => {

@@ -279,7 +279,14 @@ export async function createApp() {
   // When hydrating SSR content, must wait for router to be ready before mounting,
   // otherwise RouterView has no matched route and causes hydration mismatch.
   if (initialPage) {
-    instance.router.isReady().then(mountApp);
+    instance.router
+      .isReady()
+      .then(async function () {
+        // SSR HTML 已包含布局链;客户端水合首帧必须同样就绪(布局是异步
+        // 解析的),否则首帧渲染裸 PageView 导致 hydration mismatch。
+        await instance.preloadLayouts();
+      })
+      .then(mountApp);
   } else {
     mountApp();
   }

@@ -6,7 +6,7 @@ definePage({
   path: '/blog/:slug(.*)*'
 });
 
-const route = useRoute();
+const route = useRoute('BlogAllSlug');
 const slug = computed(() => {
   const value = route.params.slug;
   if (Array.isArray(value)) return value.filter(Boolean).join('/');

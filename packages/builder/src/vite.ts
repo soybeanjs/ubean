@@ -121,7 +121,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
 
       // config 在 buildStart 中已加载,此处一定可用
       const config = ubeanConfig!;
-      const srcDir = join(config.rootDir, config.srcDir);
+      // ResolvedConfig.srcDir 已是绝对路径,resolve 避免二次拼接(join 会把绝对路径追加到 rootDir 后)
+      const srcDir = resolve(config.rootDir, config.srcDir);
 
       for (const dir of watchDirs) {
         server.watcher.add(join(srcDir, dir));

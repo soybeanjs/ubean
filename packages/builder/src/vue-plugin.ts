@@ -11,7 +11,7 @@ import { getVueLocaleParam } from '@ubean/i18n';
 import { ubeanMdxPlugin } from '@ubean/markdown';
 import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
-import { join } from 'pathe';
+import { join, resolve } from 'pathe';
 import type { InlinePreset } from 'unimport';
 import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from './codegen';
 import { getComponentResolvers } from './registry';
@@ -83,7 +83,8 @@ function localeVueParamFromConfig(config: UbeanResolvedConfig): string | undefin
 export function ubeanVite(options: UbeanViteOptions): Plugin[] {
   const { config: ubeanConfig } = options;
   const virtualRegistry = useVirtualRegistry();
-  const srcDir = join(ubeanConfig.rootDir, ubeanConfig.srcDir);
+  // ResolvedConfig.srcDir 已是绝对路径（loader 保证），resolve 不会像 join 那样二次拼接
+  const srcDir = resolve(ubeanConfig.rootDir, ubeanConfig.srcDir);
   const dtsDir = join(ubeanConfig.rootDir, '.ubean');
   const markdownEnabled = ubeanConfig.markdown?.enabled !== false;
   const mdxEnabled = ubeanConfig.markdown?.mdx === true;
@@ -422,7 +423,7 @@ async function runPagefindIndexing(
   searchConfig: NonNullable<UbeanResolvedConfig['search']>
 ): Promise<void> {
   const { spawn } = await import('node:child_process');
-  const { resolve } = await import('node:path');
+  const { resolve: resolvePath } = await import('node:path');
 
   const isObjectConfig = typeof searchConfig === 'object';
   const enabled = isObjectConfig ? searchConfig.enabled !== false : true;
@@ -436,7 +437,7 @@ async function runPagefindIndexing(
 
   const verbose = isObjectConfig && searchConfig.verbose === true;
 
-  const sitePath = resolve(ubeanConfig.rootDir, outDir);
+  const sitePath = resolvePath(ubeanConfig.rootDir, outDir);
 
   const args = ['pagefind', '--site', sitePath, '--output-subdir', indexPath];
 

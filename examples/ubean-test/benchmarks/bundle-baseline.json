@@ -1,160 +1,150 @@
 {
-  "generatedAt": "2026-08-22T11:43:21.400Z",
+  "generatedAt": "2026-08-31T18:48:49.476Z",
   "outDir": "dist/public",
   "entries": [
     {
-      "file": "assets/chunks/client-DceMUllY.js",
-      "bytes": 118903,
-      "gzip": 42218
+      "file": "assets/chunks/client-DA2I88iS.js",
+      "bytes": 101975,
+      "gzip": 36255
     },
     {
-      "file": "assets/chunks/runtime-core.esm-bundler-B4b-2GOK.js",
-      "bytes": 84977,
-      "gzip": 32783
+      "file": "assets/chunks/runtime-core.esm-bundler-DrZBbEHc.js",
+      "bytes": 72411,
+      "gzip": 27931
     },
     {
-      "file": "assets/chunks/fetch-test-MbSdHDIu.js",
-      "bytes": 26289,
-      "gzip": 8837
-    },
-    {
-      "file": "assets/app-BwWIInsa.js",
-      "bytes": 18560,
-      "gzip": 6775,
+      "file": "assets/app-gp53U1TI.js",
+      "bytes": 27629,
+      "gzip": 9979,
       "isEntry": true
     },
     {
-      "file": "assets/chunks/vue.DKb5ZKVl-5bC352Uq.js",
-      "bytes": 9080,
-      "gzip": 3592
+      "file": "assets/chunks/fetch-test-CaKpEZ05.js",
+      "bytes": 26334,
+      "gzip": 8875
     },
     {
-      "file": "assets/chunks/cache-demo-BrXGklZU.js",
-      "bytes": 6404,
-      "gzip": 2545
+      "file": "assets/chunks/cache-demo-BwUAGTSl.js",
+      "bytes": 6439,
+      "gzip": 2577
     },
     {
-      "file": "assets/chunks/vue.BHyNcdic-mAuR5B7b.js",
-      "bytes": 5315,
-      "gzip": 2270
+      "file": "assets/chunks/vue.BHyNcdic-CQ4LO_Vp.js",
+      "bytes": 5349,
+      "gzip": 2306
     },
     {
-      "file": "assets/chunks/i18n-1ng-FXVg.js",
-      "bytes": 4940,
-      "gzip": 1612
+      "file": "assets/chunks/i18n-CNyXWum9.js",
+      "bytes": 4974,
+      "gzip": 1650
     },
     {
-      "file": "assets/chunks/view-transitions-X93T2o0F.js",
-      "bytes": 2558,
-      "gzip": 1340
+      "file": "assets/chunks/view-transitions-DlZkDSqH.js",
+      "bytes": 2608,
+      "gzip": 1377
     },
     {
-      "file": "assets/chunks/islands-test-Tk5Zl-UP.js",
-      "bytes": 3136,
-      "gzip": 1334
+      "file": "assets/chunks/islands-test-xRQMpPoS.js",
+      "bytes": 3183,
+      "gzip": 1373
     },
     {
-      "file": "assets/chunks/seo-meta-zxO3dSz0.js",
-      "bytes": 4081,
-      "gzip": 1330
+      "file": "assets/chunks/seo-meta-DP9Pvt_D.js",
+      "bytes": 4127,
+      "gzip": 1363
     },
     {
-      "file": "assets/chunks/features-BqXBe55f.js",
-      "bytes": 4483,
-      "gzip": 1314
+      "file": "assets/chunks/features-vhCCmKZU.js",
+      "bytes": 4527,
+      "gzip": 1351
     },
     {
-      "file": "assets/chunks/data-fetch-BxwtHJUx.js",
-      "bytes": 2775,
-      "gzip": 1290
+      "file": "assets/chunks/data-fetch-egUukBgI.js",
+      "bytes": 2819,
+      "gzip": 1329
     },
     {
-      "file": "assets/chunks/pages-KoiUXTeq.js",
-      "bytes": 3164,
-      "gzip": 1160
+      "file": "assets/chunks/pages-Bh13a4tu.js",
+      "bytes": 3205,
+      "gzip": 1198
     },
     {
-      "file": "assets/chunks/md-test-Bd56oDMO.js",
-      "bytes": 2227,
-      "gzip": 1030
+      "file": "assets/chunks/md-test-EX9Su4xr.js",
+      "bytes": 2271,
+      "gzip": 1067
     },
     {
-      "file": "assets/chunks/about-htFtsxqm.js",
-      "bytes": 2607,
-      "gzip": 837
+      "file": "assets/chunks/about-C-WlUJ3f.js",
+      "bytes": 2648,
+      "gzip": 876
     },
     {
-      "file": "assets/chunks/_id_-BRDrXrVY.js",
-      "bytes": 1144,
-      "gzip": 710
+      "file": "assets/chunks/_id_-CBzlDJq1.js",
+      "bytes": 1183,
+      "gzip": 758
     },
     {
-      "file": "assets/chunks/marketing-page-BPD965OT.js",
-      "bytes": 815,
-      "gzip": 545
+      "file": "assets/chunks/virtual_intlify-i18n-0-CicLCLd5.js",
+      "bytes": 1284,
+      "gzip": 596
     },
     {
-      "file": "assets/chunks/default-DVVKfXpQ.js",
-      "bytes": 918,
+      "file": "assets/chunks/marketing-page-Cj0l82J8.js",
+      "bytes": 865,
+      "gzip": 579
+    },
+    {
+      "file": "assets/chunks/default-DTsZHSvn.js",
+      "bytes": 961,
+      "gzip": 560
+    },
+    {
+      "file": "assets/chunks/virtual_intlify-i18n-1-DQ8i03I9.js",
+      "bytes": 1347,
       "gzip": 521
     },
     {
-      "file": "assets/chunks/zh-C675n_Zq.js",
-      "bytes": 694,
-      "gzip": 499
+      "file": "assets/chunks/useApi-CUgTH_jn-Bp-GTxZ3.js",
+      "bytes": 885,
+      "gzip": 513
     },
     {
-      "file": "assets/chunks/useApi-CROJJdhE-jC7d0-eM.js",
-      "bytes": 798,
-      "gzip": 448
+      "file": "assets/chunks/settings-kTAxZxNe.js",
+      "bytes": 648,
+      "gzip": 486
     },
     {
-      "file": "assets/chunks/settings-P-DKNF5Z.js",
-      "bytes": 604,
-      "gzip": 447
+      "file": "assets/chunks/_...slug_-Beg34EHr.js",
+      "bytes": 688,
+      "gzip": 459
     },
     {
-      "file": "assets/chunks/profile-D-Kr17Ae.js",
-      "bytes": 554,
-      "gzip": 422
+      "file": "assets/chunks/profile-CLjAF6Cy.js",
+      "bytes": 597,
+      "gzip": 459
     },
     {
-      "file": "assets/chunks/_...slug_-DoQF2RNP.js",
-      "bytes": 629,
-      "gzip": 417
+      "file": "assets/chunks/dashboard-wMjTmoZI.js",
+      "bytes": 494,
+      "gzip": 361
     },
     {
-      "file": "assets/chunks/en-DLftnxLH.js",
-      "bytes": 709,
-      "gzip": 416
+      "file": "assets/chunks/marketing-Buwy-bI5.js",
+      "bytes": 421,
+      "gzip": 325
     },
     {
-      "file": "assets/chunks/dashboard-shrNNGeL.js",
-      "bytes": 448,
-      "gzip": 324
-    },
-    {
-      "file": "assets/chunks/marketing-CDaKT0uu.js",
-      "bytes": 375,
-      "gzip": 288
-    },
-    {
-      "file": "assets/chunks/admin-DBHgQNBU.js",
-      "bytes": 353,
-      "gzip": 275
+      "file": "assets/chunks/admin-BegrO7MO.js",
+      "bytes": 395,
+      "gzip": 311
     },
     {
       "file": "assets/chunks/_plugin-vue_export-helper-BDNMzG2s.js",
       "bytes": 84,
       "gzip": 99
-    },
-    {
-      "file": "assets/chunks/vue-DWSjJ8CO.js",
-      "bytes": 29,
-      "gzip": 49
     }
   ],
-  "totalBytes": 307653,
-  "totalGzip": 115727,
-  "entryGzip": 6775
+  "totalBytes": 280351,
+  "totalGzip": 105534,
+  "entryGzip": 9979
 }

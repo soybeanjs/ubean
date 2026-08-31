@@ -10,9 +10,15 @@
  * before `index.vue` (`[` < `i`), causing the homepage to render with
  * the catch-all's layout ('default') instead of index.vue's declared
  * layout ('home').
+ *
+ * Also validates `convertUbeanRoutePath` for Vue Router regex params
+ * (`definePage({ path: '/blog/:slug(.*)*' })`): Hono/rou3 only understands
+ * `{regex}` — the `(regex)` spelling used to become part of the param name
+ * and multi-segment URLs fell through to the JSON 404 fallback.
  */
 import { describe, it, expect } from 'vitest';
-import { sortPagesForRegistration } from '../src/index';
+import { Hono } from 'hono';
+import { sortPagesForRegistration, convertUbeanRoutePath } from '../src/index';
 
 interface Page {
   route: string;
@@ -91,5 +97,44 @@ describe('sortPagesForRegistration', () => {
     // Index must come first so Hono matches '/' before '*'
     expect(sorted[0].route).toBe('/');
     expect(sorted[1].route).toBe('/**:slug');
+  });
+
+  it('sorts vue-router regex catch-alls (`:slug(.*)*`) after specific routes', () => {
+    const pages: Page[] = [
+      { route: '/blog/:slug(.*)*', name: 'BlogCatchAll' },
+      { route: '/', name: 'Index' },
+      { route: '/blog/latest', name: 'BlogLatest' }
+    ];
+    const sorted = sortPagesForRegistration(pages);
+    expect(sorted.map(p => p.name)).toEqual(['Index', 'BlogLatest', 'BlogCatchAll']);
+  });
+});
+
+describe('convertUbeanRoutePath (vue-router regex params)', () => {
+  it('converts `:name(.*)*` to a Hono regex param', () => {
+    expect(convertUbeanRoutePath('/blog/:slug(.*)*')).toBe('/blog/:slug{.*}');
+  });
+
+  it('converts `:name(.*)` and `:name(.*)+` spellings', () => {
+    expect(convertUbeanRoutePath('/docs/:path(.*)')).toBe('/docs/:path{.*}');
+    expect(convertUbeanRoutePath('/files/:path(.*)+')).toBe('/files/:path{.*}');
+  });
+
+  it('converts non-catch-all regex params like `:id(\\d+)`', () => {
+    expect(convertUbeanRoutePath('/user/:id(\\d+)')).toBe('/user/:id{\\d+}');
+  });
+
+  it('leaves scan-default forms untouched', () => {
+    expect(convertUbeanRoutePath('/user/:id')).toBe('/user/:id');
+    expect(convertUbeanRoutePath('/**:slug')).toBe('*');
+    expect(convertUbeanRoutePath('/page/:lang?')).toBe('/page/:lang?');
+  });
+
+  it('registers a Hono route that actually matches multi-segment URLs', async () => {
+    const app = new Hono();
+    app.get(convertUbeanRoutePath('/blog/:slug(.*)*'), c => c.json(c.req.param()));
+    const res = await app.request('/blog/a/b');
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ slug: 'a/b' });
   });
 });

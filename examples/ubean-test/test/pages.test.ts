@@ -82,6 +82,19 @@ describe('Pages & Layouts', () => {
     });
   });
 
+  describe('Catch-all pages with custom definePage path', () => {
+    it('multi-segment catch-all SSRs with layout (not JSON 404)', async () => {
+      // blog/[...slug].vue declares definePage({ path: '/blog/:slug(.*)*' }).
+      // The server route conversion must translate the vue-router regex param
+      // to Hono syntax — otherwise the request falls through to JSON 404.
+      const res = await api('/blog/a/b');
+      expect(res.status).toBe(200);
+      expect(res.headers.get('Content-Type')).toContain('text/html');
+      expect(res.text).toContain('Blog a/b');
+      expect(res.text).toContain('class="layout"');
+    });
+  });
+
   describe('Markdown pages', () => {
     it('md-test.md renders as HTML', async () => {
       const res = await api('/md-test');

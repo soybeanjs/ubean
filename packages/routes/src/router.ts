@@ -99,7 +99,7 @@ function normalizeMethod(m: string | undefined): Method | undefined {
   return HTTP_METHODS.includes(upper) ? upper : undefined;
 }
 
-function convertUbeanRoutePath(path: string): string {
+export function convertUbeanRoutePath(path: string): string {
   let honoPath = path;
   // Handle already-converted catch-all from filePathToRoute: /**:slug → *
   // (filePathToRoute converts [...slug] to **:slug, so by this point there are
@@ -113,22 +113,37 @@ function convertUbeanRoutePath(path: string): string {
     if (rest) return `*${name}`;
     return `:${name}`;
   });
+  // Handle Vue Router custom regex params from `definePage({ path })`, e.g.
+  // `/blog/:slug(.*)*`. Hono/rou3 only understands `{regex}` — left as-is, the
+  // parentheses become part of the param name and multi-segment URLs 404.
+  // `.*` regexes match across segments, so catch-all semantics are preserved
+  // and the value stays readable via `c.req.param('slug')` (e.g. "a/b").
+  // rou3 cannot express the repeatable-zero (`*`) / optional (`?`) modifiers:
+  // a zero-segment URL (`/blog` for `/blog/:slug(.*)*`) will NOT match server
+  // side — pair such a page with a concrete sibling page if that is needed.
+  honoPath = honoPath.replace(/:([A-Za-z_][\w-]*)\(([^()]*)\)[*+?]?/g, (_m, name, regex) => `:${name}{${regex}}`);
   return honoPath;
 }
 
 /**
- * Sort page routes so catch-all routes (`/**:slug`, converted to Hono `*`)
- * are registered last. Hono's RegExpRouter matches in registration order,
- * so a catch-all registered before a specific path (e.g. `/`) would swallow
- * it. File-system sort order puts `[...slug].vue` before `index.vue`
- * (`[` < `i`), which is wrong for Hono — this sort corrects it.
+ * Sort page routes so catch-all routes are registered last. Hono's
+ * RegExpRouter matches in registration order, so a catch-all registered
+ * before a specific path (e.g. `/`) would swallow it. File-system sort
+ * order puts `[...slug].vue` before `index.vue` (`[` < `i`), which is
+ * wrong for Hono — this sort corrects it.
+ *
+ * Detects both catch-all spellings: the scan-default `/**:slug` form and
+ * the vue-router regex form `:slug(.*)*` / `:slug(.*)` used by custom
+ * `definePage({ path })` values.
  *
  * Stable: non-catch-all pages keep their original relative order.
  */
+const CATCH_ALL_ROUTE_REGEX = /\/\*\*:|\(\.\*\)/;
+
 export function sortPagesForRegistration<T extends { route: string }>(pages: readonly T[]): T[] {
   return [...pages].sort((a, b) => {
-    const aCatchall = /\/\*\*:/.test(a.route);
-    const bCatchall = /\/\*\*:/.test(b.route);
+    const aCatchall = CATCH_ALL_ROUTE_REGEX.test(a.route);
+    const bCatchall = CATCH_ALL_ROUTE_REGEX.test(b.route);
     if (aCatchall && !bCatchall) return 1;
     if (!aCatchall && bCatchall) return -1;
     return 0;

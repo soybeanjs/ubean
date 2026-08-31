@@ -10,7 +10,8 @@ export {
   registerApiRoutes,
   registerPageRoutes,
   createRouteLoader,
-  sortPagesForRegistration
+  sortPagesForRegistration,
+  convertUbeanRoutePath
 } from './router';
 export type { RouteRegistrar, RegisterOptions } from './router';
 

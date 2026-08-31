@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.3.0...main) (2026-09-01)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: fix double-joined srcDir and components.d.ts orphan entries &nbsp;-&nbsp; by @soybeanjs [<samp>(3bf32)</samp>](https://github.com/soybeanjs/ubean/commit/3bf3225)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(07e44)</samp>](https://github.com/soybeanjs/ubean/commit/07e4441)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.2.2...main) (2026-08-23)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

@@ -1,6 +1,6 @@
 {
   "name": "@ubean/vue",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Lean Vue client kernel & page-routing owner for ubean — plugin-first page routing outlet, page cache (keep-alive), transitions, reload signal, definePage macro + file-routing Vite plugin (/vite: multi-dir scan, reuse routes, markdown & page-head opt-in). Runtime deps: vue + vue-router only.",
   "files": [
     "dist"

@@ -30,9 +30,9 @@
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.4.0",
     "@ubean/content": "workspace:*",
-    "hono": "4.13.3",
+    "hono": "4.13.5",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

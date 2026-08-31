@@ -40,18 +40,18 @@
     "@soybeanjs/ui": "^0.30.0",
     "@soybeanjs/unocss-preset": "^0.2.0",
     "@soybeanjs/unocss-shadcn": "^0.29.3",
-    "@types/node": "^26.2.0",
-    "@vitejs/devtools": "^0.5.2",
-    "@vitejs/devtools-kit": "^0.5.2",
+    "@types/node": "^26.4.0",
+    "@vitejs/devtools": "^0.6.2",
+    "@vitejs/devtools-kit": "^0.6.2",
     "@vitejs/plugin-vue": "^6.0.8",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
-    "hono": "4.13.3",
+    "hono": "4.13.5",
     "typescript": "7.0.2",
     "unocss": "^66.8.1",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.41"
+    "vue": "^3.5.42"
   },
   "peerDependencies": {
     "hono": "^4.0.0",
@@ -66,7 +66,7 @@
     }
   },
   "optionalDependencies": {
-    "@ai-sdk/openai-compatible": "3.0.35",
-    "ai": "7.0.77"
+    "@ai-sdk/openai-compatible": "3.0.41",
+    "ai": "7.0.85"
   }
 }

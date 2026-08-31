@@ -18,12 +18,12 @@
     "fuse.js": "^7.5.0",
     "shiki": "^4.4.3",
     "ubean": "workspace:*",
-    "vue": "^3.5.41"
+    "vue": "^3.5.42"
   },
   "devDependencies": {
     "@soybeanjs/unocss-preset": "^0.2.0",
     "@soybeanjs/unocss-shadcn": "^0.29.3",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.4.0",
     "typedoc": "^0.28.20",
     "typescript": "7.0.2",
     "unocss": "^66.8.1",

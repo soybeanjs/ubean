@@ -3,10 +3,10 @@ packages:
   - 'apps/*'
   - 'examples/*'
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.2.9
-  vite-plus: 0.2.9
-  vue-i18n: 11.4.8
-  '@intlify/core': 11.4.8
+  vite: npm:@voidzero-dev/vite-plus-core@0.3.0
+  vite-plus: 0.3.0
+  vue-i18n: 11.4.10
+  '@intlify/core': 11.4.10
   '@intlify/unplugin-vue-i18n': 11.2.5
 overrides:
   vite: 'catalog:'
@@ -22,22 +22,8 @@ allowBuilds:
   koffi: true
   electron: true
 minimumReleaseAgeExclude:
-  - '@ai-sdk/gateway@4.0.62'
-  - '@ai-sdk/openai-compatible@3.0.35'
-  - '@ai-sdk/provider-utils@5.0.29'
-  - '@devframes/hub-ui@0.9.5'
-  - '@devframes/hub@0.9.5'
-  - '@devframes/json-render-ui@0.9.5'
-  - '@devframes/json-render@0.9.5'
-  - '@devframes/plugin-inspect@0.9.5'
-  - '@devframes/plugin-messages@0.9.5'
-  - '@devframes/plugin-terminals@0.9.5'
-  - '@devframes/service-open@0.9.5'
-  - '@devframes/vite@0.9.5'
-  - '@unhead/bundler@3.4.0'
-  - '@unhead/vue@3.4.0'
-  - '@vitejs/devtools-kit@0.5.2'
-  - '@vitejs/devtools@0.5.2'
-  - ai@7.0.77
-  - devframe@0.9.5
-  - unhead@3.4.0
+  - '@ai-sdk/gateway@4.0.69'
+  - '@ai-sdk/openai-compatible@3.0.41'
+  - '@ai-sdk/provider-utils@5.0.34'
+  - '@ai-sdk/provider@4.0.9'
+  - ai@7.0.85

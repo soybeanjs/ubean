@@ -60,18 +60,18 @@
     "@ubean/vue": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.8",
     "openapi-typescript": "^7.13.0",
-    "oxc-transform": "^0.146.0",
+    "oxc-transform": "^0.147.0",
     "pathe": "^2.0.3",
     "tinyglobby": "^0.2.17",
     "unimport": "^6.4.0",
     "unplugin-auto-import": "21.1.0",
     "unplugin-vue-components": "^32.1.0",
-    "unplugin-vue-markdown": "^32.0.0",
+    "unplugin-vue-markdown": "^32.1.1",
     "vue-i18n": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
-    "hono": "4.13.3",
+    "@types/node": "^26.4.0",
+    "hono": "4.13.5",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

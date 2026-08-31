@@ -1,6 +1,6 @@
 {
   "name": "@ubean/ai",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "AI large-model integration for the ubean framework: defineAgent + defineAgentTool + Vue runtime (thin orchestration over the Vercel AI SDK)",
   "files": [
     "dist"

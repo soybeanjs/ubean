@@ -1,6 +1,6 @@
 {
   "name": "@ubean/config",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Configuration loader, types, and module system for ubean (defineConfig, loadUbeanConfig, resolveModules)",
   "files": [
     "dist"

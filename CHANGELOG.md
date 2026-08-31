@@ -1,5 +1,17 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.3.1...main) (2026-09-01)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **client**: await layout preload before first render so SSR HTML includes layouts &nbsp;-&nbsp; by @soybeanjs [<samp>(12066)</samp>](https://github.com/soybeanjs/ubean/commit/12066bb)
+- **projects**: fix example route params &nbsp;-&nbsp; by @soybeanjs [<samp>(5f1ba)</samp>](https://github.com/soybeanjs/ubean/commit/5f1ba29)
+- **routes**: convert vue-router regex params to Hono syntax so custom catch-all paths match &nbsp;-&nbsp; by @soybeanjs [<samp>(282f9)</samp>](https://github.com/soybeanjs/ubean/commit/282f94c)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.3.0...main) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

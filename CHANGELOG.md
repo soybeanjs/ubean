@@ -1,5 +1,25 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.3.4...main) (2026-09-01)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **shared**: streamline default pretty log format &nbsp;-&nbsp; by @soybeanjs [<samp>(49713)</samp>](https://github.com/soybeanjs/ubean/commit/4971318)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: dedupe data composables across auto-import presets &nbsp;-&nbsp; by @soybeanjs [<samp>(bf48a)</samp>](https://github.com/soybeanjs/ubean/commit/bf48a5a)
+- **cli**: quiet dev-server request logs &nbsp;-&nbsp; by @soybeanjs [<samp>(2ffc9)</samp>](https://github.com/soybeanjs/ubean/commit/2ffc975)
+- **i18n**: drop redundant messageCompiler to silence intlify experimental warning &nbsp;-&nbsp; by @soybeanjs [<samp>(c27d1)</samp>](https://github.com/soybeanjs/ubean/commit/c27d16c)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- **ssr**: replace deprecated renderSSRHead with head.render() &nbsp;-&nbsp; by @soybeanjs [<samp>(6ce2e)</samp>](https://github.com/soybeanjs/ubean/commit/6ce2e90)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.3.3...main) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

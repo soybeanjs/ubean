@@ -12,7 +12,7 @@ const DEFAULT_NAME = 'ubean';
 const DEFAULT_PRETTY_TEMPLATE = '{{hh}}:{{MM}}:{{ss}}\t{{logLevelName}}\t{{nameWithDelimiterPrefix}}\t';
 
 /** 未显式配置时的默认等级:info(debug/silly 需通过 LOG_LEVEL 打开) */
-const DEFAULT_MIN_LEVEL = 'info';
+const DEFAULT_MIN_LEVEL: TLogLevel = 'INFO';
 
 /**
  * 从环境变量解析日志等级:

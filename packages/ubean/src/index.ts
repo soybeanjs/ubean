@@ -219,7 +219,7 @@ export type { FsOps, FsOpsOptions, BackupOptions, ScaffoldOptions, ScaffoldResul
 // DevTools 自定义 Tab 从 `@ubean/devtools` 导入（opt-in，不进入聚合器硬依赖）
 
 // ============== logger(基于 tslog@5 的统一日志系统)==============
-export { logger, getLogger, createUbeanLogger } from '@ubean/shared/logger';
+export { logger, getLogger, createUbeanLogger, setDebugLogging } from '@ubean/shared/logger';
 export type { UbeanLogger, UbeanLoggerOptions, LogLevelName, RequestLoggerOptions } from '@ubean/shared/logger';
 // Hono 请求日志中间件(需要 hono,独立子路径避免核心 logger 引入 hono)
 export { createRequestLoggerMiddleware } from '@ubean/shared/logger/hono';

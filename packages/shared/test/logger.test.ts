@@ -1,6 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { Hono } from 'hono';
-import { createUbeanLogger, getLogger, logger } from '../src/logger';
+import { createUbeanLogger, getLogger, logger, setDebugLogging } from '../src/logger';
 import { createRequestLoggerMiddleware } from '../src/logger/hono';
 
 /**
@@ -84,6 +84,36 @@ describe('@ubean/shared/logger', () => {
     expect(records).toHaveLength(1);
     expect(records[0][0]).toEqual({ port: 3000 });
     expect(records[0][1]).toBe('server started');
+  });
+});
+
+describe('setDebugLogging', () => {
+  afterEach(() => {
+    setDebugLogging(false);
+  });
+
+  it('defaults to a message-only pretty template', () => {
+    const log = createUbeanLogger({ name: 'tpl' });
+    expect(log.settings.pretty?.template).toBe('');
+  });
+
+  it('switches to the detailed template for existing instances and child loggers', () => {
+    const log = createUbeanLogger({ name: 'tpl' });
+    const child = getLogger('sub');
+
+    setDebugLogging(true);
+
+    expect(log.settings.pretty?.template).toContain('{{filePathWithLine}}');
+    expect(child.settings.pretty?.template).toContain('{{filePathWithLine}}');
+  });
+
+  it('restores the message-only template when disabled', () => {
+    const log = createUbeanLogger({ name: 'tpl' });
+
+    setDebugLogging(true);
+    setDebugLogging(false);
+
+    expect(log.settings.pretty?.template).toBe('');
   });
 });
 

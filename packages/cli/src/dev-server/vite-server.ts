@@ -10,6 +10,7 @@ import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 import { createVueRenderer } from '@ubean/client/ssr';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
+import { getVueLocaleParam, toVueRouterLocalePath } from '@ubean/i18n';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
@@ -19,6 +20,20 @@ import { deleteScaffold, recoverScaffold, scaffold } from '../page';
 import type { DevRunnerDevtoolsOptions } from './runner';
 
 const logger = getLogger('dev-server');
+
+/**
+ * Compute the vue-router locale param (e.g. `:locale(zh)?`) from the resolved
+ * i18n routing config, mirroring `localeVueParamFromI18n` (`@ubean/build`).
+ * Returns `''` when i18n is disabled or no prefix is needed.
+ */
+function resolveLocaleVueParam(config: UbeanResolvedConfig['i18n']): string {
+  if (!config?.enabled || !config.locales?.length) return '';
+  return getVueLocaleParam({
+    defaultLocale: config.defaultLocale,
+    locales: config.locales.map(l => l.code),
+    strategy: config.strategy
+  });
+}
 
 export interface ViteDevServerOptions {
   cwd: string;
@@ -480,6 +495,11 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
     // Build vue-router routes for SSR
     const scannedPages = app.options.pages || [];
+    // Apply the same i18n locale param as the client `virtual:ubean-pages`
+    // route table, otherwise language-prefixed URLs (e.g. `/zh/playground`)
+    // have no matching SSR route and fall into the catch-all → SSR 404 while
+    // the client renders the real page → hydration mismatch.
+    const ssrLocaleParam = resolveLocaleVueParam(config.i18n);
     // Build name → page map so reuse routes can resolve their target's
     // `fullPath`. The `.reuse.ts` file only contains `definePage` metadata,
     // not a Vue component — reuse routes must load the target page's module
@@ -491,8 +511,9 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     const routes = scannedPages.map((p: any) => {
       const targetPage = p.isReuse && p.reuseTarget ? scannedPageByName.get(p.reuseTarget) : undefined;
       const componentFullPath = targetPage?.fullPath || p.fullPath;
+      const routePath = p.route.replace(/\*\*:(\w[\w-]*)/g, ':$1(.*)*');
       return {
-        path: p.route.replace(/\*\*:(\w[\w-]*)/g, ':$1(.*)*'),
+        path: ssrLocaleParam ? toVueRouterLocalePath(routePath, ssrLocaleParam) : routePath,
         name: p.name,
         component: async () => {
           const mod = await viteServer!.ssrLoadModule(componentFullPath);

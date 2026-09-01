@@ -282,10 +282,15 @@ async function generateVirtualModulesToDisk(
     config.colorMode !== false ? getColorModeScript(resolveColorModeConfig(config.colorMode)) : '';
 
   const rendererImport = ssrEnabled ? `import { createVueRenderer } from 'ubean/vue-ssr';` : '';
+  const prodLocaleVueParam = localeVueParamFromI18n(config.i18n) || '';
   const rendererSetup = ssrEnabled
     ? `
 // --- SSR renderer setup ---
 const _defaultLayout = _layouts.find(l => l.isDefault)?.name || null;
+
+// Same i18n locale param as the client virtual:ubean-pages route table, so
+// language-prefixed URLs (e.g. /zh/playground) match the real page on SSR too.
+const _localeVueParam = ${JSON.stringify(prodLocaleVueParam)};
 
 const _rendererRoutes = _pages.map(p => {
   // For reuse routes, load the target page's module (the .reuse.ts file
@@ -293,7 +298,9 @@ const _rendererRoutes = _pages.map(p => {
   const _targetPage = p.isReuse && p.reuseTarget ? _pages.find(tp => tp.name === p.reuseTarget) : undefined;
   const _loaderKey = _targetPage?.relativePath || p.relativePath;
   return {
-    path: p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'),
+    path: _localeVueParam
+      ? toVueRouterLocalePath(p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'), _localeVueParam)
+      : p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'),
     name: p.name,
     component: async () => {
       const loader = pageLoaders[_loaderKey];
@@ -354,6 +361,7 @@ ${contentEntries.map(([name, docs]) => `registerContent(${JSON.stringify(name)},
   if (hasServer) {
     const serverEntry = `// Auto-generated server entry
 import { createUbeanApp, applyServerConfig } from 'ubean/runtime/app';
+import { toVueRouterLocalePath } from '@ubean/i18n';
 import 'ubean:locales';
 ${rendererImport}
 import { resolveAppConfig as _resolveAppConfig } from 'virtual:ubean-app';

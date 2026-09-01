@@ -34,6 +34,7 @@
     "@ubean/build": "workspace:*",
     "@ubean/client": "workspace:*",
     "@ubean/config": "workspace:*",
+    "@ubean/i18n": "workspace:*",
     "@ubean/islands": "workspace:*",
     "@ubean/preset": "workspace:*",
     "@ubean/scan": "workspace:*",

@@ -36,12 +36,20 @@ import type { ViewTransitionOptions } from './view-transitions';
 /**
  * Injection keys (exported for advanced use cases — e.g. testing utilities
  * that need to provide the page/transition context outside the plugin).
+ *
+ * `Symbol.for` is REQUIRED: in the ubean dev server `@ubean/vue` can be
+ * loaded twice (once through Node's ESM cache for the SSR app factory, once
+ * through Vite's transformed module graph for auto-imported components).
+ * Per-realm `Symbol()` keys would then differ across copies and break
+ * provide/inject silently (e.g. `<Link>` losing its i18n localizer →
+ * hydration href mismatch). Registered keys are shared globally, so every
+ * copy resolves to the same Symbol.
  */
-export const PAGE_KEY = Symbol('ubean-page');
-export const TRANSITION_KEY = Symbol('ubean-transition');
-export const SSR_KEY: InjectionKey<boolean> = Symbol('ubean-ssr');
-export const LOADING_KEY: InjectionKey<Component | null> = Symbol('ubean-loading');
-export const ERROR_KEY: InjectionKey<Component | null> = Symbol('ubean-error');
+export const PAGE_KEY = Symbol.for('ubean-page');
+export const TRANSITION_KEY = Symbol.for('ubean-transition');
+export const SSR_KEY: InjectionKey<boolean> = Symbol.for('ubean-ssr');
+export const LOADING_KEY: InjectionKey<Component | null> = Symbol.for('ubean-loading');
+export const ERROR_KEY: InjectionKey<Component | null> = Symbol.for('ubean-error');
 
 /**
  * Module-level reload placeholder — a single comment vnode reused across
@@ -58,7 +66,8 @@ let _warnedOutIn = false;
  * (`@ubean/client`) provides the reactive `localizePath`; when absent,
  * `Link` renders paths verbatim — this package never imports i18n itself.
  */
-export const LOCALIZE_PATH_KEY: InjectionKey<(path: string, locale?: string) => string> = Symbol('ubean-localize-path');
+export const LOCALIZE_PATH_KEY: InjectionKey<(path: string, locale?: string) => string> =
+  Symbol.for('ubean-localize-path');
 
 /**
  * Layout chain context — provided by `LayoutChainRenderer` so that `<PageView />`
@@ -70,7 +79,7 @@ interface LayoutChainContext {
   components: Array<Component | null>;
   depth: number;
 }
-export const LAYOUT_CHAIN_KEY: InjectionKey<LayoutChainContext | null> = Symbol('ubean-layout-chain');
+export const LAYOUT_CHAIN_KEY: InjectionKey<LayoutChainContext | null> = Symbol.for('ubean-layout-chain');
 export type { LayoutChainContext };
 
 /**

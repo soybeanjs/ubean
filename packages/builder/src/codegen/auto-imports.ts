@@ -124,6 +124,7 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
     'useRouter',
     'useHead',
     'useViewTransition',
+    'useData',
     'useAsyncData',
     'useFetch',
     // Page cache (keep-alive) runtime control
@@ -150,14 +151,18 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
  * Server-only symbols that come from the main `ubean` package.
  * These import the full ubean entry (which includes build tools like `vite`),
  * so they must only be used in server-side files (API routes, middleware, etc.).
+ *
+ * Note: the isomorphic data composables (`useData` / `useAsyncData` /
+ * `useFetch`) are intentionally NOT listed here — they are exported from
+ * `ubean/client` (see UBEAN_CLIENT_PRESET) and re-exported from the same
+ * `@ubean/pages` source. Declaring them in both presets makes
+ * unplugin-auto-import emit a "Duplicated imports" warning, so they live in
+ * the client preset only.
  */
 export const UBEAN_SERVER_PRESET: InlinePreset = {
   from: 'ubean',
   imports: [
     'defineHandlerMeta',
-    'useData',
-    'useAsyncData',
-    'useFetch',
     'defineAction',
     'defineServerFn',
     'invokeServerFn',

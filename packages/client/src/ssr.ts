@@ -24,7 +24,7 @@ import type {
   PageHead,
   PageRenderResult
 } from '@ubean/pages';
-import { createHead, transformHtmlTemplate, renderSSRHead } from '@unhead/vue/server';
+import { createHead, transformHtmlTemplate } from '@unhead/vue/server';
 import { createUbeanI18n, configureI18nRuntime } from './i18n';
 import { applyAppConfig } from './define-app';
 import type { ResolvedAppConfig } from './define-app';
@@ -300,13 +300,15 @@ async function resolveState(
  * (title, og:tags, etc.) without waiting for client hydration.
  */
 function collectDynamicHeadTags(head: ReturnType<typeof createHead>, staticHeadTags: string): string {
-  const fullHead = renderSSRHead(head);
+  // head.render() (server head) is synchronous in unhead 3.x: it returns
+  // SSRHeadPayload directly (ServerUnhead extends Unhead<T, SSRHeadPayload>).
+  const fullHead = head.render();
   const fullTags = fullHead.headTags || '';
 
   if (!fullTags || fullTags === staticHeadTags) return '';
 
   // Split by newline and find tags that exist in full but not in static.
-  // Each tag is on its own line (renderSSRHead outputs one tag per line).
+  // Each tag is on its own line (head.render() outputs one tag per line).
   const staticLines = new Set(
     staticHeadTags
       .split('\n')
@@ -458,7 +460,7 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
           // P9-24: Snapshot the static head tags before streaming.
           // After the Vue app streams, we'll collect dynamic head entries
           // (from component `useHead()`) and inject them before the tail.
-          const staticHeadTags = renderSSRHead(head).headTags || '';
+          const staticHeadTags = head.render().headTags || '';
 
           // 1. 立即输出 head 部分(doctype + head + body 开头 + page data scripts)
           //    浏览器可提前加载 CSS/JS,显著改善 TTFB/LCP

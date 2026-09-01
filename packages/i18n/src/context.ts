@@ -13,10 +13,13 @@
  * 绑定的 translate（与创建 ctx 的那份 `@intlify/core` 一致）。
  */
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { compile, createCoreContext, datetime, number, registerMessageCompiler, translate } from '@intlify/core';
+import { createCoreContext, datetime, number, translate } from '@intlify/core';
 import type { LocaleMessage } from '@intlify/core';
 
-registerMessageCompiler(compile);
+// No registerMessageCompiler(compile) here: the @intlify/core entry already
+// registers the standard message compiler, and passing `messageCompiler`
+// explicitly to createCoreContext only triggers intlify's experimental
+// "Custom Message Compiler" warning (we'd be passing the default compiler).
 
 export type LocaleMessages = LocaleMessage;
 
@@ -26,8 +29,7 @@ function createI18nCoreContext(locale: string, fallback: string, messages: Recor
     fallbackLocale: fallback,
     messages,
     missingWarn: false,
-    fallbackWarn: false,
-    messageCompiler: compile
+    fallbackWarn: false
   });
 }
 

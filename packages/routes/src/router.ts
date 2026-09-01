@@ -564,9 +564,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       component: pageComponent,
       props,
       params: c.req.param(),
-      url:
-        ((c.get('pathWithoutLocale') as string | undefined) || c.req.path) +
-        (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
+      url: c.req.path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
       layout: (page.layout === false
         ? false
         : page.layout || page.pageMeta?.layout || (hasDefaultLayout ? 'default' : false)) as string | false | undefined,

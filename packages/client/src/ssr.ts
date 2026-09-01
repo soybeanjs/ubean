@@ -25,7 +25,7 @@ import type {
   PageRenderResult
 } from '@ubean/pages';
 import { createHead, transformHtmlTemplate, renderSSRHead } from '@unhead/vue/server';
-import { createUbeanI18n } from './i18n';
+import { createUbeanI18n, configureI18nRuntime } from './i18n';
 import { applyAppConfig } from './define-app';
 import type { ResolvedAppConfig } from './define-app';
 
@@ -182,6 +182,27 @@ async function prepareRender(
   // 3. Page-specific head (overrides app-level defaults)
   if (pageObj.head) {
     pushPageHead(head, pageObj.head);
+  }
+
+  // 4. Configure the framework i18n runtime for this request so `localizePath()`
+  //    (used by `<Link>`) matches what the client hydrates from the payload.
+  //    Without this, the server's runtime config stays unset and `localizePath`
+  //    short-circuits to the raw path — SSR renders `href="/"` while the client
+  //    renders `/zh` → hydration attribute mismatch. (The client sets this from
+  //    the `__UBEAN_LOCALE__` payload via `initClientI18n`; the server must set
+  //    its own copy from `renderContext.routing`.)
+  const _routing = renderContext?.routing;
+  if (renderContext && _routing) {
+    configureI18nRuntime({
+      config: {
+        defaultLocale: _routing.defaultLocale,
+        locales: _routing.locales,
+        strategy: _routing.strategy,
+        fallbackLocale: renderContext.fallbackLocale || _routing.defaultLocale,
+        cookieName: renderContext.cookieName || 'ubean_locale',
+        baseUrl: renderContext.baseUrl || ''
+      }
+    });
   }
 
   const i18n = renderContext?.locale

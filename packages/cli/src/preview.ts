@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
-import { extname, normalize } from 'node:path';
+import { extname, normalize, sep } from 'node:path';
 import { loadUbeanConfig } from '@ubean/config';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
 import { getLogger } from '@ubean/shared/logger';
@@ -43,22 +43,25 @@ const MIME_TYPES: Record<string, string> = {
  *
  * 使用 Node 内置 `http` + `fs`,避免引入 `sirv` 等依赖。
  */
-function startStaticServer(opts: { root: string; port: number; host: string; mode: 'spa' | 'ssg' }): Server {
+export function startStaticServer(opts: { root: string; port: number; host: string; mode: 'spa' | 'ssg' }): Server {
   const { root, port, host, mode } = opts;
   const spaFallback = mode === 'spa';
 
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url || '/', `http://${host}`);
-      let pathname = normalize(decodeURIComponent(url.pathname));
-      // 防止路径穿越
-      if (pathname.includes('..')) {
+      const pathname = decodeURIComponent(url.pathname);
+      // 规范化完整文件路径,并校验其必须位于 root 目录内,防止路径穿越。
+      // 注意:不能通过 `includes('..')` 判断——会误伤文件名中合法的 `...`
+      // (例如 SSG 动态路由产物 `_...slug_-Bqlu_Muj.js` 会被错误地判定为 400)。
+      let filePath = normalize(join(root, pathname));
+      const rootPath = resolve(root);
+      if (filePath !== rootPath && !filePath.startsWith(rootPath + sep)) {
         res.statusCode = 400;
         res.end('Bad Request');
         return;
       }
 
-      let filePath = join(root, pathname);
       let fileExists = existsSync(filePath) && (await stat(filePath)).isFile();
 
       // 1. 若是目录,尝试 index.html

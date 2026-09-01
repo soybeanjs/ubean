@@ -1,6 +1,6 @@
 {
   "name": "@ubean/pages",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Page data protocol and isomorphic data layer for ubean (PageObject, useData, invalidateData)",
   "files": [
     "dist"

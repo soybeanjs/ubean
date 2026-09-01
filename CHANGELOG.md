@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.3.3...main) (2026-09-01)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **ssr**:
+  - apply i18n locale param to SSR vue-router routes &nbsp;-&nbsp; by @soybeanjs [<samp>(13cc2)</samp>](https://github.com/soybeanjs/ubean/commit/13cc281)
+  - configure i18n runtime from renderContext in prepareRender &nbsp;-&nbsp; by @soybeanjs [<samp>(0fc2a)</samp>](https://github.com/soybeanjs/ubean/commit/0fc2a74)
+- **vue**:
+  - use Symbol.for for injection keys to survive duplicated module copies &nbsp;-&nbsp; by @soybeanjs [<samp>(eb1d0)</samp>](https://github.com/soybeanjs/ubean/commit/eb1d0f6)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.3.2...main) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

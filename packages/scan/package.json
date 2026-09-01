@@ -1,6 +1,6 @@
 {
   "name": "@ubean/scan",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Project scanner & route metadata for ubean — server-side directory scanning (API routes, middleware, plugins, crons, queues, locales, entries) plus page scanning delegated to @ubean/vue",
   "files": [
     "dist"

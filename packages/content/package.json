@@ -1,6 +1,6 @@
 {
   "name": "@ubean/content",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "File-based content module for ubean (markdown/MDX/YAML/JSON)",
   "files": [
     "dist"

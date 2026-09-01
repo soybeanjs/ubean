@@ -1,6 +1,6 @@
 {
   "name": "@ubean/cli",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "CLI for ubean (ubean-next binary: dev, build, prepare, init, preview, page, env, config, devtools, api/layout/middleware/cron/plugin scaffolds) plus the Vite dev server runner",
   "bin": {
     "ubean-next": "./bin/ubean-next.mjs"

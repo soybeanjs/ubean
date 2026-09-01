@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.3.2...main) (2026-09-01)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **routes**: use real request path for SSR page url &nbsp;-&nbsp; by @soybeanjs [<samp>(f74a3)</samp>](https://github.com/soybeanjs/ubean/commit/f74a330)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **projects**: update example bundle size info &nbsp;-&nbsp; by @soybeanjs [<samp>(dbef7)</samp>](https://github.com/soybeanjs/ubean/commit/dbef719)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.3.1...main) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

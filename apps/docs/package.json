@@ -1,6 +1,6 @@
 {
   "name": "@ubean/docs",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": true,
   "description": "ubean framework documentation site — dogfoods the ubean framework (SSG + @ubean/ui).",
   "type": "module",

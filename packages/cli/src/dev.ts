@@ -294,7 +294,8 @@ async function buildApp(
   });
 
   app.hooks.hook('request:start', c => {
-    logger.info(`${c.req.method} ${c.req.path}`);
+    // 请求日志默认隐藏(LOG_LEVEL=debug 打开),避免干扰 dev 终端输出
+    logger.debug(`${c.req.method} ${c.req.path}`);
   });
 
   return { app, layouts: result.layouts, scanResult: result };

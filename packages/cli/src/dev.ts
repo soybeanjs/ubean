@@ -167,26 +167,33 @@ export const devCommand: CommandDef = {
       },
       onListen({ url }) {
         const label = (text: string) => dim(text);
-        const lines = [
-          `${green(bold('🚀 ubean dev server ready'))}\n`,
-          `  → ${label('Local:')}      ${cyan(url)}`,
-          `  → ${label('Scalar UI:')}  ${cyan(`${url}/_scalar`)}`,
-          `  → ${label('OpenAPI:')}    ${cyan(`${url}/_openapi.json`)}`
-        ];
+        const lines = [`${green(bold('🚀 ubean dev server ready'))}\n`, `  → ${label('Local:')}      ${cyan(url)}`];
+        // 仅 backend 相关模式(fullstack/backend)才提供 OpenAPI / 类型生成。
+        // ssg / spa 模式无后端接口,避免打印误导性 banner 与无意义告警。
+        const hasBackend = config.mode !== 'ssg' && config.mode !== 'spa';
+        if (hasBackend) {
+          lines.push(
+            `  → ${label('Scalar UI:')}  ${cyan(`${url}/_scalar`)}`,
+            `  → ${label('OpenAPI:')}    ${cyan(`${url}/_openapi.json`)}`
+          );
+        }
         if (config.devtools.enabled) {
           lines.push(`  → ${label('DevTools:')}   ${cyan(`${url}${config.devtools.route}`)}`);
         }
         lines.push(`  → ${dim('Press Ctrl+C to stop')}`);
         logger.info(lines.join('\n'));
 
-        // 异步生成 OpenAPI 类型声明(不阻塞 server 启动)
-        generateOpenApiTypesFromServer(url, { outDir: resolve(cwd, '.ubean') })
-          .then(filePath => {
-            logger.info(`OpenAPI types generated: ${filePath}`);
-          })
-          .catch(err => {
-            logger.warn(`Failed to generate OpenAPI types: ${err instanceof Error ? err.message : String(err)}`);
-          });
+        // 异步生成 OpenAPI 类型声明(不阻塞 server 启动)。无后端模式返回
+        // null(跳过),无需告警。
+        if (hasBackend) {
+          generateOpenApiTypesFromServer(url, { outDir: resolve(cwd, '.ubean') })
+            .then(filePath => {
+              if (filePath) logger.info(`OpenAPI types generated: ${filePath}`);
+            })
+            .catch(err => {
+              logger.warn(`Failed to generate OpenAPI types: ${err instanceof Error ? err.message : String(err)}`);
+            });
+        }
       },
       onBeforeReload() {
         logger.info('Reloading...');

@@ -47,11 +47,15 @@ export async function generateOpenApiTypes(schema: unknown, options: GenerateOpe
 
 /**
  * 从 dev server 的 `/_openapi.json` 路由获取 schema 并生成类型声明文件。
+ *
+ * SSG / SPA 等无后端模式访问 `/_openapi.json` 时,dev server 会以 200 返回
+ * HTML(页面 fallback)而非 JSON。此时跳过生成并返回 `null`,避免抛出
+ * `Unexpected token '<'` 之类的误导性错误。
  */
 export async function generateOpenApiTypesFromServer(
   baseUrl: string,
   options: GenerateOpenApiTypesOptions
-): Promise<string> {
+): Promise<string | null> {
   const url = `${baseUrl.replace(/\/$/, '')}/_openapi.json`;
   const response = await fetch(url);
 
@@ -59,6 +63,12 @@ export async function generateOpenApiTypesFromServer(
     throw new Error(
       `[openapi-types] Failed to fetch OpenAPI schema from ${url}: ${response.status} ${response.statusText}`
     );
+  }
+
+  // 无后端模式会返回 HTML 而非 JSON,直接跳过、不报错
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.includes('json')) {
+    return null;
   }
 
   const schema = (await response.json()) as object;

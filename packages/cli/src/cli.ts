@@ -1,3 +1,4 @@
+import { setDebugLogging } from '@ubean/shared/logger';
 /**
  * @ubean/cli — CLI 入口(运行时调用 `runMain`)
  *
@@ -51,5 +52,9 @@ const main = defineCommand({
     analyze: analyzeCommand
   }
 });
+
+// 全局 `--debug` 参数:无论位于子命令前/后,传入即输出详细日志(日期 + 调用位置 + 等级)。
+// 此时所有命令模块已导入、logger 实例已创建,`setDebugLogging` 会对它们统一刷新模板。
+if (process.argv.includes('--debug')) setDebugLogging(true);
 
 runMain(main);

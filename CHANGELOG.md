@@ -1,5 +1,31 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.3.5...main) (2026-09-02)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cli**: enable --debug flag for detailed log output &nbsp;-&nbsp; by @soybeanjs [<samp>(1c25a)</samp>](https://github.com/soybeanjs/ubean/commit/1c25ab3)
+- **example**: add ssg-catchall example &nbsp;-&nbsp; by @soybeanjs [<samp>(b4276)</samp>](https://github.com/soybeanjs/ubean/commit/b4276e1)
+- **mdx**: import markdownToHtml for fallback rendering &nbsp;-&nbsp; by @soybeanjs [<samp>(e7524)</samp>](https://github.com/soybeanjs/ubean/commit/e7524cd)
+- **shared**: message-only log output with setDebugLogging toggle &nbsp;-&nbsp; by @soybeanjs [<samp>(c7fe2)</samp>](https://github.com/soybeanjs/ubean/commit/c7fe218)
+- **ubean**: export setDebugLogging from the aggregator &nbsp;-&nbsp; by @soybeanjs [<samp>(8ed70)</samp>](https://github.com/soybeanjs/ubean/commit/8ed708b)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**:
+  - skip OpenAPI type generation in SSG/SPA mode &nbsp;-&nbsp; by @soybeanjs [<samp>(fbe65)</samp>](https://github.com/soybeanjs/ubean/commit/fbe650f)
+  - stop preview 400 on chunk filenames containing "..." &nbsp;-&nbsp; by @soybeanjs [<samp>(2ca84)</samp>](https://github.com/soybeanjs/ubean/commit/2ca841f)
+- **logger**:
+  - fix default log level value &nbsp;-&nbsp; by @soybeanjs [<samp>(9992c)</samp>](https://github.com/soybeanjs/ubean/commit/9992c9b)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **cli**: add preview static server coverage &nbsp;-&nbsp; by @soybeanjs [<samp>(ff4da)</samp>](https://github.com/soybeanjs/ubean/commit/ff4da30)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.3.4...main) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

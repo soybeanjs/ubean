@@ -24,7 +24,7 @@
  * // result.frontmatter → parsed frontmatter
  * ```
  */
-import { parseFrontmatter } from './index';
+import { markdownToHtml, parseFrontmatter } from './index';
 import type { MarkdownFrontmatter } from './index';
 
 export interface MdxOptions {
@@ -111,7 +111,6 @@ export async function compileMdx(source: string, options: MdxOptions = {}): Prom
   }
 
   // Fallback: treat MDX as plain Markdown and wrap in a Vue component
-  const { markdownToHtml } = await import('./index');
   const html = markdownToHtml(content);
   const escapedHtml = JSON.stringify(html);
   const code = generateFallbackComponent(escapedHtml, frontmatter);

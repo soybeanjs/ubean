@@ -1,6 +1,6 @@
 {
   "name": "@ubean/i18n",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "i18n for ubean (vue-i18n / @intlify/core, compact locale routing, ALS)",
   "files": [
     "dist"

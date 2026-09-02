@@ -1,6 +1,6 @@
 {
   "name": "@ubean/shared",
-  "version": "0.3.6",
+  "version": "0.3.7",
   "description": "Shared protocol types, errors, env and universal utilities for ubean",
   "files": [
     "dist"

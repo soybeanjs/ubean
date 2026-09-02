@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.3.6...main) (2026-09-02)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli/vite-server**: exclude vue-router avoid conflict deps &nbsp;-&nbsp; by @soybeanjs [<samp>(d47ca)</samp>](https://github.com/soybeanjs/ubean/commit/d47ca79)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.3.5...main) (2026-09-02)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

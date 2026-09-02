@@ -417,6 +417,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     optimizeDeps: {
       exclude: [
         'ubean',
+        // vue-router 必须与被 exclude 的 `ubean` 运行时链保持同一模块实例:
+        // 若仅应用源码里的 vue-router 被预打包(deps/vue-router.js),而
+        // `ubean` 链(exclude)走原始文件,会出现两份 `Symbol(route location)`,
+        // 导致用户组件 useRoute() 报 "injection not found"。整体 exclude 使
+        // 所有 importer 共享同一份原始 ESM 实例。
+        'vue-router',
         'virtual:ubean-pages',
         'virtual:ubean-app',
         'virtual:ubean-server',

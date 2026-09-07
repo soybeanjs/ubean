@@ -216,10 +216,8 @@ export const prepareCommand: CommandDef = {
       srcDir: config.srcDir,
       buildDir: typesDir,
       dirs: config.dir,
-      imports: config.imports,
-      components: config.components,
-      composablesDirs: config.imports.dirs,
-      componentsDirs: config.components.dirs
+      autoImports: config.autoImports,
+      components: config.components
     });
 
     for (const file of codegenResult.generated) {

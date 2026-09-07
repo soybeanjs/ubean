@@ -104,12 +104,10 @@ export default defineConfig({
   },
 
   // Type-safe auto-imports for composables + components.
-  imports: {
-    autoImport: true,
+  autoImports: {
     dirs: ['src/composables']
   },
   components: {
-    autoImport: true,
     dirs: ['src/components']
   }
 });

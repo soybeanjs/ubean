@@ -12,8 +12,7 @@ import { ubeanMdxPlugin } from '@ubean/markdown';
 import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
 import { join, resolve } from 'pathe';
-import type { InlinePreset } from 'unimport';
-import { UBEAN_CLIENT_PRESET, VUE_ROUTER_PRESET, VUE_I18N_PRESET, UBEAN_SERVER_PRESET } from './codegen';
+import { getAutoImportPresets, resolveAutoImportsConfig, resolveComponentsConfig, toArray } from './codegen';
 import { getComponentResolvers } from './registry';
 import { ssrSingletonDevPolicy } from './ssr-singleton';
 import { useVirtualRegistry } from './virtual-registry';
@@ -88,15 +87,14 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
   const dtsDir = join(ubeanConfig.rootDir, '.ubean');
   const markdownEnabled = ubeanConfig.markdown?.enabled !== false;
   const mdxEnabled = ubeanConfig.markdown?.mdx === true;
-  const autoImportEnabled = ubeanConfig.imports.autoImport !== false;
-  const componentAutoImportEnabled = ubeanConfig.components.autoImport !== false;
+  const autoImports = resolveAutoImportsConfig(ubeanConfig.autoImports);
+  const componentsAutoImport = resolveComponentsConfig(ubeanConfig.components);
   const markdownComponentsAutoImport = ubeanConfig.markdown?.components?.autoImport !== false;
-  const directoryAsNamespace = ubeanConfig.components.directoryAsNamespace ?? false;
 
   const composablesDirName = ubeanConfig.dir.composables || 'composables';
   const componentsDirName = ubeanConfig.dir.components || 'components';
-  const composablesDirs = [join(srcDir, composablesDirName), ...(ubeanConfig.imports.dirs || [])];
-  const componentsDirs = [join(srcDir, componentsDirName), ...(ubeanConfig.components.dirs || [])];
+  const composablesDirs = [join(srcDir, composablesDirName), ...(autoImports.options.dirs ?? [])];
+  const componentsDirs = [join(srcDir, componentsDirName), ...(componentsAutoImport.options.dirs ?? [])];
 
   const mdExtensions = mdxEnabled ? ['md', 'mdx'] : ['md'];
 
@@ -328,19 +326,17 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     );
   }
 
-  if (autoImportEnabled) {
+  if (autoImports.enabled) {
+    const userAutoImports = autoImports.options;
     plugins.push(
       AutoImport({
-        imports: [
-          UBEAN_CLIENT_PRESET as InlinePreset,
-          VUE_ROUTER_PRESET as InlinePreset,
-          VUE_I18N_PRESET as InlinePreset,
-          UBEAN_SERVER_PRESET as InlinePreset
-        ],
-        dirs: composablesDirs,
-        dts: join(dtsDir, 'auto-imports.d.ts'),
+        // 框架默认 → 用户透传 → 框架合成字段（imports/dirs/dts 由分库开关与用户配置合成）
         vueTemplate: true,
-        eslintrc: { enabled: false }
+        eslintrc: { enabled: false },
+        ...userAutoImports,
+        imports: [...getAutoImportPresets(autoImports), ...toArray(userAutoImports.imports)],
+        dirs: composablesDirs,
+        dts: userAutoImports.dts === undefined ? join(dtsDir, 'auto-imports.d.ts') : userAutoImports.dts
       }) as Plugin
     );
   }
@@ -356,8 +352,9 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
   // Merge built-in resolver with any registered by extension modules (e.g. UiResolver from @ubean/integrations/ui)
   // Use a dynamic resolver that reads from the registry at resolution time, so that
   // resolvers registered by built-in modules (loaded later via resolveModules) are picked up.
+  // `components.ubean: false` 仅去掉内置组件解析，模块注册的 resolver 始终生效。
   const dynamicResolvers = [
-    ubeanComponentsResolver,
+    ...(componentsAutoImport.ubean ? [ubeanComponentsResolver] : []),
     (name: string) => {
       for (const resolver of getComponentResolvers()) {
         const result = typeof resolver === 'function' ? resolver(name) : resolver.resolve(name);
@@ -367,7 +364,8 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     }
   ];
 
-  if (componentAutoImportEnabled) {
+  if (componentsAutoImport.enabled) {
+    const userComponents = componentsAutoImport.options;
     const extensions = ['vue'];
     const includePatterns = [/\.vue$/, /\.vue\?vue/];
 
@@ -379,13 +377,14 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
 
     plugins.push(
       Components({
+        // 框架默认 → 用户透传 → 框架合成字段（dirs/dts/resolvers 由配置与内置 resolver 合成）
+        deep: true,
+        ...userComponents,
         dirs: componentsDirs,
         extensions,
         include: includePatterns,
-        directoryAsNamespace,
-        dts: join(dtsDir, 'components.d.ts'),
-        deep: true,
-        resolvers: dynamicResolvers
+        dts: userComponents.dts === undefined ? join(dtsDir, 'components.d.ts') : userComponents.dts,
+        resolvers: [...dynamicResolvers, ...toArray(userComponents.resolvers)]
       }) as Plugin
     );
   } else {

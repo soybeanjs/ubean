@@ -82,5 +82,7 @@ export type {
   I18nDetectBrowserLanguage,
   I18nVueI18nOptions,
   I18nConfig,
-  ResolvedI18nConfig
+  ResolvedI18nConfig,
+  AutoImportOptions,
+  ComponentsOptions
 } from './types';

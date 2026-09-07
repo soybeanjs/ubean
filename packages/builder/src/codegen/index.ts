@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import type { ScanResult } from '@ubean/scan';
 import { join } from 'pathe';
 import { generateAutoImports } from './auto-imports';
-import type { AutoImportOptions } from './auto-imports';
+import type { GenerateAutoImportsOptions } from './auto-imports';
 import { generateI18nTypes } from './i18n-types';
 import { generateRouteTypes, generatePageTypes } from './route-types';
 
@@ -17,13 +17,25 @@ export {
   UBEAN_SERVER_PRESET,
   HONO_OPENAPI_PRESET,
   BUILTIN_PRESETS,
+  resolveAutoImportsConfig,
+  resolveComponentsConfig,
+  getAutoImportPresets,
+  toArray,
   generateAutoImports,
   getBuiltinComposables,
   getUbeanAutoImportConfig,
   getUbeanComponentsConfig,
   generateImportsTransform
 } from './auto-imports';
-export type { Import, InlinePreset, AutoImportOptions, ComponentInfo, AutoImportResult } from './auto-imports';
+export type {
+  Import,
+  InlinePreset,
+  GenerateAutoImportsOptions,
+  ResolvedAutoImports,
+  ResolvedComponentsAutoImport,
+  ComponentInfo,
+  AutoImportResult
+} from './auto-imports';
 
 export { generateRouteTypes, generatePageTypes } from './route-types';
 export type { RouteTypesOptions, PageTypesOptions } from './route-types';
@@ -55,7 +67,7 @@ export interface CodegenManifest {
   files: Array<{ name: string; module: string | null; required: boolean; types: string[]; generated: boolean }>;
 }
 
-export interface CodegenOptions extends Omit<AutoImportOptions, 'cwd' | 'srcDir' | 'buildDir'> {
+export interface CodegenOptions extends Omit<GenerateAutoImportsOptions, 'cwd' | 'srcDir' | 'buildDir'> {
   cwd: string;
   srcDir: string;
   buildDir: string;

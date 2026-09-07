@@ -1604,22 +1604,33 @@ Automatically imports Vue components under the project's `components/` directory
 **Auto-scan directories**:
 
 - `components/` — scans all `.vue` components (supports nested directories; directory name as namespace: `Foo/Bar.vue` → `<FooBar />`)
-- ubean built-in components (`<Link>`, `<Head>`, `<ClientOnly>`, etc.) are always available
+- ubean built-in components (`<Link>`, `<Head>`, `<PageView>`) are always available
 
 #### Configuration
 
 ```typescript
 // ubean.config.ts
 export default defineConfig({
-  imports: {
-    autoImport: true, // composables 自动导入，默认 true
-    dirs: ['composables', 'composables/*/index.{ts,vue}'],
-    global: false // 是否注入到全局（false 则仅在类型中可见）
+  // Default (true): only ubean built-in APIs are auto-imported
+  // (definePage/useHead/useData/setLocale/...)
+  autoImports: true,
+  components: true,
+
+  // Opt in per library, plus full unplugin-auto-import options passthrough
+  autoImports: {
+    ubean: true,        // ubean built-in APIs (default true)
+    vue: false,         // vue composables (ref/computed/watch/...)
+    vueRouter: false,   // vue-router useRouter
+    vueI18n: false,     // vue-i18n useI18n
+    honoOpenapi: false, // hono-openapi validator/describeRoute
+    dirs: ['composables', 'composables/*/index.{ts,vue}'], // extra scan dirs
+    // remaining unplugin-auto-import options (imports/dts/eslintrc/...) pass through
   },
   components: {
-    autoImport: true, // 组件自动导入，默认 true
+    ubean: true,        // built-in <Link>/<Head>/<PageView> resolver (default true)
     dirs: ['components'],
-    directoryAsNamespace: false // 目录作为命名空间
+    directoryAsNamespace: false,
+    // remaining unplugin-vue-components options (resolvers/dts/deep/...) pass through
   }
 });
 ```

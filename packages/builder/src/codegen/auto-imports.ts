@@ -1,4 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
+import type { Options as UnpluginComponentsOptions } from 'unplugin-vue-components/types';
+import type { Options as UnpluginAutoImportOptions } from 'unplugin-auto-import/types';
+import type { AutoImportOptions, ComponentsOptions } from '@ubean/config';
 import type { ScanResult } from '@ubean/scan';
 import { join, relative, normalize } from 'pathe';
 import { glob } from 'tinyglobby';
@@ -7,24 +10,89 @@ import type { Import, InlinePreset } from 'unimport';
 
 export type { Import, InlinePreset };
 
-export interface AutoImportOptions {
+export interface GenerateAutoImportsOptions {
   cwd: string;
   srcDir: string;
   buildDir: string;
-  composablesDirs?: string[];
-  componentsDirs?: string[];
+  /** `srcDir` 内扫描目录名（默认 `composables` / `components`）。 */
   dirs?: {
     composables?: string;
     components?: string;
   };
-  imports?: {
-    autoImport?: boolean;
-    global?: boolean;
+  /** `ubean.config.ts` 的 `autoImports` 配置（`boolean | AutoImportOptions`）。 */
+  autoImports?: boolean | AutoImportOptions;
+  /** `ubean.config.ts` 的 `components` 配置（`boolean | ComponentsOptions`）。 */
+  components?: boolean | ComponentsOptions;
+}
+
+/* -------------------------------------------------------------------------- */
+/* 配置解析（vue-plugin 运行时插件与 codegen 共用）                              */
+/* -------------------------------------------------------------------------- */
+
+export interface ResolvedAutoImports {
+  /** 总开关（`autoImports: false` 时为 `false`）。 */
+  enabled: boolean;
+  /** ubean 内置 API（client + server 预设），默认 `true`。 */
+  ubean: boolean;
+  /** vue composables + reactivity macros，默认 `false`。 */
+  vue: boolean;
+  /** vue-router `useRouter`，默认 `false`。 */
+  vueRouter: boolean;
+  /** vue-i18n `useI18n`，默认 `false`。 */
+  vueI18n: boolean;
+  /** hono-openapi `validator`/`describeRoute`，默认 `false`。 */
+  honoOpenapi: boolean;
+  /** 用户对象形态配置（boolean/undefined 时为 `{}`）。 */
+  options: AutoImportOptions;
+}
+
+/** 将 `boolean | AutoImportOptions` 归一化为分库开关 + 透传选项。 */
+export function resolveAutoImportsConfig(input: boolean | AutoImportOptions | undefined): ResolvedAutoImports {
+  const options = typeof input === 'object' && input !== null ? input : {};
+  return {
+    enabled: input !== false,
+    ubean: options.ubean ?? true,
+    vue: options.vue ?? false,
+    vueRouter: options.vueRouter ?? false,
+    vueI18n: options.vueI18n ?? false,
+    honoOpenapi: options.honoOpenapi ?? false,
+    options
   };
-  components?: {
-    autoImport?: boolean;
-    directoryAsNamespace?: boolean;
+}
+
+/** 按分库开关组装内置预设（顺序稳定：ubean client/server → vue → vue-router → vue-i18n → hono-openapi）。 */
+export function getAutoImportPresets(resolved: ResolvedAutoImports): InlinePreset[] {
+  const presets: InlinePreset[] = [];
+  if (resolved.ubean) presets.push(UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET);
+  if (resolved.vue) presets.push(VUE_PRESET, VUE_MACROS_PRESET);
+  if (resolved.vueRouter) presets.push(VUE_ROUTER_PRESET);
+  if (resolved.vueI18n) presets.push(VUE_I18N_PRESET);
+  if (resolved.honoOpenapi) presets.push(HONO_OPENAPI_PRESET);
+  return presets;
+}
+
+export interface ResolvedComponentsAutoImport {
+  /** 目录扫描 + dts 总开关（`components: false` 时为 `false`；resolver 仍然生效）。 */
+  enabled: boolean;
+  /** ubean 内置组件（`Link`/`Head`/`PageView`）resolver，默认 `true`。 */
+  ubean: boolean;
+  /** 用户对象形态配置（boolean/undefined 时为 `{}`）。 */
+  options: ComponentsOptions;
+}
+
+/** 将 `boolean | ComponentsOptions` 归一化。 */
+export function resolveComponentsConfig(input: boolean | ComponentsOptions | undefined): ResolvedComponentsAutoImport {
+  const options = typeof input === 'object' && input !== null ? input : {};
+  return {
+    enabled: input !== false,
+    ubean: options.ubean ?? true,
+    options
   };
+}
+
+/** unplugin 系选项普遍使用 `Arrayable<T>`，合并进数组前先归一化。 */
+export function toArray<T>(value: T | T[] | undefined): T[] {
+  return value === undefined ? [] : Array.isArray(value) ? value : [value];
 }
 
 export const VUE_PRESET: InlinePreset = {
@@ -315,25 +383,16 @@ async function scanComponentsDir(
 
 export async function generateAutoImports(
   _scanResult: ScanResult,
-  options: AutoImportOptions
+  options: GenerateAutoImportsOptions
 ): Promise<AutoImportResult> {
-  const {
-    cwd,
-    srcDir,
-    buildDir,
-    composablesDirs = [],
-    componentsDirs = [],
-    dirs = {},
-    imports: importsConfig,
-    components: componentsConfig
-  } = options;
+  const { cwd, srcDir, buildDir, dirs = {}, autoImports: autoImportsInput, components: componentsInput } = options;
 
   const outDir = join(cwd, buildDir);
   await mkdir(outDir, { recursive: true });
 
-  const autoImportEnabled = importsConfig?.autoImport !== false;
-  const componentAutoImportEnabled = componentsConfig?.autoImport !== false;
-  const directoryAsNamespace = componentsConfig?.directoryAsNamespace ?? false;
+  const resolvedAutoImports = resolveAutoImportsConfig(autoImportsInput);
+  const resolvedComponents = resolveComponentsConfig(componentsInput);
+  const directoryAsNamespace = resolvedComponents.options.directoryAsNamespace ?? false;
 
   const composablesDir = dirs.composables || 'composables';
   const componentsDir = dirs.components || 'components';
@@ -344,8 +403,8 @@ export async function generateAutoImports(
   const autoImportsDtsPath = join(outDir, 'auto-imports.d.ts');
   const componentsDtsPath = join(outDir, 'components.d.ts');
 
-  if (autoImportEnabled) {
-    const allComposablesDirs = [join(srcDir, composablesDir), ...composablesDirs];
+  if (resolvedAutoImports.enabled) {
+    const allComposablesDirs = [join(srcDir, composablesDir), ...(resolvedAutoImports.options.dirs ?? [])];
 
     const existingDirs: string[] = [];
     for (const dir of allComposablesDirs) {
@@ -360,7 +419,7 @@ export async function generateAutoImports(
     }
 
     const unimport = createUnimport({
-      presets: BUILTIN_PRESETS,
+      presets: getAutoImportPresets(resolvedAutoImports),
       dirs: existingDirs,
       dirsScanOptions: {
         cwd: srcDir,
@@ -399,8 +458,8 @@ export async function generateAutoImports(
     );
   }
 
-  if (componentAutoImportEnabled) {
-    const allComponentsDirs = [join(srcDir, componentsDir), ...componentsDirs];
+  if (resolvedComponents.enabled) {
+    const allComponentsDirs = [join(srcDir, componentsDir), ...(resolvedComponents.options.dirs ?? [])];
     for (const dir of allComponentsDirs) {
       const scanned = await scanComponentsDir(dir, srcDir, directoryAsNamespace);
       components.push(...scanned);
@@ -485,27 +544,52 @@ export function getBuiltinComposables(): Import[] {
   return imports;
 }
 
+/** unplugin-auto-import 的组装结果（透传字段类型直接引用 unplugin 类型，避免跨包类型命名问题）。 */
+export interface UbeanAutoImportConfig {
+  imports: UnpluginAutoImportOptions['imports'];
+  dirs: string[];
+  dts: UnpluginAutoImportOptions['dts'];
+  vueTemplate: boolean;
+  eslintrc: UnpluginAutoImportOptions['eslintrc'];
+}
+
 export function getUbeanAutoImportConfig(
   options: {
     cwd?: string;
     srcDir?: string;
     buildDir?: string;
     composablesDirs?: string[];
+    /** `ubean.config.ts` 的 `autoImports` 配置（默认最小：仅 ubean 内置 API）。 */
+    autoImports?: boolean | AutoImportOptions;
   } = {}
-) {
+): UbeanAutoImportConfig {
   const cwd = options.cwd || process.cwd();
   const srcDir = options.srcDir || join(cwd, 'src');
   const buildDir = options.buildDir || '.ubean';
   const composablesDirName = 'composables';
-  const composablesDirs = [join(srcDir, composablesDirName), ...(options.composablesDirs || [])];
+  const resolved = resolveAutoImportsConfig(options.autoImports);
+  const composablesDirs = [
+    join(srcDir, composablesDirName),
+    ...(resolved.options.dirs ?? []),
+    ...(options.composablesDirs || [])
+  ];
 
   return {
-    imports: [UBEAN_CLIENT_PRESET, VUE_ROUTER_PRESET, VUE_I18N_PRESET, UBEAN_SERVER_PRESET, HONO_OPENAPI_PRESET],
+    imports: [...getAutoImportPresets(resolved), ...toArray(resolved.options.imports)],
     dirs: composablesDirs,
-    dts: join(cwd, buildDir, 'auto-imports.d.ts'),
-    vueTemplate: true,
-    eslintrc: { enabled: false }
+    dts: resolved.options.dts === undefined ? join(cwd, buildDir, 'auto-imports.d.ts') : resolved.options.dts,
+    vueTemplate: resolved.options.vueTemplate ?? true,
+    eslintrc: resolved.options.eslintrc ?? { enabled: false }
   };
+}
+
+/** unplugin-vue-components 的组装结果（类型直接引用 unplugin，理由同上）。 */
+export interface UbeanComponentsConfig {
+  dirs: string[];
+  extensions: string[];
+  directoryAsNamespace: boolean;
+  dts: UnpluginComponentsOptions['dts'];
+  deep: boolean;
 }
 
 export function getUbeanComponentsConfig(
@@ -515,21 +599,28 @@ export function getUbeanComponentsConfig(
     buildDir?: string;
     componentsDirs?: string[];
     directoryAsNamespace?: boolean;
+    /** `ubean.config.ts` 的 `components` 配置。 */
+    components?: boolean | ComponentsOptions;
   } = {}
-) {
+): UbeanComponentsConfig {
   const cwd = options.cwd || process.cwd();
   const srcDir = options.srcDir || join(cwd, 'src');
   const buildDir = options.buildDir || '.ubean';
   const componentsDirName = 'components';
-  const componentsDirs = [join(srcDir, componentsDirName), ...(options.componentsDirs || [])];
-  const directoryAsNamespace = options.directoryAsNamespace ?? false;
+  const resolved = resolveComponentsConfig(options.components);
+  const componentsDirs = [
+    join(srcDir, componentsDirName),
+    ...(resolved.options.dirs ?? []),
+    ...(options.componentsDirs || [])
+  ];
+  const directoryAsNamespace = resolved.options.directoryAsNamespace ?? options.directoryAsNamespace ?? false;
 
   return {
     dirs: componentsDirs,
     extensions: ['vue'],
     directoryAsNamespace,
-    dts: join(cwd, buildDir, 'components.d.ts'),
-    deep: true
+    dts: resolved.options.dts === undefined ? join(cwd, buildDir, 'components.d.ts') : resolved.options.dts,
+    deep: resolved.options.deep ?? true
   };
 }
 

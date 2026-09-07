@@ -168,6 +168,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 ### 3.5 配置
 
 - `srcDir` 默认值：`{rootDir}/src`
+- **自动导入**（unplugin-auto-import / unplugin-vue-components）：顶层 `autoImports` / `components` 字段，类型均为 `boolean | AutoImportOptions` / `boolean | ComponentsOptions`。默认 `true` = 最小配置：仅自动导入 ubean 内置 API（`definePage`/`useHead`/`useData`/`setLocale`/`defineHandlerMeta`/`defineAction`/`useDatabase`…）与内置组件（`Link`/`Head`/`PageView`）。对象形态提供分库开关 `ubean`（默认 true）/`vue`/`vueRouter`/`vueI18n`/`honoOpenapi`（默认 false），并透传 unplugin-auto-import / unplugin-vue-components 的完整配置（`imports` 追加到内置预设、`dirs` 追加到 `src/composables`|`src/components`、`dts` 默认 `.ubean/*.d.ts`）；`false` 关闭（components 关闭后模块注册的 resolver 仍生效）。预设常量与 `resolveAutoImportsConfig`/`getAutoImportPresets` 从 `@ubean/build/codegen` 导出
 - `UbeanConfig` 的 `modules` 字段支持字符串包名、元组和实例
 - 平台预设：`standard`、`node`、`cloudflare`、`vercel`、`vercel-edge`、`netlify`、`bun`、`deno`（`default` → `standard`，`cf` → `cloudflare`，`node-server` → `node`，`vercel-serverless`/`vercel-node` → `vercel`，`netlify-functions` → `netlify`，`bun-runtime` → `bun`，`deno-deploy`/`deno-runtime` → `deno`）；`detectPreset()` 自动识别 `vercel.json`/`netlify.toml`/`deno.json`/`deno.jsonc` 配置文件、`VERCEL`/`NETLIFY` 环境变量、`globalThis.Deno`/`globalThis.Bun`/`process.versions.bun` 运行时全局,以及 `package.json` 中的 `vercel`/`@vercel/*`/`netlify-cli` 依赖
 - 启用 `electron: true` 时，`ssr` 默认值改为 `false`（桌面应用无需 SSR，除非显式指定 `ssr: true`）

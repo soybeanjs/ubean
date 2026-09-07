@@ -567,6 +567,58 @@ export interface ResolvedI18nConfig {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Auto-imports / global components                                            */
+/* -------------------------------------------------------------------------- */
+
+/** unplugin-auto-import 的原始选项（类型透传）。 */
+type UnpluginAutoImportOptions = import('unplugin-auto-import/types').Options;
+
+/**
+ * `autoImports` 对象形态：分库自动导入开关 + unplugin-auto-import 完整配置透传。
+ *
+ * - `ubean: true`（默认）：ubean 内置 API（`definePage`/`defineApp`/`useHead`/
+ *   `useData`/`setLocale`/`useCacheViews`/... 与服务端 `defineHandlerMeta`/
+ *   `defineAction`/`useDatabase`/`useKV`/...）。
+ * - `vue` / `vueRouter` / `vueI18n` / `honoOpenapi`：默认 `false` —— 最小配置
+ *   只自动导入 ubean 自有 API，第三方 API 按需开启（或直接从第三方包导入）。
+ * - `imports` 条目会追加到框架内置预设之后；`dirs` 会追加到 `src/composables`；
+ *   `dts` 默认 `<buildDir>/auto-imports.d.ts`（`.ubean/auto-imports.d.ts`）。
+ */
+export interface AutoImportOptions extends Omit<UnpluginAutoImportOptions, 'dirs'> {
+  /** ubean 内置 API（client + server 预设），默认 `true`。 */
+  ubean?: boolean;
+  /** vue composables（`ref`/`computed`/`watch`/`onMounted`/... + reactivity macros），默认 `false`。 */
+  vue?: boolean;
+  /** vue-router `useRouter`，默认 `false`。 */
+  vueRouter?: boolean;
+  /** vue-i18n `useI18n`，默认 `false`。 */
+  vueI18n?: boolean;
+  /** hono-openapi `validator`/`describeRoute`，默认 `false`。 */
+  honoOpenapi?: boolean;
+  /** 追加扫描的自动导入目录（默认扫描 `src/composables`）。 */
+  dirs?: string[];
+}
+
+/** unplugin-vue-components 的原始选项（类型透传）。 */
+type UnpluginComponentsOptions = import('unplugin-vue-components/types').Options;
+
+/**
+ * `components` 对象形态：ubean 内置组件开关 + unplugin-vue-components 完整配置透传。
+ *
+ * - `ubean: true`（默认）：解析内置组件 `Link`/`Head`/`PageView`（`.md` 编译也依赖此 resolver）。
+ * - `dirs` 会追加到 `src/components`；`dts` 默认 `<buildDir>/components.d.ts`
+ *   （`.ubean/components.d.ts`）；`extensions`/`include` 由框架根据 `markdown`
+ *   配置计算（用户传值会被覆盖）；模块注册的 resolver（如 `@ubean/integrations/ui`）
+ *   始终与用户 `resolvers` 合并。
+ */
+export interface ComponentsOptions extends Omit<UnpluginComponentsOptions, 'dirs'> {
+  /** ubean 内置组件解析（`Link`/`Head`/`PageView`），默认 `true`。 */
+  ubean?: boolean;
+  /** 追加扫描的组件目录（默认扫描 `src/components`）。 */
+  dirs?: string[];
+}
+
+/* -------------------------------------------------------------------------- */
 /* UbeanConfig                                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -786,16 +838,31 @@ export interface UbeanConfig {
       }
     | true
     | false;
-  imports?: {
-    autoImport?: boolean;
-    dirs?: string[];
-    global?: boolean;
-  };
-  components?: {
-    autoImport?: boolean;
-    dirs?: string[];
-    directoryAsNamespace?: boolean;
-  };
+  /**
+   * Auto-imports (unplugin-auto-import).
+   *
+   * - `true` / omitted (default, minimal): only ubean built-in APIs are
+   *   auto-imported (`definePage`/`useHead`/`useData`/`setLocale`/... plus
+   *   server-side `defineHandlerMeta`/`defineAction`/`useDatabase`/...).
+   * - `false`: disable auto-imports entirely.
+   * - object: per-library toggles (`ubean`/`vue`/`vueRouter`/`vueI18n`/
+   *   `honoOpenapi`) plus full unplugin-auto-import options passthrough
+   *   (`imports` entries are appended to the framework presets; `dirs` are
+   *   appended to `src/composables`).
+   */
+  autoImports?: boolean | AutoImportOptions;
+  /**
+   * Global components (unplugin-vue-components).
+   *
+   * - `true` / omitted (default, minimal): resolve ubean built-in components
+   *   (`Link`/`Head`/`PageView`) and scan `src/components`.
+   * - `false`: disable directory scanning (module-registered resolvers and
+   *   ubean built-in components still resolve).
+   * - object: `ubean` toggle + full unplugin-vue-components options
+   *   passthrough (`dirs` are appended to `src/components`; `extensions`/
+   *   `include` are framework-computed from the `markdown` config).
+   */
+  components?: boolean | ComponentsOptions;
   i18n?: false | I18nConfig;
   routing?: RoutingConfig;
   routeRules?: Record<string, RouteRule>;
@@ -900,8 +967,8 @@ export interface ResolvedConfig extends Required<
   preview: Required<NonNullable<UbeanConfig['preview']>>;
   build: Required<NonNullable<UbeanConfig['build']>>;
   markdown: Required<NonNullable<UbeanConfig['markdown']>>;
-  imports: Required<NonNullable<UbeanConfig['imports']>>;
-  components: Required<NonNullable<UbeanConfig['components']>>;
+  autoImports: boolean | AutoImportOptions;
+  components: boolean | ComponentsOptions;
   i18n: ResolvedI18nConfig;
   routing: ResolvedRoutingConfig;
   /**

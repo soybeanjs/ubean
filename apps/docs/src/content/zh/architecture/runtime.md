@@ -1617,22 +1617,32 @@ const router = useRouter();
 **自动扫描目录**：
 
 - `components/` — 扫描所有 `.vue` 组件（支持嵌套目录，目录名作为命名空间：`Foo/Bar.vue` → `<FooBar />`）
-- ubean 内置组件（`<Link>`、`<Head>`、`<ClientOnly>` 等）始终可用
+- ubean 内置组件（`<Link>`、`<Head>`、`<PageView>`）始终可用
 
 #### 配置
 
 ```typescript
 // ubean.config.ts
 export default defineConfig({
-  imports: {
-    autoImport: true, // composables 自动导入，默认 true
-    dirs: ['composables', 'composables/*/index.{ts,vue}'],
-    global: false // 是否注入到全局（false 则仅在类型中可见）
+  // 默认（true）：仅自动导入 ubean 内置 API（definePage/useHead/useData/setLocale/…）
+  autoImports: true,
+  components: true,
+
+  // 按库开启第三方 API 自动导入，并透传 unplugin-auto-import 其余选项
+  autoImports: {
+    ubean: true,        // ubean 内置 API（默认 true）
+    vue: false,         // vue composables（ref/computed/watch/…）
+    vueRouter: false,   // vue-router useRouter
+    vueI18n: false,     // vue-i18n useI18n
+    honoOpenapi: false, // hono-openapi validator/describeRoute
+    dirs: ['composables', 'composables/*/index.{ts,vue}'], // 追加扫描目录
+    // 其余 unplugin-auto-import 选项（imports/dts/eslintrc/…）原样透传
   },
   components: {
-    autoImport: true, // 组件自动导入，默认 true
+    ubean: true,        // 内置组件 <Link>/<Head>/<PageView> 解析（默认 true）
     dirs: ['components'],
-    directoryAsNamespace: false // 目录作为命名空间
+    directoryAsNamespace: false,
+    // 其余 unplugin-vue-components 选项（resolvers/dts/deep/…）原样透传
   }
 });
 ```

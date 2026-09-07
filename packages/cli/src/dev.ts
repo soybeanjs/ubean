@@ -264,10 +264,8 @@ async function buildApp(
     srcDir: config.srcDir,
     buildDir: '.ubean',
     dirs: config.dir,
-    imports: config.imports,
-    components: config.components,
-    composablesDirs: config.imports.dirs,
-    componentsDirs: config.components.dirs
+    autoImports: config.autoImports,
+    components: config.components
   });
 
   const app = createUbeanApp({

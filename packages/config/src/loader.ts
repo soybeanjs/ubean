@@ -199,8 +199,8 @@ const configDefaults: ResolvedConfig = {
     remarkPlugins: [],
     rehypePlugins: []
   },
-  imports: { autoImport: true, dirs: [], global: false },
-  components: { autoImport: true, dirs: [], directoryAsNamespace: false },
+  autoImports: true,
+  components: true,
   i18n: resolveI18nConfig(),
   routing: resolveRoutingConfig(),
   routeRules: {},

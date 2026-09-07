@@ -282,17 +282,16 @@ describe('generateRegistryModule', () => {
     ]);
     const code = generateRegistryModule(map);
 
-    // Should import both components
-    expect(code).toContain(`import __island_0 from "/src/components/IslandCounter.vue";`);
-    expect(code).toContain(`import __island_1 from "/src/components/IslandMedia.vue";`);
-
-    // Should export both in the islands object
-    expect(code).toContain(`"IslandCounter": __island_0`);
-    expect(code).toContain(`"IslandMedia": __island_1`);
+    // Should export lazy loaders (dynamic imports keep island components out
+    // of the client entry chunk — islands must stay deferred)
+    expect(code).toContain(`"IslandCounter": () => import("/src/components/IslandCounter.vue")`);
+    expect(code).toContain(`"IslandMedia": () => import("/src/components/IslandMedia.vue")`);
 
     // Should be valid module structure
     expect(code).toContain('export const islands = {');
     expect(code.trim().endsWith('};')).toBe(true);
+    // Should not contain eager imports
+    expect(code).not.toContain('import __island_');
   });
 
   it('handles bare specifiers (node_modules)', () => {
@@ -300,8 +299,7 @@ describe('generateRegistryModule', () => {
       ['ExternalComp', { name: 'ExternalComp', importPath: 'some-lib', sourceFile: '/src/pages/test.vue' }]
     ]);
     const code = generateRegistryModule(map);
-    expect(code).toContain(`import __island_0 from "some-lib";`);
-    expect(code).toContain(`"ExternalComp": __island_0`);
+    expect(code).toContain(`"ExternalComp": () => import("some-lib")`);
   });
 
   it('generates syntactically valid object with commas between entries (regression)', () => {
@@ -326,7 +324,7 @@ describe('generateRegistryModule', () => {
     }
 
     // Sanity check: the object literal (with placeholder values) must parse as valid JS.
-    const objLiteral = `{${body.replace(/__island_\d+/g, 'null')}}`;
+    const objLiteral = `{${body.replace(/\(\) => import\([^)]*\)/g, 'null')}}`;
     expect(() => JSON.parse(objLiteral.replace(/'/g, '"').replace(/,(\s*[}\]])/g, '$1'))).not.toThrow();
   });
 });

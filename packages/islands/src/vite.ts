@@ -703,14 +703,16 @@ function extractScriptBlock(code: string): string {
 /**
  * 生成 `virtual:ubean-islands-registry` 模块内容。
  *
+ * 组件以惰性 loader（`() => import(...)`）形式导出 —— 内核 `hydrateIslands`
+ * 的 `components` 类型本就接受 `Component | (() => Promise<Component>)`，
+ * `Promise.resolve` 统一解析。惰性加载保证 islands 组件不因注册表被客户端
+ * 入口静态导入而进入 entry chunk（islands 按需加载是架构前提）。
+ *
  * 输出示例：
  * ```ts
- * import __island_0 from '/src/components/IslandCounter.vue';
- * import __island_1 from '/src/components/IslandMedia.vue';
- *
  * export const islands = {
- *   "IslandCounter": __island_0,
- *   "IslandMedia": __island_1
+ *   "IslandCounter": () => import('/src/components/IslandCounter.vue'),
+ *   "IslandMedia": () => import('/src/components/IslandMedia.vue')
  * };
  * ```
  *
@@ -721,17 +723,12 @@ export function generateRegistryModule(components: IslandComponentMap): string {
     return 'export const islands = {};';
   }
 
-  const imports: string[] = [];
   const entries: string[] = [];
-
-  let idx = 0;
   for (const [name, entry] of components) {
-    const varName = `__island_${idx++}`;
-    imports.push(`import ${varName} from ${JSON.stringify(entry.importPath)};`);
-    entries.push(`  ${JSON.stringify(name)}: ${varName},`);
+    entries.push(`  ${JSON.stringify(name)}: () => import(${JSON.stringify(entry.importPath)}),`);
   }
 
-  return [...imports, '', 'export const islands = {', ...entries, '};'].join('\n');
+  return ['export const islands = {', ...entries, '};'].join('\n');
 }
 
 /**

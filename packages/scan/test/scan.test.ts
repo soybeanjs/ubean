@@ -49,7 +49,10 @@ describe('scanProject — 聚合扫描', () => {
   });
 
   it('API 路由扫描:方法后缀 + defineHandler 导出检测', async () => {
-    writeFile('routes/users.get.ts', `import { defineHandler } from '@ubean/routes';\nexport const GET = defineHandler(async ctx => ctx.json({}));\n`);
+    writeFile(
+      'routes/users.get.ts',
+      `import { defineHandler } from '@ubean/routes';\nexport const GET = defineHandler(async ctx => ctx.json({}));\n`
+    );
     const result = await scan();
     expect(result.apiRoutes).toHaveLength(1);
     expect(result.apiRoutes[0].route).toBe('/users');
@@ -72,5 +75,38 @@ describe('scanProject — 聚合扫描', () => {
     writeFile('pages/guide.md', `# Guide\n\ncontent`);
     const result = await scan();
     expect(result.pages.find(p => p.route === '/guide')?.isMarkdown).toBe(true);
+  });
+
+  it('app 入口扫描:src/App.vue 根组件(root)自动检测(大写回退)', async () => {
+    writeFile('App.vue', '<template><slot /></template>');
+    writeFile('app.ts', `import { defineApp } from 'ubean';\nexport default defineApp({ rootId: 'app' });\n`);
+    const result = await scan();
+    expect(result.appEntry.root?.exists).toBe(true);
+    expect(result.appEntry.root?.relativePath).toBe('App.vue');
+    // 配置入口仍按 ts/js 检测,root 不与之冲突(扩展名区分)
+    expect(result.appEntry.shared.exists).toBe(true);
+    expect(result.appEntry.shared.relativePath).toBe('app.ts');
+  });
+
+  it('app 入口扫描:src/app.vue(小写)优先于 src/App.vue', async () => {
+    writeFile('app.vue', '<template><slot /></template>');
+    writeFile('App.vue', '<template><slot /></template>');
+    const result = await scan();
+    expect(result.appEntry.root?.exists).toBe(true);
+    expect(result.appEntry.root?.relativePath).toBe('app.vue');
+    expect(result.appEntry.root?.fullPath).toContain('app.vue');
+  });
+
+  it('app 入口扫描:仅 src/app.vue(小写)也可被检测', async () => {
+    writeFile('app.vue', '<template><slot /></template>');
+    const result = await scan();
+    expect(result.appEntry.root?.exists).toBe(true);
+    expect(result.appEntry.root?.relativePath).toBe('app.vue');
+  });
+
+  it('无 src/app.vue / src/App.vue → appEntry.root 为 undefined', async () => {
+    const result = await scan();
+    expect(result.appEntry.root?.exists).toBeFalsy();
+    expect(result.appEntry.root).toBeUndefined();
   });
 });

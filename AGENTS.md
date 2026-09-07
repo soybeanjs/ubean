@@ -139,6 +139,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
   - `loading.vue`（或 `.ts`/`.md`）→ `<Suspense>` fallback 组件，在 SPA 导航懒加载页面组件期间显示；仅客户端生效（SSR 同步解析无需 loading）
   - `error.vue`（或 `.ts`/`.md`）→ 错误边界（ErrorBoundary）组件，当页面组件渲染/异步解析/setup 抛出错误时显示，接收 `error` prop；路由切换时自动重置；仅客户端生效
   - 仅根目录文件被视为特殊页面；`users/404.vue` 仍为常规路由 `/users/404`
+- **应用根组件**（`src/app.vue`（小写，优先）/ `src/App.vue`（大写回退）自动检测，不作为常规路由注册）：应用级包装组件，包裹布局链 + 页面（经默认 slot 注入，组件内 `<slot />` 声明位置）。优先级：`defineApp({ appRoot })` > `src/app.vue` > `src/App.vue`。对应经典 Vue 入口组件 / Nuxt `app.vue` 定位；详见第 4 节 `appRoot` 说明
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序。开发态加载后启动 `startCronScheduler`；生产 eager glob 打进 server-entry。Node/bun/deno 启动进程内调度器；serverless/edge **不**装（用平台 cron）。
 - **Server Actions（表单 action）**：页面模块可 `export const actions = { name: defineAction(...) }`，POST 表单通过 `?/<actionName>` URL 分发（SvelteKit 风格，渐进增强）；详见第 4 节 Server Actions
 - `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`、`transition`（页面过渡名，空串禁用本页过渡；**没有** 顶层 `title`/`middleware` 字段，路由级中间件用 `meta: { middleware }` 透传）。客户端导航守卫用 `defineApp({ router: { setup } })`，不要发明第二套 `middleware/*.global` 文件约定
@@ -217,13 +218,20 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `createUbeanApp(options)`（`@ubean/app` / `ubean/server`） | 创建 ubean **Hono** 应用（`UbeanApp`）。`createUbeanApp` 全仓专指 Hono 工厂           |
 | `createUbeanClientApp(options)`（`@ubean/client`）         | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。主入口 `ubean` 不导出此函数 |
 
-`DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
+`DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`appRoot`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
 
 > `errorComponent` / `loadingComponent` 说明：
 >
 > - `loadingComponent`：页面懒加载期间的 `<Suspense>` fallback 组件。优先级：`defineApp({ loadingComponent })` > `pages/loading.vue` 自动检测。仅客户端生效。
 > - `errorComponent`：渲染错误兜底组件，通过 Vue `errorCaptured` 实现错误边界（ErrorBoundary）。当页面组件渲染、异步解析或 setup 抛出错误时显示。接收 `error` prop。优先级：`defineApp({ errorComponent })` > `pages/error.vue` 自动检测。路由切换时自动重置。
 > - 两者均通过 `provide`/`inject` 注入到 `PageView` 组件，无需手动处理。
+
+> `appRoot` 说明：
+>
+> - 应用根组件（包装组件，可选）—— 经典 Vue `App.vue` / Nuxt `app.vue` 的编程式等价物。组件包裹在框架根组件（`UbeanAppRoot`）之上，框架出口（布局链 + 页面）通过**默认 slot** 注入，组件内用 `<slot />` 声明渲染位置。适合放置必须在布局之上的全局内容（ConfigProvider/主题上下文/全局错误边界/过渡容器）。
+> - 优先级：`defineApp({ appRoot })` > `src/app.vue`（小写，对齐配置入口 `app.ts`）> `src/App.vue`（大写，经典 Vue 约定）。两者均只认 `.vue` 扩展（`app.ts` 等 ts/js 命名归配置入口）。
+> - 自动检测文件也随 `virtual:ubean-app` 静态 import；SSR/客户端从同一个 `resolveAppConfig()` 读到一致的 `appRoot`，保证水合结构一致。
+> - 不要在 `appRoot` 里渲染 `<PageView />`/`<RouterView />` —— 那会绕过布局链（布局解析在 `UbeanLayoutView` 闭包内）；出口是 `<slot />`。
 
 > `router` 字段接收 `RouterConfig`(`{ setup(router) }`),在 router 实例创建后、`app.use(router)` 之前调用 `setup`,用于注册 vue-router 的导航守卫(`beforeEach`/`beforeResolve`/`afterEach`)。Client 和 SSR 都会执行;`app.ts` + `app.server.ts`/`app.client.ts` 中各自定义的 `setup` 会**累加执行**(shared 先,client/server 后)。
 

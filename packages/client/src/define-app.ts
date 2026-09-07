@@ -53,6 +53,32 @@ export interface DefineAppOptions {
   rootId?: string;
   rootAttrs?: Record<string, string>;
   /**
+   * 应用根组件(包装组件,可选)—— 经典 Vue `App.vue` 的编程式等价物。
+   *
+   * 组件包裹在框架根组件(`UbeanAppRoot`)之上,框架出口(布局链 + 页面)
+   * 通过**默认 slot** 注入,组件内用 `<slot />` 声明渲染位置:
+   *
+   * ```vue
+   * <!-- src/app.ts 对应的 AppRoot.vue -->
+   * <template>
+   *   <SConfigProvider>
+   *     <AppHeader />
+   *     <slot /> <!-- 布局链 + 页面在这里渲染 -->
+   *   </SConfigProvider>
+   * </template>
+   * ```
+   *
+   * 适合放置"必须在布局之上"的全局内容:全局 ConfigProvider/主题上下文、
+   * 覆盖布局自身的错误边界、全局过渡/动效容器等。不要用它渲染
+   * `<PageView />` / `<RouterView />` —— 那会绕过布局链;出口是 `<slot />`。
+   *
+   * 自动检测:`src/app.vue`(小写,Nuxt 风格,优先)/ `src/App.vue`
+   * (大写,经典 Vue 约定)文件约定(与 loading/error 特殊页同模式),
+   * 两者都存在时取小写;无该文件时忽略。优先级:
+   * `defineApp({ appRoot })` > `src/app.vue` > `src/App.vue`。
+   */
+  appRoot?: Component;
+  /**
    * 路由钩子配置,用于注册 vue-router 的导航守卫。
    * 在 Client 和 SSR 都会执行。
    */
@@ -115,6 +141,10 @@ export interface ResolvedAppConfig {
   head?: PageHead;
   rootId: string;
   rootAttrs: Record<string, string>;
+  /**
+   * 应用根组件(包装组件,可选)。语义见 `DefineAppOptions.appRoot`。
+   */
+  appRoot?: Component;
   router?: RouterConfig;
   onAppCreated?: (app: App) => void | Promise<void>;
   onClientReady?: (app: App) => void | Promise<void>;
@@ -147,6 +177,7 @@ export function defineApp(options: DefineAppOptions): ResolvedAppConfig {
     head: options.head,
     rootId: options.rootId || 'app',
     rootAttrs: options.rootAttrs || {},
+    appRoot: options.appRoot,
     router: options.router,
     onAppCreated: options.onAppCreated,
     onClientReady: options.onClientReady,
@@ -214,6 +245,7 @@ export function mergeAppConfig(
     if (cfg.onClientReady) result.onClientReady = cfg.onClientReady;
     if (cfg.errorComponent) result.errorComponent = cfg.errorComponent;
     if (cfg.loadingComponent) result.loadingComponent = cfg.loadingComponent;
+    if (cfg.appRoot) result.appRoot = cfg.appRoot;
     if (cfg.viewTransitions !== undefined) result.viewTransitions = cfg.viewTransitions;
     if (cfg.serializeState) result.serializeState = cfg.serializeState;
     if (cfg.hydrateState) result.hydrateState = cfg.hydrateState;

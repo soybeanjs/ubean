@@ -249,7 +249,8 @@ async function prepareRender(
       resolveLayoutComponent: options.resolveLayoutComponent,
       defaultLayout: options.defaultLayout,
       head,
-      i18n
+      i18n,
+      appRoot: appConfig?.appRoot
     });
     if (appConfig) {
       await applyServerAppConfig(createdApp, appConfig);

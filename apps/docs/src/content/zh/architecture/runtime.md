@@ -7,6 +7,38 @@ description: ubean 运行时：defineApp、应用配置、开发服务器、预�
 
 与 void 硬编码 `createSSRApp(App)` 不同，ubean 提供 `defineApp` 函数让用户完全控制 Vue 应用实例的创建和配置，支持注册插件、全局组件、指令、provide/inject 等。
 
+#### 应用根组件 (App.vue / appRoot)
+
+ubean 的应用外壳由框架内部生成（`UbeanAppRoot` → 布局链 → `PageView` → 页面）。如果需要在**布局之上**再包一层全局内容（全局 ConfigProvider/主题上下文、覆盖布局自身的错误边界、全局过渡容器等），可以提供一个"应用根组件"——经典 Vue `App.vue` 的入口组件模式（对应 Nuxt 的 `app.vue`）。
+
+**两种提供方式（优先级：`defineApp({ appRoot })` > `src/app.vue` > `src/App.vue`）：**
+
+```vue
+<!-- src/app.vue — 自动检测的应用根组件(小写优先;也可用大写 src/App.vue) -->
+<script setup lang="ts">
+import { SConfigProvider } from '@soybeanjs/ui';
+</script>
+
+<template>
+  <SConfigProvider>
+    <!-- 框架出口(布局链 + 页面)经默认 slot 注入 —— 用 <slot /> 声明渲染位置 -->
+    <slot />
+  </SConfigProvider>
+</template>
+```
+
+```typescript
+// app.ts — 编程式等价物(显式配置优先于文件自动检测)
+import { defineApp } from 'ubean';
+import AppRoot from './src/components/AppRoot.vue';
+
+export default defineApp({
+  appRoot: AppRoot
+});
+```
+
+组件渲染在框架根组件之上，因此布局系统、KeepAlive、错误边界、水合全部原样保留。**注意**：不要在根组件里渲染 `<PageView />`/`<RouterView />` —— 那会绕过布局链；出口始终是 `<slot />`。文件命名支持小写 `src/app.vue`（对齐 `app.ts` 配置入口，优先）与大写 `src/App.vue`（经典 Vue 约定）；仅 `.vue` 扩展参与检测，`app.ts` 等 ts/js 命名归 defineApp 配置入口。
+
 #### 设计理念
 
 用户在项目根目录（或 `srcDir`）创建 `app.ts`（可选 `app.server.ts` / `app.client.ts` 区分服务端/客户端），通过 `defineApp(options)` 导出一个**配置对象**（不是工厂函数）。ubean 在创建 Vue 实例后通过 `applyAppConfig(app, config, mode)` 将该配置应用到 `app` 上，从而支持注册插件、全局组件、provide/inject、错误组件、View Transitions 等。
@@ -162,6 +194,12 @@ export interface DefineAppOptions {
   rootId?: string;
   /** 根元素额外属性 */
   rootAttrs?: Record<string, string>;
+  /**
+   * 应用根组件(包装组件) — 经典 Vue `App.vue` / Nuxt `app.vue` 的编程式等价物。
+   * 框架出口(布局链 + 页面)经默认 slot 注入,组件内用 `<slot />` 声明位置。
+   * 优先级:defineApp({ appRoot }) > src/app.vue > src/App.vue。
+   */
+  appRoot?: Component;
   /** 路由钩子配置 — 注册 beforeEach/beforeResolve/afterEach 等导航守卫 */
   router?: RouterConfig;
   /** App 创建后回调 */
@@ -195,6 +233,7 @@ export interface ResolvedAppConfig {
   head?: PageHead;
   rootId: string;
   rootAttrs: Record<string, string>;
+  appRoot?: Component;
   router?: RouterConfig;
   onAppCreated?: (app: VueApp) => void | Promise<void>;
   onClientReady?: (app: VueApp) => void | Promise<void>;

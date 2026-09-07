@@ -1,4 +1,4 @@
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { getLogger } from '@ubean/shared/logger';
 import { filePathToRoute, scanPages } from '@ubean/vue/vite';
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
@@ -488,15 +488,39 @@ async function scanAppEntry(srcDir: string): Promise<ScannedAppEntry> {
     return { exists: false };
   };
 
-  const [shared, server, client] = await Promise.all([
+  // 应用根组件(包装组件)自动检测:小写 `app.vue`(与配置入口 `app.ts`
+  // 共用 `app` 词根但扩展名不同,可共存)优先,其次大写 `App.vue`
+  // (经典 Vue 入口约定)。两者都只认 `.vue` 扩展 —— `app.ts` 等 ts/js
+  // 命名被 defineApp 配置入口占用(见本函数)。
+  // 用 readdir 精确匹配文件名大小写:macOS/Windows 默认大小写不敏感的
+  // 文件系统上 existsSync('app.vue') 会误命中真实存在的 'App.vue',
+  // 导致探测结果依赖磁盘格式(而非约定的优先级)。
+  const scanRootApp = async (): Promise<AppEntry> => {
+    let entries: string[];
+    try {
+      entries = await readdir(srcDir);
+    } catch {
+      return { exists: false };
+    }
+    for (const name of ['app.vue', 'App.vue']) {
+      if (entries.includes(name)) {
+        return { exists: true, fullPath: join(srcDir, name), relativePath: name };
+      }
+    }
+    return { exists: false };
+  };
+
+  const [shared, server, client, root] = await Promise.all([
     findEntry('app'),
     findEntry('app.server'),
-    findEntry('app.client')
+    findEntry('app.client'),
+    scanRootApp()
   ]);
 
   result.shared = shared;
   result.server = server;
   result.client = client;
+  if (root.exists) result.root = root;
 
   return result;
 }

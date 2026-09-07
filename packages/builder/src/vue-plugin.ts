@@ -266,7 +266,7 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
 
       async function handleFileChange(file: string) {
         const rel = file.replace(`${srcDir}/`, '');
-        const isAppFile = /^app(\.(server|client))?\.(ts|js|mjs|mts)$/.test(rel);
+        const isAppFile = /^(app(\.(server|client))?|App)\.(ts|js|mjs|mts|vue)$/.test(rel);
         const isServerFile = /^server(\.(dev|prod))?\.(ts|js|mjs|mts)$/.test(rel);
         const isMarkdownFile = new RegExp(`\\.(${mdExtensions.join('|')})$`).test(rel);
         if (isAppFile || isServerFile || watchDirs.some(d => rel.startsWith(`${d}/`)) || isMarkdownFile) {

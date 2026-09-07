@@ -98,6 +98,18 @@ export interface UbeanAppOptions {
    */
   errorComponent?: Component | (() => Component);
   /**
+   * 应用根组件(包装组件,可选)—— 经典 Vue `App.vue` / Nuxt `app.vue` 的
+   * 编程式等价物。
+   *
+   * 组件包裹在框架根组件(`UbeanAppRoot`)之上,框架出口(布局链 + 页面)
+   * 通过**默认 slot** 注入,组件内用 `<slot />` 声明渲染位置。适合放置
+   * 必须在布局之上的全局内容(ConfigProvider/主题上下文/全局错误边界)。
+   *
+   * 优先级:`defineApp({ appRoot })` > `src/app.vue`(小写优先)> `src/App.vue`
+   * (后两者在 `virtual:ubean-app` 中 resolve 成 loader 传入)。
+   */
+  appRoot?: Component | (() => Component);
+  /**
    * vue-i18n instance (`legacy: false`). Created by `createUbeanI18n`.
    * Installed with `app.use(i18n)` before the router.
    */
@@ -223,7 +235,8 @@ function createRootComponent(
   transitionOpts: ViewTransitionOptions,
   isSSR: boolean,
   loadingComponent?: Component | null,
-  errorComponent?: Component | null
+  errorComponent?: Component | null,
+  appRootComponent?: Component | null
 ) {
   return defineComponent({
     name: isSSR ? 'UbeanSSRApp' : 'UbeanAppRoot',
@@ -238,7 +251,14 @@ function createRootComponent(
       // re-render on locale switches. Lean `@ubean/vue` SPAs never load this.
       provide(LOCALIZE_PATH_KEY, (path: string, locale?: string) => localizePath(path, locale));
 
-      return () => h(LayoutWrapper);
+      return () => {
+        const outlet = h(LayoutWrapper);
+        if (!appRootComponent) return outlet;
+        // 用户根组件是纯包装:框架出口(布局链 + 页面)通过默认 slot 注入,
+        // 组件内 `<slot />` 声明渲染位置。provide 仍由本组件完成,因此
+        // appRoot 里使用 usePage()/SSR_KEY 等依旧可用。
+        return h(appRootComponent as ConcreteComponent, null, { default: () => outlet });
+      };
     }
   });
 }
@@ -293,7 +313,8 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
     transitionOpts,
     false,
     resolveComp(options.loadingComponent),
-    resolveComp(options.errorComponent)
+    resolveComp(options.errorComponent),
+    resolveComp(options.appRoot)
   );
 
   const app = options.hydrate ? _createSSRApp(RootComponent) : _createApp(RootComponent);
@@ -354,7 +375,8 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
     { enabled: false },
     true,
     resolveComp(options.loadingComponent),
-    resolveComp(options.errorComponent)
+    resolveComp(options.errorComponent),
+    resolveComp(options.appRoot)
   );
 
   const app = _createSSRApp(RootComponent);

@@ -66,26 +66,34 @@ ubean auto-detects special pages at the **root** of `src/pages/`. These are not 
 
 Only root-level files are treated as special. A nested file like `pages/users/404.vue` remains a regular route at `/users/404`.
 
+#### Application Root Component (`src/app.vue` / `src/App.vue`)
+
+Separate from the `pages/` specials, ubean also auto-detects an **application root component** at `src/app.vue` (lowercase, preferred — aligns with the `app.ts` defineApp entry) or `src/App.vue` (capitalized, classic Vue). When both exist, lowercase `app.vue` wins. It's a wrapper above the framework root component: the layout chain + page are injected through its **default slot** — render it with `<slot />`. This is where global context providers (`SConfigProvider` etc.), app-wide error boundaries above layouts, or global transition containers belong. See [Runtime — Application Root Component](/architecture/runtime#application-root-component--appvue--approot) for the full contract.
+
 #### Overriding via `defineApp`
 
-Both `loadingComponent` and `errorComponent` can also be configured (or overridden) programmatically via `defineApp`:
+`loadingComponent`, `errorComponent`, and `appRoot` can also be configured (or overridden) programmatically via `defineApp`:
 
 ```typescript
 // src/app.ts
 import { defineApp } from 'ubean';
 import MyLoading from './components/MyLoading.vue';
 import MyError from './components/MyError.vue';
+import MyAppRoot from './components/MyAppRoot.vue';
 
 export default defineApp({
   // Overrides pages/loading.vue auto-detection
   loadingComponent: MyLoading,
 
   // Overrides pages/error.vue auto-detection
-  errorComponent: MyError
+  errorComponent: MyError,
+
+  // Overrides src/app.vue / src/App.vue auto-detection (wrapper above layouts + page)
+  appRoot: MyAppRoot
 });
 ```
 
-Priority: `defineApp({ loadingComponent / errorComponent })` > `pages/loading.vue` / `pages/error.vue` auto-detection.
+Priority: `defineApp({ loadingComponent / errorComponent })` > `pages/loading.vue` / `pages/error.vue` auto-detection. For `appRoot`: `defineApp({ appRoot })` > `src/app.vue` > `src/App.vue` auto-detection.
 
 `errorComponent` wraps the page content in an error boundary (using Vue's `errorCaptured` lifecycle). The error state auto-resets when the route changes, so navigating away from a broken page clears the boundary.
 

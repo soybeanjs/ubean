@@ -84,6 +84,20 @@ export interface ScannedAppEntry {
   shared: AppEntry;
   server: AppEntry;
   client: AppEntry;
+  /**
+   * `src/app.vue` / `src/App.vue` — 应用根组件(包装组件,可选)。
+   *
+   * 两种命名都支持(经典 Vue `App.vue` 大写约定 / Nuxt 风格小写
+   * `app.vue`),仅 `.vue` 扩展(defineApp 配置入口 `app.ts`/
+   * `app.server.ts`/`app.client.ts` 已占用 ts/js 命名)。若两者同时存在,
+   * **小写 `app.vue` 优先**(与配置入口共用 `app` 词根,扩展名不同可共存)。
+   *
+   * 当用户显式配置 `defineApp({ appRoot })` 时,该文件作为回退
+   * (优先级:`defineApp({ appRoot })` > `src/app.vue` > `src/App.vue`)。
+   * 组件渲染约定:框架出口(布局链 + 页面)通过默认 slot 注入,组件内用
+   * `<slot />` 声明渲染位置。
+   */
+  root?: AppEntry;
 }
 
 export interface ScannedServerEntry {

@@ -16,7 +16,8 @@
     "release": "soy release",
     "test": "pnpm -r --parallel test -- --passWithNoTests",
     "test:watch": "pnpm -r --parallel test:watch -- --passWithNoTests",
-    "typecheck": "pnpm build && pnpm -r --parallel typecheck",
+    "typecheck": "pnpm build && pnpm typecheck-only",
+    "typecheck-only": "pnpm -r --parallel typecheck",
     "upkg": "ncu -u -w"
   },
   "devDependencies": {

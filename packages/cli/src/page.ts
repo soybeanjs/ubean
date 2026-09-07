@@ -189,7 +189,7 @@ definePage({
         pascalName: toPascalCase(name)
       });
     case 'middleware':
-      return `import { defineMiddleware } from 'ubean';
+      return `import { defineMiddleware } from 'ubean/server';
 
 export default defineMiddleware(async (c, next) => {
   console.log('${name} middleware');

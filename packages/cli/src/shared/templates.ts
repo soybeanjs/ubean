@@ -104,14 +104,14 @@ definePage({
 
 `;
 
-export const API_TEMPLATE = `import { defineHandler } from 'ubean';
+export const API_TEMPLATE = `import { defineHandler } from 'ubean/server';
 
 export default defineHandler(async c => {
   return c.json({ message: '{{name}} endpoint' });
 });
 `;
 
-export const MIDDLEWARE_TEMPLATE = `import { defineMiddleware } from 'ubean';
+export const MIDDLEWARE_TEMPLATE = `import { defineMiddleware } from 'ubean/server';
 
 export default defineMiddleware(async (c, next) => {
   console.log('{{name}} middleware');
@@ -134,7 +134,7 @@ definePage({
 </template>
 `;
 
-export const CRON_TEMPLATE = `import { defineScheduled } from 'ubean';
+export const CRON_TEMPLATE = `import { defineScheduled } from 'ubean/server';
 
 export default defineScheduled({
   name: '{{name}}',

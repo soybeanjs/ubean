@@ -238,7 +238,7 @@ A full-stack project powered by ubean.
 // ============ 入口文件 ============
 
 const APP_TS = [
-  "import { defineApp, hydrateIslands } from 'ubean/runtime/vue';",
+  "import { defineApp, hydrateIslands } from 'ubean/client';",
   "import IslandClock from './components/IslandClock.vue';",
   "import IslandCounter from './components/IslandCounter.vue';",
   "import IslandMedia from './components/IslandMedia.vue';",
@@ -290,7 +290,7 @@ const APP_TS = [
 ].join('\n');
 
 const SERVER_TS = [
-  "import { defineServer } from 'ubean/runtime/app';",
+  "import { defineServer } from 'ubean/server';",
   '',
   'export default defineServer({',
   '  // 运行时钩子(dev 下请求日志已由 CLI 输出,如需自定义可在此添加)',
@@ -361,7 +361,7 @@ definePage({
 // ============ 中间件 ============
 
 const GLOBAL_MIDDLEWARE = [
-  "import { defineMiddleware } from 'ubean';",
+  "import { defineMiddleware } from 'ubean/server';",
   '',
   'export default defineMiddleware(async (c, next) => {',
   '  const start = Date.now();',
@@ -376,7 +376,7 @@ const GLOBAL_MIDDLEWARE = [
 // ============ API 路由 ============
 
 const HELLO_API = `import { pipe, description, object, string, number } from 'valibot';
-import { defineHandler, describeRoute, resolver } from 'ubean';
+import { defineHandler, describeRoute, resolver } from 'ubean/server';
 
 const helloWorldSchema = object({
   message: pipe(string(), description('The greeting message')),
@@ -421,7 +421,7 @@ export const flatApi = toFlatTypedClient<paths, '/api'>(request, '/api');
 
 const REQUEST_INTERNAL = `import { createRequest } from '@soybeanjs/fetch';
 import { createTypedClient } from '@soybeanjs/fetch/openapi';
-import { createInternalAdapter } from 'ubean';
+import { createInternalAdapter } from 'ubean/server';
 import type { paths } from '../../.ubean/openapi';
 
 export function createServerApi(context: Parameters<typeof createInternalAdapter>[0]) {
@@ -824,7 +824,7 @@ const FAVICON_SVG = `<svg width="100%" height="100%" version="1.1" viewBox="0 0 
 `;
 
 /** 简化版 app.ts — 无 Islands / 无路由守卫 */
-const APP_TS_BASE = `import { defineApp } from 'ubean/runtime/vue';
+const APP_TS_BASE = `import { defineApp } from 'ubean/client';
 
 export default defineApp({
   head: {

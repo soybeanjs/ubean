@@ -376,7 +376,7 @@ import {
   defineServer,
   createDefaultServerConfig,
   mergeServerConfigs
-} from 'ubean/runtime/app';
+} from 'ubean/server';
 
 export {
   defineServer,

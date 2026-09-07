@@ -142,7 +142,7 @@ describe('createLocalesVirtualModule()', () => {
     const mod = createLocalesVirtualModule(locales, 'en', 'src');
     const code = await mod.load();
 
-    expect(code).toContain("await import('ubean/runtime/i18n')");
+    expect(code).toContain("await import('ubean/i18n')");
     expect(code).toContain('i18nRuntime.registerLocaleLoader(loadLocale)');
     expect(code).toContain('import.meta.env.SSR');
     expect(code).toContain('src/locales/**/*.{json,json5,yaml,yml,js,mjs,cjs,ts,mts,cts}');

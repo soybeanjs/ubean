@@ -36,8 +36,8 @@ describe('auto-import presets(自 @ubean/auto-imports 并入)', () => {
     expect(names).not.toContain('t');
   });
 
-  it('UBEAN_SERVER_PRESET 源自主入口 ubean', () => {
-    expect(UBEAN_SERVER_PRESET.from).toBe('ubean');
+  it('UBEAN_SERVER_PRESET 源自服务端聚合入口 ubean/server', () => {
+    expect(UBEAN_SERVER_PRESET.from).toBe('ubean/server');
     expect(UBEAN_SERVER_PRESET.imports as string[]).toContain('defineHandlerMeta');
   });
 

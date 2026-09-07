@@ -166,8 +166,6 @@ export const VUE_MACROS_PRESET: InlinePreset = {
  * Client-safe symbols sourced from the first-class `ubean/client` entry.
  * These are safe to auto-import in Vue components (browser-side) because
  * `@ubean/client` has zero build-time dependencies and no `node:*` imports.
- * (`ubean/runtime/vue` still works — it re-exports the same kernel — but
- * new code should prefer `ubean/client`.)
  */
 export const UBEAN_CLIENT_PRESET: InlinePreset = {
   from: 'ubean/client',
@@ -232,9 +230,13 @@ export const VUE_I18N_PRESET: InlinePreset = {
 };
 
 /**
- * Server-only symbols that come from the main `ubean` package.
- * These import the full ubean entry (which includes build tools like `vite`),
- * so they must only be used in server-side files (API routes, middleware, etc.).
+ * Server-only symbols sourced from the `ubean/server` aggregation entry
+ * (`@ubean/app` + `@ubean/routes` + `@ubean/server` + `@ubean/shared/node`).
+ * Sourcing from `ubean/server` (instead of the full `ubean` barrel) keeps
+ * build-time tooling (scan / build / cli, oxc-parser WASM…) out of the import
+ * closure, so these must still only be used in server-side files
+ * (API routes, middleware, etc.) — the closure still contains Hono and
+ * `node:*` builtins.
  *
  * Note: the isomorphic data composables (`useData` / `useAsyncData` /
  * `useFetch`) are intentionally NOT listed here — they are exported from
@@ -244,7 +246,7 @@ export const VUE_I18N_PRESET: InlinePreset = {
  * the client preset only.
  */
 export const UBEAN_SERVER_PRESET: InlinePreset = {
-  from: 'ubean',
+  from: 'ubean/server',
   imports: [
     'defineHandlerMeta',
     'defineAction',

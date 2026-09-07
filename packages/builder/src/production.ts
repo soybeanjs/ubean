@@ -196,7 +196,7 @@ async function generateVirtualModulesToDisk(
   // build (via transform/scan of SFCs with client:* directives). During SSR,
   // islands are rendered server-side — no client hydration — so an empty
   // stub suffices. This prevents the `virtual:ubean-islands-registry` import
-  // (inside ubean/runtime/vue, pulled in via virtual:ubean-app) from leaking
+  // (inside ubean/client, pulled in via virtual:ubean-app) from leaking
   // unresolved into the SSR bundle when ubean is noExternal.
   await writeFile(join(virtualDir, 'islands-registry.ts'), 'export const islands = {};\n', 'utf-8');
 
@@ -281,7 +281,7 @@ async function generateVirtualModulesToDisk(
   const colorModeScript =
     config.colorMode !== false ? getColorModeScript(resolveColorModeConfig(config.colorMode)) : '';
 
-  const rendererImport = ssrEnabled ? `import { createVueRenderer } from 'ubean/vue-ssr';` : '';
+  const rendererImport = ssrEnabled ? `import { createVueRenderer } from 'ubean/ssr';` : '';
   const prodLocaleVueParam = localeVueParamFromI18n(config.i18n) || '';
   const rendererSetup = ssrEnabled
     ? `
@@ -360,7 +360,7 @@ ${contentEntries.map(([name, docs]) => `registerContent(${JSON.stringify(name)},
     : '';
   if (hasServer) {
     const serverEntry = `// Auto-generated server entry
-import { createUbeanApp, applyServerConfig } from 'ubean/runtime/app';
+import { createUbeanApp, applyServerConfig } from 'ubean/server';
 import { toVueRouterLocalePath } from '@ubean/i18n';
 import 'ubean:locales';
 ${rendererImport}
@@ -796,7 +796,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
       ssr: {
         target: presetBuildConfig.target === 'node18' ? 'node' : 'webworker',
         // Bundle the ubean package so that virtual module imports inside it
-        // (e.g. `virtual:ubean-islands-registry` in `ubean/runtime/vue`) are
+        // (e.g. `virtual:ubean-islands-registry` in `ubean/client`) are
         // resolved by Vite plugins rather than leaking as bare `virtual:`
         // imports that Node's ESM loader cannot resolve at prerender time.
         // Shared with the dev plugin via ssrSingletonProdSsr() — do not

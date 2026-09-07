@@ -219,7 +219,7 @@ const defaultCode = ${defaultCode};
 
 let i18nRuntime = null;
 if (import.meta.env.SSR) {
-  i18nRuntime = await import('ubean/runtime/i18n');
+  i18nRuntime = await import('ubean/i18n');
   if (i18nConfig && i18nConfig.fallbackLocale) {
     i18nRuntime.setFallbackLocale(i18nConfig.fallbackLocale);
   } else if (defaultCode) {

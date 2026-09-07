@@ -20,13 +20,13 @@
 
 ## 2. 架构评估（对照源码，不对照营销表）
 
-请求链（`packages/app/src/app.ts` → `registerRoutes` → `packages/routes/src/router.ts` → `packages/client/src/ssr.ts`）：`handle` hook → requestId → i18n ALS → routeRules+cache → WS → static → 路由 → SSR。这条链是健康的：Hono 一等、页面与 API 同进程、中间件由工厂挂载。
+请求链（`packages/app/src/app.ts` → `registerRoutes` → `packages/routes/src/router.ts` → `packages/client/src/ssr.ts`）：`handle` hook → requestId → ActionContext ALS → securityHeaders → CSRF → dataCache → i18n 中间件 → routeRules+cache → WS → static → 路由 → SSR。这条链是健康的：Hono 一等、页面与 API 同进程、中间件由工厂挂载。
 
 真正的风险不在「功能清单缺一项」，而在**声明的能力宽于默认路径**。Q4/H1 已收口的不要再当未做债：
 
 | 现象 | 现状 |
 | --- | --- |
-| 24 包 + 聚合器 | 卫生合并完成（Wave 1+2）；`@ubean/vue` 保持独立 |
+| 24 包（含聚合器，即 23 个 `@ubean/*` + `ubean`） | 卫生合并完成（Wave 1+2）；`@ubean/vue` 保持独立 |
 | 单份 SSR runtime | `ssrSingletonDevPolicy` / `ssrSingletonProdSsr` 共用 |
 | `routeRules.rewrite` / `proxy` | 已执行（内部再匹配 / 反向代理） |
 | `ppr: true` | 强制流式别名，不是 Next 静态壳 |

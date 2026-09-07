@@ -24,13 +24,13 @@
 
 ## What is ubean?
 
-ubean unites Vue SSR pages, Hono API routes, type-safe route metadata, and portable deployment presets into a single consistent development experience. It is built on **Vite-Plus**, borrowing the Inertia-style SSR page routing from [void](https://github.com/ubeanjs/void) and the cross-platform deployment matrix from [nitro](https://github.com/unjs/nitro). Vue 3 is the only frontend adapter — every routing, validation, and config decision is type-checked at build time. A single npm package `ubean` acts as an **aggregator** that re-exports all `@ubean/*` subpackages, so installing one dependency gives you the full API surface.
+ubean unites Vue SSR pages, Hono API routes, type-safe route metadata, and portable deployment presets into a single consistent development experience. It is built on **Vite-Plus**, borrowing the Inertia-style SSR page routing from [void](https://github.com/ubeanjs/void) and the cross-platform deployment matrix from [nitro](https://github.com/unjs/nitro). Vue 3 is the only frontend adapter — every routing, validation, and config decision is type-checked at build time. A single npm package `ubean` aggregates all `@ubean/*` subpackages behind dedicated subpath entries — an isomorphic main entry for client/shared code plus `ubean/server` / `ubean/build` / `ubean/i18n` / `ubean/ssr` / `ubean/client` / `ubean/vite` / `ubean/scaffold` for each consumption context.
 
 ## Why another meta-framework?
 
 Nuxt, Next.js, and SvelteKit already exist — what does ubean bring that is genuinely different? Three architectural commitments define its identity:
 
-**1. Vue-specific depth, not multi-framework breadth.** ubean targets Vue 3 only. No React adapter, no Svelte renderer, no generic abstractions that sacrifice Vue-specific optimizations. This single-framework constraint enables deep integration — the `definePage` macro is compiled away at build time, Vue Router navigation guards work identically on client and SSR, and the SSR renderer (`createVueRenderer` from `@ubean/client/ssr`) is purpose-built for Vue's `@vue/server-renderer`. The result is a smaller, faster runtime with zero abstraction overhead.
+**1. Vue-specific depth, not multi-framework breadth.** ubean targets Vue 3 only. No React adapter, no Svelte renderer, no generic abstractions that sacrifice Vue-specific optimizations. This single-framework constraint enables deep integration — the `definePage` macro is compiled away at build time, Vue Router navigation guards work identically on client and SSR, and the SSR renderer (`createVueRenderer` from `ubean/ssr`) is purpose-built for Vue's `@vue/server-renderer`. The result is a smaller, faster runtime with zero abstraction overhead.
 
 **2. Hono as the HTTP core, not h3.** Where Nuxt uses **h3** (its own HTTP abstraction) and nitro uses h3 as the server handler, ubean chooses **Hono** — a lighter, more modern, type-friendly HTTP framework. Every API route is a Hono handler chain; every middleware composes through Hono's native middleware system; request validation plugs directly into `hono-openapi` to generate OpenAPI 3.1 without an intermediary layer. Hono's multi-runtime design (Node.js, Cloudflare Workers, Bun, Deno) also aligns naturally with ubean's preset system.
 
@@ -93,17 +93,18 @@ The `ssr` option only applies within `fullstack` mode — `spa` and `backend` al
 
 The `ubean` main package provides several subpath exports in addition to the default `.` entry. This design prevents browsers from pulling server-side dependencies through Vite's pre-bundling:
 
-| Subpath              | Purpose                                       | Typical Usage              |
-| -------------------- | --------------------------------------------- | -------------------------- |
-| `ubean`              | Main entry — re-exports all subpackages       | Server code, API routes    |
-| `ubean/vite`         | Composite Vite plugin (build + vue + islands) | `vite.config.ts`           |
-| `ubean/client`       | First-class client entry (`@ubean/client`)    | Client code, SPA entry     |
-| `ubean/runtime/vue`  | Browser Vue client runtime (no server deps)   | Client auto-imports        |
-| `ubean/runtime/app`  | Server Hono app entry (`createUbeanApp`)      | `src/server.ts`            |
-| `ubean/runtime/i18n` | Server pure-function i18n                     | Build-time locale handling |
-| `ubean/vue-ssr`      | Vue SSR renderer (`createVueRenderer`)        | Custom SSR setup           |
+| Subpath          | Purpose                                                                                                                            | Typical Usage                        |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ |
+| `ubean`          | **Isomorphic main entry (client-safe)**: shared/seo/pages/markdown + Vue client kernel + islands runtime + logger + `defineConfig` | Config files, client & shared code   |
+| `ubean/server`   | Server aggregate (`createUbeanApp`/`defineServer`/`defineHandler`/`useDatabase`/`validator`…)                                      | `src/server.ts`, API routes          |
+| `ubean/build`    | Build-time tooling (`prerender`, `loadUbeanConfig`, codegen presets, `detectPreset`, vite plugin implementations)                  | Build scripts, CI, `vite.config.ts`  |
+| `ubean/client`   | Framework client runtime: kernel + `createServerHead` + Server Actions runtime + islands registry bridge                           | Client code, SPA entry               |
+| `ubean/i18n`     | Server-side i18n (ALS `t()`, `createI18nMiddleware`)                                                                               | Handlers, build-time locale handling |
+| `ubean/ssr`      | Vue SSR renderer (`createVueRenderer`)                                                                                             | Custom SSR setup                     |
+| `ubean/vite`     | Composite Vite plugin (build + vue + islands + server-actions)                                                                     | `vite.config.ts`                     |
+| `ubean/scaffold` | Scaffold library + machine-readable catalog                                                                                        | studio / IDE tooling                 |
 
-**Critical rule for newcomers:** client auto-imports **must** use the `ubean/runtime/vue` or `ubean/client` entry, never the `ubean` main entry. Importing from `ubean` in browser code triggers Vite to pre-bundle server-side dependencies (Hono, database drivers, storage adapters) — a severe performance penalty and a potential source of runtime errors in non-Node environments.
+**Critical rule for newcomers:** the `ubean` main entry is **client-safe by design** — client and shared code may import from it (or from `ubean/client`) freely. Server code must use `ubean/server`, which pulls in Hono and Node built-ins and must never be imported in browser code. Build-time tooling lives in `ubean/build`.
 
 **Client kernel layering:** `@ubean/vue` is the lean client kernel (vue + vue-router only) that owns page routing (file-based scan, virtual modules, page cache, transitions, matchers); `@ubean/client` is the framework client runtime layered on top (app factories, unhead/SEO, i18n, data layer, islands hydration); the `ubean/client` subpath re-exports it. Standalone SPAs can depend on `@ubean/vue` directly without pulling in the framework build tooling.
 
@@ -155,7 +156,7 @@ packages/
 └── integrations/   # @ubean/integrations — pwa / fonts / electron / ui / pinia subpaths
 
 apps/docs/          # Documentation site (source under src/content/{en,zh}/)
-examples/           # ubean-test / client-only-spa / frontend-only / routing-file-mode
+examples/           # ubean-test / client-only-spa / frontend-only / routing-file-mode / platform-drivers / ssg-catchall
 docs/               # Repo-level engineering docs (ADR, glossary, product plan)
 ```
 
@@ -211,7 +212,7 @@ pnpm dlx ubean init my-app
 npx ubean init my-app
 ```
 
-The init wizard will prompt you for template (minimal / starter / blog), preset (standard / node / cloudflare), and package manager.
+The init wizard will prompt you for template (`unify` [default, full-stack with islands/i18n/layouts/middleware] / minimal / starter / blog), preset (standard / node / cloudflare), and package manager.
 
 ### Manual Setup
 
@@ -297,7 +298,7 @@ The v0.1 target platforms are **Node.js** (`node-server`) and **Cloudflare Worke
 ### Implemented Capabilities
 
 - **Routing:** `routes/` API file routing with named `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` exports wrapped by `defineHandler`; `pages/` Vue SSR pages, layouts, route groups, reuse routes, parallel/intercepting routes, dynamic param matchers, special pages, and typed navigation; `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`); `validator` / `describeRoute` / `resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation; generated `paths` types at `.ubean/routes.d.ts`.
-- **App:** `defineApp` options-based customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineEnv`, `defineScheduled` (cron), `defineQueue`. i18n is `ubean.config.ts` `i18n` + vue-i18n 11 (`setLocale` / `useI18n` from `ubean/runtime/vue`).
+- **App:** `defineApp` options-based customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineEnv`, `defineScheduled` (cron), `defineQueue`. i18n is `ubean.config.ts` `i18n` + vue-i18n 11 (`setLocale` from `ubean` / `ubean/client`; `useI18n` directly from `vue-i18n`; server-side ALS `t()` from `ubean/i18n`).
 - **Server:** Built-in database layer (`defineDatabase` / `useDatabase`), storage (`useStorage` / `useKV`), cache (`useCacheStore` / `cachedEventHandler`), rate limiting, CORS, route rules (redirect / rewrite / headers / cache), and SSG prerendering. WebSocket (`defineWebSocket`), SSE streaming, and `internalFetch` (dispatches framework handlers in-process without a network request).
 - **DevTools:** RPC, AI assistant, API playground, and CRUD scaffolding.
 - **Extension packages:** `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/image`, `@ubean/content`, and `@ubean/integrations` (PWA / fonts / Electron desktop apps via vite-plugin-electron with default main/preload entries and auto SSR disable / @soybeanjs/ui with UiResolver and styles.css auto-injection / Pinia SSR hydration).
@@ -306,7 +307,7 @@ The v0.1 target platforms are **Node.js** (`node-server`) and **Cloudflare Worke
 
 ## Development
 
-Requirements: Node.js and pnpm `11.22.0`.
+Requirements: Node.js >= 22 and pnpm `11.24.0`.
 
 ```bash
 pnpm install
@@ -314,15 +315,15 @@ pnpm typecheck
 pnpm lint
 ```
 
-| Command          | Description                                          |
-| ---------------- | ---------------------------------------------------- |
-| `pnpm typecheck` | Type-check the project with vue-tsc                  |
-| `pnpm lint`      | Run Vite-Plus/OXC and Vue ESLint auto-fixes          |
-| `pnpm test`      | Run the test suite (vitest)                          |
-| `pnpm dev`       | Start the example dev server (`examples/ubean-test`) |
-| `pnpm build`     | Build all subpackages                                |
-| `pnpm upkg`      | Check dependency updates                             |
-| `pnpm commit`    | Create a commit with the project commit-message tool |
+| Command          | Description                                                                                     |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| `pnpm typecheck` | Type-check the project with vue-tsc                                                             |
+| `pnpm lint`      | Run Vite-Plus/OXC and Vue ESLint checks (auto-fix: `pnpm lint:fix`)                             |
+| `pnpm test`      | Run the test suite (vitest)                                                                     |
+| `pnpm dev`       | Watch-build the `ubean` aggregator package (example dev server: `pnpm --filter ubean-test dev`) |
+| `pnpm build`     | Build all subpackages                                                                           |
+| `pnpm upkg`      | Check dependency updates                                                                        |
+| `pnpm commit`    | Create a commit with the project commit-message tool                                            |
 
 ## Planning and Contributions
 

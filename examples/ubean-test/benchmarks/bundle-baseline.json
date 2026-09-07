@@ -1,142 +1,157 @@
 {
-  "generatedAt": "2026-08-31T18:48:49.476Z",
+  "generatedAt": "2026-09-07T09:30:29.259Z",
   "outDir": "dist/public",
   "entries": [
     {
-      "file": "assets/chunks/client-DA2I88iS.js",
-      "bytes": 101975,
-      "gzip": 36255
-    },
-    {
-      "file": "assets/chunks/runtime-core.esm-bundler-DrZBbEHc.js",
-      "bytes": 72411,
-      "gzip": 27931
-    },
-    {
-      "file": "assets/app-gp53U1TI.js",
-      "bytes": 27629,
-      "gzip": 9979,
+      "file": "assets/app-BxCouYBc.js",
+      "bytes": 130816,
+      "gzip": 45982,
       "isEntry": true
     },
     {
-      "file": "assets/chunks/fetch-test-CaKpEZ05.js",
-      "bytes": 26334,
-      "gzip": 8875
+      "file": "assets/chunks/runtime-core.esm-bundler-DrZBbEHc.js",
+      "bytes": 72349,
+      "gzip": 27874
     },
     {
-      "file": "assets/chunks/cache-demo-BwUAGTSl.js",
-      "bytes": 6439,
-      "gzip": 2577
+      "file": "assets/chunks/fetch-test-DNThhhPn.js",
+      "bytes": 26284,
+      "gzip": 8835
     },
     {
-      "file": "assets/chunks/vue.BHyNcdic-CQ4LO_Vp.js",
-      "bytes": 5349,
-      "gzip": 2306
+      "file": "assets/chunks/cache-demo-CkOrkWDu.js",
+      "bytes": 6394,
+      "gzip": 2532
     },
     {
-      "file": "assets/chunks/i18n-CNyXWum9.js",
-      "bytes": 4974,
-      "gzip": 1650
+      "file": "assets/chunks/vue.BHyNcdic-DBaa61rT.js",
+      "bytes": 5299,
+      "gzip": 2256
     },
     {
-      "file": "assets/chunks/view-transitions-DlZkDSqH.js",
-      "bytes": 2608,
-      "gzip": 1377
+      "file": "assets/chunks/i18n-FEOnDB6y.js",
+      "bytes": 4903,
+      "gzip": 1593
     },
     {
-      "file": "assets/chunks/islands-test-xRQMpPoS.js",
-      "bytes": 3183,
-      "gzip": 1373
+      "file": "assets/chunks/islands-test-DrTOBMjf.js",
+      "bytes": 3131,
+      "gzip": 1334
     },
     {
-      "file": "assets/chunks/seo-meta-DP9Pvt_D.js",
-      "bytes": 4127,
-      "gzip": 1363
+      "file": "assets/chunks/seo-meta-CXGN-BzZ.js",
+      "bytes": 4081,
+      "gzip": 1326
     },
     {
-      "file": "assets/chunks/features-vhCCmKZU.js",
-      "bytes": 4527,
-      "gzip": 1351
+      "file": "assets/chunks/view-transitions-DatXoBH-.js",
+      "bytes": 2525,
+      "gzip": 1317
     },
     {
-      "file": "assets/chunks/data-fetch-egUukBgI.js",
-      "bytes": 2819,
-      "gzip": 1329
+      "file": "assets/chunks/features-FmOmnmLn.js",
+      "bytes": 4479,
+      "gzip": 1310
     },
     {
-      "file": "assets/chunks/pages-Bh13a4tu.js",
-      "bytes": 3205,
-      "gzip": 1198
+      "file": "assets/chunks/data-fetch-DRJ91J-X.js",
+      "bytes": 2769,
+      "gzip": 1288
     },
     {
-      "file": "assets/chunks/md-test-EX9Su4xr.js",
-      "bytes": 2271,
-      "gzip": 1067
+      "file": "assets/chunks/pages-CuAveVDw.js",
+      "bytes": 3160,
+      "gzip": 1158
     },
     {
-      "file": "assets/chunks/about-C-WlUJ3f.js",
-      "bytes": 2648,
-      "gzip": 876
+      "file": "assets/chunks/md-test-BnP-0kl5.js",
+      "bytes": 2226,
+      "gzip": 1027
     },
     {
-      "file": "assets/chunks/_id_-CBzlDJq1.js",
-      "bytes": 1183,
-      "gzip": 758
+      "file": "assets/chunks/about-Dg94xIhd.js",
+      "bytes": 2603,
+      "gzip": 836
+    },
+    {
+      "file": "assets/chunks/_id_-Cz4ESvzP.js",
+      "bytes": 1139,
+      "gzip": 712
+    },
+    {
+      "file": "assets/chunks/IslandMedia-BTP6ubI3.js",
+      "bytes": 905,
+      "gzip": 576
+    },
+    {
+      "file": "assets/chunks/marketing-page-lyYuk2Hg.js",
+      "bytes": 811,
+      "gzip": 542
     },
     {
       "file": "assets/chunks/virtual_intlify-i18n-0-CicLCLd5.js",
-      "bytes": 1284,
-      "gzip": 596
+      "bytes": 1224,
+      "gzip": 539
     },
     {
-      "file": "assets/chunks/marketing-page-Cj0l82J8.js",
-      "bytes": 865,
-      "gzip": 579
+      "file": "assets/chunks/default-BcI-KiPp.js",
+      "bytes": 914,
+      "gzip": 519
     },
     {
-      "file": "assets/chunks/default-DTsZHSvn.js",
-      "bytes": 961,
-      "gzip": 560
+      "file": "assets/chunks/IslandVisibility-BP9DkyyS.js",
+      "bytes": 779,
+      "gzip": 516
     },
     {
       "file": "assets/chunks/virtual_intlify-i18n-1-DQ8i03I9.js",
-      "bytes": 1347,
-      "gzip": 521
+      "bytes": 1287,
+      "gzip": 468
     },
     {
-      "file": "assets/chunks/useApi-CUgTH_jn-Bp-GTxZ3.js",
-      "bytes": 885,
-      "gzip": 513
+      "file": "assets/chunks/IslandOnly-D2XXTU1C.js",
+      "bytes": 685,
+      "gzip": 460
     },
     {
-      "file": "assets/chunks/settings-kTAxZxNe.js",
+      "file": "assets/chunks/IslandClock-hbVUGbb9.js",
+      "bytes": 665,
+      "gzip": 457
+    },
+    {
+      "file": "assets/chunks/IslandCounter-BJY8is8v.js",
       "bytes": 648,
-      "gzip": 486
+      "gzip": 446
     },
     {
-      "file": "assets/chunks/_...slug_-Beg34EHr.js",
-      "bytes": 688,
-      "gzip": 459
+      "file": "assets/chunks/settings-CN-8a7jl.js",
+      "bytes": 600,
+      "gzip": 443
     },
     {
-      "file": "assets/chunks/profile-CLjAF6Cy.js",
-      "bytes": 597,
-      "gzip": 459
+      "file": "assets/chunks/profile-dw4tzWBF.js",
+      "bytes": 550,
+      "gzip": 418
+    },
+    {
+      "file": "assets/chunks/_...slug_-BfYLIHYg.js",
+      "bytes": 630,
+      "gzip": 413
     },
     {
       "file": "assets/chunks/dashboard-wMjTmoZI.js",
-      "bytes": 494,
-      "gzip": 361
+      "bytes": 447,
+      "gzip": 324
     },
     {
       "file": "assets/chunks/marketing-Buwy-bI5.js",
-      "bytes": 421,
-      "gzip": 325
+      "bytes": 374,
+      "gzip": 287
     },
     {
-      "file": "assets/chunks/admin-BegrO7MO.js",
-      "bytes": 395,
-      "gzip": 311
+      "file": "assets/chunks/admin-hYgzQKR5.js",
+      "bytes": 350,
+      "gzip": 275
     },
     {
       "file": "assets/chunks/_plugin-vue_export-helper-BDNMzG2s.js",
@@ -144,7 +159,7 @@
       "gzip": 99
     }
   ],
-  "totalBytes": 280351,
-  "totalGzip": 105534,
-  "entryGzip": 9979
+  "totalBytes": 283111,
+  "totalGzip": 106162,
+  "entryGzip": 45982
 }

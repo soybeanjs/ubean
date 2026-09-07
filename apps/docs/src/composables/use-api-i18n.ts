@@ -1,7 +1,7 @@
-// Labels for the <ApiTable> renderer, i18n-aware via ubean's useI18n.
+// Labels for the <ApiTable> renderer, i18n-aware via vue-i18n's useI18n.
 // Kept tiny: only the labels the table needs (kind names, columns, empty states).
 import { computed } from 'vue';
-import { useI18n } from 'ubean/runtime/vue';
+import { useI18n } from 'vue-i18n';
 
 export function useApiI18n() {
   const { t, locale } = useI18n();

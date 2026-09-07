@@ -3,6 +3,8 @@ import {
   VUE_PRESET,
   VUE_MACROS_PRESET,
   UBEAN_CLIENT_PRESET,
+  VUE_ROUTER_PRESET,
+  VUE_I18N_PRESET,
   UBEAN_SERVER_PRESET,
   HONO_OPENAPI_PRESET,
   BUILTIN_PRESETS,
@@ -17,8 +19,6 @@ describe('auto-import presets(自 @ubean/auto-imports 并入)', () => {
     for (const sym of [
       'definePage',
       'defineApp',
-      't',
-      'useI18n',
       'setLocale',
       'useLocalePath',
       'useCacheViews',
@@ -28,6 +28,9 @@ describe('auto-import presets(自 @ubean/auto-imports 并入)', () => {
     ]) {
       expect(names).toContain(sym);
     }
+    // 第三方 API 不再经 ubean 包装透传:useI18n 直源 vue-i18n,t 已移除
+    expect(names).not.toContain('useI18n');
+    expect(names).not.toContain('t');
   });
 
   it('UBEAN_SERVER_PRESET 源自主入口 ubean', () => {
@@ -42,11 +45,22 @@ describe('auto-import presets(自 @ubean/auto-imports 并入)', () => {
     expect(HONO_OPENAPI_PRESET.imports).toEqual(['validator', 'describeRoute']);
   });
 
-  it('BUILTIN_PRESETS 聚合三组;getBuiltinComposables 展开为 Import[]', () => {
-    expect(BUILTIN_PRESETS).toHaveLength(3);
+  it('VUE_ROUTER_PRESET / VUE_I18N_PRESET 直源第三方;client 预设不再透传 useRouter', () => {
+    expect(VUE_ROUTER_PRESET.from).toBe('vue-router');
+    expect(VUE_ROUTER_PRESET.imports).toContain('useRouter');
+    expect(VUE_I18N_PRESET.from).toBe('vue-i18n');
+    expect(VUE_I18N_PRESET.imports).toContain('useI18n');
+    // 第三方 API 不再经 ubean 透传:useRouter 改由 vue-router 直源
+    expect(UBEAN_CLIENT_PRESET.imports as string[]).not.toContain('useRouter');
+  });
+
+  it('BUILTIN_PRESETS 聚合五组;getBuiltinComposables 展开为 Import[]', () => {
+    expect(BUILTIN_PRESETS).toHaveLength(5);
     const imports = getBuiltinComposables();
     expect(imports.length).toBe(
       (UBEAN_CLIENT_PRESET.imports as string[]).length +
+        (VUE_ROUTER_PRESET.imports as string[]).length +
+        (VUE_I18N_PRESET.imports as string[]).length +
         (UBEAN_SERVER_PRESET.imports as string[]).length +
         (HONO_OPENAPI_PRESET.imports as string[]).length
     );

@@ -5,7 +5,7 @@ description: "Routing helpers: useRouter, the Link component, and navigation uti
 
 # Route Helpers
 
-ubean's routing helpers revolve around `useRouter()` (auto-imported from `ubean/runtime/vue`) and the globally-registered `<Link>` component. ubean does **not** provide `useRoute()`, `navigateTo()`, `redirectTo()`, `useRouteParams()`, or `useRouteQuery()` — use `router.currentRoute` (see below) or `vue-router`'s `useRoute()` instead. For i18n path helpers (`useLocalePath`, `useSwitchLocalePath`), see the [I18n reference](/reference/i18n).
+ubean's routing helpers revolve around `useRouter()` (auto-imported from `vue-router`) and the globally-registered `<Link>` component. ubean does **not** provide `useRoute()`, `navigateTo()`, `redirectTo()`, `useRouteParams()`, or `useRouteQuery()` — use `router.currentRoute` (see below) or `vue-router`'s `useRoute()` instead. For i18n path helpers (`useLocalePath`, `useSwitchLocalePath`), see the [I18n reference](/reference/i18n).
 
 ## useRouter()
 

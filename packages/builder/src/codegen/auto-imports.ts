@@ -109,8 +109,6 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
     'defineApp',
     'applyAppConfig',
     'createDefaultAppConfig',
-    't',
-    'useI18n',
     'setLocale',
     'useLocalePath',
     'useSwitchLocalePath',
@@ -121,7 +119,6 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
     'useSearch',
     'useSeoMeta',
     'usePage',
-    'useRouter',
     'useHead',
     'useViewTransition',
     'useData',
@@ -145,6 +142,25 @@ export const UBEAN_CLIENT_PRESET: InlinePreset = {
     'reloadPage',
     'isReloading'
   ]
+};
+
+/**
+ * vue-router composables, sourced directly from `vue-router` (not re-exported
+ * through `ubean/client` — third-party APIs are imported from their own packages).
+ */
+export const VUE_ROUTER_PRESET: InlinePreset = {
+  from: 'vue-router',
+  imports: ['useRouter']
+};
+
+/**
+ * vue-i18n Composition API, sourced directly from `vue-i18n` (ubean no longer
+ * wraps `useI18n` — same instance is exposed by the framework-installed
+ * vue-i18n plugin; `t` is destructured from the returned composer).
+ */
+export const VUE_I18N_PRESET: InlinePreset = {
+  from: 'vue-i18n',
+  imports: ['useI18n']
 };
 
 /**
@@ -185,7 +201,13 @@ export const HONO_OPENAPI_PRESET: InlinePreset = {
   imports: ['validator', 'describeRoute']
 };
 
-export const BUILTIN_PRESETS: InlinePreset[] = [UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET, HONO_OPENAPI_PRESET];
+export const BUILTIN_PRESETS: InlinePreset[] = [
+  UBEAN_CLIENT_PRESET,
+  VUE_ROUTER_PRESET,
+  VUE_I18N_PRESET,
+  UBEAN_SERVER_PRESET,
+  HONO_OPENAPI_PRESET
+];
 
 export interface ComponentInfo {
   name: string;
@@ -238,6 +260,15 @@ function transformImportPath(filePath: string, srcDir: string): string {
   const rel = toPosixPath(relative(posixSrcDir, posixPath));
   const withoutExt = rel.replace(/\.(ts|js|mts|mjs|cts|cjs|tsx|jsx)$/, '');
   return `~/${withoutExt}`;
+}
+
+/**
+ * Bare package specifiers (`vue`, `vue-router`, `hono-openapi`, `ubean/client`…)
+ * keep their source in the generated dts; only project-relative files are
+ * rewritten to `~/` paths.
+ */
+function isPackageSource(from: string): boolean {
+  return !from.startsWith('.') && !from.startsWith('/') && !from.startsWith('~');
 }
 
 async function scanComponentsDir(
@@ -342,7 +373,7 @@ export async function generateAutoImports(
     const allImports = await unimport.getImports();
 
     composablesImports = allImports.map(imp => {
-      if (imp.from === 'vue' || imp.from === 'vue/macros' || imp.from === 'ubean' || imp.from.startsWith('ubean/')) {
+      if (isPackageSource(imp.from)) {
         return imp;
       }
       return {
@@ -353,7 +384,7 @@ export async function generateAutoImports(
 
     const dtsContent = toTypeDeclarationFile(composablesImports, {
       resolvePath: (imp: Import) => {
-        if (imp.from === 'vue' || imp.from === 'vue/macros' || imp.from === 'ubean' || imp.from.startsWith('ubean/')) {
+        if (isPackageSource(imp.from)) {
           return imp.from;
         }
         return transformImportPath(imp.from, srcDir);
@@ -469,7 +500,7 @@ export function getUbeanAutoImportConfig(
   const composablesDirs = [join(srcDir, composablesDirName), ...(options.composablesDirs || [])];
 
   return {
-    imports: [UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET, HONO_OPENAPI_PRESET],
+    imports: [UBEAN_CLIENT_PRESET, VUE_ROUTER_PRESET, VUE_I18N_PRESET, UBEAN_SERVER_PRESET, HONO_OPENAPI_PRESET],
     dirs: composablesDirs,
     dts: join(cwd, buildDir, 'auto-imports.d.ts'),
     vueTemplate: true,

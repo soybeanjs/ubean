@@ -56,7 +56,6 @@ export {
   getInitialState,
   // head
   useHeadInstance,
-  injectHead,
   // composables
   createLinkHandler,
   extractPageData,
@@ -123,11 +122,10 @@ export {
   withViewTransition,
   useViewTransitionState,
   getNavigationType,
-  // i18n(Vue composable 版本; 服务端 ALS 版从 `@ubean/i18n` / `ubean/runtime/i18n` 导出)
-  useI18n as useVueI18n,
+  // i18n(Vue 封装版;服务端 ALS 版从 `@ubean/i18n` / `ubean/runtime/i18n` 导出)。
+  // `useI18n` / `t` 不再包装导出 —— `useI18n` 直接从 `vue-i18n` 导入(自动导入直源 vue-i18n)
   createUbeanI18n,
   configureI18nRuntime,
-  t as tVue,
   setLocale as setVueLocale,
   getLocale as getVueLocale,
   localizePath as localizeVuePath,
@@ -147,7 +145,6 @@ export type {
   UseAsyncDataOptions,
   UseAsyncDataReturn,
   UbeanAppInstance,
-  VueHeadClient,
   UseCacheViewsReturn,
   UsePageTransitionReturn,
   UseReloadSignalReturn,
@@ -162,9 +159,7 @@ export type {
   IslandRecord,
   HydrateIslandsOptions,
   ViewTransitionOptions,
-  VueI18nInstance,
-  I18nRuntimeConfig,
-  HeadClient
+  I18nRuntimeConfig
 } from '@ubean/client';
 
 // ============== Vite 插件(通过子路径导出,避免拉入 vite 依赖)==============

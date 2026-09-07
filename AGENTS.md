@@ -163,7 +163,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **i18n**：`ubean.config.ts` 的 `i18n`；Vue 端 `vue-i18n` 11（`legacy: false`），handler 端 `@intlify/core` + ALS；语言路由 Hono 与 vue-router 共用 `compileLocalePaths`
 - 路由策略：`prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`；中间件由 `createUbeanApp` 自动挂载，cookie **写入**
 - 检测顺序：URL path → cookie（`ubean_locale`）→ Accept-Language → defaultLocale；默认 `redirectOn: 'root'`
-- 切换语言走框架 `setLocale`（load + cookie + 导航）；客户端从 `ubean/runtime/vue` 导入 `useI18n` / `setLocale`
+- 切换语言走框架 `setLocale`（load + cookie + 导航）；客户端 `useI18n` 直接从 `vue-i18n` 导入（自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/runtime/vue` 导入
 
 ### 3.5 配置
 
@@ -195,7 +195,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `defineMiddleware(handler)`                                        | 包装中间件                                                                                                     |
 | `definePage(meta)`                                                 | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`requiresAuth`/`cache`/`head`/`ssr`）               |
 | `defineMeta(meta)`                                                 | 定义路由 meta                                                                                                  |
-| `validator` / `describeRoute` / `resolver`                         | 来自 `hono-openapi`，请求验证 + OpenAPI                                                                        |
+| `validator` / `describeRoute` / `resolver`                         | 来自 `hono-openapi`（ubean 重新导出），请求验证 + OpenAPI                                                      |
 | `defineMatcher(name, fn)`                                          | 注册动态路由 matcher（Task 7），`fn: (value: string) => boolean \| null \| undefined`，返回 falsy 跳过路由     |
 | `getMatcher` / `hasMatcher` / `listMatcherNames` / `clearMatchers` | matcher 注册表读取/清理（`clearMatchers` 仅供测试）                                                            |
 | `validateParams(matchers, params)`                                 | 批量校验参数（服务端中间件与客户端守卫复用）                                                                   |
@@ -572,7 +572,7 @@ const json = serializeVercelConfig(config);
 
 | API                                                                                                                                                               | 说明                                                                                                                                                                                                                                     |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `useRouter()` / `createUbeanRouter(options)`                                                                                                                      | 路由                                                                                                                                                                                                                                     |
+| `useRouter()` / `createUbeanRouter(options)`                                                                                                                      | 路由。`useRouter` 来自 `vue-router`（自动导入直源 vue-router，ubean 不再透传）；`createUbeanRouter` 为 ubean 封装                                                                                                                        |
 | `useCacheViews()` / `enablePageCache` / `disablePageCache` / `excludePageCache` / `includePageCache` / `invalidatePageCache` / `isPageCached` / `resetRouteCache` | 页面 KeepAlive 缓存运行时控制（自动导入自 `ubean/runtime/vue`）；`getNamedPageWrapper` 从 `@ubean/vue` 导出                                                                                                                              |
 | `useHead()` / `useSeoMeta()`                                                                                                                                      | 动态 head/SEO（响应式）；静态 head 用 `definePage({ head })`                                                                                                                                                                             |
 | `useData(options)` / `useAsyncData(key, fn, options?)` / `useFetch(key, url, options?)` / `invalidateData(key)` / `invalidateAll()`                               | 页面数据：`useFetch` 包 `useAsyncData`，经 `setDefaultFetch` 注入 `@soybeanjs/fetch`（不自研 client）                                                                                                                                    |
@@ -612,13 +612,13 @@ const json = serializeVercelConfig(config);
 
 ### i18n
 
-| API                                                                | 说明                                                               |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------ |
-| `useI18n()` / `t` / `d` / `n`                                      | vue-i18n Composition API（经 `ubean/runtime/vue`）                 |
-| `setLocale(code)`                                                  | 框架切换：loadLocale + cookie + `router.replace(switchLocalePath)` |
-| `useLocalePath` / `useSwitchLocalePath` / `useLocaleHead`          | 路径与 SEO head composable                                         |
-| `t()` / `d()` / `n()`（handler）                                   | `ubean/runtime/i18n`，读请求 ALS                                   |
-| `compileLocalePaths` / `createI18nMiddleware` / `getRequestLocale` | 约束前缀路径编译 + 自动检测中间件                                  |
+| API                                                                | 说明                                                                                           |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `useI18n()`（解构 `t` / `d` / `n`）                                | vue-i18n Composition API，直接从 `vue-i18n` 导入（自动导入直源；ubean 不再包装 `useI18n`/`t`） |
+| `setLocale(code)`                                                  | 框架切换：loadLocale + cookie + `router.replace(switchLocalePath)`                             |
+| `useLocalePath` / `useSwitchLocalePath` / `useLocaleHead`          | 路径与 SEO head composable                                                                     |
+| `t()` / `d()` / `n()`（handler）                                   | `ubean/runtime/i18n`，读请求 ALS                                                               |
+| `compileLocalePaths` / `createI18nMiddleware` / `getRequestLocale` | 约束前缀路径编译 + 自动检测中间件                                                              |
 
 ## 5. 扩展包 API
 
@@ -851,9 +851,10 @@ export default defineConfig({
 12. **测试工作目录**：CRUD 测试用临时目录 + `afterEach` 清理，避免 `process.cwd()` 依赖
 13. **SSR 渲染**：layout 循环中在块作用域内 `const child = vnode` 引用，避免闭包捕获导致无限递归
 14. **参考实现**：参考 void/nitro 时学习架构模式后重新实现，保证 API 一致
-15. **i18n**：配置写在 `ubean.config.ts` 的 `i18n`；客户端从 `ubean/runtime/vue` 导入 `useI18n`/`setLocale`（vue-i18n 11，必须 `legacy: false`）；不要从 `ubean` 主入口导入 Vue `useI18n`
+15. **i18n**：配置写在 `ubean.config.ts` 的 `i18n`；客户端 `useI18n` 直接从 `vue-i18n` 导入（vue-i18n 11，必须 `legacy: false`；自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/runtime/vue` 导入；不要从 `ubean` 主入口导入 Vue 侧 i18n API
 16. **临时文件**：用项目根目录下的 `.temp` 目录存储临时文件
 17. **Islands 水合**：常规 islands 由框架在客户端入口自动水合（首次 mount 双重 rAF；SPA `afterEach` 无 pending 岛时跳过第二帧）；仅在需要传入手动注册组件（escape hatch）时在 `onClientReady` 中额外调用 `hydrateIslands()`
+18. **第三方 API 不经 ubean 透传**：`vue`/`vue-router`/`vue-i18n`/`@vue/server-renderer` 的 API 一律从对应包直接导入，ubean 不再 re-export（如 `useRouter` 从 `vue-router`、`renderToString` 从 `@vue/server-renderer`、`I18n` 类型从 `vue-i18n`）；自动导入预设也直源这些包（`VUE_ROUTER_PRESET`/`VUE_I18N_PRESET`/`HONO_OPENAPI_PRESET`）。ubean 的 `useI18n`/`t` vue-i18n 包装已移除——`useI18n` 从 `vue-i18n` 导入，`t` 从其返回的 composer 解构。例外：`validator`/`describeRoute` 等 hono-openapi API 保留在主入口重新导出；`useHead`/`useSeoMeta`/`Head`（ubean 品牌 head 门面，主入口与 `@ubean/seo` 有消歧设计）；`createClientHead`/`createServerHead`（builder 虚拟模块的依赖卫生门面）；`setLocale`/`useLocalePath` 等 i18n 封装（ubean 自有实现）。示例项目（ubean-test/frontend-only/routing-file-mode）与 apps/docs 已在 `package.json` 中显式声明 `vue-router` + `hono-openapi` + `vue-i18n`
 
 ## 9. 开发命令
 

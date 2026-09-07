@@ -259,14 +259,8 @@ export function extractLocaleFromPath(path: string): { locale: string | null; pa
   return extractLocaleFromPathCore(path, codes);
 }
 
-export function useI18n(): Composer {
-  return useVueI18n() as Composer;
-}
-
-export function t(key: string, ...args: unknown[]): string {
-  const translate = useVueI18n().t as (k: string, ...rest: unknown[]) => unknown;
-  return String(translate(key, ...args));
-}
+// `useI18n` / `t` 不再由 ubean 包装导出 —— 请直接使用 `vue-i18n` 的
+// `useI18n()`(自动导入已改为直源 `vue-i18n`),`t` 从其返回的 composer 解构。
 
 export function useLocalePath(): (path: string, locale?: string) => string {
   const i18n = useVueI18n();
@@ -313,4 +307,5 @@ export function initClientI18n(): void {
   applyHydratedPayload(hydrated);
 }
 
-export { useVueI18n };
+// `useVueI18n` 为模块内部使用的 vue-i18n 原始 composable,不对外导出 ——
+// 对外暴露的是上方 ubean 封装版 `useI18n`;需要原始版请直接从 `vue-i18n` 导入。

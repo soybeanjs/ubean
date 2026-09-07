@@ -59,7 +59,6 @@ import {
   createUbeanClientApp,
   createUbeanSSRApp,
   usePage,
-  useRouter,
   useHead,
   useSeoMeta,
   Link,
@@ -76,6 +75,8 @@ import {
   scheduleIslandHydration,
   configureI18nRuntime
 } from 'ubean/client';
+// useRouter 由 vue-router 直源(ubean 不再透传第三方 API)
+import { useRouter } from 'vue-router';
 
 import { i18nConfig as _i18nConfig, loadLocale as _loadLocale } from 'ubean:locales';
 

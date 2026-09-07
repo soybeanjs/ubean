@@ -1589,7 +1589,8 @@ export default defineApp({
 
 ```typescript
 // 无需 import，自动可用
-const { t, locale, setLocale } = useI18n();
+const { t, locale } = useI18n();
+// setLocale 等框架 API 同样自动可用
 const user = useUser();
 const data = await useLoaderData<typeof loader>();
 const router = useRouter();
@@ -1661,7 +1662,7 @@ export default defineConfig({
 });
 ```
 
-- Vue：`useI18n` / `setLocale` 从 `ubean/runtime/vue` 导入（自动导入）。切换语言必须走框架 `setLocale`。
+- Vue：`useI18n` 从 `vue-i18n` 直接导入（自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/runtime/vue` 导入。切换语言必须走框架 `setLocale`。
 - Handler：`t()` 读请求 ALS；无 ALS 抛错。`getRequestLocale(c)` 读中间件写入的 locale。
 - `<Link to="/about" locale="zh">` 经 `LOCALIZE_PATH_KEY` 本地化；vue-router 能匹配 `/zh/about`。
 

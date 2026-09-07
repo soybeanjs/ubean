@@ -1649,7 +1649,7 @@ export default defineConfig({
 });
 ```
 
-- Vue: import `useI18n` / `setLocale` from `ubean/runtime/vue` (auto-imported). Switching locale must go through framework `setLocale`.
+- Vue: import `useI18n` from `vue-i18n` directly (auto-imported from `vue-i18n`); framework helpers like `setLocale` come from `ubean/runtime/vue`. Switching locale must go through framework `setLocale`.
 - Handlers: `t()` reads request ALS and throws without it. `getRequestLocale(c)` reads the locale set by middleware.
 - `<Link to="/about" locale="zh">` localizes via `LOCALIZE_PATH_KEY`; vue-router matches `/zh/about`.
 

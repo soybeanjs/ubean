@@ -3,7 +3,7 @@
  *
  * 面向两类消费者:
  * 1. 框架虚拟模块(`virtual:ubean-app` 等)的统一导入点;
- * 2. 用户客户端代码(`import { useI18n } from 'ubean/client'`)。
+ * 2. 用户客户端代码(`import { setLocale } from 'ubean/client'`)。
  *
  * 相比 `@ubean/client` 包本体,此处额外导出 `createServerHead` ——
  * 框架的 SSR 构建会加载同一份 `virtual:ubean-app` 模块(执行

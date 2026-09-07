@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { useI18n, useSwitchLocalePath, useLocalePath, setLocale, getI18nRuntimeConfig } from 'ubean/runtime/vue';
+import { useI18n } from 'vue-i18n';
+import { useSwitchLocalePath, useLocalePath, setLocale, getI18nRuntimeConfig } from 'ubean/runtime/vue';
 
 useHead({
   title: 'i18n Test - ubean',

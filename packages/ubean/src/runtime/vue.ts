@@ -6,7 +6,7 @@
  * 此入口保留以兼容既有导入与脚手架产物,导出面完全一致。
  *
  * ```ts
- * import { defineApp, hydrateIslands, useRouter, useHead, Link, PageView } from 'ubean/runtime/vue';
+ * import { defineApp, hydrateIslands, useHead, Link, PageView } from 'ubean/runtime/vue';
  * ```
  *
  * ## Islands 自动注册

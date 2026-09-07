@@ -15,10 +15,7 @@ export { getInitialPageData, getInitialState } from './client';
 // PAGE_KEY pageData only — url/params/query/meta are completed here).
 export { usePage } from './use-page';
 export type { UbeanVuePage } from './use-page';
-// Pure re-export of vue-router's `useRouter` — keeps the auto-import surface
-// (`useRouter` from 'ubean/client') while preserving vue-router's typed
-// `push`/`replace` overloads (RouteNamedMap generics). No wrapper.
-export { useRouter } from 'vue-router';
+// `useRouter` 不再由此包透传 —— 请直接从 `vue-router` 导入(自动导入已改为直源 vue-router)。
 
 // Lean kernel re-export (single source of truth: @ubean/vue)
 export {
@@ -85,8 +82,7 @@ export type {
 export { createUbeanRouter } from './router';
 export type { CreateUbeanRouterOptions } from './router';
 
-export { useHeadInstance, injectHead } from './head';
-export type { VueHeadClient as HeadClient } from './head';
+export { useHeadInstance } from './head';
 // Re-export createHead from @unhead/vue so consumers (and ubean's own virtual
 // modules) don't need @unhead/vue as a direct dependency — it's resolved through
 // ubean's node_modules. Renamed to avoid name clash between client/server variants.
@@ -115,7 +111,7 @@ export {
   defineMeta,
   defineMiddleware
 } from './app';
-export type { UbeanAppOptions, UbeanAppInstance, VueHeadClient } from './app';
+export type { UbeanAppOptions, UbeanAppInstance } from './app';
 export { defineApp, applyAppConfig, createDefaultAppConfig, mergeAppConfig } from './define-app';
 export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
 export type { SeoMetadata, MetaTag, LinkTag } from '@ubean/seo';
@@ -137,14 +133,14 @@ export type {
 } from '@ubean/islands/runtime';
 export { useData, useAsyncData, invalidateData, useFetch, setDefaultFetch } from '@ubean/pages';
 export type { DataResult, UseAsyncDataOptions, UseFetchOptions } from '@ubean/pages';
+// `useI18n` / `t` 不再由此包包装导出 —— `useI18n` 直接从 `vue-i18n` 导入
+// (自动导入已改为直源 vue-i18n),`t` 从 `useI18n()` 返回的 composer 解构。
 export {
-  useI18n,
   createUbeanI18n,
   installUbeanI18n,
   configureI18nRuntime,
   getI18nRuntimeConfig,
   initClientI18n,
-  t,
   setLocale,
   getLocale,
   localizePath,
@@ -155,7 +151,7 @@ export {
   useLocaleRoute,
   useLocaleHead
 } from './i18n';
-export type { I18n as VueI18nInstance } from 'vue-i18n';
+// `I18n` 等 vue-i18n 类型不再透传 —— 请直接从 `vue-i18n` 导入。
 export type { I18nRuntimeConfig, LocaleLoader, LocaleMessages } from './i18n';
 export {
   useColorMode,

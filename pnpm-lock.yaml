@@ -64,10 +64,13 @@ importers:
         version: 5.3.0
       '@soybeanjs/ui':
         specifier: ^0.30.0
-        version: 0.30.0(vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0)(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))
+        version: 0.30.0(vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))
       fuse.js:
         specifier: ^7.5.0
         version: 7.5.0
+      hono-openapi:
+        specifier: ^1.3.1
+        version: 1.3.1(@hono/standard-validator@0.4.0(@standard-schema/spec@1.1.0)(hono@4.13.5))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@types/json-schema@7.0.15)(hono@4.13.5)(openapi-types@12.1.3)
       shiki:
         specifier: ^4.4.3
         version: 4.4.3
@@ -77,6 +80,12 @@ importers:
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript@6.0.3)
+      vue-i18n:
+        specifier: ^11.4.10
+        version: 11.4.10(vue@3.5.42(typescript@6.0.3))
+      vue-router:
+        specifier: ^5.3.0
+        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
     devDependencies:
       '@soybeanjs/unocss-preset':
         specifier: ^0.2.0
@@ -110,7 +119,7 @@ importers:
         version: 3.5.42(typescript@6.0.3)
       vue-router:
         specifier: ^5.3.0
-        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
+        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
     devDependencies:
       '@types/node':
         specifier: ^26.4.0
@@ -151,12 +160,21 @@ importers:
       '@soybeanjs/fetch':
         specifier: ^0.1.0
         version: 0.1.0
+      hono-openapi:
+        specifier: ^1.3.1
+        version: 1.3.1(@hono/standard-validator@0.4.0(@standard-schema/spec@1.1.0)(hono@4.13.5))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@types/json-schema@7.0.15)(hono@4.13.5)(openapi-types@12.1.3)
       ubean:
         specifier: workspace:*
         version: link:../../packages/ubean
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript@6.0.3)
+      vue-i18n:
+        specifier: ^11.4.10
+        version: 11.4.10(vue@3.5.42(typescript@6.0.3))
+      vue-router:
+        specifier: ^5.3.0
+        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
     devDependencies:
       '@types/node':
         specifier: ^26.4.0
@@ -170,12 +188,21 @@ importers:
 
   examples/routing-file-mode:
     dependencies:
+      hono-openapi:
+        specifier: ^1.3.1
+        version: 1.3.1(@hono/standard-validator@0.4.0(@standard-schema/spec@1.1.0)(hono@4.13.5))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@types/json-schema@7.0.15)(hono@4.13.5)(openapi-types@12.1.3)
       ubean:
         specifier: workspace:*
         version: link:../../packages/ubean
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript@6.0.3)
+      vue-i18n:
+        specifier: ^11.4.10
+        version: 11.4.10(vue@3.5.42(typescript@6.0.3))
+      vue-router:
+        specifier: ^5.3.0
+        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
     devDependencies:
       '@types/node':
         specifier: ^26.4.0
@@ -220,6 +247,9 @@ importers:
       '@valibot/to-json-schema':
         specifier: ^1.7.1
         version: 1.7.1(valibot@1.4.2(typescript@6.0.3))
+      hono-openapi:
+        specifier: ^1.3.1
+        version: 1.3.1(@hono/standard-validator@0.4.0(@standard-schema/spec@1.1.0)(hono@4.13.5))(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@standard-community/standard-openapi@0.2.9(@standard-community/standard-json@0.3.5(@standard-schema/spec@1.1.0)(@types/json-schema@7.0.15)(@valibot/to-json-schema@1.7.1(valibot@1.4.2(typescript@6.0.3)))(quansync@0.2.11)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@standard-schema/spec@1.1.0)(openapi-types@12.1.3)(valibot@1.4.2(typescript@6.0.3))(zod@4.5.4))(@types/json-schema@7.0.15)(hono@4.13.5)(openapi-types@12.1.3)
       ubean:
         specifier: workspace:*
         version: link:../../packages/ubean
@@ -229,6 +259,12 @@ importers:
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript@6.0.3)
+      vue-i18n:
+        specifier: ^11.4.10
+        version: 11.4.10(vue@3.5.42(typescript@6.0.3))
+      vue-router:
+        specifier: ^5.3.0
+        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
     devDependencies:
       '@types/node':
         specifier: ^26.4.0
@@ -537,7 +573,7 @@ importers:
         version: 11.4.10(vue@3.5.42(typescript@6.0.3))
       vue-router:
         specifier: ^5.3.0
-        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
+        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
     devDependencies:
       '@types/node':
         specifier: ^26.4.0
@@ -986,7 +1022,7 @@ importers:
         version: 3.5.42(typescript@6.0.3)
       vue-router:
         specifier: ^5.3.0
-        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
+        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
 
   packages/seo:
     dependencies:
@@ -1179,7 +1215,7 @@ importers:
         version: 3.5.42(typescript@6.0.3)
       vue-router:
         specifier: ^5.3.0
-        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
+        version: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
     devDependencies:
       '@types/node':
         specifier: ^26.4.0
@@ -9170,6 +9206,34 @@ snapshots:
 
   '@soybeanjs/fetch@0.1.0': {}
 
+  '@soybeanjs/headless@0.30.0(vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))':
+    dependencies:
+      '@dnd-kit/dom': 0.5.0
+      '@dnd-kit/helpers': 0.5.0
+      '@dnd-kit/vue': 0.5.0(vue@3.5.42(typescript@6.0.3))
+      '@floating-ui/dom': 1.8.0
+      '@floating-ui/utils': 0.2.12
+      '@formkit/auto-animate': 0.10.0
+      '@internationalized/date': 3.12.3
+      '@internationalized/number': 3.6.7
+      '@soybeanjs/colord': 0.7.1
+      '@soybeanjs/hooks': 0.3.0
+      '@soybeanjs/utils': 0.1.1
+      '@standard-schema/spec': 1.1.0
+      '@tanstack/vue-virtual': 3.13.36(vue@3.5.42(typescript@6.0.3))
+      '@vueuse/core': 14.4.0(vue@3.5.42(typescript@6.0.3))
+      '@vueuse/shared': 14.4.0(vue@3.5.42(typescript@6.0.3))
+      aria-hidden: 1.2.6
+      defu: 6.1.7
+      embla-carousel: 8.6.0
+      embla-carousel-reactive-utils: 8.6.0(embla-carousel@8.6.0)
+      fuse.js: 7.5.0
+      klona: 2.0.6
+      ohash: 2.0.12
+      vue: 3.5.42(typescript@6.0.3)
+    optionalDependencies:
+      vue-router: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
+
   '@soybeanjs/headless@0.30.0(vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0)(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))':
     dependencies:
       '@dnd-kit/dom': 0.5.0
@@ -9211,6 +9275,18 @@ snapshots:
       '@soybeanjs/colord': 0.7.1
       '@soybeanjs/utils': 0.1.1
       defu: 6.1.7
+
+  '@soybeanjs/ui@0.30.0(vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))':
+    dependencies:
+      '@iconify/vue': 5.0.1(vue@3.5.42(typescript@6.0.3))
+      '@soybeanjs/cva': 0.0.9
+      '@soybeanjs/headless': 0.30.0(vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))
+      '@soybeanjs/hooks': 0.3.0
+      '@soybeanjs/theme': 0.30.0
+      '@soybeanjs/utils': 0.1.1
+      vue: 3.5.42(typescript@6.0.3)
+    optionalDependencies:
+      vue-router: 5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3))
 
   '@soybeanjs/ui@0.30.0(vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0)(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)))(vue@3.5.42(typescript@6.0.3))':
     dependencies:
@@ -13731,7 +13807,7 @@ snapshots:
       '@vue/devtools-api': 6.6.4
       vue: 3.5.42(typescript@6.0.3)
 
-  vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)):
+  vue-router@5.3.0(@voidzero-dev/vite-plus-core@0.3.0(@types/node@26.4.0)(jiti@2.7.0)(terser@5.51.2)(typescript@6.0.3)(yaml@2.9.0))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript@6.0.3)(vue@3.5.42(typescript@6.0.3)))(rollup@4.63.1)(vue@3.5.42(typescript@6.0.3)):
     dependencies:
       '@vue-macros/common': 3.1.4(vue@3.5.42(typescript@6.0.3))
       '@vue/devtools-api': 8.2.1

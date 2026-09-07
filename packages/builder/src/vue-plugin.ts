@@ -13,7 +13,7 @@ import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
 import { join, resolve } from 'pathe';
 import type { InlinePreset } from 'unimport';
-import { UBEAN_CLIENT_PRESET, UBEAN_SERVER_PRESET } from './codegen';
+import { UBEAN_CLIENT_PRESET, VUE_ROUTER_PRESET, VUE_I18N_PRESET, UBEAN_SERVER_PRESET } from './codegen';
 import { getComponentResolvers } from './registry';
 import { ssrSingletonDevPolicy } from './ssr-singleton';
 import { useVirtualRegistry } from './virtual-registry';
@@ -331,7 +331,12 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
   if (autoImportEnabled) {
     plugins.push(
       AutoImport({
-        imports: [UBEAN_CLIENT_PRESET as InlinePreset, UBEAN_SERVER_PRESET as InlinePreset],
+        imports: [
+          UBEAN_CLIENT_PRESET as InlinePreset,
+          VUE_ROUTER_PRESET as InlinePreset,
+          VUE_I18N_PRESET as InlinePreset,
+          UBEAN_SERVER_PRESET as InlinePreset
+        ],
         dirs: composablesDirs,
         dts: join(dtsDir, 'auto-imports.d.ts'),
         vueTemplate: true,

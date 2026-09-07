@@ -31,7 +31,7 @@ src/pages/users/[id].vue        → /users/:id
 src/pages/posts/[year]/[slug].vue → /posts/:year/:slug
 ```
 
-Access route parameters via `useRouter()` (auto-imported from `ubean/runtime/vue`):
+Access route parameters via `useRouter()` (auto-imported from `vue-router`):
 
 ```vue
 <script setup lang="ts">
@@ -280,7 +280,7 @@ The default slot also exposes `isActive` / `isExactActive` for advanced use.
 
 ```vue
 <script setup lang="ts">
-// useRouter is auto-imported from ubean/runtime/vue
+// useRouter is auto-imported from vue-router
 const router = useRouter();
 
 function goAbout() {

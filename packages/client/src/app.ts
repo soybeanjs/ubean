@@ -48,11 +48,10 @@ import { localizePath, initClientI18n, createUbeanI18n, bindI18nRuntime, getI18n
 import { createUbeanRouter } from './router';
 
 // Re-export the lean surface for framework consumers of this subpath.
-// `usePage`(路由感知版)与 `useRouter`(vue-router 纯 re-export)见下方。
+// `usePage`(路由感知版)见下方;`useRouter` 不再透传,请直接从 `vue-router` 导入。
 export { PageView, SlotView, Link, ubeanVue, useViewTransition };
 export { usePage } from './use-page';
 export type { UbeanVuePage } from './use-page';
-export { useRouter } from 'vue-router';
 export {
   PAGE_KEY,
   TRANSITION_KEY,
@@ -69,8 +68,6 @@ export { definePage, defineMeta, defineMiddleware } from './page-macro';
 // Framework router factory (own implementation — the lean kernel ships none)
 export { createUbeanRouter } from './router';
 export type { CreateUbeanRouterOptions } from './router';
-
-export type { VueHeadClient };
 
 export interface UbeanAppOptions {
   routes: RouteRecordRaw[];

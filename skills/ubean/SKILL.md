@@ -593,7 +593,8 @@ function go() {
 
 ```vue
 <script setup lang="ts">
-const { t, locale, setLocale, d, n, c } = useI18n();
+const { t, locale, d, n, c } = useI18n(); // useI18n 自动导入(直源 vue-i18n)
+// 切换语言用框架 setLocale(自动导入,来自 ubean/runtime/vue)
 
 console.log(t('hello'));
 console.log(t('items', { count: 3 }));

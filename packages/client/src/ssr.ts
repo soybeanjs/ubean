@@ -517,4 +517,4 @@ export function createVueRenderer(options: VueRendererOptions): PageRenderer {
   };
 }
 
-export { renderToString } from '@vue/server-renderer';
+// `renderToString` 不再由此包透传 —— 请直接从 `@vue/server-renderer` 导入。

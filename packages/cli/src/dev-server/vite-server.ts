@@ -308,11 +308,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         registerRefresh: (fn: () => void) => {
           refreshDevtools = fn;
         }
-      } as Parameters<typeof ubeanDevtoolsPlugin>[0]) as unknown as Plugin;
-      // pnpm resolves `@vitejs/devtools` against a second copy of
-      // `@voidzero-dev+vite-plus-core` (peer-dep variation), so its `Plugin`
-      // type is nominally unrelated to this package's `vite` alias copy even
-      // though both are the same version. Bridge the boundary explicitly.
+      } as Parameters<typeof ubeanDevtoolsPlugin>[0]);
     } catch {
       // @ubean/devtools not installed — DTK integration skipped.
     }
@@ -330,7 +326,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       // builtinDevTools: false skips DevToolsRolldownUI (the built-in Vite DevTools
       // dock panels) — we only need DevToolsServer (which fires devtools.setup) and
       // DevToolsInjection (which injects the client bootstrap script).
-      viteDevtoolsPlugins = (await DevTools({ builtinDevTools: false })) as unknown as Plugin[];
+      viteDevtoolsPlugins = await DevTools({ builtinDevTools: false });
     } catch {
       // @vitejs/devtools not installed — Vite DevTools UI skipped.
     }

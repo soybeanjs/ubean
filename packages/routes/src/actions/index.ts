@@ -20,7 +20,7 @@
  *
  * ```vue
  * <script setup>
- * import { useAction } from 'ubean/runtime/vue';
+ * import { useAction } from 'ubean/client';
  * import { ping } from '~/actions/auth';
  *
  * const { submit, pending, data, error } = useAction(ping);

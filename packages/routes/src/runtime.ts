@@ -5,7 +5,7 @@
  * server-only types. The Vite plugin replaces `defineAction()` calls on
  * the client with `createActionStub()` calls (imported from here), and
  * `useAction()` / `useFormAction()` are auto-imported from
- * `ubean/runtime/vue` (which re-exports these).
+ * `ubean/client` (which re-exports these).
  *
  * The runtime communicates with the server via the `/__actions` POST
  * endpoint (for RPC) or via page POST (for form actions with
@@ -129,7 +129,7 @@ export interface UseActionReturn<TInput = unknown, TOutput = unknown> {
  * ## 1. Action from `defineAction()` (typed input)
  *
  * ```ts
- * import { useAction } from 'ubean/runtime/vue';
+ * import { useAction } from 'ubean/client';
  * import { login } from '~/actions/auth';
  *
  * const { submit, pending, data, error } = useAction(login);
@@ -249,7 +249,7 @@ export interface UseFormActionReturn {
  *
  * ```vue
  * <script setup>
- * import { useFormAction } from 'ubean/runtime/vue';
+ * import { useFormAction } from 'ubean/client';
  *
  * const login = useFormAction('login');
  * </script>

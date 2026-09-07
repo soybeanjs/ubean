@@ -35,7 +35,7 @@ export { ACTION_RESPONSE_HEADER, ACTIONS_ENDPOINT } from './constants';
  * Usage:
  *
  * ```ts
- * import { createUbeanApp } from 'ubean/runtime/app';
+ * import { createUbeanApp } from 'ubean/server';
  * import { createActionsMiddleware } from '@ubean/routes';
  *
  * const app = createUbeanApp();

@@ -133,7 +133,7 @@ export function createCrudServer(options: CrudServerOptions) {
           const cronSchedule = schedule || '* * * * *';
           const cronContent =
             content ||
-            `import { defineScheduled } from 'ubean';
+            `import { defineScheduled } from 'ubean/server';
 
 export default defineScheduled({
   schedule: '${cronSchedule}',

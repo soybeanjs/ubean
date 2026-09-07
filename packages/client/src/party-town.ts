@@ -15,7 +15,7 @@
  *
  * Usage (composable):
  * ```typescript
- * import { useScript } from 'ubean/runtime/party-town';
+ * import { useScript } from 'ubean/client';
  *
  * // Load Google Analytics via Partytown when browser is idle
  * const { load, remove } = useScript('https://www.googletagmanager.com/gtag/js?id=GA_ID', {

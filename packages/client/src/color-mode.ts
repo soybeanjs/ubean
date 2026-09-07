@@ -12,7 +12,7 @@
  *
  * Usage (composable):
  * ```typescript
- * import { useColorMode } from 'ubean/runtime/color-mode';
+ * import { useColorMode } from 'ubean/client';
  *
  * const colorMode = useColorMode();
  * colorMode.value;     // 'light' | 'dark' | ...

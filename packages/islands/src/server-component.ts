@@ -46,7 +46,7 @@ export const SERVER_COMPONENT_RESPONSE_HEADER = 'x-ubean-server-component';
  * 用法 (通常由 `createUbeanApp()` 自动挂载,用户无需手动调用):
  *
  * ```ts
- * import { createUbeanApp } from 'ubean/runtime/app';
+ * import { createUbeanApp } from 'ubean/server';
  * import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
  *
  * const app = createUbeanApp();

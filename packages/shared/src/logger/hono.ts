@@ -34,7 +34,7 @@ function shouldSkip(path: string, exclude: RequestLoggerOptions['exclude']): boo
  * @example
  * ```ts
  * import { createRequestLoggerMiddleware } from '@ubean/shared/logger/hono';
- * import { createUbeanApp } from 'ubean/runtime/app';
+ * import { createUbeanApp } from 'ubean/server';
  *
  * const app = createUbeanApp();
  * app.use('*', createRequestLoggerMiddleware({

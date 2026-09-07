@@ -24,7 +24,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
 
 2. **Vite Integration**
    - Dev server uses Vite middleware mode (`vite.createServer({ middlewareMode: true })`)
-   - Virtual modules: `ubean:pages`, `ubean:routes`, `ubean:meta`, `ubean:app-config`, `ubean:locales`
+   - Virtual modules: `ubean:pages`, `ubean:routes`, `ubean:meta`, `ubean:app-config`, `ubean:locales`（另有 `virtual:ubean-islands-registry` islands 惰性注册表，自动合并进 `ubean/client` 的 `hydrateIslands`）
    - SSR modules loaded via `vite.ssrLoadModule()` in dev
 
 3. **Module System**
@@ -62,7 +62,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - `node`: Node.js HTTP server via `@hono/node-server`
    - `cloudflare`: Cloudflare Workers (generates `wrangler.toml`)
    - Preset auto-detection: explicit config > config-file hints (wrangler.toml) > environment vars > default `standard`
-   - Capability matrix (19 capabilities: `fs`, `cronTrigger`, `websocket`, `queue`, `isr`, ...) with build-time diagnostics
+   - Capability matrix (19 capabilities: `staticServe`, `websocket`, `sse`, `cronTriggers`, `queues`, `kv`, `storage`, `database`, `envVars`, `secrets`, `nodeCompat`, `streaming`, `compression`, `https`, `http2`, `middleware`, `bodyLimit`, `multipart`, `rpc`, ...) with build-time diagnostics
 
 8. **Extension Packages** (`@ubean/*` scope, kebab-case)
    - `@ubean/icon`: Iconify-based icons with custom local SVG collections, `/_iconify` dev route
@@ -265,14 +265,13 @@ function go() {
 
 ```vue
 <script setup lang="ts">
-const { t, locale, d, n, c } = useI18n(); // useI18n 自动导入(直源 vue-i18n)
+const { t, locale, d, n } = useI18n(); // useI18n 自动导入(直源 vue-i18n)
 // 切换语言用框架 setLocale(自动导入,来自 ubean/client)
 
 console.log(t('hello'));
 console.log(t('items', { count: 3 }));
 console.log(d(new Date()));
 console.log(n(1234.56));
-console.log(c(42.99, 'USD'));
 </script>
 ```
 

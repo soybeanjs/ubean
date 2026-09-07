@@ -77,7 +77,7 @@ ubean is a **monorepo** of 24 packages. The public package `ubean` is an **aggre
 | Subpath          | Purpose                                                                                                                                              |
 | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ubean`          | **Isomorphic main entry (client-safe)**: shared/seo/pages/markdown + Vue client kernel + islands client runtime + logger + `defineConfig`            |
-| `ubean/vite`     | Default Vite plugin combo (build + vue + islands) for `vite.config.ts`                                                                               |
+| `ubean/vite`     | Default Vite plugin combo (build + vue + islands + server-actions) for `vite.config.ts`                                                              |
 | `ubean/client`   | Framework client runtime: kernel + `createServerHead` + Server Actions runtime + islands registry bridge                                             |
 | `ubean/server`   | Server runtime aggregate (`defineHandler`/`defineAction`/`validator`/`useDatabase`/`createUbeanApp`/`defineServer`) for `src/server.ts` + API routes |
 | `ubean/build`    | Build-time tooling aggregate (`prerender`/`loadUbeanConfig`/`getAutoImportPresets`/`detectPreset`/Vite plugins)                                      |
@@ -104,17 +104,17 @@ Extension packages (`@ubean/auth`, `@ubean/icon`, `@ubean/image`, `@ubean/conten
 
 ## Commands
 
-| Command  | Description                                     | Usage                       |
-| -------- | ----------------------------------------------- | --------------------------- |
-| init     | Initialize a new ubean project                  | `ubean init [options]`      |
-| dev      | Start development server (Vite middleware mode) | `ubean dev [options]`       |
-| build    | Build for production (Vite SSR dual build)      | `ubean build [options]`     |
-| preview  | Preview production build                        | `ubean preview [options]`   |
-| prepare  | Generate `.ubean/` types                        | `ubean prepare [--force]`   |
-| page     | Scaffold page/api/layout/middleware/reuse       | `ubean page add [options]`  |
-| env      | Manage `.env` files                             | `ubean env <subcommand>`    |
-| config   | Show/init/example resolved configuration        | `ubean config <subcommand>` |
-| devtools | Print DevTools info/URL                         | `ubean devtools info`       |
+| Command  | Description                                     | Usage                                        |
+| -------- | ----------------------------------------------- | -------------------------------------------- |
+| init     | Initialize a new ubean project                  | `ubean init [options]`                       |
+| dev      | Start development server (Vite middleware mode) | `ubean dev [options]`                        |
+| build    | Build for production (Vite SSR dual build)      | `ubean build [options]`                      |
+| preview  | Preview production build                        | `ubean preview [options]`                    |
+| prepare  | Generate `.ubean/` types                        | `ubean prepare [--cwd <dir>] [--no-install]` |
+| page     | Scaffold page/api/layout/middleware/reuse       | `ubean page add [options]`                   |
+| env      | Manage `.env` files                             | `ubean env <subcommand>`                     |
+| config   | Show/init/example resolved configuration        | `ubean config <subcommand>`                  |
+| devtools | Print DevTools info/URL                         | `ubean devtools info`                        |
 
 ### Command Details
 
@@ -146,7 +146,7 @@ Start the development server. Uses Vite middleware mode so all configured module
 
 **Options:**
 
-- `--port, -p`: Server port (default: 5173)
+- `--port`: Server port (default: 9527)
 - `--host`: Host to listen on
 - `--open`: Open browser on start
 
@@ -163,9 +163,10 @@ Build the application for production via Vite dual build (client + SSR).
 
 **Options:**
 
-- `--preset, -p`: Build preset (`standard`, `node`, `cloudflare`, `vercel`, `vercel-edge`, `netlify`, `bun`, `deno`)
+- `--preset`: Build preset (`standard`, `node`, `cloudflare`, `cloudflare-dev`, `vercel`, `vercel-edge`, `netlify`, `bun`, `deno`, `aws`, `azure`; defaults to `build.preset` in ubean.config.ts, itself `node`)
+- `--mode <fullstack|spa|ssg|backend>`: App mode override
+- `--no-ssr` / `--ssg` / `--no-minify`: render & output toggles
 - `--prerender`: Enable static site generation
-- `--clean`: Clean output directory before build
 
 **Examples:**
 
@@ -180,7 +181,7 @@ Preview the production build locally.
 
 **Options:**
 
-- `--port, -p`: Preview port (default: 4173)
+- `--port`: Preview port (default: 9725)
 - `--host`: Host to listen on
 
 **Examples:**
@@ -207,10 +208,10 @@ Scaffold a new page / api / layout / middleware / reuse route.
 **Examples:**
 
 ```bash
-ubean page add page about
-ubean page add page "blog/post"
-ubean page add api users
-ubean page add layout admin
+ubean page add about
+ubean page add "blog/post"
+ubean page add --type api users
+ubean page add --type layout admin
 ```
 
 ## API Routes
@@ -458,7 +459,7 @@ Use these keys in `dependsOn` for built-in modules:
 - `bun`: Bun runtime with native TypeScript + `bun:sqlite` (generates `bunfig.toml`, alias `bun-runtime`)
 - `deno`: Deno runtime with Deno KV/cron/Queue (generates `deno.json`, aliases `deno-deploy`/`deno-runtime`)
 - Preset auto-detection: explicit config > config-file hints (wrangler.toml/vercel.json/netlify.toml/deno.json) > environment vars (VERCEL/NETLIFY/globalThis.Deno/globalThis.Bun) > default `standard`
-- Capability matrix (19 capabilities: `fs`, `cronTrigger`, `websocket`, `queue`, `isr`, ...) with build-time diagnostics
+- Capability matrix (19 capabilities: `staticServe`, `websocket`, `sse`, `cronTriggers`, `queues`, `kv`, `storage`, `database`, `envVars`, `secrets`, `nodeCompat`, `streaming`, `compression`, `https`, `http2`, `middleware`, `bodyLimit`, `multipart`, `rpc`, ...) with build-time diagnostics
 - Config generators: `generateWranglerConfig` / `generateVercelConfig` / `generateNetlifyConfig` / `generateBunfigConfig` / `generateDenoConfig`
 
 ### 8. Extension Packages (`@ubean/*` scope, kebab-case)
@@ -546,9 +547,10 @@ export const POST = defineHandler(async c => {
 
 ```vue
 <script setup lang="ts">
-const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
-  fetch('/api/posts').then(r => r.json())
-);
+const { data, error, loading, refresh, invalidate } = await useData({
+  key: 'posts',
+  fetcher: () => fetch('/api/posts').then(r => r.json())
+});
 </script>
 
 <template>
@@ -595,14 +597,13 @@ function go() {
 
 ```vue
 <script setup lang="ts">
-const { t, locale, d, n, c } = useI18n(); // useI18n 自动导入(直源 vue-i18n)
+const { t, locale, d, n } = useI18n(); // 自动导入需 autoImports: { vueI18n: true }(默认关闭),否则从 vue-i18n 显式导入
 // 切换语言用框架 setLocale(自动导入,来自 ubean/client)
 
 console.log(t('hello'));
 console.log(t('items', { count: 3 }));
 console.log(d(new Date()));
 console.log(n(1234.56));
-console.log(c(42.99, 'USD'));
 </script>
 ```
 

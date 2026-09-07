@@ -5,11 +5,11 @@ description: "Routing helpers: useRouter, the Link component, and navigation uti
 
 # Route Helpers
 
-ubean's routing helpers revolve around `useRouter()` (auto-imported from `vue-router`) and the globally-registered `<Link>` component. ubean does **not** provide `useRoute()`, `navigateTo()`, `redirectTo()`, `useRouteParams()`, or `useRouteQuery()` — use `router.currentRoute` (see below) or `vue-router`'s `useRoute()` instead. For i18n path helpers (`useLocalePath`, `useSwitchLocalePath`), see the [I18n reference](/reference/i18n).
+ubean's routing helpers revolve around `useRouter()` (from `vue-router`; auto-imported only when `autoImports: { vueRouter: true }` is enabled — off by default) and the globally-registered `<Link>` component. ubean does **not** provide `useRoute()`, `navigateTo()`, `redirectTo()`, `useRouteParams()`, or `useRouteQuery()` — use `router.currentRoute` (see below) or `vue-router`'s `useRoute()` instead. For i18n path helpers (`useLocalePath`, `useSwitchLocalePath`), see the [I18n reference](/reference/i18n).
 
 ## useRouter()
 
-`useRouter()` returns the Vue Router instance extended with `push`/`replace` shortcuts. It is auto-imported (no import needed) in client components:
+`useRouter()` returns the Vue Router instance extended with `push`/`replace` shortcuts. Import it from `vue-router` (auto-import requires `autoImports.vueRouter`, off by default) in client components:
 
 ```vue
 <script setup lang="ts">
@@ -159,10 +159,15 @@ router.afterEach((to, from) => {
 | Prop               | Type                                       | Description                       |
 | ------------------ | ------------------------------------------ | --------------------------------- |
 | `to`               | `string \| { name, params, query, hash }` | Target route                      |
+| `locale`           | `string`                                   | Localize target path to a locale (i18n) |
+| `replace`          | `boolean`                                  | `router.replace` instead of push  |
+| `href`             | `string`                                   | Override rendered href            |
+| `prefetch`         | `boolean`                                  | Prefetch target page chunk        |
 | `activeClass`      | `string`                                   | Class when link matches current   |
 | `exactActiveClass` | `string`                                   | Class for exact match             |
+| `noActiveClass`    | `boolean`                                  | Disable default active classes    |
 
-External URLs (starting with `http://`, `https://`, `//`) are automatically detected and rendered as plain `<a>` tags with `target="_blank" rel="noopener"`.
+External URLs (starting with `http://`, `https://`, `//`) are automatically detected and rendered as plain `<a>` tags with `target="_blank" rel="noopener noreferrer"`.
 
 ### Slot Scope
 
@@ -190,7 +195,6 @@ definePage({
     title: 'About Page',
     description: 'About our company'
   },
-  middleware: ['auth'],
   requiresAuth: true,
   cache: true,                       // Enable KeepAlive page caching
   head: {
@@ -207,15 +211,17 @@ definePage({
 | --------------- | --------------------- | ------------------------------------ |
 | `name`          | `string`              | Route name (PascalCase recommended)  |
 | `path`          | `string`              | Override auto-generated URL path     |
-| `layout`        | `string \| false`     | Layout name or `false` to disable    |
+| `layout`        | `string \| string[] \| false` | Layout name, outer→inner layout chain, or `false` to disable |
 | `reuse`         | `string`              | Reuse route target                   |
 | `meta`          | `object`              | Custom metadata (any shape)          |
-| `middleware`    | `string \| string[]`  | Page-level middleware names         |
 | `requiresAuth`  | `boolean`             | Auth requirement (meta shortcut)     |
 | `cache`         | `boolean`             | Enable KeepAlive page caching        |
 | `head`          | `object`              | Per-page head tags (@unhead/vue)     |
+| `ssr`           | `boolean \| 'streaming' \| 'data-only'` | Per-page rendering override |
+| `transition`    | `string`              | Page transition name (empty string disables) |
 
-> There is **no top-level `title`** field. Use `meta: { title }` or `head: { title }`.
+> There is **no top-level `title`** field — use `meta: { title }` or `head: { title }`.
+> There is **no top-level `middleware`** field — route-level middleware is declared via `meta: { middleware: [...] }`.
 
 ### Page Caching (`cache: true`)
 

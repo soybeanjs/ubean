@@ -72,7 +72,7 @@ export default defineConfig({
 
 // or
 export default defineConfig({
-  pinia: { enabled: false }
+  pinia: { disabled: true }
 });
 ```
 
@@ -181,7 +181,7 @@ For page loaders, prefer the loader/action data protocol over Pinia for request-
 
 `@ubean/integrations/pinia` is a thin wrapper. When `pinia: true` is set:
 
-1. **Module system loads** `@ubean/integrations/pinia` and calls `ubeanPiniaPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.pinia)` — `{ optimizeDeps: false }` when configured as an object, `{}` when `true`).
+1. **Module system loads** `@ubean/integrations/pinia` and calls `ubeanPiniaPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.pinia)` — an object is passed through as-is minus the module-system `disabled` flag; `true` yields `{}`).
 
 2. **Dev optimizeDeps**: `ubeanPiniaPlugin` adds `pinia` to Vite's `optimizeDeps.include`, ensuring Pinia is pre-bundled for fast first page load in dev. This avoids the dependency scanning delay on the first request.
 
@@ -244,7 +244,8 @@ Client hydration helper. Assigns `state.pinia` to `pinia.state.value`. No-op whe
 
 ```typescript
 export interface UbeanPiniaOptions {
-  /** Whether the module is enabled (default: true) */
+  /** Whether the plugin is enabled (default: true). NOTE: in ubean.config.ts
+   * the module-system option is `disabled?: boolean` instead (inverted). */
   enabled?: boolean;
   /**
    * Whether to add `pinia` to Vite's `optimizeDeps.include` (default: true).

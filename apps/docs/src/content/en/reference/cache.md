@@ -79,7 +79,9 @@ Path patterns support `*` (single segment) and `**` (multi-segment), matching th
 ```typescript
 export interface CacheRule {
   ttl: number;        // seconds; 0 disables caching
-  swr?: boolean | number;  // serve stale while revalidating
+  swr?: boolean | number;  // only emits the stale-while-revalidate response
+                       // header (CDN semantics); app-level stale serving
+                       // while revalidating is ISR-only
   name?: string;      // explicit cache key (defaults to method + path + query)
 }
 ```
@@ -106,7 +108,7 @@ Cacheability is enforced automatically:
 - Only `GET`/`HEAD` requests are cached
 - Requests with `Authorization` headers are never cached
 - Requests with cookies are cached only if `Cache-Control: public` is sent
-- Responses with `set-cookie` or non-200 status are never stored
+- Responses with non-200 status or `Cache-Control: private` / `no-store` are never stored; `set-cookie` headers are stripped before storing (so cookie-authenticated apps still cache)
 
 ## defineCachedFunction()
 
@@ -261,7 +263,7 @@ ubean does **not** ship these APIs (common in other frameworks' cache modules):
 - Cache groups and `remember()` / `rememberForever()` helpers — use `defineCachedFunction` + `revalidateTag` instead
 - Built-in Redis/Memcached/file drivers — implement the `CacheStore` interface yourself, or mount a driver on ubean's storage layer
 
-For arbitrary application-level key/value caching (not HTTP response caching), prefer the built-in `useStorage` / `useKV` (from `@ubean/server`, re-exported by `ubean`):
+For arbitrary application-level key/value caching (not HTTP response caching), prefer the built-in `useStorage` / `useKV` (from `ubean/server`):
 
 ```typescript
 import { useStorage } from 'ubean/server';

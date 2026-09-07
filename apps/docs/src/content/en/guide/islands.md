@@ -244,6 +244,7 @@ When an island component is not found in the registry, ubean outputs a helpful w
 Possible causes:
   1. Component is globally registered or dynamically imported — pass it via hydrateIslands({ components: { MyComp: YourComp } })
   2. Component name mismatch between template tag and import
+  3. Component is auto-imported by unplugin-vue-components (no static import → not in auto-registry)
 Registered components: Counter, Chart, Comments
 ```
 

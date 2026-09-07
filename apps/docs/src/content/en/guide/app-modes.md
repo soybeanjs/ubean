@@ -35,7 +35,7 @@ CLI flags override the config file:
 
 ```bash
 ubean build --mode spa
-ubean build --mode fullstack --ssr false
+ubean build --mode fullstack --no-ssr
 ubean build --ssg          # shortcut for --mode ssg
 ```
 
@@ -101,6 +101,7 @@ export default defineConfig({
 | `true`                 | Force SSR for matching routes (overrides `ssr.exclude`)                   |
 | `false`                | Force CSR for matching routes (treats them as if in `ssr.exclude`)        |
 | `'streaming'`          | Force streaming SSR for matching routes (overrides `SsrOptions.streaming`) |
+| `'data-only'`          | Run loaders/data but return a CSR shell with dehydrated data              |
 
 Combine with `routeRules.isr` for incremental static regeneration, or `routeRules.prerender` for build-time prerendering. See [Route Rules](/guide/pages-routing/overview#per-route-rendering-rules-p9-03) for the full field reference.
 

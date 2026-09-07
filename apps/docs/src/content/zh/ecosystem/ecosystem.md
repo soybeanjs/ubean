@@ -323,3 +323,10 @@ export const useCounterStore = defineStore('counter', {
 - SEO/OG：layout/page/frontmatter 合并、tag 去重、robots/sitemap/OG handler 的 snapshot 与安全测试。
 - Image/Fonts/Icon：Node SSR、SSG、Cloudflare 实验 preset 与组件测试均不得有未声明网络请求；分别验证远程 allowlist、字体自托管、SVG 消毒和 bundle size 限制。
 - Content：schema 反例、AST/renderer、dump 完整性、索引查询与 raw HTML/组件 allowlist 安全测试。
+
+## 下一步
+
+- [路由](/zh/architecture/routing) — 文件式路由与路由规则
+- [应用模式](/zh/guide/app-modes) — fullstack / spa / ssg / backend
+- [快速开始](/zh/guide/quickstart) — 几分钟内跑起一个项目
+- [ubean API 参考](/reference/api/ubean) — 核心运行时导出

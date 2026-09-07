@@ -31,11 +31,11 @@ src/pages/users/[id].vue        → /users/:id
 src/pages/posts/[year]/[slug].vue → /posts/:year/:slug
 ```
 
-Access route parameters via `useRouter()` (auto-imported from `vue-router`):
+Access route parameters via `useRouter()` (from `vue-router`; auto-imported only when `autoImports: { vueRouter: true }` is enabled — off by default):
 
 ```vue
 <script setup lang="ts">
-// useRouter is auto-imported, no explicit import needed
+import { useRouter } from 'vue-router';
 const router = useRouter();
 
 // Current route info
@@ -138,7 +138,7 @@ Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin 
 
 ## Page Metadata (definePage)
 
-`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout`, `reuse`, `meta`, `requiresAuth`, `cache`, `head`, `ssr`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
+`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout` (`string | string[] | false`), `reuse`, `meta`, `requiresAuth`, `cache`, `head`, `ssr` (`boolean | 'streaming' | 'data-only'`), `transition`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
 
 ```vue
 <script setup lang="ts">
@@ -268,11 +268,16 @@ definePage({ reuse: 'About', cache: false });
 
 `<Link>` props:
 
-| Prop              | Type                                            | Description                          |
-| ----------------- | ----------------------------------------------- | ------------------------------------ |
-| `to`              | `string \| { name, params, query, hash }`      | Target route                         |
-| `activeClass`     | `string`                                        | Class applied when link is active    |
-| `exactActiveClass`| `string`                                        | Class for exact active match         |
+| Prop               | Type                                            | Description                                        |
+| ------------------ | ----------------------------------------------- | -------------------------------------------------- |
+| `to`               | `string \| { name, params, query, hash }`      | Target route                                       |
+| `locale`           | `string`                                        | Localize the target path to a locale (i18n)        |
+| `replace`          | `boolean`                                       | Use `router.replace` instead of push               |
+| `href`             | `string`                                        | Override the rendered href                         |
+| `prefetch`         | `boolean`                                       | Prefetch the target page chunk                     |
+| `activeClass`      | `string`                                        | Class applied when link is active                  |
+| `exactActiveClass` | `string`                                        | Class for exact active match                       |
+| `noActiveClass`    | `boolean`                                       | Disable the default active classes                 |
 
 The default slot also exposes `isActive` / `isExactActive` for advanced use.
 
@@ -280,7 +285,7 @@ The default slot also exposes `isActive` / `isExactActive` for advanced use.
 
 ```vue
 <script setup lang="ts">
-// useRouter is auto-imported from vue-router
+import { useRouter } from 'vue-router';
 const router = useRouter();
 
 function goAbout() {
@@ -442,7 +447,7 @@ export default defineConfig({
 
 | Field       | Type                          | Description                                                                                                   |
 | ----------- | ----------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `ssr`       | `boolean \| 'streaming'`      | Override global SSR setting for matching routes. `false` → CSR, `true` → SSR, `'streaming'` → streaming SSR. |
+| `ssr`       | `boolean \| 'streaming' \| 'data-only'` | Override global SSR setting for matching routes. `false` → CSR, `true` → SSR, `'streaming'` → streaming SSR, `'data-only'` → loaders run but return a CSR shell with dehydrated data. |
 | `prerender` | `boolean`                     | Mark route for build-time prerendering. Auto-discovered by `prerender()` from `routeRules`.                   |
 | `isr`       | `number \| { ttl: number; swr?: boolean }` | Incremental Static Regeneration. `ttl` in seconds; `swr: true` serves stale content while revalidating.       |
 
@@ -456,7 +461,7 @@ See also [Cache Operations](/reference/cache) for `CacheStore.peek()` and ISR in
 
 ## Data Fetching
 
-Use `useData()` (auto-imported from `ubean`) for declarative data fetching with caching, TTL, dependencies and invalidation:
+Use `useData()` (auto-imported from `ubean/client`) for declarative data fetching with caching, TTL, dependencies and invalidation:
 
 ```vue
 <script setup lang="ts">

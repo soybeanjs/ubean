@@ -9,8 +9,8 @@ description: 几分钟内开始使用 ubean。
 
 ## 前置条件
 
-- Node.js >= 18.0.0
-- pnpm `11.18.0`（必需 — ubean 使用 pnpm catalog 和 workspace 功能）
+- Node.js >= 22.0.0
+- pnpm `11.24.0`（必需 — ubean 使用 pnpm catalog 和 workspace 功能）
 
 ## 创建项目
 
@@ -43,13 +43,58 @@ my-app/
 │   ├── locales/          # i18n 消息（en.json、zh.json 等）
 │   ├── crons/            # 定时任务（defineScheduled）
 │   ├── queues/           # 队列 worker（defineQueue）
-│   └── plugins/          # 运行时插件
+│   ├── plugins/          # 运行时插件
+│   ├── request/          # 类型化内部请求客户端（unify 模板生成）
+│   ├── server.ts         # 服务端钩子（defineServer；unify 模板生成）
+│   └── app.ts            # Vue 应用配置（defineApp；可拆分 app.server.ts / app.client.ts）
 ├── public/               # 静态资源
 ├── .ubean/               # 自动生成的类型
 ├── ubean.config.ts       # 框架配置（defineConfig）
-├── app.ts                # Vue 应用配置（defineApp）
-├── env.ts                # 环境变量 schema（defineEnv）
 └── package.json
+```
+
+> 以上为可选约定目录：middleware/、locales/、crons/、queues/、plugins/ 仅在对应能力启用时需要；unify 模板会生成 locales/ 与 middleware/。
+
+## 最小示例
+
+脚手架生成的项目开箱即含以下核心文件，也可手动搭建：
+
+```bash
+# vite.config.ts
+import { defineConfig } from 'vite-plus';
+import { ubeanPlugin } from 'ubean/vite';
+
+export default defineConfig({
+  plugins: [ubeanPlugin()]
+});
+```
+
+```bash
+# src/server.ts
+import { defineServer } from 'ubean/server';
+
+export default defineServer({});
+```
+
+```typescript
+// src/routes/api/hello.ts
+import { defineHandler } from 'ubean/server';
+
+export const GET = defineHandler(() => ({ hello: 'ubean' }));
+```
+
+```vue
+<!-- src/pages/index.vue -->
+<script setup lang="ts">
+import { ref } from 'vue';
+
+const count = ref(0);
+</script>
+
+<template>
+  <button @click="count++">点击了 {{ count }} 次</button>
+  <Link to="/api/hello">调用 API</Link>
+</template>
 ```
 
 ## 开发服务器
@@ -79,7 +124,6 @@ pnpm preview    # 预览生产构建
     "dev": "ubean dev",
     "build": "ubean build",
     "preview": "ubean preview",
-    "prepare": "ubean prepare",
     "typecheck": "vue-tsc --noEmit"
   }
 }
@@ -90,5 +134,7 @@ pnpm preview    # 预览生产构建
 - [应用模式](/zh/guide/app-modes) — 了解 fullstack / spa / ssg / backend 模式
 - [路由模式](/zh/guide/routing-modes) — 深入了解文件式路由
 - [页面与路由](/zh/guide/pages-routing/overview) — 页面路由与导航
+- [数据加载](/zh/guide/pages-routing/loaders) — useData 数据获取
+- [Actions](/zh/guide/pages-routing/actions) — 渐进增强的表单动作
 - [国际化](/zh/guide/i18n) — 多语言支持
 - [群岛架构](/zh/guide/islands) — 部分水合

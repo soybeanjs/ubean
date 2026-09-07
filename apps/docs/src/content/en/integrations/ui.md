@@ -148,7 +148,7 @@ See the [`@soybeanjs/ui` docs](https://www.npmjs.com/package/@soybeanjs/ui) for 
 
 `@ubean/integrations/ui` is a thin wrapper. When `ui: true` is set:
 
-1. **Module system loads** `@ubean/integrations/ui` and calls `ubeanUiPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.ui)` — `{ css: false }` when configured as an object, `{}` when `true`).
+1. **Module system loads** `@ubean/integrations/ui` and calls `ubeanUiPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.ui)` — an object is passed through as-is minus the module-system `disabled` flag; `true` yields `{}`).
 
 2. **`ubeanUiPlugin` registers** `UiResolver()` (from `@soybeanjs/ui/resolver`) into ubean's module extension registry (in `@ubean/build-core`).
 

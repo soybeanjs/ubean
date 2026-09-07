@@ -22,6 +22,26 @@ ubean 基于 Vite、Hono 与 Vue 3 构建，融合了 void 的 Inertia 式 SSR �
 - **Markdown 页面** — 一流的 `.md` 页面支持，包含 frontmatter、shiki 代码高亮和逐页 SEO。
 - **SSG / 预渲染** — 为 SEO 关键和以阅读为主的页面生成静态站点。
 
+## 架构一览
+
+```
+┌─────────────────────────────────────────────────┐
+│                   ubean app                     │
+│  src/pages/    src/layouts/   src/components/   │
+│  src/routes/   src/middleware/  src/crons/      │
+└───────────────────┬─────────────────────────────┘
+                    │
+         ┌──────────┴──────────┐
+         ▼                     ▼
+   Vite dev server        Hono server
+   (middleware 模式)      (可移植运行时)
+         │                     │
+         └──────────┬──────────┘
+                    ▼
+            平台预设
+   (node / cloudflare / vercel / …)
+```
+
 ## 扩展包
 
 ubean 在 `@ubean/` 作用域下提供了可选的扩展包（`pwa` / `fonts` / `electron` / `ui` / `pinia` 为 `@ubean/integrations` 的子路径）：

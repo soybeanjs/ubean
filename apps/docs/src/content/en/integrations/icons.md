@@ -36,7 +36,7 @@ export default defineConfig({
 
 ### Enable with Custom Options
 
-The `icon` config field is a simple toggle (`icon: true` enables the module with defaults); it does not carry icon behavior options. Fine-grained behavior is configured via the `ubeanIconPlugin` Vite plugin (`@ubean/icon/vite`):
+The `icon` config field accepts `true` (defaults) or an options object — object fields (e.g. `customCollections`) are passed through to the `ubeanIconPlugin` Vite plugin (`@ubean/icon/vite`); only the module-system `disabled` flag is stripped:
 
 ```typescript
 // vite.config.ts

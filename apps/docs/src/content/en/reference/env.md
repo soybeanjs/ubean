@@ -49,7 +49,7 @@ Each entry declares the variable type via the **constructor** (`String`, `Number
 | `default`  | string \| number \| boolean   | Default value if unset              |
 | `required` | boolean                       | Fail validation if missing          |
 
-Standard Schema v1 compatible schemas (e.g. valibot, zod) are also accepted as entry values — anything with `safeParse`/`safeParseAsync`.
+Only schemas exposing a sync `safeParse` work as entry values. Standard-Schema-only objects (`~standard` without `safeParse`) currently fail validation with an explicit error — use `validate()` for async schema validation.
 
 ### Example
 

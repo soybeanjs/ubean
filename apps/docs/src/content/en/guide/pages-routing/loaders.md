@@ -5,7 +5,7 @@ description: "Declarative data fetching with useData: caching, TTL, and invalida
 
 # Data Fetching (useData)
 
-ubean provides `useData()` for declarative data fetching with caching, TTL, and invalidation. It is auto-imported from `ubean` (in the `UBEAN_SERVER_PRESET`).
+ubean provides `useData()` for declarative data fetching with caching, TTL, and invalidation. It is auto-imported from `ubean/client` (in the `UBEAN_CLIENT_PRESET`).
 
 > ubean does **not** provide `defineLoader`. Use `useData()` inside `<script setup>` for server-side or client-side data fetching.
 
@@ -47,7 +47,7 @@ const { data } = await useData({
 
 ## Reading Route Params
 
-Use `useRouter()` to read route params inside the fetcher:
+Use `useRouter()` (import from `vue-router`, or enable `autoImports: { vueRouter: true }`) to read route params inside the fetcher:
 
 ```vue
 <script setup lang="ts">

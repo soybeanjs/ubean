@@ -28,7 +28,7 @@ The ubean column is scored by **whether the default path actually does the thing
 | Built-in Auth | ❌ Auth.js | ⚠️ module | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ extension (Better Auth) |
 | Built-in i18n | ❌ | ⚠️ module | ❌ | ❌ | ⚠️ routing | ❌ | ❌ | ✅ vue-i18n 11 + compact locale paths |
 | Built-in DevTools | ⚠️ | ✅ | ❌ | ❌ | ✅ Toolbar | ❌ | ❌ | ✅ + AI assistant |
-| Platform presets | Vercel-first | 12+ | 6+ | Many runtimes | 4+ | Many hosts | Nitro | **9** (Node / CF / Vercel / Edge / Netlify / Bun / Deno + cf-dev) |
+| Platform presets | Vercel-first | 12+ | 6+ | Many runtimes | 4+ | Many hosts | Nitro | **11** (standard / Node / CF / CF-dev / Vercel / Vercel-Edge / Netlify / Bun / Deno / AWS / Azure) |
 
 ## How to read the ubean column
 
@@ -55,7 +55,7 @@ File-based routes, parallel routes (`@slotName/` → Vue Router named views + `<
 
 ### Internationalization
 
-Config lives only on `ubean.config.ts` → `i18n`. Vue uses vue-i18n 11 (`legacy: false`). Hono and vue-router share `compileLocalePaths()`. `createUbeanApp` mounts the middleware. Import `useI18n` / `setLocale` from `ubean/client`.
+Config lives only on `ubean.config.ts` → `i18n`. Vue uses vue-i18n 11 (`legacy: false`). Hono and vue-router share `compileLocalePaths()`. `createUbeanApp` mounts the middleware. Import `useI18n` from `vue-i18n` (direct source); `setLocale` from `ubean/client`.
 
 ### Developer experience
 

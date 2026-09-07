@@ -170,7 +170,7 @@ Coverage is used to find blind spots; it is not a release standard that replaces
 - Core subpackages: `@ubean/islands` 199 (directive / paired-components / server-client-components / islands-registry / server-component-rerender), `@ubean/client/ssr` (former `@ubean/ssr`), `@ubean/routes` (includes Server Actions), `@ubean/devtools` 81, examples/ubean-test prerender 92.
 - Extension packages: `@ubean/icon` 32, `@ubean/auth` 13, `@ubean/integrations/pwa` 19, `@ubean/image` 42, `@ubean/content` 18, `@ubean/integrations/fonts` 21, `@ubean/seo` 114.
 - **~1075 tests passing** across the whole repo.
-- `pnpm typecheck`: passes. The TypeScript 7 and `vue-tsc` compatibility layer is provided via the workspace override `typescript: npm:typescript-native-bridge@0.0.0`; its native dependency `koffi` must be explicitly allowed in the `allowBuilds` list of `pnpm-workspace.yaml`.
+- `pnpm typecheck`: passes. The compiler version is pinned by the workspace override `typescript: '6.0.3'` in `pnpm-workspace.yaml`, so every workspace package resolves the same TypeScript.
 - `pnpm build`: passes (main package + all 8 extension packages, including `@ubean/devtools` and `@ubean/islands`).
 - Tasks marked ✅ on the roadmap must have corresponding source code, a public call path, and verification proportionate to the risk; command skeletons, regex extractions, or unconnected runtime paths must not be marked as fully delivered.
 
@@ -197,7 +197,7 @@ export default defineConfig({
   resolve: {
     alias: {
       ubean: resolve(__dirname, 'src/index.ts'),
-      'ubean/meta': resolve(__dirname, 'src/meta.ts')
+      'ubean/server': resolve(__dirname, 'src/server.ts')
     }
   }
 });
@@ -257,142 +257,46 @@ The CLI command list and framework implementation are detailed in [Runtime & Dev
 
 ## 8. Export Design
 
-### 8.1 package.json exports
+### 8.1 Aggregator subpath contract (`packages/ubean/package.json`)
+
+The published `ubean` package is an aggregator: the main entry re-exports all `@ubean/*` subpackages, and each subpath carves out one capability domain with an explicit environment boundary. The real `exports` map (built output is `.d.ts` + `.js`):
 
 ```json
 {
   "exports": {
-    ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
-    },
-    "./handler": {
-      "types": "./dist/runtime/handler.d.mts",
-      "import": "./dist/runtime/handler.mjs"
-    },
-    "./openapi": {
-      "types": "./dist/runtime/openapi.d.mts",
-      "import": "./dist/runtime/internal/routes/openapi.mjs"
-    },
-    "./client": {
-      "types": "./dist/runtime/client.d.mts",
-      "import": "./dist/runtime/client.mjs",
-      "browser": {
-        "import": "./dist/runtime/client-browser.mjs"
-      }
-    },
-    "./client-xhr": {
-      "types": "./dist/runtime/client-xhr.d.mts",
-      "browser": {
-        "import": "./dist/runtime/client-xhr.mjs"
-      }
-    },
-    "./internal": {
-      "types": "./dist/runtime/internal-fetch.d.mts",
-      "import": "./dist/runtime/internal-fetch.mjs"
-    },
-    "./cron": {
-      "types": "./dist/runtime/cron.d.mts",
-      "import": "./dist/runtime/cron.mjs"
-    },
-    "./response": {
-      "types": "./dist/runtime/response.d.mts",
-      "import": "./dist/runtime/response.mjs"
-    },
-    "./env": {
-      "types": "./dist/runtime/env-public.d.mts",
-      "import": "./dist/runtime/env-public.mjs",
-      "browser": {
-        "import": "./dist/runtime/env-public-client.mjs"
-      }
-    },
-    "./_env": {
-      "types": "./dist/runtime/env.d.mts",
-      "import": "./dist/runtime/env.mjs"
-    },
-    "./pages": {
-      "types": "./dist/pages/index.d.mts",
-      "import": "./dist/pages/index.mjs"
-    },
-    "./devtools": {
-      "types": "./dist/devtools/runtime.d.mts",
-      "import": "./dist/devtools/runtime.mjs"
-    },
-    "./pages-protocol": {
-      "types": "./dist/pages/protocol.d.mts",
-      "import": "./dist/pages/protocol.mjs"
-    },
-    "./pages-head": {
-      "types": "./dist/pages/head.d.mts",
-      "import": "./dist/pages/head.mjs"
-    },
-    "./pages-client": {
-      "types": "./dist/pages/client.d.mts",
-      "import": "./dist/pages/client.mjs"
-    },
-    "./vue": {
-      "types": "./dist/vue/client.d.mts",
-      "import": "./dist/vue/client.mjs"
-    },
-    "./vue/app": {
-      "types": "./dist/vue/app.d.mts",
-      "import": "./dist/vue/app.mjs"
-    },
-    "./vue/plugin": {
-      "types": "./dist/vue/plugin.d.mts",
-      "import": "./dist/vue/plugin.mjs"
-    },
-    "./vue/runtime": {
-      "types": "./dist/runtime/vue.d.mts",
-      "import": "./dist/runtime/vue.mjs"
-    },
-    "./database": {
-      "types": "./dist/runtime/database.d.mts",
-      "import": "./dist/runtime/database.mjs"
-    },
-    "./storage": {
-      "types": "./dist/runtime/storage.d.mts",
-      "import": "./dist/runtime/storage.mjs"
-    },
-    "./kv": {
-      "types": "./dist/runtime/kv.d.mts",
-      "import": "./dist/runtime/kv.mjs"
-    },
-    "./cache": {
-      "types": "./dist/runtime/cache.d.mts",
-      "import": "./dist/runtime/cache.mjs"
-    },
-    "./sse": {
-      "types": "./dist/runtime/sse.d.mts",
-      "import": "./dist/runtime/sse.mjs"
-    },
-    "./ws": {
-      "types": "./dist/runtime/websocket.d.mts",
-      "import": "./dist/runtime/websocket.mjs"
-    },
-    "./task": {
-      "types": "./dist/runtime/task.d.mts",
-      "import": "./dist/runtime/task.mjs"
-    },
-    "./config": {
-      "types": "./dist/runtime/config.d.mts",
-      "import": "./dist/runtime/config.mjs"
-    },
-    "./vite": {
-      "types": "./dist/core/build/vite/plugin.d.mts",
-      "import": "./dist/core/build/vite/plugin.mjs"
-    },
-    "./builder": "./dist/builder.mjs",
-    "./types": "./dist/types/index.mjs",
-    "./routes": {
-      "types": "./dist/routes-stub.d.mts"
-    }
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./vite": { "types": "./dist/vite.d.ts", "import": "./dist/vite.js" },
+    "./client": { "types": "./dist/client.d.ts", "import": "./dist/client.js" },
+    "./ssr": { "types": "./dist/ssr.d.ts", "import": "./dist/ssr.js" },
+    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js" },
+    "./build": { "types": "./dist/build.d.ts", "import": "./dist/build.js" },
+    "./i18n": { "types": "./dist/i18n.d.ts", "import": "./dist/i18n.js" },
+    "./scaffold": { "types": "./dist/scaffold.d.ts", "import": "./dist/scaffold.js" }
   },
   "bin": {
-    "ubean": "./dist/cli/index.mjs"
+    "ubean": "./bin/ubean.mjs"
   }
 }
 ```
+
+There are no `./handler`, `./openapi`, `./client-xhr`, `./internal`, `./cron`, `./response`, `./env`, `./_env`, `./pages*`, `./devtools`, `./vue*`, `./database`, `./storage`, `./kv`, `./cache`, `./sse`, `./ws`, `./task`, `./config`, `./builder`, `./types`, or `./routes` subpaths — those capabilities live in the `@ubean/*` subpackages.
+
+| Subpath | Aggregates | Capability boundary | Typical consumer |
+| --- | --- | --- | --- |
+| `ubean` | `@ubean/shared` / `seo` / `pages` / `markdown` + islands runtime + logger + inline `defineConfig` | **Isomorphic**: browser-safe by contract — no `node:*`, no filesystem scanning, no Hono server runtime | isomorphic code; base for client auto-imports |
+| `ubean/server` | `@ubean/app` + `@ubean/routes` + `@ubean/server` + `@ubean/shared/node` + `hono-openapi` + `logger/hono` | **Server-only**: Hono app factory (`createUbeanApp`), `defineHandler`/`defineAction`, ISR/route-rules/OpenAPI, cache/db/queue/cron/ws/sse, `validator`/`describeRoute`; contains Hono and `node:*` | API routes, `src/middleware/`, `src/server.ts` |
+| `ubean/build` | `@ubean/build/prerender` + `@ubean/preset` + `@ubean/config` + `@ubean/build/codegen` + `@ubean/scan` + plugin entries | **Build-time**: SSG prerender, presets (`definePreset`/`detectPreset`), config loading, codegen presets, scanner; contains `node:*` and oxc WASM | build scripts, `vite.config.ts`, CI |
+| `ubean/client` | `@ubean/client` + `@ubean/routes/runtime` + islands registry bridge | **Framework client**: `createUbeanClientApp`, router/head/i18n runtime, `callAction`/`useAction`/`useFormAction`/`invokeServerFn`, `createServerHead`, `hydrateIslands` | virtual modules, client entry |
+| `ubean/i18n` | `@ubean/i18n` + `@ubean/i18n/routing` | **Server i18n**: ALS `t()`/`d()`/`n()`, locale path compilation, detection middleware; contains `node:async_hooks` | build-time i18n, Hono middleware |
+| `ubean/ssr` | `@ubean/client/ssr` | **SSR renderer**: `createVueRenderer` | custom SSR entries |
+| `ubean/vite` | `@ubean/build` (core + vue) + `@ubean/islands` + server actions plugin | **Vite plugin composition**: single `ubeanPlugin()` entry | `vite.config.ts` |
+| `ubean/scaffold` | `@ubean/cli` scaffold layer | **Scaffolding**: `scaffold`/`deleteScaffold`/`recoverScaffold`/`listScaffoldableFiles` + machine-readable manifest (`getScaffoldManifest`) | studio / IDE plugins |
+
+Rules enforced by this contract:
+
+- Browser code imports from the isomorphic main entry or `ubean/client`; anything touching Hono / `node:*` must come from `ubean/server`, `ubean/build`, or `ubean/i18n`.
+- `bin` points at `./bin/ubean.mjs`, a forwarding launcher that imports `@ubean/cli/cli` (the CLI implementation lives in `@ubean/cli`).
+- Adding or removing a subpath requires updating this contract and the docs pages that reference it.
 
 ---
 
@@ -405,7 +309,7 @@ To avoid a mismatch between "declared support" and actual runtime semantics, ver
 | v0.1    | Node.js (`node-server`)         | Cloudflare Workers (after separate review) | Bun, Deno, Vercel, Netlify, and other platforms          |
 | v0.2+   | Decided by the capability matrix and CI results | New presets ship experimentally first    | Platforms that have not passed matrix acceptance         |
 
-Each preset must explicitly declare `capabilities`, such as `fs`, `cronTrigger`, `longLivedProcess`, `websocket`, `queue`, `isr`, and `nodeCompat`. The builder performs pre-checks based on enabled features and preset capabilities:
+Each preset must explicitly declare its `capabilities` (the 19 real capability keys — `staticServe`, `websocket`, `sse`, `cronTriggers`, `queues`, `kv`, `storage`, `database`, `envVars`, `secrets`, `nodeCompat`, `streaming`, `compression`, `https`, `http2`, `middleware`, `bodyLimit`, `multipart`, `rpc`). The builder performs pre-checks based on enabled features and preset capabilities:
 
 - When a capability is missing, the build surfaces the feature, config location, target preset, and an alternative at build time — no silent degradation.
 - Cron is only enabled when the platform provides a trigger or a long-lived process capability; serverless presets do not provide a "built-in resident scheduler".
@@ -413,11 +317,11 @@ Each preset must explicitly declare `capabilities`, such as `fs`, `cronTrigger`,
 
 ### 8.3 Client and Public API Boundary
 
-The core HTTP client is built on the standard Fetch API to ensure consistent behavior across browser, Node, Deno, and edge runtimes. `createClient` and `internalFetch` share a middleware model for requests, responses, errors, and retries; `internalFetch` dispatches directly to the framework handler and does not depend on the network or an axios adapter.
+ubean does **not** ship its own browser HTTP client. Direct HTTP calls use the standard `fetch` or the injected [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch) client (`createRequest` / `toFlatRequest`, plus `createTypedClient` / `toFlatTypedClient` from `@soybeanjs/fetch/openapi`); the data layer (`useData` / `useFetch`) is injected via `setDefaultFetch`. `internalFetch` is an in-process dispatcher to framework handlers (no network hop), not a fetch-middleware stack.
 
-- `axios`/`axios-retry` are only optional browser or Node adapter packages and must not enter the edge server bundle.
+- Server-side framework code (API routes, loaders) must never rely on a bundled HTTP client — use `fetch` / `internalFetch` / the injected `@soybeanjs/fetch` instance.
 - OpenAPI types are used only for compile-time parameter and response inference; no OpenAPI document is loaded at runtime.
-- `exports` is split into stable public entries, `./experimental/*` entries, and private implementations; `./internal` and `./_env` are not stable user APIs.
+- The published `exports` map is the aggregator subpath contract in §8.1 — there are no `./experimental/*`, `./internal` or `./_env` entries; those are historical single-package leftovers.
 - Before each release, `pnpm pack` is installed into a standalone fixture to verify all public entries, conditional exports, and type declarations.
 
 ---
@@ -477,6 +381,77 @@ The adaptation implementation for each platform (preset) must first reference th
 - Use `pnpm` as the package manager, following workspace catalog version management
 - UI-related dependencies (@soybeanjs/ui, etc.) are only introduced when needed; users are not forced to install them
 - DevTools-related dependencies are devDependencies or loaded dynamically on demand
+
+## 10. CodeGraph Workflow Convention
+
+> Before changing a core symbol, check its blast radius with CodeGraph instead of guessing from intuition or doc wording. Source: [ADR-0005](../../../../../../docs/adr/0005-opt09-impl-opt11-timing-opt01-subitem.md).
+
+### 10.1 When to run
+
+When modifying any of the following core symbols, the PR description must include the `codegraph impact` result (brief blast radius):
+
+- `defineHandler` / `defineHandlerMeta` / `defineMiddleware` (route/API handler protocol)
+- `scanProject` (route scanning)
+- `registerRoutes` (route registration)
+- `ubeanPlugin` (Vite plugin main entry)
+- `macros` (`definePage` and other compile-time macros)
+- `createUbeanApp` / `createUbeanClientApp` (app factories)
+- `resolveModules` (module system)
+
+### 10.2 Steps
+
+```bash
+codegraph sync                    # sync the index
+codegraph impact <symbol>         # inspect the blast radius
+```
+
+Paste the "direct / transitive references" counts and the key file list into the PR description.
+
+### 10.3 Relationship to PRs
+
+- **Convention first**: this text lands independently of any code PR.
+- **First sample**: the `createUbeanApp` → `createUbeanClientApp` rename PR (OPT-01) was the first PR to follow this convention, attaching `codegraph impact createUbeanApp`.
+- Do not stuff `codegraph impact` output into this convention's own non-code PR — "setting the rule" and "first use" stay separate.
+
+## 11. Extension Package Contract Table
+
+> Every "extension package" (a package with a `./vite` subpath export **and not in the main `ubean` package's `dependencies`**) must register a row below. CI (`scripts/verify-packages.mjs`, shared with the package-tree check) derives the extension set from `packages/*/package.json` and asserts each one appears in this table. Source: [ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md).
+>
+> **Note**: `pwa` / `fonts` / `electron` / `pinia` / `ui` are subpaths of `@ubean/integrations` (`@ubean/integrations/pwa` etc.). Their Vite plugins are exported from the subpath main entry; runtime helper functions (e.g. `serializePiniaState` / `hydratePiniaState`) are exported from the `@ubean/integrations` main entry.
+
+### 11.1 Contract table
+
+| Package | config key | `/vite` plugin | runtime entry | peerDeps | Core dep shape | Default behavior |
+| --- | --- | --- | --- | --- | --- | --- |
+| `@ubean/ai` | `ai` | `ubeanAiPlugin` | `./runtime/vue` (`useChat`/`useAgent`/`useAIProvider`) | **ai, @ai-sdk/openai-compatible (optional)**, hono, vite, vue | **optional-peer** (`ai`/`@ai-sdk/openai-compatible` in `peerDependencies`, optional) | Thin Vercel AI SDK wrapper; `defineAgent`/`defineAgentTool` + provider presets; client auto-imports `useChat`/`useAgent`/`useAIProvider` |
+| `@ubean/auth` | `auth` | `ubeanAuthPlugin` | `./runtime` (`useAuth`) | hono, vite, vue (all optional) | **hard** (`better-auth` in `dependencies`) | Mounts `/api/auth/*`; better-auth first, falls back to built-in email/password |
+| `@ubean/icon` | `icon` | `ubeanIconPlugin` | `./runtime` | vue (optional) | none (only defu/pathe) | Iconify `customCollections`; dev `/_iconify` route serves local SVG before API fallback |
+| `@ubean/integrations/pwa` | `pwa` | `ubeanPwaPlugin` (subpath main) | `@ubean/integrations` (`usePwa`) | vite, vue (both optional) | **hard** (`vite-plugin-pwa` in `dependencies`) | Generates manifest+sw; `registerType: autoUpdate`; 5 cache strategies |
+| `@ubean/image` | `image` | `ubeanImagePlugin` | `./runtime` | vite, vue (both optional) | none (only defu/ohash/pathe/ufo) | Image optimization & transforms |
+| `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` | vite (optional) | none (only defu/pathe/scule + `@ubean/shared`) | markdown/MDX/YAML/JSON content collections |
+| `@ubean/integrations/fonts` | `fonts` | `ubeanFontsPlugin` (subpath main) | `@ubean/integrations` | vite (optional) | none (only defu/ohash/pathe/ufo) | Google Fonts / local fonts / self-hosting / metrics |
+| `@ubean/integrations/electron` | `electron` | `ubeanElectronPlugin` (subpath main) | — | electron, vite (both optional) | **hard** (`vite-plugin-electron` in `dependencies`) | Wraps `vite-plugin-electron`; `electron: true` enables and auto-disables SSR |
+| `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin` (subpath main) | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia (required)**, vue (optional) | **peer** (`pinia` in `peerDependencies`, not optional) | SSR state hydration + dev pre-bundling; does not auto-inject a Pinia instance |
+| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin` (subpath main) | — | **@soybeanjs/ui (required)**, vite (optional) | **peer** (`@soybeanjs/ui` in `peerDependencies`, not optional) | `UiResolver` auto-imports + `styles.css` injection (`css: true` can disable) |
+
+### 11.2 Core dependency shapes
+
+- **hard**: core library in `dependencies`, installed automatically with the extension (auth, `@ubean/integrations/pwa`, `@ubean/integrations/electron`).
+- **peer**: core library in `peerDependencies`, **not** optional — the user must install it (pinia/ui).
+- **optional-peer**: in `peerDependencies` with `optional: true` (e.g. each package's vite/vue).
+- **none**: no heavy core library, only utility deps (icon/image/content/fonts).
+
+### 11.3 Known inconsistency
+
+The `hard` / `peer` mix is a known inconsistency: auth, `@ubean/integrations/pwa`, and `@ubean/integrations/electron` install their core library automatically, while `@ubean/integrations/pinia` and `@ubean/integrations/ui` require the user to install theirs. New extension packages should pick one shape explicitly and register it here; a future cleanup is possible (see [ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md)).
+
+### 11.4 New extension package checklist
+
+A PR adding an extension package must also:
+
+1. expose a `./vite` subpath in `package.json` (so CI derives it into the extension set);
+2. add a row to table 11.1 (CI fails on a missing row);
+3. mark the core dependency shape per 11.2.
 
 ## 12. Client JS budget
 

@@ -127,7 +127,7 @@ export default defineApp({
 #### defineApp 参数类型
 
 ```typescript
-// packages/ubean/src/runtime/vue/define-app.ts
+// packages/client/src/define-app.ts
 import type { App as VueApp, Component, Plugin } from 'vue';
 import type { Router } from 'vue-router';
 import type { PageHead } from '../pages/protocol';
@@ -274,7 +274,7 @@ export default defineApp({
 
 ## 4.8 类型安全请求客户端
 
-ubean 提供分层设计的请求客户端：底层 `createClient` 是无类型的 ofetch 封装，`createTypedClient` / `createTypedFlatClient` / `createTypedInternalFetch` 在其上叠加 OpenAPI `paths` 类型,使路径、参数、请求体和返回值全部类型安全。
+ubean 不自研 HTTP 客户端。类型化 HTTP 请求由 [@soybeanjs/fetch](https://www.npmjs.com/package/@soybeanjs/fetch) 提供：`createRequest` / `toFlatRequest` 创建请求实例，`@soybeanjs/fetch/openapi` 子路径的 `createTypedClient` / `toFlatTypedClient` 在其上叠加 OpenAPI `paths` 类型,使路径、参数、请求体和返回值全部类型安全。页面数据获取优先使用内置数据层（`useData` / `useAsyncData` / `useFetch`）；下文的 typed client 面向直接的浏览器/服务端请求。
 
 ### 自动类型生成
 
@@ -299,39 +299,46 @@ export interface paths {
 
 ### 推荐用法:在 `src/request/` 集中创建 typed client
 
-`ubean init` 会在项目 `src/request/` 下生成两个模板文件,将项目 `paths` 类型绑定到 typed 函数,后续无需重复传递泛型:
+`ubean init` 会在项目 `src/request/` 下生成两个模板文件,将项目 `paths` 类型绑定到 typed client,后续无需重复传递泛型:
 
 ```typescript
 // src/request/client.ts — 浏览器端
-import { createClient, createTypedClient } from 'ubean';
+import { createRequest } from '@soybeanjs/fetch';
+import { createTypedClient, toFlatTypedClient } from '@soybeanjs/fetch/openapi';
 import type { paths } from '../../.ubean/openapi';
+
+const request = createRequest({});
 
 /**
  * 浏览器端类型化 HTTP 客户端(抛异常模式)
  * 路径、参数、请求体和返回值类型均从 OpenAPI schema 自动推断。
  */
-export const api = createTypedClient<paths>(
-  createClient({
-    // baseURL: '/api',
-    // timeout: 10000,
-  })
-);
+export const api = createTypedClient<paths, '/api'>(request, '/api');
+
+/**
+ * 类型化扁平客户端(不抛异常)
+ * 返回 `{ data, error, response }`,由调用方决定如何处理失败。
+ */
+export const flatApi = toFlatTypedClient<paths, '/api'>(request, '/api');
 ```
 
 ```typescript
-// src/request/internal.ts — server 端内部 fetch
-import { createTypedInternalFetch } from 'ubean';
+// src/request/internal.ts — server 端进程内 fetch
+import { createRequest } from '@soybeanjs/fetch';
+import { createTypedClient } from '@soybeanjs/fetch/openapi';
+import { createInternalAdapter } from 'ubean/server';
 import type { paths } from '../../.ubean/openapi';
 
 /**
- * server 端类型化内部 fetch
- * 在 API 路由或 useData 的 fetcher 中使用,自动转发 cookie/authorization 等请求头。
- * 与 client.ts 的 api 接口一致,但通过 server 端 fetch 发起请求(自动转发请求头)。
- * baseURL 会自动从当前请求的 URL 中推断,无需手动设置。
+ * API 路由 / loader 中使用的类型化进程内客户端。
+ * `createInternalAdapter(context)` 将注册的 Hono `app.fetch` 包装为
+ * `@soybeanjs/fetch` 的 adapter:请求进程内分发(不发起新的网络请求),
+ * 并自动转发当前请求的 cookie/authorization 等请求头。
  */
-export function createServerApi(context: Parameters<typeof createTypedInternalFetch>[0]) {
-  // createTypedInternalFetch 会自动从 context.req.url 推断 baseURL
-  return createTypedInternalFetch<paths>(context);
+export function createServerApi(context: Parameters<typeof createInternalAdapter>[0]) {
+  const adapter = createInternalAdapter(context);
+  const request = createRequest({ adapter });
+  return createTypedClient<paths, '/api'>(request, '/api');
 }
 ```
 
@@ -339,16 +346,27 @@ export function createServerApi(context: Parameters<typeof createTypedInternalFe
 
 ```typescript
 // 浏览器端
-import { api } from '../request/client';
+import { api, flatApi } from '../request/client';
+
 const user = await api.get('/api/users/{id}', {
   params: { path: { id: '123' }, query: { include: 'posts' } }
 });
 // user 的类型自动从 OpenAPI schema 推导
 
+const { data, error } = await flatApi.get('/api/users/{id}', {
+  params: { path: { id: '123' } }
+});
+if (error) {
+  console.error('请求失败:', error.message);
+}
+```
+
+```typescript
 // server 端
 import { defineHandler } from 'ubean/server';
 import { createServerApi } from '../request/internal';
-export const GET = defineHandler(async (c) => {
+
+export const GET = defineHandler(async c => {
   const api = createServerApi(c);
   const user = await api.get('/api/users/{id}', { params: { path: { id: '1' } } });
   return c.json(user);
@@ -357,19 +375,18 @@ export const GET = defineHandler(async (c) => {
 
 ### API 速查
 
-| API | 说明 | 返回值 |
-| --- | --- | --- |
-| `createClient(options)` | 底层 HTTP 客户端(ofetch 封装),无类型 | `ApiClient` |
-| `createTypedClient<paths>(client, prefix?)` | 类型化客户端,失败抛异常 | `TypedClient<paths>` |
-| `createTypedFlatClient<paths>(client, prefix?)` | 类型化扁平客户端,返回 `{ data, error, status }` 不抛异常 | `TypedFlatClient<paths>` |
-| `createTypedInternalFetch<paths>(c, options?)` | server 端类型化内部 fetch,自动转发请求头 | `TypedClient<paths>` |
-| `callTypedInternal<paths>()` | 全局类型化进程内调度(无网络请求) | `TypedInternalCaller<paths>` |
-| `createTypedRequestSender<paths>(c)` | 上下文感知的类型化请求发送器 | `TypedRequestSender<paths>` |
-| `parseContentDisposition(header?)` | 从 Content-Disposition 头解析文件名 | `string` |
+所有 HTTP 客户端 API 均来自 `@soybeanjs/fetch`(需在项目中声明该依赖);ubean 只贡献进程内 adapter 与 OpenAPI 类型生成。
 
-### 参数结构
+| API | 来源 | 说明 | 返回值 |
+| --- | --- | --- | --- |
+| `createRequest(options?, hooks?)` | `@soybeanjs/fetch` | 创建请求实例(`baseURL`、`timeout`、重试、拦截器) | `RequestInstance` |
+| `toFlatRequest(request)` | `@soybeanjs/fetch` | 将同一实例包装为扁平模式(不抛异常) | `FlatRequestInstance` |
+| `createTypedClient<paths, Prefix>(request, prefix?)` | `@soybeanjs/fetch/openapi` | 绑定 OpenAPI `paths` 类型的类型化客户端,失败抛异常 | typed client |
+| `toFlatTypedClient<paths, Prefix>(request, prefix?)` | `@soybeanjs/fetch/openapi` | 类型化扁平客户端,返回 `{ data, error, response }` | typed flat client |
+| `createInternalAdapter(c?, options?)` | `ubean/server` | 将 Hono app 包装为 `@soybeanjs/fetch` adapter,进程内分发并转发请求头 | `FetchAdapter` |
+| `setDefaultFetch(request)` | `ubean` | 注入页面数据层使用的 fetch 实例 | `void` |
 
-参数结构与 `@soybeanjs/request` 一致,`params` 包含 `path`/`query`/`header`:
+每个实例都提供 `get` / `post` / `put` / `patch` / `delete` 快捷方法。`params` 包含 `path` / `query` / `header`,`body` 携带请求体:
 
 ```typescript
 api.post('/api/users', {
@@ -382,212 +399,149 @@ api.post('/api/users', {
 });
 ```
 
-### 响应类型与文件下载
+非 JSON 响应通过 `responseType` 选项选择(`'json' | 'text' | 'blob' | 'arraybuffer' | 'stream' | 'auto'`)——完整选项集(扁平模式、hooks、重试、auth 刷新等)见 [@soybeanjs/fetch 文档](https://www.npmjs.com/package/@soybeanjs/fetch)。
 
-通过 `responseType` 配置不同的返回类型,参考 `@soybeanjs/request` 的 `createRequest` 设计:
+### 页面数据获取
 
-```typescript
-type ResponseType = 'json' | 'blob' | 'arraybuffer' | 'text' | 'stream';
-```
-
-| `responseType` | 返回值 | 说明 |
-| --- | --- | --- |
-| `'json'` (默认) | `JsonType` | 解析 JSON 响应,类型从 OpenAPI schema 推断 |
-| `'blob'` | `FileResponseData<Blob>` | 文件下载,自动解析文件名 |
-| `'arraybuffer'` | `FileResponseData<ArrayBuffer>` | 二进制下载 |
-| `'stream'` | `FileResponseData<Uint8Array>` | 流式读取为 Uint8Array |
-| `'text'` | `string` | 纯文本响应 |
-
-`FileResponseData` 结构:
-
-```typescript
-interface FileResponseData<T = Blob | ArrayBuffer | Uint8Array> {
-  file: T;            // 文件内容
-  filename: string;   // 从 Content-Disposition 头解析的文件名
-  contentType: string; // 响应头中的内容类型
-}
-```
-
-使用示例:
-
-```typescript
-// 文件下载(自动从 Content-Disposition 解析文件名)
-const file = await api.get('/api/export', { responseType: 'blob' });
-// file: { file: Blob; filename: 'report.pdf'; contentType: 'application/pdf' }
-console.log(file.filename);
-
-// 自定义文件名提取
-const file2 = await api.get('/api/export', {
-  responseType: 'blob',
-  getFileName: (response) => response.headers.get('x-filename') || 'unknown.bin'
-});
-
-// 文本响应
-const text = await api.get('/api/readme', { responseType: 'text' });
-// text: string
-
-// 流式响应
-const stream = await api.get('/api/stream', { responseType: 'stream' });
-// stream: { file: Uint8Array; filename: string; contentType: string }
-
-// 二进制响应
-const buf = await api.get('/api/binary', { responseType: 'arraybuffer' });
-// buf: { file: ArrayBuffer; filename: string; contentType: string }
-```
-
-文件下载场景下,文件名默认通过内置的 `parseContentDisposition` 从 `Content-Disposition` 头解析(支持 RFC 5987 编码格式 `filename*=UTF-8''xxx` 和常规格式 `filename="xxx"`)。可通过 `getFileName` 回调自定义。
-
-### 扁平模式
-
-```typescript
-import { createTypedFlatClient } from 'ubean';
-import type { paths } from '../.ubean/openapi';
-
-const flat = createTypedFlatClient<paths>(client);
-const { data, error, status } = await flat.get('/api/users/{id}', {
-  params: { path: { id: '123' } }
-});
-if (error) {
-  console.error('请求失败:', error.message);
-} else {
-  console.log('用户:', data);
-}
-
-// 扁平模式同样支持 responseType
-const { data: file, error: fileError } = await flat.get('/api/export', { responseType: 'blob' });
-if (!fileError) {
-  console.log('文件名:', file.filename);
-}
-```
-
-### 底层客户端
-
-不使用 OpenAPI 类型时,`createClient` 仍可作为通用 HTTP 客户端:
-
-```typescript
-import { createClient } from 'ubean';
-const client = createClient({ baseURL: '/api', timeout: 10000 });
-const data = await client.get<{ id: string; name: string }>('/users/123');
-```
+页面/loader 数据优先使用内置数据层而非直接 HTTP 调用:`useData(options)`、`useAsyncData(key, fn, options?)` 与 `useFetch(key, url, options?)`(`useAsyncData` 的薄封装)。它们提供 SSR payload 序列化、按 key 失效(`invalidateData` / `invalidateAll`)与 SPA 导航缓存。底层 fetch 实例可注入——`setDefaultFetch(createRequest())` 将页面数据层接到与上文 typed client 相同的 `@soybeanjs/fetch` 管线。
 
 ## 4.9 定时任务系统 (Cron Jobs)
 
-参考 nitro 的 scheduledTasks 和 void 的 defineScheduled 设计：
+参考 void 的 defineScheduled 设计,定时任务定义在 `crons/` 目录下（文件名的数字前缀控制注册顺序）：
 
 - 在 `crons/` 目录下定义定时任务
-- 使用 `export const cron = "<cron expression>"` 定义调度表达式
-- 使用 `defineScheduled()` 定义任务处理函数
-- 在支持 cron trigger 的平台（Cloudflare Workers Cron Triggers、Vercel Cron）自动配置
-- 其他平台通过内置的 cron 调度器或外部触发（`/_cron/<name>` 端点）实现
+- 使用 `defineScheduled({ name, schedule }, handler)` 声明任务与 cron 表达式
+- 开发态加载任务后自动调用 `startCronScheduler()` 启动调度器
+- 生产构建通过 eager glob 将任务打进 server entry；`node`/`bun`/`deno`/`standard` 预设启动进程内调度器
+- serverless/edge 预设**不**安装进程内调度器——改用平台触发（Cloudflare Workers Cron Triggers、Vercel Cron、Netlify scheduled functions）
 
 ```typescript
 // crons/daily-cleanup.ts
 import { defineScheduled } from 'ubean/server';
-import { db } from 'ubean/database';
 
-export const cron = '0 0 * * *'; // 每天凌晨执行
-
-export default defineScheduled(async ({ lastExecutionTime, scheduledTime }) => {
-  // 清理过期数据
-  await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
-  console.log(`[Cron] Cleaned up expired sessions at ${scheduledTime}`);
-});
+export default defineScheduled(
+  {
+    name: 'daily-cleanup',
+    schedule: '0 0 * * *', // 每天凌晨执行
+    timeout: 30_000, // 可选:单次运行超时(ms)
+    runOnStart: false // 可选:启动时也执行一次
+  },
+  async ({ name, schedule, timestamp, runCount }) => {
+    // 清理过期数据、发送日报等
+    console.log(`[Cron] ${name} (${schedule}) fired at ${timestamp}, run #${runCount}`);
+  }
+);
 ```
 
-#### Cron 配置
+#### 手动与编程式触发
+
+不存在 `/_cron/<name>` HTTP 端点,也没有顶层 `cron` 配置;触发通过代码完成:
 
 ```typescript
-// ubean.config.ts
-export default defineConfig({
-  cron: {
-    // 任务运行时的超时时间
-    timeout: 30_000,
-    // 是否在开发模式下启用 cron
-    enabled: process.env.NODE_ENV === 'production'
-  },
-  // 也可以通过 scheduledTasks 配置映射 cron 到任务名（nitro 风格）
-  scheduledTasks: {
-    '*/5 * * * *': ['tasks/heartbeat']
-  }
+import { runScheduledTask, getScheduledTasks, startCronScheduler } from 'ubean/server';
+
+// 立即运行某个任务
+await runScheduledTask('daily-cleanup'); // { ok: true, duration: 12, error?: Error }
+
+// 查看已注册任务
+const tasks = getScheduledTasks(); // ScheduledTask[]
+
+// 完整调度器控制(通常由框架自动启动)
+const scheduler = startCronScheduler({
+  timezone: 'UTC',
+  defaultTimeout: 30_000,
+  onTaskError: (task, error) => console.error(task.name, error)
 });
+// scheduler.stop() / scheduler.runTask(name) / scheduler.getNextRuns()
 ```
 
 ## 4.10 环境变量系统
 
+`defineEnv()` 来自 `@ubean/shared`（由 `ubean` 主入口 re-export）,使用构造器式 schema 校验环境变量,返回 `{ env, validate }`:
+
 ```typescript
 // env.ts
-import { defineEnv, string, number, boolean, url } from 'ubean';
+import { defineEnv } from 'ubean';
 
-export const env = defineEnv({
+export const { env, validate } = defineEnv({
   // 服务端密钥
-  DATABASE_URL: string().secret(),
-  API_SECRET: string().secret().optional(),
-
-  // 公共变量 (VITE_ 前缀自动暴露到客户端)
-  VITE_APP_NAME: string().default('My App'),
-  VITE_API_URL: url(),
-
-  // 类型转换
-  PORT: number().default(9527),
-  DEBUG: boolean().default(false),
-
-  // 可选 + 默认值
-  NODE_ENV: string().oneOf(['development', 'production', 'test']).default('development')
+  server: {
+    DATABASE_URL: { type: String, required: true },
+    API_SECRET: { type: String, required: true },
+    PORT: { type: Number, default: 9527 },
+    DEBUG: { type: Boolean, default: false }
+  },
+  // 公共变量 (通过 import.meta.env 暴露到客户端)
+  public: {
+    APP_NAME: { type: String, default: 'My App' },
+    API_URL: { type: String, default: '/api' }
+  },
+  // 'warn' (默认) 只记录校验错误; 'throw' 在启动时抛错
+  mode: 'throw'
 });
 ```
 
+- schema 条目通过构造器（`String` / `Number` / `Boolean`）声明类型,外加可选的 `default` / `required`——不存在链式 builder API（`string().secret()` 等）
+- `env` 代理是全类型化的（`InferEnvOutput<S>` 从每个构造器推导 `string` / `number` / `boolean`）,`env.DATABASE_URL` 即 `string`
+- 仅 `UBEAN_PUBLIC_`、`VITE_` 或 `PUBLIC_` 前缀的变量会通过 `import.meta.env` 暴露给客户端
+- 用 `validate(source)` 校验自定义来源（测试 fixture、请求级 env）;返回 `{ success, errors }`
+- `ubean env` CLI（`init` / `list` / `add` / `remove`）管理 `.env` 文件——完整 API 见 [Env 参考](/reference/env)
+
 ## 4.11 Preset 系统设计
 
-```typescript
-// src/preset/_utils/preset.ts
-import type { UbeanPreset, UbeanPresetMeta } from 'ubean/types';
-
-export function definePreset<P extends UbeanPreset, M extends UbeanPresetMeta>(
-  preset: P,
-  meta?: M
-): P & { _meta: UbeanPresetMeta } {
-  if (typeof preset !== 'function' && preset.entry && preset.entry.startsWith('.')) {
-    preset.entry = resolve(presetsDir, preset.entry);
-  }
-  return { ...preset, _meta: meta } as P & { _meta: M };
-}
-```
+Preset 位于 `@ubean/preset`（由 `ubean/build` 聚合）。Preset 是「定义对象 + 元数据」,通过 `definePreset(definition, meta?)` 创建:
 
 ```typescript
-// src/preset/node/preset.ts
-import { definePreset } from '../_utils/preset';
-import { nodeCluster } from './cluster';
+import { definePreset } from '@ubean/preset';
+import type { PresetDefinition, PresetMeta } from '@ubean/preset';
 
-const nodeServer = definePreset(
+const nodePreset = definePreset(
   {
-    entry: './node/runtime/node-server',
-    serveStatic: true,
+    name: 'node',
+    extends: 'standard', // 继承并合并基础 preset
+    entry: './runtime/node',
+    build: { outputDir: '.output', format: 'esm' },
     commands: {
-      preview: 'node ./server/index.mjs'
+      preview: 'node .output/server/index.mjs'
     }
-  },
+  } satisfies PresetDefinition,
   {
-    name: 'node-server' as const,
-    aliases: ['node'],
+    name: 'node',
+    aliases: ['node-server', 'nodedev'],
     stdName: 'node'
-  }
+  } satisfies PresetMeta
 );
-
-export default [nodeServer, nodeCluster] as const;
 ```
 
-Preset 自动解析逻辑:
+- `PresetDefinition` 字段:`name`、`extends`、`entry`、`exportConditions`、`serve`、`build`（`outputDir`/`format`/`externals`/`minify`/`rollupConfig`）、`output`、`runtime`、`devServer`、`capabilities`、`capabilityInfo`、`hooks`、`alias`、`wasm`、`unenv`、`commands`、`nitro`
+- `PresetMeta`:`name`、`aliases`、`stdName`、`static`、`dev`、`compatibilityDate`、`url`
+- 注册表 API:`registerPreset` / `resolvePreset` / `getRegisteredPresets` / `getPresetNames` / `getPresetAliases`
+- 各平台配置生成器:`generateWranglerConfig`（Cloudflare）、`generateVercelConfig`、`generateNetlifyConfig`、`generateBunfigConfig`、`generateDenoConfig`,以及 AWS SAM / Azure SWA 等价物
 
-1. 用户配置中明确指定 `preset` 选项
-2. 环境变量 `UBEAN_SERVER_PRESET`
-3. 自动检测 (std-env provider 检测):
-   - `process.versions.bun` → bun
-   - `Deno` 全局变量 → deno
-   - Vercel 环境变量 → vercel
-   - Netlify 环境变量 → netlify
-   - Cloudflare Pages 环境变量 → cloudflare-pages
-   - 等等
-4. 回退到 `defaultPreset` (通常为 node-server)
+内置 11 个 preset,由 `registerBuiltinPresets()` 注册:
+
+| Preset | 别名 |
+| --- | --- |
+| `standard` | `default` |
+| `node` | `node-server`、`nodedev` |
+| `cloudflare` | `cloudflare-pages`、`cloudflare-module`、`cf`、`wrangler`、`workers` |
+| `cloudflare-dev` | `cf-dev`、`wrangler-dev` |
+| `vercel` | `vercel-serverless`、`vercel-node` |
+| `vercel-edge` | `vercel-edge-function` |
+| `netlify` | `netlify-functions`、`netlify-node` |
+| `bun` | `bun-runtime` |
+| `deno` | `deno-deploy`、`deno-runtime` |
+| `aws` | `aws-lambda`、`lambda`、`amazon`、`sam` |
+| `azure` | `azure-swa`、`azure-static-web-apps`、`swa`、`azure-functions` |
+
+Preset 自动解析由 `detectPreset(hints?)` 完成,优先级为 **explicit > config-file > environment > default**:
+
+1. 通过 `resolvePresetWithDetection(name)` / 配置的 `preset` 选项显式指定
+2. 配置文件与依赖:`wrangler.toml`/`wrangler.json` → cloudflare,`vercel.json` → vercel,`netlify.toml` → netlify,`deno.json` → deno,`template.yaml`（AWS SAM）→ aws,`staticwebapp.config.json` → azure;`package.json` 中的 `wrangler`/`vercel`/`netlify-cli`/`aws-cdk`/`@azure/functions` 等依赖
+3. 环境变量与运行时全局:`VERCEL`、`NETLIFY`、`AWS_LAMBDA_FUNCTION_NAME`、`AZURE_FUNCTIONS_ENVIRONMENT`、`globalThis.Deno`、`globalThis.Bun`、`process.versions.node`
+4. 回退到 `standard` preset
+
+`detectPreset()` 返回 `{ preset, source: 'explicit' | 'config-file' | 'environment' | 'default', reason }`。不存在 `UBEAN_SERVER_PRESET` 环境变量。
 
 ## 4.12 DevTools 开发工具面板
 
@@ -666,66 +620,31 @@ Preset 自动解析逻辑:
 // - DevTools 自身配置
 ```
 
-配置编辑通过 RPC 调用服务端接口：
+配置编辑通过真实的 DevTools RPC 函数完成。`@ubean/devtools` 使用 `@vitejs/devtools-kit` 的 `defineRpcFunction` 注册它们;info/env 相关的有:
 
-```typescript
-// DevTools Server RPC handlers
-interface DevToolsRPC {
-  // Config
-  'config:get': () => Promise<ResolvedConfig>;
-  'config:update': (patch: Partial<UbeanConfig>) => Promise<{ success: boolean; diff: string }>;
-
-  // Env
-  'env:list': () => Promise<EnvVarInfo[]>;
-  'env:create': (key: string, value: string, options: EnvVarOptions) => Promise<void>;
-  'env:update': (key: string, value: string) => Promise<void>;
-  'env:delete': (key: string) => Promise<void>;
-  'env:validate': () => Promise<EnvValidationResult>;
-}
-```
+| RPC 函数 | 类型 | 签名 | 说明 |
+| --- | --- | --- | --- |
+| `ubean:get-info` | query | `() => DevToolsInfo` | 项目信息快照(版本/路由/页面/插件);客户端通常订阅 `ubean:info` shared state,此函数作为回退 |
+| `ubean:get-env` | query | `() => Record<string, string>` | 环境变量(敏感值已脱敏) |
+| `ubean:crud:read` | query | `(params: { type: 'config' \| 'env' \| CrudResourceType, path? }) => CrudReadResult` | 读取配置文件、`.env` 条目或脚手架资源 |
+| `ubean:crud:update` | action | `(params: { type, path?, key?, content?, value? }) => CrudResult` | 更新配置值或 `.env` 条目(AST 安全编辑,默认备份) |
+| `ubean:crud:delete` | action | `(params: { type, path?, key?, force? }) => CrudResult` | 删除文件或 env 条目(非 `force` 时创建 `.bak` 备份) |
 
 #### 页面路由 CRUD (Pages Tab)
 
 完整的页面路由增删改查能力，底层复用 CLI Shared Layer 的 `page add/delete/update` 逻辑（与 `ubean page *` 命令共用）：
 
-```typescript
-interface DevToolsRPC {
-  // Pages CRUD
-  'pages:list': () => Promise<PageRouteInfo[]>;
-  'pages:get': (name: string) => Promise<PageRouteDetail>;
-  'pages:create': (input: CreatePageInput) => Promise<CreatePageResult>;
-  'pages:update': (name: string, patch: UpdatePageInput) => Promise<void>;
-  'pages:delete': (name: string, options?: { backup?: boolean }) => Promise<void>;
+完整的页面路由增删改查能力。页面、API、布局、中间件、reuse 路由、定时任务与插件都收敛到同一组 CRUD RPC 函数,底层委托给与 `ubean page *` / `ubean api *` 命令相同的脚手架层:
 
-  // Reuse routes
-  'pages:createReuse': (input: CreateReuseInput) => Promise<void>;
+| RPC 函数 | 类型 | 签名 | 说明 |
+| --- | --- | --- | --- |
+| `ubean:crud:create` | action | `(params: { type: CrudResourceType, path, method?, schedule?, content?, force? }) => Promise<CrudResult>` | 创建页面 / API / 布局 / 中间件 / reuse 路由 / 定时任务 / 插件（cron 用 `schedule`,API 用 `method`） |
+| `ubean:crud:read` | query | `(params: { type, path? }) => Promise<CrudReadResult>` | 列出或读取某类型的资源 |
+| `ubean:crud:update` | action | `(params: { type, path?, content? }) => Promise<CrudResult>` | 更新资源文件 |
+| `ubean:crud:delete` | action | `(params: { type, path?, force? }) => Promise<CrudResult>` | 删除资源(非 `force` 时创建 `.bak` 备份) |
+| `ubean:crud:restore` | action | `(path: string) => Promise<CrudResult>` | 从备份恢复已删除文件 |
 
-  // Layouts
-  'layouts:list': () => Promise<LayoutInfo[]>;
-  'layouts:create': (name: string) => Promise<void>;
-}
-
-interface PageRouteInfo {
-  name: string;
-  path: string;
-  filePath: string;
-  layout: string | false;
-  meta: PageMeta;
-  hasLoader: boolean;
-  hasAction: boolean;
-  isReuse: boolean;
-  reuseTarget?: string;
-  children?: PageRouteInfo[];
-}
-
-interface CreatePageInput {
-  path: string; // 如 '/users/[id]'
-  layout?: string; // 布局名
-  withLoader?: boolean; // 是否创建 .server.ts
-  withServerFile?: boolean;
-  template?: 'vue' | 'tsx';
-}
-```
+`CrudResourceType` = `'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin'`;`CrudResult` 返回 `{ success, created?, deleted?, restored?, updated?, skipped?, errors? }`。所有操作都会触发下文描述的 before/after hooks。
 
 页面创建时自动生成模板文件：
 
@@ -749,37 +668,7 @@ definePage({
 
 #### API 接口 CRUD (API Routes Tab)
 
-```typescript
-interface DevToolsRPC {
-  // API Routes CRUD
-  'api:list': () => Promise<ApiRouteInfo[]>;
-  'api:get': (method: string, path: string) => Promise<ApiRouteDetail>;
-  'api:create': (input: CreateApiInput) => Promise<void>;
-  'api:update': (method: string, path: string, patch: UpdateApiInput) => Promise<void>;
-  'api:delete': (method: string, path: string) => Promise<void>;
-
-  // API Testing
-  'api:test': (input: ApiTestInput) => Promise<ApiTestResult>;
-
-  // OpenAPI
-  'openapi:generate': () => Promise<string>; // 返回 OpenAPI JSON
-}
-
-interface ApiRouteInfo {
-  methods: string[]; // ['GET', 'PATCH', 'DELETE']
-  path: string; // '/users/:id'
-  filePath: string;
-  meta?: RouteMeta;
-  openapi?: OperationObject;
-}
-
-interface CreateApiInput {
-  path: string; // '/users'
-  methods: string[]; // ['GET', 'POST']
-  withOpenAPI?: boolean; // 是否生成 describeRoute + resolver OpenAPI 文档骨架
-  withValidator?: boolean; // 是否生成 validator 中间件骨架
-}
-```
+API 接口复用同一组 `ubean:crud:*` 函数(`type: 'api'`,可选 `method` 选择 `GET`/`POST`/...)——不存在独立的 `api:*` RPC 面。内置测试 Playground 通过 `ubean:playground:invoke`（`(params) => Promise<PlaygroundInvokeResult>`）调用 handler,针对 dev server 执行并自动附带 cookie/auth 请求头——像 Postman 但零配置。
 
 API 创建时自动生成 handler 文件：
 
@@ -1138,7 +1027,7 @@ DevTools 客户端（iframe 内的 Vue 应用）使用 **`@soybeanjs/ui`** **+**
 
 ```typescript
 // plugins/my-devtools-tab.ts
-import { defineDevToolsTab } from 'ubean';
+import { defineDevToolsTab } from '@ubean/devtools';
 
 export default defineDevToolsTab({
   name: 'my-feature',
@@ -1162,62 +1051,45 @@ export default defineDevToolsTab({
 
 ```bash
 ubean              # 显示帮助
+ubean init         # 初始化新项目脚手架
 ubean dev          # 启动开发服务器
 ubean build        # 构建生产版本
-ubean prepare      # 准备类型生成 (dev 前自动执行)
 ubean preview      # 预览生产构建
+ubean prepare      # 准备类型生成 (dev 前自动执行)
+ubean analyze      # 分析客户端 bundle 体积 (支持 --check 对照基线)
 
 # ─── 页面路由 ───
-ubean page add           # 交互式添加页面 (路径/布局/loader)
-ubean page add-reuse     # 交互式添加 reuse 路由
-ubean page delete <name> # 删除页面 (自动备份)
-ubean page update <name> # 更新页面 (重命名/改布局/改路径)
-ubean page list          # 列出所有页面路由
-ubean page recovery      # 从备份恢复已删除的页面
+ubean page add <path>         # 添加页面 (支持 --force 覆盖 / --dry 预览)
+ubean page add-reuse <path>   # 添加 reuse 路由 (.reuse.ts)
+ubean page delete <path>      # 删除 (默认创建 .bak 备份, --force 彻底删除)
+ubean page recovery <path>    # 从 .bak 备份恢复
+ubean page list               # 列出已存在的文件
 
-# ─── API 接口 ───
-ubean api add            # 交互式添加 API 接口 (路径/方法/OpenAPI)
-ubean api delete <method> <path>  # 删除接口
-ubean api update <method> <path>  # 更新接口
-ubean api list           # 列出所有 API 接口
-ubean api test <method> <path>    # 命令行接口测试 (发送请求查看响应)
-
-# ─── 布局 ───
-ubean layout add <name>  # 创建新布局
-ubean layout delete <name>  # 删除布局
-ubean layout list        # 列出所有布局
+# ─── 其他脚手架资源 (同一组子命令) ───
+ubean api add|delete|recovery|list          # API 接口
+ubean layout add|delete|recovery|list       # 布局
+ubean middleware add|delete|recovery|list   # 中间件
+ubean cron add|delete|recovery|list         # 定时任务
+ubean plugin add|delete|recovery|list       # 插件
 
 # ─── 环境变量 ───
-ubean env add <key> [value] [--server|--public]
-ubean env delete <key>
-ubean env update <key> <value>
-ubean env list           # 列出所有环境变量
-ubean env validate       # 校验环境变量 schema
+ubean env init                        # 从模板创建 .env 与 .env.example
+ubean env list [--public]             # 列出变量
+ubean env add <key> [value] [--public] [--force]  # 新增/更新变量 (--public 自动加 UBEAN_PUBLIC_ 前缀)
+ubean env remove <key>                # 移除变量
 
 # ─── 配置 ───
-ubean config get [key]   # 获取配置值
-ubean config set <key> <value>  # 更新配置
-
-# ─── 中间件 ───
-ubean middleware add <name> [--order N]  # 创建中间件
-ubean middleware list    # 列出所有中间件及执行顺序
-
-# ─── 插件 ───
-ubean plugin add <name>  # 创建插件
-ubean plugin list        # 列出所有插件
-
-# ─── 定时任务 ───
-ubean cron add           # 交互式创建定时任务
-ubean cron delete <name> # 删除定时任务
-ubean cron update <name> # 更新定时任务
-ubean cron list          # 列出所有定时任务
-ubean cron run <name>    # 手动触发定时任务
+ubean config init [--preset standard] # 创建默认 ubean.config.ts (--force 覆盖)
+ubean config show                     # 显示配置文件位置与内容
+ubean config example                  # 打印完整配置示例
+ubean config path                     # 打印解析后的配置文件路径
 
 # ─── DevTools ───
-ubean devtools           # 在浏览器中打开 DevTools (自动启动 dev server)
-ubean devtools enable    # 启用 DevTools
-ubean devtools disable   # 禁用 DevTools
-ubean devtools ai-setup  # 交互式配置 AI provider / API Key
+ubean devtools info               # 显示 DevTools 信息 (访问方式/功能/配置)
+ubean devtools path [--port 9527] # 打印 DevTools URL 路径
+
+# ─── 脚手架目录 (studio / IDE 插件) ───
+ubean scaffold describe   # 输出机器可读 scaffold JSON 清单
 ```
 
 #### CLI 与 DevTools 共享核心逻辑
@@ -1592,7 +1464,7 @@ export default defineApp({
 const { t, locale } = useI18n();
 // setLocale 等框架 API 同样自动可用
 const user = useUser();
-const data = await useLoaderData<typeof loader>();
+const data = await useAsyncData('key', async () => ({ /* ... */ }));
 const router = useRouter();
 ```
 
@@ -2086,7 +1958,7 @@ await search('vue', {
 
 ## 4.20 跨平台队列（Queues）
 
-参考 void 的 Proxy 动态绑定模式，ubean 提供跨平台队列抽象。
+ubean 提供跨平台队列抽象（`@ubean/server`,由 `ubean/server` re-export）:开发/测试默认使用内存驱动,平台驱动按需显式接线。
 
 #### 定义队列
 
@@ -2103,20 +1975,28 @@ export interface EmailJob {
 export const emailQueue = defineQueue<EmailJob>(
   {
     name: 'email',
-    retry: { maxAttempts: 3, backoff: 'exponential' }
+    concurrency: 5, // 并发 worker 数(默认 5)
+    retries: 3, // 每条消息重试次数(默认 3)
+    retryDelay: 1000, // 重试间隔 ms(默认 1000)
+    deadLetterQueue: 'email-dlq' // 重试耗尽后进入死信队列
   },
-  async job => {
+  async message => {
+    const job = message.body;
     // 处理队列任务
     await sendEmail(job.to, job.subject, job.body);
   }
 );
 ```
 
+`QueueOptions` 为 `{ name, handler?, concurrency?, retries?, retryDelay?, deadLetterQueue? }`——不存在 `retry: { maxAttempts, backoff }` 对象。
+
 #### 发送任务
+
+队列定义不是可调用对象;发送通过 `sendMessage` / `sendMessages` 按队列名进行:
 
 ```typescript
 // routes/api/signup.ts
-import { defineHandler, validator } from 'ubean/server';
+import { defineHandler, sendMessage, validator } from 'ubean/server';
 import { z } from 'zod';
 
 const signupSchema = z.object({ email: z.string().email() });
@@ -2124,33 +2004,25 @@ const signupSchema = z.object({ email: z.string().email() });
 export const POST = defineHandler(validator('json', signupSchema), async c => {
   const { email } = c.req.valid('json');
   // ... 创建用户
-  await emailQueue.send({ to: email, subject: 'Welcome', body: '...' });
+  await sendMessage('email', { to: email, subject: 'Welcome', body: '...' });
+  // 批量: await sendMessages('email', [job1, job2]);
   return c.json({ success: true });
 });
 ```
 
-#### 平台适配
+Worker 生命周期:`startQueueWorkers()` / `stopQueueWorkers()`;可观测性:`getQueueStats(name)` / `getAllQueueStats()`。
 
-| 平台               | 底层实现                          |
-| ------------------ | --------------------------------- |
-| Node.js            | BullMQ / 内存队列（开发模式）     |
-| Cloudflare Workers | Cloudflare Queues（通过 binding） |
-| Vercel             | Vercel Queues                     |
-| Bun                | Bun 内置 Worker                   |
-| Deno               | Deno Queue                        |
+#### 驱动与平台适配
 
-各 preset 在构建时根据平台注入对应的队列驱动实现，开发模式默认使用内存队列。
+默认驱动为内存实现。非内存驱动需显式接线——通过 `setQueueDriver()` 使用 `@ubean/server/drivers` 的平台驱动:
 
-#### 类型生成
+| 平台               | 驱动                                                |
+| ------------------ | --------------------------------------------------- |
+| Node.js / 开发 / 测试 | 内置内存驱动（默认）                                |
+| Cloudflare Workers | `createCloudflareQueueDriver`（Cloudflare Queues binding） |
+| Vercel             | `createVercelKvQueueDriver`（Vercel KV）            |
 
-自动生成 `.ubean/queues.d.ts`，增强 `queues` 全局对象的类型（参考 void 的 Proxy 模式）：
-
-```typescript
-// 自动生成的类型
-interface QueueMap {
-  email: Queue<EmailJob>;
-}
-```
+没有内置 BullMQ / Bun / Deno 队列驱动。这些平台上内存驱动进程内运行,或自行实现自定义 `QueueDriver`（`send` / `sendBatch` / `registerHandler?` / `start?` / `stop?` / `getQueueDepth?` / `deleteMessage?`）。与数据库、存储层一致,队列在显式接平台驱动之前保持内存实现——见 `examples/platform-drivers/`。
 
 ## 4.21 Better Auth 认证插件（官方可选）
 
@@ -2207,7 +2079,7 @@ const { user, isAuthenticated, isLoading, signIn, signUp, signOut } = useAuth();
 
 ```vue
 <script setup lang="ts">
-import { Link } from 'ubean/vue-runtime';
+<!-- Link 为全局注册组件，无需导入；或 import { Link } from 'ubean/client' -->
 </script>
 
 <template>

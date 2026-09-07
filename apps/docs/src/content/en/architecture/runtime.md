@@ -127,7 +127,7 @@ export default defineApp({
 #### `defineApp` Parameter Types
 
 ```typescript
-// packages/ubean/src/runtime/vue/define-app.ts
+// packages/client/src/define-app.ts
 import type { App as VueApp, Component, Plugin } from 'vue';
 import type { Router } from 'vue-router';
 import type { PageHead } from '../pages/protocol';
@@ -274,7 +274,7 @@ export default defineApp({
 
 ## 4.8 Type-Safe Request Client
 
-ubean provides a layered request client: the low-level `createClient` is an untyped ofetch wrapper; `createTypedClient` / `createTypedFlatClient` / `createTypedInternalFetch` layer OpenAPI `paths` types on top, making paths, parameters, request bodies, and return values fully type-safe.
+ubean does not ship its own HTTP client. Typed HTTP requests are powered by [@soybeanjs/fetch](https://www.npmjs.com/package/@soybeanjs/fetch): `createRequest` / `toFlatRequest` build the request instance, and `createTypedClient` / `toFlatTypedClient` from the `@soybeanjs/fetch/openapi` subpath layer the OpenAPI `paths` types on top, making paths, parameters, request bodies, and return values fully type-safe. For page data fetching, prefer the built-in data layer (`useData` / `useAsyncData` / `useFetch`); the typed client below targets direct browser/server requests.
 
 ### Automatic Type Generation
 
@@ -297,58 +297,77 @@ export interface paths {
 }
 ```
 
-### Recommended Usage: Create a Typed Client in `src/request/`
+### Recommended Usage: Scaffolded Typed Clients in `src/request/`
 
-`ubean init` generates two template files in the project's `src/request/` directory, binding the project's `paths` type to the typed functions so you don't need to pass the generic repeatedly:
+`ubean init` generates two template files in the project's `src/request/` directory, binding the project's `paths` type to the typed clients so you don't need to pass the generic repeatedly:
 
 ```typescript
-// src/request/client.ts — 浏览器端
-import { createClient, createTypedClient } from 'ubean';
+// src/request/client.ts — browser
+import { createRequest } from '@soybeanjs/fetch';
+import { createTypedClient, toFlatTypedClient } from '@soybeanjs/fetch/openapi';
 import type { paths } from '../../.ubean/openapi';
 
+const request = createRequest({});
+
 /**
- * 浏览器端类型化 HTTP 客户端(抛异常模式)
- * 路径、参数、请求体和返回值类型均从 OpenAPI schema 自动推断。
+ * Typed HTTP client for the browser (throws on failure).
+ * Paths, parameters, request bodies, and return types are all inferred
+ * from the generated OpenAPI schema.
  */
-export const api = createTypedClient<paths>(
-  createClient({
-    // baseURL: '/api',
-    // timeout: 10000,
-  })
-);
+export const api = createTypedClient<paths, '/api'>(request, '/api');
+
+/**
+ * Typed flat client (does not throw).
+ * Returns `{ data, error, response }` so the caller decides how to handle failures.
+ */
+export const flatApi = toFlatTypedClient<paths, '/api'>(request, '/api');
 ```
 
 ```typescript
-// src/request/internal.ts — server 端内部 fetch
-import { createTypedInternalFetch } from 'ubean';
+// src/request/internal.ts — server-side in-process fetch
+import { createRequest } from '@soybeanjs/fetch';
+import { createTypedClient } from '@soybeanjs/fetch/openapi';
+import { createInternalAdapter } from 'ubean/server';
 import type { paths } from '../../.ubean/openapi';
 
 /**
- * server 端类型化内部 fetch
- * 在 API 路由或 useData 的 fetcher 中使用,自动转发 cookie/authorization 等请求头。
- * 与 client.ts 的 api 接口一致,但通过 server 端 fetch 发起请求(自动转发请求头)。
- * baseURL 会自动从当前请求的 URL 中推断,无需手动设置。
+ * Typed in-process client for API routes / loaders.
+ * `createInternalAdapter(context)` wraps the registered Hono `app.fetch` as a
+ * `@soybeanjs/fetch` adapter: requests dispatch in-process (no extra network
+ * hop) and cookie/authorization headers are forwarded from the current request.
  */
-export function createServerApi(context: Parameters<typeof createTypedInternalFetch>[0]) {
-  // createTypedInternalFetch 会自动从 context.req.url 推断 baseURL
-  return createTypedInternalFetch<paths>(context);
+export function createServerApi(context: Parameters<typeof createInternalAdapter>[0]) {
+  const adapter = createInternalAdapter(context);
+  const request = createRequest({ adapter });
+  return createTypedClient<paths, '/api'>(request, '/api');
 }
 ```
 
 Use it in components or API routes:
 
 ```typescript
-// 浏览器端
-import { api } from '../request/client';
+// browser
+import { api, flatApi } from '../request/client';
+
 const user = await api.get('/api/users/{id}', {
   params: { path: { id: '123' }, query: { include: 'posts' } }
 });
-// user 的类型自动从 OpenAPI schema 推导
+// `user` is typed from the OpenAPI schema
 
-// server 端
+const { data, error } = await flatApi.get('/api/users/{id}', {
+  params: { path: { id: '123' } }
+});
+if (error) {
+  console.error('Request failed:', error.message);
+}
+```
+
+```typescript
+// server side
 import { defineHandler } from 'ubean/server';
 import { createServerApi } from '../request/internal';
-export const GET = defineHandler(async (c) => {
+
+export const GET = defineHandler(async c => {
   const api = createServerApi(c);
   const user = await api.get('/api/users/{id}', { params: { path: { id: '1' } } });
   return c.json(user);
@@ -357,19 +376,18 @@ export const GET = defineHandler(async (c) => {
 
 ### API Quick Reference
 
-| API | Description | Return Value |
-| --- | --- | --- |
-| `createClient(options)` | Low-level HTTP client (ofetch wrapper), untyped | `ApiClient` |
-| `createTypedClient<paths>(client, prefix?)` | Typed client, throws on failure | `TypedClient<paths>` |
-| `createTypedFlatClient<paths>(client, prefix?)` | Typed flat client, returns `{ data, error, status }` without throwing | `TypedFlatClient<paths>` |
-| `createTypedInternalFetch<paths>(c, options?)` | Server-side typed internal fetch, auto-forwards request headers | `TypedClient<paths>` |
-| `callTypedInternal<paths>()` | Global typed in-process dispatcher (no network request) | `TypedInternalCaller<paths>` |
-| `createTypedRequestSender<paths>(c)` | Context-aware typed request sender | `TypedRequestSender<paths>` |
-| `parseContentDisposition(header?)` | Parse filename from Content-Disposition header | `string` |
+All HTTP client APIs come from `@soybeanjs/fetch` (declare it as a dependency of your project); ubean only contributes the in-process adapter and the OpenAPI type generation.
 
-### Parameter Structure
+| API | Source | Description | Returns |
+| --- | --- | --- | --- |
+| `createRequest(options?, hooks?)` | `@soybeanjs/fetch` | Create a request instance (`baseURL`, `timeout`, retry, interceptors) | `RequestInstance` |
+| `toFlatRequest(request)` | `@soybeanjs/fetch` | Wrap the same instance into flat mode (no throwing) | `FlatRequestInstance` |
+| `createTypedClient<paths, Prefix>(request, prefix?)` | `@soybeanjs/fetch/openapi` | Typed client bound to the OpenAPI `paths` type; throws on failure | typed client |
+| `toFlatTypedClient<paths, Prefix>(request, prefix?)` | `@soybeanjs/fetch/openapi` | Typed flat client; returns `{ data, error, response }` | typed flat client |
+| `createInternalAdapter(c?, options?)` | `ubean/server` | Wrap the Hono app into a `@soybeanjs/fetch` adapter for in-process dispatch, forwarding request headers | `FetchAdapter` |
+| `setDefaultFetch(request)` | `ubean` | Inject the fetch instance used by the page data layer | `void` |
 
-The parameter structure matches `@soybeanjs/request`; `params` contains `path`/`query`/`header`:
+Every instance exposes `get` / `post` / `put` / `patch` / `delete` shortcuts. `params` carries `path` / `query` / `header`, and `body` carries the request payload:
 
 ```typescript
 api.post('/api/users', {
@@ -382,212 +400,149 @@ api.post('/api/users', {
 });
 ```
 
-### Response Types & File Downloads
+Non-JSON responses are selected with the `responseType` option (`'json' | 'text' | 'blob' | 'arraybuffer' | 'stream' | 'auto'`) — see the [@soybeanjs/fetch documentation](https://www.npmjs.com/package/@soybeanjs/fetch) for the full option set (flat mode, hooks, retry, auth refresh, and more).
 
-Configure different return types via `responseType`, mirroring the `createRequest` design from `@soybeanjs/request`:
+### Page Data Fetching
 
-```typescript
-type ResponseType = 'json' | 'blob' | 'arraybuffer' | 'text' | 'stream';
-```
-
-| `responseType` | Return Value | Description |
-| --- | --- | --- |
-| `'json'` (default) | `JsonType` | Parses JSON response; type inferred from OpenAPI schema |
-| `'blob'` | `FileResponseData<Blob>` | File download; auto-parses filename |
-| `'arraybuffer'` | `FileResponseData<ArrayBuffer>` | Binary download |
-| `'stream'` | `FileResponseData<Uint8Array>` | Streamed read as Uint8Array |
-| `'text'` | `string` | Plain-text response |
-
-`FileResponseData` structure:
-
-```typescript
-interface FileResponseData<T = Blob | ArrayBuffer | Uint8Array> {
-  file: T;            // 文件内容
-  filename: string;   // 从 Content-Disposition 头解析的文件名
-  contentType: string; // 响应头中的内容类型
-}
-```
-
-Usage examples:
-
-```typescript
-// 文件下载(自动从 Content-Disposition 解析文件名)
-const file = await api.get('/api/export', { responseType: 'blob' });
-// file: { file: Blob; filename: 'report.pdf'; contentType: 'application/pdf' }
-console.log(file.filename);
-
-// 自定义文件名提取
-const file2 = await api.get('/api/export', {
-  responseType: 'blob',
-  getFileName: (response) => response.headers.get('x-filename') || 'unknown.bin'
-});
-
-// 文本响应
-const text = await api.get('/api/readme', { responseType: 'text' });
-// text: string
-
-// 流式响应
-const stream = await api.get('/api/stream', { responseType: 'stream' });
-// stream: { file: Uint8Array; filename: string; contentType: string }
-
-// 二进制响应
-const buf = await api.get('/api/binary', { responseType: 'arraybuffer' });
-// buf: { file: ArrayBuffer; filename: string; contentType: string }
-```
-
-For file downloads, the filename is parsed by default from the `Content-Disposition` header via the built-in `parseContentDisposition` (supporting both RFC 5987 encoded format `filename*=UTF-8''xxx` and the regular format `filename="xxx"`). You can customize it via the `getFileName` callback.
-
-### Flat Mode
-
-```typescript
-import { createTypedFlatClient } from 'ubean';
-import type { paths } from '../.ubean/openapi';
-
-const flat = createTypedFlatClient<paths>(client);
-const { data, error, status } = await flat.get('/api/users/{id}', {
-  params: { path: { id: '123' } }
-});
-if (error) {
-  console.error('请求失败:', error.message);
-} else {
-  console.log('用户:', data);
-}
-
-// 扁平模式同样支持 responseType
-const { data: file, error: fileError } = await flat.get('/api/export', { responseType: 'blob' });
-if (!fileError) {
-  console.log('文件名:', file.filename);
-}
-```
-
-### Low-Level Client
-
-When not using OpenAPI types, `createClient` still works as a general-purpose HTTP client:
-
-```typescript
-import { createClient } from 'ubean';
-const client = createClient({ baseURL: '/api', timeout: 10000 });
-const data = await client.get<{ id: string; name: string }>('/users/123');
-```
+For page/loader data, prefer the built-in data layer over direct HTTP calls: `useData(options)`, `useAsyncData(key, fn, options?)`, and `useFetch(key, url, options?)` (a thin wrapper over `useAsyncData`). They provide SSR payload serialization, key-based invalidation (`invalidateData` / `invalidateAll`), and SPA navigation caching. The underlying fetch instance is injectable — `setDefaultFetch(createRequest())` wires the page data layer to the same `@soybeanjs/fetch` pipeline used by the typed clients above.
 
 ## 4.9 Cron Jobs System
 
-Modeled after nitro's `scheduledTasks` and void's `defineScheduled`:
+Modeled after void's `defineScheduled`, cron tasks live under the `crons/` directory (numeric filename prefixes control registration order):
 
 - Define cron jobs under the `crons/` directory
-- Use `export const cron = "<cron expression>"` to declare the schedule expression
-- Use `defineScheduled()` to define the task handler
-- Auto-configured on platforms that support cron triggers (Cloudflare Workers Cron Triggers, Vercel Cron)
-- Other platforms use the built-in cron scheduler or external triggers (`/_cron/<name>` endpoint)
+- Use `defineScheduled({ name, schedule }, handler)` to declare the task and its cron expression
+- In dev, tasks are loaded and `startCronScheduler()` starts automatically
+- In production, tasks are bundled into the server entry via an eager glob; the `node`/`bun`/`deno`/`standard` presets start the in-process scheduler
+- Serverless/edge presets do **not** install the in-process scheduler — schedule via platform triggers instead (Cloudflare Workers Cron Triggers, Vercel Cron, Netlify scheduled functions)
 
 ```typescript
 // crons/daily-cleanup.ts
 import { defineScheduled } from 'ubean/server';
-import { db } from 'ubean/database';
 
-export const cron = '0 0 * * *'; // 每天凌晨执行
-
-export default defineScheduled(async ({ lastExecutionTime, scheduledTime }) => {
-  // 清理过期数据
-  await db.delete(sessions).where(lt(sessions.expiresAt, new Date()));
-  console.log(`[Cron] Cleaned up expired sessions at ${scheduledTime}`);
-});
+export default defineScheduled(
+  {
+    name: 'daily-cleanup',
+    schedule: '0 0 * * *', // every day at midnight
+    timeout: 30_000, // optional per-run timeout (ms)
+    runOnStart: false // optional: also run once at startup
+  },
+  async ({ name, schedule, timestamp, runCount }) => {
+    // clean up expired data, send digests, etc.
+    console.log(`[Cron] ${name} (${schedule}) fired at ${timestamp}, run #${runCount}`);
+  }
+);
 ```
 
-#### Cron Configuration
+#### Manual & Programmatic Triggers
+
+There is no `/_cron/<name>` HTTP endpoint and no top-level `cron` config; triggering is done in code:
 
 ```typescript
-// ubean.config.ts
-export default defineConfig({
-  cron: {
-    // 任务运行时的超时时间
-    timeout: 30_000,
-    // 是否在开发模式下启用 cron
-    enabled: process.env.NODE_ENV === 'production'
-  },
-  // 也可以通过 scheduledTasks 配置映射 cron 到任务名（nitro 风格）
-  scheduledTasks: {
-    '*/5 * * * *': ['tasks/heartbeat']
-  }
+import { runScheduledTask, getScheduledTasks, startCronScheduler } from 'ubean/server';
+
+// run a task immediately
+await runScheduledTask('daily-cleanup'); // { ok: true, duration: 12, error?: Error }
+
+// inspect registered tasks
+const tasks = getScheduledTasks(); // ScheduledTask[]
+
+// full scheduler control (normally started for you)
+const scheduler = startCronScheduler({
+  timezone: 'UTC',
+  defaultTimeout: 30_000,
+  onTaskError: (task, error) => console.error(task.name, error)
 });
+// scheduler.stop() / scheduler.runTask(name) / scheduler.getNextRuns()
 ```
 
 ## 4.10 Environment Variables System
 
+`defineEnv()` comes from `@ubean/shared` (re-exported by the `ubean` main entry) and validates environment variables against a constructor-based schema. It returns `{ env, validate }`:
+
 ```typescript
 // env.ts
-import { defineEnv, string, number, boolean, url } from 'ubean';
+import { defineEnv } from 'ubean';
 
-export const env = defineEnv({
+export const { env, validate } = defineEnv({
   // 服务端密钥
-  DATABASE_URL: string().secret(),
-  API_SECRET: string().secret().optional(),
-
-  // 公共变量 (VITE_ 前缀自动暴露到客户端)
-  VITE_APP_NAME: string().default('My App'),
-  VITE_API_URL: url(),
-
-  // 类型转换
-  PORT: number().default(9527),
-  DEBUG: boolean().default(false),
-
-  // 可选 + 默认值
-  NODE_ENV: string().oneOf(['development', 'production', 'test']).default('development')
+  server: {
+    DATABASE_URL: { type: String, required: true },
+    API_SECRET: { type: String, required: true },
+    PORT: { type: Number, default: 9527 },
+    DEBUG: { type: Boolean, default: false }
+  },
+  // 公共变量 (exposed to the client via import.meta.env)
+  public: {
+    APP_NAME: { type: String, default: 'My App' },
+    API_URL: { type: String, default: '/api' }
+  },
+  // 'warn' (default) logs validation errors; 'throw' fails at startup
+  mode: 'throw'
 });
 ```
 
+- Schema entries declare the type via the constructor (`String` / `Number` / `Boolean`) plus optional `default` / `required` — there is no chained builder API (`string().secret()` etc. does not exist)
+- The `env` proxy is fully typed (`InferEnvOutput<S>` derives `string` / `number` / `boolean` from each constructor), so `env.DATABASE_URL` is `string`
+- Only variables prefixed with `UBEAN_PUBLIC_`, `VITE_`, or `PUBLIC_` reach the client via `import.meta.env`
+- Use `validate(source)` to check a custom source (test fixture, request-scoped env); the result is `{ success, errors }`
+- The `ubean env` CLI (`init` / `list` / `add` / `remove`) manages `.env` files — see the [Env reference](/reference/env) for the full API
+
 ## 4.11 Preset System Design
 
-```typescript
-// src/preset/_utils/preset.ts
-import type { UbeanPreset, UbeanPresetMeta } from 'ubean/types';
-
-export function definePreset<P extends UbeanPreset, M extends UbeanPresetMeta>(
-  preset: P,
-  meta?: M
-): P & { _meta: UbeanPresetMeta } {
-  if (typeof preset !== 'function' && preset.entry && preset.entry.startsWith('.')) {
-    preset.entry = resolve(presetsDir, preset.entry);
-  }
-  return { ...preset, _meta: meta } as P & { _meta: M };
-}
-```
+Presets live in `@ubean/preset` (aggregated by `ubean/build`). A preset is a plain definition object plus metadata, created with `definePreset(definition, meta?)`:
 
 ```typescript
-// src/preset/node/preset.ts
-import { definePreset } from '../_utils/preset';
-import { nodeCluster } from './cluster';
+import { definePreset } from '@ubean/preset';
+import type { PresetDefinition, PresetMeta } from '@ubean/preset';
 
-const nodeServer = definePreset(
+const nodePreset = definePreset(
   {
-    entry: './node/runtime/node-server',
-    serveStatic: true,
+    name: 'node',
+    extends: 'standard', // inherit and merge a base preset
+    entry: './runtime/node',
+    build: { outputDir: '.output', format: 'esm' },
     commands: {
-      preview: 'node ./server/index.mjs'
+      preview: 'node .output/server/index.mjs'
     }
-  },
+  } satisfies PresetDefinition,
   {
-    name: 'node-server' as const,
-    aliases: ['node'],
+    name: 'node',
+    aliases: ['node-server', 'nodedev'],
     stdName: 'node'
-  }
+  } satisfies PresetMeta
 );
-
-export default [nodeServer, nodeCluster] as const;
 ```
 
-Preset auto-resolution logic:
+- `PresetDefinition` fields: `name`, `extends`, `entry`, `exportConditions`, `serve`, `build` (`outputDir`/`format`/`externals`/`minify`/`rollupConfig`), `output`, `runtime`, `devServer`, `capabilities`, `capabilityInfo`, `hooks`, `alias`, `wasm`, `unenv`, `commands`, `nitro`
+- `PresetMeta`: `name`, `aliases`, `stdName`, `static`, `dev`, `compatibilityDate`, `url`
+- Registry API: `registerPreset` / `resolvePreset` / `getRegisteredPresets` / `getPresetNames` / `getPresetAliases`
+- Per-platform config generators: `generateWranglerConfig` (Cloudflare), `generateVercelConfig`, `generateNetlifyConfig`, `generateBunfigConfig`, `generateDenoConfig`, plus AWS SAM / Azure SWA equivalents
 
-1. The `preset` option explicitly specified in the user config
-2. The `UBEAN_SERVER_PRESET` environment variable
-3. Auto-detection (via std-env provider detection):
-   - `process.versions.bun` → bun
-   - `Deno` global variable → deno
-   - Vercel environment variables → vercel
-   - Netlify environment variables → netlify
-   - Cloudflare Pages environment variables → cloudflare-pages
-   - etc.
-4. Falls back to `defaultPreset` (typically node-server)
+11 built-in presets are registered by `registerBuiltinPresets()`:
+
+| Preset | Aliases |
+| --- | --- |
+| `standard` | `default` |
+| `node` | `node-server`, `nodedev` |
+| `cloudflare` | `cloudflare-pages`, `cloudflare-module`, `cf`, `wrangler`, `workers` |
+| `cloudflare-dev` | `cf-dev`, `wrangler-dev` |
+| `vercel` | `vercel-serverless`, `vercel-node` |
+| `vercel-edge` | `vercel-edge-function` |
+| `netlify` | `netlify-functions`, `netlify-node` |
+| `bun` | `bun-runtime` |
+| `deno` | `deno-deploy`, `deno-runtime` |
+| `aws` | `aws-lambda`, `lambda`, `amazon`, `sam` |
+| `azure` | `azure-swa`, `azure-static-web-apps`, `swa`, `azure-functions` |
+
+Preset auto-resolution is `detectPreset(hints?)` with priority **explicit > config-file > environment > default**:
+
+1. The preset explicitly requested via `resolvePresetWithDetection(name)` / the config `preset` option
+2. Config files and dependencies: `wrangler.toml`/`wrangler.json` → cloudflare, `vercel.json` → vercel, `netlify.toml` → netlify, `deno.json` → deno, `template.yaml` (AWS SAM) → aws, `staticwebapp.config.json` → azure; `wrangler`/`vercel`/`netlify-cli`/`aws-cdk`/`@azure/functions` etc. in `package.json`
+3. Environment and runtime globals: `VERCEL`, `NETLIFY`, `AWS_LAMBDA_FUNCTION_NAME`, `AZURE_FUNCTIONS_ENVIRONMENT`, `globalThis.Deno`, `globalThis.Bun`, `process.versions.node`
+4. Falls back to the `standard` preset
+
+`detectPreset()` returns `{ preset, source: 'explicit' | 'config-file' | 'environment' | 'default', reason }`. There is no `UBEAN_SERVER_PRESET` environment variable.
 
 ## 4.12 DevTools Panel
 
@@ -666,66 +621,31 @@ Modeled after Nuxt DevTools' iframe + RPC architecture, ubean ships a built-in v
 // - DevTools 自身配置
 ```
 
-Config editing calls server-side interfaces via RPC:
+Config editing goes through the real DevTools RPC functions. `@ubean/devtools` registers them with `defineRpcFunction` from `@vitejs/devtools-kit`; the info/env ones are:
 
-```typescript
-// DevTools Server RPC handlers
-interface DevToolsRPC {
-  // Config
-  'config:get': () => Promise<ResolvedConfig>;
-  'config:update': (patch: Partial<UbeanConfig>) => Promise<{ success: boolean; diff: string }>;
-
-  // Env
-  'env:list': () => Promise<EnvVarInfo[]>;
-  'env:create': (key: string, value: string, options: EnvVarOptions) => Promise<void>;
-  'env:update': (key: string, value: string) => Promise<void>;
-  'env:delete': (key: string) => Promise<void>;
-  'env:validate': () => Promise<EnvValidationResult>;
-}
-```
+| RPC function | Type | Signature | Description |
+| --- | --- | --- | --- |
+| `ubean:get-info` | query | `() => DevToolsInfo` | Project info snapshot (versions, routes, pages, plugins); most clients subscribe to the `ubean:info` shared state and use this as a fallback |
+| `ubean:get-env` | query | `() => Record<string, string>` | Environment variables with sensitive values masked |
+| `ubean:crud:read` | query | `(params: { type: 'config' \| 'env' \| CrudResourceType, path? }) => CrudReadResult` | Read the config file, `.env` entries, or scaffolded resources |
+| `ubean:crud:update` | action | `(params: { type, path?, key?, content?, value? }) => CrudResult` | Update config values or `.env` entries (AST-safe edits, backup by default) |
+| `ubean:crud:delete` | action | `(params: { type, path?, key?, force? }) => CrudResult` | Delete files or env entries (`.bak` backup unless `force`) |
 
 #### Page Route CRUD (Pages Tab)
 
 Full create/read/update/delete for page routes, reusing the CLI Shared Layer's `page add/delete/update` logic under the hood (shared with the `ubean page *` commands):
 
-```typescript
-interface DevToolsRPC {
-  // Pages CRUD
-  'pages:list': () => Promise<PageRouteInfo[]>;
-  'pages:get': (name: string) => Promise<PageRouteDetail>;
-  'pages:create': (input: CreatePageInput) => Promise<CreatePageResult>;
-  'pages:update': (name: string, patch: UpdatePageInput) => Promise<void>;
-  'pages:delete': (name: string, options?: { backup?: boolean }) => Promise<void>;
+Full create/read/update/delete for page routes. Pages, APIs, layouts, middleware, reuse routes, crons, and plugins all funnel through one set of CRUD RPC functions that delegate to the same scaffold layer as the `ubean page *` / `ubean api *` commands:
 
-  // Reuse routes
-  'pages:createReuse': (input: CreateReuseInput) => Promise<void>;
+| RPC function | Type | Signature | Description |
+| --- | --- | --- | --- |
+| `ubean:crud:create` | action | `(params: { type: CrudResourceType, path, method?, schedule?, content?, force? }) => Promise<CrudResult>` | Scaffold a page / API / layout / middleware / reuse route / cron / plugin (`schedule` for crons, `method` for APIs) |
+| `ubean:crud:read` | query | `(params: { type, path? }) => Promise<CrudReadResult>` | List or read resources of a type |
+| `ubean:crud:update` | action | `(params: { type, path?, content? }) => Promise<CrudResult>` | Update a resource file |
+| `ubean:crud:delete` | action | `(params: { type, path?, force? }) => Promise<CrudResult>` | Delete a resource (creates a `.bak` backup unless `force`) |
+| `ubean:crud:restore` | action | `(path: string) => Promise<CrudResult>` | Restore a deleted file from its backup |
 
-  // Layouts
-  'layouts:list': () => Promise<LayoutInfo[]>;
-  'layouts:create': (name: string) => Promise<void>;
-}
-
-interface PageRouteInfo {
-  name: string;
-  path: string;
-  filePath: string;
-  layout: string | false;
-  meta: PageMeta;
-  hasLoader: boolean;
-  hasAction: boolean;
-  isReuse: boolean;
-  reuseTarget?: string;
-  children?: PageRouteInfo[];
-}
-
-interface CreatePageInput {
-  path: string; // 如 '/users/[id]'
-  layout?: string; // 布局名
-  withLoader?: boolean; // 是否创建 .server.ts
-  withServerFile?: boolean;
-  template?: 'vue' | 'tsx';
-}
-```
+`CrudResourceType` = `'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin'`; `CrudResult` reports `{ success, created?, deleted?, restored?, updated?, skipped?, errors? }`. Every operation fires the before/after hooks described below.
 
 When a page is created, a template file is auto-generated:
 
@@ -749,37 +669,7 @@ definePage({
 
 #### API Route CRUD (API Routes Tab)
 
-```typescript
-interface DevToolsRPC {
-  // API Routes CRUD
-  'api:list': () => Promise<ApiRouteInfo[]>;
-  'api:get': (method: string, path: string) => Promise<ApiRouteDetail>;
-  'api:create': (input: CreateApiInput) => Promise<void>;
-  'api:update': (method: string, path: string, patch: UpdateApiInput) => Promise<void>;
-  'api:delete': (method: string, path: string) => Promise<void>;
-
-  // API Testing
-  'api:test': (input: ApiTestInput) => Promise<ApiTestResult>;
-
-  // OpenAPI
-  'openapi:generate': () => Promise<string>; // 返回 OpenAPI JSON
-}
-
-interface ApiRouteInfo {
-  methods: string[]; // ['GET', 'PATCH', 'DELETE']
-  path: string; // '/users/:id'
-  filePath: string;
-  meta?: RouteMeta;
-  openapi?: OperationObject;
-}
-
-interface CreateApiInput {
-  path: string; // '/users'
-  methods: string[]; // ['GET', 'POST']
-  withOpenAPI?: boolean; // 是否生成 describeRoute + resolver OpenAPI 文档骨架
-  withValidator?: boolean; // 是否生成 validator 中间件骨架
-}
-```
+API routes use the same `ubean:crud:*` functions with `type: 'api'` (the optional `method` selects `GET`/`POST`/...) — there is no separate `api:*` RPC surface. The built-in testing playground invokes handlers through `ubean:playground:invoke` (`(params) => Promise<PlaygroundInvokeResult>`), executing against the dev server with cookies/auth headers attached — like Postman but zero-config.
 
 When an API is created, a handler file is auto-generated:
 
@@ -824,8 +714,6 @@ export const POST = defineHandler(
   }
 );
 ```
-
-API Testing Playground: Fill in parameters, send requests, and view responses directly in DevTools (auto-attaching cookie/auth headers) — like Postman but zero-config.
 
 #### Hooks System
 
@@ -1138,7 +1026,7 @@ Users/plugins can register custom DevTools tabs:
 
 ```typescript
 // plugins/my-devtools-tab.ts
-import { defineDevToolsTab } from 'ubean';
+import { defineDevToolsTab } from '@ubean/devtools';
 
 export default defineDevToolsTab({
   name: 'my-feature',
@@ -1162,62 +1050,45 @@ Built on `citty` for type-safe CLI tooling. **Every DevTools visual operation ha
 
 ```bash
 ubean              # 显示帮助
+ubean init         # 初始化新项目脚手架
 ubean dev          # 启动开发服务器
 ubean build        # 构建生产版本
-ubean prepare      # 准备类型生成 (dev 前自动执行)
 ubean preview      # 预览生产构建
+ubean prepare      # 准备类型生成 (dev 前自动执行)
+ubean analyze      # 分析客户端 bundle 体积 (支持 --check 对照基线)
 
 # ─── 页面路由 ───
-ubean page add           # 交互式添加页面 (路径/布局/loader)
-ubean page add-reuse     # 交互式添加 reuse 路由
-ubean page delete <name> # 删除页面 (自动备份)
-ubean page update <name> # 更新页面 (重命名/改布局/改路径)
-ubean page list          # 列出所有页面路由
-ubean page recovery      # 从备份恢复已删除的页面
+ubean page add <path>         # 添加页面 (支持 --force 覆盖 / --dry 预览)
+ubean page add-reuse <path>   # 添加 reuse 路由 (.reuse.ts)
+ubean page delete <path>      # 删除 (默认创建 .bak 备份, --force 彻底删除)
+ubean page recovery <path>    # 从 .bak 备份恢复
+ubean page list               # 列出已存在的文件
 
-# ─── API 接口 ───
-ubean api add            # 交互式添加 API 接口 (路径/方法/OpenAPI)
-ubean api delete <method> <path>  # 删除接口
-ubean api update <method> <path>  # 更新接口
-ubean api list           # 列出所有 API 接口
-ubean api test <method> <path>    # 命令行接口测试 (发送请求查看响应)
-
-# ─── 布局 ───
-ubean layout add <name>  # 创建新布局
-ubean layout delete <name>  # 删除布局
-ubean layout list        # 列出所有布局
+# ─── 其他脚手架资源 (同一组子命令) ───
+ubean api add|delete|recovery|list          # API 接口
+ubean layout add|delete|recovery|list       # 布局
+ubean middleware add|delete|recovery|list   # 中间件
+ubean cron add|delete|recovery|list         # 定时任务
+ubean plugin add|delete|recovery|list       # 插件
 
 # ─── 环境变量 ───
-ubean env add <key> [value] [--server|--public]
-ubean env delete <key>
-ubean env update <key> <value>
-ubean env list           # 列出所有环境变量
-ubean env validate       # 校验环境变量 schema
+ubean env init                        # 从模板创建 .env 与 .env.example
+ubean env list [--public]             # 列出变量
+ubean env add <key> [value] [--public] [--force]  # 新增/更新变量 (--public 自动加 UBEAN_PUBLIC_ 前缀)
+ubean env remove <key>                # 移除变量
 
 # ─── 配置 ───
-ubean config get [key]   # 获取配置值
-ubean config set <key> <value>  # 更新配置
-
-# ─── 中间件 ───
-ubean middleware add <name> [--order N]  # 创建中间件
-ubean middleware list    # 列出所有中间件及执行顺序
-
-# ─── 插件 ───
-ubean plugin add <name>  # 创建插件
-ubean plugin list        # 列出所有插件
-
-# ─── 定时任务 ───
-ubean cron add           # 交互式创建定时任务
-ubean cron delete <name> # 删除定时任务
-ubean cron update <name> # 更新定时任务
-ubean cron list          # 列出所有定时任务
-ubean cron run <name>    # 手动触发定时任务
+ubean config init [--preset standard] # 创建默认 ubean.config.ts (--force 覆盖)
+ubean config show                     # 显示配置文件位置与内容
+ubean config example                  # 打印完整配置示例
+ubean config path                     # 打印解析后的配置文件路径
 
 # ─── DevTools ───
-ubean devtools           # 在浏览器中打开 DevTools (自动启动 dev server)
-ubean devtools enable    # 启用 DevTools
-ubean devtools disable   # 禁用 DevTools
-ubean devtools ai-setup  # 交互式配置 AI provider / API Key
+ubean devtools info               # 显示 DevTools 信息 (访问方式/功能/配置)
+ubean devtools path [--port 9527] # 打印 DevTools URL 路径
+
+# ─── 脚手架目录 (studio / IDE 插件) ───
+ubean scaffold describe   # 输出机器可读 scaffold JSON 清单
 ```
 
 #### CLI & DevTools Shared Core Logic
@@ -1579,7 +1450,7 @@ Automatically imports the project's `composables/`, `utils/` directories, and ub
 // 无需 import，自动可用
 const { t, locale, setLocale } = useI18n();
 const user = useUser();
-const data = await useLoaderData<typeof loader>();
+const data = await useAsyncData('key', async () => ({ /* ... */ }));
 const router = useRouter();
 ```
 
@@ -2074,7 +1945,7 @@ await search('vue', {
 
 ## 4.20 Cross-Platform Queues
 
-Modeled after void's Proxy dynamic-binding pattern, ubean provides a cross-platform queue abstraction.
+ubean provides a cross-platform queue abstraction (`@ubean/server`, re-exported by `ubean/server`): a default in-memory driver for dev/tests, with platform drivers wired explicitly.
 
 #### Defining a Queue
 
@@ -2091,20 +1962,28 @@ export interface EmailJob {
 export const emailQueue = defineQueue<EmailJob>(
   {
     name: 'email',
-    retry: { maxAttempts: 3, backoff: 'exponential' }
+    concurrency: 5, // parallel workers (default 5)
+    retries: 3, // attempts per message (default 3)
+    retryDelay: 1000, // delay between retries in ms (default 1000)
+    deadLetterQueue: 'email-dlq' // park messages that exhaust retries
   },
-  async job => {
+  async message => {
+    const job = message.body;
     // 处理队列任务
     await sendEmail(job.to, job.subject, job.body);
   }
 );
 ```
 
+`QueueOptions` is `{ name, handler?, concurrency?, retries?, retryDelay?, deadLetterQueue? }` — there is no `retry: { maxAttempts, backoff }` object.
+
 #### Sending Jobs
+
+A queue definition is not a callable object; sending goes through `sendMessage` / `sendMessages` with the queue name:
 
 ```typescript
 // routes/api/signup.ts
-import { defineHandler, validator } from 'ubean/server';
+import { defineHandler, sendMessage, validator } from 'ubean/server';
 import { z } from 'zod';
 
 const signupSchema = z.object({ email: z.string().email() });
@@ -2112,33 +1991,25 @@ const signupSchema = z.object({ email: z.string().email() });
 export const POST = defineHandler(validator('json', signupSchema), async c => {
   const { email } = c.req.valid('json');
   // ... 创建用户
-  await emailQueue.send({ to: email, subject: 'Welcome', body: '...' });
+  await sendMessage('email', { to: email, subject: 'Welcome', body: '...' });
+  // batch: await sendMessages('email', [job1, job2]);
   return c.json({ success: true });
 });
 ```
 
-#### Platform Adaptation
+Worker lifecycle: `startQueueWorkers()` / `stopQueueWorkers()`; observability: `getQueueStats(name)` / `getAllQueueStats()`.
 
-| Platform | Underlying implementation |
+#### Drivers & Platform Adaptation
+
+The default driver is in-memory. Non-memory drivers are explicit — wire them with `setQueueDriver()` using the platform drivers from `@ubean/server/drivers`:
+
+| Platform | Driver |
 | --- | --- |
-| Node.js | BullMQ / in-memory queue (dev mode) |
-| Cloudflare Workers | Cloudflare Queues (via binding) |
-| Vercel | Vercel Queues |
-| Bun | Bun built-in Worker |
-| Deno | Deno Queue |
+| Node.js / dev / tests | built-in memory driver (default) |
+| Cloudflare Workers | `createCloudflareQueueDriver` (Cloudflare Queues binding) |
+| Vercel | `createVercelKvQueueDriver` (Vercel KV) |
 
-Each preset injects the platform-specific queue driver implementation at build time; dev mode uses an in-memory queue by default.
-
-#### Type Generation
-
-Auto-generates `.ubean/queues.d.ts` to enhance the `queues` global object's types (modeled after void's Proxy pattern):
-
-```typescript
-// 自动生成的类型
-interface QueueMap {
-  email: Queue<EmailJob>;
-}
-```
+There are no built-in BullMQ / Bun / Deno queue drivers. On those platforms the memory driver runs in-process, or you implement a custom `QueueDriver` (`send` / `sendBatch` / `registerHandler?` / `start?` / `stop?` / `getQueueDepth?` / `deleteMessage?`). Like the database and storage layers, queues stay in-memory until a platform driver is explicitly connected — see `examples/platform-drivers/`.
 
 ## 4.21 Better Auth Plugin (Official, Optional)
 
@@ -2195,7 +2066,7 @@ The `to` prop of the `<Link>` component is typed as a union of route names defin
 
 ```vue
 <script setup lang="ts">
-import { Link } from 'ubean/vue-runtime';
+<!-- Link 为全局注册组件，无需导入；或 import { Link } from 'ubean/client' -->
 </script>
 
 <template>

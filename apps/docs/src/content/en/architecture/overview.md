@@ -7,7 +7,7 @@ description: "High-level overview of ubean: origins, project structure, and desi
 
 ## 1. Project Overview
 
-**ubean** is a full-stack meta-framework built on Vite, Hono, and Vue 3, fusing void's Inertia-style SSR page routing with nitro's cross-platform deployment capabilities, organized as a monorepo of 33 packages (the `ubean` aggregator plus 32 `@ubean/*` subpackages).
+**ubean** is a full-stack meta-framework built on Vite, Hono, and Vue 3, fusing void's Inertia-style SSR page routing with nitro's cross-platform deployment capabilities, organized as a monorepo of 24 packages (the `ubean` aggregator plus 23 `@ubean/*` subpackages).
 
 ### 1.1 Core Positioning
 
@@ -153,7 +153,7 @@ Dependencies are split by runtime boundary; each sub-package keeps minimal deps 
 
 ## 3. Directory Structure
 
-> The repository is split into 33 packages under `packages/` — the `ubean` aggregator plus 32 `@ubean/*` subpackages. `packages/ubean` is a thin aggregator that re-exports from all sub-packages — it does not contain the framework logic itself.
+> The repository is split into 24 packages under `packages/` — the `ubean` aggregator plus 23 `@ubean/*` subpackages. `packages/ubean` is a thin aggregator that re-exports from all sub-packages — it does not contain the framework logic itself.
 
 ```
 ubean/
@@ -161,11 +161,14 @@ ubean/
 │   ├── ubean/                       # Aggregator package (npm: "ubean") — pure re-exports
 │   │   ├── bin/ubean.mjs            # CLI binary entry
 │   │   ├── src/
-│   │   │   ├── runtime/             # App/i18n/vue runtime shims (app.ts, i18n.ts, vue.ts)
-│   │   │   ├── client/              # Client runtime re-exports (ubean/client first-class subpath)
-│   │   │   ├── index.ts             # Public exports (re-exports all sub-packages)
+│   │   │   ├── index.ts             # Isomorphic main entry (client-safe: shared/seo/pages/markdown + client kernel + islands + logger + defineConfig)
+│   │   │   ├── server.ts            # Server aggregate (app + routes + server + shared/node + hono-openapi)
+│   │   │   ├── build.ts             # Build-time aggregate (prerender + preset + config + codegen + scan + vite plugins)
+│   │   │   ├── client.ts            # Framework client runtime (kernel + actions runtime + islands bridge)
+│   │   │   ├── i18n.ts              # Server i18n entry
+│   │   │   ├── ssr.ts               # Vue SSR renderer entry
 │   │   │   ├── vite.ts              # Combined Vite plugin entry
-│   │   │   └── vue-ssr.ts           # Vue SSR bridge
+│   │   │   └── scaffold.ts          # Scaffold library entry
 │   │   └── package.json
 │   │
 │   │   ── Foundation ──
@@ -211,7 +214,9 @@ ubean/
 │   ├── ubean-test/                 # Complete full-stack example + tests (virtual routing mode)
 │   ├── client-only-spa/            # Pure client SPA example (reuses the @ubean/vue kernel)
 │   ├── frontend-only/              # Frontend-only example (no API/SSR)
-│   └── routing-file-mode/          # Route file generation mode example
+│   ├── routing-file-mode/          # Route file generation mode example
+│   ├── platform-drivers/           # Platform driver adapters (D1 / Vercel KV / Bun sqlite…)
+│   └── ssg-catchall/               # SSG catch-all prerender example
 │
 ├── skills/ubean/                   # ubean AI Skill
 │       ├── SKILL.md                 # Skill routing definition

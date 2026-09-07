@@ -7,7 +7,7 @@ description: ubean 框架概览：项目结构、设计约定与核心思想。
 
 ## 1. 项目概述
 
-**ubean** 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，融合了 void 的 Inertia 式 SSR 页面路由和 nitro 的跨平台部署能力，以 33 个单用途包（ubean 聚合器 + 32 个 `@ubean/*` 子包）的 monorepo 形式组织。
+**ubean** 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，融合了 void 的 Inertia 式 SSR 页面路由和 nitro 的跨平台部署能力，以 24 个单用途包（ubean 聚合器 + 23 个 `@ubean/*` 子包）的 monorepo 形式组织。
 
 ### 1.1 核心定位
 
@@ -157,10 +157,10 @@ description: ubean 框架概览：项目结构、设计约定与核心思想。
 
 ```
 ubean/
-├── packages/                     # 33 个单用途包（ubean 聚合器 + 32 个 @ubean/* 子包）
-│   ├── ubean/                    # 主包 (npm name: "ubean") — 纯聚合器，re-export 全部子包
+├── packages/                     # 24 个单用途包（ubean 聚合器 + 23 个 @ubean/* 子包）
+│   ├── ubean/                    # 主包 (npm name: "ubean") — 聚合器
 │   │   ├── bin/ubean.mjs         # CLI 二进制入口
-│   │   ├── src/                  # 入口 + 子路径导出（client, runtime/vue, runtime/app, vite…）
+│   │   ├── src/                  # 子路径导出（isomorphic 主入口 + server/build/client/i18n/ssr/vite/scaffold）
 │   │   ├── test/                 # 单元 + 集成测试
 │   │   └── package.json
 │   ├── shared/                   # @ubean/shared — 共享类型 / 工具函数 / 错误 / 环境变量

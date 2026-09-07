@@ -170,7 +170,7 @@ type InferLoaderData<T> = T extends () => Promise<{ data: infer D }> ? D : never
 - 核心子包：`@ubean/islands` 199（directive / paired-components / server-client-components / islands-registry / server-component-rerender）、`@ubean/client/ssr`（原 `@ubean/ssr`）、`@ubean/routes`（含 Server Actions）、`@ubean/devtools` 81、examples/ubean-test prerender 92。
 - 扩展包：`@ubean/icon` 32、`@ubean/auth` 13、`@ubean/integrations`（pwa 19 / fonts 21）、`@ubean/image` 42、`@ubean/content` 18、`@ubean/seo` 114。
 - 全仓库合计 **约 1075 个测试**通过。
-- `pnpm typecheck`：通过。TypeScript 7 与 `vue-tsc` 的兼容层通过 workspace override `typescript: npm:typescript-native-bridge@0.0.0` 提供；其原生依赖 `koffi` 必须在 `pnpm-workspace.yaml` 的 `allowBuilds` 中显式允许。
+- `pnpm typecheck`：通过。编译器版本由 `pnpm-workspace.yaml` 中的 workspace override `typescript: '6.0.3'` 固定，保证所有子包解析到同一版 TypeScript。
 - `pnpm build`：通过（主包 + 全部 8 个扩展包，含 `@ubean/devtools` 与 `@ubean/islands`）。
 - 路线图中标为 ✅ 的任务必须有对应源码、公开调用路径和与风险相称的验证；命令骨架、正则提取或未接通的运行时路径不得作为完整交付标记。
 
@@ -197,7 +197,7 @@ export default defineConfig({
   resolve: {
     alias: {
       ubean: resolve(__dirname, 'src/index.ts'),
-      'ubean/meta': resolve(__dirname, 'src/meta.ts')
+      'ubean/server': resolve(__dirname, 'src/server.ts')
     }
   }
 });
@@ -257,142 +257,46 @@ CLI 命令清单与框架实现详见 [运行时与开发体验 §4.13](../archi
 
 ## 8. 导出设计
 
-### 8.1 package.json exports
+### 8.1 聚合器子路径契约（`packages/ubean/package.json`）
+
+发布的 `ubean` 包是聚合器：主入口 re-export 所有 `@ubean/*` 子包,每个子路径切出一个能力域并带有明确的环境边界。真实的 `exports` 映射（构建产物为 `.d.ts` + `.js`）：
 
 ```json
 {
   "exports": {
-    ".": {
-      "types": "./dist/index.d.mts",
-      "import": "./dist/index.mjs"
-    },
-    "./handler": {
-      "types": "./dist/runtime/handler.d.mts",
-      "import": "./dist/runtime/handler.mjs"
-    },
-    "./openapi": {
-      "types": "./dist/runtime/openapi.d.mts",
-      "import": "./dist/runtime/internal/routes/openapi.mjs"
-    },
-    "./client": {
-      "types": "./dist/runtime/client.d.mts",
-      "import": "./dist/runtime/client.mjs",
-      "browser": {
-        "import": "./dist/runtime/client-browser.mjs"
-      }
-    },
-    "./client-xhr": {
-      "types": "./dist/runtime/client-xhr.d.mts",
-      "browser": {
-        "import": "./dist/runtime/client-xhr.mjs"
-      }
-    },
-    "./internal": {
-      "types": "./dist/runtime/internal-fetch.d.mts",
-      "import": "./dist/runtime/internal-fetch.mjs"
-    },
-    "./cron": {
-      "types": "./dist/runtime/cron.d.mts",
-      "import": "./dist/runtime/cron.mjs"
-    },
-    "./response": {
-      "types": "./dist/runtime/response.d.mts",
-      "import": "./dist/runtime/response.mjs"
-    },
-    "./env": {
-      "types": "./dist/runtime/env-public.d.mts",
-      "import": "./dist/runtime/env-public.mjs",
-      "browser": {
-        "import": "./dist/runtime/env-public-client.mjs"
-      }
-    },
-    "./_env": {
-      "types": "./dist/runtime/env.d.mts",
-      "import": "./dist/runtime/env.mjs"
-    },
-    "./pages": {
-      "types": "./dist/pages/index.d.mts",
-      "import": "./dist/pages/index.mjs"
-    },
-    "./devtools": {
-      "types": "./dist/devtools/runtime.d.mts",
-      "import": "./dist/devtools/runtime.mjs"
-    },
-    "./pages-protocol": {
-      "types": "./dist/pages/protocol.d.mts",
-      "import": "./dist/pages/protocol.mjs"
-    },
-    "./pages-head": {
-      "types": "./dist/pages/head.d.mts",
-      "import": "./dist/pages/head.mjs"
-    },
-    "./pages-client": {
-      "types": "./dist/pages/client.d.mts",
-      "import": "./dist/pages/client.mjs"
-    },
-    "./vue": {
-      "types": "./dist/vue/client.d.mts",
-      "import": "./dist/vue/client.mjs"
-    },
-    "./vue/app": {
-      "types": "./dist/vue/app.d.mts",
-      "import": "./dist/vue/app.mjs"
-    },
-    "./vue/plugin": {
-      "types": "./dist/vue/plugin.d.mts",
-      "import": "./dist/vue/plugin.mjs"
-    },
-    "./vue/runtime": {
-      "types": "./dist/runtime/vue.d.mts",
-      "import": "./dist/runtime/vue.mjs"
-    },
-    "./database": {
-      "types": "./dist/runtime/database.d.mts",
-      "import": "./dist/runtime/database.mjs"
-    },
-    "./storage": {
-      "types": "./dist/runtime/storage.d.mts",
-      "import": "./dist/runtime/storage.mjs"
-    },
-    "./kv": {
-      "types": "./dist/runtime/kv.d.mts",
-      "import": "./dist/runtime/kv.mjs"
-    },
-    "./cache": {
-      "types": "./dist/runtime/cache.d.mts",
-      "import": "./dist/runtime/cache.mjs"
-    },
-    "./sse": {
-      "types": "./dist/runtime/sse.d.mts",
-      "import": "./dist/runtime/sse.mjs"
-    },
-    "./ws": {
-      "types": "./dist/runtime/websocket.d.mts",
-      "import": "./dist/runtime/websocket.mjs"
-    },
-    "./task": {
-      "types": "./dist/runtime/task.d.mts",
-      "import": "./dist/runtime/task.mjs"
-    },
-    "./config": {
-      "types": "./dist/runtime/config.d.mts",
-      "import": "./dist/runtime/config.mjs"
-    },
-    "./vite": {
-      "types": "./dist/core/build/vite/plugin.d.mts",
-      "import": "./dist/core/build/vite/plugin.mjs"
-    },
-    "./builder": "./dist/builder.mjs",
-    "./types": "./dist/types/index.mjs",
-    "./routes": {
-      "types": "./dist/routes-stub.d.mts"
-    }
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
+    "./vite": { "types": "./dist/vite.d.ts", "import": "./dist/vite.js" },
+    "./client": { "types": "./dist/client.d.ts", "import": "./dist/client.js" },
+    "./ssr": { "types": "./dist/ssr.d.ts", "import": "./dist/ssr.js" },
+    "./server": { "types": "./dist/server.d.ts", "import": "./dist/server.js" },
+    "./build": { "types": "./dist/build.d.ts", "import": "./dist/build.js" },
+    "./i18n": { "types": "./dist/i18n.d.ts", "import": "./dist/i18n.js" },
+    "./scaffold": { "types": "./dist/scaffold.d.ts", "import": "./dist/scaffold.js" }
   },
   "bin": {
-    "ubean": "./dist/cli/index.mjs"
+    "ubean": "./bin/ubean.mjs"
   }
 }
 ```
+
+不存在 `./handler`、`./openapi`、`./client-xhr`、`./internal`、`./cron`、`./response`、`./env`、`./_env`、`./pages*`、`./devtools`、`./vue*`、`./database`、`./storage`、`./kv`、`./cache`、`./sse`、`./ws`、`./task`、`./config`、`./builder`、`./types`、`./routes` 等子路径——这些能力位于各 `@ubean/*` 子包中。
+
+| 子路径 | 聚合自 | 能力域边界 | 典型消费者 |
+| --- | --- | --- | --- |
+| `ubean` | `@ubean/shared` / `seo` / `pages` / `markdown` + islands runtime + logger + 内联 `defineConfig` | **Isomorphic**：契约上浏览器安全——不含 `node:*`、文件系统扫描、Hono 服务端运行时 | 同构代码；客户端自动导入的基础 |
+| `ubean/server` | `@ubean/app` + `@ubean/routes` + `@ubean/server` + `@ubean/shared/node` + `hono-openapi` + `logger/hono` | **仅服务端**：Hono 应用工厂（`createUbeanApp`）、`defineHandler`/`defineAction`、ISR/route-rules/OpenAPI、cache/db/queue/cron/ws/sse、`validator`/`describeRoute`；含 Hono 与 `node:*` | API 路由、`src/middleware/`、`src/server.ts` |
+| `ubean/build` | `@ubean/build/prerender` + `@ubean/preset` + `@ubean/config` + `@ubean/build/codegen` + `@ubean/scan` + Vite 插件本体 | **构建时**：SSG 预渲染、preset（`definePreset`/`detectPreset`）、配置加载、codegen 预设、扫描器；含 `node:*` 与 oxc WASM | 构建脚本、`vite.config.ts`、CI |
+| `ubean/client` | `@ubean/client` + `@ubean/routes/runtime` + islands 注册表桥接 | **框架客户端**：`createUbeanClientApp`、router/head/i18n 运行时、`callAction`/`useAction`/`useFormAction`/`invokeServerFn`、`createServerHead`、`hydrateIslands` | 虚拟模块、客户端入口 |
+| `ubean/i18n` | `@ubean/i18n` + `@ubean/i18n/routing` | **服务端 i18n**：ALS `t()`/`d()`/`n()`、区域路径编译、检测中间件；含 `node:async_hooks` | 构建时 i18n、Hono 中间件 |
+| `ubean/ssr` | `@ubean/client/ssr` | **SSR 渲染器**：`createVueRenderer` | 自定义 SSR 入口 |
+| `ubean/vite` | `@ubean/build`（core + vue）+ `@ubean/islands` + server actions 插件 | **Vite 插件组合**：单一 `ubeanPlugin()` 入口 | `vite.config.ts` |
+| `ubean/scaffold` | `@ubean/cli` 脚手架层 | **脚手架**：`scaffold`/`deleteScaffold`/`recoverScaffold`/`listScaffoldableFiles` + 机器可读清单（`getScaffoldManifest`） | studio / IDE 插件 |
+
+该契约强制执行的规则：
+
+- 浏览器代码从 isomorphic 主入口或 `ubean/client` 导入；任何涉及 Hono / `node:*` 的能力必须来自 `ubean/server`、`ubean/build` 或 `ubean/i18n`。
+- `bin` 指向 `./bin/ubean.mjs`——转发启动器,导入 `@ubean/cli/cli`（CLI 实现位于 `@ubean/cli`）。
+- 新增或移除子路径时必须同步更新本契约与引用它的文档页面。
 
 ---
 
@@ -405,7 +309,7 @@ CLI 命令清单与框架实现详见 [运行时与开发体验 §4.13](../archi
 | v0.1  | Node.js (`node-server`)  | Cloudflare Workers（完成单独验收后） | Bun、Deno、Vercel、Netlify 及其他平台 |
 | v0.2+ | 由能力矩阵与 CI 结果决定 | 新增 preset 先以实验性发布           | 未通过矩阵验收的平台                  |
 
-每个 preset 必须显式声明 `capabilities`，例如 `fs`、`cronTrigger`、`longLivedProcess`、`websocket`、`queue`、`isr` 和 `nodeCompat`。构建器根据已启用功能和 preset 能力做预检查：
+每个 preset 必须显式声明其 `capabilities`（19 个真实能力键：`staticServe`、`websocket`、`sse`、`cronTriggers`、`queues`、`kv`、`storage`、`database`、`envVars`、`secrets`、`nodeCompat`、`streaming`、`compression`、`https`、`http2`、`middleware`、`bodyLimit`、`multipart`、`rpc`）。构建器根据已启用功能和 preset 能力做预检查：
 
 - 能力缺失时在构建期给出功能、配置位置、目标 preset 与替代方案，不静默降级。
 - cron 仅在具备平台 trigger 或长生命周期进程能力时启用；serverless preset 不提供“内置常驻调度器”。
@@ -413,11 +317,11 @@ CLI 命令清单与框架实现详见 [运行时与开发体验 §4.13](../archi
 
 ### 8.3 客户端与公开 API 边界
 
-核心 HTTP 客户端以标准 Fetch API 为基础，确保浏览器、Node、Deno 与 edge runtime 的行为一致。`createClient` 与 `internalFetch` 共享请求、响应、错误和重试的中间件模型；`internalFetch` 直接调度框架 handler，不依赖网络或 axios adapter。
+ubean **不自研浏览器 HTTP 客户端**。直接 HTTP 调用使用标准 `fetch` 或注入的 [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)（`createRequest` / `toFlatRequest`；`@soybeanjs/fetch/openapi` 提供 `createTypedClient` / `toFlatTypedClient`）；数据层（`useData` / `useFetch`）经 `setDefaultFetch` 注入。`internalFetch` 是进程内分发器（直调框架 handler、无网络跳），不是 fetch 中间件栈。
 
-- `axios`/`axios-retry` 仅作为可选的浏览器或 Node 适配器包，不得进入 edge server bundle。
+- 服务端框架代码（API 路由、loader）不得依赖打包进框架的 HTTP client —— 使用 `fetch` / `internalFetch` / 注入的 `@soybeanjs/fetch` 实例。
 - OpenAPI 类型仅用于编译期参数与响应推导，运行时不加载 OpenAPI 文档。
-- `exports` 分为稳定公开入口、`./experimental/*` 入口和私有实现；`./internal`、`./_env` 不作为稳定用户 API。
+- 发布 `exports` 映射即 §8.1 的聚合器子路径契约 —— 不存在 `./experimental/*`、`./internal` 或 `./_env` 入口（这些是历史单包遗留）。
 - 每次发布前使用 `pnpm pack` 安装到独立 fixture，验证所有公开入口、条件导出和类型声明。
 
 ---

@@ -28,7 +28,7 @@ ubean 列按**默认路径是否真的做了**来标，而不是「类型里有�
 | 内置 Auth | ❌ Auth.js | ⚠️ 模块 | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ 扩展（Better Auth） |
 | 内置 i18n | ❌ | ⚠️ 模块 | ❌ | ❌ | ⚠️ 路由 | ❌ | ❌ | ✅ vue-i18n 11 + 约束前缀 |
 | 内置 DevTools | ⚠️ | ✅ | ❌ | ❌ | ✅ Toolbar | ❌ | ❌ | ✅ + AI 助手 |
-| 平台预设 | Vercel 优先 | 12+ | 6+ | 多 runtime | 4+ | 多 host | Nitro | **9**（Node / CF / Vercel / Edge / Netlify / Bun / Deno + cf-dev） |
+| 平台预设 | Vercel 优先 | 12+ | 6+ | 多 runtime | 4+ | 多 host | Nitro | **11**（standard / Node / CF / CF-dev / Vercel / Vercel-Edge / Netlify / Bun / Deno / AWS / Azure） |
 
 ## 如何读 ubean 这一列
 

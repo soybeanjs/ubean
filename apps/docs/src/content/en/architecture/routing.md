@@ -305,13 +305,13 @@ export default defineMiddleware(async (c, next) => {
 
 #### Request Dispatching and HTTP Contract
 
-API routes and Pages routes are driven by the same normalized route manifest. At build time, duplicate registrations of the same method and path must be rejected, and conflict sources must be reported; the framework does not implicitly decide override relationships via file scan order.
+API routes and Pages routes are driven by the same normalized route manifest. Duplicate registrations of the same method and path are currently silently overridden by the last registration (conflict reporting is a spec goal, not yet implemented).
 
 | Scenario | Specified Behavior |
 | --- | --- |
 | API route hit | Dispatched by method to named exports in `routes/`; API routes take precedence over Pages routes at the same path |
 | Pages route hit | `GET`/`HEAD` execute SSR or the client page protocol; page actions only accept their explicitly declared methods |
-| Path exists but method not supported | Returns `405` with `Allow`; `OPTIONS` is handled the same way, also returning `Allow` |
+| Path exists but method not supported | Spec target: `405` + `Allow`. Current implementation falls back to the `404` handler (405/`Allow` not yet wired) |
 | Path does not exist | Returns `404`; in Pages mode, can be rendered by `error.404.vue` |
 | URL normalization | Unified decoding rules, trailing slash policy, and catch-all parameter encoding; redirects only occur when explicitly configured |
 

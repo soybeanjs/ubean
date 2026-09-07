@@ -57,7 +57,7 @@ ubean 是一个基于 Vite、Hono 与 Vue 3 的全栈元框架，按职责划分
 - **聚合器主包**：`packages/ubean`（npm 名 `ubean`）不包含框架逻辑，仅 re-export 全部子包，保持与单体时代一致的 API 表面。
 - **单职责子包**：其余 23 个包按能力域拆分（`@ubean/shared` / `@ubean/scan` / `@ubean/app` / `@ubean/client/ssr` …），各自独立构建与类型检查。
 - **扩展包按需加载**：`auth` / `icon` / `image` / `content` 通过 `ubean.config.ts` 顶层字段启用，构建时动态 `import()` 对应 `/vite` 子路径，**不进入主包硬依赖**；`pwa` / `fonts` / `electron` / `pinia` / `ui` 是 `@ubean/integrations` 的子路径（`@ubean/integrations/pwa` 等），其 Vite 插件由子路径主入口导出。
-- **入口边界**：服务端代码从 `ubean` 主入口或 `ubean/runtime/app` 导入；浏览器端必须从 `ubean/runtime/vue` 或 `ubean/client`（一等客户端子路径）导入，避免把服务端构建工具带入浏览器 bundle。
+- **入口边界**：`ubean` 主入口已 isomorphic 化（client-safe，浏览器可安全导入）；服务端代码从 `ubean/server` 导入（Hono / `node:*` 依赖），构建时工具从 `ubean/build` 导入（scan / oxc WASM）；浏览器端框架运行时用 `ubean/client`（含 islands 注册表桥接与 Server Actions 运行时），避免把服务端依赖带入浏览器 bundle。
 
 ## 2. 核心数据流
 

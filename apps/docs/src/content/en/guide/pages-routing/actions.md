@@ -19,14 +19,15 @@ ubean provides built-in Server Actions (P9-02) — type-safe server-side functio
 | `callAction(id, args)` | Low-level RPC call |
 | `defineAction(fn)` | Explicitly declares a server action (recommended); the Vite plugin auto-injects `filePath`/`name` for action ID generation |
 | `defineServerFn(...)` | Alias of `defineAction` — same ID and `POST /__actions`; use when the function is also a loader/query |
-| `invokeServerFn(fn, input?)` | Isomorphic call from loaders, `useAsyncData`, or the client (`ubean/runtime/vue`) |
+| `invokeServerFn(fn, input?)` | Isomorphic call from loaders, `useAsyncData`, or the client (`ubean/client`) |
 | `describeActionsOpenApi()` | Optional OpenAPI fragment for the same `/__actions` RPC |
 
 ## 1. defineAction — Defining a Server Action
 
 ```typescript
 // src/actions/auth.ts
-import { defineAction, fail, ActionError } from 'ubean';
+import { defineAction } from 'ubean/server';
+import { fail, ActionError } from 'ubean';
 
 export const login = defineAction(async (input: { email: string; password: string }, ctx) => {
   if (input.password === 'wrong') {
@@ -43,7 +44,7 @@ export const login = defineAction(async (input: { email: string; password: strin
 Supports any Standard Schema v1 compatible library (valibot/zod/arktype, etc.) or any object with `safeParse`/`parse` methods:
 
 ```typescript
-import { defineAction } from 'ubean';
+import { defineAction } from 'ubean/server';
 import * as v from 'valibot';
 
 const schema = v.object({
@@ -61,7 +62,7 @@ export const register = defineAction(schema, async (data, ctx) => {
 
 ```vue
 <script setup lang="ts">
-import { useAction } from 'ubean/runtime/vue';
+import { useAction } from 'ubean/client';
 import { login } from '~/actions/auth';
 
 const { submit, pending, data, error, errors, reset } = useAction(login);
@@ -101,7 +102,7 @@ The Vite plugin (`ubeanServerActionsPlugin`) detects `defineAction(` call expres
 
 ```typescript
 // src/actions/todos.ts
-import { defineAction } from 'ubean';
+import { defineAction } from 'ubean/server';
 
 export const createTodo = defineAction(async (input: { title: string }) => {
   await db.insert(todos).values(input);
@@ -125,7 +126,8 @@ Page modules can export an `actions` map; POST forms are dispatched via the `?/<
 ```vue
 <!-- src/pages/login.vue -->
 <script setup lang="ts">
-import { defineAction, fail } from 'ubean';
+import { defineAction } from 'ubean/server';
+import { fail } from 'ubean';
 
 export const actions = {
   default: defineAction(async (input) => {
@@ -163,7 +165,7 @@ export const actions = {
 
 <script setup lang="ts">
 import { ref } from 'vue';
-import { useFormAction } from 'ubean/runtime/vue';
+import { useFormAction } from 'ubean/client';
 
 const email = ref('');
 const password = ref('');
@@ -192,7 +194,7 @@ Server Actions are for form submissions and type-safe RPC calls. For RESTful API
 
 ```typescript
 // src/routes/api/submit.ts
-import { defineHandler, validator } from 'ubean';
+import { defineHandler, validator } from 'ubean/server';
 import { z } from 'zod';
 
 const submitSchema = z.object({

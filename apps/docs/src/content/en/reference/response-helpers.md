@@ -11,7 +11,7 @@ ubean API routes use **Hono** under the hood, so response helpers come from Hono
 
 ```typescript
 // src/routes/api/hello.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   return c.json({ message: 'Hello' });
@@ -35,7 +35,7 @@ export const PUT = defineHandler(c => {
 ## HTML Response
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   return c.html('<h1>Hello</h1>');
@@ -50,7 +50,7 @@ export const GET_ERROR = defineHandler(c => {
 ## Plain Text Response
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   return c.text('Hello World');
@@ -60,7 +60,7 @@ export const GET = defineHandler(c => {
 ## Redirect
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   // 302 redirect (default)
@@ -76,7 +76,7 @@ export const GET_PERMANENT = defineHandler(c => {
 ## Setting Headers
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   c.header('Cache-Control', 'max-age=3600');
@@ -95,7 +95,7 @@ c.header('Set-Cookie', 'tracking=xyz; Path=/', { append: true }); // Appends
 ## Setting Status Code
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   c.status(204);
@@ -111,7 +111,7 @@ export const POST = defineHandler(c => {
 ## No Content (204)
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const DELETE = defineHandler(c => {
   // Delete resource...
@@ -123,7 +123,7 @@ export const DELETE = defineHandler(c => {
 ## Not Found (404)
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   const user = findUser();
@@ -140,7 +140,7 @@ export const GET = defineHandler(c => {
 Throw an error or return an error response:
 
 ```typescript
-import { defineHandler, defineHandlerMeta } from 'ubean';
+import { defineHandler, defineHandlerMeta } from 'ubean/server';
 
 export const GET = defineHandler(
   defineHandlerMeta({ requiresAuth: true }),
@@ -158,7 +158,7 @@ export const GET = defineHandler(
 Throw `HTTPException` (from Hono):
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { HTTPException } from 'hono/http-exception';
 
 export const GET = defineHandler(c => {
@@ -169,7 +169,7 @@ export const GET = defineHandler(c => {
 ## Streaming Response (SSE)
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { streamSSE } from 'hono/streaming';
 
 export const GET = defineHandler(c => {
@@ -188,7 +188,7 @@ export const GET = defineHandler(c => {
 ## Streaming Body
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { stream } from 'hono/streaming';
 
 export const GET = defineHandler(c => {
@@ -202,7 +202,7 @@ export const GET = defineHandler(c => {
 ## Cookies
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const POST = defineHandler(c => {
   // Set cookie
@@ -218,7 +218,7 @@ export const POST = defineHandler(c => {
 Use `hono/cookie` for typed cookie helpers:
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { getCookie, setCookie } from 'hono/cookie';
 
 export const GET = defineHandler(c => {
@@ -239,7 +239,7 @@ export const POST = defineHandler(c => {
 ## File Download
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   const buffer = readFileBytes();

@@ -8,7 +8,7 @@ You are an AI assistant specialized in the ubean full-stack framework. Your role
 
 ### Framework Overview
 
-ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public package name is **`ubean`** (no `@ubean/core`); all framework APIs are imported from `ubean` directly or from subpath exports such as `ubean/runtime/vue`.
+ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public package name is **`ubean`** (no `@ubean/core`); the main entry is isomorphic (client-safe), server APIs come from `ubean/server`, build-time APIs from `ubean/build`, server i18n from `ubean/i18n`, and the framework client runtime from `ubean/client`.
 
 - **Vite**: Middleware mode dev server with HMR and virtual modules
 - **Hono**: Lightweight web framework powering API routes and middleware
@@ -48,7 +48,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - Compact locale routing shared by Hono and vue-router (`compileLocalePaths`)
    - 4 routing strategies: `prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`
    - Detection order: URL path → cookie (`ubean_locale`) → Accept-Language → defaultLocale
-   - Framework `setLocale` from `ubean/runtime/vue` (load + cookie + navigate)
+   - Framework `setLocale` from `ubean/client` (load + cookie + navigate)
    - SSR hydration: locale injected via `<script id="__UBEAN_LOCALE__">`, auto syncs `<html lang/dir>`
 
 6. **DevTools**
@@ -167,7 +167,7 @@ definePage({
 
 ```typescript
 // src/routes/api/hello.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   return c.json({ message: 'Hello from ubean API!' });
@@ -187,7 +187,7 @@ export const POST = defineHandler(async c => {
 
 ```typescript
 // src/routes/api/users/[id].ts
-import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean';
+import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean/server';
 import { z } from 'zod';
 
 const idParam = z.object({ id: z.string() });
@@ -266,7 +266,7 @@ function go() {
 ```vue
 <script setup lang="ts">
 const { t, locale, d, n, c } = useI18n(); // useI18n 自动导入(直源 vue-i18n)
-// 切换语言用框架 setLocale(自动导入,来自 ubean/runtime/vue)
+// 切换语言用框架 setLocale(自动导入,来自 ubean/client)
 
 console.log(t('hello'));
 console.log(t('items', { count: 3 }));
@@ -322,7 +322,7 @@ export default defineConfig({
 3. **Routing issues**: Check file structure (void-style named exports in a single file)
 4. **SSR errors**: Check for browser-only code in server paths
 5. **i18n issues**: Check locale configuration and message keys
-6. **Wrong import path**: Client APIs must come from `ubean/runtime/vue`, server APIs from `ubean`
+6. **Wrong import path**: isomorphic APIs from `ubean`, server APIs from `ubean/server`, build-time APIs from `ubean/build`, server i18n from `ubean/i18n`
 
 ### Debugging Tips
 
@@ -407,7 +407,7 @@ Create a file in `src/routes/api/` using void-style named exports for each HTTP 
 
 ```typescript
 // src/routes/api/hello.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   return c.json({ message: 'Hello World!' });

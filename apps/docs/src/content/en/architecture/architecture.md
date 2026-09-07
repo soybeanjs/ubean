@@ -57,7 +57,7 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 - **Aggregator main package**: `packages/ubean` (npm: `ubean`) contains no framework logic — it re-exports all subpackages, preserving the same API surface as the original single package.
 - **Single-purpose subpackages**: the remaining 23 packages are split by capability (`@ubean/shared` / `@ubean/scan` / `@ubean/vue` / `@ubean/app` / `@ubean/client/ssr` …), each built and type-checked independently.
 - **Extensions loaded on demand**: `auth` / `icon` / `pwa` / `image` / `content` / `fonts` / `electron` / `pinia` / `ui` are enabled via top-level `ubean.config.ts` fields (the pwa/fonts/electron/pinia/ui integrations live in `@ubean/integrations`); the build dynamically `import()`s the matching `/vite` subpath. They **never** become hard dependencies of the main package.
-- **Entry boundaries**: server code imports from the `ubean` main entry or `ubean/runtime/app`; browser code must import from `ubean/runtime/vue` to keep server-side build tooling out of the browser bundle.
+- **Entry boundaries**: the `ubean` main entry is isomorphic (client-safe, safe to import in the browser); server code imports from `ubean/server` (Hono / `node:*` deps), build-time tooling from `ubean/build` (scan / oxc WASM); browser framework runtime uses `ubean/client` (islands registry bridge + Server Actions runtime) to keep server-side dependencies out of the browser bundle.
 
 ## 2. Core Data Flow
 

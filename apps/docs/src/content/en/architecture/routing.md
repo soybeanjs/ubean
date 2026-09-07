@@ -29,7 +29,7 @@ Drawing on hono-ssr's `createDefineRoute` type inference pattern, `defineHandler
 
 ```typescript
 // routes/users/[id].ts
-import { defineHandler, defineHandlerMeta, defineMiddleware, validator, describeRoute, resolver } from 'ubean';
+import { defineHandler, defineHandlerMeta, defineMiddleware, validator, describeRoute, resolver } from 'ubean/server';
 import { z } from 'zod';
 
 // 权限中间件示例
@@ -135,7 +135,7 @@ When multiple methods in the same file share the same ubean-specific meta (such 
 
 ```typescript
 // routes/users/[id].ts
-import { defineHandler, defineHandlerMeta } from 'ubean';
+import { defineHandler, defineHandlerMeta } from 'ubean/server';
 
 export const meta = {
   cache: { ttl: 60 }
@@ -157,7 +157,7 @@ export const GET = defineHandler(
 
 ```typescript
 // routes/auth/login.ts
-import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean';
+import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean/server';
 import { z } from 'zod';
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6) });
@@ -186,7 +186,7 @@ ubean reuses the hono-openapi ecosystem. `validator`, `describeRoute`, and `reso
 
 ```typescript
 // 从 ubean 导入（实际重导出自 hono-openapi）
-import { validator, describeRoute, resolver } from 'ubean';
+import { validator, describeRoute, resolver } from 'ubean/server';
 
 // validator: 验证指定 target 的数据，验证后通过 c.req.valid(target) 获取
 // target: 'json' | 'form' | 'query' | 'param' | 'header' | 'cookie'
@@ -266,7 +266,7 @@ In global middleware, you can access the meta of the currently matched route met
 
 ```typescript
 // middleware/02.auth.ts
-import { defineMiddleware } from 'ubean';
+import { defineMiddleware } from 'ubean/server';
 
 export default defineMiddleware(async (c, next) => {
   const meta = c.route.meta;

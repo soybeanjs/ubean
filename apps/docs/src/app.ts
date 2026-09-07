@@ -1,4 +1,4 @@
-import { defineApp, configureColorMode, setLocale, getLocale } from 'ubean/runtime/vue';
+import { defineApp, configureColorMode, setLocale, getLocale } from 'ubean/client';
 import '@fontsource-variable/manrope';
 import 'uno.css';
 import './styles/global.css';

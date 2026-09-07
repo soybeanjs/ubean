@@ -62,7 +62,7 @@ export const users = sqliteTable('users', {
 
 ```typescript
 // routes/api/users.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import db, { users } from '#db';
 
 export const GET = defineHandler(async c => {
@@ -152,7 +152,7 @@ export default defineConfig({
 
 ```typescript
 // routes/api/users.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import prisma from '#prisma';
 
 export const GET = defineHandler(async c => {
@@ -167,7 +167,7 @@ For simple use cases where an ORM is overkill, use `defineDatabase` + `useDataba
 
 ```typescript
 // app.ts (or a module setup)
-import { defineDatabase, registerDb0Create } from 'ubean';
+import { defineDatabase, registerDb0Create } from 'ubean/server';
 import { postgres } from 'db0/connectors/postgres';
 
 // Register the db0 factory once
@@ -180,7 +180,7 @@ export const db = defineDatabase({
 
 ```typescript
 // routes/api/users.ts
-import { defineHandler, useDatabase } from 'ubean';
+import { defineHandler, useDatabase } from 'ubean/server';
 
 export const GET = defineHandler(async c => {
   const db = useDatabase();
@@ -231,7 +231,7 @@ export const User = model('User', userSchema);
 
 ```typescript
 // routes/api/users.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { User } from '@/db/models/User';
 
 export const GET = defineHandler(async c => {

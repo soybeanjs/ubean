@@ -64,7 +64,7 @@ Use `createAuthHandler()` to mount the auth handler manually (e.g. inside an exi
 
 ```typescript
 // routes/api/auth/[...all].ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { createAuthHandler } from '@ubean/auth';
 
 const { handler } = createAuthHandler();
@@ -78,7 +78,7 @@ Read the session inside any API route:
 
 ```typescript
 // routes/api/me.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { getServerSession } from '@ubean/auth';
 
 export const GET = defineHandler({
@@ -153,7 +153,7 @@ definePage({
 
 ```typescript
 // routes/api/admin/users.ts
-import { defineHandler, defineHandlerMeta } from 'ubean';
+import { defineHandler, defineHandlerMeta } from 'ubean/server';
 
 export const GET = defineHandler(
   defineHandlerMeta({ requiresAuth: true }),
@@ -166,7 +166,7 @@ export const GET = defineHandler(
 ### Programmatic guard
 
 ```typescript
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { requireAuth } from '@ubean/auth';
 
 export const DELETE = defineHandler(async c => {
@@ -200,7 +200,7 @@ If you need a custom JWT flow (e.g. token exchange), define a plain ubean middle
 
 ```typescript
 // middleware/auth.ts
-import { defineMiddleware } from 'ubean';
+import { defineMiddleware } from 'ubean/server';
 import { verify } from 'jsonwebtoken';
 
 export default defineMiddleware(async (c, next) => {

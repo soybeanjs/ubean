@@ -55,7 +55,7 @@ File-based routes, parallel routes (`@slotName/` → Vue Router named views + `<
 
 ### Internationalization
 
-Config lives only on `ubean.config.ts` → `i18n`. Vue uses vue-i18n 11 (`legacy: false`). Hono and vue-router share `compileLocalePaths()`. `createUbeanApp` mounts the middleware. Import `useI18n` / `setLocale` from `ubean/runtime/vue`.
+Config lives only on `ubean.config.ts` → `i18n`. Vue uses vue-i18n 11 (`legacy: false`). Hono and vue-router share `compileLocalePaths()`. `createUbeanApp` mounts the middleware. Import `useI18n` / `setLocale` from `ubean/client`.
 
 ### Developer experience
 

@@ -81,18 +81,18 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 `ubean` 主包除 `.` 主入口外，提供以下子路径：
 
-| 子路径               | 说明                                                                                                        | 典型用途                 |
-| -------------------- | ----------------------------------------------------------------------------------------------------------- | ------------------------ |
-| `ubean`              | 主入口，re-export 所有子包                                                                                  | 服务端代码、API 路由     |
-| `ubean/vite`         | 默认 Vite 插件组合（build + vue + islands + server actions）                                                | `vite.config.ts`         |
-| `ubean/client`       | 一等客户端入口（re-export `@ubean/client` 内核 + `createServerHead`）                                       | 客户端代码、SPA 自动导入 |
-| `ubean/runtime/vue`  | 浏览器端 Vue 客户端运行时（re-export `ubean/client` 全部导出 + Server Actions 运行时 + islands 注册表桥接） | 客户端自动导入           |
-| `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`/`defineServer`）                                                     | `src/server.ts`          |
-| `ubean/runtime/i18n` | 服务端纯函数 i18n                                                                                           | 构建时 i18n              |
-| `ubean/vue-ssr`      | Vue SSR 渲染器（re-export `@ubean/client/ssr` 的 `createVueRenderer`；不要从 `@ubean/client` 主入口导入）   | 自定义 SSR               |
-| `ubean/scaffold`     | 脚手架库 + 机器可读 catalog（`getScaffoldManifest` / `scaffold`）                                           | studio / IDE 插件        |
+| 子路径           | 说明                                                                                                                                                         | 典型用途                   |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------- |
+| `ubean`          | **isomorphic 聚合入口**(client-safe):shared/seo/pages/markdown + Vue 客户端内核 + islands 客户端运行时 + logger + `defineConfig`;不含 node/服务端/构建时依赖 | 配置文件、客户端、同构代码 |
+| `ubean/vite`     | 默认 Vite 插件组合（build + vue + islands + server actions）                                                                                                 | `vite.config.ts`           |
+| `ubean/client`   | 唯一客户端入口（re-export `@ubean/client` 内核 + `createServerHead` + Server Actions 运行时 + islands 注册表桥接）                                           | 客户端代码、SPA 自动导入   |
+| `ubean/server`   | 服务端运行时聚合入口（`@ubean/app` + `@ubean/routes` + `@ubean/server` + `@ubean/shared/node` + hono-openapi + 请求日志中间件）                              | `src/server.ts`、API 路由  |
+| `ubean/build`    | 构建时工具聚合入口（prerender + preset + config 加载器 + codegen 预设 + scan + Vite 插件本体）                                                               | 构建脚本、CI、vite.config  |
+| `ubean/i18n`     | 服务端 i18n（re-export `@ubean/i18n` + 路由中间件覆盖）                                                                                                      | 构建时 i18n                |
+| `ubean/ssr`      | Vue SSR 渲染器（re-export `@ubean/client/ssr` 的 `createVueRenderer`；不要从 `@ubean/client` 主入口导入）                                                    | 自定义 SSR                 |
+| `ubean/scaffold` | 脚手架库 + 机器可读 catalog（`getScaffoldManifest` / `scaffold`）                                                                                            | studio / IDE 插件          |
 
-> **注意**：客户端自动导入必须用 `ubean/runtime/vue` 或 `ubean/client` 入口，不能从 `ubean` 主入口导入（会触发 Vite 在浏览器环境预构建服务端依赖）。`ubean/runtime/vue` 在 `@ubean/client` 之上额外提供 Server Actions 运行时（`callAction`/`useAction`/`useFormAction`）与 islands 注册表桥接的 `hydrateIslands`；`ubean/client` 额外含 `createServerHead`（供框架 SSR 构建使用）。独立 SPA 可直接依赖 `@ubean/vue`（仅 vue + vue-router）。详见第 8 节陷阱 #8。
+> **注意**：主入口 `ubean` 已 isomorphic 化 —— 从它导入的任何值在浏览器与 Node 均安全，客户端代码可放心使用。服务端 API（`defineHandler`/`defineAction`/`useDatabase`/`validator` 等）从 `ubean/server` 导入；构建时 API（`prerender`/`loadUbeanConfig`/`getAutoImportPresets`/`detectPreset`/Vite 插件本体）从 `ubean/build` 导入；服务端 i18n（ALS `t()`/`createI18nMiddleware`）从 `ubean/i18n` 导入。`ubean/client` 在内核之上额外提供 `createServerHead`、Server Actions 运行时（`callAction`/`useAction`/`useFormAction`/`invokeServerFn`）与 islands 注册表桥接的 `hydrateIslands`（主入口为内核版）；独立 SPA 请直接依赖 `@ubean/vue`（仅 vue + vue-router）。详见第 8 节陷阱 #6。
 
 ### 2.3 `@ubean/server` 语义聚合子路径（ADR-0003 OPT-06）
 
@@ -163,7 +163,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **i18n**：`ubean.config.ts` 的 `i18n`；Vue 端 `vue-i18n` 11（`legacy: false`），handler 端 `@intlify/core` + ALS；语言路由 Hono 与 vue-router 共用 `compileLocalePaths`
 - 路由策略：`prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`；中间件由 `createUbeanApp` 自动挂载，cookie **写入**
 - 检测顺序：URL path → cookie（`ubean_locale`）→ Accept-Language → defaultLocale；默认 `redirectOn: 'root'`
-- 切换语言走框架 `setLocale`（load + cookie + 导航）；客户端 `useI18n` 直接从 `vue-i18n` 导入（自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/runtime/vue` 导入
+- 切换语言走框架 `setLocale`（load + cookie + 导航）；客户端 `useI18n` 直接从 `vue-i18n` 导入（自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/client` 导入
 
 ### 3.5 配置
 
@@ -185,7 +185,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ## 4. 核心 API 速查
 
-以下均从 `ubean` 主包导出。
+按能力域从语义子路径导出:**isomorphic 基础 API**（SEO / 数据层 / markdown / 客户端内核 / logger / `defineConfig`）从 `ubean` 主入口导出;**服务端 API**（路由与处理器 / 应用入口 / cache / db / queue / cron / ws / sse / 中间件工厂 / `validator`+`describeRoute`）从 `ubean/server` 导出;**构建时工具**（预渲染 / 平台预设 / 配置加载 / codegen 预设 / 扫描器 / Vite 插件本体）从 `ubean/build` 导出;**服务端 i18n** 从 `ubean/i18n` 导出。下文各表所列 API 均遵循此分布。
 
 ### 路由与处理器
 
@@ -205,12 +205,12 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 应用入口
 
-| API                                                             | 说明                                                                                  |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `defineApp(options): ResolvedAppConfig`                         | 基于选项的应用配置（**不是**工厂函数）                                                |
-| `applyAppConfig(app, config, mode)`                             | 应用配置到 Vue 实例                                                                   |
-| `createUbeanApp(options)`（`@ubean/app` / `ubean/runtime/app`） | 创建 ubean **Hono** 应用（`UbeanApp`）。`createUbeanApp` 全仓专指 Hono 工厂           |
-| `createUbeanClientApp(options)`（`@ubean/client`）              | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。主入口 `ubean` 不导出此函数 |
+| API                                                        | 说明                                                                                  |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `defineApp(options): ResolvedAppConfig`                    | 基于选项的应用配置（**不是**工厂函数）                                                |
+| `applyAppConfig(app, config, mode)`                        | 应用配置到 Vue 实例                                                                   |
+| `createUbeanApp(options)`（`@ubean/app` / `ubean/server`） | 创建 ubean **Hono** 应用（`UbeanApp`）。`createUbeanApp` 全仓专指 Hono 工厂           |
+| `createUbeanClientApp(options)`（`@ubean/client`）         | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。主入口 `ubean` 不导出此函数 |
 
 `DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
 
@@ -438,7 +438,7 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 | -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `defineAction(handlerOrSchema, handler?, opts?)`   | 定义服务端 action，支持 Standard Schema / `safeParse`；返回带 `ACTION_BRAND` 的 `ServerAction` |
 | `defineServerFn(...)`                              | `defineAction` 别名：同一 ID 与 `POST /__actions`，供 loader/查询与 mutation 共用              |
-| `invokeServerFn(fn, input?)`                       | 同构调用（服务端走 handler + schema；客户端走 RPC stub）；从 `ubean/runtime/vue` 导入          |
+| `invokeServerFn(fn, input?)`                       | 同构调用（服务端走 handler + schema；客户端走 RPC stub）；从 `ubean/client` 导入               |
 | `describeActionsOpenApi()`                         | `POST /__actions` 的 OpenAPI 片段；`registerOpenAPIRoutes` 会自动并入 `/_openapi.json`         |
 | `fail(status, errors)`                             | 在 action handler 中返回字段级验证错误（SvelteKit 风格）                                       |
 | `ActionError`                                      | 用户可读错误类（含 `code`/`status`），在 handler 中 throw                                      |
@@ -574,7 +574,7 @@ const json = serializeVercelConfig(config);
 | API                                                                                                                                                               | 说明                                                                                                                                                                                                                                     |
 | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `useRouter()` / `createUbeanRouter(options)`                                                                                                                      | 路由。`useRouter` 来自 `vue-router`（自动导入直源 vue-router，ubean 不再透传）；`createUbeanRouter` 为 ubean 封装                                                                                                                        |
-| `useCacheViews()` / `enablePageCache` / `disablePageCache` / `excludePageCache` / `includePageCache` / `invalidatePageCache` / `isPageCached` / `resetRouteCache` | 页面 KeepAlive 缓存运行时控制（自动导入自 `ubean/runtime/vue`）；`getNamedPageWrapper` 从 `@ubean/vue` 导出                                                                                                                              |
+| `useCacheViews()` / `enablePageCache` / `disablePageCache` / `excludePageCache` / `includePageCache` / `invalidatePageCache` / `isPageCached` / `resetRouteCache` | 页面 KeepAlive 缓存运行时控制（自动导入自 `ubean/client`）；`getNamedPageWrapper` 从 `@ubean/vue` 导出                                                                                                                                   |
 | `useHead()` / `useSeoMeta()`                                                                                                                                      | 动态 head/SEO（响应式）；静态 head 用 `definePage({ head })`                                                                                                                                                                             |
 | `useData(options)` / `useAsyncData(key, fn, options?)` / `useFetch(key, url, options?)` / `invalidateData(key)` / `invalidateAll()`                               | 页面数据：`useFetch` 包 `useAsyncData`，经 `setDefaultFetch` 注入 `@soybeanjs/fetch`（不自研 client）                                                                                                                                    |
 | `defer(factory)` / `useDeferredData(key, deferred)`                                                                                                               | 流式延迟数据:P0 — SSR 不阻塞初始渲染,数据在主内容后流式注入;客户端水合时从 `__UBEAN_DEFERRED__` 立即读取                                                                                                                                 |
@@ -618,7 +618,7 @@ const json = serializeVercelConfig(config);
 | `useI18n()`（解构 `t` / `d` / `n`）                                | vue-i18n Composition API，直接从 `vue-i18n` 导入（自动导入直源；ubean 不再包装 `useI18n`/`t`） |
 | `setLocale(code)`                                                  | 框架切换：loadLocale + cookie + `router.replace(switchLocalePath)`                             |
 | `useLocalePath` / `useSwitchLocalePath` / `useLocaleHead`          | 路径与 SEO head composable                                                                     |
-| `t()` / `d()` / `n()`（handler）                                   | `ubean/runtime/i18n`，读请求 ALS                                                               |
+| `t()` / `d()` / `n()`（handler）                                   | `ubean/i18n`，读请求 ALS                                                                       |
 | `compileLocalePaths` / `createI18nMiddleware` / `getRequestLocale` | 约束前缀路径编译 + 自动检测中间件                                                              |
 
 ## 5. 扩展包 API
@@ -843,8 +843,8 @@ export default defineConfig({
 3. **`defineApp`**：基于选项调用 `defineApp(options)`（返回 `ResolvedAppConfig`）；通过 `onAppCreated`/`onClientReady` 回调获取命令式访问
 4. **`definePage`**：静态 head 通过 `head` 字段声明，不使用顶层 `title`
 5. **虚拟模块前缀**：用 `virtual:ubean-`（`#ubean-` 会因 URL hash 导致 404）
-6. **客户端导入入口**：客户端自动导入用 `ubean/runtime/vue` 或 `ubean/client`；从 `ubean` 主入口导入会触发 Vite 在浏览器环境预构建服务端依赖（unocss、oxc-parser WASM）
-7. **`createUbeanApp` 消歧**：`@ubean/app` / `ubean/runtime/app` 的 `createUbeanApp` 返回 Hono `UbeanApp`；`@ubean/client` 的 Vue 工厂为 `createUbeanClientApp`（返回 `{ app, router, head, page }`）。服务端入口用 `ubean/runtime/app`（Hono），客户端用 `createUbeanClientApp`
+6. **客户端导入入口**：主入口 `ubean` 已 isomorphic 化，客户端代码可安全导入；但服务端符号（`defineHandler`/`useDatabase`/`validator`…）只在 `ubean/server`、构建时符号只在 `ubean/build` —— 在客户端代码中从 `ubean/server` 导入会触发 Vite 在浏览器环境预构建 Hono/`node:*` 依赖
+7. **`createUbeanApp` 消歧**：`@ubean/app` / `ubean/server` 的 `createUbeanApp` 返回 Hono `UbeanApp`；`@ubean/client` 的 Vue 工厂为 `createUbeanClientApp`（返回 `{ app, router, head, page }`）。服务端入口用 `ubean/server`（Hono），客户端用 `createUbeanClientApp`
 8. **中间件注册**：将 async 函数传给 `server.middlewares.use()` 时包装在 `Promise.resolve().then().catch()` 中
 9. **Service Worker**：生成 RUNTIME 全局时用硬编码字符串 `'ubean-runtime'`，避免模板替换
 10. **宏处理**：`macros.ts` 的 `MACRO_NAMES` 只保留 `definePage`；包含 `defineHandlerMeta`/`defineMiddleware` 会被 build strip，导致运行时函数调用语法错误
@@ -852,10 +852,10 @@ export default defineConfig({
 12. **测试工作目录**：CRUD 测试用临时目录 + `afterEach` 清理，避免 `process.cwd()` 依赖
 13. **SSR 渲染**：layout 循环中在块作用域内 `const child = vnode` 引用，避免闭包捕获导致无限递归
 14. **参考实现**：参考 void/nitro 时学习架构模式后重新实现，保证 API 一致
-15. **i18n**：配置写在 `ubean.config.ts` 的 `i18n`；客户端 `useI18n` 直接从 `vue-i18n` 导入（vue-i18n 11，必须 `legacy: false`；自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/runtime/vue` 导入；不要从 `ubean` 主入口导入 Vue 侧 i18n API
+15. **i18n**：配置写在 `ubean.config.ts` 的 `i18n`；客户端 `useI18n` 直接从 `vue-i18n` 导入（vue-i18n 11，必须 `legacy: false`；自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/client` 导入；不要从 `ubean` 主入口导入 Vue 侧 i18n API
 16. **临时文件**：用项目根目录下的 `.temp` 目录存储临时文件
 17. **Islands 水合**：常规 islands 由框架在客户端入口自动水合（首次 mount 双重 rAF；SPA `afterEach` 无 pending 岛时跳过第二帧）；仅在需要传入手动注册组件（escape hatch）时在 `onClientReady` 中额外调用 `hydrateIslands()`
-18. **第三方 API 不经 ubean 透传**：`vue`/`vue-router`/`vue-i18n`/`@vue/server-renderer` 的 API 一律从对应包直接导入，ubean 不再 re-export（如 `useRouter` 从 `vue-router`、`renderToString` 从 `@vue/server-renderer`、`I18n` 类型从 `vue-i18n`）；自动导入预设也直源这些包（`VUE_ROUTER_PRESET`/`VUE_I18N_PRESET`/`HONO_OPENAPI_PRESET`）。ubean 的 `useI18n`/`t` vue-i18n 包装已移除——`useI18n` 从 `vue-i18n` 导入，`t` 从其返回的 composer 解构。例外：`validator`/`describeRoute` 等 hono-openapi API 保留在主入口重新导出；`useHead`/`useSeoMeta`/`Head`（ubean 品牌 head 门面，主入口与 `@ubean/seo` 有消歧设计）；`createClientHead`/`createServerHead`（builder 虚拟模块的依赖卫生门面）；`setLocale`/`useLocalePath` 等 i18n 封装（ubean 自有实现）。示例项目（ubean-test/frontend-only/routing-file-mode）与 apps/docs 已在 `package.json` 中显式声明 `vue-router` + `hono-openapi` + `vue-i18n`
+18. **第三方 API 不经 ubean 透传**：`vue`/`vue-router`/`vue-i18n`/`@vue/server-renderer` 的 API 一律从对应包直接导入，ubean 不再 re-export（如 `useRouter` 从 `vue-router`、`renderToString` 从 `@vue/server-renderer`、`I18n` 类型从 `vue-i18n`）；自动导入预设也直源这些包（`VUE_ROUTER_PRESET`/`VUE_I18N_PRESET`/`HONO_OPENAPI_PRESET`）。ubean 的 `useI18n`/`t` vue-i18n 包装已移除——`useI18n` 从 `vue-i18n` 导入，`t` 从其返回的 composer 解构。例外：`validator`/`describeRoute` 等 hono-openapi API 从 `ubean/server` 重新导出；`useHead`/`useSeoMeta`/`Head`（ubean 品牌 head 门面，主入口与 `@ubean/seo` 有消歧设计）；`createClientHead`/`createServerHead`（builder 虚拟模块的依赖卫生门面）；`setLocale`/`useLocalePath` 等 i18n 封装（ubean 自有实现，主入口 isomorphic 化后恢复自然命名，不再有 `setVueLocale` 别名）。示例项目（ubean-test/frontend-only/routing-file-mode）与 apps/docs 已在 `package.json` 中显式声明 `vue-router` + `hono-openapi` + `vue-i18n`
 
 ## 9. 开发命令
 

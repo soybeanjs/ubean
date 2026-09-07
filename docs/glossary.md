@@ -4,7 +4,7 @@
 
 ## 应用工厂
 
-- **`createUbeanApp`**（Hono 工厂）：`@ubean/app` / `ubean/runtime/app` 导出，返回 `UbeanApp`（Hono 应用）。此名**专指** Hono 工厂。
+- **`createUbeanApp`**（Hono 工厂）：`@ubean/app` / `ubean/server` 导出，返回 `UbeanApp`（Hono 应用）。此名**专指** Hono 工厂。
 - **`createUbeanClientApp`**（Vue 工厂）：`@ubean/client` 导出，返回 `UbeanAppInstance`（`{ app, router, head, page }`）。唯一真实消费者是 `@ubean/vite` 的虚拟模块生成器。
 - **聚合器（aggregator）**：`ubean` 主包，纯 re-export 全部 `@ubean/*` 子包，对外维持单一包名 API 表面。其选择性 `export type { ... } from '@ubean/client'` 块用于消歧（见 ADR-0001）。
 

@@ -78,7 +78,7 @@ Access validated values through the `env` proxy returned by `defineEnv()`:
 
 ```typescript
 // src/routes/api/hello.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { env } from '../../env';
 
 export const GET = defineHandler(c => {

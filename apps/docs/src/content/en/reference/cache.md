@@ -12,7 +12,7 @@ ubean ships a route-level HTTP cache built around a swappable `CacheStore`. It i
 Get or set the global cache store. Defaults to an in-memory store with LRU eviction.
 
 ```typescript
-import { useCacheStore, createMemoryStore } from 'ubean';
+import { useCacheStore, createMemoryStore } from 'ubean/server';
 
 // Use the default in-memory store
 const store = useCacheStore();
@@ -44,7 +44,7 @@ Implement this interface to back the cache with Redis, KV, or any other storage.
 ## createMemoryStore()
 
 ```typescript
-import { createMemoryStore } from 'ubean';
+import { createMemoryStore } from 'ubean/server';
 
 const store = createMemoryStore(1000); // up to 1000 entries
 ```
@@ -54,7 +54,7 @@ const store = createMemoryStore(1000); // up to 1000 entries
 Mount cache as a Hono middleware driven by route rules. Used internally by the ubean runtime when `routeRules` declares `cache`.
 
 ```typescript
-import { createCacheMiddleware, useCacheStore } from 'ubean';
+import { createCacheMiddleware, useCacheStore } from 'ubean/server';
 
 app.use(createCacheMiddleware({
   store: useCacheStore(),
@@ -89,7 +89,7 @@ export interface CacheRule {
 Wrap a single handler with caching. Useful for expensive endpoints that do not fit the path-pattern rule model.
 
 ```typescript
-import { defineHandler, cachedEventHandler } from 'ubean';
+import { defineHandler, cachedEventHandler } from 'ubean/server';
 
 export const GET = defineHandler(
   cachedEventHandler(
@@ -113,7 +113,7 @@ Cacheability is enforced automatically:
 Wrap an arbitrary function with caching. Useful for memoizing expensive computations (DB queries, remote fetches, derived data) with TTL- and tag-based invalidation.
 
 ```typescript
-import { defineCachedFunction, cacheLife, cacheTag } from 'ubean';
+import { defineCachedFunction, cacheLife, cacheTag } from 'ubean/server';
 
 // Wrap a function; declare TTL and tags inside the function body
 export const getUserProfile = defineCachedFunction(
@@ -127,7 +127,7 @@ export const getUserProfile = defineCachedFunction(
 );
 
 // Invalidate by tag from a mutation handler
-import { revalidateTag } from 'ubean';
+import { revalidateTag } from 'ubean/server';
 await revalidateTag('users'); // invalidates every entry tagged 'users'
 ```
 
@@ -142,7 +142,7 @@ await revalidateTag('users'); // invalidates every entry tagged 'users'
 Invalidate cached entries by key, pattern, or clear all.
 
 ```typescript
-import { invalidateRouteCache } from 'ubean';
+import { invalidateRouteCache } from 'ubean/server';
 
 await invalidateRouteCache('GET:/api/users:1');   // exact key
 await invalidateRouteCache(/^GET:\/api\/users:/); // regex match
@@ -204,7 +204,7 @@ The cache store is automatically initialized by the runtime when any `isr` rule 
 Use `invalidateRouteCache()` to invalidate ISR entries (same API as HTTP cache):
 
 ```typescript
-import { invalidateRouteCache } from 'ubean';
+import { invalidateRouteCache } from 'ubean/server';
 
 // After publishing a new blog post, invalidate all /blog/* ISR entries
 await invalidateRouteCache(/^isr:\/blog\//);
@@ -226,7 +226,8 @@ ISR requires SSR to be enabled (either globally via `ssr: true`, or per-route vi
 Implement `CacheStore` for Redis, Cloudflare KV, or any durable backend:
 
 ```typescript
-import { useCacheStore, type CacheStore } from 'ubean';
+import { useCacheStore } from 'ubean/server';
+import { type CacheStore } from 'ubean/server';
 import { createClient } from 'redis';
 
 const redis = createClient({ url: process.env.REDIS_URL });
@@ -263,7 +264,7 @@ ubean does **not** ship these APIs (common in other frameworks' cache modules):
 For arbitrary application-level key/value caching (not HTTP response caching), prefer the built-in `useStorage` / `useKV` (from `@ubean/server`, re-exported by `ubean`):
 
 ```typescript
-import { useStorage } from 'ubean';
+import { useStorage } from 'ubean/server';
 
 const storage = useStorage();
 await storage.set('user:1', { name: 'John' });

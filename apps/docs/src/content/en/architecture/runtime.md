@@ -346,7 +346,7 @@ const user = await api.get('/api/users/{id}', {
 // user 的类型自动从 OpenAPI schema 推导
 
 // server 端
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { createServerApi } from '../request/internal';
 export const GET = defineHandler(async (c) => {
   const api = createServerApi(c);
@@ -482,7 +482,7 @@ Modeled after nitro's `scheduledTasks` and void's `defineScheduled`:
 
 ```typescript
 // crons/daily-cleanup.ts
-import { defineScheduled } from 'ubean';
+import { defineScheduled } from 'ubean/server';
 import { db } from 'ubean/database';
 
 export const cron = '0 0 * * *'; // 每天凌晨执行
@@ -785,7 +785,7 @@ When an API is created, a handler file is auto-generated:
 
 ```typescript
 // DevTools 创建 routes/users.ts 时生成
-import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean';
+import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean/server';
 import { z } from 'zod';
 
 export const GET = defineHandler(
@@ -1534,13 +1534,13 @@ Since ubean v1.0, **Islands components are auto-registered** — no need to manu
 2. It replaces the component name (template tag name) with a `<ubean-island v-once>` custom element (`v-once` prevents Vue re-render from overwriting hydrated content)
 3. It maps the component name to its import path, resolving to an absolute path
 4. It generates the virtual module `virtual:ubean-islands-registry`, exporting all collected island components
-5. The `hydrateIslands` bridge function in `ubean/runtime/vue` auto-imports the virtual registry and merges it with any user-passed `components` (user-provided takes precedence)
+5. The `hydrateIslands` bridge function in `ubean/client` auto-imports the virtual registry and merges it with any user-passed `components` (user-provided takes precedence)
 6. After `app.mount()`, the client entry auto-invokes `hydrateIslands()` via a double `requestAnimationFrame`, ensuring the Vue render cycle completes before hydration
 7. After SPA navigation, `router.afterEach` auto-hydrates islands in the new page
 
 ```typescript
 // app.ts —— 零配置，无需任何 islands 相关代码
-import { defineApp } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/client';
 
 export default defineApp({
   // islands 自动注册、自动水合
@@ -1660,7 +1660,7 @@ export default defineConfig({
 });
 ```
 
-- Vue: import `useI18n` from `vue-i18n` directly (auto-imported from `vue-i18n`); framework helpers like `setLocale` come from `ubean/runtime/vue`. Switching locale must go through framework `setLocale`.
+- Vue: import `useI18n` from `vue-i18n` directly (auto-imported from `vue-i18n`); framework helpers like `setLocale` come from `ubean/client`. Switching locale must go through framework `setLocale`.
 - Handlers: `t()` reads request ALS and throws without it. `getRequestLocale(c)` reads the locale set by middleware.
 - `<Link to="/about" locale="zh">` localizes via `LOCALIZE_PATH_KEY`; vue-router matches `/zh/about`.
 
@@ -2080,7 +2080,7 @@ Modeled after void's Proxy dynamic-binding pattern, ubean provides a cross-platf
 
 ```typescript
 // queues/email.ts
-import { defineQueue } from 'ubean';
+import { defineQueue } from 'ubean/server';
 
 export interface EmailJob {
   to: string;
@@ -2104,7 +2104,7 @@ export const emailQueue = defineQueue<EmailJob>(
 
 ```typescript
 // routes/api/signup.ts
-import { defineHandler, validator } from 'ubean';
+import { defineHandler, validator } from 'ubean/server';
 import { z } from 'zod';
 
 const signupSchema = z.object({ email: z.string().email() });

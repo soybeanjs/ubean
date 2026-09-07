@@ -180,7 +180,7 @@ ubean **automatically hydrates islands** after the app mounts — no manual `hyd
 
 ```typescript
 // app.ts — zero code needed for islands
-import { defineApp } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/client';
 
 export default defineApp({
   // islands are auto-hydrated by the framework
@@ -205,7 +205,7 @@ import Counter from '~/components/Counter.vue';
 2. **Template transform**: Replaces island component tags with `<ubean-island v-once>` custom elements (v-once prevents Vue from overwriting hydrated content)
 3. **Import resolution**: Parses `<script setup>` imports to map component names to file paths
 4. **Virtual module**: Generates `virtual:ubean-islands-registry` exporting all collected components
-5. **Runtime bridge**: `hydrateIslands` in `ubean/runtime/vue` auto-imports the registry and merges with any manual `components`
+5. **Runtime bridge**: `hydrateIslands` in `ubean/client` auto-imports the registry and merges with any manual `components`
 6. **Auto-hydration**: The client entry automatically calls `hydrateIslands()` after mount (double rAF) and after each SPA navigation
 7. **HMR**: Dev mode auto-updates the registry when new `v-client.*` directives are added (full-reload)
 8. **Tree-shaking**: Only components actually used with `v-client.*` directives are included in the client bundle
@@ -216,7 +216,7 @@ For edge cases where auto-registration doesn't work (globally registered compone
 
 ```typescript
 // app.ts — hybrid mode (auto + manual)
-import { defineApp, hydrateIslands } from 'ubean/runtime/vue';
+import { defineApp, hydrateIslands } from 'ubean/client';
 import DynamicIsland from '~/components/DynamicIsland.vue';
 
 export default defineApp({

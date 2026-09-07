@@ -197,7 +197,7 @@ Use the auto-imported cache helpers to toggle caching at runtime (e.g. from a la
 
 ```vue
 <script setup lang="ts">
-// All auto-imported from ubean/runtime/vue
+// All auto-imported from ubean/client
 const { cachedViews, excludedViews } = useCacheViews();
 
 function toggleCache(name: string) {
@@ -216,7 +216,7 @@ await resetRouteCache('About');
 </script>
 ```
 
-Available runtime helpers (all auto-imported from `ubean/runtime/vue`):
+Available runtime helpers (all auto-imported from `ubean/client`):
 
 | Function                       | Description                                                       |
 | ------------------------------ | ----------------------------------------------------------------- |
@@ -313,7 +313,7 @@ Middleware runs before page or API routes. Files live in `src/middleware/`:
 
 ```typescript
 // src/middleware/auth.ts
-import { defineMiddleware } from 'ubean';
+import { defineMiddleware } from 'ubean/server';
 
 export default defineMiddleware(async c => {
   const user = c.get('user');

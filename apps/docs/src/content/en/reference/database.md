@@ -12,13 +12,13 @@ ubean provides a lightweight database layer built on top of the `db0` connector 
 Create or register a database instance.
 
 ```typescript
-import { defineDatabase } from 'ubean';
+import { defineDatabase } from 'ubean/server';
 
 // Default in-memory database (used when no connector is available)
 const db = defineDatabase();
 
 // Register a named database via a db0 connector instance
-import { defineDatabase, registerDb0Create } from 'ubean';
+import { defineDatabase, registerDb0Create } from 'ubean/server';
 import { sqlite } from 'db0/connectors/better-sqlite3';
 
 // Register the db0 factory once (usually in app.ts / a module setup)
@@ -53,7 +53,7 @@ If neither `connector` nor `connectors` is provided, an in-memory SQL implementa
 Retrieve a registered database. The first call without arguments lazily creates the default in-memory database.
 
 ```typescript
-import { useDatabase } from 'ubean';
+import { useDatabase } from 'ubean/server';
 
 const db = useDatabase();          // default database
 const replica = useDatabase('replica'); // named database (throws if missing)
@@ -84,7 +84,7 @@ const { rows } = await db.sql<{ id: number; email: string }>`
 For raw SQL fragments (e.g. table/column names that cannot be bound), use the `rawSql` (aliased as `sqlRaw` and `raw`) helper.
 
 ```typescript
-import { rawSql } from 'ubean';
+import { rawSql } from 'ubean/server';
 
 const table = rawSql('users');
 const { rows } = await db.sql`SELECT name FROM ${table}`;
@@ -99,7 +99,7 @@ ubean provides two migration helpers. Neither requires a dedicated CLI — migra
 Runs an array of raw SQL statements sequentially.
 
 ```typescript
-import { migrateDatabase, useDatabase } from 'ubean';
+import { migrateDatabase, useDatabase } from 'ubean/server';
 
 const db = useDatabase();
 
@@ -119,7 +119,8 @@ await migrateDatabase(db, [
 Tracks applied migrations in a `_migrations` table and only runs pending ones.
 
 ```typescript
-import { runMigrations, useDatabase, type Migration } from 'ubean';
+import { runMigrations, useDatabase } from 'ubean/server';
+import { type Migration } from 'ubean/server';
 
 const migrations: Migration[] = [
   {
@@ -152,7 +153,7 @@ ubean does **not** ship a `defineMigration()` or `defineSeed()` API. If you need
 Database lifecycle hooks are exposed via `getDatabaseHooks()` (a `hookable` instance).
 
 ```typescript
-import { getDatabaseHooks } from 'ubean';
+import { getDatabaseHooks } from 'ubean/server';
 
 const hooks = getDatabaseHooks();
 
@@ -172,7 +173,7 @@ hooks.hook('db:error', (err, query) => console.error(err, query));
 ## Cleanup
 
 ```typescript
-import { closeDatabases } from 'ubean';
+import { closeDatabases } from 'ubean/server';
 
 await closeDatabases(); // closes every registered database and clears the registry
 ```
@@ -207,7 +208,7 @@ export default defineConfig({
 
 ```typescript
 // routes/users.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import db, { users } from '#db';
 
 export const GET = defineHandler(async c => {

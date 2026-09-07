@@ -5,7 +5,7 @@
 // if the toolbar label differs between server and client.
 import { computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useColorMode } from 'ubean/runtime/vue';
+import { useColorMode } from 'ubean/client';
 
 const route = useRoute();
 const router = useRouter();

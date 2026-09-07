@@ -24,7 +24,7 @@ keywords:
 
 # ubean Skill
 
-> ubean is a full-stack Vue meta-framework combining Vite, Hono and Vue. The public package name is **`ubean`** (no `@ubean/core`); all framework APIs are imported from `ubean` directly or from subpath exports such as `ubean/runtime/vue`.
+> ubean is a full-stack Vue meta-framework combining Vite, Hono and Vue. The public package name is **`ubean`** (no `@ubean/core`); all framework APIs are imported from `ubean` directly or from subpath exports such as `ubean/client`.
 
 ## When to Use This Skill
 
@@ -74,16 +74,18 @@ ubean is a **monorepo** of 24 packages. The public package `ubean` is an **aggre
 
 ### Subpath Exports
 
-| Subpath              | Purpose                                                                         |
-| -------------------- | ------------------------------------------------------------------------------- |
-| `ubean`              | Main entry — re-exports all subpackages (server-side code, API routes)          |
-| `ubean/vite`         | Default Vite plugin combo (build + vue + islands) for `vite.config.ts`          |
-| `ubean/runtime/vue`  | Browser-side Vue client runtime (avoids pulling server deps into client bundle) |
-| `ubean/runtime/app`  | Server Hono app entry (`createUbeanApp` / `defineServer`) for `src/server.ts`   |
-| `ubean/runtime/i18n` | Server-side i18n (`@intlify/core` + ALS `t()` + `compileLocalePaths`)           |
-| `ubean/vue-ssr`      | Vue SSR renderer (`createVueRenderer`)                                          |
+| Subpath          | Purpose                                                                                                                                              |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ubean`          | **Isomorphic main entry (client-safe)**: shared/seo/pages/markdown + Vue client kernel + islands client runtime + logger + `defineConfig`            |
+| `ubean/vite`     | Default Vite plugin combo (build + vue + islands) for `vite.config.ts`                                                                               |
+| `ubean/client`   | Framework client runtime: kernel + `createServerHead` + Server Actions runtime + islands registry bridge                                             |
+| `ubean/server`   | Server runtime aggregate (`defineHandler`/`defineAction`/`validator`/`useDatabase`/`createUbeanApp`/`defineServer`) for `src/server.ts` + API routes |
+| `ubean/build`    | Build-time tooling aggregate (`prerender`/`loadUbeanConfig`/`getAutoImportPresets`/`detectPreset`/Vite plugins)                                      |
+| `ubean/i18n`     | Server-side i18n (`@intlify/core` + ALS `t()` + `compileLocalePaths` + middleware)                                                                   |
+| `ubean/ssr`      | Vue SSR renderer (`createVueRenderer`)                                                                                                               |
+| `ubean/scaffold` | Scaffold library + machine-readable catalog                                                                                                          |
 
-> **Critical**: Client-side auto-imports MUST use `ubean/runtime/vue`, not `ubean` main entry — the latter triggers Vite to pre-bundle server-side dependencies (unocss, oxc-parser WASM) in the browser environment.
+> **Critical**: Import domain by entry — isomorphic APIs from `ubean` (safe anywhere), server APIs from `ubean/server` (Hono + `node:*`), build-time APIs from `ubean/build` (scan + oxc WASM). Importing `ubean/server` in client code triggers Vite to pre-bundle server dependencies in the browser environment. `defineConfig` in `ubean.config.ts` stays on the main entry.
 
 ### Key Subpackages
 
@@ -232,7 +234,7 @@ src/routes/
 
 ```typescript
 // src/routes/api/hello.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   return c.json({ message: 'Hello from ubean API!' });
@@ -250,7 +252,7 @@ export const POST = defineHandler(async c => {
 
 ```typescript
 // src/routes/api/users/[id].ts
-import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean';
+import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean/server';
 import { z } from 'zod';
 
 const idParam = z.object({ id: z.string() });
@@ -432,7 +434,7 @@ Use these keys in `dependsOn` for built-in modules:
 - Compact locale routing: `compileLocalePaths` shared by Hono and vue-router
 - 4 strategies: `prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`
 - Detection order: URL path → cookie (`ubean_locale`, written) → Accept-Language → defaultLocale
-- Framework `setLocale` = load messages + cookie + `router.replace`; import from `ubean/runtime/vue`
+- Framework `setLocale` = load messages + cookie + `router.replace`; import from `ubean/client`
 - SSR hydration via `<script id="__UBEAN_LOCALE__">`; auto `<html lang/dir>` + hreflang
 
 ### 6. DevTools
@@ -526,7 +528,7 @@ definePage({
 
 ```typescript
 // src/routes/api/hello.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   return c.json({ message: 'Hello World!' });
@@ -594,7 +596,7 @@ function go() {
 ```vue
 <script setup lang="ts">
 const { t, locale, d, n, c } = useI18n(); // useI18n 自动导入(直源 vue-i18n)
-// 切换语言用框架 setLocale(自动导入,来自 ubean/runtime/vue)
+// 切换语言用框架 setLocale(自动导入,来自 ubean/client)
 
 console.log(t('hello'));
 console.log(t('items', { count: 3 }));

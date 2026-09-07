@@ -177,7 +177,7 @@ For server-side data, prefer API routes with `defineHandler`:
 
 ```typescript
 // src/routes/api/posts.ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(async c => {
   const posts = await fetchPostsFromDB();

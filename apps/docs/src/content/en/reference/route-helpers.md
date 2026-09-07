@@ -239,7 +239,7 @@ onDeactivated(() => {
 </script>
 ```
 
-Runtime control is available via `useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)` (auto-imported from `ubean/runtime/vue`).
+Runtime control is available via `useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)` (auto-imported from `ubean/client`).
 
 ### Reuse Route Cache Inheritance
 
@@ -267,7 +267,7 @@ In API route handlers (server-side), use Hono's `c.req.param()`:
 
 ```typescript
 // src/routes/api/users/[id].ts
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   const id = c.req.param('id');
@@ -278,7 +278,7 @@ export const GET = defineHandler(c => {
 For typed params, use `validator('param', schema)`:
 
 ```typescript
-import { defineHandler, validator } from 'ubean';
+import { defineHandler, validator } from 'ubean/server';
 import { z } from 'zod';
 
 export const GET = defineHandler(

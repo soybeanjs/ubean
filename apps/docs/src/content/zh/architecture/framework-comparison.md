@@ -55,7 +55,7 @@ ubean 列按**默认路径是否真的做了**来标，而不是「类型里有�
 
 ### 国际化
 
-配置只在 `ubean.config.ts` 的 `i18n`。Vue 端 vue-i18n 11（`legacy: false`）；Hono 与 vue-router 共用 `compileLocalePaths()`。中间件由 `createUbeanApp` 自动挂载。客户端 `useI18n` 直接从 `vue-i18n` 导入,`setLocale` 等 ubean 封装从 `ubean/runtime/vue` 导入。
+配置只在 `ubean.config.ts` 的 `i18n`。Vue 端 vue-i18n 11（`legacy: false`）；Hono 与 vue-router 共用 `compileLocalePaths()`。中间件由 `createUbeanApp` 自动挂载。客户端 `useI18n` 直接从 `vue-i18n` 导入,`setLocale` 等 ubean 封装从 `ubean/client` 导入。
 
 ### 开发者体验
 

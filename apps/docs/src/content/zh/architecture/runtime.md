@@ -346,7 +346,7 @@ const user = await api.get('/api/users/{id}', {
 // user 的类型自动从 OpenAPI schema 推导
 
 // server 端
-import { defineHandler } from 'ubean';
+import { defineHandler } from 'ubean/server';
 import { createServerApi } from '../request/internal';
 export const GET = defineHandler(async (c) => {
   const api = createServerApi(c);
@@ -482,7 +482,7 @@ const data = await client.get<{ id: string; name: string }>('/users/123');
 
 ```typescript
 // crons/daily-cleanup.ts
-import { defineScheduled } from 'ubean';
+import { defineScheduled } from 'ubean/server';
 import { db } from 'ubean/database';
 
 export const cron = '0 0 * * *'; // 每天凌晨执行
@@ -785,7 +785,7 @@ API 创建时自动生成 handler 文件：
 
 ```typescript
 // DevTools 创建 routes/users.ts 时生成
-import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean';
+import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean/server';
 import { z } from 'zod';
 
 export const GET = defineHandler(
@@ -1546,13 +1546,13 @@ ubean v1.0 起支持 **Islands 组件自动注册**，无需在 `app.ts` 中手�
 2. 将组件名（模板标签名）替换为 `<ubean-island v-once>` 自定义元素（v-once 防止 Vue re-render 覆盖已水合内容）
 3. 将组件名与 import 路径建立映射，解析为绝对路径
 4. 生成虚拟模块 `virtual:ubean-islands-registry`，导出所有收集到的 island 组件
-5. `ubean/runtime/vue` 入口的 `hydrateIslands` 桥接函数自动导入虚拟注册表，与用户手动传入的 `components` 合并（手动优先）
+5. `ubean/client` 入口的 `hydrateIslands` 桥接函数自动导入虚拟注册表，与用户手动传入的 `components` 合并（手动优先）
 6. 客户端入口在 `app.mount()` 后通过双重 `requestAnimationFrame` 自动调用 `hydrateIslands()`，确保 Vue 渲染循环完成后再水合
 7. SPA 导航后通过 `router.afterEach` 自动水合新页面中的 islands
 
 ```typescript
 // app.ts —— 零配置，无需任何 islands 相关代码
-import { defineApp } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/client';
 
 export default defineApp({
   // islands 自动注册、自动水合
@@ -1672,7 +1672,7 @@ export default defineConfig({
 });
 ```
 
-- Vue：`useI18n` 从 `vue-i18n` 直接导入（自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/runtime/vue` 导入。切换语言必须走框架 `setLocale`。
+- Vue：`useI18n` 从 `vue-i18n` 直接导入（自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/client` 导入。切换语言必须走框架 `setLocale`。
 - Handler：`t()` 读请求 ALS；无 ALS 抛错。`getRequestLocale(c)` 读中间件写入的 locale。
 - `<Link to="/about" locale="zh">` 经 `LOCALIZE_PATH_KEY` 本地化；vue-router 能匹配 `/zh/about`。
 
@@ -2092,7 +2092,7 @@ await search('vue', {
 
 ```typescript
 // queues/email.ts
-import { defineQueue } from 'ubean';
+import { defineQueue } from 'ubean/server';
 
 export interface EmailJob {
   to: string;
@@ -2116,7 +2116,7 @@ export const emailQueue = defineQueue<EmailJob>(
 
 ```typescript
 // routes/api/signup.ts
-import { defineHandler, validator } from 'ubean';
+import { defineHandler, validator } from 'ubean/server';
 import { z } from 'zod';
 
 const signupSchema = z.object({ email: z.string().email() });

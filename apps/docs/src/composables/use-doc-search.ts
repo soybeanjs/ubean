@@ -1,5 +1,5 @@
 // Client-side content search over the prerendered fuse index (public/search-index.json).
-// Renamed from useSearch to avoid collision with ubean/runtime/vue's Pagefind-based useSearch (P9-26).
+// Renamed from useSearch to avoid collision with ubean/client's Pagefind-based useSearch (P9-26).
 import { ref, shallowRef } from 'vue';
 import Fuse from 'fuse.js';
 

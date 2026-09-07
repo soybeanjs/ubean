@@ -24,7 +24,7 @@ ubean 在 dev/build 时扫描 `src/pages/` 与 `src/layouts/`,生成路由数据
 
 **缺点**:无法在 IDE 中直接跳转到路由定义,无法手动修改生成的路由 `meta`。
 
-如需 IDE 跳转或手动修改路由 `meta`,请切换到 [实体文件模式](../../skills/ubean/docs/guide/routing-modes.md#2-file--实体文件模式):
+如需 IDE 跳转或手动修改路由 `meta`,请切换到 [实体文件模式](../../apps/docs/src/content/zh/guide/routing-modes.md#2-file--实体文件模式):
 
 ```ts
 // ubean.config.ts
@@ -42,7 +42,7 @@ export default defineConfig({
 - 布局系统:`src/layouts/`(`default.vue`、`admin.vue`)
 - 中间件:`src/middleware/`(`global.*` → `/*`)
 - Markdown 页面:`src/pages/md-test.md`
-- 复用路由:`xxx.reuse.vue`
+- 复用路由:`about-alias.reuse.ts`
 
 ### 服务端运行时
 
@@ -110,7 +110,7 @@ src/
 
 ## 相关文档
 
-- [路由生成模式详解](../../skills/ubean/docs/guide/routing-modes.md)
-- [页面路由指南](../../skills/ubean/docs/guide/pages-routing/overview.md)
-- [Islands 架构](../../skills/ubean/docs/guide/islands.md)
-- [i18n 国际化](../../skills/ubean/docs/guide/i18n.md)
+- [路由生成模式详解](../../apps/docs/src/content/zh/guide/routing-modes.md)
+- [页面路由指南](../../apps/docs/src/content/zh/guide/pages-routing/overview.md)
+- [Islands 架构](../../apps/docs/src/content/zh/guide/islands.md)
+- [i18n 国际化](../../apps/docs/src/content/zh/guide/i18n.md)

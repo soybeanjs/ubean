@@ -11,7 +11,7 @@
 | 能力         | 全栈 ubean                           | 本示例(独立 SPA)                                         |
 | ------------ | ------------------------------------ | -------------------------------------------------------- |
 | 路由来源     | 文件系统扫描(`src/pages/`)+ 虚拟模块 | `@ubean/vue/vite` 文件式路由(`virtual:ubean-vue-routes`) |
-| 页面缓存声明 | `definePage({ cache: true })` 宏     | 路由 `meta: { pageName, cache: true }`                   |
+| 页面缓存声明 | `definePage({ cache: true })` 宏     | 同样使用 `definePage` 宏(`ubeanVueVite` 编译期提取)      |
 | 布局解析     | `layouts/` 目录自动扫描              | `resolveLayoutComponent` 回调                            |
 | i18n 注册    | `locales/` 扫描 + SSR 注入           | 精简内核无 i18n；需要时自行接入 vue-i18n                 |
 | 应用装配     | 框架虚拟模块调用                     | 原生 vue `createApp` + `app.use(ubeanVue, { routes })`   |
@@ -26,7 +26,7 @@
 pnpm dev       # 开发
 pnpm build     # 产物构建(dist/,纯静态)
 pnpm preview   # 预览构建产物
-pnpm test      # 功能正确性单测(19 用例)
+pnpm test      # 功能正确性单测(32 用例)
 pnpm type-check
 ```
 
@@ -40,8 +40,7 @@ pnpm type-check
 ## 验证记录(2026-08-17)
 
 - `vp build` ✅ 主包 140KB / gzip 53KB;`dist` 零 `node:` 导入
-- `vitest` ✅ 19 用例(工厂/渲染协议/缓存控制/过渡重载/i18n 响应式/路由纯函数/依赖纯净度)
+- `vitest` ✅ 32 用例(工厂/渲染协议/缓存控制/过渡重载/路由纯函数/依赖纯净度)
 - 真实浏览器回归 ✅ 首页渲染 / SPA 无刷新导航 / reload 计数 / keep-alive
-  保留与失效 / i18n 双向即时切换 / 控制台零新增错误
-- 过程中修复内核缺陷:`t()`/`localizePath()` 缺响应式依赖导致 locale 切换后文案不更新
-  (现经 `trackLocale()` 建立 `localeRef` 依赖,含单测回归)
+  保留与失效 / 控制台零新增错误(内核不含 i18n —— 已归属 `@ubean/client`,
+  早期 i18n 相关验证记录随内核瘦身移除)

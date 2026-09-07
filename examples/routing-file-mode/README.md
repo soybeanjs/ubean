@@ -150,7 +150,7 @@ import { routes } from '~router/routes';
 
 ## 配置项详解
 
-完整的 `RoutingConfig` 类型定义见 [`@ubean/config` 类型](../../packages/config/src/types.ts),完整文档见 [`skills/ubean/docs/guide/routing-modes.md`](../../skills/ubean/docs/guide/routing-modes.md)。
+完整的 `RoutingConfig` 类型定义见 [`@ubean/config` 类型](../../packages/config/src/types.ts),完整文档见 [`apps/docs/src/content/zh/guide/routing-modes.md`](../../apps/docs/src/content/zh/guide/routing-modes.md)。
 
 常用字段:
 

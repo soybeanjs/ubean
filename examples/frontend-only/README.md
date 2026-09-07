@@ -64,14 +64,4 @@ pnpm -F frontend-only type-check
 pnpm -F frontend-only build
 ```
 
-> **注意**:在 Phase 7 完成前,`pnpm dev` / `pnpm build` 可能因 `ubean` 主包尚未构建(`packages/ubean/dist/`)而失败。`pnpm type-check` 在 `ubean` 包构建后即可通过。
-
-## 未来计划(Phase 7+)
-
-在 Phase 7 之后,ubean 将支持真正的 **SPA 模式**(完全无 SSR),适用于纯前端应用(内部工具、管理后台、不需要 SEO 的应用)。届时本示例可切换为 SPA 模式,无需 SSR 也能运行。
-
-当前 frontend-only 仍走 SSR 流程,因为:
-
-1. SEO 仍由 SSR 提供(页面初始 HTML 由服务端渲染)
-2. SPA 模式的构建路径(纯客户端 bundle、无 server entry)尚未实现
-3. Islands 架构的 SSR 阶段会输出 `<ubean-island>` 占位元素,客户端再水合
+> **提示**:本示例展示的是"纯前端 + SSR 渲染"形态。若要完全脱离 SSR,可在 `ubean.config.ts` 中设置 `mode: 'spa'`(框架已支持 `fullstack` / `spa` / `ssg` / `backend` 四种应用模式)。

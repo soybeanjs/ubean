@@ -1,5 +1,5 @@
 import { createRequest } from '@soybeanjs/fetch';
-import { defineHandler, createInternalAdapter } from 'ubean';
+import { defineHandler, createInternalAdapter } from 'ubean/server';
 
 export const GET = defineHandler(async c => {
   const target = c.req.query('target') || 'hello';

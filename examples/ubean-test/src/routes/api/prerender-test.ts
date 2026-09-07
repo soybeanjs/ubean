@@ -1,22 +1,20 @@
 import { mkdtemp, rm, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { matchGlob, matchAnyGlob, DATA_PAYLOAD_ID } from 'ubean';
 import {
-  defineHandler,
   prerender,
   collectPrerenderRoutes,
   extractLinks,
   extractDataPayload,
-  matchGlob,
-  matchAnyGlob,
   routeToFilePath,
   routeToDataFilePath,
   writePrerenderedFile,
   resolvePrerenderConfig,
-  generatePrerenderManifest,
-  DATA_PAYLOAD_ID
-} from 'ubean';
-import type { ScannedPageRoute } from 'ubean';
+  generatePrerenderManifest
+} from 'ubean/build';
+import type { ScannedPageRoute } from 'ubean/build';
+import { defineHandler } from 'ubean/server';
 
 // Bypass HTTP proxy for localhost requests
 if (process.env.HTTP_PROXY) delete process.env.HTTP_PROXY;

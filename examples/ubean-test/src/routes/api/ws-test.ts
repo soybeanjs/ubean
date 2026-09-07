@@ -1,5 +1,5 @@
-import { defineHandler, defineWebSocket, defineRoom } from 'ubean';
-import type { Peer } from 'ubean';
+import { defineHandler, defineWebSocket, defineRoom } from 'ubean/server';
+import type { Peer } from 'ubean/server';
 
 const chatRoom = defineRoom('chat');
 

@@ -1,4 +1,4 @@
-import { defineHandler, createObservabilityTracer, createConsoleExporter, withSpan } from 'ubean';
+import { defineHandler, createObservabilityTracer, createConsoleExporter, withSpan } from 'ubean/server';
 
 const tracer = createObservabilityTracer({
   exporters: [createConsoleExporter()]

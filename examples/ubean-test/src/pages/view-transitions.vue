@@ -1,11 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import {
-  supportsViewTransitions,
-  withViewTransition,
-  useViewTransitionState,
-  getNavigationType
-} from 'ubean/runtime/vue';
+import { supportsViewTransitions, withViewTransition, useViewTransitionState, getNavigationType } from 'ubean/client';
 
 useHead({
   title: 'View Transitions 测试 - ubean-test'

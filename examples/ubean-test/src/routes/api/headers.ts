@@ -1,5 +1,5 @@
 import { object, pipe, string, description, optional } from 'valibot';
-import { defineHandler, describeRoute, validator } from 'ubean';
+import { defineHandler, describeRoute, validator } from 'ubean/server';
 
 const headersSchema = object({
   'x-request-id': optional(pipe(string(), description('Request ID header'))),

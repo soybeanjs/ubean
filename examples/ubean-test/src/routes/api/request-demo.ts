@@ -1,4 +1,4 @@
-import { defineHandler, describeRoute } from 'ubean';
+import { defineHandler, describeRoute } from 'ubean/server';
 import { createServerApi } from '@/request/internal';
 
 /**

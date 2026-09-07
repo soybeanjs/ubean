@@ -12,7 +12,7 @@ import {
   resolvePresetWithDetection,
   definePreset,
   resolvePreset
-} from 'ubean';
+} from 'ubean/build';
 
 describe('Preset system', () => {
   describe('standardPreset', () => {

@@ -7,7 +7,7 @@ import {
   getQueueStats,
   getAllQueueStats,
   startQueueWorkers
-} from 'ubean';
+} from 'ubean/server';
 
 const processedMessages: Array<{ id: string; body: unknown; processedAt: string }> = [];
 

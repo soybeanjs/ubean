@@ -6,7 +6,7 @@ import {
   resetCronRunCounts,
   defineScheduled,
   clearScheduledTasks
-} from 'ubean';
+} from 'ubean/server';
 
 export const GET = defineHandler(async c => {
   const action = c.req.query('action') || 'parse';

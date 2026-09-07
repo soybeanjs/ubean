@@ -1,4 +1,4 @@
-import { defineMiddleware } from 'ubean';
+import { defineMiddleware } from 'ubean/server';
 
 export default defineMiddleware(async (c, next) => {
   const start = Date.now();

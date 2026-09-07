@@ -6,7 +6,7 @@ import {
   resetCronRunCounts,
   defineScheduled,
   clearScheduledTasks
-} from 'ubean';
+} from 'ubean/server';
 import { getJson, postJson } from './helper';
 
 describe('Cron system', () => {

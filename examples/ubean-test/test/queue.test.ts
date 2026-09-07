@@ -11,7 +11,7 @@ import {
   stopQueueWorkers,
   clearQueueDefinitions,
   getQueueDefinitions
-} from 'ubean';
+} from 'ubean/server';
 import { getJson, postJson } from './helper';
 
 describe('Queue system', () => {

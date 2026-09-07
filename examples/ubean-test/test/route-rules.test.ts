@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from 'ubean';
 import type { RouteRule, UbeanContext } from 'ubean';
+import { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from 'ubean/server';
 import { getJson, api } from './helper';
 
 describe('Route rules system', () => {

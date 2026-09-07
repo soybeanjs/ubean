@@ -9,7 +9,7 @@ import {
   getQueueStats,
   clearQueueDefinitions,
   setQueueDriver
-} from 'ubean';
+} from 'ubean/server';
 
 // Track processed/failed messages for testing
 const processed: Array<{ id: string; body: unknown; attempts: number; timestamp?: number }> = [];

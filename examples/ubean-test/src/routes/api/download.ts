@@ -1,5 +1,5 @@
 import { object, optional, pipe, string, description } from 'valibot';
-import { defineHandler, describeRoute, validator } from 'ubean';
+import { defineHandler, describeRoute, validator } from 'ubean/server';
 
 const downloadQuerySchema = object({
   filename: optional(pipe(string(), description('Filename for the downloaded file'))),

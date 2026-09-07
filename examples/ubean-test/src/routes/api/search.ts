@@ -1,5 +1,5 @@
 import { object, optional, pipe, number, string, integer, minValue, description, transform } from 'valibot';
-import { defineHandler, describeRoute, resolver, validator } from 'ubean';
+import { defineHandler, describeRoute, resolver, validator } from 'ubean/server';
 
 const searchQuerySchema = object({
   q: pipe(string(), description('Search query string')),

@@ -1,4 +1,4 @@
-import { defineHandler, createSSEStream } from 'ubean';
+import { defineHandler, createSSEStream } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   return createSSEStream(

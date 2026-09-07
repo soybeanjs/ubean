@@ -1,4 +1,4 @@
-import { defineHandler, cachedEventHandler, invalidateRouteCache } from 'ubean';
+import { defineHandler, cachedEventHandler, invalidateRouteCache } from 'ubean/server';
 
 let callCount = 0;
 

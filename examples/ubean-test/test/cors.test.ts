@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createCorsMiddleware, defineCors } from 'ubean';
 import type { UbeanContext } from 'ubean';
+import { createCorsMiddleware, defineCors } from 'ubean/server';
 import { api, getJson } from './helper';
 
 describe('CORS system', () => {

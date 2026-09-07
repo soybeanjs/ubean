@@ -1,4 +1,4 @@
-import { defineHandler, getScheduledTasks, runScheduledTask, defineScheduled } from 'ubean';
+import { defineHandler, getScheduledTasks, runScheduledTask, defineScheduled } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   const tasks = getScheduledTasks();

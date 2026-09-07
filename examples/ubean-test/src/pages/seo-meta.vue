@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useSeoMeta, useHead } from 'ubean/runtime/vue';
+import { useSeoMeta, useHead } from 'ubean/client';
 
 useHead({
   title: 'SEO Meta Test - ubean'

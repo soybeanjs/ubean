@@ -19,18 +19,17 @@ import { mkdtemp, rm, readFile, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
+import { matchAnyGlob, matchGlob } from 'ubean';
 import {
   prerender,
   collectPrerenderRoutes,
   extractLinks,
-  matchAnyGlob,
-  matchGlob,
   routeToFilePath,
   writePrerenderedFile,
   resolvePrerenderConfig,
   generatePrerenderManifest,
   DEFAULT_PRERENDER_EXCLUDE
-} from 'ubean';
+} from 'ubean/build';
 import { getJson } from './helper';
 
 // 模拟一个扫描到的页面路由对象(符合 ScannedPageRoute 形状)
@@ -247,7 +246,7 @@ describe('Prerender / SSG system', () => {
   // ==========================================================================
   describe('extractPrerenderRoutesFromRules() (P9-03)', () => {
     it('returns patterns with prerender: true', async () => {
-      const { extractPrerenderRoutesFromRules } = await import('ubean');
+      const { extractPrerenderRoutesFromRules } = await import('ubean/build');
       const result = extractPrerenderRoutesFromRules({
         '/about': { prerender: true },
         '/blog/**': { prerender: true },
@@ -259,13 +258,13 @@ describe('Prerender / SSG system', () => {
     });
 
     it('returns empty array for undefined routeRules', async () => {
-      const { extractPrerenderRoutesFromRules } = await import('ubean');
+      const { extractPrerenderRoutesFromRules } = await import('ubean/build');
       expect(extractPrerenderRoutesFromRules(undefined)).toEqual([]);
     });
 
     // P9-04: `ppr: true` implies `prerender: true` (static shell generation)
     it('discovers routes with ppr: true (P9-04 implies prerender)', async () => {
-      const { extractPrerenderRoutesFromRules } = await import('ubean');
+      const { extractPrerenderRoutesFromRules } = await import('ubean/build');
       const result = extractPrerenderRoutesFromRules({
         '/dashboard': { ppr: true },
         '/dashboard/stats': { ppr: true },

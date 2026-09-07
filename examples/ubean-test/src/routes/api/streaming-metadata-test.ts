@@ -12,7 +12,7 @@
  * - browserUAs:  批量验证常见浏览器 UA 全部识别为 false
  * - empty:       验证空/undefined/null UA 返回 false
  */
-import { defineHandler, isBotUserAgent } from 'ubean';
+import { defineHandler, isBotUserAgent } from 'ubean/server';
 
 export const GET = defineHandler(async c => {
   const action = c.req.query('action') || 'info';

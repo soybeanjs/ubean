@@ -1,4 +1,5 @@
-import { createRobotsResponse, defineHandler } from 'ubean';
+import { createRobotsResponse } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   const baseUrl = `${c.req.raw.url.split('/').slice(0, 3).join('/')}`;

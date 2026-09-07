@@ -16,6 +16,7 @@ import { createHmac } from 'node:crypto';
  * - composable:      useDraftMode() 返回 { isEnabled, enable, disable } 且功能正常
  */
 import { Hono } from 'hono';
+import type { UbeanEnv } from 'ubean';
 import {
   defineHandler,
   createDraftModeMiddleware,
@@ -23,8 +24,7 @@ import {
   disableDraftMode,
   isDraftMode,
   useDraftMode
-} from 'ubean';
-import type { UbeanEnv } from 'ubean';
+} from 'ubean/server';
 
 type TestApp = Hono<UbeanEnv>;
 

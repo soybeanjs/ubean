@@ -1,4 +1,4 @@
-import { defineHandler, defineCors } from 'ubean';
+import { defineHandler, defineCors } from 'ubean/server';
 
 const cors = defineCors({
   origin: ['https://example.com', 'http://localhost:5173'],

@@ -1,4 +1,4 @@
-import { defineApp } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/client';
 
 // Locales are auto-loaded by ubean:locales virtual module on the server,
 // and auto-hydrated on the client via SSR-injected __UBEAN_LOCALE__ data.

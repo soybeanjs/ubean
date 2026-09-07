@@ -12,8 +12,8 @@ import {
   getDataCacheSize,
   revalidateTag,
   revalidatePath
-} from 'ubean';
-import type { FetchInitWithNext } from 'ubean';
+} from 'ubean/server';
+import type { FetchInitWithNext } from 'ubean/server';
 
 /**
  * 调用带 `next` 选项的 fetch。

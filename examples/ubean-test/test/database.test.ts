@@ -8,8 +8,8 @@ import {
   migrateDatabase,
   runMigrations,
   rawSql
-} from 'ubean';
-import type { Migration } from 'ubean';
+} from 'ubean/server';
+import type { Migration } from 'ubean/server';
 import { getJson, postJson } from './helper';
 
 describe('Database system', () => {

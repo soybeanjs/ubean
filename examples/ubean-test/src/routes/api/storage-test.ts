@@ -1,4 +1,4 @@
-import { defineHandler, createKV } from 'ubean';
+import { defineHandler, createKV } from 'ubean/server';
 
 const kv = createKV({ prefix: 'test-kv' });
 

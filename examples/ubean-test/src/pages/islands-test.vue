@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { vClient } from 'ubean';
+import { vClient } from '@ubean/islands';
 import IslandClock from '../components/islands/IslandClock.vue';
 import IslandCounter from '../components/islands/IslandCounter.vue';
 import IslandMedia from '../components/islands/IslandMedia.vue';

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import type { UbeanContext } from 'ubean';
 import {
   defineWebSocket,
   defineRoom,
@@ -13,8 +14,7 @@ import {
   handleMessage,
   handleClose,
   handleError
-} from 'ubean';
-import type { UbeanContext } from 'ubean';
+} from 'ubean/server';
 import { getJson } from './helper';
 
 describe('WebSocket system', () => {

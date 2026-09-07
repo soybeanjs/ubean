@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import type { UbeanContext } from 'ubean';
 import {
   formatSSEMessage,
   createSSEStream,
@@ -8,8 +9,7 @@ import {
   closeAllSSE,
   sseHeaders,
   clearSSEState
-} from 'ubean';
-import type { UbeanContext } from 'ubean';
+} from 'ubean/server';
 import { api } from './helper';
 
 describe('SSE (Server-Sent Events) system', () => {

@@ -1,4 +1,4 @@
-import { defineApp } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/client';
 
 export default defineApp({
   head: {

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createMemoryDriver, createStorage, clearGlobalStorage, createKV } from 'ubean';
+import { createMemoryDriver, createStorage, clearGlobalStorage, createKV } from 'ubean/server';
 import { getJson } from './helper';
 
 describe('Storage system', () => {

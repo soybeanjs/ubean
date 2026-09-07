@@ -11,14 +11,14 @@ export {};
 
 // 全局自动导入声明(仅包含本示例用到的 API)
 declare global {
-  const useHead: (typeof import('ubean/runtime/vue'))['useHead'];
+  const useHead: (typeof import('ubean/client'))['useHead'];
 }
 
 // 全局组件声明(仅包含本示例用到的组件)
 declare module 'vue' {
   interface GlobalComponents {
-    Link: (typeof import('ubean/runtime/vue'))['Link'];
-    PageView: (typeof import('ubean/runtime/vue'))['PageView'];
+    Link: (typeof import('ubean/client'))['Link'];
+    PageView: (typeof import('ubean/client'))['PageView'];
   }
 }
 

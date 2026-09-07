@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { UbeanContext } from 'ubean';
 import {
   createMemoryStore,
   useCacheStore,
@@ -7,8 +8,7 @@ import {
   cachedEventHandler,
   invalidateRouteCache,
   resolveRouteCacheRules
-} from 'ubean';
-import type { UbeanContext } from 'ubean';
+} from 'ubean/server';
 import { getJson, postJson } from './helper';
 
 describe('Cache system', () => {

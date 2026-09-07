@@ -1,4 +1,3 @@
-import { defineHandler } from 'ubean';
 import {
   t,
   d,
@@ -14,7 +13,8 @@ import {
   getLocaleName,
   getFallbackLocale,
   ensureLocaleMessages
-} from 'ubean/runtime/i18n';
+} from 'ubean/i18n';
+import { defineHandler } from 'ubean/server';
 
 const routing = {
   defaultLocale: 'en',

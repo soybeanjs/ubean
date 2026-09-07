@@ -1,4 +1,5 @@
-import { defineHandler, createStreamResponse } from 'ubean';
+import { createStreamResponse } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(() => {
   return createStreamResponse({ headers: { 'Content-Type': 'text/plain; charset=utf-8' } }, async stream => {

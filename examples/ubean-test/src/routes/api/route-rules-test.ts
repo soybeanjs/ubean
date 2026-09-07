@@ -1,4 +1,4 @@
-import { defineHandler, compileRouteRules, matchRouteRules } from 'ubean';
+import { defineHandler, compileRouteRules, matchRouteRules } from 'ubean/server';
 
 const rules = compileRouteRules({
   '/api/cached/**': {

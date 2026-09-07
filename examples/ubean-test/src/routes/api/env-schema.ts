@@ -1,4 +1,5 @@
-import { defineHandler, defineEnv, useRuntimeEnv } from 'ubean';
+import { defineEnv, useRuntimeEnv } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 const envResult = defineEnv({
   server: {

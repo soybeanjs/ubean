@@ -1,4 +1,4 @@
-import { defineHandler, defineDatabase, useDatabase } from 'ubean';
+import { defineHandler, defineDatabase, useDatabase } from 'ubean/server';
 
 defineDatabase();
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createInternalFetch, setInternalFetcher, getInternalFetcher, clearInternalFetcher } from 'ubean';
+import { createInternalFetch } from 'ubean';
+import { setInternalFetcher, getInternalFetcher, clearInternalFetcher } from 'ubean/server';
 import { getJson } from './helper';
 
 describe('Internal fetch system', () => {

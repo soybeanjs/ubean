@@ -5,11 +5,11 @@ import {
   createRequestContext,
   setLocaleMessages,
   compileLocalePaths,
-  localizePath,
-  extractLocaleFromPath,
   createI18nMiddleware,
-  detectLocaleFromAcceptLanguage
-} from 'ubean';
+  detectLocaleFromAcceptLanguage,
+  localizePath,
+  extractLocaleFromPath
+} from 'ubean/i18n';
 import { getJson } from './helper';
 
 const routing = {

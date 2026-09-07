@@ -1,5 +1,4 @@
 import {
-  defineHandler,
   useData,
   defineDataKey,
   invalidateData,
@@ -10,6 +9,7 @@ import {
   getInvalidatedKeysForAction,
   clearPageData
 } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(async c => {
   const action = c.req.query('action') || 'info';

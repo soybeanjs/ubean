@@ -27,7 +27,7 @@ import {
   createConsoleExporter,
   createOpenTelemetryExporter,
   createTracingMiddleware
-} from 'ubean';
+} from 'ubean/server';
 import { getJson } from './helper';
 
 describe('Observability / Tracing system', () => {

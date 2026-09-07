@@ -1,4 +1,5 @@
-import { defineHandler, t, getRequestLocale, getLocaleMessages, listLocaleCodes } from 'ubean';
+import { t, getRequestLocale, getLocaleMessages, listLocaleCodes } from 'ubean/i18n';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(async c => {
   return c.json({

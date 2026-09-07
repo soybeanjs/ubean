@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createRateLimitMiddleware, defineRateLimit, createMemoryRateLimitStore } from 'ubean';
 import type { UbeanContext } from 'ubean';
+import { createRateLimitMiddleware, defineRateLimit, createMemoryRateLimitStore } from 'ubean/server';
 import { api, getJson } from './helper';
 
 describe('Rate limit system', () => {

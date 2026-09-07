@@ -12,14 +12,9 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { createRequest } from '@soybeanjs/fetch';
+// Internal fetch + Data cache
 import {
-  // Internal fetch
   createInternalFetch,
-  createInternalAdapter,
-  setInternalFetcher,
-  getInternalFetcher,
-  clearInternalFetcher,
-  // Data cache
   useData,
   defineDataKey,
   invalidateData,
@@ -31,6 +26,7 @@ import {
   getInvalidatedKeysForAction
 } from 'ubean';
 import type { UbeanContext } from 'ubean';
+import { createInternalAdapter, setInternalFetcher, getInternalFetcher, clearInternalFetcher } from 'ubean/server';
 import { getJson, getBaseUrl } from './helper';
 
 const BASE_URL = () => getBaseUrl();

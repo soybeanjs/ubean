@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Plugin, Component } from 'vue';
-import { defineApp } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/client';
 import { api } from './helper';
 
 describe('defineApp()', () => {

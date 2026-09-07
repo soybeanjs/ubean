@@ -1,4 +1,4 @@
-import { defineHandler, defineRateLimit } from 'ubean';
+import { defineHandler, defineRateLimit } from 'ubean/server';
 
 const rateLimit = defineRateLimit({
   maxRequests: 5,

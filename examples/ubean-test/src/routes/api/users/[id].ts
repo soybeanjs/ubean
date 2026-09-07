@@ -1,4 +1,4 @@
-import { defineHandler, defineHandlerMeta, describeRoute } from 'ubean';
+import { defineHandler, defineHandlerMeta, describeRoute } from 'ubean/server';
 
 const users = [
   { id: 1, name: '张三', email: 'zhangsan@example.com', role: 'admin' },

@@ -1,4 +1,5 @@
-import { createError, defineHandler } from 'ubean';
+import { createError } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(() => {
   throw createError({

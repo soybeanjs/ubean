@@ -1,4 +1,5 @@
-import { createError, UbeanError, isUbeanError, defineHandler } from 'ubean';
+import { createError, UbeanError, isUbeanError } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   const type = c.req.query('type') || 'generic';

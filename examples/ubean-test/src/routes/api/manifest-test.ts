@@ -1,4 +1,5 @@
-import { defineHandler, defineManifest, createManifestResponse } from 'ubean';
+import { defineManifest, createManifestResponse } from 'ubean';
+import { defineHandler } from 'ubean/server';
 
 const manifest = defineManifest({
   name: 'Ubean Test App',

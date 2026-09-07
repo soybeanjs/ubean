@@ -1,4 +1,4 @@
-import { defineApp } from 'ubean/runtime/vue';
+import { defineApp } from 'ubean/client';
 
 // Islands are auto-registered and auto-hydrated by the framework:
 // - `ubeanIslandsPlugin` scans `client:xxx` directives, resolves imports,

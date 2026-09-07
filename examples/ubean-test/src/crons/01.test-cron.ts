@@ -1,4 +1,4 @@
-import { defineScheduled } from 'ubean';
+import { defineScheduled } from 'ubean/server';
 
 let runCount = 0;
 const runHistory: Array<{ count: number; timestamp: string }> = [];

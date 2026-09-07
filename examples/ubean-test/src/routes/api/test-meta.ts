@@ -1,4 +1,4 @@
-import { defineHandler, defineHandlerMeta } from 'ubean';
+import { defineHandler, defineHandlerMeta } from 'ubean/server';
 
 const metaMiddleware = defineHandlerMeta({ public: true });
 

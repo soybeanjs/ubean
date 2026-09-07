@@ -49,7 +49,7 @@ onDeactivated(() => {
 });
 
 // --- 运行时缓存控制演示 ---
-// 这些 API 也可以从 'ubean/runtime/vue' 显式导入，这里靠 auto-import
+// 这些 API 也可以从 'ubean/client' 显式导入，这里靠 auto-import
 const cachedViews = useCacheViews();
 const transition = usePageTransition();
 const reloadSignal = useReloadSignal();

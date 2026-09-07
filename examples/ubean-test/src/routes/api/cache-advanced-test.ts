@@ -1,4 +1,4 @@
-import { defineHandler, createMemoryStore, createCacheMiddleware } from 'ubean';
+import { defineHandler, createMemoryStore, createCacheMiddleware } from 'ubean/server';
 
 export const GET = defineHandler(c => {
   const action = c.req.query('action') || 'basic';

@@ -1,5 +1,62 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.3.7...main) (2026-09-07)
+
+### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
+
+- **config**:
+  - redesign auto-imports as autoImports/components with per-library toggles &nbsp;-&nbsp; by @soybeanjs [<samp>(da7a9)</samp>](https://github.com/soybeanjs/ubean/commit/da7a932)
+- **ubean**:
+  - remove third-party pass-through re-exports from public surface &nbsp;-&nbsp; by @soybeanjs [<samp>(58b23)</samp>](https://github.com/soybeanjs/ubean/commit/58b23bb)
+  - redesign exports as isomorphic main entry with semantic subpaths &nbsp;-&nbsp; by @soybeanjs [<samp>(3a6d3)</samp>](https://github.com/soybeanjs/ubean/commit/3a6d348)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **client**: support appRoot wrapper with src/app.vue auto-detection &nbsp;-&nbsp; by @soybeanjs [<samp>(20a20)</samp>](https://github.com/soybeanjs/ubean/commit/20a20cc)
+
+### &nbsp;&nbsp;&nbsp;🔥 Performance
+
+- **islands**: emit lazy dynamic-import loaders in islands registry &nbsp;-&nbsp; by @soybeanjs [<samp>(7b88d)</samp>](https://github.com/soybeanjs/ubean/commit/7b88ddc)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **package**: update typecheck script for improved clarity &nbsp;-&nbsp; by @soybeanjs [<samp>(8d46c)</samp>](https://github.com/soybeanjs/ubean/commit/8d46c81)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- **builder**: source generated imports from semantic subpath entries &nbsp;-&nbsp; by @soybeanjs [<samp>(7fc50)</samp>](https://github.com/soybeanjs/ubean/commit/7fc5063)
+- **cli**: generate scaffold code against semantic subpath entries &nbsp;-&nbsp; by @soybeanjs [<samp>(3bc37)</samp>](https://github.com/soybeanjs/ubean/commit/3bc37aa)
+- **examples**: migrate imports to semantic subpath entries &nbsp;-&nbsp; by @soybeanjs [<samp>(dc9d2)</samp>](https://github.com/soybeanjs/ubean/commit/dc9d251)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- document isomorphic entry architecture &nbsp;-&nbsp; by @soybeanjs [<samp>(1b92d)</samp>](https://github.com/soybeanjs/ubean/commit/1b92d3a)
+- **agents**:
+  - sync AGENTS.md with verified codebase facts &nbsp;-&nbsp; by @soybeanjs [<samp>(9cabe)</samp>](https://github.com/soybeanjs/ubean/commit/9cabe9e)
+- **cli**:
+  - rewrite CLI command reference against real implementation &nbsp;-&nbsp; by @soybeanjs [<samp>(3ed2c)</samp>](https://github.com/soybeanjs/ubean/commit/3ed2c33)
+- **engineering**:
+  - correct glossary and roadmap facts &nbsp;-&nbsp; by @soybeanjs [<samp>(59d78)</samp>](https://github.com/soybeanjs/ubean/commit/59d7804)
+- **examples**:
+  - update example READMEs to current conventions &nbsp;-&nbsp; by @soybeanjs [<samp>(93242)</samp>](https://github.com/soybeanjs/ubean/commit/932428f)
+- **imports**:
+  - update legacy entry references in doc comments &nbsp;-&nbsp; by @soybeanjs [<samp>(f667c)</samp>](https://github.com/soybeanjs/ubean/commit/f667ce4)
+- **site**:
+  - align architecture & engineering pages with codebase &nbsp;-&nbsp; by @soybeanjs [<samp>(a13a0)</samp>](https://github.com/soybeanjs/ubean/commit/a13a040)
+  - fix guide/reference/integrations facts and zh gaps &nbsp;-&nbsp; by @soybeanjs [<samp>(9f6a0)</samp>](https://github.com/soybeanjs/ubean/commit/9f6a0a3)
+- **skills**:
+  - fix code samples and capability facts in skill prompts &nbsp;-&nbsp; by @soybeanjs [<samp>(7f898)</samp>](https://github.com/soybeanjs/ubean/commit/7f89801)
+- **ubean**:
+  - document isomorphic main entry in README &nbsp;-&nbsp; by @soybeanjs [<samp>(c7887)</samp>](https://github.com/soybeanjs/ubean/commit/c788776)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **benchmarks**: regenerate ubean-test bundle baseline &nbsp;-&nbsp; by @soybeanjs [<samp>(7a0d6)</samp>](https://github.com/soybeanjs/ubean/commit/7a0d6e0)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.3.6...main) (2026-09-02)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

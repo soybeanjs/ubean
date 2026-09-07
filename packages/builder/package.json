@@ -60,7 +60,7 @@
     "@ubean/vue": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.8",
     "openapi-typescript": "^7.13.0",
-    "oxc-transform": "^0.147.0",
+    "oxc-transform": "^0.148.0",
     "pathe": "^2.0.3",
     "tinyglobby": "^0.2.17",
     "unimport": "^6.4.0",
@@ -70,8 +70,8 @@
     "vue-i18n": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^26.4.0",
-    "hono": "4.13.5",
+    "@types/node": "^26.4.1",
+    "hono": "4.13.7",
     "typescript": "7.0.2",
     "vite": "catalog:",
     "vite-plus": "catalog:"

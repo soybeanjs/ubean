@@ -23,16 +23,16 @@
   },
   "dependencies": {
     "@ubean/shared": "workspace:*",
-    "c12": "^4.0.0-beta.5",
+    "c12": "^4.0.0-rc.1",
     "defu": "6.1.7",
     "hookable": "^6.1.1",
     "jiti": "^2.7.0",
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.4.1",
     "@ubean/content": "workspace:*",
-    "hono": "4.13.5",
+    "hono": "4.13.7",
     "typescript": "7.0.2",
     "unplugin-auto-import": "21.1.0",
     "unplugin-vue-components": "^32.1.0",

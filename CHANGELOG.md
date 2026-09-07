@@ -1,5 +1,16 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.0...main) (2026-09-07)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(70430)</samp>](https://github.com/soybeanjs/ubean/commit/7043086)
+- **projects**: remove unused tsconfig.refs.json &nbsp;-&nbsp; by @soybeanjs [<samp>(8fb3a)</samp>](https://github.com/soybeanjs/ubean/commit/8fb3af3)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.3.7...main) (2026-09-07)
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes

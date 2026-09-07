@@ -10,7 +10,7 @@ ubean/（npm 包名：`ubean`，**不是** `@ubean/core`）是一个基于 Vite-
 - **HTTP 框架**：Hono
 - **构建工具**：Vite-Plus
 - **前端框架**：Vue 3（仅支持 Vue）
-- **包管理器**：pnpm 11.x（monorepo + catalog；根 `packageManager` 当前为 `pnpm@11.22.0`）
+- **包管理器**：pnpm 11.x（monorepo + catalog；根 `packageManager` 当前为 `pnpm@11.24.0`）
 - **目标平台**：Node.js（`node-server`）、Cloudflare Workers、Vercel（Serverless + Edge）、Netlify、Bun、Deno
 
 ## 2. 仓库结构
@@ -36,7 +36,7 @@ ubean/
 │   │   ── 构建时工具 ──
 │   ├── builder/             # @ubean/build — Vite 插件（./vite + ./vue + ./actions）+ 生产构建 + ./prerender SSG + ./codegen
 │   ├── config/              # @ubean/config — 配置加载 + 模块系统（defineModule / resolveModules）
-│   ├── preset/              # @ubean/preset — 平台预设（standard/node/cloudflare/vercel/netlify/bun/deno）
+│   ├── preset/              # @ubean/preset — 平台预设（standard/node/cloudflare/cloudflare-dev/vercel/vercel-edge/netlify/bun/deno/aws/azure）
 │   │
 │   │   ── 路由扫描 ──
 │   ├── scan/                # @ubean/scan — 项目扫描器 + 路由元数据聚合（页面扫描委托 @ubean/vue；原 routing 的扫描部分）
@@ -62,7 +62,9 @@ ubean/
 │   ├── ubean-test/         # 完整全栈示例 + 测试（virtual 模式）
 │   ├── client-only-spa/    # 纯客户端 SPA 示例（复用 @ubean/vue 内核，无 SSR/API）
 │   ├── frontend-only/      # 纯前端示例（无 API/SSR）
-│   └── routing-file-mode/  # 路由文件生成模式示例
+│   ├── routing-file-mode/  # 路由文件生成模式示例
+│   ├── platform-drivers/   # 平台非内存驱动示例（D1/KV/Blob…）
+│   └── ssg-catchall/       # SSG catch-all 预渲染示例
 ├── skills/ubean/            # AI Skill（CLI 命令文档与 agent 提示词）
 ├── docs/                     # 仓库级工程文档（ADR、领域词汇表、结构评估报告、产品方案）
 └── AGENTS.md                 # 本文件
@@ -98,21 +100,22 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 `@ubean/server` 除主入口 `.`（barrel 便利入口）外，提供以下语义聚合子路径。新代码推荐按能力域从子路径导入，避免 barrel 触发全量子模块类型解析。
 
-| 子路径                          | 聚合自                                                                          | 能力域                     |
-| ------------------------------- | ------------------------------------------------------------------------------- | -------------------------- |
-| `@ubean/server/cache`           | `cache` + `cache-directive`                                                     | 路由级缓存 + 组件级缓存    |
-| `@ubean/server/db`              | `database`                                                                      | 数据库（db0/drizzle 集成） |
-| `@ubean/server/realtime`        | `websocket` + `sse`                                                             | 实时通信（WS + SSE）       |
-| `@ubean/server/security`        | `security-headers` + `csrf` + `sessions`                                        | 安全（CSP/CSRF/Sessions）  |
-| `@ubean/server/queue`           | `queue`                                                                         | 消息队列                   |
-| `@ubean/server/cron`            | `cron` + `cron-scheduler`                                                       | 定时任务                   |
-| `@ubean/server/storage`         | `storage`                                                                       | KV / 对象存储              |
-| `@ubean/server/observability`   | `observability`                                                                 | 链路追踪 / OpenTelemetry   |
-| `@ubean/server/email`           | `email`                                                                         | 邮件发送                   |
-| `@ubean/server/analytics`       | `analytics` + `feature-flags`                                                   | 分析 / A-B 实验            |
-| `@ubean/server/static`          | `static`                                                                        | 静态文件服务               |
-| `@ubean/server/middleware`      | `cors` + `rate-limit` + `after` + `fetch-memo` + `draft-mode` + `single-flight` | 请求生命周期中间件         |
-| `@ubean/server/cache-directive` | `cache-directive`                                                               | 组件级缓存                 |
+| 子路径                          | 聚合自                                                                          | 能力域                        |
+| ------------------------------- | ------------------------------------------------------------------------------- | ----------------------------- |
+| `@ubean/server/cache`           | `cache` + `cache-directive`                                                     | 路由级缓存 + 组件级缓存       |
+| `@ubean/server/db`              | `database`                                                                      | 数据库（db0/drizzle 集成）    |
+| `@ubean/server/realtime`        | `websocket` + `sse`                                                             | 实时通信（WS + SSE）          |
+| `@ubean/server/security`        | `security-headers` + `csrf` + `sessions`                                        | 安全（CSP/CSRF/Sessions）     |
+| `@ubean/server/queue`           | `queue`                                                                         | 消息队列                      |
+| `@ubean/server/cron`            | `cron` + `cron-scheduler`                                                       | 定时任务                      |
+| `@ubean/server/storage`         | `storage`                                                                       | KV / 对象存储                 |
+| `@ubean/server/observability`   | `observability`                                                                 | 链路追踪 / OpenTelemetry      |
+| `@ubean/server/email`           | `email`                                                                         | 邮件发送                      |
+| `@ubean/server/analytics`       | `analytics` + `feature-flags`                                                   | 分析 / A-B 实验               |
+| `@ubean/server/static`          | `static`                                                                        | 静态文件服务                  |
+| `@ubean/server/drivers`         | `drivers`                                                                       | 平台非内存驱动（D1/KV/Blob…） |
+| `@ubean/server/middleware`      | `cors` + `rate-limit` + `after` + `fetch-memo` + `draft-mode` + `single-flight` | 请求生命周期中间件            |
+| `@ubean/server/cache-directive` | `cache-directive`                                                               | 组件级缓存                    |
 
 > 主入口 `@ubean/server` 保持 re-export 全部符号（便利入口），行为不变。子路径与内部文件非 1:1（`./cache` 聚合两个内部文件，`./realtime`/`./security`/`./cron`/`./analytics`/`./middleware` 同理）。
 
@@ -138,7 +141,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
   - 仅根目录文件被视为特殊页面；`users/404.vue` 仍为常规路由 `/users/404`
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序。开发态加载后启动 `startCronScheduler`；生产 eager glob 打进 server-entry。Node/bun/deno 启动进程内调度器；serverless/edge **不**装（用平台 cron）。
 - **Server Actions（表单 action）**：页面模块可 `export const actions = { name: defineAction(...) }`，POST 表单通过 `?/<actionName>` URL 分发（SvelteKit 风格，渐进增强）；详见第 4 节 Server Actions
-- `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（**没有** 顶层 `title` 字段）。客户端导航守卫用 `defineApp({ router: { setup } })`，不要发明第二套 `middleware/*.global` 文件约定
+- `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`、`transition`（页面过渡名，空串禁用本页过渡；**没有** 顶层 `title`/`middleware` 字段，路由级中间件用 `meta: { middleware }` 透传）。客户端导航守卫用 `defineApp({ router: { setup } })`，不要发明第二套 `middleware/*.global` 文件约定
   - `layout` 支持 `string`（单层）、`string[]`（多层嵌套，P9-17）或 `false`（禁用）；数组按外→内顺序嵌套：`['default', 'admin', 'dashboard']` → `default` 包裹 `admin` 包裹 `dashboard` 包裹页面；数组中的 `'default'` 是字面布局名（引用 `layouts/default.vue`），而单独字符串 `'default'` 表示使用默认布局
   - `cache: true` 启用页面 KeepAlive 缓存，框架自动用路由名作为组件 `name`（通过 `getNamedPageWrapper` 包装），`<script setup>` SFC 无需手动 `defineOptions({ name })`
   - 运行时控制：`useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)`
@@ -201,7 +204,9 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `getMatcher` / `hasMatcher` / `listMatcherNames` / `clearMatchers` | matcher 注册表读取/清理（`clearMatchers` 仅供测试）                                                            |
 | `validateParams(matchers, params)`                                 | 批量校验参数（服务端中间件与客户端守卫复用）                                                                   |
 | `createMatcherGuard(options?)`                                     | 创建 vue-router `beforeEach` 守卫，校验 `route.meta.matchers`，失败跳转 `notFoundRouteName`（默认 `NotFound`） |
-| `registerRoutes(app, scanResult)`                                  | 路由挂载（内部用 `app.on(method, path, ...)` 注册）                                                            |
+
+> matcher 系列（`defineMatcher`/`getMatcher`/`validateParams`/`createMatcherGuard` 等）定义在 `@ubean/vue`（`packages/vue/src/matchers.ts`），不经 `ubean/server` 转引；`registerRoutes(app, options)` 的第二参数为 `RegisterOptions`（routes/middleware/pages/layouts/routeLoaders 等扫描产物）。
+> | `registerRoutes(app, scanResult)` | 路由挂载（内部用 `app.on(method, path, ...)` 注册） |
 
 ### 应用入口
 
@@ -257,17 +262,17 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 缓存
 
-| API                                    | 说明                                          |
-| -------------------------------------- | --------------------------------------------- |
-| `useCacheStore(store?)`                | 获取缓存存储                                  |
-| `createMemoryStore(maxEntries)`        | 内存存储                                      |
-| `createFsCacheStore(dir)`              | Node 文件系统存储                             |
-| `createStorageCacheStore(storage)`     | 适配 `UbeanStorage`                           |
-| `resolveProductionCacheStore(preset)`  | 生产默认：Node 系 `fs`，serverless `memory`   |
-| `createCacheMiddleware(options)`       | 缓存中间件（`CacheRule`: `ttl`/`swr`/`name`） |
-| `cachedEventHandler(handler, options)` | 缓存事件处理器                                |
-| `invalidateRouteCache(keyPattern?)`    | 失效缓存                                      |
-| `resolveRouteCacheRules(routeRules)`   | 解析路由缓存规则                              |
+| API                                    | 说明                                                                                  |
+| -------------------------------------- | ------------------------------------------------------------------------------------- |
+| `useCacheStore(store?)`                | 获取缓存存储                                                                          |
+| `createMemoryStore(maxEntries)`        | 内存存储                                                                              |
+| `createFsCacheStore(dir)`              | Node 文件系统存储                                                                     |
+| `createStorageCacheStore(storage)`     | 适配 `UbeanStorage`                                                                   |
+| `resolveProductionCacheStore(preset)`  | 生产默认：Node 系 `fs`，serverless `memory`（来自 `@ubean/preset`，即 `ubean/build`） |
+| `createCacheMiddleware(options)`       | 缓存中间件（`CacheRule`: `ttl`/`swr`/`name`）                                         |
+| `cachedEventHandler(handler, options)` | 缓存事件处理器                                                                        |
+| `invalidateRouteCache(keyPattern?)`    | 失效缓存                                                                              |
+| `resolveRouteCacheRules(routeRules)`   | 解析路由缓存规则                                                                      |
 
 `CacheStore` 接口：`get` / `set` / `delete` / `clear` / `peek?`（P9-03:ISR SWR 用,不更新 LRU、不删除过期项）
 
@@ -425,10 +430,10 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 
 ### 内部调用
 
-| API                                                  | 说明                                   |
-| ---------------------------------------------------- | -------------------------------------- |
-| `createInternalFetch(options)` / `callInternal(...)` | 进程内调度框架 handler，不发起网络请求 |
-| `internalFetch` 不支持上传进度                       | —                                      |
+| API                            | 说明                                                                      |
+| ------------------------------ | ------------------------------------------------------------------------- |
+| `createInternalFetch(options)` | 进程内调度框架 handler，不发起网络请求（来自 `@ubean/pages`，主入口导出） |
+| `internalFetch` 不支持上传进度 | —                                                                         |
 
 > 浏览器端 HTTP 请求请直接使用 [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch)（`createRequest` / `toFlatRequest` / `createTypedClient` / `toFlatTypedClient`），ubean 不再内置 HTTP 客户端封装。页面侧用 `useFetch(key, url, options)` 包 `useAsyncData`，经 `setDefaultFetch(createRequest())` 注入该 client。
 
@@ -505,12 +510,12 @@ export default defineServer({
 
 ### 平台预设（P9-10）
 
-`@ubean/preset` 内置 9 个平台预设（合并原 P5-06），均通过 `definePreset()` 定义,新平台预设 `extends: 'node'` 继承基础配置。
+`@ubean/preset` 内置 11 个平台预设，均通过 `definePreset()` 定义,新平台预设 `extends: 'node'` 继承基础配置。
 
 | 预设                  | 别名                                                             | 说明                                                                                     |
 | --------------------- | ---------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `standardPreset`      | `default`                                                        | 默认预设（Node 兼容）                                                                    |
-| `nodePreset`          | `node-server`                                                    | Node.js 运行时                                                                           |
+| `nodePreset`          | `node-server`/`nodedev`                                          | Node.js 运行时                                                                           |
 | `cloudflarePreset`    | `cloudflare-pages`/`cloudflare-module`/`cf`/`wrangler`/`workers` | Cloudflare Workers                                                                       |
 | `cloudflareDevPreset` | `cf-dev`/`wrangler-dev`                                          | Cloudflare 开发模式（miniflare）                                                         |
 | `vercelPreset`        | `vercel-serverless`/`vercel-node`                                | Vercel Serverless Functions（Node 运行时）                                               |
@@ -518,6 +523,8 @@ export default defineServer({
 | `netlifyPreset`       | `netlify-functions`/`netlify-node`                               | Netlify Serverless Functions                                                             |
 | `bunPreset`           | `bun-runtime`                                                    | Bun 运行时（原生 TypeScript + `bun:sqlite`）                                             |
 | `denoPreset`          | `deno-deploy`/`deno-runtime`                                     | Deno 运行时（Deno KV / Deno.cron / Deno.Queue）                                          |
+| `awsPreset`           | `aws-lambda`/`lambda`/`amazon`/`sam`                             | AWS Lambda（SAM 模板）                                                                   |
+| `azurePreset`         | `azure-swa`/`azure-static-web-apps`/`swa`/`azure-functions`      | Azure Static Web Apps / Functions                                                        |
 
 | API                                                                         | 说明                                                           |
 | --------------------------------------------------------------------------- | -------------------------------------------------------------- |
@@ -526,7 +533,7 @@ export default defineServer({
 | `resolvePresetByName(name)`                                                 | 按名称/别名解析预设（未找到时 fallback 到 `standard`）         |
 | `registerBuiltinPresets()`                                                  | 注册所有内置预设（模块加载时自动调用）                         |
 | `detectPreset(hints?)` / `resolvePresetWithDetection(name?, cwd?)`          | 自动检测平台（explicit > config-file > environment > default） |
-| `listDetectablePresets()`                                                   | 列出所有可检测预设（9 个）                                     |
+| `listDetectablePresets()`                                                   | 列出所有可检测预设（11 个）                                    |
 | `getPresetAliases()` / `getPresetNames()`                                   | 别名/名称映射                                                  |
 | `generateWranglerConfig(opts)` / `serializeWranglerToml(config)`            | Cloudflare `wrangler.toml` 生成/序列化                         |
 | `generateVercelConfig(opts)` / `serializeVercelConfig(config)`              | Vercel `vercel.json` 生成/序列化                               |
@@ -537,8 +544,8 @@ export default defineServer({
 **自动检测优先级**：
 
 1. **explicit**:`resolvePresetWithDetection('vercel')` 显式指定
-2. **config-file**:检测 `wrangler.toml`/`wrangler.json`(Cloudflare)、`vercel.json`(Vercel)、`netlify.toml`(Netlify)、`deno.json`/`deno.jsonc`(Deno),以及 `package.json` 中的 `wrangler`/`@cloudflare/workers-types`/`vercel`/`@vercel/*`/`netlify-cli`/`netlify-lambda` 依赖
-3. **environment**:`CF_WORKERS`/`WRANGLER`/`CLOUDFLARE_WORKER`(Cloudflare)、`VERCEL`/`VERCEL_ENV`/`NOW_ID`(Vercel)、`NETLIFY`/`NETLIFY_DEV`(Netlify)、`globalThis.Deno`(Deno)、`globalThis.Bun`/`process.versions.bun`(Bun)、`globalThis.process.versions.node`(Node)
+2. **config-file**:检测 `wrangler.toml`/`wrangler.json`(Cloudflare)、`vercel.json`(Vercel)、`netlify.toml`(Netlify)、`deno.json`/`deno.jsonc`(Deno)、`template.yaml`/`samconfig.toml`(AWS SAM)、`staticwebapp.config.json`(Azure SWA),以及 `package.json` 中的 `wrangler`/`@cloudflare/workers-types`/`vercel`/`@vercel/*`/`netlify-cli`/`netlify-lambda`/`aws-sam-cli`/`aws-cdk`/`@aws-sdk/client-lambda`/`@azure/static-web-apps-cli`/`@azure/functions` 依赖
+3. **environment**:`CF_WORKERS`/`WRANGLER`/`CLOUDFLARE_WORKER`(Cloudflare)、`VERCEL`/`VERCEL_ENV`/`NOW_ID`(Vercel)、`NETLIFY`/`NETLIFY_DEV`(Netlify)、`AWS_LAMBDA_FUNCTION_NAME`/`AWS_EXECUTION_ENV`/`AWS_LAMBDA_RUNTIME_API`(AWS)、`AZURE_FUNCTIONS_ENVIRONMENT`/`WEBSITE_SITE_NAME`/`AZURE_HTTP_FUNCTION`(Azure)、`globalThis.Deno`(Deno)、`globalThis.Bun`/`process.versions.bun`(Bun)、`globalThis.process.versions.node`(Node)
 4. **default**:fallback 到 `standard` 预设
 
 **用法示例**：
@@ -667,7 +674,6 @@ import { useAuth, useSession, getSessionFromHeaders } from '@ubean/auth/runtime'
 import { ubeanIconPlugin } from '@ubean/icon/vite';
 import {
   Icon,
-  UbeanIcon,
   defineIconCollection,
   defineIconCollectionLoader,
   useIcon,
@@ -814,6 +820,8 @@ export default defineConfig({
 
 > 组件库本身请直接从 `@soybeanjs/ui` 导入（`import { SButton } from '@soybeanjs/ui'`），`@ubean/integrations/ui` 仅负责构建集成。
 
+## 6. 虚拟模块
+
 | 模块                             | 内容                                                                                                                               |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | `ubean:pages`                    | 页面路由数据                                                                                                                       |
@@ -822,7 +830,7 @@ export default defineConfig({
 | `ubean:app-config`               | 应用配置                                                                                                                           |
 | `ubean:locales`                  | 区域设置数据                                                                                                                       |
 | `virtual:ubean-pages`            | Vue Router 路由表 + 页面/布局 loader + `resolveLoadingComponent`/`hasNotFoundPage`（自动检测 `pages/loading.vue`/`pages/404.vue`） |
-| `virtual:ubean-islands-registry` | Islands 组件自动注册表（由 `@ubean/islands` Vite 插件生成）                                                                        |
+| `virtual:ubean-islands-registry` | Islands 组件自动注册表（由 `@ubean/islands` Vite 插件生成；组件以惰性 loader `() => import(...)` 导出，不进 entry chunk）          |
 
 ## 7. 内置路由
 
@@ -846,7 +854,7 @@ export default defineConfig({
 6. **客户端导入入口**：主入口 `ubean` 已 isomorphic 化，客户端代码可安全导入；但服务端符号（`defineHandler`/`useDatabase`/`validator`…）只在 `ubean/server`、构建时符号只在 `ubean/build` —— 在客户端代码中从 `ubean/server` 导入会触发 Vite 在浏览器环境预构建 Hono/`node:*` 依赖
 7. **`createUbeanApp` 消歧**：`@ubean/app` / `ubean/server` 的 `createUbeanApp` 返回 Hono `UbeanApp`；`@ubean/client` 的 Vue 工厂为 `createUbeanClientApp`（返回 `{ app, router, head, page }`）。服务端入口用 `ubean/server`（Hono），客户端用 `createUbeanClientApp`
 8. **中间件注册**：将 async 函数传给 `server.middlewares.use()` 时包装在 `Promise.resolve().then().catch()` 中
-9. **Service Worker**：生成 RUNTIME 全局时用硬编码字符串 `'ubean-runtime'`，避免模板替换
+9. **Service Worker**：PWA SW 由 vite-plugin-pwa + workbox 生成（`@ubean/integrations/pwa` 薄封装），无需手动处理模板替换
 10. **宏处理**：`macros.ts` 的 `MACRO_NAMES` 只保留 `definePage`；包含 `defineHandlerMeta`/`defineMiddleware` 会被 build strip，导致运行时函数调用语法错误
 11. **路由挂载**：`registerRoutes` 内部用 `app.on(method.toLowerCase(), path, ...)`，避免直接调用 `app[honoMethod(method)]`
 12. **测试工作目录**：CRUD 测试用临时目录 + `afterEach` 清理，避免 `process.cwd()` 依赖
@@ -866,11 +874,11 @@ pnpm lint             # ESLint（Vite-Plus/OXC + Vue）
 pnpm test             # 运行测试（vitest）
 pnpm analyze          # 读 Vite client manifest；示例基线 `examples/ubean-test/benchmarks/bundle-baseline.json`
 pnpm analyze:check    # 对照 committed 基线，gzip 相对增长超过 5% 则失败
-pnpm dev              # 启动开发服务器（examples/ubean-test）
+pnpm dev              # watch 构建主包 ubean（vp pack --watch）；示例 dev server 用 pnpm --filter ubean-test dev
 pnpm build            # 构建
 ```
 
-要求：Node.js、pnpm `11.22.0`（见根 `packageManager`）
+要求：Node.js >= 22、pnpm `11.24.0`（见根 `packageManager`）
 
 ## 10. 文档导航
 

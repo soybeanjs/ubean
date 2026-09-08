@@ -1,11 +1,11 @@
 {
-  "generatedAt": "2026-09-07T09:30:29.259Z",
+  "generatedAt": "2026-09-08T10:12:57.274Z",
   "outDir": "dist/public",
   "entries": [
     {
-      "file": "assets/app-BxCouYBc.js",
-      "bytes": 130816,
-      "gzip": 45982,
+      "file": "assets/app-D9BzYjQM.js",
+      "bytes": 134521,
+      "gzip": 47356,
       "isEntry": true
     },
     {
@@ -14,69 +14,69 @@
       "gzip": 27874
     },
     {
-      "file": "assets/chunks/fetch-test-DNThhhPn.js",
+      "file": "assets/chunks/fetch-test-CScaA4zE.js",
       "bytes": 26284,
-      "gzip": 8835
+      "gzip": 8838
     },
     {
-      "file": "assets/chunks/cache-demo-CkOrkWDu.js",
+      "file": "assets/chunks/pages-pOzgvC9G.js",
+      "bytes": 20971,
+      "gzip": 8034
+    },
+    {
+      "file": "assets/chunks/cache-demo-BnwxgmE6.js",
       "bytes": 6394,
-      "gzip": 2532
+      "gzip": 2536
     },
     {
-      "file": "assets/chunks/vue.BHyNcdic-DBaa61rT.js",
+      "file": "assets/chunks/vue.BHyNcdic-ShwmVD1z.js",
       "bytes": 5299,
-      "gzip": 2256
+      "gzip": 2260
     },
     {
-      "file": "assets/chunks/i18n-FEOnDB6y.js",
+      "file": "assets/chunks/i18n-Cz1tt7qy.js",
       "bytes": 4903,
-      "gzip": 1593
+      "gzip": 1596
     },
     {
-      "file": "assets/chunks/islands-test-DrTOBMjf.js",
+      "file": "assets/chunks/islands-test-C1AEVJTc.js",
       "bytes": 3131,
-      "gzip": 1334
+      "gzip": 1337
     },
     {
-      "file": "assets/chunks/seo-meta-CXGN-BzZ.js",
+      "file": "assets/chunks/seo-meta-BmNnxTX7.js",
       "bytes": 4081,
-      "gzip": 1326
+      "gzip": 1329
     },
     {
-      "file": "assets/chunks/view-transitions-DatXoBH-.js",
+      "file": "assets/chunks/view-transitions-ptZd0ZyR.js",
       "bytes": 2525,
-      "gzip": 1317
+      "gzip": 1320
     },
     {
-      "file": "assets/chunks/features-FmOmnmLn.js",
+      "file": "assets/chunks/features-DrtWozO5.js",
       "bytes": 4479,
-      "gzip": 1310
+      "gzip": 1313
     },
     {
-      "file": "assets/chunks/data-fetch-DRJ91J-X.js",
+      "file": "assets/chunks/data-fetch-C4ApW42p.js",
       "bytes": 2769,
-      "gzip": 1288
+      "gzip": 1292
     },
     {
-      "file": "assets/chunks/pages-CuAveVDw.js",
-      "bytes": 3160,
-      "gzip": 1158
-    },
-    {
-      "file": "assets/chunks/md-test-BnP-0kl5.js",
+      "file": "assets/chunks/md-test-CSugTc9L.js",
       "bytes": 2226,
-      "gzip": 1027
+      "gzip": 1028
     },
     {
-      "file": "assets/chunks/about-Dg94xIhd.js",
+      "file": "assets/chunks/about-TPg4xrus.js",
       "bytes": 2603,
-      "gzip": 836
+      "gzip": 838
     },
     {
-      "file": "assets/chunks/_id_-Cz4ESvzP.js",
+      "file": "assets/chunks/_id_-QHSUOUzi.js",
       "bytes": 1139,
-      "gzip": 712
+      "gzip": 714
     },
     {
       "file": "assets/chunks/IslandMedia-BTP6ubI3.js",
@@ -84,9 +84,9 @@
       "gzip": 576
     },
     {
-      "file": "assets/chunks/marketing-page-lyYuk2Hg.js",
+      "file": "assets/chunks/marketing-page-CYm-BTn3.js",
       "bytes": 811,
-      "gzip": 542
+      "gzip": 543
     },
     {
       "file": "assets/chunks/virtual_intlify-i18n-0-CicLCLd5.js",
@@ -94,9 +94,9 @@
       "gzip": 539
     },
     {
-      "file": "assets/chunks/default-BcI-KiPp.js",
+      "file": "assets/chunks/default-D9pmLt9H.js",
       "bytes": 914,
-      "gzip": 519
+      "gzip": 523
     },
     {
       "file": "assets/chunks/IslandVisibility-BP9DkyyS.js",
@@ -119,24 +119,24 @@
       "gzip": 457
     },
     {
+      "file": "assets/chunks/settings-iZgF1v3W.js",
+      "bytes": 600,
+      "gzip": 447
+    },
+    {
       "file": "assets/chunks/IslandCounter-BJY8is8v.js",
       "bytes": 648,
       "gzip": 446
     },
     {
-      "file": "assets/chunks/settings-CN-8a7jl.js",
-      "bytes": 600,
-      "gzip": 443
-    },
-    {
-      "file": "assets/chunks/profile-dw4tzWBF.js",
+      "file": "assets/chunks/profile-BNXSNTGa.js",
       "bytes": 550,
-      "gzip": 418
+      "gzip": 422
     },
     {
-      "file": "assets/chunks/_...slug_-BfYLIHYg.js",
+      "file": "assets/chunks/_...slug_-B7qLYWQ8.js",
       "bytes": 630,
-      "gzip": 413
+      "gzip": 416
     },
     {
       "file": "assets/chunks/dashboard-wMjTmoZI.js",
@@ -149,9 +149,9 @@
       "gzip": 287
     },
     {
-      "file": "assets/chunks/admin-hYgzQKR5.js",
+      "file": "assets/chunks/admin-YTWpmBsm.js",
       "bytes": 350,
-      "gzip": 275
+      "gzip": 278
     },
     {
       "file": "assets/chunks/_plugin-vue_export-helper-BDNMzG2s.js",
@@ -159,7 +159,7 @@
       "gzip": 99
     }
   ],
-  "totalBytes": 283111,
-  "totalGzip": 106162,
-  "entryGzip": 45982
+  "totalBytes": 304627,
+  "totalGzip": 114466,
+  "entryGzip": 47356
 }

@@ -12,7 +12,6 @@
 | --- | --- |
 | [roadmap.md](roadmap.md) | 2026 Q4 还债 / 2027 H1 用户可见缺口（ADR-0010） |
 | [contracts/](contracts/) | studio 开口：scaffold JSON Schema + `.ubean/` codegen 契约 |
-| [ssg.md](ssg.md) | 轻量 SSG 模式设计：vite-ssg 式直接渲染路径（绕过 Hono 管道） |
 
 ## 长期参考
 
@@ -33,6 +32,7 @@
 - [0008](adr/0008-ai-package-architecture.md) — `@ubean/ai` 包架构
 - [0009](adr/0009-i18n-engine-and-compact-locale-routing.md) — vue-i18n 11 + 约束前缀语言路由
 - [0010](adr/0010-competitive-north-star-and-gap-filter.md) — 竞品北极星与「值得做」过滤器
+- [0011](adr/0011-lightweight-ssg-direct-render.md) — 轻量 SSG：直接渲染路径（vite-ssg 式）
 
 ## 相关目录
 

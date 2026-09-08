@@ -1,5 +1,5 @@
 /**
- * 静态 SSG 渲染器测试（docs/ssg.md T1.3 / T1.4）。
+ * 静态 SSG 渲染器测试（docs/adr/0011-lightweight-ssg-direct-render.md）。
  *
  * 覆盖：
  * - `compilePageRoute` / `matchRoutePattern`：静态段 / 动态参数 / catch-all /

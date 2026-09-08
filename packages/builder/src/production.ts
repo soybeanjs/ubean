@@ -285,7 +285,8 @@ async function generateVirtualModulesToDisk(
   const rendererImport = ssrEnabled ? `import { createVueRenderer } from 'ubean/ssr';` : '';
   const prodLocaleVueParam = localeVueParamFromI18n(config.i18n) || '';
   // 渲染器 setup 与 assetTags 生成逻辑已抽取到 ssg-entry.ts，
-  // fullstack 与 ssg 静态 entry 共用同一份（防模板漂移，见 docs/ssg.md R1）。
+  // fullstack 与 ssg 静态 entry 共用同一份（防模板漂移 / 水合不一致，
+  // 见 docs/adr/0011-lightweight-ssg-direct-render.md）。
   const rendererSetup = buildRendererSetup({
     ssrEnabled,
     mode,
@@ -312,7 +313,8 @@ ${contentEntries.map(([name, docs]) => `registerContent(${JSON.stringify(name)},
     : '';
   if (hasServer) {
     // ssg 模式：生成最小静态渲染 entry（无 Hono app / API 路由 / 中间件 /
-    // crons / IPX），导出 renderStaticPage 供 prerender 直接调用（docs/ssg.md）。
+    // crons / IPX），导出 renderStaticPage 供 prerender 直接调用
+    // （docs/adr/0011-lightweight-ssg-direct-render.md）。
     if (mode === 'ssg') {
       const staticEntry = buildStaticSsgEntry({
         pagesGlob,

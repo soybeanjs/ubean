@@ -1,5 +1,5 @@
 /**
- * 静态 SSG entry 代码生成（mode: 'ssg' 专用，见 docs/ssg.md）。
+ * 静态 SSG entry 代码生成（mode: 'ssg' 专用，见 docs/adr/0011-lightweight-ssg-direct-render.md）。
  *
  * 与 fullstack server entry 的差异：
  * - 不实例化 Hono app（无 createUbeanApp / API 路由 / 中间件 / crons / IPX）

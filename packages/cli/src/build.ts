@@ -225,7 +225,8 @@ export const buildCommand: CommandDef = {
         let expandRoutes: ((routes: string[]) => string[]) | undefined;
 
         if (config.mode === 'ssg') {
-          // 静态 SSG 模式：直接渲染路径（绕过 Hono 请求管道，见 docs/ssg.md）。
+          // 静态 SSG 模式：直接渲染路径（绕过 Hono 请求管道，
+          // 见 docs/adr/0011-lightweight-ssg-direct-render.md）。
           // 失败时降级为 placeholder prerender（静态 entry 无 createFetchHandler，
           // 无需再尝试 SSR fetcher）。
           const staticRenderer = await createStaticSsgRenderer(cwd, manifest, {

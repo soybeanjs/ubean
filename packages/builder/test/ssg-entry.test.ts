@@ -1,5 +1,5 @@
 /**
- * 静态 SSG entry 代码生成测试（docs/ssg.md T1.1）。
+ * 静态 SSG entry 代码生成测试（docs/adr/0011-lightweight-ssg-direct-render.md）。
  *
  * 覆盖：
  * - `buildStaticSsgEntry`：内容断言（无 Hono / 无 API routes glob /

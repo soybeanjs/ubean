@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * SSG vs Fullstack prerender 构建性能对比基准（docs/ssg.md T3.1）。
+ * SSG vs Fullstack prerender 构建性能对比基准（docs/adr/0011-lightweight-ssg-direct-render.md）。
  *
  * 同一 fixture 分别以两种模式构建：
  * - `--mode ssg`        静态直接渲染路径（renderStaticPage，无 Hono 请求管道）

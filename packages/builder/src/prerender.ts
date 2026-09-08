@@ -46,7 +46,7 @@ export interface PrerendererOptions {
    */
   notFoundRoute?: boolean;
   /**
-   * i18n 多语言展开钩子（docs/ssg.md §4.5）：在 `collectPrerenderRoutes`
+   * i18n 多语言展开钩子（docs/adr/0011-lightweight-ssg-direct-render.md）：在 `collectPrerenderRoutes`
    * 之后、入队之前应用，把收集到的路由扩展为全语言 URL 列表
    * （如 `/about` → `['/about', '/zh/about']`）。
    */

@@ -1,5 +1,5 @@
 /**
- * 静态 SSG 渲染器（mode: 'ssg' 专用，见 docs/ssg.md）。
+ * 静态 SSG 渲染器（mode: 'ssg' 专用，见 docs/adr/0011-lightweight-ssg-direct-render.md）。
  *
  * 职责：
  * 1. `compilePageRoute` / `matchRoutePattern`：把具象 URL 匹配到页面路由模式
@@ -152,7 +152,7 @@ export function matchRoutePattern(
 }
 
 /* -------------------------------------------------------------------------- */
-/* i18n 多语言路由展开（docs/ssg.md §4.5）                                       */
+/* i18n 多语言路由展开（docs/adr/0011-lightweight-ssg-direct-render.md）                          */
 /* -------------------------------------------------------------------------- */
 
 function dedupeRoutes(routes: string[]): string[] {

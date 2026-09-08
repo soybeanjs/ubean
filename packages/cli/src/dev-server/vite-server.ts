@@ -7,7 +7,6 @@ import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
 import { ubeanPlugin } from '@ubean/build/vite';
 import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
-import { createVueRenderer } from '@ubean/client/ssr';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { getVueLocaleParam, toVueRouterLocalePath } from '@ubean/i18n';
@@ -441,6 +440,15 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     // 如果用户有 vite.config,让 Vite 加载它(用户配置中的 ubeanPlugin() 会从缓存获取 config)
     // 否则使用 false,完全由 builtin plugins 提供
     configFile: userViteConfig ?? false,
+    resolve: {
+      // pnpm peer-variant duplication can install multiple physical copies of
+      // vue-router (e.g. `@ubean/client` vs `@ubean/vue` resolving different
+      // peer contexts). vue-router's injection keys are per-instance Symbols,
+      // so the SSR router (provided by `@ubean/client`) and the RouterView/
+      // Link components (from `@ubean/vue`) must share ONE copy. Dedupe forces
+      // every import — client graph and inlined SSR graph — to the root copy.
+      dedupe: ['vue', 'vue-router']
+    },
     server: {
       middlewareMode: {
         server: httpServer
@@ -472,10 +480,21 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       ]
     },
     ssr: {
-      noExternal: ['ubean'],
+      // 将 @ubean/* 运行时全部内联进 Vite SSR 图:若保持 Node-external,
+      // 各包从自身 node_modules 解析 vue-router,会被 pnpm peer 变体劈成
+      // 多份实例(注入键为实例级 Symbol),SSR 渲染直接崩溃。内联后统一
+      // 走 resolve.dedupe 指向根副本。
+      noExternal: ['ubean', /^@ubean\//],
       external: ['@ubean/i18n']
     }
   });
+
+  // SSR 渲染器必须经 Vite SSR 图加载,而不是在 CLI 的 Node ESM 域静态
+  // import:静态 import 会让 `@ubean/client` 用自身嵌套的 vue-router 副本
+  // 创建 router(provide 侧),而组件(Link/PageView)在 Vite SSR 图里解析到
+  // 另一副本(inject 侧),Symbol 键不一致 → dev server SSR 崩溃。经
+  // ssrLoadModule 加载后,配合 resolve.dedupe,两侧共享同一 vue-router 实例。
+  const { createVueRenderer } = await viteServer.ssrLoadModule('@ubean/client/ssr');
 
   function enhanceAppWithVite(app: UbeanApp, layouts: ScannedLayout[] = []) {
     app.options.layouts = layouts;

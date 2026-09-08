@@ -2,7 +2,12 @@ import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   resolve: {
-    tsconfigPaths: true
+    tsconfigPaths: true,
+    // pnpm peer-variant duplication can install multiple copies of vue-router
+    // (@ubean/client's provide side vs @ubean/vue's inject side). vue-router's
+    // injection keys are per-instance Symbols, so `<Link>` (RouterLink) fails
+    // to inject the router context in tests. Dedupe to a single instance.
+    dedupe: ['vue', 'vue-router']
   },
   pack: {
     dts: true,

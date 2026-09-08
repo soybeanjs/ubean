@@ -176,7 +176,7 @@ ubean build
 **Behavior:**
 
 - Output goes to `config.build.outputDir` (default `dist/`).
-- `--mode ssg` (or `--ssg`) enables full prerendering by default and removes the temporary `dist/server` bundle afterwards (set the `UBEAN_KEEP_SSR` environment variable to keep it).
+- `--mode ssg` (or `--ssg`) enables full prerendering via the direct render path: a minimal static bundle renders each route without the Hono pipeline (no API routes / middleware / crons in the render bundle). `pages/404.vue` renders to `404.html` for static hosts; i18n routes are expanded per strategy (e.g. `/about` + `/zh/about`). The temporary `dist/server` bundle is removed afterwards (set the `UBEAN_KEEP_SSR` environment variable to keep it). Page `loader` is not executed in this mode (one-time warning) — use fullstack prerendering when loaders are required.
 - `spa` and `backend` modes disable prerendering; fullstack with `ssr: false` also disables it. `--prerender`/`--no-prerender` override the resolved value.
 - Preset `build:before`/`build:after` hooks are executed.
 

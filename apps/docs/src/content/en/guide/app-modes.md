@@ -14,7 +14,7 @@ ubean's `mode` config field declares the application shape and controls which bu
 | `fullstack` (default, `ssr: true`) | ✅ | ✅ | ✅ | optional | Vue pages + Hono API + SSR (default behavior) |
 | `fullstack` + `ssr: false` | ✅ | ❌ | ✅ | ❌ | Vue pages + Hono API, no SSR (admin dashboards) |
 | `spa` | ✅ | ❌ | ❌ | ❌ | Pure client-side render, static HTML + JS, no server |
-| `ssg` | ✅ | ✅ (temporary) | ❌ | ✅ (forced) | Build-time prerender to static HTML (marketing/blog) |
+| `ssg` | ✅ | ✅ (static bundle) | ❌ | ✅ (forced) | Build-time prerender via direct render path — static HTML (marketing/blog/docs) |
 | `backend` | ❌ | ❌ | ✅ | ❌ | Pure Hono API service, no Vue pages, no SSR |
 
 ## Configuration
@@ -116,12 +116,16 @@ Pure client-side rendering, no server.
 
 ### `ssg`
 
-Static site generation — prerender at build time.
+Static site generation — prerender at build time via a **direct render path** (no HTTP pipeline, see ADR-0011).
 
-- Builds client + a temporary SSR bundle used only for prerendering
+- Builds client + a **minimal static render bundle**: no Hono app, API routes, middleware, crons, or IPX — lighter and faster than fullstack prerendering (~50% faster per-route render, 6–11% faster overall build)
 - Forces `prerender.enabled = true`
 - Output: static HTML files under `dist/public/**/*.html`
-- Temporary `dist/server/` is cleaned up after prerender
+- `pages/404.vue` (if present) renders to `404.html` — picked up by GitHub Pages / Netlify / Cloudflare Pages as the custom 404 page
+- i18n routes are expanded per strategy: `/about` → `/about` + `/zh/about` under `prefix_except_default`; hreflang / canonical / og:locale tags are emitted automatically
+- Page `loader` is **not executed** (one-time warning) — data comes from content collections, module constants, or client-side hydration fetch
+- Not available in static output: server actions, form POST, ISR / PPR / streaming, route-rule redirect/rewrite (no execution point in static files) — use `fullstack` with `prerender` when you need those
+- Temporary `dist/server/` is cleaned up after prerender (set `UBEAN_KEEP_SSR=1` to keep it for debugging)
 - Preview: static file server serving `dist/public/`
 
 ### `backend`

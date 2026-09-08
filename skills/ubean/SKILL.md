@@ -351,7 +351,7 @@ export default defineConfig({
 });
 ```
 
-> **App modes**: `mode` controls which build steps run. `fullstack` (default) builds client + SSR + server; `spa` builds client only; `ssg` prerenders to static HTML; `backend` builds API server only. See [App Modes](/docs/guide/app-modes) and [Route Generation Modes](/docs/guide/routing-modes).
+> **App modes**: `mode` controls which build steps run. `fullstack` (default) builds client + SSR + server; `spa` builds client only; `ssg` prerenders to static HTML via the direct render path (minimal static bundle, no Hono pipeline; `pages/404.vue` → `404.html`; i18n routes auto-expanded; page `loader` not executed); `backend` builds API server only. See [App Modes](/docs/guide/app-modes) and [Route Generation Modes](/docs/guide/routing-modes).
 >
 > **Electron**: `electron: true` enables `@ubean/integrations/electron` with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR (desktop apps don't need SSR unless explicitly set via `ssr: true`).
 

@@ -54,6 +54,14 @@
 - **刻意不做（wontfix by positioning）**：竞品有、但与 Vue 专属 / 非 RSC / 不自研 i18n 引擎等北极星冲突的能力。记录在路线图「刻意不做」表，不进任务队列。
 - **北极星对标（competitive north star）**：学 Next 的能力（流式、缓存、Actions、route rules）而不是 RSC；学 Nuxt 的约定；Astro 只对 Islands；TanStack Start / Analog 只找类型安全数据层切口。
 
+## SSG 渲染路径（ADR-0011 沉淀）
+
+- **直接渲染路径（direct render path）**：`mode: 'ssg'` 的构建期渲染方式——绕过 Hono 请求管道，静态 entry 的 `renderStaticPage` 直接产出 HTML。与 fullstack prerender（走完整请求管道）并列的两条路径。
+- **静态 entry（static entry）**：`buildStaticSsgEntry()` 代码生成的最小渲染 bundle——只含 pages / layouts / renderer / i18n locales / content，不含 Hono app / API 路由 / 中间件 / crons / IPX，导出 `renderStaticPage`。
+- **fetcher 同构契约（fetcher contract）**：`(url) => { html, statusCode }` 返回形态。fullstack（`createSsrFetcher`）与 ssg（`createStaticSsgRenderer`）两条路径共用同一 `prerender()` 管线（payload 外置 / crawlLinks / 并发）的关键接缝。
+- **模板漂移（template drift）**：fullstack 与 static 两个 entry 模板各自演化导致水合结构不一致的风险。防法：renderer / assetTags 生成提取为共享函数（`buildRendererSetup` / `buildAssetTagsSetup`），两变体引用同一份代码。
+- **404 哨兵路由（not-found sentinel）**：`STATIC_NOT_FOUND_ROUTE` 假路由，入队渲染 `pages/404.vue` → `404.html`（静态托管自定义 404 约定）；不受默认 `/_**` exclude 过滤。
+
 ## 真理源与校验（第二轮 grilling 沉淀）
 
 - **真理源（source of truth）**：CI 校验时比对的标准。OPT-09 的真理源是 `packages/*/package.json` 的 `name` 字段（非目录名——`builder`≠`@ubean/build`、`ubean` 无 scope，目录名会误报）。OPT-07 的扩展集真理源是**派生**的：从 package.json 中找有 `./vite` 导出者，不硬编码列表（见 ADR-0005/0006）。

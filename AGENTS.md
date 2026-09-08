@@ -34,7 +34,7 @@ ubean/
 │   ├── app/                 # @ubean/app — Hono 应用工厂（createUbeanApp → UbeanApp）
 │   │
 │   │   ── 构建时工具 ──
-│   ├── builder/             # @ubean/build — Vite 插件（./vite + ./vue + ./actions）+ 生产构建 + ./prerender SSG + ./codegen
+│   ├── builder/             # @ubean/build — Vite 插件（./vite + ./vue + ./actions）+ 生产构建 + ./prerender SSG + ./static-render（ssg 直接渲染）+ ./codegen
 │   ├── config/              # @ubean/config — 配置加载 + 模块系统（defineModule / resolveModules）
 │   ├── preset/              # @ubean/preset — 平台预设（standard/node/cloudflare/cloudflare-dev/vercel/vercel-edge/netlify/bun/deno/aws/azure）
 │   │
@@ -89,7 +89,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `ubean/vite`     | 默认 Vite 插件组合（build + vue + islands + server actions）                                                                                                 | `vite.config.ts`           |
 | `ubean/client`   | 唯一客户端入口（re-export `@ubean/client` 内核 + `createServerHead` + Server Actions 运行时 + islands 注册表桥接）                                           | 客户端代码、SPA 自动导入   |
 | `ubean/server`   | 服务端运行时聚合入口（`@ubean/app` + `@ubean/routes` + `@ubean/server` + `@ubean/shared/node` + hono-openapi + 请求日志中间件）                              | `src/server.ts`、API 路由  |
-| `ubean/build`    | 构建时工具聚合入口（prerender + preset + config 加载器 + codegen 预设 + scan + Vite 插件本体）                                                               | 构建脚本、CI、vite.config  |
+| `ubean/build`    | 构建时工具聚合入口（prerender + preset + config 加载器 + codegen 预设 + scan + Vite 插件本体）；ssg 直接渲染 API 从 `@ubean/build/static-render` 子路径导入  | 构建脚本、CI、vite.config  |
 | `ubean/i18n`     | 服务端 i18n（re-export `@ubean/i18n` + 路由中间件覆盖）                                                                                                      | 构建时 i18n                |
 | `ubean/ssr`      | Vue SSR 渲染器（re-export `@ubean/client/ssr` 的 `createVueRenderer`；不要从 `@ubean/client` 主入口导入）                                                    | 自定义 SSR                 |
 | `ubean/scaffold` | 脚手架库 + 机器可读 catalog（`getScaffoldManifest` / `scaffold`）                                                                                            | studio / IDE 插件          |
@@ -614,17 +614,25 @@ const json = serializeVercelConfig(config);
 
 ### 预渲染
 
-| API                                                                  | 说明                                                                                                   |
-| -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `prerender(options)` / `collectPrerenderRoutes(pages, options)`      | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)                  |
-| `extractPrerenderRoutesFromRules(routeRules)`                        | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤)         |
-| `extractContentPageRoutes(docs)` / `discoverContentPageRoutes(root)` | `@ubean/content`：集合文档 → 预渲染 URL；`ubean build` 在 `content` 启用时自动发现                     |
-| `scanContentSources` / `bootstrapContentFromDisk`                    | 扫盘并填充 `queryCollection` 内存表；生产 SSR 由 server-entry 内联 snapshot，不依赖 Vite 插件          |
-| `extractDataPayload(html, route)` / `routeToDataFilePath(...)`       | SSG payload 提取(Task 3):从 HTML 中提取 `__UBEAN_DATA__` 为 `__data.json`,返回 `{data, html, dataUrl}` |
-| `generatePrerenderManifest(result, baseUrl)`                         | 生成清单                                                                                               |
-| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`    | 路由 → 文件路径映射/写入                                                                               |
-| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob`   | 链接提取/通配符匹配                                                                                    |
-| `resolvePrerenderConfig(config)`                                     | 配置解析与默认值(`extractDataPayload` 默认 `true`)                                                     |
+**两条渲染路径**（ADR-0011）：
+
+- `fullstack` 模式（或 fullstack 的 `prerender`）：`createSsrFetcher` 导入完整 server entry，逐路由走 Hono 请求管道（loader / 中间件 / route rules 全部生效）
+- `mode: 'ssg'` 直接渲染路径：生成最小静态 entry（无 Hono app / API 路由 / 中间件 / crons / IPX），`createStaticSsgRenderer` 直接调 `renderStaticPage`；`pages/404.vue` 自动产出 `404.html`；i18n 路由按 strategy 自动展开全语言 URL（hreflang/canonical/og:locale 自动产出）；页面 `loader` 不执行（一次性 warn）；运行时能力（actions / ISR / PPR / streaming）不可用
+
+| API                                                                  | 说明                                                                                                                                                           |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prerender(options)` / `collectPrerenderRoutes(pages, options)`      | SSG;`options.routeRules` 自动发现 `prerender: true` / `ppr: true` 路由(P9-03 + P9-04)                                                                          |
+| `createStaticSsgRenderer(cwd, manifest, init)`                       | ssg 直接渲染:加载静态 entry,返回与 `PrerendererOptions.fetcher` 同构的 `{ fetcher, expandRoutes }`;失败返回 `undefined` 供降级（`@ubean/build/static-render`） |
+| `expandRoutesForLocales(routes, i18n)`                               | 按 i18n strategy 展开全语言 URL(`prefix_except_default`/`prefix`/`prefix_and_default`);404 哨兵与已带前缀 URL 跳过（`@ubean/build/static-render`）             |
+| `matchRoutePattern(pages, path)` / `compilePageRoute(page)`          | 静态路由匹配:scanner 方言(`:param`/`**:slug`/`:id?`) + `definePage` vue-router 语法(`:param(regex)`/`:param*`),特异性排序（`@ubean/build/static-render`）      |
+| `extractPrerenderRoutesFromRules(routeRules)`                        | 从 `routeRules` 提取 `prerender: true` / `ppr: true` 模式(与 `include` 合并,受 `exclude` 过滤)                                                                 |
+| `extractContentPageRoutes(docs)` / `discoverContentPageRoutes(root)` | `@ubean/content`：集合文档 → 预渲染 URL；`ubean build` 在 `content` 启用时自动发现                                                                             |
+| `scanContentSources` / `bootstrapContentFromDisk`                    | 扫盘并填充 `queryCollection` 内存表；生产 SSR 由 server-entry 内联 snapshot，不依赖 Vite 插件                                                                  |
+| `extractDataPayload(html, route)` / `routeToDataFilePath(...)`       | SSG payload 提取(Task 3):从 HTML 中提取 `__UBEAN_DATA__` 为 `__data.json`,返回 `{data, html, dataUrl}`                                                         |
+| `generatePrerenderManifest(result, baseUrl)`                         | 生成清单                                                                                                                                                       |
+| `routeToFilePath(route, outputDir)` / `writePrerenderedFile(...)`    | 路由 → 文件路径映射/写入;404 哨兵路由 → `404.html`（静态托管自定义 404 页,`notFoundRoute` 开关控制入队）                                                       |
+| `extractLinks(html)` / `matchGlob(path, pattern)` / `matchAnyGlob`   | 链接提取/通配符匹配                                                                                                                                            |
+| `resolvePrerenderConfig(config)`                                     | 配置解析与默认值(`extractDataPayload` 默认 `true`)                                                                                                             |
 
 ### i18n
 
@@ -898,6 +906,7 @@ pnpm build            # 构建
 | 领域词汇表                | [docs/glossary.md](docs/glossary.md)                                                                               | 领域建模词汇表 + ADR 决策索引                                                          |
 | i18n 决策                 | [docs/adr/0009-i18n-engine-and-compact-locale-routing.md](docs/adr/0009-i18n-engine-and-compact-locale-routing.md) | vue-i18n 11 + 约束前缀；任务清单已删                                                   |
 | 竞品北极星                | [docs/adr/0010-competitive-north-star-and-gap-filter.md](docs/adr/0010-competitive-north-star-and-gap-filter.md)   | 对标 Next 能力 / Nuxt 约定；RSC 刻意不做                                               |
+| 轻量 SSG 决策             | [docs/adr/0011-lightweight-ssg-direct-render.md](docs/adr/0011-lightweight-ssg-direct-render.md)                   | ssg 直接渲染路径（绕过 Hono 管道）；任务清单已删                                       |
 | 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)                                                                   | 中英文档源（overview / routing / runtime / framework-comparison / guide / reference…） |
 | CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)                                                     | CLI 命令文档                                                                           |
 | AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                                                                     | Agent 技能入口                                                                         |

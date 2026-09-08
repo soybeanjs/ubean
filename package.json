@@ -5,6 +5,7 @@
   "scripts": {
     "analyze": "pnpm --filter ubean-test analyze",
     "analyze:check": "pnpm --filter ubean-test analyze:check",
+    "benchmark:ssg": "node scripts/benchmark-ssg.mjs",
     "build": "pnpm -F './packages/*' --parallel build",
     "commit": "soy git-commit",
     "dev": "pnpm --filter ubean dev",

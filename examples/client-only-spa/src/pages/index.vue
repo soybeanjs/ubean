@@ -2,6 +2,7 @@
 // 全部显式导入 —— 精简内核不提供自动引入。
 // definePage 声明由 @ubean/vue/vite 编译期提取(构建后此调用被剥除)。
 import { ref } from 'vue';
+import { Icon } from '@iconify/vue';
 import { definePage } from '@ubean/vue';
 
 // 文件即路由:pages/index.vue → '/',name 覆盖文件派生的 'Index' 为 'Home'
@@ -26,6 +27,8 @@ const features = [
   <section>
     <h1>@ubean/vue 独立 SPA</h1>
     <p class="subtitle">精简客户端内核:路由 / 页面缓存 / 过渡动画 —— 插件式接入,显式导入</p>
+
+    <Icon icon="lucide:search" />
 
     <ul class="features">
       <li v-for="f in features" :key="f.name">

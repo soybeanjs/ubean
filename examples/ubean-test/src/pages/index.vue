@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Icon } from '@iconify/vue';
+
 useHead({
   title: 'ubean-test 功能测试首页',
   meta: [{ name: 'description', content: 'ubean 框架功能验证测试项目' }]
@@ -9,6 +11,7 @@ useHead({
   <div class="home">
     <section class="hero">
       <h1>🧪 ubean-test</h1>
+      <Icon icon="lucide:search" />
       <p class="subtitle">ubean 框架功能验证测试项目</p>
     </section>
 

@@ -212,6 +212,9 @@ importers:
 
   examples/client-only-spa:
     dependencies:
+      '@iconify/vue':
+        specifier: ^5.0.1
+        version: 5.0.1(vue@3.5.42(typescript@6.0.3))
       '@ubean/vue':
         specifier: workspace:*
         version: link:../../packages/vue
@@ -336,6 +339,9 @@ importers:
 
   examples/ubean-test:
     dependencies:
+      '@iconify/vue':
+        specifier: ^5.0.1
+        version: 5.0.1(vue@3.5.42(typescript@6.0.3))
       '@soybeanjs/fetch':
         specifier: ^0.1.0
         version: 0.1.0

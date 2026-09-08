@@ -1,5 +1,21 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.3...main) (2026-09-08)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**: bridge vite-plus-core dual-instance types for devtools plugins &nbsp;-&nbsp; by @soybeanjs [<samp>(90477)</samp>](https://github.com/soybeanjs/ubean/commit/9047764)
+- **dev-server**: encode virtual module url in injected CSS links &nbsp;-&nbsp; by @soybeanjs [<samp>(03578)</samp>](https://github.com/soybeanjs/ubean/commit/035788b)
+- **test**: fix vue-router duplicate instance regressions &nbsp;-&nbsp; by @soybeanjs [<samp>(62688)</samp>](https://github.com/soybeanjs/ubean/commit/6268803)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **projects**: format code &nbsp;-&nbsp; by @soybeanjs [<samp>(c8afb)</samp>](https://github.com/soybeanjs/ubean/commit/c8afb28)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.2...main) (2026-09-08)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

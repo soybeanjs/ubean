@@ -1,5 +1,5 @@
 import type { App, Component, Plugin } from 'vue';
-import type { Router } from 'vue-router';
+import type { Router, RouterOptions } from 'vue-router';
 import type { PageHead } from '@ubean/shared';
 import type { ViewTransitionOptions } from '@ubean/vue';
 
@@ -9,7 +9,7 @@ export interface AppPluginConfig {
 }
 
 /**
- * Router 钩子配置 — 暴露 vue-router 的导航守卫注册入口。
+ * Router 钩子配置 — 暴露 vue-router 的导航守卫注册入口 + 初始化选项。
  *
  * `setup(router)` 在 router 实例创建后、`app.use(router)` 之前调用,
  * 因此守卫能拦截首次导航(包括 SSR 的初始 URL push)。
@@ -29,6 +29,12 @@ export interface AppPluginConfig {
  *       router.afterEach((to) => {
  *         analytics.track('page_view', { path: to.fullPath });
  *       });
+ *     },
+ *     scrollBehavior(to, from, savedPosition) {
+ *       // 覆盖默认滚动策略(默认已守卫 hash 目标元素不存在时的 R0042)
+ *       if (savedPosition) return savedPosition;
+ *       if (to.hash) return { el: to.hash, behavior: 'smooth' };
+ *       return { top: 0 };
  *     }
  *   }
  * });
@@ -43,6 +49,11 @@ export interface RouterConfig {
    * 不要在 setup 中执行异步操作(如请求 API),因为这会延迟首次导航。
    */
   setup?: (router: Router) => void;
+  /**
+   * vue-router `scrollBehavior`,覆盖 `createUbeanRouter` 的默认滚动策略。
+   * 未配置时使用框架默认:回到顶部;带 hash 且目标元素存在时平滑滚动。
+   */
+  scrollBehavior?: RouterOptions['scrollBehavior'];
 }
 
 export interface DefineAppOptions {
@@ -249,18 +260,20 @@ export function mergeAppConfig(
     if (cfg.viewTransitions !== undefined) result.viewTransitions = cfg.viewTransitions;
     if (cfg.serializeState) result.serializeState = cfg.serializeState;
     if (cfg.hydrateState) result.hydrateState = cfg.hydrateState;
-    if (cfg.router?.setup) {
-      const prevSetup = result.router?.setup;
-      if (prevSetup) {
-        result.router = {
-          setup: (router: Router) => {
-            prevSetup(router);
-            cfg.router!.setup!(router);
-          }
-        };
-      } else {
-        result.router = { setup: cfg.router.setup };
-      }
+    if (cfg.router) {
+      const prev = result.router;
+      // setup 累加:多个配置的守卫都执行(shared 先,client/server 后)。
+      const setup = cfg.router.setup
+        ? prev?.setup
+          ? (router: Router) => {
+              prev.setup!(router);
+              cfg.router!.setup!(router);
+            }
+          : cfg.router.setup
+        : prev?.setup;
+      // scrollBehavior 为函数不可合并,后者覆盖。
+      const scrollBehavior = cfg.router.scrollBehavior !== undefined ? cfg.router.scrollBehavior : prev?.scrollBehavior;
+      result.router = { setup, ...(scrollBehavior !== undefined ? { scrollBehavior } : {}) };
     }
   }
   return result;

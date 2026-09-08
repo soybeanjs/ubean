@@ -46,6 +46,7 @@ import { Head as UnheadHeadComponent } from '@unhead/vue/components';
 import { localizePath, initClientI18n, createUbeanI18n, bindI18nRuntime, getI18nRuntimeConfig } from './i18n';
 // Framework router factory (the lean kernel ships no factory — see ./router.ts)
 import { createUbeanRouter } from './router';
+import type { RouterConfig } from './define-app';
 
 // Re-export the lean surface for framework consumers of this subpath.
 // `usePage`(路由感知版)见下方;`useRouter` 不再透传,请直接从 `vue-router` 导入。
@@ -78,12 +79,12 @@ export interface UbeanAppOptions {
   viewTransitions?: boolean | ViewTransitionOptions;
   hydrate?: boolean;
   /**
-   * 在 router 实例创建后、`app.use(router)` 之前调用,
-   * 用于注册 vue-router 的导航守卫(`beforeEach` / `beforeResolve` / `afterEach`)。
-   *
-   * Client 和 SSR 都会执行。守卫注册必须同步完成(守卫本身可返回 Promise)。
+   * router 配置(setup 守卫 + scrollBehavior 等初始化选项)。
+   * Client 和 SSR 都会执行;setup 注册守卫必须同步完成。
+   * 来自 `defineApp({ router })`,由 `virtual:ubean-app` / `virtual:ubean-server`
+   * 在调用本工厂前通过 `resolveAppConfig()` 合并注入。
    */
-  routerSetup?: (router: ReturnType<typeof createUbeanRouter>) => void;
+  router?: RouterConfig;
   /**
    * 页面加载时的 fallback 组件,在 SPA 导航懒加载页面组件期间显示。
    * 来源:`pages/loading.vue` 自动检测 或 `defineApp({ loadingComponent })` 显式配置。
@@ -294,7 +295,8 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
   const router = createUbeanRouter({
     routes: options.routes,
     ssr: false,
-    setup: options.routerSetup
+    setup: options.router?.setup,
+    scrollBehavior: options.router?.scrollBehavior
   });
 
   const { LayoutView: ClientLayoutWrapper, loadLayoutsForRoute: loadClientLayouts } = createLayoutWrapper(
@@ -355,7 +357,8 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
     routes: options.routes,
     ssr: true,
     initialUrl: initialPage.url,
-    setup: options.routerSetup
+    setup: options.router?.setup,
+    scrollBehavior: options.router?.scrollBehavior
   });
 
   const { LayoutView: SsrLayoutWrapper, loadLayoutsForRoute: loadSsrLayouts } = createLayoutWrapper(

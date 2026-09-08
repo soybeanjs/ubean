@@ -172,15 +172,17 @@ function _mergeAppConfig(base, ...configs) {
   for (const cfg of [base, ...configs]) {
     if (cfg?.router?.setup) setups.push(cfg.router.setup);
   }
-  if (setups.length === 1) {
-    result.router = { setup: setups[0] };
-  } else if (setups.length > 1) {
-    result.router = {
-      setup: (router) => {
-        for (const s of setups) s(router);
-      }
-    };
+  // scrollBehavior 为函数不可合并,后者覆盖(shared 之后定义的 client/server 生效)。
+  let scrollBehavior;
+  for (const cfg of [base, ...configs]) {
+    if (cfg?.router?.scrollBehavior !== undefined) scrollBehavior = cfg.router.scrollBehavior;
   }
+  const router = {};
+  if (setups.length > 0) {
+    router.setup = setups.length === 1 ? setups[0] : (r) => { for (const s of setups) s(r); };
+  }
+  if (scrollBehavior !== undefined) router.scrollBehavior = scrollBehavior;
+  if (setups.length > 0 || scrollBehavior !== undefined) result.router = router;
   return result;
 }
 
@@ -243,7 +245,7 @@ export async function createApp() {
     viewTransitions: config.viewTransitions,
     initialPage: initialPage || undefined,
     hydrate: !!initialPage,
-    routerSetup: config.router?.setup,
+    router: config.router,
     loadingComponent,
     errorComponent,
     // appRoot 已在 resolveAppConfig 中合并(src/App.vue 默认 + defineApp 显式覆盖)
@@ -328,7 +330,7 @@ export async function createSSRApp(initialPage) {
     resolveLayoutComponent,
     defaultLayout,
     head,
-    routerSetup: config.router?.setup,
+    router: config.router,
     loadingComponent,
     errorComponent,
     // appRoot 已在 resolveAppConfig 中合并(src/App.vue 默认 + defineApp 显式覆盖),

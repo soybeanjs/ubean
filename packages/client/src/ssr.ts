@@ -250,6 +250,7 @@ async function prepareRender(
       defaultLayout: options.defaultLayout,
       head,
       i18n,
+      router: appConfig?.router,
       appRoot: appConfig?.appRoot
     });
     if (appConfig) {

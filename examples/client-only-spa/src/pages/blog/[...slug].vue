@@ -15,9 +15,17 @@ const crumbs = computed(() => params.slug ?? []);
 <template>
   <section>
     <h1>博客(catch-all)</h1>
-    <p class="subtitle">路由 <code>/blog/**:slug</code> —— 文件 <code>[...slug].vue</code></p>
+    <p class="subtitle">
+      路由
+      <code>/blog/**:slug</code>
+      —— 文件
+      <code>[...slug].vue</code>
+    </p>
     <div class="card">
-      <p>slug 段数:<strong>{{ crumbs.length }}</strong></p>
+      <p>
+        slug 段数:
+        <strong>{{ crumbs.length }}</strong>
+      </p>
       <ol class="crumbs">
         <li v-for="(c, i) in crumbs" :key="i" class="mono">{{ c }}</li>
       </ol>
@@ -31,11 +39,34 @@ const crumbs = computed(() => params.slug ?? []);
 </template>
 
 <style scoped>
-h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-.subtitle { color: gray; margin-bottom: 1.25rem; font-size: 0.92rem; }
-.card { border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 10px; padding: 1rem 1.25rem; }
-.crumbs { margin: 0.5rem 0 0 1.2rem; }
-.mono { font-family: 'SF Mono', ui-monospace, monospace; }
-.toc { display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; }
-.toc a { color: #42b883; text-decoration: none; }
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.subtitle {
+  color: gray;
+  margin-bottom: 1.25rem;
+  font-size: 0.92rem;
+}
+.card {
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+}
+.crumbs {
+  margin: 0.5rem 0 0 1.2rem;
+}
+.mono {
+  font-family: 'SF Mono', ui-monospace, monospace;
+}
+.toc {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+.toc a {
+  color: #42b883;
+  text-decoration: none;
+}
 </style>

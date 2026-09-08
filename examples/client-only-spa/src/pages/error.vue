@@ -18,8 +18,26 @@ const reload = () => window.location.reload();
 </template>
 
 <style scoped>
-.error { padding: 2rem 0; color: #dc2626; }
-h1 { font-size: 1.3rem; margin-bottom: 0.6rem; }
-.mono { font-family: 'SF Mono', ui-monospace, monospace; font-size: 0.85rem; word-break: break-all; }
-button { margin-top: 1rem; cursor: pointer; border: 1px solid rgba(220, 38, 38, 0.5); background: transparent; color: inherit; border-radius: 6px; padding: 5px 12px; }
+.error {
+  padding: 2rem 0;
+  color: #dc2626;
+}
+h1 {
+  font-size: 1.3rem;
+  margin-bottom: 0.6rem;
+}
+.mono {
+  font-family: 'SF Mono', ui-monospace, monospace;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+button {
+  margin-top: 1rem;
+  cursor: pointer;
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  background: transparent;
+  color: inherit;
+  border-radius: 6px;
+  padding: 5px 12px;
+}
 </style>

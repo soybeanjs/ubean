@@ -22,9 +22,9 @@ head:
 - [内部链接](/about) 与外部链接
 - 表格:
 
-| 特性 | 状态 |
-| --- | --- |
+| 特性     | 状态             |
+| -------- | ---------------- |
 | md + mdx | `markdown: true` |
-| 仅 md | `markdown: 'md'` |
+| 仅 md    | `markdown: 'md'` |
 
 > frontmatter 之外的正文就是页面内容。

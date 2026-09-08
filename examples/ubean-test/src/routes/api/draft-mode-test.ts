@@ -1,4 +1,13 @@
 import { createHmac } from 'node:crypto';
+import type { UbeanEnv } from 'ubean';
+import {
+  defineHandler,
+  createDraftModeMiddleware,
+  enableDraftMode,
+  disableDraftMode,
+  isDraftMode,
+  useDraftMode
+} from 'ubean/server';
 /**
  * Draft / Preview Mode (Task 5) —— HTTP 集成测试入口
  *
@@ -16,15 +25,6 @@ import { createHmac } from 'node:crypto';
  * - composable:      useDraftMode() 返回 { isEnabled, enable, disable } 且功能正常
  */
 import { Hono } from 'hono';
-import type { UbeanEnv } from 'ubean';
-import {
-  defineHandler,
-  createDraftModeMiddleware,
-  enableDraftMode,
-  disableDraftMode,
-  isDraftMode,
-  useDraftMode
-} from 'ubean/server';
 
 type TestApp = Hono<UbeanEnv>;
 

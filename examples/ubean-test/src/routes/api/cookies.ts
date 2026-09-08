@@ -1,5 +1,5 @@
-import { object, pipe, string, description, optional } from 'valibot';
 import { defineHandler, describeRoute, validator } from 'ubean/server';
+import { object, pipe, string, description, optional } from 'valibot';
 
 const cookieSchema = object({
   session: optional(pipe(string(), description('Session ID cookie'))),

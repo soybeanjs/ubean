@@ -12,9 +12,9 @@
  * - useAnalytics helper
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import type { UbeanEnv } from '@ubean/shared';
 import { Hono } from 'hono';
 import type { Context } from 'hono';
-import type { UbeanEnv } from '@ubean/shared';
 import {
   createLogAnalyticsProvider,
   createMemoryAnalyticsProvider,

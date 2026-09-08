@@ -1,3 +1,4 @@
+import type { UbeanEnv } from '@ubean/shared';
 /**
  * Single-flight mutations (P9-16)
  *
@@ -32,7 +33,6 @@
  * ```
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/shared';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                     */

@@ -1,5 +1,5 @@
-import type { MiddlewareHandler, Context, Next } from 'hono';
 import type { UbeanEnv, RouteMeta } from '@ubean/shared';
+import type { MiddlewareHandler, Context, Next } from 'hono';
 import type { Input, HandlerResponse, H } from 'hono/types';
 
 interface HandlerWithMeta {

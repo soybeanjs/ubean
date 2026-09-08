@@ -51,13 +51,24 @@ function layout(name: string): ScannedLayout {
   const rel = `layouts/${name}.vue`;
   const fullPath = join(srcDir, rel);
   writeFileSync(fullPath, '<template/>');
-  return { fullPath, relativePath: rel, dirname: 'layouts', basename: name, name, path: `/${name}`, isDefault: name === 'default' };
+  return {
+    fullPath,
+    relativePath: rel,
+    dirname: 'layouts',
+    basename: name,
+    name,
+    path: `/${name}`,
+    isDefault: name === 'default'
+  };
 }
 
 describe('generateRouteFiles', () => {
   it('产出 routes.ts / imports.ts / typed-router.d.ts', async () => {
     const result = await generateRouteFiles(
-      { pages: [page({ name: 'Home', route: '/' }), page({ name: 'UsersId', route: '/users/:id' })], layouts: [layout('default')] },
+      {
+        pages: [page({ name: 'Home', route: '/' }), page({ name: 'UsersId', route: '/users/:id' })],
+        layouts: [layout('default')]
+      },
       { cwd: tmpDir, srcDir, outDir }
     );
 
@@ -100,12 +111,15 @@ describe('generateRouteFiles', () => {
       pageMeta: { meta: { section: 'users' } }
     });
 
-    await generateRouteFiles({ pages: [p], layouts: [] }, {
-      cwd: tmpDir,
-      srcDir,
-      outDir,
-      getRouteMeta: () => ({ section: 'override-attempt', from: 'hook' })
-    });
+    await generateRouteFiles(
+      { pages: [p], layouts: [] },
+      {
+        cwd: tmpDir,
+        srcDir,
+        outDir,
+        getRouteMeta: () => ({ section: 'override-attempt', from: 'hook' })
+      }
+    );
 
     const routes = readFileSync(join(outDir, 'routes.ts'), 'utf-8');
     // definePage meta 优先(getRouteMeta 的同名字段不覆盖),matchers 自动注入

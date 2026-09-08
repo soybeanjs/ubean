@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs';
-import type { Context, MiddlewareHandler } from 'hono';
 import type { UbeanEnv } from '@ubean/shared';
+import type { Context, MiddlewareHandler } from 'hono';
 import { join, extname } from 'pathe';
 
 const MIME_TYPES: Record<string, string> = {

@@ -23,13 +23,20 @@ export default {
         <div class="card">
           <label>
             主题:
-            <select value={theme.value} onChange={e => (theme.value = (e.target as HTMLSelectElement).value as 'light' | 'dark')}>
+            <select
+              value={theme.value}
+              onChange={e => (theme.value = (e.target as HTMLSelectElement).value as 'light' | 'dark')}
+            >
               <option value="light">light</option>
               <option value="dark">dark</option>
             </select>
           </label>
           <label>
-            <input type="checkbox" checked={reducedMotion.value} onChange={e => (reducedMotion.value = (e.target as HTMLInputElement).checked)} />
+            <input
+              type="checkbox"
+              checked={reducedMotion.value}
+              onChange={e => (reducedMotion.value = (e.target as HTMLInputElement).checked)}
+            />
             减弱动效
           </label>
           <p class="mono">{summary.value}</p>

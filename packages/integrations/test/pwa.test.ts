@@ -10,8 +10,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { PwaOptions } from '../src/pwa/types';
 import { ubeanPwaPlugin, definePwaConfig, toVitePwaOptions } from '../src/pwa/index';
+import type { PwaOptions } from '../src/pwa/types';
 
 describe('@ubean/integrations/pwa thin wrapper', () => {
   describe('toVitePwaOptions', () => {

@@ -1,5 +1,5 @@
-import type { Context, MiddlewareHandler } from 'hono';
 import type { UbeanEnv } from '@ubean/shared';
+import type { Context, MiddlewareHandler } from 'hono';
 
 export interface SSEMessage {
   data?: string | object;

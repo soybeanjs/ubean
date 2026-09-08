@@ -1,3 +1,4 @@
+import type { UbeanEnv } from '@ubean/shared';
 /**
  * CSRF 保护中间件 (P9-12)
  *
@@ -9,7 +10,6 @@
  * 也支持 origin 校验模式(更简单,但不如 token 安全)。
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/shared';
 
 export interface CsrfOptions {
   /** 校验模式:'token'(double-submit cookie,默认) | 'origin'(Origin/Referer 校验) | 'both' */

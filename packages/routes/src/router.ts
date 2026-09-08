@@ -1,9 +1,9 @@
-import type { Context, Next, MiddlewareHandler, Hono } from 'hono';
 import { compileLocalePaths } from '@ubean/i18n';
 import { validateParams as _validateParams } from '@ubean/scan';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 import { isServerAction, matchAnyGlob } from '@ubean/shared';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/shared';
+import type { Context, Next, MiddlewareHandler, Hono } from 'hono';
 import { isBotUserAgent } from './bot-detection';
 import { extractRouteMeta, isHandlerChain } from './handler';
 import { serveIsr } from './isr';

@@ -25,7 +25,12 @@ export { generateApiRouteId } from './api-route-id';
 
 // definePage 提取器:页面字段来自 @ubean/vue/vite(BC re-export),
 // defineHandlerMeta(服务端)保留在本包
-export { extractDefinePage, extractDefinePageFromCode, extractDefineMeta, extractDefineMetaFromCode } from './define-page';
+export {
+  extractDefinePage,
+  extractDefinePageFromCode,
+  extractDefineMeta,
+  extractDefineMetaFromCode
+} from './define-page';
 
 // rou3 server router 与 Compiled* 类型已迁至 `@ubean/routes`(服务端路由运行时)
 
@@ -58,4 +63,12 @@ export type {
   DefineMetaResult
 } from './types';
 // 页面路由类型:所有权在 @ubean/vue,此处 re-export(BC)
-export type { PageMeta, PageHead, ScannedPage, ScannedPageRoute, ScannedLayout, ScanPagesOptions, ScanPagesResult } from './types';
+export type {
+  PageMeta,
+  PageHead,
+  ScannedPage,
+  ScannedPageRoute,
+  ScannedLayout,
+  ScanPagesOptions,
+  ScanPagesResult
+} from './types';

@@ -1,6 +1,6 @@
+import type { UbeanEnv } from '@ubean/shared';
 import type { Context, Hono } from 'hono';
 import { generateSpecs } from 'hono-openapi';
-import type { UbeanEnv } from '@ubean/shared';
 import { describeActionsOpenApi } from './actions/openapi';
 
 export interface OpenAPIGenerationOptions {

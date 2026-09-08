@@ -1,5 +1,5 @@
-import type { Context, Next, MiddlewareHandler } from 'hono';
 import type { UbeanEnv } from '@ubean/shared';
+import type { Context, Next, MiddlewareHandler } from 'hono';
 
 export interface RateLimitOptions {
   maxRequests?: number;

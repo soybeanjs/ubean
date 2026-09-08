@@ -1,3 +1,4 @@
+import type { UbeanEnv } from '@ubean/shared';
 /**
  * after() 响应后执行 API (P9-14)
  *
@@ -23,7 +24,6 @@
  * ```
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/shared';
 
 type AfterCallback = () => void | Promise<void>;
 

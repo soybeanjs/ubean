@@ -1,3 +1,7 @@
+import { mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 /**
  * 实体路由文件生成器冒烟(@ubean/vue/generator,精简 SPA 侧使用)。
  *
@@ -5,10 +9,6 @@
  * scanClientPages 重新扫描示例页面目录,验证精简 SPA 也能走 file 模式。
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { mkdtempSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { generateRouteFiles } from '@ubean/vue/generator';
 import { scanClientPages } from '@ubean/vue/vite';
 

@@ -1,3 +1,4 @@
+import type { IsrRule, RouteRule, UbeanEnv } from '@ubean/shared';
 /**
  * ISR (Incremental Static Regeneration) 缓存助手(P9-03)。
  *
@@ -19,7 +20,6 @@
  * 后台重新生成使用模块级的 `REVALIDATING` Set 去重,避免并发请求重复生成。
  */
 import type { Context } from 'hono';
-import type { IsrRule, RouteRule, UbeanEnv } from '@ubean/shared';
 import { normalizeIsrRule } from './route-rules';
 
 const ISR_KEY_PREFIX = 'isr:';

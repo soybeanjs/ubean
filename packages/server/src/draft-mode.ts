@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { UbeanEnv } from '@ubean/shared';
 /**
  * Draft/Preview Mode (P9-23)
  *
@@ -15,7 +16,6 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
  * 客户端无法伪造或延长有效期。
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/shared';
 
 /* -------------------------------------------------------------------------- */
 /* 类型定义                                                                     */

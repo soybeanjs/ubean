@@ -1,6 +1,6 @@
+import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 import { createRouter, addRoute, findRoute } from 'rou3';
 import type { RouterContext } from 'rou3';
-import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 
 export interface CompiledRoute {
   method: string;

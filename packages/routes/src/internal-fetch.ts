@@ -1,6 +1,6 @@
+import type { UbeanEnv } from '@ubean/shared';
 import type { Context } from 'hono';
 import type { FetchAdapter, FetchAdapterInit, FetchAdapterResponse } from '@soybeanjs/fetch';
-import type { UbeanEnv } from '@ubean/shared';
 
 export interface InternalFetchOptions {
   baseURL?: string;

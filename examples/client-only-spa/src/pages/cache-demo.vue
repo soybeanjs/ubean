@@ -2,7 +2,14 @@
 // 页面缓存演示 —— definePage({ name: 'CacheDemo', cache: true }) 由 vite 插件
 // 编译期提取,等价于旧手写路由的 meta: { pageName: 'CacheDemo', cache: true }。
 import { ref, onActivated } from 'vue';
-import { definePage, useCacheViews, disablePageCache, enablePageCache, isPageCached, resetRouteCache } from '@ubean/vue';
+import {
+  definePage,
+  useCacheViews,
+  disablePageCache,
+  enablePageCache,
+  isPageCached,
+  resetRouteCache
+} from '@ubean/vue';
 
 definePage({ name: 'CacheDemo', cache: true });
 
@@ -30,12 +37,18 @@ async function resetCache() {
   <section>
     <h1>页面缓存(keep-alive)演示</h1>
     <p class="subtitle">
-      路由 meta 声明 <code>pageName: 'CacheDemo', cache: true</code>
-      —— 与全栈 ubean 的 <code>definePage({'{'} cache: true {'}'})</code> 等价。
+      路由 meta 声明
+      <code>pageName: 'CacheDemo', cache: true</code>
+      —— 与全栈 ubean 的
+      <code>definePage({'{'} cache: true {'}'})</code>
+      等价。
     </p>
 
     <div class="card">
-      <p>组件内计数器:<strong>{{ count }}</strong></p>
+      <p>
+        组件内计数器:
+        <strong>{{ count }}</strong>
+      </p>
       <p class="mono">setup 执行于 {{ mountedAt }}</p>
       <div class="row">
         <button type="button" @click="bump">count + 1</button>
@@ -57,9 +70,8 @@ async function resetCache() {
     </div>
 
     <p class="hint">
-      操作步骤:点击 count 几次 → 通过导航离开再回来。缓存开启时计数与 mountedAt 保留;
-      点击 disablePageCache 后离开再回来,状态归零。resetRouteCache
-      剪除缓存实例 —— 离开本页即销毁,再次进入时全新挂载(缓存声明自动恢复)。
+      操作步骤:点击 count 几次 → 通过导航离开再回来。缓存开启时计数与 mountedAt 保留; 点击 disablePageCache
+      后离开再回来,状态归零。resetRouteCache 剪除缓存实例 —— 离开本页即销毁,再次进入时全新挂载(缓存声明自动恢复)。
     </p>
   </section>
 </template>

@@ -1,3 +1,4 @@
+import type { UbeanEnv } from '@ubean/shared';
 /**
  * 通用 Sessions API (P9-11)
  *
@@ -9,7 +10,6 @@
  * - storage 模式:session ID 存 cookie,数据存服务端 storage(KV/Redis/内存)
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/shared';
 import { useStorage } from './storage';
 import type { UbeanStorage } from './storage';
 

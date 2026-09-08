@@ -11,12 +11,20 @@ onMounted(() => {
 
 <template>
   <div class="analytics">
-    <p class="stat">访问量:<strong>{{ visits }}</strong></p>
+    <p class="stat">
+      访问量:
+      <strong>{{ visits }}</strong>
+    </p>
     <p class="stat">来源:@analytics/index.vue</p>
   </div>
 </template>
 
 <style scoped>
-.stat { margin: 0.25rem 0; font-size: 0.9rem; }
-strong { color: #42b883; }
+.stat {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+strong {
+  color: #42b883;
+}
 </style>

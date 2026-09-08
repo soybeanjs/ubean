@@ -6,9 +6,9 @@
  * Vite plugin's `'use server'` directive transformation.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Hono } from 'hono';
 import { fail, ActionError, isActionFailure, isServerAction } from '@ubean/shared';
 import type { ServerAction, UbeanEnv } from '@ubean/shared';
+import { Hono } from 'hono';
 import {
   defineAction,
   defineServerFn,

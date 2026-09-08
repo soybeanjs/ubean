@@ -1,3 +1,4 @@
+import type { UbeanEnv } from '@ubean/shared';
 /**
  * 请求 memoization (P9-15) + fetch Data Cache (Task 4)
  *
@@ -28,7 +29,6 @@
  * ```
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/shared';
 
 interface MemoEntry {
   promise: Promise<Response>;

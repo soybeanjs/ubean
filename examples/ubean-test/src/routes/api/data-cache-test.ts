@@ -1,10 +1,3 @@
-/**
- * fetch Data Cache (Task 4) —— HTTP 集成测试入口
- *
- * 通过自包含的 Hono 子应用 + mock fetch 验证 `createDataCacheMiddleware` 端到端行为,
- * 无需修改 dev server 主中间件栈,不发起真实网络请求。
- */
-import { Hono } from 'hono';
 import {
   defineHandler,
   createDataCacheMiddleware,
@@ -14,6 +7,13 @@ import {
   revalidatePath
 } from 'ubean/server';
 import type { FetchInitWithNext } from 'ubean/server';
+/**
+ * fetch Data Cache (Task 4) —— HTTP 集成测试入口
+ *
+ * 通过自包含的 Hono 子应用 + mock fetch 验证 `createDataCacheMiddleware` 端到端行为,
+ * 无需修改 dev server 主中间件栈,不发起真实网络请求。
+ */
+import { Hono } from 'hono';
 
 /**
  * 调用带 `next` 选项的 fetch。

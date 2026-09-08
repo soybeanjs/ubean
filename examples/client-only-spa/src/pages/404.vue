@@ -10,7 +10,8 @@ const route = useRoute();
     <h1>404</h1>
     <p class="mono">未匹配的路径:{{ route.fullPath }}</p>
     <p>
-      回到 <Link to="/">首页</Link>
+      回到
+      <Link to="/">首页</Link>
     </p>
   </section>
 </template>

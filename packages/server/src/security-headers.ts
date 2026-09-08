@@ -1,3 +1,4 @@
+import type { UbeanEnv } from '@ubean/shared';
 /**
  * 安全头中间件 (P9-13)
  *
@@ -11,7 +12,6 @@
  * - Cross-Origin-* headers
  */
 import type { Context, Next, MiddlewareHandler } from 'hono';
-import type { UbeanEnv } from '@ubean/shared';
 
 export interface ContentSecurityPolicyDirectives {
   'default-src'?: string[];

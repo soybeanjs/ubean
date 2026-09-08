@@ -15,7 +15,13 @@ const plans = [
 <template>
   <section>
     <h1>定价(路由组)</h1>
-    <p class="subtitle">路由 <code>/pricing</code> —— 文件 <code>(marketing)/pricing.vue</code>(组名剥离)</p>
+    <p class="subtitle">
+      路由
+      <code>/pricing</code>
+      —— 文件
+      <code>(marketing)/pricing.vue</code>
+      (组名剥离)
+    </p>
     <ul class="plans">
       <li v-for="p in plans" :key="p.name">
         <strong>{{ p.name }}</strong>
@@ -27,10 +33,35 @@ const plans = [
 </template>
 
 <style scoped>
-h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
-.subtitle { color: gray; margin-bottom: 1.25rem; font-size: 0.92rem; }
-.plans { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.9rem; }
-.plans li { border: 1px solid rgba(128, 128, 128, 0.25); border-radius: 10px; padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.35rem; }
-.price { color: #42b883; font-weight: 700; }
-.desc { color: gray; font-size: 0.85rem; }
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+.subtitle {
+  color: gray;
+  margin-bottom: 1.25rem;
+  font-size: 0.92rem;
+}
+.plans {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.9rem;
+}
+.plans li {
+  border: 1px solid rgba(128, 128, 128, 0.25);
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.price {
+  color: #42b883;
+  font-weight: 700;
+}
+.desc {
+  color: gray;
+  font-size: 0.85rem;
+}
 </style>

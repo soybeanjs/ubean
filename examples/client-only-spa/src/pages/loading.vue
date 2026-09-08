@@ -12,7 +12,24 @@ defineProps<{ retrying?: boolean }>();
 </template>
 
 <style scoped>
-.loading { display: flex; align-items: center; gap: 0.6rem; color: gray; padding: 2rem 0; }
-.spinner { width: 16px; height: 16px; border: 2px solid rgba(66, 184, 131, 0.3); border-top-color: #42b883; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+.loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: gray;
+  padding: 2rem 0;
+}
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(66, 184, 131, 0.3);
+  border-top-color: #42b883;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

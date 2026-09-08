@@ -1,5 +1,5 @@
-import type { PageMeta } from '@ubean/vue';
 import type { RouteMeta, Input } from '@ubean/shared';
+import type { PageMeta } from '@ubean/vue';
 
 /**
  * 服务端 handler meta 提取结果(与 `@ubean/scan` 的 `DefineMetaResult`

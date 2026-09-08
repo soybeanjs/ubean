@@ -2,8 +2,8 @@
 // 全部显式导入 —— 精简内核不提供自动引入。
 // definePage 声明由 @ubean/vue/vite 编译期提取(构建后此调用被剥除)。
 import { ref } from 'vue';
-import { Icon } from '@iconify/vue';
 import { definePage } from '@ubean/vue';
+import { Icon } from '@iconify/vue';
 
 // 文件即路由:pages/index.vue → '/',name 覆盖文件派生的 'Index' 为 'Home'
 definePage({ name: 'Home' });

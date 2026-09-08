@@ -11,8 +11,8 @@
 export type { UiOptions } from './types';
 
 import type { Plugin } from 'vite';
-import UiResolver from '@soybeanjs/ui/resolver';
 import { registerComponentResolver, registerCssImport } from '@ubean/build';
+import UiResolver from '@soybeanjs/ui/resolver';
 import type { UiOptions } from './types';
 
 /** @soybeanjs/ui 预构建样式路径 */

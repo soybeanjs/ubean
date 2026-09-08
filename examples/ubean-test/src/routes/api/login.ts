@@ -1,5 +1,5 @@
-import { object, pipe, string, email, minLength, description } from 'valibot';
 import { defineHandler, describeRoute, validator } from 'ubean/server';
+import { object, pipe, string, email, minLength, description } from 'valibot';
 
 const loginFormSchema = object({
   username: pipe(string(), minLength(3), description('Username (min 3 characters)')),

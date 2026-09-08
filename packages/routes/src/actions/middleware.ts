@@ -1,3 +1,4 @@
+import type { UbeanEnv, ActionResult } from '@ubean/shared';
 /**
  * Hono middleware for the `/__actions` endpoint (P9-02).
  *
@@ -22,7 +23,6 @@
  * response back into a typed `ActionResult`.
  */
 import type { MiddlewareHandler } from 'hono';
-import type { UbeanEnv, ActionResult } from '@ubean/shared';
 import { ACTION_RESPONSE_HEADER, ACTIONS_ENDPOINT } from './constants';
 import { dispatchAction } from './dispatch';
 

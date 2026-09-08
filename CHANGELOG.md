@@ -1,5 +1,22 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.1...main) (2026-09-08)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**: bridge duplicate vite-plus-core Plugin types in dev-server &nbsp;-&nbsp; by @soybeanjs [<samp>(1ede4)</samp>](https://github.com/soybeanjs/ubean/commit/1ede453)
+- **devtools**: downgrade @vitejs/devtools to ^0.6.2 for vite-plus-core 0.3.0 &nbsp;-&nbsp; by @soybeanjs [<samp>(7490a)</samp>](https://github.com/soybeanjs/ubean/commit/7490a5d)
+- **server**: deep-merge security header options for per-directive CSP overrides &nbsp;-&nbsp; by @soybeanjs [<samp>(5ff17)</samp>](https://github.com/soybeanjs/ubean/commit/5ff1733)
+- **test**: fix test error &nbsp;-&nbsp; by @soybeanjs [<samp>(50124)</samp>](https://github.com/soybeanjs/ubean/commit/50124ef)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **examples**: demo @iconify/vue icons with CSP connect-src override &nbsp;-&nbsp; by @soybeanjs [<samp>(aa518)</samp>](https://github.com/soybeanjs/ubean/commit/aa518b7)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.0...main) (2026-09-07)
 
 ### &nbsp;&nbsp;&nbsp;🏡 Chore

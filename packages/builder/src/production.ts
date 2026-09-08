@@ -14,6 +14,7 @@ import { getLogger } from '@ubean/shared/logger';
 import { findUserViteConfig } from '@ubean/shared/node';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
+import { buildAssetTagsSetup, buildRendererSetup, buildStaticSsgEntry } from './ssg-entry';
 import { ssrSingletonProdOptimizeExclude, ssrSingletonProdSsr } from './ssr-singleton';
 import {
   createRoutingVirtualModule,
@@ -283,63 +284,14 @@ async function generateVirtualModulesToDisk(
 
   const rendererImport = ssrEnabled ? `import { createVueRenderer } from 'ubean/ssr';` : '';
   const prodLocaleVueParam = localeVueParamFromI18n(config.i18n) || '';
-  const rendererSetup = ssrEnabled
-    ? `
-// --- SSR renderer setup ---
-const _defaultLayout = _layouts.find(l => l.isDefault)?.name || null;
-
-// Same i18n locale param as the client virtual:ubean-pages route table, so
-// language-prefixed URLs (e.g. /zh/playground) match the real page on SSR too.
-const _localeVueParam = ${JSON.stringify(prodLocaleVueParam)};
-
-const _rendererRoutes = _pages.map(p => {
-  // For reuse routes, load the target page's module (the .reuse.ts file
-  // only contains definePage metadata, not a Vue component).
-  const _targetPage = p.isReuse && p.reuseTarget ? _pages.find(tp => tp.name === p.reuseTarget) : undefined;
-  const _loaderKey = _targetPage?.relativePath || p.relativePath;
-  return {
-    path: _localeVueParam
-      ? toVueRouterLocalePath(p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'), _localeVueParam)
-      : p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'),
-    name: p.name,
-    component: async () => {
-      const loader = pageLoaders[_loaderKey];
-      if (!loader) throw new Error('Page loader not found: ' + _loaderKey);
-      const mod = await loader();
-      return mod.default || mod;
-    },
-    meta: {
-      layout: p.layout === false ? false : p.layout || _defaultLayout,
-      pageName: p.name,
-      cache: p.cache === true ? true : undefined
-    }
-  };
-});
-
-const _layoutMap = new Map();
-for (const l of _layouts) {
-  _layoutMap.set(l.name, l.relativePath);
-}
-
-const _pageRenderer = createVueRenderer({
-  routes: _rendererRoutes,
-  async resolveLayoutComponent(name) {
-    if (name === false || name == null) return null;
-    const relPath = _layoutMap.get(name);
-    if (!relPath) return null;
-    const loader = layoutLoaders[relPath];
-    if (!loader) return null;
-    const mod = await loader();
-    return mod.default || mod;
-  },
-  defaultLayout: _defaultLayout,
-  resolveAppConfig: () => _resolveAppConfig('server')
-});
-`
-    : `
-// --- SSR disabled (mode=${mode}, ssr=${config.ssr.enabled}) ---
-// pageRenderer is null; page requests fall back to a client-only HTML shell.
-const _pageRenderer = null;`;
+  // 渲染器 setup 与 assetTags 生成逻辑已抽取到 ssg-entry.ts，
+  // fullstack 与 ssg 静态 entry 共用同一份（防模板漂移，见 docs/ssg.md R1）。
+  const rendererSetup = buildRendererSetup({
+    ssrEnabled,
+    mode,
+    localeVueParam: prodLocaleVueParam
+  });
+  const assetTagsSetup = buildAssetTagsSetup(config.favicon);
   const productionCache = resolveProductionCacheStore(preset.name || 'standard', config.cache);
   const contentEntries = Object.entries(contentSnapshot ?? {}).filter(([, docs]) => Array.isArray(docs));
   const contentBootstrap =
@@ -359,6 +311,25 @@ ${contentEntries.map(([name, docs]) => `registerContent(${JSON.stringify(name)},
 `
     : '';
   if (hasServer) {
+    // ssg 模式：生成最小静态渲染 entry（无 Hono app / API 路由 / 中间件 /
+    // crons / IPX），导出 renderStaticPage 供 prerender 直接调用（docs/ssg.md）。
+    if (mode === 'ssg') {
+      const staticEntry = buildStaticSsgEntry({
+        pagesGlob,
+        layoutsGlob,
+        srcPrefix: JSON.stringify(viteSrcPrefix),
+        pagesJson,
+        layoutsJson,
+        notFoundPageJson,
+        localeVueParam: prodLocaleVueParam,
+        contentBootstrap,
+        colorModeScript,
+        favicon: config.favicon
+      });
+      await writeFile(join(virtualDir, 'server-entry.mjs'), staticEntry, 'utf-8');
+      return virtualDir;
+    }
+
     const serverEntry = `// Auto-generated server entry
 import { createUbeanApp, applyServerConfig } from 'ubean/server';
 import { toVueRouterLocalePath } from '@ubean/i18n';
@@ -418,22 +389,7 @@ const _pages = ${pagesJson};
 const _layouts = ${layoutsJson};
 const _notFoundPage = ${notFoundPageJson};
 ${rendererSetup}
-// --- Client asset tags from Vite manifest ---
-const __dirname = dirname(fileURLToPath(import.meta.url));
-let _assetTags = { css: '', preloads: '', body: '', favicon: ${JSON.stringify(config.favicon)} };
-try {
-  const manifestPath = join(__dirname, '..', 'public', '.vite', 'manifest.json');
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-  const entry = Object.values(manifest).find(m => m.isEntry);
-  if (entry) {
-    _assetTags.body = '<script type="module" src="/' + entry.file + '"></script>';
-    if (Array.isArray(entry.css)) {
-      _assetTags.css = entry.css.map(c => '<link rel="stylesheet" href="/' + c + '">').join('\\n');
-    }
-  }
-} catch (e) {
-  console.warn('[ubean] Failed to load client manifest:', e.message || e);
-}
+${assetTagsSetup}
 
 export async function createApp(options = {}) {
   const app = createUbeanApp({
@@ -848,7 +804,13 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
     serverEntry = 'entry.mjs';
 
-    if (presetBuildConfig.entryType === 'node') {
+    // ssg 模式：server bundle 仅用于 prerender 期渲染（构建后被删除），
+    // 不生成 preset 包装文件（server.mjs / handler.mjs / worker.mjs /
+    // wrangler.toml）—— 它们 import 的 createFetchHandler 在静态 entry 中
+    // 不存在，且产物本身是纯静态站点。
+    if (mode === 'ssg') {
+      logger.info('SSG mode: skipping preset server wrapper (static output only)');
+    } else if (presetBuildConfig.entryType === 'node') {
       await writeFile(join(outDirs.server, 'server.mjs'), generateNodeServerEntry(), 'utf-8');
       serverEntry = 'server.mjs';
 

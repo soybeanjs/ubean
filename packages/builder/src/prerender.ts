@@ -6,6 +6,7 @@ import type { ScannedPageRoute } from '@ubean/scan';
 import { matchGlob } from '@ubean/shared';
 import type { RouteRule } from '@ubean/shared';
 import { join, dirname } from 'pathe';
+import { STATIC_NOT_FOUND_ROUTE } from './static-render';
 
 const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
 
@@ -38,6 +39,18 @@ export interface PrerendererOptions {
   routeRules?: Record<string, RouteRule>;
   /** Content collection URLs merged into `include` (see `extractContentPageRoutes`). */
   contentRoutes?: string[];
+  /**
+   * 静态 SSG 模式：将 404 哨兵路由加入预渲染队列，产物为 `404.html`
+   * （供 GitHub Pages / Netlify 等静态托管平台的自定义 404 页）。
+   * fetcher 需识别 `STATIC_NOT_FOUND_ROUTE` 并渲染 notFoundPage。
+   */
+  notFoundRoute?: boolean;
+  /**
+   * i18n 多语言展开钩子（docs/ssg.md §4.5）：在 `collectPrerenderRoutes`
+   * 之后、入队之前应用，把收集到的路由扩展为全语言 URL 列表
+   * （如 `/about` → `['/about', '/zh/about']`）。
+   */
+  expandRoutes?: (routes: string[]) => string[];
   fetcher?: (url: string) => Promise<{ html: string; statusCode: number }>;
 }
 
@@ -235,6 +248,10 @@ export function routeToFilePath(route: string, outputDir: string): string {
   if (route === '/' || route === '') {
     return join(outputDir, 'index.html');
   }
+  // 404 哨兵路由 → 404.html（静态托管平台约定）
+  if (route === STATIC_NOT_FOUND_ROUTE) {
+    return join(outputDir, '404.html');
+  }
   if (route.endsWith('.html')) {
     return join(outputDir, route);
   }
@@ -371,7 +388,14 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
     contentRoutes: options.contentRoutes
   });
 
-  const queue = [...initialRoutes];
+  const queue = [
+    // i18n 多语言展开：collectPrerenderRoutes 之后、入队之前应用
+    ...(options.expandRoutes ? options.expandRoutes(initialRoutes) : initialRoutes)
+  ];
+  // 静态 SSG 模式：404 哨兵路由入队（routeToFilePath 映射为 404.html）
+  if (options.notFoundRoute) {
+    queue.unshift(STATIC_NOT_FOUND_ROUTE);
+  }
   const visited = new Set<string>();
   const results: PrerenderRoute[] = [];
   const generated: string[] = [];
@@ -384,13 +408,16 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
     if (visited.has(route)) return;
     visited.add(route);
 
-    // exclude 二次过滤(对 crawlLinks 发现的链接也生效)
-    if (config.exclude.some(p => matchGlob(route, p))) {
+    // exclude 二次过滤(对 crawlLinks 发现的链接也生效)。
+    // 404 哨兵路由是内部机制,不受 exclude 影响(默认排除 `/_**` 会误伤)。
+    if (route !== STATIC_NOT_FOUND_ROUTE && config.exclude.some(p => matchGlob(route, p))) {
       if (!skipped.includes(route)) skipped.push(route);
       return;
     }
 
-    const result: PrerenderRoute = { route };
+    // 哨兵路由对外呈现为 /404（manifest / 日志友好）
+    const displayRoute = route === STATIC_NOT_FOUND_ROUTE ? '/404' : route;
+    const result: PrerenderRoute = { route: displayRoute };
 
     try {
       if (options.fetcher) {
@@ -433,7 +460,7 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
 
         const filePath = routeToFilePath(route, outputDir);
         await writePrerenderedFile(filePath, htmlToWrite);
-        generated.push(route);
+        generated.push(displayRoute);
         result.html = undefined;
       } else {
         const placeholderHtml = `<!DOCTYPE html>
@@ -445,7 +472,7 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
 </html>`;
         const filePath = routeToFilePath(route, outputDir);
         await writePrerenderedFile(filePath, placeholderHtml);
-        generated.push(route);
+        generated.push(displayRoute);
         result.statusCode = 200;
       }
     } catch (err) {

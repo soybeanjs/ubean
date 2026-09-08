@@ -30,6 +30,10 @@
       "types": "./dist/prerender.d.ts",
       "import": "./dist/prerender.js"
     },
+    "./static-render": {
+      "types": "./dist/static-render.d.ts",
+      "import": "./dist/static-render.js"
+    },
     "./codegen": {
       "types": "./dist/codegen/index.d.ts",
       "import": "./dist/codegen/index.js"

@@ -5,6 +5,7 @@ import { generateTypes } from '@ubean/build/codegen';
 import { prerender } from '@ubean/build/prerender';
 import { buildProduction } from '@ubean/build/production';
 import type { BuildManifest } from '@ubean/build/production';
+import { createStaticSsgRenderer } from '@ubean/build/static-render';
 import { loadUbeanConfig, resolvePrerenderConfig, resolveSsrConfig } from '@ubean/config';
 import type { AppMode } from '@ubean/config';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
@@ -219,7 +220,31 @@ export const buildCommand: CommandDef = {
       const hasPrerenderRules = Object.values(config.routeRules || {}).some(r => r?.prerender === true);
       if (config.prerender.enabled || hasPrerenderRules) {
         logger.info('Prerendering static pages...');
-        const fetcher = await createSsrFetcher(cwd, manifest);
+        let fetcher: ((url: string) => Promise<{ html: string; statusCode: number }>) | undefined;
+        let notFoundRoute = false;
+        let expandRoutes: ((routes: string[]) => string[]) | undefined;
+
+        if (config.mode === 'ssg') {
+          // 静态 SSG 模式：直接渲染路径（绕过 Hono 请求管道，见 docs/ssg.md）。
+          // 失败时降级为 placeholder prerender（静态 entry 无 createFetchHandler，
+          // 无需再尝试 SSR fetcher）。
+          const staticRenderer = await createStaticSsgRenderer(cwd, manifest, {
+            pages: result.pages,
+            notFoundPage: result.notFoundPage ?? null,
+            i18n: config.i18n
+          });
+          if (staticRenderer) {
+            fetcher = staticRenderer.fetcher;
+            // i18n 多语言展开（prefix_except_default / prefix / prefix_and_default）
+            expandRoutes = staticRenderer.expandRoutes;
+            // 无 pages/404.vue 时不入队哨兵路由（fetcher 会 404，徒增错误噪音）
+            notFoundRoute = Boolean(result.notFoundPage);
+            logger.info('Using static SSG renderer (direct render, no HTTP pipeline)');
+          }
+        } else {
+          fetcher = await createSsrFetcher(cwd, manifest);
+        }
+
         await prerender({
           cwd,
           outputDir: config.build.outputDir,
@@ -227,7 +252,9 @@ export const buildCommand: CommandDef = {
           prerender: config.prerender,
           routeRules: config.routeRules,
           contentRoutes,
-          fetcher
+          fetcher,
+          notFoundRoute,
+          expandRoutes
         });
       }
 

@@ -16,6 +16,7 @@ export default defineConfig({
       'src/vue.ts',
       'src/production.ts',
       'src/prerender.ts',
+      'src/static-render.ts',
       'src/codegen/index.ts',
       'src/actions-plugin.ts'
     ],

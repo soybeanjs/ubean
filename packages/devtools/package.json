@@ -40,7 +40,7 @@
     "@soybeanjs/ui": "^0.30.0",
     "@soybeanjs/unocss-preset": "^0.2.0",
     "@soybeanjs/unocss-shadcn": "^0.29.3",
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.5.0",
     "@vitejs/devtools": "^0.6.2",
     "@vitejs/devtools-kit": "^0.6.2",
     "@vitejs/plugin-vue": "^6.0.8",

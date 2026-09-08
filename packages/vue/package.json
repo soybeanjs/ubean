@@ -38,7 +38,7 @@
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.5.0",
     "@ubean/markdown": "workspace:*",
     "@unhead/vue": "^3.4.0",
     "@vue/server-renderer": "^3.5.42",

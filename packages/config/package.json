@@ -30,7 +30,7 @@
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.5.0",
     "@ubean/content": "workspace:*",
     "hono": "4.13.7",
     "typescript": "7.0.2",

@@ -42,7 +42,7 @@
     "ufo": "1.6.4"
   },
   "devDependencies": {
-    "@types/node": "^26.4.1",
+    "@types/node": "^26.5.0",
     "typescript": "7.0.2",
     "vite-plus": "catalog:"
   }

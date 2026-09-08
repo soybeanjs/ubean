@@ -23,8 +23,8 @@
   "devDependencies": {
     "@soybeanjs/cli": "^1.8.2",
     "@soybeanjs/eslint-config-vue": "^0.1.1",
-    "@soybeanjs/oxc-config": "^0.2.5",
-    "@types/node": "^26.4.1",
+    "@soybeanjs/oxc-config": "^0.2.6",
+    "@types/node": "^26.5.0",
     "@vitest/browser": "^5.0.0",
     "@vitest/browser-playwright": "^5.0.0",
     "eslint": "^10.10.0",

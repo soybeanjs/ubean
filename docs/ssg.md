@@ -268,15 +268,40 @@ payload 外置（`extractDataPayload` → `__data.json`）、`crawlLinks`、并�
 
 ---
 
-## 6. 实施计划
+## 6. 实施计划（任务清单）
 
-| 阶段 | 内容 | 交付物 |
+状态标记：⬜ 未开始 · 🚧 进行中 · ✅ 完成 · ⏸️ 挂起
+
+### P1 MVP — 直接渲染路径
+
+| # | 任务 | 状态 | 交付物 |
+| --- | --- | --- | --- |
+| T1.1 | `packages/builder/src/ssg-entry.ts`：静态 entry 代码生成器 `buildStaticSsgEntry()`；抽取共享片段 `buildRendererSetup()`（含 static 专属 NotFound 静态路由 `/404`，静态段确定性优先于 catch-all，避免被根 `[...slug]` 抢占）与 `buildAssetTagsSetup()` | ✅ | 纯函数代码生成，可单测 |
+| T1.2 | `production.ts`：`mode === 'ssg'` 时写入 static entry 到 `server-entry.mjs`；ssg 模式跳过 preset 包装文件（server.mjs/handler.mjs/worker.mjs/wrangler.toml，反正会被删） | ✅ | dist/server/entry.mjs 为最小渲染 bundle |
+| T1.3 | `packages/builder/src/static-render.ts`：`compilePageRoute()` / `matchRoutePattern()`（`[param]`/`[param=matcher]`/`**` catch-all/可选参数/特异性排序 + `definePage` 覆盖的 vue-router 语法 `:param(regex)`/`:param*`，T3.1 期间发现修复）+ `createStaticSsgRenderer()`（fetcher 同构契约 + locale 前缀剥离） | ✅ | `@ubean/build/static-render` 子路径导出 |
+| T1.4 | `prerender.ts`：`STATIC_NOT_FOUND_ROUTE` 哨兵路由 + `routeToFilePath` 404.html 映射 + `PrerendererOptions.notFoundRoute` 开关（哨兵不受 exclude 过滤，避免默认 `/_**` 误伤） | ✅ | 静态托管平台自定义 404 页 |
+| T1.5 | `cli/src/build.ts`：ssg 分支接入 `createStaticSsgRenderer`（失败降级 warn + placeholder；无 404 页时不入队哨兵）；fullstack 路径零改动 | ✅ | `--mode ssg` 构建走直接渲染 |
+| T1.6 | loader 检测 warn：static entry 渲染时检测页面 `loader` 导出，一次性警告 | ✅ | （随 T1.1 交付） |
+| T1.7 | 单测：`static-render.test.ts`（模式匹配/特异性/404 映射/fetcher 契约/locale 剥离）+ `ssg-entry.test.ts`（entry 内容断言：无 Hono/无 routes glob/含 NotFound 路由）+ prerender 404 集成 | ✅ | builder 219 tests 全绿 |
+| T1.8 | 回归验证：typecheck + builder 测试 + fullstack prerender 不回归 + examples 构建冒烟 | ✅ | 全仓 typecheck/test 通过；ssg-catchall 冒烟（直接渲染 + 404.html 含 404.vue 内容）；ubean-test fullstack 冒烟（SSR fetcher + server.mjs 包装完好） |
+
+### P2 i18n 多语言展开（✅ 完成）
+
+| # | 任务 | 状态 |
 | --- | --- | --- |
-| **P1 MVP** | entry 模板拆分（共享片段 + static 变体）；`static-render.ts`（matchRoutePattern + 渲染表 + fetcher）；CLI ssg 分支接入；404.html；loader warn | `mode: 'ssg'` 构建产物与现状语义一致，单测 + 集成测试通过 |
-| **P2 i18n** | `expandRoutes` + 按 locale 绑定渲染表 + `prerender()` expandRoutes 钩子 | 多语言文档站全量 URL 生成 + hreflang |
-| **P3 增强** | 构建性能对比报告（时间/内存 vs fullstack prerender）；beasties critical CSS 可选接入（peer optional）；`UBEAN_KEEP_SSG_STATIC` 调试开关 | 数据驱动的后续优化决策 |
+| T2.1 | `expandRoutes(routes)`：按 strategy 生成全语言 URL（`prefix_except_default` default 无前缀 + 其余带前缀；`prefix` 全带前缀；`prefix_and_default` 全带 + default 无前缀；哨兵/已带前缀 URL 跳过） | ✅ `expandRoutesForLocales()` 纯函数 + renderer 暴露 |
+| T2.2 | `PrerendererOptions.expandRoutes` 钩子，在 `collectPrerenderRoutes` 之后、入队之前应用 | ✅ cli ssg 分支传入 `staticRenderer.expandRoutes` |
+| T2.3 | 多语言等价性测试（hreflang / canonical / og:locale 断言） | ✅ 10 项 expandRoutes 单测 + prerender 集成 + ssg-catchall i18n 冒烟（hreflang en/zh-CN/zh/x-default、canonical `/zh`、og:locale zh_CN + alternate en、`<html lang dir>` 全部正确） |
 
-P1 验收基准：examples/ubean-test 现有 92 个 prerender 相关测试不回归；新增静态路径等价性测试（见 §7）。
+### P3 增强（T3.1 完成，T3.2/T3.3 评估中）
+
+| # | 任务 | 状态 |
+| --- | --- | --- |
+| T3.1 | 构建性能对比报告（时间/内存 vs fullstack prerender） | ✅ `pnpm benchmark:ssg`（见 §10） |
+| T3.2 | beasties critical CSS 可选接入（optional peer） | ⬜ |
+| T3.3 | `UBEAN_KEEP_SSG_STATIC` 调试开关（保留 static bundle 供排查） | ⬜（现名 `UBEAN_KEEP_SSR`，见 cli/build.ts） |
+
+P1 验收基准：examples/ubean-test 现有 prerender 相关测试不回归；新增静态路径测试通过（见 §7）。
 
 ---
 
@@ -318,3 +343,27 @@ P1 验收基准：examples/ubean-test 现有 92 个 prerender 相关测试不回
 | `packages/cli/src/build.ts` | ssg 分支接入 `createStaticRenderer`；`createSsrFetcher` 保留于 fullstack |
 | `packages/builder/test/static-render.test.ts` | 新增单测 |
 | `examples/ubean-test/test/ssg-equivalence.test.ts` | 新增等价性集成测试 |
+| `scripts/benchmark-ssg.mjs` | 新增：T3.1 构建性能对比基准（时间/内存，见 §10） |
+
+---
+
+## 10. 构建性能对比（T3.1）
+
+基准脚本 `scripts/benchmark-ssg.mjs`：同一 fixture 分别以 `--mode ssg`（直接渲染）与 `--mode fullstack`（Hono 管道 prerender）构建，采集总构建墙钟 / prerender 阶段耗时 / 渲染路由数 / 进程树峰值 RSS（50ms 轮询 ps）。
+
+```bash
+pnpm benchmark:ssg                                  # 默认 ssg-catchall，1 轮
+pnpm benchmark:ssg -- --fixture examples/ubean-test --runs 3
+pnpm benchmark:ssg -- --json report.json            # 机器可读输出
+```
+
+### 基准结果（2026-09-09，Node v24.20.0，darwin/arm64，3 轮中位数）
+
+| 指标 | ssg-catchall（15 vs 7 路由） | ubean-test（18 vs 9 路由） |
+| --- | --- | --- |
+| 总构建时间 | -6.0% | -11.5% |
+| prerender 阶段 | +15.0%（多渲染 2.1x 路由） | -3.3%（多渲染 2x 路由） |
+| 单路由渲染 | **-46.3%**（2ms vs 3ms） | **-51.7%**（2ms vs 3ms） |
+| 峰值内存 (RSS) | -9.6% | -7.2% |
+
+结论：直接渲染路径单路由开销约为 Hono 管道的一半；ssg 模式额外渲染 i18n 全语言 + 404 哨兵（2x 路由）仍持平或更快；总构建因跳过 preset 包装与更小 entry 提速 6–11%；内存低 7–10%。绝对值随项目规模放大——fixture 页面数较少，大站点差距更显著。

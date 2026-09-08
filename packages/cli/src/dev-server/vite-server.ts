@@ -114,6 +114,25 @@ function loadScaffoldOps(): {
   return { createFsOps, scaffold, deleteScaffold, recoverScaffold };
 }
 
+/** Vite's browser-facing prefix for virtual module ids (see `wrapId`). */
+const VALID_ID_PREFIX = '/@id/';
+/** Vite's URL-safe encoding of the `\0` virtual-module marker. */
+const NULL_BYTE_PLACEHOLDER = '__x00__';
+
+/**
+ * Encode a module-graph URL into a browser-servable path.
+ *
+ * Virtual module ids carry a raw `\0` marker in the module graph (e.g.
+ * UnoCSS's `\0/__uno.css`). A literal NUL is invalid inside HTML — parse5
+ * rejects it with `unexpected-null-character`, which surfaces as a warning
+ * in `transformIndexHtml`. Mirror Vite's own import-analysis rewriting
+ * (`wrapId`: `/@id/` prefix + `\0` → `__x00__`) so the href stays valid
+ * and resolvable by the dev server.
+ */
+function toDevCssHref(url: string): string {
+  return url.includes('\0') ? `${VALID_ID_PREFIX}${url.replace(/\0/g, NULL_BYTE_PLACEHOLDER)}` : url;
+}
+
 /**
  * Collect render-blocking CSS URLs from the Vite dev module graph.
  *
@@ -135,7 +154,7 @@ function collectDevCssLinks(moduleGraph: ViteDevServer['moduleGraph']): string[]
     if (!url || url.includes('?')) continue;
     // Real .css files and virtual CSS modules (e.g. `/@id/__x00__/__uno.css`).
     if (id?.endsWith('.css') || url.endsWith('.css')) {
-      links.add(`${url}?direct`);
+      links.add(`${toDevCssHref(url)}?direct`);
     }
   }
   return [...links];

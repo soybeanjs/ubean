@@ -29,7 +29,11 @@ import type { CacheStore } from '@ubean/server/cache';
 import { createDataCacheMiddleware } from '@ubean/server/middleware';
 import type { DataCacheMiddlewareOptions } from '@ubean/server/middleware';
 import { createWebSocketMiddleware } from '@ubean/server/realtime';
-import { createCsrfMiddleware, createSecurityHeadersMiddleware } from '@ubean/server/security';
+import {
+  createCsrfMiddleware,
+  createSecurityHeadersMiddleware,
+  mergeSecurityHeadersOptions
+} from '@ubean/server/security';
 import type { CsrfOptions, SecurityHeadersOptions } from '@ubean/server/security';
 import { serveStatic } from '@ubean/server/static';
 import { errorToResponse, isUbeanError, UbeanError } from '@ubean/shared';
@@ -268,10 +272,8 @@ export class UbeanApp {
     if (securityHeaders !== false) {
       this.hono.use(
         '*',
-        createSecurityHeadersMiddleware({
-          ...DEFAULT_SECURITY_HEADERS,
-          ...securityHeaders
-        })
+        // 深合并:用户只覆盖单个 CSP 指令时(如 connect-src),其余指令保持框架默认
+        createSecurityHeadersMiddleware(mergeSecurityHeadersOptions(DEFAULT_SECURITY_HEADERS, securityHeaders))
       );
     }
 

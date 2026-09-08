@@ -9,7 +9,8 @@ import {
   generateCsrfToken,
   createSecurityHeadersMiddleware,
   defineSecurityHeaders,
-  serializeCsp
+  serializeCsp,
+  mergeSecurityHeadersOptions
 } from '../src/index';
 
 /* -------------------------------------------------------------------------- */
@@ -485,6 +486,84 @@ describe('P9-13: Security Headers Middleware', () => {
     it('is an alias for createSecurityHeadersMiddleware', () => {
       const mw = defineSecurityHeaders({});
       expect(typeof mw).toBe('function');
+    });
+  });
+
+  describe('mergeSecurityHeadersOptions', () => {
+    it('顶层 key 由 override 整体替换（含 false 禁用某项）', () => {
+      const merged = mergeSecurityHeadersOptions(
+        {
+          strictTransportSecurity: { maxAge: 15552000, includeSubDomains: true },
+          extraHeaders: { 'X-One': '1' }
+        },
+        { strictTransportSecurity: false }
+      );
+      expect(merged.strictTransportSecurity).toBe(false);
+      expect(merged.extraHeaders).toEqual({ 'X-One': '1' });
+    });
+
+    it('contentSecurityPolicy 按指令深合并，未覆盖指令保留默认', () => {
+      const merged = mergeSecurityHeadersOptions(
+        {
+          contentSecurityPolicy: {
+            'default-src': ["'self'"],
+            'connect-src': ["'self'", 'ws:', 'wss:'],
+            'img-src': ["'self'", 'data:']
+          }
+        },
+        {
+          contentSecurityPolicy: {
+            'connect-src': ["'self'", 'https://api.iconify.design']
+          }
+        }
+      );
+      expect(merged.contentSecurityPolicy).toEqual({
+        'default-src': ["'self'"],
+        'connect-src': ["'self'", 'https://api.iconify.design'],
+        'img-src': ["'self'", 'data:']
+      });
+    });
+
+    it('strictTransportSecurity / permissionsPolicy / extraHeaders 同样按 key 合并', () => {
+      const merged = mergeSecurityHeadersOptions(
+        {
+          strictTransportSecurity: { maxAge: 15552000, includeSubDomains: true },
+          permissionsPolicy: { camera: [], geolocation: [] },
+          extraHeaders: { 'X-A': '1', 'X-B': '2' }
+        },
+        {
+          strictTransportSecurity: { maxAge: 86400 },
+          permissionsPolicy: { camera: ["'self'"] },
+          extraHeaders: { 'X-B': '22' }
+        }
+      );
+      expect(merged.strictTransportSecurity).toEqual({ maxAge: 86400, includeSubDomains: true });
+      expect(merged.permissionsPolicy).toEqual({ camera: ["'self'"], geolocation: [] });
+      expect(merged.extraHeaders).toEqual({ 'X-A': '1', 'X-B': '22' });
+    });
+
+    it('单指令覆盖后接入中间件：connect-src 只含 override 值，其余指令保留默认', async () => {
+      const middleware = createSecurityHeadersMiddleware(
+        mergeSecurityHeadersOptions(
+          {
+            contentSecurityPolicy: {
+              'default-src': ["'self'"],
+              'connect-src': ["'self'", 'ws:', 'wss:'],
+              'img-src': ["'self'", 'data:']
+            }
+          },
+          {
+            contentSecurityPolicy: { 'connect-src': ["'self'", 'https://api.iconify.design'] }
+          }
+        )
+      );
+      const app = createTestApp(middleware);
+      const res = await app.request('http://example.com/');
+      const csp = res.headers.get('Content-Security-Policy')!;
+      expect(csp).toContain("connect-src 'self' https://api.iconify.design");
+      expect(csp).toContain("default-src 'self'");
+      expect(csp).toContain("img-src 'self' data:");
+      expect(csp).not.toContain("connect-src 'self' ws:");
     });
   });
 });

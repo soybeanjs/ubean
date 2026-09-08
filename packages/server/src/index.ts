@@ -239,7 +239,12 @@ export type { CsrfOptions } from './csrf';
 /* -------------------------------------------------------------------------- */
 /* 安全头 (P9-13)                                                               */
 /* -------------------------------------------------------------------------- */
-export { createSecurityHeadersMiddleware, defineSecurityHeaders, serializeCsp } from './security-headers';
+export {
+  createSecurityHeadersMiddleware,
+  defineSecurityHeaders,
+  serializeCsp,
+  mergeSecurityHeadersOptions
+} from './security-headers';
 export type { ContentSecurityPolicyDirectives, SecurityHeadersOptions } from './security-headers';
 
 /* -------------------------------------------------------------------------- */

@@ -97,6 +97,43 @@ function serializePermissionsPolicy(policy: Record<string, string[]>): string {
     .join(', ');
 }
 
+/** 需按 key 逐层合并(而非整体替换)的嵌套对象类选项 */
+const NESTED_OPTION_KEYS = [
+  'contentSecurityPolicy',
+  'strictTransportSecurity',
+  'permissionsPolicy',
+  'extraHeaders'
+] as const;
+
+type NestedSecurityHeadersKey = (typeof NESTED_OPTION_KEYS)[number];
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * 深合并两份 SecurityHeadersOptions:
+ * - 顶层 key 由 override 整体替换(支持 `false` 关闭某项、`undefined` 保留默认)
+ * - 嵌套对象类 key(contentSecurityPolicy / strictTransportSecurity /
+ *   permissionsPolicy / extraHeaders)按 key 逐层合并 —— 用户只需覆盖单个
+ *   指令(如只改 `connect-src`),其余指令保持默认值不变
+ */
+export function mergeSecurityHeadersOptions(
+  base: SecurityHeadersOptions,
+  override: SecurityHeadersOptions
+): SecurityHeadersOptions {
+  const merged: SecurityHeadersOptions = { ...base, ...override };
+  const nested = merged as unknown as Record<NestedSecurityHeadersKey, Record<string, unknown>>;
+  for (const key of NESTED_OPTION_KEYS) {
+    const baseValue = base[key];
+    const overrideValue = override[key];
+    if (isPlainObject(baseValue) && isPlainObject(overrideValue)) {
+      nested[key] = { ...baseValue, ...overrideValue };
+    }
+  }
+  return merged;
+}
+
 const DEFAULT_CSP: ContentSecurityPolicyDirectives = {
   'default-src': ["'self'"],
   'script-src': ["'self'", "'unsafe-inline'", "'unsafe-eval'"],

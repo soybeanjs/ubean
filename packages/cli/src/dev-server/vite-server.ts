@@ -115,6 +115,40 @@ function loadScaffoldOps(): {
   return { createFsOps, scaffold, deleteScaffold, recoverScaffold };
 }
 
+/**
+ * Collect render-blocking CSS URLs from the Vite dev module graph.
+ *
+ * In dev, CSS imported from JS (virtual uno.css entry, global.css, font css)
+ * is only applied once the client entry module graph has fully loaded and
+ * executed — SSR HTML paints unstyled for that gap (FOUC). Injecting the same
+ * CSS modules as blocking `<link>` tags lets the browser fetch them in
+ * parallel with the JS graph, so the first paint is styled.
+ *
+ * `?direct` tells Vite's transform middleware to return raw CSS
+ * (`Content-Type: text/css`) instead of the JS style-injection wrapper.
+ * Modules whose URL already carries a query (SFC `<style>` blocks such as
+ * `*.vue?vue&type=style&...`) cannot be served this way and are skipped.
+ */
+function collectDevCssLinks(moduleGraph: ViteDevServer['moduleGraph']): string[] {
+  const links = new Set<string>();
+  for (const mod of moduleGraph.idToModuleMap.values()) {
+    const { url, id } = mod;
+    if (!url || url.includes('?')) continue;
+    // Real .css files and virtual CSS modules (e.g. `/@id/__x00__/__uno.css`).
+    if (id?.endsWith('.css') || url.endsWith('.css')) {
+      links.add(`${url}?direct`);
+    }
+  }
+  return [...links];
+}
+
+/** Inject blocking stylesheet links right before `</head>`. */
+function injectStylesheetLinks(html: string, hrefs: string[]): string {
+  if (!hrefs.length || !html.includes('</head>')) return html;
+  const tags = hrefs.map(href => `<link rel="stylesheet" href="${href}">`).join('');
+  return html.replace('</head>', `${tags}</head>`);
+}
+
 export async function createViteDevServer(options: ViteDevServerOptions): Promise<ViteDevServerInstance> {
   const { cwd, config, app: initialApp, layouts: initialLayouts = [] } = options;
   const host = options.host || 'localhost';
@@ -242,7 +276,11 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       const skipTransform = (req.url || '').startsWith('/_devtools');
       if (contentType.includes('text/html') && webRes.body && !skipTransform) {
         const html = await webRes.text();
-        const transformedHtml = await viteServer!.transformIndexHtml(req.url || '/', html);
+        // Inject render-blocking CSS links (FOUC fix) before Vite's client
+        // scripts are added — see collectDevCssLinks.
+        const cssLinks = collectDevCssLinks(viteServer!.moduleGraph);
+        const htmlWithCss = injectStylesheetLinks(html, cssLinks);
+        const transformedHtml = await viteServer!.transformIndexHtml(req.url || '/', htmlWithCss);
         res.statusCode = webRes.status;
         res.statusMessage = webRes.statusText;
         webRes.headers.forEach((value, key) => {

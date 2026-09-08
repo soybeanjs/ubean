@@ -351,6 +351,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       const { ubeanDevtoolsPlugin } = await import('@ubean/devtools');
       const devtoolsOpts = options.devtools;
       const scaffoldOps = await loadScaffoldOps();
+      // @ubean/devtools 经其自身依赖解析到另一个 vite-plus-core 实例
+      // (peer 上下文含 @vitejs/devtools),与 CLI 直接 import 的实例
+      // (peer 上下文含 esbuild/terser)类型不同源;运行时结构完全一致,
+      // 用双重断言桥接类型差异(与下方 viteDevtoolsPlugins 同理)。
       devtoolsPlugin = ubeanDevtoolsPlugin({
         getCwd: () => cwd,
         getApp: () => currentApp,
@@ -364,7 +368,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         registerRefresh: (fn: () => void) => {
           refreshDevtools = fn;
         }
-      } as Parameters<typeof ubeanDevtoolsPlugin>[0]);
+      } as Parameters<typeof ubeanDevtoolsPlugin>[0]) as unknown as Plugin;
     } catch {
       // @ubean/devtools not installed — DTK integration skipped.
     }
@@ -382,7 +386,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       // builtinDevTools: false skips DevToolsRolldownUI (the built-in Vite DevTools
       // dock panels) — we only need DevToolsServer (which fires devtools.setup) and
       // DevToolsInjection (which injects the client bootstrap script).
-      viteDevtoolsPlugins = await DevTools({ builtinDevTools: false });
+      // @vitejs/devtools 也解析到含 @vitejs+devtools peer 上下文的 vite-plus-core
+      // 实例,返回的 Plugin[] 与 CLI 直接 import 的实例类型不同源;运行时一致,
+      // 用双重断言桥接类型差异。
+      viteDevtoolsPlugins = (await DevTools({ builtinDevTools: false })) as unknown as Plugin[];
     } catch {
       // @vitejs/devtools not installed — Vite DevTools UI skipped.
     }

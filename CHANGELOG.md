@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.2...main) (2026-09-08)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **dev-server**: fix FOUC in dev &nbsp;-&nbsp; by @soybeanjs [<samp>(1104f)</samp>](https://github.com/soybeanjs/ubean/commit/1104fbe)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(0dbf8)</samp>](https://github.com/soybeanjs/ubean/commit/0dbf8ac)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.1...main) (2026-09-08)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

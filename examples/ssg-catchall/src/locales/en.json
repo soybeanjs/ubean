@@ -1,0 +1,6 @@
+{
+  "app": {
+    "title": "SSG Catch-all Example",
+    "description": "Static SSG example with catch-all routes and i18n expansion"
+  }
+}

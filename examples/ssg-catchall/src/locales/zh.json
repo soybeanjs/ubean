@@ -1,0 +1,6 @@
+{
+  "app": {
+    "title": "SSG Catch-all 示例",
+    "description": "含 catch-all 路由与 i18n 多语言展开的静态 SSG 示例"
+  }
+}

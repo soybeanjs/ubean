@@ -6,6 +6,16 @@ import { defineConfig } from 'ubean';
 export default defineConfig({
   mode: 'ssg',
   srcDir: 'src',
+  // i18n 多语言展开冒烟（docs/ssg.md P2）：
+  // prefix_except_default → en 无前缀 + /zh 前缀，expandRoutes 自动展开全语言 URL
+  i18n: {
+    defaultLocale: 'en',
+    locales: [
+      { code: 'en', language: 'en', name: 'English' },
+      { code: 'zh', language: 'zh-CN', name: '中文', dir: 'ltr' }
+    ],
+    strategy: 'prefix_except_default'
+  },
   prerender: {
     all: false,
     include: [

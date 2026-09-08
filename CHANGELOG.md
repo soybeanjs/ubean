@@ -1,5 +1,29 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.4...main) (2026-09-09)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **client**: support router scrollBehavior config in defineApp &nbsp;-&nbsp; by @soybeanjs [<samp>(4abfe)</samp>](https://github.com/soybeanjs/ubean/commit/4abfe8a)
+- **examples**: add i18n and 404 page to ssg-catchall fixture &nbsp;-&nbsp; by @soybeanjs [<samp>(e4de3)</samp>](https://github.com/soybeanjs/ubean/commit/e4de379)
+- **ssg**: implement direct render path bypassing HTTP pipeline &nbsp;-&nbsp; by @soybeanjs [<samp>(ec189)</samp>](https://github.com/soybeanjs/ubean/commit/ec18988)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- archive ssg.md to ADR-0011 per task-completion convention &nbsp;-&nbsp; by @soybeanjs [<samp>(0ad25)</samp>](https://github.com/soybeanjs/ubean/commit/0ad2571)
+- **ssg**:
+  - add lightweight SSG mode design (vite-ssg-style direct render path) &nbsp;-&nbsp; by @soybeanjs [<samp>(40115)</samp>](https://github.com/soybeanjs/ubean/commit/401153b)
+  - mark P1/P2/T3.1 complete and record benchmark results &nbsp;-&nbsp; by @soybeanjs [<samp>(7094f)</samp>](https://github.com/soybeanjs/ubean/commit/7094f8c)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **benchmark**: add SSG vs fullstack prerender build benchmark &nbsp;-&nbsp; by @soybeanjs [<samp>(4a9e0)</samp>](https://github.com/soybeanjs/ubean/commit/4a9e047)
+- **benchmarks**: regenerate ubean-test bundle baseline &nbsp;-&nbsp; by @soybeanjs [<samp>(a3d8c)</samp>](https://github.com/soybeanjs/ubean/commit/a3d8c2b)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.3...main) (2026-09-08)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

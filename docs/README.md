@@ -12,6 +12,7 @@
 | --- | --- |
 | [roadmap.md](roadmap.md) | 2026 Q4 还债 / 2027 H1 用户可见缺口（ADR-0010） |
 | [contracts/](contracts/) | studio 开口：scaffold JSON Schema + `.ubean/` codegen 契约 |
+| [ssg.md](ssg.md) | 轻量 SSG 模式设计：vite-ssg 式直接渲染路径（绕过 Hono 管道） |
 
 ## 长期参考
 

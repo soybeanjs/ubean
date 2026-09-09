@@ -6,6 +6,10 @@ import { defineConfig } from 'ubean';
 export default defineConfig({
   mode: 'ssg',
   srcDir: 'src',
+  // 内容集合 + 全文检索验证：
+  // - SSG 构建后自动生成 `__search.json`（sections payload，useContentSearch 数据源）
+  // - Pagefind 分片索引（可选依赖，未安装时构建日志提示并优雅跳过）
+  content: true,
   // i18n 多语言展开冒烟（docs/adr/0011-lightweight-ssg-direct-render.md）：
   // prefix_except_default → en 无前缀 + /zh 前缀，expandRoutes 自动展开全语言 URL
   i18n: {
@@ -25,7 +29,8 @@ export default defineConfig({
       '/ui/components/tooltip',
       '/aria',
       '/aria/components/popper',
-      '/playground'
+      '/playground',
+      '/search'
     ],
     crawlLinks: true
   }

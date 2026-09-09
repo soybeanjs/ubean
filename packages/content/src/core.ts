@@ -150,7 +150,9 @@ export function parseMarkdown(content: string): ContentBody {
       flushParagraph();
       const depth = headingMatch[1].length;
       const text = headingMatch[2].replace(/[#*_`~[\]]/g, '').trim();
-      const id = kebabCase(text);
+      // scule 的 kebabCase 不处理空格（"Guide Title" → "guide -title"），
+      // 先将空白归一为连字符，保证锚点/搜索 section id 是合法 slug
+      const id = kebabCase(text.replace(/\s+/g, '-'));
 
       while (headingDepths[headingDepths.length - 1] >= depth) {
         headingDepths.pop();

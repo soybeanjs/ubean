@@ -10,7 +10,7 @@ export default defineConfig({
     format: ['esm'],
     fixedExtension: false,
     outDir: 'dist',
-    entry: ['src/index.ts', 'src/vite.ts', 'src/runtime.ts'],
+    entry: ['src/index.ts', 'src/vite.ts', 'src/runtime.ts', 'src/vue.ts'],
     deps: {
       neverBundle: ['vue', /^node:/]
     }

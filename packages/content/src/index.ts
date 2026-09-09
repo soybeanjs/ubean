@@ -8,6 +8,7 @@ export {
   listCollections,
   queryCollection,
   queryCollection as queryContent,
+  queryCollectionSearchSections,
   getContentItem,
   fetchContentNavigation,
   fetchContentNavigation as fetchNavigation,
@@ -30,6 +31,18 @@ export {
   generateId
 } from './core';
 
+export {
+  splitDocumentIntoSearchSections,
+  generateSearchSections,
+  generateSearchSectionsSnapshot,
+  tokenizeText,
+  createSectionSearch,
+  searchSections,
+  resolveContentSearchConfig,
+  runPagefindIndex
+} from './search';
+export type { PagefindIndexOptions, PagefindIndexResult, ResolvedContentSearchConfig } from './search';
+
 export { extractContentPageRoutes, discoverContentPageRoutes } from './routing';
 export type { ContentPageRouteOptions, DiscoverContentPageRoutesOptions } from './routing';
 
@@ -46,7 +59,14 @@ export type {
   MarkdownNode,
   ContentTocItem,
   ContentType,
-  ParsedContentMeta
+  ParsedContentMeta,
+  SearchSection,
+  SearchHit,
+  SectionSearchEngine,
+  SectionSearchOptions,
+  SectionQueryOptions,
+  GenerateSearchSectionsOptions,
+  ContentSearchOptions
 } from './types';
 
 export type {

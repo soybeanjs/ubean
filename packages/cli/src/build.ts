@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { rm } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { generateTypes } from '@ubean/build/codegen';
 import { prerender } from '@ubean/build/prerender';
@@ -257,6 +257,49 @@ export const buildCommand: CommandDef = {
           notFoundRoute,
           expandRoutes
         });
+
+        // SSG / 预渲染全文搜索索引：
+        // 1. sections JSON payload（`__search.json`）— useContentSearch 的数据源
+        // 2. Pagefind 分片索引（可选依赖，未安装时提示安装并跳过）
+        if (contentSnapshot) {
+          try {
+            const contentMod = await import('@ubean/content');
+            const searchConfig = contentMod.resolveContentSearchConfig(config.content as any, {
+              ssg: config.mode === 'ssg'
+            });
+            const staticDir = resolve(cwd, resolvePrerenderConfig(config.prerender).staticDir);
+
+            if (searchConfig.sections) {
+              const payload = contentMod.generateSearchSectionsSnapshot(contentSnapshot as Record<string, any[]>);
+              await mkdir(staticDir, { recursive: true });
+              await writeFile(join(staticDir, '__search.json'), JSON.stringify(payload), 'utf-8');
+              const sectionCount = Object.values(payload).reduce((sum, sections) => sum + sections.length, 0);
+              logger.info(`Search: wrote __search.json (${sectionCount} sections)`);
+            }
+
+            if (searchConfig.pagefind) {
+              const res = await contentMod.runPagefindIndex({
+                siteDir: staticDir,
+                createIndexOptions: searchConfig.pagefindOptions,
+                logger: {
+                  info: msg => logger.info(msg),
+                  warn: msg => logger.warn(msg)
+                }
+              });
+              if (res.indexed) {
+                logger.info('Search: pagefind index generated');
+              } else if (res.reason === 'pagefind-not-installed') {
+                logger.info(
+                  'Search: pagefind is not installed — skipping index. Run `pnpm add -D pagefind` to enable.'
+                );
+              } else {
+                logger.warn(`Search: pagefind indexing failed — ${res.error ?? res.reason}`);
+              }
+            }
+          } catch (err) {
+            logger.warn(`Search index generation skipped: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
       }
 
       // SSG 模式:清理临时 server bundle(prerender 已加载到内存,删除文件不影响静态 HTML)

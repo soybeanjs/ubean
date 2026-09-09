@@ -3,7 +3,8 @@ import { defu } from 'defu';
 import { join } from 'pathe';
 import { configureContentRuntime, registerContent } from './runtime';
 import { scanContentSources } from './scan';
-import type { ContentDocument } from './types';
+import { generateSearchSectionsSnapshot } from './search';
+import type { ContentDocument, ContentSearchOptions } from './types';
 
 export interface UbeanContentOptions {
   sources?: Record<string, { dir: string; prefix?: string; type?: string }>;
@@ -17,6 +18,13 @@ export interface UbeanContentOptions {
   experimental?: {
     watch?: boolean;
   };
+  /**
+   * 全文检索配置（SSG 默认开启）：
+   * - `provider: 'pagefind'`（默认）构建后扫描静态 HTML 生成分片索引
+   * - `sections: true`（默认）输出 `__search.json` 供 `useContentSearch` 使用
+   * - dev server 自动提供 `/__search.json`（与 SSG 产物同构）
+   */
+  search?: ContentSearchOptions | false;
 }
 
 const defaultOptions: UbeanContentOptions = {
@@ -97,6 +105,16 @@ export default collections;
     },
 
     configureServer(server) {
+      // Dev 下提供与 SSG 构建产物同构的 sections payload，
+      // 使 useContentSearch 的 fetch 路径在 dev / SSG 行为一致。
+      if (options.search !== false) {
+        server.middlewares.use('/__search.json', (_req, res) => {
+          const payload = generateSearchSectionsSnapshot(loadedDocuments);
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify(payload));
+        });
+      }
+
       if (options.experimental?.watch) {
         const watchPatterns = Object.values(options.sources || {}).map(s => {
           return join(s.dir || options.defaultDir, '**/*.{md,mdx,json,yaml,yml}');

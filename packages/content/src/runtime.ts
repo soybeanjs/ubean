@@ -10,13 +10,16 @@ import {
 } from './core';
 import { scanContentSources } from './scan';
 import type { ScanContentSourcesOptions } from './scan';
+import { generateSearchSections } from './search';
 import type {
   ContentDocument,
   ContentCollection,
   ContentQueryBuilder,
   ContentNavigationItem,
   ContentModuleOptions,
-  ContentSchema
+  ContentSchema,
+  GenerateSearchSectionsOptions,
+  SearchSection
 } from './types';
 
 let collections: Map<string, ContentCollection> = new Map();
@@ -85,6 +88,24 @@ export async function fetchContentNavigation(collectionName?: string): Promise<C
   return nav;
 }
 
+/**
+ * 全文检索数据原语：将 collection 中的文档按标题层级切分为可搜索 sections。
+ *
+ * 与搜索引擎解耦 —— 结果可直接交给 `createSectionSearch`（内置 fallback /
+ * MiniSearch）或 Fuse.js 等任意引擎。SSG 构建时由 CLI 序列化为 `__search.json`。
+ */
+export async function queryCollectionSearchSections(
+  collectionName: string,
+  options: GenerateSearchSectionsOptions = {}
+): Promise<SearchSection[]> {
+  const collection = collections.get(collectionName);
+  if (!collection) {
+    throw new Error(`Collection "${collectionName}" not found. Available collections: ${listCollections().join(', ')}`);
+  }
+  const docs = await collection.list();
+  return generateSearchSections(docs, options);
+}
+
 export function registerContent(collectionName: string, documents: ContentDocument[]): ContentCollection {
   let collection = collections.get(collectionName);
   if (!collection) {
@@ -145,5 +166,9 @@ export type {
   ContentBody,
   MarkdownNode,
   ContentTocItem,
-  ContentType
+  ContentType,
+  SearchSection,
+  SearchHit,
+  GenerateSearchSectionsOptions,
+  ContentSearchOptions
 } from './types';

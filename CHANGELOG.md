@@ -1,5 +1,23 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.5...main) (2026-09-09)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **vue**: add typed ClientOnly component for client-only template fragments &nbsp;-&nbsp; by @soybeanjs [<samp>(a5946)</samp>](https://github.com/soybeanjs/ubean/commit/a5946a1)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- propagate ADR-0011 SSG direct render path across project docs &nbsp;-&nbsp; by @soybeanjs [<samp>(bf4a9)</samp>](https://github.com/soybeanjs/ubean/commit/bf4a916)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **projects**: unify ts version and update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(bd594)</samp>](https://github.com/soybeanjs/ubean/commit/bd594bf)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.4...main) (2026-09-09)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

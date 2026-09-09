@@ -125,6 +125,7 @@ Static site generation — prerender at build time via a **direct render path** 
 - i18n routes are expanded per strategy: `/about` → `/about` + `/zh/about` under `prefix_except_default`; hreflang / canonical / og:locale tags are emitted automatically
 - Page `loader` is **not executed** (one-time warning) — data comes from content collections, module constants, or client-side hydration fetch
 - Not available in static output: server actions, form POST, ISR / PPR / streaming, route-rule redirect/rewrite (no execution point in static files) — use `fullstack` with `prerender` when you need those
+- Security response headers (CSP/HSTS/…) are not part of the static output — configure them on your hosting platform (e.g. Netlify / Cloudflare Pages `_headers`). Dev disables them by default to mirror that; set `security.headers` in `ubean.config.ts` to re-enable them in dev as a CSP debugging console
 - Temporary `dist/server/` is cleaned up after prerender (set `UBEAN_KEEP_SSR=1` to keep it for debugging)
 - Preview: static file server serving `dist/public/`
 

@@ -130,6 +130,7 @@ ubean dev
 - Scans the project, generates type definitions into `.ubean/`, and starts the Hono dev server.
 - Watches `api`, `pages`, `middleware`, `layouts`, `plugins`, `app`, and `routes` under `srcDir`; on change the project is rescanned, the app rebuilt, and the browser reloaded.
 - In fullstack/backend modes the startup banner lists the Scalar UI (`/_scalar`) and OpenAPI schema (`/_openapi.json`) URLs, and OpenAPI types are generated asynchronously into `.ubean/`.
+- In `ssg` mode, security response headers (CSP/HSTS/…) are disabled by default in dev — static output ships no framework-injected headers (the hosting platform controls them), so dev mirrors that reality. Explicitly setting `security.headers` in `ubean.config.ts` re-enables them as a CSP debugging console.
 - If the DevTools module is enabled in config, the DevTools URL is shown in the banner.
 
 **Examples:**

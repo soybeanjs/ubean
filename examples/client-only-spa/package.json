@@ -23,7 +23,7 @@
     "@vitejs/plugin-vue": "^6.0.8",
     "@vitejs/plugin-vue-jsx": "^5.1.6",
     "@vue/server-renderer": "^3.5.42",
-    "typescript": "7.0.2",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "5.0.0",

@@ -40,7 +40,7 @@ const PACKAGE_JSON = `{
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
     "eslint": "^10.8.0",
-    "typescript": "^5.6.0",
+    "typescript": "^6.0.3",
     "vite-plus": "^0.2.6",
     "vue-tsc": "^2.1.0"
   }

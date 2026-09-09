@@ -3,24 +3,18 @@ packages:
   - 'apps/*'
   - 'examples/*'
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.3.0
-  vite-plus: 0.3.0
+  vite: npm:@voidzero-dev/vite-plus-core@0.3.1
+  vite-plus: 0.3.1
+  typescript: npm:typescript-native-bridge@latest
   vue-i18n: 11.4.10
   '@intlify/core': 11.4.10
   '@intlify/unplugin-vue-i18n': 11.2.5
 overrides:
   vite: 'catalog:'
-  kysely: '0.28.5'
-  markdown-exit: '1.1.0-beta.2'
-  typescript: '6.0.3'
+  typescript: 'catalog:'
 shamefullyHoist: true
 ignoreWorkspaceRootCheck: true
 allowBuilds:
-  esbuild: true
-  sharp: false
-  workerd: true
-  koffi: true
-  electron: true
-minimumReleaseAgeExclude:
-  - '@soybeanjs/oxc-config@0.2.6'
-  - '@types/node@26.5.0'
+  electron: false
+  esbuild: false
+minimumReleaseAge: 0

@@ -33,7 +33,7 @@
     "@types/node": "^26.5.0",
     "@ubean/content": "workspace:*",
     "hono": "4.13.7",
-    "typescript": "7.0.2",
+    "typescript": "catalog:",
     "unplugin-auto-import": "21.1.0",
     "unplugin-vue-components": "^32.1.0",
     "vite": "catalog:",

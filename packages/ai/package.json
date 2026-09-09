@@ -41,7 +41,7 @@
   "devDependencies": {
     "@types/node": "^26.5.0",
     "hono": "4.13.7",
-    "typescript": "7.0.2",
+    "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vue": "^3.5.42"

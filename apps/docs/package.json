@@ -28,8 +28,8 @@
     "@soybeanjs/unocss-shadcn": "^0.29.3",
     "@types/node": "^26.5.0",
     "typedoc": "^0.28.20",
-    "typescript": "7.0.2",
-    "unocss": "^66.10.0",
+    "typescript": "catalog:",
+    "unocss": "^66.10.1",
     "vue-tsc": "^3.3.11"
   }
 }

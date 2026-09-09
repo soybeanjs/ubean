@@ -15,7 +15,7 @@ import { routes } from 'virtual:ubean-vue-routes'; // 由 @ubean/vue/vite 生成
 const router = createRouter({ history: createWebHistory(), routes });
 const app = createApp(App);
 app.use(router);
-app.use(ubeanVue, { routes }); // 注册 Link/PageView/SlotView + 播种页面缓存
+app.use(ubeanVue, { routes }); // 注册 Link/PageView/SlotView/ClientOnly + 播种页面缓存
 app.mount('#app');
 ```
 
@@ -45,6 +45,7 @@ app.mount('#app');
     - [`<SlotView>`](#slotview)
     - [`<LayoutChainRenderer>`](#layoutchainrenderer)
     - [`<ErrorBoundary>`](#errorboundary)
+    - [`<ClientOnly>`](#clientonly)
   - [组合式函数](#组合式函数)
   - [页面缓存（keep-alive）](#页面缓存keep-alive)
   - [页面过渡与重载](#页面过渡与重载)
@@ -68,7 +69,7 @@ app.mount('#app');
 **包含：**
 
 - `ubeanVue` Vue 插件（唯一接线入口 —— 插件优先，无工厂）
-- `<PageView>` / `<Link>` / `<SlotView>` / `<LayoutChainRenderer>` / `<ErrorBoundary>`
+- `<PageView>` / `<Link>` / `<SlotView>` / `<LayoutChainRenderer>` / `<ErrorBoundary>` / `<ClientOnly>`
 - 页面缓存（keep-alive）store：命令式 + 声明式 API
 - 页面过渡与重载信号（按页重载 + 缓存新鲜重建）
 - View Transitions 工具（特性检测 + 包装器）
@@ -352,7 +353,7 @@ const result = await generateRouteFiles(
 app.use(ubeanVue, { routes });
 ```
 
-注册 `Link` / `PageView` / `SlotView` 全局组件，并从 `meta.cache: true` 声明播种 keep-alive include 列表（`initCachedViewsFromRoutes`）。这是本包主入口**唯一**的接线入口（与 `/vite` 子路径的同名 Vite 插件是两个不同入口）。
+注册 `Link` / `PageView` / `SlotView` / `ClientOnly` 全局组件，并从 `meta.cache: true` 声明播种 keep-alive include 列表（`initCachedViewsFromRoutes`）。这是本包主入口**唯一**的接线入口（与 `/vite` 子路径的同名 Vite 插件是两个不同入口）。
 
 ## 组件
 
@@ -385,6 +386,43 @@ Props：`to`（字符串或位置对象）、`href`、`replace`、`activeClass`�
 ### `<ErrorBoundary>`
 
 捕获后代组件的渲染/异步/setup 错误并渲染配置的错误组件；路由变更时自动重置。
+
+### `<ClientOnly>`
+
+内容仅在客户端、水合之后渲染。适合浏览器态内容与模板片段（islands 的 `v-client.*` 编译转换只作用于大写开头的组件标签）。
+
+```vue
+<template>
+  <!-- 字符串 fallback prop -->
+  <ClientOnly fallback="加载中…">
+    <BrowserChart />
+  </ClientOnly>
+
+  <!-- #fallback slot（预留空间避免 CLS） -->
+  <ClientOnly>
+    <template #fallback>
+      <div class="skeleton" />
+    </template>
+    <BrowserMap />
+  </ClientOnly>
+
+  <!-- 裸模板片段也可以 -->
+  <ClientOnly>窗口宽度：{{ width }}px</ClientOnly>
+</template>
+```
+
+**水合安全**：占位内容（fallback / 空）在 SSR 与客户端水合首帧渲染**完全一致**，真实内容在挂载后 patch 进来。实现不做 `typeof window` 分支，因此不会产生水合 mismatch 警告。
+
+**场景选择**：
+
+| 场景                                                          | 用法                                                         |
+| ------------------------------------------------------------- | ------------------------------------------------------------ |
+| 模板片段 / 裸 HTML、同树渲染（完整应用上下文）、fallback slot | `<ClientOnly>`                                               |
+| 组件级延迟水合策略（idle/visible/media）                      | islands `v-client.*`                                         |
+| 编程式 island / 客户端组件包装                                | `defineIsland` / `defineClientComponent`（`@ubean/islands`） |
+| 文件级 server/client 拆分                                     | `.server.vue` / `.client.vue`                                |
+
+> 注意：默认 slot 内容不进 SSR HTML —— SEO 关键内容不要用 `<ClientOnly>`。出现在 island 占位元素子内容中的 `<ClientOnly>` 会在 island 水合时一并被覆盖（islands 通过独立 app 水合）。
 
 ## 组合式函数
 

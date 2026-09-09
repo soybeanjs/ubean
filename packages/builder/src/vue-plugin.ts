@@ -341,7 +341,7 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     );
   }
 
-  const UBEAN_BUILTIN_COMPONENTS = ['Link', 'Head', 'PageView'];
+  const UBEAN_BUILTIN_COMPONENTS = ['Link', 'Head', 'PageView', 'ClientOnly'];
 
   function ubeanComponentsResolver(componentName: string) {
     if (UBEAN_BUILTIN_COMPONENTS.includes(componentName)) {

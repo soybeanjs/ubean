@@ -91,6 +91,26 @@ Render only on the client (no SSR output for this component):
 <ClientOnlyWidget v-client.only />
 ```
 
+### `v-client.only` vs `<ClientOnly>`
+
+ubean also ships a `<ClientOnly>` component (from `ubean/client` / `@ubean/vue`) for the non-island case:
+
+```vue
+<template>
+  <ClientOnly fallback="loading…">
+    <BrowserChart />
+  </ClientOnly>
+</template>
+```
+
+| Use `v-client.only`                                            | Use `<ClientOnly>`                                                |
+| -------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Component-level islands architecture (registry-driven hydration) | Template fragments / plain HTML (the islands transform only matches capitalized component tags) |
+| Needs a deferral strategy alongside (load/idle/visible/media)   | Same-tree rendering with full app context, `#fallback` slot / `fallback` prop |
+| Content inside the island is replaced by a separate app on hydration | Not inside an island placeholder (its content is wiped when the island hydrates) |
+
+`<ClientOnly>` is hydration-safe: SSR and the client's first paint render identical placeholder output, and the real content is patched in after mount.
+
 ## Island Components
 
 Create reusable island components:

@@ -496,7 +496,7 @@ function generateComponentsDts(components: ComponentInfo[], dtsPath: string): st
   const entries = new Map<string, string>();
 
   // Keep in sync with UBEAN_BUILTIN_COMPONENTS in ../vue-plugin.ts
-  const BUILTIN_COMPONENTS = ['Link', 'Head', 'PageView'];
+  const BUILTIN_COMPONENTS = ['Link', 'Head', 'PageView', 'ClientOnly'];
   for (const name of BUILTIN_COMPONENTS) {
     entries.set(name, `typeof import('ubean/client')['${name}']`);
   }

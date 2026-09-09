@@ -1518,7 +1518,7 @@ Automatically imports Vue components under the project's `components/` directory
 **Auto-scan directories**:
 
 - `components/` — scans all `.vue` components (supports nested directories; directory name as namespace: `Foo/Bar.vue` → `<FooBar />`)
-- ubean built-in components (`<Link>`, `<Head>`, `<PageView>`) are always available
+- ubean built-in components (`<Link>`, `<Head>`, `<PageView>`, `<ClientOnly>`) are always available
 
 #### Configuration
 
@@ -1541,7 +1541,7 @@ export default defineConfig({
     // remaining unplugin-auto-import options (imports/dts/eslintrc/...) pass through
   },
   components: {
-    ubean: true,        // built-in <Link>/<Head>/<PageView> resolver (default true)
+    ubean: true,        // built-in <Link>/<Head>/<PageView>/<ClientOnly> resolver (default true)
     dirs: ['components'],
     directoryAsNamespace: false,
     // remaining unplugin-vue-components options (resolvers/dts/deep/...) pass through

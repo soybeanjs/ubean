@@ -28,6 +28,7 @@ import {
   PageView,
   SlotView,
   Link,
+  ClientOnly,
   LayoutChainRenderer,
   PAGE_KEY,
   TRANSITION_KEY,
@@ -50,7 +51,7 @@ import type { RouterConfig } from './define-app';
 
 // Re-export the lean surface for framework consumers of this subpath.
 // `usePage`(路由感知版)见下方;`useRouter` 不再透传,请直接从 `vue-router` 导入。
-export { PageView, SlotView, Link, ubeanVue, useViewTransition };
+export { PageView, SlotView, Link, ClientOnly, ubeanVue, useViewTransition };
 export { usePage } from './use-page';
 export type { UbeanVuePage } from './use-page';
 export {
@@ -329,6 +330,7 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
   app.component('Link', Link);
   app.component('PageView', PageView);
   app.component('SlotView', SlotView);
+  app.component('ClientOnly', ClientOnly);
   app.directive('client', vClient);
   app.config.globalProperties.$ubean = { page, head, router };
 
@@ -392,6 +394,7 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   app.component('Link', Link);
   app.component('PageView', PageView);
   app.component('SlotView', SlotView);
+  app.component('ClientOnly', ClientOnly);
   app.directive('client', vClient);
   app.config.globalProperties.$ubean = { page, head, router };
 

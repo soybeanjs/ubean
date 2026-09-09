@@ -23,9 +23,12 @@ import {
   shallowRef,
   onErrorCaptured,
   provide,
-  createCommentVNode
+  createCommentVNode,
+  createTextVNode,
+  onMounted,
+  ref
 } from 'vue';
-import type { App, Component, ConcreteComponent, InjectionKey, Plugin, PropType, VNode } from 'vue';
+import type { App, Component, ConcreteComponent, InjectionKey, Plugin, PropType, SlotsType, VNode } from 'vue';
 import { RouterView, RouterLink, useRoute } from 'vue-router';
 import type { RouteLocationRaw } from 'vue-router';
 import { initCachedViewsFromRoutes, getNamedPageWrapper, useCacheViews, _flushPendingReincludes } from './cache-views';
@@ -153,6 +156,89 @@ export const ErrorBoundary = defineComponent({
     };
   }
 });
+
+export interface ClientOnlyProps {
+  /** Placeholder text rendered during SSR and client hydration render. */
+  fallback?: string;
+}
+
+export interface ClientOnlySlots {
+  /** Content rendered only on the client, after hydration. */
+  default?: () => VNode[];
+  /** Placeholder rendered during SSR and the client's hydration render. */
+  fallback?: () => VNode[];
+}
+
+/**
+ * ClientOnly — renders its default slot ONLY on the client, after hydration.
+ *
+ * ## Hydration-safety contract
+ *
+ * The implementation must NEVER branch on `typeof window` (that renders
+ * different trees on server vs client first paint → hydration mismatch).
+ * Instead it follows the same pattern as the islands runtime's
+ * `defineClientComponent`: the placeholder (fallback) is rendered during SSR
+ * AND during the client's hydration render, then `onMounted` flips
+ * `mounted` and Vue patches in the real content.
+ *
+ * ## Output shape
+ *
+ * - Default (no fallback): renders a comment vnode on BOTH server and client
+ *   first paint — no wrapper element, no layout pollution.
+ * - `fallback` prop: renders the string as a text node.
+ * - `#fallback` slot: renders arbitrary placeholder content (reserve space to
+ *   avoid CLS — the default slot content is absent from the SSR HTML).
+ *
+ * ## Typing
+ *
+ * Props and slots are fully typed (`ClientOnlyProps` / `ClientOnlySlots`) so
+ * templates get `#fallback` autocompletion and vue-tsc rejects unknown slots.
+ * Uses the function-style `defineComponent<Props, E, S>` overload — the
+ * object-style overload cannot carry slot types.
+ *
+ * ## When to use what (vs islands)
+ *
+ * - `<ClientOnly>` — template fragments / browser-only markup, same-tree
+ *   rendering (full app context), works on plain HTML (the islands
+ *   `v-client.*` transform only matches capitalized component tags).
+ * - `v-client.only` — islands architecture: registry-driven, hydrated via a
+ *   separate app by `hydrateIslands()` (content inside an island placeholder
+ *   is replaced on hydration, so `<ClientOnly>` inside island children is
+ *   wiped with it).
+ * - `defineClientComponent` — programmatic wrapper (always renders a
+ *   `<div data-client-only>` wrapper element).
+ */
+export const ClientOnly = defineComponent<ClientOnlyProps, {}, string, SlotsType<ClientOnlySlots>>(
+  (props, { slots }) => {
+    // mounted: false on the server AND during the client's hydration render —
+    // both render identical placeholder output (hydration-safe). onMounted is
+    // client-only, so the patch to real content happens right after hydration.
+    const mounted = ref(false);
+    onMounted(() => {
+      mounted.value = true;
+    });
+
+    return () => {
+      if (mounted.value) {
+        return slots.default?.() ?? null;
+      }
+      if (slots.fallback) {
+        return slots.fallback();
+      }
+      if (props.fallback !== undefined) {
+        return createTextVNode(props.fallback);
+      }
+      // Comment vnode renders as a comment on the server and hydrates as the
+      // same comment on the client — zero-DOM placeholder.
+      return createCommentVNode('client-only');
+    };
+  },
+  {
+    name: 'ClientOnly',
+    inheritAttrs: false,
+    props: ['fallback']
+  }
+);
 
 /**
  * PageView — renders the matched route page wrapped with `<Transition>` and
@@ -519,7 +605,7 @@ export function useViewTransition() {
  * const router = createRouter({ history: createWebHistory(), routes });
  * const app = createApp(App);
  * app.use(router);
- * app.use(ubeanVue, { routes }); // Link/PageView/SlotView + cache seeding
+ * app.use(ubeanVue, { routes }); // Link/PageView/SlotView/ClientOnly + cache seeding
  * app.mount('#app');
  * ```
  */
@@ -537,6 +623,7 @@ export const ubeanVue: Plugin<UbeanVueOptions> = {
     app.component('Link', Link);
     app.component('PageView', PageView);
     app.component('SlotView', SlotView);
+    app.component('ClientOnly', ClientOnly);
     if (options?.routes) {
       initCachedViewsFromRoutes(options.routes);
     }

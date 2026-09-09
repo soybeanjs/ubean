@@ -1528,7 +1528,7 @@ const router = useRouter();
 **自动扫描目录**：
 
 - `components/` — 扫描所有 `.vue` 组件（支持嵌套目录，目录名作为命名空间：`Foo/Bar.vue` → `<FooBar />`）
-- ubean 内置组件（`<Link>`、`<Head>`、`<PageView>`）始终可用
+- ubean 内置组件（`<Link>`、`<Head>`、`<PageView>`、`<ClientOnly>`）始终可用
 
 #### 配置
 
@@ -1550,7 +1550,7 @@ export default defineConfig({
     // 其余 unplugin-auto-import 选项（imports/dts/eslintrc/…）原样透传
   },
   components: {
-    ubean: true,        // 内置组件 <Link>/<Head>/<PageView> 解析（默认 true）
+    ubean: true,        // 内置组件 <Link>/<Head>/<PageView>/<ClientOnly> 解析（默认 true）
     dirs: ['components'],
     directoryAsNamespace: false,
     // 其余 unplugin-vue-components 选项（resolvers/dts/deep/…）原样透传

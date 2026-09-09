@@ -1,7 +1,7 @@
 /**
  * @ubean/vue — lean Vue client kernel (plugin-first) & page-routing owner.
  *
- * Surface: `ubeanVue` plugin · PageView/Link/SlotView · `createClientRouter`
+ * Surface: `ubeanVue` plugin · PageView/Link/SlotView/ClientOnly · `createClientRouter`
  * · `definePage` client macro · page cache (keep-alive) · page transitions &
  * reload signal · View Transitions helpers · route pure functions · dynamic
  * route matchers (`defineMatcher` / `createMatcherGuard`) · page-level head
@@ -67,6 +67,7 @@ export {
   SlotView,
   LayoutChainRenderer,
   ErrorBoundary,
+  ClientOnly,
   usePage,
   useViewTransition,
   PAGE_KEY,
@@ -78,6 +79,7 @@ export {
   LOCALIZE_PATH_KEY
 } from './components';
 export type { UbeanVueOptions, UbeanVuePageData, LayoutChainContext } from './components';
+export type { ClientOnlyProps, ClientOnlySlots } from './components';
 export { ubeanVue as default } from './components';
 
 // page cache (keep-alive)

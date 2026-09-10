@@ -107,6 +107,8 @@ export function parseMarkdown(content: string): ContentBody {
   let foundExcerptSeparator = false;
   let headingStack: ContentTocItem[][] = [toc];
   let headingDepths: number[] = [0];
+  /** 标题文本 → 已出现次数；重复标题追加 `-n` 后缀，保证锚点/搜索 section id 唯一 */
+  const headingIdCounts = new Map<string, number>();
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -152,7 +154,12 @@ export function parseMarkdown(content: string): ContentBody {
       const text = headingMatch[2].replace(/[#*_`~[\]]/g, '').trim();
       // scule 的 kebabCase 不处理空格（"Guide Title" → "guide -title"），
       // 先将空白归一为连字符，保证锚点/搜索 section id 是合法 slug
-      const id = kebabCase(text.replace(/\s+/g, '-'));
+      const baseId = kebabCase(text.replace(/\s+/g, '-'));
+      // 同页重复标题文本（如 `## 注意事项` 与 `### 注意事项`）会生成同一锚点，
+      // 导致搜索 section id 冲突（MiniSearch addAll 直接抛错），按 GitHub 规则追加 `-n`
+      const idCount = headingIdCounts.get(baseId) ?? 0;
+      headingIdCounts.set(baseId, idCount + 1);
+      const id = idCount === 0 ? baseId : `${baseId}-${idCount}`;
 
       while (headingDepths[headingDepths.length - 1] >= depth) {
         headingDepths.pop();

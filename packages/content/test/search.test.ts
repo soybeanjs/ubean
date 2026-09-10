@@ -70,6 +70,14 @@ describe('splitDocumentIntoSearchSections', () => {
     expect(usage.content).toContain('Use it in your app');
   });
 
+  it('keeps section ids unique for repeated heading text', () => {
+    // 重复标题文本（如 `## 注意事项` + `### 注意事项`）曾生成同 id，
+    // 导致 MiniSearch.addAll 抛 duplicate ID。
+    const doc = makeDoc('## 注意事项\n\nA.\n\n### 注意事项\n\nB.');
+    const ids = splitDocumentIntoSearchSections(doc, { minHeading: 2 }).map(s => s.id);
+    expect(ids).toEqual(['/docs/guide#注意事项', '/docs/guide#注意事项-1']);
+  });
+
   it('creates intro section for content before the first heading', () => {
     const doc = makeDoc('Leading paragraph.\n\n## Section\n\nBody.');
     const result = splitDocumentIntoSearchSections(doc);

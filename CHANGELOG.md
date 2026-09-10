@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.8...main) (2026-09-10)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **content**: dedupe heading anchors to keep search section ids unique &nbsp;-&nbsp; by @soybeanjs [<samp>(5a1c1)</samp>](https://github.com/soybeanjs/ubean/commit/5a1c17a)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.7...main) (2026-09-10)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

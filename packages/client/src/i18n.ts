@@ -194,6 +194,13 @@ function writeLocaleCookie(code: string): void {
  * Framework setLocale: load messages, switch composer locale, write cookie,
  * navigate to the localized path (`no_prefix` skips navigation).
  *
+ * Server-side (no `window`) the navigation is skipped: the render URL is the
+ * source of truth during SSR/SSG, and `router.replace` on the shared
+ * memory-history router — often a stale instance from a previous render —
+ * cancels in-flight initial navigations. Combined with a navigation guard
+ * calling `setLocale`, this used to create a self-sustaining replace loop
+ * that starved the event loop (docs SSG build hang, 2026-09-10).
+ *
  * Uses the runtime bound by `bindI18nRuntime` (not Vue composables) so it is
  * safe to call from click handlers.
  */
@@ -214,7 +221,7 @@ export async function setLocale(code: string): Promise<void> {
 
   const cfg = state.config;
   let navPromise = Promise.resolve();
-  if (cfg && cfg.strategy !== 'no_prefix') {
+  if (cfg && cfg.strategy !== 'no_prefix' && typeof window !== 'undefined') {
     const router = state.router;
     const currentPath = (
       router?.currentRoute.value.path ||
@@ -237,6 +244,13 @@ export function getLocale(): string {
   try {
     return String(useVueI18n().locale.value);
   } catch {
+    // Outside a component setup (e.g. router guards, event handlers) vue-i18n's
+    // useI18n() throws. Fall back to the composer bound by bindI18nRuntime so
+    // getLocale() reflects previous setLocale() calls — otherwise callers like
+    // locale-sync guards see a permanently stale defaultLocale and re-invoke
+    // setLocale on every navigation.
+    const composer = getRuntimeState().i18n?.global as Composer | undefined;
+    if (composer) return String(composer.locale.value);
     return getRuntimeConfigState()?.defaultLocale || 'en';
   }
 }

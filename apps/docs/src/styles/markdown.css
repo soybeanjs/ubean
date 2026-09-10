@@ -1,4 +1,4 @@
-.markdown-wrapper {
+.markdown-body {
   --uno: 'relative min-w-0 max-w-none text-start text-base leading-[1.85] text-foreground';
 
   > :first-child {

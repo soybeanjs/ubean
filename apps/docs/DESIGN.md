@@ -137,12 +137,12 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Alternatives:** keep ubean `colorMode` for bootstrap only + `SConfigProvider` for runtime (two systems writing the same class — works but coupling is implicit); accept flash-of-wrong-theme (unacceptable UX for a framework docs site).
 **Verified against:** [`soybean-ui/apps/docs/src/main.ts`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/main.ts#L1-L22) (no `colorMode` config in vite-ssg; the `<html>.dark` class is set by an inline script + `SConfigProvider`).
 
-### D21. Markdown styling — port `markdown.css` + `global.css` + `frosted.css` + Manrope; rename wrapper to `markdown-wrapper`
+### D21. Markdown styling — port `markdown.css` + `global.css` + `frosted.css` + Manrope; rename wrapper to `markdown-body`
 **Decision:** Create three stylesheets under `src/styles/`:
 1. `markdown.css` — verbatim port of the reference's 179-line prose stylesheet (headings, lists, code, blockquote, table, details, `.md-code-block`, `.code-btn`, `.code-btn-outline`).
 2. `global.css` — verbatim port defining all `--docs-*` CSS variables (light + dark variants), `--scrollbar-*`, `--docs-font-sans`, shiki token overrides, and `@import` of `markdown.css` + `frosted.css`.
 3. `frosted.css` — verbatim port of the `.docs-header-shell[data-scrolled]` / `.docs-topbar-shell[data-scrolled]` glass effect.
-Add `@fontsource-variable/manrope` to `package.json` and import it in `app.ts` before `uno.css`. Import `./styles/global.css` in `app.ts` after `uno.css`. Rename the markdown wrapper class from `.markdown-body` to `.markdown-wrapper` everywhere (`[...slug].vue`, `vite.config.ts` markdown plugin `wrapperClass`, `doc-md.vue`).
+Add `@fontsource-variable/manrope` to `package.json` and import it in `app.ts` before `uno.css`. Import `./styles/global.css` in `app.ts` after `uno.css`. Rename the markdown wrapper class from `.markdown-body` to `.markdown-body` everywhere (`[...slug].vue`, `vite.config.ts` markdown plugin `wrapperClass`, `doc-md.vue`).
 **Rationale:** The current project has *zero* markdown typography CSS — the prose renders as unstyled browser defaults, which is the root cause of "markdown page format chaos". The reference's stylesheet is mature, dark-mode-aware (uses `--docs-*` variables that swap with `.dark`), and uses UnoCSS `--uno:` directives (which `transformerDirectives` already enables). The `--docs-*` variables are tightly coupled to `markdown.css` (it references 12 of them) and must ship together. Manrope is referenced first in the current `uno.config.ts` `fontFamily.sans` but never imported, so system-ui silently substitutes — porting the font closes that divergence.
 **Alternatives:** port + retarget to `.markdown-body` (find/replace drift risk, diverges from upstream); write fresh CSS for `.markdown-body` (re-invents mature upstream work, drift risk); skip `frosted.css` (header scroll-state visual diverges); skip Manrope (typography diverges from reference).
 **Verified against:** [`soybean-ui/apps/docs/src/styles/markdown.css`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/styles/markdown.css), [`soybean-ui/apps/docs/src/styles/global.css`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/styles/global.css), [`soybean-ui/apps/docs/src/styles/frosted.css`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/styles/frosted.css), [`soybean-ui/apps/docs/src/main.ts`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/main.ts#L4-L6).
@@ -242,7 +242,7 @@ apps/docs/
     ├── app.ts                 # imports manrope + uno.css + styles/global.css (D21)
     ├── styles/                # NEW (D21): ported verbatim from soybean-ui/apps/docs/src/styles/
     │   ├── global.css         # --docs-* CSS vars (light + dark), scrollbar, shiki overrides
-    │   ├── markdown.css       # .markdown-wrapper prose styles (headings/lists/code/table/blockquote/details)
+    │   ├── markdown.css       # .markdown-body prose styles (headings/lists/code/table/blockquote/details)
     │   └── frosted.css        # docs-header-shell/docs-topbar-shell scrolled glass effect
     ├── content/               # ← moved from skills/ubean/docs + repo docs/
     │   ├── en/

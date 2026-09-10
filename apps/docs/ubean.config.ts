@@ -72,12 +72,10 @@ export default defineConfig({
   },
 
   // Markdown pages: enable shiki themes for fence highlighting.
-  // wrapperClass (D21): rename the inner wrapper to `.markdown-wrapper` so the
-  // ported `markdown.css` styles (scoped to `.markdown-wrapper`) apply.
   markdown: {
     enabled: true,
+    wrapperClass: 'markdown-body',
     theme: { light: 'one-light', dark: 'one-dark-pro' },
-    wrapperClass: 'markdown-wrapper'
   },
 
   // Color mode (D20): keep ubean's built-in no-flash script + useColorMode()

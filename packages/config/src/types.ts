@@ -832,8 +832,7 @@ export interface UbeanConfig {
     components?: { autoImport?: boolean };
     /**
      * CSS class applied to the wrapper div around rendered markdown content
-     * by unplugin-vue-markdown (default: 'markdown-body'). Set to
-     * 'markdown-wrapper' to scope the ported `markdown.css` prose styles.
+     * by unplugin-vue-markdown (default: 'markdown-body').
      */
     wrapperClass?: string;
     /** Remark plugins passed to @mdx-js/mdx (only used when `mdx: true`). */

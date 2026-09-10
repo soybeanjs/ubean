@@ -1,6 +1,6 @@
 <script setup lang="ts">
 // Renders a dynamically-imported markdown Vue component (from [...slug].vue).
-// unplugin-vue-markdown wraps the rendered markdown in a `.markdown-wrapper`
+// unplugin-vue-markdown wraps the rendered markdown in a `.markdown-body`
 // div (configured via ubean.config.ts → markdown.wrapperClass). This component
 // provides the outer article "card" with border + gradient header (D22 port).
 import { computed } from 'vue';

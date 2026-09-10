@@ -234,7 +234,7 @@ const configDefaults: ResolvedConfig = {
     mdx: false,
     theme: 'one-dark',
     markdownExit: { html: true, linkify: true, breaks: false },
-    wrapperClass: 'markdown-wrapper',
+    wrapperClass: 'markdown-body',
     headings: { anchorLinks: true },
     components: { autoImport: true },
     remarkPlugins: [],

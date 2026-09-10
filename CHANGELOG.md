@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.7...main) (2026-09-10)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **content**: let consumers inject the MiniSearch loader &nbsp;-&nbsp; by @soybeanjs [<samp>(ef2ce)</samp>](https://github.com/soybeanjs/ubean/commit/ef2ced3)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.5...main) (2026-09-10)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

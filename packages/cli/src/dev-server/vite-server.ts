@@ -232,6 +232,17 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         return;
       }
 
+      // `stop()` tears the Vite server down while the listener is still able
+      // to deliver requests on established keep-alive connections (Node's
+      // `close()` only rejects *new* connections). Answer such a request
+      // instead of dereferencing a nulled server.
+      if (!viteServer) {
+        res.statusCode = 503;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.end('ubean dev server is shutting down');
+        return;
+      }
+
       await new Promise<void>((resolve, reject) => {
         viteServer!.middlewares(req, res, (err?: unknown) => {
           if (err) {
@@ -697,15 +708,26 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
 
     async stop() {
+      // Tear down in reverse order of construction: stop listening and drop
+      // existing sockets first, then close Vite. Idle keep-alive connections
+      // (browser tabs) and in-flight responses otherwise keep
+      // `httpServer.close()`'s callback — and so the CLI's `process.exit()` —
+      // from ever firing, leaving a zombie process that holds the port and
+      // answers every request with an error. Dropping the sockets mirrors
+      // Vite's own server close. Vite is closed last so that no request can
+      // ever observe a half-torn-down server (see the `viteServer` guard in
+      // the request handler).
+      if (httpServer) {
+        const server = httpServer;
+        httpServer = null;
+        await new Promise<void>(resolve => {
+          server.close(() => resolve());
+          server.closeAllConnections();
+        });
+      }
       if (viteServer) {
         await viteServer.close();
         viteServer = null;
-      }
-      if (httpServer) {
-        await new Promise<void>((res, rej) => {
-          httpServer!.close(err => (err ? rej(err) : res()));
-        });
-        httpServer = null;
       }
     },
 

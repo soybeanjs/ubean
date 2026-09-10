@@ -275,21 +275,44 @@ function createFallbackEngine(sections: SearchSection[]): SectionSearchEngine {
 }
 
 /**
+ * 加载 MiniSearch 模块（可选依赖）。
+ *
+ * 优先使用 `options.loadMiniSearch`。默认实现是 `import(变量)` +
+ * `@vite-ignore`：它**只在 Node 下有效**（Node 在运行时解析裸说明符），
+ * 浏览器 ESM 不认裸模块名，会抛 `Failed to resolve module specifier
+ * "minisearch"`，被下方的 try/catch 静默降级为 fallback 引擎。
+ *
+ * 因此浏览器场景必须由应用侧注入加载器 —— 字面量 import 落在应用源码里，
+ * Vite 才能解析并预打包（见 `SectionSearchOptions.loadMiniSearch`）：
+ *
+ * ```ts
+ * useContentSearch({ searchOptions: { loadMiniSearch: () => import('minisearch') } });
+ * ```
+ */
+async function loadMiniSearchModule(loader?: () => Promise<any>): Promise<any> {
+  // 变量形式（`@vite-ignore`）：不打包器解析，因此也不产生类型解析要求。
+  const moduleId = 'minisearch';
+  const mod: any = loader ? await loader() : await import(/* @vite-ignore */ moduleId);
+  return mod?.default ?? mod?.MiniSearch ?? mod;
+}
+
+/**
  * 创建章节搜索引擎。
  *
  * 优先使用 MiniSearch（可选依赖，支持前缀 + 模糊匹配 + 字段加权），
- * 未安装时降级为内置 fallback 引擎（精确/前缀匹配）。
+ * 未安装/加载失败时降级为内置 fallback 引擎（精确/前缀匹配）。
  * 两条路径共享 CJK 感知分词器。
+ *
+ * 浏览器端必须通过 `options.loadMiniSearch` 注入字面量加载器，否则
+ * MiniSearch 无法加载（详见该选项文档）。
  */
 export async function createSectionSearch(
   sections: SearchSection[],
   options: SectionSearchOptions = {}
 ): Promise<SectionSearchEngine> {
-  const moduleId = 'minisearch';
   let MiniSearch: any = null;
   try {
-    const mod: any = await import(/* @vite-ignore */ moduleId);
-    MiniSearch = mod.default ?? mod.MiniSearch ?? mod;
+    MiniSearch = await loadMiniSearchModule(options.loadMiniSearch);
   } catch {
     MiniSearch = null;
   }

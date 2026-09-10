@@ -214,6 +214,20 @@ export interface SectionSearchOptions {
   miniSearch?: Record<string, any>;
   /** MiniSearch 搜索选项（默认 `{ prefix: true, fuzzy: 0.2 }`） */
   searchOptions?: Record<string, any>;
+  /**
+   * 注入 MiniSearch 模块加载器。**浏览器场景必须提供。**
+   *
+   * 包内的默认加载是 `import(变量)` + `@vite-ignore`，只在 Node 下有效
+   * （Node 运行时解析裸说明符）；浏览器 ESM 不认裸模块名，会抛
+   * `Failed to resolve module specifier "minisearch"` 并被静默降级。
+   *
+   * 由应用侧注入，字面量 import 就落在应用源码里，Vite 可正常解析/预打包：
+   *
+   * ```ts
+   * useContentSearch({ searchOptions: { loadMiniSearch: () => import('minisearch') } });
+   * ```
+   */
+  loadMiniSearch?: () => Promise<any>;
 }
 
 /** 内容搜索配置（`UbeanContentOptions.search`） */

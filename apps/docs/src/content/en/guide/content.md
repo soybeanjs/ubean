@@ -102,7 +102,7 @@ Options:
 | `sectionsUrl` | `/__search.json` | Payload URL |
 | `collections` | all | Restrict search to one or more collections (`'docs'` or `['docs', 'blog']`) |
 | `immediate` | `true` | Initialize the engine eagerly; `false` defers to the first `search()` call |
-| `searchOptions` | — | Engine weights / MiniSearch options |
+| `searchOptions` | — | Engine weights / MiniSearch options — pass `loadMiniSearch` to enable MiniSearch (see [Search Engines](#search-engines)) |
 
 Each hit is a `SearchHit`: `{ id, title, titles, level, content, score }` — `titles` is the parent heading chain for rendering breadcrumbs, `id` doubles as the anchor link.
 
@@ -111,7 +111,15 @@ Each hit is a `SearchHit`: `{ id, title, titles, level, content, score }` — `t
 No search dependency is required:
 
 - **Built-in fallback engine** — exact/prefix matching with title-over-content weighting. Always available, zero payload.
-- **MiniSearch** (optional) — fuzzy and prefix matching. Install `minisearch` in your app to upgrade the engine automatically; both engines share the same tokenizer.
+- **MiniSearch** (optional) — fuzzy and prefix matching. Install `minisearch` in your app, then inject a literal loader so your bundler can resolve it:
+
+```ts
+const { search } = useContentSearch({
+  searchOptions: { loadMiniSearch: () => import('minisearch') }
+});
+```
+
+The loader must live in **your** app source. A bare specifier emitted from inside the library is unresolvable in the browser (the bundler cannot analyze an import whose specifier is only known at runtime), so MiniSearch would silently fall back to the built-in engine. Both engines share the same tokenizer.
 
 CJK text (Chinese, Japanese, Korean) is segmented with `Intl.Segmenter`, with a unigram+bigram fallback where unavailable — searching `安装` or `组件` works without extra configuration.
 

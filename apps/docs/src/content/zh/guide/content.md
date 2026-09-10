@@ -102,7 +102,7 @@ async function onSubmit() {
 | `sectionsUrl` | `/__search.json` | 数据 URL |
 | `collections` | 全部 | 限定搜索的 collection（`'docs'` 或 `['docs', 'blog']`） |
 | `immediate` | `true` | 立即初始化引擎；`false` 延迟到首次 `search()` |
-| `searchOptions` | — | 引擎权重 / MiniSearch 选项 |
+| `searchOptions` | — | 引擎权重 / MiniSearch 选项 —— 传 `loadMiniSearch` 启用 MiniSearch（见[搜索引擎](#搜索引擎)） |
 
 每条结果为 `SearchHit`：`{ id, title, titles, level, content, score }` —— `titles` 是父级标题链（渲染面包屑），`id` 直接可用作锚点链接。
 
@@ -111,7 +111,15 @@ async function onSubmit() {
 无需任何搜索依赖：
 
 - **内置 fallback 引擎** —— 精确/前缀匹配，标题命中权重高于正文。始终可用，零负载。
-- **MiniSearch**（可选）—— 模糊与前缀匹配。在应用中安装 `minisearch` 即自动升级引擎；两个引擎共享分词器。
+- **MiniSearch**（可选）—— 模糊与前缀匹配。在应用中安装 `minisearch`，再注入一个字面量加载器让打包器能够解析：
+
+```ts
+const { search } = useContentSearch({
+  searchOptions: { loadMiniSearch: () => import('minisearch') }
+});
+```
+
+加载器必须写在**你的应用源码**里。从库内部发出的裸说明符在浏览器中无法解析（说明符只有运行时才知道，打包器无法分析），MiniSearch 会被静默降级为内置引擎。两个引擎共享分词器。
 
 CJK 文本（中日韩）使用 `Intl.Segmenter` 分词，环境不支持时降级为 unigram+bigram —— 搜索 `安装` 或 `组件` 无需额外配置。
 

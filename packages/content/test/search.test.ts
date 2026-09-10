@@ -214,6 +214,95 @@ describe('createSectionSearch (fallback engine)', () => {
   });
 });
 
+describe('createSectionSearch (injected MiniSearch)', () => {
+  const sections = [
+    { id: '/a', title: 'Installation', titles: [], level: 0, content: 'install deps' },
+    { id: '/b', title: 'Deployment', titles: [], level: 0, content: 'deploy the app' }
+  ];
+
+  /** 最小 MiniSearch 替身：记录构造选项，search 按子串命中并返回 `{ id, score }` */
+  function createFakeMiniSearch() {
+    const calls: { query: string; options: any }[] = [];
+    const instances: any[] = [];
+
+    class FakeMiniSearch {
+      options: any;
+      docs: any[] = [];
+      constructor(options: any) {
+        this.options = options;
+        instances.push(this);
+      }
+      addAll(docs: any[]) {
+        this.docs = docs;
+      }
+      search(query: string, options: any) {
+        calls.push({ query, options });
+        const q = query.toLowerCase();
+        return this.docs
+          .filter(d => `${d.title} ${d.content}`.toLowerCase().includes(q))
+          .map((d, i) => ({ id: d.id, score: 10 - i }));
+      }
+    }
+
+    return { FakeMiniSearch, calls, instances };
+  }
+
+  it('uses the injected loader and reports the minisearch engine', async () => {
+    const { FakeMiniSearch, instances } = createFakeMiniSearch();
+    const engine = await createSectionSearch(sections, {
+      loadMiniSearch: async () => ({ default: FakeMiniSearch })
+    });
+
+    expect(engine.engine).toBe('minisearch');
+    // 内部固定的 fields/storeFields + 共享分词器
+    expect(instances[0].options.fields).toEqual(['title', 'content']);
+    expect(instances[0].options.tokenize).toBe(tokenizeText);
+    expect(instances[0].docs).toHaveLength(2);
+
+    const hits = engine.search('install');
+    expect(hits[0].id).toBe('/a');
+    expect(hits[0].score).toBe(10);
+  });
+
+  it('accepts a named MiniSearch export as well as default', async () => {
+    const { FakeMiniSearch } = createFakeMiniSearch();
+    const named = await createSectionSearch(sections, {
+      loadMiniSearch: async () => ({ MiniSearch: FakeMiniSearch })
+    });
+    expect(named.engine).toBe('minisearch');
+
+    const bare = await createSectionSearch(sections, {
+      loadMiniSearch: async () => FakeMiniSearch
+    });
+    expect(bare.engine).toBe('minisearch');
+  });
+
+  it('merges MiniSearch constructor and search options', async () => {
+    const { FakeMiniSearch, calls, instances } = createFakeMiniSearch();
+    const processTerm = (term: string) => term.toLowerCase();
+    const engine = await createSectionSearch(sections, {
+      loadMiniSearch: async () => ({ default: FakeMiniSearch }),
+      miniSearch: { processTerm },
+      searchOptions: { fuzzy: 0.5 }
+    });
+
+    expect(instances[0].options.processTerm).toBe(processTerm);
+    engine.search('install', { titleBoost: 9 });
+    expect(calls[0].options).toMatchObject({ prefix: true, fuzzy: 0.5, boost: { title: 9, content: 1 } });
+  });
+
+  it('falls back to the built-in engine when the injected loader rejects', async () => {
+    // 浏览器裸说明符失败（Failed to resolve module specifier）的同构场景
+    const engine = await createSectionSearch(sections, {
+      loadMiniSearch: async () => {
+        throw new TypeError('Failed to resolve module specifier "minisearch"');
+      }
+    });
+    expect(engine.engine).toBe('fallback');
+    expect(engine.search('install')[0].id).toBe('/a');
+  });
+});
+
 describe('searchSections (one-shot)', () => {
   it('searches without manual engine creation', async () => {
     const hits = await searchSections([{ id: '/x', title: 'Hello', titles: [], level: 0, content: 'world' }], 'hello');
@@ -370,5 +459,32 @@ describe('useContentSearch', () => {
     const hits = await search('lazy');
     expect(status.value).toBe('ready');
     expect(hits).toHaveLength(1);
+  });
+
+  it('forwards searchOptions.loadMiniSearch to the engine', async () => {
+    // 浏览器端消费方必须走这条路（字面量 import 在应用源码里）
+    class FakeMiniSearch {
+      docs: any[] = [];
+      // oxlint-disable-next-line no-useless-constructor
+      constructor(..._args: any[]) {}
+      addAll(docs: any[]) {
+        this.docs = docs;
+      }
+      search() {
+        return this.docs.map((d, i) => ({ id: d.id, score: 100 - i }));
+      }
+    }
+
+    const sections = [{ id: '/a', title: 'Anything', titles: [], level: 0, content: 'anything' }];
+    const { status, search } = useContentSearch({
+      sections,
+      immediate: true,
+      searchOptions: { loadMiniSearch: async () => ({ default: FakeMiniSearch }) }
+    });
+    await vi.waitFor(() => expect(status.value).toBe('ready'));
+
+    // 分数 100 由替身产出（fallback 引擎的标题权重是 4）→ 证明走了 MiniSearch
+    const hits = await search('anything');
+    expect(hits[0].score).toBe(100);
   });
 });

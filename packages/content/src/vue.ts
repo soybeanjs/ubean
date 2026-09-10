@@ -39,8 +39,11 @@ export interface UseContentSearchReturn {
  * 1. `options.sections`（SSR 直传 / 静态导入）
  * 2. `fetch(options.sectionsUrl ?? '/__search.json')`（dev 中间件 / SSG 构建产物）
  *
- * 引擎：优先 MiniSearch（可选依赖，前缀 + 模糊匹配），未安装时降级内置
- * fallback 引擎（精确/前缀匹配）。两者共享 CJK 感知分词器。
+ * 引擎：优先 MiniSearch（可选依赖，前缀 + 模糊匹配），未安装/加载失败时降级
+ * 内置 fallback 引擎（精确/前缀匹配）。两者共享 CJK 感知分词器。
+ *
+ * 浏览器端必须注入 `searchOptions.loadMiniSearch`，字面量 import 才能被 Vite
+ * 解析（详见 `UseContentSearchOptions.searchOptions` / `SectionSearchOptions`）。
  */
 export function useContentSearch(options: UseContentSearchOptions = {}): UseContentSearchReturn {
   const status: Ref<'idle' | 'loading' | 'ready' | 'error'> = ref('idle');

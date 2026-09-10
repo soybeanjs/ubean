@@ -44,9 +44,9 @@ describe('@ubean/vue/generator(精简 SPA file 模式冒烟)', () => {
     // matcher 语义:meta 携带 matchers(供 createMatcherGuard 消费)
     expect(routes).toContain('"matchers":{"id":"numeric"}');
     // reuse 语义:About2 的 component 指向目标 About
-    expect(routes).toMatch(/name: "About2"[\s\S]*?component: "About"/);
+    expect(routes).toMatch(/name: 'About2'[\s\S]*?component: 'About'/);
     // markdown 页面参与实体文件生成
-    expect(routes).toContain('name: "Guide"');
+    expect(routes).toContain(`name: 'Guide'`);
 
     const imports = readFileSync(join(outDir, 'imports.ts'), 'utf-8');
     // reuse 页不进 views 映射

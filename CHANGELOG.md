@@ -1,5 +1,16 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.9...main) (2026-09-10)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **dev-server**: stop requests from hitting a torn-down vite server &nbsp;-&nbsp; by @soybeanjs [<samp>(55cfa)</samp>](https://github.com/soybeanjs/ubean/commit/55cfaed)
+- **vue**: emit single-quoted literals in generated route entity files &nbsp;-&nbsp; by @soybeanjs [<samp>(138b1)</samp>](https://github.com/soybeanjs/ubean/commit/138b1a5)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.8...main) (2026-09-10)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

@@ -257,9 +257,29 @@ describe('resolveContentSearchConfig', () => {
 
 describe('runPagefindIndex', () => {
   it('gracefully skips when pagefind is not installed', async () => {
-    const result = await runPagefindIndex({ siteDir: '/tmp/nonexistent-site' });
+    // 注入失败加载器模拟未安装（pnpm 隐藏 hoist 会污染真实解析结果）
+    const result = await runPagefindIndex({
+      siteDir: '/tmp/nonexistent-site',
+      loadPagefind: async () => {
+        throw new Error("Cannot find module 'pagefind'");
+      }
+    });
     expect(result.indexed).toBe(false);
     expect(result.reason).toBe('pagefind-not-installed');
+  });
+
+  it('returns error result when indexing fails', async () => {
+    const result = await runPagefindIndex({
+      siteDir: '/tmp/nonexistent-site',
+      loadPagefind: async () => ({
+        createIndex: async () => {
+          throw new Error('indexer crashed');
+        }
+      })
+    });
+    expect(result.indexed).toBe(false);
+    expect(result.reason).toBe('error');
+    expect(result.error).toContain('indexer crashed');
   });
 });
 

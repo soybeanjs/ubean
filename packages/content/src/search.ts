@@ -395,6 +395,12 @@ export interface PagefindIndexOptions {
   /** 透传给 `createIndex()` 的选项 */
   createIndexOptions?: Record<string, any>;
   logger?: { info?: (msg: string) => void; warn?: (msg: string) => void };
+  /**
+   * 注入自定义 pagefind 模块加载器。默认动态 `import('pagefind')`。
+   * 测试用：pnpm 隐藏 hoist 会让工作区内任意位置可解析 pagefind，
+   * 注入失败加载器可确定性覆盖「未安装」分支。
+   */
+  loadPagefind?: () => Promise<any>;
 }
 
 export interface PagefindIndexResult {
@@ -415,8 +421,7 @@ export async function runPagefindIndex(options: PagefindIndexOptions): Promise<P
 
   let pagefind: any;
   try {
-    const moduleId = 'pagefind';
-    pagefind = await import(/* @vite-ignore */ moduleId);
+    pagefind = await (options.loadPagefind?.() ?? import(/* @vite-ignore */ 'pagefind'));
   } catch {
     return { indexed: false, reason: 'pagefind-not-installed' };
   }

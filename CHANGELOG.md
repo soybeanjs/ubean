@@ -1,5 +1,38 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.5...main) (2026-09-10)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cli**: disable security headers by default for ssg dev &nbsp;-&nbsp; by @soybeanjs [<samp>(60dc8)</samp>](https://github.com/soybeanjs/ubean/commit/60dc843)
+- **content**: add full-text search with sections payload and pagefind &nbsp;-&nbsp; by @soybeanjs [<samp>(e4913)</samp>](https://github.com/soybeanjs/ubean/commit/e4913b8)
+- **vue**: add typed ClientOnly component for client-only template fragments &nbsp;-&nbsp; by @soybeanjs [<samp>(a5946)</samp>](https://github.com/soybeanjs/ubean/commit/a5946a1)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **client**: break SSR setLocale navigation loop that starved SSG builds &nbsp;-&nbsp; by @soybeanjs [<samp>(b58c2)</samp>](https://github.com/soybeanjs/ubean/commit/b58c2fa)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- propagate ADR-0011 SSG direct render path across project docs &nbsp;-&nbsp; by @soybeanjs [<samp>(bf4a9)</samp>](https://github.com/soybeanjs/ubean/commit/bf4a916)
+- add Content & Search guide and cross-reference search artifacts &nbsp;-&nbsp; by @soybeanjs [<samp>(68e6d)</samp>](https://github.com/soybeanjs/ubean/commit/68e6d08)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **projects**: unify ts version and update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(bd594)</samp>](https://github.com/soybeanjs/ubean/commit/bd594bf)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **content**: add loadPagefind injection seam for deterministic tests &nbsp;-&nbsp; by @soybeanjs [<samp>(af040)</samp>](https://github.com/soybeanjs/ubean/commit/af0407b)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **devtools**: normalize flex-shrink-0 to shrink-0 in Pages view &nbsp;-&nbsp; by @soybeanjs [<samp>(eea60)</samp>](https://github.com/soybeanjs/ubean/commit/eea604b)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.5...main) (2026-09-09)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

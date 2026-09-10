@@ -76,11 +76,13 @@ describe('generateRouteFiles', () => {
     expect(result.layoutCount).toBe(1);
 
     const routes = readFileSync(join(outDir, 'routes.ts'), 'utf-8');
-    expect(routes).toContain(`name: "UsersId"`);
-    expect(routes).toContain(`path: "/users/:id"`);
+    // 生成的字面量统一使用单引号,避免每次重新生成都与格式化结果产生纯引号 diff
+    expect(routes).toContain(`name: 'UsersId'`);
+    expect(routes).toContain(`path: '/users/:id'`);
+    expect(routes).not.toContain(`"UsersId"`);
 
     const imports = readFileSync(join(outDir, 'imports.ts'), 'utf-8');
-    expect(imports).toContain(`UsersId: () => import("@/pages/UsersId.vue")`);
+    expect(imports).toContain(`UsersId: () => import('@/pages/UsersId.vue')`);
     expect(imports).toContain(`export type RouteKey = 'Home' | 'UsersId'`);
 
     const dts = readFileSync(join(outDir, 'typed-router.d.ts'), 'utf-8');
@@ -95,7 +97,7 @@ describe('generateRouteFiles', () => {
     await generateRouteFiles({ pages: [about, about2], layouts: [] }, { cwd: tmpDir, srcDir, outDir });
 
     const routes = readFileSync(join(outDir, 'routes.ts'), 'utf-8');
-    expect(routes).toContain(`component: "About"`); // reuse → target key
+    expect(routes).toContain(`component: 'About'`); // reuse → target key
     expect(routes).toContain(`reuse: true`);
 
     const imports = readFileSync(join(outDir, 'imports.ts'), 'utf-8');

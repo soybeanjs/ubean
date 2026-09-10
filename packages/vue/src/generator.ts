@@ -188,15 +188,15 @@ ${items}
 
   private renderRouteRecord(page: ScannedPage): string {
     const parts: string[] = [];
-    parts.push(`    name: ${JSON.stringify(page.name)}`);
-    parts.push(`    path: ${JSON.stringify(this.toLocalePath(page.route))}`);
+    parts.push(`    name: ${jsStringLiteral(page.name)}`);
+    parts.push(`    path: ${jsStringLiteral(this.toLocalePath(page.route))}`);
 
     // `component` is a RouteFileKey — a key into the `views` map in imports.ts.
     // For reuse routes, use the `reuseTarget`'s name so `views[component]`
     // resolves to the target's component loader (the .reuse.ts file only
     // contains metadata, not a Vue component).
     const componentKey = page.isReuse && page.reuseTarget ? page.reuseTarget : page.name;
-    parts.push(`    component: ${JSON.stringify(componentKey)}`);
+    parts.push(`    component: ${jsStringLiteral(componentKey)}`);
 
     if (page.layout !== undefined) {
       let layoutVal: string;
@@ -204,9 +204,9 @@ ${items}
         layoutVal = 'false';
       } else if (Array.isArray(page.layout)) {
         // 'default' inside an array is a literal layout name, keep as-is
-        layoutVal = JSON.stringify(page.layout);
+        layoutVal = `[${page.layout.map(jsStringLiteral).join(', ')}]`;
       } else {
-        layoutVal = JSON.stringify(page.layout);
+        layoutVal = jsStringLiteral(page.layout);
       }
       parts.push(`    layout: ${layoutVal}`);
     }
@@ -339,19 +339,19 @@ ${views}
     const importPath = this.opts.getLayoutImportPath?.(layout) ?? defaultLayoutImportPath(layout, this.opts.srcDir);
     const lazy = typeof this.opts.layoutLazy === 'function' ? this.opts.layoutLazy(layout) : this.opts.layoutLazy;
     if (lazy) {
-      return `  ${layout.name}: () => import(${JSON.stringify(importPath)})`;
+      return `  ${layout.name}: () => import(${jsStringLiteral(importPath)})`;
     }
     const importName = `__layout_${layout.name}`;
-    return `  ${layout.name}: ${importName}, // import ${importName} from ${JSON.stringify(importPath)}`;
+    return `  ${layout.name}: ${importName}, // import ${importName} from ${jsStringLiteral(importPath)}`;
   }
 
   private renderViewImport(page: ScannedPage): string {
     const importPath = this.opts.getImportPath?.(page) ?? defaultPageImportPath(page, this.opts.srcDir);
     const lazy = typeof this.opts.routeLazy === 'function' ? this.opts.routeLazy(page) : this.opts.routeLazy;
     if (lazy) {
-      return `  ${page.name}: () => import(${JSON.stringify(importPath)})`;
+      return `  ${page.name}: () => import(${jsStringLiteral(importPath)})`;
     }
-    return `  ${page.name}: ${page.name}, // import ${page.name} from ${JSON.stringify(importPath)}`;
+    return `  ${page.name}: ${page.name}, // import ${page.name} from ${jsStringLiteral(importPath)}`;
   }
 
   /* ----------------------------------------------------------------------- */
@@ -505,6 +505,27 @@ function defaultLayoutImportPath(layout: ScannedLayout, srcDir: string): string 
   const rel = relativePosix(srcDir, layout.fullPath);
   const importPath = rel.replace(STRIPPABLE_IMPORT_EXT, '');
   return `@/${importPath}`;
+}
+
+/**
+ * 渲染单引号 JS 字符串字面量。
+ *
+ * 生成文件(`routes.ts` / `imports.ts`)会被提交进 git 并由仓库格式化器
+ * (`singleQuote: true`)统一风格;若用 `JSON.stringify` 输出双引号,每次
+ * 重新生成都会与格式化结果产生纯引号的 diff。这里按格式化器约定输出单引号,
+ * 只转义 JS 字符串字面量必需的部分(反斜杠、单引号、行终止符)。
+ */
+const JS_STRING_ESCAPES: Record<string, string> = {
+  '\\': '\\\\',
+  "'": "\\'",
+  '\n': '\\n',
+  '\r': '\\r',
+  '\u2028': '\\u2028',
+  '\u2029': '\\u2029'
+};
+
+function jsStringLiteral(value: string): string {
+  return `'${value.replace(/[\\'\n\r\u2028\u2029]/g, ch => JS_STRING_ESCAPES[ch])}'`;
 }
 
 /**

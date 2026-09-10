@@ -23,6 +23,7 @@
 7. **i18n 多语言展开**：`expandRoutesForLocales()` 按 strategy 展开全语言 URL（`prefix_except_default` default 无前缀 + 其余带前缀；`prefix` 全带；`prefix_and_default` 全带 + default 无前缀）；404 哨兵与已带前缀 URL 跳过；`PrerendererOptions.expandRoutes` 钩子在路由收集后、入队前应用。hreflang / canonical / og:locale 由现有 `buildLocaleHead` 自动产出。
 8. **能力边界（显式不支持）**：page loader、form / server actions、ISR / PPR / streaming、matcher 中间件与 routeRules 运行时语义、cookie / Accept-Language 协商。dev 模式不变（继续 SSR dev server，DX 优先）。
 9. **ssg dev 默认关闭 SecurityHeaders**（2026-09-10 修订）：安全头是 HTTP 响应头，静态产物不含框架注入的安全头（由托管平台控制），dev 默认开启会造成「dev 有 CSP / 线上没有」的偏差。未显式配置 `security.headers` 时 ssg dev 默认关闭；显式配置（`true` / 对象）仍被尊重，作为 CSP 调试入口（`resolveDevSecurityHeaders()`，cli/dev.ts）。
+10. **SSG 构建后自动生成搜索索引**（2026-09-10 增补）：`content` 启用且 `mode: 'ssg'` 时，预渲染完成后产出 `__search.json`（按 heading 切分的 sections payload，`useContentSearch()` 数据源）与可选 Pagefind 分片索引（动态 `import('pagefind')`，未安装时优雅跳过）。架构参照 Nuxt Content `queryCollectionSearchSections`（数据原语）+ Astro Pagefind（分片索引）；搜索依赖（MiniSearch / pagefind）全部可选，CJK 分词用 `Intl.Segmenter`。dev server 提供同构 `/__search.json` 中间件。详见站点指南 Content & Search。
 
 ## 结果
 

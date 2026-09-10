@@ -164,12 +164,13 @@ type InferLoaderData<T> = T extends () => Promise<{ data: infer D }> ? D : never
 
 覆盖率用于发现盲区，不作为替代契约测试的发布标准。核心运行时与公开 API 默认纳入统计；仅生成代码、平台不可执行的 shim 和经批准的适配器分支可排除，并在配置旁说明原因。
 
-### 6.4 当前验证基线（2026-08-03）
+### 6.4 当前验证基线（2026-09-10）
 
-- 主包（`ubean`）：38 个测试文件、**799 个测试通过**（81 个 DevTools 测试已移至 `@ubean/devtools` 独立包）。
-- 核心子包：`@ubean/islands` 199（directive / paired-components / server-client-components / islands-registry / server-component-rerender）、`@ubean/client/ssr`（原 `@ubean/ssr`）、`@ubean/routes`（含 Server Actions）、`@ubean/devtools` 81、examples/ubean-test prerender 92。
-- 扩展包：`@ubean/icon` 32、`@ubean/auth` 13、`@ubean/integrations`（pwa 19 / fonts 21）、`@ubean/image` 42、`@ubean/content` 18、`@ubean/seo` 114。
-- 全仓库合计 **约 1075 个测试**通过。
+- 主包（`ubean`）自身无测试套件 —— 测试位于其所验证的子包中。
+- 核心子包：`@ubean/server` 382、`@ubean/builder` 234、`@ubean/islands` 205（directive / paired-components / server-client-components / islands-registry / server-component-rerender）、`@ubean/vue` 202、`@ubean/routes` 152（含 Server Actions）、`@ubean/client` 130、`@ubean/cli` 96、`@ubean/config` 95、`@ubean/devtools` 41、`@ubean/preset` 88。
+- 扩展包：`@ubean/icon` 32、`@ubean/auth` 15、`@ubean/image` 45、`@ubean/content` 93（含 30 个全文搜索测试）、`@ubean/integrations` 39（pwa / fonts）、`@ubean/seo` 116、`@ubean/markdown` 21、`@ubean/i18n` 22、`@ubean/pages` 63、`@ubean/scan` 13、`@ubean/shared` 54、`@ubean/ai` 15、`@ubean/app` 69。
+- 示例：`ubean-test` 783（含 prerender fixture）、`client-only-spa` 30。
+- 全仓库合计 **3035 个测试**通过。
 - `pnpm typecheck`：通过。编译器版本由 `pnpm-workspace.yaml` 中的 workspace override `typescript: '6.0.3'` 固定，保证所有子包解析到同一版 TypeScript。
 - `pnpm build`：通过（主包 + 全部 8 个扩展包，含 `@ubean/devtools` 与 `@ubean/islands`）。
 - 路线图中标为 ✅ 的任务必须有对应源码、公开调用路径和与风险相称的验证；命令骨架、正则提取或未接通的运行时路径不得作为完整交付标记。
@@ -431,7 +432,7 @@ codegraph impact <symbol>         # 查影响面
 | `@ubean/icon` | `icon` | `ubeanIconPlugin` | `./runtime` | vue（optional） | none（仅 defu/pathe） | Iconify `customCollections`；dev `/_iconify` 路由先本地 SVG 后回退 API |
 | `@ubean/integrations/pwa` | `pwa` | `ubeanPwaPlugin`（子路径主入口） | `@ubean/integrations` (`usePwa`) | vite, vue（均 optional） | **hard**（`vite-plugin-pwa` 在 `dependencies`） | 生成 manifest+sw；`registerType: autoUpdate`；5 种缓存策略 |
 | `@ubean/image` | `image` | `ubeanImagePlugin` | `./runtime` | vite, vue（均 optional） | none（仅 defu/ohash/pathe/ufo） | 图片优化与变换 |
-| `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` | vite（optional） | none（仅 defu/pathe/scule + `@ubean/shared`） | markdown/MDX/YAML/JSON 内容集合 |
+| `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` + `./vue`（`useContentSearch`） | vite, vue（均 optional） | none（仅 defu/pathe/scule + `@ubean/shared`） | markdown/MDX/YAML/JSON 内容集合；按标题层级切分搜索章节，SSG 产出 `__search.json` + 可选 Pagefind 索引 |
 | `@ubean/integrations/fonts` | `fonts` | `ubeanFontsPlugin`（子路径主入口） | `@ubean/integrations` | vite（optional） | none（仅 defu/ohash/pathe/ufo） | Google Fonts / 本地字体 / 自托管 / metrics |
 | `@ubean/integrations/electron` | `electron` | `ubeanElectronPlugin`（子路径主入口） | — | electron, vite（均 optional） | **hard**（`vite-plugin-electron` 在 `dependencies`） | 封装 `vite-plugin-electron`；`electron: true` 启用，自动禁用 SSR |
 | `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin`（子路径主入口） | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia（强制）**, vue（optional） | **peer**（`pinia` 在 `peerDependencies` 非 optional） | SSR 状态水合 + dev 预构建；不自动注入 Pinia 实例 |

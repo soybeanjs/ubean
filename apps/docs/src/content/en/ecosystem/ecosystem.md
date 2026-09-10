@@ -104,7 +104,8 @@ export default defineContentConfig({
 
 - A `page` collection establishes a one-to-one mapping from content files to URLs and exposes path, title, description, seo, body, and navigation fields; a `data` collection is used only for structured queries.
 - Markdown, YAML, JSON, and CSV flow through a unified source, schema, AST, and type-generation pipeline; queries use `queryCollection().where().order().select().all()`.
-- Production builds write parsed results as a content dump; Node/Edge restore the query store via a driver to avoid reading the full file set on cold start. Browser SQLite, full-text search, remote Git sources, and a visual editor are not included in the first release.
+- Production builds write parsed results as a content dump; Node/Edge restore the query store via a driver to avoid reading the full file set on cold start.
+- Full-text search is available out of the box: documents are split into heading-level sections (`queryCollectionSearchSections()`), SSG builds emit a `__search.json` payload plus an optional [Pagefind](https://pagefind.app/) chunked index, and the `useContentSearch()` composable queries them client-side — CJK-aware via `Intl.Segmenter`, with MiniSearch/Pagefind as optional dependencies (see the [Content & Search guide](/guide/content)). Browser SQLite, remote Git sources, and a visual editor are not included in the first release.
 - `<ContentRenderer>`, Prose components, Shiki, table of contents, and navigation belong to the `@ubean/content` Vue layer. Vue components can be embedded in Markdown, but only an explicitly registered allowlist is permitted, and props must be validatable; raw HTML is sanitized by default and arbitrary expression execution is forbidden.
 
 ### 4.3 `@ubean/integrations/fonts`: modeled on Nuxt Fonts

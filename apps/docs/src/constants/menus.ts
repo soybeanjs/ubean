@@ -43,6 +43,7 @@ export const menuSections: MenuSection[] = [
       { label: 'Data Loaders', labelZh: '数据加载器', to: '/guide/pages-routing/loaders' },
       { label: 'Actions', labelZh: '操作', to: '/guide/pages-routing/actions' },
       { label: 'Internationalization', labelZh: '国际化', to: '/guide/i18n' },
+      { label: 'Content & Search', labelZh: '内容与搜索', to: '/guide/content' },
       { label: 'Islands', labelZh: '群岛架构', to: '/guide/islands' }
     ]
   },

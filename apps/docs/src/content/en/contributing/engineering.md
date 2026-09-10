@@ -164,12 +164,13 @@ Testing is not a final wrap-up task. Every implementation phase must add or upda
 
 Coverage is used to find blind spots; it is not a release standard that replaces contract tests. Core runtime and public APIs are included by default; only generated code, platform-non-executable shims, and approved adapter branches may be excluded, with the reason documented next to the config.
 
-### 6.4 Current Verification Baseline (2026-08-03)
+### 6.4 Current Verification Baseline (2026-09-10)
 
-- Main package (`ubean`): 38 test files, **799 tests passing** (81 DevTools tests moved to the standalone `@ubean/devtools` package).
-- Core subpackages: `@ubean/islands` 199 (directive / paired-components / server-client-components / islands-registry / server-component-rerender), `@ubean/client/ssr` (former `@ubean/ssr`), `@ubean/routes` (includes Server Actions), `@ubean/devtools` 81, examples/ubean-test prerender 92.
-- Extension packages: `@ubean/icon` 32, `@ubean/auth` 13, `@ubean/integrations/pwa` 19, `@ubean/image` 42, `@ubean/content` 18, `@ubean/integrations/fonts` 21, `@ubean/seo` 114.
-- **~1075 tests passing** across the whole repo.
+- Main package (`ubean`) has no test suite of its own — tests live in the subpackages they verify.
+- Core subpackages: `@ubean/server` 382, `@ubean/builder` 234, `@ubean/islands` 205 (directive / paired-components / server-client-components / islands-registry / server-component-rerender), `@ubean/vue` 202, `@ubean/routes` 152 (includes Server Actions), `@ubean/client` 130, `@ubean/cli` 96, `@ubean/config` 95, `@ubean/devtools` 41, `@ubean/preset` 88.
+- Extension packages: `@ubean/icon` 32, `@ubean/auth` 15, `@ubean/image` 45, `@ubean/content` 93 (incl. 30 full-text search tests), `@ubean/integrations` 39 (pwa / fonts), `@ubean/seo` 116, `@ubean/markdown` 21, `@ubean/i18n` 22, `@ubean/pages` 63, `@ubean/scan` 13, `@ubean/shared` 54, `@ubean/ai` 15, `@ubean/app` 69.
+- Examples: `ubean-test` 783 (incl. prerender fixtures), `client-only-spa` 30.
+- **3035 tests passing** across the whole repo.
 - `pnpm typecheck`: passes. The compiler version is pinned by the workspace override `typescript: '6.0.3'` in `pnpm-workspace.yaml`, so every workspace package resolves the same TypeScript.
 - `pnpm build`: passes (main package + all 8 extension packages, including `@ubean/devtools` and `@ubean/islands`).
 - Tasks marked ✅ on the roadmap must have corresponding source code, a public call path, and verification proportionate to the risk; command skeletons, regex extractions, or unconnected runtime paths must not be marked as fully delivered.
@@ -428,7 +429,7 @@ Paste the "direct / transitive references" counts and the key file list into the
 | `@ubean/icon` | `icon` | `ubeanIconPlugin` | `./runtime` | vue (optional) | none (only defu/pathe) | Iconify `customCollections`; dev `/_iconify` route serves local SVG before API fallback |
 | `@ubean/integrations/pwa` | `pwa` | `ubeanPwaPlugin` (subpath main) | `@ubean/integrations` (`usePwa`) | vite, vue (both optional) | **hard** (`vite-plugin-pwa` in `dependencies`) | Generates manifest+sw; `registerType: autoUpdate`; 5 cache strategies |
 | `@ubean/image` | `image` | `ubeanImagePlugin` | `./runtime` | vite, vue (both optional) | none (only defu/ohash/pathe/ufo) | Image optimization & transforms |
-| `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` | vite (optional) | none (only defu/pathe/scule + `@ubean/shared`) | markdown/MDX/YAML/JSON content collections |
+| `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` + `./vue` (`useContentSearch`) | vite, vue (both optional) | none (only defu/pathe/scule + `@ubean/shared`) | markdown/MDX/YAML/JSON content collections; heading-level search sections, `__search.json` + optional Pagefind index in SSG |
 | `@ubean/integrations/fonts` | `fonts` | `ubeanFontsPlugin` (subpath main) | `@ubean/integrations` | vite (optional) | none (only defu/ohash/pathe/ufo) | Google Fonts / local fonts / self-hosting / metrics |
 | `@ubean/integrations/electron` | `electron` | `ubeanElectronPlugin` (subpath main) | — | electron, vite (both optional) | **hard** (`vite-plugin-electron` in `dependencies`) | Wraps `vite-plugin-electron`; `electron: true` enables and auto-disables SSR |
 | `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin` (subpath main) | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia (required)**, vue (optional) | **peer** (`pinia` in `peerDependencies`, not optional) | SSR state hydration + dev pre-bundling; does not auto-inject a Pinia instance |

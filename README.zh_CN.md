@@ -16,9 +16,7 @@
 
 [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/soybeanjs/ubean)
 
-> **警告 — 开发中，暂不可用于生产环境**
->
-> ubean 当前处于活跃开发阶段，目标版本为 v0.1。版本间公开 API 可能未经通知即变更，可能存在破坏性 bug，部分子系统（数据库层、队列 worker、cron 调度器、DevTools）尚未在真实负载下经过验证。**请勿将 ubean 用于生产环境。** 当前版本仅适用于评估、实验和跟踪开发进度。生产就绪预计在 v1.0 里程碑前后达成。
+> **当前状态：v0.4.10（预览版）。** ubean 是一个可用、仍在活跃开发中的元框架，但尚未标记为生产稳定：版本间公开 API 仍可能变更，部分子系统（数据库层、队列 worker、cron 调度器）尚未在真实负载下验证。详见下方[状态](#当前状态)小节中关于当前状态、适用场景与已知限制的说明。
 
 ---
 
@@ -199,7 +197,7 @@ my-app/
 
 ## 快速开始
 
-> **再次提醒：** ubean 暂不可用于生产环境，仅适用于评估与实验。
+> **说明：** ubean 目前是 v0.4.10 预览版，可以用于实际项目，但需预期版本之间偶尔会有破坏性变更。详见[状态](#当前状态)。
 
 ### 脚手架新项目
 
@@ -292,17 +290,31 @@ ubean 的核心实现遵循六大边界：
 
 ## 当前状态
 
-v0.1 目标平台为 **Node.js**（`node-server`）和 **Cloudflare Workers**。Bun、Deno、Vercel、Netlify 等平台不在 v0.1 承诺范围内，但将通过预设能力矩阵陆续支持。
+ubean 处于 **v0.4.10**，是一个活跃的预览版。最初定位的 v0.1 版本线早已被超越——当前里程碑反映的是一个完整得多的框架。
 
-### 已实现的能力
+### 当前能力
+
+v0.4 系列将 **Node.js**（`node-server`）和 **Cloudflare Workers** 作为一等预设支持。Bun、Deno、Vercel 和 Netlify 不在当前承诺范围内，但将通过预设能力矩阵陆续支持。核心功能集已实现并通过类型检查和基础测试：
 
 - **路由：** `routes/` API 文件路由，支持 `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` 命名导出，由 `defineHandler` 包装；`pages/` Vue SSR 页面、layouts、路由组、reuse 路由、并行/拦截路由、动态参数 matchers、特殊页面与类型化导航；`defineHandlerMeta` 路由元数据（`requiresAuth`、`cache`、`rateLimit`）；来自 `hono-openapi` 的 `validator` / `describeRoute` / `resolver` 用于请求验证和 OpenAPI 3.1 生成；在 `.ubean/routes.d.ts` 生成 `paths` 类型。
-- **应用：** `defineApp` 基于选项的定制（含 `router.setup` 用于在 client 与 SSR 两端注册全局导航守卫）、`definePage` 宏、`defineMiddleware`、`defineEnv`、`defineScheduled`（cron）、`defineQueue`。i18n 写在 `ubean.config.ts` 的 `i18n`，Vue 端 vue-i18n 11（从 `ubean/runtime/vue` 导入 `setLocale` / `useI18n`）。
-- **服务器：** 内置数据库层（`defineDatabase` / `useDatabase`）、存储（`useStorage` / `useKV`）、缓存（`useCacheStore` / `cachedEventHandler`）、限流、CORS、route rules（重定向 / 重写 / headers / cache）与 SSG 预渲染。WebSocket（`defineWebSocket`）、SSE 流、`internalFetch`（直接在进程内调度框架 handler，不发起网络请求）。
+- **应用：** `defineApp` 基于选项的定制（含 `router.setup` 用于在 client 与 SSR 两端注册全局导航守卫）、`definePage` 宏、`defineMiddleware`、`defineEnv`、`defineScheduled`（cron）、`defineQueue`。i18n 写在 `ubean.config.ts` 的 `i18n`，Vue 端 vue-i18n 11（从 `ubean` / `ubean/client` 导入 `setLocale`；直接从 `vue-i18n` 导入 `useI18n`；服务端 ALS 从 `ubean/i18n` 导入 `t()`）。
+- **服务器：** 内置数据库层（`defineDatabase` / `useDatabase`）、存储（`useStorage` / `useKV`）、缓存（`useCacheStore` / `cachedEventHandler`）、限流、CORS、route rules（重定向 / 重写 / headers / cache）与 SSG 预渲染——包含 `mode: 'ssg'` 的轻量直接渲染路径（无 HTTP 管道、`404.html` 输出、i18n 路由扩展）。WebSocket（`defineWebSocket`）、SSE 流、`internalFetch`（直接在进程内调度框架 handler，不发起网络请求）。
 - **DevTools：** RPC、AI 助手、API playground 与 CRUD 脚手架。
 - **扩展包：** `@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/image`、`@ubean/content`，以及 `@ubean/integrations`（PWA / 字体 / 基于 vite-plugin-electron 的 Electron 桌面应用，默认 main/preload 入口，自动关闭 SSR / @soybeanjs/ui 集成，UiResolver + styles.css 自动注入 / Pinia SSR 水合）。
 
-> 注意：上述能力虽已实现并通过类型检查和基础测试，但部分子系统（尤其是数据库层、队列 worker 和 cron 调度器）尚未经过负载测试和生产硬化。请将 v0.1 视为预览版。
+### 适用场景
+
+今天即可将 ubean 用于：
+
+- **Node.js 或 Cloudflare Workers 上的全栈应用**——当你想在一个框架内同时使用 Vue SSR 与 Hono API 路由时。
+- **管理后台与内部工具**（`fullstack` + `ssr: false`）、**SPA**、**静态站点 / 博客 / 文档**（`ssg`）以及**纯 API 服务**（`backend`）。
+- **评估与原型验证**——在为一个大型代码库做承诺之前，值得先试一试。
+
+### 已知限制
+
+- **公开 API 稳定性：** 处于 v1 之前，返工成本高的破坏性变更可能在版本之间出现。请锁定精确版本并在升级时仔细检查。
+- **负载硬化：** 若干子系统——尤其是数据库层、队列 worker（`defineQueue`）和 cron 调度器（`defineScheduled`）——尚未经过负载测试或针对生产流量硬化。它们通过类型检查和基础测试，但在没有自行压测的情况下，不应被信任用于高吞吐关键负载。
+- **平台广度：** 目前仅 Node.js 和 Cloudflare Workers 是一等预设；其他平台将通过能力矩阵逐步加入。
 
 ## 开发
 

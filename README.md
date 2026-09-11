@@ -16,9 +16,7 @@
 
 [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/soybeanjs/ubean)
 
-> **WARNING — Work in Progress, Not Production-Ready**
->
-> ubean is under active development targeting the v0.1 release. Public APIs may change without notice between versions, breaking bugs are expected, and several subsystems (database layer, queue workers, cron scheduler, DevTools) have not yet been battle-tested in real-world load. **Do not use ubean in production yet.** It is currently suitable for evaluation, experimentation, and following the development progress. Production readiness is expected around the v1.0 milestone.
+> **Current status: v0.4.10 (preview).** ubean is a usable, actively developed meta-framework. It is not yet marked production-stable: public APIs can still change between releases, and several subsystems (database layer, queue workers, cron scheduler) have not been load-tested against real-world traffic. See [Status](#status) for the current state, suitable scenarios, and known limitations.
 
 ---
 
@@ -200,7 +198,7 @@ my-app/
 
 ## Quick Start
 
-> **Reminder:** ubean is not production-ready. Use it for evaluation and experimentation only.
+> **Note:** ubean is currently a v0.4.10 preview. It can be used for real projects, but expect occasional breaking changes between releases. See [Status](#status) for details.
 
 ### Scaffold a New Project
 
@@ -293,9 +291,11 @@ ubean's core implementation follows six boundaries:
 
 ## Status
 
-The v0.1 target platforms are **Node.js** (`node-server`) and **Cloudflare Workers**. Bun, Deno, Vercel, Netlify, and other platforms are outside the v0.1 support commitment but will arrive progressively through the preset capability matrix.
+ubean is at **v0.4.10**, an active preview. The originally targeted release line (v0.1) has long since been superseded — the current milestone reflects a much more complete framework.
 
-### Implemented Capabilities
+### Current State
+
+The v0.4 series supports **Node.js** (`node-server`) and **Cloudflare Workers** as first-class presets. Bun, Deno, Vercel, and Netlify are outside the current support commitment but arrive progressively through the preset capability matrix. The core feature set is implemented and passes type-checks and basic tests:
 
 - **Routing:** `routes/` API file routing with named `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` exports wrapped by `defineHandler`; `pages/` Vue SSR pages, layouts, route groups, reuse routes, parallel/intercepting routes, dynamic param matchers, special pages, and typed navigation; `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`); `validator` / `describeRoute` / `resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation; generated `paths` types at `.ubean/routes.d.ts`.
 - **App:** `defineApp` options-based customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineEnv`, `defineScheduled` (cron), `defineQueue`. i18n is `ubean.config.ts` `i18n` + vue-i18n 11 (`setLocale` from `ubean` / `ubean/client`; `useI18n` directly from `vue-i18n`; server-side ALS `t()` from `ubean/i18n`).
@@ -303,7 +303,19 @@ The v0.1 target platforms are **Node.js** (`node-server`) and **Cloudflare Worke
 - **DevTools:** RPC, AI assistant, API playground, and CRUD scaffolding.
 - **Extension packages:** `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/image`, `@ubean/content`, and `@ubean/integrations` (PWA / fonts / Electron desktop apps via vite-plugin-electron with default main/preload entries and auto SSR disable / @soybeanjs/ui with UiResolver and styles.css auto-injection / Pinia SSR hydration).
 
-> Note: While the above capabilities are implemented and pass type-checks and basic tests, several subsystems (especially the database layer, queue workers, and cron scheduler) have not been load-tested or hardened for production traffic. Treat the v0.1 release as a preview.
+### Suitable Scenarios
+
+Use ubean today for:
+
+- **Full-stack apps** on Node.js or Cloudflare Workers where Vue SSR + Hono API routes in one framework fits your needs.
+- **Admin panels and internal tools** (`fullstack` + `ssr: false`), **SPAs**, **static sites / blogs / docs** (`ssg`), and **pure API services** (`backend`).
+- **Evaluation and prototyping** — it is worth trying before committing a large codebase.
+
+### Known Limitations
+
+- **Public API stability:** pre-v1, backport-hard breaking changes can land between releases. Pin an exact version and audit upgrades.
+- **Load hardening:** several subsystems — especially the database layer, queue workers (`defineQueue`), and cron scheduler (`defineScheduled`) — have not been load-tested or hardened against production traffic. They pass type-checks and basic tests but should not be trusted for high-throughput critical workloads without your own stress testing.
+- **Platform breadth:** currently Node.js and Cloudflare Workers are first-class presets; other platforms arrive incrementally through the capability matrix.
 
 ## Development
 

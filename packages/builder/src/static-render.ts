@@ -271,7 +271,9 @@ export async function createStaticSsgRenderer(
   let mod: { renderStaticPage?: unknown };
   try {
     const entryPath = resolve(cwd, manifest.serverDir, 'entry.mjs');
-    mod = (await import(pathToFileURL(entryPath).href)) as { renderStaticPage?: unknown };
+    // @vite-ignore：加载的是运行时拼路径的构建产物（.ubean/server/entry.mjs），
+    // 有意走 Node 原生 import、不进 Vite 模块图；否则 dev 下 import-analysis 会误报警告。
+    mod = (await import(/* @vite-ignore */ pathToFileURL(entryPath).href)) as { renderStaticPage?: unknown };
   } catch (err) {
     logger.warn(`Failed to load static SSG entry: ${err instanceof Error ? err.message : String(err)}. Falling back.`);
     return undefined;

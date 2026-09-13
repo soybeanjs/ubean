@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.5.0...main) (2026-09-13)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cli**: show Network addresses in dev banner like Vite &nbsp;-&nbsp; by @soybeanjs [<samp>(a401a)</samp>](https://github.com/soybeanjs/ubean/commit/a401ac6)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: silence import-analysis warning on SSG entry dynamic import &nbsp;-&nbsp; by @soybeanjs [<samp>(83d74)</samp>](https://github.com/soybeanjs/ubean/commit/83d74f8)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.10...main) (2026-09-13)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

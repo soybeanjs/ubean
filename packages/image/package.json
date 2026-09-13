@@ -1,6 +1,6 @@
 {
   "name": "@ubean/image",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Image optimization and transformation for ubean",
   "files": [
     "dist"

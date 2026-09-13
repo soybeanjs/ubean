@@ -36,7 +36,13 @@ export function formatDiagnostics(diagnostics: CapabilityDiagnosisResult): { err
   return { errors, warnings };
 }
 
-export function logDiagnostics(diagnostics: CapabilityDiagnosisResult): void {
+/**
+ * 输出能力诊断结果。
+ *
+ * `'auto'` 语义(默认):健康时静默 —— "All capability checks passed" 仅在
+ * `verbose` 时输出;告警/错误属于 warn/error 级别,始终输出。
+ */
+export function logDiagnostics(diagnostics: CapabilityDiagnosisResult, options: { verbose?: boolean } = {}): void {
   const { errors, warnings } = formatDiagnostics(diagnostics);
 
   if (errors.length > 0) {
@@ -49,7 +55,7 @@ export function logDiagnostics(diagnostics: CapabilityDiagnosisResult): void {
     for (const w of warnings) logger.warn(w);
   }
 
-  if (errors.length === 0 && warnings.length === 0) {
+  if (errors.length === 0 && warnings.length === 0 && options.verbose) {
     logger.info('All capability checks passed');
   }
 }

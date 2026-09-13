@@ -1,6 +1,7 @@
 import { createUbeanApp } from '@ubean/app';
 import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/build/codegen';
 import { loadUbeanConfig } from '@ubean/config';
+import type { ResolvedLoggingConfig } from '@ubean/config';
 import {
   resolvePresetByName,
   registerBuiltinPresets,
@@ -10,7 +11,7 @@ import {
 } from '@ubean/preset';
 import { scanProject } from '@ubean/scan';
 import type { ScanResult } from '@ubean/scan';
-import { getLogger } from '@ubean/shared/logger';
+import { getLogger, setMinLevel } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { green, cyan, dim, bold } from 'kolorist';
 import { resolve } from 'pathe';
@@ -76,6 +77,14 @@ export const devCommand: CommandDef = {
       description: 'Exit if the port is already in use, instead of auto-incrementing',
       default: false
     },
+    verbose: {
+      type: 'boolean',
+      description: 'Show detailed startup logs (directories, scan, codegen, diagnostics, reload events)'
+    },
+    logRequests: {
+      type: 'boolean',
+      description: 'Log each request (GET /path 200 12ms). Ignored in ssg/spa modes.'
+    },
     open: {
       type: 'boolean',
       description: 'Open browser on startup'
@@ -88,26 +97,52 @@ export const devCommand: CommandDef = {
   },
   async run({ args }) {
     const cwd = resolve(args.cwd || process.cwd());
-    logger.info('Starting ubean dev server...');
 
     registerBuiltinPresets();
     const config = await loadUbeanConfig(cwd);
+
+    // ---- 日志分类闸门:CLI flag > ubean.config.ts logging > 模式矩阵 ----
+    // 直接改写 resolved config(进程内单例),buildApp/vite-server 等下游统一读取。
+    const logging: ResolvedLoggingConfig = config.logging;
+    if (args.verbose) {
+      logging.scan = true;
+      logging.lifecycle = true;
+      logging.diagnostics = true;
+    }
+    if (args.logRequests) {
+      logging.request = true;
+      logging.requestSuppressed = false;
+    }
+    const backendCapable = config.mode === 'fullstack' || config.mode === 'backend';
+    if (logging.request && !backendCapable) {
+      logging.request = false;
+      logging.requestSuppressed = true;
+    }
+    if (logging.requestSuppressed) {
+      logger.warn(`Request logging is not applicable in "${config.mode}" mode — skipping.`);
+    }
+    // 显式配置级别优先于 LOG_LEVEL 环境变量
+    setMinLevel(logging.level);
+
+    const startedAt = Date.now();
+    if (logging.lifecycle) logger.info('Starting ubean dev server...');
     // 优先级：CLI flag > ubean.config.ts dev 字段 > loader 默认值（9527/localhost）。
     // CLI args 不能设 citty default，否则默认值会让 || 短路、config.dev 永远读不到。
     const port = Number(args.port) || config.dev.port;
     const host = args.host || config.dev.host;
 
-    logger.info(`Root directory: ${config.rootDir}`);
-    logger.info(`Source directory: ${config.srcDir}`);
-
     const preset = resolvePresetByName(config.build.preset);
-    logger.info(`Preset: ${preset.name}`);
+    if (logging.scan) {
+      logger.info(`Root directory: ${config.rootDir}`);
+      logger.info(`Source directory: ${config.srcDir}`);
+      logger.info(`Preset: ${preset.name}`);
+    }
 
     const capabilities = createCapabilitySet(preset.capabilities || {});
 
-    logger.info('Running capability diagnostics...');
+    if (logging.scan) logger.info('Running capability diagnostics...');
     const diagnostics = diagnoseCapabilities(preset.name, preset.capabilities || {}, NODE_REQUIREMENTS);
-    logDiagnostics(diagnostics);
+    logDiagnostics(diagnostics, { verbose: logging.diagnostics });
 
     if (!diagnostics.valid) {
       logger.warn('Some capability requirements are not met. Dev server may not function correctly.');
@@ -117,7 +152,11 @@ export const devCommand: CommandDef = {
     // the DevTools plugin can read the freshest data via `getScanResult`.
     // Initialized with the initial scan so DevTools shows routes/pages
     // immediately on startup (not only after the first file change).
-    let { app: currentApp, layouts: currentLayouts, scanResult: currentScanResult } = await buildApp(cwd, config);
+    let {
+      app: currentApp,
+      layouts: currentLayouts,
+      scanResult: currentScanResult
+    } = await buildApp(cwd, config, logging);
 
     // Reusable rescan function — called by the file watcher AND by the
     // DevTools plugin (via `triggerRescan`) after CRUD operations so the
@@ -128,7 +167,7 @@ export const devCommand: CommandDef = {
       if (rescanInProgress) return;
       rescanInProgress = true;
       try {
-        const { app: newApp, layouts: newLayouts, scanResult } = await buildApp(cwd, config);
+        const { app: newApp, layouts: newLayouts, scanResult } = await buildApp(cwd, config, logging);
         currentApp = newApp;
         currentLayouts = newLayouts;
         currentScanResult = scanResult;
@@ -147,6 +186,10 @@ export const devCommand: CommandDef = {
         rescanInProgress = false;
       }
     }
+
+    // Reload 周期计时与变更文件记录 —— 供 onAfterReload 收敛为单行反馈
+    let reloadStartedAt = Date.now();
+    let lastChangedFile: string | null = null;
 
     const runner = await createDevRunner({
       cwd,
@@ -181,8 +224,9 @@ export const devCommand: CommandDef = {
       },
       onListen({ url, networkUrls }) {
         const label = (text: string) => dim(text);
+        const modeSuffix = dim(` (${config.mode} · ${preset.name})`);
         const lines = [
-          `${green(bold('🚀 ubean dev server ready'))}\n`,
+          `${green(bold(`🚀 ubean dev server ready in ${Date.now() - startedAt}ms`))}${modeSuffix}\n`,
           `  → ${label('Local:')}      ${cyan(url)}`,
           // 监听所有网卡（host: 0.0.0.0）时逐行列出局域网可达地址（对齐 Vite 的 Network 展示）
           ...(networkUrls || []).map(n => `  → ${label('Network:')}    ${cyan(n)}`)
@@ -207,7 +251,7 @@ export const devCommand: CommandDef = {
         if (hasBackend) {
           generateOpenApiTypesFromServer(url, { outDir: resolve(cwd, '.ubean') })
             .then(filePath => {
-              if (filePath) logger.info(`OpenAPI types generated: ${filePath}`);
+              if (filePath && logging.scan) logger.info(`OpenAPI types generated: ${filePath}`);
             })
             .catch(err => {
               logger.warn(`Failed to generate OpenAPI types: ${err instanceof Error ? err.message : String(err)}`);
@@ -215,10 +259,18 @@ export const devCommand: CommandDef = {
         }
       },
       onBeforeReload() {
-        logger.info('Reloading...');
+        reloadStartedAt = Date.now();
+        if (logging.lifecycle) logger.info('Reloading...');
       },
       onAfterReload() {
-        logger.info('Reloaded');
+        if (logging.lifecycle) {
+          logger.info('Reloaded');
+        } else {
+          // 默认收敛为单行反馈;文件触发时附带变更文件,DevTools 触发时省略
+          const file = lastChangedFile ? dim(` · ${lastChangedFile}`) : '';
+          logger.info(dim(`↻ Reloaded in ${Date.now() - reloadStartedAt}ms${file}`));
+        }
+        lastChangedFile = null;
       }
     });
 
@@ -243,7 +295,8 @@ export const devCommand: CommandDef = {
 
         if (relevantEvents.length === 0) return;
 
-        logger.info(`File change detected: ${relevantEvents[0].relativePath}`);
+        lastChangedFile = relevantEvents[0].relativePath;
+        if (logging.lifecycle) logger.info(`File change detected: ${lastChangedFile}`);
         await rescan();
       }
     });
@@ -251,7 +304,7 @@ export const devCommand: CommandDef = {
     watcher.start();
 
     const cleanup = async () => {
-      logger.info('\nShutting down...');
+      if (logging.lifecycle) logger.info('\nShutting down...');
       watcher.stop();
       await runner.stop();
       process.exit(0);
@@ -262,11 +315,18 @@ export const devCommand: CommandDef = {
   }
 };
 
+/** 默认跳过请求日志的内部路径前缀(`/_health`、`/_devtools`、`/_openapi.json`、Vite 内部 `/@id/...` 等)。 */
+const REQUEST_LOG_INTERNAL_PREFIXES = ['/_', '/@'];
+
+/** 请求日志中,超过该毫秒数的请求提升为 warn(慢请求告警)。 */
+const REQUEST_LOG_SLOW_THRESHOLD = 1000;
+
 async function buildApp(
   cwd: string,
-  config: any
+  config: any,
+  logging: ResolvedLoggingConfig
 ): Promise<{ app: ReturnType<typeof createUbeanApp>; layouts: any[]; scanResult: ScanResult }> {
-  logger.info('Scanning project files...');
+  if (logging.scan) logger.info('Scanning project files...');
   const result = await scanProject({
     cwd,
     srcDir: config.srcDir,
@@ -274,11 +334,13 @@ async function buildApp(
     ignore: config.scanOptions?.ignore
   });
 
-  logger.info(
-    `Found ${result.apiRoutes.length} API routes, ${result.pages.length} pages, ${result.layouts.length} layouts, ${result.middlewares.length} middlewares, ${result.plugins.length} plugins`
-  );
+  if (logging.scan) {
+    logger.info(
+      `Found ${result.apiRoutes.length} API routes, ${result.pages.length} pages, ${result.layouts.length} layouts, ${result.middlewares.length} middlewares, ${result.plugins.length} plugins`
+    );
+  }
 
-  logger.info('Generating type definitions...');
+  if (logging.scan) logger.info('Generating type definitions...');
   await generateTypes(result, {
     cwd,
     srcDir: config.srcDir,
@@ -313,9 +375,36 @@ async function buildApp(
     seoConventions: { srcDir: resolve(cwd, config.srcDir) }
   });
 
+  // 请求日志(request 分类):默认关闭,`logging.request: true` 或 --log-requests 打开。
+  // ssg/spa 模式在 CLI 层已被强制关闭。挂点用 app hooks(requestId 中间件之后),
+  // 资源/模块请求在 Vite 中间件层即被消费,不会进入这里 —— 天然只记录应用请求。
+  const requestStartTimes = new WeakMap<object, number>();
+  const isInternalPath = (path: string) => REQUEST_LOG_INTERNAL_PREFIXES.some(p => path.startsWith(p));
+
   app.hooks.hook('request:start', c => {
-    // 请求日志默认隐藏(LOG_LEVEL=debug 打开),避免干扰 dev 终端输出
+    requestStartTimes.set(c, Date.now());
+    // 深度诊断仍可用 LOG_LEVEL=debug 打开(与 request 分类正交)
     logger.debug(`${c.req.method} ${c.req.path}`);
+  });
+
+  app.hooks.hook('request:end', (c, res) => {
+    if (!logging.request) return;
+    const start = requestStartTimes.get(c);
+    const duration = start === undefined ? 0 : Date.now() - start;
+    const line = `${c.req.method} ${c.req.path} ${res.status} ${duration}ms`;
+    // 5xx 永远可见(即使内部路径);内部路径的成功请求不打扰终端
+    if (res.status >= 500) {
+      logger.error(line);
+      return;
+    }
+    if (isInternalPath(c.req.path)) return;
+    if (res.status >= 400 || duration >= REQUEST_LOG_SLOW_THRESHOLD) logger.warn(line);
+    else logger.info(line);
+  });
+
+  app.hooks.hook('request:error', (c, err) => {
+    if (!logging.request) return;
+    logger.error(`${c.req.method} ${c.req.path} ERROR ${err instanceof Error ? err.message : String(err)}`);
   });
 
   return { app, layouts: result.layouts, scanResult: result };

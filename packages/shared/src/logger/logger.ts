@@ -1,6 +1,6 @@
 import { Logger } from 'tslog';
-import type { ILogObj, TLogLevel } from 'tslog';
-import type { UbeanLogger, UbeanLoggerOptions } from './types';
+import type { ILogObj, TLogLevel, TLogLevelName } from 'tslog';
+import type { UbeanLogger, UbeanLoggerOptions, LogLevelName } from './types';
 
 const DEFAULT_NAME = 'ubean';
 
@@ -22,6 +22,12 @@ const DEFAULT_MIN_LEVEL: TLogLevel = 'INFO';
 
 /** 是否处于 debug 模式(输出详细模板) */
 let debugMode = false;
+
+/**
+ * 配置文件显式指定的日志级别(`logging.level`,归一化为大写)。
+ * 优先级:logger 显式 `minLevel` > 此配置 > `LOG_LEVEL`/`TSLOG_LEVEL` 环境变量 > `info`。
+ */
+let configuredMinLevel: TLogLevelName | undefined;
 
 /** 已创建的 logger 实例注册表,`setDebugLogging` 切换模板时统一更新(含子 logger) */
 const instances = new Set<UbeanLogger>();
@@ -86,7 +92,7 @@ function getLogLevelFromEnv(): TLogLevel | undefined {
  * ```
  */
 export function createUbeanLogger(options: UbeanLoggerOptions = {}): UbeanLogger {
-  const minLevel = options.minLevel ?? getLogLevelFromEnv() ?? DEFAULT_MIN_LEVEL;
+  const minLevel = options.minLevel ?? configuredMinLevel ?? getLogLevelFromEnv() ?? DEFAULT_MIN_LEVEL;
   const instance = new Logger<ILogObj>({
     name: DEFAULT_NAME,
     ...options,
@@ -137,4 +143,30 @@ export function setDebugLogging(enabled: boolean): void {
   if (debugMode === enabled) return;
   debugMode = enabled;
   for (const instance of instances) applyDebugMode(instance);
+}
+
+/**
+ * 设置全局日志级别(对已创建与后续创建的所有 logger 实例生效)。
+ *
+ * 供 CLI 在加载 `logging.level` 配置后调用,覆盖 `LOG_LEVEL`/`TSLOG_LEVEL` 环境
+ * 变量的既有效果。传入 `undefined` 为空操作(不覆盖环境变量语义)。
+ *
+ * 注意:必须走 tslog 实例的 `setMinLevel()` 方法 —— 它会把级别名归一化为数字 id
+ * (`tslog` 内部用数值比较过滤);直接改写 `settings.minLevel` 字符串会让比较失真。
+ * tslog 的级别名解析大小写不敏感,这里统一大写仅为通过其类型签名。
+ *
+ * @example
+ * ```ts
+ * const config = await loadUbeanConfig(cwd);
+ * if (config.logging.level) setMinLevel(config.logging.level);
+ * ```
+ */
+export function setMinLevel(level: LogLevelName | TLogLevel | undefined): void {
+  if (!level || typeof level !== 'string') return;
+  // 统一大写存储:tslog 级别名解析大小写不敏感,但类型签名只收大写
+  configuredMinLevel = level.toUpperCase() as TLogLevelName;
+  const name = level.toUpperCase() as TLogLevelName;
+  for (const instance of instances) {
+    instance.setMinLevel(name);
+  }
 }

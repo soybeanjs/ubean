@@ -179,6 +179,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - 扩展模块顶层字段：`ai`/`auth`/`icon`/`image`/`content` 为独立包，`pwa`/`fonts`/`electron`/`pinia`/`ui` 为 `@ubean/integrations` 子路径；均支持 `true` 或选项对象形式启用
 - SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
 - Per-route 渲染规则（P9-03 + P9-04）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming' | 'data-only'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）/ `ppr`（`boolean`）覆盖全局设置；优先级 `definePage({ ssr })` > `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`；`ssr: false` 跳过 loader，`'data-only'` 跑 loader 但 HTML 为 CSR shell；`ppr: true` 隐含 `prerender: true` + 强制流式 SSR（等价 `ssr: 'streaming'`）
+- 日志展示 `logging` 顶层字段（dev 常驻进程的分类闸门）：`level`（日志级别,显式设置优先于 `LOG_LEVEL`）/ `diagnostics`（`'auto'` 默认仅失败输出 | `true`）/ `request`（`'auto'` 默认关,ssg/spa 强制关 | `true`）/ `scan` / `lifecycle`（默认关）；CLI `--verbose`（全开 scan+lifecycle+diagnostics）/ `--log-requests` 临时覆盖；banner 与 warn/error 永远输出
 
 ### 3.6 模块与扩展包
 
@@ -427,14 +428,17 @@ const ReactiveIsland = defineServerIsland(SlowComp, {
 
 ### 日志
 
-| API                                       | 说明                                                                                                                       |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `logger`                                  | 默认全局 tslog 实例(名称 `ubean`),从 `ubean` 主入口导出                                                                    |
-| `createUbeanLogger(options)`              | 创建命名 tslog 实例;`options` 透传 tslog v5 分组 settings(type/pretty/json/mask/stack/meta/minLevel)                       |
-| `getLogger(scope?, options?)`             | 获取 scope 子 logger(继承父 logger 的 settings/minLevel);不传 scope 返回全局 `logger`                                      |
-| `createRequestLoggerMiddleware(options?)` | Hono 请求日志中间件;记录 method/path/status/duration/error;支持 `exclude`(glob/regex/谓词)、`slowThreshold`、`logQuery`    |
-| `@ubean/shared/logger/hono`               | `createRequestLoggerMiddleware` 所在子路径;不从 `@ubean/shared` 主入口导出，避免浏览器 barrel 拉入 tslog                   |
-| 环境变量控制                              | `LOG_LEVEL`/`TSLOG_LEVEL` 设 minLevel(silly/trace/debug/info/warn/error/fatal);`TSLOG_TYPE` 设输出格式(json/pretty/hidden) |
+| API                                       | 说明                                                                                                                                         |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `logger`                                  | 默认全局 tslog 实例(名称 `ubean`),从 `ubean` 主入口导出                                                                                      |
+| `createUbeanLogger(options)`              | 创建命名 tslog 实例;`options` 透传 tslog v5 分组 settings(type/pretty/json/mask/stack/meta/minLevel)                                         |
+| `getLogger(scope?, options?)`             | 获取 scope 子 logger(继承父 logger 的 settings/minLevel);不传 scope 返回全局 `logger`                                                        |
+| `createRequestLoggerMiddleware(options?)` | Hono 请求日志中间件;记录 method/path/status/duration/error;支持 `exclude`(glob/regex/谓词)、`slowThreshold`、`logQuery`                      |
+| `@ubean/shared/logger/hono`               | `createRequestLoggerMiddleware` 所在子路径;不从 `@ubean/shared` 主入口导出，避免浏览器 barrel 拉入 tslog                                     |
+| `setMinLevel(level)`                      | 全局切换日志级别(对已创建与后续创建的所有实例生效);优先级:logger 显式 `minLevel` > `logging.level` 配置 > `LOG_LEVEL`/`TSLOG_LEVEL` > `info` |
+| 环境变量控制                              | `LOG_LEVEL`/`TSLOG_LEVEL` 设 minLevel(silly/trace/debug/info/warn/error/fatal);`TSLOG_TYPE` 设输出格式(json/pretty/hidden)                   |
+
+**dev 启动日志分类闸门**（`logging` 配置域 + `--verbose` / `--log-requests`）：banner 与 warn/error 永远输出,不可静默；其余信息类输出按分类默认隐藏 —— `diagnostics: 'auto'`（默认,仅失败时输出）/ `true`（总是）;`request: 'auto'`（默认关闭,ssg/spa 强制关闭并提示一次）/ `true`（fullstack/backend 打印单行请求日志,挂在 `request:start`/`request:end` 钩子,静态资源在 Vite 层被消费不会出现）;`scan`（扫描/类型生成/目录预设细节）;`lifecycle`（Starting/Reloading/Reloaded/文件变更）。`--verbose` 等价全开 scan+lifecycle+diagnostics；`prepare`/`build` 一次性命令保持全量输出不受此闸门影响。
 
 ### 内部调用
 

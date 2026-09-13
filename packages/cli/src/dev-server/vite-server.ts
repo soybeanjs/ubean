@@ -1,7 +1,7 @@
 import { createServer as createHttpServer } from 'node:http';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer as createViteServer } from 'vite';
-import type { Plugin, ViteDevServer } from 'vite';
+import type { Logger, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
@@ -25,6 +25,33 @@ import { deleteScaffold, recoverScaffold, scaffold } from '../page';
 import type { DevRunnerDevtoolsOptions } from './runner';
 
 const logger = getLogger('dev-server');
+
+/**
+ * 收编 Vite 原生日志(hmr update、依赖预构建提示等)到 ubean 分类闸门:
+ * - info 级别(如 `[vite] hmr update /src/x.vue`)默认静默;`logging.lifecycle` 开启时以 `[vite]` 前缀透传
+ * - warn/error 始终透传(不可静默)
+ */
+function createGatedViteLogger(logging: { lifecycle: boolean }): Logger {
+  return {
+    info(msg) {
+      if (logging.lifecycle) logger.info(`[vite] ${msg}`);
+    },
+    warn(msg) {
+      logger.warn(msg);
+    },
+    warnOnce(msg) {
+      logger.warn(msg);
+    },
+    error(msg) {
+      logger.error(msg);
+    },
+    clearScreen() {},
+    hasWarned: false,
+    hasErrorLogged() {
+      return false;
+    }
+  } as Logger;
+}
 
 /**
  * Compute the vue-router locale param (e.g. `:locale(zh)?`) from the resolved
@@ -483,6 +510,8 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     // 如果用户有 vite.config,让 Vite 加载它(用户配置中的 ubeanPlugin() 会从缓存获取 config)
     // 否则使用 false,完全由 builtin plugins 提供
     configFile: userViteConfig ?? false,
+    // Vite 原生 info 日志(hmr update 等)纳入 ubean 分类闸门,warn/error 保留
+    customLogger: createGatedViteLogger({ lifecycle: config.logging.lifecycle }),
     resolve: {
       // pnpm peer-variant duplication can install multiple physical copies of
       // vue-router (e.g. `@ubean/client` vs `@ubean/vue` resolving different

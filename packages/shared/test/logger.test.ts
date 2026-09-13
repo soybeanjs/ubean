@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { Hono } from 'hono';
-import { createUbeanLogger, getLogger, logger, setDebugLogging } from '../src/logger';
+import { createUbeanLogger, getLogger, logger, setDebugLogging, setMinLevel } from '../src/logger';
 import { createRequestLoggerMiddleware } from '../src/logger/hono';
 
 /**
@@ -114,6 +114,63 @@ describe('setDebugLogging', () => {
     setDebugLogging(false);
 
     expect(log.settings.pretty?.template).toBe('');
+  });
+});
+
+describe('setMinLevel', () => {
+  afterEach(() => {
+    // 恢复全局实例与配置,避免污染其他用例(注册表为模块级单例)
+    setMinLevel('INFO');
+  });
+
+  it('suppresses info on existing registered instances', () => {
+    const records: CaptureRecord[] = [];
+    const log = makeCapturingLogger(records);
+
+    setMinLevel('warn');
+
+    log.info('dropped');
+    expect(records).toHaveLength(0);
+
+    log.warn('kept');
+    expect(records).toHaveLength(1);
+    expect(records[0]._logMeta?.logLevelName).toBe('WARN');
+  });
+
+  it('propagates to registered scoped loggers (settings.minLevel → numeric id)', () => {
+    const scoped = getLogger('minlevel-scope');
+
+    setMinLevel('warn');
+
+    // tslog 内部将级别归一化为数字 id(WARN = 4),数值比较过滤
+    expect(scoped.settings.minLevel).toBe(4);
+  });
+
+  it('is inherited by loggers created afterwards', () => {
+    setMinLevel('error');
+
+    const records: CaptureRecord[] = [];
+    const late = createUbeanLogger({ name: 'late', type: 'hidden' });
+    late.attachTransport({
+      name: 'capture',
+      write: record => {
+        records.push(record as CaptureRecord);
+      }
+    });
+
+    late.warn('dropped');
+    late.error('kept');
+    expect(records).toHaveLength(1);
+  });
+
+  it('undefined is a no-op (keeps env/default semantics)', () => {
+    const records: CaptureRecord[] = [];
+    const log = makeCapturingLogger(records);
+
+    setMinLevel(undefined);
+
+    log.info('kept');
+    expect(records).toHaveLength(1);
   });
 });
 

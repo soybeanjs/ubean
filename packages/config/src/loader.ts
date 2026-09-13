@@ -13,7 +13,10 @@ import type {
   SsrOptions,
   ResolvedSsrConfig,
   DevToolsConfig,
-  ResolvedDevToolsConfig
+  ResolvedDevToolsConfig,
+  LoggingConfig,
+  ResolvedLoggingConfig,
+  AppMode
 } from './types';
 
 /**
@@ -155,6 +158,41 @@ export function resolveFavicon(favicon: boolean | string | undefined, publicDir:
   return null;
 }
 
+/**
+ * 解析日志展示配置为分类闸门(按模式应用默认值矩阵)。
+ *
+ * 语义:banner 与 warn/error 始终输出,不可配置;此函数只解析其余分类的默认值。
+ *
+ * - `diagnostics`:仅 `true` 时总是输出诊断信息;`'auto'`/`false`/未设置 → 仅失败时输出
+ * - `request`:`'auto'`/未设置 → 关闭;显式 `true` 在 `ssg`/`spa` 模式下强制关闭并
+ *   置位 `requestSuppressed`(由 CLI 提示一次),其余模式开启
+ * - `scan` / `lifecycle`:默认关闭,显式 `true` 开启
+ *
+ * CLI flag(`--verbose`/`--log-requests`)在加载后于 CLI 层叠加,优先级高于本结果。
+ *
+ * 导出此函数供 CLI 复用,避免逻辑重复。
+ */
+export function resolveLoggingConfig(config?: LoggingConfig, mode?: AppMode): ResolvedLoggingConfig {
+  const backendCapable = mode === undefined || mode === 'fullstack' || mode === 'backend';
+  let request = false;
+  let requestSuppressed = false;
+  if (config?.request === true) {
+    if (backendCapable) {
+      request = true;
+    } else {
+      requestSuppressed = true;
+    }
+  }
+  return {
+    level: config?.level,
+    diagnostics: config?.diagnostics === true,
+    request,
+    requestSuppressed,
+    scan: config?.scan === true,
+    lifecycle: config?.lifecycle === true
+  };
+}
+
 const configDefaults: ResolvedConfig = {
   rootDir: process.cwd(),
   srcDir: 'src',
@@ -207,6 +245,7 @@ const configDefaults: ResolvedConfig = {
   security: undefined,
   dataCache: true,
   cache: { store: 'auto' },
+  logging: resolveLoggingConfig(undefined, 'fullstack'),
   prerender: resolvePrerenderConfig(),
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
   favicon: null,
@@ -241,6 +280,9 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   // 重新解析 devtools(同 prerender,defu 浅合并会让 enabled 失真)
   resolved.devtools = resolveDevToolsConfig(config.devtools);
   resolved.i18n = resolveI18nConfig(config.i18n);
+  // 重新解析 logging(按 mode 应用请求日志的模式矩阵;defu 浅合并会让
+  // requestSuppressed 等派生字段失真,必须基于用户原始值重算)
+  resolved.logging = resolveLoggingConfig(config.logging, resolved.mode);
   // 解析 favicon(自动检测 public 目录或使用用户配置的路径)
   const publicDir = join(resolved.rootDir, resolved.dir.public);
   resolved.favicon = resolveFavicon(config.favicon, publicDir);

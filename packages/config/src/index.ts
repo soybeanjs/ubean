@@ -20,6 +20,7 @@ export {
   resolveSsrConfig,
   resolveDevToolsConfig,
   resolveFavicon,
+  resolveLoggingConfig,
   DEFAULT_PRERENDER_EXCLUDE
 } from './loader';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
@@ -84,5 +85,7 @@ export type {
   I18nConfig,
   ResolvedI18nConfig,
   AutoImportOptions,
-  ComponentsOptions
+  ComponentsOptions,
+  LoggingConfig,
+  ResolvedLoggingConfig
 } from './types';

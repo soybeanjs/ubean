@@ -151,7 +151,7 @@ export type { ServerIslandOptions, IslandStrategy, IslandOptions } from '@ubean/
 
 // ============== 日志(tslog v5 自带 browser build,isomorphic)==============
 // Hono 请求日志中间件在 `ubean/server`
-export { logger, getLogger, createUbeanLogger, setDebugLogging } from '@ubean/shared/logger';
+export { logger, getLogger, createUbeanLogger, setDebugLogging, setMinLevel } from '@ubean/shared/logger';
 export type { UbeanLogger, UbeanLoggerOptions, LogLevelName, RequestLoggerOptions } from '@ubean/shared/logger';
 
 // ============== 配置定义(内联 identity 实现,避免拉入 config loader 的 node 依赖)==============

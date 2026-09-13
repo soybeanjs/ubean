@@ -619,6 +619,66 @@ export interface ComponentsOptions extends Omit<UnpluginComponentsOptions, 'dirs
 }
 
 /* -------------------------------------------------------------------------- */
+/* LoggingConfig                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 日志级别名称(与 tslog v5 默认等级表一致,大小写不敏感)。
+ */
+export type LoggingLevel = 'silly' | 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal';
+
+/**
+ * 日志展示配置（dev server 等常驻进程的分类闸门）。
+ *
+ * 设计原则:健康时安静,出事时大声 —— banner 与 warn/error 永远输出,
+ * 其余信息类输出按分类闸门控制,默认全部隐藏。
+ */
+export interface LoggingConfig {
+  /**
+   * 日志级别(透传 tslog `minLevel`)。
+   * 显式设置优先于 `LOG_LEVEL`/`TSLOG_LEVEL` 环境变量;未设置时沿用环境变量或 `info`。
+   */
+  level?: LoggingLevel;
+  /**
+   * 能力诊断(capability diagnostics)信息输出:
+   * - `'auto'`(默认):仅失败时输出(告警/错误);健康时静默
+   * - `true`:总是输出(含 "All capability checks passed")
+   * - `false`:与 `'auto'` 一致(失败告警属于 warn/error,始终无法屏蔽)
+   */
+  diagnostics?: 'auto' | boolean;
+  /**
+   * 请求日志(每个 API/页面请求单行 `GET /path 200 12ms`):
+   * - `'auto'`(默认):关闭;`ssg`/`spa` 模式即使显式 `true` 也会被强制关闭并提示一次
+   * - `true`:开启(fullstack/backend 模式)
+   */
+  request?: 'auto' | boolean;
+  /**
+   * 启动期细节输出:扫描进度、路由统计、类型生成、目录与预设信息。默认 `false`。
+   */
+  scan?: boolean;
+  /**
+   * 生命周期事件:Starting / File change / Reloading / Reloaded / Shutting down。默认 `false`。
+   */
+  lifecycle?: boolean;
+}
+
+/** `LoggingConfig` 的解析结果(CLI flag > config > 模式矩阵)。 */
+export interface ResolvedLoggingConfig {
+  /** 透传 tslog 的日志级别;未设置时由 `LOG_LEVEL`/默认值决定。 */
+  level?: LoggingLevel;
+  /** `true` = 总是输出诊断信息;`false` = 仅失败时输出(`'auto'` 的语义)。 */
+  diagnostics: boolean;
+  /** `true` = 输出请求日志(单行)。 */
+  request: boolean;
+  /** 请求日志被模式矩阵强制关闭(`ssg`/`spa` 显式开启时),由 CLI 提示一次。 */
+  requestSuppressed: boolean;
+  /** `true` = 输出扫描/类型生成等启动细节。 */
+  scan: boolean;
+  /** `true` = 输出生命周期事件。 */
+  lifecycle: boolean;
+}
+
+/* -------------------------------------------------------------------------- */
 /* UbeanConfig                                                                  */
 /* -------------------------------------------------------------------------- */
 
@@ -722,6 +782,23 @@ export interface UbeanConfig {
     queues?: string | string[];
     locales?: string | string[];
   };
+  /**
+   * 日志展示配置(分类闸门)。
+   *
+   * banner 与 warn/error 始终输出;扫描细节/生命周期/能力诊断/请求日志
+   * 默认全部隐藏,按分类开启。CLI `--verbose` / `--log-requests` 可临时覆盖。
+   *
+   * @example
+   * ```ts
+   * export default defineConfig({
+   *   logging: {
+   *     request: true,      // 全栈模式:终端打印每个请求
+   *     scan: true          // 打印扫描/类型生成过程
+   *   }
+   * });
+   * ```
+   */
+  logging?: LoggingConfig;
   dev?: {
     port?: number;
     host?: string;
@@ -944,6 +1021,7 @@ export interface ResolvedConfig extends Required<
     | 'security'
     | 'dataCache'
     | 'cache'
+    | 'logging'
   >
 > {
   rootDir: string;
@@ -979,4 +1057,5 @@ export interface ResolvedConfig extends Required<
   security: NonNullable<UbeanConfig['security']> | undefined;
   dataCache: boolean;
   cache: { store: 'memory' | 'fs' | 'auto'; dir?: string };
+  logging: ResolvedLoggingConfig;
 }

@@ -31,7 +31,7 @@ export interface DevRunnerOptions {
   layouts?: ScannedLayout[];
   config: ResolvedConfig;
   capabilities: CapabilitySet;
-  onListen?: (info: { port: number; host: string; url: string }) => void;
+  onListen?: (info: { port: number; host: string; url: string; networkUrls: string[] }) => void;
   onBeforeReload?: () => void | Promise<void>;
   onAfterReload?: () => void | Promise<void>;
   onDiagnostics?: (diagnostics: CapabilityDiagnosisResult) => void;
@@ -98,9 +98,9 @@ class ViteNodeDevRunner implements DevRunner {
       app: this.currentApp,
       layouts: this.currentLayouts,
       devtools: this.options.devtools,
-      onListen: ({ port, host, url }) => {
+      onListen: ({ port, host, url, networkUrls }) => {
         this._port = port;
-        this.options.onListen?.({ port, host, url });
+        this.options.onListen?.({ port, host, url, networkUrls });
       }
     });
 

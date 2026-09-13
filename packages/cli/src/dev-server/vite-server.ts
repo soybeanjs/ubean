@@ -13,7 +13,13 @@ import { getVueLocaleParam, toVueRouterLocalePath } from '@ubean/i18n';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
-import { findAvailablePort, findUserViteConfig } from '@ubean/shared/node';
+import {
+  findAvailablePort,
+  findUserViteConfig,
+  getLanAddresses,
+  isLoopbackHost,
+  isWildcardHost
+} from '@ubean/shared/node';
 import { createFsOps } from '../shared/fs-ops';
 import { deleteScaffold, recoverScaffold, scaffold } from '../page';
 import type { DevRunnerDevtoolsOptions } from './runner';
@@ -44,7 +50,7 @@ export interface ViteDevServerOptions {
   layouts?: ScannedLayout[];
   /** DevTools data accessors forwarded to the `@ubean/devtools` Vite plugin. */
   devtools?: DevRunnerDevtoolsOptions;
-  onListen?: (info: { port: number; host: string; url: string }) => void;
+  onListen?: (info: { port: number; host: string; url: string; networkUrls: string[] }) => void;
 }
 
 export interface ViteDevServerInstance {
@@ -659,7 +665,14 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
   enhanceAppWithVite(currentApp, currentLayouts);
 
-  const getUrl = () => `http://${host}:${actualPort}`;
+  // 展示用 host：监听所有网卡（0.0.0.0/::）时 banner 的 Local/Scalar/OpenAPI 等
+  // URL 统一走 localhost（对 0.0.0.0 发起 HTTP 在部分平台不可达），局域网可达性
+  // 由 networkUrls 单独列出（对齐 Vite 的 Local/Network 双行展示）。
+  const displayHost = isWildcardHost(host) ? 'localhost' : host;
+  const getNetworkUrls = () =>
+    isLoopbackHost(host) ? [] : getLanAddresses().map(address => `http://${address}:${actualPort}`);
+
+  const getUrl = () => `http://${displayHost}:${actualPort}`;
 
   const instance: ViteDevServerInstance = {
     get port() {
@@ -703,7 +716,8 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       options.onListen?.({
         port: actualPort,
         host,
-        url: getUrl()
+        url: getUrl(),
+        networkUrls: getNetworkUrls()
       });
     },
 

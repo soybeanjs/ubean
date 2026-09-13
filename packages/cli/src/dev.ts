@@ -179,9 +179,14 @@ export const devCommand: CommandDef = {
         // AI config is sourced from env vars (UBEAN_AI_API_KEY / OPENAI_API_KEY)
         // inside the plugin's `buildDevToolsInfo`.
       },
-      onListen({ url }) {
+      onListen({ url, networkUrls }) {
         const label = (text: string) => dim(text);
-        const lines = [`${green(bold('🚀 ubean dev server ready'))}\n`, `  → ${label('Local:')}      ${cyan(url)}`];
+        const lines = [
+          `${green(bold('🚀 ubean dev server ready'))}\n`,
+          `  → ${label('Local:')}      ${cyan(url)}`,
+          // 监听所有网卡（host: 0.0.0.0）时逐行列出局域网可达地址（对齐 Vite 的 Network 展示）
+          ...(networkUrls || []).map(n => `  → ${label('Network:')}    ${cyan(n)}`)
+        ];
         // 仅 backend 相关模式(fullstack/backend)才提供 OpenAPI / 类型生成。
         // ssg / spa 模式无后端接口,避免打印误导性 banner 与无意义告警。
         const hasBackend = config.mode !== 'ssg' && config.mode !== 'spa';

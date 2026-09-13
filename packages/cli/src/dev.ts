@@ -65,13 +65,11 @@ export const devCommand: CommandDef = {
   args: {
     port: {
       type: 'string',
-      description: 'Port to listen on',
-      default: '9527'
+      description: 'Port to listen on (overrides ubean.config.ts dev.port)'
     },
     host: {
       type: 'string',
-      description: 'Host to listen on',
-      default: 'localhost'
+      description: 'Host to listen on (overrides ubean.config.ts dev.host)'
     },
     strictPort: {
       type: 'boolean',
@@ -80,8 +78,7 @@ export const devCommand: CommandDef = {
     },
     open: {
       type: 'boolean',
-      description: 'Open browser on startup',
-      default: false
+      description: 'Open browser on startup'
     },
     cwd: {
       type: 'string',
@@ -95,6 +92,8 @@ export const devCommand: CommandDef = {
 
     registerBuiltinPresets();
     const config = await loadUbeanConfig(cwd);
+    // 优先级：CLI flag > ubean.config.ts dev 字段 > loader 默认值（9527/localhost）。
+    // CLI args 不能设 citty default，否则默认值会让 || 短路、config.dev 永远读不到。
     const port = Number(args.port) || config.dev.port;
     const host = args.host || config.dev.host;
 
@@ -221,7 +220,8 @@ export const devCommand: CommandDef = {
     try {
       await runner.start();
     } catch (err: any) {
-      logger.error(err?.message || String(err));
+      // 输出完整堆栈：仅 message 无法定位插件/虚拟模块层的启动错误。
+      logger.error(err?.stack || err?.message || String(err));
       process.exit(1);
     }
 

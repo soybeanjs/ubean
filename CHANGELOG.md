@@ -1,5 +1,24 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.4.10...main) (2026-09-13)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**: let config.dev port/host take effect and log startup errors with stack &nbsp;-&nbsp; by @soybeanjs [<samp>(21d8f)</samp>](https://github.com/soybeanjs/ubean/commit/21d8f57)
+- **test**: fix test error &nbsp;-&nbsp; by @soybeanjs [<samp>(f744d)</samp>](https://github.com/soybeanjs/ubean/commit/f744dfc)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **readme**: fix status positioning contradiction &nbsp;-&nbsp; by @soybeanjs [<samp>(b6753)</samp>](https://github.com/soybeanjs/ubean/commit/b67539b)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(ba65b)</samp>](https://github.com/soybeanjs/ubean/commit/ba65b4c)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.4.9...main) (2026-09-10)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

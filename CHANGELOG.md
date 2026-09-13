@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.5.1...main) (2026-09-13)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cli**: quiet dev server startup with categorized logging gates &nbsp;-&nbsp; by @soybeanjs [<samp>(07c7e)</samp>](https://github.com/soybeanjs/ubean/commit/07c7e9f)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.5.0...main) (2026-09-13)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

@@ -66,7 +66,7 @@
     "openapi-typescript": "^7.13.0",
     "pathe": "^2.0.3",
     "tinyglobby": "^0.2.17",
-    "unimport": "^6.4.0",
+    "unimport": "^7.0.2",
     "unplugin-auto-import": "21.1.0",
     "unplugin-vue-components": "^32.1.0",
     "unplugin-vue-markdown": "^32.1.1",

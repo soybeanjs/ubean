@@ -112,3 +112,19 @@ interface NormalizedHotChannel<Api = any> {
 
 验证顺序建议：先用 `simple-host.mjs` 的形态确认「worker 内 Hono app 返回 200」，再把 `experimental.viteBuilder` 打开跑 `packages/cli/test/dev-topology.test.ts`（RM-V05 的 18 个断言）与性能对照 `perf-baseline.json`；两张网都绿了才把开关暴露给用户。
 
+
+## 8. RM-V08 实际实现后的三个坑（已修，供后续复用）
+
+实现 `UbeanDevEnvironment` 时逐一踩到，都已修好并写进代码注释/测试：
+
+1. **回发必须带 `viteEnv`**：env-runner 按该字段做命名空间过滤（`env-runner/dist/vite.mjs:33`），
+   宿主发出的任何 payload 不带标记会被 worker 侧静默丢弃 —— 症状是 invoke 60s 超时。
+2. **worker 必须把 transport 的监听器接进 `ipc.onMessage`**：`createViteTransport(sendMessage, onMessage, envName)`
+   的第二个参数是**注册函数**，只存下回调不注册，宿主的应答同样到不了（这也是超时）。
+3. **`node-worker` 是 worker 线程，不是独立进程**：`process.pid` 与宿主相同，隔离要看
+   `threadId`（主线程 0）。ADR-0012 说的「崩溃隔离」成立（线程崩溃不带走宿主），但用 pid 判定会误判。
+
+另外一条依赖教训：**不要把 env-runner 加进 `@ubean/build` 的依赖**。它会触发 pnpm 为
+`vite-plus-core` 生成额外的 peer-variant 物理副本，导致 `production.ts` 里 `Plugin` 类型身份不一致
+（4 个 TS 错误，且逐处 cast 是打地鼠）。把依赖留在 cli（`dev-environment` 测试也从 cli 侧跑、
+经 `@ubean/build/vite` 导入）后 typecheck 回归 0 错误。

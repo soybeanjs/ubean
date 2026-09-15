@@ -18,6 +18,16 @@ import { createVirtualRegistry } from './virtual-registry';
 import type { VirtualModuleRegistry } from './virtual-registry';
 
 export { createVirtualRegistry } from './virtual-registry';
+
+// RM-V08：dev 环境（自定义 DevEnvironment + env-runner IPC bridge）
+export {
+  UbeanDevEnvironment,
+  UBEAN_DEV_ENV_NAME,
+  createEnvRunnerTransport,
+  bridgeEnvRunnerInvokes,
+  createUbeanDevEnvironmentFactory,
+  type EnvRunnerLike
+} from './dev/dev-environment';
 export type { VirtualModuleRegistry, VirtualModuleResolver } from './virtual-registry';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];

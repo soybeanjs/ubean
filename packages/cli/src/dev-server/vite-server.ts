@@ -620,6 +620,30 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       };
     });
 
+    // 404 兜底路由必须与客户端 `virtual:ubean-pages` 的 catch-all **同形**
+    // （`/:locale?/:pathMatch(.*)*`，名字 `NotFound`）：SSR 渲染的正是请求 URL
+    // 本身，路由表若没有 catch-all，vue-router 会报 VUE_ROUTER_R0004「无匹配」，
+    // 结果只渲染出布局外壳、404 组件自身 DOM 缺失（R8）。同名同形还能保证
+    // 客户端水合时 `useRoute()` 解析出一致的 matched 结构。
+    // 注：SSG 走的是 `/404` 静态路由（见 builder/src/ssg-entry.ts），因为那边渲染的是
+    // 静态产物而非请求 URL，两者出发点不同。
+    if (app.options.notFoundPage) {
+      const notFoundFullPath = app.options.notFoundPage.fullPath;
+      const notFoundLayout = app.options.notFoundPage.layout;
+      routes.push({
+        path: ssrLocaleParam ? toVueRouterLocalePath('/:pathMatch(.*)*', ssrLocaleParam) : '/:pathMatch(.*)*',
+        name: 'NotFound',
+        component: async () => {
+          const mod = await viteServer!.ssrLoadModule(notFoundFullPath);
+          return mod.default || mod;
+        },
+        meta: {
+          layout: notFoundLayout === false ? false : notFoundLayout || defaultLayout,
+          pageName: 'NotFound'
+        }
+      } as (typeof routes)[number]);
+    }
+
     // Lazily load the user's defineApp config from the virtual module.
     // Cached so we only ssrLoadModule once per enhanceAppWithVite call (HMR
     // triggers a fresh call, which picks up app.ts / app.server.ts edits).

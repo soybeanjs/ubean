@@ -140,9 +140,18 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
       expect(res.status).toBe(404);
       expect(res.contentType).toContain('text/html');
       expect(res.body.startsWith('<!doctype html>')).toBe(true);
-      // 已知未修：dev 下 404 组件自身的 DOM 没有 SSR 出来（Vue Router 报无匹配，
-      // 日志出现 VUE_ROUTER_R0004），因此这里只锁状态码与内容类型契约。
-      // 内容断言待该缺陷修复后补上，避免把这个行为固化成"基线"。
+      // 回归（R8，2026-09-15 修复）：dev 的 SSR 路由表原先只由扫描到的页面构成，
+      // 缺了客户端 `virtual:ubean-pages` 注册的 404 catch-all，vue-router 报
+      // VUE_ROUTER_R0004 无匹配，只渲染出布局外壳。现在断言组件自身 DOM 与
+      // 组件内 `useHead({ title })` 都真的产出，避免又退化成"只有壳"。
+      expect(res.body).toContain('class="not-found"');
+      expect(res.body).toContain('<title>404 · 页面不存在</title>');
+    });
+
+    it('带语言前缀的未知路径同样渲染 404 组件', async () => {
+      const res = await probe('/zh/definitely-missing-page');
+      expect(res.status).toBe(404);
+      expect(res.body).toContain('class="not-found"');
     });
 
     it('未知 API 路径返回 404 + JSON', async () => {

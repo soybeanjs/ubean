@@ -83,3 +83,17 @@
 - **约束前缀（compact locale path）**：每个页面最多两条 path——默认语言的裸路径，加上 `/:locale(zh|ja)/path` 这种 **code 白名单** 前缀。Hono 与 vue-router 共用同一编译结果。
   _Avoid_: locale prefix duplication、Nuxt named route suffix
 - **框架 setLocale**：加载目标语言文案、写 locale cookie、导航到对应语言 URL。不是 vue-i18n Composer 上直接赋值 `locale`。
+
+## Vite 插件化（ADR-0012 沉淀）
+
+- **生命周期下放（lifecycle handoff）**：把 dev / build / preview 的流程控制权从 CLI 交给 Vite——`vite dev` / `vite build` / `vite preview` 成为一级命令，框架以 Vite 插件的身份接入（environments 注册、请求路由、构建编排、preview 接管）。`ubean dev|build|preview` 退为**薄别名**（仅参数解析、banner、logging 闸门，不做行为分叉）。
+  _Avoid_: 迁移 CLI（过载：CLI 只让出三个生命周期命令，工程化命令仍归 CLI）
+- **Vite 环境（Vite environment）**：Vite 6+ Environment API 的构建/运行单元。ubean 注册两个：`client`（`consumer: 'client'` → `dist/public`）与 `ubean`（`consumer: 'server'` → `dist/server`）。**不拆分独立的 `ssr` 环境**——那是框架无关框架（Nitro 服务 React/Vue/Solid）的需求，Vue 专属的 ubean 把 SSR 渲染器留在 server bundle 内。
+- **环境服务（service environment）**：可作为独立 fetch 目标的服务端环境（Nitro 的 services 泛化）。ubean 只保留机制不做实现，作为"API 服务与 SSR 独立部署"的逃生口。
+- **环境运行器（env runner）**：在 dev 下承载服务端模块执行的隔离运行时，由 `env-runner` 提供且封装在 `EnvRunner` 接口后。默认 `node-worker`（worker 线程），可选 `miniflare` / `vercel` / `netlify` 等平台保真 runner。
+  _Avoid_: dev server（过载：dev server 指 Vite 的 HTTP server 本身）
+- **开发宿主（dev host）**：Vite dev server 所在的进程。持有 `UbeanDevApp`（devtools、错误页、`/_openapi.json`、VFS）与路由匹配；未命中的请求经 `dispatchFetch` 送进 worker。
+- **作用域化重载（scoped reload）**：服务端文件变更时只失效该文件及其 importer 的求值结果，其余模块保留单例与状态；仅 scan 目录增删才全量失效并重扫路由表。取代现状「任何服务端变更 → 全量 rescan + 重建 app + full-reload」。
+- **资产-导航歧义（asset-navigation ambiguity）**：dev 下 catch-all 或未匹配的请求既可能是页面导航（→ 框架）、也可能是静态资产（→ Vite）。判据为显式路由优先，其余按 `Sec-Fetch-Dest` / 扩展名 / `?import` query / `Accept` 启发式分流。
+- **构建期快照（build-time snapshot）**：`.ubean/virtual/*` 落盘文件的定位——供 preset 包装与调试读取，**不再**被 virtual id → 磁盘文件的 alias 映射依赖（虚拟模块由无状态插件提供）。
+

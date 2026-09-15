@@ -120,6 +120,16 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 
 生产默认存储、content `queryCollection` 生产接线、Actions 并进 `/_openapi.json`、以及 `ubean analyze --out` 的 committed gzip 基线（`examples/ubean-test/benchmarks/`）已随 RM-S01/S02 一起落地。
 
+### 5.4 架构还债续 · Vite 插件化（ADR-0012）
+
+Q4 还债（D01–D08）之后，请求链之外的下一处结构性债：dev / build / preview 由 CLI 自建编排（自建 HTTP server + middlewareMode、宿主进程 `ssrLoadModule`、两次独立 `viteBuild`、三套 watcher）。对齐 Nitro v3 的插件优先形态后，框架以 Vite 插件身份接入，生命周期交给 `vite dev|build|preview`。
+
+| ID | 任务 | 门槛 | 完成定义 |
+| --- | --- | --- | --- |
+| **RM-V01–V36** | dev / build / preview 生命周期下放：插件注册 environments → 自定义 `DevEnvironment` + env-runner worker → 单 `createBuilder` 多环境编排 → `configurePreviewServer` 接管 | 架构还债 + 性能（附带平台保真 dev） | 见 [vite-plugin-migration.md](vite-plugin-migration.md)；`vite dev/build/preview` 全链路可用，`ubean` 同名命令退为薄别名；产物布局（`dist/public` + `dist/server` + `dist/manifest.json`）与 `analyze:check` 基线不变 |
+
+刻意的三处不对齐（理由见 ADR-0012）：不拆 `ssr` 环境、不引入 `.output/` 布局、不把 prerender 提到 server bundle 之前。
+
 ## 6. 不做的伪缺口（避免 Q4 被带偏）
 
 - 「把 28 包合成 5 个」——blast radius 过大；卫生包已并入 shared/config/build，不合并 `@ubean/vue`。
@@ -133,3 +143,4 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 2. Q4 结束：RM-D01–D08 中至少 D01、D02、D04、D05 合并；其余可顺延但不得重新打满营销 ✅。
 3. H1：RM-U01 + U02 数据层切口与 select SSR（U04）已落地；U03 不另做客户端文件中间件。
 4. 全程：CodeGraph `impact` 对 `createUbeanApp` / `registerRoutes` / `ubeanPlugin` 在相关 PR 留下证据；不把任务人天写进文档。
+5. Vite 插件化（RM-V01–V36）：回归网（RM-V05）先于 Phase 1 落地；Phase 1（dev）与 Phase 2（build）各自在 `experimental.viteBuilder` 开关后独立可发布；产物布局与 `analyze:check` 基线全程不变。

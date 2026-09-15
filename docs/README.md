@@ -11,6 +11,7 @@
 | 文档 | 说明 |
 | --- | --- |
 | [roadmap.md](roadmap.md) | 2026 Q4 还债 / 2027 H1 用户可见缺口（ADR-0010） |
+| [vite-plugin-migration.md](vite-plugin-migration.md) | dev / build / preview 生命周期下放给 Vite 的整改方案与任务清单（ADR-0012） |
 | [contracts/](contracts/) | studio 开口：scaffold JSON Schema + `.ubean/` codegen 契约 |
 
 ## 长期参考
@@ -33,6 +34,7 @@
 - [0009](adr/0009-i18n-engine-and-compact-locale-routing.md) — vue-i18n 11 + 约束前缀语言路由
 - [0010](adr/0010-competitive-north-star-and-gap-filter.md) — 竞品北极星与「值得做」过滤器
 - [0011](adr/0011-lightweight-ssg-direct-render.md) — 轻量 SSG：直接渲染路径（vite-ssg 式）
+- [0012](adr/0012-vite-plugin-first-lifecycle.md) — Vite 插件优先：dev / build / preview 生命周期下放
 
 ## 相关目录
 

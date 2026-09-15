@@ -76,7 +76,7 @@ vite.config.ts（用户唯一入口）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-V07** | environments 注册 | `builder/src/vite.ts` 的 `ubeanPlugin()` 增加 `config` 钩子返回 `environments: { client, ubean }`（对齐 `nitro:src/build/vite/plugin.ts:113-133`） | `vite build` 能识别两个环境；client outDir 指向 `dist/public` |
+| **RM-V07** ✅ | environments 注册 | 新增 `experimental.viteBuilder` 灰度开关（`UbeanConfig.experimental` + 归一化，默认 false）；`ubeanPlugin()` 增加 `config` 钩子，**仅在开关打开时**返回 `environments: { client: { consumer: 'client', build.outDir: 'dist/public' } , ubean: { consumer: 'server', build.outDir: 'dist/server' } }`（对齐 `nitro:src/build/vite/plugin.ts:113-133`） | `createBuilder` 识别两个环境、`client` outDir 指向 `dist/public`（`vite-builder-switch.test.ts` 两个断言覆盖开关两侧）；**开关关闭时旧路径零变更**：fixture 构建 `analyze:check` 仍为 -1.8%、fixture 783 与 cli 128 测试全绿 |
 | **RM-V08** | `UbeanDevEnvironment` | 新建 `builder/src/vite/dev-environment.ts`，继承 `DevEnvironment`，`dispatchFetch` 转发 worker（对齐 `nitro:src/build/vite/dev.ts:93-164`） | dev 下请求可进入 worker 内的 Hono app 并返回响应 |
 | **RM-V09** | dev worker entry | worker 内 `ModuleRunner` + 作用域化 `invalidateFile` 重载 + environment 分发 + `transformHTML` RPC（对齐 `nitro:src/runtime/internal/vite/dev-worker.mjs`） | 修改服务端文件仅相关模块重新求值，单例状态保留；HTML 经宿主 `transformIndexHtml` |
 | **RM-V10** | `configureServer` 请求路由 | pre 中间件：显式路由直通 + 资产/导航启发式（`Sec-Fetch-Dest` / 扩展名 / `?import` / `Accept`）；post 中间件兜底。**难点：页面 catch-all `/**` 必须正确区分于显式 API 路由，静态资源不得被 catch-all 吞掉** | 对齐 RM-V05 基线：静态资源正常、页面 404 返回 HTML、API 404 返回 JSON |

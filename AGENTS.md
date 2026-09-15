@@ -179,6 +179,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - 扩展模块顶层字段：`ai`/`auth`/`icon`/`image`/`content` 为独立包，`pwa`/`fonts`/`electron`/`pinia`/`ui` 为 `@ubean/integrations` 子路径；均支持 `true` 或选项对象形式启用
 - SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
 - Per-route 渲染规则（P9-03 + P9-04）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming' | 'data-only'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）/ `ppr`（`boolean`）覆盖全局设置；优先级 `definePage({ ssr })` > `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`；`ssr: false` 跳过 loader，`'data-only'` 跑 loader 但 HTML 为 CSR shell；`ppr: true` 隐含 `prerender: true` + 强制流式 SSR（等价 `ssr: 'streaming'`）
+- 实验性开关 `experimental` 顶层字段：目前仅 `viteBuilder`（默认 `false`）—— 打开后 dev / build / preview 生命周期下放给 Vite 插件（ADR-0012）；关闭时保持 CLI 自建编排，是 Phase 1/2 的灰度隔离手段
 - 日志展示 `logging` 顶层字段（dev 常驻进程的分类闸门）：`level`（日志级别,显式设置优先于 `LOG_LEVEL`）/ `diagnostics`（`'auto'` 默认仅失败输出 | `true`）/ `request`（`'auto'` 默认关,ssg/spa 强制关 | `true`）/ `scan` / `lifecycle`（默认关）；CLI `--verbose`（全开 scan+lifecycle+diagnostics）/ `--log-requests` 临时覆盖；banner 与 warn/error 永远输出
 
 ### 3.6 模块与扩展包

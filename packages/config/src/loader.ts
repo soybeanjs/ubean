@@ -246,6 +246,7 @@ const configDefaults: ResolvedConfig = {
   dataCache: true,
   cache: { store: 'auto' },
   logging: resolveLoggingConfig(undefined, 'fullstack'),
+  experimental: { viteBuilder: false },
   prerender: resolvePrerenderConfig(),
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
   favicon: null,
@@ -283,6 +284,8 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   // 重新解析 logging(按 mode 应用请求日志的模式矩阵;defu 浅合并会让
   // requestSuppressed 等派生字段失真,必须基于用户原始值重算)
   resolved.logging = resolveLoggingConfig(config.logging, resolved.mode);
+  // RM-V07：灰度开关，默认关闭 —— 关闭时插件不注册 environments，行为与旧路径一致。
+  resolved.experimental = { viteBuilder: config.experimental?.viteBuilder === true };
   // 解析 favicon(自动检测 public 目录或使用用户配置的路径)
   const publicDir = join(resolved.rootDir, resolved.dir.public);
   resolved.favicon = resolveFavicon(config.favicon, publicDir);

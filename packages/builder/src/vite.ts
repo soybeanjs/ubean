@@ -92,6 +92,39 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     name: 'ubean:core',
     enforce: 'pre',
 
+    /**
+     * RM-V07（ADR-0012）：`experimental.viteBuilder` 打开时，以插件身份注册
+     * `client` / `ubean` 两个环境，生命周期交给 `vite dev|build|preview`。
+     *
+     * 关闭时（默认）返回 undefined —— 不注册任何环境，CLI 自建编排的旧路径完全不变，
+     * 这正是该开关作为灰度隔离的意义。
+     */
+    async config() {
+      if (!ubeanConfig) {
+        ubeanConfig = await loadUbeanConfig();
+        ensureDerived();
+      }
+      if (!ubeanConfig?.experimental?.viteBuilder) return undefined;
+
+      return {
+        environments: {
+          client: {
+            consumer: 'client' as const,
+            build: {
+              // 与旧路径产物布局保持一致（`dist/public`），RM-V36 收敛前不得更换
+              outDir: 'dist/public'
+            }
+          },
+          ubean: {
+            consumer: 'server' as const,
+            build: {
+              outDir: 'dist/server'
+            }
+          }
+        }
+      };
+    },
+
     async buildStart() {
       if (!ubeanConfig) {
         ubeanConfig = await loadUbeanConfig();

@@ -85,3 +85,30 @@ node packages/cli/spike/env-runner-compat/host.mjs          # 现状：worker �
 
 - `env-runner` 目前是 `packages/cli` 的 **devDependency**；RM-V08 按方案 1 打通后再提升为运行时依赖，并把它封装在既有 `EnvRunner` 接口（`packages/cli/src/dev-server/runner.ts`）之后。
 - spike 未覆盖：`node-process` 等其他 runner、WebSocket 升级代理（`wsSrvxPlugin`）、`reload()` 热重载语义 —— 都不影响 Phase 1 起步，需要时按 `simple-host.mjs` 的形态补测。
+
+## 7. RM-V08 实施要点（续做时的入口）
+
+spike 之后又读了一轮 vite-plus 的类型定义，宿主侧通道不必自己实现 invoke 分发 —— Vite 已经把它作为**公开方法**暴露：
+
+```ts
+interface NormalizedHotChannel<Api = any> {
+  send(payload: HotPayload): void;
+  on<T extends string>(event: T, listener: (data, client: NormalizedHotChannelClient) => void): void;
+  off(event: string, listener: Function): void;
+  handleInvoke(payload: HotPayload): Promise<{ result: any } | { error: any }>;  // ← 关键
+  listen(): void;
+  close(): Promise<unknown> | void;
+}
+```
+
+`DevEnvironment` 构造时做的 `this.hot = normalizeHotChannel(context.transport, context.hot)` 会把这个规范化通道挂在 **`environment.hot`** 上，并顺带调用 `setInvokeHandler`（§2 的源码位置）。因此推荐实现是：
+
+1. 给 `DevEnvironment` 传一个**极薄的 IPC 适配器**作为 `transport`：`{ send: payload => runner.sendMessage(payload), on/off: 本地 listener 表, skipFsCheck: true, api: {} }`。
+2. 宿主侧用 `runner.onMessage` 接 worker 消息；遇到 `vite:invoke` 就 `await environment.hot.handleInvoke(payload)`，把结果按 Vite 的约定回发（`id` 由 `send*` 改成 `response*`，见 §2 引用段）。
+3. 其余事件转给适配器上注册的 listener（或直接忽略 —— worker 侧只关心 invoke 与 HMR 推送）。
+4. worker 侧沿用已验证的形态：入口 `ipc.onOpen({ sendMessage })` → `createViteTransport(sendMessage, registerListener, envName)` → `new ModuleRunner({ transport }, new ESModulesEvaluator())` → `import('virtual:ubean-server')` 后把请求交给 Hono app。
+
+这样 `env-runner` 只承担「跑起 worker + 一条 IPC」，Vite 的 invoke/模块图语义全部留在 Vite 自己手里 —— 与 §3 的方案 1 一致，且不需要复制 `handleInvoke` 的实现。
+
+验证顺序建议：先用 `simple-host.mjs` 的形态确认「worker 内 Hono app 返回 200」，再把 `experimental.viteBuilder` 打开跑 `packages/cli/test/dev-topology.test.ts`（RM-V05 的 18 个断言）与性能对照 `perf-baseline.json`；两张网都绿了才把开关暴露给用户。
+

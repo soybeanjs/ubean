@@ -28,7 +28,8 @@ export interface DevSsrRoute {
   name: string;
   component: () => Promise<unknown>;
   meta: {
-    layout: string | false | null;
+    /** 单层布局名、多层嵌套数组（P9-17）或 `false`（禁用）。 */
+    layout: string | string[] | false | null;
     pageName: string;
     cache?: true;
   };

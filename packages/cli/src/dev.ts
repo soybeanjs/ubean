@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
-import { createUbeanApp } from '@ubean/app';
+import type { UbeanApp } from '@ubean/app';
 import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/build/codegen';
+import { createDevApp } from '@ubean/build/vite';
 import { loadUbeanConfig } from '@ubean/config';
 import type { ResolvedLoggingConfig } from '@ubean/config';
 import {
@@ -11,7 +12,7 @@ import {
   NODE_REQUIREMENTS
 } from '@ubean/preset';
 import { scanProject } from '@ubean/scan';
-import type { ScanResult } from '@ubean/scan';
+import type { ScanResult, ScannedLayout } from '@ubean/scan';
 import { getLogger, setMinLevel } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { green, cyan, dim, bold } from 'kolorist';
@@ -353,7 +354,7 @@ async function buildApp(
   cwd: string,
   config: any,
   logging: ResolvedLoggingConfig
-): Promise<{ app: ReturnType<typeof createUbeanApp>; layouts: any[]; scanResult: ScanResult }> {
+): Promise<{ app: UbeanApp; layouts: ScannedLayout[]; scanResult: ScanResult }> {
   if (logging.scan) logger.info('Scanning project files...');
   const result = await scanProject({
     cwd,
@@ -378,62 +379,53 @@ async function buildApp(
     components: config.components
   });
 
-  const app = createUbeanApp({
+  // app 的创建（RM-V11 起）在 `@ubean/build`：`vite dev` 场景下插件要能自己造出同一个 app，
+  // 两边共用一份 options 装配，避免 dev 与插件路径的语义分叉。扫描结果复用上面这一次。
+  const { app, layouts } = await createDevApp({
     rootDir: cwd,
-    routes: result.apiRoutes,
-    middleware: result.middlewares,
-    pages: result.pages,
-    crons: result.crons,
-    routeRules: config.routeRules || {},
-    publicDir: config.dir.public,
-    pageAssetTags: config.favicon ? { favicon: config.favicon } : undefined,
-    openAPI: {
-      title: 'UBEAN Dev API',
-      scalarPath: '/_scalar',
-      openAPIPath: '/_openapi.json'
-    },
-    i18nConfig: config.i18n,
-    ssrExclude: config.ssr.exclude,
-    streaming: config.ssr.streaming,
-    notFoundPage: result.notFoundPage,
-    csrf: config.security === false ? false : (config.security?.csrf ?? true),
-    securityHeaders: resolveDevSecurityHeaders(config),
-    dataCache: config.dataCache,
-    cache: config.cache,
-    seoConventions: { srcDir: resolve(cwd, config.srcDir) }
+    config,
+    scanResult: result,
+    // 请求日志是 CLI 的 `logging` 配置域与终端呈现，属于调用方策略，不搬进 builder
+    configureApp: devRequestLogger(logging)
   });
 
-  // 请求日志(request 分类):默认关闭,`logging.request: true` 或 --log-requests 打开。
-  // ssg/spa 模式在 CLI 层已被强制关闭。挂点用 app hooks(requestId 中间件之后),
-  // 资源/模块请求在 Vite 中间件层即被消费,不会进入这里 —— 天然只记录应用请求。
+  return { app, layouts, scanResult: result };
+}
+
+/**
+ * 请求日志 hook（`request` 分类）：默认关闭，`logging.request: true` / `--log-requests` 打开。
+ * ssg/spa 模式在 CLI 层已被强制关闭。挂点在 requestId 中间件之后；资源/模块请求在 Vite
+ * 中间件层即被消费，不会进到这里 —— 天然只记录应用请求。
+ */
+function devRequestLogger(logging: ResolvedLoggingConfig) {
   const requestStartTimes = new WeakMap<object, number>();
   const isInternalPath = (path: string) => REQUEST_LOG_INTERNAL_PREFIXES.some(p => path.startsWith(p));
 
-  app.hooks.hook('request:start', c => {
-    requestStartTimes.set(c, Date.now());
-    // 深度诊断仍可用 LOG_LEVEL=debug 打开(与 request 分类正交)
-    logger.debug(`${c.req.method} ${c.req.path}`);
-  });
+  return (app: UbeanApp) => {
+    app.hooks.hook('request:start', c => {
+      requestStartTimes.set(c, Date.now());
+      // 深度诊断仍可用 LOG_LEVEL=debug 打开(与 request 分类正交)
+      logger.debug(`${c.req.method} ${c.req.path}`);
+    });
 
-  app.hooks.hook('request:end', (c, res) => {
-    if (!logging.request) return;
-    const start = requestStartTimes.get(c);
-    const duration = start === undefined ? 0 : Date.now() - start;
-    const line = `${c.req.method} ${c.req.path} ${res.status} ${duration}ms`;
-    // 5xx 永远可见(即使内部路径);内部路径的成功请求不打扰终端
-    if (res.status >= 500) {
-      logger.error(line);
-      return;
-    }
-    if (isInternalPath(c.req.path)) return;
-    if (res.status >= 400 || duration >= REQUEST_LOG_SLOW_THRESHOLD) logger.warn(line);
-    else logger.info(line);
-  });
+    app.hooks.hook('request:end', (c, res) => {
+      if (!logging.request) return;
+      const start = requestStartTimes.get(c);
+      const duration = start === undefined ? 0 : Date.now() - start;
+      const line = `${c.req.method} ${c.req.path} ${res.status} ${duration}ms`;
+      // 5xx 永远可见(即使内部路径);内部路径的成功请求不打扰终端
+      if (res.status >= 500) {
+        logger.error(line);
+        return;
+      }
+      if (isInternalPath(c.req.path)) return;
+      if (res.status >= 400 || duration >= REQUEST_LOG_SLOW_THRESHOLD) logger.warn(line);
+      else logger.info(line);
+    });
 
-  app.hooks.hook('request:error', (c, err) => {
-    if (!logging.request) return;
-    logger.error(`${c.req.method} ${c.req.path} ERROR ${err instanceof Error ? err.message : String(err)}`);
-  });
-
-  return { app, layouts: result.layouts, scanResult: result };
+    app.hooks.hook('request:error', (c, err) => {
+      if (!logging.request) return;
+      logger.error(`${c.req.method} ${c.req.path} ERROR ${err instanceof Error ? err.message : String(err)}`);
+    });
+  };
 }

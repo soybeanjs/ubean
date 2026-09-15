@@ -64,6 +64,22 @@ export {
   type DevRendererOptions,
   type EnhanceDevAppOptions
 } from './dev/dev-host-app';
+
+// RM-V11：宿主 dev app 的创建与自举（扫描 → createUbeanApp → enhance → ready）
+export {
+  bootstrapDevApp,
+  createDevApp,
+  createDevAppReady,
+  resolveDevSecurityHeaders,
+  resolveLocaleVueParam,
+  type BootstrapDevAppOptions,
+  type BootstrapLogger,
+  type CreateDevAppOptions,
+  type DevApp,
+  type DevAppBootstrap,
+  type DevAppReady,
+  type DevAppReadyOptions
+} from './dev/dev-app';
 export type { VirtualModuleRegistry, VirtualModuleResolver } from './virtual-registry';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];

@@ -2,9 +2,14 @@ import { createServer as createHttpServer } from 'node:http';
 import { createServer as createViteServer } from 'vite';
 import type { Logger, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
-import { createVirtualRegistry, enhanceDevApp, ubeanDevRequestPlugin, ubeanPlugin } from '@ubean/build/vite';
+import {
+  createDevAppReady,
+  createVirtualRegistry,
+  enhanceDevApp,
+  ubeanDevRequestPlugin,
+  ubeanPlugin
+} from '@ubean/build/vite';
 import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
@@ -108,11 +113,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   let currentLayouts = initialLayouts;
   let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let viteServer: ViteDevServer | null = null;
-  // Tracks whether the user's defineServer config has been applied to currentApp.
-  // Reset to false on HMR app refresh so the new app instance gets re-configured.
-  let serverConfigApplied = false;
-  let serverReadyCalled = false;
-  let cachedServerConfig: any = null;
+  // 首次请求前的初始化（locales / defineServer 配置 / init / onServerReady）。由
+  // `enhanceAppWithVite` 在每次 app 实例更换后重建 —— 新实例需要重新应用配置并重新 init，
+  // 旧实例的 ready 缓存不能复用（原先靠三个标志位手动重置，语义相同但更易漏）。
+  let appReady: () => Promise<void> = async () => {};
   // Refresh callback registered by the DevTools plugin — invoked from
   // `updateApp()` so the plugin can rebuild `DevToolsInfo` from the latest
   // scan data and push patches to connected clients via sharedState.
@@ -141,10 +145,11 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   /**
    * ubean 侧的应用请求处理（RM-V10 起由 Vite 中间件链中的请求路由中间件调用）。
    *
-   * 从原先的 `httpServer` 处理器里整段搬来，语义未变：locales 按请求加载、用户
-   * `defineServer` 配置在首次 init 前应用、`onServerReady` 只调一次、随后交给 Hono app。
+   * 初始化（locales 加载 → 应用用户 `defineServer` 配置 → `init()` → `onServerReady`）已收进
+   * `@ubean/build` 的 `createDevAppReady()`：那段逻辑 `vite dev` 自举时同样需要，放在插件层
+   * 才不会再分叉。这里只剩「框架保留路径」与本请求的转发。
    * HTML 的 `transformIndexHtml` / CSS 注入不在这里 —— 那属于「响应如何交给 Vite 处理」，
-   * 现在统一由 `ubeanDevRequestPlugin` 负责，两条路径（CLI 与 `vite dev`）共用。
+   * 由 `ubeanDevRequestPlugin` 统一负责，两条路径（CLI 与 `vite dev`）共用。
    */
   async function handleAppRequest(request: Request): Promise<Response> {
     const pathname = new URL(request.url).pathname;
@@ -157,41 +162,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       return new Response(null, { status: 302, headers: { Location: '/__devtools/' } });
     }
 
-    // Locales load per-request via createI18nMiddleware.loadMessages
-    try {
-      await viteServer!.ssrLoadModule('ubean:locales');
-    } catch (err) {
-      logger.warn('[ubean] Failed to resolve locales module:', err);
-    }
-
-    // Apply user's defineServer config (plugins, hooks, onAppCreated)
-    // before init() — must happen before the first init() call.
-    if (!serverConfigApplied) {
-      serverConfigApplied = true;
-      try {
-        const serverMod = await viteServer!.ssrLoadModule('virtual:ubean-server');
-        if (serverMod?.resolveServerConfig) {
-          cachedServerConfig = serverMod.resolveServerConfig('dev');
-          await applyServerConfig(currentApp, cachedServerConfig);
-        }
-      } catch (err) {
-        logger.warn('[ubean] Failed to load server config:', err);
-      }
-    }
-
-    await currentApp.init();
-
-    // Call onServerReady once after the first successful init
-    if (!serverReadyCalled) {
-      serverReadyCalled = true;
-      if (cachedServerConfig?.onServerReady) {
-        try {
-          await cachedServerConfig.onServerReady(currentApp);
-        } catch (err) {
-          logger.warn('[ubean] onServerReady error:', err);
-        }
-      }
-    }
+    await appReady();
 
     return currentApp.fetch(request);
   }
@@ -470,6 +441,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       },
       onCronError: error => console.error('[ubean] Failed to load cron files:', error)
     });
+
+    appReady = createDevAppReady({
+      app,
+      loadModule: id => viteServer!.ssrLoadModule(id),
+      logger: { warn: message => logger.warn(String(message)), error: message => logger.error(String(message)) }
+    });
   }
 
   enhanceAppWithVite(currentApp, currentLayouts);
@@ -557,11 +534,7 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     updateApp(app: UbeanApp, layouts?: ScannedLayout[]) {
       currentApp = app;
       if (layouts) currentLayouts = layouts;
-      // Reset server config flags — the new app instance needs fresh config
-      // application on its first request.
-      serverConfigApplied = false;
-      serverReadyCalled = false;
-      cachedServerConfig = null;
+      // 重建加载器与 ready：新实例需要重新应用 defineServer 配置并重新 init
       enhanceAppWithVite(app, currentLayouts);
       // Push the fresh scan data to DevTools clients via sharedState. The
       // plugin's refresh callback rebuilds `DevToolsInfo` from `getScanResult`

@@ -234,5 +234,19 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
       const res = await probe('/api/hello');
       expect(res.headers.get('set-cookie') ?? '').toContain('ubean_csrf=');
     });
+
+    // 用户的 `defineServer` 配置（`src/server.ts`）必须在 `app.init()` **之前**应用，
+    // 否则 P9-09 的 `handle` hook 对应的中间件不会挂到链上。示例项目用该 hook 打一个标记头，
+    // 这里断言它出现在页面、API 与 404 三类响应上 —— RM-V11 把这段时序搬进
+    // `createDevAppReady()` 时最容易丢的就是它，而丢了之后其余断言全都照常通过。
+    it.each([
+      ['/', 200],
+      ['/api/hello', 200],
+      ['/definitely-missing-page', 404]
+    ])('%s（%i）带上用户 defineServer 配置的证据头', async (path, status) => {
+      const res = await probe(path);
+      expect(res.status).toBe(status);
+      expect(res.headers.get('x-ubean-server-config')).toBe('applied');
+    });
   });
 });

@@ -51,6 +51,7 @@
   },
   "dependencies": {
     "@intlify/unplugin-vue-i18n": "catalog:",
+    "@ubean/app": "workspace:*",
     "@ubean/client": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/i18n": "workspace:*",

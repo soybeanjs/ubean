@@ -156,7 +156,7 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 | --- | --- | --- | --- |
 | R1 | vite-plus Builder / Environment API 标注 `@experimental` | 契约随版本变化导致构建或 dev 失效 | RM-V06 契约测试 + 锁定 `vite-plus-core@0.3.1`；升级时跑 RM-V23 矩阵 |
 | R2 | `env-runner@0.2.3` 为 0.x 新包 | dev 稳定性直接受其影响 | 全部调用封装在 `EnvRunner` 接口（`runner.ts:55-59`）后；RM-V04 量化自研 Plan B 成本 |
-| R3 | dev DX 倒退（HMR 语义变化） | 用户感知最敏感 | 作用域化重载必须 ≥ `examples/ubean-test/benchmarks/perf-baseline.json` 的 p50（RM-P05 在旧实现上冻结；旧实现的「全量 rescan + full-reload」不再作为口径）；RM-V05 拓扑基线与 RM-V15 走查 |
+| R3 | dev DX 倒退（HMR 语义变化） | 用户感知最敏感 | 作用域化重载必须 ≥ `examples/ubean-test/benchmarks/perf-baseline.json` 的 p50（服务端变更 221ms；RM-P05）。**口径修正（2026-09-15）**：旧实现并非「全量 rescan + full-reload」，而是 watcher 路径拼接缺陷导致**完全不重载**（已修复并补回归测试，见 [perf-regression-net.md](perf-regression-net.md) §2.1）；因此「保留单例状态」的对照只能以修复**后**的实现为基线。RM-V05 拓扑基线与 RM-V15 走查 |
 | R4 | bundle 基线 / `analyze:check` 5% 门禁 | CI 红灯 | 迁移中以"产物语义等价"为准，RM-V22 完成后重定基线 |
 | R5 | DevTools 依赖 httpServer 绑定 | 移除 `httpServerBinderPlugin` 后 DTK 可能失效 | Vite 拥有 server 后绑定天然成立；RM-V11 / RM-V15 专项验证 |
 | R6 | 双轨期行为分叉（用户 config vs CLI 注入） | 两类项目表现不一致 | 两轨共用同一份 environment 构建配置；RM-V36 收敛 |

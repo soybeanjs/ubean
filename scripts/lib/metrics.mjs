@@ -152,23 +152,6 @@ export async function pollUntil(url, options) {
 }
 
 /**
- * 轮询直到 predicate 成立或超时（不发请求，用于观察 stdout 等非 HTTP 信号）。
- * @returns {{ ok: boolean, elapsedMs: number, attempts: number }}
- */
-export async function waitUntil(predicate, options = {}) {
-  const timeoutMs = options.timeoutMs ?? 30_000;
-  const intervalMs = options.intervalMs ?? 50;
-  const started = performance.now();
-  let attempts = 0;
-  while (performance.now() - started < timeoutMs) {
-    attempts += 1;
-    if (predicate()) return { ok: true, elapsedMs: performance.now() - started, attempts };
-    await delay(intervalMs);
-  }
-  return { ok: false, elapsedMs: performance.now() - started, attempts };
-}
-
-/**
  * 解析可用的探针基地址。dev server 默认只绑 IPv6 `[::1]`（dev.host: 'localhost'），
  * 因此先试 IPv6 再回退 IPv4，避免把绑定差异误读成启动失败。
  */

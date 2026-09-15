@@ -24,21 +24,27 @@
 
 补充事实：`examples/ubean-test/vitest.config.ts` 是 `environment: 'node'`，仓库内无 browser mode 测试；根 `devDependencies` 已含 `@vitest/browser` + `@vitest/browser-playwright`（基建在，未启用）。
 
-### 2.1 首次实测发现（2026-09-15，RM-P01 首次运行）
+### 2.1 首次实测发现：dev 服务端变更不生效（已定位并修复）
 
-在旧路径上，**dev 下服务端文件变更不生效**：
+RM-P01 首次运行时，旧路径上 **dev 下服务端文件变更完全不生效**：改 `src/routes/api/hello.ts` 后 `GET /api/hello` 在 10s / 60s 内均不反映新值（就地写入与原子替换各测一次），新增路由文件持续 404，日志里也没有重新扫描行。Vite 自身 watcher 有反应（`[vite] page reload ...`），所以浏览器仍会刷新 —— 症状看起来像「必须重启 dev server」。
 
-- 修改 `src/routes/api/hello.ts` 的字面量（就地写入与原子替换各测一次）后，`GET /api/hello` 在 10s / 60s 内均未反映新值；删除探针文件后 `curl` 仍返回旧值。
-- 新增路由文件 `src/routes/api/perf-new-route.ts` 持续 404，日志中亦无 `Found 63 API routes` 重新扫描行。
-- Vite 自身 watcher 有反应（`[vite] page reload src/routes/api/hello.ts`），但 ubean 的 rescan 未生效；`packages/cli/src/dev.ts:304` 的 `watcher.start()` 为无条件调用，`createDevWatcher` 的 `fs.watch(recursive: true)` 在本机隔离测试中可正常收到事件（已排除环境因素）。
+**根因（路径被拼接两次）**：
 
-影响：
+1. `packages/config/src/loader.ts` 解析配置时把 `srcDir` 变成绝对路径（`resolve(cwd, srcDir)`）；
+2. `packages/cli/src/dev.ts` 因此传入绝对目标：`dirs: watchDirs.map(d => \`${config.srcDir}/${d}\`)`；
+3. `createDevWatcher` 的 `start()` / `addDir()` 又做了一次 `join(cwd, dir)`。`path.join` 遇到绝对路径段**不会重置**、只会继续追加 —— 监听目标变成 `<cwd><cwd>/src/<dir>`，`fs.watch` 全部 ENOENT，而 `watchDir` 的空 `catch` 把它静默吞掉。
 
-1. RM-P05 基线中 `devChangeServer` / `devChangeClient` 记录为「未观察到（0/5）」，而非具体耗时；
-2. RM-P04（reload 单例保留）依赖变更传播，顺延至该项观察成立之后；
-3. `vite-plugin-migration.md` 风险 R3 写的「现状为全量 rescan + full-reload」与实测不符——现状比「全量重载」更差。R3 的对照口径已改为基线文件，但该断言的原文需要随本发现修订。
+结果：**注册成功的 watcher 数为 0**，任何服务端改动都不触发 rescan。
 
-> 该现象是否为缺陷、或需要额外配置，待维护者确认；本方案只记录可复现的观测，不推断原因。
+**证据**：用 `NODE_OPTIONS=--require` 注入包装 `fs.watch` 的探针（配合 `module.syncBuiltinESMExports()` 让 ESM 命名导入看到补丁），启动 dev 后拿到 7 行 `<cwd>/<cwd>/src/*` 的 ENOENT；把重复前缀剥掉后 `src/pages`/`src/middleware`/`src/layouts`/`src/routes` 注册成功，改 API 路由约 500ms 生效并打出完整链路 `File change detected → Found 62 API routes → Reloading → Reloaded` —— 说明 `rescan()` / `runner.reload()` 本身健康，故障只在注册环节。
+
+**范围**：CLI dev 路径独有。`packages/builder/src/vite.ts` 的 watcher 用 `resolve` 处理且带有这个坑的注释（"join 会把绝对路径追加到 rootDir 后"），未受影响；该拼接写法自 2026-07-25 的那次迁移就存在，不是近期回归。
+
+**修复**：`watcher.ts` 新增 `resolveTarget()`（绝对路径直接用、相对路径才 join cwd），`start()` 与 `addDir()` 统一走它；失败不再静默 —— 新增 `onError` 回调，由 `dev.ts` 预过滤不存在的可选目录（`src/plugins` 等）后把真实错误打成 warn，并在「一个都没注册成功」时额外警告。回归测试 `packages/cli/test/dev-watcher.test.ts`（旧代码下 `count() === 1` 断言失败，即零 watcher 症状）。顺带把 `locales` 补进监听列表（与 builder 侧一致：此前语言文件改动不触发 rescan）。
+
+**修复后基线（RM-P05）**：服务端变更 **221ms**（p95 222ms，5/5 观测）、客户端变更 **6ms**（p95 7ms，5/5）。修复前的两次采集这两项为「未观察到」，故当前 commited 基线以修复后数据为准。
+
+**遗留给 5.5 的后果**：`vite-plugin-migration.md` 风险 R3 原文写的「现状为全量 rescan + full-reload」与实测不符 —— 实测是「完全没有重载」。修复后 R3 的对照口径应为基线里的 221ms，而不是旧实现的「全量重载」。
 
 ## 3. 度量对象与口径
 
@@ -46,10 +52,11 @@ in-scope 四项耗时指标 + 一项正确性对照。定义必须可复现、�
 
 | 指标 | 定义 | 采集方式 | 任务 |
 | --- | --- | --- | --- |
-| dev 冷启动 | spawn dev 命令 → 首个 SSR 页面响应 200 的墙钟 | 子进程 stdout 解析 + 端口轮询就绪 | RM-P01 |
-| 变更生效延迟 | 文件写入 → 变更在服务端 / 客户端可见的墙钟（两类分开） | 文件写入 + 探针请求断言标记 | RM-P05 |
-| build 墙钟 | build 命令墙钟（旧变体与新变体各一次） | 复用现有 `benchmark-ssg.mjs` 的子进程计时 | RM-P01 |
-| build 峰值 RSS | 构建进程树 RSS 峰值 | 复用现有 `psSnapshot` / `treeRssKB`（50ms 轮询求和） | RM-P01 |
+| dev 冷启动 | spawn dev 命令 → 首个 SSR 页面响应 200 的墙钟 | 子进程 + 端口轮询就绪（自动适配 dev 只绑 `[::1]`） | RM-P01 |
+| 变更生效 · 服务端 | 写入 API 路由 → `GET` 响应出现新值的墙钟 | 文件写入 + HTTP 轮询断言标记 | RM-P01 |
+| 变更生效 · 客户端 | 写入客户端模块 → 该模块被重新转换并在模块请求中返回新内容的墙钟 | 文件写入 + 轮询模块端点（不依赖 Vite stdout 日志：实测无浏览器连接时一条都不打印） | RM-P01 |
+| build 墙钟 | build 命令墙钟 | 子进程计时 | RM-P01 |
+| build 峰值 RSS | 构建进程树 RSS 峰值 | `psSnapshot` / `treeRssKB`（50ms 轮询求和） | RM-P01 |
 | reload 正确性 | 变更后服务端单例是否保留（是 / 否，非耗时） | 探针断言同一实例标识 | RM-P04 |
 
 **不计入**：函数级微基准（口径是进程级与端到端）、CI runner 之间的横向比较（机器不同无意义）。
@@ -80,22 +87,22 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 ## 5. 任务清单
 
-> 状态标记：✅ 完成 ｜ 🟡 部分达成（缺口见「完成定义」列）｜ ⏳ 顺延 / 未开始（阻塞原因见说明）。标记随实施更新，不删行。
+> 状态标记：✅ 完成 ｜ 🟡 部分达成（缺口见「完成定义」列）｜ 🔜 已解除阻塞（可开始，尚未实施）｜ ⏳ 顺延 / 未开始（原因见说明）。标记随实施更新，不删行。
 
 ### Phase 0 · 度量地基（无行为变更，可独立合入）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P01** ✅ | 生命周期基准脚本 | 新增 `scripts/benchmark-lifecycle.mjs`（度量原语抽到 `scripts/lib/metrics.mjs`）：`--toggle <arm>` 单变量切换；采集 dev 冷启动、变更生效延迟、build 墙钟与峰值 RSS | `pnpm benchmark:lifecycle` 可跑；输出表格 + `--json`；`--fixture` 可换项目；`--skip-dev` / `--skip-build` 可分段 |
+| **RM-P01** ✅ | 生命周期基准脚本 | 新增 `scripts/benchmark-lifecycle.mjs`（度量原语抽到 `scripts/lib/metrics.mjs`）：`--toggle <arm>` 单变量切换；采集 dev 冷启动、变更生效（服务端 HTTP 轮询 / 客户端模块端点轮询）、build 墙钟与峰值 RSS | `pnpm benchmark:lifecycle` 可跑；输出表格 + `--json`；`--fixture` 可换项目；`--skip-dev` / `--skip-build` 可分段 |
 | **RM-P02** 🟡 | 生效证明 | 每臂采集前调用 `assertEngaged()`；`viteBuilder` 臂在开关不存在时**硬失败**并说明「开关缺失会让两臂都跑在旧路径」 | 反向场景已成立：`--toggle viteBuilder` 现在直接失败，不会产出假对比。**待补**：开关落地后改为「检测新路径特征（environments 注册 / 单 `createBuilder` / worker `ModuleRunner`）失败即中止」 |
 | **RM-P03** ✅ | 统计口径 | `scripts/lib/metrics.mjs` 提供 `summarizeSamples` / `quantile`；warmup + N 迭代、p50 / p95、原始样本与运行环境（Node / 平台 / CPU / 内存）落盘；`--runs` / `--warmup` 覆盖 | 样本文件含全部原始值；报告含 p50 / p95；`benchmark-ssg.mjs` 口径不受影响（未改动） |
-| **RM-P04** ⏳ 顺延 | reload 正确性对照 | 变更后探针断言服务端单例是否保留（同一实例标识）；与 RM-V28（跨环境单例代理）对齐 | **阻塞于 §2.1**：变更传播在旧路径上未被观察到，单例是否保留无从判定。待 `devChangeServer` 观察成立后再实施 |
+| **RM-P04** 🔜 已解除阻塞 | reload 正确性对照 | 变更后探针断言服务端单例是否保留（同一实例标识）；与 RM-V28（跨环境单例代理）对齐 | 原阻塞项（§2.1 变更不生效）已修复，现在可实施：需要一个模块级状态的探针路由 + 一次「改无关文件后该状态是否保留」的断言 |
 
 ### Phase 1 · 基线冻结（Phase 1 dev 迁移的硬前置）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P05** 🟡 部分 | 旧实现基线冻结 | `examples/ubean-test/benchmarks/perf-baseline.json` 已在旧路径上产出（warmup 1 + 5 次，Node v24.21.0 / darwin-arm64 / Apple M1 Max） | 三项指标有 p50 / p95：dev 冷启动 1.78s（p95 2.00s）、build 墙钟 1.65s（p95 1.66s）、build 峰值内存 613.4MB（p95 621.5MB）。**未达成**：`devChangeServer` / `devChangeClient` 因 §2.1 记录为「未观察到 0/5」，**无数字可比**。R3 与 RM-V13 / V15 / V23 已引用该文件 |
+| **RM-P05** ✅ | 旧实现基线冻结 | `examples/ubean-test/benchmarks/perf-baseline.json` 在旧路径上产出（warmup 1 + 5 次，Node v24.21.0 / darwin-arm64 / Apple M1 Max）；§2.1 的 watcher 缺陷修复后重采，五项指标全部有数字 | p50 / p95：dev 冷启动 1.71s / 1.73s、服务端变更 221ms / 222ms、客户端变更 6ms / 7ms、build 墙钟 1.61s / 1.64s、峰值内存 617.5MB / 625.3MB；两项变更观测率均 5/5。R3 与 RM-V13 / V15 / V23 引用该文件 |
 
 ### Phase 2 · 体积闸门升级（与迁移解耦，可独立合入）
 
@@ -107,7 +114,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P07** ⏳ 未开始 | 运行时延迟测量 | 启用根目录已装未用的 `@vitest/browser` + Playwright，测 hydration 完成时刻与导航切换延迟（含 islands 首次 mount 双 rAF 调度） | 未开始；优先级低于 §2.1 的变更传播问题 |
+| **RM-P07** ⏳ 未开始 | 运行时延迟测量 | 启用根目录已装未用的 `@vitest/browser` + Playwright，测 hydration 完成时刻与导航切换延迟（含 islands 首次 mount 双 rAF 调度） | 未开始；按原计划后置（与 §2.1 无关，该问题已修复） |
 
 ### Phase 4 · 纪律与文档
 

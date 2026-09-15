@@ -8,7 +8,7 @@
  * 采集指标：
  * - devColdStart            spawn dev → 首个 SSR 页面响应 200 的墙钟
  * - devChangeServer         写入 API 路由 → 该变更在 HTTP 响应中可见的墙钟
- * - devChangeClient         写入客户端模块 → Vite 侧发出更新信号（stdout）的墙钟
+ * - devChangeClient         写入客户端模块 → 该模块重新转换并返回新内容的墙钟
  * - buildWall               build 命令墙钟
  * - buildPeakRss            build 进程树峰值内存（50ms 轮询 ps）
  *
@@ -41,8 +41,7 @@ import {
   resolveBaseUrl,
   spawnCaptured,
   startRssSampler,
-  summarizeSamples,
-  waitUntil
+  summarizeSamples
 } from './lib/metrics.mjs';
 
 /* 本地探针不应经过 http_proxy（本机设置了 127.0.0.1:7890，会把 localhost 拦成 502）。 */
@@ -137,7 +136,6 @@ function resolveArms() {
 const CLIENT_CHANGE_TARGET = 'src/app.ts';
 const SERVER_CHANGE_TARGET = 'src/routes/api/hello.ts';
 const SERVER_CHANGE_LITERAL = "'Hello from ubean API!'";
-const VITE_UPDATE_LOG = /\[vite\][^\n]*(?:hmr update|page reload)\s+(\S+)/;
 
 async function startDev(arm, port) {
   // --strictPort：端口被占时直接退出，而不是自增到另一个端口让探针白等。
@@ -211,24 +209,32 @@ async function measureServerChange(dev, runIndex) {
   }
 }
 
-/** 客户端变更：写入客户端模块 → 观察 Vite 侧更新日志（stdout） */
+/**
+ * 客户端变更：写入客户端模块 → 该模块被重新转换并返回新内容。
+ *
+ * 不依赖 Vite 的 stdout 日志（实测不可靠：`[vite] hmr update` 只对已进入 HMR 图的模块
+ * 打印，无浏览器连接时通常一条都没有），改为请求模块端点直到新内容出现 —— 确定性信号。
+ */
 async function measureClientChange(dev, runIndex) {
   const file = resolve(fixture, CLIENT_CHANGE_TARGET);
   const original = readFileSync(file, 'utf8');
   const marker = `perf-probe-client-${Date.now()}-${runIndex}`;
-  const seenBefore = dev.readStdout().length;
+  const moduleUrl = `${dev.baseUrl}/${CLIENT_CHANGE_TARGET}`;
   try {
     writeFileSync(file, `${original}\n// ${marker}\n`);
-    const result = await waitUntil(
-      () => {
-        const fresh = dev.readStdout().slice(seenBefore);
-        return VITE_UPDATE_LOG.test(fresh) || fresh.includes(CLIENT_CHANGE_TARGET);
-      },
-      { timeoutMs: changeTimeoutMs }
-    );
+    const result = await pollUntil(moduleUrl, {
+      timeoutMs: changeTimeoutMs,
+      predicate: ({ res, body }) => res.ok && body.includes(marker)
+    });
     return { observed: result.ok, latencyMs: result.ok ? result.elapsedMs : null, elapsedMs: result.elapsedMs };
   } finally {
     writeFileSync(file, original);
+    // 还原后等模块回到初始内容，避免污染下一轮测量。
+    await pollUntil(moduleUrl, {
+      timeoutMs: 3_000,
+      intervalMs: 100,
+      predicate: ({ body }) => !body.includes(marker)
+    });
   }
 }
 

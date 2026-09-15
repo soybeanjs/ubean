@@ -88,6 +88,9 @@ vite.config.ts（用户唯一入口）
 
 ### Phase 2 · build 迁移
 
+> **启动时的实况（2026-09-16）**：真正跑一次 `ubean build` 才发现 **RM-V14 把构建路径弄坏了** —— `ubeanVite` 接管 `@vitejs/plugin-vue` 后，dev 路径同步去掉了重复注册，build 路径（`production.ts`）漏改，`.vue` 被编译两次直接报 “At least one <template> or <script> is required”。**没有任何测试跑生产构建**（dev 侧 500+ 断言、example 783 条测运行时 API、prerender 测试直接调 `prerender()`、唯一跑真构建的 `analyze:check` 不在上轮验证清单里）。已修并补上 `production-build.test.ts`（fixture 内跑完整 `buildProduction` 并断言产物契约）。另已抽出 `vite/build-steps.ts`（输出准备 / preset 包装 / manifest 三段与 viteBuild 解耦），作为 RM-V16 的地基。
+
+
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
 | **RM-V16** | `buildApp` 编排 | 新建 `builder/src/vite/build-app.ts`：`prepare`（order: pre）→ client env → ubean env → prerender → preset 包装 → manifest（order: post） | `vite build` 单次产出完整 `dist/` |

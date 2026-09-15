@@ -56,6 +56,14 @@ export {
   type DevSsrRoute,
   type DevSsrRoutesOptions
 } from './dev/dev-ssr-routes';
+
+// RM-V11：宿主 dev app 装配（把 Vite SSR 图的加载器与渲染器接到 Hono app 上）
+export {
+  enhanceDevApp,
+  type DevHostAppLike,
+  type DevRendererOptions,
+  type EnhanceDevAppOptions
+} from './dev/dev-host-app';
 export type { VirtualModuleRegistry, VirtualModuleResolver } from './virtual-registry';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];

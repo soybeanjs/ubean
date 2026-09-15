@@ -138,6 +138,7 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 - **Phase 1**：`RM-V09`（dev worker entry + 作用域化失效）✅ —— 框架生成 `.ubean/dev-worker.mjs`；文件改动后**只有命中文件及其 importer 链重新求值**，无关模块的单例保留。关键实现点：模块图按 realpath 建索引，宿主侧须用「原始路径 + realpath」两种候选键查表，再把模块 URL 发给 worker。
 - **Phase 1**：`RM-V10`（`configureServer` 请求路由）✅ —— 判据 + pre/post 兜底落在 `@ubean/build` 的插件里，CLI 的 dev server 同步切到这条路径（原先「Vite 中间件 + 自己兜底 + 自己 transformIndexHtml」的分叉删除）；52 个新断言（41 判据 + 11 真 server 集成）。
 - **Phase 1 起步**：`RM-V11`（宿主 dev app）🟡 —— 先抽出 `buildDevSsrRoutes()`（SSR 路由表，含 404 catch-all / reuse / locale param），CLI 已改用它；测试直接把服务端路由表与客户端 `generatePagesModuleSource` 产出对照，让「两张表同形」成为可执行约束（R8 与 locale 前缀事故都源于此）。剩余部分（app 自举 + `enhanceAppWithVite` 搬入 builder）待续。
+- **Phase 1 进行中**：`RM-V11`（宿主 dev app）🟡 —— 已搬入 builder：`buildDevSsrRoutes()`（SSR 路由表，测试直接对照客户端产出，把「两表同形」变成可执行约束）与 `enhanceDevApp()`（route/page/middleware 加载器 + cron 预加载 + pageRenderer 接线，CLI 侧退化为一次调用）。剩余：app 创建 + devtools + 错误页 + VFS 的自举。
 - **Phase 1 起步**：`RM-V07`（environments 注册）✅ —— 新增 `experimental.viteBuilder` 灰度开关，插件侧 `config` 钩子在开关打开时注册 `client`/`ubean` 两个环境；关闭时旧路径零变更。
 - 附带修复：`RM-V05` 期间发现并修复「`pages/404.vue` 存在时页面兜底按注册顺序吞掉内置 `_` 路由」；R8（dev 下 404 组件内容不 SSR）已修复——dev 的 SSR 路由表漏注册 404 catch-all，补上后组件 DOM 与 `useHead` 标题都正常产出，并已补回归断言。
 - 环境坑：catalog 的 `typescript: npm:typescript-native-bridge@latest` 会让 peer 解析漂移出两份 `vite-plus-core`，表现为 `Plugin` 类型身份不一致的类型报错；遇到先 `pnpm install` 收敛（详见 [vite-plugin-migration.md](vite-plugin-migration.md) R9）。

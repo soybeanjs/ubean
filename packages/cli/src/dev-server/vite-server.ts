@@ -4,13 +4,13 @@ import type { Logger, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
-import { buildDevSsrRoutes, createVirtualRegistry, ubeanDevRequestPlugin, ubeanPlugin } from '@ubean/build/vite';
+import { createVirtualRegistry, enhanceDevApp, ubeanDevRequestPlugin, ubeanPlugin } from '@ubean/build/vite';
 import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { getVueLocaleParam } from '@ubean/i18n';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
-import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
+import type { ScannedLayout } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
 import {
   findAvailablePort,
@@ -448,106 +448,28 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // ssrLoadModule 加载后,配合 resolve.dedupe,两侧共享同一 vue-router 实例。
   const { createVueRenderer } = await viteServer.ssrLoadModule('@ubean/client/ssr');
 
+  /**
+   * 把 Vite SSR 图的加载器与渲染器接到 host app 上（RM-V11 起实现在 `@ubean/build`）。
+   *
+   * 每次 app 实例更新后都要重跑（`updateApp`）：加载器闭包指向当次的扫描结果，
+   * 且 HMR 后 `app.ts` / `app.server.ts` 的改动要立刻生效。
+   */
   function enhanceAppWithVite(app: UbeanApp, layouts: ScannedLayout[] = []) {
-    app.options.layouts = layouts;
-
-    const routeLoaders: Record<string, () => Promise<any>> = {};
-    for (const route of app.options.routes || []) {
-      const fullPath = route.fullPath;
-      routeLoaders[route.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
-    }
-    app.options.routeLoaders = routeLoaders;
-
-    const pageLoaders: Record<string, () => Promise<any>> = {};
-    // Build name → page map so reuse routes can resolve their target's
-    // `fullPath`. The `.reuse.ts` file only contains `definePage` metadata,
-    // so loading it would not yield a Vue component — reuse routes must
-    // load the target page's module instead.
-    const pageByName = new Map<string, ScannedPageRoute>();
-    for (const page of app.options.pages || []) {
-      pageByName.set(page.name, page);
-    }
-    for (const page of app.options.pages || []) {
-      const targetPage = page.isReuse && page.reuseTarget ? pageByName.get(page.reuseTarget) : undefined;
-      const fullPath = targetPage?.fullPath || page.fullPath;
-      pageLoaders[page.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
-    }
-    app.options.pageLoaders = pageLoaders;
-
-    const middlewareLoaders: Record<string, () => Promise<any>> = {};
-    for (const mw of app.options.middleware || []) {
-      const fullPath = mw.fullPath;
-      middlewareLoaders[mw.relativePath] = () => viteServer!.ssrLoadModule(fullPath);
-    }
-    app.options.middlewareLoaders = middlewareLoaders;
-
-    // Eagerly load cron files so defineScheduled() side effects register tasks
-    // in the same Vite module-graph instance that API routes use.
-    const cronFiles = app.options.crons || [];
-    if (cronFiles.length > 0) {
-      Promise.all(cronFiles.map(c => viteServer!.ssrLoadModule(c.fullPath)))
-        .then(async () => {
-          const cron = await import('@ubean/server/cron');
-          cron.startCronScheduler();
-        })
-        .catch(err => {
-          console.error('[ubean] Failed to load cron files:', err);
-        });
-    }
-
-    const layoutMap = new Map<string, string>();
-    for (const layout of layouts) {
-      layoutMap.set(layout.name, layout.fullPath);
-    }
-
-    const defaultLayout = layouts.find(l => l.isDefault)?.name || null;
-
-    // backend 模式无页面、无 SSR,跳过 pageRenderer 创建
-    if (config.mode === 'backend') {
-      app.resetInit();
-      return;
-    }
-
-    // SSR 路由表：与客户端 `virtual:ubean-pages` 同形由 `@ubean/build` 的
-    // `buildDevSsrRoutes()` 保证（含 404 catch-all —— R8 的教训，两张表不一致时会
-    // 出现 SSR 只渲染布局外壳、水合结构不一致）。locale param 必须与客户端一致，
-    // 否则 `/zh/xxx` 会落到 catch-all。
-    const routes = buildDevSsrRoutes({
-      pages: app.options.pages || [],
-      layouts: currentLayouts,
+    enhanceDevApp({
+      app,
+      layouts,
+      loadModule: id => viteServer!.ssrLoadModule(id),
+      // ssrLoadModule 返回 any，直接传入即可（无需类型断言）
+      createRenderer: createVueRenderer,
       localeVueParam: resolveLocaleVueParam(config.i18n),
-      loadComponent: fullPath => viteServer!.ssrLoadModule(fullPath),
-      notFoundPage: app.options.notFoundPage
-    });
-
-    // Lazily load the user's defineApp config from the virtual module.
-    // Cached so we only ssrLoadModule once per enhanceAppWithVite call (HMR
-    // triggers a fresh call, which picks up app.ts / app.server.ts edits).
-    let appConfigModule: Promise<any> | null = null;
-    const getAppConfigModule = () => {
-      if (!appConfigModule) {
-        appConfigModule = viteServer!.ssrLoadModule('virtual:ubean-app');
-      }
-      return appConfigModule;
-    };
-
-    app.options.pageRenderer = createVueRenderer({
-      routes,
-      async resolveLayoutComponent(name: string | false | null | undefined) {
-        if (name === false || name == null) return null;
-        const fullPath = layoutMap.get(name);
-        if (!fullPath) return null;
-        const mod = await viteServer!.ssrLoadModule(fullPath);
-        return mod.default || mod;
+      backend: config.mode === 'backend',
+      // cron 文件必须与 API 路由在同一份 Vite 模块图实例里求值（`defineScheduled` 是模块副作用）
+      startCronScheduler: async () => {
+        const cron = await import('@ubean/server/cron');
+        cron.startCronScheduler();
       },
-      defaultLayout,
-      async resolveAppConfig() {
-        const mod = await getAppConfigModule();
-        return mod.resolveAppConfig('server');
-      }
+      onCronError: error => console.error('[ubean] Failed to load cron files:', error)
     });
-
-    app.resetInit();
   }
 
   enhanceAppWithVite(currentApp, currentLayouts);

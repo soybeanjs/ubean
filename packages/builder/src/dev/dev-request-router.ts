@@ -28,6 +28,12 @@
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Connect, Plugin, ViteDevServer } from 'vite';
+import { loadUbeanConfig } from '@ubean/config';
+import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
+import type { PageRenderer } from '@ubean/pages';
+import { bootstrapDevApp } from './dev-app';
+import type { DevAppBootstrap } from './dev-app';
+import type { DevRendererOptions } from './dev-host-app';
 import { sendWebResponse, toWebRequest } from './node-web';
 
 /**
@@ -223,10 +229,16 @@ export function injectStylesheetLinks(html: string, hrefs: string[]): string {
 
 export interface DevRequestRouterOptions {
   /**
-   * 处理归属 ubean 的请求。RM-V10 由调用方注入（CLI 的进程内 app / 测试的桩）；
-   * RM-V11 起是宿主 dev app 或 worker 内 app 的 `dispatchFetch`。
+   * 处理归属 ubean 的请求。省略时插件**自举**宿主 dev app（`vite dev` / `vp dev` 场景）：
+   * 首个应用请求时才扫盘、加载配置与 SSR 图 —— 启动期不做这些工作，`vite dev` 的冷启动
+   * 不受框架影响。
+   *
+   * `ubean dev` 传入 CLI 造好的 app 的 handler（它需要在 Vite server 起来之前就把 app
+   * 交给 DevTools / runner），因此两条路径共用同一层路由判据与 outbound 处理。
    */
-  handler: (request: Request, context: { url: string }) => Promise<Response>;
+  handler?: (request: Request, context: { url: string }) => Promise<Response>;
+  /** `handler` 省略时的自举参数。 */
+  bootstrap?: DevBootstrapOptions;
   /**
    * 跳过 HTML transform 的路径判定。预构建 SPA（如 `/_devtools`）的产物自带模块引用，
    * 经 `transformIndexHtml` 重写会被破坏。
@@ -234,6 +246,58 @@ export interface DevRequestRouterOptions {
   skipHtmlTransform?: (url: string) => boolean;
   /** 错误回调（默认走 Vite logger 的 error）。 */
   onError?: (error: unknown, context: { url: string }) => void;
+}
+
+export interface DevBootstrapOptions {
+  /** 项目根目录，默认取 `server.config.root`。 */
+  rootDir?: string;
+  /** 覆盖配置加载（默认 `loadUbeanConfig(rootDir)`，会命中 CLI 已设置的缓存）。 */
+  loadConfig?: (rootDir: string) => Promise<UbeanResolvedConfig>;
+  /** crons 加载完后的启动钩子；缺省动态加载 `@ubean/server/cron`。 */
+  startCronScheduler?: () => unknown;
+}
+
+/** 缺省 cron 启动器：动态加载，避免把服务端运行时拉进插件模块的顶层依赖。 */
+async function defaultCronScheduler(): Promise<void> {
+  const cron = (await import('@ubean/server/cron')) as { startCronScheduler: () => void };
+  cron.startCronScheduler();
+}
+
+/**
+ * 自举式 handler：首次调用时创建宿主 dev app（`bootstrapDevApp`），之后复用同一实例。
+ *
+ * 复用同一个 promise 而不是每次请求重建：`bootstrapDevApp` 会扫盘并加载 SSR 图，重建等于
+ * 每个请求都重扫；同时保证并发首请求只自举一次。
+ */
+function createLazyBootstrapHandler(
+  server: ViteDevServer,
+  options: DevBootstrapOptions = {}
+): (request: Request) => Promise<Response> {
+  let bootstrapPromise: Promise<DevAppBootstrap> | null = null;
+
+  const start = async (): Promise<DevAppBootstrap> => {
+    const rootDir = options.rootDir ?? server.config.root;
+    const config = options.loadConfig ? await options.loadConfig(rootDir) : await loadUbeanConfig(rootDir);
+    // `createVueRenderer` 必须来自 Vite SSR 图（理由见 dev-host-app.ts 的 DevRendererOptions）
+    const ssr = (await server.ssrLoadModule('@ubean/client/ssr')) as {
+      createVueRenderer: (options: DevRendererOptions) => PageRenderer;
+    };
+    return bootstrapDevApp({
+      rootDir,
+      config,
+      loadModule: id => server.ssrLoadModule(id),
+      createRenderer: ssr.createVueRenderer,
+      startCronScheduler: options.startCronScheduler ?? defaultCronScheduler,
+      logger: server.config.logger
+    });
+  };
+
+  return async request => {
+    bootstrapPromise ??= start();
+    const bootstrap = await bootstrapPromise;
+    await bootstrap.ready();
+    return bootstrap.app.fetch(request);
+  };
 }
 
 export interface DevRequestHandlers {
@@ -273,7 +337,9 @@ export function createUbeanRequestHandlers(
   server: ViteDevServer,
   options: DevRequestRouterOptions
 ): DevRequestHandlers {
-  const { handler, skipHtmlTransform, onError } = options;
+  const { skipHtmlTransform, onError } = options;
+  // handler 缺省 → 自举；显式传入 → 用调用方的（CLI 路径）
+  const handler = options.handler ?? createLazyBootstrapHandler(server, options.bootstrap);
 
   async function respond(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = req.url || '/';

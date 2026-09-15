@@ -61,6 +61,7 @@
     "@ubean/preset": "workspace:*",
     "@ubean/routes": "workspace:*",
     "@ubean/scan": "workspace:*",
+    "@ubean/server": "workspace:*",
     "@ubean/shared": "workspace:*",
     "@ubean/vue": "workspace:*",
     "@vitejs/plugin-vue": "^6.0.8",

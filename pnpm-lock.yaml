@@ -288,7 +288,7 @@ importers:
         version: link:../../packages/markdown
       '@unhead/vue':
         specifier: ^3.4.0
-        version: 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
+        version: 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       '@vitejs/plugin-vue':
         specifier: ^6.0.8
         version: 6.0.8(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
@@ -303,7 +303,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vite-plus:
         specifier: 'catalog:'
         version: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
@@ -466,7 +466,7 @@ importers:
         version: 1.5.0(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     devDependencies:
       '@types/node':
         specifier: ^26.5.0
@@ -543,7 +543,7 @@ importers:
         version: 6.1.7
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     devDependencies:
       '@types/node':
         specifier: ^26.5.0
@@ -596,6 +596,9 @@ importers:
       '@ubean/scan':
         specifier: workspace:*
         version: link:../scan
+      '@ubean/server':
+        specifier: workspace:*
+        version: link:../server
       '@ubean/shared':
         specifier: workspace:*
         version: link:../shared
@@ -628,7 +631,7 @@ importers:
         version: 32.1.1(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(rollup@4.63.2)
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vue-i18n:
         specifier: 'catalog:'
         version: 11.4.10(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
@@ -692,7 +695,7 @@ importers:
         version: 2.0.3
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     devDependencies:
       '@types/node':
         specifier: ^26.5.0
@@ -732,7 +735,7 @@ importers:
         version: link:../vue
       '@unhead/vue':
         specifier: ^3.4.0
-        version: 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
+        version: 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       '@vue/server-renderer':
         specifier: ^3.5.42
         version: 3.5.42
@@ -778,7 +781,7 @@ importers:
         version: 2.0.3
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     devDependencies:
       '@types/node':
         specifier: ^26.5.0
@@ -794,13 +797,13 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
       unplugin-auto-import:
         specifier: 21.1.0
-        version: 21.1.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(@vueuse/core@14.4.0(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)))(oxc-parser@0.131.0)(rollup@4.63.2)
+        version: 21.1.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(@vueuse/core@14.4.0(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)))(esbuild@0.25.12)(oxc-parser@0.131.0)(rollup@4.63.2)
       unplugin-vue-components:
         specifier: ^32.1.0
-        version: 32.1.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
+        version: 32.1.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       vite-plus:
         specifier: 'catalog:'
-        version: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
+        version: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
 
   packages/content:
     dependencies:
@@ -818,7 +821,7 @@ importers:
         version: 1.3.0
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     devDependencies:
       '@types/node':
         specifier: ^26.5.0
@@ -871,10 +874,10 @@ importers:
         version: 0.30.0(vue-router@5.3.1(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(@vue/compiler-sfc@3.5.42)(pinia@3.0.4(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)))(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)))(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       '@soybeanjs/unocss-preset':
         specifier: ^0.2.0
-        version: 0.2.0(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
+        version: 0.2.0(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
       '@soybeanjs/unocss-shadcn':
         specifier: ^0.29.3
-        version: 0.29.3(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@unocss/preset-wind3@66.10.2)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
+        version: 0.29.3(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@unocss/preset-wind3@66.10.2)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
       '@types/node':
         specifier: ^26.5.0
         version: 26.5.1
@@ -886,7 +889,7 @@ importers:
         version: 0.6.3(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)
       '@vitejs/plugin-vue':
         specifier: ^6.0.8
-        version: 6.0.8(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
+        version: 6.0.8(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       '@xterm/addon-fit':
         specifier: ^0.11.0
         version: 0.11.0
@@ -901,7 +904,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
       unocss:
         specifier: ^66.10.2
-        version: 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
+        version: 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
         version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
@@ -951,7 +954,7 @@ importers:
         version: 2.0.3
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     devDependencies:
       '@types/node':
         specifier: ^26.5.0
@@ -982,7 +985,7 @@ importers:
         version: 1.6.4
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     devDependencies:
       '@types/node':
         specifier: ^26.5.0
@@ -1019,7 +1022,7 @@ importers:
         version: 3.0.4(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vite-plugin-electron:
         specifier: ^1.1.2
         version: 1.1.2(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
@@ -1050,7 +1053,7 @@ importers:
         version: 4.13.7
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
@@ -1082,7 +1085,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vite-plus:
         specifier: 'catalog:'
         version: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
@@ -1211,7 +1214,7 @@ importers:
         version: 2.6.2
       '@unhead/vue':
         specifier: ^3.4.0
-        version: 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
+        version: 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       pathe:
         specifier: ^2.0.3
         version: 2.0.3
@@ -1230,7 +1233,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
       vite-plus:
         specifier: 'catalog:'
-        version: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
+        version: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
 
   packages/server:
     dependencies:
@@ -1248,7 +1251,7 @@ importers:
         version: 2.0.3
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     devDependencies:
       '@types/node':
         specifier: ^26.5.0
@@ -1365,7 +1368,7 @@ importers:
         version: typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vite-plus:
         specifier: 'catalog:'
         version: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
@@ -1389,7 +1392,7 @@ importers:
         version: 1.6.4
       vite:
         specifier: npm:@voidzero-dev/vite-plus-core@0.3.1
-        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+        version: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vue:
         specifier: ^3.5.42
         version: 3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
@@ -1405,7 +1408,7 @@ importers:
         version: link:../markdown
       '@unhead/vue':
         specifier: ^3.4.0
-        version: 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
+        version: 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       '@vue/server-renderer':
         specifier: ^3.5.42
         version: 3.5.42
@@ -8400,7 +8403,7 @@ snapshots:
 
   '@devframes/plugin-terminals@0.9.18(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))':
     dependencies:
-      '@devframes/vite': 0.9.18(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
+      '@devframes/vite': 0.9.18(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
       cac: 7.0.0
       devframe: 0.9.18(cac@7.0.0)(srvx@1.0.4)
       zigpty: 0.2.1
@@ -8420,7 +8423,7 @@ snapshots:
       devframe: 0.9.18(cac@7.0.0)(srvx@1.0.4)
       shiki: 4.4.3
 
-  '@devframes/vite@0.9.18(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))':
+  '@devframes/vite@0.9.18(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))':
     dependencies:
       devframe: 0.9.18(cac@7.0.0)(srvx@1.0.4)
       pathe: 2.0.3
@@ -8428,6 +8431,15 @@ snapshots:
       '@devframes/hub': 0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
       '@devframes/hub-ui': 0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
       vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+
+  '@devframes/vite@0.9.18(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))':
+    dependencies:
+      devframe: 0.9.18(cac@7.0.0)(srvx@1.0.4)
+      pathe: 2.0.3
+    optionalDependencies:
+      '@devframes/hub': 0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
+      '@devframes/hub-ui': 0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
 
   '@dnd-kit/abstract@0.5.0':
     dependencies:
@@ -8728,7 +8740,7 @@ snapshots:
       unplugin: 2.3.11
       vue: 3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
     optionalDependencies:
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vue-i18n: 11.4.10(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
     transitivePeerDependencies:
       - '@vue/compiler-dom'
@@ -9527,6 +9539,24 @@ snapshots:
     optionalDependencies:
       vue-router: 5.3.1(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(@vue/compiler-sfc@3.5.42)(esbuild@0.25.12)(pinia@3.0.4(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)))(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
 
+  '@soybeanjs/unocss-preset@0.2.0(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)':
+    dependencies:
+      unocss: 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
+    transitivePeerDependencies:
+      - '@devframes/hub'
+      - '@devframes/hub-ui'
+      - '@modelcontextprotocol/client'
+      - '@unocss/astro'
+      - '@unocss/postcss'
+      - '@unocss/webpack'
+      - cac
+      - crossws
+      - ocache
+      - rolldown
+      - rollup
+      - srvx
+      - vite
+
   '@soybeanjs/unocss-preset@0.2.0(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)':
     dependencies:
       unocss: 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
@@ -9536,6 +9566,27 @@ snapshots:
       - '@modelcontextprotocol/client'
       - '@unocss/astro'
       - '@unocss/postcss'
+      - '@unocss/webpack'
+      - cac
+      - crossws
+      - ocache
+      - rolldown
+      - rollup
+      - srvx
+      - vite
+
+  '@soybeanjs/unocss-shadcn@0.29.3(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@unocss/preset-wind3@66.10.2)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)':
+    dependencies:
+      '@soybeanjs/shadcn-theme': 0.29.3
+      unocss: 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
+      unocss-preset-animations: 1.3.0(@unocss/preset-wind3@66.10.2)(unocss@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4))
+    transitivePeerDependencies:
+      - '@devframes/hub'
+      - '@devframes/hub-ui'
+      - '@modelcontextprotocol/client'
+      - '@unocss/astro'
+      - '@unocss/postcss'
+      - '@unocss/preset-wind3'
       - '@unocss/webpack'
       - cac
       - crossws
@@ -9834,16 +9885,17 @@ snapshots:
 
   '@ungap/structured-clone@1.4.0': {}
 
-  '@unhead/bundler@3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(unhead@3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(rollup@4.63.2))':
+  '@unhead/bundler@3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(unhead@3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2))':
     dependencies:
       magic-string: 1.3.1
       oxc-walker: 1.1.1(@oxc-project/types@0.148.0)(oxc-parser@0.131.0)
-      unhead: 3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(rollup@4.63.2)
+      unhead: 3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
       unplugin: 3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
     optionalDependencies:
+      esbuild: 0.25.12
       lightningcss: 1.33.0
       oxc-parser: 0.131.0
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@oxc-project/types'
@@ -9852,15 +9904,15 @@ snapshots:
       - rollup
       - unloader
 
-  '@unhead/vue@3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))':
+  '@unhead/vue@3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))':
     dependencies:
-      '@unhead/bundler': 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(unhead@3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(rollup@4.63.2))
+      '@unhead/bundler': 3.4.0(@oxc-project/types@0.148.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(lightningcss@1.33.0)(oxc-parser@0.131.0)(rollup@4.63.2)(unhead@3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2))
       hookable: 6.1.1
-      unhead: 3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(rollup@4.63.2)
+      unhead: 3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
       unplugin: 3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
       vue: 3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
     optionalDependencies:
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@oxc-project/types'
@@ -9905,6 +9957,28 @@ snapshots:
   '@unocss/extractor-arbitrary-variants@66.10.2':
     dependencies:
       '@unocss/core': 66.10.2
+
+  '@unocss/inspector@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)':
+    dependencies:
+      '@devframes/service-shiki': 0.9.18(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
+      '@devframes/vite': 0.9.18(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
+      '@unocss/config': 66.10.2
+      '@unocss/core': 66.10.2
+      '@unocss/rule-utils': 66.10.2
+      '@vitejs/devtools-kit': 0.7.3(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)
+      colorette: 2.0.20
+      devframe: 0.9.18(cac@7.0.0)(srvx@1.0.4)
+      tinyglobby: 0.2.17
+      unplugin-utils: 0.3.2
+    transitivePeerDependencies:
+      - '@devframes/hub'
+      - '@devframes/hub-ui'
+      - '@modelcontextprotocol/client'
+      - cac
+      - crossws
+      - ocache
+      - srvx
+      - vite
 
   '@unocss/inspector@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)':
     dependencies:
@@ -10018,6 +10092,27 @@ snapshots:
     dependencies:
       '@unocss/core': 66.10.2
 
+  '@unocss/vite@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)':
+    dependencies:
+      '@jridgewell/remapping': 2.3.5
+      '@unocss/config': 66.10.2
+      '@unocss/core': 66.10.2
+      '@unocss/inspector': 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)
+      chokidar: 5.0.0
+      magic-string: 1.3.1
+      pathe: 2.0.3
+      tinyglobby: 0.2.17
+      unplugin-utils: 0.3.2
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+    transitivePeerDependencies:
+      - '@devframes/hub'
+      - '@devframes/hub-ui'
+      - '@modelcontextprotocol/client'
+      - cac
+      - crossws
+      - ocache
+      - srvx
+
   '@unocss/vite@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)':
     dependencies:
       '@jridgewell/remapping': 2.3.5
@@ -10029,7 +10124,7 @@ snapshots:
       pathe: 2.0.3
       tinyglobby: 0.2.17
       unplugin-utils: 0.3.2
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     transitivePeerDependencies:
       - '@devframes/hub'
       - '@devframes/hub-ui'
@@ -10063,7 +10158,7 @@ snapshots:
       - ocache
       - srvx
 
-  '@vitejs/devtools-kit@0.7.3(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)':
+  '@vitejs/devtools-kit@0.7.3(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)':
     dependencies:
       '@devframes/hub': 0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
       '@devframes/json-render': 0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
@@ -10073,6 +10168,23 @@ snapshots:
       nostics: 1.2.0
       nypm: 0.6.10
       vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/client'
+      - cac
+      - crossws
+      - ocache
+      - srvx
+
+  '@vitejs/devtools-kit@0.7.3(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)':
+    dependencies:
+      '@devframes/hub': 0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
+      '@devframes/json-render': 0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4))
+      devframe: 0.9.18(cac@7.0.0)(srvx@1.0.4)
+      local-pkg: 1.2.1
+      mlly: 1.8.2
+      nostics: 1.2.0
+      nypm: 0.6.10
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     transitivePeerDependencies:
       - '@modelcontextprotocol/client'
       - cac
@@ -10114,15 +10226,21 @@ snapshots:
       '@babel/plugin-transform-typescript': 7.29.7(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
       '@rolldown/pluginutils': 1.0.1
       '@vue/babel-plugin-jsx': 2.0.1(@babel/core@7.29.7(supports-color@10.2.2))(supports-color@10.2.2)
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vue: 3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
     transitivePeerDependencies:
       - supports-color
 
-  '@vitejs/plugin-vue@6.0.8(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))':
+  '@vitejs/plugin-vue@6.0.8(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))':
     dependencies:
       '@rolldown/pluginutils': 1.0.1
       vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vue: 3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
+
+  '@vitejs/plugin-vue@6.0.8(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.1
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vue: 3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
 
   '@vitest/browser-playwright@5.0.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(playwright@1.63.0)(vitest@5.0.0)':
@@ -10138,12 +10256,53 @@ snapshots:
       - utf-8-validate
       - vite
 
+  '@vitest/browser-preview@4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)':
+    dependencies:
+      '@testing-library/dom': 10.4.1
+      '@testing-library/user-event': 14.6.7(@testing-library/dom@10.4.1)
+      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
+      vitest: 4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5)
+    transitivePeerDependencies:
+      - bufferutil
+      - msw
+      - utf-8-validate
+      - vite
+
+  '@vitest/browser-preview@4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)':
+    dependencies:
+      '@testing-library/dom': 10.4.1
+      '@testing-library/user-event': 14.6.7(@testing-library/dom@10.4.1)
+      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
+      vitest: 4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5)
+    transitivePeerDependencies:
+      - bufferutil
+      - msw
+      - utf-8-validate
+      - vite
+
   '@vitest/browser-preview@4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.7(@testing-library/dom@10.4.1)
       '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
       vitest: 4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5)
+    transitivePeerDependencies:
+      - bufferutil
+      - msw
+      - utf-8-validate
+      - vite
+
+  '@vitest/browser@4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)':
+    dependencies:
+      '@blazediff/core': 1.9.1
+      '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
+      '@vitest/utils': 4.1.11
+      magic-string: 0.30.21
+      pngjs: 7.0.0
+      sirv: 3.0.2
+      tinyrainbow: 3.1.1
+      vitest: 4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5)
+      ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
       - msw
@@ -10194,13 +10353,21 @@ snapshots:
       chai: 6.2.2
       tinyrainbow: 3.1.1
 
-  '@vitest/mocker@4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))':
+  '@vitest/mocker@4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))':
     dependencies:
       '@vitest/spy': 4.1.11
       estree-walker: 3.0.3
       magic-string: 0.30.21
     optionalDependencies:
       vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+
+  '@vitest/mocker@4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))':
+    dependencies:
+      '@vitest/spy': 4.1.11
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
 
   '@vitest/mocker@5.0.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))':
     dependencies:
@@ -10209,7 +10376,7 @@ snapshots:
       estree-walker: 3.0.3
       magic-string: 1.3.1
     optionalDependencies:
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
 
   '@vitest/pretty-format@4.1.11':
     dependencies:
@@ -10276,6 +10443,31 @@ snapshots:
       '@voidzero-dev/vite-plus-linux-x64-musl': 0.3.1
       '@voidzero-dev/vite-plus-win32-arm64-msvc': 0.3.1
       '@voidzero-dev/vite-plus-win32-x64-msvc': 0.3.1
+      fsevents: 2.3.3
+      jiti: 2.7.0
+      terser: 5.51.2
+      typescript: typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
+      yaml: 2.9.1
+
+  '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)':
+    dependencies:
+      '@oxc-project/runtime': 0.148.0
+      '@oxc-project/types': 0.148.0
+      lightningcss: 1.33.0
+      postcss: 8.5.28
+      yuku-codegen: 0.9.5
+      yuku-parser: 0.9.5
+    optionalDependencies:
+      '@types/node': 26.5.1
+      '@voidzero-dev/vite-plus-darwin-arm64': 0.3.1
+      '@voidzero-dev/vite-plus-darwin-x64': 0.3.1
+      '@voidzero-dev/vite-plus-linux-arm64-gnu': 0.3.1
+      '@voidzero-dev/vite-plus-linux-arm64-musl': 0.3.1
+      '@voidzero-dev/vite-plus-linux-x64-gnu': 0.3.1
+      '@voidzero-dev/vite-plus-linux-x64-musl': 0.3.1
+      '@voidzero-dev/vite-plus-win32-arm64-msvc': 0.3.1
+      '@voidzero-dev/vite-plus-win32-x64-msvc': 0.3.1
+      esbuild: 0.25.12
       fsevents: 2.3.3
       jiti: 2.7.0
       terser: 5.51.2
@@ -12656,6 +12848,31 @@ snapshots:
       '@oxfmt/binding-win32-x64-msvc': 0.66.0
       vite-plus: 0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4))(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
 
+  oxfmt@0.66.0(vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)):
+    dependencies:
+      tinypool: 2.1.0
+    optionalDependencies:
+      '@oxfmt/binding-android-arm-eabi': 0.66.0
+      '@oxfmt/binding-android-arm64': 0.66.0
+      '@oxfmt/binding-darwin-arm64': 0.66.0
+      '@oxfmt/binding-darwin-x64': 0.66.0
+      '@oxfmt/binding-freebsd-x64': 0.66.0
+      '@oxfmt/binding-linux-arm-gnueabihf': 0.66.0
+      '@oxfmt/binding-linux-arm-musleabihf': 0.66.0
+      '@oxfmt/binding-linux-arm64-gnu': 0.66.0
+      '@oxfmt/binding-linux-arm64-musl': 0.66.0
+      '@oxfmt/binding-linux-ppc64-gnu': 0.66.0
+      '@oxfmt/binding-linux-riscv64-gnu': 0.66.0
+      '@oxfmt/binding-linux-riscv64-musl': 0.66.0
+      '@oxfmt/binding-linux-s390x-gnu': 0.66.0
+      '@oxfmt/binding-linux-x64-gnu': 0.66.0
+      '@oxfmt/binding-linux-x64-musl': 0.66.0
+      '@oxfmt/binding-openharmony-arm64': 0.66.0
+      '@oxfmt/binding-win32-arm64-msvc': 0.66.0
+      '@oxfmt/binding-win32-ia32-msvc': 0.66.0
+      '@oxfmt/binding-win32-x64-msvc': 0.66.0
+      vite-plus: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
+
   oxfmt@0.66.0(vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)):
     dependencies:
       tinypool: 2.1.0
@@ -12713,6 +12930,30 @@ snapshots:
       '@oxlint/binding-win32-x64-msvc': 1.81.0
       oxlint-tsgolint: 7.0.2001
       vite-plus: 0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4))(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
+
+  oxlint@1.81.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)):
+    optionalDependencies:
+      '@oxlint/binding-android-arm-eabi': 1.81.0
+      '@oxlint/binding-android-arm64': 1.81.0
+      '@oxlint/binding-darwin-arm64': 1.81.0
+      '@oxlint/binding-darwin-x64': 1.81.0
+      '@oxlint/binding-freebsd-x64': 1.81.0
+      '@oxlint/binding-linux-arm-gnueabihf': 1.81.0
+      '@oxlint/binding-linux-arm-musleabihf': 1.81.0
+      '@oxlint/binding-linux-arm64-gnu': 1.81.0
+      '@oxlint/binding-linux-arm64-musl': 1.81.0
+      '@oxlint/binding-linux-ppc64-gnu': 1.81.0
+      '@oxlint/binding-linux-riscv64-gnu': 1.81.0
+      '@oxlint/binding-linux-riscv64-musl': 1.81.0
+      '@oxlint/binding-linux-s390x-gnu': 1.81.0
+      '@oxlint/binding-linux-x64-gnu': 1.81.0
+      '@oxlint/binding-linux-x64-musl': 1.81.0
+      '@oxlint/binding-openharmony-arm64': 1.81.0
+      '@oxlint/binding-win32-arm64-msvc': 1.81.0
+      '@oxlint/binding-win32-ia32-msvc': 1.81.0
+      '@oxlint/binding-win32-x64-msvc': 1.81.0
+      oxlint-tsgolint: 7.0.2001
+      vite-plus: 0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)
 
   oxlint@1.81.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)):
     optionalDependencies:
@@ -13514,12 +13755,12 @@ snapshots:
   undici@7.29.1:
     optional: true
 
-  unhead@3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(rollup@4.63.2):
+  unhead@3.4.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2):
     dependencies:
       hookable: 6.1.1
       unplugin: 3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
     optionalDependencies:
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rspack/core'
@@ -13557,6 +13798,34 @@ snapshots:
       is-plain-obj: 4.1.0
       trough: 2.2.0
       vfile: 6.0.3
+
+  unimport@6.5.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(oxc-parser@0.131.0)(rollup@4.63.2):
+    dependencies:
+      acorn: 8.18.0
+      escape-string-regexp: 5.0.0
+      estree-walker: 3.0.3
+      local-pkg: 1.2.1
+      magic-string: 1.3.1
+      mlly: 1.8.2
+      pathe: 2.0.3
+      picomatch: 4.0.7
+      pkg-types: 2.3.3
+      scule: 1.3.0
+      strip-literal: 4.0.0
+      tinyglobby: 0.2.17
+      unplugin: 3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
+      unplugin-utils: 0.3.2
+    optionalDependencies:
+      oxc-parser: 0.131.0
+    transitivePeerDependencies:
+      - '@farmfe/core'
+      - '@rspack/core'
+      - bun-types-no-globals
+      - esbuild
+      - rollup
+      - unloader
+      - vite
+      - webpack
 
   unimport@6.5.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(oxc-parser@0.131.0)(rollup@4.63.2):
     dependencies:
@@ -13649,11 +13918,49 @@ snapshots:
 
   universalify@2.0.1: {}
 
+  unocss-preset-animations@1.3.0(@unocss/preset-wind3@66.10.2)(unocss@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)):
+    dependencies:
+      unocss: 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
+    optionalDependencies:
+      '@unocss/preset-wind3': 66.10.2
+
   unocss-preset-animations@1.3.0(@unocss/preset-wind3@66.10.2)(unocss@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)):
     dependencies:
       unocss: 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4)
     optionalDependencies:
       '@unocss/preset-wind3': 66.10.2
+
+  unocss@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4):
+    dependencies:
+      '@unocss/cli': 66.10.2
+      '@unocss/core': 66.10.2
+      '@unocss/preset-attributify': 66.10.2
+      '@unocss/preset-icons': 66.10.2
+      '@unocss/preset-mini': 66.10.2
+      '@unocss/preset-tagify': 66.10.2
+      '@unocss/preset-typography': 66.10.2
+      '@unocss/preset-uno': 66.10.2
+      '@unocss/preset-web-fonts': 66.10.2
+      '@unocss/preset-wind': 66.10.2
+      '@unocss/preset-wind3': 66.10.2
+      '@unocss/preset-wind4': 66.10.2
+      '@unocss/rollup': 66.10.2(rollup@4.63.2)
+      '@unocss/transformer-attributify-jsx': 66.10.2
+      '@unocss/transformer-compile-class': 66.10.2
+      '@unocss/transformer-directives': 66.10.2
+      '@unocss/transformer-variant-group': 66.10.2
+      '@unocss/vite': 66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4)
+    transitivePeerDependencies:
+      - '@devframes/hub'
+      - '@devframes/hub-ui'
+      - '@modelcontextprotocol/client'
+      - cac
+      - crossws
+      - ocache
+      - rolldown
+      - rollup
+      - srvx
+      - vite
 
   unocss@66.10.2(@devframes/hub-ui@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(cac@7.0.0)(crossws@0.4.12(srvx@1.0.4))(rollup@4.63.2)(srvx@1.0.4):
     dependencies:
@@ -13687,6 +13994,28 @@ snapshots:
       - srvx
       - vite
 
+  unplugin-auto-import@21.1.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(@vueuse/core@14.4.0(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)))(esbuild@0.25.12)(oxc-parser@0.131.0)(rollup@4.63.2):
+    dependencies:
+      local-pkg: 1.2.1
+      magic-string: 1.3.1
+      picomatch: 4.0.7
+      unimport: 6.5.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(oxc-parser@0.131.0)(rollup@4.63.2)
+      unplugin: 3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
+      unplugin-utils: 0.3.2
+    optionalDependencies:
+      '@vueuse/core': 14.4.0(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
+    transitivePeerDependencies:
+      - '@farmfe/core'
+      - '@rspack/core'
+      - bun-types-no-globals
+      - esbuild
+      - oxc-parser
+      - rolldown
+      - rollup
+      - unloader
+      - vite
+      - webpack
+
   unplugin-auto-import@21.1.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(@vueuse/core@14.4.0(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)))(oxc-parser@0.131.0)(rollup@4.63.2):
     dependencies:
       local-pkg: 1.2.1
@@ -13713,6 +14042,29 @@ snapshots:
     dependencies:
       pathe: 2.0.3
       picomatch: 4.0.7
+
+  unplugin-vue-components@32.1.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)):
+    dependencies:
+      chokidar: 5.0.0
+      local-pkg: 1.2.1
+      magic-string: 0.30.21
+      mlly: 1.8.2
+      obug: 2.2.1
+      picomatch: 4.0.7
+      tinyglobby: 0.2.17
+      unplugin: 3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
+      unplugin-utils: 0.3.2
+      vue: 3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
+    transitivePeerDependencies:
+      - '@farmfe/core'
+      - '@rspack/core'
+      - bun-types-no-globals
+      - esbuild
+      - rolldown
+      - rollup
+      - unloader
+      - vite
+      - webpack
 
   unplugin-vue-components@32.1.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(rollup@4.63.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)):
     dependencies:
@@ -13745,7 +14097,7 @@ snapshots:
       markdown-exit: 1.3.0
       unplugin: 3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2)
       unplugin-utils: 0.3.2
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rspack/core'
@@ -13773,6 +14125,16 @@ snapshots:
       vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     optional: true
 
+  unplugin@3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2):
+    dependencies:
+      '@jridgewell/remapping': 2.3.5
+      picomatch: 4.0.7
+      webpack-virtual-modules: 0.6.2
+    optionalDependencies:
+      esbuild: 0.25.12
+      rollup: 4.63.2
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+
   unplugin@3.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(esbuild@0.25.12)(rollup@4.63.2):
     dependencies:
       '@jridgewell/remapping': 2.3.5
@@ -13781,7 +14143,7 @@ snapshots:
     optionalDependencies:
       esbuild: 0.25.12
       rollup: 4.63.2
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
 
   upath@1.2.0: {}
 
@@ -13818,14 +14180,14 @@ snapshots:
   vite-plugin-electron@1.1.2(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)):
     dependencies:
       local-pkg: 1.2.1
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
 
   vite-plugin-pwa@1.3.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(supports-color@10.2.2)(workbox-build@7.4.1(supports-color@10.2.2))(workbox-window@7.4.1):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
       pretty-bytes: 6.1.1
       tinyglobby: 0.2.17
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       workbox-build: 7.4.1(supports-color@10.2.2)
       workbox-window: 7.4.1
     transitivePeerDependencies:
@@ -13835,10 +14197,10 @@ snapshots:
     dependencies:
       '@oxc-project/types': 0.148.0
       '@oxlint/plugins': 1.79.0
-      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
-      '@vitest/browser-preview': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
+      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
+      '@vitest/browser-preview': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
       '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
+      '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
       '@vitest/pretty-format': 4.1.11
       '@vitest/runner': 4.1.11
       '@vitest/snapshot': 4.1.11
@@ -13848,6 +14210,64 @@ snapshots:
       oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3(@devframes/json-render@0.9.18(@devframes/hub@0.9.18(crossws@0.4.12(srvx@1.0.4))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(devframe@0.9.18(cac@7.0.0)(srvx@1.0.4)))(@voidzero-dev/vite-plus-core@0.3.1)(crossws@0.4.12(srvx@1.0.4))(srvx@1.0.4))(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
       oxlint-tsgolint: 7.0.2001
       vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vitest: 4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5)
+    optionalDependencies:
+      '@vitest/browser-playwright': 5.0.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(playwright@1.63.0)(vitest@5.0.0)
+      '@voidzero-dev/vite-plus-darwin-arm64': 0.3.1
+      '@voidzero-dev/vite-plus-darwin-x64': 0.3.1
+      '@voidzero-dev/vite-plus-linux-arm64-gnu': 0.3.1
+      '@voidzero-dev/vite-plus-linux-arm64-musl': 0.3.1
+      '@voidzero-dev/vite-plus-linux-x64-gnu': 0.3.1
+      '@voidzero-dev/vite-plus-linux-x64-musl': 0.3.1
+      '@voidzero-dev/vite-plus-win32-arm64-msvc': 0.3.1
+      '@voidzero-dev/vite-plus-win32-x64-msvc': 0.3.1
+    transitivePeerDependencies:
+      - '@arethetypeswrong/core'
+      - '@edge-runtime/vm'
+      - '@opentelemetry/api'
+      - '@types/node'
+      - '@vitejs/devtools'
+      - '@vitest/coverage-istanbul'
+      - '@vitest/coverage-v8'
+      - '@vitest/ui'
+      - bufferutil
+      - esbuild
+      - happy-dom
+      - jiti
+      - jsdom
+      - less
+      - msw
+      - publint
+      - sass
+      - sass-embedded
+      - stylus
+      - sugarss
+      - svelte
+      - terser
+      - tsx
+      - typescript
+      - unplugin-unused
+      - unrun
+      - utf-8-validate
+      - yaml
+
+  vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1):
+    dependencies:
+      '@oxc-project/types': 0.148.0
+      '@oxlint/plugins': 1.79.0
+      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
+      '@vitest/browser-preview': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
+      '@vitest/expect': 4.1.11
+      '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
+      '@vitest/pretty-format': 4.1.11
+      '@vitest/runner': 4.1.11
+      '@vitest/snapshot': 4.1.11
+      '@vitest/spy': 4.1.11
+      '@vitest/utils': 4.1.11
+      oxfmt: 0.66.0(vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
+      oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(esbuild@0.25.12)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
+      oxlint-tsgolint: 7.0.2001
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vitest: 4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5)
     optionalDependencies:
       '@vitest/browser-playwright': 5.0.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(playwright@1.63.0)(vitest@5.0.0)
@@ -13905,7 +14325,7 @@ snapshots:
       oxfmt: 0.66.0(vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
       oxlint: 1.81.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.1(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(happy-dom@20.14.5)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
       oxlint-tsgolint: 7.0.2001
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       vitest: 4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5)
     optionalDependencies:
       '@vitest/browser-playwright': 5.0.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(playwright@1.63.0)(vitest@5.0.0)
@@ -13947,10 +14367,10 @@ snapshots:
       - utf-8-validate
       - yaml
 
-  vitest@4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5):
+  vitest@4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5):
     dependencies:
       '@vitest/expect': 4.1.11
-      '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
+      '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
       '@vitest/pretty-format': 4.1.11
       '@vitest/runner': 4.1.11
       '@vitest/snapshot': 4.1.11
@@ -13977,6 +14397,36 @@ snapshots:
     transitivePeerDependencies:
       - msw
 
+  vitest@4.1.11(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5):
+    dependencies:
+      '@vitest/expect': 4.1.11
+      '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))
+      '@vitest/pretty-format': 4.1.11
+      '@vitest/runner': 4.1.11
+      '@vitest/snapshot': 4.1.11
+      '@vitest/spy': 4.1.11
+      '@vitest/utils': 4.1.11
+      es-module-lexer: 2.3.2
+      expect-type: 1.4.0
+      magic-string: 0.30.21
+      obug: 2.2.1
+      pathe: 2.0.3
+      picomatch: 4.0.7
+      std-env: 4.2.0
+      tinybench: 2.9.0
+      tinyexec: 1.3.1
+      tinyglobby: 0.2.17
+      tinyrainbow: 3.1.1
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@types/node': 26.5.1
+      '@vitest/browser-playwright': 5.0.0(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(playwright@1.63.0)(vitest@5.0.0)
+      '@vitest/browser-preview': 4.1.11(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(vitest@4.1.11)
+      happy-dom: 20.14.5
+    transitivePeerDependencies:
+      - msw
+
   vitest@5.0.0(@types/node@26.5.1)(@vitest/browser-playwright@5.0.0)(@vitest/browser-preview@4.1.11)(@vitest/ui@5.0.0)(@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1))(happy-dom@20.14.5):
     dependencies:
       '@types/chai': 5.2.3
@@ -13991,7 +14441,7 @@ snapshots:
       tinybench: 6.1.4
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
       why-is-node-running: 2.3.0
     optionalDependencies:
       '@types/node': 26.5.1
@@ -14080,7 +14530,7 @@ snapshots:
     optionalDependencies:
       '@vue/compiler-sfc': 3.5.42
       pinia: 3.0.4(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(vue@3.5.42(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
-      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(@vitejs/devtools@0.6.3)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
+      vite: '@voidzero-dev/vite-plus-core@0.3.1(@types/node@26.5.1)(esbuild@0.25.12)(jiti@2.7.0)(terser@5.51.2)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.1)'
     transitivePeerDependencies:
       - '@farmfe/core'
       - '@rspack/core'

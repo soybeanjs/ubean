@@ -82,7 +82,7 @@ vite.config.ts（用户唯一入口）
 | **RM-V10** | `configureServer` 请求路由 | pre 中间件：显式路由直通 + 资产/导航启发式（`Sec-Fetch-Dest` / 扩展名 / `?import` / `Accept`）；post 中间件兜底。**难点：页面 catch-all `/**` 必须正确区分于显式 API 路由，静态资源不得被 catch-all 吞掉** | 对齐 RM-V05 基线：静态资源正常、页面 404 返回 HTML、API 404 返回 JSON |
 | **RM-V11** | 宿主 `UbeanDevApp` | 迁移 `vite-server.ts:295-327` 的 bootstrap（`ssrLoadModule('virtual:ubean-server')` → `resolveServerConfig('dev')` → `applyServerConfig`）及 devtools、错误页、`/_openapi.json`、VFS 到宿主 dev app | devtools、OpenAPI、`defineServer` 配置生效，行为与现状一致 |
 | **RM-V12** | 摘除 CLI server 层 | 删除 `vite-server.ts:247-381`（http server 与 handler）、`:463-471`（DTK hack）、`:524-530`（middlewareMode + HMR 端口）、`:330/345/353`；`createViteDevServer` 退化为"装配 Vite 配置" | 文件大幅瘦身；`vite dev` 直接可用 |
-| **RM-V13** | watcher 合一 | 退役 `dev-server/watcher.ts` 的独立监听，复用 `server.watcher`；统一 `builder/src/vite.ts:120` 与 `vue-plugin.ts:261` 的监听策略；rescan 仅在 scan 目录增删时触发 | 单套 watcher；变更后 reload 行为不劣于 RM-V05 基线，且变更生效延迟 p50 不劣于 RM-P05 基线 |
+| **RM-V13** | watcher 合一 | 退役 `dev-server/watcher.ts` 的独立监听，复用 `server.watcher`；统一 `builder/src/vite.ts:120` 与 `vue-plugin.ts:261` 的监听策略；rescan 仅在 scan 目录增删时触发 | 单套 watcher；变更后 reload 行为不劣于 RM-V05 基线；变更生效延迟 p50 不劣于 RM-P05 基线；**无关模块单例保留**不劣于 RM-P04 基线（5/5），即不得从「按文件失效」退化为「全量重新求值」 |
 | **RM-V14** | `ubean dev` 薄别名 | `cli/src/dev.ts:61-316` 改为调 Vite `createServer`；保留参数解析、端口/网络地址 banner（`:225-260`）与 logging 闸门（`:106-125`） | `ubean dev` 与 `vite dev` 行为一致 |
 | **RM-V15** | dev 全量验收 | `examples/ubean-test` 全量测试 + `test/browser` e2e + 手工 DX 清单（SSR HTML、i18n 切换、islands 水合、Server Actions、cron、devtools、HMR 状态保留） | 全绿；DX 无倒退；**性能不劣于 RM-P05 基线**（dev 冷启动与变更生效延迟 p50）；Phase 1 可独立发布（`experimental.viteBuilder` 开关） |
 
@@ -156,7 +156,7 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 | --- | --- | --- | --- |
 | R1 | vite-plus Builder / Environment API 标注 `@experimental` | 契约随版本变化导致构建或 dev 失效 | RM-V06 契约测试 + 锁定 `vite-plus-core@0.3.1`；升级时跑 RM-V23 矩阵 |
 | R2 | `env-runner@0.2.3` 为 0.x 新包 | dev 稳定性直接受其影响 | 全部调用封装在 `EnvRunner` 接口（`runner.ts:55-59`）后；RM-V04 量化自研 Plan B 成本 |
-| R3 | dev DX 倒退（HMR 语义变化） | 用户感知最敏感 | 作用域化重载必须 ≥ `examples/ubean-test/benchmarks/perf-baseline.json` 的 p50（服务端变更 221ms；RM-P05）。**口径修正（2026-09-15）**：旧实现并非「全量 rescan + full-reload」，而是 watcher 路径拼接缺陷导致**完全不重载**（已修复并补回归测试，见 [perf-regression-net.md](perf-regression-net.md) §2.1）；因此「保留单例状态」的对照只能以修复**后**的实现为基线。RM-V05 拓扑基线与 RM-V15 走查 |
+| R3 | dev DX 倒退（HMR 语义变化） | 用户感知最敏感 | 作用域化重载必须 ≥ `examples/ubean-test/benchmarks/perf-baseline.json` 的 p50（服务端变更 220ms；RM-P05）。**前提修正（2026-09-15）**：旧实现的真实语义是「服务端模块图**按文件失效**（无关模块实例保留，RM-P04 实测 5/5）+ 浏览器整页刷新」，而非文档所写的「全量 rescan + full-reload」；此前还因 watcher 路径拼接缺陷**完全不重载**（已修复并补回归测试，见 [perf-regression-net.md](perf-regression-net.md) §2.1）。因此 RM-V13 / RM-V28 的「保留单例状态」是**不得倒退的行为**，不是新增能力。RM-V05 拓扑基线与 RM-V15 走查 |
 | R4 | bundle 基线 / `analyze:check` 5% 门禁 | CI 红灯 | 迁移中以"产物语义等价"为准，RM-V22 完成后重定基线 |
 | R5 | DevTools 依赖 httpServer 绑定 | 移除 `httpServerBinderPlugin` 后 DTK 可能失效 | Vite 拥有 server 后绑定天然成立；RM-V11 / RM-V15 专项验证 |
 | R6 | 双轨期行为分叉（用户 config vs CLI 注入） | 两类项目表现不一致 | 两轨共用同一份 environment 构建配置；RM-V36 收敛 |

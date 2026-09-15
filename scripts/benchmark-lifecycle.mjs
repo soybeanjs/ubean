@@ -11,6 +11,9 @@
  * - devChangeClient         写入客户端模块 → 该模块重新转换并返回新内容的墙钟
  * - buildWall               build 命令墙钟
  * - buildPeakRss            build 进程树峰值内存（50ms 轮询 ps）
+ * - reloadScope             正确性对照（非耗时）：改无关文件触发 reload 后，探针模块的实例
+ *                           是否被保留。R3 承诺的是「文件级失效 + 保留单例状态」，
+ *                           这里给出旧实现的「是 / 否」，供整改后对照（RM-P04）。
  *
  * 方法（三条纪律，取自 farm.js 的性能工程实践）：
  * 1. 单变量开关 —— 变体之间除被测项外不做任何改动（`--arms` / `--toggle`）；
@@ -136,6 +139,18 @@ function resolveArms() {
 const CLIENT_CHANGE_TARGET = 'src/app.ts';
 const SERVER_CHANGE_TARGET = 'src/routes/api/hello.ts';
 const SERVER_CHANGE_LITERAL = "'Hello from ubean API!'";
+/** 探针路由（examples/ubean-test/src/routes/api/perf-probe.ts）暴露模块实例标识。 */
+const PROBE_ENDPOINT = '/api/perf-probe';
+
+async function readProbe(dev) {
+  try {
+    const res = await fetch(`${dev.baseUrl}${PROBE_ENDPOINT}`);
+    if (!res.ok) return undefined;
+    return await res.json();
+  } catch {
+    return undefined;
+  }
+}
 
 async function startDev(arm, port) {
   // --strictPort：端口被占时直接退出，而不是自增到另一个端口让探针白等。
@@ -183,7 +198,13 @@ async function measureColdStart(arm) {
   return { dev, port, coldStartMs, firstResponse, viteClientOk: viteClientOk.ok };
 }
 
-/** 服务端变更：写入 API 路由字面量 → 轮询 HTTP 响应是否反映新值 */
+/**
+ * 服务端变更：写入 API 路由字面量 → 轮询 HTTP 响应是否反映新值。
+ *
+ * 同一次变更顺带给出 reload 正确性对照：变更前后各读一次探针路由（与被改文件无关），
+ * 实例标识不变 ⇒ 探针模块没有被重新求值（保留单例状态）；变了 ⇒ 整个模块图被重新求值。
+ * 用同一次 reload 采集两个指标，避免为对照额外制造一次重载。
+ */
 async function measureServerChange(dev, runIndex) {
   const file = resolve(fixture, SERVER_CHANGE_TARGET);
   const original = readFileSync(file, 'utf8');
@@ -191,13 +212,27 @@ async function measureServerChange(dev, runIndex) {
     throw new Error(`${SERVER_CHANGE_TARGET} 不再包含 ${SERVER_CHANGE_LITERAL}；请同步更新基准探针`);
   }
   const marker = `perf-probe-${Date.now()}-${runIndex}`;
+  const probeBefore = await readProbe(dev);
   try {
     writeFileSync(file, original.replace(SERVER_CHANGE_LITERAL, `'${marker}'`));
     const result = await pollUntil(`${dev.baseUrl}/api/hello`, {
       timeoutMs: changeTimeoutMs,
       predicate: ({ body }) => body.includes(marker)
     });
-    return { observed: result.ok, latencyMs: result.ok ? result.elapsedMs : null, elapsedMs: result.elapsedMs };
+    const probeAfter = await readProbe(dev);
+    // 只有这次变更**确实生效**（result.ok）时，实例标识才有判读意义：若重载根本没发生，
+    // 实例当然「保留」，那是 baseline-vs-baseline 式的假阴性。
+    const comparable = Boolean(probeBefore && probeAfter && result.ok);
+    return {
+      observed: result.ok,
+      latencyMs: result.ok ? result.elapsedMs : null,
+      elapsedMs: result.elapsedMs,
+      scope: {
+        probeAvailable: comparable,
+        instancePreserved: comparable ? probeBefore.instance === probeAfter.instance : null,
+        processRestarted: comparable ? probeBefore.pid !== probeAfter.pid : null
+      }
+    };
   } finally {
     writeFileSync(file, original);
     // 还原后等 dev 侧回到初始状态，避免污染下一轮测量。
@@ -239,7 +274,7 @@ async function measureClientChange(dev, runIndex) {
 }
 
 async function runDevPhase(arm) {
-  const samples = { coldStart: [], serverChange: [], clientChange: [] };
+  const samples = { coldStart: [], serverChange: [], clientChange: [], scope: [] };
   const notes = [];
   const total = warmup + runs;
 
@@ -257,12 +292,16 @@ async function runDevPhase(arm) {
       }
       const serverChange = await measureServerChange(attempt.dev, i);
       const clientChange = await measureClientChange(attempt.dev, i);
-      const summary = `cold ${fmtMs(attempt.coldStartMs)} · server-change ${serverChange.observed ? fmtMs(serverChange.latencyMs) : '未观察到'} · client-change ${clientChange.observed ? fmtMs(clientChange.latencyMs) : '未观察到'}`;
+      const scope = serverChange.scope;
+      const scopeLabel =
+        scope.instancePreserved === null ? 'n/a' : scope.instancePreserved ? '单例保留' : '模块重新求值';
+      const summary = `cold ${fmtMs(attempt.coldStartMs)} · server-change ${serverChange.observed ? fmtMs(serverChange.latencyMs) : '未观察到'} · client-change ${clientChange.observed ? fmtMs(clientChange.latencyMs) : '未观察到'} · reload ${scopeLabel}`;
       console.log(summary);
       if (!isWarmup) {
         samples.coldStart.push(attempt.coldStartMs);
         samples.serverChange.push(serverChange.observed ? serverChange.latencyMs : null);
         samples.clientChange.push(clientChange.observed ? clientChange.latencyMs : null);
+        samples.scope.push(scope);
       }
     } finally {
       await stopDev(attempt.dev);
@@ -321,7 +360,23 @@ function summarizeArm(samples) {
     devChangeServer: summarizeSamples(samples.serverChange),
     devChangeClient: summarizeSamples(samples.clientChange),
     buildWall: summarizeSamples(samples.buildWall),
-    buildPeakRss: summarizeSamples(samples.buildPeakRss)
+    buildPeakRss: summarizeSamples(samples.buildPeakRss),
+    reloadScope: summarizeReloadScope(samples.scope ?? [])
+  };
+}
+
+/** reload 正确性对照（非耗时）：保留单例状态的次数 / 进程重启次数。 */
+function summarizeReloadScope(entries) {
+  const usable = entries.filter(entry => entry?.probeAvailable && entry.instancePreserved !== null);
+  if (usable.length === 0) {
+    return { n: 0, preserved: null, reevaluated: null, processRestarted: null };
+  }
+  const preserved = usable.filter(entry => entry.instancePreserved).length;
+  return {
+    n: usable.length,
+    preserved,
+    reevaluated: usable.length - preserved,
+    processRestarted: usable.filter(entry => entry.processRestarted).length
   };
 }
 
@@ -354,7 +409,14 @@ async function main() {
     // RM-P02：生效证明。失败即中止，绝不产出可用于对比的数字。
     arm.assertEngaged();
 
-    const armSamples = { coldStart: [], serverChange: [], clientChange: [], buildWall: [], buildPeakRss: [] };
+    const armSamples = {
+      coldStart: [],
+      serverChange: [],
+      clientChange: [],
+      scope: [],
+      buildWall: [],
+      buildPeakRss: []
+    };
     const notes = [];
 
     if (!skipDev) {
@@ -409,8 +471,12 @@ async function main() {
     const arm = report.arms[name];
     const sc = arm.observation.serverChange;
     const cc = arm.observation.clientChange;
+    const scope = arm.summary.reloadScope;
     console.log(
       `观测率 · ${arm.label}: 服务端变更 ${sc ? `${sc.observed}/${sc.total}` : 'n/a'}，客户端变更 ${cc ? `${cc.observed}/${cc.total}` : 'n/a'}`
+    );
+    console.log(
+      `reload 正确性 · ${arm.label}: 单例保留 ${scope.preserved ?? 'n/a'}/${scope.n}，模块重新求值 ${scope.reevaluated ?? 'n/a'}，进程重启 ${scope.processRestarted ?? 'n/a'}`
     );
     for (const note of arm.notes) console.log(`  note: ${note}`);
   }

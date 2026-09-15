@@ -42,7 +42,9 @@ RM-P01 首次运行时，旧路径上 **dev 下服务端文件变更完全不生
 
 **修复**：`watcher.ts` 新增 `resolveTarget()`（绝对路径直接用、相对路径才 join cwd），`start()` 与 `addDir()` 统一走它；失败不再静默 —— 新增 `onError` 回调，由 `dev.ts` 预过滤不存在的可选目录（`src/plugins` 等）后把真实错误打成 warn，并在「一个都没注册成功」时额外警告。回归测试 `packages/cli/test/dev-watcher.test.ts`（旧代码下 `count() === 1` 断言失败，即零 watcher 症状）。顺带把 `locales` 补进监听列表（与 builder 侧一致：此前语言文件改动不触发 rescan）。
 
-**修复后基线（RM-P05）**：服务端变更 **221ms**（p95 222ms，5/5 观测）、客户端变更 **6ms**（p95 7ms，5/5）。修复前的两次采集这两项为「未观察到」，故当前 commited 基线以修复后数据为准。
+**修复后基线（RM-P05）**：服务端变更 **220ms**（p95 222ms，5/5 观测）、客户端变更 **8ms**（p95 9ms，5/5）、reload 后**单例保留 5/5**（模块重新求值 0，进程重启 0）。修复前的两次采集这两项变更指标为「未观察到」，故当前 committed 基线以修复后数据为准。
+
+**R3 前提的完整修正（RM-P04 实测）**：旧实现的真实语义是「**服务端模块图按文件失效**（无关模块实例保留）**+ 浏览器整页刷新**」，而不是文档写的「全量 rescan + full-reload」—— 服务端从没做过「全量重新求值」。这对 5.5 的含义是：RM-V13 / RM-V28 的「保留单例状态」**不是要新增的能力，而是不能倒退的行为**，基线已把判据固定为 5/5。浏览器侧整页刷新来自 `dev.ts` 的时序注释（本轮未在浏览器中实测，仅服务端模块实例是实测值）。
 
 **遗留给 5.5 的后果**：`vite-plugin-migration.md` 风险 R3 原文写的「现状为全量 rescan + full-reload」与实测不符 —— 实测是「完全没有重载」。修复后 R3 的对照口径应为基线里的 221ms，而不是旧实现的「全量重载」。
 
@@ -57,7 +59,7 @@ in-scope 四项耗时指标 + 一项正确性对照。定义必须可复现、�
 | 变更生效 · 客户端 | 写入客户端模块 → 该模块被重新转换并在模块请求中返回新内容的墙钟 | 文件写入 + 轮询模块端点（不依赖 Vite stdout 日志：实测无浏览器连接时一条都不打印） | RM-P01 |
 | build 墙钟 | build 命令墙钟 | 子进程计时 | RM-P01 |
 | build 峰值 RSS | 构建进程树 RSS 峰值 | `psSnapshot` / `treeRssKB`（50ms 轮询求和） | RM-P01 |
-| reload 正确性 | 变更后服务端单例是否保留（是 / 否，非耗时） | 探针断言同一实例标识 | RM-P04 |
+| reload 正确性 | 变更后**无关模块**的实例状态是否保留（是 / 否，非耗时） | 探针路由（`examples/ubean-test/src/routes/api/perf-probe.ts`）暴露模块级实例标识，改无关文件触发 reload 前后各读一次；仅在本次变更已生效时判读（否则是假阴性） | RM-P04 |
 
 **不计入**：函数级微基准（口径是进程级与端到端）、CI runner 之间的横向比较（机器不同无意义）。
 
@@ -96,13 +98,13 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 | **RM-P01** ✅ | 生命周期基准脚本 | 新增 `scripts/benchmark-lifecycle.mjs`（度量原语抽到 `scripts/lib/metrics.mjs`）：`--toggle <arm>` 单变量切换；采集 dev 冷启动、变更生效（服务端 HTTP 轮询 / 客户端模块端点轮询）、build 墙钟与峰值 RSS | `pnpm benchmark:lifecycle` 可跑；输出表格 + `--json`；`--fixture` 可换项目；`--skip-dev` / `--skip-build` 可分段 |
 | **RM-P02** 🟡 | 生效证明 | 每臂采集前调用 `assertEngaged()`；`viteBuilder` 臂在开关不存在时**硬失败**并说明「开关缺失会让两臂都跑在旧路径」 | 反向场景已成立：`--toggle viteBuilder` 现在直接失败，不会产出假对比。**待补**：开关落地后改为「检测新路径特征（environments 注册 / 单 `createBuilder` / worker `ModuleRunner`）失败即中止」 |
 | **RM-P03** ✅ | 统计口径 | `scripts/lib/metrics.mjs` 提供 `summarizeSamples` / `quantile`；warmup + N 迭代、p50 / p95、原始样本与运行环境（Node / 平台 / CPU / 内存）落盘；`--runs` / `--warmup` 覆盖 | 样本文件含全部原始值；报告含 p50 / p95；`benchmark-ssg.mjs` 口径不受影响（未改动） |
-| **RM-P04** 🔜 已解除阻塞 | reload 正确性对照 | 变更后探针断言服务端单例是否保留（同一实例标识）；与 RM-V28（跨环境单例代理）对齐 | 原阻塞项（§2.1 变更不生效）已修复，现在可实施：需要一个模块级状态的探针路由 + 一次「改无关文件后该状态是否保留」的断言 |
+| **RM-P04** ✅ | reload 正确性对照 | 探针路由 `examples/ubean-test/src/routes/api/perf-probe.ts` 暴露模块级实例标识；基准脚本在服务端变更前后各读一次，复用同一次 reload 而不额外制造重载；仅在本次变更已生效时判读（防假阴性） | **旧实现结论：保留**（5/5：实例标识不变、进程未重启、模块重新求值 0 次）——即服务端模块图本就按文件失效。整改后必须仍为「保留」；若变为「重新求值」即为 R3 所指的倒退 |
 
 ### Phase 1 · 基线冻结（Phase 1 dev 迁移的硬前置）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P05** ✅ | 旧实现基线冻结 | `examples/ubean-test/benchmarks/perf-baseline.json` 在旧路径上产出（warmup 1 + 5 次，Node v24.21.0 / darwin-arm64 / Apple M1 Max）；§2.1 的 watcher 缺陷修复后重采，五项指标全部有数字 | p50 / p95：dev 冷启动 1.71s / 1.73s、服务端变更 221ms / 222ms、客户端变更 6ms / 7ms、build 墙钟 1.61s / 1.64s、峰值内存 617.5MB / 625.3MB；两项变更观测率均 5/5。R3 与 RM-V13 / V15 / V23 引用该文件 |
+| **RM-P05** ✅ | 旧实现基线冻结 | `examples/ubean-test/benchmarks/perf-baseline.json` 在旧路径上产出（warmup 1 + 5 次，Node v24.21.0 / darwin-arm64 / Apple M1 Max）；§2.1 的 watcher 缺陷修复后重采，五项指标 + reload 正确性全部有结论 | p50 / p95：dev 冷启动 1.71s / 1.73s、服务端变更 220ms / 222ms、客户端变更 8ms / 9ms、build 墙钟 1.62s / 1.63s、峰值内存 616.4MB / 620.0MB；两项变更观测率均 5/5，reload 单例保留 5/5。R3 与 RM-V13 / V15 / V23 引用该文件 |
 
 ### Phase 2 · 体积闸门升级（与迁移解耦，可独立合入）
 
@@ -146,7 +148,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 ## 8. 验收
 
 1. Phase 0 结束（dev 迁移 Phase 1 开始前）：`perf-baseline.json` 已 committed，且在旧实现上可重复产出（同机两次跑的 p50 差异落在声明区间内）。
-2. 生效证明有反例测试：开关失效时基准必须失败。
+2. 生效证明有反例测试：开关失效时基准必须失败；reload 正确性同样只在本次变更已生效时判读（否则「实例保留」是假阴性）。
 3. Phase 1 / Phase 2 每个 PR 的验收引用 RM-P05 基线数字，不接受定性的「感觉没变慢」。
 4. 迁移全程 `analyze:check` 保持绿；RM-P06 落地后绝对上限同时生效。
 5. RM-V36 收敛前，最后一次在旧路径上跑基准并归档——旧路径删除后不再需要该动作。

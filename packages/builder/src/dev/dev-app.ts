@@ -28,12 +28,58 @@ import { enhanceDevApp } from './dev-host-app';
 import type { DevRendererOptions } from './dev-host-app';
 
 /** 本模块用到的最小 logger 面（与 Vite 的 `Logger` 兼容，便于直接传 `server.config.logger`）。 */
-export type BootstrapLogger = Pick<Logger, 'warn' | 'error'>;
+export type BootstrapLogger = Pick<Logger, 'warn' | 'error' | 'info'>;
 
 const fallbackLogger: BootstrapLogger = {
   warn: message => console.warn(message),
-  error: message => console.error(message)
+  error: message => console.error(message),
+  info: message => console.log(message)
 };
+
+/** 请求日志里跳过内部路径的前缀（与 CLI 的旧实现一致）。 */
+const REQUEST_LOG_INTERNAL_PREFIXES = ['/_', '/@'];
+/** 超过该毫秒数的请求提升为 warn（慢请求告警）。 */
+const REQUEST_LOG_SLOW_THRESHOLD = 1000;
+
+/**
+ * 请求日志 hook（`logging.request` 分类）：默认关闭。
+ *
+ * RM-V14 从 CLI 的 dev 命令搬来：dev 请求现在由插件服务（`vite dev` 也是），日志策略属于
+ * **配置域**（`ubean.config.ts` 的 `logging.request`）而不是某个命令的实现细节，放在这里
+ * 两条路径才能给出一致的输出。
+ *
+ * 资源/模块请求在 Vite 中间件层即被消费，不会进到 app —— 因此天然只记录应用请求。
+ */
+function attachRequestLogger(app: UbeanApp, enabled: boolean, logger: BootstrapLogger): void {
+  if (!enabled) return;
+  const requestStartTimes = new WeakMap<object, number>();
+  const isInternalPath = (path: string) => REQUEST_LOG_INTERNAL_PREFIXES.some(prefix => path.startsWith(prefix));
+
+  app.hooks.hook('request:start', c => {
+    requestStartTimes.set(c, Date.now());
+  });
+
+  app.hooks.hook('request:end', (c, res) => {
+    const start = requestStartTimes.get(c);
+    const duration = start === undefined ? 0 : Date.now() - start;
+    const line = `${c.req.method} ${c.req.path} ${res.status} ${duration}ms`;
+    // 5xx 永远可见（即使内部路径）；内部路径的成功请求不打扰终端
+    if (res.status >= 500) {
+      logger.error(line);
+      return;
+    }
+    if (isInternalPath(c.req.path)) return;
+    if (res.status >= 400 || duration >= REQUEST_LOG_SLOW_THRESHOLD) {
+      logger.warn(line);
+      return;
+    }
+    logger.info(line);
+  });
+
+  app.hooks.hook('request:error', (c, err) => {
+    logger.error(`${c.req.method} ${c.req.path} ERROR ${err instanceof Error ? err.message : String(err)}`);
+  });
+}
 
 export interface CreateDevAppOptions {
   rootDir: string;
@@ -44,8 +90,10 @@ export interface CreateDevAppOptions {
   scanResult?: ScanResult;
   /** dev 安全头配置（CLI 会按 `--no-security` 等命令行覆盖）。缺省按 `config.security` 推导。 */
   securityHeaders?: boolean | Record<string, unknown>;
-  /** 额外的 app 装配（CLI 用它挂请求日志 hook）。 */
+  /** 额外的 app 装配（调用方插入自己的中间件/hook）。 */
   configureApp?: (app: UbeanApp) => void;
+  /** 诊断日志（请求日志、cron 加载失败等）。 */
+  logger?: BootstrapLogger;
 }
 
 export interface DevApp {
@@ -56,7 +104,7 @@ export interface DevApp {
 
 /** 扫描（可选）并创建 dev 用的宿主 app —— 不需要 Vite server。 */
 export async function createDevApp(options: CreateDevAppOptions): Promise<DevApp> {
-  const { rootDir, config, configureApp } = options;
+  const { rootDir, config, configureApp, logger } = options;
 
   const scanResult =
     options.scanResult ??
@@ -96,6 +144,7 @@ export async function createDevApp(options: CreateDevAppOptions): Promise<DevApp
   });
 
   configureApp?.(app);
+  attachRequestLogger(app, config.logging?.request === true, logger ?? fallbackLogger);
 
   return { app, scanResult, layouts: scanResult.layouts };
 }

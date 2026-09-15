@@ -165,6 +165,35 @@ describe('ubean dev 热重载', () => {
   }, 240_000);
 });
 
+describe('ubean dev + experimental.viteBuilder（开关过渡路径）', () => {
+  /**
+   * 开关打开时 app 归插件所有，CLI 不能再注册一个带 handler 的请求插件 —— 否则两个 pre
+   * 中间件都会认领应用请求，先注册的（用户 config 里的那份）胜出，CLI 的 handler 变成永远
+   * 不执行的影子，两侧还会各建一份 app。这条用例守的就是这个组合。
+   */
+  it('页面/API 正常服务，且改文件仍生效（插件自举的 app 被重建）', async () => {
+    running = await startServer({
+      command: process.execPath,
+      args: [cliEntry, 'dev'],
+      env: { UBEAN_VITE_BUILDER: '1' }
+    });
+
+    const home = await probe(running.baseUrl, '/');
+    expect(home.status, home.body.slice(0, 200)).toBe(200);
+    expect(home.contentType).toContain('text/html');
+    expect(home.body).toContain('class="home"');
+
+    const api = await probe(running.baseUrl, '/api/hello');
+    expect(api.status).toBe(200);
+    expect(api.contentType).toContain('application/json');
+
+    const marker = `cli-switch-${Date.now()}`;
+    writeProbe(marker);
+    const result = await pollMarker(running.baseUrl, marker);
+    expect(result.ok, `未观察到新内容；最后响应：${result.body.slice(0, 200)}`).toBe(true);
+  }, 240_000);
+});
+
 describe('vite dev 等价性（experimental.viteBuilder 打开）', () => {
   const startViteDev = (): Promise<Running> => {
     if (!existsSync(vpEntry)) throw new Error(`${vpEntry} 不存在：仓库根未安装依赖`);

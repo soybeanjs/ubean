@@ -254,17 +254,28 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // RM-V02：本 dev server 的虚拟模块注册表，显式注入给 core / vue 两个插件
   const devVirtualRegistry = createVirtualRegistry();
 
+  // RM-V14：`experimental.viteBuilder` 打开时，用户的 `vite.config.ts` 里那份
+  // `ubeanPlugin()` 已经追加了自举版请求路由插件（它自己扫盘建 app）。此时 CLI **不能再加**
+  // 一个带 handler 的插件：两个 pre 中间件都会认领应用请求，先注册的（用户 config）胜出，
+  // CLI 的 handler 变成永远不执行的影子，且 CLI 侧的 app 与插件侧的 app 会各建一份。
+  // 因此开关打开时让插件全权负责 app，CLI 只做「扫描后生成类型 + 上报」这类命令级事务。
+  const pluginOwnsDevApp = config.experimental?.viteBuilder === true;
+
   const builtinPlugins: Plugin[] = [
     // RM-V10：请求路由（pre 判据 + post 兜底）。放在最前面不必要 —— 它靠 Vite 的
     // 中间件装配顺序（钩子体内 use() 排在 transform 之前，返回的函数排在静态之后）定位，
     // 但排在数组前面能让「ubean 请求」的判定先于其他插件的 pre 钩子注册。
-    ubeanDevRequestPlugin({
-      handler: request => handleAppRequest(request),
-      // DevTools 客户端是预构建 SPA，其产物自带模块引用；经 `transformIndexHtml`
-      // 重写会被破坏（import-analysis 解析不了预构建引用）。`/_devtools/` 下的静态
-      // 资源本来就带扩展名，由 Vite 服务，这里只为可能的 HTML 响应兜住。
-      skipHtmlTransform: url => url.startsWith('/_devtools')
-    }),
+    ...(pluginOwnsDevApp
+      ? []
+      : [
+          ubeanDevRequestPlugin({
+            handler: request => handleAppRequest(request),
+            // DevTools 客户端是预构建 SPA，其产物自带模块引用；经 `transformIndexHtml`
+            // 重写会被破坏（import-analysis 解析不了预构建引用）。`/_devtools/` 下的静态
+            // 资源本来就带扩展名，由 Vite 服务，这里只为可能的 HTML 响应兜住。
+            skipHtmlTransform: url => url.startsWith('/_devtools')
+          })
+        ]),
     // RM-V14：`@vitejs/plugin-vue` 的注册已归属 `@ubean/build/vue` 的 `ubeanVite`
     // （用户在 `vite.config.ts` 里写的 `ubeanPlugin()` 就包含它），这里不再重复注册 ——
     // 重复会让 .vue 被编译两次。backend 模式（无页面/无 SSR）下由 `ubeanVite` 的调用方

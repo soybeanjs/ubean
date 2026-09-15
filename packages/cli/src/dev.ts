@@ -166,6 +166,12 @@ export const devCommand: CommandDef = {
      * 生成类型、重建 Hono app、更新 runner。**不再自己发 `full-reload`** —— 协调器会在所有
      * 订阅者（含本函数）完成之后统一发，浏览器因此不会带着旧的 `definePage` 元数据刷新。
      */
+    /**
+     * `experimental.viteBuilder` 打开时，dev app 归插件所有（见 vite-server 的说明）：
+     * 插件自举的 app 会随扫描重建，CLI 只保留命令级事务，不再自建一份。
+     */
+    const pluginOwnsDevApp = config.experimental?.viteBuilder === true;
+
     async function onScan(result: ScanResult, changed: string[]) {
       if (changed.length > 0) {
         const touched = changed.map(file => relative(cwd, file).replace(/\\/g, '/'));
@@ -185,15 +191,24 @@ export const devCommand: CommandDef = {
           components: config.components
         });
 
+        currentScanResult = result;
+
+        if (pluginOwnsDevApp) {
+          // RM-V14：`experimental.viteBuilder` 打开时 app 由插件自举并随扫描重建，CLI 只做
+          // 命令级事务（上面的类型生成 + 这里的扫描结果上报），不再另建一份 app。
+          return;
+        }
+
         const { app, layouts } = await createDevApp({
           rootDir: cwd,
           config,
           scanResult: result,
-          configureApp: devRequestLogger(logging)
+          // 请求日志（`logging.request`）在 builder 内挂（RM-V14）：它是配置域行为，
+          // `vite dev` 与 `ubean dev` 需要一致的输出。这里只把 CLI 的 logger 传进去。
+          logger
         });
         currentApp = app;
         currentLayouts = layouts;
-        currentScanResult = result;
 
         runner.updateApp(currentApp, currentLayouts);
         await runner.reload();
@@ -315,12 +330,6 @@ export const devCommand: CommandDef = {
   }
 };
 
-/** 默认跳过请求日志的内部路径前缀(`/_health`、`/_devtools`、`/_openapi.json`、Vite 内部 `/@id/...` 等)。 */
-const REQUEST_LOG_INTERNAL_PREFIXES = ['/_', '/@'];
-
-/** 请求日志中,超过该毫秒数的请求提升为 warn(慢请求告警)。 */
-const REQUEST_LOG_SLOW_THRESHOLD = 1000;
-
 async function buildApp(
   cwd: string,
   config: any,
@@ -356,47 +365,15 @@ async function buildApp(
     rootDir: cwd,
     config,
     scanResult: result,
-    // 请求日志是 CLI 的 `logging` 配置域与终端呈现，属于调用方策略，不搬进 builder
-    configureApp: devRequestLogger(logging)
+    // 请求日志（`logging.request`）在 builder 内挂（RM-V14）：配置域行为，
+    // `vite dev` 与 `ubean dev` 需要一致的输出。这里只把 CLI 的 logger 传进去。
+    logger
   });
 
   return { app, layouts, scanResult: result };
 }
 
 /**
- * 请求日志 hook（`request` 分类）：默认关闭，`logging.request: true` / `--log-requests` 打开。
- * ssg/spa 模式在 CLI 层已被强制关闭。挂点在 requestId 中间件之后；资源/模块请求在 Vite
- * 中间件层即被消费，不会进到这里 —— 天然只记录应用请求。
+ * RM-V14：请求日志（`logging.request`）不再由 CLI 实现 —— 见 `@ubean/build` 的
+ * `createDevApp({ logger })`。配置域行为放 builder，两条 dev 路径输出一致。
  */
-function devRequestLogger(logging: ResolvedLoggingConfig) {
-  const requestStartTimes = new WeakMap<object, number>();
-  const isInternalPath = (path: string) => REQUEST_LOG_INTERNAL_PREFIXES.some(p => path.startsWith(p));
-
-  return (app: UbeanApp) => {
-    app.hooks.hook('request:start', c => {
-      requestStartTimes.set(c, Date.now());
-      // 深度诊断仍可用 LOG_LEVEL=debug 打开(与 request 分类正交)
-      logger.debug(`${c.req.method} ${c.req.path}`);
-    });
-
-    app.hooks.hook('request:end', (c, res) => {
-      if (!logging.request) return;
-      const start = requestStartTimes.get(c);
-      const duration = start === undefined ? 0 : Date.now() - start;
-      const line = `${c.req.method} ${c.req.path} ${res.status} ${duration}ms`;
-      // 5xx 永远可见(即使内部路径);内部路径的成功请求不打扰终端
-      if (res.status >= 500) {
-        logger.error(line);
-        return;
-      }
-      if (isInternalPath(c.req.path)) return;
-      if (res.status >= 400 || duration >= REQUEST_LOG_SLOW_THRESHOLD) logger.warn(line);
-      else logger.info(line);
-    });
-
-    app.hooks.hook('request:error', (c, err) => {
-      if (!logging.request) return;
-      logger.error(`${c.req.method} ${c.req.path} ERROR ${err instanceof Error ? err.message : String(err)}`);
-    });
-  };
-}

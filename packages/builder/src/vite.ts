@@ -21,6 +21,14 @@ export { createVirtualRegistry } from './virtual-registry';
 
 // RM-V08：dev 环境（自定义 DevEnvironment + env-runner IPC bridge）
 export {
+  DEV_WORKER_FILE,
+  getDevWorkerEntrySource,
+  writeDevWorkerEntry,
+  invalidateDevWorkerModules,
+  type DevWorkerEntryOptions
+} from './dev/dev-worker';
+
+export {
   UbeanDevEnvironment,
   UBEAN_DEV_ENV_NAME,
   createEnvRunnerTransport,

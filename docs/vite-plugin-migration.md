@@ -63,7 +63,7 @@ vite.config.ts（用户唯一入口）
 | **RM-V01** ✅ | ADR-0012 立项 | `docs/adr/0012-vite-plugin-first-lifecycle.md`；`docs/README.md` 索引 | ADR 含决策、偏离说明、风险与回滚 |
 | **RM-V02** ✅ | 虚拟模块无状态化 | `virtual-registry.ts` 新增只读视图 `VirtualModuleResolver` 与工厂 `createVirtualRegistry()`；`ubeanPlugin` / `ubeanVite` 增加 `registry` 注入选项（未注入时自建**实例级**注册表）；三处构造点（`production.ts`、`cli/vite-server.ts`、主包 `ubean/vite`）各建一个实例并注入给 core+vue 两个插件；删除 `production.ts` 构建期 `clear()`；`generateVirtualModulesToDisk` 改为接收注册表；`useVirtualRegistry` / `resetVirtualRegistry` 标为 `@deprecated`（仅为既有测试保留） | 连续两次构建产物**逐字节一致**（实测 `dist` 树哈希两次均为 `c331dc16…`）；`virtual-registry.test.ts` / `virtual-modules.test.ts` 保持通过并新增 3 个断言（工厂预填、实例隔离且不写单例、同实例重复注册不累积）；builder 246 + cli 128 + fixture 783 测试全绿，`analyze:check` 不变（-1.8%） |
 | **RM-V03** ✅ | 统一 Node↔Web 适配 | 新建 `packages/cli/src/dev-server/node-web.ts`，收拢 `vite-server.ts` 与 `server.ts` 中**逐字节相同**的 `toWebRequest` / `sendWebResponse`（纯搬移，逻辑未改）；两侧改为引用，并从 `dev-server/index.ts` 导出供 Phase 1 复用 | 重复实现删除（各文件 0 处本地定义）；`packages/cli/test/node-web.test.ts` 用真实 `node:http` + `fetch` 往返锁定契约（URL 拼接、GET/HEAD 不带 body、POST 流式传体、状态/状态文本/头/流式响应）；cli 全量 128 测试（含真实 dev server 的拓扑回归网与 preview）全绿 |
-| **RM-V04** | `env-runner` 兼容性 spike | 在 `examples/ubean-test` 验证 `node-worker` 与 vite-plus 0.3.1 的 `DevEnvironment` / `createServerHotChannel` / `vite/module-runner` 协同；同时验证 `miniflare` runner 可用性 | 最小 worker 能 fetch 返回 200；产出结论文档（含 Plan B 成本量化） |
+| **RM-V04** ✅ | `env-runner` 兼容性 spike | 安装 `env-runner@0.2.3`（devDependency）并实测：最小 worker 经 `node-worker` runner 处理请求返回 200（进程隔离成立）；worker 侧 `createViteTransport` 的 Vite 协议消息可达宿主；vite-plus 接受 `dev.createEnvironment` 并成功构造注入 transport 的 `DevEnvironment`。**未打通**：worker 的 `ModuleRunner` invoke 无人应答（宿主通道契约不足），机制与建议见结论文档 | 完工定义见 [env-runner-spike.md](env-runner-spike.md)：最小 worker fetch 200 ✓、含 Plan B 成本量化（约 100–200 行，低于 ADR 原估）✓、`miniflare` runner 可用性已确认（API 就绪，需项目自装 `miniflare`）✓ |
 | **RM-V05** ✅ | **dev 拓扑回归网（硬前置）** | 新增 `packages/cli/test/dev-topology.test.ts`：子进程起 `ubean dev` + **纯 HTTP** 断言（刻意不碰内部 API —— 内部 server 会在 RM-V12 被删除，走内部 API 的测试届时会一起失效）。覆盖 SSR HTML 注入、页面 404 vs API 404、静态与源码资源不被兜底吞掉、内置 `_` 路由、中间件顺序（安全头/请求 ID 覆盖四类响应；i18n 与 CSRF cookie）。fixture 补 `src/pages/404.vue`，使「页面 404 → HTML」可断言 | 18 个断言在**旧实现**上全绿。实施中发现并修复一个拓扑缺陷：`pages/404.vue` 存在时页面兜底 `*` 会按注册顺序抢先匹配晚注册的内置路由，导致 `/_openapi.json`、`/_scalar` 变 404（修复=把 OpenAPI 注册提前到 `registerRoutes` 之前，并订正 router.ts 中「rou3 会优先具体路径」的错误注释）。**未修**：404 组件内容在 dev 下不 SSR，登记为 R8 |
 | **RM-P01–P05** | **生命周期性能基线（硬前置，见 [perf-regression-net.md](perf-regression-net.md)）** | 新增 `scripts/benchmark-lifecycle.mjs`：以 `experimental.viteBuilder` 为单变量开关；采集 dev 冷启动、变更生效延迟、build 墙钟与峰值 RSS；采集前断言新路径确实生效（防 R6 双轨分叉） | 旧实现上产出 committed `examples/ubean-test/benchmarks/perf-baseline.json`（p50 / p95 + 原始样本 + 环境记录）；R3 的「现状」由该文件定义 |
 | **RM-V06** ✅ | Builder API 契约测试 | 新增 `packages/builder/test/vite-plus-contract.test.ts`（9 个断言）：版本锁 tripwire（`vite-plus` 与 `vite`→`vite-plus-core` 均在 0.3.1）、符号形状（`createBuilder`、`DevEnvironment` 的生命周期方法、`createServerHotChannel` 的通道成员、`vite/module-runner` 的 `ModuleRunner`/`ESModulesEvaluator`）、`config` 钩子注册的 environments 顺序稳定、`buildApp` 编排顺序完全由调用方决定、`build(env)` 对 client/server 都返回单个 output 并真的产出产物 | 覆盖 ADR-0012 依赖的全部实验性 API。**实测澄清两处**：① `FetchableDevEnvironment` 是**仅类型**导出（运行时 undefined），能继承的类是 `DevEnvironment`，`dispatchFetch` 需自行实现；② `sharedConfigBuild` / `sharedPlugins` 在本测试配置下开关前后「环境 config 身份」与「插件实例身份」都无变化，因此只断言「被接受且产物不变」，其真实语义留给 RM-V09 / RM-V17 用可观测信号验证（写成假契约比不写更坏） |
@@ -134,7 +134,7 @@ Phase 0（RM-V01…V06 + RM-P01…P05）
    ├─ RM-V05 功能回归网 ✅ ─┐
    ├─ RM-V06 契约测 ✅ ─────┤（硬前置已满足）
    ├─ RM-P05 性能基线 ✅ ───┤
-   └─ RM-V04 spike ─────────┘ ← 剩余
+   └─ RM-V04 spike ✅ ──────┘
         ↓
 Phase 1 dev（RM-V07…V15）      Phase 2 build（RM-V16…V23）
         ↓                              ↓
@@ -155,7 +155,7 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 | ID | 风险 | 影响 | 缓解 |
 | --- | --- | --- | --- |
 | R1 | vite-plus Builder / Environment API 标注 `@experimental` | 契约随版本变化导致构建或 dev 失效 | RM-V06 契约测试 + 锁定 `vite-plus-core@0.3.1`；升级时跑 RM-V23 矩阵 |
-| R2 | `env-runner@0.2.3` 为 0.x 新包 | dev 稳定性直接受其影响 | 全部调用封装在 `EnvRunner` 接口（`runner.ts:55-59`）后；RM-V04 量化自研 Plan B 成本 |
+| R2 | `env-runner@0.2.3` 为 0.x 新包 | dev 稳定性直接受其影响 | 全部调用封装在 `EnvRunner` 接口（`runner.ts:55-59`）后；**RM-V04 已量化 Plan B 成本（约 100–200 行，宿主侧通道用 Vite 自带的，不必自研）**；spike 另发现宿主侧通道契约需在 RM-V08 补齐（见 [env-runner-spike.md](env-runner-spike.md)） |
 | R3 | dev DX 倒退（HMR 语义变化） | 用户感知最敏感 | 作用域化重载必须 ≥ `examples/ubean-test/benchmarks/perf-baseline.json` 的 p50（服务端变更 220ms；RM-P05）。**前提修正（2026-09-15）**：旧实现的真实语义是「服务端模块图**按文件失效**（无关模块实例保留，RM-P04 实测 5/5）+ 浏览器整页刷新」，而非文档所写的「全量 rescan + full-reload」；此前还因 watcher 路径拼接缺陷**完全不重载**（已修复并补回归测试，见 [perf-regression-net.md](perf-regression-net.md) §2.1）。因此 RM-V13 / RM-V28 的「保留单例状态」是**不得倒退的行为**，不是新增能力。RM-V05 拓扑基线与 RM-V15 走查 |
 | R4 | bundle 基线 / `analyze:check` 5% 门禁 | CI 红灯 | 迁移中以"产物语义等价"为准，RM-V22 完成后重定基线 |
 | R5 | DevTools 依赖 httpServer 绑定 | 移除 `httpServerBinderPlugin` 后 DTK 可能失效 | Vite 拥有 server 后绑定天然成立；RM-V11 / RM-V15 专项验证 |

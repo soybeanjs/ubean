@@ -129,25 +129,13 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 
 基线必须在**旧路径**上冻结——RM-V36 收敛后旧实现删除，「回到旧实现测一次」将永久不可能。
 
-**进展（2026-09-15）**：RM-P01 / P03 / P04 / P05 / P06 / P07 / P08 ✅；RM-P02 🟡 脚手架（`viteBuilder` 臂在开关落地前硬失败，不产出假对比）。实施中发现并修复了一个 dev 缺陷：`createDevWatcher` 把已是绝对路径的 `srcDir` 又 `join(cwd, dir)` 一次，监听目标变成 `<cwd><cwd>/src/*` 全部 ENOENT，且被空 `catch` 吞掉 —— **dev 服务端热重载整体失效**（改 API 路由、新增路由文件均不生效，需重启）；同批修复还补上了入口文件监听（此前改 `app.vue` / `server.ts` 也不触发重载）。基线现状（p50）：dev 冷启动 1.69s、首个岛屿水合 155ms、站内导航 121ms、服务端变更 222ms、客户端变更 106ms、build 1.62s / 608.9MB，reload 后无关模块单例保留 5/5。**R3 前提据此修正**：旧实现是「服务端模块图按文件失效 + 浏览器整页刷新」，不是「全量 rescan + full-reload」—— 因此 5.5 的「保留单例状态」是**不得倒退的行为**，基线已固定判据。
+**进展（2026-09-15）**：**Phase 0 全部完成**（RM-V01…V06 + RM-P01…P05）。
 
-| ID | 任务 | 门槛 | 完成定义 |
-| --- | --- | --- | --- |
-| **RM-P01–P08** | 生命周期性能基准：`experimental.viteBuilder` 单变量双变体 → 生效证明（防 baseline-vs-baseline）→ p50/p95 + 原始样本落盘 → 旧实现基线冻结；并升级体积闸门为绝对上限 + per-chunk | 架构还债 + 性能 | 见 [perf-regression-net.md](perf-regression-net.md)；`examples/ubean-test/benchmarks/perf-baseline.json` 在旧实现上产出，并被 5.5 的风险 R3 与 RM-V13 / V15 / V23 引用 |
+- **回归网**：`RM-V05`（dev 拓扑 18 个纯 HTTP 断言，旧实现上全绿）、`RM-V06`（vite-plus 实验性 API 契约 9 个断言 + 版本锁 tripwire）、`RM-P01–P05`（性能基线七项指标 + reload 正确性）。
+- **地基清理**：`RM-V02`（虚拟模块注册表改为显式注入，连续两次构建产物逐字节一致）、`RM-V03`（Node↔Web 适配收拢为单模块并补往返测试）。
+- **`RM-V04` env-runner spike**：结论见 [env-runner-spike.md](env-runner-spike.md) —— worker 托管、IPC、`dev.createEnvironment` 均已验证；宿主侧通道契约不足（`getBuiltins` invoke 无人应答）留待 RM-V08；Plan B 成本下调到约 100–200 行。
+- 附带修复：`RM-V05` 期间发现并修复「`pages/404.vue` 存在时页面兜底按注册顺序吞掉内置 `_` 路由」；登记 R8（dev 下 404 组件内容不 SSR）待与 RM-V10 一并处理。
 
-三条纪律取自 farm.js 的性能工程实践：单变量开关、证明被测路径真的生效否则失败、性能主张必须带前后数字。**不做** CI 阻塞门禁与编译器级测量精度（理由见该文档 §4.4、§4.5、§7）。
-
-### 5.5 架构还债续 · Vite 插件化（ADR-0012）
-
-Q4 还债（D01–D08）之后，请求链之外的下一处结构性债：dev / build / preview 由 CLI 自建编排（自建 HTTP server + middlewareMode、宿主进程 `ssrLoadModule`、两次独立 `viteBuild`、三套 watcher）。对齐 Nitro v3 的插件优先形态后，框架以 Vite 插件身份接入，生命周期交给 `vite dev|build|preview`。
-
-| ID | 任务 | 门槛 | 完成定义 |
-| --- | --- | --- | --- |
-| **RM-V01–V36** | dev / build / preview 生命周期下放：插件注册 environments → 自定义 `DevEnvironment` + env-runner worker → 单 `createBuilder` 多环境编排 → `configurePreviewServer` 接管 | 架构还债 + 性能（附带平台保真 dev） | 见 [vite-plugin-migration.md](vite-plugin-migration.md)；`vite dev/build/preview` 全链路可用，`ubean` 同名命令退为薄别名；产物布局（`dist/public` + `dist/server` + `dist/manifest.json`）与 `analyze:check` 基线不变 |
-
-刻意的三处不对齐（理由见 ADR-0012）：不拆 `ssr` 环境、不引入 `.output/` 布局、不把 prerender 提到 server bundle 之前。
-
-**进展（2026-09-15）**：Phase 0 的硬前置已满足 —— `RM-V05`（dev 拓扑回归网，18 个纯 HTTP 断言在旧实现上全绿）、`RM-V06`（vite-plus Builder API 契约测试，9 个断言 + 版本锁 tripwire）、`RM-P01–P05`（性能基线）均已落地。实施 RM-V05 时发现并修复一个拓扑缺陷：`pages/404.vue` 存在时页面兜底 `*` 会按注册顺序抢先匹配晚注册的内置路由，使 `/_openapi.json`、`/_scalar` 变 404（修复 = OpenAPI 注册提前到 `registerRoutes` 之前）。RM-V06 实测澄清：`FetchableDevEnvironment` 仅类型导出，且两个 `shared*` 开关在当前配置下无可观测差异（已按此写实断言，未造出假契约）。**剩余 Phase 0**：`RM-V04`（env-runner spike）；`RM-V02`（虚拟模块无状态化）✅、`RM-V03`（统一 Node↔Web 适配）✅ 已落地；另登记 R8（dev 下 404 组件内容不 SSR）待与 RM-V10 一并处理。
 
 ## 6. 不做的伪缺口（避免 Q4 被带偏）
 

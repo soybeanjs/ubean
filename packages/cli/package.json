@@ -46,6 +46,7 @@
   "devDependencies": {
     "@types/node": "^26.5.0",
     "@vitejs/plugin-vue": "^6.0.8",
+    "env-runner": "0.2.3",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

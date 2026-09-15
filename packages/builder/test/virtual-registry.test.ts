@@ -7,6 +7,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   VirtualModuleRegistry,
+  createVirtualRegistry,
   useVirtualRegistry,
   resetVirtualRegistry,
   defineVirtualModule,
@@ -107,5 +108,43 @@ describe('useVirtualRegistry() 单例', () => {
     resetVirtualRegistry();
     const b = useVirtualRegistry();
     expect(a).not.toBe(b);
+  });
+});
+
+// RM-V02：框架路径改为显式注入注册表，插件不再依赖模块级单例。
+describe('createVirtualRegistry()', () => {
+  beforeEach(() => {
+    resetVirtualRegistry();
+  });
+
+  it('新建实例为空，可按初始模块预填', () => {
+    expect(createVirtualRegistry().getModules()).toHaveLength(0);
+
+    const seeded = createVirtualRegistry([defineVirtualModule('virtual:seed', () => 'seeded')]);
+    expect(seeded.getModules().map(m => m.id)).toEqual(['virtual:seed']);
+  });
+
+  it('两个实例互不干扰，也不写入模块级单例', async () => {
+    const global = useVirtualRegistry();
+    const a = createVirtualRegistry();
+    const b = createVirtualRegistry();
+
+    a.register(defineVirtualModule('virtual:only-a', () => 'a'));
+
+    expect(a.getModules().map(m => m.id)).toEqual(['virtual:only-a']);
+    expect(b.getModules()).toHaveLength(0);
+    expect(await b.load('virtual:only-a')).toBeUndefined();
+    // 关键不变量：显式创建的注册表与全局单例完全解耦
+    expect(global.getModules()).toHaveLength(0);
+    expect(a).not.toBe(global);
+  });
+
+  it('同一实例连续两次注册同一 id 只保留后者（无跨构建累积）', async () => {
+    const registry = createVirtualRegistry();
+    registry.register(defineVirtualModule('virtual:x', () => 'build-1'));
+    registry.register(defineVirtualModule('virtual:x', () => 'build-2'));
+
+    expect(registry.getModules()).toHaveLength(1);
+    expect(await registry.load('virtual:x')).toBe('build-2');
   });
 });

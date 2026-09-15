@@ -14,7 +14,11 @@ import {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from './virtual-modules';
-import { useVirtualRegistry } from './virtual-registry';
+import { createVirtualRegistry } from './virtual-registry';
+import type { VirtualModuleRegistry } from './virtual-registry';
+
+export { createVirtualRegistry } from './virtual-registry';
+export type { VirtualModuleRegistry, VirtualModuleResolver } from './virtual-registry';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];
 const VIRTUAL_PREFIX = '\0ubean:';
@@ -26,6 +30,12 @@ export interface UbeanPluginOptions {
    * 2. 在 `buildStart` 中异步调用 `loadUbeanConfig()` 加载
    */
   config?: UbeanResolvedConfig;
+  /**
+   * 虚拟模块注册表（RM-V02）。框架路径（build / dev / 主包 vite 入口）**显式注入**一个
+   * 由 scan 结果构建的实例；未注入时本插件自建一个实例级注册表，不再使用模块级单例 ——
+   * 插件因此不持有跨构建的可变状态。
+   */
+  registry?: VirtualModuleRegistry;
 }
 
 /**
@@ -56,7 +66,7 @@ export interface UbeanPluginOptions {
  * ```
  */
 export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
-  const virtualRegistry = useVirtualRegistry();
+  const virtualRegistry = options?.registry ?? createVirtualRegistry();
 
   // Config 解析:优先使用传入的,其次从缓存获取
   // 如果都没有,在 buildStart 中异步加载

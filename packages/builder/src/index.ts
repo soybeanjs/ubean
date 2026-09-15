@@ -4,13 +4,19 @@
  */
 export {
   VirtualModuleRegistry,
+  createVirtualRegistry,
   useVirtualRegistry,
   resetVirtualRegistry,
   defineVirtualModule,
   defineVirtualModulePrefix
 } from './virtual-registry';
 
-export type { VirtualModuleContext, VirtualModuleTransform, VirtualModule } from './virtual-registry';
+export type {
+  VirtualModuleContext,
+  VirtualModuleTransform,
+  VirtualModule,
+  VirtualModuleResolver
+} from './virtual-registry';
 
 export { transformMacros, stripMacros } from './macros';
 

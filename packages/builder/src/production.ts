@@ -23,7 +23,8 @@ import {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from './virtual-modules';
-import { useVirtualRegistry } from './virtual-registry';
+import { createVirtualRegistry } from './virtual-registry';
+import type { VirtualModuleRegistry } from './virtual-registry';
 import { ubeanPlugin } from './vite';
 import {
   ubeanVite,
@@ -81,6 +82,7 @@ async function generateVirtualModulesToDisk(
   scanResult: ScanResult,
   virtualDir: string,
   preset: Preset,
+  registry: VirtualModuleRegistry,
   contentSnapshot?: Record<string, unknown[]>
 ) {
   const mode = config.mode;
@@ -89,8 +91,6 @@ async function generateVirtualModulesToDisk(
   const hasServer = mode !== 'spa';
 
   await mkdir(virtualDir, { recursive: true });
-  const registry = useVirtualRegistry();
-  registry.clear();
 
   const srcDirAbs = resolve(cwd, config.srcDir);
   const viteSrcDir = toVitePath(relative(cwd, srcDirAbs));
@@ -612,7 +612,18 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   }
 
   logger.info('Generating virtual modules...');
-  await generateVirtualModulesToDisk(cwd, config, scanResult, outDirs.virtual, preset, contentSnapshot);
+  // RM-V02：本次构建专用注册表，显式注入给落盘与插件；不再走模块级单例，
+  // 因此连续构建之间没有需要 `clear()` 的共享状态。
+  const virtualRegistry = createVirtualRegistry();
+  await generateVirtualModulesToDisk(
+    cwd,
+    config,
+    scanResult,
+    outDirs.virtual,
+    preset,
+    virtualRegistry,
+    contentSnapshot
+  );
 
   // 检测用户是否提供了 vite.config — 如有则由用户配置提供 ubeanPlugin()
   // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVite + ubeanIslandsPlugin)
@@ -635,9 +646,9 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   }
   if (!userViteConfig) {
     // 无用户 vite.config:由 builtin 提供全部 ubean 插件
-    builtinPlugins.push(ubeanPlugin({ config }));
+    builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
     if (hasPages) {
-      builtinPlugins.push(...ubeanVite({ config }), ubeanIslandsPlugin());
+      builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }), ubeanIslandsPlugin());
     }
   }
 

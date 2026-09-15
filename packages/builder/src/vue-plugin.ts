@@ -15,7 +15,8 @@ import { join, resolve } from 'pathe';
 import { getAutoImportPresets, resolveAutoImportsConfig, resolveComponentsConfig, toArray } from './codegen';
 import { getComponentResolvers } from './registry';
 import { ssrSingletonDevPolicy } from './ssr-singleton';
-import { useVirtualRegistry } from './virtual-registry';
+import { createVirtualRegistry } from './virtual-registry';
+import type { VirtualModuleRegistry } from './virtual-registry';
 import {
   createVuePagesVirtualModule,
   createVueAppEntryVirtualModule,
@@ -26,6 +27,8 @@ import {
 export interface UbeanViteOptions {
   config: UbeanResolvedConfig;
   ssr?: boolean;
+  /** 虚拟模块注册表（RM-V02）：与 `ubeanPlugin` 注入同一个实例，插件侧只读。 */
+  registry?: VirtualModuleRegistry;
 }
 
 export const VUE_PLUGIN_INCLUDE = [/\.vue$/, /\.md$/];
@@ -81,7 +84,7 @@ function localeVueParamFromConfig(config: UbeanResolvedConfig): string | undefin
 
 export function ubeanVite(options: UbeanViteOptions): Plugin[] {
   const { config: ubeanConfig } = options;
-  const virtualRegistry = useVirtualRegistry();
+  const virtualRegistry = options.registry ?? createVirtualRegistry();
   // ResolvedConfig.srcDir 已是绝对路径（loader 保证），resolve 不会像 join 那样二次拼接
   const srcDir = resolve(ubeanConfig.rootDir, ubeanConfig.srcDir);
   const dtsDir = join(ubeanConfig.rootDir, '.ubean');

@@ -4,7 +4,7 @@ import type { Logger, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
-import { ubeanPlugin } from '@ubean/build/vite';
+import { ubeanPlugin, createVirtualRegistry } from '@ubean/build/vite';
 import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
@@ -424,6 +424,9 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     }
   };
 
+  // RM-V02：本 dev server 的虚拟模块注册表，显式注入给 core / vue 两个插件
+  const devVirtualRegistry = createVirtualRegistry();
+
   const builtinPlugins: Plugin[] = [
     httpServerBinderPlugin,
     ...(isBackendMode
@@ -441,8 +444,9 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     ...(hasUserViteConfig
       ? []
       : [
-          ubeanPlugin({ config }),
-          ...(isBackendMode ? [] : ubeanVite({ config })),
+          // RM-V02：dev 也用显式注入的注册表，两个插件共享同一实例（不再走模块级单例）
+          ubeanPlugin({ config, registry: devVirtualRegistry }),
+          ...(isBackendMode ? [] : ubeanVite({ config, registry: devVirtualRegistry })),
           ...(isBackendMode ? [] : [ubeanIslandsPlugin()])
         ]),
     ...viteDevtoolsPlugins,

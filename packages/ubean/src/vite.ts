@@ -27,7 +27,7 @@
 
 import type { Plugin } from 'vite';
 import { ubeanServerActionsPlugin } from '@ubean/build/actions';
-import { ubeanPlugin as ubeanCorePlugin } from '@ubean/build/vite';
+import { ubeanPlugin as ubeanCorePlugin, createVirtualRegistry } from '@ubean/build/vite';
 import type { UbeanPluginOptions } from '@ubean/build/vite';
 import { ubeanVite } from '@ubean/build/vue';
 import type { UbeanViteOptions } from '@ubean/build/vue';
@@ -53,9 +53,12 @@ export function ubeanPlugin(): Plugin[] {
   // 同步加载 config（优先读缓存，其次用 jiti 同步加载 ubean.config.ts）
   const config = loadUbeanConfigSync();
 
+  // RM-V02：core 与 vue 插件共享同一个显式注册表实例，不再依赖模块级单例
+  const registry = createVirtualRegistry();
+
   return [
-    ubeanCorePlugin({ config }),
-    ...ubeanVite({ config }),
+    ubeanCorePlugin({ config, registry }),
+    ...ubeanVite({ config, registry }),
     ubeanIslandsPlugin(),
     ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() })
   ];

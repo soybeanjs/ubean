@@ -120,7 +120,15 @@ export async function createDevViteServer(options: DevViteServerOptions): Promis
     // 顺序有意义：请求路由插件的 pre 中间件会把 `/_devtools` 判成「应用请求」（`_` 是保留
     // 命名空间）并交给 app，因此重定向必须**注册在它之前**才能先拿到这个路径。
     ...(devtoolsEnabled ? [devtoolsRedirectPlugin()] : []),
-    ...(pluginOwnsDevApp ? [] : [ubeanDevRequestPlugin({})]),
+    ...(pluginOwnsDevApp
+      ? []
+      : [
+          ubeanDevRequestPlugin({
+            // DevTools 外壳挂在 `/__devtools/`，落在 `__` 保留命名空间里 —— 通用判据会把它
+            // 判成应用请求并 404（实测：CLI banner advertise 的入口此前不可用）。
+            passThrough: devtoolsEnabled ? ['/__devtools'] : []
+          })
+        ]),
     ...(hasUserViteConfig
       ? []
       : [

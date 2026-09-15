@@ -241,6 +241,14 @@ export interface DevRequestRouterOptions {
   /** `handler` 省略时的自举参数。 */
   bootstrap?: DevBootstrapOptions;
   /**
+   * 额外**必须交给 Vite** 的路径前缀。
+   *
+   * 有些由其他 Vite 插件挂载的路径也落在 `_` / `__` 保留命名空间里（例如 DevTools 外壳挂在
+   * `/__devtools/`）。判据把保留命名空间一律判给 ubean，于是这些路径会被交给应用 → 404。
+   * 由调用方显式声明，避免把某个插件的路径写死进通用判据。
+   */
+  passThrough?: string[];
+  /**
    * 跳过 HTML transform 的路径判定。预构建 SPA（如 `/_devtools`）的产物自带模块引用，
    * 经 `transformIndexHtml` 重写会被破坏。
    */
@@ -414,8 +422,14 @@ export function createUbeanRequestHandlers(
     }
   }
 
+  const passThrough = options.passThrough ?? [];
+  const isPassThrough = (url: string) => {
+    const pathname = url.split('?')[0].split('#')[0];
+    return passThrough.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  };
+
   const pre: Connect.NextHandleFunction = (req, res, next) => {
-    if (isViteResourceRequest(req.url || '/', req.headers)) {
+    if (isPassThrough(req.url || '/') || isViteResourceRequest(req.url || '/', req.headers)) {
       next();
       return;
     }

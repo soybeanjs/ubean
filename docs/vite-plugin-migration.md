@@ -65,9 +65,12 @@ vite.config.ts（用户唯一入口）
 | **RM-V03** | 统一 Node↔Web 适配 | 新建单一适配模块，替换 `vite-server.ts:95/119` 与 `server.ts:17/41` 两份重复实现 | 重复实现删除；dev 与 preview 行为不变 |
 | **RM-V04** | `env-runner` 兼容性 spike | 在 `examples/ubean-test` 验证 `node-worker` 与 vite-plus 0.3.1 的 `DevEnvironment` / `createServerHotChannel` / `vite/module-runner` 协同；同时验证 `miniflare` runner 可用性 | 最小 worker 能 fetch 返回 200；产出结论文档（含 Plan B 成本量化） |
 | **RM-V05** | **dev 拓扑回归网（硬前置）** | `packages/cli/test` 现状只覆盖 logging / security-headers / preview；新增 dev HTTP 拓扑断言：中间件顺序、SSR HTML 注入、页面 404 vs API 404、`/_devtools` 302、`/_openapi.json` | 新增测试在**旧实现**上全绿，作为迁移基线 |
+| **RM-P01–P05** | **生命周期性能基线（硬前置，见 [perf-regression-net.md](perf-regression-net.md)）** | 新增 `scripts/benchmark-lifecycle.mjs`：以 `experimental.viteBuilder` 为单变量开关；采集 dev 冷启动、变更生效延迟、build 墙钟与峰值 RSS；采集前断言新路径确实生效（防 R6 双轨分叉） | 旧实现上产出 committed `examples/ubean-test/benchmarks/perf-baseline.json`（p50 / p95 + 原始样本 + 环境记录）；R3 的「现状」由该文件定义 |
 | **RM-V06** | Builder API 契约测试 | 断言 vite-plus 的 environments 注册、`buildApp` 调用顺序、`builder.build(env)` 返回形态、`sharedConfigBuild` 行为 | 契约测试覆盖 ADR-0012 依赖的全部实验性 API；锁 `vite-plus-core@0.3.1` |
 
-> RM-V05 与 RM-V06 是硬前置：前者提供 DX 不倒退的判据，后者提供 `@experimental` API 的漂移告警。
+> RM-V05、RM-V06 与 RM-P01–P05 是硬前置：RM-V05 提供 DX 不倒退的**功能**判据，RM-P01–P05 提供**性能**判据（否则 ADR-0012 §3 的性能收益与 R3 的「≥ 现状」都无数字可依），RM-V06 提供 `@experimental` API 的漂移告警。
+>
+> RM-P05 必须在 Phase 1 之前完成：RM-V36 收敛后旧实现删除，基线将无法再产出。
 
 ### Phase 1 · dev 迁移（收益最大、风险最高）
 
@@ -79,9 +82,9 @@ vite.config.ts（用户唯一入口）
 | **RM-V10** | `configureServer` 请求路由 | pre 中间件：显式路由直通 + 资产/导航启发式（`Sec-Fetch-Dest` / 扩展名 / `?import` / `Accept`）；post 中间件兜底。**难点：页面 catch-all `/**` 必须正确区分于显式 API 路由，静态资源不得被 catch-all 吞掉** | 对齐 RM-V05 基线：静态资源正常、页面 404 返回 HTML、API 404 返回 JSON |
 | **RM-V11** | 宿主 `UbeanDevApp` | 迁移 `vite-server.ts:295-327` 的 bootstrap（`ssrLoadModule('virtual:ubean-server')` → `resolveServerConfig('dev')` → `applyServerConfig`）及 devtools、错误页、`/_openapi.json`、VFS 到宿主 dev app | devtools、OpenAPI、`defineServer` 配置生效，行为与现状一致 |
 | **RM-V12** | 摘除 CLI server 层 | 删除 `vite-server.ts:247-381`（http server 与 handler）、`:463-471`（DTK hack）、`:524-530`（middlewareMode + HMR 端口）、`:330/345/353`；`createViteDevServer` 退化为"装配 Vite 配置" | 文件大幅瘦身；`vite dev` 直接可用 |
-| **RM-V13** | watcher 合一 | 退役 `dev-server/watcher.ts` 的独立监听，复用 `server.watcher`；统一 `builder/src/vite.ts:120` 与 `vue-plugin.ts:261` 的监听策略；rescan 仅在 scan 目录增删时触发 | 单套 watcher；变更后 reload 行为不劣于 RM-V05 基线 |
+| **RM-V13** | watcher 合一 | 退役 `dev-server/watcher.ts` 的独立监听，复用 `server.watcher`；统一 `builder/src/vite.ts:120` 与 `vue-plugin.ts:261` 的监听策略；rescan 仅在 scan 目录增删时触发 | 单套 watcher；变更后 reload 行为不劣于 RM-V05 基线，且变更生效延迟 p50 不劣于 RM-P05 基线 |
 | **RM-V14** | `ubean dev` 薄别名 | `cli/src/dev.ts:61-316` 改为调 Vite `createServer`；保留参数解析、端口/网络地址 banner（`:225-260`）与 logging 闸门（`:106-125`） | `ubean dev` 与 `vite dev` 行为一致 |
-| **RM-V15** | dev 全量验收 | `examples/ubean-test` 全量测试 + `test/browser` e2e + 手工 DX 清单（SSR HTML、i18n 切换、islands 水合、Server Actions、cron、devtools、HMR 状态保留） | 全绿；DX 无倒退；Phase 1 可独立发布（`experimental.viteBuilder` 开关） |
+| **RM-V15** | dev 全量验收 | `examples/ubean-test` 全量测试 + `test/browser` e2e + 手工 DX 清单（SSR HTML、i18n 切换、islands 水合、Server Actions、cron、devtools、HMR 状态保留） | 全绿；DX 无倒退；**性能不劣于 RM-P05 基线**（dev 冷启动与变更生效延迟 p50）；Phase 1 可独立发布（`experimental.viteBuilder` 开关） |
 
 ### Phase 2 · build 迁移
 
@@ -94,7 +97,7 @@ vite.config.ts（用户唯一入口）
 | **RM-V20** | ssg 清理时机 | `cli/src/build.ts:305-312` 的 `dist/server` 删除挪到所有 env 构建 + prerender 之后；`UBEAN_KEEP_SSR` 语义保留 | ssg 产物不含 `dist/server`；其他 mode 不受影响 |
 | **RM-V21** | `ubean build` 薄别名 | `cli/src/build.ts:83-338` 改为 `createBuilder({ plugins: [ubeanPlugin({ _ubean: instance })] })` + `__ubean_build__` 标志防重复注册（对齐 `nitro:src/build/vite/build.ts:6-29`） | `ubean build` 与 `vite build` 产物一致 |
 | **RM-V22** | 基线重定 | 迁移完成后重新生成 `examples/ubean-test/benchmarks/bundle-baseline.json` | `pnpm analyze:check` 绿（5% 门禁） |
-| **RM-V23** | 构建矩阵验收 | 4 种 mode（fullstack / backend / spa / ssg）× preset（node / standard / cloudflare / vercel / netlify / bun / deno）× 有/无用户 vite.config；`scripts/benchmark-ssg.mjs` | 矩阵全绿；`dist/manifest.json`、preset 包装（`server.mjs` / `handler.mjs` / `worker.mjs` / `wrangler.toml`）产出与现状语义等价 |
+| **RM-V23** | 构建矩阵验收 | 4 种 mode（fullstack / backend / spa / ssg）× preset（node / standard / cloudflare / vercel / netlify / bun / deno）× 有/无用户 vite.config；`scripts/benchmark-lifecycle.mjs --toggle viteBuilder` | 矩阵全绿；`dist/manifest.json`、preset 包装（`server.mjs` / `handler.mjs` / `worker.mjs` / `wrangler.toml`）产出与现状语义等价；build 墙钟与峰值 RSS 的 p50 / p95 对照 `perf-baseline.json` |
 
 ### Phase 3 · preview 迁移
 
@@ -127,10 +130,11 @@ vite.config.ts（用户唯一入口）
 ## 4. 依赖与顺序
 
 ```
-Phase 0（RM-V01…V06）
-   ├─ RM-V05 回归网 ─┐（硬前置）
-   ├─ RM-V06 契约测 ─┤
-   └─ RM-V04 spike ──┘
+Phase 0（RM-V01…V06 + RM-P01…P05）
+   ├─ RM-V05 功能回归网 ─┐
+   ├─ RM-P05 性能基线 ───┤（硬前置）
+   ├─ RM-V06 契约测 ─────┤
+   └─ RM-V04 spike ──────┘
         ↓
 Phase 1 dev（RM-V07…V15）      Phase 2 build（RM-V16…V23）
         ↓                              ↓
@@ -144,6 +148,7 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 - Phase 1 与 Phase 2 可并行（前者只动 dev、后者只动 build），各自独立可发布。
 - Phase 3 的 RM-V24 依赖 Phase 2 的产物布局稳定。
 - RM-V18 与 RM-V27 是同一问题的两种解法，先做 RM-V18 解耦时序，再评估是否引入 `?assets`。
+- RM-P05 必须早于 Phase 1：基线只能在旧路径上产出，RM-V36 收敛后该窗口关闭。
 
 ## 5. 风险登记
 
@@ -151,7 +156,7 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 | --- | --- | --- | --- |
 | R1 | vite-plus Builder / Environment API 标注 `@experimental` | 契约随版本变化导致构建或 dev 失效 | RM-V06 契约测试 + 锁定 `vite-plus-core@0.3.1`；升级时跑 RM-V23 矩阵 |
 | R2 | `env-runner@0.2.3` 为 0.x 新包 | dev 稳定性直接受其影响 | 全部调用封装在 `EnvRunner` 接口（`runner.ts:55-59`）后；RM-V04 量化自研 Plan B 成本 |
-| R3 | dev DX 倒退（HMR 语义变化） | 用户感知最敏感 | 作用域化重载必须 ≥ 现状（现状为全量 rescan + full-reload）；RM-V05 基线与 RM-V15 手工 DX 清单强制走查 |
+| R3 | dev DX 倒退（HMR 语义变化） | 用户感知最敏感 | 作用域化重载必须 ≥ `examples/ubean-test/benchmarks/perf-baseline.json` 的 p50（RM-P05 在旧实现上冻结；旧实现的「全量 rescan + full-reload」不再作为口径）；RM-V05 拓扑基线与 RM-V15 走查 |
 | R4 | bundle 基线 / `analyze:check` 5% 门禁 | CI 红灯 | 迁移中以"产物语义等价"为准，RM-V22 完成后重定基线 |
 | R5 | DevTools 依赖 httpServer 绑定 | 移除 `httpServerBinderPlugin` 后 DTK 可能失效 | Vite 拥有 server 后绑定天然成立；RM-V11 / RM-V15 专项验证 |
 | R6 | 双轨期行为分叉（用户 config vs CLI 注入） | 两类项目表现不一致 | 两轨共用同一份 environment 构建配置；RM-V36 收敛 |
@@ -168,7 +173,7 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 | config 来源 | 有用户 `vite.config` / 无（CLI 注入） |
 | 命令 | `vite dev` / `ubean dev`、`vite build` / `ubean build`、`vite preview` / `ubean preview` |
 | 能力 | SSR HTML 注入、i18n 路由与切换、islands 水合、Server Actions、cron、devtools、OpenAPI、prerender 产物、`analyze:check` |
-| 回归 | `examples/ubean-test`、`test/browser`、`packages/cli/test`、`packages/builder/test`、`pnpm typecheck` |
+| 回归 | `examples/ubean-test`、`test/browser`、`packages/cli/test`、`packages/builder/test`、`pnpm typecheck`、性能对照 RM-P05 基线 |
 
 ## 7. 明确不对齐 Nitro 的部分
 

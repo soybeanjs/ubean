@@ -913,6 +913,7 @@ pnpm build            # 构建
 | 轻量 SSG 决策             | [docs/adr/0011-lightweight-ssg-direct-render.md](docs/adr/0011-lightweight-ssg-direct-render.md)                   | ssg 直接渲染路径（绕过 Hono 管道）；任务清单已删                                       |
 | Vite 插件化决策           | [docs/adr/0012-vite-plugin-first-lifecycle.md](docs/adr/0012-vite-plugin-first-lifecycle.md)                       | dev/build/preview 生命周期下放；不拆 ssr 环境；产物布局不变                            |
 | Vite 插件化方案           | [docs/vite-plugin-migration.md](docs/vite-plugin-migration.md)                                                     | 迁移任务清单（RM-V01…V36，落地后按 ADR-0007 删除）                                     |
+| 性能回归网方案            | [docs/perf-regression-net.md](docs/perf-regression-net.md)                                                         | 生命周期基准与体积闸门（RM-P01…P08，先于 Vite 插件化；落地后按 ADR-0007 删除）         |
 | 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)                                                                   | 中英文档源（overview / routing / runtime / framework-comparison / guide / reference…） |
 | CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)                                                     | CLI 命令文档                                                                           |
 | AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                                                                     | Agent 技能入口                                                                         |

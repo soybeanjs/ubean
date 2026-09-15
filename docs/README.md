@@ -12,6 +12,7 @@
 | --- | --- |
 | [roadmap.md](roadmap.md) | 2026 Q4 还债 / 2027 H1 用户可见缺口（ADR-0010） |
 | [vite-plugin-migration.md](vite-plugin-migration.md) | dev / build / preview 生命周期下放给 Vite 的整改方案与任务清单（ADR-0012） |
+| [perf-regression-net.md](perf-regression-net.md) | 性能回归网：生命周期基准与体积闸门绝对上限（RM-P01–P08，先于 Vite 插件化） |
 | [contracts/](contracts/) | studio 开口：scaffold JSON Schema + `.ubean/` codegen 契约 |
 
 ## 长期参考

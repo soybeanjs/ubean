@@ -1,4 +1,3 @@
-import { createServer as createHttpServer } from 'node:http';
 import { createServer as createViteServer } from 'vite';
 import type { Logger, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
@@ -111,12 +110,13 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   const strictPort = options.strictPort ?? false;
   let currentApp = initialApp;
   let currentLayouts = initialLayouts;
-  let httpServer: ReturnType<typeof createHttpServer> | null = null;
   let viteServer: ViteDevServer | null = null;
   // 首次请求前的初始化（locales / defineServer 配置 / init / onServerReady）。由
   // `enhanceAppWithVite` 在每次 app 实例更换后重建 —— 新实例需要重新应用配置并重新 init，
   // 旧实例的 ready 缓存不能复用（原先靠三个标志位手动重置，语义相同但更易漏）。
   let appReady: () => Promise<void> = async () => {};
+  // `stop()` 之后仍可能有 keep-alive 连接投递请求：给一个确定的 503 而不是打进已拆除的模块图。
+  let shuttingDown = false;
   // Refresh callback registered by the DevTools plugin — invoked from
   // `updateApp()` so the plugin can rebuild `DevToolsInfo` from the latest
   // scan data and push patches to connected clients via sharedState.
@@ -152,6 +152,13 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
    * 由 `ubeanDevRequestPlugin` 统一负责，两条路径（CLI 与 `vite dev`）共用。
    */
   async function handleAppRequest(request: Request): Promise<Response> {
+    if (shuttingDown) {
+      return new Response('ubean dev server is shutting down', {
+        status: 503,
+        headers: { 'Content-Type': 'text/plain; charset=utf-8' }
+      });
+    }
+
     const pathname = new URL(request.url).pathname;
 
     // 裸 `/_devtools` 与 `/_devtools/` 重定向到 Vite DevTools 外壳 `/__devtools/`：
@@ -166,56 +173,6 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
     return currentApp.fetch(request);
   }
-
-  // Create the HTTP server BEFORE Vite so that:
-  // 1. `@vitejs/devtools` can mount its WebSocket server during
-  //    `configureServer` (needs `server.httpServer` to be set)
-  // 2. Vite's HMR WebSocket can share the same port (no separate HMR port)
-  //
-  // RM-V10 起请求分发不再由这里完成：`ubeanDevRequestPlugin`（`@ubean/build`）把
-  // 「归 ubean 的请求」的判定与响应接管进 Vite 自己的中间件链（pre 判据 + post 兜底），
-  // 因此这里只负责把请求交给 `viteServer.middlewares`。`vite dev` 走同一条路径。
-  httpServer = createHttpServer(async (req, res) => {
-    // `stop()` tears the Vite server down while the listener is still able
-    // to deliver requests on established keep-alive connections (Node's
-    // `close()` only rejects *new* connections). Answer such a request
-    // instead of dereferencing a nulled server.
-    if (!viteServer) {
-      res.statusCode = 503;
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.end('ubean dev server is shutting down');
-      return;
-    }
-
-    try {
-      await new Promise<void>((resolve, reject) => {
-        viteServer!.middlewares(req, res, (err?: unknown) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-
-      // 中间件链里没人接手（正常路径下 post 兜底总会结束响应）——给一个确定的收尾，
-      // 避免请求悬挂。
-      if (!res.writableEnded) {
-        res.statusCode = 404;
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.end('Not Found');
-      }
-    } catch (err) {
-      viteServer.ssrFixStacktrace(err as Error);
-      if (!res.headersSent) {
-        res.statusCode = 500;
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.end(err instanceof Error ? err.message : 'Internal Server Error');
-      } else if (!res.writableEnded) {
-        res.end();
-      }
-    }
-  });
 
   // DevTools Kit (DTK) integration: load `@ubean/devtools`'s Vite plugin
   // lazily so `@ubean/dev` has no static dependency on it. The plugin's
@@ -287,31 +244,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   // backend 模式:无 Vue 页面、无 SSR,跳过 Vue 相关插件
   const isBackendMode = config.mode === 'backend';
 
-  // Vite-Plus does not set `viteServer.httpServer` when using
-  // `middlewareMode: { server: httpServer }` (unlike standard Vite).
-  // `@vitejs/devtools`'s `DevToolsServer` plugin (enforce: "post") reads
-  // `viteServer.httpServer` during its `configureServer` hook to decide
-  // whether to bind the WebSocket to the existing HTTP server (route-bound)
-  // or spin up a separate port. Without this fix, the WS lands on a random
-  // port that browsers may block (CORS/mixed-content) and the DevTools
-  // dock shell cannot establish a connection.
-  // This pre-plugin runs before `DevToolsServer` (post) and patches
-  // `viteServer.httpServer` so the WS binds to our HTTP server.
-  const httpServerBinderPlugin: Plugin = {
-    name: 'ubean:http-server-binder',
-    enforce: 'pre',
-    configureServer(server) {
-      if (!server.httpServer && httpServer) {
-        (server as any).httpServer = httpServer;
-      }
-    }
-  };
-
   // RM-V02：本 dev server 的虚拟模块注册表，显式注入给 core / vue 两个插件
   const devVirtualRegistry = createVirtualRegistry();
 
   const builtinPlugins: Plugin[] = [
-    httpServerBinderPlugin,
     // RM-V10：请求路由（pre 判据 + post 兜底）。放在最前面不必要 —— 它靠 Vite 的
     // 中间件装配顺序（钩子体内 use() 排在 transform 之前，返回的函数排在静态之后）定位，
     // 但排在数组前面能让「ubean 请求」的判定先于其他插件的 pre 钩子注册。
@@ -372,13 +308,16 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       // every import — client graph and inlined SSR graph — to the root copy.
       dedupe: ['vue', 'vue-router']
     },
+    // RM-V12：Vite 自己持有 HTTP server（不再是 CLI 建好、再用 `middlewareMode.server`
+    // 塞给它）。连带消失两处 workaround：
+    // - 不再需要给 `@vitejs/devtools` 打补丁填 `server.httpServer`（Vite 拥有 server 时它天然存在）；
+    // - 不再需要 `hmr.port = port + 1000`（HMR WebSocket 与页面共用同一端口）。
+    // 端口仍由 CLI 预探测（`findAvailablePort`）以便先给出「端口被占用，改用 X」的提示，
+    // 但真正的 listen 交给 Vite；`strictPort` 语义因此由 Vite 执行。
     server: {
-      middlewareMode: {
-        server: httpServer
-      },
-      hmr: {
-        port: actualPort + 1000
-      }
+      host,
+      port: actualPort,
+      strictPort
     },
     appType: 'custom',
     plugins,
@@ -475,29 +414,12 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
 
     async start() {
-      // Listen with auto-increment as a safety net. The probe above already
-      // resolved the port in the common case; this retry only fires if someone
-      // grabbed the port between the probe and this listen call, mirroring
-      // Vite's "never throw on port conflict" behaviour (unless strictPort).
-      await new Promise<void>((resolve, reject) => {
-        const tryListen = (port: number) => {
-          httpServer!.removeAllListeners('error');
-          httpServer!.once('error', (err: NodeJS.ErrnoException) => {
-            if (err.code === 'EADDRINUSE' && !strictPort) {
-              logger.warn(`Port ${port} is in use, trying ${port + 1} instead.`);
-              tryListen(port + 1);
-            } else {
-              reject(err);
-            }
-          });
-          httpServer!.listen(port, host, () => {
-            const addr = httpServer!.address();
-            actualPort = typeof addr === 'object' && addr ? addr.port : port;
-            resolve();
-          });
-        };
-        tryListen(actualPort);
-      });
+      // RM-V12：listen 由 Vite 执行（端口冲突时的自增/`strictPort` 抛错都由它按标准语义处理，
+      // 不再由 CLI 复刻一套）。listen 之后从 http server 读回真实端口：预探测与实际 listen
+      // 之间仍可能被别人抢走端口。
+      await viteServer!.listen();
+      const address = viteServer!.httpServer?.address();
+      if (address && typeof address === 'object') actualPort = address.port;
 
       options.onListen?.({
         port: actualPort,
@@ -508,26 +430,13 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     },
 
     async stop() {
-      // Tear down in reverse order of construction: stop listening and drop
-      // existing sockets first, then close Vite. Idle keep-alive connections
-      // (browser tabs) and in-flight responses otherwise keep
-      // `httpServer.close()`'s callback — and so the CLI's `process.exit()` —
-      // from ever firing, leaving a zombie process that holds the port and
-      // answers every request with an error. Dropping the sockets mirrors
-      // Vite's own server close. Vite is closed last so that no request can
-      // ever observe a half-torn-down server (see the `viteServer` guard in
-      // the request handler).
-      if (httpServer) {
-        const server = httpServer;
-        httpServer = null;
-        await new Promise<void>(resolve => {
-          server.close(() => resolve());
-          server.closeAllConnections();
-        });
-      }
+      // 先立起「正在关闭」标志：`viteServer.close()` 之后，已建立的 keep-alive 连接仍可能
+      // 投递请求（Node 的 `close()` 只拒绝新连接），此时不能让它们打进已拆除的模块图。
+      shuttingDown = true;
       if (viteServer) {
-        await viteServer.close();
+        const server = viteServer;
         viteServer = null;
+        await server.close();
       }
     },
 

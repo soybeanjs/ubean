@@ -235,6 +235,7 @@ async function measureServerChange(dev, runIndex) {
       observed: result.ok,
       latencyMs: result.ok ? result.elapsedMs : null,
       elapsedMs: result.elapsedMs,
+      reason: result.ok ? undefined : `${changeTimeoutMs}ms 内 /api/hello 未返回新内容`,
       scope: {
         probeAvailable: comparable,
         instancePreserved: comparable ? probeBefore.instance === probeAfter.instance : null,
@@ -257,6 +258,12 @@ async function measureServerChange(dev, runIndex) {
  *
  * 不依赖 Vite 的 stdout 日志（实测不可靠：`[vite] hmr update` 只对已进入 HMR 图的模块
  * 打印，无浏览器连接时通常一条都没有），改为请求模块端点直到新内容出现 —— 确定性信号。
+ *
+ * **先预热**：改文件之前必须先请求一次该模块，让它进入客户端环境的转换缓存。否则改完之后的
+ * 「第一次请求」本来就没有缓存可比，测到的是「首次请求耗时」而不是「失效传播耗时」——
+ * 跳过浏览器臂时会稳定地报出个位数毫秒（RM-P05 基线跑过浏览器阶段，恰好预热过，掩盖了这个
+ * 缺口；RM-V10 复查时才暴露）。预热同时充当断言：预热响应里**不得**含本次标记，否则说明
+ * 上一轮的还原没生效，这一轮的数字无意义。
  */
 async function measureClientChange(dev, runIndex) {
   const file = resolve(fixture, CLIENT_CHANGE_TARGET);
@@ -264,6 +271,18 @@ async function measureClientChange(dev, runIndex) {
   const marker = `perf-probe-client-${Date.now()}-${runIndex}`;
   const moduleUrl = `${dev.baseUrl}/${CLIENT_CHANGE_TARGET}`;
   try {
+    const warm = await pollUntil(moduleUrl, {
+      timeoutMs: 5_000,
+      intervalMs: 50,
+      predicate: ({ res }) => res.ok
+    });
+    if (!warm.ok) {
+      return { observed: false, latencyMs: null, reason: `模块端点预热失败（${CLIENT_CHANGE_TARGET}）` };
+    }
+    if (warm.lastBody?.includes(marker)) {
+      return { observed: false, latencyMs: null, reason: '预热响应已含本轮标记 —— 上一轮还原未生效，测量无意义' };
+    }
+
     writeFileSync(file, `${original}\n// ${marker}\n`);
     const result = await pollUntil(moduleUrl, {
       timeoutMs: changeTimeoutMs,
@@ -317,6 +336,8 @@ async function runDevPhase(arm) {
         const navigation = session ? await measureNavigation(session, attempt.dev.baseUrl) : { observed: false };
         const serverChange = await measureServerChange(attempt.dev, i);
         const clientChange = await measureClientChange(attempt.dev, i);
+        if (clientChange.reason) notes.push(`客户端变更未测到：${clientChange.reason}`);
+        if (serverChange.reason) notes.push(`服务端变更未测到：${serverChange.reason}`);
         const scope = serverChange.scope;
         const scopeLabel =
           scope.instancePreserved === null ? 'n/a' : scope.instancePreserved ? '单例保留' : '模块重新求值';

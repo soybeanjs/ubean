@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { createUbeanApp } from '@ubean/app';
 import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/build/codegen';
 import { loadUbeanConfig } from '@ubean/config';
@@ -282,12 +283,20 @@ export const devCommand: CommandDef = {
       process.exit(1);
     }
 
-    const watchDirs = ['api', 'pages', 'middleware', 'layouts', 'plugins', 'app', 'routes'];
+    // `locales` 与 builder 侧（builder/src/vite.ts 的 configureServer）保持一致，
+    // 否则语言文件改动不会触发 rescan。
+    const watchDirs = ['api', 'pages', 'middleware', 'layouts', 'plugins', 'app', 'routes', 'locales'];
+    // ResolvedConfig.srcDir 已是绝对路径；只监听真实存在的目录 —— 可选目录（plugins/app/api）
+    // 缺失是正常情况，交给上游过滤后，watcher 侧的失败才是真异常。
+    const watchTargets = watchDirs.map(d => `${config.srcDir}/${d}`).filter(target => existsSync(target));
     const watcher = createDevWatcher({
       cwd,
-      dirs: watchDirs.map(d => `${config.srcDir}/${d}`),
+      dirs: watchTargets,
       ignore: ['**/node_modules/**', '**/.git/**', '**/.ubean/**'],
       debounceMs: 150,
+      onError(error, target) {
+        logger.warn(`Cannot watch ${target}: ${error instanceof Error ? error.message : String(error)}`);
+      },
       async onChange(events) {
         const relevantEvents = events.filter(
           e => /\.(ts|js|vue|mjs|cjs|json)$/.test(e.relativePath) && !e.relativePath.includes('.bak')
@@ -302,6 +311,11 @@ export const devCommand: CommandDef = {
     });
 
     watcher.start();
+    if (watchTargets.length > 0 && watcher.count() === 0) {
+      logger.warn(
+        `File watching is inactive: none of ${watchTargets.length} watch targets could be registered. Hot reload will not work.`
+      );
+    }
 
     const cleanup = async () => {
       if (logging.lifecycle) logger.info('\nShutting down...');

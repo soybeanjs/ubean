@@ -1,6 +1,6 @@
 import { watch } from 'node:fs';
 import type { FSWatcher } from 'node:fs';
-import { join, relative } from 'pathe';
+import { isAbsolute, join, relative } from 'pathe';
 
 export interface WatchEvent {
   type: 'add' | 'change' | 'unlink';
@@ -13,6 +13,14 @@ export interface DevWatcherOptions {
   dirs: string[];
   ignore?: string[];
   onChange?: (events: WatchEvent[]) => void | Promise<void>;
+  /**
+   * 无法为某个目标建立监听时调用。
+   *
+   * 调用方应只传入存在的目标（缺失的可选目录请在上游过滤），因此这里不做静默吞掉：
+   * 路径拼接错误正是通过「每个目标都失败」暴露的，吞掉 ENOENT 会让整个 dev 热重载
+   * 悄无声息地失效。
+   */
+  onError?: (error: unknown, target: string) => void;
   debounceMs?: number;
 }
 
@@ -20,10 +28,12 @@ export interface DevWatcher {
   start(): void;
   stop(): void;
   addDir(dir: string): void;
+  /** 已成功建立的监听数（供调用方断言「至少有一个」）。 */
+  count(): number;
 }
 
 export function createDevWatcher(options: DevWatcherOptions): DevWatcher {
-  const { cwd, dirs, ignore = [], debounceMs = 100 } = options;
+  const { cwd, dirs, ignore = [], debounceMs = 100, onError } = options;
   const watchers: FSWatcher[] = [];
   const watchedDirs = new Set<string>();
   let pendingEvents: WatchEvent[] = [];
@@ -56,27 +66,36 @@ export function createDevWatcher(options: DevWatcherOptions): DevWatcher {
     }, debounceMs);
   }
 
-  function watchDir(dir: string): void {
-    if (watchedDirs.has(dir)) return;
-    watchedDirs.add(dir);
+  /**
+   * 监听目标可以是相对 cwd 的路径，也可以是绝对路径。
+   *
+   * `ResolvedConfig.srcDir` 解析后已是绝对路径，而 `path.join` 遇到绝对路径段不会
+   * 重置（只会继续追加），因此这里必须先判断，否则会拼出 `<cwd><cwd>/src/...`。
+   */
+  function resolveTarget(dir: string): string {
+    return isAbsolute(dir) ? dir : join(cwd, dir);
+  }
+
+  function watchDir(target: string): void {
+    if (watchedDirs.has(target)) return;
+    watchedDirs.add(target);
 
     try {
-      const w = watch(dir, { recursive: true }, (eventType, filename) => {
+      const w = watch(target, { recursive: true }, (eventType, filename) => {
         if (!filename) return;
-        const fullPath = join(dir, filename);
+        const fullPath = join(target, filename);
         const type: WatchEvent['type'] = eventType === 'rename' ? 'unlink' : 'change';
         queueEvent(type, fullPath);
       });
       watchers.push(w);
-    } catch {
-      // directory might not exist yet
+    } catch (error) {
+      onError?.(error, target);
     }
   }
 
   function start(): void {
     for (const dir of dirs) {
-      const fullDir = join(cwd, dir);
-      watchDir(fullDir);
+      watchDir(resolveTarget(dir));
     }
   }
 
@@ -93,8 +112,8 @@ export function createDevWatcher(options: DevWatcherOptions): DevWatcher {
   }
 
   function addDir(dir: string): void {
-    watchDir(join(cwd, dir));
+    watchDir(resolveTarget(dir));
   }
 
-  return { start, stop, addDir };
+  return { start, stop, addDir, count: () => watchers.length };
 }

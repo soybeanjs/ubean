@@ -147,7 +147,7 @@ Q4 还债（D01–D08）之后，请求链之外的下一处结构性债：dev /
 
 刻意的三处不对齐（理由见 ADR-0012）：不拆 `ssr` 环境、不引入 `.output/` 布局、不把 prerender 提到 server bundle 之前。
 
-**进展（2026-09-15）**：Phase 0 的硬前置已满足 —— `RM-V05`（dev 拓扑回归网，18 个纯 HTTP 断言在旧实现上全绿）、`RM-V06`（vite-plus Builder API 契约测试，9 个断言 + 版本锁 tripwire）、`RM-P01–P05`（性能基线）均已落地。实施 RM-V05 时发现并修复一个拓扑缺陷：`pages/404.vue` 存在时页面兜底 `*` 会按注册顺序抢先匹配晚注册的内置路由，使 `/_openapi.json`、`/_scalar` 变 404（修复 = OpenAPI 注册提前到 `registerRoutes` 之前）。RM-V06 实测澄清：`FetchableDevEnvironment` 仅类型导出，且两个 `shared*` 开关在当前配置下无可观测差异（已按此写实断言，未造出假契约）。**剩余 Phase 0**：`RM-V02`（虚拟模块无状态化）、`RM-V03`（统一 Node↔Web 适配）、`RM-V04`（env-runner spike）；另登记 R8（dev 下 404 组件内容不 SSR）待与 RM-V10 一并处理。
+**进展（2026-09-15）**：Phase 0 的硬前置已满足 —— `RM-V05`（dev 拓扑回归网，18 个纯 HTTP 断言在旧实现上全绿）、`RM-V06`（vite-plus Builder API 契约测试，9 个断言 + 版本锁 tripwire）、`RM-P01–P05`（性能基线）均已落地。实施 RM-V05 时发现并修复一个拓扑缺陷：`pages/404.vue` 存在时页面兜底 `*` 会按注册顺序抢先匹配晚注册的内置路由，使 `/_openapi.json`、`/_scalar` 变 404（修复 = OpenAPI 注册提前到 `registerRoutes` 之前）。RM-V06 实测澄清：`FetchableDevEnvironment` 仅类型导出，且两个 `shared*` 开关在当前配置下无可观测差异（已按此写实断言，未造出假契约）。**剩余 Phase 0**：`RM-V02`（虚拟模块无状态化）、`RM-V04`（env-runner spike）；`RM-V03`（统一 Node↔Web 适配）✅ 已落地；另登记 R8（dev 下 404 组件内容不 SSR）待与 RM-V10 一并处理。
 
 ## 6. 不做的伪缺口（避免 Q4 被带偏）
 

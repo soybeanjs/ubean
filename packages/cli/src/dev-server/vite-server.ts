@@ -1,5 +1,4 @@
 import { createServer as createHttpServer } from 'node:http';
-import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createServer as createViteServer } from 'vite';
 import type { Logger, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
@@ -22,6 +21,7 @@ import {
 } from '@ubean/shared/node';
 import { createFsOps } from '../shared/fs-ops';
 import { deleteScaffold, recoverScaffold, scaffold } from '../page';
+import { sendWebResponse, toWebRequest } from './node-web';
 import type { DevRunnerDevtoolsOptions } from './runner';
 
 const logger = getLogger('dev-server');
@@ -90,52 +90,6 @@ export interface ViteDevServerInstance {
   updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void;
   /** Send a `full-reload` event to all connected browser clients. */
   sendFullReload(): void;
-}
-
-async function toWebRequest(req: IncomingMessage, host: string, protocol: string): Promise<Request> {
-  const url = `${protocol}://${req.headers.host || host}${req.url || '/'}`;
-  const headers = new Headers();
-  for (const [key, value] of Object.entries(req.headers)) {
-    if (value) {
-      if (Array.isArray(value)) {
-        for (const v of value) headers.append(key, v);
-      } else {
-        headers.set(key, value);
-      }
-    }
-  }
-
-  const method = req.method || 'GET';
-  const body = method === 'GET' || method === 'HEAD' ? undefined : req;
-
-  return new Request(url, {
-    method,
-    headers,
-    body,
-    duplex: 'half'
-  } as RequestInit);
-}
-
-async function sendWebResponse(res: ServerResponse, webRes: Response): Promise<void> {
-  res.statusCode = webRes.status;
-  res.statusMessage = webRes.statusText;
-  webRes.headers.forEach((value, key) => {
-    res.setHeader(key, value);
-  });
-
-  if (webRes.body) {
-    const reader = webRes.body.getReader();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(value);
-      }
-    } finally {
-      reader.releaseLock();
-    }
-  }
-  res.end();
 }
 
 function loadScaffoldOps(): {

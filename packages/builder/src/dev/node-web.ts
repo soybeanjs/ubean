@@ -1,9 +1,10 @@
 /**
- * Node ↔ Web 适配（RM-V03，docs/vite-plugin-migration.md Phase 0）。
+ * Node ↔ Web 适配（RM-V03 收拢，RM-V10 从 CLI 迁到 `@ubean/build`）。
  *
  * dev 与 preview 都要把 `node:http` 的请求/响应与 Web `Request`/`Response` 互转。此前
  * `vite-server.ts` 与 `server.ts` 各有一份**逐字节相同**的实现 —— 两份一起改才不会分叉，
- * 因此收拢到这里，由两侧共同引用。行为与原来逐字一致（纯搬移）。
+ * 因此收拢成单模块。RM-V10 起请求路由由 `@ubean/build` 的 Vite 插件负责（`vite dev` 与
+ * `ubean dev` 共用），适配器必须与被两边都依赖的插件同层，故从 `packages/cli` 迁来此处。
  */
 import type { IncomingMessage, ServerResponse } from 'node:http';
 

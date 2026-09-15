@@ -4,7 +4,7 @@ import type { Logger, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
-import { ubeanPlugin, createVirtualRegistry } from '@ubean/build/vite';
+import { ubeanPlugin, ubeanDevRequestPlugin, createVirtualRegistry } from '@ubean/build/vite';
 import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
@@ -21,7 +21,6 @@ import {
 } from '@ubean/shared/node';
 import { createFsOps } from '../shared/fs-ops';
 import { deleteScaffold, recoverScaffold, scaffold } from '../page';
-import { sendWebResponse, toWebRequest } from './node-web';
 import type { DevRunnerDevtoolsOptions } from './runner';
 
 const logger = getLogger('dev-server');
@@ -101,59 +100,6 @@ function loadScaffoldOps(): {
   return { createFsOps, scaffold, deleteScaffold, recoverScaffold };
 }
 
-/** Vite's browser-facing prefix for virtual module ids (see `wrapId`). */
-const VALID_ID_PREFIX = '/@id/';
-/** Vite's URL-safe encoding of the `\0` virtual-module marker. */
-const NULL_BYTE_PLACEHOLDER = '__x00__';
-
-/**
- * Encode a module-graph URL into a browser-servable path.
- *
- * Virtual module ids carry a raw `\0` marker in the module graph (e.g.
- * UnoCSS's `\0/__uno.css`). A literal NUL is invalid inside HTML — parse5
- * rejects it with `unexpected-null-character`, which surfaces as a warning
- * in `transformIndexHtml`. Mirror Vite's own import-analysis rewriting
- * (`wrapId`: `/@id/` prefix + `\0` → `__x00__`) so the href stays valid
- * and resolvable by the dev server.
- */
-function toDevCssHref(url: string): string {
-  return url.includes('\0') ? `${VALID_ID_PREFIX}${url.replace(/\0/g, NULL_BYTE_PLACEHOLDER)}` : url;
-}
-
-/**
- * Collect render-blocking CSS URLs from the Vite dev module graph.
- *
- * In dev, CSS imported from JS (virtual uno.css entry, global.css, font css)
- * is only applied once the client entry module graph has fully loaded and
- * executed — SSR HTML paints unstyled for that gap (FOUC). Injecting the same
- * CSS modules as blocking `<link>` tags lets the browser fetch them in
- * parallel with the JS graph, so the first paint is styled.
- *
- * `?direct` tells Vite's transform middleware to return raw CSS
- * (`Content-Type: text/css`) instead of the JS style-injection wrapper.
- * Modules whose URL already carries a query (SFC `<style>` blocks such as
- * `*.vue?vue&type=style&...`) cannot be served this way and are skipped.
- */
-function collectDevCssLinks(moduleGraph: ViteDevServer['moduleGraph']): string[] {
-  const links = new Set<string>();
-  for (const mod of moduleGraph.idToModuleMap.values()) {
-    const { url, id } = mod;
-    if (!url || url.includes('?')) continue;
-    // Real .css files and virtual CSS modules (e.g. `/@id/__x00__/__uno.css`).
-    if (id?.endsWith('.css') || url.endsWith('.css')) {
-      links.add(`${toDevCssHref(url)}?direct`);
-    }
-  }
-  return [...links];
-}
-
-/** Inject blocking stylesheet links right before `</head>`. */
-function injectStylesheetLinks(html: string, hrefs: string[]): string {
-  if (!hrefs.length || !html.includes('</head>')) return html;
-  const tags = hrefs.map(href => `<link rel="stylesheet" href="${href}">`).join('');
-  return html.replace('</head>', `${tags}</head>`);
-}
-
 export async function createViteDevServer(options: ViteDevServerOptions): Promise<ViteDevServerInstance> {
   const { cwd, config, app: initialApp, layouts: initialLayouts = [] } = options;
   const host = options.host || 'localhost';
@@ -192,44 +138,85 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     logger.warn(`Port ${requestedPort} is in use, trying ${actualPort} instead.`);
   }
 
+  /**
+   * ubean 侧的应用请求处理（RM-V10 起由 Vite 中间件链中的请求路由中间件调用）。
+   *
+   * 从原先的 `httpServer` 处理器里整段搬来，语义未变：locales 按请求加载、用户
+   * `defineServer` 配置在首次 init 前应用、`onServerReady` 只调一次、随后交给 Hono app。
+   * HTML 的 `transformIndexHtml` / CSS 注入不在这里 —— 那属于「响应如何交给 Vite 处理」，
+   * 现在统一由 `ubeanDevRequestPlugin` 负责，两条路径（CLI 与 `vite dev`）共用。
+   */
+  async function handleAppRequest(request: Request): Promise<Response> {
+    const pathname = new URL(request.url).pathname;
+
+    // 裸 `/_devtools` 与 `/_devtools/` 重定向到 Vite DevTools 外壳 `/__devtools/`：
+    // 用户从 CLI banner 点进来时能看到带 dock 侧栏与全部标签页的完整 UI，而不是我们
+    // 单独的 SPA。`/_devtools/` **下**的静态资源必须保持直接可达（外壳以 iframe 载入
+    // `/_devtools/index.html#/route`），因此只重定向这两个「空路径」。
+    if (options.config.devtools.enabled && (pathname === '/_devtools' || pathname === '/_devtools/')) {
+      return new Response(null, { status: 302, headers: { Location: '/__devtools/' } });
+    }
+
+    // Locales load per-request via createI18nMiddleware.loadMessages
+    try {
+      await viteServer!.ssrLoadModule('ubean:locales');
+    } catch (err) {
+      logger.warn('[ubean] Failed to resolve locales module:', err);
+    }
+
+    // Apply user's defineServer config (plugins, hooks, onAppCreated)
+    // before init() — must happen before the first init() call.
+    if (!serverConfigApplied) {
+      serverConfigApplied = true;
+      try {
+        const serverMod = await viteServer!.ssrLoadModule('virtual:ubean-server');
+        if (serverMod?.resolveServerConfig) {
+          cachedServerConfig = serverMod.resolveServerConfig('dev');
+          await applyServerConfig(currentApp, cachedServerConfig);
+        }
+      } catch (err) {
+        logger.warn('[ubean] Failed to load server config:', err);
+      }
+    }
+
+    await currentApp.init();
+
+    // Call onServerReady once after the first successful init
+    if (!serverReadyCalled) {
+      serverReadyCalled = true;
+      if (cachedServerConfig?.onServerReady) {
+        try {
+          await cachedServerConfig.onServerReady(currentApp);
+        } catch (err) {
+          logger.warn('[ubean] onServerReady error:', err);
+        }
+      }
+    }
+
+    return currentApp.fetch(request);
+  }
+
   // Create the HTTP server BEFORE Vite so that:
   // 1. `@vitejs/devtools` can mount its WebSocket server during
   //    `configureServer` (needs `server.httpServer` to be set)
   // 2. Vite's HMR WebSocket can share the same port (no separate HMR port)
-  // The request handler references `viteServer` via closure — it will be set
-  // before any request arrives (server doesn't listen until `start()`).
+  //
+  // RM-V10 起请求分发不再由这里完成：`ubeanDevRequestPlugin`（`@ubean/build`）把
+  // 「归 ubean 的请求」的判定与响应接管进 Vite 自己的中间件链（pre 判据 + post 兜底），
+  // 因此这里只负责把请求交给 `viteServer.middlewares`。`vite dev` 走同一条路径。
   httpServer = createHttpServer(async (req, res) => {
+    // `stop()` tears the Vite server down while the listener is still able
+    // to deliver requests on established keep-alive connections (Node's
+    // `close()` only rejects *new* connections). Answer such a request
+    // instead of dereferencing a nulled server.
+    if (!viteServer) {
+      res.statusCode = 503;
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.end('ubean dev server is shutting down');
+      return;
+    }
+
     try {
-      // Redirect bare /_devtools and /_devtools/ (without subpaths) to the
-      // full Vite DevTools shell at /__devtools/. This ensures users who
-      // visit the CLI-advertised URL or click links to /_devtools get the
-      // complete DevTools UI with the dock sidebar and all tabs (both
-      // built-in Inspector/Terminal/Messages and ubean's custom panels),
-      // rather than seeing only our isolated SPA without the shell chrome.
-      //
-      // Static assets under /_devtools/ (index.html, JS/CSS chunks) must
-      // remain directly accessible because the DevTools shell loads our
-      // SPA inside an iframe via /_devtools/index.html#/route.
-      const url = req.url || '/';
-      const pathname = url.split('?')[0].split('#')[0];
-      if (devtoolsEnabled && (pathname === '/_devtools' || pathname === '/_devtools/')) {
-        res.statusCode = 302;
-        res.setHeader('Location', '/__devtools/');
-        res.end();
-        return;
-      }
-
-      // `stop()` tears the Vite server down while the listener is still able
-      // to deliver requests on established keep-alive connections (Node's
-      // `close()` only rejects *new* connections). Answer such a request
-      // instead of dereferencing a nulled server.
-      if (!viteServer) {
-        res.statusCode = 503;
-        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-        res.end('ubean dev server is shutting down');
-        return;
-      }
-
       await new Promise<void>((resolve, reject) => {
         viteServer!.middlewares(req, res, (err?: unknown) => {
           if (err) {
@@ -240,96 +227,21 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
         });
       });
 
-      if (res.writableEnded) {
-        return;
-      }
-
-      // Locales load per-request via createI18nMiddleware.loadMessages
-      try {
-        await viteServer!.ssrLoadModule('ubean:locales');
-      } catch (err) {
-        logger.warn('[ubean] Failed to resolve locales module:', err);
-      }
-
-      // Apply user's defineServer config (plugins, hooks, onAppCreated)
-      // before init() — must happen before the first init() call.
-      if (!serverConfigApplied) {
-        serverConfigApplied = true;
-        try {
-          const serverMod = await viteServer!.ssrLoadModule('virtual:ubean-server');
-          if (serverMod?.resolveServerConfig) {
-            cachedServerConfig = serverMod.resolveServerConfig('dev');
-            await applyServerConfig(currentApp, cachedServerConfig);
-          }
-        } catch (err) {
-          logger.warn('[ubean] Failed to load server config:', err);
-        }
-      }
-
-      await currentApp.init();
-
-      // Call onServerReady once after the first successful init
-      if (!serverReadyCalled) {
-        serverReadyCalled = true;
-        if (cachedServerConfig?.onServerReady) {
-          try {
-            await cachedServerConfig.onServerReady(currentApp);
-          } catch (err) {
-            logger.warn('[ubean] onServerReady error:', err);
-          }
-        }
-      }
-      // @ts-expect-error Socket 类型没有 encrypted 属性
-      const protocol = req.socket?.encrypted ? 'https' : 'http';
-      const webReq = await toWebRequest(req, host, protocol);
-      const webRes = await currentApp.fetch(webReq);
-
-      const contentType = webRes.headers.get('content-type') || '';
-      // The DevTools client serves a pre-built SPA with separate static
-      // assets. Vite's transformIndexHtml would break the pre-built module
-      // references and import-analysis. Skip transform for all devtools
-      // paths (client SPA root, assets, and legacy iframe alias).
-      const skipTransform = (req.url || '').startsWith('/_devtools');
-      if (contentType.includes('text/html') && webRes.body && !skipTransform) {
-        const html = await webRes.text();
-        // Inject render-blocking CSS links (FOUC fix) before Vite's client
-        // scripts are added — see collectDevCssLinks.
-        const cssLinks = collectDevCssLinks(viteServer!.moduleGraph);
-        const htmlWithCss = injectStylesheetLinks(html, cssLinks);
-        const transformedHtml = await viteServer!.transformIndexHtml(req.url || '/', htmlWithCss);
-        res.statusCode = webRes.status;
-        res.statusMessage = webRes.statusText;
-        webRes.headers.forEach((value, key) => {
-          res.setHeader(key, value);
-        });
-        res.end(transformedHtml);
-      } else {
-        await sendWebResponse(res, webRes);
+      // 中间件链里没人接手（正常路径下 post 兜底总会结束响应）——给一个确定的收尾，
+      // 避免请求悬挂。
+      if (!res.writableEnded) {
+        res.statusCode = 404;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.end('Not Found');
       }
     } catch (err) {
-      if (viteServer) {
-        viteServer.ssrFixStacktrace(err as Error);
-      }
+      viteServer.ssrFixStacktrace(err as Error);
       if (!res.headersSent) {
         res.statusCode = 500;
-        const errorHtml = `<!DOCTYPE html>
-<html>
-  <head>
-    <title>Server Error</title>
-    <style>
-      body { font-family: monospace; padding: 2rem; background: #1a1a1a; color: #ff6b6b; }
-      pre { background: #2d2d2d; padding: 1rem; border-radius: 4px; overflow-x: auto; }
-    </style>
-  </head>
-  <body>
-    <h1>Internal Server Error</h1>
-    <pre>${(err as Error).stack || (err as Error).message}</pre>
-  </body>
-</html>`;
-        res.setHeader('Content-Type', 'text/html');
-        res.end(errorHtml);
-      } else if (!res.writableEnded) {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.end(err instanceof Error ? err.message : 'Internal Server Error');
+      } else if (!res.writableEnded) {
+        res.end();
       }
     }
   });
@@ -429,6 +341,16 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
 
   const builtinPlugins: Plugin[] = [
     httpServerBinderPlugin,
+    // RM-V10：请求路由（pre 判据 + post 兜底）。放在最前面不必要 —— 它靠 Vite 的
+    // 中间件装配顺序（钩子体内 use() 排在 transform 之前，返回的函数排在静态之后）定位，
+    // 但排在数组前面能让「ubean 请求」的判定先于其他插件的 pre 钩子注册。
+    ubeanDevRequestPlugin({
+      handler: request => handleAppRequest(request),
+      // DevTools 客户端是预构建 SPA，其产物自带模块引用；经 `transformIndexHtml`
+      // 重写会被破坏（import-analysis 解析不了预构建引用）。`/_devtools/` 下的静态
+      // 资源本来就带扩展名，由 Vite 服务，这里只为可能的 HTML 响应兜住。
+      skipHtmlTransform: url => url.startsWith('/_devtools')
+    }),
     ...(isBackendMode
       ? []
       : [

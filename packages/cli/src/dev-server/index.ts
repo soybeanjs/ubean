@@ -22,7 +22,7 @@ export { startDevServer, type DevServer, type DevServerOptions } from './server'
 export { createViteDevServer, type ViteDevServerInstance, type ViteDevServerOptions } from './vite-server';
 
 // RM-V03：dev / preview 共用的 Node↔Web 适配（Phase 1 的 dev 路由与 preview 接管都会用到）
-export { toWebRequest, sendWebResponse } from './node-web';
+export { toWebRequest, sendWebResponse } from '@ubean/build/vite';
 
 export function formatDiagnostics(diagnostics: CapabilityDiagnosisResult): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];

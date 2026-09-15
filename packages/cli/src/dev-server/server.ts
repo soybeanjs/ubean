@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import type { UbeanApp } from '@ubean/app';
-import { sendWebResponse, toWebRequest } from './node-web';
+import { sendWebResponse, toWebRequest } from '@ubean/build/vite';
 
 export interface DevServerOptions {
   port: number;

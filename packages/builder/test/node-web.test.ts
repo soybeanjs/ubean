@@ -1,5 +1,5 @@
 /**
- * Node ↔ Web 适配器测试（RM-V03）。
+ * Node ↔ Web 适配器测试（RM-V03，RM-V10 起归属 @ubean/build）。
  *
  * 真实 `node:http` 服务器 + 真实 `fetch` 往返：只断言契约（URL/方法/头/body 与状态/头/
  * 流式 body 的互转），不 mock —— 这份适配是 Phase 1 的 dev 请求路由与 preview 接管共同的
@@ -9,7 +9,7 @@ import { createServer } from 'node:http';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { sendWebResponse, toWebRequest } from '../src/dev-server/node-web';
+import { sendWebResponse, toWebRequest } from '@ubean/build/vite';
 
 let server: Server;
 let baseUrl: string;

@@ -36,6 +36,18 @@ export {
   createUbeanDevEnvironmentFactory,
   type EnvRunnerLike
 } from './dev/dev-environment';
+
+// RM-V10：dev 请求路由（pre 判据 + post 兜底）与 Node↔Web 适配
+export {
+  ubeanDevRequestPlugin,
+  createUbeanRequestHandlers,
+  isViteResourceRequest,
+  collectDevCssLinks,
+  injectStylesheetLinks,
+  type DevRequestRouterOptions,
+  type DevRequestHandlers
+} from './dev/dev-request-router';
+export { toWebRequest, sendWebResponse } from './dev/node-web';
 export type { VirtualModuleRegistry, VirtualModuleResolver } from './virtual-registry';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];

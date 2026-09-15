@@ -42,6 +42,7 @@ export {
 export {
   ubeanDevRequestPlugin,
   createUbeanRequestHandlers,
+  getDevApp,
   isViteResourceRequest,
   collectDevCssLinks,
   injectStylesheetLinks,

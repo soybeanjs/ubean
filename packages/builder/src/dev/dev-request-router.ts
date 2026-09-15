@@ -270,6 +270,20 @@ async function defaultCronScheduler(): Promise<void> {
  * 复用同一个 promise 而不是每次请求重建：`bootstrapDevApp` 会扫盘并加载 SSR 图，重建等于
  * 每个请求都重扫；同时保证并发首请求只自举一次。
  */
+/**
+ * 自举出来的 app（供 DevTools 的 playground 等按需取用）。挂在 server 对象上，理由同
+ * dev-scan 的协调器：用户 `vite.config.ts` 由 Vite 打包加载，插件与 CLI 可能持有不同的模块实例。
+ */
+const DEV_APP_KEY = '__ubeanDevApp';
+
+/** 取该 dev server 上自举出的 app（还没自举时返回 undefined）。 */
+export function getDevApp(
+  server: ViteDevServer
+): { fetch: (request: Request) => Response | Promise<Response> } | undefined {
+  const holder = server as unknown as Record<string, unknown>;
+  return holder[DEV_APP_KEY] as { fetch: (request: Request) => Response | Promise<Response> } | undefined;
+}
+
 function createLazyBootstrapHandler(
   server: ViteDevServer,
   options: DevBootstrapOptions = {}
@@ -301,10 +315,15 @@ function createLazyBootstrapHandler(
   });
 
   return async request => {
-    bootstrapPromise ??= start();
+    bootstrapPromise ??= start().then(bootstrap => {
+      // 暴露给 DevTools 等外部消费者（rebuild 会替换实例，因此登记的是「当前实例」）
+      (server as unknown as Record<string, unknown>)[DEV_APP_KEY] = bootstrap.app;
+      return bootstrap;
+    });
     const bootstrap = await bootstrapPromise;
     await bootstrap.ready();
     // rebuild 会替换 app 实例，因此每个请求都从当前实例取（不能缓存 app 引用）
+    (server as unknown as Record<string, unknown>)[DEV_APP_KEY] = bootstrap.app;
     return bootstrap.app.fetch(request);
   };
 }

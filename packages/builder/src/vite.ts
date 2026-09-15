@@ -4,7 +4,8 @@ import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { createServerRouter } from '@ubean/routes';
 import { scanProject } from '@ubean/scan';
 import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
-import { join, relative, resolve } from 'pathe';
+import { relative, resolve } from 'pathe';
+import { getDevScanCoordinator } from './dev/dev-scan';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { transformMacros } from './macros';
 import {
@@ -64,6 +65,19 @@ export {
   type DevRendererOptions,
   type EnhanceDevAppOptions
 } from './dev/dev-host-app';
+
+// RM-V13：dev 扫描协调器（一套监听、一次扫描、一个重载顺序）
+export {
+  createDevScanCoordinator,
+  getDevScanCoordinator,
+  peekDevScanCoordinator,
+  onDevScan,
+  DEV_SCAN_DIRS,
+  type DevScanCoordinator,
+  type DevScanCoordinatorOptions,
+  type DevScanSource,
+  type DevScanSubscriber
+} from './dev/dev-scan';
 
 // RM-V11：宿主 dev app 的创建与自举（扫描 → createUbeanApp → enhance → ready）
 export {
@@ -222,55 +236,61 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     },
 
     configureServer(server) {
-      const watchDirs = ['routes', 'middleware', 'pages', 'layouts', 'plugins', 'locales'];
+      // RM-V13：监听、去抖、扫描与重载顺序统一交给 dev-scan 协调器。
+      //
+      // 原先这里自己 `server.watcher.add()` + 自己扫盘，判据与 vue 插件、CLI 的三套各不相同；
+      // 尤其 `full-reload` 的发送时机靠注释约束（「这里不要发，等 CLI 重扫完再发」），
+      // 而 vue 插件那边正是在立刻发 —— 于是浏览器会带着旧的 `definePage` 元数据刷新。
+      // 现在重载由协调器在所有订阅者完成之后统一发出。
+      const coordinator = getDevScanCoordinator(server, source => ({
+        rootDir: ubeanConfig!.rootDir,
+        srcDir: ubeanConfig!.srcDir,
+        dirs: ubeanConfig!.dir,
+        ignore: ubeanConfig!.scanOptions?.ignore,
+        source,
+        scan: () => scanProjectOnce(),
+        // 仅当没有其他订阅者（无 CLI 的 `vite dev`）时也保证重载 —— 协调器只认第一个 init，
+        // 因此这里定义的 reload 就是全局唯一的那一个。
+        reload: () => server.ws.send({ type: 'full-reload' })
+      }));
 
-      // config 在 buildStart 中已加载,此处一定可用
-      const config = ubeanConfig!;
-      // ResolvedConfig.srcDir 已是绝对路径,resolve 避免二次拼接(join 会把绝对路径追加到 rootDir 后)
-      const srcDir = resolve(config.rootDir, config.srcDir);
-
-      for (const dir of watchDirs) {
-        server.watcher.add(join(srcDir, dir));
-      }
-
-      server.watcher.on('add', handleFileChange);
-      server.watcher.on('unlink', handleFileChange);
-      server.watcher.on('change', handleFileChange);
-
-      async function handleFileChange(file: string) {
-        const relativePath = file.replace(`${srcDir}/`, '');
-        if (watchDirs.some(d => relativePath.startsWith(`${d}/`))) {
-          await scanAndRegister();
-          for (const mod of VIRTUAL_MODULES) {
-            const module = server.moduleGraph.getModuleById(VIRTUAL_PREFIX + mod);
-            if (module) {
-              server.moduleGraph.invalidateModule(module);
-            }
+      coordinator.subscribe(async (result, changed) => {
+        await applyScan(result);
+        for (const mod of VIRTUAL_MODULES) {
+          const module = server.moduleGraph.getModuleById(VIRTUAL_PREFIX + mod);
+          if (module) {
+            server.moduleGraph.invalidateModule(module);
           }
-          if (relativePath.startsWith('locales/')) {
+        }
+        if (changed.some(file => file.includes('/locales/'))) {
+          for (const file of changed.filter(f => f.includes('/locales/'))) {
             server.ws.send({ type: 'custom', event: 'ubean:locale-update', data: { file } });
           }
-          // Do NOT send `full-reload` here. The CLI's debounced rescan
-          // (which rebuilds the app and updates server-side route metadata)
-          // is responsible for triggering the reload via `sendFullReload()`
-          // once the new app is ready. Sending it here would race with the
-          // rescan, causing the browser to reload with stale `definePage`
-          // metadata — the exact "needs server restart" symptom.
         }
-      }
+      });
     }
   };
 
+  function scanProjectOnce() {
+    return scanProject({
+      cwd: ubeanConfig!.rootDir,
+      srcDir: ubeanConfig!.srcDir,
+      dirs: ubeanConfig!.dir,
+      ignore: ubeanConfig!.scanOptions?.ignore
+    });
+  }
+
   async function scanAndRegister() {
     if (!ubeanConfig) return;
+    await applyScan(await scanProjectOnce());
+  }
 
-    const result = await scanProject({
-      cwd: ubeanConfig.rootDir,
-      srcDir: ubeanConfig.srcDir,
-      dirs: ubeanConfig.dir,
-      ignore: ubeanConfig.scanOptions?.ignore
-    });
-
+  /**
+   * 依据扫描结果重建路由/中间件注册与虚拟模块。与扫描分离（RM-V13）：dev 下由
+   * `dev-scan.ts` 的协调器统一扫一次，三个订阅者各取所需。
+   */
+  async function applyScan(result: ScanResult): Promise<void> {
+    if (!ubeanConfig) return;
     const router = createServerRouter();
 
     for (const mw of result.middlewares) {

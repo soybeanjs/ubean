@@ -1,7 +1,7 @@
 import type { UbeanApp } from '@ubean/app';
 import type { ResolvedConfig } from '@ubean/config';
 import type { Preset, CapabilitySet, CapabilityDiagnosisResult } from '@ubean/preset';
-import type { ScannedLayout } from '@ubean/scan';
+import type { ScannedLayout, ScanResult } from '@ubean/scan';
 import { createViteDevServer } from './vite-server';
 import type { ViteDevServerInstance } from './vite-server';
 
@@ -35,6 +35,11 @@ export interface DevRunnerOptions {
   onBeforeReload?: () => void | Promise<void>;
   onAfterReload?: () => void | Promise<void>;
   onDiagnostics?: (diagnostics: CapabilityDiagnosisResult) => void;
+  /**
+   * 每次扫描后的回调（RM-V13）。扫描由 `@ubean/build` 的 dev-scan 协调器驱动：
+   * 一套监听、一次扫描、重放顺序由协调器保证。
+   */
+  onScan?: (result: ScanResult, changed: string[]) => void | Promise<void>;
   /** DevTools data accessors forwarded to the `@ubean/devtools` Vite plugin. */
   devtools?: DevRunnerDevtoolsOptions;
 }
@@ -47,6 +52,8 @@ export interface DevRunner {
   start(): Promise<void>;
   stop(): Promise<void>;
   reload(): Promise<void>;
+  /** 手动触发一次扫描（DevTools CRUD 后即时刷新；与文件事件走同一套协调器）。 */
+  rescan(): Promise<void>;
   updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void;
   /** Send a `full-reload` event to all connected browser clients. */
   sendFullReload(): void;
@@ -98,6 +105,7 @@ class ViteNodeDevRunner implements DevRunner {
       app: this.currentApp,
       layouts: this.currentLayouts,
       devtools: this.options.devtools,
+      onScan: this.options.onScan,
       onListen: ({ port, host, url, networkUrls }) => {
         this._port = port;
         this.options.onListen?.({ port, host, url, networkUrls });
@@ -120,6 +128,10 @@ class ViteNodeDevRunner implements DevRunner {
       this.viteDevServer.updateApp(this.currentApp, this.currentLayouts);
     }
     await this.options.onAfterReload?.();
+  }
+
+  async rescan(): Promise<void> {
+    await this.viteDevServer?.rescan();
   }
 
   updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void {

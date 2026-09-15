@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 import type { UbeanApp } from '@ubean/app';
 import { generateTypes, generateOpenApiTypesFromServer } from '@ubean/build/codegen';
 import { createDevApp } from '@ubean/build/vite';
@@ -16,8 +15,8 @@ import type { ScanResult, ScannedLayout } from '@ubean/scan';
 import { getLogger, setMinLevel } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { green, cyan, dim, bold } from 'kolorist';
-import { resolve } from 'pathe';
-import { createDevRunner, createDevWatcher, logDiagnostics } from './dev-server';
+import { relative, resolve } from 'pathe';
+import { createDevRunner, logDiagnostics } from './dev-server';
 
 const logger = getLogger('cli');
 
@@ -160,32 +159,46 @@ export const devCommand: CommandDef = {
       scanResult: currentScanResult
     } = await buildApp(cwd, config, logging);
 
-    // Reusable rescan function — called by the file watcher AND by the
-    // DevTools plugin (via `triggerRescan`) after CRUD operations so the
-    // DevTools list updates immediately without waiting for the watcher's
-    // debounce.
-    let rescanInProgress = false;
-    async function rescan() {
-      if (rescanInProgress) return;
-      rescanInProgress = true;
+    /**
+     * 每次扫描后重建宿主 app（RM-V13：由 dev-scan 协调器驱动）。
+     *
+     * 协调器已经统一做了「去抖 + 单飞 + 一次扫描」，这里只负责 ubean dev 特有的部分：
+     * 生成类型、重建 Hono app、更新 runner。**不再自己发 `full-reload`** —— 协调器会在所有
+     * 订阅者（含本函数）完成之后统一发，浏览器因此不会带着旧的 `definePage` 元数据刷新。
+     */
+    async function onScan(result: ScanResult, changed: string[]) {
+      if (changed.length > 0) {
+        const touched = changed.map(file => relative(cwd, file).replace(/\\/g, '/'));
+        lastChangedFile = touched[0] ?? null;
+        if (logging.lifecycle) logger.info(`File change detected: ${lastChangedFile}`);
+      }
+      reloadStartedAt = Date.now();
+
       try {
-        const { app: newApp, layouts: newLayouts, scanResult } = await buildApp(cwd, config, logging);
-        currentApp = newApp;
-        currentLayouts = newLayouts;
-        currentScanResult = scanResult;
+        if (logging.scan) logger.info('Scanning project files...');
+        await generateTypes(result, {
+          cwd,
+          srcDir: config.srcDir,
+          buildDir: '.ubean',
+          dirs: config.dir,
+          autoImports: config.autoImports,
+          components: config.components
+        });
+
+        const { app, layouts } = await createDevApp({
+          rootDir: cwd,
+          config,
+          scanResult: result,
+          configureApp: devRequestLogger(logging)
+        });
+        currentApp = app;
+        currentLayouts = layouts;
+        currentScanResult = result;
+
         runner.updateApp(currentApp, currentLayouts);
         await runner.reload();
-        // Trigger a full browser reload AFTER the server-side app has been
-        // rebuilt with the latest `definePage` metadata. Previously the Vite
-        // plugin's file watcher sent `full-reload` immediately — racing with
-        // this debounced rescan and leaving the browser with stale route meta
-        // (the "must restart server" symptom). Now the reload is sequenced:
-        // scan → rebuild app → update runner → reload browser.
-        runner.sendFullReload();
       } catch (err) {
         logger.error(`Rescan failed: ${err instanceof Error ? err.message : String(err)}`);
-      } finally {
-        rescanInProgress = false;
       }
     }
 
@@ -204,6 +217,7 @@ export const devCommand: CommandDef = {
       capabilities,
       app: currentApp,
       layouts: currentLayouts,
+      onScan,
       // DevTools data accessors — the Vite plugin reads these to build the
       // `DevToolsInfo` shared state, replacing the old RPC seeding pattern.
       devtools: {
@@ -220,7 +234,7 @@ export const devCommand: CommandDef = {
           dir: config.dir
         }),
         getCustomTabs: () => getCustomTabs(),
-        triggerRescan: () => rescan()
+        triggerRescan: () => runner.rescan()
         // AI config is sourced from env vars (UBEAN_AI_API_KEY / OPENAI_API_KEY)
         // inside the plugin's `buildDevToolsInfo`.
       },
@@ -286,55 +300,12 @@ export const devCommand: CommandDef = {
 
     // `locales` 与 builder 侧（builder/src/vite.ts 的 configureServer）保持一致，
     // 否则语言文件改动不会触发 rescan。
-    const watchDirs = ['api', 'pages', 'middleware', 'layouts', 'plugins', 'app', 'routes', 'locales'];
-    // 入口文件（`app.ts` / `app.vue` / `App.vue` / `server.ts` …）不在任何被监听的目录里，
-    // 但同样决定服务端行为（appRoot、defineApp、defineServer），必须单独监听。
-    // 用扫描器自己的检测结果，避免在这里重复一份文件名与扩展名清单。
-    const watchEntries = [
-      currentScanResult?.appEntry.shared,
-      currentScanResult?.appEntry.server,
-      currentScanResult?.appEntry.client,
-      currentScanResult?.appEntry.root,
-      currentScanResult?.serverEntry.shared,
-      currentScanResult?.serverEntry.dev,
-      currentScanResult?.serverEntry.prod
-    ].flatMap(entry => (entry?.exists && entry.fullPath ? [entry.fullPath] : []));
-    // ResolvedConfig.srcDir 已是绝对路径；只监听真实存在的目标 —— 可选目录（plugins/app/api）
-    // 与缺失的入口文件都属正常情况，交给上游过滤后，watcher 侧的失败才是真异常。
-    const watchTargets = [...watchDirs.map(d => `${config.srcDir}/${d}`), ...watchEntries].filter(target =>
-      existsSync(target)
-    );
-    const watcher = createDevWatcher({
-      cwd,
-      dirs: watchTargets,
-      ignore: ['**/node_modules/**', '**/.git/**', '**/.ubean/**'],
-      debounceMs: 150,
-      onError(error, target) {
-        logger.warn(`Cannot watch ${target}: ${error instanceof Error ? error.message : String(error)}`);
-      },
-      async onChange(events) {
-        const relevantEvents = events.filter(
-          e => /\.(ts|js|vue|mjs|cjs|json)$/.test(e.relativePath) && !e.relativePath.includes('.bak')
-        );
-
-        if (relevantEvents.length === 0) return;
-
-        lastChangedFile = relevantEvents[0].relativePath;
-        if (logging.lifecycle) logger.info(`File change detected: ${lastChangedFile}`);
-        await rescan();
-      }
-    });
-
-    watcher.start();
-    if (watchTargets.length > 0 && watcher.count() === 0) {
-      logger.warn(
-        `File watching is inactive: none of ${watchTargets.length} watch targets could be registered. Hot reload will not work.`
-      );
-    }
-
+    // RM-V13：CLI 不再自建 fs.watch 监听。文件监听、去抖、扫描与重载顺序统一由
+    // `@ubean/build` 的 dev-scan 协调器负责（复用 Vite 自己的 `server.watcher`），
+    // 本进程只在 `onScan` 回调里重建 app（见上）。
+    // 此前这里是第三套监听：判据与两个插件各不相同，且会与它们**各扫一遍盘**。
     const cleanup = async () => {
       if (logging.lifecycle) logger.info('\nShutting down...');
-      watcher.stop();
       await runner.stop();
       process.exit(0);
     };

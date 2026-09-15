@@ -15,8 +15,6 @@ export {
   type DevRunnerDevtoolsOptions
 } from './runner';
 
-export { createDevWatcher, type DevWatcher, type DevWatcherOptions, type WatchEvent } from './watcher';
-
 export { startDevServer, type DevServer, type DevServerOptions } from './server';
 
 export { createViteDevServer, type ViteDevServerInstance, type ViteDevServerOptions } from './vite-server';

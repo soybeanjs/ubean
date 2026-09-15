@@ -6,6 +6,8 @@ import {
   createDevAppReady,
   createVirtualRegistry,
   enhanceDevApp,
+  onDevScan,
+  peekDevScanCoordinator,
   ubeanDevRequestPlugin,
   ubeanPlugin
 } from '@ubean/build/vite';
@@ -14,7 +16,7 @@ import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { getVueLocaleParam } from '@ubean/i18n';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
-import type { ScannedLayout } from '@ubean/scan';
+import type { ScanResult, ScannedLayout } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
 import {
   findAvailablePort,
@@ -81,6 +83,8 @@ export interface ViteDevServerOptions {
   /** DevTools data accessors forwarded to the `@ubean/devtools` Vite plugin. */
   devtools?: DevRunnerDevtoolsOptions;
   onListen?: (info: { port: number; host: string; url: string; networkUrls: string[] }) => void;
+  /** 每次扫描后的回调（RM-V13：扫描由 `@ubean/build` 的 dev-scan 协调器驱动）。 */
+  onScan?: (result: ScanResult, changed: string[]) => void | Promise<void>;
 }
 
 export interface ViteDevServerInstance {
@@ -90,6 +94,8 @@ export interface ViteDevServerInstance {
   readonly viteServer: ViteDevServer;
   start(): Promise<void>;
   stop(): Promise<void>;
+  /** 手动触发一次扫描（DevTools CRUD 后即时刷新）。 */
+  rescan(): Promise<void>;
   updateApp(app: UbeanApp, layouts?: ScannedLayout[]): void;
   /** Send a `full-reload` event to all connected browser clients. */
   sendFullReload(): void;
@@ -117,6 +123,8 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
   let appReady: () => Promise<void> = async () => {};
   // `stop()` 之后仍可能有 keep-alive 连接投递请求：给一个确定的 503 而不是打进已拆除的模块图。
   let shuttingDown = false;
+  // dev-scan 订阅的取消函数（RM-V13）
+  let cleanupScanSubscription: (() => void) | null = null;
   // Refresh callback registered by the DevTools plugin — invoked from
   // `updateApp()` so the plugin can rebuild `DevToolsInfo` from the latest
   // scan data and push patches to connected clients via sharedState.
@@ -351,6 +359,15 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
     }
   });
 
+  // RM-V13：把「扫描后重建 app」注册到 dev-scan 协调器。协调器由插件在 `configureServer`
+  // 期间建立，因此此刻已存在；即便不存在也会先登记、建实例时转交（`onDevScan` 的语义）。
+  // 三大订阅者（core 虚拟模块 / vue 虚拟模块 / 本回调）由协调器串行 await，随后统一发
+  // `full-reload` —— 浏览器不会在 app 重建完成前刷新。
+  if (options.onScan) {
+    const handler = options.onScan;
+    cleanupScanSubscription = onDevScan(viteServer, handler);
+  }
+
   // SSR 渲染器必须经 Vite SSR 图加载,而不是在 CLI 的 Node ESM 域静态
   // import:静态 import 会让 `@ubean/client` 用自身嵌套的 vue-router 副本
   // 创建 router(provide 侧),而组件(Link/PageView)在 Vite SSR 图里解析到
@@ -433,11 +450,17 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       // 先立起「正在关闭」标志：`viteServer.close()` 之后，已建立的 keep-alive 连接仍可能
       // 投递请求（Node 的 `close()` 只拒绝新连接），此时不能让它们打进已拆除的模块图。
       shuttingDown = true;
+      cleanupScanSubscription?.();
+      cleanupScanSubscription = null;
       if (viteServer) {
         const server = viteServer;
         viteServer = null;
         await server.close();
       }
+    },
+
+    async rescan() {
+      await peekDevScanCoordinator(viteServer!)?.rescan();
     },
 
     updateApp(app: UbeanApp, layouts?: ScannedLayout[]) {

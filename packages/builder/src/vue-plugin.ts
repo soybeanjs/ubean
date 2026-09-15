@@ -10,9 +10,11 @@ import { getVueLocaleParam } from '@ubean/i18n';
 import { ubeanMdxPlugin } from '@ubean/markdown';
 import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
+import type { ScanResult } from '@ubean/scan';
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
 import { join, resolve } from 'pathe';
 import { getAutoImportPresets, resolveAutoImportsConfig, resolveComponentsConfig, toArray } from './codegen';
+import { getDevScanCoordinator } from './dev/dev-scan';
 import { getComponentResolvers } from './registry';
 import { ssrSingletonDevPolicy } from './ssr-singleton';
 import { createVirtualRegistry } from './virtual-registry';
@@ -111,14 +113,26 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     return mod.load();
   }
 
-  async function scanAndRegister() {
-    const result = await scanProject({
+  function scanProjectOnce() {
+    return scanProject({
       cwd: ubeanConfig.rootDir,
       srcDir: ubeanConfig.srcDir,
       dirs: ubeanConfig.dir,
       ignore: ubeanConfig.scanOptions?.ignore
     });
+  }
 
+  async function scanAndRegister() {
+    applyScan(await scanProjectOnce());
+  }
+
+  /**
+   * 依据扫描结果重建本插件的虚拟模块。
+   *
+   * 与扫描分离（RM-V13）：dev 下扫描由 `dev-scan.ts` 的协调器统一触发一次，core / vue / CLI
+   * 三个订阅者各取所需；`buildStart` 与构建期则继续走 `scanAndRegister()`。
+   */
+  function applyScan(result: ScanResult): void {
     virtualRegistry.register(
       createVuePagesVirtualModule(
         result.pages,
@@ -261,32 +275,29 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     },
 
     configureServer(server) {
-      const watchDirs = ['pages', 'layouts', 'app'];
+      // RM-V13：不再自建监听、不再自己扫盘，也不再自己发 `full-reload`。
+      // 扫描由 dev-scan 协调器统一触发一次；重载由协调器在所有订阅者（含 CLI 的 app 重建）
+      // 完成之后发出 —— 原实现在这里立刻 `full-reload`，会与 CLI 的重建抢跑，让浏览器带着
+      // 旧的 `definePage` 元数据刷新。
+      const coordinator = getDevScanCoordinator(server, source => ({
+        rootDir: ubeanConfig.rootDir,
+        srcDir: ubeanConfig.srcDir,
+        dirs: ubeanConfig.dir,
+        ignore: ubeanConfig.scanOptions?.ignore,
+        source,
+        scan: scanProjectOnce,
+        reload: () => server.ws.send({ type: 'full-reload' })
+      }));
 
-      for (const dir of watchDirs) {
-        server.watcher.add(join(srcDir, dir));
-      }
-
-      async function handleFileChange(file: string) {
-        const rel = file.replace(`${srcDir}/`, '');
-        const isAppFile = /^(app(\.(server|client))?|App)\.(ts|js|mjs|mts|vue)$/.test(rel);
-        const isServerFile = /^server(\.(dev|prod))?\.(ts|js|mjs|mts)$/.test(rel);
-        const isMarkdownFile = new RegExp(`\\.(${mdExtensions.join('|')})$`).test(rel);
-        if (isAppFile || isServerFile || watchDirs.some(d => rel.startsWith(`${d}/`)) || isMarkdownFile) {
-          await scanAndRegister();
-          for (const vid of VIRTUAL_IDS) {
-            const mod = server.moduleGraph.getModuleById(toResolvedVirtualId(vid));
-            if (mod) {
-              server.moduleGraph.invalidateModule(mod);
-            }
+      coordinator.subscribe(result => {
+        applyScan(result);
+        for (const vid of VIRTUAL_IDS) {
+          const mod = server.moduleGraph.getModuleById(toResolvedVirtualId(vid));
+          if (mod) {
+            server.moduleGraph.invalidateModule(mod);
           }
-          server.ws.send({ type: 'full-reload' });
         }
-      }
-
-      server.watcher.on('add', handleFileChange);
-      server.watcher.on('unlink', handleFileChange);
-      server.watcher.on('change', handleFileChange);
+      });
     }
   };
 

@@ -11,6 +11,13 @@ import { defineHandler } from 'ubean/server';
 const instance = Math.random().toString(36).slice(2, 10);
 const evaluatedAt = Date.now();
 
+/**
+ * 热重载回归探针的**可改写字面量**：`packages/cli/test/dev-reload.test.ts` 会把它改成随机标记
+ * 并断言响应里出现该标记，然后还原。改这个字面量必须能反映到响应里 —— 也就是「文件变更 →
+ * 重扫 → 重建 app → 新路由生效」整条链路真的通，而不只是 Vite 自己重转了模块。
+ */
+const probeTag = 'initial';
+
 export const GET = defineHandler(c => {
-  return c.json({ instance, evaluatedAt, pid: process.pid });
+  return c.json({ instance, evaluatedAt, pid: process.pid, tag: probeTag });
 });

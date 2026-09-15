@@ -108,7 +108,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
 | **RM-P01** ✅ | 生命周期基准脚本 | 新增 `scripts/benchmark-lifecycle.mjs`（度量原语抽到 `scripts/lib/metrics.mjs`）：`--toggle <arm>` 单变量切换；采集 dev 冷启动、变更生效（服务端 HTTP 轮询 / 客户端模块端点轮询）、build 墙钟与峰值 RSS | `pnpm benchmark:lifecycle` 可跑；输出表格 + `--json`；`--fixture` 可换项目；`--skip-dev` / `--skip-build` 可分段 |
-| **RM-P02** 🟡 | 生效证明 | 每臂采集前调用 `assertEngaged()`；`viteBuilder` 臂在开关不存在时**硬失败**并说明「开关缺失会让两臂都跑在旧路径」 | 反向场景已成立：`--toggle viteBuilder` 现在直接失败，不会产出假对比。**待补**：开关落地后改为「检测新路径特征（environments 注册 / 单 `createBuilder` / worker `ModuleRunner`）失败即中止」 |
+| **RM-P02** ✅ | 生效证明 | `viteBuilder` 臂改为跑 **`vp dev`（无 CLI 参与）** 并用示例配置的 `UBEAN_VITE_BUILDER=1` 打开开关：请求路由与宿主 app 只可能来自插件，数字必然出自新路径；启动后 `assertEngaged(baseUrl)` 断言 `/` 真的返回 SSR 页面（`class="home"`），否则中止而不是产出假对比。每次迭代都执行，因此「两臂跑同一路径」无法悄悄发生 | RM-V07/V08 落地后从硬失败改为可运行（原硬失败的理由是开关当时不存在）。实测两臂均可跑通并各自观测 3/3；`viteBuilder` 臂的冷启动 1.63s、服务端变更 222–328ms、客户端变更 105ms、reload 单例保留 3/3 —— 与 legacy 臂同量级 |
 | **RM-P03** ✅ | 统计口径 | `scripts/lib/metrics.mjs` 提供 `summarizeSamples` / `quantile`；warmup + N 迭代、p50 / p95、原始样本与运行环境（Node / 平台 / CPU / 内存）落盘；`--runs` / `--warmup` 覆盖 | 样本文件含全部原始值；报告含 p50 / p95；`benchmark-ssg.mjs` 口径不受影响（未改动） |
 | **RM-P04** ✅ | reload 正确性对照 | 探针路由 `examples/ubean-test/src/routes/api/perf-probe.ts` 暴露模块级实例标识；基准脚本在服务端变更前后各读一次，复用同一次 reload 而不额外制造重载；仅在本次变更已生效时判读（防假阴性） | **旧实现结论：保留**（5/5：实例标识不变、进程未重启、模块重新求值 0 次）——即服务端模块图本就按文件失效。整改后必须仍为「保留」；若变为「重新求值」即为 R3 所指的倒退 |
 
@@ -118,7 +118,18 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 | --- | --- | --- | --- |
 | **RM-P05** ✅ | 旧实现基线冻结 | `examples/ubean-test/benchmarks/perf-baseline.json` 在旧路径上产出（warmup 1 + 5 次，Node v24.21.0 / darwin-arm64 / Apple M1 Max）；§2.1 的 watcher 缺陷修复后重采，七项指标 + reload 正确性全部有结论 | p50 / p95：dev 冷启动 1.69s / 1.70s、首个岛屿水合 155ms / 166ms、站内导航 121ms / 125ms、服务端变更 222ms / 223ms、客户端变更 106ms / 107ms、build 墙钟 1.62s / 1.64s、峰值内存 608.9MB / 616.2MB；四项观测率均 5/5，reload 单例保留 5/5。R3 与 RM-V13 / V15 / V23 引用该文件 |
 
-**迁移中的复测（RM-V10 之后，2026-09-15）**：`pnpm benchmark:lifecycle -- --skip-browser --skip-build`（warmup 1 + 3）—— dev 冷启动 **1.61s**（基线 1.69s）、服务端变更 **219ms**（基线 222ms）、客户端变更 **105ms**（基线 106ms）、reload 单例保留 **3/3**（模块重新求值 0、进程重启 0）。RM-V09（作用域化失效）/ RM-V10（请求路由迁进 Vite 插件）均未造成可观测倒退，R3 与 RM-V13 的判据继续有效；committed 基线不动（它绑定的仍是旧路径与 5 次迭代口径）。
+**迁移中的复测（RM-V10 之后，2026-09-15）**：`pnpm benchmark:lifecycle -- --skip-browser --skip-build`（warmup 1 + 3）—— dev 冷启动 **1.61s**（基线 1.69s）、服务端变更 **219ms**（基线 222ms）、客户端变更 **105ms**（基线 106ms）、reload 单例保留 **3/3**（模块重新求值 0、进程重启 0）。RM-V09（作用域化失效）/ RM-V10（请求路由迁进 Vite 插件）均未造成可观测倒退，R3 与 RM-V13 的判据继续有效；committed 基线不动（它绑定的仍是旧路径与 5 次迭代口径）。**迁移中的复测（RM-V10 之后，2026-09-15）**：`pnpm benchmark:lifecycle -- --skip-browser --skip-build`（warmup 1 + 3）—— dev 冷启动 **1.61s**（基线 1.69s）、服务端变更 **219ms**（基线 222ms）、客户端变更 **105ms**（基线 106ms）、reload 单例保留 **3/3**（模块重新求值 0、进程重启 0）。RM-V09（作用域化失效）/ RM-V10（请求路由迁进 Vite 插件）均未造成可观测倒退，R3 与 RM-V13 的判据继续有效；committed 基线不动（它绑定的仍是旧路径与 5 次迭代口径）。
+
+**RM-V15 的开关两侧对照（2026-09-16，`--skip-browser --skip-build --runs 3 --warmup 1`）**：
+
+| 指标 | legacy（`ubean dev`） | viteBuilder（`vp dev`，开关打开） |
+| --- | --- | --- |
+| dev 冷启动 | 1.58s | 1.63s |
+| 变更生效 · 服务端 | 222ms（样本 220/220/338） | 325ms（样本 328/222/325） |
+| 变更生效 · 客户端 | 105ms | 105ms |
+| reload 单例保留 | 3/3 | 3/3 |
+
+两臂的**分布形态相同**（都存在 ~220ms 与 ~325ms 两档），说明差异来自采样落在哪一档，而不是路径本身；带浏览器阶段的那次采集（Chromium 同时占用 CPU）三档全落在 ~329ms，而未跑浏览器时 p50 回到 222ms —— 据此判断慢档是**重载路径上的 CPU 密集工作（scanProject + generateTypes + app 重建）在负载下被拉长**，而不是 fs 事件延迟（客户端变更指标同样是 fs 事件驱动，却始终稳定在 105ms）。该结论基于观测相关性，未做逐段埋点，故保留为「已刻画、未根治」；RM-V15 的判据 p50（安静环境）达标。
 
 ### Phase 2 · 体积闸门升级（与迁移解耦，可独立合入）
 

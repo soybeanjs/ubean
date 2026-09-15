@@ -91,29 +91,40 @@ const baselineOut = argValue('--out', null);
 const ARMS = {
   legacy: {
     label: 'legacy',
-    describe: '当前编排：CLI 自建 HTTP server + 宿主 ssrLoadModule + 两次 viteBuild',
+    describe: '`ubean dev` 旧编排路径（开关关闭）',
     env: () => ({}),
+    /** dev 命令（不传 --port 时由 `startDev` 追加）。 */
+    devCommand: () => ['exec', 'ubean', 'dev'],
     /** 旧路径始终生效，无需断言。 */
     assertEngaged: () => true
   },
   viteBuilder: {
     label: 'viteBuilder',
-    describe: 'Vite 插件优先：插件注册 environments + 自定义 DevEnvironment + 单 createBuilder',
-    env: () => ({ UBEAN_EXPERIMENTAL_VITE_BUILDER: '1' }),
-    assertEngaged() {
-      throw new Error(
-        [
-          '「viteBuilder」臂暂不可运行：`experimental.viteBuilder` 尚未在 @ubean/config 中实现。',
-          '',
-          '这是 RM-P02 的**刻意硬失败**。开关不存在时两个臂都会跑在旧路径上，数字接近，',
-          '会被误读成「迁移没有性能变化」—— 正是「生效证明」要拦下的假对比。',
-          '',
-          '落地 RM-V07 / RM-V08（`config` 钩子注册 client 与 ubean environments、自定义',
-          'DevEnvironment）后，在此补齐生效断言：构建侧的证据是 environments 注册 + 单次',
-          'createBuilder，dev 侧的证据是 env-runner worker 内的 ModuleRunner。',
-          '见 docs/vite-plugin-migration.md Phase 1 / Phase 2。'
-        ].join('\n')
-      );
+    describe: '`vp dev` 插件自举路径（experimental.viteBuilder 打开，无 CLI 参与）',
+    env: () => ({ UBEAN_VITE_BUILDER: '1' }),
+    /**
+     * 走 `vp dev` 而不是 `ubean dev`：这是**生效证明**本身 —— 没有 CLI，请求路由与宿主 app
+     * 只可能来自插件，因此这一臂的数字必然出自新路径（RM-P02 的要求：不能让两臂都跑在旧
+     * 路径上再比出「没差别」的假结论）。旧版的硬失败是因为开关当时不存在。
+     */
+    devCommand: () => ['exec', 'vp', 'dev'],
+    /**
+     * 启动后必须真的能服务应用：新路径未生效时这里会 404（实测过 —— 那时 ubeanPlugin() 还
+     * 不含 @vitejs/plugin-vue，且没有插件接管请求），直接中止而不是产出假对比。
+     */
+    async assertEngaged(baseUrl) {
+      const res = await fetch(`${baseUrl}/`, { signal: AbortSignal.timeout(10_000) }).catch(() => null);
+      const body = res ? await res.text().catch(() => '') : '';
+      if (!res || !res.ok || !body.includes('class="home"')) {
+        throw new Error(
+          [
+            `「viteBuilder」臂未生效：${baseUrl}/ 未返回 SSR 页面（status=${res?.status ?? 'n/a'}）。`,
+            '',
+            '该臂要求 `experimental.viteBuilder` 打开后插件接管 dev（请求路由 + 自举宿主 app）。',
+            '若开关或自举能力被改动，此断言会拦下「两臂跑同一路径」的假对比。'
+          ].join('\n')
+        );
+      }
     }
   }
 };
@@ -162,9 +173,10 @@ async function readProbe(dev) {
 
 async function startDev(arm, port) {
   // --strictPort：端口被占时直接退出，而不是自增到另一个端口让探针白等。
+  const devCommand = arm.devCommand ? arm.devCommand() : ['exec', 'ubean', 'dev'];
   const { child, readStdout, readStderr, exited } = spawnCaptured(
     'pnpm',
-    ['exec', 'ubean', 'dev', '--port', String(port), '--strictPort'],
+    [...devCommand, '--port', String(port), '--strictPort'],
     {
       cwd: fixture,
       env: { ...process.env, ...arm.env() }
@@ -328,6 +340,8 @@ async function runDevPhase(arm) {
         if (!attempt.firstResponse.ok) {
           throw new Error(`首个 SSR 响应未在超时内返回 200`);
         }
+        // 生效证明（RM-P02）：拿真实 baseUrl 验证这一臂确实跑在新/旧路径上
+        await arm.assertEngaged(attempt.dev.baseUrl);
         if (!attempt.viteClientOk) {
           notes.push('dev 健康检查：/@vite/client 未返回 200（本机曾出现绑定差异，请复核）');
         }
@@ -459,8 +473,8 @@ async function main() {
   for (const name of armNames) {
     const arm = ARMS[name];
     console.log(`── arm ${arm.label}: ${arm.describe}`);
-    // RM-P02：生效证明。失败即中止，绝不产出可用于对比的数字。
-    arm.assertEngaged();
+    // RM-P02：带 baseUrl 的生效证明在 `measureColdStart` 之后逐个迭代执行（见 runDevPhase）；
+    // build 臂的证明在构建后另行断言。
 
     const armSamples = {
       coldStart: [],

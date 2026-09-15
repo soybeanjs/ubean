@@ -34,6 +34,7 @@ import type { PageRenderer } from '@ubean/pages';
 import { bootstrapDevApp } from './dev-app';
 import type { DevAppBootstrap } from './dev-app';
 import type { DevRendererOptions } from './dev-host-app';
+import { onDevScan } from './dev-scan';
 import { sendWebResponse, toWebRequest } from './node-web';
 
 /**
@@ -292,10 +293,18 @@ function createLazyBootstrapHandler(
     });
   };
 
+  // 自举路径自己订阅扫描：新增路由/页面文件必须让 app 重建（CLI 路径由 CLI 的 onScan
+  // 订阅者负责，两条路径各建一次，不会重复）。
+  onDevScan(server, async result => {
+    const bootstrap = await bootstrapPromise?.catch(() => null);
+    await bootstrap?.rebuild(result);
+  });
+
   return async request => {
     bootstrapPromise ??= start();
     const bootstrap = await bootstrapPromise;
     await bootstrap.ready();
+    // rebuild 会替换 app 实例，因此每个请求都从当前实例取（不能缓存 app 引用）
     return bootstrap.app.fetch(request);
   };
 }

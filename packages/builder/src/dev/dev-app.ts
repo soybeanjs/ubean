@@ -184,6 +184,13 @@ export interface BootstrapDevAppOptions extends CreateDevAppOptions {
 
 export interface DevAppBootstrap extends DevApp {
   ready: DevAppReady;
+  /**
+   * 扫描结果变化后重建 app（新页面 / 新路由文件必须被注册）。
+   *
+   * 插件自举路径（`vite dev`）靠它保持 dev 行为与 CLI 一致：CLI 路径有自己的 `onScan`
+   * 订阅者重建 app，插件路径则在自举 handler 里订阅同一次扫描 —— 两条路径各自只重建一次。
+   */
+  rebuild(scanResult: ScanResult): Promise<void>;
 }
 
 /**
@@ -194,23 +201,41 @@ export interface DevAppBootstrap extends DevApp {
  * 建起来之前就把 app 交给 DevTools/runner。RM-V12 摘除 CLI 的 server 层后两者会合并。
  */
 export async function bootstrapDevApp(options: BootstrapDevAppOptions): Promise<DevAppBootstrap> {
-  const { app, scanResult, layouts } = await createDevApp(options);
+  const created = await createDevApp(options);
 
-  enhanceDevApp({
-    app,
-    layouts,
-    loadModule: options.loadModule,
-    createRenderer: options.createRenderer,
-    localeVueParam: resolveLocaleVueParam(options.config),
-    backend: options.config.mode === 'backend',
-    startCronScheduler: options.startCronScheduler,
-    onCronError: error =>
-      (options.logger ?? fallbackLogger).error(`[ubean] Failed to load cron files: ${String(error)}`)
-  });
+  const enhance = (target: UbeanApp, targetLayouts: ScannedLayout[]) =>
+    enhanceDevApp({
+      app: target,
+      layouts: targetLayouts,
+      loadModule: options.loadModule,
+      createRenderer: options.createRenderer,
+      localeVueParam: resolveLocaleVueParam(options.config),
+      backend: options.config.mode === 'backend',
+      startCronScheduler: options.startCronScheduler,
+      onCronError: error =>
+        (options.logger ?? fallbackLogger).error(`[ubean] Failed to load cron files: ${String(error)}`)
+    });
 
-  const ready = createDevAppReady({ app, loadModule: options.loadModule, logger: options.logger });
+  // ready 必须绑在「当前」app 实例上：重建后要重新应用 defineServer 配置并重新 init，
+  // 旧实例的 ready 缓存不能复用（与 CLI 的 updateApp 语义一致）。
+  const bootstrap: DevAppBootstrap = {
+    app: created.app,
+    scanResult: created.scanResult,
+    layouts: created.layouts,
+    ready: createDevAppReady({ app: created.app, loadModule: options.loadModule, logger: options.logger }),
+    async rebuild(scanResult) {
+      const next = await createDevApp({ ...options, scanResult });
+      bootstrap.app = next.app;
+      bootstrap.scanResult = next.scanResult;
+      bootstrap.layouts = next.layouts;
+      bootstrap.ready = createDevAppReady({ app: next.app, loadModule: options.loadModule, logger: options.logger });
+      enhance(next.app, next.layouts);
+    }
+  };
 
-  return { app, scanResult, layouts, ready };
+  enhance(bootstrap.app, bootstrap.layouts);
+
+  return bootstrap;
 }
 
 /**

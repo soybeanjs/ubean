@@ -66,7 +66,8 @@ async function startPluginOnlyServer(): Promise<Harness> {
     server: { host: '127.0.0.1', port: 0 },
     optimizeDeps: { cacheDir },
     plugins: [
-      vue({ include: [/\.vue$/] }),
+      // 与 `ubean/vite` 的聚合入口一致：core + vue（含 @vitejs/plugin-vue，RM-V14 起由
+      // ubeanVite 自己注册）+ islands
       ubeanPlugin({ config }),
       ubeanVite({ config }),
       ubeanIslandsPlugin(),

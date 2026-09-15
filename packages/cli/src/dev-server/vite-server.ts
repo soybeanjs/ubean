@@ -1,6 +1,5 @@
 import { createServer as createViteServer } from 'vite';
 import type { Logger, Plugin, ViteDevServer } from 'vite';
-import vue from '@vitejs/plugin-vue';
 import type { UbeanApp } from '@ubean/app';
 import {
   createDevAppReady,
@@ -11,7 +10,7 @@ import {
   ubeanDevRequestPlugin,
   ubeanPlugin
 } from '@ubean/build/vite';
-import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
+import { ubeanVite } from '@ubean/build/vue';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { getVueLocaleParam } from '@ubean/i18n';
@@ -266,18 +265,10 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       // 资源本来就带扩展名，由 Vite 服务，这里只为可能的 HTML 响应兜住。
       skipHtmlTransform: url => url.startsWith('/_devtools')
     }),
-    ...(isBackendMode
-      ? []
-      : [
-          vue({
-            include: VUE_PLUGIN_INCLUDE,
-            template: {
-              compilerOptions: {
-                isCustomElement: (tag: string) => tag.startsWith('ubean-')
-              }
-            }
-          }) as unknown as Plugin
-        ]),
+    // RM-V14：`@vitejs/plugin-vue` 的注册已归属 `@ubean/build/vue` 的 `ubeanVite`
+    // （用户在 `vite.config.ts` 里写的 `ubeanPlugin()` 就包含它），这里不再重复注册 ——
+    // 重复会让 .vue 被编译两次。backend 模式（无页面/无 SSR）下由 `ubeanVite` 的调用方
+    // 决定是否启用，与原先「CLI 按模式跳过」等价：backend 项目本就不该有 .vue 页面。
     ...(hasUserViteConfig
       ? []
       : [

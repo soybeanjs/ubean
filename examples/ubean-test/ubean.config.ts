@@ -1,6 +1,12 @@
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
+  // RM-V14：灰度开关 —— 打开后由 Vite 插件接管 dev（请求路由 + 自举宿主 app），
+  // `vp dev` 单独即可服务整个应用。默认关闭，保持 `ubean dev` 的旧路径。
+  // 集成测试用 `UBEAN_VITE_BUILDER=1 vp dev` 覆盖这条路径。
+  experimental: {
+    viteBuilder: process.env.UBEAN_VITE_BUILDER === '1'
+  },
   i18n: {
     defaultLocale: 'en',
     locales: [

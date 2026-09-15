@@ -27,7 +27,7 @@
 
 import type { Plugin } from 'vite';
 import { ubeanServerActionsPlugin } from '@ubean/build/actions';
-import { ubeanPlugin as ubeanCorePlugin, createVirtualRegistry } from '@ubean/build/vite';
+import { ubeanPlugin as ubeanCorePlugin, ubeanDevRequestPlugin, createVirtualRegistry } from '@ubean/build/vite';
 import type { UbeanPluginOptions } from '@ubean/build/vite';
 import { ubeanVite } from '@ubean/build/vue';
 import type { UbeanViteOptions } from '@ubean/build/vue';
@@ -56,10 +56,20 @@ export function ubeanPlugin(): Plugin[] {
   // RM-V02：core 与 vue 插件共享同一个显式注册表实例，不再依赖模块级单例
   const registry = createVirtualRegistry();
 
-  return [
+  const plugins: Plugin[] = [
     ubeanCorePlugin({ config, registry }),
     ...ubeanVite({ config, registry }),
     ubeanIslandsPlugin(),
     ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() })
   ];
+
+  // RM-V14：`experimental.viteBuilder` 打开时把请求路由也交给插件，于是 `vite dev` 单独
+  // 就能服务整个应用（页面 SSR / API / 内置 `_` 路由 / 404），与 `ubean dev` 行为一致。
+  // 关闭时完全不注册：旧路径（CLI 自建路由）保持零变更，这正是灰度开关的意义。
+  // 插件自举的 app 与 CLI 的 app 不会并存 —— 显式传入 handler 时插件只用传入的那个。
+  if (config.experimental?.viteBuilder) {
+    plugins.push(ubeanDevRequestPlugin({}));
+  }
+
+  return plugins;
 }

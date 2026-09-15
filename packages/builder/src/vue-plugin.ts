@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { transformWithOxc } from 'vite';
 import type { Plugin } from 'vite';
+import vue from '@vitejs/plugin-vue';
 import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
@@ -31,6 +32,17 @@ export interface UbeanViteOptions {
   ssr?: boolean;
   /** 虚拟模块注册表（RM-V02）：与 `ubeanPlugin` 注入同一个实例，插件侧只读。 */
   registry?: VirtualModuleRegistry;
+  /**
+   * 是否由本插件注册 `@vitejs/plugin-vue`（默认 **true**）。
+   *
+   * RM-V14：`ubeanPlugin()` 是用户 `vite.config.ts` 里的唯一入口，`vite dev` 要能独立
+   * 服务应用，.vue 就必须有人编译 —— 此前这一步由 CLI 的 dev server 代劳（`builtinPlugins`
+   * 里单独 `vue({ include: VUE_PLUGIN_INCLUDE })`），于是同一份 `ubeanPlugin()` 在
+   * `ubean dev` 下可用、在 `vite dev` 下直接报 “Install @vitejs/plugin-vue”。现在由本插件
+   * 拥有该注册，两条路径拿到的插件集合一致；CLI 不再重复添加（重复注册会让 .vue 被编译两次）。
+   * 需要自带 vue 插件配置（如自定义 `template.compilerOptions`）时传 `false`。
+   */
+  vue?: boolean;
 }
 
 export const VUE_PLUGIN_INCLUDE = [/\.vue$/, /\.md$/];
@@ -302,6 +314,22 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
   };
 
   const plugins: Plugin[] = [corePlugin];
+
+  // RM-V14：.vue / .md 的编译由本插件拥有（默认开启），使 `ubeanPlugin()` 自足。
+  // 自定义元素前缀 `ubean-` 必须在这里保留 —— 内置组件（`<ubean-island>` 等）不能被
+  // Vue 编译器当作未知组件处理。
+  if (options.vue !== false) {
+    plugins.unshift(
+      vue({
+        include: VUE_PLUGIN_INCLUDE,
+        template: {
+          compilerOptions: {
+            isCustomElement: (tag: string) => tag.startsWith('ubean-')
+          }
+        }
+      }) as unknown as Plugin
+    );
+  }
 
   if (ubeanConfig.i18n?.enabled !== false) {
     plugins.push(

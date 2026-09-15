@@ -40,7 +40,7 @@ RM-P01 首次运行时，旧路径上 **dev 下服务端文件变更完全不生
 
 **范围**：CLI dev 路径独有。`packages/builder/src/vite.ts` 的 watcher 用 `resolve` 处理且带有这个坑的注释（"join 会把绝对路径追加到 rootDir 后"），未受影响；该拼接写法自 2026-07-25 的那次迁移就存在，不是近期回归。
 
-**修复**：`watcher.ts` 新增 `resolveTarget()`（绝对路径直接用、相对路径才 join cwd），`start()` 与 `addDir()` 统一走它；失败不再静默 —— 新增 `onError` 回调，由 `dev.ts` 预过滤不存在的可选目录（`src/plugins` 等）后把真实错误打成 warn，并在「一个都没注册成功」时额外警告。回归测试 `packages/cli/test/dev-watcher.test.ts`（旧代码下 `count() === 1` 断言失败，即零 watcher 症状）。顺带把 `locales` 补进监听列表（与 builder 侧一致：此前语言文件改动不触发 rescan）。
+**修复**：`watcher.ts` 新增 `resolveTarget()`（绝对路径直接用、相对路径才 join cwd），`start()` 与 `addDir()` 统一走它；失败不再静默 —— 新增 `onError` 回调，由 `dev.ts` 预过滤不存在的可选目录（`src/plugins` 等）后把真实错误打成 warn，并在「一个都没注册成功」时额外警告。回归测试 `packages/cli/test/dev-watcher.test.ts`（旧代码下 `count() === 1` 断言失败，即零 watcher 症状）。顺带补上两处监听覆盖：`locales` 目录（与 builder 侧一致：此前语言文件改动不触发 rescan），以及**入口文件**（`app.ts` / `app.vue` / `server.ts` 等，取自扫描器的检测结果；此前改它们完全不触发 rescan，因为监听列表只认目录名）。
 
 **修复后基线（RM-P05）**：服务端变更 **220ms**（p95 222ms，5/5 观测）、客户端变更 **8ms**（p95 9ms，5/5）、reload 后**单例保留 5/5**（模块重新求值 0，进程重启 0）。修复前的两次采集这两项变更指标为「未观察到」，故当前 committed 基线以修复后数据为准。
 

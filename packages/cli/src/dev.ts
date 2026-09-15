@@ -286,9 +286,23 @@ export const devCommand: CommandDef = {
     // `locales` 与 builder 侧（builder/src/vite.ts 的 configureServer）保持一致，
     // 否则语言文件改动不会触发 rescan。
     const watchDirs = ['api', 'pages', 'middleware', 'layouts', 'plugins', 'app', 'routes', 'locales'];
-    // ResolvedConfig.srcDir 已是绝对路径；只监听真实存在的目录 —— 可选目录（plugins/app/api）
-    // 缺失是正常情况，交给上游过滤后，watcher 侧的失败才是真异常。
-    const watchTargets = watchDirs.map(d => `${config.srcDir}/${d}`).filter(target => existsSync(target));
+    // 入口文件（`app.ts` / `app.vue` / `App.vue` / `server.ts` …）不在任何被监听的目录里，
+    // 但同样决定服务端行为（appRoot、defineApp、defineServer），必须单独监听。
+    // 用扫描器自己的检测结果，避免在这里重复一份文件名与扩展名清单。
+    const watchEntries = [
+      currentScanResult?.appEntry.shared,
+      currentScanResult?.appEntry.server,
+      currentScanResult?.appEntry.client,
+      currentScanResult?.appEntry.root,
+      currentScanResult?.serverEntry.shared,
+      currentScanResult?.serverEntry.dev,
+      currentScanResult?.serverEntry.prod
+    ].flatMap(entry => (entry?.exists && entry.fullPath ? [entry.fullPath] : []));
+    // ResolvedConfig.srcDir 已是绝对路径；只监听真实存在的目标 —— 可选目录（plugins/app/api）
+    // 与缺失的入口文件都属正常情况，交给上游过滤后，watcher 侧的失败才是真异常。
+    const watchTargets = [...watchDirs.map(d => `${config.srcDir}/${d}`), ...watchEntries].filter(target =>
+      existsSync(target)
+    );
     const watcher = createDevWatcher({
       cwd,
       dirs: watchTargets,

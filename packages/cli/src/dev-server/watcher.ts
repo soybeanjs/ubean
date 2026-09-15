@@ -1,4 +1,4 @@
-import { watch } from 'node:fs';
+import { statSync, watch } from 'node:fs';
 import type { FSWatcher } from 'node:fs';
 import { isAbsolute, join, relative } from 'pathe';
 
@@ -10,6 +10,12 @@ export interface WatchEvent {
 
 export interface DevWatcherOptions {
   cwd: string;
+  /**
+   * 监听目标，目录或单个文件均可（绝对路径或相对 cwd 的路径）。
+   *
+   * 目录按递归监听；文件只能非递归监听 —— 入口文件（`app.ts` / `app.vue` /
+   * `server.ts` …）就是靠这一条纳入热重载的。
+   */
   dirs: string[];
   ignore?: string[];
   onChange?: (events: WatchEvent[]) => void | Promise<void>;
@@ -80,10 +86,20 @@ export function createDevWatcher(options: DevWatcherOptions): DevWatcher {
     if (watchedDirs.has(target)) return;
     watchedDirs.add(target);
 
+    // 目录递归监听（子目录内容变动也要收到）；文件只能非递归监听。
+    let isDirectory = true;
     try {
-      const w = watch(target, { recursive: true }, (eventType, filename) => {
-        if (!filename) return;
-        const fullPath = join(target, filename);
+      isDirectory = statSync(target).isDirectory();
+    } catch {
+      // 探测失败不在这里处理：交给 fs.watch 抛错，由 onError 统一上报。
+    }
+
+    try {
+      const w = watch(target, isDirectory ? { recursive: true } : {}, (eventType, filename) => {
+        // 文件目标的 `filename` 不可靠（可能是 basename，也可能为空），变更路径就是目标本身；
+        // 目录目标才需要拼上相对的文件名。
+        const fullPath = isDirectory ? (filename ? join(target, filename) : undefined) : target;
+        if (!fullPath) return;
         const type: WatchEvent['type'] = eventType === 'rename' ? 'unlink' : 'change';
         queueEvent(type, fullPath);
       });

@@ -34,7 +34,7 @@ describe('createDevWatcher', () => {
     return { routes, hello };
   }
 
-  function start(dirs: string[]): { events: WatchEvent[]; errors: string[] } {
+  async function start(dirs: string[]): Promise<{ events: WatchEvent[]; errors: string[] }> {
     const events: WatchEvent[] = [];
     const errors: string[] = [];
     watcher = createDevWatcher({
@@ -45,6 +45,10 @@ describe('createDevWatcher', () => {
       onChange: batch => events.push(...batch)
     });
     watcher.start();
+    // macOS 的 FSEvents 对**文件**目标存在注册竞态：注册后立刻写入会丢事件
+    // （实测 0ms 延迟 3/3 丢失，50ms 后稳定）。目录目标没有这个问题，但统一等一小段，
+    // 让用例只测语义、不测平台时序。
+    await new Promise(resolve => setTimeout(resolve, 50));
     return { events, errors };
   }
 
@@ -56,7 +60,7 @@ describe('createDevWatcher', () => {
   // 事件，所以按「事件集合包含目标文件」断言，而不是取第一个事件。
   it('watches an absolute target without re-joining cwd', async () => {
     const { routes, hello } = createHarness();
-    const { events } = start([routes]);
+    const { events } = await start([routes]);
 
     expect(watcher?.count()).toBe(1);
 
@@ -67,7 +71,7 @@ describe('createDevWatcher', () => {
 
   it('still resolves relative targets against cwd', async () => {
     const { hello } = createHarness();
-    const { events } = start(['src/routes']);
+    const { events } = await start(['src/routes']);
 
     expect(watcher?.count()).toBe(1);
 
@@ -76,12 +80,26 @@ describe('createDevWatcher', () => {
     expect(events.map(event => event.relativePath)).toContain('src/routes/hello.ts');
   });
 
+  // 入口文件（app.ts / app.vue / server.ts）不在任何被监听的目录里，只能以文件为目标。
+  // 此时 fs.watch 的 filename 不可靠（可能为空），事件路径必须取目标本身，
+  // 否则会拼成 `<file>/<basename>`，扩展名过滤后整类改动都不会触发 rescan。
+  it('watches a single file target and reports that file', async () => {
+    const { hello } = createHarness();
+    const { events } = await start([hello]);
+
+    expect(watcher?.count()).toBe(1);
+
+    writeFileSync(hello, 'export const GET = () => 9;\n');
+    await waitFor(() => events.some(event => event.relativePath === 'src/routes/hello.ts'));
+    expect(events.map(event => event.relativePath)).toContain('src/routes/hello.ts');
+  });
+
   // 调用方负责预过滤不存在的可选目录（src/plugins 等）；到这里仍失败就是真异常，
   // 必须上报而不是静默吞掉，否则这类问题会再次变得不可见。
-  it('reports a failing target instead of swallowing it', () => {
+  it('reports a failing target instead of swallowing it', async () => {
     createHarness();
     const missing = join(cwd, 'src/missing');
-    const { errors } = start([missing]);
+    const { errors } = await start([missing]);
 
     expect(watcher?.count()).toBe(0);
     expect(errors).toEqual([missing]);

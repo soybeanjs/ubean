@@ -8,8 +8,10 @@
  * - 避免打包器把 `.mjs` 资源漏掉（`vp pack` 只产出 JS 入口）；
  * - 生成的入口与当前运行的框架版本天然一致，不会出现 worker 用旧版本的情况。
  */
+import { realpathSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
+import { normalizePath } from 'vite';
 
 /** 生成到 `.ubean/` 下的文件名。 */
 export const DEV_WORKER_FILE = 'dev-worker.mjs';
@@ -46,29 +48,8 @@ const ENV_NAME = ${envName};
 const ENTRY_ID = ${entryId};
 
 const listeners = [];
-const failed = [];
 let moduleRunner;
 let entryPromise;
-
-/** 作用域化失效：只让命中文件的模块重新求值，其余实例（单例）保留。 */
-function invalidateFiles(files) {
-  const invalidated = [];
-  for (const file of files) {
-    try {
-      for (const module of moduleRunner?.getModulesByFile(file) ?? []) {
-        if (module.url) {
-          moduleRunner.invalidateModule(module.url);
-          invalidated.push(module.url);
-        }
-      }
-    } catch (error) {
-      failed.push(\`invalidate \${file}: \${error?.message || error}\`);
-    }
-  }
-  // 入口可能因失效而需要重新求值（其内部未被失效的依赖仍复用既有实例）
-  if (invalidated.length > 0) entryPromise = undefined;
-  return invalidated;
-}
 
 async function getEntry() {
   entryPromise ??= moduleRunner.import(ENTRY_ID).then(mod => mod.default ?? mod);
@@ -97,8 +78,14 @@ export default {
       );
     },
     onMessage(message) {
-      if (message?.type === 'ubean:invalidate' && Array.isArray(message.files)) {
-        invalidateFiles(message.files);
+      // 作用域化失效：宿主已经失效了对应模块（连同其 importer 链），这里**只负责重新拿入口**。
+      // 具体的重新求值由 ModuleRunner 自己完成 —— \`fetchModule\` 会因宿主侧 transformResult 被清空
+      // 而返回 \`invalidate: true\`，runner 据此失效该节点，于是它连同受影响的 importer 一起重跑，
+      // 而未命中的模块仍命中 \`{ cache: true }\`，实例（单例）原样保留。
+      // 千万不要在这里按 url 自行失效：宿主若没失效同名模块，下一次 fetch 会因 \`cache: true\` +
+      // 本地 meta 已被清空而抛 “mistakenly invalidated during fetch phase”。
+      if (message?.type === 'ubean:invalidate') {
+        if (Array.isArray(message.urls) && message.urls.length > 0) entryPromise = undefined;
         return;
       }
       // 其余消息按 env-runner 约定转给 transport 监听器
@@ -120,29 +107,65 @@ export async function writeDevWorkerEntry(dir: string, options: DevWorkerEntryOp
 /**
  * 失效指定文件对应的模块（RM-V13 的 watcher 会用它）。
  *
- * **两侧都要失效**，缺一不可：
- * - 宿主侧的模块图 —— 否则 worker 重新请求时命中宿主的转换缓存，拿到的还是旧代码；
- * - worker 内的 `ModuleRunner` —— 否则已加载的模块不会重新求值。
+ * **宿主侧失效是充分且必须的一步**：`invalidateModule` 会清掉 `transformResult` 并沿 importer
+ * 链传播，于是 worker 下次取模块时拿到的是新代码（且 `fetchModule` 带回 `invalidate: true`），
+ * 未被命中的模块仍返回 `{ cache: true }`，实例（单例）保留 —— 这正是 R3 要求的语义。
  *
- * 其余未被命中的模块实例（单例）在两侧都保留，这正是 R3 要求的语义。
+ * 难点在于**文件键**：Vite 的模块图按 `cleanUrl(resolvedId)` 建索引，而 resolvedId 是解析
+ * 符号链接后的真实路径。macOS 上 `os.tmpdir()` 返回 `/var/folders/...`，而 realpath 是
+ * `/private/var/folders/...`，watcher 给出的原始路径直接查表必然落空（RM-V09 实测）。
+ * 因此这里对每个文件同时尝试原始路径与 realpath 两种候选键。
+ *
+ * 返回值用于诊断：`urls` 为空即表示这次失效**什么都没命中**（多半是路径键不一致或模块尚未
+ * 被加载），调用方据此可以给出比「静默无操作」更有用的信息。
  */
+export interface DevWorkerInvalidation {
+  /** 实际命中模块图的键（去重）。 */
+  keys: string[];
+  /** 被失效的模块 URL（宿主侧唯一的稳定标识）。 */
+  urls: string[];
+}
+
 export function invalidateDevWorkerModules(
   environment: {
     moduleGraph: {
-      getModulesByFile(file: string): Iterable<{ id?: string | null }> | undefined;
+      getModulesByFile(file: string): Iterable<{ url?: string | null }> | undefined;
       invalidateModule(mod: never): void;
     };
   },
   runner: { sendMessage(message: unknown): void },
   files: readonly string[]
-): void {
-  if (files.length === 0) return;
+): DevWorkerInvalidation {
+  const keys: string[] = [];
+  const urls = new Set<string>();
 
   for (const file of files) {
-    for (const mod of environment.moduleGraph.getModulesByFile(file) ?? []) {
-      environment.moduleGraph.invalidateModule(mod as never);
+    for (const key of candidateFileKeys(file)) {
+      const mods = environment.moduleGraph.getModulesByFile(key);
+      if (!mods) continue;
+      let hit = false;
+      for (const mod of mods) {
+        hit = true;
+        if (mod.url) urls.add(mod.url);
+        environment.moduleGraph.invalidateModule(mod as never);
+      }
+      if (hit) keys.push(key);
     }
   }
 
-  runner.sendMessage({ type: 'ubean:invalidate', files: [...files] });
+  // 什么都没命中就不通知 worker：空消息只会白白重置入口缓存
+  if (urls.size > 0) runner.sendMessage({ type: 'ubean:invalidate', urls: [...urls] });
+
+  return { keys, urls: [...urls] };
+}
+
+/** 模块图可能用原始路径或 realpath 建索引，两种都试（去重、保序）。 */
+function candidateFileKeys(file: string): string[] {
+  const keys = [normalizePath(file)];
+  try {
+    keys.push(normalizePath(realpathSync.native(file)));
+  } catch {
+    // 文件可能刚被删除 —— 原始路径仍然是有效候选
+  }
+  return [...new Set(keys)];
 }

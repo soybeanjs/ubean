@@ -135,8 +135,10 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 - **地基清理**：`RM-V02`（虚拟模块注册表改为显式注入，连续两次构建产物逐字节一致）、`RM-V03`（Node↔Web 适配收拢为单模块并补往返测试）。
 - **`RM-V04` env-runner spike**：结论见 [env-runner-spike.md](env-runner-spike.md) —— worker 托管、IPC、`dev.createEnvironment` 均已验证；宿主侧通道契约不足（`getBuiltins` invoke 无人应答）留待 RM-V08；Plan B 成本下调到约 100–200 行。
 - **Phase 1**：`RM-V08`（`UbeanDevEnvironment` + env-runner worker）✅ —— 请求可进入 worker 线程内的 Hono app 并返回响应，worker 内 `ModuleRunner` 经 invoke bridge 取宿主模块已闭环。
+- **Phase 1**：`RM-V09`（dev worker entry + 作用域化失效）✅ —— 框架生成 `.ubean/dev-worker.mjs`；文件改动后**只有命中文件及其 importer 链重新求值**，无关模块的单例保留。关键实现点：模块图按 realpath 建索引，宿主侧须用「原始路径 + realpath」两种候选键查表，再把模块 URL 发给 worker。
 - **Phase 1 起步**：`RM-V07`（environments 注册）✅ —— 新增 `experimental.viteBuilder` 灰度开关，插件侧 `config` 钩子在开关打开时注册 `client`/`ubean` 两个环境；关闭时旧路径零变更。
 - 附带修复：`RM-V05` 期间发现并修复「`pages/404.vue` 存在时页面兜底按注册顺序吞掉内置 `_` 路由」；登记 R8（dev 下 404 组件内容不 SSR）待与 RM-V10 一并处理。
+- 环境坑：catalog 的 `typescript: npm:typescript-native-bridge@latest` 会让 peer 解析漂移出两份 `vite-plus-core`，表现为 `Plugin` 类型身份不一致的类型报错；遇到先 `pnpm install` 收敛（详见 [vite-plugin-migration.md](vite-plugin-migration.md) R9）。
 
 
 ## 6. 不做的伪缺口（避免 Q4 被带偏）

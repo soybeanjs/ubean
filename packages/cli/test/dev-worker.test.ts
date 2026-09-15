@@ -12,8 +12,7 @@ import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createServer } from 'vite';
 import { afterEach, describe, expect, it } from 'vitest';
-import { invalidateDevWorkerModules, writeDevWorkerEntry } from '@ubean/build/vite';
-import { createUbeanDevEnvironmentFactory } from '@ubean/build/vite';
+import { invalidateDevWorkerModules, writeDevWorkerEntry, createUbeanDevEnvironmentFactory } from '@ubean/build/vite';
 import type { UbeanDevEnvironment } from '@ubean/build/vite';
 import { NodeWorkerEnvRunner } from 'env-runner/runners/node-worker';
 
@@ -104,7 +103,7 @@ describe('dev worker 入口（RM-V09）', () => {
   // `environment.moduleGraph.getModulesByFile(<绝对路径>)` 很可能匹配不到条目 —— Vite 记录的
   // 模块键是规范化后的 URL（形如 `/src/changing.ts`），而测试传的是文件系统绝对路径。
   // 下一步先确认宿主图里真实的键，再决定用 `moduleGraph.idToModuleMap` 还是按文件路径索引。
-  it.skip('失效改动文件：只有它重新求值，无关模块的单例保留', async () => {
+  it('失效改动文件：只有它重新求值，无关模块的单例保留', async () => {
     const { environment, runner, root } = await startDevWorker();
 
     const before = await fetchJson(environment);
@@ -113,7 +112,10 @@ describe('dev worker 入口（RM-V09）', () => {
     // 改文件 + 通知 worker 作用域化失效（真实链路里由 RM-V13 的 watcher 发出）
     writeFileSync(join(root, 'src/changing.ts'), 'export const value = "v2";\n');
     expect(readFileSync(join(root, 'src/changing.ts'), 'utf8')).toContain('v2');
-    invalidateDevWorkerModules(environment, runner, [join(root, 'src/changing.ts')]);
+    const invalidation = invalidateDevWorkerModules(environment, runner, [join(root, 'src/changing.ts')]);
+    // 命中判定先于结果判定：模块图按 realpath 建索引，键不匹配时这里会直接失败，
+    // 而不是伪装成「值还是 v1」这种下游症状
+    expect(invalidation.urls, `失效未命中模块图：keys=${JSON.stringify(invalidation.keys)}`).not.toHaveLength(0);
 
     const after = await fetchJson(environment);
     // 改动的模块重新求值

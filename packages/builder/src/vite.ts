@@ -48,6 +48,14 @@ export {
   type DevRequestHandlers
 } from './dev/dev-request-router';
 export { toWebRequest, sendWebResponse } from './dev/node-web';
+
+// RM-V11：dev/SSR 路由表（与客户端 `virtual:ubean-pages` 保持同形的唯一入口）
+export {
+  buildDevSsrRoutes,
+  toVueRouterPagePath,
+  type DevSsrRoute,
+  type DevSsrRoutesOptions
+} from './dev/dev-ssr-routes';
 export type { VirtualModuleRegistry, VirtualModuleResolver } from './virtual-registry';
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];

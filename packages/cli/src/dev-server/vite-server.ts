@@ -4,11 +4,11 @@ import type { Logger, Plugin, ViteDevServer } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { applyServerConfig } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
-import { ubeanPlugin, ubeanDevRequestPlugin, createVirtualRegistry } from '@ubean/build/vite';
+import { buildDevSsrRoutes, createVirtualRegistry, ubeanDevRequestPlugin, ubeanPlugin } from '@ubean/build/vite';
 import { ubeanVite, VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
-import { getVueLocaleParam, toVueRouterLocalePath } from '@ubean/i18n';
+import { getVueLocaleParam } from '@ubean/i18n';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
@@ -508,63 +508,17 @@ export async function createViteDevServer(options: ViteDevServerOptions): Promis
       return;
     }
 
-    // Build vue-router routes for SSR
-    const scannedPages = app.options.pages || [];
-    // Apply the same i18n locale param as the client `virtual:ubean-pages`
-    // route table, otherwise language-prefixed URLs (e.g. `/zh/playground`)
-    // have no matching SSR route and fall into the catch-all → SSR 404 while
-    // the client renders the real page → hydration mismatch.
-    const ssrLocaleParam = resolveLocaleVueParam(config.i18n);
-    // Build name → page map so reuse routes can resolve their target's
-    // `fullPath`. The `.reuse.ts` file only contains `definePage` metadata,
-    // not a Vue component — reuse routes must load the target page's module
-    // to get the actual SFC component.
-    const scannedPageByName = new Map<string, (typeof scannedPages)[number]>();
-    for (const p of scannedPages) {
-      scannedPageByName.set(p.name, p);
-    }
-    const routes = scannedPages.map((p: any) => {
-      const targetPage = p.isReuse && p.reuseTarget ? scannedPageByName.get(p.reuseTarget) : undefined;
-      const componentFullPath = targetPage?.fullPath || p.fullPath;
-      const routePath = p.route.replace(/\*\*:(\w[\w-]*)/g, ':$1(.*)*');
-      return {
-        path: ssrLocaleParam ? toVueRouterLocalePath(routePath, ssrLocaleParam) : routePath,
-        name: p.name,
-        component: async () => {
-          const mod = await viteServer!.ssrLoadModule(componentFullPath);
-          return mod.default || mod;
-        },
-        meta: {
-          layout: p.layout === false ? false : p.layout || defaultLayout,
-          pageName: p.name,
-          cache: p.cache === true ? true : undefined
-        }
-      };
+    // SSR 路由表：与客户端 `virtual:ubean-pages` 同形由 `@ubean/build` 的
+    // `buildDevSsrRoutes()` 保证（含 404 catch-all —— R8 的教训，两张表不一致时会
+    // 出现 SSR 只渲染布局外壳、水合结构不一致）。locale param 必须与客户端一致，
+    // 否则 `/zh/xxx` 会落到 catch-all。
+    const routes = buildDevSsrRoutes({
+      pages: app.options.pages || [],
+      layouts: currentLayouts,
+      localeVueParam: resolveLocaleVueParam(config.i18n),
+      loadComponent: fullPath => viteServer!.ssrLoadModule(fullPath),
+      notFoundPage: app.options.notFoundPage
     });
-
-    // 404 兜底路由必须与客户端 `virtual:ubean-pages` 的 catch-all **同形**
-    // （`/:locale?/:pathMatch(.*)*`，名字 `NotFound`）：SSR 渲染的正是请求 URL
-    // 本身，路由表若没有 catch-all，vue-router 会报 VUE_ROUTER_R0004「无匹配」，
-    // 结果只渲染出布局外壳、404 组件自身 DOM 缺失（R8）。同名同形还能保证
-    // 客户端水合时 `useRoute()` 解析出一致的 matched 结构。
-    // 注：SSG 走的是 `/404` 静态路由（见 builder/src/ssg-entry.ts），因为那边渲染的是
-    // 静态产物而非请求 URL，两者出发点不同。
-    if (app.options.notFoundPage) {
-      const notFoundFullPath = app.options.notFoundPage.fullPath;
-      const notFoundLayout = app.options.notFoundPage.layout;
-      routes.push({
-        path: ssrLocaleParam ? toVueRouterLocalePath('/:pathMatch(.*)*', ssrLocaleParam) : '/:pathMatch(.*)*',
-        name: 'NotFound',
-        component: async () => {
-          const mod = await viteServer!.ssrLoadModule(notFoundFullPath);
-          return mod.default || mod;
-        },
-        meta: {
-          layout: notFoundLayout === false ? false : notFoundLayout || defaultLayout,
-          pageName: 'NotFound'
-        }
-      } as (typeof routes)[number]);
-    }
 
     // Lazily load the user's defineApp config from the virtual module.
     // Cached so we only ssrLoadModule once per enhanceAppWithVite call (HMR

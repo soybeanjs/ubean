@@ -8,13 +8,25 @@ import {
   readViteManifest,
   summarizeBundle,
   writeBundleBaseline,
-  compareBundleBaseline
+  compareBundleBaseline,
+  formatKilobytes
 } from './analyze-lib';
 
 const logger = getLogger('cli');
 
 function readStringArg(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+/** Absolute ceilings are given in kB on the CLI; the budget API works in bytes. */
+function readKilobyteArg(value: unknown, flag: string): number | undefined {
+  const raw = readStringArg(value);
+  if (raw === undefined) return undefined;
+  const kb = Number(raw);
+  if (!Number.isFinite(kb) || kb < 0) {
+    throw new Error(`[ubean] analyze: ${flag} must be a non-negative number of kB`);
+  }
+  return Math.round(kb * 1024);
 }
 
 export const analyzeCommand: CommandDef = {
@@ -43,6 +55,18 @@ export const analyzeCommand: CommandDef = {
     maxIncrease: {
       type: 'string',
       description: 'Allowed relative gzip growth when using --check (default 0.05)'
+    },
+    maxTotalKb: {
+      type: 'string',
+      description: 'Absolute ceiling for total client JS gzip in kB (checked against this build alone)'
+    },
+    maxEntryKb: {
+      type: 'string',
+      description: 'Absolute ceiling for entry chunk gzip in kB'
+    },
+    maxChunkKb: {
+      type: 'string',
+      description: 'Absolute ceiling for any single chunk gzip in kB'
     }
   },
   async run({ args }) {
@@ -62,7 +86,7 @@ export const analyzeCommand: CommandDef = {
     const baseline = summarizeBundle(found.outDir, manifest);
     baseline.outDir = relative(cwd, found.outDir).replace(/\\/g, '/') || baseline.outDir;
     logger.info(
-      `client JS: ${(baseline.totalGzip / 1024).toFixed(1)} kB gzip (${baseline.entries.length} js chunks, entry ${(baseline.entryGzip / 1024).toFixed(1)} kB)`
+      `client JS: ${formatKilobytes(baseline.totalGzip)} gzip / ${formatKilobytes(baseline.totalBrotli ?? 0)} brotli (${baseline.entries.length} js chunks, entry ${formatKilobytes(baseline.entryGzip)} gzip)`
     );
     for (const entry of baseline.entries.slice(0, 12)) {
       logger.info(`  ${entry.isEntry ? '[entry] ' : ''}${entry.file}  ${(entry.gzip / 1024).toFixed(1)} kB gzip`);
@@ -75,26 +99,41 @@ export const analyzeCommand: CommandDef = {
     }
 
     const checkArg = readStringArg(args.check);
-    if (checkArg) {
-      const checkPath = resolve(cwd, checkArg);
-      if (!existsSync(checkPath)) {
-        logger.error(`baseline not found: ${checkPath}`);
-        throw new Error('missing budget baseline');
+    const absoluteBudget = {
+      maxTotalGzip: readKilobyteArg(args.maxTotalKb, '--max-total-kb'),
+      maxEntryGzip: readKilobyteArg(args.maxEntryKb, '--max-entry-kb'),
+      maxChunkGzip: readKilobyteArg(args.maxChunkKb, '--max-chunk-kb')
+    };
+    const hasAbsoluteBudget = Object.values(absoluteBudget).some(value => value !== undefined);
+
+    if (checkArg || hasAbsoluteBudget) {
+      let committed: { totalGzip: number; entryGzip: number };
+      if (checkArg) {
+        const checkPath = resolve(cwd, checkArg);
+        if (!existsSync(checkPath)) {
+          logger.error(`baseline not found: ${checkPath}`);
+          throw new Error('missing budget baseline');
+        }
+        const parsed = JSON.parse(readFileSync(checkPath, 'utf8')) as { totalGzip?: number; entryGzip?: number };
+        committed = { totalGzip: parsed.totalGzip ?? 0, entryGzip: parsed.entryGzip ?? 0 };
+      } else {
+        // Absolute budgets stand on their own. Comparing the build with itself keeps the
+        // relative gate inert (ratio 0) instead of reporting an infinite regression.
+        committed = { totalGzip: baseline.totalGzip, entryGzip: baseline.entryGzip };
       }
-      const committed = JSON.parse(readFileSync(checkPath, 'utf8')) as { totalGzip?: number; entryGzip?: number };
       const maxIncrease = Number(args.maxIncrease ?? 0.05);
-      const result = compareBundleBaseline(
-        baseline,
-        { totalGzip: committed.totalGzip ?? 0, entryGzip: committed.entryGzip ?? 0 },
-        { maxIncrease: Number.isFinite(maxIncrease) ? maxIncrease : 0.05 }
-      );
+      const result = compareBundleBaseline(baseline, committed, {
+        maxIncrease: Number.isFinite(maxIncrease) ? maxIncrease : 0.05,
+        ...absoluteBudget
+      });
       if (!result.ok) {
         for (const message of result.messages) logger.error(message);
         throw new Error('client JS budget exceeded');
       }
-      logger.info(
-        `budget ok (total ${(result.totalRatio * 100).toFixed(1)}%, entry ${(result.entryRatio * 100).toFixed(1)}% vs baseline, max ${(result.maxIncrease * 100).toFixed(0)}%)`
-      );
+      const relativeSummary = checkArg
+        ? `total ${(result.totalRatio * 100).toFixed(1)}%, entry ${(result.entryRatio * 100).toFixed(1)}% vs baseline, max ${(result.maxIncrease * 100).toFixed(0)}%`
+        : 'no baseline comparison';
+      logger.info(`budget ok (${relativeSummary})`);
     }
   }
 };

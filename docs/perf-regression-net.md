@@ -24,6 +24,22 @@
 
 补充事实：`examples/ubean-test/vitest.config.ts` 是 `environment: 'node'`，仓库内无 browser mode 测试；根 `devDependencies` 已含 `@vitest/browser` + `@vitest/browser-playwright`（基建在，未启用）。
 
+### 2.1 首次实测发现（2026-09-15，RM-P01 首次运行）
+
+在旧路径上，**dev 下服务端文件变更不生效**：
+
+- 修改 `src/routes/api/hello.ts` 的字面量（就地写入与原子替换各测一次）后，`GET /api/hello` 在 10s / 60s 内均未反映新值；删除探针文件后 `curl` 仍返回旧值。
+- 新增路由文件 `src/routes/api/perf-new-route.ts` 持续 404，日志中亦无 `Found 63 API routes` 重新扫描行。
+- Vite 自身 watcher 有反应（`[vite] page reload src/routes/api/hello.ts`），但 ubean 的 rescan 未生效；`packages/cli/src/dev.ts:304` 的 `watcher.start()` 为无条件调用，`createDevWatcher` 的 `fs.watch(recursive: true)` 在本机隔离测试中可正常收到事件（已排除环境因素）。
+
+影响：
+
+1. RM-P05 基线中 `devChangeServer` / `devChangeClient` 记录为「未观察到（0/5）」，而非具体耗时；
+2. RM-P04（reload 单例保留）依赖变更传播，顺延至该项观察成立之后；
+3. `vite-plugin-migration.md` 风险 R3 写的「现状为全量 rescan + full-reload」与实测不符——现状比「全量重载」更差。R3 的对照口径已改为基线文件，但该断言的原文需要随本发现修订。
+
+> 该现象是否为缺陷、或需要额外配置，待维护者确认；本方案只记录可复现的观测，不推断原因。
+
 ## 3. 度量对象与口径
 
 in-scope 四项耗时指标 + 一项正确性对照。定义必须可复现、可归因：
@@ -64,38 +80,40 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 ## 5. 任务清单
 
+> 状态标记：✅ 完成 ｜ 🟡 部分达成（缺口见「完成定义」列）｜ ⏳ 顺延 / 未开始（阻塞原因见说明）。标记随实施更新，不删行。
+
 ### Phase 0 · 度量地基（无行为变更，可独立合入）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P01** | 生命周期基准脚本 | 新增 `scripts/benchmark-lifecycle.mjs`：`--toggle viteBuilder` 双变体；采集 dev 冷启动、build 墙钟、build 峰值 RSS；复用 `benchmark-ssg.mjs` 的 `psSnapshot` / `treeRssKB` | `pnpm benchmark:lifecycle` 可跑；输出表格 + `--json`；`--fixture` 可换项目 |
-| **RM-P02** | 生效证明 | 采集前断言被测路径生效（environments 注册 / 单 `createBuilder` / worker 内 `ModuleRunner`） | 人为让开关失效（模拟 R6）时基准必须失败，且失败信息指明「未走新路径」 |
-| **RM-P03** | 统计口径 | warmup + N 迭代、p50 / p95、原始样本落盘、`--iterations`、环境记录 | 样本文件含全部原始值；输出含 p50 / p95；中位数口径保留以兼容 `benchmark-ssg.mjs` |
-| **RM-P04** | reload 正确性对照 | 变更后探针断言服务端单例是否保留（同一实例标识）；与 RM-V28（跨环境单例代理）对齐 | 旧实现与新实现各有明确是 / 否结论；作为 R3 的正确性对照，不计入耗时 |
+| **RM-P01** ✅ | 生命周期基准脚本 | 新增 `scripts/benchmark-lifecycle.mjs`（度量原语抽到 `scripts/lib/metrics.mjs`）：`--toggle <arm>` 单变量切换；采集 dev 冷启动、变更生效延迟、build 墙钟与峰值 RSS | `pnpm benchmark:lifecycle` 可跑；输出表格 + `--json`；`--fixture` 可换项目；`--skip-dev` / `--skip-build` 可分段 |
+| **RM-P02** 🟡 | 生效证明 | 每臂采集前调用 `assertEngaged()`；`viteBuilder` 臂在开关不存在时**硬失败**并说明「开关缺失会让两臂都跑在旧路径」 | 反向场景已成立：`--toggle viteBuilder` 现在直接失败，不会产出假对比。**待补**：开关落地后改为「检测新路径特征（environments 注册 / 单 `createBuilder` / worker `ModuleRunner`）失败即中止」 |
+| **RM-P03** ✅ | 统计口径 | `scripts/lib/metrics.mjs` 提供 `summarizeSamples` / `quantile`；warmup + N 迭代、p50 / p95、原始样本与运行环境（Node / 平台 / CPU / 内存）落盘；`--runs` / `--warmup` 覆盖 | 样本文件含全部原始值；报告含 p50 / p95；`benchmark-ssg.mjs` 口径不受影响（未改动） |
+| **RM-P04** ⏳ 顺延 | reload 正确性对照 | 变更后探针断言服务端单例是否保留（同一实例标识）；与 RM-V28（跨环境单例代理）对齐 | **阻塞于 §2.1**：变更传播在旧路径上未被观察到，单例是否保留无从判定。待 `devChangeServer` 观察成立后再实施 |
 
 ### Phase 1 · 基线冻结（Phase 1 dev 迁移的硬前置）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P05** | 旧实现基线冻结 | 在 `experimental.viteBuilder: false` 上跑 RM-P01–P04，产出 committed `examples/ubean-test/benchmarks/perf-baseline.json` | 基线含四项指标 p50 / p95 + 原始样本 + 环境记录；**在旧实现上生成**；`vite-plugin-migration.md` 的 R3 以该文件替代「现状」措辞 |
+| **RM-P05** 🟡 部分 | 旧实现基线冻结 | `examples/ubean-test/benchmarks/perf-baseline.json` 已在旧路径上产出（warmup 1 + 5 次，Node v24.21.0 / darwin-arm64 / Apple M1 Max） | 三项指标有 p50 / p95：dev 冷启动 1.78s（p95 2.00s）、build 墙钟 1.65s（p95 1.66s）、build 峰值内存 613.4MB（p95 621.5MB）。**未达成**：`devChangeServer` / `devChangeClient` 因 §2.1 记录为「未观察到 0/5」，**无数字可比**。R3 与 RM-V13 / V15 / V23 已引用该文件 |
 
 ### Phase 2 · 体积闸门升级（与迁移解耦，可独立合入）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P06** | 体积闸门绝对上限 | `analyze-lib.ts` 的 `compareBundleBaseline` 扩展绝对上限（`maxTotalGzip` / `maxEntryGzip` / `maxChunkGzip`）；启用已落盘但未参与判定的 per-chunk `entries`；可选 brotli | 超限失败信息含 chunk 名与绝对值；现有 5% 相对门禁与 `analyze:check` 行为不变，CI 保持绿 |
+| **RM-P06** ✅ | 体积闸门绝对上限 | `analyze-lib.ts` 新增 `BundleBudgetOptions`（`maxTotalGzip` / `maxEntryGzip` / `maxChunkGzip`，字节）与 `BundleBudgetViolation`；`summarizeBundle` 增加 brotli；CLI 新增 `--max-total-kb` / `--max-entry-kb` / `--max-chunk-kb`（kB） | 超限失败信息含 chunk 名与实测值（实测：`4 chunk(s) exceed the absolute budget 5.0 kB: assets/app-*.js 46.2 kB, …`）；相对 5% 门禁与 `analyze:check` 行为不变（实测 total 0.2% / entry 0.4%，绿）；新增 3 个单测 |
 
 ### Phase 3 · 浏览器运行时（可选，后置）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P07** | 运行时延迟测量 | 启用根目录已装未用的 `@vitest/browser` + Playwright，测 hydration 完成时刻与导航切换延迟（含 islands 首次 mount 双 rAF 调度） | 至少两个指标有 p50 / p95；不进入 CI 阻塞 |
+| **RM-P07** ⏳ 未开始 | 运行时延迟测量 | 启用根目录已装未用的 `@vitest/browser` + Playwright，测 hydration 完成时刻与导航切换延迟（含 islands 首次 mount 双 rAF 调度） | 未开始；优先级低于 §2.1 的变更传播问题 |
 
 ### Phase 4 · 纪律与文档
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P08** | 纪律条款与文档 | `AGENTS.md` 增加性能主张条款（可复现基准 + 正确性对照 + 前后数字）；`apps/docs` 的 `contributing/engineering.md` 补 dev / build 基准章节；`docs/README.md` 与本文件索引 | 文档与实现一致；条款可被 PR 直接引用 |
+| **RM-P08** ✅ | 纪律条款与文档 | `AGENTS.md` §9 增加两条 benchmark 命令；站点 `contributing/engineering.md`（中英）新增「13. 生命周期性能基准」并补绝对上限用法与性能主张纪律；`docs/README.md` 索引本文件 | 文档与实现一致；纪律条款可被 PR 直接引用 |
 
 ## 6. 与 vite-plugin-migration 的接口
 

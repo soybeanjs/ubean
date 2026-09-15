@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "kind": "ubean-perf-lifecycle-baseline",
+  "generatedAt": "2026-09-15T10:29:39.101Z",
+  "fixture": "examples/ubean-test",
+  "recordedOn": "legacy",
+  "note": "在 Vite 插件化（ADR-0012）之前、于旧路径上采集；见 docs/perf-regression-net.md RM-P05。",
+  "iterations": {
+    "warmup": 1,
+    "runs": 5
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpuModel": "Apple M1 Max",
+    "cpuCount": 10,
+    "totalMemMb": 32768
+  },
+  "arms": {
+    "legacy": {
+      "summary": {
+        "devColdStart": {
+          "n": 5,
+          "p50": 1778.3221250000024,
+          "p95": 1996.5030829999946,
+          "min": 1743.5785409999953,
+          "max": 2002.6274579999954
+        },
+        "devChangeServer": {
+          "n": 0,
+          "p50": null,
+          "p95": null,
+          "min": null,
+          "max": null
+        },
+        "devChangeClient": {
+          "n": 0,
+          "p50": null,
+          "p95": null,
+          "min": null,
+          "max": null
+        },
+        "buildWall": {
+          "n": 5,
+          "p50": 1652.5595829999947,
+          "p95": 1663.168583000003,
+          "min": 1597.845291000005,
+          "max": 1663.2325830000045
+        },
+        "buildPeakRss": {
+          "n": 5,
+          "p50": 628144,
+          "p95": 636425.6,
+          "min": 621520,
+          "max": 636512
+        }
+      },
+      "observation": {
+        "serverChange": {
+          "observed": 0,
+          "total": 5
+        },
+        "clientChange": {
+          "observed": 0,
+          "total": 5
+        }
+      },
+      "notes": []
+    }
+  }
+}

@@ -893,7 +893,10 @@ pnpm typecheck        # 类型检查（vue-tsc）
 pnpm lint             # ESLint（Vite-Plus/OXC + Vue）
 pnpm test             # 运行测试（vitest）
 pnpm analyze          # 读 Vite client manifest；示例基线 `examples/ubean-test/benchmarks/bundle-baseline.json`
-pnpm analyze:check    # 对照 committed 基线，gzip 相对增长超过 5% 则失败
+pnpm analyze:check    # 对照 committed 基线，gzip 相对增长超过 5% 则失败；可加 --max-total-kb/--max-entry-kb/--max-chunk-kb 设绝对上限
+pnpm benchmark:lifecycle           # dev 冷启动 / 变更生效 / build 墙钟与峰值内存（p50/p95；不进 CI 阻塞）
+pnpm benchmark:lifecycle:baseline  # 重新生成 `examples/ubean-test/benchmarks/perf-baseline.json`（须在旧路径上采集）
+pnpm benchmark:ssg    # ssg 直接渲染 vs fullstack 管道的构建对比（ADR-0011）
 pnpm dev              # watch 构建主包 ubean（vp pack --watch）；示例 dev server 用 pnpm --filter ubean-test dev
 pnpm build            # 构建
 ```

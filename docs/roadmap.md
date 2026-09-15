@@ -38,7 +38,7 @@
 | SEO `src/sitemap.ts` 等约定 | `registerSeoConventions` 由 `createUbeanApp` 默认调用 |
 | 生产 `/_ipx` | `image: true` 时生产 server-entry 挂同一处理器 |
 | 生产 `src/crons` | 生产 eager glob；Node/bun/deno 启动 `startCronScheduler`，serverless 不装进程内调度器 |
-| 性能验证 | 只有体积预算进 CI（相对 +5%）；构建基准手动、无断言、只报中位数；dev 冷启动 / 变更生效延迟 / 浏览器运行时无度量（RM-P01–P08 收口） |
+| 性能验证 | 体积预算进 CI（相对 +5% 与绝对上限并存）；生命周期基准已落地但不进 CI；**实测发现 dev 下服务端变更不生效**（RM-P01–P08，见 [perf-regression-net.md](perf-regression-net.md) §2.1） |
 
 **结论：** 能力面已经够宽（SSR/SSG/ISR/Actions/Islands/`.server.vue`/i18n/OpenAPI/presets）。2026 Q4 的工作是把「类型里有」收成「默认路径真的做」——这同时服务架构健康（40%）和性能（25%），用户可见缺口（35%）放到 2027 H1。
 
@@ -129,6 +129,8 @@ studio 在独立私有仓。本路线图只承认两条开源契约：
 
 基线必须在**旧路径**上冻结——RM-V36 收敛后旧实现删除，「回到旧实现测一次」将永久不可能。
 
+**进展（2026-09-15）**：RM-P01 / P03 / P06 / P08 ✅；RM-P02 🟡 脚手架（`viteBuilder` 臂在开关落地前硬失败，不产出假对比）；RM-P05 🟡 基线已在旧路径产出（dev 冷启动 1.78s、build 1.65s / 613MB，p50），但实测发现 **dev 下服务端文件变更不生效**，导致两项变更延迟指标无数字；RM-P04 / P07 ⏳ 顺延。该发现同时说明 5.5 风险 R3 的「现状为全量 rescan + full-reload」与实测不符。
+
 | ID | 任务 | 门槛 | 完成定义 |
 | --- | --- | --- | --- |
 | **RM-P01–P08** | 生命周期性能基准：`experimental.viteBuilder` 单变量双变体 → 生效证明（防 baseline-vs-baseline）→ p50/p95 + 原始样本落盘 → 旧实现基线冻结；并升级体积闸门为绝对上限 + per-chunk | 架构还债 + 性能 | 见 [perf-regression-net.md](perf-regression-net.md)；`examples/ubean-test/benchmarks/perf-baseline.json` 在旧实现上产出，并被 5.5 的风险 R3 与 RM-V13 / V15 / V23 引用 |
@@ -159,4 +161,4 @@ Q4 还债（D01–D08）之后，请求链之外的下一处结构性债：dev /
 3. H1：RM-U01 + U02 数据层切口与 select SSR（U04）已落地；U03 不另做客户端文件中间件。
 4. 全程：CodeGraph `impact` 对 `createUbeanApp` / `registerRoutes` / `ubeanPlugin` 在相关 PR 留下证据；不把任务人天写进文档。
 5. Vite 插件化（RM-V01–V36）：回归网（RM-V05 功能 + RM-P01–P05 性能）先于 Phase 1 落地；Phase 1（dev）与 Phase 2（build）各自在 `experimental.viteBuilder` 开关后独立可发布；产物布局与 `analyze:check` 基线全程不变。
-6. 性能回归网（RM-P01–P08）：`perf-baseline.json` 在**旧实现**上产出并 committed；此后 Phase 1 / Phase 2 的「DX 不倒退 / 性能收益」以该基线的 p50 / p95 为准，不接受定性描述；RM-V36 收敛前归档最后一次旧路径基准。
+6. 性能回归网（RM-P01–P08）：`perf-baseline.json` 在**旧实现**上产出并 committed；此后 Phase 1 / Phase 2 的「DX 不倒退 / 性能收益」以该基线的 p50 / p95 为准，不接受定性描述；RM-V36 收敛前归档最后一次旧路径基准。（部分达成：变更延迟两项待 [perf-regression-net.md](perf-regression-net.md) §2.1 的 dev 变更不生效问题处置后再补。）

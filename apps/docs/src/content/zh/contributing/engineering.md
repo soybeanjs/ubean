@@ -468,5 +468,27 @@ pnpm analyze   # 或 `ubean analyze`；读 dist/client/.vite/manifest.json
 
 默认把 gzip 汇总写到 `.ubean/bundle-baseline.json`（`totalGzip` / `entryGzip` / 各 chunk）。提交到仓库的回归基线是 `examples/ubean-test/benchmarks/bundle-baseline.json`（`ubean analyze --out`）。快照（2026-08-22，ubean-test 生产客户端）：**113.0 kB gzip** 合计 / **6.6 kB** entry（`app-*.js`）/ 30 个 JS chunk。Islands 默认页的回归以该文件为准，而不是印象。`ubean analyze --write=false` 只打印不写文件。CI 跑 `ubean analyze --check benchmarks/bundle-baseline.json`（默认允许合计 / entry gzip 相对增长 5%）。
 
+除相对门禁外还可设**绝对上限**（只看本次构建，与基线无关，超出即失败）：
+
+```bash
+ubean analyze --max-total-kb 160 --max-entry-kb 12 --max-chunk-kb 60
+```
+
+三个值单位为 kB，可单独使用；`--max-chunk-kb` 超出时失败信息会列出 chunk 名与实测值。绝对上限与相对门禁并存，互不替代。
+
+## 13. 生命周期性能基准
+
+声称「更快」同样必须带数字。体积预算是确定性的、进 CI 阻塞；dev / build 生命周期延迟受机器噪声影响，**不进 CI 阻塞**，用于整改前后对照（`docs/perf-regression-net.md`）。
+
+```bash
+pnpm benchmark:lifecycle            # 报告（默认 legacy 臂；warmup 1 + 5 次，报 p50/p95）
+pnpm benchmark:lifecycle -- --runs 3 --warmup 1
+pnpm benchmark:lifecycle:baseline   # 重新生成 examples/ubean-test/benchmarks/perf-baseline.json
+```
+
+采集三类指标：dev 冷启动、变更生效延迟（服务端 / 客户端分开）、build 墙钟与峰值内存；原始样本与运行环境记录一并落盘，报告里的数字只有配上该文件才可复核。基线在 **Vite 插件化之前** 于旧路径上采集（RM-P05），是 `vite-plugin-migration.md` 风险 R3 与 RM-V13 / V15 / V23 的对照口径。
+
+**性能主张的纪律**：任何声称性能收益的 PR 必须附可复现基准、正确性对照与前后数字；不接受「感觉没变慢」或「应该更快」。
+
 ---
 

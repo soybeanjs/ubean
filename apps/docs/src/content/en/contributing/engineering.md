@@ -467,6 +467,28 @@ pnpm analyze   # or `ubean analyze`; reads dist/client/.vite/manifest.json
 
 By default this writes gzip totals to `.ubean/bundle-baseline.json` (`totalGzip` / `entryGzip` / per-chunk). The committed regression baseline is `examples/ubean-test/benchmarks/bundle-baseline.json` (`ubean analyze --out`). Snapshot (2026-08-22, ubean-test production client): **113.0 kB gzip** total / **6.6 kB** entry (`app-*.js`) / 30 JS chunks. Treat that file as the Islands-page regression baseline. `ubean analyze --write=false` prints without writing. CI runs `ubean analyze --check benchmarks/bundle-baseline.json` (default: 5% relative growth on total / entry gzip).
 
+Alongside the relative gate you can set **absolute ceilings** (checked against the current build alone; a breach fails the command):
+
+```bash
+ubean analyze --max-total-kb 160 --max-entry-kb 12 --max-chunk-kb 60
+```
+
+Values are kB and each flag stands on its own; `--max-chunk-kb` failures list the offending chunk names and their measured sizes. The two mechanisms coexist rather than replace each other.
+
+## 13. Lifecycle Performance Benchmark
+
+Claims of "faster" need numbers too. Bundle budgets are deterministic and block CI; dev / build lifecycle latency is machine-noise sensitive, so it is **not** a CI gate — it exists for before/after comparison (`docs/perf-regression-net.md`).
+
+```bash
+pnpm benchmark:lifecycle            # report (legacy arm; warmup 1 + 5 runs, p50/p95)
+pnpm benchmark:lifecycle -- --runs 3 --warmup 1
+pnpm benchmark:lifecycle:baseline   # regenerate examples/ubean-test/benchmarks/perf-baseline.json
+```
+
+It measures three groups: dev cold start, change-propagation latency (server and client separately), and build wall time plus peak RSS. Raw samples and the recorded environment are written next to the summary, because a number is only reviewable together with that file. The baseline was recorded on the **old path, before the Vite plugin-first migration** (RM-P05) and is the comparison reference for risk R3 and RM-V13 / V15 / V23 in `vite-plugin-migration.md`.
+
+**Discipline for performance claims:** a PR that claims a performance win must include a reproducible benchmark, a correctness control, and before/after numbers. "Feels no slower" or "should be faster" is not evidence.
+
 ---
 
 ## Next Steps

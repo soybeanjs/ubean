@@ -64,13 +64,13 @@ vite.config.ts（用户唯一入口）
 | **RM-V02** | 虚拟模块无状态化 | 移除 `production.ts:92-93` 构建期 `clear()`；registry 改为 scan 层注入、插件只读；`virtual-registry.test.ts` / `virtual-modules.test.ts` 保持通过 | 连续两次 build 产出字节一致；插件实例无跨构建可变状态 |
 | **RM-V03** | 统一 Node↔Web 适配 | 新建单一适配模块，替换 `vite-server.ts:95/119` 与 `server.ts:17/41` 两份重复实现 | 重复实现删除；dev 与 preview 行为不变 |
 | **RM-V04** | `env-runner` 兼容性 spike | 在 `examples/ubean-test` 验证 `node-worker` 与 vite-plus 0.3.1 的 `DevEnvironment` / `createServerHotChannel` / `vite/module-runner` 协同；同时验证 `miniflare` runner 可用性 | 最小 worker 能 fetch 返回 200；产出结论文档（含 Plan B 成本量化） |
-| **RM-V05** | **dev 拓扑回归网（硬前置）** | `packages/cli/test` 现状只覆盖 logging / security-headers / preview；新增 dev HTTP 拓扑断言：中间件顺序、SSR HTML 注入、页面 404 vs API 404、`/_devtools` 302、`/_openapi.json` | 新增测试在**旧实现**上全绿，作为迁移基线 |
+| **RM-V05** ✅ | **dev 拓扑回归网（硬前置）** | 新增 `packages/cli/test/dev-topology.test.ts`：子进程起 `ubean dev` + **纯 HTTP** 断言（刻意不碰内部 API —— 内部 server 会在 RM-V12 被删除，走内部 API 的测试届时会一起失效）。覆盖 SSR HTML 注入、页面 404 vs API 404、静态与源码资源不被兜底吞掉、内置 `_` 路由、中间件顺序（安全头/请求 ID 覆盖四类响应；i18n 与 CSRF cookie）。fixture 补 `src/pages/404.vue`，使「页面 404 → HTML」可断言 | 18 个断言在**旧实现**上全绿。实施中发现并修复一个拓扑缺陷：`pages/404.vue` 存在时页面兜底 `*` 会按注册顺序抢先匹配晚注册的内置路由，导致 `/_openapi.json`、`/_scalar` 变 404（修复=把 OpenAPI 注册提前到 `registerRoutes` 之前，并订正 router.ts 中「rou3 会优先具体路径」的错误注释）。**未修**：404 组件内容在 dev 下不 SSR，登记为 R8 |
 | **RM-P01–P05** | **生命周期性能基线（硬前置，见 [perf-regression-net.md](perf-regression-net.md)）** | 新增 `scripts/benchmark-lifecycle.mjs`：以 `experimental.viteBuilder` 为单变量开关；采集 dev 冷启动、变更生效延迟、build 墙钟与峰值 RSS；采集前断言新路径确实生效（防 R6 双轨分叉） | 旧实现上产出 committed `examples/ubean-test/benchmarks/perf-baseline.json`（p50 / p95 + 原始样本 + 环境记录）；R3 的「现状」由该文件定义 |
 | **RM-V06** | Builder API 契约测试 | 断言 vite-plus 的 environments 注册、`buildApp` 调用顺序、`builder.build(env)` 返回形态、`sharedConfigBuild` 行为 | 契约测试覆盖 ADR-0012 依赖的全部实验性 API；锁 `vite-plus-core@0.3.1` |
 
-> RM-V05、RM-V06 与 RM-P01–P05 是硬前置：RM-V05 提供 DX 不倒退的**功能**判据，RM-P01–P05 提供**性能**判据（否则 ADR-0012 §3 的性能收益与 R3 的「≥ 现状」都无数字可依），RM-V06 提供 `@experimental` API 的漂移告警。
+> 硬前置：**RM-V05 ✅ 与 RM-P01–P05 ✅ 已落地** —— 前者提供 DX 不倒退的**功能**判据，后者提供**性能**判据（否则 ADR-0012 §3 的性能收益与 R3 的「≥ 现状」都无数字可依）。**RM-V06 仍待做**，提供 `@experimental` API 的漂移告警。
 >
-> RM-P05 必须在 Phase 1 之前完成：RM-V36 收敛后旧实现删除，基线将无法再产出。
+> RM-P05 必须在 Phase 1 之前完成：RM-V36 收敛后旧实现删除，基线将无法再产出。（已完成。）
 
 ### Phase 1 · dev 迁移（收益最大、风险最高）
 
@@ -131,10 +131,10 @@ vite.config.ts（用户唯一入口）
 
 ```
 Phase 0（RM-V01…V06 + RM-P01…P05）
-   ├─ RM-V05 功能回归网 ─┐
-   ├─ RM-P05 性能基线 ───┤（硬前置）
-   ├─ RM-V06 契约测 ─────┤
-   └─ RM-V04 spike ──────┘
+   ├─ RM-V05 功能回归网 ✅ ─┐
+   ├─ RM-P05 性能基线 ✅ ───┤（硬前置已满足）
+   ├─ RM-V06 契约测 ───────┤ ← 剩余
+   └─ RM-V04 spike ────────┘ ← 剩余
         ↓
 Phase 1 dev（RM-V07…V15）      Phase 2 build（RM-V16…V23）
         ↓                              ↓
@@ -161,6 +161,7 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 | R5 | DevTools 依赖 httpServer 绑定 | 移除 `httpServerBinderPlugin` 后 DTK 可能失效 | Vite 拥有 server 后绑定天然成立；RM-V11 / RM-V15 专项验证 |
 | R6 | 双轨期行为分叉（用户 config vs CLI 注入） | 两类项目表现不一致 | 两轨共用同一份 environment 构建配置；RM-V36 收敛 |
 | R7 | Phase 1 / Phase 2 长时间并行导致中间态不可发布 | 无法增量交付 | 两阶段各自以 `experimental.viteBuilder` 隔离，独立可发布 |
+| R8 | dev 下 `pages/404.vue` 的组件内容不 SSR（2026-09-15 实测） | 404 响应状态码与内容类型正确（404 + text/html），但只渲染出布局外壳，组件自身 DOM 缺失，日志伴随 `VUE_ROUTER_R0004`（无 catch-all 匹配） | 与 RM-V10（页面 catch-all 的语义）一并处理；`dev-topology.test.ts` 已留出内容断言位置，修好后补上，避免把当前行为固化成基线 |
 
 **回滚策略**：每个 Phase 以 `experimental.viteBuilder: true` 开关隔离，CLI 旧路径保留至 RM-V36。任一 Phase 验收失败即关开关回到旧路径，无需 revert 提交。
 

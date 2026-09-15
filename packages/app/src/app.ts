@@ -427,6 +427,14 @@ export class UbeanApp {
           : undefined
     };
 
+    // 内置 `_` 前缀路由必须在 `registerRoutes` **之前**注册：`pages/404.vue` 存在时，
+    // `registerRoutes` 会挂上页面兜底处理器，晚注册的内置路由会被它抢先匹配
+    // （实测 `/_openapi.json` / `/_scalar` 变为 404，而更早注册的 `/_health` 不受影响）。
+    if (this.options.openAPI) {
+      const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};
+      registerOpenAPIRoutes(this.hono, openAPIOpts);
+    }
+
     await registerRoutes(this as unknown as RouteRegistrar, registerOpts);
 
     if (this.options.ipxHandler) {
@@ -448,11 +456,6 @@ export class UbeanApp {
     // client-side props change. The endpoint looks up the component by path
     // from the global registry populated during SSR; unknown paths return 404.
     this.hono.on('POST', SERVER_COMPONENT_ENDPOINT, createServerComponentMiddleware());
-
-    if (this.options.openAPI) {
-      const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};
-      registerOpenAPIRoutes(this.hono, openAPIOpts);
-    }
 
     await this.hooks.callHook('app:after:register', this.hono);
 

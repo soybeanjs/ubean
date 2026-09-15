@@ -735,8 +735,9 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
 
   // 404 catch-all: register a fallback GET handler that renders the
   // `pages/404.vue` component for unmatched browser navigation requests.
-  // Hono's router (rou3) gives priority to specific paths, so `*` only
-  // fires when no registered route matches.
+  // Hono 的 `*` 兜底**不会**自动让位于更具体的路径：它按注册顺序参与匹配，因此内置
+  // `_` 前缀路由（`/_openapi.json`、`/_scalar` 等）必须在调用本函数之前注册，否则会被
+  // 这个兜底抢先匹配成 404（实测；`/_health` 因注册更早而未受影响）。
   if (options.notFoundPage) {
     const notFoundPage = options.notFoundPage;
     const pageAssetTagsOpt = options.pageAssetTags;

@@ -147,6 +147,8 @@ Q4 还债（D01–D08）之后，请求链之外的下一处结构性债：dev /
 
 刻意的三处不对齐（理由见 ADR-0012）：不拆 `ssr` 环境、不引入 `.output/` 布局、不把 prerender 提到 server bundle 之前。
 
+**进展（2026-09-15）**：Phase 0 的硬前置已满足 —— `RM-V05`（dev 拓扑回归网，18 个纯 HTTP 断言在旧实现上全绿）与 `RM-P01–P05`（性能基线）已落地。实施 RM-V05 时发现并修复一个拓扑缺陷：`pages/404.vue` 存在时页面兜底 `*` 会按注册顺序抢先匹配晚注册的内置路由，使 `/_openapi.json`、`/_scalar` 变 404（修复 = OpenAPI 注册提前到 `registerRoutes` 之前）。**剩余 Phase 0**：`RM-V04`（env-runner spike）、`RM-V06`（Builder API 契约测试）；另登记 R8（dev 下 404 组件内容不 SSR）待与 RM-V10 一并处理。
+
 ## 6. 不做的伪缺口（避免 Q4 被带偏）
 
 - 「把 28 包合成 5 个」——blast radius 过大；卫生包已并入 shared/config/build，不合并 `@ubean/vue`。

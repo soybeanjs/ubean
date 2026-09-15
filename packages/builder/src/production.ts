@@ -1,8 +1,7 @@
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile, rm, cp, readFile } from 'node:fs/promises';
+import { mkdir, writeFile, cp, readFile } from 'node:fs/promises';
 import { build as viteBuild } from 'vite';
 import type { Plugin as VitePlugin } from 'vite';
-import vue from '@vitejs/plugin-vue';
 import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
 import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
@@ -27,8 +26,14 @@ import { createVirtualRegistry } from './virtual-registry';
 import type { VirtualModuleRegistry } from './virtual-registry';
 import { ubeanPlugin } from './vite';
 import {
+  cleanBuildOutput,
+  getBuildOutDirs,
+  writeBuildManifest,
+  writeClientIndexHtml,
+  writePresetWrapper
+} from './vite/build-steps';
+import {
   ubeanVite,
-  VUE_PLUGIN_INCLUDE,
   createVuePagesVirtualModule,
   createVueAppEntryVirtualModule,
   createServerEntryVirtualModule,
@@ -59,17 +64,6 @@ export interface BuildManifest {
   clientDir: string;
   serverDir: string;
   preset: string;
-}
-
-function getOutDirs(cwd: string, outputDir: string) {
-  const outputRoot = resolve(cwd, outputDir);
-  return {
-    root: outputRoot,
-    public: join(outputRoot, 'public'),
-    server: join(outputRoot, 'server'),
-    assets: join(outputRoot, 'public', 'assets'),
-    virtual: join(cwd, '.ubean', 'virtual')
-  };
 }
 
 function toVitePath(p: string): string {
@@ -590,7 +584,7 @@ export default {
 
 export async function buildProduction(options: BuildOptions): Promise<BuildManifest> {
   const { cwd, config, preset, scanResult, minify = true, sourcemap = false, contentSnapshot } = options;
-  const outDirs = getOutDirs(cwd, config.build.outputDir);
+  const outDirs = getBuildOutDirs(cwd, config.build.outputDir);
   const srcDir = resolve(cwd, config.srcDir);
 
   const mode = config.mode;
@@ -598,18 +592,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   const hasPages = mode !== 'backend';
   const hasServer = mode !== 'spa';
 
-  logger.info(
-    `Cleaning output directory... (mode=${mode}${mode === 'fullstack' ? `, ssr=${config.ssr.enabled}` : ''})`
-  );
-  if (existsSync(outDirs.root)) {
-    await rm(outDirs.root, { recursive: true, force: true });
-  }
-  if (hasPages) {
-    await mkdir(outDirs.public, { recursive: true });
-  }
-  if (hasServer) {
-    await mkdir(outDirs.server, { recursive: true });
-  }
+  await cleanBuildOutput({ outDirs, hasPages, hasServer, mode, ssrEnabled });
 
   logger.info('Generating virtual modules...');
   // RM-V02：本次构建专用注册表，显式注入给落盘与插件；不再走模块级单例，
@@ -632,18 +615,10 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   const userViteConfig = findUserViteConfig(cwd);
 
   const builtinPlugins: VitePlugin[] = [];
-  if (hasPages) {
-    builtinPlugins.push(
-      vue({
-        include: VUE_PLUGIN_INCLUDE,
-        template: {
-          compilerOptions: {
-            isCustomElement: (tag: string) => tag.startsWith('ubean-')
-          }
-        }
-      }) as unknown as VitePlugin
-    );
-  }
+  // RM-V14：`@vitejs/plugin-vue` 的注册已归属 `@ubean/build/vue` 的 `ubeanVite`（用户的
+  // `ubeanPlugin()` 里就包含它），这里**不能**再注册一份：重复注册会让 .vue 被编译两次 ——
+  // 第二个实例拿到的是已编译成 JS 的代码，报 “At least one <template> or <script> is required”。
+  // 实测：dev 路径修掉重复后 build 路径漏改，`ubean build` 直接失败。
   if (!userViteConfig) {
     // 无用户 vite.config:由 builtin 提供全部 ubean 插件
     builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
@@ -685,20 +660,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     const clientEntryPath = join(srcDir, 'entry.client.ts');
     const clientInput = existsSync(clientEntryPath) ? clientEntryPath : join(virtualDir, 'client-entry.mjs');
 
-    const htmlEntry = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-  <title>Ubean App</title>
-</head>
-<body>
-  <div id="app"></div>
-  <script type="module" src="virtual:ubean-client-entry"></script>
-</body>
-</html>`;
-    await writeFile(join(virtualDir, 'index.html'), htmlEntry, 'utf-8');
+    await writeClientIndexHtml(virtualDir);
 
     await viteBuild({
       root: cwd,
@@ -817,70 +779,25 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
 
     serverEntry = 'entry.mjs';
 
-    // ssg 模式：server bundle 仅用于 prerender 期渲染（构建后被删除），
-    // 不生成 preset 包装文件（server.mjs / handler.mjs / worker.mjs /
-    // wrangler.toml）—— 它们 import 的 createFetchHandler 在静态 entry 中
-    // 不存在，且产物本身是纯静态站点。
-    if (mode === 'ssg') {
-      logger.info('SSG mode: skipping preset server wrapper (static output only)');
-    } else if (presetBuildConfig.entryType === 'node') {
-      await writeFile(join(outDirs.server, 'server.mjs'), generateNodeServerEntry(), 'utf-8');
-      serverEntry = 'server.mjs';
-
-      const pkgJson = {
-        type: 'module',
-        private: true,
-        main: './server.mjs',
-        dependencies: {
-          hono: '^4.0.0'
-        }
-      };
-      await writeFile(join(outDirs.server, 'package.json'), JSON.stringify(pkgJson, null, 2), 'utf-8');
-    } else if (presetBuildConfig.entryType === 'worker') {
-      await writeFile(join(outDirs.server, 'worker.mjs'), generateCloudflareWorkerEntry(), 'utf-8');
-      serverEntry = 'worker.mjs';
-
-      const wranglerToml = `
-name = "ubean-app"
-main = "./server/worker.mjs"
-compatibility_date = "2024-01-01"
-assets = { directory = "./public" }
-`.trim();
-      await writeFile(join(outDirs.root, 'wrangler.toml'), wranglerToml, 'utf-8');
-    } else {
-      await writeFile(join(outDirs.server, 'handler.mjs'), generateStandardHandlerEntry(), 'utf-8');
-      serverEntry = 'handler.mjs';
-    }
-  }
-
-  const assets: BuildManifest['assets'] = [];
-  for (const [key, entry] of Object.entries(clientManifest)) {
-    assets.push({
-      file: entry.file,
-      src: key,
-      isEntry: entry.isEntry,
-      css: entry.css
+    serverEntry = await writePresetWrapper({
+      mode,
+      presetBuildConfig,
+      outDirs,
+      entries: {
+        node: generateNodeServerEntry,
+        worker: generateCloudflareWorkerEntry,
+        standard: generateStandardHandlerEntry
+      }
     });
   }
 
-  const manifest: BuildManifest = {
-    assets,
-    entry: serverEntry,
-    clientDir: hasPages ? relative(cwd, outDirs.public) : '',
-    serverDir: hasServer ? relative(cwd, outDirs.server) : '',
-    preset: preset.name || 'standard'
-  };
-
-  await writeFile(join(outDirs.root, 'manifest.json'), JSON.stringify(manifest, null, 2), 'utf-8');
-
-  logger.info(`Build complete! Output: ${outDirs.root}`);
-  if (hasPages) {
-    logger.info(`  Client assets: ${outDirs.public}`);
-  }
-  if (hasServer) {
-    logger.info(`  Server bundle: ${outDirs.server}`);
-    logger.info(`  Entry: ${serverEntry}`);
-  }
-
-  return manifest;
+  return writeBuildManifest({
+    cwd,
+    outDirs,
+    clientManifest,
+    serverEntry,
+    preset,
+    hasPages,
+    hasServer
+  });
 }

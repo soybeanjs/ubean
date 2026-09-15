@@ -11,6 +11,8 @@
  * - devChangeClient         写入客户端模块 → 该模块重新转换并返回新内容的墙钟
  * - buildWall               build 命令墙钟
  * - buildPeakRss            build 进程树峰值内存（50ms 轮询 ps）
+ * - browserHydration        浏览器：导航到 islands 页面 → 首个岛屿水合的墙钟（RM-P07）
+ * - browserNavigation       浏览器：首页点击站内链接 → 新页面 DOM 提交的墙钟（RM-P07）
  * - reloadScope             正确性对照（非耗时）：改无关文件触发 reload 后，探针模块的实例
  *                           是否被保留。R3 承诺的是「文件级失效 + 保留单例状态」，
  *                           这里给出旧实现的「是 / 否」，供整改后对照（RM-P04）。
@@ -25,13 +27,18 @@
  *   pnpm benchmark:lifecycle                                   # 报告（默认 legacy 臂）
  *   pnpm benchmark:lifecycle -- --runs 5 --warmup 1
  *   pnpm benchmark:lifecycle -- --out examples/ubean-test/benchmarks/perf-baseline.json
+ *   pnpm benchmark:lifecycle -- --skip-browser                  # 跳过浏览器运行时指标
  *   pnpm benchmark:lifecycle -- --toggle viteBuilder            # 需 RM-V07+ 落地（见下）
+ *
+ * 浏览器指标需要 Playwright 的 Chromium（`npx playwright install chromium`）；缺失时
+ * 只在报告里标注「不可用」并跳过，不阻塞服务端指标。
  *
  * 本机环境注意：dev server 默认只绑 IPv6 `[::1]`，探针自动选择可用地址；脚本会清除
  * 进程内的代理环境变量，避免 localhost 探针被 http_proxy 拦成 502。
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
+import { createBrowserSession, measureHydration, measureNavigation } from './lib/browser-metrics.mjs';
 import {
   collectEnvironment,
   delay,
@@ -73,6 +80,7 @@ const changeTimeoutMs = Math.max(1_000, parseInt(argValue('--change-timeout', '1
 const devReadyTimeoutMs = Math.max(5_000, parseInt(argValue('--dev-timeout', '60000'), 10) || 60_000);
 const skipDev = argFlag('--skip-dev');
 const skipBuild = argFlag('--skip-build');
+const skipBrowser = argFlag('--skip-browser');
 const jsonOut = argValue('--json', null);
 const baselineOut = argValue('--out', null);
 
@@ -274,38 +282,60 @@ async function measureClientChange(dev, runIndex) {
 }
 
 async function runDevPhase(arm) {
-  const samples = { coldStart: [], serverChange: [], clientChange: [], scope: [] };
+  const samples = { coldStart: [], serverChange: [], clientChange: [], scope: [], hydration: [], navigation: [] };
   const notes = [];
   const total = warmup + runs;
 
-  for (let i = 1; i <= total; i += 1) {
-    const isWarmup = i <= warmup;
-    const label = isWarmup ? `warmup ${i}/${warmup}` : `run ${i - warmup}/${runs}`;
-    process.stdout.write(`  [${arm.label}] dev ${label} ... `);
-    const attempt = await measureColdStart(arm);
+  // 浏览器只在臂内启一次、跨迭代复用；不可用时记 note 并跳过这组指标
+  // （不阻塞服务端指标的采集，也不静默隐藏：报告里会显示「不可用」）。
+  let session;
+  if (!skipBrowser) {
     try {
-      if (!attempt.firstResponse.ok) {
-        throw new Error(`首个 SSR 响应未在超时内返回 200`);
-      }
-      if (!attempt.viteClientOk) {
-        notes.push('dev 健康检查：/@vite/client 未返回 200（本机曾出现绑定差异，请复核）');
-      }
-      const serverChange = await measureServerChange(attempt.dev, i);
-      const clientChange = await measureClientChange(attempt.dev, i);
-      const scope = serverChange.scope;
-      const scopeLabel =
-        scope.instancePreserved === null ? 'n/a' : scope.instancePreserved ? '单例保留' : '模块重新求值';
-      const summary = `cold ${fmtMs(attempt.coldStartMs)} · server-change ${serverChange.observed ? fmtMs(serverChange.latencyMs) : '未观察到'} · client-change ${clientChange.observed ? fmtMs(clientChange.latencyMs) : '未观察到'} · reload ${scopeLabel}`;
-      console.log(summary);
-      if (!isWarmup) {
-        samples.coldStart.push(attempt.coldStartMs);
-        samples.serverChange.push(serverChange.observed ? serverChange.latencyMs : null);
-        samples.clientChange.push(clientChange.observed ? clientChange.latencyMs : null);
-        samples.scope.push(scope);
-      }
-    } finally {
-      await stopDev(attempt.dev);
+      session = await createBrowserSession();
+    } catch (error) {
+      notes.push(
+        `浏览器不可用，跳过运行时指标：${error instanceof Error ? error.message : String(error)}（可运行 npx playwright install chromium，或用 --skip-browser 显式跳过）`
+      );
     }
+  }
+
+  try {
+    for (let i = 1; i <= total; i += 1) {
+      const isWarmup = i <= warmup;
+      const label = isWarmup ? `warmup ${i}/${warmup}` : `run ${i - warmup}/${runs}`;
+      process.stdout.write(`  [${arm.label}] dev ${label} ... `);
+      const attempt = await measureColdStart(arm);
+      try {
+        if (!attempt.firstResponse.ok) {
+          throw new Error(`首个 SSR 响应未在超时内返回 200`);
+        }
+        if (!attempt.viteClientOk) {
+          notes.push('dev 健康检查：/@vite/client 未返回 200（本机曾出现绑定差异，请复核）');
+        }
+        // 浏览器指标先采：此时服务端还是初始状态，不受后续变更探针影响。
+        const hydration = session ? await measureHydration(session, attempt.dev.baseUrl) : { observed: false };
+        const navigation = session ? await measureNavigation(session, attempt.dev.baseUrl) : { observed: false };
+        const serverChange = await measureServerChange(attempt.dev, i);
+        const clientChange = await measureClientChange(attempt.dev, i);
+        const scope = serverChange.scope;
+        const scopeLabel =
+          scope.instancePreserved === null ? 'n/a' : scope.instancePreserved ? '单例保留' : '模块重新求值';
+        const summary = `cold ${fmtMs(attempt.coldStartMs)} · 水合 ${hydration.observed ? fmtMs(hydration.latencyMs) : '未观察到'} · 导航 ${navigation.observed ? fmtMs(navigation.latencyMs) : '未观察到'} · server-change ${serverChange.observed ? fmtMs(serverChange.latencyMs) : '未观察到'} · client-change ${clientChange.observed ? fmtMs(clientChange.latencyMs) : '未观察到'} · reload ${scopeLabel}`;
+        console.log(summary);
+        if (!isWarmup) {
+          samples.coldStart.push(attempt.coldStartMs);
+          samples.serverChange.push(serverChange.observed ? serverChange.latencyMs : null);
+          samples.clientChange.push(clientChange.observed ? clientChange.latencyMs : null);
+          samples.scope.push(scope);
+          samples.hydration.push(hydration.observed ? hydration.latencyMs : null);
+          samples.navigation.push(navigation.observed ? navigation.latencyMs : null);
+        }
+      } finally {
+        await stopDev(attempt.dev);
+      }
+    }
+  } finally {
+    if (session) await session.close();
   }
 
   return { samples, notes };
@@ -357,6 +387,8 @@ async function runBuildPhase(arm) {
 function summarizeArm(samples) {
   return {
     devColdStart: summarizeSamples(samples.coldStart),
+    browserHydration: summarizeSamples(samples.hydration ?? []),
+    browserNavigation: summarizeSamples(samples.navigation ?? []),
     devChangeServer: summarizeSamples(samples.serverChange),
     devChangeClient: summarizeSamples(samples.clientChange),
     buildWall: summarizeSamples(samples.buildWall),
@@ -414,6 +446,8 @@ async function main() {
       serverChange: [],
       clientChange: [],
       scope: [],
+      hydration: [],
+      navigation: [],
       buildWall: [],
       buildPeakRss: []
     };
@@ -436,7 +470,9 @@ async function main() {
       summary: summarizeArm(armSamples),
       observation: {
         serverChange: observationRate(armSamples.serverChange),
-        clientChange: observationRate(armSamples.clientChange)
+        clientChange: observationRate(armSamples.clientChange),
+        hydration: observationRate(armSamples.hydration),
+        navigation: observationRate(armSamples.navigation)
       },
       samples: armSamples,
       notes
@@ -447,18 +483,22 @@ async function main() {
   const lines = [];
   lines.push(`| 指标 | ${armNames.map(n => ARMS[n].label).join(' | ')} |`);
   lines.push(`| --- | ${armNames.map(() => '---').join(' | ')} |`);
-  const row = (title, key, format) => {
+  const row = (title, key, format, whenSkipped) => {
     lines.push(
       `| ${title} | ${armNames
         .map(n => {
           const metric = report.arms[n].summary[key];
-          if (metric.p50 == null) return '未观察到';
+          if (metric.p50 == null) return whenSkipped ?? '未观察到';
           return `${format(metric.p50)}（p95 ${format(metric.p95)}）`;
         })
         .join(' | ')} |`
     );
   };
+  // 显式跳过时不要显示成「未观察到」——那会让人误以为是采集失败。
+  const browserSkipLabel = skipBrowser ? '跳过（--skip-browser）' : undefined;
   row('dev 冷启动', 'devColdStart', fmtMs);
+  row('浏览器 · 首个岛屿水合', 'browserHydration', fmtMs, browserSkipLabel);
+  row('浏览器 · 站内导航', 'browserNavigation', fmtMs, browserSkipLabel);
   row('变更生效 · 服务端', 'devChangeServer', fmtMs);
   row('变更生效 · 客户端', 'devChangeClient', fmtMs);
   row('build 墙钟', 'buildWall', fmtMs);
@@ -471,9 +511,11 @@ async function main() {
     const arm = report.arms[name];
     const sc = arm.observation.serverChange;
     const cc = arm.observation.clientChange;
+    const hy = arm.observation.hydration;
+    const nv = arm.observation.navigation;
     const scope = arm.summary.reloadScope;
     console.log(
-      `观测率 · ${arm.label}: 服务端变更 ${sc ? `${sc.observed}/${sc.total}` : 'n/a'}，客户端变更 ${cc ? `${cc.observed}/${cc.total}` : 'n/a'}`
+      `观测率 · ${arm.label}: 服务端变更 ${sc ? `${sc.observed}/${sc.total}` : 'n/a'}，客户端变更 ${cc ? `${cc.observed}/${cc.total}` : 'n/a'}，水合 ${skipBrowser ? '跳过' : hy ? `${hy.observed}/${hy.total}` : 'n/a'}，导航 ${skipBrowser ? '跳过' : nv ? `${nv.observed}/${nv.total}` : 'n/a'}`
     );
     console.log(
       `reload 正确性 · ${arm.label}: 单例保留 ${scope.preserved ?? 'n/a'}/${scope.n}，模块重新求值 ${scope.reevaluated ?? 'n/a'}，进程重启 ${scope.processRestarted ?? 'n/a'}`

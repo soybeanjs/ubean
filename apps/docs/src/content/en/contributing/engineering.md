@@ -482,10 +482,13 @@ Claims of "faster" need numbers too. Bundle budgets are deterministic and block 
 ```bash
 pnpm benchmark:lifecycle            # report (legacy arm; warmup 1 + 5 runs, p50/p95)
 pnpm benchmark:lifecycle -- --runs 3 --warmup 1
+pnpm benchmark:lifecycle -- --skip-browser   # skip the browser runtime metrics
 pnpm benchmark:lifecycle:baseline   # regenerate examples/ubean-test/benchmarks/perf-baseline.json
 ```
 
-It measures three groups: dev cold start, change-propagation latency (server and client separately), and build wall time plus peak RSS. Raw samples and the recorded environment are written next to the summary, because a number is only reviewable together with that file. The baseline was recorded on the **old path, before the Vite plugin-first migration** (RM-P05) and is the comparison reference for risk R3 and RM-V13 / V15 / V23 in `vite-plugin-migration.md`.
+It measures four groups: dev cold start, browser runtime (first island hydration / in-app navigation), change-propagation latency (server and client separately), and build wall time plus peak RSS — plus a reload correctness control (does a module instance survive an unrelated file change). Raw samples and the recorded environment are written next to the summary, because a number is only reviewable together with that file. The baseline was recorded on the **old path, before the Vite plugin-first migration** (RM-P05) and is the comparison reference for risk R3 and RM-V13 / V15 / V23 in `vite-plugin-migration.md`.
+
+The browser metrics need Playwright's Chromium (`npx playwright install chromium`). When it is missing the report marks that group as unavailable and skips it, leaving the other metrics intact.
 
 **Discipline for performance claims:** a PR that claims a performance win must include a reproducible benchmark, a correctness control, and before/after numbers. "Feels no slower" or "should be faster" is not evidence.
 

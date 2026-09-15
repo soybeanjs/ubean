@@ -60,6 +60,8 @@ in-scope 四项耗时指标 + 一项正确性对照。定义必须可复现、�
 | build 墙钟 | build 命令墙钟 | 子进程计时 | RM-P01 |
 | build 峰值 RSS | 构建进程树 RSS 峰值 | `psSnapshot` / `treeRssKB`（50ms 轮询求和） | RM-P01 |
 | reload 正确性 | 变更后**无关模块**的实例状态是否保留（是 / 否，非耗时） | 探针路由（`examples/ubean-test/src/routes/api/perf-probe.ts`）暴露模块级实例标识，改无关文件触发 reload 前后各读一次；仅在本次变更已生效时判读（否则是假阴性） | RM-P04 |
+| 浏览器 · 首个岛屿水合 | 导航到 `/islands-test` → 第一个岛屿带上 `data-hydrated` 的墙钟（页面时钟，timeOrigin 即导航起点） | 真实 Chromium：init script 在页面脚本前挂 `attributeFilter: ['data-hydrated']` 的观察器。取「第一个」而非「全部」：页面上刻意混用 idle / visible 指令，等全部会把 2s idle 超时算进来 | RM-P07 |
+| 浏览器 · 站内导航 | 首页点击 `<Link to="/about">` → `/about` 根元素挂载的墙钟 | 真实 Chromium：`page.click` + `waitForSelector('.about')`。含 Playwright 往返的常量偏差（数毫秒）；整页刷新同样能正常结算 | RM-P07 |
 
 **不计入**：函数级微基准（口径是进程级与端到端）、CI runner 之间的横向比较（机器不同无意义）。
 
@@ -104,7 +106,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P05** ✅ | 旧实现基线冻结 | `examples/ubean-test/benchmarks/perf-baseline.json` 在旧路径上产出（warmup 1 + 5 次，Node v24.21.0 / darwin-arm64 / Apple M1 Max）；§2.1 的 watcher 缺陷修复后重采，五项指标 + reload 正确性全部有结论 | p50 / p95：dev 冷启动 1.71s / 1.73s、服务端变更 220ms / 222ms、客户端变更 8ms / 9ms、build 墙钟 1.62s / 1.63s、峰值内存 616.4MB / 620.0MB；两项变更观测率均 5/5，reload 单例保留 5/5。R3 与 RM-V13 / V15 / V23 引用该文件 |
+| **RM-P05** ✅ | 旧实现基线冻结 | `examples/ubean-test/benchmarks/perf-baseline.json` 在旧路径上产出（warmup 1 + 5 次，Node v24.21.0 / darwin-arm64 / Apple M1 Max）；§2.1 的 watcher 缺陷修复后重采，七项指标 + reload 正确性全部有结论 | p50 / p95：dev 冷启动 1.69s / 1.70s、首个岛屿水合 155ms / 166ms、站内导航 121ms / 125ms、服务端变更 222ms / 223ms、客户端变更 106ms / 107ms、build 墙钟 1.62s / 1.64s、峰值内存 608.9MB / 616.2MB；四项观测率均 5/5，reload 单例保留 5/5。R3 与 RM-V13 / V15 / V23 引用该文件 |
 
 ### Phase 2 · 体积闸门升级（与迁移解耦，可独立合入）
 
@@ -116,7 +118,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P07** ⏳ 未开始 | 运行时延迟测量 | 启用根目录已装未用的 `@vitest/browser` + Playwright，测 hydration 完成时刻与导航切换延迟（含 islands 首次 mount 双 rAF 调度） | 未开始；按原计划后置（与 §2.1 无关，该问题已修复） |
+| **RM-P07** ✅ | 运行时延迟测量 | `scripts/lib/browser-metrics.mjs` + 基准脚本的浏览器阶段：臂内启一次真实 Chromium、跨迭代复用；采水合与导航两项。**偏离说明**：没有走 `@vitest/browser`（那是组件测试通道），端到端测量直接用 Playwright；两者都已在根 `devDependencies`。浏览器不可用时记 note 并跳过，不阻塞服务端指标 | 两项指标各有 p50 / p95（实测：首个岛屿水合 155ms / 166ms、站内导航 121ms / 125ms，观测率均 5/5）。首个岛屿所走路径包含 islands 首次 mount 的双 rAF 调度（间接覆盖，未单独插桩）。不进 CI 阻塞 |
 
 ### Phase 4 · 纪律与文档
 

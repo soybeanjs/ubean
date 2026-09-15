@@ -483,10 +483,13 @@ ubean analyze --max-total-kb 160 --max-entry-kb 12 --max-chunk-kb 60
 ```bash
 pnpm benchmark:lifecycle            # 报告（默认 legacy 臂；warmup 1 + 5 次，报 p50/p95）
 pnpm benchmark:lifecycle -- --runs 3 --warmup 1
+pnpm benchmark:lifecycle -- --skip-browser   # 跳过浏览器运行时指标
 pnpm benchmark:lifecycle:baseline   # 重新生成 examples/ubean-test/benchmarks/perf-baseline.json
 ```
 
-采集三类指标：dev 冷启动、变更生效延迟（服务端 / 客户端分开）、build 墙钟与峰值内存；原始样本与运行环境记录一并落盘，报告里的数字只有配上该文件才可复核。基线在 **Vite 插件化之前** 于旧路径上采集（RM-P05），是 `vite-plugin-migration.md` 风险 R3 与 RM-V13 / V15 / V23 的对照口径。
+采集四组指标：dev 冷启动、浏览器运行时（首个岛屿水合 / 站内导航）、变更生效延迟（服务端 / 客户端分开）、build 墙钟与峰值内存；另有 reload 正确性对照（改无关文件后模块实例是否保留）。原始样本与运行环境记录一并落盘，报告里的数字只有配上该文件才可复核。基线在 **Vite 插件化之前** 于旧路径上采集（RM-P05），是 `vite-plugin-migration.md` 风险 R3 与 RM-V13 / V15 / V23 的对照口径。
+
+浏览器指标需要 Playwright 的 Chromium（`npx playwright install chromium`）；缺失时报告会标注「不可用」并跳过该组，不影响其余指标。
 
 **性能主张的纪律**：任何声称性能收益的 PR 必须附可复现基准、正确性对照与前后数字；不接受「感觉没变慢」或「应该更快」。
 

@@ -1,165 +1,203 @@
 {
-  "generatedAt": "2026-09-08T10:12:57.274Z",
+  "generatedAt": "2026-09-16T06:15:15.529Z",
   "outDir": "dist/public",
   "entries": [
     {
-      "file": "assets/app-D9BzYjQM.js",
-      "bytes": 134521,
-      "gzip": 47356,
+      "file": "assets/app-DV3IAHrx.js",
+      "bytes": 131695,
+      "gzip": 46271,
+      "brotli": 40931,
       "isEntry": true
     },
     {
-      "file": "assets/chunks/runtime-core.esm-bundler-DrZBbEHc.js",
-      "bytes": 72349,
-      "gzip": 27874
+      "file": "assets/chunks/runtime-core.esm-bundler-CVWi3YKI.js",
+      "bytes": 72342,
+      "gzip": 27870,
+      "brotli": 25354
     },
     {
-      "file": "assets/chunks/fetch-test-CScaA4zE.js",
+      "file": "assets/chunks/fetch-test-DoctV4Tz.js",
       "bytes": 26284,
-      "gzip": 8838
+      "gzip": 8839,
+      "brotli": 7949
     },
     {
-      "file": "assets/chunks/pages-pOzgvC9G.js",
+      "file": "assets/chunks/pages-Z52f0Q23.js",
       "bytes": 20971,
-      "gzip": 8034
+      "gzip": 8033,
+      "brotli": 7258
     },
     {
-      "file": "assets/chunks/cache-demo-BnwxgmE6.js",
+      "file": "assets/chunks/cache-demo-BkUDnbex.js",
       "bytes": 6394,
-      "gzip": 2536
+      "gzip": 2536,
+      "brotli": 2106
     },
     {
-      "file": "assets/chunks/vue.BHyNcdic-ShwmVD1z.js",
-      "bytes": 5299,
-      "gzip": 2260
+      "file": "assets/chunks/vue.BHyNcdic-CEHag2vF.js",
+      "bytes": 5298,
+      "gzip": 2261,
+      "brotli": 2069
     },
     {
-      "file": "assets/chunks/i18n-Cz1tt7qy.js",
+      "file": "assets/chunks/i18n-BtmZYk6s.js",
       "bytes": 4903,
-      "gzip": 1596
+      "gzip": 1597,
+      "brotli": 1392
     },
     {
-      "file": "assets/chunks/islands-test-C1AEVJTc.js",
+      "file": "assets/chunks/islands-test-ky_or2SN.js",
       "bytes": 3131,
-      "gzip": 1337
+      "gzip": 1337,
+      "brotli": 1057
     },
     {
-      "file": "assets/chunks/seo-meta-BmNnxTX7.js",
+      "file": "assets/chunks/seo-meta-BaEJUf6J.js",
       "bytes": 4081,
-      "gzip": 1329
+      "gzip": 1328,
+      "brotli": 1119
     },
     {
-      "file": "assets/chunks/view-transitions-ptZd0ZyR.js",
+      "file": "assets/chunks/view-transitions-BfSB94CB.js",
       "bytes": 2525,
-      "gzip": 1320
+      "gzip": 1319,
+      "brotli": 1107
     },
     {
-      "file": "assets/chunks/features-DrtWozO5.js",
+      "file": "assets/chunks/features-C7B-X7I1.js",
       "bytes": 4479,
-      "gzip": 1313
+      "gzip": 1313,
+      "brotli": 1049
     },
     {
-      "file": "assets/chunks/data-fetch-C4ApW42p.js",
+      "file": "assets/chunks/data-fetch-B5a-tKBI.js",
       "bytes": 2769,
-      "gzip": 1292
+      "gzip": 1291,
+      "brotli": 1143
     },
     {
-      "file": "assets/chunks/md-test-CSugTc9L.js",
+      "file": "assets/chunks/md-test-CpDbMK6a.js",
       "bytes": 2226,
-      "gzip": 1028
+      "gzip": 1029,
+      "brotli": 793
     },
     {
-      "file": "assets/chunks/about-TPg4xrus.js",
+      "file": "assets/chunks/about-BJwwB1cT.js",
       "bytes": 2603,
-      "gzip": 838
+      "gzip": 839,
+      "brotli": 646
     },
     {
-      "file": "assets/chunks/_id_-QHSUOUzi.js",
+      "file": "assets/chunks/_id_-MHO_k0bN.js",
       "bytes": 1139,
-      "gzip": 714
+      "gzip": 716,
+      "brotli": 624
     },
     {
-      "file": "assets/chunks/IslandMedia-BTP6ubI3.js",
+      "file": "assets/chunks/IslandMedia-D8nBkS98.js",
       "bytes": 905,
-      "gzip": 576
+      "gzip": 576,
+      "brotli": 491
     },
     {
-      "file": "assets/chunks/marketing-page-CYm-BTn3.js",
+      "file": "assets/chunks/marketing-page-CaluzyV5.js",
       "bytes": 811,
-      "gzip": 543
+      "gzip": 542,
+      "brotli": 439
     },
     {
-      "file": "assets/chunks/virtual_intlify-i18n-0-CicLCLd5.js",
+      "file": "assets/chunks/zh-CicLCLd5.js",
       "bytes": 1224,
-      "gzip": 539
+      "gzip": 539,
+      "brotli": 398
     },
     {
-      "file": "assets/chunks/default-D9pmLt9H.js",
+      "file": "assets/chunks/default-BaCPBCSX.js",
       "bytes": 914,
-      "gzip": 523
+      "gzip": 523,
+      "brotli": 424
     },
     {
-      "file": "assets/chunks/IslandVisibility-BP9DkyyS.js",
+      "file": "assets/chunks/IslandVisibility-DB9s0RYR.js",
       "bytes": 779,
-      "gzip": 516
+      "gzip": 516,
+      "brotli": 458
     },
     {
-      "file": "assets/chunks/virtual_intlify-i18n-1-DQ8i03I9.js",
+      "file": "assets/chunks/en-DQ8i03I9.js",
       "bytes": 1287,
-      "gzip": 468
+      "gzip": 468,
+      "brotli": 381
     },
     {
-      "file": "assets/chunks/IslandOnly-D2XXTU1C.js",
+      "file": "assets/chunks/IslandOnly-PNb5i6Yg.js",
       "bytes": 685,
-      "gzip": 460
+      "gzip": 461,
+      "brotli": 406
     },
     {
-      "file": "assets/chunks/IslandClock-hbVUGbb9.js",
+      "file": "assets/chunks/IslandClock-DIoShQNE.js",
       "bytes": 665,
-      "gzip": 457
+      "gzip": 458,
+      "brotli": 393
     },
     {
-      "file": "assets/chunks/settings-iZgF1v3W.js",
-      "bytes": 600,
-      "gzip": 447
-    },
-    {
-      "file": "assets/chunks/IslandCounter-BJY8is8v.js",
+      "file": "assets/chunks/IslandCounter-CS0Cbo2a.js",
       "bytes": 648,
-      "gzip": 446
+      "gzip": 447,
+      "brotli": 392
     },
     {
-      "file": "assets/chunks/profile-BNXSNTGa.js",
+      "file": "assets/chunks/settings-73nkPimZ.js",
+      "bytes": 600,
+      "gzip": 445,
+      "brotli": 370
+    },
+    {
+      "file": "assets/chunks/profile-DNhwYGVr.js",
       "bytes": 550,
-      "gzip": 422
+      "gzip": 420,
+      "brotli": 352
     },
     {
-      "file": "assets/chunks/_...slug_-B7qLYWQ8.js",
+      "file": "assets/chunks/_...slug_-zjnAcOqR.js",
       "bytes": 630,
-      "gzip": 416
+      "gzip": 417,
+      "brotli": 353
     },
     {
-      "file": "assets/chunks/dashboard-wMjTmoZI.js",
+      "file": "assets/chunks/404-DKwseEks.js",
+      "bytes": 487,
+      "gzip": 378,
+      "brotli": 320
+    },
+    {
+      "file": "assets/chunks/dashboard-1ETmDlXa.js",
       "bytes": 447,
-      "gzip": 324
+      "gzip": 326,
+      "brotli": 272
     },
     {
-      "file": "assets/chunks/marketing-Buwy-bI5.js",
+      "file": "assets/chunks/marketing-ChUuhiFd.js",
       "bytes": 374,
-      "gzip": 287
+      "gzip": 290,
+      "brotli": 240
     },
     {
-      "file": "assets/chunks/admin-YTWpmBsm.js",
+      "file": "assets/chunks/admin-BNARTjM4.js",
       "bytes": 350,
-      "gzip": 278
+      "gzip": 278,
+      "brotli": 243
     },
     {
       "file": "assets/chunks/_plugin-vue_export-helper-BDNMzG2s.js",
       "bytes": 84,
-      "gzip": 99
+      "gzip": 99,
+      "brotli": 88
     }
   ],
-  "totalBytes": 304627,
-  "totalGzip": 114466,
-  "entryGzip": 47356
+  "totalBytes": 302280,
+  "totalGzip": 113762,
+  "totalBrotli": 100617,
+  "entryGzip": 46271
 }

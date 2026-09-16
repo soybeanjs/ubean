@@ -114,7 +114,7 @@ vite.config.ts（用户唯一入口）
 | --- | --- | --- | --- |
 | **RM-V24** ✅ | `configurePreviewServer` 接管 | 新建 `builder/src/vite/preview.ts`（对齐 `nitro:src/build/vite/preview.ts:5-46`）；fullstack / backend 走生产 handler | **已落地**：核心插件（`ubeanPlugin()`）的 `configurePreviewServer` 挂预览中间件 —— 与 dev 的请求路由同一设计（「哪条路径都必然注册的那一个插件」）。`fullstack` / `backend` 在进程内 import `dist/server/entry.mjs` 的 `createFetchHandler()`（**不是** `server.mjs`：它自监听端口；也**不是** `handler.mjs`：那是平台适配壳），静态资源与预渲染 HTML 由产物内的 `serveStatic` 自己服务，预览环境与生产环境同形；`spa` / `ssg` 走静态服务，解析规则与 CLI 的 `startStaticServer` **同源一份实现**（`resolvePreviewFile`，含 `...` 文件名与路径穿越的既有教训）。**实测**：`vp preview`（无 CLI）在示例项目上跑通预渲染页 / API / 未预渲染页的 SSR / 404 页 / 资源 MIME 五类请求；builder 13 条单测 + CLI 5 条端到端全绿。**本任务连带查出并修复两个产物级缺陷**（见下方专节），并让 `--outDir` 下的产物恢复完整 |
 | **RM-V25** ✅ | `ubean preview` 与静态服务器保留 | `cli/src/preview.ts:46-125` 的 `startStaticServer` 保留（spa / ssg 无生产 server 可复用） | **已落地**：`ubean preview` 退化为「参数 + banner + 生命周期」—— 委托 `vite preview`（`preview()` from `vite`），请求由 RM-V24 的插件预览中间件处理；CLI 不再 spawn `dist/server/server.mjs`，`spawnPreviewServer` 与 `waitForPort` 等待逻辑一并删除（约 90 行）。`startStaticServer` **保留并成为 spa / ssg 的降级路径**（纯静态产物不依赖服务端能力，Vite 预览起不来时可用；fullstack / backend 无等价兜底 —— 降级成静态服务会给出「看着能开、实际没渲染」的假象，故那里的失败直接退出）。**顺带收敛方言**：`startStaticServer` 的解析规则改为调用 `@ubean/build/vite` 的 `resolvePreviewFile`，与插件中间件同源一份（MIME 映射同样共用 `previewMimeType`），既有 7 条断言全绿。项目没有用户 `vite.config` 时显式注册 `ubeanPreviewPlugin()`（核心插件不在场）。**实测**：`ubean preview` 在示例项目（fullstack）上跑通预渲染页 / 资源 MIME / API / 404 页四类断言；临时 spa 项目验证静态 + 客户端回退 |
-| **RM-V26** | cloudflare preview（可选） | 现状 `preview.ts:242-244` 直接报错提示 `wrangler dev`；改走 env-runner 的 `miniflare` runner | wrangler 不可用时也能本地预览 cloudflare 产物 |
+| **RM-V26** ✅ runner / 🟡 产物受阻 | cloudflare preview（可选） | 现状 `preview.ts:242-244` 直接报错提示 `wrangler dev`；改走 env-runner 的 `miniflare` runner | **runner 已落地**：`builder/src/vite/cloudflare-preview.ts` 的 `createCloudflarePreviewRunner()` 把产物 `server/worker.mjs` 交给 miniflare 在进程内跑，预览中间件按 preset 分流（cloudflare → miniflare，静态层先行；其余 → `entry.mjs`）。`miniflare` 是**可选 peer**（同 satori / `@resvg/resvg-js` 的约定）：缺失时返回 `miniflare-not-installed` 并给出可执行提示，CLI 在启动前预检、直接点明问题，不再让用户去猜。**验证边界（诚实说明）**：miniflare 4.20250214.0-rc.0 在本机实测通过（合成 worker 可派发、GET/POST 体保留、dispose 生效）；该依赖**没有进仓库**（workerd 体积大，且既有可选依赖都不入 devDeps），因此 CI 里这条真机用例会**跳过**，接线层由注入假 loader 的用例守着（7 条）。需要复现真机验证时：`pnpm add -D miniflare@4.20250214.0-rc.0` 后跑 `packages/builder/test/cloudflare-preview.test.ts`。**🟡 受阻项**：真机跑**本次构建的 cloudflare 产物**时，workerd 直接报 `No such module "node:fs/promises"` —— 产物在 worker 运行时里起不来，见下方专节 |
 
 ### Phase 4 · 对齐后的能力红利
 
@@ -272,3 +272,31 @@ var assetTags = { "css": "", "preloads": "", "body": "", "favicon": null };
 **修法**：`prerender.staticDir` 不再有默认值（`ResolvedPrerenderConfig.staticDir?: string`），落盘目录由新增的 `resolvePrerenderStaticDir(cwd, buildOutputDir, prerenderConfig)` 统一派生为 `<build.outputDir>/public`（用户显式配置则优先，相对/绝对路径都支持）；搜索索引（`__search.json` / Pagefind `siteDir`）同步改用同一函数，避免两处方言。
 
 **两个缺陷共同的教训**：**「清单一致」「体积不涨」都不等于「产物正确」**。前者看不见内容（HTML 里的 `<script>`），后者看不见缺失（少产出反而通过）。修完之后，矩阵的基线格新增两条**内容级**断言：产物目录里必须有预渲染 HTML；服务端产物必须内联客户端入口 script（按 `JSON.stringify` 的转义形态匹配）。这两条断言在修复前都是红的。
+
+#### 另外三个产物级问题（2026-09-16，RM-V26 连带查出）
+
+为了给 cloudflare 做「真的跑一次产物」的预览，逐个撞出三个此前没有任何门禁能发现的问题。按发现顺序记：
+
+**C. 无用户 `vite.config` + `backend` 模式构建失败。** 用临时项目验证 cloudflare 预览时先试了 node preset，构建直接失败：
+
+```
+Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-entry.mjs"
+```
+
+根因：`virtual:ubean-app` 由 `ubeanVite`（vue 插件）提供，而无配置分支只在 `hasPages` 时注册它 —— 可服务端入口模板**无条件** import 这个模块（SSR 应用壳要 `resolveAppConfig`）。于是 `mode: 'backend'`（无页面）走无配置分支必然失败。有用户 `vite.config` 时不暴露：那份 `ubeanPlugin()` 聚合入口本来就含 vue 插件 —— 这也解释了为什么 RM-V23 的矩阵（backend 格有配置、无配置格是 fullstack）两个方向都测过却没撞上：**缺的正是两者的交叉**。已修：两条路径都在 `else if (hasServer)` 时同样注册 `ubeanVite`。
+
+**D. cloudflare 产物在 workerd 里起不来（本轮最重，未修）。** `dist/server/worker.mjs` 的模块图里带着 `node:fs` / `node:fs/promises` / `node:net` / `node:os`（来自 `@ubean/app` 的 publicDir 检查与 `@ubean/server/static` 的静态服务路径），miniflare 启动时：
+
+```
+service core:user:: Uncaught Error: No such module "node:fs/promises".
+  imported from "dist/server/entry.mjs"
+```
+
+workerd 即使开 `nodejs_compat` 也不支持这几类内建 —— **这个 preset 的产物在 Cloudflare 上同样跑不起来**，而它此前从未被真正运行过：构建矩阵比文件清单（`worker.mjs` 在、`wrangler.toml` 在就算过），体积门禁比客户端产物。修法需要独立一笔（让 Node 专有路径在 worker 构建里消失：`@ubean/app` 的静态服务注册改条件/动态 import，`serveStatic` 需要 worker 可用的基于 fetch 的实现）。验收工具**本轮已经就位** —— miniflare runner 就是跑产物本身的工具，修完把真机用例从「跳过」改成「断言启动成功」即可。本轮只把失败前移：`writePresetWrapper` 在 worker 目标上审计产物并打印
+
+```
+worker 产物包含 workerd 不支持的 Node 内建导入（node:fs、node:fs/promises、node:net、node:os）—— Worker 运行时会在启动时直接失败。
+```
+
+**E. 配置里的 `preset` 顶层字段不被读取。** 写临时项目时按 `AGENTS.md` 的示例写了顶层 `preset: 'cloudflare'`，构建产物却是 node 形态（`server/package.json`、没有 `worker.mjs`）—— 实际被读取的是 `build.preset`（`cli/src/build.ts:138` 与 loader 默认值）。文档与实现不一致，登记到 RM-V32 一并修正。
+

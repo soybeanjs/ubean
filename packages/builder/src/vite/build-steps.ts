@@ -15,6 +15,7 @@ import { mkdir, rm, writeFile } from 'node:fs/promises';
 import type { Preset } from '@ubean/preset';
 import { getLogger } from '@ubean/shared/logger';
 import { join, relative, resolve } from 'pathe';
+import { findUnsupportedNodeImports } from './cloudflare-preview';
 
 const logger = getLogger('build');
 
@@ -128,6 +129,16 @@ compatibility_date = "2024-01-01"
 assets = { directory = "./public" }
 `.trim();
     await writeFile(join(outDirs.root, 'wrangler.toml'), wranglerToml, 'utf-8');
+    // worker 目标的产物审计（RM-V26）：Node 内建导入在 workerd 里是硬失败
+    // （实测 `No such module "node:fs/promises"` → worker 起不来），而这类问题既不在文件清单里、
+    // 也不在体积门禁里。这里只报告不阻断，把失败提前到构建期看得见的地方。
+    const unsupported = findUnsupportedNodeImports(outDirs.server);
+    if (unsupported.length > 0) {
+      logger.warn(
+        `worker 产物包含 workerd 不支持的 Node 内建导入（${unsupported.join('、')}）—— ` +
+          'Worker 运行时会在启动时直接失败。来源通常是仅 Node 可用的静态服务/文件系统路径。'
+      );
+    }
     return 'worker.mjs';
   }
 

@@ -75,6 +75,19 @@ export {
   type PreviewFileResolution
 } from './vite/preview';
 
+// RM-V26：cloudflare 产物的本地预览 runner（可选依赖 `miniflare`，缺失时给出可执行提示）
+export {
+  createCloudflarePreviewRunner,
+  defaultLoadMiniflare,
+  readCompatibilityDate,
+  MINIFLARE_INSTALL_HINT,
+  type CloudflarePreviewOptions,
+  type CloudflarePreviewResult,
+  type CloudflarePreviewRunner,
+  type MiniflareConstructorLike,
+  type MiniflareInstanceLike
+} from './vite/cloudflare-preview';
+
 // RM-V11：dev/SSR 路由表（与客户端 `virtual:ubean-pages` 保持同形的唯一入口）
 export {
   buildDevSsrRoutes,

@@ -172,6 +172,12 @@ export async function prepareBuild(
     builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
     if (hasPages) {
       builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }), ubeanIslandsPlugin());
+    } else if (hasServer) {
+      // backend（无页面）也要注册 vue 插件：服务端入口模板**无条件** import `virtual:ubean-app`，
+      // 而该虚拟模块由 `ubeanVite` 提供 —— 只按 `hasPages` 注册会让「backend + 无用户 vite.config」
+      // 构建失败（实测 Rolldown 报 `Failed to resolve import "virtual:ubean-app"`）。与旧路径
+      // （`buildProduction`）保持同一判据。
+      builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }));
     }
   }
   const { plugins } = await resolveModules({ cwd, config, builtinPlugins });

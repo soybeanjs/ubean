@@ -25,8 +25,11 @@ import { pathToFileURL } from 'node:url';
 import type { Plugin } from 'vite';
 import { tryGetConfig } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
+import { registerBuiltinPresets, resolvePresetByName } from '@ubean/preset';
 import { getLogger } from '@ubean/shared/logger';
 import { sendWebResponse, toWebRequest } from '../dev/node-web';
+import { createCloudflarePreviewRunner, readCompatibilityDate } from './cloudflare-preview';
+import type { CloudflarePreviewOptions, CloudflarePreviewResult } from './cloudflare-preview';
 
 const logger = getLogger('preview');
 
@@ -126,7 +129,7 @@ export async function sendPreviewFile(res: ServerResponse, path: string): Promis
   res.end(body);
 }
 
-export function sendPreviewStatus(res: ServerResponse, status: 400 | 404 | 500, text: string): void {
+export function sendPreviewStatus(res: ServerResponse, status: 400 | 404 | 500 | 501, text: string): void {
   res.statusCode = status;
   res.setHeader('Content-Type', 'text/plain; charset=utf-8');
   res.end(text);
@@ -140,8 +143,15 @@ export interface UbeanPreviewMiddlewareOptions {
   /** 产物根目录（`config.build.outputDir`）。 */
   outputDir: string;
   mode: UbeanResolvedConfig['mode'];
+  /**
+   * 平台 preset 名。`cloudflare` 走 miniflare runner（RM-V26）—— 产物是 worker，Node 进程内
+   * import 不出来；其余 preset 一律用 `entry.mjs`（所有 preset 共同的真实产物）。
+   */
+  presetName?: string;
   /** 监听地址，用于把请求 URL 补全为绝对地址。 */
   host?: string;
+  /** 测试注入点：覆盖 miniflare 加载器。 */
+  loadMiniflare?: CloudflarePreviewOptions['loadMiniflare'];
 }
 
 /** 构建期模块的默认导出：`createFetchHandler()` 工厂（见 preset 包装生成器）。 */
@@ -156,12 +166,25 @@ export type PreviewMiddleware = (req: IncomingMessage, res: ServerResponse, next
  * 错误写进响应而不是让 `vite preview` 挂住 —— 预览最常见的失败就是「忘了先构建」。
  */
 export function createPreviewMiddleware(options: UbeanPreviewMiddlewareOptions): PreviewMiddleware {
-  const { rootDir, outputDir, mode, host = 'localhost' } = options;
-  const staticRoot = resolve(rootDir, outputDir, 'public');
-  const serverEntry = resolve(rootDir, outputDir, 'server', 'entry.mjs');
+  const { rootDir, outputDir, mode, presetName, host = 'localhost', loadMiniflare } = options;
+  const outDirAbs = resolve(rootDir, outputDir);
+  const staticRoot = resolve(outDirAbs, 'public');
+  const serverEntry = resolve(outDirAbs, 'server', 'entry.mjs');
   const staticOnly = mode === 'spa' || mode === 'ssg';
+  const isCloudflare = presetName === 'cloudflare';
 
   let handlerPromise: Promise<(req: Request, ctx?: unknown) => Promise<Response>> | null = null;
+
+  /** cloudflare：miniflare runner（worker 产物）；失败结果被缓存，避免每个请求重复尝试。 */
+  let cloudflarePromise: Promise<CloudflarePreviewResult> | null = null;
+  const loadCloudflare = (): Promise<CloudflarePreviewResult> => {
+    cloudflarePromise ??= createCloudflarePreviewRunner({
+      workerPath: resolve(outDirAbs, 'server', 'worker.mjs'),
+      compatibilityDate: readCompatibilityDate(resolve(outDirAbs, 'wrangler.toml')),
+      loadMiniflare
+    });
+    return cloudflarePromise;
+  };
 
   const loadHandler = (): Promise<(req: Request, ctx?: unknown) => Promise<Response>> => {
     handlerPromise ??= (async () => {
@@ -184,15 +207,29 @@ export function createPreviewMiddleware(options: UbeanPreviewMiddlewareOptions):
   };
 
   if (!staticOnly) {
-    // 生产 handler 路径：静态资源与预渲染 HTML 由产物内的 `serveStatic` 服务（与生产一致）。
+    // 生产 handler 路径。
+    //
+    // node 系 preset：静态资源与预渲染 HTML 由产物内的 `serveStatic` 服务（与生产一致）。
+    // cloudflare：产物是 worker，交给 miniflare；静态层由我们先行服务（与 Cloudflare 平台的
+    // 「assets 先于 worker」同构 —— miniflare 的 `assets` 选项在本版本上 ready 直接失败）。
     return (req, res, _next) => {
       void (async () => {
         try {
-          const handler = await loadHandler();
           const protocol = (req.socket as { encrypted?: boolean } | undefined)?.encrypted ? 'https' : 'http';
           const webReq = await toWebRequest(req, host, protocol);
-          const webRes = await handler(webReq);
-          await sendWebResponse(res, webRes);
+
+          if (isCloudflare) {
+            const staticFile = resolvePreviewFile(staticRoot, new URL(webReq.url).pathname, 'ssg');
+            if (staticFile.kind === 'forbidden') return sendPreviewStatus(res, 400, 'Bad Request');
+            if (staticFile.kind === 'file') return sendPreviewFile(res, staticFile.path);
+
+            const runner = await loadCloudflare();
+            if (!runner.ok) return sendPreviewStatus(res, 501, runner.message);
+            return sendWebResponse(res, await runner.runner.fetch(webReq));
+          }
+
+          const handler = await loadHandler();
+          await sendWebResponse(res, await handler(webReq));
         } catch (err) {
           logger.error(`Preview request failed: ${err instanceof Error ? err.message : String(err)}`);
           sendPreviewStatus(res, 500, err instanceof Error ? err.message : String(err));
@@ -246,9 +283,25 @@ export function attachPreviewMiddleware(
     rootDir: config.rootDir,
     outputDir: config.build.outputDir,
     mode: config.mode,
+    // preset 名决定服务端形态：cloudflare 是 worker 产物（miniflare），其余是 `entry.mjs`
+    presetName: resolvePresetName(config.build.preset),
     host
   });
   server.middlewares.use((req, res, next) => middleware(req, res, next));
+}
+
+/**
+ * 解析 preset 名（未注册或未知时返回 `undefined`，此时按 node 形态处理 —— `entry.mjs` 对所有
+ * 非 worker preset 都是正确的产物）。
+ */
+function resolvePresetName(name: string | undefined): string | undefined {
+  if (!name) return undefined;
+  try {
+    registerBuiltinPresets();
+    return resolvePresetByName(name).name;
+  } catch {
+    return name;
+  }
 }
 
 /**

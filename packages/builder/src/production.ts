@@ -689,6 +689,13 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
     if (hasPages) {
       builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }), ubeanIslandsPlugin());
+    } else if (hasServer) {
+      // backend（无页面）也要注册 vue 插件：服务端入口模板**无条件** import `virtual:ubean-app`
+      // （SSR 应用壳用它的 `resolveAppConfig`），而该虚拟模块由 `ubeanVite` 提供。只按 `hasPages`
+      // 注册会让「backend + 无用户 vite.config」直接构建失败（实测 Rolldown 报
+      // `Failed to resolve import "virtual:ubean-app"`）—— 有用户 `vite.config` 时不会暴露，
+      // 因为那份 `ubeanPlugin()` 聚合入口本来就含 vue 插件。
+      builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }));
     }
   }
 

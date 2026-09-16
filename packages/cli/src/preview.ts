@@ -3,7 +3,12 @@ import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
 import { preview } from 'vite';
-import { previewMimeType, resolvePreviewFile, ubeanPreviewPlugin } from '@ubean/build/vite';
+import {
+  createCloudflarePreviewRunner,
+  previewMimeType,
+  resolvePreviewFile,
+  ubeanPreviewPlugin
+} from '@ubean/build/vite';
 import { loadUbeanConfig } from '@ubean/config';
 import { registerBuiltinPresets, resolvePresetByName } from '@ubean/preset';
 import { getLogger } from '@ubean/shared/logger';
@@ -140,20 +145,32 @@ export const previewCommand: CommandDef = {
     // 入口（`hasServer = mode !== 'spa'`，ssg 构建后还会删掉 `dist/server`），故只校验静态目录。
     // fullstack / backend：校验产物里的 `entry.mjs` —— 生产 handler 由插件的预览中间件在进程内
     // 接上（产物内的 `serveStatic` 负责静态与预渲染 HTML）。CLI 不再 spawn `server.mjs`：那是
-    // 「预览一个 Node 服务器」，端口探测与子进程编排会掩盖产物本身的问题。cloudflare 产物跑在
-    // worker 运行时里，Node 进程内 import 不出来，交由 RM-V26 的 miniflare runner 处理。
-    if (preset.name === 'cloudflare') {
-      logger.error('Cloudflare preset preview is not supported yet. Use `wrangler dev` instead.');
-      process.exit(1);
-    }
-
-    const staticRoot = join(cwd, outputDir, 'public');
+    // 「预览一个 Node 服务器」，端口探测与子进程编排会掩盖产物本身的问题。
+    // cloudflare：产物是 worker，中间件走 miniflare（RM-V26）；缺依赖时在这里就给出提示，而不是
+    // 等用户请求了才看到 501。
     const staticMode = mode === 'spa' || mode === 'ssg';
-    const requiredArtifact = staticMode ? join(staticRoot, 'index.html') : join(cwd, outputDir, 'server', 'entry.mjs');
+    const isCloudflare = preset.name === 'cloudflare';
+    const staticRoot = join(cwd, outputDir, 'public');
+    const requiredArtifact = staticMode
+      ? join(staticRoot, 'index.html')
+      : isCloudflare
+        ? join(cwd, outputDir, 'server', 'worker.mjs')
+        : join(cwd, outputDir, 'server', 'entry.mjs');
     if (!existsSync(requiredArtifact)) {
       logger.error(`Build output not found: ${requiredArtifact}`);
       logger.info('Run `ubean build` first to create a production build.');
       process.exit(1);
+    }
+
+    if (isCloudflare) {
+      // 预检：这次实例化只用于确认 runner 可用（缺 miniflare / worker 产物有问题时立刻退出），
+      // 真正处理请求的实例由预览中间件自己建。
+      const probe = await createCloudflarePreviewRunner({ workerPath: requiredArtifact });
+      if (!probe.ok) {
+        logger.error(probe.message);
+        process.exit(1);
+      }
+      await probe.runner.dispose();
     }
 
     const userViteConfig = findUserViteConfig(cwd);

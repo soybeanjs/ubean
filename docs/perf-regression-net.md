@@ -148,7 +148,9 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 **build 臂的生效证明（新增，RM-V23）**：dev 臂靠「无 CLI 的 `vp dev` 能服务应用」自证，build 臂原先没有任何证明（两臂都跑 `ubean build`，而两条 CLI 路径的构建日志除产物路径字符串外**逐行相同** —— 实测 diff 过，没有可断言的标记位）。现改为 build 臂跑 `pnpm exec vp build`：没有 CLI，服务端 bundle 与预渲染 HTML 只可能来自插件注册的 `builder.buildApp`。保障比 dev 臂更硬 —— 实测**不带开关的 `vp build` 直接硬失败**（`Cannot resolve entry module index.html`，exit 1，零产物），连退化产物都产不出。`assertBuildEngaged`（断言 `dist/manifest.json` + `dist/server/` + 至少一个预渲染 HTML）是第一格构建后的第二道防线，防「退出 0 但只出半套产物」。**代价**：两臂命令不同（含 `pnpm exec` 派发），与 dev 臂同构，报告脚注中明示，不假装是纯单变量对比。
 
-**干净产物约束（新增）**：build 阶段在每臂开始前 `rm -rf dist`。原脚本会沿用上一臂留下的 `dist`，而两条路径都设 `emptyOutDir: false` —— 这正是「体积断言把残留读成回归」那次事故的成因（见 [vite-plugin-migration.md](vite-plugin-migration.md) 的自我更正）。
+**干净产物约束（新增）**：build 阶段在每臂开始前 `rm -rf dist`。原脚本会沿用上一臂留下的 `dist`（两条路径都设 `emptyOutDir: false`，`analyze` 又按目录统计），臂间残留会让体积类结论失真。
+
+**环境变量也要固定（同日追加，更正一次误判）**：那份「161.4 KB / +45%」的告警曾被归因于残留文件，实测**不是** —— 触发条件是 **`NODE_ENV`**：`NODE_ENV=test` 时 Vite 尊重这个显式值（`mode: 'production'` 不覆盖它），客户端产物打进 Vue 开发态代码，同一个示例项目的 entry gzip 从 45.2 kB 涨到 **75.9 kB**（文件数两种状态下都是 187，残留假说解释不了）。`NODE_ENV=production` 或不设置即回到 45.2 kB。因此体积类采集要同时固定「干净产物」与「`NODE_ENV`」；`ubean build` 现在会在 `NODE_ENV` 非 production 时打印警告，`vite-build.test.ts` 显式传 `NODE_ENV=production`。详见 [vite-plugin-migration.md](vite-plugin-migration.md) 的第三次更正。
 
 ### Phase 2 · 体积闸门升级（与迁移解耦，可独立合入）
 

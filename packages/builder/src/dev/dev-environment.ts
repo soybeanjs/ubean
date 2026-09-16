@@ -1,9 +1,15 @@
 /**
  * `UbeanDevEnvironment`（RM-V08，ADR-0012 §3）。
  *
- * dev 下服务端代码在 **env-runner 的 worker** 里执行：宿主侧只保留一个继承 Vite
- * `DevEnvironment` 的环境，`dispatchFetch(request)` 把请求转发进 worker（对齐
- * `nitro/src/build/vite/dev.ts:93-164` 的形态）。
+ * 形态：宿主侧保留一个继承 Vite `DevEnvironment` 的环境，`dispatchFetch(request)` 把请求转发进
+ * env-runner 的 worker（对齐 `nitro/src/build/vite/dev.ts:93-164` 的形态）。
+ *
+ * **当前状态（2026-09-16 核对）**：本类**没有接进实际 dev 路径** —— `createEnvironment` 全仓无
+ * 接线点，RM-V14 收敛后的 `dev-vite.ts` 走的是「插件自举宿主 app + 请求路由中间件」（`getDevApp`
+ * 在**主进程**里跑 SSR 模块图）。因此「dev 下服务端代码在 worker 里执行」目前**不成立**，本模块
+ * 与它的测试（`dev-environment.test.ts` / `dev-worker.test.ts`）验证的是能力与 IPC 契约，不是线上
+ * 行为。Phase 4 的 RM-V28（跨环境单例代理）与 RM-V29（services 环境机制）都服务于这套多环境
+ * 拓扑，在拓扑被采用之前不落地 —— 结论与理由见 docs/vite-plugin-migration.md。
  *
  * 分工（依据 `docs/env-runner-spike.md` §7 的实测结论）：
  * - **Vite 自己**负责模块图语义与 `vite:invoke` 的分发 —— `DevEnvironment` 构造时会把传入的
@@ -130,7 +136,8 @@ export class UbeanDevEnvironment extends DevEnvironment {
 }
 
 /**
- * 生成 `environments.<name>.dev.createEnvironment` 需要的工厂（RM-V09 wiring 用）。
+ * 生成 `environments.<name>.dev.createEnvironment` 需要的工厂（RM-V09 的能力，**尚未接线** ——
+ * 全仓没有 `createEnvironment` 的注册点，原因见文件头「当前状态」）。
  */
 export function createUbeanDevEnvironmentFactory(runner: EnvRunnerLike) {
   return (name: string, config: ResolvedConfig, context: DevEnvironmentContext): UbeanDevEnvironment =>

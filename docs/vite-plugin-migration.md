@@ -120,11 +120,11 @@ vite.config.ts（用户唯一入口）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-V27** | 编译期资产清单 | 评估并可能引入 `@hiogawa/vite-plugin-fullstack` 的 `?assets` 导入（`nitro:src/build/vite/plugin.ts:56-62`），替代运行时读 manifest | SSR entry 编译期拿到 client CSS/JS 清单；消除运行时间接层 |
-| **RM-V28** | 跨环境单例代理 | 对齐 `nitro:src/build/vite/services.ts:56-96`：dev 下服务端对 `ubean` / `@ubean/*` 的导入代理到主环境 runner，保证同实例 | 多环境下 Vue / `@ubean/*` 单例成立（与现有 `ssrSingletonDevPolicy` 策略合流） |
-| **RM-V29** | `services` 环境机制 | 泛化"任意 `consumer: 'server'` 环境自动注册为 service"（对齐 `nitro:src/build/vite/plugin.ts:169-194`） | 机制存在且有测试；本阶段不启用具体 service |
-| **RM-V30** | 平台 runner 接入 | `miniflare`（cloudflare）、`vercel`、`netlify` runner 支持本地保真 dev | 至少 cloudflare 一条链路在 dev 下用 miniflare 运行并通过测试 |
-| **RM-V31** | 裸 `vite` 命令可用性 | 验证用户项目仅凭 `ubeanPlugin()` + `vue()` 即可跑通 API / SSR / devtools / 构建 | `vite dev` / `vite build` / `vite preview` 全链路可用，无需 CLI |
+| **RM-V27** ✅ 评估结论：不引入 | 编译期资产清单 | 评估并可能引入 `@hiogawa/vite-plugin-fullstack` 的 `?assets` 导入（`nitro:src/build/vite/plugin.ts:56-62`），替代运行时读 manifest | **结论：RM-V18 已经达成同一目标，无需引入。** 判据（「SSR entry 编译期拿到 client 清单；消除运行时间接层」）逐条核对：① 资产标签是构建期算好**内联成字面量**的（`var assetTags = { … "body": "<script type=\"module\" src=\"/assets/app-….js\">" }`），由 `virtual:ubean-asset-manifest` 承载，构建后即固定；② SSR 路径**没有运行时读盘** —— 产物里所有 `.vite/manifest.json` 字符串都出现在被打进来的 **builder 代码**中（示例的 `src/routes/api/prerender-test.ts` 把 `ubean/build` 暴露成 HTTP 路由，属于示例自身选择），服务端渲染链路上没有任何 manifest 读取；③ `.vite/ssr-manifest.json` 仍会产出（`ssrManifest: true`）但**全仓无消费者** —— 保留它是把它当公开产物（用户自己的 preload 提示工具可能读），我们自己的注入不依赖它。因此 `?assets` 只会替换一个已经不存在的问题 |
+| **RM-V28** 🟡 评估结论：暂不采用 | 跨环境单例代理 | 对齐 `nitro:src/build/vite/services.ts:56-96`：dev 下服务端对 `ubean` / `@ubean/*` 的导入代理到主环境 runner，保证同实例 | **前置条件不成立**：本任务服务于「多个 dev 环境」的拓扑（主环境 + 服务端 worker 环境），而**当前 dev 只跑一个环境** —— `UbeanDevEnvironment`（RM-V08/V09 交付、有测试）**没有接进实际路径**：全仓 grep 不到 `createEnvironment` 的注册点，RM-V14 收敛后的 `dev-vite.ts` 走的是「插件自举宿主 app + 请求路由中间件」，SSR 模块图在**主进程**里。（已把 `dev-environment.ts` 文件头那句「dev 下服务端代码在 worker 里执行」改成与实现一致 —— 那句话在接线之前是错的。）单例要求在**当前拓扑**下已由 `ssrSingletonDevPolicy()`（`dedupe` + `noExternal`/`external`）满足，并有可观测证据：`dev-reload.test.ts` 的 reload 作用域探针连续多轮保持「无关模块单例保留 5/5」，`dev-worker.test.ts` 覆盖 worker 内的作用域化失效。**若要启用**：先把 `createEnvironment` 接进 dev 拓扑（即采用 worker 托管的服务端执行），届时跨环境代理才有对象可代理 |
+| **RM-V29** 🟡 评估结论：暂不采用 | `services` 环境机制 | 泛化"任意 `consumer: 'server'` 环境自动注册为 service"（对齐 `nitro:src/build/vite/plugin.ts:169-194`） | **与 RM-V28 同一前提**：机制的价值是「让主图 import 另一个 server 环境的模块」，而当前没有第二个 server 环境，也没有消费方（nitro 用它承载它的 service 泛化，ADR-0012 §7 已明确不移植纯 Nitro 内部管线）。现在落地等于为一个不存在的接线点设计 API —— 本项目对「没人用的抽象」的处理方式与 §7「不做的伪缺口」一致：**先不写**。触发条件写明：当出现第一个需要独立 server 环境的能力（如平台 runner 的保真 dev、独立的 serverless 函数隔离）时，按 RM-V28 的接线一起做 |
+| **RM-V30** ✅ cloudflare / 🟡 vercel·netlify 不做 | 平台 runner 接入 | `miniflare`（cloudflare）、`vercel`、`netlify` runner 支持本地保真 dev | **完成定义要的是「至少 cloudflare 一条链路用 miniflare 运行并通过测试」—— RM-V26 已达成**（runner + 接线层测试 7 条 + 本机真机验证；依赖按可选 peer 约定不入仓库）。**vercel / netlify 不做**：二者的产物是标准 fetch handler，本地预览用 node 路径（`entry.mjs`）已经能完整跑（`preview-cli.test.ts` 覆盖），再包一层平台 runner 只增加依赖与不确定性，换不到保真度 —— vercel edge 与 netlify edge 的差异主要在绑定（KV/Blob），那属于 `@ubean/server/drivers` 的适配面，不是 dev 运行时的职责 |
+| **RM-V31** ✅ | 裸 `vite` 命令可用性 | 验证用户项目仅凭 `ubeanPlugin()` + `vue()` 即可跑通 API / SSR / devtools / 构建 | **三条裸命令现在都有端到端用例**：`vite dev`（`dev-reload.test.ts`：页面 SSR / API / 内置 `_` 路由 / 404 四类请求 + 改文件生效）、`vite preview`（`preview-vite.test.ts`：预渲染页 / API / SSR / 404 / 资源 MIME）、`vite build`（`vite-build.test.ts`，本轮补：`vp build` 在开关下产出完整 `dist` —— 服务端 bundle + node 包装 + manifest + 预渲染 HTML + 岛屿产物，且**服务端产物内联了客户端入口 script**）。判据刻意不是「退出 0」而是**产物完整**：本轮两次踩到「构建成功但产物不可用」，退出码看不出来 |
 
 ### Phase 5 · 收口
 
@@ -198,10 +198,23 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 5. **不追求 `nitro build` 式双 CLI 入口**——`ubean build` 只作别名，不做绕过 Vite 的独立构建器（Nitro 保留它主要为平台部署集成，ubean 待真实需求再评估）。
 6. **不移植纯 Nitro 内部管线**——`applyToEnvironment` 插件下发、`viteServices` 生产 lazy-import 等，服务于它的 service 泛化；在不拆 SSR 的前提下没有落点。
 
-### Phase 2 · RM-V23 起步时的发现（2026-09-16，含一处自我更正）
+### Phase 2 · RM-V23 起步时的发现（2026-09-16，含一处自我更正与后来的一次再更正）
 
-1. **先报出「开关路径体积多 45%」，随后自我更正 —— 那不是路径差异。** `analyze:check` 曾在开关路径留下的 dist 上报 total gzip 161.4 KB / entry 75.9 KB（基线 111.1 / 45.2）。随后按统一口径复测（**每次构建前 `rm -rf dist`**）：三条路径（默认、`vite build` 开关、`ubean build` 开关）的客户端 JS **逐文件大小完全相同**（raw total 295 KB，逐文件 delta 0；`analyze:check` 0.0%）。因此先前那个数字来自**那一次 dist 的状态** —— 最可能是不同构建留下的旧文件在 `dist/public/assets` 里累积（两条路径都设 `emptyOutDir: false`，`analyze` 又按目录统计），而不是开关路径真的更重。
-   - 教训：**体积类断言必须先保证「测的是干净产物」**，否则会把残留读成回归；这一点与本项目此前两次「度量方向单一 → 把退化读成进步」是同一族问题。
+1. **先报出「开关路径体积多 45%」，自我更正为「不是路径差异」，再更正为「真因是 `NODE_ENV`」。** 三次结论，最后一次有可复现证据：
+
+   - **第一次（错）**：`analyze:check` 报 total gzip 161.4 KB / entry 75.9 KB（基线 111.1 / 45.2），归因到「开关路径更重」。
+   - **第二次（也错，但方向对了）**：按统一口径（每次构建前 `rm -rf dist`）复测，三条路径逐文件大小完全相同 → 结论是「先前那个数字来自那一次 dist 的状态，最可能是残留文件累积」。
+   - **第三次（实测归因，2026-09-16 复现）**：触发条件与残留无关，是 **`NODE_ENV`**。同一命令、同一目录：
+
+     | 环境 | entry gzip | `analyze:check` |
+     | --- | --- | --- |
+     | `NODE_ENV=test` | **75.9 kB** | total 161.4 kB，超 45.3% → 红 |
+     | `NODE_ENV=production` | 45.2 kB | 0.0% → 绿 |
+     | 不设置 | 45.2 kB | 0.0% → 绿 |
+
+     机制：Vite **尊重显式设置的 `NODE_ENV`**（`mode: 'production'` 不会覆盖它），于是客户端产物打进了 Vue 开发态代码 —— 每个文件都略大、entry 上放大 68%。`--minify` 默认开着也拦不住（这不是压缩问题，是打的代码不同）。文件数在两种状态下都是 **187**，这一点第二次的「残留」假说解释不了 —— 残留会改变文件数。
+   - **两次错误归因的共同原因**：都没做**单变量复现**。第一次直接读了一个数字就下结论；第二次把「清干净后数字变了」当成因果，而真正变化的是运行环境（那次手工复测是从 shell 跑的，没有 vitest 设的 `NODE_ENV=test`）。
+   - **教训（替换原先那条）**：体积类断言要固定两件事 —— **干净产物**（`rm -rf dist` 或临时 outDir）与 **环境变量**（`NODE_ENV`）。已落地：`vite-build.test.ts` 显式传 `NODE_ENV=production`；`ubean build` 在 `NODE_ENV` 存在且非 production 时打印警告（不覆盖用户的显式设置，只让它可见）。
 2. **「两条路径产物一致」的集成测试暂撤。** 它本身通过（文件名逐项一致），但会把开关打开的 dist 留在磁盘上、使 `analyze:check` 变红；其恢复步骤（不带开关重建）未生效。改为：断言应在**临时 outputDir** 上构建，而不是覆盖 `dist` —— 这是把它做成稳定断言前必须解决的一件事。
 
 #### RM-V23 矩阵进展（2026-09-16）

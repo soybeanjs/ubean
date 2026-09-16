@@ -175,6 +175,17 @@ export const buildCommand: CommandDef = {
       }
 
       logger.info('Building with Vite...');
+      // `NODE_ENV` 守卫：Vite 尊重显式设置的 `NODE_ENV`，因此 `NODE_ENV=test pnpm build`（CI 里很常见）
+      // 会把**开发态代码**打进客户端产物 —— 实测同一个示例项目 entry gzip 从 45.2 kB 涨到 75.9 kB
+      // （Vue dev runtime + 开发警告），而 `--minify` 默认开着也拦不住它（不是压缩问题，是打的代码不同）。
+      // 不强行覆盖用户的显式设置（那会偏离 Vite 语义），只提示到能被看见。
+      const nodeEnv = process.env.NODE_ENV;
+      if (nodeEnv && nodeEnv !== 'production') {
+        logger.warn(
+          `NODE_ENV=${nodeEnv}：客户端产物会包含开发态代码（如 Vue dev runtime 与开发警告）。` +
+            '生产构建请设置 NODE_ENV=production，或不要设置该变量。'
+        );
+      }
       // `--outDir` 覆盖产物目录：CI/矩阵测试需要把不同路径的产物写到不同目录做对照，
       // 而不是互相覆盖（RM-V23 的「两条路径产物一致」断言即依赖此参数）。
       if (args.outDir) {

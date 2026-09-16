@@ -226,6 +226,33 @@ describe('vite dev 等价性（experimental.viteBuilder 打开）', () => {
     expect(missingApi.contentType).toContain('application/json');
   }, 240_000);
 
+  /**
+   * 配置敏感信号：`vite dev`（插件自举路径）下语言前缀路由可用。
+   *
+   * 这条**不是** `loadUbeanConfigSync()` 那个缺陷的守卫 —— 我把它写成守卫后做过证伪：把修复从
+   * 构建产物里撤掉，本用例仍然通过。原因是 dev 侧 app 由 `bootstrapDevApp()` 经**异步**加载器
+   * （`loadUbeanConfig`）拿配置，同步加载器的缺陷不经过这条路；它的影响面是**构建路径**
+   * （config 直接喂给 `prepareBuild` 与 env 配置），已在 `build-paths` 与手工对照里量到。
+   *
+   * 保留它的价值在于：插件自举的 dev 路径确实按用户配置工作（示例是 `prefix_except_default`
+   * + locales en/zh），且前缀路径上的未知页面仍走 404 页面兜底而不是 JSON。
+   */
+  it('配置真的被读到：语言前缀路由可用（i18n 未启用时 /zh/about 会 404）', async () => {
+    running = await startViteDev();
+
+    const prefixed = await probe(running.baseUrl, '/zh/about');
+    expect(prefixed.status, prefixed.body.slice(0, 200)).toBe(200);
+    expect(prefixed.body).toContain('class="about"');
+
+    const defaultLocale = await probe(running.baseUrl, '/about');
+    expect(defaultLocale.status).toBe(200);
+
+    // 前缀路径上的未知页面仍走 404 页面兜底（而不是落到 JSON）
+    const missing = await probe(running.baseUrl, '/zh/definitely-missing');
+    expect(missing.status).toBe(404);
+    expect(missing.contentType).toContain('text/html');
+  }, 240_000);
+
   it('改服务端文件后同样生效（插件自举的 app 会被重建）', async () => {
     running = await startViteDev();
 

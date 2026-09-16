@@ -224,12 +224,20 @@ export async function runEnvBuilds(
     hasServer
   });
 
-  // 这里**暂不**调用 `runPrerenderStep`（插件路径）。预渲染会 import() 构建好的 SSR entry，
-  // 把它的运行时资源带进当前进程；entry 现在导出 `close()` 并在渲染后调用，cron 调度器确实
-  // 停掉了，但进程仍不退出（实测：产物已是完整的 181 个文件、`Prerendered 8 routes`，进程却
-  // 一直存活）—— 说明还有别的 handle。`close()` 里对 `@ubean/server/queue`、`@ubean/server/db`
-  // 的清理是 try/catch 静默的，而这两个子路径从**构建产物**解析不到（项目只依赖 `ubean`），
-  // 很可能就是漏网的来源。挂住的构建比缺预渲染更坏（CI 会超时），因此先不接。
+  // 这里**暂不**调用 `runPrerenderStep`（插件路径）：会让 `vite build` 进程不退出。
+  //
+  // 已排除/已确认（2026-09-16 实测）：
+  // - 产物本身没问题 —— 接上后是完整的 181 个文件、日志有 `Prerendered 8 routes`；
+  // - cron 调度器不是元凶 —— 它的 `stop()` 正确清理 interval 与各任务 timeout；
+  // - `_getActiveHandles()` 为空（socket/文件句柄已收敛）；
+  // - `process.getActiveResourcesInfo()` 报 `CloseReq,Timeout,Timeout,Timeout,Timeout` —— **定时器**，
+  //   而形状（CloseReq + 多个 Timeout）指向 undici 的 HTTP keep-alive：预渲染时页面会取数据
+  //   （示例的 data-fetch 页），这些连接与其保活定时器留在进程里。
+  //
+  // 三条可选收尾路线（需要产品决策，不是纯技术选择）：① 渲染后显式关掉/放弃那些连接；
+  // ② 像 CLI 的 build 那样在构建末尾显式退出（会跳过后续 closeBundle 钩子）；
+  // ③ 预渲染放到子进程/worker 里跑，让它随子进程结束而回收。挂住的构建比缺预渲染更坏
+  // （CI 会超时而不是报出差异），因此先不接。
   void runPrerenderStep;
 
   return builtManifest;

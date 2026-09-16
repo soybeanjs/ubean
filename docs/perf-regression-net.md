@@ -162,6 +162,16 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 | 验收矩阵「回归」行 | 功能测试集 + `pnpm typecheck` | 追加「性能对照 RM-P05 基线」 |
 | 依赖图 | Phase 0（RM-V01…V06） | Phase 0（RM-V01…V06 + RM-P01…P05） |
 
+## 6.1 门禁的盲区：只看增长，看不见「少产出」
+
+2026-09-16 实测发现：示例构建产物里 **岛屿组件的 chunk 全部消失**（`bundle-baseline.json` 里明确列有 `IslandClock` / `IslandCounter` / `IslandMedia` / `IslandOnly` / `IslandVisibility`，而当前产物只剩页面级的 `islands-test-*.css`），但 `pnpm analyze:check` 报的是 **budget ok (total −3.0%, entry −2.9%)** —— 因为 RM-P06 的门禁只守「相对基线**增长**不超过 5%」，**体积变小反而算通过**。
+
+这意味着：**任何「功能被静默砍掉」的回归，只要它同时让产物变小，就会从这个门禁下溜过去。** V18/V19 的提交里都用 `analyze:check` 绿作为「产物一致」的证据 —— 在这个盲区被堵上之前，那个证据是不成立的。
+
+要补的判据（RM-P23 候选）：`analyze:check` 除体积上限外，还要**对照基线的 chunk 名单**，出现基线里存在、当前产物里没有的 chunk（hash 规范化后按名字比）即失败。实现便宜（基线已有 per-chunk 条目），且正是这次能提前发现问题的判据。
+
+岛屿 chunk 消失的**原因尚未定位**：已排除「插件顺序（islands 在 ubeanVite 之前）」—— 那样改会让 islands 先于 vue 处理 `.vue`，构建直接报 `At least one <template> or <script> is required`。范围已缩小到「RM-V14 让 `ubeanVite` 接管 vue 注册」之后的某个时刻，需要独立排查（下一轮从「`virtual:ubean-islands-registry` 在构建期是否被客户端入口引用、islands 插件在 client 环境的 transform 是否命中 `?vue&type=template` 子请求」入手）。
+
 ## 7. 明确不做
 
 1. **不做 CI 阻塞式性能门禁**（体积预算除外，它是确定性的）——共享 runner 噪声导致假阳性，最终会被跳过或放宽。

@@ -665,24 +665,6 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   const presetBuildConfig = getPresetBuildConfig(preset);
   const virtualDir = outDirs.virtual;
 
-  const commonResolve = {
-    alias: {
-      'virtual:ubean-pages': join(virtualDir, 'vue-pages.ts'),
-      'virtual:ubean-app': join(virtualDir, 'vue-app.ts'),
-      'virtual:ubean-server': join(virtualDir, 'server-entry.ts'),
-      'virtual:ubean-client-entry': join(virtualDir, 'client-entry.mjs'),
-      '#ubean-pages': join(virtualDir, 'vue-pages.ts'),
-      '#ubean-app': join(virtualDir, 'vue-app.ts'),
-      '#ubean-server': join(virtualDir, 'server-entry.ts'),
-      '#ubean-client-entry': join(virtualDir, 'client-entry.mjs'),
-      'ubean:pages': join(virtualDir, 'pages.ts'),
-      'ubean:routes': join(virtualDir, 'routes.mjs'),
-      'ubean:app-config': join(virtualDir, 'app-config.mjs'),
-      'ubean:locales': join(virtualDir, 'locales.mjs'),
-      'ubean:meta': join(virtualDir, 'meta.mjs')
-    }
-  };
-
   let clientManifest: Record<string, any> = {};
   if (hasPages) {
     logger.info('Building client bundle...');
@@ -711,7 +693,6 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         emptyOutDir: false
       },
       plugins: [...plugins],
-      resolve: commonResolve,
       optimizeDeps: {
         exclude: clientOptimizeDepsExclude()
       }
@@ -764,8 +745,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         },
         emptyOutDir: false
       },
-      plugins: [...plugins, createIslandsSsrStubPlugin()],
-      resolve: commonResolve
+      plugins: [...plugins, createIslandsSsrStubPlugin()]
     });
 
     serverEntry = await writePresetWrapper({

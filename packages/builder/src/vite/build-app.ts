@@ -54,25 +54,6 @@ import {
 
 const logger = getLogger('build');
 
-/** 与旧路径一致的虚拟模块别名（RM-V19 会评估是否还需要它们）。 */
-function virtualAliases(virtualDir: string): Record<string, string> {
-  return {
-    'virtual:ubean-pages': join(virtualDir, 'vue-pages.ts'),
-    'virtual:ubean-app': join(virtualDir, 'vue-app.ts'),
-    'virtual:ubean-server': join(virtualDir, 'server-entry.ts'),
-    'virtual:ubean-client-entry': join(virtualDir, 'client-entry.mjs'),
-    '#ubean-pages': join(virtualDir, 'vue-pages.ts'),
-    '#ubean-app': join(virtualDir, 'vue-app.ts'),
-    '#ubean-server': join(virtualDir, 'server-entry.ts'),
-    '#ubean-client-entry': join(virtualDir, 'client-entry.mjs'),
-    'ubean:pages': join(virtualDir, 'pages.ts'),
-    'ubean:routes': join(virtualDir, 'routes.mjs'),
-    'ubean:app-config': join(virtualDir, 'app-config.mjs'),
-    'ubean:locales': join(virtualDir, 'locales.mjs'),
-    'ubean:meta': join(virtualDir, 'meta.mjs')
-  };
-}
-
 /** 读客户端 manifest（供注入与 manifest 汇总共用）。 */
 function readClientManifest(publicDir: string): Record<string, ClientManifestEntry> | null {
   const manifestPath = join(publicDir, '.vite', 'manifest.json');
@@ -136,7 +117,6 @@ export async function buildWithEnvironments(options: BuildOptions): Promise<Buil
     configFile: userViteConfig ?? false,
     mode: 'production',
     plugins,
-    resolve: { alias: virtualAliases(outDirs.virtual) },
     environments: {
       client: {
         consumer: 'client',

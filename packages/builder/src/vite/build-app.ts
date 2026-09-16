@@ -225,19 +225,14 @@ export async function runEnvBuilds(
   });
 
   // 这里**暂不**调用 `runPrerenderStep`（插件路径）：会让 `vite build` 进程不退出。
-  //
-  // 已排除/已确认（2026-09-16 实测）：
-  // - 产物本身没问题 —— 接上后是完整的 181 个文件、日志有 `Prerendered 8 routes`；
-  // - cron 调度器不是元凶 —— 它的 `stop()` 正确清理 interval 与各任务 timeout；
-  // - `_getActiveHandles()` 为空（socket/文件句柄已收敛）；
-  // - `process.getActiveResourcesInfo()` 报 `CloseReq,Timeout,Timeout,Timeout,Timeout` —— **定时器**，
-  //   而形状（CloseReq + 多个 Timeout）指向 undici 的 HTTP keep-alive：预渲染时页面会取数据
-  //   （示例的 data-fetch 页），这些连接与其保活定时器留在进程里。
-  //
-  // 三条可选收尾路线（需要产品决策，不是纯技术选择）：① 渲染后显式关掉/放弃那些连接；
-  // ② 像 CLI 的 build 那样在构建末尾显式退出（会跳过后续 closeBundle 钩子）；
-  // ③ 预渲染放到子进程/worker 里跑，让它随子进程结束而回收。挂住的构建比缺预渲染更坏
-  // （CI 会超时而不是报出差异），因此先不接。
+  // 已排除/已修（2026-09-16）：
+  // - 产物没问题（接上后 181 个文件、Prerendered 8 routes 都正常）；
+  // - cron 调度器不是元凶（stop() 正确清 interval 与各任务 timeout）；
+  // - 内存限流存储的 60s 清理定时器**已能销毁**（`disposeMemoryRateLimitStores()`，
+  //   由 `close()` 调用），但**仍未解决挂住** ⇒ 还有别的定时器；
+  // - `_getActiveHandles()` 为空；`getActiveResourcesInfo()` 报 CloseReq + 4×Timeout。
+  // 下一步（最省事的定位法）：临时给 `setInterval`/`setTimeout` 打补丁，构造时记录调用栈，
+  // 跑一次 `vite build` 就能指名道姓看到是谁留下的定时器。
   void runPrerenderStep;
 
   return builtManifest;

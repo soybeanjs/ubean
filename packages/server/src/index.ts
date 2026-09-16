@@ -227,7 +227,12 @@ export type { CorsOptions } from './cors';
 /* -------------------------------------------------------------------------- */
 /* 限流                                                                         */
 /* -------------------------------------------------------------------------- */
-export { createRateLimitMiddleware, defineRateLimit, createMemoryRateLimitStore } from './rate-limit';
+export {
+  createRateLimitMiddleware,
+  defineRateLimit,
+  createMemoryRateLimitStore,
+  disposeMemoryRateLimitStores
+} from './rate-limit';
 export type { RateLimitOptions, RateLimitInfo, RateLimitStoreEntry, RateLimitStore } from './rate-limit';
 
 /* -------------------------------------------------------------------------- */

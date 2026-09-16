@@ -457,16 +457,16 @@ export default async function createFetchHandler() {
 // 保留调度器句柄并导出 close()，由预渲染步骤在渲染完成后调用。
 export async function close() {
   try {
-    cronScheduler?.stop?.();
+    await cronScheduler?.stop?.();
     cronScheduler = null;
   } catch {}
+  // 经 ubean/server（项目必然依赖 ubean）而非子包路径 @ubean/server/* —— 后者从构建产物
+  // 解析不到，清理会静默失败（实测：定时器还在，进程不退）。
   try {
-    const queue = await import('@ubean/server/queue');
-    await queue.stopQueueWorkers?.();
-  } catch {}
-  try {
-    const db = await import('@ubean/server/db');
-    await db.closeDatabases?.();
+    const runtime = await import('ubean/server');
+    runtime.disposeMemoryRateLimitStores?.();
+    await runtime.stopQueueWorkers?.();
+    await runtime.closeDatabases?.();
   } catch {}
 }
 

@@ -50,13 +50,23 @@ export function serverExternal(presetBuildConfig: PresetBuildConfig): (string | 
   return presetBuildConfig.external.filter(entry => !(entry instanceof RegExp && entry.source.startsWith('^ubean')));
 }
 
-/** 服务端产物命名 + 打包形态（worker 需要内联动态 import）。 */
+/**
+ * 服务端产物命名 + 打包形态。
+ *
+ * **非 node 目标必须内联动态 import**：默认路径用 `ssr.target: 'webworker'` 表达这一点
+ * （Vite 对 webworker 目标的 SSR 构建会内联），env 驱动路径没有 env 级的 `ssr.target`
+ * 等价字段，于是同一个 preset 下两条路径的 server bundle 形状分叉 —— 实测 `standard`
+ * （`entryType: 'fetch'`、target 为 webworker）：默认路径 60 个文件（单文件 bundle），
+ * builder 路径 175 个（带 `chunks/`）。`node` 与 `cloudflare` 两格原本就一致（前者 target=node，
+ * 后者 entryType=worker），因此这里按 **target 是否为 node** 判定内联，与默认路径对齐。
+ */
 export function serverOutputNames(presetBuildConfig: PresetBuildConfig) {
+  const isNodeTarget = presetBuildConfig.target === 'node18' || presetBuildConfig.entryType === 'node';
   return {
     format: presetBuildConfig.format,
     entryFileNames: 'entry.mjs',
     chunkFileNames: 'chunks/[name]-[hash].mjs',
-    inlineDynamicImports: presetBuildConfig.entryType === 'worker'
+    inlineDynamicImports: !isNodeTarget || presetBuildConfig.entryType === 'worker'
   };
 }
 

@@ -99,10 +99,10 @@ const MODES = ['fullstack', 'spa', 'backend', 'ssg'] as const;
  */
 const PRESET_CONTRACTS = [
   { preset: 'node', wrapper: 'server/server.mjs', rootFile: '' },
-  { preset: 'cloudflare', wrapper: 'server/worker.mjs', rootFile: 'wrangler.toml' }
-  // `standard`（`entryType: 'fetch'` → `server/handler.mjs`）**暂不纳入**：实测两条路径产物
-  // 数量差得很大（builder 175 个文件 vs 默认路径 60 个），是一个需要单独定位的真实差异 —
-  // 在查明之前把它写成绿的断言、或者留着红都不对。见迁移文档 RM-V23 矩阵表。
+  { preset: 'cloudflare', wrapper: 'server/worker.mjs', rootFile: 'wrangler.toml' },
+  // `standard`（`entryType: 'fetch'` → `server/handler.mjs`）曾因 server bundle 是否内联而分叉
+  // （175 vs 60），修法见 build-configs.ts 的 serverOutputNames：非 node 目标一律内联。
+  { preset: 'standard', wrapper: 'server/handler.mjs', rootFile: '' }
 ] as const;
 
 describe('构建路径一致性（RM-V23）', () => {

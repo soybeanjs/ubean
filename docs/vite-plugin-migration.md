@@ -358,6 +358,9 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 | JSON-LD（`useSchemaOrg`） | 示例 `seo-meta.vue`；断言 SSR HTML 含 `application/ld+json` 与 `"@type":"Article"` | 修完 L 后才真正注入 |
 | SSE（`defineSSE`） | 示例 `api/sse-demo.ts`；断言 `text/event-stream` + `onConnect` 的 `ready` 帧 | 行为符合文档 |
 | 组件级缓存（`defineCachedFunction` / `cacheLife` / `cacheTag` / `revalidateTag`） | 示例 `api/cached-fn-demo.ts`；断言两次请求同 token → 按标签失效 → 新 token（dev 与生产各一次手工验证，dev 侧进用例） | 行为符合文档 |
+| PPR（`routeRules.ppr`） | 示例 `ppr-demo.vue` + `routeRules.ppr`；dev 断言 `X-PPR: streaming` + `X-SSR-Mode: streaming` + 浏览器水合，生产断言产物里有预渲染的 `ppr-demo/index.html` | 语义 = 「强制流式 SSR + 预渲染发现」（**不是** Next 的静态壳），两侧与文档一致；顺带修完 M |
+| 服务端岛屿（`defineServerIsland`） | 示例 `server-island-demo.vue` + `SlowWidget.vue`（异步组件）；dev 与生产 SSR HTML 都含解析后的内容、不含 fallback | 行为符合文档（`rerenderOnPropsChange` 仍未覆盖） |
+| 流式延迟数据（`defer` / `useDeferredData`） | 示例 `deferred-demo.vue`；dev 与生产断言「首屏 fallback + `__UBEAN_DEFERRED__` payload」，浏览器断言「挂载后采用 payload、无 hydration mismatch」 | 修完 N 后成立（原先客户端首帧与 SSR 分支不一致 → mismatch） |
 
 **ISR 用例的一处写法值得记下**：生产用 fs 缓存（`.ubean/cache`），它**跨运行留存** —— 手工验证过一次之后，首个请求就从 MISS 变成 STALE。断言因此写成不依赖初始状态的不变量（预热 → 连续两次 HIT + 同一 token），否则用例会因外部状态而假红。
 
@@ -394,3 +397,23 @@ Received '\x00virtual:ubean-client-component:/…/BrowserClock.client.vue?vue&ty
 
 **F. spa 产物从来没有 `index.html`（RM-V36 收敛时按 mode 断言产物才发现，已修）。** 站点文档承诺 spa 的产物是「static `index.html` + assets」，实测 `--mode spa` 的产物目录里**一个 HTML 都没有**：fullstack / ssg 的 HTML 由 SSR 渲染或预渲染产出，而 spa 没有服务端；客户端构建的 input 是虚拟 entry（`{ app: clientEntry }`），不是 HTML，因此 Vite 不会生成 `index.html` —— 部署出去的 SPA 没有入口文件。此前没被发现，是因为矩阵只比「两条路径的产物清单一致」（两边一样地缺），体积门禁只统计 JS。修法：客户端构建后由 `writeSpaIndexHtml()` 补出入口，资产标签复用与 SSR 相同的 `computeAssetTags()`（同一个 manifest、同一套规则），避免出现第二种「入口长什么样」的定义。矩阵的 spa 格现在直接断言 `public/index.html`。
 
+
+**M. 宏剥离把 `<script setup>` 剥空 → 生产构建 `MISSING_EXPORT "default"`（dev 侥幸通过）。** 补 PPR 示例时暴露：一个**只有 loader 的页面**（`loader` 写在普通 `<script>`、`definePage` 写在 `<script setup>`，setup 里再无其他代码 —— 正是 AGENTS §3.1 的官方约定形状）在生产构建里直接失败：
+
+```
+[MISSING_EXPORT] "default" is not exported by "src/pages/ppr-demo.vue?vue&type=script&lang.ts"
+```
+
+根因在 `stripMacros()` 与 `@vue/compiler-sfc` 的交互：宏剥离后 `<script setup>` 只剩空白，而 compiler-sfc **把「只有空白」的 setup 块当作不存在**（实测 `setup=false`）—— 于是编译产物只剩那个普通脚本块的内容（仅具名导出，无 `export default`），可 `@vitejs/plugin-vue` 的主模块仍然按「有脚本块就有默认导出」去 `import _sfc_main from '…?vue&type=script'`。三种形状里只有这一种会挂：setup 非空（数据留在组件上）正常；没有普通 `<script>` 块时走 plugin-vue 的 template-only 路径（不调 `compileScript`）也正常 —— 这也解释了为什么它一直没被发现：示例里 `isr-demo.vue` 是同样的双脚本块形状，但 setup 里用了 `usePage`，恰好躲开。
+
+修法：`transformVueMacros()` 在**同时存在普通 `<script>` 块**且剥离后 setup 为空时，给该块留一行注释（`// ubean: 宏已剥离…`），让 compiler-sfc 仍视其为 setup 块。没有普通脚本块时不做任何改动（对用户文件零侵入）。
+
+回归分两层：`packages/builder/test/macros.test.ts` 直接断言**编译产物是否有默认导出**（用 `@vue/compiler-sfc` 的 `parse` + `compileScript`，而不是断言「有没有那行注释」—— 断言要落在构建真正依赖的不变量上）；`dev-dx.test.ts` 的 PPR 用例再从**浏览器**守一道（缺默认导出时浏览器报的是模块链接期错误，不是渲染错误）。
+
+**N. 流式延迟数据在客户端水合时不匹配（`useDeferredData` 的 setup 期同步应用 payload）。** 审计清单上的最后一项（`defer()` / `useDeferredData`）一验就露：SSR 侧完全正确（首屏渲染 fallback、`__UBEAN_DEFERRED__` payload 随响应注入），但**浏览器里 Vue 报 `Hydration completed but contains mismatches`**，DOM 停在 `<p class="deferred-pending">deferred-resolved</p>` —— 被匹配上的元素留着 SSR 的旧 `class`，只有文本被替换，页面上就是「fallback 的 class + resolved 的文本」。
+
+根因是客户端分支在 **setup 里同步读 payload 并立刻把 `pending` 置 false**：SSR 渲染的是 `pending=true` 的分支，客户端首帧渲染的是 resolved 分支 —— 首帧不一致就是 mismatch。原实现的注释写着「客户端水合: 从 `__UBEAN_DEFERRED__` 读取已解析数据,立即显示(无闪烁)」，但那句承诺与「SSR 渲染 fallback」在**同一份实现**里无法同时成立：`defer` 的语义就是首屏不含数据，payload 只能后到。
+
+修法：客户端把「采用 payload / 触发请求」挪到**挂载之后**（组件上下文用 `onMounted`，非组件上下文退化为 `queueMicrotask`），首帧保持 `pending`，与 SSR 分支一致 —— 不匹配消失，数据仍在挂载后立即就位、不发第二次请求（`dev-dx.test.ts` 的浏览器用例同时断言「无 mismatch 告警」与「`.deferred-value` 出现且文本正确」）。`packages/pages/test/defer.test.ts` 的三条客户端用例随之改为「首帧 pending → 应用后 resolved」（原先断言的正是那个会 mismatch 的同步行为）。
+
+**顺带**：`defer` / `useDeferredData` 此前**只有聚合入口 `ubean` 一条导入路径**，而页面属于客户端图（`example-imports.test.ts` 明令禁止从聚合入口导入，否则整条聚合链进产物）—— 文档示例写的却正是 `from 'ubean'`。已从 `ubean/client` 导出这四个符号（+ 类型），并改掉 `defer.ts` 的 JSDoc 示例。

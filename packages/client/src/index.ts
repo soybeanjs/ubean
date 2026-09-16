@@ -141,8 +141,13 @@ export {
   collectIslands,
   hydrateIsland,
   hasPendingIslands,
-  scheduleIslandHydration
+  scheduleIslandHydration,
+  // 岛屿包装器：`defineIsland`（客户端按策略水合）与 `defineServerIsland`（服务端岛屿 / PPR）。
+  // 它们此前只在主入口 `ubean` 导出，客户端模块为了取它们会拉整条聚合链（见 AGENTS §8 的尺寸陷阱）。
+  defineIsland,
+  defineServerIsland
 } from '@ubean/islands/runtime';
+export type { IslandStrategy, IslandOptions, ServerIslandOptions } from '@ubean/islands/runtime';
 export type {
   IslandHydrateOptions,
   IslandRecord,
@@ -151,6 +156,11 @@ export type {
 } from '@ubean/islands/runtime';
 export { useData, useAsyncData, invalidateData, useFetch, setDefaultFetch } from '@ubean/pages';
 export type { DataResult, UseAsyncDataOptions, UseFetchOptions } from '@ubean/pages';
+// 流式延迟数据：页面里用 `defer()` + `useDeferredData()` 标记非关键数据。必须从这里导出 ——
+// 页面/组件属于客户端图，`example-imports.test.ts` 禁止它们从聚合入口 `ubean` 导入（会拖进整条
+// 聚合链），而此前 `defer` 只有聚合入口一条路（文档示例写的也是聚合入口）。
+export { defer, useDeferredData, isDeferredValue, DEFERRED_DATA_ID } from '@ubean/pages';
+export type { DeferredValue, UseDeferredDataResult } from '@ubean/pages';
 // `useI18n` / `t` 不再由此包包装导出 —— `useI18n` 直接从 `vue-i18n` 导入
 // (自动导入已改为直源 vue-i18n),`t` 从 `useI18n()` 返回的 composer 解构。
 export {

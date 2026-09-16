@@ -12,7 +12,7 @@
  */
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -176,6 +176,38 @@ describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', 
     expect(b.header).toBe('HIT');
     expect(a.token).not.toBe('');
     expect(b.token).toBe(a.token);
+  });
+
+  it('PPR（routeRules.ppr）纳入预渲染发现，生产产物里就是静态 HTML', async () => {
+    // `ppr: true` 的语义是「强制流式 SSR + 预渲染发现」（AGENTS §4 / ADR-0011）。所以在**产物**里
+    // 该路由已经是预渲染 HTML，不再由 handler 现渲染 —— 断言落在文件上，而不是响应头：
+    // 静态中间件不会带 `X-PPR`（dev 侧的流式标头由 dev-dx.test.ts 的浏览器用例断言）。
+    const file = join(fixtureDir, 'dist', 'public', 'ppr-demo', 'index.html');
+    expect(existsSync(file), 'ppr-demo 应被预渲染到产物（ppr ⇒ prerender 发现）').toBe(true);
+    expect(readFileSync(file, 'utf-8')).toContain('ppr-body');
+
+    const res = await fetch(`${running!.baseUrl}/ppr-demo`);
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('ppr-body');
+  });
+
+  it('服务端岛屿：异步组件解析后的内容在生产 SSR HTML 里（不是 fallback）', async () => {
+    const res = await fetch(`${running!.baseUrl}/server-island-demo`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('island-resolved');
+    expect(html).not.toContain('island-fallback');
+  });
+
+  it('流式延迟数据：生产 SSR 首屏含 fallback 与 `__UBEAN_DEFERRED__` payload', async () => {
+    // 生产侧只断言服务端两件事（客户端采用 payload 的行为由 dev-dx.test.ts 的浏览器用例守）：
+    // 首屏渲染的是 fallback（非关键数据不阻塞），payload script 在同一次响应里。
+    const res = await fetch(`${running!.baseUrl}/deferred-demo`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('deferred-pending');
+    expect(html).toContain('__UBEAN_DEFERRED__');
+    expect(html).toContain('deferred-resolved');
   });
 
   it('API 与 404 走生产 handler（静态目录里没有这两个路径）', async () => {

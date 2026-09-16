@@ -1,109 +1,109 @@
 {
-  "generatedAt": "2026-09-16T06:15:15.529Z",
+  "generatedAt": "2026-09-16T13:09:13.664Z",
   "outDir": "dist/public",
   "entries": [
     {
-      "file": "assets/app-DV3IAHrx.js",
-      "bytes": 131695,
-      "gzip": 46271,
-      "brotli": 40931,
+      "file": "assets/app-BzgemdI8.js",
+      "bytes": 128192,
+      "gzip": 44291,
+      "brotli": 39181,
       "isEntry": true
     },
     {
-      "file": "assets/chunks/runtime-core.esm-bundler-CVWi3YKI.js",
-      "bytes": 72342,
-      "gzip": 27870,
-      "brotli": 25354
+      "file": "assets/chunks/runtime-core.esm-bundler-CzVIsrO4.js",
+      "bytes": 72624,
+      "gzip": 27971,
+      "brotli": 25450
     },
     {
-      "file": "assets/chunks/fetch-test-DoctV4Tz.js",
-      "bytes": 26284,
-      "gzip": 8839,
-      "brotli": 7949
+      "file": "assets/chunks/fetch-test-Cah0mQPS.js",
+      "bytes": 26142,
+      "gzip": 8801,
+      "brotli": 7889
     },
     {
-      "file": "assets/chunks/pages-Z52f0Q23.js",
-      "bytes": 20971,
-      "gzip": 8033,
-      "brotli": 7258
+      "file": "assets/chunks/pages-BFp3Oe8x.js",
+      "bytes": 20936,
+      "gzip": 8010,
+      "brotli": 7215
     },
     {
-      "file": "assets/chunks/cache-demo-BkUDnbex.js",
-      "bytes": 6394,
-      "gzip": 2536,
-      "brotli": 2106
+      "file": "assets/chunks/runtime-qzrZb48t.js",
+      "bytes": 16095,
+      "gzip": 6725,
+      "brotli": 6075
     },
     {
-      "file": "assets/chunks/vue.BHyNcdic-CEHag2vF.js",
-      "bytes": 5298,
-      "gzip": 2261,
-      "brotli": 2069
+      "file": "assets/chunks/cache-demo-CIlLg6-0.js",
+      "bytes": 6354,
+      "gzip": 2516,
+      "brotli": 2086
     },
     {
-      "file": "assets/chunks/i18n-BtmZYk6s.js",
-      "bytes": 4903,
-      "gzip": 1597,
-      "brotli": 1392
+      "file": "assets/chunks/action-demo-AJ7DGWt4.js",
+      "bytes": 3682,
+      "gzip": 1817,
+      "brotli": 1520
     },
     {
-      "file": "assets/chunks/islands-test-ky_or2SN.js",
-      "bytes": 3131,
-      "gzip": 1337,
-      "brotli": 1057
+      "file": "assets/chunks/i18n-WzmneSmm.js",
+      "bytes": 4863,
+      "gzip": 1574,
+      "brotli": 1360
     },
     {
-      "file": "assets/chunks/seo-meta-BaEJUf6J.js",
-      "bytes": 4081,
-      "gzip": 1328,
+      "file": "assets/chunks/seo-meta-oBl_Y5yQ.js",
+      "bytes": 4209,
+      "gzip": 1374,
+      "brotli": 1151
+    },
+    {
+      "file": "assets/chunks/islands-test-BQ3QD5dK.js",
+      "bytes": 3091,
+      "gzip": 1316,
+      "brotli": 1033
+    },
+    {
+      "file": "assets/chunks/view-transitions-Cj3jnsz1.js",
+      "bytes": 2472,
+      "gzip": 1294,
+      "brotli": 1070
+    },
+    {
+      "file": "assets/chunks/features-DSn9BsDB.js",
+      "bytes": 4439,
+      "gzip": 1291,
+      "brotli": 1016
+    },
+    {
+      "file": "assets/chunks/data-fetch-VIgSoFOL.js",
+      "bytes": 2726,
+      "gzip": 1264,
       "brotli": 1119
     },
     {
-      "file": "assets/chunks/view-transitions-BfSB94CB.js",
-      "bytes": 2525,
-      "gzip": 1319,
-      "brotli": 1107
+      "file": "assets/chunks/md-test-BPeNbHgL.js",
+      "bytes": 2218,
+      "gzip": 1021,
+      "brotli": 787
     },
     {
-      "file": "assets/chunks/features-C7B-X7I1.js",
-      "bytes": 4479,
-      "gzip": 1313,
-      "brotli": 1049
+      "file": "assets/chunks/about-MqeYgkyA.js",
+      "bytes": 2598,
+      "gzip": 835,
+      "brotli": 644
     },
     {
-      "file": "assets/chunks/data-fetch-B5a-tKBI.js",
-      "bytes": 2769,
-      "gzip": 1291,
-      "brotli": 1143
+      "file": "assets/chunks/_id_-V-BlBlTv.js",
+      "bytes": 1099,
+      "gzip": 691,
+      "brotli": 588
     },
     {
-      "file": "assets/chunks/md-test-CpDbMK6a.js",
-      "bytes": 2226,
-      "gzip": 1029,
-      "brotli": 793
-    },
-    {
-      "file": "assets/chunks/about-BJwwB1cT.js",
-      "bytes": 2603,
-      "gzip": 839,
-      "brotli": 646
-    },
-    {
-      "file": "assets/chunks/_id_-MHO_k0bN.js",
-      "bytes": 1139,
-      "gzip": 716,
-      "brotli": 624
-    },
-    {
-      "file": "assets/chunks/IslandMedia-D8nBkS98.js",
+      "file": "assets/chunks/IslandMedia-g0dvrIsK.js",
       "bytes": 905,
       "gzip": 576,
       "brotli": 491
-    },
-    {
-      "file": "assets/chunks/marketing-page-CaluzyV5.js",
-      "bytes": 811,
-      "gzip": 542,
-      "brotli": 439
     },
     {
       "file": "assets/chunks/zh-CicLCLd5.js",
@@ -112,16 +112,34 @@
       "brotli": 398
     },
     {
-      "file": "assets/chunks/default-BaCPBCSX.js",
-      "bytes": 914,
-      "gzip": 523,
-      "brotli": 424
+      "file": "assets/chunks/default-ClLv3D9e.js",
+      "bytes": 904,
+      "gzip": 518,
+      "brotli": 420
     },
     {
-      "file": "assets/chunks/IslandVisibility-DB9s0RYR.js",
-      "bytes": 779,
-      "gzip": 516,
-      "brotli": 458
+      "file": "assets/chunks/marketing-page-BcSgfWPs.js",
+      "bytes": 771,
+      "gzip": 518,
+      "brotli": 415
+    },
+    {
+      "file": "assets/chunks/IslandVisibility-Da2lShkW.js",
+      "bytes": 775,
+      "gzip": 513,
+      "brotli": 451
+    },
+    {
+      "file": "assets/chunks/server-island-demo-DCgDG29N.js",
+      "bytes": 780,
+      "gzip": 503,
+      "brotli": 432
+    },
+    {
+      "file": "assets/chunks/server-components-CVmEBEG8.js",
+      "bytes": 735,
+      "gzip": 489,
+      "brotli": 421
     },
     {
       "file": "assets/chunks/en-DQ8i03I9.js",
@@ -130,64 +148,100 @@
       "brotli": 381
     },
     {
-      "file": "assets/chunks/IslandOnly-PNb5i6Yg.js",
-      "bytes": 685,
-      "gzip": 461,
-      "brotli": 406
-    },
-    {
-      "file": "assets/chunks/IslandClock-DIoShQNE.js",
+      "file": "assets/chunks/IslandClock-lnwhkDfQ.js",
       "bytes": 665,
       "gzip": 458,
-      "brotli": 393
+      "brotli": 391
     },
     {
-      "file": "assets/chunks/IslandCounter-CS0Cbo2a.js",
-      "bytes": 648,
-      "gzip": 447,
-      "brotli": 392
+      "file": "assets/chunks/IslandOnly-BQD5ZR7Y.js",
+      "bytes": 681,
+      "gzip": 457,
+      "brotli": 401
     },
     {
-      "file": "assets/chunks/settings-73nkPimZ.js",
-      "bytes": 600,
-      "gzip": 445,
-      "brotli": 370
+      "file": "assets/chunks/IslandCounter-D2pSFAQi.js",
+      "bytes": 644,
+      "gzip": 442,
+      "brotli": 387
     },
     {
-      "file": "assets/chunks/profile-DNhwYGVr.js",
-      "bytes": 550,
-      "gzip": 420,
-      "brotli": 352
+      "file": "assets/chunks/settings-Bfej-KYf.js",
+      "bytes": 560,
+      "gzip": 423,
+      "brotli": 355
     },
     {
-      "file": "assets/chunks/_...slug_-zjnAcOqR.js",
+      "file": "assets/chunks/_...slug_-BSwi8TW2.js",
       "bytes": 630,
-      "gzip": 417,
+      "gzip": 414,
       "brotli": 353
     },
     {
-      "file": "assets/chunks/404-DKwseEks.js",
-      "bytes": 487,
-      "gzip": 378,
-      "brotli": 320
+      "file": "assets/chunks/profile-DU7H3EIQ.js",
+      "bytes": 510,
+      "gzip": 397,
+      "brotli": 335
     },
     {
-      "file": "assets/chunks/dashboard-1ETmDlXa.js",
+      "file": "assets/chunks/deferred-demo-DIyKVnx7.js",
+      "bytes": 615,
+      "gzip": 388,
+      "brotli": 338
+    },
+    {
+      "file": "assets/chunks/isr-demo-DGfCW_5e.js",
+      "bytes": 473,
+      "gzip": 354,
+      "brotli": 301
+    },
+    {
+      "file": "assets/chunks/404-DeXjJPEs.js",
       "bytes": 447,
-      "gzip": 326,
-      "brotli": 272
+      "gzip": 349,
+      "brotli": 296
     },
     {
-      "file": "assets/chunks/marketing-ChUuhiFd.js",
+      "file": "assets/chunks/ppr-demo-D3wDpOH_.js",
+      "bytes": 390,
+      "gzip": 332,
+      "brotli": 286
+    },
+    {
+      "file": "assets/chunks/parallel-i-HQ0qJx.js",
+      "bytes": 434,
+      "gzip": 330,
+      "brotli": 297
+    },
+    {
+      "file": "assets/chunks/dashboard-ztyghnK6.js",
+      "bytes": 447,
+      "gzip": 325,
+      "brotli": 280
+    },
+    {
+      "file": "assets/chunks/_id_numeric_-5tEkOmbK.js",
+      "bytes": 398,
+      "gzip": 325,
+      "brotli": 302
+    },
+    {
+      "file": "assets/chunks/parallel-XA5uGBrp.js",
+      "bytes": 354,
+      "gzip": 313,
+      "brotli": 267
+    },
+    {
+      "file": "assets/chunks/marketing-0TlntfPI.js",
       "bytes": 374,
-      "gzip": 290,
+      "gzip": 289,
       "brotli": 240
     },
     {
-      "file": "assets/chunks/admin-BNARTjM4.js",
+      "file": "assets/chunks/admin-CVkPKrEX.js",
       "bytes": 350,
-      "gzip": 278,
-      "brotli": 243
+      "gzip": 276,
+      "brotli": 246
     },
     {
       "file": "assets/chunks/_plugin-vue_export-helper-BDNMzG2s.js",
@@ -196,8 +250,8 @@
       "brotli": 88
     }
   ],
-  "totalBytes": 302280,
-  "totalGzip": 113762,
-  "totalBrotli": 100617,
-  "entryGzip": 46271
+  "totalBytes": 317177,
+  "totalGzip": 120886,
+  "totalBrotli": 106756,
+  "entryGzip": 44291
 }

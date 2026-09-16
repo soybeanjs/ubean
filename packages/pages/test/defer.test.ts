@@ -162,6 +162,14 @@ describe('useDeferredData() — SSR 路径', () => {
   });
 });
 
+/**
+ * 客户端路径的**水合安全**语义：首帧必须与 SSR 一致（pending），挂载后才采用 payload。
+ *
+ * 早先的实现在 setup 里同步应用 payload —— 客户端首帧直接渲染 resolved 分支，而 SSR 渲染的是
+ * fallback 分支，于是 Vue 报 `Hydration completed but contains mismatches`，并且被匹配上的元素
+ * 会留下 SSR 的旧属性（实测：`class` 没被更新，页面上是「fallback 的 class + resolved 的文本」）。
+ * 这些用例不用组件实例（无 `onMounted` 环境）→ 走 `queueMicrotask` 分支，语义相同。
+ */
 describe('useDeferredData() — 客户端路径', () => {
   let originalWindow: typeof globalThis | undefined;
   let originalDocument: Document | undefined;
@@ -202,7 +210,7 @@ describe('useDeferredData() — 客户端路径', () => {
     };
   }
 
-  it('客户端水合: 从 DOM 读取已解析数据,立即显示', () => {
+  it('客户端水合: 首帧 pending（与 SSR 一致），随后从 DOM 采用已解析数据', async () => {
     mockDocument(JSON.stringify({ comments: [{ id: 1, text: 'hello' }] }));
 
     const { data, pending, error } = useDeferredData(
@@ -210,12 +218,18 @@ describe('useDeferredData() — 客户端路径', () => {
       defer(() => Promise.resolve())
     );
 
-    expect(pending.value).toBe(false);
+    // 首帧：与 SSR 渲染的分支相同（水合不匹配就是从这里来的）
+    expect(pending.value).toBe(true);
+    expect(data.value).toBe(undefined);
+
+    await vi.waitFor(() => {
+      expect(pending.value).toBe(false);
+    });
     expect(data.value).toEqual([{ id: 1, text: 'hello' }]);
     expect(error.value).toBe(null);
   });
 
-  it('客户端水合: 错误数据设置 error', () => {
+  it('客户端水合: 错误数据设置 error', async () => {
     mockDocument(JSON.stringify({ fail: { __deferredError: 'fetch failed' } }));
 
     const { data, pending, error } = useDeferredData(
@@ -223,13 +237,15 @@ describe('useDeferredData() — 客户端路径', () => {
       defer(() => Promise.resolve())
     );
 
-    expect(pending.value).toBe(false);
+    await vi.waitFor(() => {
+      expect(pending.value).toBe(false);
+    });
     expect(data.value).toBe(undefined);
     expect(error.value).toBeInstanceOf(Error);
     expect(error.value?.message).toBe('fetch failed');
   });
 
-  it('客户端水合: 缓存数据后后续调用不重新读取 DOM', () => {
+  it('客户端水合: 缓存数据后后续调用不重新读取 DOM', async () => {
     const getElementById = vi.fn(() => ({
       textContent: JSON.stringify({ cached: 'data' })
     }));
@@ -239,10 +255,12 @@ describe('useDeferredData() — 客户端路径', () => {
       'cached',
       defer(() => Promise.resolve())
     );
+    await Promise.resolve(); // 让第一次的 queueMicrotask 落定
     useDeferredData(
       'other',
       defer(() => Promise.resolve())
     );
+    await Promise.resolve();
 
     // 第二次调用应该使用缓存,不再次访问 DOM
     expect(getElementById).toHaveBeenCalledTimes(1);

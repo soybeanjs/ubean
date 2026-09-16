@@ -1,4 +1,4 @@
-import { ref, shallowRef } from 'vue';
+import { getCurrentInstance, onMounted, ref, shallowRef } from 'vue';
 import type { Ref, ShallowRef } from 'vue';
 import { safeJsonStringify } from './protocol';
 
@@ -159,13 +159,16 @@ export interface UseDeferredDataResult<T> {
  * 在组件中使用延迟数据。
  *
  * - **SSR**: 注册 promise 但不阻塞渲染,组件渲染 fallback;渲染完成后数据流式注入
- * - **客户端水合**: 从 `__UBEAN_DEFERRED__` 读取已解析数据,立即显示(无闪烁)
+ * - **客户端水合**: 首帧与 SSR 一致(仍是 fallback),挂载后再采用 `__UBEAN_DEFERRED__` 里的数据
+ *   (不发第二次请求);**不能**在 setup 里就应用 —— 那会让客户端首帧与 SSR 的 DOM 不同,
+ *   Vue 报 hydration mismatch,且被匹配上的元素会留下 SSR 的旧属性(实测 class 没被更新)
  * - **客户端导航**: 调用 factory 获取数据,显示 pending → resolved
  *
  * @example
  * ```vue
  * <script setup>
- * import { defer, useDeferredData } from 'ubean';
+ * // 页面/组件在客户端图里，从 `ubean/client` 导入（不要从聚合入口 `ubean`）
+ * import { defer, useDeferredData } from 'ubean/client';
  *
  * const { data: comments, pending } = useDeferredData(
  *   'comments',
@@ -187,35 +190,39 @@ export function useDeferredData<T>(key: string, deferred: DeferredValue<T>): Use
   const error = shallowRef<Error | null>(null);
 
   if (typeof window === 'undefined') {
-    // SSR: 注册 promise,不阻塞渲染
+    // SSR: 注册 promise,不阻塞渲染（首帧渲染的是 pending 分支）
     __registerDeferred(key, deferred.factory());
-    pending.value = true;
   } else {
-    // Client: 先检查 SSR 流式注入的数据
-    const cache = readClientCache();
-    const cached = cache?.[key];
+    const adopt = () => {
+      // Client: 先检查 SSR 流式注入的数据
+      const cache = readClientCache();
+      const cached = cache?.[key];
 
-    if (cached !== undefined) {
+      if (cached === undefined) {
+        // 客户端导航（或流式 payload 尚未到达）: 用 factory 取一次
+        return deferred
+          .factory()
+          .then(result => {
+            data.value = result;
+            pending.value = false;
+          })
+          .catch(err => {
+            error.value = err instanceof Error ? err : new Error(String(err));
+            pending.value = false;
+          });
+      }
+
       if (cached !== null && typeof cached === 'object' && '__deferredError' in (cached as Record<string, unknown>)) {
         error.value = new Error(String((cached as Record<string, unknown>).__deferredError));
       } else {
         data.value = cached as T;
       }
       pending.value = false;
-    } else {
-      // 客户端导航: 重新获取
-      pending.value = true;
-      deferred
-        .factory()
-        .then(result => {
-          data.value = result;
-          pending.value = false;
-        })
-        .catch(err => {
-          error.value = err instanceof Error ? err : new Error(String(err));
-          pending.value = false;
-        });
-    }
+    };
+
+    // 挂载后再应用：首帧保持 pending，与 SSR 渲染的分支一致（水合安全）。
+    if (getCurrentInstance()) onMounted(adopt);
+    else queueMicrotask(adopt); // 非组件上下文（工具函数/单元测试）：语义相同，只是没有组件的挂载时机
   }
 
   return { data, pending, error };

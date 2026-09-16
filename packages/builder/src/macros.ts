@@ -136,9 +136,28 @@ export function transformMacros(code: string, id: string): string | null {
   return null;
 }
 
+/** 仅 `<script>`（非 setup）块——用于判断组件是否把默认导出交给普通脚本块。 */
+const PLAIN_SCRIPT_RE = /<script(?![^>]*\bsetup\b)[^>]*>/;
+
+/**
+ * 剥离宏后为空的 `<script setup>` 块保留一个注释，避免整个块「消失」。
+ *
+ * `@vue/compiler-sfc` 把**只有空白**的 `<script setup>` 视为没有 setup 块；此时若组件另有一个
+ * 普通 `<script>` 块，编译产物就只剩那个脚本块的内容 —— 没有 `export default`，而
+ * `@vitejs/plugin-vue` 的主模块仍然按「有脚本块就有默认导出」去 import it，
+ * 于是生产构建报 `MISSING_EXPORT "default"`（dev 下则是浏览器链接期报同样的错）。
+ *
+ * 这不是稀奇形状：页面约定就是「`loader` 写在 `<script>`，`definePage` 写在 `<script setup>`」，
+ * 而 `definePage` 是宏、必被剥掉 —— 一个只有 loader 的页面正好落在坑里。
+ */
+const EMPTY_SETUP_KEEP_ALIVE = '\n// ubean: 宏已剥离，保留此块以维持组件的默认导出（见 builder/src/macros.ts）\n';
+
 function transformVueMacros(code: string): string {
+  const hasPlainScript = PLAIN_SCRIPT_RE.test(code);
   return code.replace(/<script([^>]*)>([\s\S]*?)<\/script>/g, (_match, attrs: string, content: string) => {
     const stripped = stripMacros(content);
-    return `<script${attrs}>${stripped}</script>`;
+    const isSetup = /\bsetup\b/.test(attrs);
+    const keepAlive = isSetup && hasPlainScript && !stripped.trim() ? EMPTY_SETUP_KEEP_ALIVE : stripped;
+    return `<script${attrs}>${keepAlive}</script>`;
   });
 }

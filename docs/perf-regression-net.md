@@ -215,6 +215,10 @@ RM-V23 的绝对性能对照一直卡在宿主负载上（`load average` 长期 
 
 **已补判据（RM-P23，2026-09-16）**：`analyze:check` 现在除体积上限外，还**按名字对照基线的 chunk 名单** —— 基线里存在、当前产物里没有的 chunk（内容哈希规范化后比较）即失败，失败信息形如 `N chunk(s) present in the baseline are missing from this build: …`，且与「超限」用不同措辞抛出（`client JS budget check failed` vs `exceeded`），避免把缺失误读成体积超标。判据本身由 `packages/cli/test/analyze.test.ts` 的两条新用例保证：一条构造「体积变小但缺 chunk」的输入并断言被拦下（正是本次岛屿回归的形状），另一条断言重命名（哈希变化）不会误报。
 
+**基线刷新（2026-09-17，附归因）**：审计批次陆续往示例里加了若干页面（`action-demo` / `isr-demo` / `order/[id=numeric]` / `parallel` / `server-components` 等），但**基线没跟着刷新** —— 到 HEAD 上 `analyze:check` 已经是红的（total gzip 118.1 vs 基线 111.1 kB，+6.3%），红的成分里没有本次改动的影子（基线文件里连 `action-demo` chunk 都没有）。同一批又加了 `ppr-demo` / `server-island-demo` / `deferred-demo`（含 `SlowWidget`）三个示例页，因此先用**隔离构建**把本批的增量量出来：把这三个页面与它们的 `routeRules` 移出后重建，total gzip **118.2 → 120.3 kB**，即本批自身 **+2.1 kB（+1.9%）**，全部来自新页面的惰性 chunk 加路由表记录（entry +0.5 kB）。同时确认新出现的 `runtime-*.js` chunk（6.7 kB）在移出后的构建里**同样存在** —— 属 HEAD 已有的 chunk 划分，不是本批引入。客户端产物里再查一遍服务端符号（`hono` / `defineHandler` / `node:fs` / `tslog` / `useDatabase` / `createUbeanApp`）**全部为 0**，聚合入口没有泄漏（另有 `example-imports.test.ts` 常驻守卫）。据此刷新基线。
+
+**操作陷阱**：`pnpm analyze` **会覆写** `examples/ubean-test/benchmarks/bundle-baseline.json`（`--out` 默认就指向它）—— 只想「看一眼」时把 `--out` 指到临时路径，或事后 `git checkout` 还原，否则会在排查过程中不知不觉把基线改掉（本次踩了一次）。
+
 **原因已定位（2026-09-16，同日）**：岛屿组件不是被页面模块动态 import 的 —— 客户端 hydration 通过**注册表**按名字解析。实测 `dist/public/assets/chunks/islands-test-*.js` 里 `IslandClock`/`IslandCounter`/… 各出现一次（作为 `ubean-island` 的属性值），动态 `import(` 出现 **0** 次；组件只可能来自 `virtual:ubean-islands-registry`。而注册表的实现是：islands 插件在 **`transform` 阶段**遍历 SFC 主模块时把组件填进内存 map（`packages/islands/src/vite.ts:1255`），注册表模块 `load` 时读这份 map（`:1158`）。客户端构建里页面是**惰性** `() => import(...)`（`virtual:ubean-pages` 的 loader），注册表在入口链上先于页面被加载 → 读到的 map 为空 → `generateRegistryModule` 返回 `export const islands = {};` → 组件永不进入 bundle。
 
 也就是说：**「注册表内容取决于模块转换顺序」是这套实现的结构性依赖**，而页面惰性加载让它在构建期天然不满足。它在某次改动前能工作，说明彼时有别的东西先把页面拉进了图（有待进一步确认），这类隐式依赖本身就是隐患。

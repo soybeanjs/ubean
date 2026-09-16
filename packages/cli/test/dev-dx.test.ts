@@ -207,6 +207,105 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     }
   }, 120_000);
 
+  it('PPR（routeRules.ppr）：响应带流式标记，且 loader-only 页面在浏览器里能水合', async () => {
+    // `/ppr-demo` 同时覆盖两件事：
+    //  1. `routeRules.ppr: true` 的**服务端**行为 —— 强制流式 SSR，响应头给出可验证的标记；
+    //  2. 「loader 写在 <script>、definePage 写在 <script setup>」这一**页面约定形状**在浏览器里真能跑。
+    //     该形状剥离宏后会得到空的 setup 块，曾让生产构建报 MISSING_EXPORT "default"
+    //     （见 builder/test/macros.test.ts）；这里从运行时再守一道。
+    const response = await fetch(`${baseUrl}/ppr-demo`);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('x-ppr')).toBe('streaming');
+    expect(response.headers.get('x-ssr-mode')).toBe('streaming');
+    expect(await response.text()).toContain('ppr-body');
+
+    const page = await openPage();
+    // 客户端图省事会掩盖问题：loader 页若没有默认导出，浏览器报的是**模块链接期**错误
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${String(e).slice(0, 120)}`));
+    page.on('console', m => {
+      if (m.type() === 'error' && /hydrat|mismatch|does not provide an export/i.test(m.text())) {
+        errors.push(m.text().slice(0, 120));
+      }
+    });
+    try {
+      await page.goto(`${baseUrl}/ppr-demo`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
+        undefined,
+        { timeout: 30_000 }
+      );
+      await page.waitForTimeout(1_000);
+      // 组件真的挂上了（该页的 setup 只有 definePage，剥离宏后靠宏转换保留块才有默认导出：
+      // 缺默认导出时这里会是「路由组件解析失败」，不是断言失败 —— 所以两种信号都要）
+      expect(await page.locator('.ppr-demo').count()).toBe(1);
+      expect(errors, errors[0] ?? '').toHaveLength(0);
+    } finally {
+      await page.close();
+    }
+  }, 120_000);
+
+  it('服务端岛屿：SSR 输出渲染后的内容，浏览器水合不出错', async () => {
+    const response = await fetch(`${baseUrl}/server-island-demo`);
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    // 异步组件解析完成后的真实内容在 SSR HTML 里（不是 fallback）
+    expect(html).toContain('island-resolved');
+
+    const page = await openPage();
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${String(e).slice(0, 120)}`));
+    try {
+      await page.goto(`${baseUrl}/server-island-demo`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
+        undefined,
+        { timeout: 30_000 }
+      );
+      await page.waitForTimeout(1_000);
+      expect(await page.locator('.slow-widget').count()).toBe(1);
+      expect(errors, errors[0] ?? '').toHaveLength(0);
+    } finally {
+      await page.close();
+    }
+  }, 120_000);
+
+  it('流式延迟数据：SSR 首屏是 fallback，水合后采用 payload 且无 mismatch', async () => {
+    // `defer()` + `useDeferredData()`：SSR 不阻塞首屏（渲染 fallback），payload 以
+    // `__UBEAN_DEFERRED__` 流式注入；客户端挂载后采用它，**不再发第二次请求**。
+    // 这里守的是**水合安全**这一条：早先实现在 setup 里同步应用 payload，客户端首帧渲染
+    // resolved 分支而 SSR 渲染 fallback —— Vue 报 `Hydration completed but contains mismatches`，
+    // 且被匹配上的元素留着 SSR 的旧 class（页面上是「fallback 的 class + resolved 的文本」）。
+    const response = await fetch(`${baseUrl}/deferred-demo`);
+    expect(response.status).toBe(200);
+    const html = await response.text();
+    expect(html).toContain('deferred-pending'); // 首屏是非关键数据的 fallback
+    expect(html).toContain('__UBEAN_DEFERRED__'); // payload 随之注入
+    expect(html).toContain('deferred-resolved');
+
+    const page = await openPage();
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${String(e).slice(0, 120)}`));
+    page.on('console', m => {
+      if (m.type() === 'error' && /hydrat|mismatch/i.test(m.text())) errors.push(m.text().slice(0, 120));
+    });
+    try {
+      await page.goto(`${baseUrl}/deferred-demo`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
+        undefined,
+        { timeout: 30_000 }
+      );
+      // 挂载后切到 resolved 分支：class 与文本都必须是 resolved 那一支
+      await expect.poll(() => page.locator('.deferred-value').count(), { timeout: 15_000 }).toBe(1);
+      expect(await page.locator('.deferred-value').textContent()).toContain('deferred-resolved');
+      expect(await page.locator('.deferred-pending').count()).toBe(0);
+      expect(errors, errors[0] ?? '').toHaveLength(0);
+    } finally {
+      await page.close();
+    }
+  }, 120_000);
+
   it('DevTools 外壳可以从 /_devtools 进入', async () => {
     const response = await fetch(`${baseUrl}/_devtools`, { redirect: 'follow' });
     expect(response.status).toBe(200);

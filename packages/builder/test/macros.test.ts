@@ -7,6 +7,7 @@
  * - Vue SFC <script> 块内宏剥离
  */
 import { describe, it, expect } from 'vitest';
+import { parse, compileScript } from '@vue/compiler-sfc';
 import { stripMacros, transformMacros } from '../src/macros';
 
 describe('stripMacros()', () => {
@@ -102,5 +103,44 @@ describe('transformMacros()', () => {
     const result = transformMacros(code, '/src/pages/a.vue');
     expect(result).not.toContain('definePage');
     expect(result).toContain('const x = 1;');
+  });
+});
+
+/**
+ * 生产构建的 `MISSING_EXPORT "default"` 缺陷（页面 loader 约定形状）。
+ *
+ * `definePage()` 是宏、必被剥掉；页面约定又要求 `loader` 写在普通 `<script>`、`definePage` 写在
+ * `<script setup>`。于是「只有 loader 的页面」在剥离后得到**空**的 setup 块 —— `@vue/compiler-sfc`
+ * 把只有空白的 setup 块当作不存在，组件就只剩那个普通脚本块（只有具名导出），
+ * 而 `@vitejs/plugin-vue` 的主模块照旧 `import _sfc_main from '...?vue&type=script'`。
+ *
+ * 断言落在**编译产物是否有默认导出**上（而不是「有没有插入那行注释」）：这才是构建真正依赖的不变量。
+ *
+ * `@vue/compiler-sfc` 是 `@vitejs/plugin-vue` 的依赖、由 workspace 的 `shamefullyHoist` 提升后可直接
+ * 解析 —— **不要**为了这条用例把它加进 devDependencies：实测一次 `pnpm add` 会让 pnpm 重解析整仓
+ * （lockfile 25 增 89 删），产生两份 `@voidzero-dev/vite-plus-core` 变体，`pnpm typecheck` 当场报
+ * 「结构相同但来源不同的 Plugin 类型不可赋值」。
+ */
+describe('空 <script setup> 块（宏剥离后）', () => {
+  const loaderPage = (setupContent: string): string =>
+    `<script lang="ts">\nexport async function loader() {\n  return { from: 'loader' };\n}\n</script>\n\n<script setup lang="ts">${setupContent}</script>\n\n<template><p>x</p></template>`;
+
+  function compiledHasDefault(source: string): boolean {
+    const { descriptor } = parse(source, { filename: 'Page.vue' });
+    return /export\s+default/.test(compileScript(descriptor, { id: 'test' }).content);
+  }
+
+  it('loader 页（setup 只剩 definePage）→ 仍有默认导出', () => {
+    const transformed = transformMacros(loaderPage("\ndefinePage({ name: 'A' });\n"), '/src/pages/a.vue')!;
+    expect(transformed).not.toContain('definePage');
+    expect(compiledHasDefault(transformed)).toBe(true);
+  });
+
+  it('无普通 <script> 块时不动 setup 块（走 plugin-vue 的 template-only 路径）', () => {
+    const source = `<script setup>\ndefinePage({ name: 'A' });\n</script>\n\n<template><p>x</p></template>`;
+    const transformed = transformMacros(source, '/src/pages/a.vue')!;
+    // 该形状下 plugin-vue 不调 compileScript（没有脚本块时由模板单独生成组件），本身不报错 ——
+    // 所以这里**不**注入保留注释，保持对用户文件的零改动。
+    expect(transformed).toBe(`<script setup>\n\n</script>\n\n<template><p>x</p></template>`);
   });
 });

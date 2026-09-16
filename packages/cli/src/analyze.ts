@@ -128,7 +128,12 @@ export const analyzeCommand: CommandDef = {
       });
       if (!result.ok) {
         for (const message of result.messages) logger.error(message);
-        throw new Error('client JS budget exceeded');
+        // 用词区分：缺失 chunk 不是「超限」，报成 exceeded 会误导排查方向
+        throw new Error(
+          result.violations.some(v => v.kind === 'missing')
+            ? 'client JS budget check failed'
+            : 'client JS budget exceeded'
+        );
       }
       const relativeSummary = checkArg
         ? `total ${(result.totalRatio * 100).toFixed(1)}%, entry ${(result.entryRatio * 100).toFixed(1)}% vs baseline, max ${(result.maxIncrease * 100).toFixed(0)}%`

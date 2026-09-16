@@ -42,7 +42,7 @@ export interface BundleBudgetOptions {
 }
 
 export interface BundleBudgetViolation {
-  kind: 'total' | 'entry' | 'chunk';
+  kind: 'total' | 'entry' | 'chunk' | 'missing';
   /** Measured gzip size in bytes. */
   actual: number;
   /** Ceiling that was exceeded, in bytes. */
@@ -51,6 +51,15 @@ export interface BundleBudgetViolation {
 }
 
 const CHUNK_VIOLATION_DISPLAY_LIMIT = 5;
+
+/**
+ * 内容哈希规范化：`assets/chunks/Foo-AbC12dEf.js` → `assets/chunks/Foo.<hash>.js`。
+ *
+ * 用于按**名字**对照两次构建的 chunk 名单 —— 名称稳定、哈希不稳定，比名字才有意义。
+ */
+export function normalizeChunkFileName(file: string): string {
+  return file.replace(/-[A-Za-z0-9_-]{8}\./g, '.<hash>.');
+}
 
 export function formatKilobytes(bytes: number): string {
   return `${(bytes / 1024).toFixed(1)} kB`;
@@ -94,7 +103,7 @@ export function summarizeBundle(outDir: string, manifest: Record<string, Manifes
 
 export function compareBundleBaseline(
   current: Pick<BundleBaseline, 'totalGzip' | 'entryGzip'> & Partial<Pick<BundleBaseline, 'entries'>>,
-  committed: Pick<BundleBaseline, 'totalGzip' | 'entryGzip'>,
+  committed: Pick<BundleBaseline, 'totalGzip' | 'entryGzip'> & Partial<Pick<BundleBaseline, 'entries'>>,
   options: BundleBudgetOptions = {}
 ): {
   ok: boolean;
@@ -149,6 +158,27 @@ export function compareBundleBaseline(
     const rest = oversizedChunks.length - CHUNK_VIOLATION_DISPLAY_LIMIT;
     messages.push(
       `${oversizedChunks.length} chunk(s) exceed the absolute budget ${formatKilobytes(options.maxChunkGzip!)}: ${shown}${rest > 0 ? ` (+${rest} more)` : ''}`
+    );
+  }
+
+  // 缺 chunk 判据（RM-P23）：体积门禁只守「增长」，产物**变小**时反而更宽松 ——
+  // 于是「功能被静默砍掉」的回归会从门禁下溜过去（实测：岛屿组件 chunk 全部消失，
+  // 报的却是 budget ok）。因此这里按名字对照两侧清单：基线里有、当前没有即失败。
+  const currentNames = new Set((current.entries ?? []).map(entry => normalizeChunkFileName(entry.file)));
+  const missing =
+    committed.entries === undefined
+      ? []
+      : committed.entries.map(entry => normalizeChunkFileName(entry.file)).filter(name => !currentNames.has(name));
+  const uniqueMissing = [...new Set(missing)];
+  for (const file of uniqueMissing) {
+    // 用 -1 表示「不是超限而是缺失」：limit 不适用
+    violations.push({ kind: 'missing', actual: 0, limit: -1, file });
+  }
+  if (uniqueMissing.length > 0) {
+    const shown = uniqueMissing.slice(0, CHUNK_VIOLATION_DISPLAY_LIMIT).join(', ');
+    const rest = uniqueMissing.length - CHUNK_VIOLATION_DISPLAY_LIMIT;
+    messages.push(
+      `${uniqueMissing.length} chunk(s) present in the baseline are missing from this build: ${shown}${rest > 0 ? ` (+${rest} more)` : ''}`
     );
   }
 

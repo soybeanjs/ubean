@@ -168,7 +168,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 这意味着：**任何「功能被静默砍掉」的回归，只要它同时让产物变小，就会从这个门禁下溜过去。** V18/V19 的提交里都用 `analyze:check` 绿作为「产物一致」的证据 —— 在这个盲区被堵上之前，那个证据是不成立的。
 
-要补的判据（RM-P23 候选）：`analyze:check` 除体积上限外，还要**对照基线的 chunk 名单**，出现基线里存在、当前产物里没有的 chunk（hash 规范化后按名字比）即失败。实现便宜（基线已有 per-chunk 条目），且正是这次能提前发现问题的判据。
+**已补判据（RM-P23，2026-09-16）**：`analyze:check` 现在除体积上限外，还**按名字对照基线的 chunk 名单** —— 基线里存在、当前产物里没有的 chunk（内容哈希规范化后比较）即失败，失败信息形如 `N chunk(s) present in the baseline are missing from this build: …`，且与「超限」用不同措辞抛出（`client JS budget check failed` vs `exceeded`），避免把缺失误读成体积超标。判据本身由 `packages/cli/test/analyze.test.ts` 的两条新用例保证：一条构造「体积变小但缺 chunk」的输入并断言被拦下（正是本次岛屿回归的形状），另一条断言重命名（哈希变化）不会误报。
 
 **原因已定位（2026-09-16，同日）**：岛屿组件不是被页面模块动态 import 的 —— 客户端 hydration 通过**注册表**按名字解析。实测 `dist/public/assets/chunks/islands-test-*.js` 里 `IslandClock`/`IslandCounter`/… 各出现一次（作为 `ubean-island` 的属性值），动态 `import(` 出现 **0** 次；组件只可能来自 `virtual:ubean-islands-registry`。而注册表的实现是：islands 插件在 **`transform` 阶段**遍历 SFC 主模块时把组件填进内存 map（`packages/islands/src/vite.ts:1255`），注册表模块 `load` 时读这份 map（`:1158`）。客户端构建里页面是**惰性** `() => import(...)`（`virtual:ubean-pages` 的 loader），注册表在入口链上先于页面被加载 → 读到的 map 为空 → `generateRegistryModule` 返回 `export const islands = {};` → 组件永不进入 bundle。
 

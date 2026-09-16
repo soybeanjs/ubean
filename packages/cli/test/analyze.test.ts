@@ -59,6 +59,53 @@ describe('compareBundleBaseline', () => {
     expect(result.ok).toBe(true);
   });
 
+  // RM-P23：体积门禁只守增长，产物变小反而算通过 —— 于是「功能被静默砍掉」的回归能溜过去
+  // （实测：岛屿组件 chunk 全部消失，报的却是 budget ok）。这条判据按名字对照两份清单。
+  it('fails when a chunk present in the baseline is missing from the build', () => {
+    const result = compareBundleBaseline(
+      {
+        totalGzip: 90,
+        entryGzip: 18,
+        entries: [
+          { file: 'assets/app-AAAABBBB.js', bytes: 1, gzip: 18, isEntry: true },
+          { file: 'assets/chunks/IslandCounter-CCCCDDDD.js', bytes: 1, gzip: 2 }
+        ]
+      },
+      {
+        totalGzip: 100,
+        entryGzip: 20,
+        entries: [
+          { file: 'assets/app-ZZZZYYYY.js', bytes: 1, gzip: 20, isEntry: true },
+          { file: 'assets/chunks/IslandCounter-WWWWXXXX.js', bytes: 1, gzip: 2 },
+          { file: 'assets/chunks/IslandClock-EEEEFFFF.js', bytes: 1, gzip: 2 }
+        ]
+      },
+      { maxIncrease: 0.05 }
+    );
+
+    // 体积是变小了（-10%），旧判据会说 OK；缺 chunk 必须拦下
+    expect(result.ok).toBe(false);
+    expect(result.violations.filter(v => v.kind === 'missing').map(v => v.file)).toEqual([
+      'assets/chunks/IslandClock.<hash>.js'
+    ]);
+    expect(result.messages.some(m => m.includes('missing from this build'))).toBe(true);
+  });
+
+  it('treats a renamed-but-present chunk as present (hash normalization)', () => {
+    const entries = [{ file: 'assets/chunks/IslandCounter-CCCCDDDD.js', bytes: 1, gzip: 2 }];
+    const result = compareBundleBaseline(
+      { totalGzip: 10, entryGzip: 5, entries },
+      {
+        totalGzip: 10,
+        entryGzip: 5,
+        entries: [{ file: 'assets/chunks/IslandCounter-11112222.js', bytes: 1, gzip: 2 }]
+      },
+      { maxIncrease: 0.05 }
+    );
+
+    expect(result.ok).toBe(true);
+  });
+
   it('fails when total gzip grows past the threshold', () => {
     const result = compareBundleBaseline(
       { totalGzip: 120, entryGzip: 20 },

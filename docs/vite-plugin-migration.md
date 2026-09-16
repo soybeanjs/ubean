@@ -88,6 +88,12 @@ vite.config.ts（用户唯一入口）
 
 ### Phase 2 · build 迁移
 
+> **RM-V21 的两次实测阻塞（2026-09-16）**：把构建编排接到插件的 `config` 钩子（让 `vite build` 单次产出完整 `dist/`）需要连过三关，前两关已解、第三关未解，逐条记下以便下次从证据出发：
+> 1. **只注册 `outDir` 式环境不行** —— 客户端环境会退回默认入口 `index.html`，构建报 `Cannot resolve entry module index.html`。解法：`config` 钩子改用与 CLI 共用的 `createBuildEnvironments()`（已在 `build-configs.ts` 就位）。
+> 2. **`virtual:ubean-asset-manifest` 不能由独立插件从别的插件的 `config` 钩子注入** —— 到不了服务端环境（`Failed to resolve import …`）。解法：改由**核心插件**自身的 `resolveId`/`load` 提供（它是两条路径都必然注册的那一个）；`prepareBuild(ctx, manifestRef)` 已支持传入同一个 manifest 载体。
+> 3. **未解：`vite build` 的产物不完整** —— 实测（`UBEAN_VITE_BUILDER=1 vp build` 于示例）过了前两关、`dist/{public,server,manifest.json}` 都产出，但与 `ubean build` 的产物清单 diff 出两类缺失：**① 岛屿 chunk 全缺**（`IslandClock`/`IslandCounter`/… 及其 CSS），**② 没有预渲染 HTML**（`about/index.html` 等）。②的原因清楚 —— prerender 是 CLI 侧步骤（`cli/src/build.ts` 调用 `prerender()`），`vite build` 路径下没人调它；①指向岛屿注册表在客户端环境的解析路径，需进一步定位。**结论：插件侧构建接线在补齐这两项之前不能落地** —— 产出「缺岛屿、缺预渲染页」的 dist 比不落地更坏。已回退该接线，保留并已提交的是编排拆分（`prepareBuild` / `runEnvBuilds` / `buildWithEnvironments`）与共用 env 工厂。
+
+
 > **启动时的实况（2026-09-16）**：真正跑一次 `ubean build` 才发现 **RM-V14 把构建路径弄坏了** —— `ubeanVite` 接管 `@vitejs/plugin-vue` 后，dev 路径同步去掉了重复注册，build 路径（`production.ts`）漏改，`.vue` 被编译两次直接报 “At least one <template> or <script> is required”。**没有任何测试跑生产构建**（dev 侧 500+ 断言、example 783 条测运行时 API、prerender 测试直接调 `prerender()`、唯一跑真构建的 `analyze:check` 不在上轮验证清单里）。已修并补上 `production-build.test.ts`（fixture 内跑完整 `buildProduction` 并断言产物契约）。另已抽出 `vite/build-steps.ts`（输出准备 / preset 包装 / manifest 三段与 viteBuild 解耦），作为 RM-V16 的地基。
 
 

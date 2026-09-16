@@ -1,4 +1,4 @@
-import { defineMatcher, hasMatcher } from 'ubean';
+import { defineMatcher, hasMatcher } from 'ubean/client';
 
 /**
  * 动态路由 matcher 注册（Task 7）：`[id=numeric]` 这样的语法引用这里的名字。

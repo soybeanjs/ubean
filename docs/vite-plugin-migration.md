@@ -326,7 +326,7 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 
 修法：把序列化抽成 `serializePagesForEntry()`，白名单补齐这四个语义字段（外加 `path` / `cache` / `isMarkdown`），并加两道守卫 —— 单测逐个字段锁住（`packages/builder/test/page-metadata.test.ts`），矩阵基线格断言产物里的页面表带 `"matchers"`。
 
-**同一根因下另有两处修复**：① matcher API 此前**没有公开导入路径**（只在 `@ubean/vue` 的 dist 里），补到 `ubean` 主入口与 `ubean/client`（文档说的是「注册到进程单例」，用户得有地方 import）；② 注册表此前是模块级 `Map`，而 dev 的 SSR 图把 `ubean` 内联、把 `@ubean/vue` 外部化 —— 用户注册与 router 校验读的是两份 Map，表现为**所有 `[id=numeric]` 路由一律 404**（`validateParams` 对未注册名保守返回 false）。按仓库既有约定（`@ubean/build` 的模块注册表、i18n 的 ALS）改挂 `globalThis`，并加回归测试。
+**同一根因下另有两处修复**：① matcher API 此前**没有公开导入路径**（只在 `@ubean/vue` 的 dist 里），补到 `ubean` 主入口与 `ubean/client`（文档说的是「注册到进程单例」，用户得有地方 import）—— **客户端模块要用 `ubean/client`**：主入口是聚合 barrel，从客户端图引用它会把整条聚合链带进产物（实测示例的入口 chunk 45.2 → 111.9 kB gzip，`analyze:check` 直接红）；② 注册表此前是模块级 `Map`，而 dev 的 SSR 图把 `ubean` 内联、把 `@ubean/vue` 外部化 —— 用户注册与 router 校验读的是两份 Map，表现为**所有 `[id=numeric]` 路由一律 404**（`validateParams` 对未注册名保守返回 false）。按仓库既有约定（`@ubean/build` 的模块注册表、i18n 的 ALS）改挂 `globalThis`，并加回归测试。
 
 **示例侧**：新增 `src/matchers.ts` + `src/pages/order/[id=numeric].vue`，`src/server.ts`（服务端校验）与 `src/app.ts`（`createMatcherGuard()` 客户端守卫）两侧都注册；`dev-dx.test.ts` 新增浏览器用例覆盖「服务端 404 + SPA 导航被守卫拦下」。
 

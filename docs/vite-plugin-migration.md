@@ -206,13 +206,14 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 
 #### RM-V23 矩阵进展（2026-09-16）
 
-| 维度 | 状态 | 说明 |
+`packages/cli/test/build-paths.test.ts` —— **12 格全绿**（临时 outDir 各自构建 + 规范化后比对清单 + 该格自己的产物契约）：
+
+| 维度 | 取值 | 状态 |
 | --- | --- | --- |
-| 两条路径产物一致（fullstack + node + 有 vite.config） | ✅ | `packages/cli/test/build-paths.test.ts`：临时 outDir 各自构建，规范化后比对清单 |
-| **mode** 轴：fullstack / spa / backend / ssg | ✅ | 同文件 `it.each(MODES)` —— 四种 mode 下两条路径产物均逐项一致（实测全绿） |
-| preset 轴：node / cloudflare / vercel / netlify / bun / deno | ⏳ 待补 | 需为每个 preset 断言包装文件（`server.mjs` / `worker.mjs` / `handler.mjs` / `wrangler.toml` / `deno.json` …），部分 preset 还缺 fixture 支持 |
-| 有/无用户 `vite.config.ts` | ⏳ 待补 | 「无」这一格需要第二个 fixture（不依赖 CLI 注入 `ubeanPlugin()`），或让 fixture 可切换 |
-| preset 轴：node / cloudflare | ✅ | 包装文件契约也断言（`server/server.mjs`、`server/worker.mjs` + `wrangler.toml`），避免「两条路径同时缺了包装文件」也通过 |
-| preset 轴：**standard** | ⚠️ 发现真实差异 | `entryType: 'fetch'`（→ `server/handler.mjs`）：实测 builder 路径产出 **175** 个文件、默认路径 **60** 个 —— 数量差得很大，需单独定位后才能纳入矩阵（暂不写断言，避免把未知差异固化成绿） |
-| preset 轴：vercel / netlify / bun / deno / aws / azure | ⏳ 待补 | 各有平台配置文件（`vercel.json` / `netlify.toml` / `deno.json` …），需逐一定义契约 |
-| preset 轴：**standard**（根因假设已定位） | ⚠️ 待修 | 实测：默认路径 **60** 个文件（server bundle **单文件**，无 `chunks/`），builder 路径 **175** 个（server 产出 `chunks/`）。两条路径的**形状**一致，差异只在服务端是否内联。根因指向 **SSR target**：默认路径显式传 `ssr.target = presetBuildConfig.target === 'node18' ? 'node' : 'webworker'`（`production.ts:752`），而 env 驱动路径只设了 `consumer: 'server'` + `resolve.noExternal/external`，**没有传 target** → 非 node preset（standard/vercel/netlify 等）下默认路径按 webworker 内联、新路径不内联。这也解释了为何 `node`（target=node）与 `cloudflare`（worker，本来就 `inlineDynamicImports`）两格是绿的。修法：把 `presetBuildConfig.target` 映射到 server env 的等价位置（Vite 6+ 的 `build.ssr.target` 或对应字段），并在修好后把 `standard` 放回矩阵 |
+| mode | fullstack / spa / backend / ssg | ✅ 四格 |
+| preset | node / cloudflare / standard / bun / deno / vercel / netlify | ✅ 七格（包装文件契约：node·bun·deno → `server/server.mjs`；cloudflare → `server/worker.mjs` + `wrangler.toml`；standard·vercel·netlify → `server/handler.mjs`） |
+| 用户 `vite.config.ts` | 有 | ✅（示例项目） |
+| 用户 `vite.config.ts` | **无** | ⏳ 待补：需要第二个 fixture（不带 `ubeanPlugin()`，以验证 CLI 的 builtin 插件注入路径） |
+| preset | aws / azure | ⏳ 待补（走 default 分支 → `handler.mjs`，但各有平台配置钩子需确认） |
+
+两处判断标准值得记下：**只比「两条路径清单一致」不够** —— 两边同时缺同一个包装文件也会通过，因此每格额外断言该 preset 的包装文件；反之，平台配置文件（`vercel.json` / `netlify.toml` / `deno.json`）**不单独断言**，因为一旦某条路径漏写，清单比对就会失败，那正是该覆盖它的地方。

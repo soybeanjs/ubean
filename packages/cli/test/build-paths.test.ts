@@ -102,7 +102,15 @@ const PRESET_CONTRACTS = [
   { preset: 'cloudflare', wrapper: 'server/worker.mjs', rootFile: 'wrangler.toml' },
   // `standard`（`entryType: 'fetch'` → `server/handler.mjs`）曾因 server bundle 是否内联而分叉
   // （175 vs 60），修法见 build-configs.ts 的 serverOutputNames：非 node 目标一律内联。
-  { preset: 'standard', wrapper: 'server/handler.mjs', rootFile: '' }
+  { preset: 'standard', wrapper: 'server/handler.mjs', rootFile: '' },
+  // 其余 preset 按 `getPresetBuildConfig` 的映射分组：bun/deno 与 node 同（server.mjs），
+  // vercel/netlify/aws/azure 走 default 分支（handler.mjs）。平台配置文件（`vercel.json` /
+  // `netlify.toml` / `deno.json`）由 preset 的 `build:after` 钩子写，**不在这里单独断言** ——
+  // 一旦某条路径漏写，下面的「两条路径清单一致」就会失败，那正是该覆盖它的地方。
+  { preset: 'bun', wrapper: 'server/server.mjs', rootFile: '' },
+  { preset: 'deno', wrapper: 'server/server.mjs', rootFile: '' },
+  { preset: 'vercel', wrapper: 'server/handler.mjs', rootFile: '' },
+  { preset: 'netlify', wrapper: 'server/handler.mjs', rootFile: '' }
 ] as const;
 
 describe('构建路径一致性（RM-V23）', () => {

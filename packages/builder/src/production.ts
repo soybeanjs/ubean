@@ -14,7 +14,7 @@ import { findUserViteConfig } from '@ubean/shared/node';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { buildAssetTagsSetup, buildRendererSetup, buildStaticSsgEntry } from './ssg-entry';
-import { ssrSingletonProdOptimizeExclude, ssrSingletonProdSsr } from './ssr-singleton';
+import { ssrSingletonProdSsr } from './ssr-singleton';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -27,6 +27,7 @@ import type { VirtualModuleRegistry } from './virtual-registry';
 import { ubeanPlugin } from './vite';
 import { ubeanAssetManifestPlugin } from './vite/asset-manifest';
 import type { ClientManifestEntry } from './vite/asset-manifest';
+import { clientOptimizeDepsExclude, clientOutputNames, serverExternal, serverOutputNames } from './vite/build-configs';
 import {
   cleanBuildOutput,
   getBuildOutDirs,
@@ -456,6 +457,8 @@ export const handler = async (req, ctx) => {
   return virtualDir;
 }
 
+export type PresetBuildConfig = ReturnType<typeof getPresetBuildConfig>;
+
 export function getPresetBuildConfig(preset: Preset) {
   const presetName = preset.name;
 
@@ -703,27 +706,14 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
           input: {
             app: clientInput
           },
-          output: {
-            entryFileNames: 'assets/[name]-[hash].js',
-            chunkFileNames: 'assets/chunks/[name]-[hash].js',
-            assetFileNames: 'assets/[name]-[hash].[ext]'
-          }
+          output: clientOutputNames()
         },
         emptyOutDir: false
       },
       plugins: [...plugins],
       resolve: commonResolve,
       optimizeDeps: {
-        exclude: ssrSingletonProdOptimizeExclude([
-          'virtual:ubean-pages',
-          'virtual:ubean-app',
-          'virtual:ubean-server',
-          'virtual:ubean-client-entry',
-          '#ubean-pages',
-          '#ubean-app',
-          '#ubean-server',
-          '#ubean-client-entry'
-        ])
+        exclude: clientOptimizeDepsExclude()
       }
     });
 
@@ -768,17 +758,9 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         sourcemap,
         rollupOptions: {
           input: serverEntryPath,
-          // Remove the ubean pattern from external — it conflicts with
-          // `ssr.noExternal: ['ubean']` above. Keeping it would externalize
-          // ubean, causing Node to load it from node_modules where the
-          // virtual module import is unresolved.
-          external: presetBuildConfig.external.filter(e => !(e instanceof RegExp && e.source.startsWith('^ubean'))),
-          output: {
-            format: presetBuildConfig.format,
-            entryFileNames: 'entry.mjs',
-            chunkFileNames: 'chunks/[name]-[hash].mjs',
-            inlineDynamicImports: presetBuildConfig.entryType === 'worker'
-          }
+          // `^ubean` 过滤与命名规则见 build-configs.ts（两条路径共用一份）
+          external: serverExternal(presetBuildConfig),
+          output: serverOutputNames(presetBuildConfig)
         },
         emptyOutDir: false
       },

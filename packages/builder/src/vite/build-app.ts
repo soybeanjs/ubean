@@ -37,12 +37,13 @@ import {
   generateVirtualModulesToDisk
 } from '../production';
 import type { BuildManifest, BuildOptions } from '../production';
-import { ssrSingletonProdOptimizeExclude, ssrSingletonProdSsr } from '../ssr-singleton';
+import { ssrSingletonProdSsr } from '../ssr-singleton';
 import { createVirtualRegistry } from '../virtual-registry';
 import { ubeanPlugin } from '../vite';
 import { ubeanVite } from '../vue';
 import { ubeanAssetManifestPlugin } from './asset-manifest';
 import type { ClientManifestEntry } from './asset-manifest';
+import { clientOptimizeDepsExclude, clientOutputNames, serverExternal, serverOutputNames } from './build-configs';
 import {
   cleanBuildOutput,
   getBuildOutDirs,
@@ -82,17 +83,6 @@ function readClientManifest(publicDir: string): Record<string, ClientManifestEnt
     return null;
   }
 }
-
-const VIRTUAL_EXCLUDE = [
-  'virtual:ubean-pages',
-  'virtual:ubean-app',
-  'virtual:ubean-server',
-  'virtual:ubean-client-entry',
-  '#ubean-pages',
-  '#ubean-app',
-  '#ubean-server',
-  '#ubean-client-entry'
-];
 
 /**
  * 一次 `createBuilder` 完成整套生产构建。返回值与 `buildProduction` 同形（`BuildManifest`），
@@ -150,7 +140,7 @@ export async function buildWithEnvironments(options: BuildOptions): Promise<Buil
     environments: {
       client: {
         consumer: 'client',
-        optimizeDeps: { exclude: ssrSingletonProdOptimizeExclude(VIRTUAL_EXCLUDE) },
+        optimizeDeps: { exclude: clientOptimizeDepsExclude() },
         build: {
           outDir: outDirs.public,
           assetsDir: 'assets',
@@ -161,11 +151,7 @@ export async function buildWithEnvironments(options: BuildOptions): Promise<Buil
           emptyOutDir: false,
           rollupOptions: {
             input: { app: clientInput },
-            output: {
-              entryFileNames: 'assets/[name]-[hash].js',
-              chunkFileNames: 'assets/chunks/[name]-[hash].js',
-              assetFileNames: 'assets/[name]-[hash].[ext]'
-            }
+            output: clientOutputNames()
           }
         }
       },
@@ -185,17 +171,9 @@ export async function buildWithEnvironments(options: BuildOptions): Promise<Buil
           emptyOutDir: false,
           rollupOptions: {
             input: join(outDirs.virtual, 'server-entry.mjs'),
-            // 去掉 preset external 里的 `^ubean` 模式：它与上面的 `resolve.noExternal` 冲突，
-            // 保留会把 ubean 外置，Node 从 node_modules 加载时解析不到虚拟模块（旧路径同款处理）
-            external: presetBuildConfig.external.filter(
-              entry => !(entry instanceof RegExp && entry.source.startsWith('^ubean'))
-            ),
-            output: {
-              format: presetBuildConfig.format,
-              entryFileNames: 'entry.mjs',
-              chunkFileNames: 'chunks/[name]-[hash].mjs',
-              inlineDynamicImports: presetBuildConfig.entryType === 'worker'
-            }
+            // `^ubean` external 过滤与命名规则见 build-configs.ts（两条路径共用一份）
+            external: serverExternal(presetBuildConfig),
+            output: serverOutputNames(presetBuildConfig)
           }
         }
       }

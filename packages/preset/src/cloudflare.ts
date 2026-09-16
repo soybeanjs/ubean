@@ -29,7 +29,7 @@ export const cloudflarePreset = definePreset(
     entry: 'worker',
     exportConditions: ['workerd', 'worker'],
     build: {
-      outputDir: 'dist/cloudflare',
+      outputDir: 'dist',
       format: 'esm',
       minify: false,
       externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod', 'cloudflare:workers'],
@@ -37,13 +37,17 @@ export const cloudflarePreset = definePreset(
         external: ['cloudflare:*', 'node:*']
       }
     },
+    // 产物布局由 `build.outputDir`（默认 `dist`）唯一决定，`--outDir` 可覆盖：
+    // `<outputDir>/public`（客户端）+ `<outputDir>/server`（服务端）+ `<outputDir>/manifest.json`。
+    // 曾经这里声明的是各平台自己的布局（`dist/aws/lambda`、`dist/netlify/functions` …），
+    // **构建从不产出**、全仓也没有消费者 —— 照它写部署配置会指到不存在的文件（2026-09-16 查实并改正）。
     output: {
-      dir: 'dist/cloudflare',
-      serverDir: 'dist/cloudflare',
-      publicDir: 'dist/cloudflare/public'
+      dir: 'dist',
+      serverDir: 'dist/server',
+      publicDir: 'dist/public'
     },
     runtime: {
-      entry: 'worker/index.mjs',
+      entry: 'server/worker.mjs',
       handler: 'fetch',
       compatibilityDate: '2024-09-01',
       compatibilityFlags: ['nodejs_compat']

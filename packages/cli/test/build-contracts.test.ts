@@ -26,13 +26,18 @@ import { afterAll, describe, expect, it } from 'vitest';
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
 /**
- * worker 目标（cloudflare）改用 builder 的最小 fixture：示例项目里有一条 **Node-only 的测试路由**
- * （`src/routes/api/prerender-test.ts` 直接 import `ubean/build`，为 HTTP 集成测试暴露预渲染 API），
- * 它的整条构建工具链在 worker 图里含无法打包的可选依赖（`@vue/compiler-sfc` → `velocityjs` / `atpl` …），
- * 构建会在解析阶段失败。这是**使用约束而不是框架缺陷**（运行时路由不该 import 构建期 API），
- * 因此这一格换到没有该路由的真实项目上，其余格仍用示例。
+ * worker 目标（cloudflare）与「无用户 `vite.config.ts`」两格用**本包自己的最小 fixture**：
+ *
+ * - 示例项目里有一条 **Node-only 的测试路由**（`src/routes/api/prerender-test.ts` 直接 import
+ *   `ubean/build`，为 HTTP 集成测试暴露预渲染 API），它的整条构建工具链在 worker 图里含无法打包的
+ *   可选依赖（`@vue/compiler-sfc` → `velocityjs` / `atpl` …），构建会在解析阶段失败 —— 这是**使用
+ *   约束而不是框架缺陷**（运行时路由不该 import 构建期 API），所以 worker 那格换项目跑；
+ * - 该 fixture **不带 `vite.config.ts`**，正好也是「CLI 注入 builtin 插件」那一格要覆盖的分支。
+ *
+ * 刻意**不复用 `packages/builder/test/fixtures/build-project`**：本仓测试是 `pnpm -r --parallel`
+ * 跑的，两个包共用同一目录又各自清理 `.temp-*` / `.ubean`，实测出现「单跑绿、全量跑红」的互相干扰。
  */
-const workerFixtureDir = join(repoRoot, 'packages/builder/test/fixtures/build-project');
+const workerFixtureDir = join(repoRoot, 'packages/cli/test/fixtures/no-config-app');
 const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
 /** 各格产物目录前缀（都在 fixture 内、跑完删除）。 */
 const OUT = '.temp-build';

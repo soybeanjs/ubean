@@ -77,17 +77,21 @@ export const vercelPreset = definePreset(
     entry: 'server',
     exportConditions: ['vercel'],
     build: {
-      outputDir: 'dist/vercel',
+      outputDir: 'dist',
       format: 'esm',
       externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod']
     },
+    // 产物布局由 `build.outputDir`（默认 `dist`）唯一决定，`--outDir` 可覆盖：
+    // `<outputDir>/public`（客户端）+ `<outputDir>/server`（服务端）+ `<outputDir>/manifest.json`。
+    // 曾经这里声明的是各平台自己的布局（`dist/aws/lambda`、`dist/netlify/functions` …），
+    // **构建从不产出**、全仓也没有消费者 —— 照它写部署配置会指到不存在的文件（2026-09-16 查实并改正）。
     output: {
-      dir: 'dist/vercel',
-      serverDir: 'dist/vercel/server',
-      publicDir: 'dist/vercel/public'
+      dir: 'dist',
+      serverDir: 'dist/server',
+      publicDir: 'dist/public'
     },
     runtime: {
-      entry: 'server/index.mjs',
+      entry: 'server/handler.mjs',
       handler: 'handler'
     },
     serve: {
@@ -126,7 +130,7 @@ export const vercelEdgePreset = definePreset(
     entry: 'worker',
     exportConditions: ['edge-light', 'vercel-edge'],
     build: {
-      outputDir: 'dist/vercel-edge',
+      outputDir: 'dist',
       format: 'esm',
       minify: true,
       externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod'],
@@ -135,12 +139,12 @@ export const vercelEdgePreset = definePreset(
       }
     },
     output: {
-      dir: 'dist/vercel-edge',
-      serverDir: 'dist/vercel-edge/edge',
-      publicDir: 'dist/vercel-edge/public'
+      dir: 'dist',
+      serverDir: 'dist/server',
+      publicDir: 'dist/public'
     },
     runtime: {
-      entry: 'edge/index.mjs',
+      entry: 'server/handler.mjs',
       handler: 'fetch',
       compatibilityDate: '2024-09-01'
     },

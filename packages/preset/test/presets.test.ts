@@ -12,7 +12,9 @@
  * - 注册表与别名解析
  */
 import { describe, it, expect } from 'vitest';
+import { getPresetBuildConfig } from '@ubean/build/production';
 import {
+  registerBuiltinPresets,
   vercelPreset,
   vercelEdgePreset,
   netlifyPreset,
@@ -486,5 +488,45 @@ describe('capability consistency', () => {
     const vercelResolved = resolvePresetByName('vercel');
     expect(edgeResolved.capabilities?.nodeCompat).toBe(false);
     expect(vercelResolved.capabilities?.nodeCompat).toBe(true);
+  });
+});
+
+/**
+ * preset 元数据必须与真实产物一致（2026-09-16 修正后的守卫）。
+ *
+ * 曾经每个平台 preset 都声明自己的布局（`dist/aws/lambda`、`dist/netlify/functions` …）与
+ * `runtime.entry`（`lambda/index.mjs` …），但**构建从不产出**、全仓也没有消费者 —— 照着它写部署
+ * 配置会指到不存在的文件。真实布局由 `build.outputDir`（默认 `dist`）唯一决定：
+ * `<outputDir>/public` + `<outputDir>/server`，包装文件名由 entryType 决定
+ * （`server/server.mjs` / `server/worker.mjs` / `server/handler.mjs`）。
+ */
+describe('preset 产物元数据与实际布局一致', () => {
+  const WRAPPER_BY_ENTRY_TYPE: Record<string, string> = {
+    node: 'server/server.mjs',
+    worker: 'server/worker.mjs',
+    fetch: 'server/handler.mjs'
+  };
+
+  it('所有内置 preset 声明的 output 与 runtime.entry 都是真实产物', () => {
+    registerBuiltinPresets();
+    for (const preset of getRegisteredPresets()) {
+      const build = (preset.build ?? {}) as { outputDir?: string };
+      if (build.outputDir !== undefined) {
+        expect(build.outputDir, `${preset.name}.build.outputDir`).toBe('dist');
+      }
+
+      const output = (preset as { output?: { dir?: string; serverDir?: string; publicDir?: string } }).output;
+      if (output) {
+        expect(output.dir, `${preset.name}.output.dir`).toBe('dist');
+        expect(output.serverDir, `${preset.name}.output.serverDir`).toBe('dist/server');
+        expect(output.publicDir, `${preset.name}.output.publicDir`).toBe('dist/public');
+      }
+
+      const entry = (preset as { runtime?: { entry?: string } }).runtime?.entry;
+      if (entry !== undefined) {
+        const mapped = WRAPPER_BY_ENTRY_TYPE[getPresetBuildConfig(preset).entryType];
+        expect(entry, `${preset.name}.runtime.entry 应与 entryType 推出的包装文件一致`).toBe(mapped);
+      }
+    }
   });
 });

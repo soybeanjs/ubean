@@ -27,7 +27,7 @@ export const nodePreset = definePreset(
       ]
     },
     runtime: {
-      entry: 'server/index.mjs',
+      entry: 'server/server.mjs',
       handler: 'handler'
     },
     serve: {

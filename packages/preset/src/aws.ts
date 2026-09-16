@@ -49,17 +49,21 @@ export const awsPreset = definePreset(
     entry: 'server',
     exportConditions: ['aws', 'aws-lambda'],
     build: {
-      outputDir: 'dist/aws',
+      outputDir: 'dist',
       format: 'esm',
       externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod', '@aws-sdk/*']
     },
+    // 产物布局由 `build.outputDir`（默认 `dist`）唯一决定，`--outDir` 可覆盖：
+    // `<outputDir>/public`（客户端）+ `<outputDir>/server`（服务端）+ `<outputDir>/manifest.json`。
+    // 曾经这里声明的是各平台自己的布局（`dist/aws/lambda`、`dist/netlify/functions` …），
+    // **构建从不产出**、全仓也没有消费者 —— 照它写部署配置会指到不存在的文件（2026-09-16 查实并改正）。
     output: {
-      dir: 'dist/aws',
-      serverDir: 'dist/aws/lambda',
-      publicDir: 'dist/aws/public'
+      dir: 'dist',
+      serverDir: 'dist/server',
+      publicDir: 'dist/public'
     },
     runtime: {
-      entry: 'lambda/index.mjs',
+      entry: 'server/handler.mjs',
       handler: 'handler',
       compatibilityDate: '2024-09-01'
     },

@@ -231,21 +231,25 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 
 两处判断标准值得记下：**只比「两条路径清单一致」不够** —— 两边同时缺同一个包装文件也会通过，因此每格额外断言该 preset 的包装文件；反之，平台配置文件（`vercel.json` / `netlify.toml` / `deno.json`）**不单独断言**，因为一旦某条路径漏写，清单比对就会失败，那正是该覆盖它的地方。
 
-#### 待决项：平台 preset 的输出布局声明与产物不符（2026-09-16 查实）
+#### preset 的输出布局声明与产物不符（2026-09-16 查实并**已修正**）
 
 补 aws / azure 两格时顺手对照了各 preset 的元数据，发现**声明的输出布局与实际产物系统性不符**：
+aws 声明 `dist/aws/lambda` + `lambda/index.mjs`，azure 声明 `dist/azure/functions` + `functions/index.mjs`，
+netlify 声明 `dist/netlify/functions`，vercel 声明 `dist/vercel/server` …… 而**构建从不产出这些路径**：
+`getBuildOutDirs(cwd, config.build.outputDir)` 只吃 `config.build.outputDir`（默认 `dist`，`--outDir` 可覆盖），
+真实产物恒定是 `<outputDir>/public` + `<outputDir>/server`，包装文件名由 entryType 决定
+（`server/server.mjs` / `server/worker.mjs` / `server/handler.mjs`）。preset 自带的
+`build.outputDir`（`dist/aws` 之类）同样是**无人消费的声明**——实测 `ubean build --preset aws`
+写的是 `dist`，不是 `dist/aws`。全仓 grep 也确认这些字段没有任何读取点。
 
-| preset | 声明（`output.*` / `runtime.entry`） | 实际产物 |
-| --- | --- | --- |
-| aws | `dist/aws/lambda`、`lambda/index.mjs` | `<outputDir>/server/handler.mjs` |
-| azure | `dist/azure/functions`、`functions/index.mjs` | `<outputDir>/server/handler.mjs` |
-| netlify | `dist/netlify/functions`、`functions/index.mjs` | `<outputDir>/server/handler.mjs` |
-| vercel | `dist/vercel/server`、`server/index.mjs` | `<outputDir>/server/handler.mjs` |
-| cloudflare | `dist/cloudflare`、`worker/index.mjs` | `<outputDir>/server/worker.mjs` + `wrangler.toml` |
+**修正**（改动是「把元数据改成真话」，不碰产物布局）：11 个内置 preset 的 `output.dir` /
+`output.serverDir` / `output.publicDir` / `build.outputDir` 统一为 `dist` / `dist/server` /
+`dist/public` / `dist`，`runtime.entry` 改成该 preset entryType 对应的真实包装文件；并新增守卫测试
+（`packages/preset/test/presets.test.ts`）逐一断言「声明即真实产物」，防止再次漂移。
 
-根因：`getBuildOutDirs(cwd, config.build.outputDir)` 只吃 `config.build.outputDir`（默认 `dist`，`--outDir` 可覆盖），preset 的 `output.dir` / `output.serverDir` **全仓没有任何消费者**；`runtime.entry` 同样无人读取。也就是说这些字段目前是纯声明，而且声明值与真实产物不一致 —— 部署配置若照着 `runtime.entry` 写（如 AWS Lambda 指向 `lambda/index.mjs`）会指到不存在的文件。
-
-**为什么不在 RM-V23 里改**：改 `getBuildOutDirs` 去尊重 `output.serverDir` 会同时改变 11 个 preset 的产物布局，属于破坏性变更，必须连带更新部署模板、站点文档与已有示例的部署配置 —— 那是独立一笔（建议并入 RM-V33 站点文档收口，或单开任务）。当前登记为待决项，两格断言只锁「两条路径一致 + 该 preset 的包装文件」，不锁目录名。
+**当初没在 RM-V23 里改的理由仍然成立**：让 `getBuildOutDirs` 去尊重 `output.serverDir` 会同时改变
+11 个 preset 的产物布局，属破坏性变更（需连带更新部署模板、站点文档与示例的部署配置）——那条路
+本轮**没有**走，走的是「元数据向实现对齐」。
 
 #### 构建进程不退出（2026-09-16 修复，RM-V21 的隐藏关卡）
 

@@ -10,7 +10,7 @@ export const standardPreset = definePreset(
       externals: ['hono', 'c12', 'citty', 'tslog', 'defu', 'hookable', 'pathe', 'ufo', 'zod']
     },
     runtime: {
-      entry: 'server'
+      entry: 'server/handler.mjs'
     },
     serve: {
       host: 'localhost',

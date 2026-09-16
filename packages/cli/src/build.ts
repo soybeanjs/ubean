@@ -69,6 +69,10 @@ export const buildCommand: CommandDef = {
       description: 'Shortcut for --mode ssg',
       default: false
     },
+    outDir: {
+      type: 'string',
+      description: 'Output directory (overrides ubean.config.ts build.outputDir)'
+    },
     minify: {
       type: 'boolean',
       description: 'Minify output',
@@ -171,6 +175,12 @@ export const buildCommand: CommandDef = {
       }
 
       logger.info('Building with Vite...');
+      // `--outDir` 覆盖产物目录：CI/矩阵测试需要把不同路径的产物写到不同目录做对照，
+      // 而不是互相覆盖（RM-V23 的「两条路径产物一致」断言即依赖此参数）。
+      if (args.outDir) {
+        (config.build as { outputDir: string }).outputDir = String(args.outDir);
+      }
+
       const { snapshot: contentSnapshot } = await loadContentForBuild(cwd, config.content);
       // RM-V21：开关打开时 `ubean build` 与 `vite build` 走同一条 builder 路径（两次独立
       // `viteBuild` 的旧编排退居开关之后）。先用环境变量声明「构建已由 CLI 驱动」，插件侧的

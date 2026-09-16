@@ -16,6 +16,7 @@ dev / build / preview 三个生命周期从 CLI 自建编排**下放给 Vite 插
 | 项目里已有 `vite.config.ts` + `ubeanPlugin()` | **什么都不用做**。这是推荐形态，也是 `vite` 裸命令可用的前提 |
 | 没有 `vite.config.ts` | 也不用做什么 —— CLI 会注入 builtin 插件，两条路径产物一致。但裸 `vite` 命令需要你补一个 `vite.config.ts`（内容只需 `plugins: [ubeanPlugin()]`） |
 | 配置里写过顶层 `preset: 'vercel'` | **改成 `build: { preset: 'vercel' }`**。顶层 `preset` 从来不被读取（会被静默忽略并按默认 `node` 预设出产物）——本次核对后已在文档中修正 |
+| 配置里写过 `experimental: { viteBuilder: … }` | **删掉这一项**（收敛后不再有开关；留着会被当作未知字段忽略） |
 | 依赖 `prerender.staticDir` 的默认值 | 显式写上你要的目录。默认值不再写死 `dist/public`，改为从**实际的** `build.outputDir` 派生为 `<outputDir>/public`（这样 `--outDir` 与 preset 自带目录才成立） |
 | CI 里用 `NODE_ENV=test` 跑构建 | 改成 `NODE_ENV=production` 或不设置。Vite 尊重显式 `NODE_ENV`，`NODE_ENV=test` 会把 Vue 开发态代码打进客户端产物（实测 entry gzip 45.2 → 75.9 kB）。`ubean build` 现在会对此打印警告 |
 | 部署脚本按 preset 的 `runtime.entry` / `output.serverDir` 找入口 | 别按它找。这些字段是纯声明、全仓无消费者；真实产物恒定是 `<build.outputDir>/{public,server}` 与 `server/{server,worker,handler}.mjs`（按 preset 的 entryType 三选一） |
@@ -39,6 +40,7 @@ dev / build / preview 三个生命周期从 CLI 自建编排**下放给 Vite 插
 - fullstack / backend 预览的是**产物本身**：进程内加载 `dist/server/entry.mjs` 的 `createFetchHandler()`，静态与预渲染 HTML 由产物内的 `serveStatic` 服务 —— 与生产环境同形。不再 spawn 一个 Node 服务器再探端口。
 - spa / ssg 走静态服务（解析规则与 CLI 的内置静态服务器共用一份实现）；`vite preview` 起不来时会降级到内置静态服务器。
 - cloudflare 产物经 miniflare 预览（可选依赖 `miniflare`；缺失时给出安装提示与 `wrangler dev` 的替代方案）。
+- **spa 模式现在会产出 `public/index.html`**（带客户端入口 script 与样式表）。此前 spa 产物只有 `assets/`，部署出去没有入口文件 —— 站点文档一直承诺的是「static `index.html` + assets」，实现与文档不符，RM-V36 收敛时按 mode 断言产物才发现。
 
 **平台产物（需要留意）**
 
@@ -46,9 +48,10 @@ dev / build / preview 三个生命周期从 CLI 自建编排**下放给 Vite 插
 
 ## 4 收敛（RM-V36）与回滚
 
-收敛动作：`experimental.viteBuilder` 默认改为 `true`，随后删除旧编排（`buildProduction` 的两段 `viteBuild`、CLI 注入 builtin 插件的分支）。
+收敛**已完成**：开关默认打开（阶段 1）→ 旧编排删除（阶段 2：`buildProduction` 的两段 `viteBuild`、`experimental` 配置字段、`build-parity.test.ts`）。
 
-- **回滚**：把它设回 `false` 即可回到旧编排（在两个分支共存期间有效）。收敛完成后再无开关。
+- **回滚**：只能回退版本，配置里已无开关可从旧编排逃生。
+- 无用户 `vite.config.ts` 的项目**不受影响**：CLI 仍会注入 builtin 插件（那一支不是旧编排的产物，两条路径共用）。
 - **时间点**：仓库不承诺具体版本日期，以 `vite-plugin-migration.md` 的 RM-V36 行为准；每次发布前重跑验收矩阵（`packages/cli/test/build-paths.test.ts` 13 格 + `dev-reload` / `vite-build` / `preview-vite` / `preview-cli` 四组端到端）。
 
 ## 5 维护者清单（收敛前每次都要过）

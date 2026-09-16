@@ -1,14 +1,14 @@
 /**
  * 构建步骤的**可复用切片**（Phase 2 地基）。
  *
- * `buildProduction()` 是一条约 300 行的直线流程：清理输出 → 落盘虚拟模块与 index.html →
+ * 收敛前的旧编排是一条约 300 行的直线流程：清理输出 → 落盘虚拟模块与 index.html →
  * 两次 `viteBuild`（client / server）→ preset 包装 → 写 manifest。RM-V16 起要把它交给
  * `createBuilder` 的 `buildApp` 编排（`prepare → client env → ubean env → prerender →
  * preset 包装 → manifest`），但目标是**产物逐字节可比**，所以先把与「用 viteBuild 还是
  * builder.build(env)」无关的几步切出来单独可测，再在 `build-app.ts` 里用环境驱动的方式
  * 重新编排。
  *
- * 这里只搬移、不改语义：所有行为与 `buildProduction` 原先逐段一致。
+ * 这里只搬移、不改语义：所有行为与旧编排原先逐段一致。
  */
 import { existsSync } from 'node:fs';
 import { mkdir, rm, writeFile } from 'node:fs/promises';
@@ -83,6 +83,41 @@ export function renderClientIndexHtml(): string {
 export async function writeClientIndexHtml(virtualDir: string): Promise<string> {
   const target = join(virtualDir, 'index.html');
   await writeFile(target, renderClientIndexHtml(), 'utf-8');
+  return target;
+}
+
+/**
+ * spa 模式的静态站点入口（`public/index.html`）。
+ *
+ * fullstack / ssg 的 HTML 由 SSR 渲染（或预渲染）产出，里面的资产标签来自 client manifest；
+ * **spa 没有服务端**，客户端构建的 input 是虚拟 entry 而不是 HTML，因此 Vite 不会产出任何 HTML ——
+ * 曾经的 spa 产物只有 `assets/`，部署出去没有入口文件（文档承诺的是「static `index.html` + assets」，
+ * 实现与文档不符，直到 RM-V36 的矩阵按 mode 断言产物才发现）。
+ *
+ * 这里在客户端构建之后补出这个入口，资产标签复用与 SSR 相同的 `computeAssetTags()`：同一个
+ * manifest、同一套标签规则，避免出现第二种「入口长什么样」的定义。
+ */
+export async function writeSpaIndexHtml(options: {
+  outDirs: BuildOutDirs;
+  tags: { css: string; body: string; favicon: string | null };
+}): Promise<string> {
+  const { outDirs, tags } = options;
+  const target = join(outDirs.public, 'index.html');
+  const favicon = tags.favicon ?? '/favicon.svg';
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="${favicon}" type="image/svg+xml" />
+  <title>Ubean App</title>
+${tags.css ? `  ${tags.css.split('\n').join('\n  ')}\n` : ''}</head>
+<body>
+  <div id="app"></div>
+  ${tags.body}
+</body>
+</html>`;
+  await writeFile(target, html, 'utf-8');
   return target;
 }
 

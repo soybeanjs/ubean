@@ -249,6 +249,14 @@ export interface DevRequestRouterOptions {
    */
   passThrough?: string[];
   /**
+   * 把 `/_devtools`（含尾斜杠）302 到 `/__devtools/`，让用户从 CLI banner 进到带 dock 侧栏的
+   * DevTools 外壳而不是单独的 SPA。`/_devtools/` **下**的静态资源保持直接可达（外壳以 iframe
+   * 载入 `/_devtools/index.html#/route`），因此只重定向这两个空路径。
+   *
+   * 由本插件自己挂载（而不是让调用方另注册一个插件）就是为了顺序：重定向必须先于请求判据。
+   */
+  devtoolsRedirect?: boolean;
+  /**
    * 跳过 HTML transform 的路径判定。预构建 SPA（如 `/_devtools`）的产物自带模块引用，
    * 经 `transformIndexHtml` 重写会被破坏。
    */
@@ -465,6 +473,22 @@ export function ubeanDevRequestPlugin(options: DevRequestRouterOptions): Plugin 
 
     configureServer(server) {
       const { pre, post } = createUbeanRequestHandlers(server, options);
+      // 重定向必须**注册在请求路由之前**：`pre` 会把 `/_devtools` 判成应用请求（`_` 是保留
+      // 命名空间）并交给 app，之后就没机会重定向了。收敛前这个重定向插件挂在 CLI 侧（那里能
+      // 保证顺序），收敛后插件由用户 `vite.config.ts` 注册、CLI 的插件排在它之后 —— 顺序不再
+      // 由注册点决定，因此把重定向收进请求插件自身（`dev-topology` / `dev-dx` 两条用例守着）。
+      if (options.devtoolsRedirect) {
+        server.middlewares.use((req, res, next) => {
+          const pathname = (req.url || '/').split('?')[0].split('#')[0];
+          if (pathname === '/_devtools' || pathname === '/_devtools/') {
+            res.statusCode = 302;
+            res.setHeader('Location', '/__devtools/');
+            res.end();
+            return;
+          }
+          next();
+        });
+      }
       server.middlewares.use(pre);
       return () => {
         server.middlewares.use(post);

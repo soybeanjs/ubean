@@ -1,7 +1,7 @@
 import { existsSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { generateTypes } from '@ubean/build/codegen';
-import { buildProduction, buildWithEnvironments } from '@ubean/build/production';
+import { buildWithEnvironments } from '@ubean/build/production';
 import { loadUbeanConfig, resolvePrerenderConfig, resolveSsrConfig } from '@ubean/config';
 import type { AppMode } from '@ubean/config';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
@@ -193,34 +193,21 @@ export const buildCommand: CommandDef = {
       }
 
       const { snapshot: contentSnapshot } = await loadContentForBuild(cwd, config.content);
-      // RM-V21：开关打开时 `ubean build` 与 `vite build` 走同一条 builder 路径（两次独立
-      // `viteBuild` 的旧编排退居开关之后）。先用环境变量声明「构建已由 CLI 驱动」，插件侧的
-      // `config` 钩子据此不再注册自己的 `builder.buildApp`/`environments` —— 否则同一份构建
-      // 会被两个 buildApp 编排（`__ubean_build__` 的用途）。
-      const viteBuilder = config.experimental?.viteBuilder === true;
-      if (viteBuilder) process.env.UBEAN_BUILD_DRIVEN_BY_CLI = '1';
-      const manifest = viteBuilder
-        ? await buildWithEnvironments({
-            cwd,
-            config,
-            preset: resolvedPreset,
-            scanResult: result,
-            minify: args.minify as boolean,
-            sourcemap: args.sourcemap as boolean,
-            contentSnapshot
-          })
-        : await buildProduction({
-            cwd,
-            config,
-            preset: resolvedPreset,
-            scanResult: result,
-            minify: args.minify as boolean,
-            sourcemap: args.sourcemap as boolean,
-            contentSnapshot
-          });
+      // RM-V36 收敛：`ubean build` 与 `vite build` 走同一条 builder 路径（旧编排的两段
+      // `viteBuild` 已删除）。编排权由 `buildWithEnvironments()` 自己声明（`UBEAN_BUILD_DRIVEN_BY_CLI`），
+      // 插件侧的 `config` 钩子据此不再注册它自己的 `builder.buildApp`。
+      const manifest = await buildWithEnvironments({
+        cwd,
+        config,
+        preset: resolvedPreset,
+        scanResult: result,
+        minify: args.minify as boolean,
+        sourcemap: args.sourcemap as boolean,
+        contentSnapshot
+      });
 
-      // 预渲染与内容搜索索引已下沉到 `@ubean/build` 的 `runPrerenderStep()`（RM-V21）：
-      // 它由两条路径共用的 `runEnvBuilds()` 调用，`vite build` 因此也能产出静态 HTML。
+      // 预渲染与内容搜索索引在 `runEnvBuilds()` 里完成（`runPrerenderStep()`），因此
+      // `vite build` 与 `ubean build` 都会产出静态 HTML —— 这里不再有额外步骤。
 
       // SSG 模式:清理临时 server bundle(prerender 已加载到内存,删除文件不影响静态 HTML)
       if (config.mode === 'ssg' && !process.env.UBEAN_KEEP_SSR) {

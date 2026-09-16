@@ -179,7 +179,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - 扩展模块顶层字段：`ai`/`auth`/`icon`/`image`/`content` 为独立包，`pwa`/`fonts`/`electron`/`pinia`/`ui` 为 `@ubean/integrations` 子路径；均支持 `true` 或选项对象形式启用
 - SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
 - Per-route 渲染规则（P9-03 + P9-04）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming' | 'data-only'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）/ `ppr`（`boolean`）覆盖全局设置；优先级 `definePage({ ssr })` > `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`；`ssr: false` 跳过 loader，`'data-only'` 跑 loader 但 HTML 为 CSR shell；`ppr: true` 隐含 `prerender: true` + 强制流式 SSR（等价 `ssr: 'streaming'`）
-- 实验性开关 `experimental` 顶层字段：目前仅 `viteBuilder`（默认 `false`）—— 打开后由 `ubeanPlugin()` 的 `config` 钩子注册 `client`/`ubean` 两个环境与 `builder.buildApp`（ADR-0012），于是 `vite dev|build|preview` 单独就是完整工具链；关闭时 `ubean build` 走旧编排（`buildProduction` 里两次独立 `viteBuild`），CLI 无用户 `vite.config` 时注入 builtin 插件。**两条路径产物逐项一致**（`packages/cli/test/build-paths.test.ts` 13 格矩阵），是 Phase 1/2 的灰度隔离手段；收敛为默认打开的步骤见 `docs/vite-plugin-migration.md` 的 RM-V36
+- 生命周期归属（ADR-0012，RM-V36 起为唯一形态）：`ubeanPlugin()` 的 `config` 钩子注册 `client`/`ubean` 两个环境与 `builder.buildApp`，于是 `vite dev|build|preview` 单独就是完整工具链。**`experimental.viteBuilder` 开关已随旧编排一并删除** —— 旧编排（两次独立 `viteBuild`）不再存在，配置里写 `experimental: { viteBuilder: … }` 会被当作未知字段忽略
 - 日志展示 `logging` 顶层字段（dev 常驻进程的分类闸门）：`level`（日志级别,显式设置优先于 `LOG_LEVEL`）/ `diagnostics`（`'auto'` 默认仅失败输出 | `true`）/ `request`（`'auto'` 默认关,ssg/spa 强制关 | `true`）/ `scan` / `lifecycle`（默认关）；CLI `--verbose`（全开 scan+lifecycle+diagnostics）/ `--log-requests` 临时覆盖；banner 与 warn/error 永远输出
 
 ### 3.6 模块与扩展包
@@ -919,7 +919,7 @@ vite preview   # ≡ ubean preview（fullstack/backend 走产物里的生产 han
 先决条件与灰阶：
 
 - 用户 `vite.config.ts` 里要有 `ubeanPlugin()`；没有该文件时 CLI 会代注入 builtin 插件（两条路径产物一致，见 `packages/cli/test/build-paths.test.ts`）。
-- `experimental.viteBuilder` 是**灰度开关**：打开后由插件注册 `client`/`ubean` 两个环境与 `builder.buildApp`。当前默认关闭（Phase 5 的 RM-V36 收敛为默认打开）。
+- 插件注册 `client`/`ubean` 两个环境与 `builder.buildApp`（唯一形态，开关已随 RM-V36 收敛删除）。
 - `vite build` **忽略** `--outDir`（那是 ubean CLI 的参数）—— 产物固定写 `config.build.outputDir`。
 - 三条命令都有端到端用例：`packages/cli/test/dev-reload.test.ts`（`vp dev`）、`vite-build.test.ts`（`vp build`）、`preview-vite.test.ts`（`vp preview`）。
 - 体积/产物类断言要固定两件事：**干净产物**（`rm -rf dist` 或临时 outDir）与 **`NODE_ENV`** —— `NODE_ENV=test` 时 Vite 尊重该值，客户端产物会打进 Vue 开发态代码（实测 entry gzip 45.2 → 75.9 kB），`ubean build` 遇到时会打印警告。

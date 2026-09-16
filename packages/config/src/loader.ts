@@ -249,7 +249,6 @@ const configDefaults: ResolvedConfig = {
   dataCache: true,
   cache: { store: 'auto' },
   logging: resolveLoggingConfig(undefined, 'fullstack'),
-  experimental: { viteBuilder: true },
   prerender: resolvePrerenderConfig(),
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
   favicon: null,
@@ -287,9 +286,6 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   // 重新解析 logging(按 mode 应用请求日志的模式矩阵;defu 浅合并会让
   // requestSuppressed 等派生字段失真,必须基于用户原始值重算)
   resolved.logging = resolveLoggingConfig(config.logging, resolved.mode);
-  // RM-V36：开关**默认打开**（插件接管 dev/build/preview 生命周期）。显式 `false` 仍可回到旧编排
-  // —— 双轨共存期保留这个逃生口，收敛完成后连同旧编排一起删除。
-  resolved.experimental = { viteBuilder: config.experimental?.viteBuilder !== false };
   // 解析 favicon(自动检测 public 目录或使用用户配置的路径)
   const publicDir = join(resolved.rootDir, resolved.dir.public);
   resolved.favicon = resolveFavicon(config.favicon, publicDir);

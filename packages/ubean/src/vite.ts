@@ -63,13 +63,20 @@ export function ubeanPlugin(): Plugin[] {
     ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() })
   ];
 
-  // RM-V14：`experimental.viteBuilder` 打开时把请求路由也交给插件，于是 `vite dev` 单独
-  // 就能服务整个应用（页面 SSR / API / 内置 `_` 路由 / 404），与 `ubean dev` 行为一致。
-  // 关闭时完全不注册：旧路径（CLI 自建路由）保持零变更，这正是灰度开关的意义。
-  // 插件自举的 app 与 CLI 的 app 不会并存 —— 显式传入 handler 时插件只用传入的那个。
-  if (config.experimental?.viteBuilder) {
-    plugins.push(ubeanDevRequestPlugin({}));
-  }
+  // ADR-0012（RM-V36 收敛后为唯一路径）：请求路由归插件，于是 `vite dev` 单独就能服务整个
+  // 应用（页面 SSR / API / 内置 `_` 路由 / 404），与 `ubean dev` 行为一致。插件自举的 app 与
+  // CLI 的 app 不会并存 —— 显式传入 handler 时插件只用传入的那个。
+  //
+  // `passThrough` 与 `devtoolsRedirect` 必须在这里给出：DevTools 外壳挂在 `/__devtools/`（落在
+  // `__` 保留命名空间里，通用判据会判成应用请求 → 404），而 `/_devtools` 需要 302 到它。
+  // 收敛前这两件事分处 CLI 侧两个插件（靠注册顺序保证），收敛后插件由用户 `vite.config.ts`
+  // 注册 —— 顺序不再由注册点决定，因此都收进请求插件自身（`dev-topology` / `dev-dx` 守着）。
+  plugins.push(
+    ubeanDevRequestPlugin({
+      passThrough: config.devtools?.enabled ? ['/__devtools'] : [],
+      devtoolsRedirect: config.devtools?.enabled === true
+    })
+  );
 
   return plugins;
 }

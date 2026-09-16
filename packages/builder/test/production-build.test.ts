@@ -8,7 +8,8 @@
  * 测的是运行时 API，`prerender` 测试直接调 `prerender()` 而不是完整构建；只有 `analyze:check`
  * 会跑 `ubean build`，而它不在本轮的验证清单里。
  *
- * 因此这里从**公共入口**跑一次完整构建（`buildProduction`），断言产物契约：
+ * 因此这里从**公共入口**跑一次完整构建（`buildWithEnvironments` —— RM-V36 收敛后唯一的编排），
+ * 断言产物契约：
  * `.vue` 能被编译（这条就能拦住重复注册）、`dist/public`/`dist/server` 布局、preset 包装、
  * `dist/manifest.json` 内容。
  *
@@ -19,8 +20,8 @@
 import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-// buildProduction 走 `/production` 子路径（主入口只导出构建期工具链）
-import { buildProduction } from '@ubean/build/production';
+// 编排函数走 `/production` 子路径（主入口只导出构建期工具链）
+import { buildWithEnvironments } from '@ubean/build/production';
 import { loadUbeanConfig } from '@ubean/config';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
 import { scanProject } from '@ubean/scan';
@@ -34,14 +35,14 @@ afterEach(() => {
   rmSync(join(FIXTURE, '.ubean'), { recursive: true, force: true });
 });
 
-describe('生产构建（buildProduction）', () => {
+describe('生产构建（buildWithEnvironments）', () => {
   it('完整构建：编译 .vue、产出 dist 布局、preset 包装与 manifest', async () => {
     registerBuiltinPresets();
     const config = await loadUbeanConfig(FIXTURE);
     const scanResult = await scanProject({ cwd: FIXTURE, srcDir: config.srcDir, dirs: config.dir });
     const preset = resolvePresetByName(config.build.preset);
 
-    const manifest = await buildProduction({
+    const manifest = await buildWithEnvironments({
       cwd: FIXTURE,
       // 输出目录走临时目录；其余配置保持真实解析结果
       config: { ...config, build: { ...config.build, outputDir: OUT_DIR } },

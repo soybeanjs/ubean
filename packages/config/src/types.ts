@@ -807,7 +807,6 @@ export interface UbeanConfig {
   /**
    * 实验性开关。默认全部关闭；打开后的行为可能在小版本内变化，不构成兼容承诺。
    */
-  experimental?: UbeanExperimentalConfig;
   dev?: {
     port?: number;
     host?: string;
@@ -1008,16 +1007,6 @@ export interface UbeanConfig {
   favicon?: boolean | string;
 }
 
-/** `experimental` 的归一化形态（RM-V07 起承载 Vite 插件优先生命周期的灰度开关）。 */
-export interface UbeanExperimentalConfig {
-  /** Vite 插件优先的 dev / build / preview 生命周期（ADR-0012）。默认 false。 */
-  viteBuilder?: boolean;
-}
-
-export interface ResolvedExperimentalConfig {
-  viteBuilder: boolean;
-}
-
 export interface ResolvedConfig extends Required<
   Omit<
     UbeanConfig,
@@ -1041,12 +1030,10 @@ export interface ResolvedConfig extends Required<
     | 'dataCache'
     | 'cache'
     | 'logging'
-    | 'experimental'
   >
 > {
   rootDir: string;
   srcDir: string;
-  experimental: ResolvedExperimentalConfig;
   modules: ModuleConfiguration[];
   content: boolean | NonNullable<UbeanConfig['content']>;
   icon: boolean | BuiltinModuleOptions;

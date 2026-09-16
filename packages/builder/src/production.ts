@@ -1,20 +1,13 @@
-import { existsSync } from 'node:fs';
-import { mkdir, writeFile, cp, readFile } from 'node:fs/promises';
-import { build as viteBuild } from 'vite';
+import { mkdir, writeFile } from 'node:fs/promises';
 import type { Plugin as VitePlugin } from 'vite';
 import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
-import { resolveModules } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
-import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import { resolveProductionCacheStore, isEphemeralCachePreset } from '@ubean/preset';
 import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/scan';
-import { getLogger } from '@ubean/shared/logger';
-import { findUserViteConfig } from '@ubean/shared/node';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { buildAssetTagsSetup, buildRendererSetup, buildStaticSsgEntry } from './ssg-entry';
-import { ssrSingletonProdSsr } from './ssr-singleton';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -22,29 +15,13 @@ import {
   createAppVirtualModule,
   createLocalesVirtualModule
 } from './virtual-modules';
-import { createVirtualRegistry } from './virtual-registry';
 import type { VirtualModuleRegistry } from './virtual-registry';
-import { ubeanPlugin } from './vite';
-import { ubeanAssetManifestPlugin } from './vite/asset-manifest';
-import type { ClientManifestEntry } from './vite/asset-manifest';
-import { clientOptimizeDepsExclude, clientOutputNames, serverExternal, serverOutputNames } from './vite/build-configs';
 import {
-  cleanBuildOutput,
-  getBuildOutDirs,
-  writeBuildManifest,
-  writeClientIndexHtml,
-  writePresetWrapper
-} from './vite/build-steps';
-import { runPrerenderStep } from './vite/prerender-step';
-import {
-  ubeanVite,
   createVuePagesVirtualModule,
   createVueAppEntryVirtualModule,
   createServerEntryVirtualModule,
   createClientEntryVirtualModule
 } from './vue';
-
-const logger = getLogger('build');
 
 export interface BuildOptions {
   cwd: string;
@@ -632,193 +609,6 @@ export default {
   }
 };
 `.trim();
-}
-
-export async function buildProduction(options: BuildOptions): Promise<BuildManifest> {
-  const { cwd, config, preset, scanResult, minify = true, sourcemap = false, contentSnapshot } = options;
-  const outDirs = getBuildOutDirs(cwd, config.build.outputDir);
-  const srcDir = resolve(cwd, config.srcDir);
-
-  const mode = config.mode;
-  const ssrEnabled = (mode === 'fullstack' && config.ssr.enabled) || mode === 'ssg';
-  const hasPages = mode !== 'backend';
-  const hasServer = mode !== 'spa';
-
-  await cleanBuildOutput({ outDirs, hasPages, hasServer, mode, ssrEnabled });
-
-  logger.info('Generating virtual modules...');
-  // RM-V02：本次构建专用注册表，显式注入给落盘与插件；不再走模块级单例，
-  // 因此连续构建之间没有需要 `clear()` 的共享状态。
-  const virtualRegistry = createVirtualRegistry();
-  await generateVirtualModulesToDisk(
-    cwd,
-    config,
-    scanResult,
-    outDirs.virtual,
-    preset,
-    virtualRegistry,
-    contentSnapshot
-  );
-
-  // 检测用户是否提供了 vite.config — 如有则由用户配置提供 ubeanPlugin()
-  // (ubeanPlugin() 包含 ubeanCorePlugin + ubeanVite + ubeanIslandsPlugin)
-  // 此处仅补充 vue 插件(用户容易遗漏 include/isCustomElement 配置),
-  // ubeanVite/ubeanIslandsPlugin 由用户的 ubeanPlugin() 提供,避免重复注册。
-  const userViteConfig = findUserViteConfig(cwd);
-
-  // RM-V18：client manifest 在内存里传给服务端构建（不再让服务端产物运行时读盘）
-  let clientManifestForInjection: Record<string, ClientManifestEntry> | null = null;
-
-  // 资产标签虚拟模块**只留一个提供者**（2026-09-16 修复）：有用户 `vite.config` 时由其中的核心
-  // 插件提供（它按「内存 ref → 服务端 outDir 旁的磁盘清单」解析），独立插件只在缺失核心插件的
-  // 那一支补位 —— 两个提供者会各自持 ref，谁先解析谁说了算，实测导致标签内联为空、生产 HTML 既无
-  // 客户端入口 `<script>` 也无样式表。
-  const builtinPlugins: VitePlugin[] = [];
-  // RM-V14：`@vitejs/plugin-vue` 的注册已归属 `@ubean/build/vue` 的 `ubeanVite`（用户的
-  // `ubeanPlugin()` 里就包含它），这里**不能**再注册一份：重复注册会让 .vue 被编译两次 ——
-  // 第二个实例拿到的是已编译成 JS 的代码，报 “At least one <template> or <script> is required”。
-  // 实测：dev 路径修掉重复后 build 路径漏改，`ubean build` 直接失败。
-  if (!userViteConfig) {
-    // 无用户 vite.config:由 builtin 提供全部 ubean 插件
-    builtinPlugins.push(
-      ubeanAssetManifestPlugin(
-        () => clientManifestForInjection,
-        () => outDirs.server
-      )
-    );
-    builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
-    if (hasPages) {
-      builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }), ubeanIslandsPlugin());
-    } else if (hasServer) {
-      // backend（无页面）也要注册 vue 插件：服务端入口模板**无条件** import `virtual:ubean-app`
-      // （SSR 应用壳用它的 `resolveAppConfig`），而该虚拟模块由 `ubeanVite` 提供。只按 `hasPages`
-      // 注册会让「backend + 无用户 vite.config」直接构建失败（实测 Rolldown 报
-      // `Failed to resolve import "virtual:ubean-app"`）—— 有用户 `vite.config` 时不会暴露，
-      // 因为那份 `ubeanPlugin()` 聚合入口本来就含 vue 插件。
-      builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }));
-    }
-  }
-
-  const { plugins } = await resolveModules({
-    cwd,
-    config,
-    builtinPlugins
-  });
-
-  const presetBuildConfig = getPresetBuildConfig(preset);
-  const virtualDir = outDirs.virtual;
-
-  let clientManifest: Record<string, any> = {};
-  if (hasPages) {
-    logger.info('Building client bundle...');
-    const clientEntryPath = join(srcDir, 'entry.client.ts');
-    const clientInput = existsSync(clientEntryPath) ? clientEntryPath : join(virtualDir, 'client-entry.mjs');
-
-    await writeClientIndexHtml(virtualDir);
-
-    await viteBuild({
-      root: cwd,
-      configFile: userViteConfig ?? false,
-      mode: 'production',
-      build: {
-        outDir: outDirs.public,
-        assetsDir: 'assets',
-        minify: minify ? 'oxc' : false,
-        sourcemap,
-        manifest: true,
-        ssrManifest: true,
-        rollupOptions: {
-          input: {
-            app: clientInput
-          },
-          output: clientOutputNames()
-        },
-        emptyOutDir: false
-      },
-      plugins: [...plugins],
-      optimizeDeps: {
-        exclude: clientOptimizeDepsExclude()
-      }
-    });
-
-    const manifestPath = join(outDirs.public, '.vite', 'manifest.json');
-    if (existsSync(manifestPath)) {
-      try {
-        clientManifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
-        clientManifestForInjection = clientManifest;
-      } catch {}
-    }
-
-    const publicDir = join(cwd, 'public');
-    if (existsSync(publicDir)) {
-      logger.info('Copying public assets...');
-      await cp(publicDir, outDirs.public, { recursive: true });
-    }
-  }
-
-  let serverEntry = '';
-  if (hasServer) {
-    logger.info(ssrEnabled ? 'Building SSR bundle...' : 'Building server bundle (SSR disabled)...');
-    const serverEntryPath = join(virtualDir, 'server-entry.mjs');
-
-    await viteBuild({
-      root: cwd,
-      configFile: userViteConfig ?? false,
-      mode: 'production',
-      ssr: {
-        target: presetBuildConfig.target === 'node18' ? 'node' : 'webworker',
-        // Bundle the ubean package so that virtual module imports inside it
-        // (e.g. `virtual:ubean-islands-registry` in `ubean/client`) are
-        // resolved by Vite plugins rather than leaking as bare `virtual:`
-        // imports that Node's ESM loader cannot resolve at prerender time.
-        // Shared with the dev plugin via ssrSingletonProdSsr() — do not
-        // also externalize @ubean/i18n here (that would duplicate ALS).
-        ...ssrSingletonProdSsr()
-      },
-      build: {
-        outDir: outDirs.server,
-        ssr: true,
-        minify: false,
-        sourcemap,
-        rollupOptions: {
-          input: serverEntryPath,
-          // `^ubean` 过滤与命名规则见 build-configs.ts（两条路径共用一份）
-          external: serverExternal(presetBuildConfig),
-          output: serverOutputNames(presetBuildConfig)
-        },
-        emptyOutDir: false
-      },
-      plugins: [...plugins, createIslandsSsrStubPlugin()]
-    });
-
-    serverEntry = await writePresetWrapper({
-      mode,
-      presetBuildConfig,
-      outDirs,
-      entries: {
-        node: generateNodeServerEntry,
-        worker: generateCloudflareWorkerEntry,
-        standard: generateStandardHandlerEntry
-      }
-    });
-  }
-
-  const builtManifest = await writeBuildManifest({
-    cwd,
-    outDirs,
-    clientManifest,
-    serverEntry,
-    preset,
-    hasPages,
-    hasServer
-  });
-
-  // 预渲染与内容搜索索引（RM-V21）：与新路径（`runEnvBuilds`）共用同一步，因此 CLI 的
-  // build 命令不再自己调 `prerender()` —— 那段逻辑已下沉到 `@ubean/build`，两条路径都要走，
-  // 否则其中一条（实测是 CLI 这条）会静默丢掉全部静态 HTML。
-  await runPrerenderStep({ cwd, config, scanResult, manifest: builtManifest, contentSnapshot });
-
-  return builtManifest;
 }
 
 export { buildWithEnvironments } from './vite/build-app';

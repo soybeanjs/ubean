@@ -134,7 +134,7 @@ vite.config.ts（用户唯一入口）
 | **RM-V33** | 更新站点文档 | `apps/docs` 中英文：`guide/app-modes.md`、`quickstart.md`、`contributing/engineering.md`（`:466` 的 `dist/client/.vite/manifest.json` 笔误一并修正） | `pnpm build` 构建 docs 通过 |
 | **RM-V34** | 更新 skill | `skills/ubean/command/ubean.md` 标注 `vite dev/build/preview` 为等价路径 | 与 CLI 实际行为一致 |
 | **RM-V35** | 用户迁移指南 + CHANGELOG | 记录 dev HMR 语义变化、配置项变更、双轨收敛时间点 | 迁移指南覆盖 breaking 项 |
-| **RM-V36** | 双轨收敛 | 删除 `findUserViteConfig` 的 CLI 注入分支，CLI 旧路径下线 | 双轨逻辑移除；存量项目验证通过 |
+| **RM-V36** ✅ | 双轨收敛 | 删除 `findUserViteConfig` 的 CLI 注入分支，CLI 旧路径下线 | **已落地，分两步**：① `experimental.viteBuilder` 默认改为 `true` —— 这一步先暴露了一个**静默失败**：`buildWithEnvironments()` 返回 undefined（插件 `config` 钩子返回的 `builder.buildApp` 覆盖了函数内联的编排，而它自己的 `manifest` 变量从未被赋值；没有任何报错，`build-parity.test.ts` 直接红）。修法是让该函数自己声明驱动权（`UBEAN_BUILD_DRIVEN_BY_CLI`），不再依赖调用方替它声明。② 删除旧编排：`production.ts` 的 `buildProduction`（188 行）、配置里的 `experimental` 字段与其全部读取点（config 类型 / loader / 核心插件 / 聚合入口 / CLI / dev-vite）、`build-parity.test.ts`（比较对象已不存在），构建矩阵从「两条路径逐项一致」重写为**按 mode × preset 断产物契约**（15 格，且比原矩阵快一半：每格只构建一次）。`findUserViteConfig` 的**无配置注入分支保留** —— 它不是旧路径的产物：没有 `vite.config.ts` 的项目仍然只能靠 CLI 注入 builtin 插件，两条路径共用同一支实现。**新发现并修掉一个缺陷**（见下方专节 F：spa 产物没有 `index.html`，与文档承诺的「static `index.html` + assets」不符）
 
 ## 4. 依赖与顺序
 
@@ -312,4 +312,7 @@ worker 产物包含 workerd 不支持的 Node 内建导入（node:fs、node:fs/p
 ```
 
 **E. 配置里的 `preset` 顶层字段不被读取。** 写临时项目时按 `AGENTS.md` 的示例写了顶层 `preset: 'cloudflare'`，构建产物却是 node 形态（`server/package.json`、没有 `worker.mjs`）—— 实际被读取的是 `build.preset`（`cli/src/build.ts:138` 与 loader 默认值）。文档与实现不一致，登记到 RM-V32 一并修正。
+
+
+**F. spa 产物从来没有 `index.html`（RM-V36 收敛时按 mode 断言产物才发现，已修）。** 站点文档承诺 spa 的产物是「static `index.html` + assets」，实测 `--mode spa` 的产物目录里**一个 HTML 都没有**：fullstack / ssg 的 HTML 由 SSR 渲染或预渲染产出，而 spa 没有服务端；客户端构建的 input 是虚拟 entry（`{ app: clientEntry }`），不是 HTML，因此 Vite 不会生成 `index.html` —— 部署出去的 SPA 没有入口文件。此前没被发现，是因为矩阵只比「两条路径的产物清单一致」（两边一样地缺），体积门禁只统计 JS。修法：客户端构建后由 `writeSpaIndexHtml()` 补出入口，资产标签复用与 SSR 相同的 `computeAssetTags()`（同一个 manifest、同一套规则），避免出现第二种「入口长什么样」的定义。矩阵的 spa 格现在直接断言 `public/index.html`。
 

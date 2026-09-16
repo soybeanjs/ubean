@@ -8,10 +8,9 @@
  *    node_modules import 的那份是**两个模块实例**，CLI 注册的「扫描后重建 app」回调静默落进
  *    另一个注册表：服务端改动完全不生效且没有任何报错。所有 `configFile: false` + 进程内
  *    import 插件的测试都照常通过（它们共享同一个模块实例）。
- * 2. **插件自举路径与 CLI 路径等价**（RM-V14）。`experimental.viteBuilder` 打开时由插件接管
- *    请求路由与宿主 app，`vp dev` 应当单独就能服务页面 SSR / API / 内置 `_` 路由 / 404，且改
- *    文件同样生效 —— 这条路径此前连 .vue 都编译不了（`ubeanPlugin()` 当时不含
- *    `@vitejs/plugin-vue`，那一步由 CLI 代劳）。
+ * 2. **裸 `vite dev` 与 CLI 等价**（RM-V14 / RM-V31）。请求路由与宿主 app 归插件后，`vp dev`
+ *    应当单独就能服务页面 SSR / API / 内置 `_` 路由 / 404，且改文件同样生效 —— 这条路径此前连
+ *    .vue 都编译不了（`ubeanPlugin()` 当时不含 `@vitejs/plugin-vue`，那一步由 CLI 代劳）。
  *
  * 两个 server 在同一个测试文件里**顺序**启动：它们会改写同一个探针字面量，并行跑必然互相干扰
  * （vitest 默认按文件并行，因此这里不能拆成两个文件）。
@@ -165,17 +164,17 @@ describe('ubean dev 热重载', () => {
   }, 240_000);
 });
 
-describe('ubean dev + experimental.viteBuilder（开关过渡路径）', () => {
+describe('ubean dev（插件接管的请求路由）', () => {
   /**
-   * 开关打开时 app 归插件所有，CLI 不能再注册一个带 handler 的请求插件 —— 否则两个 pre
-   * 中间件都会认领应用请求，先注册的（用户 config 里的那份）胜出，CLI 的 handler 变成永远
-   * 不执行的影子，两侧还会各建一份 app。这条用例守的就是这个组合。
+   * 用户 `vite.config.ts` 存在时 app 归插件所有，CLI 不能再注册一个带 handler 的请求插件 ——
+   * 否则两个 pre 中间件都会认领应用请求，先注册的（用户 config 里的那份）胜出，CLI 的 handler
+   * 变成永远不执行的影子，两侧还会各建一份 app。这条用例守的就是这个组合。
    */
   it('页面/API 正常服务，且改文件仍生效（插件自举的 app 被重建）', async () => {
     running = await startServer({
       command: process.execPath,
       args: [cliEntry, 'dev'],
-      env: { UBEAN_VITE_BUILDER: '1' }
+      env: {}
     });
 
     const home = await probe(running.baseUrl, '/');
@@ -194,10 +193,10 @@ describe('ubean dev + experimental.viteBuilder（开关过渡路径）', () => {
   }, 240_000);
 });
 
-describe('vite dev 等价性（experimental.viteBuilder 打开）', () => {
+describe('vite dev 等价性（无 CLI 的裸命令）', () => {
   const startViteDev = (): Promise<Running> => {
     if (!existsSync(vpEntry)) throw new Error(`${vpEntry} 不存在：仓库根未安装依赖`);
-    return startServer({ command: vpEntry, args: ['dev'], env: { UBEAN_VITE_BUILDER: '1' } });
+    return startServer({ command: vpEntry, args: ['dev'], env: {} });
   };
 
   it('页面 SSR / API / 内置 `_` 路由 / 404 四类请求都由插件服务', async () => {

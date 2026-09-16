@@ -50,31 +50,6 @@ function createGatedViteLogger(logging: { lifecycle: boolean }): Logger {
   } as unknown as Logger;
 }
 
-/**
- * `/ _devtools` → `/__devtools/` 的 302。
- *
- * 用户从 CLI banner 点进来时应该看到带 dock 侧栏的完整 DevTools 外壳，而不是我们单独的 SPA。
- * `/_devtools/` **下**的静态资源必须保持直接可达（外壳以 iframe 载入
- * `/_devtools/index.html#/route`），因此只重定向这两个「空路径」。
- */
-function devtoolsRedirectPlugin(): Plugin {
-  return {
-    name: 'ubean:devtools-redirect',
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        const pathname = (req.url || '/').split('?')[0].split('#')[0];
-        if (pathname === '/_devtools' || pathname === '/_devtools/') {
-          res.statusCode = 302;
-          res.setHeader('Location', '/__devtools/');
-          res.end();
-          return;
-        }
-        next();
-      });
-    }
-  };
-}
-
 export interface DevViteServerOptions {
   cwd: string;
   host: string;
@@ -105,9 +80,8 @@ export interface DevViteServer {
 export async function createDevViteServer(options: DevViteServerOptions): Promise<DevViteServer> {
   const { cwd, config, host, strictPort = false } = options;
   const devtoolsEnabled = config.devtools.enabled;
-  // 开关打开时用户 `vite.config.ts` 里的 `ubeanPlugin()` 已带上自举版请求路由插件；这里
-  // 再加一个会有两个 pre 中间件都认领应用请求（先注册的胜出，另一个成为影子）。
-  const pluginOwnsDevApp = config.experimental?.viteBuilder === true;
+  // 用户 `vite.config.ts` 里的 `ubeanPlugin()` 已带上自举版请求路由插件；CLI 只在**用户没有**
+  // 该文件时补一个，两个 pre 中间件都认领应用请求会让先注册的胜出、另一个成为影子。
   const userViteConfig = findUserViteConfig(cwd);
   const hasUserViteConfig = !!userViteConfig;
   const isBackendMode = config.mode === 'backend';
@@ -117,16 +91,13 @@ export async function createDevViteServer(options: DevViteServerOptions): Promis
   const rescanDev = () => peekDevScanCoordinator(viteServer!)?.rescan();
 
   const builtinPlugins: Plugin[] = [
-    // 顺序有意义：请求路由插件的 pre 中间件会把 `/_devtools` 判成「应用请求」（`_` 是保留
-    // 命名空间）并交给 app，因此重定向必须**注册在它之前**才能先拿到这个路径。
-    ...(devtoolsEnabled ? [devtoolsRedirectPlugin()] : []),
-    ...(pluginOwnsDevApp
+    ...(hasUserViteConfig
       ? []
       : [
+          // 重定向与 `passThrough` 都由请求插件自己处理（顺序敏感，见其选项说明）
           ubeanDevRequestPlugin({
-            // DevTools 外壳挂在 `/__devtools/`，落在 `__` 保留命名空间里 —— 通用判据会把它
-            // 判成应用请求并 404（实测：CLI banner advertise 的入口此前不可用）。
-            passThrough: devtoolsEnabled ? ['/__devtools'] : []
+            passThrough: devtoolsEnabled ? ['/__devtools'] : [],
+            devtoolsRedirect: devtoolsEnabled
           })
         ]),
     ...(hasUserViteConfig

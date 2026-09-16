@@ -69,11 +69,10 @@ describe('vite build（RM-V31：无 CLI 的完整构建）', () => {
   beforeAll(async () => {
     if (!existsSync(vpEntry)) throw new Error(`${vpEntry} 不存在：仓库根未安装依赖`);
     if (!existsSync(cliEntry)) throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 CLI 集成测试`);
-    // 开关打开：这是插件驱动构建的入口（RM-V21）；关闭时 `vite build` 只出客户端产物
     // `NODE_ENV` 必须固定：vitest 会设 `NODE_ENV=test`，而 Vite 尊重显式设置的这个变量 ——
     // 客户端构建会打进 Vue 开发态代码（实测 entry 从 45.2 kB 涨到 75.9 kB），留下的 dist 会让
     // `analyze:check` 变红，且测的也不是用户拿到的产物。
-    await run(vpEntry, ['build'], { UBEAN_VITE_BUILDER: '1', NODE_ENV: 'production' });
+    await run(vpEntry, ['build'], { NODE_ENV: 'production' });
   }, 300_000);
 
   afterAll(async () => {

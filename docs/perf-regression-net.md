@@ -79,7 +79,7 @@ in-scope 四项耗时指标 + 一项正确性对照。定义必须可复现、�
 
 ### 4.1 单变量开关
 
-同一 fixture、同一份源码，唯一变量是 `experimental.viteBuilder`（[ADR-0012 §R7](adr/0012-vite-plugin-first-lifecycle.md) 已定义该隔离开关）。任何时间差只能归因于被测改动，排除「换 fixture / 换机器 / 换依赖」的干扰。
+同一 fixture、同一份源码，唯一变量是被测改动本身（迁移期曾以 `experimental.viteBuilder` 作隔离开关，该开关已随 RM-V36 收敛删除；现在两臂是**同一条生命周期下的两个入口** —— `ubean dev|build` 与 `vp dev|build`，差值反映入口开销而非实现差异）。任何时间差只能归因于被测改动，排除「换 fixture / 换机器 / 换依赖」的干扰。
 
 ### 4.2 生效证明（防 baseline-vs-baseline）
 

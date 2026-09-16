@@ -1,7 +1,7 @@
 /**
  * environment 驱动的生产构建（RM-V16 / RM-V21，ADR-0012 §4）。
  *
- * 旧路径（`production.ts` 的 `buildProduction`）是**两次独立的 `viteBuild`**：client 一次、
+ * 收敛前的旧编排是**两次独立的 `viteBuild`**（client 一次、
  * server 一次，各自带一份内联配置。新路径用一次 `createBuilder` 建两个环境（`client` /
  * `ubean`）并由 `buildApp` 编排：
  *
@@ -46,7 +46,7 @@ import { ssrSingletonProdSsr } from '../ssr-singleton';
 import { createVirtualRegistry } from '../virtual-registry';
 import { ubeanPlugin } from '../vite';
 import { ubeanVite } from '../vue';
-import { ubeanAssetManifestPlugin } from './asset-manifest';
+import { ubeanAssetManifestPlugin, computeAssetTags } from './asset-manifest';
 import type { ClientManifestEntry } from './asset-manifest';
 import { createBuildEnvironments } from './build-configs';
 import {
@@ -54,7 +54,8 @@ import {
   getBuildOutDirs,
   writeBuildManifest,
   writeClientIndexHtml,
-  writePresetWrapper
+  writePresetWrapper,
+  writeSpaIndexHtml
 } from './build-steps';
 import { runPrerenderStep } from './prerender-step';
 
@@ -160,7 +161,7 @@ export async function prepareBuild(
   // 两个提供者各自持 ref，谁先解析谁说了算 —— 实测就是这样内联出空标签，产出不水合、无样式的 HTML。
   const builtinPlugins: VitePlugin[] = [];
   if (!userViteConfig) {
-    // 无用户 vite.config 时由本路径提供全部 builtin 插件 —— 与旧路径（`buildProduction`）逐项对齐：
+    // 无用户 vite.config 时由本路径提供全部 builtin 插件（RM-V36 前与旧编排逐项对齐过）：
     // **islands 插件不能漏**，否则 `v-client.*` 指令不被转换、注册表为空、岛屿组件整类不进产物
     // （实测：无配置那一格 builder 路径比默认路径少 10 个文件 —— 5 个岛屿 JS + 5 个 CSS）。
     builtinPlugins.push(
@@ -176,7 +177,7 @@ export async function prepareBuild(
       // backend（无页面）也要注册 vue 插件：服务端入口模板**无条件** import `virtual:ubean-app`，
       // 而该虚拟模块由 `ubeanVite` 提供 —— 只按 `hasPages` 注册会让「backend + 无用户 vite.config」
       // 构建失败（实测 Rolldown 报 `Failed to resolve import "virtual:ubean-app"`）。与旧路径
-      // （`buildProduction`）保持同一判据。
+      // （与收敛前的旧编排）保持同一判据。
       builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }));
     }
   }
@@ -222,6 +223,16 @@ export async function runEnvBuilds(
     ? (readClientManifest(outDirs.public) ?? {})
     : {};
 
+  // spa：没有服务端，也就没人产出 HTML —— 客户端构建的 input 是虚拟 entry，Vite 不会生成
+  // `index.html`。这里补出静态入口（资产标签复用与 SSR 相同的规则）。
+  if (mode === 'spa') {
+    const tags = computeAssetTags(clientManifest);
+    await writeSpaIndexHtml({
+      outDirs,
+      tags: { css: tags.css, body: tags.body, favicon: prepared.config.favicon }
+    });
+  }
+
   const serverEntry = hasServer
     ? await writePresetWrapper({
         mode,
@@ -257,8 +268,7 @@ export async function runEnvBuilds(
 }
 
 /**
- * 一次 `createBuilder` 完成整套生产构建（CLI 路径）。返回值与 `buildProduction` 同形
- * （`BuildManifest`），便于 RM-V22/V23 逐项对照。
+ * 一次 `createBuilder` 完成整套生产构建（`ubean build` 与 `vite build` 共用的唯一编排）。
  *
  * **驱动权声明**：本函数自己就是编排者，因此先在环境里声明「构建由调用方驱动」，让插件侧的
  * `config` 钩子**不要**再注册它自己的 `builder.buildApp` —— 否则同一个 config 的 `builder` 字段

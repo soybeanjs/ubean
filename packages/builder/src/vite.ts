@@ -242,20 +242,18 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     enforce: 'pre',
 
     /**
-     * RM-V07（ADR-0012）：`experimental.viteBuilder` 打开时，以插件身份注册
-     * `client` / `ubean` 两个环境，生命周期交给 `vite dev|build|preview`。
+     * ADR-0012（RM-V36 收敛后为唯一路径）：以插件身份注册 `client` / `ubean` 两个环境，生命周期
+     * 交给 `vite dev|build|preview`。此前由 `experimental.viteBuilder` 开关隔离的旧编排已下线。
      *
-     * 关闭时（默认）返回 undefined —— 不注册任何环境，CLI 自建编排的旧路径完全不变，
-     * 这正是该开关作为灰度隔离的意义。
+     * 唯一例外是**构建已由调用方驱动**（`ubean build` 自建 builder 并传入同一套 env 配置）——
+     * 那时插件不能再注册自己的 `buildApp`/`environments`，否则同一份构建会被编排两次
+     * （插件返回值会覆盖内联的 `builder` 字段，表现为静默产出不完整）。
      */
     async config() {
       if (!ubeanConfig) {
         ubeanConfig = await loadUbeanConfig();
         ensureDerived();
       }
-      if (!ubeanConfig?.experimental?.viteBuilder) return undefined;
-      // 构建已由 CLI 驱动（它自建 builder 并传入同一套 env 配置）⇒ 插件不再注册自己的
-      // `buildApp`/`environments`，否则同一份构建会被编排两次。
       if (process.env.UBEAN_BUILD_DRIVEN_BY_CLI === '1') return undefined;
 
       return {

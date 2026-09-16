@@ -1,4 +1,9 @@
 import { defineServer } from 'ubean/server';
+import { registerMatchers } from './matchers';
+
+// 动态路由 matcher（Task 7）：服务端 router 在匹配到 `[id=numeric]` 这类路由后按名字校验参数，
+// 失败返回 404。注册表是图内单例 —— 客户端图（`src/app.ts`）与这里是两份实例，必须都注册。
+registerMatchers();
 
 export default defineServer({
   // 运行时钩子(dev 下请求日志已由 CLI 输出,如需自定义可在此添加)

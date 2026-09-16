@@ -35,6 +35,17 @@ export * from '@ubean/markdown';
 // 注意:此处为 `@ubean/client` 内核版 `hydrateIslands`(不带 islands 注册表桥接);
 // 框架应用的客户端代码请用 `ubean/client`(含桥接版 + Server Actions 运行时)。
 export {
+  // 动态路由 matcher（Task 7）：`[id=numeric]` 的注册表与客户端守卫。
+  // 定义在 `@ubean/vue`（客户端内核），**不经 `ubean/server` 转引**；从这里导出是因为主入口是
+  // isomorphic 的 —— 服务端（`src/server.ts`）与客户端（`src/app.ts`）都需要注册同一个注册表。
+  defineMatcher,
+  getMatcher,
+  hasMatcher,
+  listMatcherNames,
+  validateParams,
+  createMatcherGuard,
+  type MatcherFunction,
+  type MatcherGuardOptions,
   // client entry
   getInitialPageData,
   getInitialState,

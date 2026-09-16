@@ -1,4 +1,5 @@
-import { defineApp } from 'ubean/client';
+import { createMatcherGuard, defineApp } from 'ubean/client';
+import { registerMatchers } from './matchers';
 
 // Locales are auto-loaded by ubean:locales virtual module on the server,
 // and auto-hydrated on the client via SSR-injected __UBEAN_LOCALE__ data.
@@ -21,6 +22,11 @@ export default defineApp({
   // 守卫必须同步注册(函数体本身可以返回 Promise)。
   router: {
     setup(router) {
+      // 动态路由 matcher（Task 7）：SPA 导航时校验 `[param=matcher]`，不匹配就跳 404。
+      // 服务端由 router 中间件做同一件事（返回 404 状态码）；两侧共用同一份注册表（见 `./matchers`）。
+      registerMatchers();
+      router.beforeEach(createMatcherGuard());
+
       // 全局前置守卫:打印每次导航
       router.beforeEach((to, from) => {
         // eslint-disable-next-line no-console

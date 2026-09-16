@@ -51,6 +51,41 @@ function toVitePath(p: string): string {
   return p.replace(/\\/g, '/');
 }
 
+/**
+ * 把扫描到的页面序列化进服务端入口（`const _pages = [...]`）。
+ *
+ * **白名单必须覆盖语义字段**：此前只序列化了 `relativePath/name/route/layout/reuseTarget/isReuse/
+ * pageMeta`，于是 `matchers` / `slot` / `interceptFrom` / `interceptTarget` **在生产构建里丢失** ——
+ * dev 用扫描得到的活对象（`enhanceDevApp` / `buildDevSsrRoutes` 直接拿 `scanResult.pages`），所以本地
+ * 一切正常，只有构建产物坏掉：带着 `[id=numeric]` 的路由在 dev 返回 404、在生产返回 200（实测）。
+ * 这类「dev 正常、产物丢失元数据」的缺陷对用户最不友好，因此单独抽成函数并配单测
+ * （`packages/builder/test/page-metadata.test.ts`）。
+ *
+ * 不含 `fullPath`/`dirname`/`basename`（构建机上的文件系统细节，产物不需要）与 `frontmatter`
+ * （Markdown 页正文用，服务端路由不消费）。
+ */
+export function serializePagesForEntry(pages: ScanResult['pages']): string {
+  return JSON.stringify(
+    pages.map(p => ({
+      relativePath: p.relativePath,
+      name: p.name,
+      route: p.route,
+      path: p.path,
+      layout: p.layout,
+      cache: p.cache,
+      isReuse: p.isReuse,
+      isMarkdown: p.isMarkdown,
+      reuseTarget: p.reuseTarget,
+      pageMeta: p.pageMeta,
+      // 下面四个是「文件路由语法」的语义产物，服务端路由与客户端守卫都依赖它们
+      matchers: p.matchers,
+      slot: p.slot,
+      interceptFrom: p.interceptFrom,
+      interceptTarget: p.interceptTarget
+    }))
+  );
+}
+
 export async function generateVirtualModulesToDisk(
   cwd: string,
   config: ResolvedConfig,
@@ -217,17 +252,7 @@ export async function generateVirtualModulesToDisk(
       global: m.global
     }))
   );
-  const pagesJson = JSON.stringify(
-    scanResult.pages.map(p => ({
-      relativePath: p.relativePath,
-      name: p.name,
-      route: p.route,
-      layout: p.layout,
-      reuseTarget: p.reuseTarget,
-      isReuse: p.isReuse,
-      pageMeta: p.pageMeta
-    }))
-  );
+  const pagesJson = serializePagesForEntry(scanResult.pages);
   const layoutsJson = JSON.stringify(
     scanResult.layouts.map(l => ({
       name: l.name,

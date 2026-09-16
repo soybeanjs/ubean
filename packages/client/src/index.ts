@@ -63,9 +63,18 @@ export {
   supportsViewTransitions,
   withViewTransition,
   useViewTransitionState,
-  getNavigationType
+  getNavigationType,
+  // 动态路由 matcher（Task 7）：客户端守卫 `router.beforeEach(createMatcherGuard())` 从这里取
+  defineMatcher,
+  getMatcher,
+  hasMatcher,
+  listMatcherNames,
+  validateParams,
+  createMatcherGuard
 } from '@ubean/vue';
 export type {
+  MatcherFunction,
+  MatcherGuardOptions,
   UbeanVueOptions,
   UbeanVuePageData,
   LayoutChainContext,

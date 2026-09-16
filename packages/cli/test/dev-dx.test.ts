@@ -147,6 +147,35 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     }
   }, 120_000);
 
+  it('动态路由 matcher：服务端 404 + 客户端守卫拦下 SPA 导航', async () => {
+    // 服务端：`[id=numeric]` 不匹配时由 router 中间件直接 404（不是渲染页面再报错）
+    expect((await fetch(`${baseUrl}/order/123`)).status).toBe(200);
+    expect((await fetch(`${baseUrl}/order/abc`)).status).toBe(404);
+
+    const page = await openPage();
+    try {
+      await page.goto(`${baseUrl}/order/123`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
+        undefined,
+        { timeout: 30_000 }
+      );
+      await page.waitForTimeout(1_500);
+
+      // 客户端：同名 matcher 由 `router.beforeEach(createMatcherGuard())` 校验 —— 用 history 跳转
+      // 触发一次真正的 SPA 导航（不带整页刷新），非法 id 应被拦下并落到 404 路由。
+      await page.evaluate(() => {
+        window.history.pushState({}, '', '/order/abc');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+      await expect.poll(() => page.url(), { timeout: 15_000 }).not.toContain('/order/abc');
+      const body = await page.textContent('body');
+      expect(body ?? '').not.toContain('订单号：abc');
+    } finally {
+      await page.close();
+    }
+  }, 120_000);
+
   it('DevTools 外壳可以从 /_devtools 进入', async () => {
     const response = await fetch(`${baseUrl}/_devtools`, { redirect: 'follow' });
     expect(response.status).toBe(200);

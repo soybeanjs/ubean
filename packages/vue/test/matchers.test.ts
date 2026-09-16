@@ -21,6 +21,28 @@ import {
 import { filePathToRoute, parseMatchers } from '../src/route-path';
 
 describe('defineMatcher registry', () => {
+  /**
+   * 注册表必须是**进程单例**（挂在 `globalThis`），否则用户注册与 router 校验会读两份 Map。
+   *
+   * 这个缺陷实际发生过：dev 的 SSR 图把 `ubean` 内联、把 `@ubean/vue` 外部化，于是
+   * `defineMatcher`（经 `ubean` 导入）与 `validateParams`（经 `@ubean/scan` → `@ubean/vue`）
+   * 落在两份模块实例上，表现为**所有 `[id=numeric]` 路由一律 404**（`validateParams` 对未注册名
+   * 保守返回 false，所以症状是「合法 id 也被拒」）。
+   */
+  it('注册表挂在 globalThis 上：另一份模块实例写入的 matcher 也可见', () => {
+    clearMatchers();
+    defineMatcher('numeric', value => /^\d+$/.test(value));
+
+    const store = globalThis as unknown as Record<string, unknown>;
+    expect(store.__ubean_route_matchers__).toBeInstanceOf(Map);
+
+    // 模拟「另一个模块实例的注册」：直接写那份共享 Map，本实例必须立刻看得到
+    (store.__ubean_route_matchers__ as Map<string, unknown>).set('from-other-instance', () => true);
+    expect(hasMatcher('from-other-instance')).toBe(true);
+    expect(listMatcherNames()).toContain('from-other-instance');
+
+    clearMatchers();
+  });
   beforeEach(() => clearMatchers());
   afterEach(() => clearMatchers());
 

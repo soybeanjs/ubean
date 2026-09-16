@@ -185,6 +185,12 @@ describe('构建产物契约（RM-V23 矩阵 / RM-V36 重写）', () => {
       '缺少岛屿产物'
     ).toBe(true);
     expectBuildOutputContract('默认（fullstack + node）', join(fixtureDir, outDir));
+
+    // 页面元数据必须进产物：`[id=numeric]` 的 matcher 映射曾只在 dev 生效 —— 产物里的页面表按
+    // 白名单序列化，漏了 `matchers` / `slot` / `intercept*`，于是 dev 返回 404、生产返回 200。
+    const serverText = readArtifactText(join(fixtureDir, outDir, 'server'));
+    expect(serverText, '服务端入口的页面表应当带 matcher 映射').toContain('"matchers"');
+    expect(serverText).toContain('numeric');
   }, 600_000);
 
   it.each(PRESET_CONTRACTS)(

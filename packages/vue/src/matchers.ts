@@ -37,12 +37,26 @@ import type { NavigationGuard } from 'vue-router';
 export type MatcherFunction = (value: string) => boolean | null | undefined;
 
 /**
- * 全局 matcher 注册表(进程单例)。
+ * matcher 注册表 —— **真·进程单例**（挂在 `globalThis` 上）。
  *
- * server / client 运行时各自维护一份;dev 模式下 HMR 不会自动清理注册表,
- * 但 `defineMatcher` 同名覆盖,因此重新加载 matcher 文件会自动更新函数引用。
+ * 为什么不能用模块级 `Map`：模块级状态只在**同一个模块实例**内共享，而同一个进程里常常有第二份
+ * `@ubean/vue`（dev 的 SSR 图会把 `ubean` 内联、却把 `@ubean/vue` 外部化；pnpm 也可能装出两份）。
+ * 那样「用户注册」与「router 校验」读的是两个 Map，表现为**所有 `[id=numeric]` 路由一律 404**
+ * （实测：`validateParams` 对未注册名保守返回 false）。i18n 的 ALS 与 `@ubean/build` 的模块注册表
+ * 都出于同一理由挂在 `globalThis` 上（见 `packages/builder/src/registry.ts`）。
+ *
+ * 同名重复注册会覆盖 —— HMR 重新求值 matcher 文件时因此能拿到最新函数引用。
  */
-const matcherRegistry = new Map<string, MatcherFunction>();
+const MATCHERS_KEY = '__ubean_route_matchers__';
+
+function getMatcherRegistry(): Map<string, MatcherFunction> {
+  const store = globalThis as unknown as Record<string, unknown>;
+  const existing = store[MATCHERS_KEY];
+  if (existing instanceof Map) return existing as Map<string, MatcherFunction>;
+  const created = new Map<string, MatcherFunction>();
+  store[MATCHERS_KEY] = created;
+  return created;
+}
 
 /**
  * 定义并注册一个命名 route matcher。
@@ -65,7 +79,7 @@ export function defineMatcher(name: string, fn: MatcherFunction): MatcherFunctio
   if (typeof fn !== 'function') {
     throw new TypeError(`[ubean] defineMatcher: fn must be a function, got: ${typeof fn}`);
   }
-  matcherRegistry.set(name, fn);
+  getMatcherRegistry().set(name, fn);
   return fn;
 }
 
@@ -73,21 +87,21 @@ export function defineMatcher(name: string, fn: MatcherFunction): MatcherFunctio
  * 按名称获取已注册的 matcher。未注册时返回 `undefined`。
  */
 export function getMatcher(name: string): MatcherFunction | undefined {
-  return matcherRegistry.get(name);
+  return getMatcherRegistry().get(name);
 }
 
 /**
  * 判断指定名称的 matcher 是否已注册。
  */
 export function hasMatcher(name: string): boolean {
-  return matcherRegistry.has(name);
+  return getMatcherRegistry().has(name);
 }
 
 /**
  * 获取所有已注册 matcher 的名称列表(主要用于调试 / DevTools)。
  */
 export function listMatcherNames(): string[] {
-  return [...matcherRegistry.keys()];
+  return [...getMatcherRegistry().keys()];
 }
 
 /**
@@ -96,7 +110,7 @@ export function listMatcherNames(): string[] {
  * **仅供测试使用** —— 应用代码不应调用,避免误删其他模块注册的 matcher。
  */
 export function clearMatchers(): void {
-  matcherRegistry.clear();
+  getMatcherRegistry().clear();
 }
 
 /**

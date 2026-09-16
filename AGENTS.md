@@ -208,7 +208,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `validateParams(matchers, params)`                                 | 批量校验参数（服务端中间件与客户端守卫复用）                                                                   |
 | `createMatcherGuard(options?)`                                     | 创建 vue-router `beforeEach` 守卫，校验 `route.meta.matchers`，失败跳转 `notFoundRouteName`（默认 `NotFound`） |
 
-> matcher 系列（`defineMatcher`/`getMatcher`/`validateParams`/`createMatcherGuard` 等）定义在 `@ubean/vue`（`packages/vue/src/matchers.ts`），不经 `ubean/server` 转引；`registerRoutes(app, options)` 的第二参数为 `RegisterOptions`（routes/middleware/pages/layouts/routeLoaders 等扫描产物）。
+> matcher 系列（`defineMatcher`/`getMatcher`/`validateParams`/`createMatcherGuard` 等）定义在 `@ubean/vue`（`packages/vue/src/matchers.ts`），不经 `ubean/server` 转引；**可从 `ubean` 主入口或 `ubean/client` 导入**（两侧都要注册：服务端 `src/server.ts` 供 router 校验，客户端 `src/app.ts` 供 `createMatcherGuard()`），注册表挂在 `globalThis` 上以保证跨模块实例共享（dev 的 SSR 图会内联 `ubean`、外部化 `@ubean/vue`）；`registerRoutes(app, options)` 的第二参数为 `RegisterOptions`（routes/middleware/pages/layouts/routeLoaders 等扫描产物）。
 > | `registerRoutes(app, scanResult)` | 路由挂载（内部用 `app.on(method, path, ...)` 注册） |
 
 ### 应用入口

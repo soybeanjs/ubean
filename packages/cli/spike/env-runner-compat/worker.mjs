@@ -2,7 +2,6 @@ import { createViteTransport } from 'env-runner/vite';
 import { ModuleRunner, ESModulesEvaluator } from 'vite/module-runner';
 
 let moduleRunner;
-let sendToHost;
 
 export default {
   async fetch(request) {
@@ -20,17 +19,11 @@ export default {
   },
   ipc: {
     onOpen({ sendMessage }) {
-      sendToHost = sendMessage;
       moduleRunner = new ModuleRunner(
-        { transport: createViteTransport(sendMessage, registerListener, 'ubean') },
+        { transport: createViteTransport(sendMessage, () => {}, 'ubean') },
         new ESModulesEvaluator()
       );
     },
     onMessage() {}
   }
 };
-
-let listener;
-function registerListener(received) {
-  listener = received;
-}

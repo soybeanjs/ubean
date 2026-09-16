@@ -13,7 +13,6 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { createServer } from 'vite';
 import type { ViteDevServer } from 'vite';
-import vue from '@vitejs/plugin-vue';
 import { afterEach, describe, expect, it } from 'vitest';
 import { ubeanPlugin, ubeanDevRequestPlugin } from '@ubean/build/vite';
 import { ubeanVite } from '@ubean/build/vue';

@@ -19,7 +19,7 @@
  *    客户端产物（同一个示例 entry gzip 45.2 → 75.9 kB）。
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 

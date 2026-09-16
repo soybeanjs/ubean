@@ -88,8 +88,9 @@ export async function loadContentForBuild(
     const mod = await import('@ubean/content');
     const options = content === true ? {} : (content as Record<string, unknown>);
     return { snapshot: mod.scanContentSources(cwd, options) as Record<string, unknown[]> };
-  } catch {
-    // `@ubean/content` 未安装或非 content 项目：无快照
+  } catch (error) {
+    // 不静默：这里吞掉异常曾让「内容快照为空 ⇒ 内容页不预渲染」查了两轮（无任何日志）
+    getLogger('build').warn(`Content snapshot unavailable — content routes will be skipped: ${String(error)}`);
     return { snapshot: undefined };
   }
 }

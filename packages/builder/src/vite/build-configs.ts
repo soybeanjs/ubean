@@ -1,4 +1,3 @@
-import type { PresetBuildConfig } from '../production';
 /**
  * 两条构建路径共用的构建配置片段（RM-V17）。
  *
@@ -9,7 +8,10 @@ import type { PresetBuildConfig } from '../production';
  * 因此把这些**易漂移的取值**收在这里，两条路径都从这里取；不再各写一份。RM-V16 的
  * `build-parity.test.ts` 负责证明两条路径的产物清单一致。
  */
+import type { ResolvedConfig } from '@ubean/config';
+import type { PresetBuildConfig } from '../production';
 import { ssrSingletonProdOptimizeExclude } from '../ssr-singleton';
+import { getBuildOutDirs } from './build-steps';
 
 /** 客户端优化依赖里必须排除的虚拟模块（`ubean` 运行时链与 vue-router 的实例一致性） */
 export const CLIENT_VIRTUAL_EXCLUDE = [
@@ -55,5 +57,75 @@ export function serverOutputNames(presetBuildConfig: PresetBuildConfig) {
     entryFileNames: 'entry.mjs',
     chunkFileNames: 'chunks/[name]-[hash].mjs',
     inlineDynamicImports: presetBuildConfig.entryType === 'worker'
+  };
+}
+
+/** 由已解析配置取产物目录（插件 `config` 钩子用）。 */
+export function getBuildOutDirsForConfig(config: ResolvedConfig) {
+  return getBuildOutDirs(config.rootDir, config.build.outputDir);
+}
+
+/** `createBuildEnvironments` 的输入：两侧（CLI 自建 builder / 插件 config 钩子）各自算好后传入。 */
+export interface BuildEnvironmentsInput {
+  /** 绝对路径：`dist`、`dist/public`、`dist/server`、`.ubean/virtual`…… */
+  outDirs: { public: string; server: string; virtual: string };
+  /** 客户端入口（源码 `src/entry.client.ts` 优先，否则虚拟模块目录里的 `client-entry.mjs`）。 */
+  clientInput: string;
+  minify: boolean;
+  sourcemap: boolean;
+  presetBuildConfig: PresetBuildConfig;
+  /** `ssrSingletonProdSsr().noExternal`（把 `@ubean/*` 内联进 SSR 图）。 */
+  ssrNoExternal: (string | RegExp)[] | undefined;
+}
+
+/**
+ * 两个 environment 的构建配置（RM-V17 / RM-V21）。
+ *
+ * **两条路径共用同一份**：CLI 自建 builder 时把它传给 `createBuilder({ environments })`；
+ * 插件在 `config` 钩子里把它作为 `environments` 返回（`vite build` 路径由 Vite 建 builder）。
+ * 各自写一份必然漂移 —— 之前只有 `outDir` 的极简版本会让客户端环境退回默认入口 `index.html`，
+ * `vite build` 直接以 `Cannot resolve entry module index.html` 失败（实测）。
+ */
+export function createBuildEnvironments(input: BuildEnvironmentsInput) {
+  const { outDirs, clientInput, minify, sourcemap, presetBuildConfig, ssrNoExternal } = input;
+  return {
+    client: {
+      consumer: 'client' as const,
+      optimizeDeps: { exclude: clientOptimizeDepsExclude() },
+      build: {
+        outDir: outDirs.public,
+        assetsDir: 'assets',
+        minify: minify ? ('oxc' as const) : false,
+        sourcemap,
+        manifest: true,
+        ssrManifest: true,
+        emptyOutDir: false,
+        rollupOptions: {
+          input: { app: clientInput },
+          output: clientOutputNames()
+        }
+      }
+    },
+    ubean: {
+      consumer: 'server' as const,
+      resolve: {
+        // 旧路径的 `ssr.noExternal`：把 `@ubean/*` 内联进 SSR 图，否则各包从自身
+        // node_modules 解析，虚拟模块 import 会以裸 specifier 泄漏给 Node。
+        noExternal: ssrNoExternal,
+        external: ['@ubean/i18n']
+      },
+      build: {
+        outDir: outDirs.server,
+        ssr: true,
+        minify: false,
+        sourcemap,
+        emptyOutDir: false,
+        rollupOptions: {
+          input: `${outDirs.virtual}/server-entry.mjs`,
+          external: serverExternal(presetBuildConfig),
+          output: serverOutputNames(presetBuildConfig)
+        }
+      }
+    }
   };
 }

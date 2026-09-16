@@ -26,7 +26,8 @@ const OUT_BUILDER = '.temp-build-builder';
 const OUT_LEGACY = '.temp-build-legacy';
 
 function cleanup(): void {
-  for (const dir of [OUT_BUILDER, OUT_LEGACY]) {
+  const dirs = [OUT_BUILDER, OUT_LEGACY, ...MODES.flatMap(mode => [`${OUT_BUILDER}-${mode}`, `${OUT_LEGACY}-${mode}`])];
+  for (const dir of dirs) {
     rmSync(join(fixtureDir, dir), { recursive: true, force: true });
   }
 }
@@ -45,13 +46,13 @@ function listArtifacts(dir: string, prefix = ''): string[] {
 }
 
 /** 跑一次构建并等它退出（构建挂住会在这里超时，本身就是回归）。 */
-function build(outDir: string, viteBuilder: boolean, timeoutMs = 300_000): Promise<void> {
+function build(outDir: string, viteBuilder: boolean, extraArgs: string[] = [], timeoutMs = 300_000): Promise<void> {
   const env = { ...process.env };
   if (viteBuilder) env.UBEAN_VITE_BUILDER = '1';
   else delete env.UBEAN_VITE_BUILDER;
 
   return new Promise((resolveRun, rejectRun) => {
-    const child = spawn(process.execPath, [cliEntry, 'build', '--outDir', outDir], {
+    const child = spawn(process.execPath, [cliEntry, 'build', '--outDir', outDir, ...extraArgs], {
       cwd: fixtureDir,
       env,
       stdio: ['ignore', 'pipe', 'pipe']
@@ -73,6 +74,15 @@ function build(outDir: string, viteBuilder: boolean, timeoutMs = 300_000): Promi
 
 afterAll(cleanup);
 
+/**
+ * 矩阵的核心一格：**同一 mode 下**两条路径的产物清单一致。
+ *
+ * preset 维度（node / cloudflare / vercel / netlify / bun / deno）与「无用户 vite.config」维度
+ * 仍待补 —— 它们需要为每个 preset 断言包装文件（`server.mjs` / `worker.mjs` / `handler.mjs` /
+ * `wrangler.toml` 等）与各自的 fixture 支持，属于矩阵的下一批格子。
+ */
+const MODES = ['fullstack', 'spa', 'backend', 'ssg'] as const;
+
 describe('构建路径一致性（RM-V23）', () => {
   it('默认路径与 builder 路径（开关打开）产物逐项一致', async () => {
     if (!existsSync(cliEntry)) {
@@ -90,4 +100,24 @@ describe('构建路径一致性（RM-V23）', () => {
     // 逐项一致性：少了岛屿 chunk / 预渲染页 / 内容集合页都会在这里显形
     expect(viaBuilder).toEqual(viaLegacy);
   }, 600_000);
+
+  it.each(MODES)(
+    '%s：两条路径产物逐项一致',
+    async mode => {
+      const legacyDir = `${OUT_LEGACY}-${mode}`;
+      const builderDir = `${OUT_BUILDER}-${mode}`;
+      rmSync(join(fixtureDir, legacyDir), { recursive: true, force: true });
+      rmSync(join(fixtureDir, builderDir), { recursive: true, force: true });
+
+      await build(legacyDir, false, ['--mode', mode]);
+      const viaLegacy = listArtifacts(join(fixtureDir, legacyDir));
+
+      await build(builderDir, true, ['--mode', mode]);
+      const viaBuilder = listArtifacts(join(fixtureDir, builderDir));
+
+      expect(viaLegacy.length, `${mode} 路径应当产出产物`).toBeGreaterThan(0);
+      expect(viaBuilder).toEqual(viaLegacy);
+    },
+    600_000
+  );
 });

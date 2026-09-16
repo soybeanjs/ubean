@@ -203,3 +203,12 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 1. **先报出「开关路径体积多 45%」，随后自我更正 —— 那不是路径差异。** `analyze:check` 曾在开关路径留下的 dist 上报 total gzip 161.4 KB / entry 75.9 KB（基线 111.1 / 45.2）。随后按统一口径复测（**每次构建前 `rm -rf dist`**）：三条路径（默认、`vite build` 开关、`ubean build` 开关）的客户端 JS **逐文件大小完全相同**（raw total 295 KB，逐文件 delta 0；`analyze:check` 0.0%）。因此先前那个数字来自**那一次 dist 的状态** —— 最可能是不同构建留下的旧文件在 `dist/public/assets` 里累积（两条路径都设 `emptyOutDir: false`，`analyze` 又按目录统计），而不是开关路径真的更重。
    - 教训：**体积类断言必须先保证「测的是干净产物」**，否则会把残留读成回归；这一点与本项目此前两次「度量方向单一 → 把退化读成进步」是同一族问题。
 2. **「两条路径产物一致」的集成测试暂撤。** 它本身通过（文件名逐项一致），但会把开关打开的 dist 留在磁盘上、使 `analyze:check` 变红；其恢复步骤（不带开关重建）未生效。改为：断言应在**临时 outputDir** 上构建，而不是覆盖 `dist` —— 这是把它做成稳定断言前必须解决的一件事。
+
+#### RM-V23 矩阵进展（2026-09-16）
+
+| 维度 | 状态 | 说明 |
+| --- | --- | --- |
+| 两条路径产物一致（fullstack + node + 有 vite.config） | ✅ | `packages/cli/test/build-paths.test.ts`：临时 outDir 各自构建，规范化后比对清单 |
+| **mode** 轴：fullstack / spa / backend / ssg | ✅ | 同文件 `it.each(MODES)` —— 四种 mode 下两条路径产物均逐项一致（实测全绿） |
+| preset 轴：node / cloudflare / vercel / netlify / bun / deno | ⏳ 待补 | 需为每个 preset 断言包装文件（`server.mjs` / `worker.mjs` / `handler.mjs` / `wrangler.toml` / `deno.json` …），部分 preset 还缺 fixture 支持 |
+| 有/无用户 `vite.config.ts` | ⏳ 待补 | 「无」这一格需要第二个 fixture（不依赖 CLI 注入 `ubeanPlugin()`），或让 fixture 可切换 |

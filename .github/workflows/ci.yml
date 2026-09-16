@@ -33,6 +33,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          # dev-dx.test.ts 在真实浏览器里走查（语言切换 / matcher / Server Action / PPR / 服务端岛屿 /
+          # 延迟数据）。runner 镜像里没有浏览器二进制，必须显式下载 —— 只装 chromium，那是这套用例
+          # 唯一用到的浏览器。缓存键跟着 lockfile 走：playwright 版本由它钉住，升级会自动换键。
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: Type check
         run: pnpm typecheck
 

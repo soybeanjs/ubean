@@ -893,6 +893,7 @@ export default defineConfig({
 
 ```bash
 pnpm install          # 安装依赖
+pnpm exec playwright install chromium   # 浏览器走查用例（packages/cli/test/dev-dx.test.ts）需要；CI 里已装
 pnpm typecheck        # 类型检查（vue-tsc）
 pnpm lint             # ESLint（Vite-Plus/OXC + Vue）
 pnpm test             # 运行测试（vitest）

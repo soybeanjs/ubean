@@ -17,7 +17,7 @@ export { scanProject } from './scan';
 export { detectHttpExports, detectHttpExportsFromCode } from './detect-exports';
 
 // 纯函数:所有权在 @ubean/vue/vite,此处 re-export(BC)
-export { filePathToRoute, stripRouteGroups, parseMatchers, extractSlotAndIntercept } from '@ubean/vue/vite';
+export { filePathToRoute, stripRouteGroups, parseMatchers, extractSlotFromPath } from '@ubean/vue/vite';
 export { generateRouteName, generateLayoutName } from '@ubean/vue/vite';
 
 // 服务端专用:API 路由 ID

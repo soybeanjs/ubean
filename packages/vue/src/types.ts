@@ -79,9 +79,6 @@ export interface ScannedPage {
   frontmatter?: Record<string, unknown>;
   /** Parallel route slot name(`@slotName/` 目录约定)。 */
   slot?: string;
-  /** Intercepting route:从 `interceptFrom` 导航到 `interceptTarget` 时拦截。 */
-  interceptFrom?: string;
-  interceptTarget?: string;
   /** 路由参数 → matcher 名称映射(`[param=matcher]` 语法)。 */
   matchers?: Record<string, string>;
 }

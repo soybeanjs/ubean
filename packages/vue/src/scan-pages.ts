@@ -15,8 +15,11 @@ import type { ScanPagesOptions, ScanPagesResult, ScannedPage, ScannedLayout, Pag
  * - markdown 页面(opt-in,`@ubean/markdown` 按需加载解析 frontmatter)
  * - 页面级 head(opt-in,`definePage({ head })` / frontmatter `head`)
  * - 特殊页:`404` / `loading` / `error`(仅页面目录根级)
- * - 并行路由 `@slot/` 与拦截路由 `(..)target/` `(.)target/` `(...)target/`
+ * - 并行路由 `@slot/`
  * - `[param=matcher]` 语法 → matchers 映射
+ *
+ * 拦截路由(`(.)` / `(..)` / `(...)` 目录约定)**刻意不支持** —— 扫到标记段直接抛错，见
+ * `extractSlotFromPath()` 的说明与 [docs/adr/0010]。
  *
  * `@ubean/scan` 聚合层的 `scanProject` 委托本模块。
  */
@@ -77,53 +80,52 @@ function buildMarkdownHead(fm?: Record<string, unknown>, enabled?: boolean): Pag
 }
 
 /**
- * Extract parallel route slot name and intercept info from a relative file path.
+ * 拦截路由的标记段（Next 的 `(.)target` / `(..)target` / `(...)target` 目录约定）。
+ *
+ * **刻意不支持**（[docs/adr/0010] 的刻意不做清单）。本仓一度按约定扫出 `interceptFrom` /
+ * `interceptTarget` 元数据、把页面注册成 `__intercept_*` 路由，但**全仓没有消费者**：
+ * 「从 X 导航到 Y 时渲染拦截页」从未发生，拦截页只能落在它被清理后的路径上（一个谁也不会
+ * 访问的废 URL）。而且真要接线，代价在运行时而非约定 —— 需要守卫 + 同 URL 双记录 + 故意的
+ * SSR/客户端分叉（与本仓「两侧一致」的原则冲突），且背景页会重挂载（Next 原生保留上下文）。
+ * 核心价值（URL 可分享、back 关闭对话框）用已有的并行路由 + 守卫在应用侧就能拿到，
+ * 所以按「单独『竞品有』→ 刻意不做」处理。
+ *
+ * 因此扫到标记段**响亮失败**而不是静默降级：不拦的话它会退化成 `/feed/(.)photo/:id`
+ * 这种字面垃圾路径（路由组正则 `\(([^(/\\]+)\)[/\\]` 只吞整段 `(group)/`，不吞 `(.)photo`）。
+ */
+const INTERCEPT_MARKER_RE = /^\((\.{1,3})\)(.+)$/;
+
+/**
+ * Extract parallel route slot name from a relative file path.
  *
  * Parallel routes: `@slotName/page.vue` → slot = 'slotName'
- * Intercepting routes:
- *   `(..)target/page.vue`  → intercept from parent, target = 'target'
- *   `(.)target/page.vue`   → intercept from same level, target = 'target'
- *   `(...)target/page.vue` → intercept from root, target = 'target'
+ *
+ * 拦截路由标记段会让本函数抛错（见 `INTERCEPT_MARKER_RE`）。
  */
-export function extractSlotAndIntercept(fileBase: string): {
+export function extractSlotFromPath(fileBase: string): {
   cleanedBase: string;
   slot?: string;
-  interceptFrom?: string;
-  interceptTarget?: string;
 } {
   const segments = fileBase.split('/');
   let slot: string | undefined;
-  let interceptFrom: string | undefined;
-  let interceptTarget: string | undefined;
   const cleanedSegments: string[] = [];
 
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
-
+  for (const seg of segments) {
     // Parallel route slot: @slotName
     if (seg.startsWith('@')) {
       slot = seg.slice(1);
       continue;
     }
 
-    // Intercepting route: (..)target, (.)target, (...)target
-    const interceptMatch = seg.match(/^\((\.{1,3})\)(.+)$/);
-    if (interceptMatch) {
-      const dots = interceptMatch[1];
-      interceptTarget = interceptMatch[2];
-      // Determine the intercept "from" path based on dot count:
-      // (.)  → same level (current directory)
-      // (..) → one level up
-      // (...)→ root level
-      const prefixSegments = cleanedSegments.slice(0, i);
-      if (dots === '..') {
-        interceptFrom = `/${prefixSegments.slice(0, -1).join('/')}`;
-      } else if (dots === '...') {
-        interceptFrom = '/';
-      } else {
-        interceptFrom = `/${prefixSegments.join('/')}`;
-      }
-      continue;
+    if (INTERCEPT_MARKER_RE.test(seg)) {
+      throw new Error(
+        `[ubean] 拦截路由目录约定不被支持：发现了 "${seg}"（文件：${fileBase}）。` +
+          `ubean 刻意不做这个约定（见 docs/adr/0010 的刻意不做清单）—— 它需要故意的 SSR/客户端分叉，` +
+          `而核心价值（URL 可分享、back 关闭）用并行路由就能拿到。` +
+          `请改写为「并行路由 + <SlotView>」：把对话框页面放进 @dialog/ 目录（如 ` +
+          `src/pages/@dialog/photo/[id].vue），在布局里用 <SlotView name="dialog" /> 承载，` +
+          `用查询标记之类的条件决定它何时出现（站点文档 guide/pages-routing 的 "Dialogs and shareable URLs"）。`
+      );
     }
 
     cleanedSegments.push(seg);
@@ -131,9 +133,7 @@ export function extractSlotAndIntercept(fileBase: string): {
 
   return {
     cleanedBase: cleanedSegments.join('/'),
-    slot,
-    interceptFrom,
-    interceptTarget
+    slot
   };
 }
 
@@ -230,9 +230,9 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
       const rawFileBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
 
-      // Extract parallel route slot (`@slotName`) and intercepting route
-      // metadata. The cleaned base (with prefixes removed) computes the path.
-      const { cleanedBase, slot, interceptFrom, interceptTarget } = extractSlotAndIntercept(rawFileBase);
+      // Extract parallel route slot (`@slotName`). The cleaned base (with the slot
+      // prefix removed) computes the path. 拦截路由标记段会在这里抛错。
+      const { cleanedBase, slot } = extractSlotFromPath(rawFileBase);
       const fileBase = cleanedBase;
 
       // Special preset pages at the root of a pages directory:
@@ -330,8 +330,6 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         pageMeta: pageMeta || undefined,
         frontmatter,
         slot,
-        interceptFrom,
-        interceptTarget,
         matchers
       });
     }

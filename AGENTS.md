@@ -130,7 +130,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **middleware**：`src/middleware/`，`global`/`global.*` → `/*`，其他按目录前缀挂载
 - **路由组**：`(group-name)/` 不贡献 URL 段
 - **并行路由 (Parallel Routes, P9-18)**：`@slotName/` 目录约定，同一路径下多个页面渲染到布局的不同命名插槽；虚拟模块按路径分组为 Vue Router named views (`components: { default, slotName }`)；布局中使用 `<SlotView name="slotName" />` 渲染对应插槽
-- **拦截路由 (Intercepting Routes, P9-18)**：`(..)target/`、`(.)target/`、`(...)target/` 目录约定，拦截导航到 `target` 路由（分别从父级、同级、根级拦截）；虚拟模块注册为 `__intercept_` 前缀的独立路由，`meta` 含 `interceptFrom`/`interceptTarget`/`isIntercepting`
+- **拦截路由（`(.)` / `(..)` / `(...)` 目录约定）：刻意不做**（[ADR-0010](docs/adr/0010-competitive-north-star-and-gap-filter.md) 的刻意不做清单）。扫描器扫到标记段会**直接抛错**（不会静默降级成 `/feed/(.)photo/:id` 这种字面路径）。需要「URL 可分享、back 关闭」的对话框时用并行路由自己实现：对话框页面放 `src/pages/@dialog/…`，布局里用 `<SlotView name="dialog" />` 承载，由导航守卫决定何时以对话框形式呈现（站点文档 `guide/pages-routing`）
 - **reuse 路由**：`xxx.reuse.ts` / `xxx.reuse.vue`；未显式声明 `cache` 时自动继承 target 的 `cache` 值，可显式 `cache: false` 关闭
 - **动态路由**：`[id].vue` → `/user/:id`
 - **动态路由 matchers（Task 7, P1）**：`[id=matcherName].vue` 语法，使用名为 `matcherName` 的 matcher 校验参数；matcher 通过 `defineMatcher(name, fn)` 注册到进程单例，返回 falsy 视为不匹配（路由跳过，走下一候选或 404）。支持 `[id=numeric].vue`（页面）、`[...slug=any].vue`（catch-all）、`[[page=numeric]].vue`（optional）、`[id=numeric].get.ts`（API 路由）。服务端由 Hono 中间件校验（matcher 拒绝返回 404）；客户端需在 `defineApp({ router: { setup } })` 中调用 `router.beforeEach(createMatcherGuard())` 启用校验（纯 SSR 应用可省略）

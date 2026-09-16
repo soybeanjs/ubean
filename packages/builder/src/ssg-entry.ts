@@ -77,15 +77,7 @@ const _pageToRoute = p => {
 };
 
 const _routeGroups = new Map();
-const _interceptRoutes = [];
 for (const _p of _pages) {
-  // 拦截路由（(..)target/ 语法）与客户端一致：单独注册，名字加前缀避免同路径冲突
-  if (_p.interceptTarget) {
-    const _r = _pageToRoute(_p);
-    _r.name = '__intercept_' + _p.name;
-    _interceptRoutes.push(_r);
-    continue;
-  }
   const _key = _p.route;
   const _group = _routeGroups.get(_key) || { slots: [] };
   if (_p.slot) _group.slots.push(_p);
@@ -109,8 +101,7 @@ for (const _group of _routeGroups.values()) {
     _record.components = _components;
   }
   _rendererRoutes.push(_record);
-}
-_rendererRoutes.push(..._interceptRoutes);${
+}${
     notFoundCatchAll
       ? `
 

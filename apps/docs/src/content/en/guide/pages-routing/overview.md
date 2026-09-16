@@ -105,6 +105,81 @@ Directories wrapped in parentheses don't contribute URL segments:
 src/pages/(marketing)/about.vue → /about  (group "marketing" ignored)
 ```
 
+> Parentheses with **dots** (`(.)photo/`, `(..)photo/`, `(...)photo/`) are a different convention — Next.js's
+> intercepting routes — and ubean deliberately does not support it. The scanner rejects those segments with an
+> error rather than registering a route at a literal `/(.)photo` path. See
+> [Dialogs and shareable URLs](#dialogs-and-shareable-urls) for what to do instead.
+
+### Parallel Routes (`@slotName/`)
+
+A directory starting with `@` names a **slot**: pages inside it share the same URL as the page next to them and
+are registered as Vue Router **named views** on that route record, so one URL can render several page
+components into different places in the layout.
+
+```
+src/pages/photo/[id].vue          → default view of /photo/:id
+src/pages/@dialog/photo/[id].vue  → "dialog" named view of the same route
+```
+
+Render a slot from a layout (or any ancestor component) with `<SlotView>`:
+
+```vue
+<!-- src/layouts/default.vue -->
+<template>
+  <main>
+    <slot />
+  </main>
+  <SlotView name="dialog" />
+</template>
+```
+
+`<SlotView name="x" />` resolves the component from the deepest matched route record that exposes that slot, and
+renders nothing when there is none. The slot page is its own page file: it has its own `definePage`, its own
+loader, and its own client chunk.
+
+### Dialogs and shareable URLs
+
+Intercepting routes exist in Next.js to show a dialog for another route **while keeping the current page
+mounted behind it** and putting the target route's URL in the address bar. ubean deliberately doesn't
+implement that convention (see
+[ADR-0010](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0010-competitive-north-star-and-gap-filter.md)):
+making the server render the full target page while the client renders a dialog means an intentional
+SSR/client divergence, and the page behind the dialog remounts instead of being preserved. Pick one of these
+instead:
+
+**1. Keep the dialog off the router** (most apps). A dialog that doesn't need its own URL is just component
+state — you get a preserved background for free and no SSR/client split:
+
+```vue
+<script setup lang="ts">
+const selected = shallowRef<Photo | null>(null);
+</script>
+
+<template>
+  <PhotoGrid @select="selected = $event" />
+  <PhotoDialog v-if="selected" :photo="selected" @close="selected = null" />
+</template>
+```
+
+**2. Put the dialog in a slot and drive it with a query flag** when you do want the state in the URL (deep
+links, back button closes it). The URL stays the target route's URL, plus a marker:
+
+```
+src/pages/photo/[id].vue            → the full page (default + hard navigation)
+src/pages/@dialog/photo/[id].vue    → the dialog (slot "dialog")
+src/layouts/default.vue             → <SlotView v-if="route.query.dialog" name="dialog" />
+```
+
+```vue
+<!-- link from the list -->
+<Link :to="{ path: `/photo/${photo.id}`, query: { dialog: '1' } }">{{ photo.title }}</Link>
+```
+
+Unlike interception this is **SSR-consistent** (server and client both render the page plus the dialog) and
+back/forward work through normal URL history. The trade-off to know about: the background is the target page
+itself, not the list you came from — if you need the list to stay visible, use option 1. Since the dialog URL
+is a real, crawlable URL, add a canonical or `noindex` for it if you don't want it in search results.
+
 ## Layouts
 
 Layout components wrap pages and provide consistent UI across routes.

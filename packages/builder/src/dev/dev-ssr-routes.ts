@@ -90,15 +90,7 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
   // （`components: { default, <slot> }`）。若在这里各注册成一条路由，同路径的两条记录会互相
   // 覆盖 —— 实测 dev SSR 首屏渲染的是插槽页，而客户端水合后渲染默认视图（首屏与客户端不一致）。
   const grouped = new Map<string, { default?: ScannedPageRoute; slots: ScannedPageRoute[] }>();
-  const interceptRoutes: DevSsrRoute[] = [];
   for (const page of pages) {
-    // 拦截路由与客户端一致：单独注册（名字加前缀避免与同路径的常规路由冲突）
-    if (page.interceptTarget) {
-      const route = routeFor(page);
-      route.name = `__intercept_${page.name}`;
-      interceptRoutes.push(route);
-      continue;
-    }
     const group = grouped.get(page.route) ?? { slots: [] };
     if (page.slot) group.slots.push(page);
     else if (!group.default) group.default = page;
@@ -119,7 +111,6 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
     }
     routes.push(route);
   }
-  routes.push(...interceptRoutes);
 
   if (notFoundPage) {
     routes.push({

@@ -147,16 +147,12 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
 
   // Group parallel routes by route path so they can be registered as
   // Vue Router named views (`components: { default, slotName }`).
-  // Intercepting routes are registered as separate routes with a distinct
-  // name and intercept metadata in `meta`.
+  //
+  // 拦截路由（`(.)` / `(..)` / `(...)`）不在这里：那个约定已按 [docs/adr/0010] 的刻意不做清单移除
+  // ——扫描器现在直接拒绝标记段，因此这里不再有「单独注册 `__intercept_*` 路由」的分支。
   const routeGroups = new Map<string, { default?: ScannedPage; slots: Map<string, ScannedPage> }>();
-  const interceptPages: ScannedPage[] = [];
 
   for (const p of sortedPages) {
-    if (p.interceptTarget) {
-      interceptPages.push(p);
-      continue;
-    }
     const routerPath = toVueRouterPath(p.route);
     let group = routeGroups.get(routerPath);
     if (!group) {
@@ -171,7 +167,7 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
     }
   }
 
-  // Generate route entries for grouped (non-intercepting) routes.
+  // Generate route entries for grouped parallel routes.
   for (const [routerPath, group] of routeGroups) {
     const defaultPage = group.default;
     const slotPages = [...group.slots.values()];
@@ -198,18 +194,6 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
         `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(defaultPage!.name)}, component: ${varNameFor(defaultPage!.name)}, meta: ${buildRouteMeta(defaultPage!)} }`
       );
     }
-  }
-
-  // Generate route entries for intercepting routes. These are registered
-  // as separate routes with a `__intercept_` name prefix and intercept
-  // metadata in `meta`, so the runtime can resolve them via navigation
-  // guards.
-  for (const p of interceptPages) {
-    const routerPath = withLocaleParam(toVueRouterPath(p.route), locale?.vueParam);
-    const interceptName = `__intercept_${p.name}`;
-    routeEntries.push(
-      `  { path: ${JSON.stringify(routerPath)}, name: ${JSON.stringify(interceptName)}, component: ${varNameFor(p.name)}, meta: ${buildRouteMeta(p, { interceptFrom: p.interceptFrom, interceptTarget: p.interceptTarget, isIntercepting: true })} }`
-    );
   }
 
   // 404 catch-all route: register `/:pathMatch(.*)*` so unmatched URLs

@@ -97,15 +97,15 @@ describe('buildRendererSetup()', () => {
     expect(code).toContain('createVueRenderer');
   });
 
-  it('并行路由写成命名视图（components + default），拦截路由单独注册', () => {
+  it('并行路由写成命名视图（components + default），且不再生成拦截路由', () => {
     const code = buildRendererSetup({ ssrEnabled: true, mode: 'fullstack', localeVueParam: '' });
     // 命名视图：默认视图来自路由记录（不是页面条目 —— 后者没有 component，写成
     // `_primary.component` 会得到 undefined，vue-router 报 Invalid route component）
     expect(code).toContain('_components.default = _record.component');
     expect(code).toContain('delete _record.component');
-    // 拦截路由：单独注册 + 前缀避免与同路径常规路由冲突
-    expect(code).toContain("_r.name = '__intercept_' + _p.name");
-    expect(code).toContain('_rendererRoutes.push(..._interceptRoutes)');
+    // 拦截路由已按 docs/adr/0010 的刻意不做清单移除：产物里不应再出现它的痕迹
+    expect(code).not.toContain('__intercept_');
+    expect(code).not.toContain('interceptTarget');
   });
 
   it('omits the NotFound route by default (fullstack entry)', () => {

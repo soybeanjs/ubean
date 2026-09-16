@@ -32,9 +32,9 @@ The ubean column is scored by **whether the default path actually does the thing
 
 ## How to read the ubean column
 
-- **Wired**: streaming SSR, SSG, file-based routing (including parallel and intercepting routes), Server Actions / `defineServerFn`, `useFetch`, select SSR (`false` / `'data-only'` / `true`), `.server.vue`, Islands, vue-i18n 11, OpenAPI + Scalar, preset generators.
+- **Wired**: streaming SSR, SSG, file-based routing (including parallel routes), Server Actions / `defineServerFn`, `useFetch`, select SSR (`false` / `'data-only'` / `true`), `.server.vue`, Islands, vue-i18n 11, OpenAPI + Scalar, preset generators.
 - **API exists, default path incomplete**: ISR on Node production defaults to **fs** (`.ubean/cache`); serverless/edge stay in-process memory. Component cache stays in memory. Sessions stay opt-in. CSRF (origin), security headers, and fetch Data Cache middleware mount by default. `src/sitemap.ts` / `robots.ts` conventions are registered by `createUbeanApp`. With `image` enabled, `/_ipx` is mounted in both dev and production (passthrough without a transform library, `X-IPX-Mode: passthrough`). Production bundles `src/crons`; persistent runtimes start the in-process scheduler, serverless does not. CF / Vercel Queue/DB use `@ubean/server/drivers` — memory is not a substitute.
-- **Deliberately out of scope**: React Server Components, a multi-UI runtime, a second in-house i18n engine, and Nuxt-style client `middleware/*.global` files (use `defineApp({ router: { setup } })` for guards). Need RSC? Use Next.js. Need a multi-framework content site? Use Astro.
+- **Deliberately out of scope**: React Server Components, a multi-UI runtime, a second in-house i18n engine, **intercepting routes** (`(.)` / `(..)` / `(...)` directories — see [Dialogs and shareable URLs](/guide/pages-routing/overview#dialogs-and-shareable-urls)), and Nuxt-style client `middleware/*.global` files (use `defineApp({ router: { setup } })` for guards). Need RSC? Use Next.js. Need a multi-framework content site? Use Astro.
 
 ## Feature Highlights
 
@@ -51,7 +51,7 @@ Streaming SSR, SSG, ISR (at the rules layer), and `routeRules` / `definePage` `s
 
 ### Routing
 
-File-based routes, parallel routes (`@slotName/` → Vue Router named views + `<SlotView>`), intercepting routes, groups, nested layouts, and `404` / `loading` / `error` convention files. `routeRules.redirect` / `rewrite` / `proxy` / headers all run. `rewrite` rematches internally; `proxy` forwards to the target URL.
+File-based routes, parallel routes (`@slotName/` → Vue Router named views + `<SlotView>`), groups, nested layouts, and `404` / `loading` / `error` convention files. `routeRules.redirect` / `rewrite` / `proxy` / headers all run. `rewrite` rematches internally; `proxy` forwards to the target URL.
 
 ### Internationalization
 

@@ -1,10 +1,13 @@
 /**
- * P9-18: Parallel Routes / Intercepting Routes — virtual module tests
+ * P9-18: Parallel Routes — virtual module tests
  *
  * Verifies that `createVuePagesVirtualModule` correctly:
  * - Groups parallel routes by path into Vue Router named views (`components`)
- * - Registers intercepting routes with `__intercept_` name prefix
- * - Includes slot/intercept metadata in route meta
+ * - Includes slot metadata in route meta (`parallelSlots` / `slot` page loaders)
+ *
+ * 拦截路由（`(.)` / `(..)` / `(...)`）已随 [docs/adr/0010] 的刻意不做清单移除：扫描器现在直接
+ * 拒绝标记段（`packages/vue/test/parallel-routes.test.ts` 守着），因此这里不再有 `__intercept_*`
+ * 路由的生成断言。
  */
 import { describe, it, expect } from 'vitest';
 import type { ScannedPageRoute } from '@ubean/scan';
@@ -97,61 +100,8 @@ describe('P9-18: createVuePagesVirtualModule — parallel routes', () => {
   });
 });
 
-describe('P9-18: createVuePagesVirtualModule — intercepting routes', () => {
-  it('registers intercepting routes with __intercept_ prefix', () => {
-    const interceptPage = makePage({
-      name: 'PhotoId',
-      route: '/photo/[id]',
-      fullPath: '/src/pages/(..)photo/[id].vue',
-      interceptFrom: '/',
-      interceptTarget: 'photo'
-    });
-    const mod = createVuePagesVirtualModule([interceptPage], []);
-    const code = mod.load();
-    expect(code).toContain('"__intercept_PhotoId"');
-    expect(code).toContain('"interceptFrom":"/"');
-    expect(code).toContain('"interceptTarget":"photo"');
-    expect(code).toContain('"isIntercepting":true');
-  });
-
-  it('keeps intercepting routes separate from regular routes', () => {
-    const regularPage = makePage({
-      name: 'PhotoId',
-      route: '/photo/[id]',
-      fullPath: '/src/pages/photo/[id].vue'
-    });
-    const interceptPage = makePage({
-      name: 'PhotoIdIntercept',
-      route: '/photo/[id]',
-      fullPath: '/src/pages/(..)photo/[id].vue',
-      interceptFrom: '/',
-      interceptTarget: 'photo'
-    });
-    const mod = createVuePagesVirtualModule([regularPage, interceptPage], []);
-    const code = mod.load();
-    // Regular route uses the original name
-    expect(code).toContain('name: "PhotoId"');
-    // Intercept route uses the __intercept_ prefix
-    expect(code).toContain('name: "__intercept_PhotoIdIntercept"');
-  });
-
-  it('includes intercept metadata in route meta', () => {
-    const interceptPage = makePage({
-      name: 'UserIntercept',
-      route: '/user/[id]',
-      fullPath: '/src/pages/(..)user/[id].vue',
-      interceptFrom: '/dashboard',
-      interceptTarget: 'user'
-    });
-    const mod = createVuePagesVirtualModule([interceptPage], []);
-    const code = mod.load();
-    expect(code).toContain('"interceptFrom":"/dashboard"');
-    expect(code).toContain('"interceptTarget":"user"');
-  });
-});
-
 describe('P9-18: createVuePagesVirtualModule — mixed scenarios', () => {
-  it('handles parallel + intercept routes together', () => {
+  it('groups parallel routes into named views（单条路由记录）', () => {
     const defaultPage = makePage({
       name: 'Dashboard',
       route: '/dashboard',
@@ -163,22 +113,15 @@ describe('P9-18: createVuePagesVirtualModule — mixed scenarios', () => {
       fullPath: '/src/pages/@modal/dashboard.vue',
       slot: 'modal'
     });
-    const interceptPage = makePage({
-      name: 'SettingsIntercept',
-      route: '/settings',
-      fullPath: '/src/pages/(..)settings.vue',
-      interceptFrom: '/dashboard',
-      interceptTarget: 'settings'
-    });
-    const mod = createVuePagesVirtualModule([defaultPage, modalSlot, interceptPage], []);
+    const mod = createVuePagesVirtualModule([defaultPage, modalSlot], []);
     const code = mod.load();
     // Parallel route grouped into named views
     expect(code).toContain('components: { default: Page_Dashboard, "modal": Page_DashboardModal }');
-    // Intercept route registered separately
-    expect(code).toContain('"__intercept_SettingsIntercept"');
+    // 不再有被单独注册的拦截路由（`__intercept_` 前缀随约定一起移除）
+    expect(code).not.toContain('__intercept_');
   });
 
-  it('includes page loaders for all pages including slots and intercepts', () => {
+  it('includes page loaders for all pages including slots', () => {
     const defaultPage = makePage({
       name: 'Home',
       route: '/',
@@ -190,17 +133,9 @@ describe('P9-18: createVuePagesVirtualModule — mixed scenarios', () => {
       fullPath: '/src/pages/@modal/index.vue',
       slot: 'modal'
     });
-    const interceptPage = makePage({
-      name: 'AboutIntercept',
-      route: '/about',
-      fullPath: '/src/pages/(..)about.vue',
-      interceptFrom: '/',
-      interceptTarget: 'about'
-    });
-    const mod = createVuePagesVirtualModule([defaultPage, slotPage, interceptPage], []);
+    const mod = createVuePagesVirtualModule([defaultPage, slotPage], []);
     const code = mod.load();
     expect(code).toContain('import("/src/pages/index.vue")');
     expect(code).toContain('import("/src/pages/@modal/index.vue")');
-    expect(code).toContain('import("/src/pages/(..)about.vue")');
   });
 });

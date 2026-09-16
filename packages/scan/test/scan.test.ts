@@ -2,7 +2,7 @@
  * @ubean/scan 聚合扫描测试(scanProject)。
  *
  * 页面/布局扫描逻辑的完整测试已随所有权迁移至 `@ubean/vue`
- * (special-pages-and-reuse / parallel-intercept 等)。此处验证聚合层
+ * (special-pages-and-reuse / parallel-routes 等)。此处验证聚合层
  * 自身职责:API 路由/中间件扫描 + 页面扫描委托(`@ubean/vue` 的
  * `scanPages`,框架模式 markdown/head 默认开启)。
  */

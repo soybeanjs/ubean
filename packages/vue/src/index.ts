@@ -9,7 +9,7 @@
  *
  * Page-routing ownership: file-based routing scanning & virtual-module
  * generation live in this package's `/vite` subpath (multi pagesDir/layoutsDir,
- * reuse routes, special pages, parallel/intercepting routes, markdown pages
+ * reuse routes, special pages, parallel routes, markdown pages
  * opt-in, page head opt-in). The `@ubean/scan` aggregator delegates page
  * scanning here and layers server-side routing (rou3) + SSR on top.
  *

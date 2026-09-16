@@ -111,12 +111,17 @@ function findBalanced(code: string, openChar: string, closeChar: string, startId
 
 /**
  * 计算项目相对路径(用于 action ID 生成)。
+ *
+ * **自己负责去掉 query 与虚拟前缀**：调用方可能传原始 id（`Page.vue?vue&type=script&lang.ts`），
+ * 带 query 算出的 id 与不带 query 的不是同一个 —— 客户端 stub 与 服务端注册因此会对不上。
+ * 插件入口已经规范化过一次，这里再兜一次，让这两个变换函数单独用也正确。
  */
 function toProjectRelative(filePath: string, root: string): string {
-  let rel = filePath;
+  const cleanPath = filePath.split('?')[0].replace(/^\0/, '');
+  let rel = cleanPath;
   if (root) {
     try {
-      rel = relative(root, filePath);
+      rel = relative(root, cleanPath);
     } catch {
       // pathe.relative 在 Windows 跨盘符路径上可能抛错,退回原路径
     }
@@ -505,12 +510,62 @@ export function transformActionsForClient(code: string, filePath: string, root: 
     result = result.slice(0, call.start) + replacement + result.slice(call.end + 1);
   }
 
+  // 剥离因替换而失效的**服务端** import：action 体整段被替换成 RPC stub 之后，`defineAction`
+  // 与 `fail`（以及 `ubean/server` 这类服务端入口）在客户端已无引用，但 Vite 仍会按 import 去取
+  // 模块 —— 在 SFC 页面里实测表现为浏览器请求 `ubean/server` 的预构建产物、水合失败。
+  result = stripUnusedSpecifiers(result, ['defineAction', 'fail', 'ActionError', 'defineServerFn']);
+
   // 注入 import(避免重复)
   const importStmt = `import { createActionStub as __ubean_createActionStub } from '@ubean/routes/runtime';\n`;
   if (!result.includes("@ubean/routes/runtime'")) {
-    result = importStmt + result;
+    result = injectImport(result, importStmt);
   }
 
+  return result;
+}
+
+/**
+ * 注入 import：JS/TS 放到文件顶部；**SFC 放到 `<script>` 块内**。
+ *
+ * 必须是块内 —— `@vitejs/plugin-vue` 会把 script 块的 import 提升进它编译出的主模块，放在 SFC
+ * 顶部（`<script>` 之前）会直接变成非法 SFC。这也是「转换必须落在主模块而不是 `?type=script`
+ * 子请求」的原因：主模块才是 Vue 真正编译的那份（脚本子请求的转换结果不会被使用）。
+ */
+function injectImport(code: string, importStmt: string): string {
+  if (!code.trimStart().startsWith('<')) return importStmt + code;
+  const scriptTag = /<script\b[^>]*>/.exec(code);
+  if (!scriptTag) return importStmt + code;
+  const insertAt = scriptTag.index + scriptTag[0].length;
+  return `${code.slice(0, insertAt)}\n${importStmt}${code.slice(insertAt)}`;
+}
+
+/**
+ * 删除已无引用的具名 import 说明符（并清理空掉的 import 语句）。
+ *
+ * 只处理「命名导入 + from '…'」这一种形态（框架约定：服务端 API 从 `ubean/server` 等入口具名导入）。
+ * 判定用「删除 import 语句后名字是否还出现」——够用且不引入解析器依赖；名字出现在字符串/注释里
+ * 时会保守地保留该说明符（保留是安全的，删除才危险）。
+ */
+function stripUnusedSpecifiers(code: string, names: string[]): string {
+  let result = code;
+  for (const name of new Set(names)) {
+    const importRe = new RegExp(`^import\\s*\\{([^}]*)\\}\\s*from\\s*(['"][^'"]+['"]);?[ \\t]*$`, 'm');
+    const match = importRe.exec(result);
+    if (!match) continue;
+    const specifiers = match[1]
+      .split(',')
+      .map(part => part.trim())
+      .filter(Boolean);
+    const target = specifiers.find(spec => spec === name || spec === `${name} as ${name}`);
+    if (!target) continue;
+
+    const withoutImport = result.replace(match[0], '');
+    if (new RegExp(`\\b${name}\\b`).test(withoutImport)) continue; // 仍在别处被引用 → 保留
+
+    const remaining = specifiers.filter(spec => spec !== target);
+    const replacement = remaining.length > 0 ? `import { ${remaining.join(', ')} } from ${match[2]};` : '';
+    result = result.replace(match[0], replacement);
+  }
   return result;
 }
 
@@ -535,8 +590,16 @@ export function ubeanServerActionsPlugin(options: ServerActionsPluginOptions = {
       // 跳过 node_modules 和虚拟模块
       if (id.includes('/node_modules/') || id.includes('\0')) return null;
 
-      // 仅转换 JS/TS 文件
-      if (!/\.(ts|js|mts|mjs|tsx|jsx)$/.test(id)) return null;
+      // **路径必须去掉 query**：SFC 的脚本块以 `Page.vue?vue&type=script&lang.ts` 形式到达，
+      // 而 action id 由「项目相对路径 + 名字」派生 —— 带 query 算出来的 id 在客户端与服务端会
+      // 不一致（stub 打到的 id 服务端不存在）。
+      const [filePath, query = ''] = id.split('?');
+      // `.vue` 的**主模块**与它的 `?type=script` 子请求都接受：
+      // - 主模块才是 `@vitejs/plugin-vue` 真正编译的那份（script 块的 import 会被提升进它），
+      //   不转换主模块 → 客户端仍带着 `defineAction` 与服务端入口 import（实测：SFC 页面水合失败）；
+      // - 子请求保留转换，供直接取脚本块的工具使用（例如 IDE / 单文件测试）。
+      const isVueModule = filePath.endsWith('.vue') && (!query || /(^|&)(vue|type=script)(&|$)/.test(query));
+      if (!isVueModule && !/\.(ts|js|mts|mjs|tsx|jsx)$/.test(filePath)) return null;
 
       // 快速检测:必须包含 `defineAction(` 调用
       if (!hasDefineActionCall(code)) return null;
@@ -544,11 +607,11 @@ export function ubeanServerActionsPlugin(options: ServerActionsPluginOptions = {
       const isServer = transformOptions?.ssr === true;
 
       if (isServer) {
-        const transformed = transformActionsForServer(code, id, root);
+        const transformed = transformActionsForServer(code, filePath, root);
         return transformed ? { code: transformed } : null;
       }
 
-      const transformed = transformActionsForClient(code, id, root);
+      const transformed = transformActionsForClient(code, filePath, root);
       return transformed ? { code: transformed } : null;
     }
   };

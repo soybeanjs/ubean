@@ -89,6 +89,10 @@ export const previewCommand: CommandDef = {
       type: 'string',
       description: 'Project root directory',
       default: '.'
+    },
+    outDir: {
+      type: 'string',
+      description: 'Output directory to preview (overrides ubean.config.ts build.outputDir)'
     }
   },
   async run({ args }) {
@@ -101,6 +105,12 @@ export const previewCommand: CommandDef = {
 
     logger.info(`Preset: ${preset.name}`);
 
+    // `--outDir` 与 `build` 命令同名同义：构建到临时目录后用同一条命令预览是常见流程，
+    // 而**未知参数会被 citty 静默忽略**（实测：`preview --outDir .temp-x` 服务的仍是 `dist`，
+    // 表现为「明明构建过了却 404」）。
+    if (args.outDir) {
+      (config.build as { outputDir: string }).outputDir = String(args.outDir);
+    }
     const outputDir = config.build.outputDir || 'dist';
     const mode = config.mode;
 

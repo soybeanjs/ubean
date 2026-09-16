@@ -62,7 +62,10 @@ const PRESET_CONTRACTS = [
 ] as const;
 
 function cleanup(): void {
-  rmSync(join(workerFixtureDir, `${OUT}-preset-cloudflare`), { recursive: true, force: true });
+  // worker fixture 上跑的格：cloudflare preset 与「无配置」两格（都写在这个 fixture 里）
+  for (const name of [`${OUT}-preset-cloudflare`, `${OUT}-no-cfg`, `${OUT}-no-cfg-backend`]) {
+    rmSync(join(workerFixtureDir, name), { recursive: true, force: true });
+  }
   rmSync(join(workerFixtureDir, '.ubean'), { recursive: true, force: true });
   const dirs = [
     `${OUT}-base`,
@@ -108,18 +111,25 @@ function readArtifactText(dir: string): string {
  * 2. **服务端产物必须内联客户端资产标签**。`virtual:ubean-asset-manifest` 曾有两个提供者，
  *    抢先生效的那份 ref 为空，内联出空标签 —— 生产 HTML 既无客户端入口 `<script>` 也无样式表。
  */
-function expectBuildOutputContract(label: string, outDir: string): void {
+function expectBuildOutputContract(label: string, outDir: string, options: { expectHtml?: boolean } = {}): void {
+  const { expectHtml = true } = options;
   const artifacts = listArtifacts(outDir);
-  const htmlFiles = artifacts.filter(f => f.endsWith('.html'));
-  expect(htmlFiles.length, `${label}：产物目录里应当有预渲染 HTML`).toBeGreaterThan(0);
+  // 预渲染产物只在 `prerender.all` / `routeRules.prerender` 打开时才有：builder 的最小 fixture
+  // 没开预渲染，因此那一格只断言「服务端产物内联了资产标签」。
+  if (expectHtml) {
+    const htmlFiles = artifacts.filter(f => f.endsWith('.html'));
+    expect(htmlFiles.length, `${label}：产物目录里应当有预渲染 HTML`).toBeGreaterThan(0);
+  }
 
   const serverText = readArtifactText(join(outDir, 'server'));
   // 标签是经 `JSON.stringify` 内联的，产物里引号是转义形态（`src=\"/assets/…`）—— 两种形态都接受
   expect(/src=\\?"\/assets\//.test(serverText), `${label}：服务端产物应当内联客户端入口 script`).toBe(true);
 
   // 预渲染 HTML 也必须带上客户端入口（否则静态托管出去的页面不水合）
-  const htmlText = readArtifactText(join(outDir, 'public'));
-  expect(/<script type="module" src="\/assets\//.test(htmlText), `${label}：预渲染 HTML 缺少客户端入口`).toBe(true);
+  if (expectHtml) {
+    const htmlText = readArtifactText(join(outDir, 'public'));
+    expect(/<script type="module" src="\/assets\//.test(htmlText), `${label}：预渲染 HTML 缺少客户端入口`).toBe(true);
+  }
 }
 
 /** 跑一次构建并等它退出（构建挂住会在这里超时，本身就是回归）。 */
@@ -193,35 +203,31 @@ describe('构建产物契约（RM-V23 矩阵 / RM-V36 重写）', () => {
   /**
    * 「无用户 `vite.config.ts`」这一格：CLI 注入全部 builtin 插件。
    *
-   * 这一格曾抓到两个真缺陷：漏注册 islands 插件（岛屿整类不进产物）、以及 `virtual:ubean-app`
-   * 只在 `hasPages` 时注册导致 **backend 模式无配置时直接构建失败**（矩阵的 backend 格有配置、
-   * 无配置格是 fullstack —— 缺的正是两者的交叉）。因此这里同时跑 fullstack 与 backend 两种 mode。
+   * 用**本就没有 `vite.config.ts` 的 fixture**（`packages/builder/test/fixtures/build-project`），
+   * 而不是像早先那样把示例的配置临时改名 —— 后者改的是示例项目里的共享文件，在本仓
+   * `pnpm -r --parallel test` 下与**示例自己的测试套件并发**，实测出现「单跑绿、全量跑红」的互相干扰。
+   *
+   * 这一格曾抓到两个真缺陷：漏注册 islands 插件（岛屿整类不进产物）、`virtual:ubean-app` 只在
+   * `hasPages` 时注册导致 **backend 模式无配置时直接构建失败**（矩阵的 backend 格有配置、无配置格是
+   * fullstack —— 缺的正是两者的交叉）。因此这里 fullstack 与 backend 两种 mode 都跑。
    */
   it('无用户 vite.config：注入 builtin 插件后 fullstack / backend 都能产出完整产物', async () => {
-    const viteConfig = join(fixtureDir, 'vite.config.ts');
-    const parked = join(fixtureDir, 'vite.config.ts.parked');
     const fullstackDir = `${OUT}-no-cfg`;
     const backendDir = `${OUT}-no-cfg-backend`;
-    rmSync(join(fixtureDir, fullstackDir), { recursive: true, force: true });
-    rmSync(join(fixtureDir, backendDir), { recursive: true, force: true });
+    rmSync(join(workerFixtureDir, fullstackDir), { recursive: true, force: true });
+    rmSync(join(workerFixtureDir, backendDir), { recursive: true, force: true });
 
-    renameSync(viteConfig, parked);
-    try {
-      await build(fullstackDir);
-      const fullstackArtifacts = listArtifacts(join(fixtureDir, fullstackDir));
-      expect(fullstackArtifacts.length, '无 vite.config 时也该产出完整产物').toBeGreaterThan(0);
-      expect(fullstackArtifacts).toContain('server/server.mjs');
-      expectBuildOutputContract('无配置 fullstack', join(fixtureDir, fullstackDir));
+    await build(fullstackDir, [], 300_000, workerFixtureDir);
+    const fullstackArtifacts = listArtifacts(join(workerFixtureDir, fullstackDir));
+    expect(fullstackArtifacts.length, '无 vite.config 时也该产出完整产物').toBeGreaterThan(0);
+    expect(fullstackArtifacts).toContain('server/server.mjs');
+    expectBuildOutputContract('无配置 fullstack', join(workerFixtureDir, fullstackDir), { expectHtml: false });
 
-      // backend 模式没有页面（无 client 产物、无预渲染 HTML），只断言服务端产物与包装
-      await build(backendDir, ['--mode', 'backend']);
-      const backendArtifacts = listArtifacts(join(fixtureDir, backendDir));
-      expect(backendArtifacts).toContain('server/server.mjs');
-      expect(backendArtifacts).toContain('server/entry.mjs');
-    } finally {
-      // 必须还原：示例项目靠这个文件存在
-      renameSync(parked, viteConfig);
-    }
+    // backend 模式没有页面（无 client 产物、无预渲染 HTML），只断言服务端产物与包装
+    await build(backendDir, ['--mode', 'backend'], 300_000, workerFixtureDir);
+    const backendArtifacts = listArtifacts(join(workerFixtureDir, backendDir));
+    expect(backendArtifacts).toContain('server/server.mjs');
+    expect(backendArtifacts).toContain('server/entry.mjs');
   }, 600_000);
 
   it.each(MODES)(

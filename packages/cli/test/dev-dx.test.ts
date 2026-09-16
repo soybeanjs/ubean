@@ -3,6 +3,8 @@
  *
  * 与其余集成测试的分工：`dev-topology` / `dev-reload` 用纯 HTTP 覆盖请求拓扑与热重载链路，
  * 这里补的是「只有浏览器 + 交互才成立」的三件事，避免把「自动化测试过了」当成「DX 走查过了」：
+ * 0. **Server Action 表单在浏览器内提交**（页面级 `actions` + `useFormAction`）—— RM-V15 走查时
+ *    示例缺这样一页，只有 HTTP 层覆盖，这里补齐「点击 → 无整页刷新 → 结果上屏」；
  * 1. 页面内切换语言（`setLocale` → load + cookie + 路由跳转，全程不整页刷新）；
  * 2. DevTools 外壳能从 CLI banner 给的地址进去；
  * 3. 改客户端文件后浏览器**整页重载** —— 这是 R3 修正后确认的语义（旧实现也是整页刷新，
@@ -153,6 +155,45 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     expect(html).toContain('<script');
     expect(response.url).toContain('/__devtools');
   }, 60_000);
+
+  it('Server Action 表单：浏览器内提交、无整页刷新、错误回填', async () => {
+    const page = await openPage();
+    let loads = 0;
+    page.on('load', () => (loads += 1));
+    try {
+      await page.goto(`${baseUrl}/action-demo`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
+        undefined,
+        { timeout: 30_000 }
+      );
+      // 等掉 dev server 首轮的预构建重载，之后观察到的 load 才算「本次提交触发」
+      await page.waitForTimeout(1_500);
+      const loadsBefore = loads;
+
+      // 成功路径：action 的返回值进客户端状态，列表里出现一行
+      await page.fill('#email', 'browser@example.com');
+      await page.getByRole('button', { name: '订阅' }).click();
+      await expect
+        .poll(() => page.locator('.action-log li').first().textContent(), { timeout: 15_000 })
+        .toContain('已订阅：browser@example.com');
+      expect(loads, 'SPA 提交不应触发整页刷新').toBe(loadsBefore);
+
+      // 字段错误路径：`fail(400, ...)` 的 errors 回到表单状态。
+      // 先把 input 的 type 改成 text —— `type="email"` 的原生校验会在提交前拦下非法值，
+      // 我们的 @submit 处理函数根本不会跑（服务端校验本来就该由服务端测；无 JS 路径由
+      // 示例套件里的 HTTP 用例覆盖，这里测的是 SPA 提交后错误回填上屏）。
+      await page.evaluate(() => document.querySelector('#email')?.setAttribute('type', 'text'));
+      await page.fill('#email', 'not-an-email');
+      await page.getByRole('button', { name: '订阅' }).click();
+      await expect
+        .poll(() => page.locator('.action-error').first().textContent(), { timeout: 15_000 })
+        .toContain('请输入合法邮箱');
+      expect(loads, '错误路径也不应整页刷新').toBe(loadsBefore);
+    } finally {
+      await page.close();
+    }
+  }, 120_000);
 
   it('改客户端文件后浏览器整页重载（文档化语义）', async () => {
     const page = await openPage(30_000);

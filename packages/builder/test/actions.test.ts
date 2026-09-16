@@ -838,3 +838,64 @@ describe('defineServerFn / invokeServerFn', () => {
     await expect(invokeServerFn(fn, 'x' as never)).rejects.toThrow('need number');
   });
 });
+
+/**
+ * SFC 页面里的 action（2026-09 修复的真缺陷）。
+ *
+ * 页面级 Server Action 的文档形态是「页面模块 `export const actions = { … }`」，而页面是 SFC ——
+ * 但插件原先只按 `.ts|.js|…` 后缀过滤 id，SFC 的脚本块（`Page.vue?vue&type=script&lang.ts`）与
+ * **主模块**都被跳过，于是客户端版页面里原样带着 `import { defineAction, fail } from 'ubean/server'`
+ * 与真实的 action 体：浏览器去取服务端入口的预构建产物 → 水合失败（实测：`__vue_app__` 永不出现）。
+ *
+ * 两个要点：① 必须转换 `.vue` 的**主模块**（`@vitejs/plugin-vue` 会把脚本块的 import 提升进它，
+ * 只转子请求的转换结果根本不会被使用）；② 注入的 stub import 必须在 `<script>` 块**内**，放在
+ * SFC 顶部会变成非法 SFC；③ action id 必须按**去掉 query 的路径**计算，否则客户端 stub 打到的 id
+ * 在服务端不存在。
+ */
+describe('vite plugin: SFC 页面里的 action', () => {
+  const sfc = `<script lang="ts">
+import { defineAction, fail } from 'ubean/server';
+
+export const actions = {
+  subscribe: defineAction(async (input: { email?: string }) => {
+    if (!input.email) return fail(400, { email: '必填' });
+    return { ok: true };
+  })
+};
+</script>
+
+<script setup lang="ts">
+const form = useFormAction('subscribe');
+</script>
+`;
+
+  it('客户端：替换 action 体、剥离服务端 import、stub import 注入到 script 块内', () => {
+    const result = transformActionsForClient(sfc, '/root/src/pages/action-demo.vue', '/root');
+    expect(result).not.toBeNull();
+    expect(result!).toContain('__ubean_createActionStub');
+    expect(result!).not.toContain('ubean/server');
+    expect(result!).not.toContain('defineAction');
+    // stub import 必须在 `<script ...>` 之后（放文件顶部就不是合法 SFC 了）
+    const scriptClose = result!.indexOf('>', result!.indexOf('<script'));
+    expect(result!.indexOf('@ubean/routes/runtime')).toBeGreaterThan(scriptClose);
+  });
+
+  it('脚本块子请求与主模块算出同一个 id（路径要去掉 query）', () => {
+    const fromMain = transformActionsForClient(sfc, '/root/src/pages/action-demo.vue', '/root');
+    const fromScript = transformActionsForClient(
+      sfc,
+      '/root/src/pages/action-demo.vue?vue&type=script&lang.ts',
+      '/root'
+    );
+    const idOf = (code: string | null) => code?.match(/"act_[a-z2-7]{12}"/)?.[0];
+    expect(idOf(fromMain)).not.toBeUndefined();
+    expect(idOf(fromScript)).toBe(idOf(fromMain));
+  });
+
+  it('服务端：注入的 filePath 是去掉 query 的文件路径（与客户端 id 同源）', () => {
+    const result = transformActionsForServer(sfc, '/root/src/pages/action-demo.vue?vue&type=script&lang.ts', '/root');
+    expect(result).not.toBeNull();
+    expect(result!).toContain('"src/pages/action-demo.vue"');
+    expect(result!).not.toContain('?vue');
+  });
+});

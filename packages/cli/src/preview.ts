@@ -1,117 +1,52 @@
-import { spawn } from 'node:child_process';
-import type { ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { readFile, stat } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
-import { extname, normalize, sep } from 'node:path';
+import { preview } from 'vite';
+import { previewMimeType, resolvePreviewFile, ubeanPreviewPlugin } from '@ubean/build/vite';
 import { loadUbeanConfig } from '@ubean/config';
-import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
+import { registerBuiltinPresets, resolvePresetByName } from '@ubean/preset';
 import { getLogger } from '@ubean/shared/logger';
-import { findAvailablePort, waitForPort } from '@ubean/shared/node';
+import { findUserViteConfig, findAvailablePort } from '@ubean/shared/node';
 import type { CommandDef } from 'citty';
-import { green, cyan, dim, bold } from 'kolorist';
-import { resolve, join } from 'pathe';
-
-const MIME_TYPES: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.ico': 'image/x-icon',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  '.otf': 'font/otf',
-  '.wasm': 'application/wasm',
-  '.txt': 'text/plain; charset=utf-8',
-  '.map': 'application/json; charset=utf-8'
-};
+import { bold, cyan, dim, green } from 'kolorist';
+import { join, resolve } from 'pathe';
 
 /**
- * 启动静态文件服务器,用于 spa / ssg 模式预览。
+ * 静态文件服务器（spa / ssg 的降级路径）。
  *
- * - ssg 模式:优先查找 `<path>/index.html` 或 `<path>.html`,找不到时返回 404
- * - spa 模式:所有非文件路由回退到 `index.html`(客户端路由接管)
+ * RM-V25：判定规则不再自己写一份，改用 `@ubean/build/vite` 的 `resolvePreviewFile` —— 插件接管
+ * `vite preview` 时用的是同一个函数，两套方言必然分叉（文件名含合法 `...` 的产物曾被
+ * `includes('..')` 判成路径穿越）。
  *
- * 使用 Node 内置 `http` + `fs`,避免引入 `sirv` 等依赖。
+ * 主路径已改为 `vite preview` + 插件中间件（RM-V24）；本函数保留给「Vite 预览起不来」的
+ * spa / ssg 场景（静态产物不需要服务端能力），以及既有回归测试。
  */
 export function startStaticServer(opts: { root: string; port: number; host: string; mode: 'spa' | 'ssg' }): Server {
   const { root, port, host, mode } = opts;
-  const spaFallback = mode === 'spa';
 
   const server = createServer(async (req, res) => {
     try {
       const url = new URL(req.url || '/', `http://${host}`);
       const pathname = decodeURIComponent(url.pathname);
-      // 规范化完整文件路径,并校验其必须位于 root 目录内,防止路径穿越。
-      // 注意:不能通过 `includes('..')` 判断——会误伤文件名中合法的 `...`
-      // (例如 SSG 动态路由产物 `_...slug_-Bqlu_Muj.js` 会被错误地判定为 400)。
-      let filePath = normalize(join(root, pathname));
-      const rootPath = resolve(root);
-      if (filePath !== rootPath && !filePath.startsWith(rootPath + sep)) {
+      const resolvedFile = resolvePreviewFile(root, pathname, mode);
+
+      if (resolvedFile.kind === 'forbidden') {
         res.statusCode = 400;
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.end('Bad Request');
         return;
       }
-
-      let fileExists = existsSync(filePath) && (await stat(filePath)).isFile();
-
-      // 1. 若是目录,尝试 index.html
-      if (!fileExists && existsSync(filePath) && (await stat(filePath)).isDirectory()) {
-        const indexPath = join(filePath, 'index.html');
-        if (existsSync(indexPath)) {
-          filePath = indexPath;
-          fileExists = true;
-        }
-      }
-
-      // 2. ssg 模式:尝试 <path>/index.html
-      if (!fileExists && mode === 'ssg') {
-        const indexPath = join(filePath, 'index.html');
-        if (existsSync(indexPath) && (await stat(indexPath)).isFile()) {
-          filePath = indexPath;
-          fileExists = true;
-        }
-      }
-
-      // 3. ssg 模式:尝试 <path>.html
-      if (!fileExists && mode === 'ssg') {
-        const htmlPath = `${filePath}.html`;
-        if (existsSync(htmlPath) && (await stat(htmlPath)).isFile()) {
-          filePath = htmlPath;
-          fileExists = true;
-        }
-      }
-
-      // 4. spa 模式:回退到 index.html
-      if (!fileExists && spaFallback) {
-        const fallbackPath = join(root, 'index.html');
-        if (existsSync(fallbackPath)) {
-          filePath = fallbackPath;
-          fileExists = true;
-        }
-      }
-
-      if (!fileExists) {
+      if (resolvedFile.kind === 'missing') {
         res.statusCode = 404;
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.end('Not Found');
         return;
       }
 
-      const ext = extname(filePath).toLowerCase();
-      const contentType = MIME_TYPES[ext] || 'application/octet-stream';
-      const body = await readFile(filePath);
+      const body = await readFile(resolvedFile.path);
       res.statusCode = 200;
-      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Type', previewMimeType(resolvedFile.path));
       res.setHeader('Content-Length', body.length);
       res.end(body);
     } catch (err) {
@@ -201,146 +136,72 @@ export const previewCommand: CommandDef = {
       );
     };
 
-    // spa / ssg 模式:启动静态文件服务器,预览 dist/public/
-    if (mode === 'spa' || mode === 'ssg') {
-      const staticRoot = join(cwd, outputDir, 'public');
-      if (!existsSync(staticRoot)) {
-        logger.error(`Build output not found: ${staticRoot}`);
-        logger.info('Run `ubean build` first to create a production build.');
-        process.exit(1);
-      }
-
-      const server = startStaticServer({
-        root: staticRoot,
-        port: actualPort,
-        host,
-        mode
-      });
-
-      printBanner(actualPort, `static (${mode})`);
-
-      const cleanup = () => {
-        server.close(() => process.exit(0));
-        // Force-exit if close stalls
-        setTimeout(() => process.exit(0), 1000).unref();
-      };
-      process.on('SIGINT', cleanup);
-      process.on('SIGTERM', cleanup);
-      server.on('error', err => {
-        logger.error(`Preview server error: ${err.message || err}`);
-        process.exit(1);
-      });
-      return;
-    }
-
-    // fullstack / backend 模式:启动 Node 服务器(现有行为)
-    // Determine the server entry file based on the preset's entry type
-    const presetName = preset.name;
-    let serverFile: string;
-    if (presetName === 'node' || presetName === 'bun' || presetName === 'deno') {
-      serverFile = 'server.mjs';
-    } else if (presetName === 'cloudflare') {
+    // spa / ssg：`vite preview` + 插件中间件（静态解析规则与内置静态服务器同源）；产物里没有服务端
+    // 入口（`hasServer = mode !== 'spa'`，ssg 构建后还会删掉 `dist/server`），故只校验静态目录。
+    // fullstack / backend：校验产物里的 `entry.mjs` —— 生产 handler 由插件的预览中间件在进程内
+    // 接上（产物内的 `serveStatic` 负责静态与预渲染 HTML）。CLI 不再 spawn `server.mjs`：那是
+    // 「预览一个 Node 服务器」，端口探测与子进程编排会掩盖产物本身的问题。cloudflare 产物跑在
+    // worker 运行时里，Node 进程内 import 不出来，交由 RM-V26 的 miniflare runner 处理。
+    if (preset.name === 'cloudflare') {
       logger.error('Cloudflare preset preview is not supported yet. Use `wrangler dev` instead.');
       process.exit(1);
-    } else {
-      serverFile = 'handler.mjs';
-      logger.warn(`Preset "${presetName}" uses a fetch handler entry. Preview may not work as a standalone server.`);
     }
 
-    const serverPath = join(cwd, outputDir, 'server', serverFile);
-
-    if (!existsSync(serverPath)) {
-      logger.error(`Build output not found: ${serverPath}`);
+    const staticRoot = join(cwd, outputDir, 'public');
+    const staticMode = mode === 'spa' || mode === 'ssg';
+    const requiredArtifact = staticMode ? join(staticRoot, 'index.html') : join(cwd, outputDir, 'server', 'entry.mjs');
+    if (!existsSync(requiredArtifact)) {
+      logger.error(`Build output not found: ${requiredArtifact}`);
       logger.info('Run `ubean build` first to create a production build.');
       process.exit(1);
     }
 
-    const { child, exited } = spawnPreviewServer({
-      serverPath,
-      cwd,
-      port: actualPort,
-      host,
-      strictPort
-    });
-
-    // Wait until the spawned server is actually accepting connections before
-    // announcing readiness. This replaces the previous fixed `setTimeout`.
+    const userViteConfig = findUserViteConfig(cwd);
+    let server: Awaited<ReturnType<typeof preview>> | undefined;
     try {
-      await waitForPort(actualPort, { host, retries: 40, delay: 250 });
-    } catch {
-      // The port may not be ready yet — check whether the child has already
-      // exited (e.g. EADDRINUSE) and surface a friendly message instead.
-      if (exited.value) {
-        logger.error(`Preview server exited before becoming ready on port ${actualPort}.`);
-      } else {
-        logger.warn(`Preview server on port ${actualPort} is not responding yet, the banner may be premature.`);
+      server = await preview({
+        root: cwd,
+        configFile: userViteConfig ?? false,
+        mode: 'production',
+        // 自己的 banner 已经含 Local/Mode/Preset —— 关掉 Vite 的以免重复
+        logLevel: 'warn',
+        preview: { port: actualPort, host, strictPort },
+        // 没有用户 `vite.config` 时核心插件不参与，预览中间件要显式注册（同构建期的做法）
+        ...(userViteConfig ? {} : { plugins: [ubeanPreviewPlugin({ config, host })] })
+      });
+    } catch (err) {
+      // spa / ssg 的产物是纯静态文件，不依赖服务端能力 —— Vite 预览起不来时用内置静态服务器兜底
+      // （这也是 `startStaticServer` 保留至今的原因）。fullstack / backend 没有等价兜底：它们的
+      // 预览必须经过生产 handler，降级成静态服务会给出「看着能开、实际没渲染」的假象。
+      if (!staticMode) {
+        logger.error(`Failed to start the preview server: ${err instanceof Error ? err.message : String(err)}`);
+        process.exit(1);
       }
+      logger.warn(
+        `Vite preview unavailable (${err instanceof Error ? err.message : String(err)}); falling back to the built-in static server.`
+      );
+      const fallback = startStaticServer({ root: staticRoot, port: actualPort, host, mode });
+      printBanner(actualPort, `static (${mode})`);
+      const cleanupFallback = () => {
+        fallback.close(() => process.exit(0));
+        setTimeout(() => process.exit(0), 1000).unref();
+      };
+      process.on('SIGINT', cleanupFallback);
+      process.on('SIGTERM', cleanupFallback);
+      return;
     }
 
-    printBanner(actualPort, 'production');
+    printBanner(actualPort, staticMode ? `static (${mode})` : 'production');
 
     const cleanup = () => {
-      child.kill('SIGTERM');
-      process.exit(0);
+      void server
+        ?.close()
+        .catch(() => undefined)
+        .finally(() => process.exit(0));
+      // close 卡住时兜底退出
+      setTimeout(() => process.exit(0), 1000).unref();
     };
-
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);
-
-    child.on('exit', code => {
-      if (code !== 0 && code !== null) {
-        logger.error(`Preview server exited with code ${code}`);
-      }
-      process.exit(code ?? 0);
-    });
   }
 };
-
-interface SpawnResult {
-  child: ChildProcess;
-  exited: { value: boolean };
-}
-
-function spawnPreviewServer(opts: {
-  serverPath: string;
-  cwd: string;
-  port: number;
-  host: string;
-  strictPort: boolean;
-}): SpawnResult {
-  const exited = { value: false };
-
-  const child = spawn('node', [opts.serverPath], {
-    cwd: opts.cwd,
-    env: {
-      ...process.env,
-      PORT: String(opts.port),
-      HOST: opts.host
-    },
-    // Pipe stderr so we can detect EADDRINUSE while still forwarding output.
-    stdio: ['inherit', 'inherit', 'pipe']
-  });
-
-  let addrInUseReported = false;
-
-  child.stderr?.on('data', chunk => {
-    const text = chunk.toString();
-    process.stderr.write(text);
-
-    // Surface a friendly message if the child itself hits EADDRINUSE (rare
-    // TOCTOU between the pre-spawn probe and the actual listen call).
-    if (!addrInUseReported && /EADDRINUSE/.test(text)) {
-      addrInUseReported = true;
-      logger.error(
-        `Port ${opts.port} is already in use${opts.host ? ` on ${opts.host}` : ''}. ` +
-          `Try a different port${opts.strictPort ? ' or remove the --strictPort flag' : ''}.`
-      );
-    }
-  });
-
-  child.on('exit', () => {
-    exited.value = true;
-  });
-
-  return { child, exited };
-}

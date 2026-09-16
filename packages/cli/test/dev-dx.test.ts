@@ -176,6 +176,37 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     }
   }, 120_000);
 
+  it('Server / Client Components 的水合行为：占位符被替换、配对组件切到客户端变体', async () => {
+    const page = await openPage();
+    // 只收两类信号：**未捕获异常**与**水合不匹配**。不去数全部 console 错误 —— 页面里的
+    // 图标走外网（api.iconify.design），离线/带代理的环境下会刷一屏 CORS 错误，与本次验证无关
+    // （实测：把它算进去会让这条用例在无外网时假红）。
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${String(e).slice(0, 120)}`));
+    page.on('console', m => {
+      if (m.type() === 'error' && /hydrat|mismatch/i.test(m.text())) errors.push(m.text().slice(0, 120));
+    });
+    try {
+      await page.goto(`${baseUrl}/server-components`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
+        undefined,
+        { timeout: 30_000 }
+      );
+      await page.waitForTimeout(1_200);
+
+      // `.client.vue`：SSR 的 `<div data-client-only>` 占位符被真实内容替换
+      expect(await page.locator('[data-client-only]').count()).toBe(0);
+      expect(await page.locator('.sc-client').count()).toBe(1);
+      // 配对组件：首帧的服务端变体被客户端变体替换
+      expect(await page.locator('.paired-server').count()).toBe(0);
+      expect(await page.locator('.paired-client').count()).toBe(1);
+      expect(errors, errors[0] ?? '').toHaveLength(0); // 无未捕获异常、无水合不匹配
+    } finally {
+      await page.close();
+    }
+  }, 120_000);
+
   it('DevTools 外壳可以从 /_devtools 进入', async () => {
     const response = await fetch(`${baseUrl}/_devtools`, { redirect: 'follow' });
     expect(response.status).toBe(200);

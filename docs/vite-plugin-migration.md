@@ -343,7 +343,9 @@ Received '\x00virtual:ubean-client-component:/…/BrowserClock.client.vue?vue&ty
 
 根因两层：① 包装虚拟模块 ID 直接把**真实路径**拼在前缀后面，于是它以 `.vue` 结尾 —— `@vitejs/plugin-vue` 的 `include: /\.vue$/` 命中，把它当真实 SFC 去读盘（新增尾标 `.ubean-wrapper` 让文件名不再匹配）；② 更隐蔽的是**子请求**：Vue 会为 SFC 生成 `Foo.vue?vue&type=script&lang.ts` 这类内部模块，而 `isClientComponentFile()` 用 `id.split('?')[0]` 判定，于是**子请求也被包装**，拼出 `\0virtual:…:<真实路径>?vue&type=script…` 这种产物。修法：三个分支（`.server.vue` 重定向、`.client.vue` 包装、配对组件解析）都先排除子请求（新增 `isVueSubRequest()`）。
 
-验证：dev 与生产两侧行为一致（服务端组件内容 + 客户端占位符），浏览器水合后占位符被真实内容替换且无 error / 无 hydration 告警；**产物隔离**由矩阵基线格守着 —— 客户端产物里不得出现服务端组件的文案，且必须带 stub 元素名 `ubean-server-only`。断言：`dev-topology.test.ts` / `preview-cli.test.ts`（SSR 三态）与 `build-contracts.test.ts`（隔离）。
+验证：dev 与生产两侧行为一致（服务端组件内容 + 客户端占位符），浏览器水合后占位符被真实内容替换且无 error / 无 hydration 告警；**产物隔离**由矩阵基线格守着 —— 客户端产物里不得出现服务端组件的文案，且必须带 stub 元素名 `ubean-server-only`。断言：`dev-topology.test.ts` / `preview-cli.test.ts`（SSR 三态 + 配对组件首帧用服务端变体）、`build-contracts.test.ts`（隔离）、`dev-dx.test.ts`（**浏览器水合**：占位符被替换、配对组件切到客户端变体、无 error）。
+
+**顺带修掉测试侧的一个坑**：`preview-cli.test.ts` 原先只在 dist 缺失时才构建，于是断言可能跑在**上一个版本**的产物上 —— 新增配对组件后就出现「dev 通过、生产用例失败」，根因不是代码而是陈旧产物。改为**每次先重建**（约 2s）。这类「产物与源码不同步」的坑本轮踩了两次（另一次是 `ubean preview` 忽略 `--outDir`）。
 
 **同批查实的另一条，登记为待决（语义有歧义，需 owner 定）**：**拦截路由只有元数据、没有运行时**。生成器会为 `(..)target/` 之类的文件注册带 `meta.interceptFrom` / `interceptTarget` / `isIntercepting` 的路由，但全仓没有任何**消费者** —— 「从 X 导航到 Y 时渲染拦截页」这件事不会发生，拦截页只能靠它自己被清理后的路径访问。实现它需要先定语义（本仓当前把 `(.)target` 段从路径里剥掉、只把 `target` 记进元数据，与 Next 的「拦截页自身路径 = 目标路径」不同），因此不在本轮擅自落地。
 

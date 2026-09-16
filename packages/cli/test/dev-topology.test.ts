@@ -163,6 +163,9 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
       expect(res.body).toContain('data-client-only');
       // 客户端组件的真实内容必须**不在**首屏里（否则就是 SSR 执行了浏览器侧代码）
       expect(res.body).not.toContain('class="sc-client"');
+      // 配对组件（Task 9.3）：首帧用服务端变体，客户端变体在水合后才出现
+      expect(res.body).toContain('class="paired-server"');
+      expect(res.body).not.toContain('class="paired-client"');
     });
   });
 

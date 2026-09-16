@@ -42,6 +42,22 @@ async function findFreePort(): Promise<number> {
   throw new Error('找不到可用端口');
 }
 
+/**
+ * 用 CLI 的默认路径把示例项目构建到 `dist`（与 `analyze:check` 的口径一致）。
+ */
+async function buildFixture(): Promise<void> {
+  await new Promise<void>((resolveBuild, rejectBuild) => {
+    const proc = spawn(process.execPath, [cliEntry, 'build'], {
+      cwd: fixtureDir,
+      env: { ...process.env, NODE_ENV: 'production' },
+      stdio: 'ignore'
+    });
+    proc.once('exit', code =>
+      code === 0 ? resolveBuild() : rejectBuild(new Error(`fixture 构建失败（exit ${code}）`))
+    );
+  });
+}
+
 async function startPreview(cwd: string, readyPath = '/'): Promise<Running> {
   if (!existsSync(cliEntry)) throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 CLI 集成测试`);
   const port = await findFreePort();
@@ -92,8 +108,12 @@ describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', 
   let running: Running | null = null;
 
   beforeAll(async () => {
+    // **先重建 fixture 的 dist**：预览服务的是磁盘上的产物，源码改了而产物旧时，断言测的是
+    // 上一个版本的页面（实测踩过两次 —— 一次是预览命令忽略了 `--outDir` 而服务旧 dist，
+    // 一次是本用例新增页面后未重建）。代价约 2s。
+    await buildFixture();
     running = await startPreview(fixtureDir);
-  }, 120_000);
+  }, 180_000);
 
   afterAll(async () => {
     await stopPreview(running);
@@ -130,6 +150,8 @@ describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', 
     expect(html).toContain('class="sc-server"');
     expect(html).toContain('data-client-only');
     expect(html).not.toContain('class="sc-client"');
+    expect(html).toContain('class="paired-server"');
+    expect(html).not.toContain('class="paired-client"');
   });
 
   it('API 与 404 走生产 handler（静态目录里没有这两个路径）', async () => {

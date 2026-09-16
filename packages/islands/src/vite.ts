@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join, resolve, dirname } from 'node:path';
 import type { Plugin, ResolvedConfig as ViteResolvedConfig } from 'vite';
 import { legacyDirectiveToStrategy, strategyToLegacyDirective } from './directive';
 import type { ClientDirective } from './types';
@@ -1000,6 +1000,32 @@ export const ISLANDS_REGISTRY_VIRTUAL_ID = 'virtual:ubean-islands-registry';
 /** Vite 内部解析后的虚拟模块 ID（`\0` 前缀防止其他插件处理） */
 const ISLANDS_REGISTRY_RESOLVED_ID = `\0${ISLANDS_REGISTRY_VIRTUAL_ID}`;
 
+/** 扫描时要跳过的目录（构建产物与依赖不可能是用户写的 island 用法）。 */
+const SCAN_SKIP_DIRS = ['node_modules', '.git', '.ubean', 'dist', '.temp', 'coverage'];
+
+/** 递归列出项目内所有 `.vue` 源文件（绝对路径）。 */
+function listVueFiles(root: string): string[] {
+  const out: string[] = [];
+  const walk = (dir: string): void => {
+    let entries: import('node:fs').Dirent[];
+    try {
+      entries = readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return; // 无权限/不存在的目录直接跳过
+    }
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        if (SCAN_SKIP_DIRS.includes(entry.name)) continue;
+        walk(join(dir, entry.name));
+      } else if (entry.isFile() && entry.name.endsWith('.vue')) {
+        out.push(join(dir, entry.name));
+      }
+    }
+  };
+  walk(root);
+  return out;
+}
+
 export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Plugin {
   let viteConfig: ViteResolvedConfig;
   let enabled = true;
@@ -1075,6 +1101,32 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
     configResolved(config) {
       viteConfig = config;
       enabled = _options.enabled !== false;
+    },
+
+    /**
+     * 构建期**主动**扫盘预填注册表（RM-V24）。
+     *
+     * 原先注册表只由 `transform` 在遍历 SFC 主模块时填充，而注册表模块在客户端构建里先于
+     * 页面被加载（页面是惰性 `() => import(...)`）—— 于是 `load` 读到的 map 为空，产出
+     * `export const islands = {}`，**岛屿组件永不进入 bundle**：页面只剩按名字渲染的
+     * `<ubean-island>` 外壳，水合时按注册表查不到组件。实测症状是产物里 `IslandClock` /
+     * `IslandCounter` 等 chunk 全部消失，而体积门禁只守增长，反而报「预算 OK」。
+     *
+     * 因此这里在构建开始前把磁盘上所有含 `v-client.*` 的 SFC 扫一遍预填 —— 注册表内容不再
+     * 依赖模块转换顺序。dev 路径行为不变（transform 仍会增量更新，HMR 清理逻辑照旧）。
+     */
+    async buildStart() {
+      if (!enabled) return;
+      for (const file of listVueFiles(viteConfig.root)) {
+        let code: string;
+        try {
+          code = readFileSync(file, 'utf-8');
+        } catch {
+          continue;
+        }
+        if (!ANY_DIRECTIVE_RE.test(code)) continue;
+        updateRegistry(collectIslandComponents(code, file), file);
+      }
     },
 
     configureServer(server) {

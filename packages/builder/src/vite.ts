@@ -220,6 +220,9 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         ensureDerived();
       }
       if (!ubeanConfig?.experimental?.viteBuilder) return undefined;
+      // 构建已由 CLI 驱动（它自建 builder 并传入同一套 env 配置）⇒ 插件不再注册自己的
+      // `buildApp`/`environments`，否则同一份构建会被编排两次。
+      if (process.env.UBEAN_BUILD_DRIVEN_BY_CLI === '1') return undefined;
 
       return {
         /**

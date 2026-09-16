@@ -20,8 +20,8 @@
  * 新路径是 server env 的 `resolve.noExternal`/`external`（Vite 6+ 的等价位置）；旧路径的
  * `optimizeDeps.exclude` 属于 client env；islands SSR 空壳插件只挂 ubean env。
  */
-import { existsSync } from 'node:fs';
-import { cp, readFile } from 'node:fs/promises';
+import { existsSync, readFileSync } from 'node:fs';
+import { cp } from 'node:fs/promises';
 import { createBuilder, perEnvironmentPlugin } from 'vite';
 import type { Plugin as VitePlugin } from 'vite';
 import { resolveModules } from '@ubean/config';
@@ -41,6 +41,8 @@ import { ssrSingletonProdOptimizeExclude, ssrSingletonProdSsr } from '../ssr-sin
 import { createVirtualRegistry } from '../virtual-registry';
 import { ubeanPlugin } from '../vite';
 import { ubeanVite } from '../vue';
+import { ubeanAssetManifestPlugin } from './asset-manifest';
+import type { ClientManifestEntry } from './asset-manifest';
 import {
   cleanBuildOutput,
   getBuildOutDirs,
@@ -68,6 +70,17 @@ function virtualAliases(virtualDir: string): Record<string, string> {
     'ubean:locales': join(virtualDir, 'locales.mjs'),
     'ubean:meta': join(virtualDir, 'meta.mjs')
   };
+}
+
+/** 读客户端 manifest（供注入与 manifest 汇总共用）。 */
+function readClientManifest(publicDir: string): Record<string, ClientManifestEntry> | null {
+  const manifestPath = join(publicDir, '.vite', 'manifest.json');
+  if (!existsSync(manifestPath)) return null;
+  try {
+    return JSON.parse(readFileSync(manifestPath, 'utf-8')) as Record<string, ClientManifestEntry>;
+  } catch {
+    return null;
+  }
 }
 
 const VIRTUAL_EXCLUDE = [
@@ -110,8 +123,11 @@ export async function buildWithEnvironments(options: BuildOptions): Promise<Buil
   );
   if (hasPages) await writeClientIndexHtml(outDirs.virtual);
 
+  // RM-V18：服务端构建从这里取 client manifest（内存传递，不再运行时读盘）
+  let clientManifestForInjection: Record<string, ClientManifestEntry> | null = null;
+
   const userViteConfig = findUserViteConfig(cwd);
-  const builtinPlugins: VitePlugin[] = [];
+  const builtinPlugins: VitePlugin[] = [ubeanAssetManifestPlugin(() => clientManifestForInjection)];
   if (!userViteConfig) {
     builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
     if (hasPages) builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }));
@@ -189,6 +205,8 @@ export async function buildWithEnvironments(options: BuildOptions): Promise<Buil
         if (hasPages) {
           logger.info('Building client bundle...');
           await b.build(b.environments.client);
+          // 客户端构建完成后立刻把 manifest 交给服务端环境（同一闭包变量）
+          clientManifestForInjection = readClientManifest(outDirs.public);
         }
         if (hasServer) {
           logger.info(ssrEnabled ? 'Building SSR bundle...' : 'Building server bundle (SSR disabled)...');
@@ -214,7 +232,7 @@ export async function buildWithEnvironments(options: BuildOptions): Promise<Buil
     const manifestPath = join(outDirs.public, '.vite', 'manifest.json');
     if (existsSync(manifestPath)) {
       try {
-        clientManifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+        clientManifest = readClientManifest(outDirs.public) ?? {};
       } catch {
         /* 清单缺失不阻塞构建：产物在，manifest 的 assets 为空 */
       }

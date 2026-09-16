@@ -76,5 +76,13 @@ describe('生产构建（buildProduction）', () => {
 
     const written = JSON.parse(readFileSync(join(distRoot, 'manifest.json'), 'utf-8'));
     expect(written).toMatchObject({ entry: 'server.mjs', preset: preset.name });
+
+    // RM-V18：服务端产物**自包含** —— 资产标签在构建期注入，运行时不再读 client 的磁盘清单。
+    // 这条断言是那次整改的判据：它曾经在 bundle 里读 `../public/.vite/manifest.json`。
+    const serverBundle = readFileSync(join(serverDir, 'entry.mjs'), 'utf-8');
+    expect(serverBundle).not.toContain('.vite/manifest.json');
+    expect(serverBundle).toContain('assets/app-');
+    // 注入的 asset tag（bundle 里是 JSON 字符串字面量，引号被转义，因此断言到 src 为止）
+    expect(serverBundle).toContain('"body": "<script type=\\"module\\" src=\\"/assets/app-');
   }, 180_000);
 });

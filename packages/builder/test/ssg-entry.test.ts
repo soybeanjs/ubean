@@ -136,9 +136,12 @@ describe('buildAssetTagsSetup()', () => {
     expect(code).toContain('favicon: undefined');
   });
 
-  it('reads the client manifest relative to the entry', () => {
+  // RM-V18：资产标签改为**构建期注入**。这条断言原先锁的是「运行时相对路径读 manifest」，
+  // 正是被整改掉的耦合（服务端产物必须与 dist/public 保持相对位置、顺序约束藏在 try/catch 里）。
+  it('从构建期注入的虚拟模块取资产标签，不再运行时读盘', () => {
     const code = buildAssetTagsSetup();
-    expect(code).toContain("'.vite', 'manifest.json'");
-    expect(code).toContain("'..', 'public'");
+    expect(code).toContain("from 'virtual:ubean-asset-manifest'");
+    expect(code).not.toContain('readFileSync');
+    expect(code).not.toContain("'..', 'public'");
   });
 });

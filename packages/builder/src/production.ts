@@ -25,6 +25,8 @@ import {
 import { createVirtualRegistry } from './virtual-registry';
 import type { VirtualModuleRegistry } from './virtual-registry';
 import { ubeanPlugin } from './vite';
+import { ubeanAssetManifestPlugin } from './vite/asset-manifest';
+import type { ClientManifestEntry } from './vite/asset-manifest';
 import {
   cleanBuildOutput,
   getBuildOutDirs,
@@ -635,7 +637,10 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   // ubeanVite/ubeanIslandsPlugin 由用户的 ubeanPlugin() 提供,避免重复注册。
   const userViteConfig = findUserViteConfig(cwd);
 
-  const builtinPlugins: VitePlugin[] = [];
+  // RM-V18：client manifest 在内存里传给服务端构建（不再让服务端产物运行时读盘）
+  let clientManifestForInjection: Record<string, ClientManifestEntry> | null = null;
+
+  const builtinPlugins: VitePlugin[] = [ubeanAssetManifestPlugin(() => clientManifestForInjection)];
   // RM-V14：`@vitejs/plugin-vue` 的注册已归属 `@ubean/build/vue` 的 `ubeanVite`（用户的
   // `ubeanPlugin()` 里就包含它），这里**不能**再注册一份：重复注册会让 .vue 被编译两次 ——
   // 第二个实例拿到的是已编译成 JS 的代码，报 “At least one <template> or <script> is required”。
@@ -726,6 +731,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     if (existsSync(manifestPath)) {
       try {
         clientManifest = JSON.parse(await readFile(manifestPath, 'utf-8'));
+        clientManifestForInjection = clientManifest;
       } catch {}
     }
 

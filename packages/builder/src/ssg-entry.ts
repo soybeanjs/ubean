@@ -121,26 +121,15 @@ const _pageRenderer = createVueRenderer({
 
 /**
  * 生成 client asset tags 代码块（读取 `.vite/manifest.json`）。
- * 依赖外层已定义 `readFileSync` / `join` / `dirname` / `fileURLToPath` 导入。
  */
 export function buildAssetTagsSetup(favicon?: string | null): string {
   return `
-// --- Client asset tags from Vite manifest ---
-const __dirname = dirname(fileURLToPath(import.meta.url));
-let _assetTags = { css: '', preloads: '', body: '', favicon: ${JSON.stringify(favicon)} };
-try {
-  const manifestPath = join(__dirname, '..', 'public', '.vite', 'manifest.json');
-  const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'));
-  const entry = Object.values(manifest).find(m => m.isEntry);
-  if (entry) {
-    _assetTags.body = '<script type="module" src="/' + entry.file + '"></script>';
-    if (Array.isArray(entry.css)) {
-      _assetTags.css = entry.css.map(c => '<link rel="stylesheet" href="/' + c + '">').join('\\n');
-    }
-  }
-} catch (e) {
-  console.warn('[ubean] Failed to load client manifest:', e.message || e);
-}
+// --- Client asset tags（RM-V18：构建期注入，不再运行时读 dist/public/.vite/manifest.json）---
+// 由 \`ubean:asset-manifest\` 插件提供：值在服务端构建期间从 client manifest 算出并内联，
+// 因此服务端产物自包含 —— 不再依赖 client 产物的磁盘相对路径，也不再把「必须先 client
+// 后 server」藏在一句运行时 try/catch 里。
+import { assetTags as _injectedAssetTags } from 'virtual:ubean-asset-manifest';
+let _assetTags = { ..._injectedAssetTags, favicon: ${JSON.stringify(favicon)} };
 `;
 }
 
@@ -196,10 +185,6 @@ import { toVueRouterLocalePath } from '@ubean/i18n';
 import { i18nConfig as _i18nConfig, loadLocales as _loadLocales } from 'ubean:locales';
 import { resolveAppConfig as _resolveAppConfig } from 'virtual:ubean-app';
 ${contentBootstrap}
-import { readFileSync } from 'node:fs';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 const pageModules = import.meta.glob(${pagesGlob}, { eager: false });
 const layoutModules = import.meta.glob(${layoutsGlob}, { eager: false });
 

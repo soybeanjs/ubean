@@ -12,7 +12,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'delete', page: DevToolsPageInfo): void;
   (e: 'edit', page: DevToolsPageInfo): void;
-  (e: 'edit-meta', page: DevToolsPageInfo): void;
+  (e: 'editMeta', page: DevToolsPageInfo): void;
   (e: 'create'): void;
 }>();
 
@@ -104,7 +104,7 @@ function openRoute(path: string) {
           <button
             class="size-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-primary hover:bg-primary/10 opacity-0 group-hover:opacity-100 transition-all cursor-pointer shrink-0 ml-1"
             title="Edit page properties (definePage)"
-            @click.stop="emit('edit-meta', p)"
+            @click.stop="emit('editMeta', p)"
           >
             <SIcon icon="lucide:sliders-horizontal" :size="12" />
           </button>

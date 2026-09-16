@@ -112,6 +112,9 @@ describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', 
     // 上一个版本的页面（实测踩过两次 —— 一次是预览命令忽略了 `--outDir` 而服务旧 dist，
     // 一次是本用例新增页面后未重建）。代价约 2s。
     await buildFixture();
+    // 清掉上一次运行留下的 fs 缓存（生产 ISR 落在 `.ubean/cache`）：不清也不影响断言（见
+    // ISR 用例里的不变量写法），但留着会让每次的首个请求落在 STALE 上，读数更难解释。
+    rmSync(join(fixtureDir, '.ubean', 'cache'), { recursive: true, force: true });
     running = await startPreview(fixtureDir);
   }, 180_000);
 
@@ -152,6 +155,27 @@ describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', 
     expect(html).not.toContain('class="sc-client"');
     expect(html).toContain('class="paired-server"');
     expect(html).not.toContain('class="paired-client"');
+  });
+
+  it('ISR 在生产产物里命中缓存（命中后两次拿到同一份渲染）', async () => {
+    const probeIsr = async () => {
+      const res = await fetch(`${running!.baseUrl}/isr-demo`);
+      const body = await res.text();
+      return { header: res.headers.get('x-isr') ?? '', token: /class="isr-token">([^<]*)/.exec(body)?.[1] ?? '' };
+    };
+    // 首个请求**不固定**是 MISS：生产用的是 fs 缓存（`.ubean/cache`），它会跨进程/跨运行留存 ——
+    // 手工验证过一次之后再跑，首个请求就是 STALE（这恰好也是「缓存真的落了盘」的证据）。因此这里
+    // 断言的是不依赖初始状态的**不变量**：预热一次并等后台重生成落定后，连续两次都必须是 HIT，
+    // 且拿到同一份渲染结果。
+    await probeIsr();
+    await new Promise(r => setTimeout(r, 300));
+
+    const a = await probeIsr();
+    const b = await probeIsr();
+    expect(a.header).toBe('HIT');
+    expect(b.header).toBe('HIT');
+    expect(a.token).not.toBe('');
+    expect(b.token).toBe(a.token);
   });
 
   it('API 与 404 走生产 handler（静态目录里没有这两个路径）', async () => {

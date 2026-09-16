@@ -334,6 +334,20 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 
 修法：dev 的 `buildDevSsrRoutes()` 与产物入口的 `buildRendererSetup()` 都改为按 route 分组、把插槽写成命名视图（`components: { default, <slot> }`，与 `component` 互斥），拦截路由与客户端一致地单独注册（名字加 `__intercept_` 前缀）。`SlotView` 本身已支持懒加载组件（`defineAsyncComponent` 包装），因此分组后 SSR 也能渲染插槽。断言：`dev-topology.test.ts` 与 `preview-cli.test.ts` 各一条（首屏 HTML 同时含默认视图与插槽标记）。
 
+### 审计已确认「文档承诺 = 实际行为」的部分（2026-09-16）
+
+同一轮审计不只是找缺陷，也把几条**此前零覆盖**的文档承诺变成了可执行断言（避免下次再从「文档写了」推「能用」）：
+
+| 特性 | 验证方式 | 结论 |
+| --- | --- | --- |
+| 动态路由 matcher（`[id=numeric]`） | 示例 `order/[id=numeric].vue` + `src/matchers.ts`；HTTP（服务端 404）+ 浏览器（`createMatcherGuard()` 拦下 SPA 导航） | 行为符合文档（缺陷见 I） |
+| 并行路由（`@slot`） | 示例 `parallel.vue` + `@aside/parallel.vue`；dev 与生产首屏都断言「默认视图 + 插槽」 | 修完 J 后两侧一致 |
+| Server / Client Components（`.server.vue` / `.client.vue`） | 示例 `ServerGreeting.server.vue` / `BrowserClock.client.vue`；SSR 断言（内容 + 占位符）、产物隔离断言、浏览器水合断言 | 修完 K 后 dev / 生产 / 水合三段都成立 |
+| 配对组件（Task 9.3） | 示例 `ThemeBadge.server.vue` + `.client.vue`；SSR 用服务端变体、水合后切客户端变体 | 行为符合文档 |
+| ISR（`routeRules.isr` + `swr`） | 示例 `isr-demo.vue` + `routeRules`；dev 断言 MISS → HIT → STALE → HIT(新值)，生产断言「预热后连续两次 HIT 且同一份渲染」 | 四段语义与 X-ISR 头都符合文档 |
+
+**ISR 用例的一处写法值得记下**：生产用 fs 缓存（`.ubean/cache`），它**跨运行留存** —— 手工验证过一次之后，首个请求就从 MISS 变成 STALE。断言因此写成不依赖初始状态的不变量（预热 → 连续两次 HIT + 同一 token），否则用例会因外部状态而假红。
+
 **K. `.client.vue` 让生产构建直接失败（dev 侥幸不挂）。** 补 Server/Client Components 的示例时暴露：dev 下 `.server.vue` / `.client.vue` 一切正常（服务端组件出内容、客户端组件出占位符、客户端模块解析到通用 stub），但 `ubean build` 在 `[plugin vite:vue]` 阶段中断：
 
 ```

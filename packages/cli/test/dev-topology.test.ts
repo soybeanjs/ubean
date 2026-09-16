@@ -169,6 +169,41 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
     });
   });
 
+  /**
+   * ISR（P9-03）：`routeRules: { '/isr-demo': { isr: { ttl: 1, swr: true } } }`。
+   *
+   * 文档承诺四段语义，这里逐段验：MISS（渲染并缓存）→ HIT（直接给缓存）→ STALE（过期但
+   * `swr` 为真，先给旧值、后台重生成）→ HIT（新值）。断言用页面上的 token 是否变化来判定
+   * 「拿到的到底是不是同一份渲染结果」。
+   */
+  describe('ISR（routeRules.isr）', () => {
+    const isrProbe = async (): Promise<{ header: string; token: string }> => {
+      const res = await fetch(`${baseUrl}/isr-demo`);
+      const body = await res.text();
+      return { header: res.headers.get('x-isr') ?? '', token: /class="isr-token">([^<]*)/.exec(body)?.[1] ?? '' };
+    };
+
+    it('MISS → HIT → STALE → HIT(新值)', async () => {
+      const first = await isrProbe();
+      expect(first.header).toBe('MISS');
+      expect(first.token).not.toBe('');
+
+      const second = await isrProbe();
+      expect(second.header).toBe('HIT');
+      expect(second.token).toBe(first.token);
+
+      await new Promise(r => setTimeout(r, 1_300));
+      const stale = await isrProbe();
+      expect(stale.header).toBe('STALE');
+      expect(stale.token).toBe(first.token); // swr：先给旧值
+
+      await new Promise(r => setTimeout(r, 600));
+      const refreshed = await isrProbe();
+      expect(refreshed.header).toBe('HIT');
+      expect(refreshed.token).not.toBe(first.token); // 后台重生成已完成
+    }, 30_000);
+  });
+
   describe('页面 404 与 API 404 的分野', () => {
     it('未知页面路径返回 404 + HTML（走页面兜底而非 JSON）', async () => {
       const res = await probe('/definitely-missing-page');

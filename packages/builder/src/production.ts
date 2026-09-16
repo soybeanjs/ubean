@@ -485,6 +485,27 @@ export function getPresetBuildConfig(preset: Preset) {
   }
 }
 
+/**
+ * SSR 期的 islands 注册表空壳插件。
+ *
+ * 真正的注册表由 `ubeanIslandsPlugin` 在**客户端**构建期填充；SSR 期 islands 由服务端渲染
+ * （不水合），空壳即可 —— 但不能让它以裸 `virtual:ubean-islands-registry` 泄漏给 Node。
+ */
+export function createIslandsSsrStubPlugin(): VitePlugin {
+  return {
+    name: 'ubean:islands-ssr-stub',
+    enforce: 'pre',
+    resolveId(id) {
+      if (id === 'virtual:ubean-islands-registry') return '\0virtual:ubean-islands-registry';
+      return undefined;
+    },
+    load(id) {
+      if (id === '\0virtual:ubean-islands-registry') return 'export const islands = {};';
+      return undefined;
+    }
+  };
+}
+
 export function generateNodeServerEntry(): string {
   return `// Auto-generated ubean Node.js server entry
 import { createServer } from 'node:http';
@@ -755,29 +776,9 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
         },
         emptyOutDir: false
       },
-      plugins: [
-        ...plugins,
-        {
-          // SSR stub for `virtual:ubean-islands-registry`.
-          // The real registry is populated by ubeanIslandsPlugin during the
-          // client build. During SSR, islands are rendered server-side (no
-          // client hydration), so an empty stub suffices.
-          name: 'ubean:islands-ssr-stub',
-          enforce: 'pre',
-          resolveId(id) {
-            if (id === 'virtual:ubean-islands-registry') return '\0virtual:ubean-islands-registry';
-            return undefined;
-          },
-          load(id) {
-            if (id === '\0virtual:ubean-islands-registry') return 'export const islands = {};';
-            return undefined;
-          }
-        }
-      ],
+      plugins: [...plugins, createIslandsSsrStubPlugin()],
       resolve: commonResolve
     });
-
-    serverEntry = 'entry.mjs';
 
     serverEntry = await writePresetWrapper({
       mode,
@@ -801,3 +802,5 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     hasServer
   });
 }
+
+export { buildWithEnvironments } from './vite/build-app';

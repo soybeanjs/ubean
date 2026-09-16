@@ -39,3 +39,6 @@ export { VUE_PLUGIN_INCLUDE } from '@ubean/build/vue';
 // `ubeanIslandsPlugin` 来自 `/vite` 子路径;`getIslandsBootstrapScript` 在 isomorphic 主入口
 export { ubeanIslandsPlugin } from '@ubean/islands/vite';
 export { ubeanServerActionsPlugin } from '@ubean/build/actions';
+// RM-V24：preview 接管（核心插件已内置接线，这里导出供自定义场景显式使用）
+export { ubeanPreviewPlugin, createPreviewMiddleware, resolvePreviewFile, previewMimeType } from '@ubean/build/vite';
+export type { UbeanPreviewPluginOptions, UbeanPreviewMiddlewareOptions, PreviewMiddleware } from '@ubean/build/vite';

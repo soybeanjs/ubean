@@ -5,6 +5,7 @@ import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { createServerRouter } from '@ubean/routes';
 import { scanProject } from '@ubean/scan';
 import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
+import { getLogger } from '@ubean/shared/logger';
 import { join, relative, resolve } from 'pathe';
 import { getDevScanCoordinator } from './dev/dev-scan';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
@@ -18,8 +19,11 @@ import {
 } from './virtual-modules';
 import { createVirtualRegistry } from './virtual-registry';
 import type { VirtualModuleRegistry } from './virtual-registry';
-import { ASSET_MANIFEST_VIRTUAL_ID, computeAssetTags } from './vite/asset-manifest';
+import { ASSET_MANIFEST_VIRTUAL_ID, resolveInjectedAssetTags } from './vite/asset-manifest';
 import type { ClientManifestEntry } from './vite/asset-manifest';
+import { attachPreviewMiddleware } from './vite/preview';
+
+const logger = getLogger('build');
 
 export { createVirtualRegistry } from './virtual-registry';
 
@@ -53,6 +57,23 @@ export {
   type DevRequestHandlers
 } from './dev/dev-request-router';
 export { toWebRequest, sendWebResponse } from './dev/node-web';
+
+// RM-V24：`vite preview` 接管（生产 handler / 静态两种形态），静态解析规则与 CLI 的
+// `startStaticServer` 共用一份
+export {
+  ubeanPreviewPlugin,
+  attachPreviewMiddleware,
+  createPreviewMiddleware,
+  resolvePreviewFile,
+  sendPreviewFile,
+  sendPreviewStatus,
+  previewMimeType,
+  type UbeanPreviewPluginOptions,
+  type UbeanPreviewMiddlewareOptions,
+  type PreviewMiddleware,
+  type PreviewMiddlewareHost,
+  type PreviewFileResolution
+} from './vite/preview';
 
 // RM-V11：dev/SSR 路由表（与客户端 `virtual:ubean-pages` 保持同形的唯一入口）
 export {
@@ -289,7 +310,18 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
 
     async load(id) {
       if (id === RESOLVED_ASSET_MANIFEST_ID) {
-        return `export const assetTags = ${JSON.stringify({ ...computeAssetTags(assetManifestRef.current), favicon: null })};\n`;
+        // 优先用调用方传进来的内存 manifest（RM-V18 的传递），否则按本次服务端构建的 outDir
+        // 读旁边的 `<outputDir>/public/.vite/manifest.json`。**必须**有磁盘兜底：CLI 驱动的
+        // 两条路径都拿不到本插件实例的 ref（它在用户 `vite.config.ts` 的 `ubeanPlugin()` 里），
+        // 而本插件又是唯一提供者 —— 没有兜底就会内联空标签，产出不水合、无样式的 HTML。
+        const serverOutDir = this.environment?.config?.build?.outDir;
+        const { tags, source } = resolveInjectedAssetTags(assetManifestRef.current, serverOutDir);
+        if (source === 'none') {
+          logger.warn(
+            `${ASSET_MANIFEST_VIRTUAL_ID} 注入时没有可用的 client manifest（服务端 outDir=${serverOutDir ?? 'unknown'}）—— 产出的 HTML 将不含 asset tags。`
+          );
+        }
+        return `export const assetTags = ${JSON.stringify({ ...tags, favicon: null })};\n`;
       }
       if (id.startsWith(VIRTUAL_PREFIX)) {
         const moduleId = id.slice(VIRTUAL_PREFIX.length);
@@ -342,6 +374,18 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
           }
         }
       });
+    },
+
+    /**
+     * RM-V24：`vite preview` 接管。
+     *
+     * fullstack / backend 把产物里的 fetch handler（`dist/server/entry.mjs`）在进程内接上，
+     * spa / ssg 走静态服务 —— 两种形态的判据都在 `vite/preview.ts`，与 CLI 的 preview 共用
+     * 同一份解析规则（RM-V25 起 CLI 退化为参数与 banner）。
+     */
+    configurePreviewServer(server) {
+      if (!ubeanConfig) return;
+      attachPreviewMiddleware(server, ubeanConfig);
     }
   };
 

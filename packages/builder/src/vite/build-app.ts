@@ -155,11 +155,20 @@ export async function prepareBuild(
   if (hasPages) await writeClientIndexHtml(outDirs.virtual);
 
   const userViteConfig = findUserViteConfig(cwd);
-  const builtinPlugins: VitePlugin[] = [ubeanAssetManifestPlugin(() => manifestRef.current)];
+  // 资产标签虚拟模块**只留一个提供者**：有用户 `vite.config` 时由其中的核心插件提供（它会走
+  // 「内存 ref → 服务端 outDir 旁磁盘清单」的解析）；只有缺失核心插件的这一支才用独立插件补位。
+  // 两个提供者各自持 ref，谁先解析谁说了算 —— 实测就是这样内联出空标签，产出不水合、无样式的 HTML。
+  const builtinPlugins: VitePlugin[] = [];
   if (!userViteConfig) {
     // 无用户 vite.config 时由本路径提供全部 builtin 插件 —— 与旧路径（`buildProduction`）逐项对齐：
     // **islands 插件不能漏**，否则 `v-client.*` 指令不被转换、注册表为空、岛屿组件整类不进产物
     // （实测：无配置那一格 builder 路径比默认路径少 10 个文件 —— 5 个岛屿 JS + 5 个 CSS）。
+    builtinPlugins.push(
+      ubeanAssetManifestPlugin(
+        () => manifestRef.current,
+        () => outDirs.server
+      )
+    );
     builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
     if (hasPages) {
       builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }), ubeanIslandsPlugin());

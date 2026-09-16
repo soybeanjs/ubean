@@ -14,7 +14,7 @@
  * 2. **不依赖 `UBEAN_VITE_BUILDER` 的继承**：每次 spawn 显式设置或删除该变量。
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync, renameSync, rmSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, renameSync, rmSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -50,6 +50,40 @@ function listArtifacts(dir: string, prefix = ''): string[] {
     else out.push(rel.replace(/-[A-Za-z0-9_-]{8}\./g, '.<hash>.'));
   }
   return out;
+}
+
+/** 递归读出产物里的所有文本内容（用于「内容级」断言 —— 清单比对看不见内容差异）。 */
+function readArtifactText(dir: string): string {
+  if (!existsSync(dir)) return '';
+  let text = '';
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) text += readArtifactText(full);
+    else if (/\.(mjs|js|html)$/.test(entry.name)) text += readFileSync(full, 'utf-8');
+  }
+  return text;
+}
+
+/**
+ * 产物级缺陷守卫（两条，都是「清单比对 + 体积门禁都看不见」的静默失败）。
+ *
+ * 1. **预渲染 HTML 必须落在本次构建的产物目录里**。`prerender.staticDir` 的默认值曾写死
+ *    `'dist/public'`，于是 `--outDir .temp-x` 时客户端产物去 `.temp-x/public`、预渲染 HTML 却写进
+ *    `dist/public` —— 矩阵各格因此**两边都没有 HTML**，「清单逐项一致」照样通过（同时错 =
+ *    一致）。这条断言把「HTML 就在这格里」变成硬要求。
+ * 2. **服务端产物必须内联客户端资产标签**。`virtual:ubean-asset-manifest` 曾有两个提供者，核心
+ *    插件那份的 ref 在 CLI 路径上是空的并抢先解析，内联出空标签 —— 生产 HTML 既无客户端入口
+ *    `<script>` 也无样式表（不水合、无样式）。判据落在构建产物上，不依赖起服务器。
+ */
+function expectBuildOutputContract(label: string, outDir: string): void {
+  const artifacts = listArtifacts(outDir);
+  const htmlFiles = artifacts.filter(f => f.endsWith('.html'));
+  expect(htmlFiles.length, `${label}：产物目录里应当有预渲染 HTML`).toBeGreaterThan(0);
+
+  const serverText = readArtifactText(join(outDir, 'server'));
+  // 标签是经 `JSON.stringify` 内联的，产物里引号是转义形态（`src=\"/assets/…`）—— 两种形态都接受
+  const hasInlinedEntryScript = /src=\\?"\/assets\//.test(serverText);
+  expect(hasInlinedEntryScript, `${label}：服务端产物应当内联客户端入口 script（当前为空标签）`).toBe(true);
 }
 
 /** 跑一次构建并等它退出（构建挂住会在这里超时，本身就是回归）。 */
@@ -126,9 +160,11 @@ describe('构建路径一致性（RM-V23）', () => {
 
     await build(OUT_LEGACY, false);
     const viaLegacy = listArtifacts(join(fixtureDir, OUT_LEGACY));
+    expectBuildOutputContract('默认路径', join(fixtureDir, OUT_LEGACY));
 
     await build(OUT_BUILDER, true);
     const viaBuilder = listArtifacts(join(fixtureDir, OUT_BUILDER));
+    expectBuildOutputContract('builder 路径', join(fixtureDir, OUT_BUILDER));
 
     expect(viaLegacy.length, '默认路径应当产出产物').toBeGreaterThan(0);
     // 逐项一致性：少了岛屿 chunk / 预渲染页 / 内容集合页都会在这里显形

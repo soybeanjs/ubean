@@ -99,7 +99,10 @@ export function resolvePrerenderConfig(config?: PrerenderConfig): ResolvedPreren
     crawlLinks: config?.crawlLinks ?? true,
     concurrency: config?.concurrency ?? 4,
     failOnError: config?.failOnError ?? false,
-    staticDir: config?.staticDir ?? 'dist/public',
+    // 不设默认值：落盘目录由 `resolvePrerenderStaticDir()` 从**实际的** `build.outputDir` 派生，
+    // 这样 `--outDir` 与 preset 自带的产物目录都被尊重（旧默认值写死 'dist/public' 时，预渲染
+    // 会静默写进错误的产物树）。
+    staticDir: config?.staticDir,
     extractDataPayload: config?.extractDataPayload ?? true
   };
 }

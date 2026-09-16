@@ -112,7 +112,7 @@ vite.config.ts（用户唯一入口）
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-V24** | `configurePreviewServer` 接管 | 新建 `builder/src/vite/preview.ts`（对齐 `nitro:src/build/vite/preview.ts:5-46`）；fullstack / backend 走生产 handler | `vite preview` 可用；`packages/cli/test/preview.test.ts` 全绿 |
+| **RM-V24** ✅ | `configurePreviewServer` 接管 | 新建 `builder/src/vite/preview.ts`（对齐 `nitro:src/build/vite/preview.ts:5-46`）；fullstack / backend 走生产 handler | **已落地**：核心插件（`ubeanPlugin()`）的 `configurePreviewServer` 挂预览中间件 —— 与 dev 的请求路由同一设计（「哪条路径都必然注册的那一个插件」）。`fullstack` / `backend` 在进程内 import `dist/server/entry.mjs` 的 `createFetchHandler()`（**不是** `server.mjs`：它自监听端口；也**不是** `handler.mjs`：那是平台适配壳），静态资源与预渲染 HTML 由产物内的 `serveStatic` 自己服务，预览环境与生产环境同形；`spa` / `ssg` 走静态服务，解析规则与 CLI 的 `startStaticServer` **同源一份实现**（`resolvePreviewFile`，含 `...` 文件名与路径穿越的既有教训）。**实测**：`vp preview`（无 CLI）在示例项目上跑通预渲染页 / API / 未预渲染页的 SSR / 404 页 / 资源 MIME 五类请求；builder 13 条单测 + CLI 5 条端到端全绿。**本任务连带查出并修复两个产物级缺陷**（见下方专节），并让 `--outDir` 下的产物恢复完整 |
 | **RM-V25** | `ubean preview` 与静态服务器保留 | `cli/src/preview.ts:46-125` 的 `startStaticServer` 保留（spa / ssg 无生产 server 可复用） | 行为与现状一致 |
 | **RM-V26** | cloudflare preview（可选） | 现状 `preview.ts:242-244` 直接报错提示 `wrangler dev`；改走 env-runner 的 `miniflare` runner | wrangler 不可用时也能本地预览 cloudflare 产物 |
 
@@ -244,3 +244,31 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 期间还踩到一个自己造的坑：`cronScheduler` 的声明被放进了 `createApp` 内部，而 `close()` 读的是另一个作用域的（undefined）变量，且异常被 try/catch 吞掉 —— 表现为「修了但没效果」。教训：**这类「清了但没清掉」的排查必须以 handle 存活为准（探针），而不是以代码看起来对为准**。
 
 两处修复都在 `production.ts` 的入口模板与 `@ubean/server` 侧，两条构建路径共用，故对 CLI 路径同样是修复（此前 CLI 靠 `process.exit` 掩盖了它）。
+
+#### 两个产物级缺陷（2026-09-16 修复，由 RM-V24 的预览验收暴露）
+
+写 `vite preview` 的验收断言时，我把「预渲染 HTML 里应当有客户端入口 `<script>`」当成了一句显然的断言 —— 它红了，追下去是两个独立缺陷，且都**静默**、都躲过了此前所有门禁。
+
+**缺陷 A：客户端资产标签被内联成空串（生产页面不水合、无样式）。**
+
+`virtual:ubean-asset-manifest` 有**两个提供者**：核心插件（`ubeanPlugin()` 内联的 `resolveId`/`load`）与独立插件 `ubeanAssetManifestPlugin`。核心插件那份的 ref（`assetManifestRef`）只在**它自己注册的 `buildApp`** 里被填；而 CLI 驱动的两条路径（默认路径与开关打开）都直接调 `buildWithEnvironments`/`buildProduction`，核心插件的 ref 始终是 `null` —— 偏偏它又抢先在 `resolveId` 上命中了同一个 id。结果：
+
+```
+var assetTags = { "css": "", "preloads": "", "body": "", "favicon": null };
+```
+
+两条路径**都**如此（实测：默认路径与 `UBEAN_VITE_BUILDER=1` 的产物里 `body` 都是空串）。HTML 里因此既没有 `<script type="module" src="/assets/app-….js">`，也没有任何 `<link rel="stylesheet">` —— 生产环境下页面不水合、无样式，而构建、体积门禁、文件清单比对全部照常通过。
+
+**为什么此前没人发现**：dev 的 HTML 由 Vite 注入 `/@vite/client`，不受影响；`analyze:check` 比的是**体积**；RM-V23 的矩阵比的是**文件清单**（`HTML` 内容不在比对范围内）。三条最常用的门禁都不看 HTML 内容，而「看得见内容」的只有人肉打开产物。
+
+**修法**：让核心插件成为**唯一**提供者，取值改为「调用方传入的内存 manifest → 服务端构建 outDir 旁的 `<outputDir>/public/.vite/manifest.json`」两级；独立插件只在缺失核心插件的那一支（`!userViteConfig`）保留。磁盘兜底用**本次构建的** `outDir`（`this.environment.config.build.outDir` 的兄弟目录），而不是配置里的 `build.outputDir` —— 后者在 `--outDir` 下是过期值，而插件实例可能来自用户 `vite.config.ts` 的另一份模块/配置副本（R10 的同族问题）。
+
+**缺陷 B：预渲染 HTML 落进错误的产物树（`--outDir` 下产物被劈成两半）。**
+
+`prerender()` 用 `join(cwd, config.staticDir)` 决定落盘目录，而 `staticDir` 的默认值写死为 `'dist/public'` —— 不跟随 `build.outputDir`。于是 `ubean build --outDir .temp-x` 时客户端产物落在 `.temp-x/public`，9 个预渲染 HTML 却写进 `dist/public`：**两边都不报错**，只是产物树里少文件。
+
+**连带影响**：RM-V23 矩阵各格都在临时 outDir 上构建，而预渲染 HTML 从来就没进去过 —— 各格的「清单逐项一致」里其实**没有 HTML 参与比对**（两边一样地缺，于是「一致」照样成立）。矩阵的覆盖面因此比文档写的弱，直到修掉这个缺陷才真正成立。
+
+**修法**：`prerender.staticDir` 不再有默认值（`ResolvedPrerenderConfig.staticDir?: string`），落盘目录由新增的 `resolvePrerenderStaticDir(cwd, buildOutputDir, prerenderConfig)` 统一派生为 `<build.outputDir>/public`（用户显式配置则优先，相对/绝对路径都支持）；搜索索引（`__search.json` / Pagefind `siteDir`）同步改用同一函数，避免两处方言。
+
+**两个缺陷共同的教训**：**「清单一致」「体积不涨」都不等于「产物正确」**。前者看不见内容（HTML 里的 `<script>`），后者看不见缺失（少产出反而通过）。修完之后，矩阵的基线格新增两条**内容级**断言：产物目录里必须有预渲染 HTML；服务端产物必须内联客户端入口 script（按 `JSON.stringify` 的转义形态匹配）。这两条断言在修复前都是红的。

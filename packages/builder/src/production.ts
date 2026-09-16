@@ -669,13 +669,23 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
   // RM-V18：client manifest 在内存里传给服务端构建（不再让服务端产物运行时读盘）
   let clientManifestForInjection: Record<string, ClientManifestEntry> | null = null;
 
-  const builtinPlugins: VitePlugin[] = [ubeanAssetManifestPlugin(() => clientManifestForInjection)];
+  // 资产标签虚拟模块**只留一个提供者**（2026-09-16 修复）：有用户 `vite.config` 时由其中的核心
+  // 插件提供（它按「内存 ref → 服务端 outDir 旁的磁盘清单」解析），独立插件只在缺失核心插件的
+  // 那一支补位 —— 两个提供者会各自持 ref，谁先解析谁说了算，实测导致标签内联为空、生产 HTML 既无
+  // 客户端入口 `<script>` 也无样式表。
+  const builtinPlugins: VitePlugin[] = [];
   // RM-V14：`@vitejs/plugin-vue` 的注册已归属 `@ubean/build/vue` 的 `ubeanVite`（用户的
   // `ubeanPlugin()` 里就包含它），这里**不能**再注册一份：重复注册会让 .vue 被编译两次 ——
   // 第二个实例拿到的是已编译成 JS 的代码，报 “At least one <template> or <script> is required”。
   // 实测：dev 路径修掉重复后 build 路径漏改，`ubean build` 直接失败。
   if (!userViteConfig) {
     // 无用户 vite.config:由 builtin 提供全部 ubean 插件
+    builtinPlugins.push(
+      ubeanAssetManifestPlugin(
+        () => clientManifestForInjection,
+        () => outDirs.server
+      )
+    );
     builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
     if (hasPages) {
       builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }), ubeanIslandsPlugin());

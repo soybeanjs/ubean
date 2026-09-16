@@ -165,8 +165,15 @@ describe('resolvePrerenderConfig()', () => {
     expect(resolvePrerenderConfig().concurrency).toBe(4);
   });
 
-  it('staticDir 默认 dist/public', () => {
-    expect(resolvePrerenderConfig().staticDir).toBe('dist/public');
+  // 曾经默认 'dist/public'，但那是个写死的值：`build.outputDir` 被 preset 或 `--outDir` 改动时
+  // 它不跟着动，预渲染会静默写进错误的产物树。现在留空，由 `resolvePrerenderStaticDir()` 从实际的
+  // `build.outputDir` 派生（取值规则见 builder 的 asset-manifest 测试）。
+  it('staticDir 不设默认值（由实际的 build.outputDir 派生）', () => {
+    expect(resolvePrerenderConfig().staticDir).toBeUndefined();
+  });
+
+  it('staticDir 显式配置时原样保留', () => {
+    expect(resolvePrerenderConfig({ staticDir: 'build/site' }).staticDir).toBe('build/site');
   });
 });
 

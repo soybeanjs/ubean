@@ -482,7 +482,12 @@ export interface ResolvedPrerenderConfig {
   crawlLinks: boolean;
   concurrency: number;
   failOnError: boolean;
-  staticDir: string;
+  /**
+   * 预渲染产物的落盘目录。**未设置时派生为 `<build.outputDir>/public`** —— 旧默认值是写死的
+   * `'dist/public'`，于是 `build.outputDir` 一旦被改（preset 自带目录、或 `--outDir`），预渲染
+   * 仍然写进 `dist/public`，静默落到错误的产物树里。
+   */
+  staticDir?: string;
   extractDataPayload: boolean;
 }
 

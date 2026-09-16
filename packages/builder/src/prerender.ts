@@ -5,7 +5,7 @@ import { DATA_PAYLOAD_ID } from '@ubean/pages';
 import type { ScannedPageRoute } from '@ubean/scan';
 import { matchGlob } from '@ubean/shared';
 import type { RouteRule } from '@ubean/shared';
-import { join, dirname } from 'pathe';
+import { join, dirname, isAbsolute } from 'pathe';
 import { STATIC_NOT_FOUND_ROUTE } from './static-render';
 
 const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
@@ -365,6 +365,28 @@ const _logger: Logger = {
   debug: (_msg: string) => {}
 };
 
+/**
+ * 预渲染产物的落盘目录（**唯一**计算处，`prerender()` 与搜索索引共用）。
+ *
+ * 优先用显式配置的 `prerender.staticDir`；未配置时从**本次构建的** `build.outputDir` 派生为
+ * `<outputDir>/public`。
+ *
+ * 为什么不能给 `staticDir` 一个写死的默认值（曾经是 `'dist/public'`）：`build.outputDir` 会被
+ * preset（`dist/aws` 等）与 `--outDir` 改动，而写死的默认值不跟着动 —— 实测 `ubean build --outDir
+ * .temp-x` 的客户端产物落在 `.temp-x/public`，预渲染 HTML 却写进了 `dist/public`：产物被劈成两
+ * 半，且失败是静默的（两边都不报错，只有产物树里少文件）。
+ */
+export function resolvePrerenderStaticDir(
+  cwd: string,
+  buildOutputDir: string,
+  prerenderConfig: Pick<ResolvedPrerenderConfig, 'staticDir'>
+): string {
+  if (prerenderConfig.staticDir) {
+    return isAbsolute(prerenderConfig.staticDir) ? prerenderConfig.staticDir : join(cwd, prerenderConfig.staticDir);
+  }
+  return isAbsolute(buildOutputDir) ? join(buildOutputDir, 'public') : join(cwd, buildOutputDir, 'public');
+}
+
 export async function prerender(options: PrerendererOptions): Promise<PrerenderResult> {
   const startTime = Date.now();
   const config: ResolvedPrerenderConfig = resolvePrerenderConfig(options.prerender);
@@ -379,7 +401,7 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
     return { routes: [], generated: [], errors: [], skipped: [], duration: 0 };
   }
 
-  const outputDir = join(options.cwd, config.staticDir);
+  const outputDir = resolvePrerenderStaticDir(options.cwd, options.outputDir, config);
   const { routes: initialRoutes, skipped: initiallySkipped } = collectPrerenderRoutes(options.pages, {
     all: config.all,
     include: config.include,

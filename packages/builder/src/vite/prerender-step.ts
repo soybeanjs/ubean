@@ -15,7 +15,7 @@ import type { ResolvedConfig } from '@ubean/config';
 import type { ScanResult } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
 import { join, resolve } from 'pathe';
-import { prerender } from '../prerender';
+import { prerender, resolvePrerenderStaticDir } from '../prerender';
 import type { BuildManifest } from '../production';
 import { createStaticSsgRenderer } from '../static-render';
 
@@ -180,7 +180,7 @@ export async function runPrerenderStep(options: RunPrerenderStepOptions): Promis
     const searchConfig = contentMod.resolveContentSearchConfig(config.content as never, {
       ssg: config.mode === 'ssg'
     });
-    const staticDir = resolve(cwd, resolvePrerenderConfig(config.prerender).staticDir);
+    const staticDir = resolvePrerenderStaticDir(cwd, config.build.outputDir, resolvePrerenderConfig(config.prerender));
 
     if (searchConfig.sections) {
       const payload = contentMod.generateSearchSectionsSnapshot(contentSnapshot as never);

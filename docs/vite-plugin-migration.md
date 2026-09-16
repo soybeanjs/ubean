@@ -319,6 +319,9 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 
 **验证**（`cloudflare-preview.test.ts` 的真机用例 + 手工）：完整示例（20 页 / 63 API）构建 cloudflare 产物后，在 miniflare 里 `/` → 200 SSR HTML、`/api/hello` → 200 JSON、`/about` → 200 预渲染 HTML、未命中 → 404 HTML；`/_health` → 200。
 
+
+**产物形态（2026-09-16 追加）**：worker 目标的服务端产物**会压缩**（客户端一直是 `oxc` 压缩，服务端此前统一 `minify: false` 是为了 Node 堆栈可读 —— 但 worker 要上传给平台、冷启动也与体积正相关）。实测示例 worker **2.6 MB → 1.36 MB**（−49%），压缩后仍在 workerd 里正常启动（真机用例）。同时把已弃用的 `inlineDynamicImports` 换成 `codeSplitting: false`（rolldown 打印 WARN 提示的新写法）：三个代表性目标的文件数与体积**逐项不变**（standard 7 文件/448 KB、cloudflare 8 文件、node 24 文件/348 KB），构建日志里的弃用告警消失。
+
 **顺带记下一条使用约束**（不是框架缺陷）：运行时路由 import `ubean/build`（示例里那条 `prerender-test.ts`，为 HTTP 集成测试暴露预渲染 API）会把整条构建工具链打进服务端产物 —— Node 上只是体积浪费，worker 上会在**构建期**失败（工具链的可选依赖 `velocityjs` / `atpl` … 无法打包）。因此**矩阵的 cloudflare 格改用 builder 的最小 fixture** 构建，其余格仍用示例项目；这条约束写进了迁移指南。
 
 **E. 配置里的 `preset` 顶层字段不被读取。** 写临时项目时按 `AGENTS.md` 的示例写了顶层 `preset: 'cloudflare'`，构建产物却是 node 形态（`server/package.json`、没有 `worker.mjs`）—— 实际被读取的是 `build.preset`（`cli/src/build.ts:138` 与 loader 默认值）。文档与实现不一致，登记到 RM-V32 一并修正。

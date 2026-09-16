@@ -75,7 +75,10 @@ export function serverOutputNames(presetBuildConfig: PresetBuildConfig) {
     format: presetBuildConfig.format,
     entryFileNames: 'entry.mjs',
     chunkFileNames: 'chunks/[name]-[hash].mjs',
-    inlineDynamicImports: !isNodeTarget || presetBuildConfig.entryType === 'worker'
+    // rolldown 已弃用 `inlineDynamicImports`（构建时打印 WARN），改用 `codeSplitting: false`。
+    // 语义相同：『非 node 目标把动态 import 也内联进单文件』——worker / fetch 目标必须单文件
+    // （平台只接受一个入口模块）。该字段尚未进 Vite 的类型面，故显式断言。
+    codeSplitting: Boolean(isNodeTarget && presetBuildConfig.entryType !== 'worker')
   };
 }
 
@@ -156,7 +159,10 @@ export function createBuildEnvironments(input: BuildEnvironmentsInput) {
       build: {
         outDir: outDirs.server,
         ssr: true,
-        minify: false,
+        // worker 目标要压缩：产物直接上传给平台（Cloudflare 有体积上限）且冷启动与体积正相关 ——
+        // 实测未压缩的示例 worker **2.6 MB**，压缩后降到 1 MB 上下。node 系目标保持不压缩：
+        // 服务端堆栈可读性优先，体积不是约束。
+        minify: presetBuildConfig.entryType === 'worker' ? ('oxc' as const) : false,
         sourcemap,
         emptyOutDir: false,
         rollupOptions: {

@@ -45,7 +45,7 @@ dev / build / preview 三个生命周期从 CLI 自建编排**下放给 Vite 插
 **平台产物**
 
 - cloudflare preset 的产物**可以在 workerd 里直接跑**（2026-09-16 修复）。生成的 `wrangler.toml` 带 `compatibility_flags = ["nodejs_compat"]` 与 `compatibility_date = "2024-09-23"`（v2 语义才提供 `process` / `Buffer` 全局）；worker 产物全量打包、不含 Node 内建 —— `node:fs` 在构建期被换成会抛错的桩。
-- 三条使用约束：① **不要把 `ubean/build` 这类构建期 API 从运行时路由 import** —— 它会把整条构建工具链打进服务端产物，在 Node 上只是体积浪费（示例项目为 HTTP 集成测试保留了一条这样的路由），在 worker 上则**构建期直接失败**（工具链的可选依赖 `velocityjs` / `atpl` … 无法打包）；② worker 上没有文件系统，静态资源交给平台层（`assets.directory` 已在生成的 `wrangler.toml` 里，`node:fs` 会被换成会抛错的桩），缓存用 `memory` 或 KV/对象存储；③ 运行时用到的依赖都会被内联（worker 解析不到 bare specifier），产物因此明显更大 —— 这是 worker 部署的固有形态，wrangler 打包同样如此。
+- 三条使用约束：① **不要把 `ubean/build` 这类构建期 API 从运行时路由 import** —— 它会把整条构建工具链打进服务端产物，在 Node 上只是体积浪费（示例项目为 HTTP 集成测试保留了一条这样的路由），在 worker 上则**构建期直接失败**（工具链的可选依赖 `velocityjs` / `atpl` … 无法打包）；② worker 上没有文件系统，静态资源交给平台层（`assets.directory` 已在生成的 `wrangler.toml` 里，`node:fs` 会被换成会抛错的桩），缓存用 `memory` 或 KV/对象存储；③ 运行时用到的依赖都会被内联（worker 解析不到 bare specifier），产物因此明显更大 —— 这是 worker 部署的固有形态，wrangler 打包同样如此；服务端产物对 worker 目标**会压缩**（示例 2.6 MB → 1.36 MB），Node 系目标保持不压缩以保留可读堆栈。
 
 ## 4 收敛（RM-V36）与回滚
 

@@ -9,7 +9,7 @@
  * 2. **真机层**（miniflare 在场时才跑）：`miniflare` 是可选 peer，CI 里通常不在；装了才跑，
  *    没装则跳过并说明原因。不假装验证过。
  */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';

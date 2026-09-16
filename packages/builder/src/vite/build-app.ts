@@ -55,6 +55,7 @@ import {
   writeClientIndexHtml,
   writePresetWrapper
 } from './build-steps';
+import { runPrerenderStep } from './prerender-step';
 
 const logger = getLogger('build');
 
@@ -213,7 +214,24 @@ export async function runEnvBuilds(
       })
     : '';
 
-  return writeBuildManifest({ cwd, outDirs, clientManifest, serverEntry, preset, hasPages, hasServer });
+  const builtManifest = await writeBuildManifest({
+    cwd,
+    outDirs,
+    clientManifest,
+    serverEntry,
+    preset,
+    hasPages,
+    hasServer
+  });
+
+  // 注意：这里**暂不**调用 `runPrerenderStep`。预渲染会 `import()` 构建好的 SSR entry，而
+  // 那会把应用侧的 handle（cron 调度器、队列 worker、数据库连接…）带进当前进程 —— CLI 的
+  // build 命令随后显式退出所以看不出来，`vite build` 则**挂住不退**（实测：预渲染完成、
+  // 打了 "Prerendered 8 routes"，进程 13 分钟仍存活）。要接的话需要先给出「预渲染后如何
+  // 干净收尾」的方案（对齐 CLI 的退出路径或让 fetcher 支持 teardown）。
+  void runPrerenderStep;
+
+  return builtManifest;
 }
 
 /**

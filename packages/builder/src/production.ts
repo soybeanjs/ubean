@@ -35,6 +35,7 @@ import {
   writeClientIndexHtml,
   writePresetWrapper
 } from './vite/build-steps';
+import { runPrerenderStep } from './vite/prerender-step';
 import {
   ubeanVite,
   createVuePagesVirtualModule,
@@ -760,7 +761,7 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     });
   }
 
-  return writeBuildManifest({
+  const builtManifest = await writeBuildManifest({
     cwd,
     outDirs,
     clientManifest,
@@ -769,6 +770,13 @@ export async function buildProduction(options: BuildOptions): Promise<BuildManif
     hasPages,
     hasServer
   });
+
+  // 预渲染与内容搜索索引（RM-V21）：与新路径（`runEnvBuilds`）共用同一步，因此 CLI 的
+  // build 命令不再自己调 `prerender()` —— 那段逻辑已下沉到 `@ubean/build`，两条路径都要走，
+  // 否则其中一条（实测是 CLI 这条）会静默丢掉全部静态 HTML。
+  await runPrerenderStep({ cwd, config, scanResult, manifest: builtManifest, contentSnapshot });
+
+  return builtManifest;
 }
 
 export { buildWithEnvironments } from './vite/build-app';

@@ -68,6 +68,7 @@ in-scope 四项耗时指标 + 一项正确性对照。定义必须可复现、�
 | 变更生效 · 服务端 | 写入 API 路由 → `GET` 响应出现新值的墙钟 | 文件写入 + HTTP 轮询断言标记 | RM-P01 |
 | 变更生效 · 客户端 | 写入客户端模块 → 该模块被重新转换并在模块请求中返回新内容的墙钟 | 文件写入 + 轮询模块端点（不依赖 Vite stdout 日志：实测无浏览器连接时一条都不打印）。**改文件前必须先请求一次该模块预热**，否则「改后第一次请求」本来就没有转换缓存可比，测到的是首次请求耗时而非失效传播耗时（详见 §2.2） | RM-P01 |
 | build 墙钟 | build 命令墙钟 | 子进程计时 | RM-P01 |
+| build CPU 时间 | build 进程树累计 CPU（user+sys） | `ps` 采样逐 pid 取最大值求和（50ms） | RM-V23（2026-09-16 追加） |
 | build 峰值 RSS | 构建进程树 RSS 峰值 | `psSnapshot` / `treeRssKB`（50ms 轮询求和） | RM-P01 |
 | reload 正确性 | 变更后**无关模块**的实例状态是否保留（是 / 否，非耗时） | 探针路由（`examples/ubean-test/src/routes/api/perf-probe.ts`）暴露模块级实例标识，改无关文件触发 reload 前后各读一次；仅在本次变更已生效时判读（否则是假阴性） | RM-P04 |
 | 浏览器 · 首个岛屿水合 | 导航到 `/islands-test` → 第一个岛屿带上 `data-hydrated` 的墙钟（页面时钟，timeOrigin 即导航起点） | 真实 Chromium：init script 在页面脚本前挂 `attributeFilter: ['data-hydrated']` 的观察器。取「第一个」而非「全部」：页面上刻意混用 idle / visible 指令，等全部会把 2s idle 超时算进来 | RM-P07 |
@@ -147,6 +148,29 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 3. **归因未做**。峰值 +70MB 与墙钟 +0.35s 的合理怀疑方向是「单进程同时持有 client / ubean 两个环境的模块图（legacy 是两次顺序 `viteBuild`，中间可回收）」以及 `vp` 侧的原生 rolldown 内存，但**未逐段埋点**，保留为「已刻画、未归因」。
 
 **build 臂的生效证明（新增，RM-V23）**：dev 臂靠「无 CLI 的 `vp dev` 能服务应用」自证，build 臂原先没有任何证明（两臂都跑 `ubean build`，而两条 CLI 路径的构建日志除产物路径字符串外**逐行相同** —— 实测 diff 过，没有可断言的标记位）。现改为 build 臂跑 `pnpm exec vp build`：没有 CLI，服务端 bundle 与预渲染 HTML 只可能来自插件注册的 `builder.buildApp`。保障比 dev 臂更硬 —— 实测**不带开关的 `vp build` 直接硬失败**（`Cannot resolve entry module index.html`，exit 1，零产物），连退化产物都产不出。`assertBuildEngaged`（断言 `dist/manifest.json` + `dist/server/` + 至少一个预渲染 HTML）是第一格构建后的第二道防线，防「退出 0 但只出半套产物」。**代价**：两臂命令不同（含 `pnpm exec` 派发），与 dev 臂同构，报告脚注中明示，不假装是纯单变量对比。
+
+### 6.3 宿主满载时的口径：CPU 时间（2026-09-16）
+
+RM-V23 的绝对性能对照一直卡在宿主负载上（`load average` 长期 10–16，3 个用户在用）：同一 legacy 臂
+的墙钟在 1.62s（冻结基线当天）与 1.90s（今天）之间摆动，误差与待测差异同阶。与其等安静环境，不如换口径 ——
+基准脚本现在**同时采集 build 进程树的累计 CPU 时间**（`ps` 每 50ms 采样，逐 pid 取「见过的最大累计值」
+再求和：进程退出后 ps 就看不到它，取最大值才不会丢掉长命子进程已经消耗的时间）。
+
+实测（`--arms cli,vite --skip-dev --skip-browser --runs 5 --warmup 1`，采集时 load 16.1）：
+
+| 指标 | cli（`pnpm exec ubean build`） | vite（`pnpm exec vp build`） |
+| --- | --- | --- |
+| 墙钟 p50 | 1.90s（样本 1786–1997ms） | 2.17s（样本 2120–2590ms） |
+| **CPU p50** | **2.79s**（样本 2650–2850ms） | **3.02s**（样本 2860–3280ms） |
+| 峰值 RSS p50 | 630MB | 706MB |
+
+两条结论：① **CPU 时间对负载不敏感**（样本区间比墙钟窄得多），是满载环境下可比的指标；② 两个入口
+共用同一套生命周期（RM-V36 之后），差异来自入口本身 —— vite 入口多花约 **+0.27s CPU（+10%）与
++76MB 峰值 RSS**，与墙钟差（+0.27s）吻合，不再需要「派发开销」这类猜测。
+
+**绝对对照仍然开着**，而且**收敛后已不可补**：冻结基线只有墙钟（RM-P05 规定必须在旧实现上产出，
+而旧实现已随 RM-V36 删除），因此 CPU 口径没有基线可比。要下「新实现是否比旧实现慢」的结论，只能在
+安静环境上重跑 cli 臂并与 1.62s 对照；今天在 load 16 上测得的 +17% 不构成结论。
 
 **干净产物约束（新增）**：build 阶段在每臂开始前 `rm -rf dist`。原脚本会沿用上一臂留下的 `dist`（两条路径都设 `emptyOutDir: false`，`analyze` 又按目录统计），臂间残留会让体积类结论失真。
 

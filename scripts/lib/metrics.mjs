@@ -17,37 +17,54 @@ const execFileAsync = promisify(execFile);
 
 /** 快照当前全部进程 {pid → {ppid, rssKB}}（ps 输出，macOS/Linux 通用） */
 export async function psSnapshot() {
-  const { stdout } = await execFileAsync('ps', ['-axo', 'pid=,ppid=,rss=']);
+  // `time=` 是累计 CPU 时间（`MM:SS` / `HH:MM:SS` 形式）—— 与墙钟不同，它在宿主满载时依然可比，
+  // 因此构建类指标可以拿它做对照（本机 load average 长期 10+，墙钟对照早已不可信）。
+  const { stdout } = await execFileAsync('ps', ['-axo', 'pid=,ppid=,rss=,time=']);
   const map = new Map();
   for (const line of stdout.split('\n')) {
     const parts = line.trim().split(/\s+/);
-    if (parts.length < 3) continue;
+    if (parts.length < 4) continue;
     const [pid, ppid, rss] = parts.map(Number);
+    const cpuMs = parseCpuTime(parts[3]);
     if (Number.isFinite(pid) && Number.isFinite(rss)) {
-      map.set(pid, { ppid, rssKB: rss });
+      map.set(pid, { ppid, rssKB: rss, cpuMs });
     }
   }
   return map;
 }
 
-/** 自 rootPid 向下收集整棵进程树的 RSS 之和（KB） */
-export function treeRssKB(rootPid, snapshot) {
+/** `MM:SS` / `HH:MM:SS` / `MM:SS.ss` → 毫秒 */
+export function parseCpuTime(text) {
+  const parts = String(text).split(':');
+  let seconds = 0;
+  for (const part of parts) seconds = seconds * 60 + Number.parseFloat(part || '0');
+  return Number.isFinite(seconds) ? Math.round(seconds * 1000) : 0;
+}
+
+/** 自 rootPid 向下收集整棵进程树的 pid。 */
+export function treePids(rootPid, snapshot) {
   const childrenOf = new Map();
   for (const [pid, { ppid }] of snapshot) {
     if (!childrenOf.has(ppid)) childrenOf.set(ppid, []);
     childrenOf.get(ppid).push(pid);
   }
-  let total = 0;
+  const pids = [];
   const stack = [rootPid];
   const seen = new Set();
   while (stack.length) {
     const pid = stack.pop();
     if (seen.has(pid)) continue;
     seen.add(pid);
-    const info = snapshot.get(pid);
-    if (info) total += info.rssKB;
+    pids.push(pid);
     for (const c of childrenOf.get(pid) || []) stack.push(c);
   }
+  return pids;
+}
+
+/** 自 rootPid 向下收集整棵进程树的 RSS 之和（KB）。 */
+export function treeRssKB(rootPid, snapshot) {
+  let total = 0;
+  for (const pid of treePids(rootPid, snapshot)) total += snapshot.get(pid)?.rssKB ?? 0;
   return total;
 }
 
@@ -57,6 +74,8 @@ export function treeRssKB(rootPid, snapshot) {
  */
 export function startRssSampler(rootPid, intervalMs = 50) {
   let peakRssKB = 0;
+  /** pid → 该进程见过的最大累计 CPU 时间（进程退出后仍保留，避免丢失长命子进程的消耗）。 */
+  const cpuByPid = new Map();
   let busy = false;
   const timer = setInterval(() => {
     if (busy) return;
@@ -65,6 +84,12 @@ export function startRssSampler(rootPid, intervalMs = 50) {
       .then(snapshot => {
         const rss = treeRssKB(rootPid, snapshot);
         if (rss > peakRssKB) peakRssKB = rss;
+        // 逐 pid 记**见过的最大累计 CPU**：进程退出后 ps 就看不到它，取最大值才不会丢掉长命子进程
+        // 已经消耗掉的时间。
+        for (const pid of treePids(rootPid, snapshot)) {
+          const cpuMs = snapshot.get(pid)?.cpuMs ?? 0;
+          if (cpuMs > (cpuByPid.get(pid) ?? 0)) cpuByPid.set(pid, cpuMs);
+        }
       })
       .catch(() => {
         /* ps 不可用时跳过本次采集 */
@@ -75,9 +100,17 @@ export function startRssSampler(rootPid, intervalMs = 50) {
   }, intervalMs);
 
   return {
+    /** 峰值 RSS（KB）。 */
     stop() {
       clearInterval(timer);
       return peakRssKB;
+    },
+    /** 整棵树的累计 CPU 时间（ms，user+sys）。 */
+    stopCpuMs() {
+      clearInterval(timer);
+      let total = 0;
+      for (const ms of cpuByPid.values()) total += ms;
+      return total;
     }
   };
 }

@@ -10,6 +10,8 @@
  * - devChangeServer         写入 API 路由 → 该变更在 HTTP 响应中可见的墙钟
  * - devChangeClient         写入客户端模块 → 该模块重新转换并返回新内容的墙钟
  * - buildWall               build 命令墙钟
+ * - buildWall               build 命令墙钟（宿主满载时不可比，与 buildCpu 并列读）
+ * - buildCpu                build 进程树的累计 CPU 时间（user+sys；对宿主负载不敏感）
  * - buildPeakRss            build 进程树峰值内存（50ms 轮询 ps）
  * - browserHydration        浏览器：导航到 islands 页面 → 首个岛屿水合的墙钟（RM-P07）
  * - browserNavigation       浏览器：首页点击站内链接 → 新页面 DOM 提交的墙钟（RM-P07）
@@ -413,12 +415,13 @@ async function measureBuild(arm) {
   const sampler = startRssSampler(child.pid, 50);
   const exitCode = await exited;
   const peakRssKB = sampler.stop();
+  const cpuMs = sampler.stopCpuMs();
   const wallMs = performance.now() - started;
-  return { wallMs, peakRssKB, exitCode, stdout: readStdout(), stderr: readStderr() };
+  return { wallMs, peakRssKB, cpuMs, exitCode, stdout: readStdout(), stderr: readStderr() };
 }
 
 async function runBuildPhase(arm) {
-  const samples = { buildWall: [], buildPeakRss: [] };
+  const samples = { buildWall: [], buildPeakRss: [], buildCpu: [] };
   const total = warmup + runs;
   // 干净产物：两条路径都设 `emptyOutDir: false`，上一臂/上一次的残留会让产物目录累积 ——
   // 这正是「体积断言把残留读成回归」那次的成因（见 vite-plugin-migration.md 的自我更正）。
@@ -451,10 +454,11 @@ async function runBuildPhase(arm) {
         );
       }
     }
-    console.log(`wall ${fmtMs(result.wallMs)}, peak ${fmtMB(result.peakRssKB)}`);
+    console.log(`wall ${fmtMs(result.wallMs)}, cpu ${fmtMs(result.cpuMs)}, peak ${fmtMB(result.peakRssKB)}`);
     if (!isWarmup) {
       samples.buildWall.push(result.wallMs);
       samples.buildPeakRss.push(result.peakRssKB);
+      samples.buildCpu.push(result.cpuMs);
     }
   }
   return { samples };
@@ -472,6 +476,7 @@ function summarizeArm(samples) {
     devChangeServer: summarizeSamples(samples.serverChange),
     devChangeClient: summarizeSamples(samples.clientChange),
     buildWall: summarizeSamples(samples.buildWall),
+    buildCpu: summarizeSamples(samples.buildCpu ?? []),
     buildPeakRss: summarizeSamples(samples.buildPeakRss),
     reloadScope: summarizeReloadScope(samples.scope ?? [])
   };
@@ -529,7 +534,8 @@ async function main() {
       hydration: [],
       navigation: [],
       buildWall: [],
-      buildPeakRss: []
+      buildPeakRss: [],
+      buildCpu: []
     };
     const notes = [];
 
@@ -542,6 +548,7 @@ async function main() {
       const buildPhase = await runBuildPhase(arm);
       armSamples.buildWall = buildPhase.samples.buildWall;
       armSamples.buildPeakRss = buildPhase.samples.buildPeakRss;
+      armSamples.buildCpu = buildPhase.samples.buildCpu;
     }
 
     report.arms[name] = {
@@ -582,6 +589,8 @@ async function main() {
   row('变更生效 · 服务端', 'devChangeServer', fmtMs);
   row('变更生效 · 客户端', 'devChangeClient', fmtMs);
   row('build 墙钟', 'buildWall', fmtMs);
+  // CPU 时间与墙钟并列：宿主满载时墙钟不可比，CPU 时间仍可比（本机 load 长期 10+）
+  row('build CPU 时间', 'buildCpu', fmtMs);
   row('build 峰值内存', 'buildPeakRss', fmtMB);
 
   const table = lines.join('\n');

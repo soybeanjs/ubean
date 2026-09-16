@@ -164,3 +164,19 @@ export function setRuntimeEnv(env: Record<string, unknown>) {
 export function useRuntimeEnv<T = string>(key: string, defaultValue?: T): T {
   return (_runtimeEnv[key] ?? defaultValue) as T;
 }
+
+/**
+ * 当前是否运行在 Node 系运行时（Node / Bun / Deno 的 node 兼容层）上。
+ *
+ * 用途：**把 Node 专用能力挡在动态 import 里**。Cloudflare Workers 这类运行时没有 `node:fs`
+ * （即使开 `nodejs_compat` 也不支持），而打包器会把「静态 import 的 node 内建」留在产物里 ——
+ * workerd 在**模块实例化**阶段就会失败（`No such module "node:fs/promises"`），根本轮不到分支
+ * 判断。因此判据必须是运行时的，且 `import()` 必须写在分支内部（动态 import 只在执行时才解析）。
+ *
+ * 判定用 `process.versions.node` 而不是 `typeof process`：bundler 常会把 `process` 替身注入浏览器
+ * 产物，只看 `process` 会在 worker/browser 里误判为真。
+ */
+export function isNodeRuntime(): boolean {
+  const proc = (globalThis as { process?: { versions?: { node?: string; bun?: string; deno?: string } } }).process;
+  return typeof proc?.versions?.node === 'string' || typeof proc?.versions?.bun === 'string';
+}

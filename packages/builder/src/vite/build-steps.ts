@@ -157,10 +157,19 @@ export async function writePresetWrapper(options: PresetWrapperOptions): Promise
 
   if (presetBuildConfig.entryType === 'worker') {
     await writeFile(join(outDirs.server, 'worker.mjs'), entries.worker(), 'utf-8');
+    // `nodejs_compat` 是必需的：产物里的 `node:crypto`（CSRF / draft-mode 的 HMAC）、
+    // `node:async_hooks`（i18n / 请求作用域的 ALS）与 `node:path` 都靠它；缺了标志 workerd 以
+    // `No such module` 起不来。`node:fs` 则靠构建期的桩（见 vite/shims）—— 它不在 nodejs_compat
+    // 支持范围内。
+    //
+    // 日期取 **2024-09-23** 而不是更早：`nodejs_compat` 从这一天起按 **v2** 生效，才会提供
+    // `process` 这类全局 —— 旧日期下 vue-i18n 顶层的 `process.env.NODE_ENV` 会让 worker 在实例化
+    // 时直接 `ReferenceError: process is not defined`（实测）。
     const wranglerToml = `
 name = "ubean-app"
 main = "./server/worker.mjs"
-compatibility_date = "2024-01-01"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
 assets = { directory = "./public" }
 `.trim();
     await writeFile(join(outDirs.root, 'wrangler.toml'), wranglerToml, 'utf-8');

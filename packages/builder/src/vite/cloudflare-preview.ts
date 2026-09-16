@@ -40,6 +40,8 @@ export interface CloudflarePreviewOptions {
   workerPath: string;
   /** 兼容性日期（来自 preset；缺省用 wrangler.toml 同款默认值）。 */
   compatibilityDate?: string;
+  /** 兼容性标志（来自 wrangler.toml；缺省为 `['nodejs_compat']`，与生成的配置一致）。 */
+  compatibilityFlags?: string[];
   /** 测试注入点：默认动态 import `miniflare`。 */
   loadMiniflare?: () => Promise<MiniflareConstructorLike | null>;
 }
@@ -87,7 +89,14 @@ export async function defaultLoadMiniflare(): Promise<MiniflareConstructorLike |
 export async function createCloudflarePreviewRunner(
   options: CloudflarePreviewOptions
 ): Promise<CloudflarePreviewResult> {
-  const { workerPath, compatibilityDate = DEFAULT_COMPATIBILITY_DATE, loadMiniflare = defaultLoadMiniflare } = options;
+  const { workerPath, compatibilityDate, compatibilityFlags, loadMiniflare = defaultLoadMiniflare } = options;
+
+  // 兼容性日期与标志**默认从产物旁的 wrangler.toml 读**：它们必须与部署用的一致，否则会出现
+  // 「预览能跑、部署起不来」或反之（实测：日期早于 2024-09-23 时 `nodejs_compat` 按 v1 生效，
+  // 没有 `process` / `Buffer` 这类全局，SSR 直接 500）。
+  const wranglerToml = resolve(dirname(workerPath), '..', 'wrangler.toml');
+  const resolvedDate = compatibilityDate ?? readCompatibilityDate(wranglerToml) ?? DEFAULT_COMPATIBILITY_DATE;
+  const resolvedFlags = compatibilityFlags ?? readCompatibilityFlags(wranglerToml) ?? ['nodejs_compat'];
 
   if (!existsSync(workerPath)) {
     return {
@@ -116,7 +125,8 @@ export async function createCloudflarePreviewRunner(
     // 模块名里的 `..` 报 `can't use ".." to break out of starting directory`）。
     modulesRoot: commonAncestor(process.cwd(), dirname(workerPath)),
     modules: workerModuleEntries(workerPath),
-    compatibilityDate
+    compatibilityDate: resolvedDate,
+    compatibilityFlags: resolvedFlags
   });
 
   try {
@@ -185,6 +195,22 @@ function commonAncestor(a: string, b: string): string {
     common.push(partsA[i]);
   }
   return common.join(sep) || sep;
+}
+
+/** 从 wrangler.toml 里取 `compatibility_flags`（预览必须与部署用同一组标志）。 */
+export function readCompatibilityFlags(wranglerToml: string): string[] | undefined {
+  if (!existsSync(wranglerToml)) return undefined;
+  try {
+    const match = /compatibility_flags\s*=\s*\[([^\]]*)\]/.exec(readFileSync(wranglerToml, 'utf-8'));
+    if (!match) return undefined;
+    const flags = match[1]
+      .split(',')
+      .map(part => part.trim().replace(/^["']|["']$/g, ''))
+      .filter(Boolean);
+    return flags.length > 0 ? flags : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 /** 从 wrangler.toml 里取兼容性日期（preset 生成的文件就是它的产物契约）。 */

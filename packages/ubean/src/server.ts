@@ -7,7 +7,11 @@
  * - `@ubean/app` — Hono 应用工厂(`createUbeanApp`)+ `defineServer` + `applyServerConfig`
  * - `@ubean/routes` — API 路由运行时(`defineHandler`/`defineAction`/ISR/route-rules/OpenAPI)
  * - `@ubean/server` — 服务端能力域(cache/db/queue/cron/ws/sse/storage/middleware…)
- * - `@ubean/shared/node` — Node-only 工具(端口探测 / vite 配置探测)
+ *
+ * **不**重导出 `@ubean/shared/node`：那是 Node-only 工具（端口探测 / 网卡枚举 / vite 配置探测），
+ * 一旦进 barrel 就会被每个服务端图拉进来 —— 包括 Cloudflare Worker 这类没有 `node:net` /
+ * `node:os` 的运行时（实测：worker 产物因此含 `node:net` / `node:os`，workerd 启动即失败）。
+ * 需要它们时从 `@ubean/shared/node` 显式导入。
  * - `hono-openapi` — `validator`/`describeRoute` 等(原主入口重导出,随服务端域迁入)
  * - `@ubean/shared/logger/hono` — Hono 请求日志中间件
  *
@@ -21,7 +25,6 @@
 export * from '@ubean/app';
 export * from '@ubean/server';
 export * from '@ubean/routes';
-export * from '@ubean/shared/node';
 
 // ============== hono-openapi 重导出(对齐原 ubean 主入口行为,随服务端域迁入)==============
 export { validator, describeRoute, resolver, openAPIRouteHandler } from 'hono-openapi';

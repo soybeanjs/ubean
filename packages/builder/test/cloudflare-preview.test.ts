@@ -173,6 +173,67 @@ describe('findUnsupportedNodeImports（构建期审计）', () => {
   });
 });
 
+/**
+ * 真机验收：**构建出来的 cloudflare 产物**能在 workerd 里启动并服务请求（缺陷 D 的回归判据）。
+ *
+ * 需要 `miniflare`（可选 peer，仓库不装）+ 一次真实 cloudflare 构建（约 5s），因此与上面那条
+ * 「合成 worker」用例一样按依赖在场与否跳过。跑法见 docs/vite-plugin-migration.md 的 RM-V26。
+ */
+describe('真实 miniflare：cloudflare 产物（依赖在场时才跑）', () => {
+  it('产物在 workerd 里启动，SSR / API / 404 都正常', async ctx => {
+    const loadMiniflare = await defaultLoadMiniflare();
+    if (!loadMiniflare) {
+      ctx.skip('miniflare 未安装：pnpm add -D miniflare 后本条才会执行');
+      return;
+    }
+
+    const { spawnSync } = await import('node:child_process');
+    const repoRoot = resolve(import.meta.dirname, '../../..');
+    // 用 builder 的最小 fixture 而不是示例项目：示例里有一条测试路由 import `ubean/build`，
+    // 会把整条构建工具链（@vue/compiler-sfc → 可选依赖 velocityjs）拉进 worker 产物 —— 那是
+    // 示例自身的用法问题，会淹没这里要验证的东西（产物能否在 workerd 里跑起来）。
+    const fixture = join(repoRoot, 'packages/builder/test/fixtures/build-project');
+    const outDir = '.temp-cf-preview';
+    const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
+    if (!existsSync(cliEntry)) {
+      ctx.skip('CLI 未构建：先跑 pnpm build');
+      return;
+    }
+
+    const build = spawnSync(process.execPath, [cliEntry, 'build', '--preset', 'cloudflare', '--outDir', outDir], {
+      cwd: fixture,
+      env: { ...process.env, NODE_ENV: 'production' },
+      stdio: 'pipe'
+    });
+    expect(build.status, String(build.stderr).slice(-800)).toBe(0);
+
+    const builtWorker = join(fixture, outDir, 'server', 'worker.mjs');
+    const result = await createCloudflarePreviewRunner({
+      workerPath: builtWorker,
+      loadMiniflare: async () => loadMiniflare
+    });
+    expect(result.ok, result.ok ? '' : result.message).toBe(true);
+    if (!result.ok) return;
+
+    try {
+      const health = await result.runner.fetch(new Request('http://localhost/_health'));
+      expect(health.status).toBe(200);
+
+      // SSR 渲染（这条最要紧：它证明 Vue SSR + i18n 的 ALS 在 worker 里可用）
+      const home = await result.runner.fetch(new Request('http://localhost/'));
+      expect(home.status).toBe(200);
+      expect(home.headers.get('content-type')).toContain('text/html');
+      expect(await home.text()).toContain('<div id="app"');
+
+      const api = await result.runner.fetch(new Request('http://localhost/hello'));
+      expect(api.status).toBe(200);
+      expect(api.headers.get('content-type')).toContain('application/json');
+    } finally {
+      rmSync(join(fixture, outDir), { recursive: true, force: true });
+    }
+  }, 300_000);
+});
+
 describe('真实 miniflare（依赖在场时才跑）', () => {
   it('worker 产物在 miniflare 里真实响应', async ctx => {
     const loadMiniflare = await defaultLoadMiniflare();

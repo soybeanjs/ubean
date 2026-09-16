@@ -47,6 +47,15 @@ export function clientOutputNames() {
  * 提供，运行时不存在）。因此统一在派生处剔除，两条路径共用同一判断。
  */
 export function serverExternal(presetBuildConfig: PresetBuildConfig): (string | RegExp)[] {
+  // worker 目标**没有任何外部依赖**：worker 运行时只认产物里已有的模块（外加 `nodejs_compat`
+  // 覆盖的内建），留着 `hono` / `vue` 这类 bare specifier 会让 workerd 报
+  // `No such module "hono"`（实测：miniflare 启动即失败）。wrangler 打包 worker 时同样是
+  // 「全部内联」，这里与之对齐。
+  //
+  // 已知约束：运行时路由若 import `ubean/build` 这类**构建期 API**，整条工具链会进入 worker 图，
+  // 而它含无法打包的可选依赖（`@vue/compiler-sfc` → consolidate 的 `velocityjs` / `atpl` …），
+  // 构建会直接失败并点出缺哪个包。那类路由属 Node-only，见 migration-guide 的平台约束一节。
+  if (presetBuildConfig.entryType === 'worker') return [];
   return presetBuildConfig.external.filter(entry => !(entry instanceof RegExp && entry.source.startsWith('^ubean')));
 }
 
@@ -118,11 +127,31 @@ export function createBuildEnvironments(input: BuildEnvironmentsInput) {
     },
     ubean: {
       consumer: 'server' as const,
+      // worker 目标的全局垫片（逐条都是实测撞出来的）：
+      // - `process.env.NODE_ENV`：vue-i18n 在**顶层**读它（开发态分支），worker 里 `process` 的
+      //   可用性取决于兼容标志与日期 —— 直接定死（本来就是生产构建）；
+      // - `global`：部分依赖用 Node 的 `global` 而非 `globalThis`（实测 `global is not defined`）。
+      ...(presetBuildConfig.entryType === 'worker'
+        ? {
+            define: {
+              'process.env.NODE_ENV': '"production"',
+              global: 'globalThis'
+            } as Record<string, string>
+          }
+        : {}),
       resolve: {
-        // 旧路径的 `ssr.noExternal`：把 `@ubean/*` 内联进 SSR 图，否则各包从自身
-        // node_modules 解析，虚拟模块 import 会以裸 specifier 泄漏给 Node。
-        noExternal: ssrNoExternal,
-        external: ['@ubean/i18n']
+        // worker 目标必须**全部打包**：SSR 构建默认把依赖外部化（node 目标正是靠这个把
+        // hono/vue 留给运行时），而 worker 运行时只认「产物里已有的模块 + `nodejs_compat`
+        // 覆盖的内建」—— 留着 bare specifier 会让 workerd 报
+        // `No such module "hookable"`（实测：miniflare 启动即失败）。此时连 `@ubean/i18n`
+        // 也不能外部化，否则同样解析不到。
+        //
+        // node 系目标沿用旧路径的 `ssr.noExternal`：把 `@ubean/*` 内联进 SSR 图，否则各包从
+        // 自身 node_modules 解析，虚拟模块 import 会以裸 specifier 泄漏给 Node。
+        // `noExternal` 的输入类型不接受 `true`（那是解析后类型才有的形态），用「匹配一切」的正则
+        // 表达同一语义：**所有依赖都内联**。
+        noExternal: presetBuildConfig.entryType === 'worker' ? [/./] : ssrNoExternal,
+        external: presetBuildConfig.entryType === 'worker' ? [] : ['@ubean/i18n']
       },
       build: {
         outDir: outDirs.server,

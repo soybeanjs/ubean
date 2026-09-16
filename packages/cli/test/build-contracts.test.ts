@@ -25,6 +25,14 @@ import { afterAll, describe, expect, it } from 'vitest';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
+/**
+ * worker 目标（cloudflare）改用 builder 的最小 fixture：示例项目里有一条 **Node-only 的测试路由**
+ * （`src/routes/api/prerender-test.ts` 直接 import `ubean/build`，为 HTTP 集成测试暴露预渲染 API），
+ * 它的整条构建工具链在 worker 图里含无法打包的可选依赖（`@vue/compiler-sfc` → `velocityjs` / `atpl` …），
+ * 构建会在解析阶段失败。这是**使用约束而不是框架缺陷**（运行时路由不该 import 构建期 API），
+ * 因此这一格换到没有该路由的真实项目上，其余格仍用示例。
+ */
+const workerFixtureDir = join(repoRoot, 'packages/builder/test/fixtures/build-project');
 const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
 /** 各格产物目录前缀（都在 fixture 内、跑完删除）。 */
 const OUT = '.temp-build';
@@ -54,6 +62,8 @@ const PRESET_CONTRACTS = [
 ] as const;
 
 function cleanup(): void {
+  rmSync(join(workerFixtureDir, `${OUT}-preset-cloudflare`), { recursive: true, force: true });
+  rmSync(join(workerFixtureDir, '.ubean'), { recursive: true, force: true });
   const dirs = [
     `${OUT}-base`,
     `${OUT}-no-cfg`,
@@ -113,10 +123,10 @@ function expectBuildOutputContract(label: string, outDir: string): void {
 }
 
 /** 跑一次构建并等它退出（构建挂住会在这里超时，本身就是回归）。 */
-function build(outDir: string, extraArgs: string[] = [], timeoutMs = 300_000): Promise<void> {
+function build(outDir: string, extraArgs: string[] = [], timeoutMs = 300_000, cwd = fixtureDir): Promise<void> {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(process.execPath, [cliEntry, 'build', '--outDir', outDir, ...extraArgs], {
-      cwd: fixtureDir,
+      cwd,
       // NODE_ENV 固定：见文件头第 2 条
       env: { ...process.env, NODE_ENV: 'production' },
       stdio: ['ignore', 'pipe', 'pipe']
@@ -166,10 +176,12 @@ describe('构建产物契约（RM-V23 矩阵 / RM-V36 重写）', () => {
     'preset $preset：包装文件符合该 preset 契约',
     async ({ preset, wrapper, rootFile }) => {
       const outDir = `${OUT}-preset-${preset}`;
-      rmSync(join(fixtureDir, outDir), { recursive: true, force: true });
+      // worker 目标在最小 fixture 上构建（原因见 `workerFixtureDir` 的说明）
+      const cwd = preset === 'cloudflare' ? workerFixtureDir : fixtureDir;
+      rmSync(join(cwd, outDir), { recursive: true, force: true });
 
-      await build(outDir, ['--preset', preset]);
-      const artifacts = listArtifacts(join(fixtureDir, outDir));
+      await build(outDir, ['--preset', preset], 300_000, cwd);
+      const artifacts = listArtifacts(join(cwd, outDir));
 
       expect(artifacts).toContain(wrapper);
       if (rootFile) expect(artifacts).toContain(rootFile);

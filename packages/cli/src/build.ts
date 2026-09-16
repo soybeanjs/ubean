@@ -192,6 +192,12 @@ export const buildCommand: CommandDef = {
         (config.build as { outputDir: string }).outputDir = String(args.outDir);
       }
 
+      // 解析出来的 preset 通过环境变量传给插件：`--preset` 是 CLI 侧改的配置，而插件实例读的是
+      // **它自己那份**配置副本（用户 `vite.config.ts` 里的 `ubeanPlugin()`），看不到这个改动 ——
+      // 涉及「按目标分流」的行为（worker 的 node 内建桩、`process.env` 垫片）就会按默认 preset 走，
+      // 实测表现为 cloudflare 产物里残留 `node:fs/promises`、workerd 启动即失败。
+      process.env.UBEAN_BUILD_PRESET = resolvedPreset.name;
+
       const { snapshot: contentSnapshot } = await loadContentForBuild(cwd, config.content);
       // RM-V36 收敛：`ubean build` 与 `vite build` 走同一条 builder 路径（旧编排的两段
       // `viteBuild` 已删除）。编排权由 `buildWithEnvironments()` 自己声明（`UBEAN_BUILD_DRIVEN_BY_CLI`），

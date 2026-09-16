@@ -12,7 +12,7 @@
 /* -------------------------------------------------------------------------- */
 export {
   createMemoryStore,
-  createFsCacheStore,
+  loadFsCacheStore,
   createStorageCacheStore,
   useCacheStore,
   clearCacheStore,

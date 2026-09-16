@@ -42,9 +42,10 @@ dev / build / preview 三个生命周期从 CLI 自建编排**下放给 Vite 插
 - cloudflare 产物经 miniflare 预览（可选依赖 `miniflare`；缺失时给出安装提示与 `wrangler dev` 的替代方案）。
 - **spa 模式现在会产出 `public/index.html`**（带客户端入口 script 与样式表）。此前 spa 产物只有 `assets/`，部署出去没有入口文件 —— 站点文档一直承诺的是「static `index.html` + assets」，实现与文档不符，RM-V36 收敛时按 mode 断言产物才发现。
 
-**平台产物（需要留意）**
+**平台产物**
 
-- cloudflare preset 的产物**当前无法在 workerd 里启动**（模块图带 `node:fs/promises` 等 Node 内建，workerd 即使开 `nodejs_compat` 也不支持）。构建时会打印审计告警。修法是让 Node 专有路径在 worker 构建里消失，属独立一笔；验收工具已就位（miniflare runner）。
+- cloudflare preset 的产物**可以在 workerd 里直接跑**（2026-09-16 修复）。生成的 `wrangler.toml` 带 `compatibility_flags = ["nodejs_compat"]` 与 `compatibility_date = "2024-09-23"`（v2 语义才提供 `process` / `Buffer` 全局）；worker 产物全量打包、不含 Node 内建 —— `node:fs` 在构建期被换成会抛错的桩。
+- 三条使用约束：① **不要把 `ubean/build` 这类构建期 API 从运行时路由 import** —— 它会把整条构建工具链打进服务端产物，在 Node 上只是体积浪费（示例项目为 HTTP 集成测试保留了一条这样的路由），在 worker 上则**构建期直接失败**（工具链的可选依赖 `velocityjs` / `atpl` … 无法打包）；② worker 上没有文件系统，静态资源交给平台层（`assets.directory` 已在生成的 `wrangler.toml` 里，`node:fs` 会被换成会抛错的桩），缓存用 `memory` 或 KV/对象存储；③ 运行时用到的依赖都会被内联（worker 解析不到 bare specifier），产物因此明显更大 —— 这是 worker 部署的固有形态，wrangler 打包同样如此。
 
 ## 4 收敛（RM-V36）与回滚
 

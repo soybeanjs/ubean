@@ -2,6 +2,10 @@ import { existsSync } from 'node:fs';
 import type { Plugin } from 'vite';
 import { loadUbeanConfig, tryGetConfig } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
+import {
+  registerBuiltinPresets as registerPresetsSync,
+  resolvePresetByName as resolvePresetNameSync
+} from '@ubean/preset';
 import { createServerRouter } from '@ubean/routes';
 import { scanProject } from '@ubean/scan';
 import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
@@ -10,6 +14,8 @@ import { join, relative, resolve } from 'pathe';
 import { getDevScanCoordinator } from './dev/dev-scan';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { transformMacros } from './macros';
+// 别名：`buildEnvironmentsForConfig()` 内部有同名解构局部变量（eslint no-shadow）
+import { getPresetBuildConfig as getPresetBuildConfigSync } from './production';
 import {
   createRoutingVirtualModule,
   createPagesVirtualModule,
@@ -22,6 +28,7 @@ import type { VirtualModuleRegistry } from './virtual-registry';
 import { ASSET_MANIFEST_VIRTUAL_ID, resolveInjectedAssetTags } from './vite/asset-manifest';
 import type { ClientManifestEntry } from './vite/asset-manifest';
 import { attachPreviewMiddleware } from './vite/preview';
+import { loadWorkerNodeStub, resolveWorkerNodeStub } from './vite/shims';
 
 const logger = getLogger('build');
 
@@ -226,6 +233,27 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
   let viteSrcDir = '';
   let viteSrcPrefix = '';
 
+  /** 当前构建是否为 worker 目标（缓存：preset 在一次构建内不变）。 */
+  let workerTarget: boolean | undefined;
+  function isWorkerTarget(): boolean {
+    if (workerTarget !== undefined) return workerTarget;
+    workerTarget = false;
+    // `UBEAN_BUILD_PRESET` 优先：`ubean build --preset X` 改的是 CLI 侧配置对象，插件实例持有的是
+    // 自己那份副本（另一模块实例），看不到 `--preset` —— 不认这个环境变量就会按默认 preset 走，
+    // 于是 worker 产物里残留 `node:fs`（实测）。没有该变量时（`vite build` / 插件自举路径）
+    // 以配置文件为准。
+    const presetName = process.env.UBEAN_BUILD_PRESET || ubeanConfig?.build.preset;
+    if (presetName) {
+      try {
+        registerPresetsSync();
+        workerTarget = getPresetBuildConfigSync(resolvePresetNameSync(presetName)).entryType === 'worker';
+      } catch {
+        workerTarget = false;
+      }
+    }
+    return workerTarget;
+  }
+
   function ensureDerived() {
     if (!ubeanConfig) return;
     srcDirAbs = resolve(ubeanConfig.rootDir, ubeanConfig.srcDir);
@@ -311,6 +339,12 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     },
 
     resolveId(id) {
+      // worker 目标：`node:fs` / `node:fs/promises` 换成会抛错的桩（见 shims/index.ts 的说明）。
+      // 只在 **ubean 环境 + worker 目标** 生效 —— 客户端环境与 Node 目标必须保持真实实现。
+      if (this.environment?.name === 'ubean' && isWorkerTarget()) {
+        const stub = resolveWorkerNodeStub(id);
+        if (stub) return stub;
+      }
       // RM-V18：资产标签虚拟模块由核心插件提供 —— 它是两条路径都必然注册的那一个
       if (id === ASSET_MANIFEST_VIRTUAL_ID) return RESOLVED_ASSET_MANIFEST_ID;
       if (VIRTUAL_MODULES.includes(id)) {
@@ -319,7 +353,29 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
       return undefined;
     },
 
+    /**
+     * worker 目标：把产物里的 `import.meta.url` 换成合法的 `file://` 值。
+     *
+     * workerd 的 ESM 里它**是 undefined**（实测），而打包器为 CJS 依赖生成的互操作垫片正是
+     * `createRequire(import.meta.url)`，且**在模块实例化时执行** —— 于是 worker 报
+     * `The argument 'path' … Received 'undefined'` 起不来。`createRequire('file:///worker.mjs')`
+     * 在 workerd 上实测可用，垫片因此能构造（动态 `require()` 仍解析不到用户依赖，但那类调用只可能
+     * 出现在 Node-only 分支里）。
+     *
+     * 用 `renderChunk` 而不是 `define`：define 只作用于源码，**够不到打包器自己生成的垫片**
+     * （实测替换后第 46 行的 `__require` 仍是 `import.meta.url`）。
+     */
+    renderChunk(code) {
+      if (this.environment?.name !== 'ubean' || !isWorkerTarget() || !code.includes('import.meta.url')) {
+        return null;
+      }
+      return { code: code.split('import.meta.url').join('"file:///worker.mjs"'), map: null };
+    },
+
     async load(id) {
+      // worker 目标的 node 内建桩（`resolveId` 已把 id 换成虚拟模块）
+      const stubSource = loadWorkerNodeStub(id);
+      if (stubSource !== undefined) return stubSource;
       if (id === RESOLVED_ASSET_MANIFEST_ID) {
         // 优先用调用方传进来的内存 manifest（RM-V18 的传递），否则按本次服务端构建的 outDir
         // 读旁边的 `<outputDir>/public/.vite/manifest.json`。**必须**有磁盘兜底：CLI 驱动的

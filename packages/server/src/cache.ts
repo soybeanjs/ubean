@@ -1,8 +1,50 @@
-import { mkdir, readFile, readdir, unlink, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
 import type { RouteRule } from '@ubean/shared';
 import type { Context, Next } from 'hono';
 import type { UbeanStorage } from './storage';
+
+/**
+ * Node 文件系统存储的**动态加载入口**（`store: 'fs'` 时用）。
+ *
+ * 实现搬到独立的 `cache-fs.ts` 并在这里动态 import：worker 运行时（Cloudflare 等）没有
+ * `node:fs`，本模块又在服务端图的主链路上（`@ubean/server` barrel → cache），静态导入会让
+ * `node:fs/promises` 留在**每个**服务端产物里 —— workerd 在模块实例化阶段就失败。
+ * 动态 import 只在真正使用 fs 存储（Node 部署）时执行。
+ */
+/**
+ * 懒加载的 CacheStore 包装：首次使用时才执行 `load()`（并把结果记忆化）。
+ *
+ * 存在的理由与 `loadFsCacheStore()` 相同 —— 让调用方**同步**把 store 交给
+ * `useCacheStore()`（`createUbeanApp` 的构造器是同步的，缓存中间件在构造期就捕获 store），
+ * 同时不在模块顶层静态 import `node:fs`。worker 运行时永远不会触发 `load()`，也就永远不会
+ * 解析到 `node:fs`（实测：静态 import 会让 workerd 在模块实例化阶段直接失败）。
+ */
+export function createLazyCacheStore(load: () => Promise<CacheStore>): CacheStore {
+  let resolved: Promise<CacheStore> | null = null;
+  const store = (): Promise<CacheStore> => (resolved ??= load());
+  return {
+    async get(key) {
+      return (await store()).get(key);
+    },
+    async peek(key) {
+      const inner = await store();
+      return inner.peek ? inner.peek(key) : inner.get(key);
+    },
+    async set(key, entry, ttl) {
+      return (await store()).set(key, entry, ttl);
+    },
+    async delete(key) {
+      return (await store()).delete(key);
+    },
+    async clear() {
+      return (await store()).clear();
+    }
+  };
+}
+
+export async function loadFsCacheStore(dir: string): Promise<CacheStore> {
+  const { createFsCacheStore } = await import('./cache-fs');
+  return createFsCacheStore(dir);
+}
 
 export interface CacheEntry {
   body: ArrayBuffer;
@@ -81,11 +123,11 @@ export function createMemoryStore(maxEntries = 200): CacheStore {
   };
 }
 
-function encodeCacheKey(key: string): string {
+export function encodeCacheKey(key: string): string {
   return Buffer.from(key).toString('base64url');
 }
 
-interface PersistedCacheEntry {
+export interface PersistedCacheEntry {
   body: string;
   headers: Record<string, string>;
   status: number;
@@ -94,72 +136,18 @@ interface PersistedCacheEntry {
   expiresAt: number;
 }
 
-function toPersisted(entry: CacheEntry): PersistedCacheEntry {
+export function toPersisted(entry: CacheEntry): PersistedCacheEntry {
   return {
     ...entry,
     body: Buffer.from(entry.body).toString('base64')
   };
 }
 
-function fromPersisted(entry: PersistedCacheEntry): CacheEntry {
+export function fromPersisted(entry: PersistedCacheEntry): CacheEntry {
   const bytes = Buffer.from(entry.body, 'base64');
   return {
     ...entry,
     body: bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength)
-  };
-}
-
-/**
- * Node filesystem CacheStore. Survives process restarts; not for Workers.
- * Pattern invalidation via `store` Map is unavailable — use exact keys.
- */
-export function createFsCacheStore(dir: string): CacheStore {
-  const fileFor = (key: string) => join(dir, `${encodeCacheKey(key)}.json`);
-
-  async function readEntry(key: string): Promise<CacheEntry | undefined> {
-    try {
-      const raw = await readFile(fileFor(key), 'utf8');
-      return fromPersisted(JSON.parse(raw) as PersistedCacheEntry);
-    } catch {
-      return undefined;
-    }
-  }
-
-  return {
-    async get(key) {
-      const entry = await readEntry(key);
-      if (!entry || Date.now() >= entry.expiresAt) return undefined;
-      return entry;
-    },
-    async peek(key) {
-      return readEntry(key);
-    },
-    async set(key, entry, ttl) {
-      await mkdir(dir, { recursive: true });
-      const now = Date.now();
-      const full: CacheEntry = {
-        ...entry,
-        createdAt: now,
-        expiresAt: now + ttl * 1000
-      };
-      await writeFile(fileFor(key), JSON.stringify(toPersisted(full)), 'utf8');
-    },
-    async delete(key) {
-      try {
-        await unlink(fileFor(key));
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    async clear() {
-      try {
-        const files = await readdir(dir);
-        await Promise.all(files.filter(f => f.endsWith('.json')).map(f => unlink(join(dir, f))));
-      } catch {
-        /* dir may not exist */
-      }
-    }
   };
 }
 

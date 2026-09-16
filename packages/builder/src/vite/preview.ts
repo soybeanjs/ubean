@@ -28,7 +28,7 @@ import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { registerBuiltinPresets, resolvePresetByName } from '@ubean/preset';
 import { getLogger } from '@ubean/shared/logger';
 import { sendWebResponse, toWebRequest } from '../dev/node-web';
-import { createCloudflarePreviewRunner, readCompatibilityDate } from './cloudflare-preview';
+import { createCloudflarePreviewRunner, readCompatibilityDate, readCompatibilityFlags } from './cloudflare-preview';
 import type { CloudflarePreviewOptions, CloudflarePreviewResult } from './cloudflare-preview';
 
 const logger = getLogger('preview');
@@ -181,6 +181,7 @@ export function createPreviewMiddleware(options: UbeanPreviewMiddlewareOptions):
     cloudflarePromise ??= createCloudflarePreviewRunner({
       workerPath: resolve(outDirAbs, 'server', 'worker.mjs'),
       compatibilityDate: readCompatibilityDate(resolve(outDirAbs, 'wrangler.toml')),
+      compatibilityFlags: readCompatibilityFlags(resolve(outDirAbs, 'wrangler.toml')),
       loadMiniflare
     });
     return cloudflarePromise;

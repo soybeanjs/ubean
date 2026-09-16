@@ -2,7 +2,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { createFsCacheStore, createMemoryStore, createStorageCacheStore } from '../src/cache';
+import { createMemoryStore, createStorageCacheStore } from '../src/cache';
+// fs 存储在 2026-09 拆到独立模块（`cache.ts` 在服务端图主链路上，静态 import node:fs 会让 worker
+// 产物带上它；拆分 + 懒加载见 `cache.ts` 的 `loadFsCacheStore`）
+import { createFsCacheStore } from '../src/cache-fs';
 import { createStorage, createMemoryDriver } from '../src/storage';
 
 const dirs: string[] = [];

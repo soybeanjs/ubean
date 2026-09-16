@@ -1,5 +1,4 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import { existsSync } from 'node:fs';
 import { createI18nMiddleware, ensureLocaleMessages } from '@ubean/i18n';
 import { createServerComponentMiddleware, SERVER_COMPONENT_ENDPOINT } from '@ubean/islands/server';
 import {
@@ -21,7 +20,8 @@ import {
   resolveRouteCacheRules,
   useCacheStore,
   createMemoryStore,
-  createFsCacheStore
+  createLazyCacheStore,
+  loadFsCacheStore
 } from '@ubean/server/cache';
 import type { CacheStore } from '@ubean/server/cache';
 import { createDataCacheMiddleware } from '@ubean/server/middleware';
@@ -33,8 +33,7 @@ import {
   mergeSecurityHeadersOptions
 } from '@ubean/server/security';
 import type { CsrfOptions, SecurityHeadersOptions } from '@ubean/server/security';
-import { serveStatic } from '@ubean/server/static';
-import { errorToResponse, isUbeanError, UbeanError } from '@ubean/shared';
+import { errorToResponse, isNodeRuntime, isUbeanError, UbeanError } from '@ubean/shared';
 import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler, ActionContext } from '@ubean/shared';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
@@ -167,10 +166,10 @@ export interface UbeanAppOptions {
   dataCache?: boolean | DataCacheMiddlewareOptions;
   /**
    * HTTP / ISR cache store. Default is in-process memory (not shared
-   * across instances). Pass `createFsCacheStore(dir)` for a Node fs backend.
+   * across instances). Pass `loadFsCacheStore(dir)`（Node fs 后端，动态加载）for a Node backend.
    */
   cacheStore?: CacheStore;
-  /** Declarative cache backend. `store: 'fs'` uses `createFsCacheStore`. */
+  /** Declarative cache backend. `store: 'fs'` 走 `loadFsCacheStore()`（Node-only，动态加载）。 */
   cache?: { store?: 'memory' | 'fs'; dir?: string };
   /**
    * File-convention SEO (`src/sitemap.ts`, `robots.ts`, …). Default: on when
@@ -297,7 +296,11 @@ export class UbeanApp {
     if (this.options.cacheStore) {
       useCacheStore(this.options.cacheStore);
     } else if (this.options.cache?.store === 'fs') {
-      useCacheStore(createFsCacheStore(this.options.cache.dir || '.ubean/cache'));
+      // 懒加载：fs 存储静态 import `node:fs/promises`，而本文件在服务端图主链路上 —— 静态导入
+      // 会让 worker 产物带上 `node:fs`（workerd 在模块实例化阶段失败）。构造器是同步的，因此用
+      // 懒包装（首次使用时才加载）；worker 侧 `store` 永远不是 'fs'（preset 解析为 memory）。
+      const fsDir = this.options.cache.dir || '.ubean/cache';
+      useCacheStore(createLazyCacheStore(() => loadFsCacheStore(fsDir)));
     }
 
     const i18nCfg = this.options.i18nConfig;
@@ -380,12 +383,18 @@ export class UbeanApp {
     // directly instead of re-rendering through SSR. `serveStatic` already
     // skips `/api/*` and `/_*` paths, so API and built-in routes are unaffected.
     // Files that don't exist fall through to `next()` and hit the SSR handler.
-    if (this.options.publicDir) {
+    // 仅在 **Node 系运行时**注册：`serveStatic` 读磁盘（`node:fs`），而 Cloudflare Workers 这类
+    // 运行时没有文件系统（静态资源由平台层按 `wrangler.toml` 的 `assets.directory` 服务）。
+    // 判据与 `import()` 都必须在分支内 —— 静态 import 会把 `node:fs` 留在产物里，workerd 在
+    // **模块实例化**阶段就失败，轮不到运行时判断（实测 `No such module "node:fs/promises"`）。
+    if (this.options.publicDir && isNodeRuntime()) {
+      const { existsSync } = await import('node:fs');
       const publicDir = isAbsolute(this.options.publicDir)
         ? this.options.publicDir
         : this.options.rootDir
           ? join(this.options.rootDir, this.options.publicDir)
           : this.options.publicDir;
+      const { serveStatic } = await import('@ubean/server/static');
       if (existsSync(publicDir)) {
         this.hono.use('/*', serveStatic({ publicDir }));
       }
@@ -480,6 +489,9 @@ export class UbeanApp {
 
   private async _registerSeoConventions(): Promise<void> {
     if (this.options.seoConventions === false) return;
+    // 约定文件是**磁盘上的源文件**（`src/sitemap.ts` …），扫描它需要 `node:fs`；worker 运行时
+    // 既没有磁盘也没有这个目录。显式传入的模块数组（`seoConventionModules`）不依赖磁盘，照常生效。
+    if (!this.options.seoConventionModules && !isNodeRuntime()) return;
 
     const explicit = typeof this.options.seoConventions === 'object' ? this.options.seoConventions : {};
     const srcDir = explicit.srcDir ?? (this.options.rootDir ? join(this.options.rootDir, 'src') : undefined);

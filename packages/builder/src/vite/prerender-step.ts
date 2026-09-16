@@ -37,7 +37,7 @@ export async function createSsrFetcher(cwd: string, manifest: BuildManifest): Pr
   try {
     const entryPath = resolve(cwd, manifest.serverDir, 'entry.mjs');
     const entryUrl = pathToFileURL(entryPath).href;
-    const mod = await import(entryUrl);
+    const mod = await import(/* @vite-ignore */ entryUrl);
     const createFetchHandler = mod.default ?? mod.createFetchHandler;
     if (typeof createFetchHandler !== 'function') {
       logger.warn('SSR entry does not export createFetchHandler; falling back to placeholder prerender.');

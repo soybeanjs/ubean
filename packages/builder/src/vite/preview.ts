@@ -194,7 +194,7 @@ export function createPreviewMiddleware(options: UbeanPreviewMiddlewareOptions):
           `Build output not found: ${serverEntry}. Run \`ubean build\` first to create a production build.`
         );
       }
-      const mod = (await import(pathToFileURL(serverEntry).href)) as {
+      const mod = (await import(/* @vite-ignore */ pathToFileURL(serverEntry).href)) as {
         default?: FetchHandlerFactory;
         createFetchHandler?: FetchHandlerFactory;
       };

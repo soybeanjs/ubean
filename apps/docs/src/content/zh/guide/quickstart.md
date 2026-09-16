@@ -129,6 +129,18 @@ pnpm preview    # 预览生产构建
 }
 ```
 
+### 直接用 Vite 命令
+
+dev / build / preview 三个生命周期由 Vite 插件接管（ADR-0012），因此**裸 Vite 命令是等价的** —— 项目里有 `ubeanPlugin()`（来自 `ubean/vite`）即可：
+
+```bash
+vite dev       # ≡ ubean dev
+vite build     # ≡ ubean build（含预渲染 HTML）
+vite preview   # ≡ ubean preview（fullstack / backend 走产物里的生产 handler）
+```
+
+两处差异：`vite build` 忽略 `--outDir`（固定写 `config.build.outputDir`）；平台相关装配（如 cloudflare 产物的 miniflare 预览）只在 `ubean preview` 里接线。两条路径的产物逐项一致，CI 用哪套都可以。
+
 ## 下一步
 
 - [应用模式](/zh/guide/app-modes) — 了解 fullstack / spa / ssg / backend 模式

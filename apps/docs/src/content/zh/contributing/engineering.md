@@ -463,10 +463,15 @@ codegraph impact <symbol>         # 查影响面
 
 ```bash
 pnpm --filter ubean-test build
-pnpm analyze   # 或 `ubean analyze`；读 dist/client/.vite/manifest.json
+pnpm analyze   # 或 `ubean analyze`；读 dist/public/.vite/manifest.json
 ```
 
-默认把 gzip 汇总写到 `.ubean/bundle-baseline.json`（`totalGzip` / `entryGzip` / 各 chunk）。提交到仓库的回归基线是 `examples/ubean-test/benchmarks/bundle-baseline.json`（`ubean analyze --out`）。快照（2026-08-22，ubean-test 生产客户端）：**113.0 kB gzip** 合计 / **6.6 kB** entry（`app-*.js`）/ 30 个 JS chunk。Islands 默认页的回归以该文件为准，而不是印象。`ubean analyze --write=false` 只打印不写文件。CI 跑 `ubean analyze --check benchmarks/bundle-baseline.json`（默认允许合计 / entry gzip 相对增长 5%）。
+默认把 gzip 汇总写到 `.ubean/bundle-baseline.json`（`totalGzip` / `entryGzip` / 各 chunk）。提交到仓库的回归基线是 `examples/ubean-test/benchmarks/bundle-baseline.json`（`ubean analyze --out`）。快照（2026-09-16，ubean-test 生产客户端）：**111.1 kB gzip** 合计 / **45.2 kB** entry（`app-*.js`）/ 32 个 JS chunk。Islands 默认页的回归以该文件为准，而不是印象。`ubean analyze --write=false` 只打印不写文件。CI 跑 `ubean analyze --check benchmarks/bundle-baseline.json`（默认允许合计 / entry gzip 相对增长 5%）。
+
+两点容易踩的坑：
+
+- **门禁也守「少产出」**：除体积上限外还按名字对照基线的 chunk 名单 —— 基线里有、当前产物里没有的 chunk 直接失败（岛屿组件整类消失、体积反而变小，曾从这个门禁下溜过去）。
+- **要固定 `NODE_ENV`**：`NODE_ENV=test` 时 Vite 尊重该值，客户端产物会打进 Vue 开发态代码（实测同一示例项目的 entry gzip 45.2 kB → 75.9 kB，文件数不变），门禁报的会是「体积回归」而真因是运行环境。`ubean build` 遇到非 production 的 `NODE_ENV` 会打印警告。
 
 除相对门禁外还可设**绝对上限**（只看本次构建，与基线无关，超出即失败）：
 

@@ -460,12 +460,17 @@ Claims of "lighter JS" need numbers. After a production build:
 
 ```bash
 pnpm --filter ubean-test build
-pnpm analyze   # or `ubean analyze`; reads dist/client/.vite/manifest.json
+pnpm analyze   # or `ubean analyze`; reads dist/public/.vite/manifest.json
 # committed baseline:
 #   ubean analyze --out examples/ubean-test/benchmarks/bundle-baseline.json
 ```
 
-By default this writes gzip totals to `.ubean/bundle-baseline.json` (`totalGzip` / `entryGzip` / per-chunk). The committed regression baseline is `examples/ubean-test/benchmarks/bundle-baseline.json` (`ubean analyze --out`). Snapshot (2026-08-22, ubean-test production client): **113.0 kB gzip** total / **6.6 kB** entry (`app-*.js`) / 30 JS chunks. Treat that file as the Islands-page regression baseline. `ubean analyze --write=false` prints without writing. CI runs `ubean analyze --check benchmarks/bundle-baseline.json` (default: 5% relative growth on total / entry gzip).
+By default this writes gzip totals to `.ubean/bundle-baseline.json` (`totalGzip` / `entryGzip` / per-chunk). The committed regression baseline is `examples/ubean-test/benchmarks/bundle-baseline.json` (`ubean analyze --out`). Snapshot (2026-09-16, ubean-test production client): **111.1 kB gzip** total / **45.2 kB** entry (`app-*.js`) / 32 JS chunks. Treat that file as the Islands-page regression baseline. `ubean analyze --write=false` prints without writing. CI runs `ubean analyze --check benchmarks/bundle-baseline.json` (default: 5% relative growth on total / entry gzip).
+
+Two traps worth knowing:
+
+- **The gate also guards against "missing output"**: besides the size ceilings it compares chunk names against the baseline — a chunk present in the baseline but absent from the current build fails outright (an entire class of island chunks once vanished while total size went *down*, and slipped through the size-only gate).
+- **Pin `NODE_ENV`**: with `NODE_ENV=test` Vite respects that value and the client bundle ships Vue's dev code (measured on the same example: entry gzip 45.2 kB → 75.9 kB, same file count) — the gate then reports a "size regression" whose real cause is the environment. `ubean build` warns when `NODE_ENV` is set to anything but production.
 
 Alongside the relative gate you can set **absolute ceilings** (checked against the current build alone; a breach fails the command):
 

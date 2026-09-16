@@ -46,7 +46,7 @@ ubean/
 │   │
 │   │   ── 服务 / 工具 ──
 │   ├── islands/             # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
-│   ├── cli/                 # @ubean/cli — CLI 命令 + Dev server
+│   ├── cli/                 # @ubean/cli — CLI 命令（dev/build/preview 的装配 + 参数与 banner；请求处理归 @ubean/build 的插件）
 │   ├── devtools/            # @ubean/devtools — DevTools 独立包（opt-in，不进聚合器硬依赖；禁止 peer `ubean` 以免与 cli 成环）
 │   │
 │   │   ── 扩展包 ──
@@ -179,7 +179,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - 扩展模块顶层字段：`ai`/`auth`/`icon`/`image`/`content` 为独立包，`pwa`/`fonts`/`electron`/`pinia`/`ui` 为 `@ubean/integrations` 子路径；均支持 `true` 或选项对象形式启用
 - SSR 配置 `ssr` 字段支持 `boolean | SsrOptions`：`ssr: true`（默认全部 SSR）/ `ssr: false`（关闭 SSR）/ `ssr: { exclude: ['/admin/**'], streaming: true }`（排除指定页面走 CSR / 启用流式）；`SsrOptions.all` 默认 `true`，`exclude` 支持 glob（`*` 单段、`**` 多段），`streaming` 启用全局流式 SSR
 - Per-route 渲染规则（P9-03 + P9-04）：`routeRules` 顶层字段 `ssr`（`boolean | 'streaming' | 'data-only'`）/ `prerender`（`boolean`）/ `isr`（`number | { ttl, swr? }`）/ `ppr`（`boolean`）覆盖全局设置；优先级 `definePage({ ssr })` > `routeRule.ssr` > 全局 `ssr.exclude`/`SsrOptions.streaming`；`ssr: false` 跳过 loader，`'data-only'` 跑 loader 但 HTML 为 CSR shell；`ppr: true` 隐含 `prerender: true` + 强制流式 SSR（等价 `ssr: 'streaming'`）
-- 实验性开关 `experimental` 顶层字段：目前仅 `viteBuilder`（默认 `false`）—— 打开后 dev / build / preview 生命周期下放给 Vite 插件（ADR-0012）；关闭时保持 CLI 自建编排，是 Phase 1/2 的灰度隔离手段
+- 实验性开关 `experimental` 顶层字段：目前仅 `viteBuilder`（默认 `false`）—— 打开后由 `ubeanPlugin()` 的 `config` 钩子注册 `client`/`ubean` 两个环境与 `builder.buildApp`（ADR-0012），于是 `vite dev|build|preview` 单独就是完整工具链；关闭时 `ubean build` 走旧编排（`buildProduction` 里两次独立 `viteBuild`），CLI 无用户 `vite.config` 时注入 builtin 插件。**两条路径产物逐项一致**（`packages/cli/test/build-paths.test.ts` 13 格矩阵），是 Phase 1/2 的灰度隔离手段；收敛为默认打开的步骤见 `docs/vite-plugin-migration.md` 的 RM-V36
 - 日志展示 `logging` 顶层字段（dev 常驻进程的分类闸门）：`level`（日志级别,显式设置优先于 `LOG_LEVEL`）/ `diagnostics`（`'auto'` 默认仅失败输出 | `true`）/ `request`（`'auto'` 默认关,ssg/spa 强制关 | `true`）/ `scan` / `lifecycle`（默认关）；CLI `--verbose`（全开 scan+lifecycle+diagnostics）/ `--log-requests` 临时覆盖；banner 与 warn/error 永远输出
 
 ### 3.6 模块与扩展包
@@ -568,12 +568,14 @@ export default defineServer({
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  preset: 'vercel-edge'
+  // 预设写在 `build` 里：**没有**顶层 `preset` 字段，写顶层会被静默忽略（实测 2026-09：
+  // 顶层 `preset: 'cloudflare'` 仍按默认 node 预设出产物）
+  build: { preset: 'vercel-edge' }
 });
 
 // 自动检测（推荐）：在 Vercel 平台部署时,框架会自动检测 VERCEL 环境变量
 export default defineConfig({
-  // 不指定 preset,运行时自动检测
+  // 不指定 preset，`detectPreset()` 按 config-file / environment 自动识别
 });
 ```
 
@@ -874,7 +876,7 @@ export default defineConfig({
 5. **虚拟模块前缀**：用 `virtual:ubean-`（`#ubean-` 会因 URL hash 导致 404）
 6. **客户端导入入口**：主入口 `ubean` 已 isomorphic 化，客户端代码可安全导入；但服务端符号（`defineHandler`/`useDatabase`/`validator`…）只在 `ubean/server`、构建时符号只在 `ubean/build` —— 在客户端代码中从 `ubean/server` 导入会触发 Vite 在浏览器环境预构建 Hono/`node:*` 依赖
 7. **`createUbeanApp` 消歧**：`@ubean/app` / `ubean/server` 的 `createUbeanApp` 返回 Hono `UbeanApp`；`@ubean/client` 的 Vue 工厂为 `createUbeanClientApp`（返回 `{ app, router, head, page }`）。服务端入口用 `ubean/server`（Hono），客户端用 `createUbeanClientApp`
-8. **中间件注册**：将 async 函数传给 `server.middlewares.use()` 时包装在 `Promise.resolve().then().catch()` 中
+8. **中间件注册**：将 async 函数传给 `server.middlewares.use()` 时包装在 `Promise.resolve().then().catch()` 中（Vite dev/preview server 都是 connect 中间件栈；preview 的接线见 `@ubean/build/vite` 的 `attachPreviewMiddleware`）
 9. **Service Worker**：PWA SW 由 vite-plugin-pwa + workbox 生成（`@ubean/integrations/pwa` 薄封装），无需手动处理模板替换
 10. **宏处理**：`macros.ts` 的 `MACRO_NAMES` 只保留 `definePage`；包含 `defineHandlerMeta`/`defineMiddleware` 会被 build strip，导致运行时函数调用语法错误
 11. **路由挂载**：`registerRoutes` 内部用 `app.on(method.toLowerCase(), path, ...)`，避免直接调用 `app[honoMethod(method)]`
@@ -903,6 +905,24 @@ pnpm build            # 构建
 ```
 
 要求：Node.js >= 22、pnpm `11.24.0`（见根 `packageManager`）
+
+### 9.1 Vite 原生命令（ADR-0012 / RM-V31）
+
+dev / build / preview 三个生命周期由 Vite 插件接管，**裸命令等价于 CLI**（`vite` 指 `vp` 或用户项目里的 `vite`）：
+
+```bash
+vite dev       # ≡ ubean dev（请求路由 + 宿主 app 由插件自举）
+vite build     # ≡ ubean build（插件注册的 buildApp 产出完整 dist，含预渲染 HTML）
+vite preview   # ≡ ubean preview（fullstack/backend 走产物里的生产 handler）
+```
+
+先决条件与灰阶：
+
+- 用户 `vite.config.ts` 里要有 `ubeanPlugin()`；没有该文件时 CLI 会代注入 builtin 插件（两条路径产物一致，见 `packages/cli/test/build-paths.test.ts`）。
+- `experimental.viteBuilder` 是**灰度开关**：打开后由插件注册 `client`/`ubean` 两个环境与 `builder.buildApp`。当前默认关闭（Phase 5 的 RM-V36 收敛为默认打开）。
+- `vite build` **忽略** `--outDir`（那是 ubean CLI 的参数）—— 产物固定写 `config.build.outputDir`。
+- 三条命令都有端到端用例：`packages/cli/test/dev-reload.test.ts`（`vp dev`）、`vite-build.test.ts`（`vp build`）、`preview-vite.test.ts`（`vp preview`）。
+- 体积/产物类断言要固定两件事：**干净产物**（`rm -rf dist` 或临时 outDir）与 **`NODE_ENV`** —— `NODE_ENV=test` 时 Vite 尊重该值，客户端产物会打进 Vue 开发态代码（实测 entry gzip 45.2 → 75.9 kB），`ubean build` 遇到时会打印警告。
 
 ## 10. 文档导航
 

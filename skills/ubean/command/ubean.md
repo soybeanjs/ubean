@@ -6,6 +6,18 @@ The ubean CLI is a [citty](https://github.com/unjs/citty)-based command line too
 
 Options can be passed as `--flag value` or `--flag=value`. Boolean flags can be negated with the `--no-` prefix (e.g. `--no-ssr`, `--no-install`, `--no-write`).
 
+## Equivalent Vite commands
+
+The dev / build / preview lifecycles are owned by the Vite plugin (ADR-0012), so the plain Vite commands are equivalent in a project whose `vite.config.ts` registers `ubeanPlugin()` (from `ubean/vite`):
+
+| CLI             | Equivalent     | Notes                                                                                                                                                  |
+| --------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `ubean dev`     | `vite dev`     | Request routing and the host app are bootstrapped by the plugin                                                                                        |
+| `ubean build`   | `vite build`   | **`vite build` ignores `--outDir`** — it always writes `config.build.outputDir`                                                                        |
+| `ubean preview` | `vite preview` | fullstack / backend go through the built production handler; `ubean preview` additionally wires platform previews (cloudflare artifacts via miniflare) |
+
+Both paths produce item-for-item identical output (`packages/cli/test/build-paths.test.ts`). `experimental.viteBuilder` (off by default) is the migration switch that lets the plugin register the `client` / `ubean` environments plus `builder.buildApp`.
+
 ## Command Reference
 
 | Command            | Description                                                                             |

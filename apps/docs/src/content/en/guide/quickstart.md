@@ -136,6 +136,18 @@ pnpm preview
 }
 ```
 
+### Using the plain Vite commands
+
+The dev / build / preview lifecycles are owned by the Vite plugin (ADR-0012), so the **plain Vite commands are equivalent** as long as the project registers `ubeanPlugin()` (from `ubean/vite`):
+
+```bash
+vite dev       # ≡ ubean dev
+vite build     # ≡ ubean build (including prerendered HTML)
+vite preview   # ≡ ubean preview (fullstack / backend go through the built production handler)
+```
+
+Two differences: `vite build` ignores `--outDir` (it always writes `config.build.outputDir`), and platform-specific wiring (e.g. miniflare preview of cloudflare artifacts) only exists on the `ubean preview` side. Both paths produce item-for-item identical output, so either works in CI.
+
 ## Next Steps
 
 - [Application Modes](app-modes.md) — fullstack / spa / ssg / backend

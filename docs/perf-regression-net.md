@@ -131,6 +131,25 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 两臂的**分布形态相同**（都存在 ~220ms 与 ~325ms 两档），说明差异来自采样落在哪一档，而不是路径本身；带浏览器阶段的那次采集（Chromium 同时占用 CPU）三档全落在 ~329ms，而未跑浏览器时 p50 回到 222ms —— 据此判断慢档是**重载路径上的 CPU 密集工作（scanProject + generateTypes + app 重建）在负载下被拉长**，而不是 fs 事件延迟（客户端变更指标同样是 fs 事件驱动，却始终稳定在 105ms）。该结论基于观测相关性，未做逐段埋点，故保留为「已刻画、未根治」；RM-V15 的判据 p50（安静环境）达标。
 
+**RM-V23 的开关两侧对照 · build（2026-09-16，`--arms legacy,viteBuilder --skip-dev --skip-browser`）**：
+
+| 指标 | legacy（`pnpm exec ubean build`） | viteBuilder（`pnpm exec vp build`，开关打开） |
+| --- | --- | --- |
+| build 墙钟 | 1.92s（p95 2.20） | 2.22s（p95 2.43） |
+| build 峰值 RSS | 628.9MB（p95 632.1） | 703.0MB（p95 709.0） |
+| 复采（`--runs 5`）墙钟 | 1.93s（p95 2.09） | 2.31s（p95 2.36） |
+| 复采峰值 RSS | 629.8MB（p95 640.4） | 696.1MB（p95 700.6） |
+
+两次独立采集一致：**开关路径 build 墙钟约 +0.35s、峰值 RSS 约 +66–74MB**。三点限定必须一起读：
+
+1. **不是派发开销**。想当然的归因是「`vp` 比 CLI 重」，实测相反：`pnpm exec vp --version` 0.09s，而 `pnpm exec ubean --version` 0.73–1.23s（CLI 的急切 import 图本身就贵）。也就是说开关路径多出的时间发生在构建工作里，而不是入口差异 —— 但这同时意味着**差值被低估**（legacy 那 1.93s 里有约 0.7–1.2s 是 CLI 启动）。
+2. **为什么仍不能对基线下结论**。冻结基线（RM-P05）的 build 墙钟 p50 是 **1.62s**，而今天**同一个 legacy 臂**测得 1.93s（+19%），宿主 load average 为 **15**（10 核机器，另有 5 个历史遗留的 `vite ... cli.js build` 进程与三个用户的会话）。误差量级与待测差异同阶，因此本次只产出**臂间相对结论**，不做「对基线是否回归」的判定 —— 那需要在安静环境上复测，否则就是本项目已经踩过两次的「把噪声读成结论」。
+3. **归因未做**。峰值 +70MB 与墙钟 +0.35s 的合理怀疑方向是「单进程同时持有 client / ubean 两个环境的模块图（legacy 是两次顺序 `viteBuild`，中间可回收）」以及 `vp` 侧的原生 rolldown 内存，但**未逐段埋点**，保留为「已刻画、未归因」。
+
+**build 臂的生效证明（新增，RM-V23）**：dev 臂靠「无 CLI 的 `vp dev` 能服务应用」自证，build 臂原先没有任何证明（两臂都跑 `ubean build`，而两条 CLI 路径的构建日志除产物路径字符串外**逐行相同** —— 实测 diff 过，没有可断言的标记位）。现改为 build 臂跑 `pnpm exec vp build`：没有 CLI，服务端 bundle 与预渲染 HTML 只可能来自插件注册的 `builder.buildApp`。保障比 dev 臂更硬 —— 实测**不带开关的 `vp build` 直接硬失败**（`Cannot resolve entry module index.html`，exit 1，零产物），连退化产物都产不出。`assertBuildEngaged`（断言 `dist/manifest.json` + `dist/server/` + 至少一个预渲染 HTML）是第一格构建后的第二道防线，防「退出 0 但只出半套产物」。**代价**：两臂命令不同（含 `pnpm exec` 派发），与 dev 臂同构，报告脚注中明示，不假装是纯单变量对比。
+
+**干净产物约束（新增）**：build 阶段在每臂开始前 `rm -rf dist`。原脚本会沿用上一臂留下的 `dist`，而两条路径都设 `emptyOutDir: false` —— 这正是「体积断言把残留读成回归」那次事故的成因（见 [vite-plugin-migration.md](vite-plugin-migration.md) 的自我更正）。
+
 ### Phase 2 · 体积闸门升级（与迁移解耦，可独立合入）
 
 | ID | 任务 | 关键改动 | 完成定义 |

@@ -84,20 +84,16 @@ afterAll(cleanup);
 /**
  * 矩阵的核心一格：**同一 mode 下**两条路径的产物清单一致。
  *
- * preset 维度（node / cloudflare / vercel / netlify / bun / deno）与「无用户 vite.config」维度
- * 仍待补 —— 它们需要为每个 preset 断言包装文件（`server.mjs` / `worker.mjs` / `handler.mjs` /
- * `wrangler.toml` 等）与各自的 fixture 支持，属于矩阵的下一批格子。
+ * mode 轴见下方 `MODES`，preset 轴见 `PRESET_CONTRACTS`，另有「无用户 vite.config」一格。
  */
 const MODES = ['fullstack', 'spa', 'backend', 'ssg'] as const;
 
 /**
- * preset 轴（三种包装形态）。
+ * preset 轴（三种包装形态，七 + 两个 preset）。
  *
  * 只比「两条路径清单一致」不够 —— 两个都错得一样也会通过。因此每个 preset 同时断言**它自己的
  * 产物契约**：node 出 `server/server.mjs`、standard 出 `server/handler.mjs`、cloudflare 出
- * `server/worker.mjs` 并在 dist 根写 `wrangler.toml`。其余 preset（vercel / netlify / bun /
- * deno / aws / azure）待补：它们各自还有平台配置文件（`vercel.json` / `netlify.toml` /
- * `deno.json` …），需要逐一定义契约。
+ * `server/worker.mjs` 并在 dist 根写 `wrangler.toml`。
  */
 const PRESET_CONTRACTS = [
   { preset: 'node', wrapper: 'server/server.mjs', rootFile: '' },
@@ -112,7 +108,13 @@ const PRESET_CONTRACTS = [
   { preset: 'bun', wrapper: 'server/server.mjs', rootFile: '' },
   { preset: 'deno', wrapper: 'server/server.mjs', rootFile: '' },
   { preset: 'vercel', wrapper: 'server/handler.mjs', rootFile: '' },
-  { preset: 'netlify', wrapper: 'server/handler.mjs', rootFile: '' }
+  { preset: 'netlify', wrapper: 'server/handler.mjs', rootFile: '' },
+  // aws / azure：`build:after` 是空钩子（不写平台配置文件，`template.yaml` /
+  // `staticwebapp.config.json` 由用户按平台约定自备），但两个 preset 的 `build.outputDir` 是
+  // 非默认值（`dist/aws` / `dist/azure`）—— 这一格因此同时覆盖「preset 自带 outputDir 时两条
+  // 路径是否解析到同一处」这条分支，`--outDir` 会覆盖它。
+  { preset: 'aws', wrapper: 'server/handler.mjs', rootFile: '' },
+  { preset: 'azure', wrapper: 'server/handler.mjs', rootFile: '' }
 ] as const;
 
 describe('构建路径一致性（RM-V23）', () => {

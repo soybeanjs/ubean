@@ -36,7 +36,7 @@
  * 本机环境注意：dev server 默认只绑 IPv6 `[::1]`，探针自动选择可用地址；脚本会清除
  * 进程内的代理环境变量，避免 localhost 探针被 http_proxy 拦成 502。
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, relative, resolve } from 'node:path';
 import { createBrowserSession, measureHydration, measureNavigation } from './lib/browser-metrics.mjs';
 import {
@@ -95,6 +95,8 @@ const ARMS = {
     env: () => ({}),
     /** dev 命令（不传 --port 时由 `startDev` 追加）。 */
     devCommand: () => ['exec', 'ubean', 'dev'],
+    /** build 命令（RM-V23：与 dev 臂同构，旧路径走 CLI 编排）。 */
+    buildCommand: () => ['exec', 'ubean', 'build'],
     /** 旧路径始终生效，无需断言。 */
     assertEngaged: () => true
   },
@@ -108,6 +110,16 @@ const ARMS = {
      * 路径上再比出「没差别」的假结论）。旧版的硬失败是因为开关当时不存在。
      */
     devCommand: () => ['exec', 'vp', 'dev'],
+    /**
+     * build 同理走 `vp build`（RM-V23）：**两条 CLI 路径的构建日志除产物路径字符串外逐行
+     * 相同**（实测 diff 过），没有可断言的标记位；而 `vp build` 没有 CLI，服务端产物只可能
+     * 来自插件注册的 `builder.buildApp`。这层保障比 dev 臂更硬 —— 实测不带开关的 `vp build`
+     * **直接硬失败**（`Cannot resolve entry module index.html`，exit 1，零产物），连退化产物
+     * 都产不出来。`assertBuildEngaged` 是第二道防线，防的是插件接线被改动后「仍退出 0 但只出
+     * 半套产物」的情况。代价是两臂命令不同（含 pnpm exec 派发），报告脚注里明示，不假装成纯
+     * 单变量对比。
+     */
+    buildCommand: () => ['exec', 'vp', 'build'],
     /**
      * 启动后必须真的能服务应用：新路径未生效时这里会 404（实测过 —— 那时 ubeanPlugin() 还
      * 不含 @vitejs/plugin-vue，且没有插件接管请求），直接中止而不是产出假对比。
@@ -125,9 +137,29 @@ const ARMS = {
           ].join('\n')
         );
       }
+    },
+    /**
+     * build 臂的第二道防线：这些产物**只有插件路径能产出** —— 开关未生效时 `vp build` 连构建
+     * 都跑不起来（见上），但万一接线改成「退出 0 却只出半套产物」，这里会拦下。
+     */
+    assertBuildEngaged(distDir, violations) {
+      if (!existsSync(resolve(distDir, 'manifest.json'))) violations.push('缺少 manifest.json');
+      if (!existsSync(resolve(distDir, 'server'))) violations.push('缺少 server/（服务端 bundle）');
+      if (countHtmlFiles(distDir) === 0) violations.push('没有预渲染 HTML（该路径会跑 runPrerenderStep）');
     }
   }
 };
+
+/** 递归数 HTML 文件（预渲染产物）。 */
+function countHtmlFiles(dir) {
+  if (!existsSync(dir)) return 0;
+  let count = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) count += countHtmlFiles(resolve(dir, entry.name));
+    else if (entry.name.endsWith('.html')) count += 1;
+  }
+  return count;
+}
 
 function resolveArms() {
   const explicit = argValue('--arms', null);
@@ -382,7 +414,8 @@ async function runDevPhase(arm) {
 
 async function measureBuild(arm) {
   const started = performance.now();
-  const { child, readStdout, readStderr, exited } = spawnCaptured('pnpm', ['exec', 'ubean', 'build'], {
+  const [command, ...commandArgs] = arm.buildCommand();
+  const { child, readStdout, readStderr, exited } = spawnCaptured('pnpm', [command, ...commandArgs], {
     cwd: fixture,
     env: { ...process.env, ...arm.env() }
   });
@@ -396,6 +429,10 @@ async function measureBuild(arm) {
 async function runBuildPhase(arm) {
   const samples = { buildWall: [], buildPeakRss: [] };
   const total = warmup + runs;
+  // 干净产物：两条路径都设 `emptyOutDir: false`，上一臂/上一次的残留会让产物目录累积 ——
+  // 这正是「体积断言把残留读成回归」那次的成因（见 vite-plugin-migration.md 的自我更正）。
+  const distDir = resolve(fixture, 'dist');
+  rmSync(distDir, { recursive: true, force: true });
   for (let i = 1; i <= total; i += 1) {
     const isWarmup = i <= warmup;
     const label = isWarmup ? `warmup ${i}/${warmup}` : `run ${i - warmup}/${runs}`;
@@ -405,6 +442,23 @@ async function runBuildPhase(arm) {
       console.error(`FAILED (exit ${result.exitCode})`);
       console.error(result.stderr || result.stdout);
       throw new Error('build 失败，基准中止');
+    }
+    // RM-P02：第一格构建完成后断言被测路径确实生效（否则两臂可能跑的是同一条路径）
+    if (i === 1 && arm.assertBuildEngaged) {
+      const violations = [];
+      arm.assertBuildEngaged(distDir, violations);
+      if (violations.length > 0) {
+        console.error('FAILED (生效证明)');
+        throw new Error(
+          [
+            `「${arm.label}」臂的构建未生效：${violations.join('；')}。`,
+            '',
+            `命令：pnpm ${arm.buildCommand().join(' ')}`,
+            '该臂要求插件接管构建（builder.buildApp 产出服务端 bundle 与预渲染 HTML）。',
+            '若插件接线被改动，此断言会拦下「两臂跑同一路径」的假对比。'
+          ].join('\n')
+        );
+      }
     }
     console.log(`wall ${fmtMs(result.wallMs)}, peak ${fmtMB(result.peakRssKB)}`);
     if (!isWarmup) {
@@ -474,7 +528,7 @@ async function main() {
     const arm = ARMS[name];
     console.log(`── arm ${arm.label}: ${arm.describe}`);
     // RM-P02：带 baseUrl 的生效证明在 `measureColdStart` 之后逐个迭代执行（见 runDevPhase）；
-    // build 臂的证明在构建后另行断言。
+    // build 臂的证明是产物契约断言，在第一格构建后执行（见 runBuildPhase）。
 
     const armSamples = {
       coldStart: [],
@@ -558,6 +612,14 @@ async function main() {
     for (const note of arm.notes) console.log(`  note: ${note}`);
   }
   console.log('');
+  if (!skipBuild && armNames.length > 1) {
+    console.log(
+      '注：build 两臂的命令不同（legacy `pnpm exec ubean build` vs viteBuilder `pnpm exec vp build`）——\n' +
+        '    这是 build 侧唯一的生效证明手段（无 CLI 时服务端产物只可能来自插件），但也把 pnpm/vite\n' +
+        '    派发开销算进了差值；dev 侧同理（`ubean dev` vs `vp dev`）。'
+    );
+    console.log('');
+  }
 
   if (jsonOut) {
     const target = resolve(repoRoot, jsonOut);

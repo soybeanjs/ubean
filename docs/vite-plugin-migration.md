@@ -100,13 +100,13 @@ vite.config.ts（用户唯一入口）
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
 | **RM-V16** ✅ | `buildApp` 编排 | 新增 `builder/src/vite/build-app.ts` 的 `buildWithEnvironments()`：一次 `createBuilder` 建 `client` / `ubean` 两个环境，`buildApp` 编排 prepare（清理 + 虚拟模块落盘 + HTML 模板）→ client → ubean → 公共目录拷贝 → preset 包装 → manifest。env 配置逐条对应旧路径的 `viteBuild` 入参，用 Vite 6+ 的等价位置：`ssr.noExternal`/`external` → server env 的 `resolve.noExternal`/`external`；`optimizeDeps.exclude` → client env；islands SSR 空壳经 `perEnvironmentPlugin('ubean', …)` 限定（env 不直接收 `plugins` 字段，实测报 TS2353）。空壳与三个 preset entry 生成器、`getPresetBuildConfig`、虚拟模块落盘均已导出，两条路径共用一份 | **判据：产物可比** —— 新增 `test/build-parity.test.ts`：同一 fixture 分别跑 `buildProduction`（两次 `viteBuild`）与 `buildWithEnvironments`（一次 builder + 两个 env），把输出目录名与内容哈希规范化后**比对文件清单与 `dist/manifest.json`**（含 entry/preset/目录/entry 标记)。不比对哈希：chunk 划分属打包器自由，RM-V17 的判据是「布局与语义可比」。实测两条路径清单完全一致；示例构建、`analyze:check`（total −3.0%、entry −2.9%）、builder 347 测试、24 包 typecheck 全绿 |
-| **RM-V17** | `buildProduction` → environment 驱动 | 拆解 `production.ts:591-875`：client 配置（`:692-729`）与 server 配置（`:750-805`）转为两个 environment 的构建配置；`getPresetBuildConfig`（`:463-492`）映射到 env 的 `resolve` / `build`；重审 `ssrSingletonProdSsr` 的 `^ubean` external 过滤（`:757-775`） | 产物布局与现状逐字节可比（哈希除外） |
-| **RM-V18** | 资产清单时序解耦 | 现状 SSR entry 运行时读 `../public/.vite/manifest.json`（`ssg-entry.ts:126-145`、`production.ts:731-736`）且强依赖 client 先构建；改用 `ssrManifest` 注入或编译期清单（与 RM-V26 合并评估） | server env 不再依赖 client 磁盘产物路径；构建顺序约束解除 |
+| **RM-V17** ✅ | `buildProduction` → environment 驱动 | 拆解 `production.ts:591-875`：client 配置（`:692-729`）与 server 配置（`:750-805`）转为两个 environment 的构建配置；`getPresetBuildConfig`（`:463-492`）映射到 env 的 `resolve` / `build`；重审 `ssrSingletonProdSsr` 的 `^ubean` external 过滤（`:757-775`） | 产物布局与现状逐字节可比（哈希除外）——由 `build-parity.test.ts` 的清单 + manifest 比对固定（RM-V16 已落地该断言） |
+| **RM-V18** ✅ | 资产清单时序解耦 | 现状 SSR entry 运行时读 `../public/.vite/manifest.json`（`ssg-entry.ts:126-145`、`production.ts:731-736`）且强依赖 client 先构建；改用 `ssrManifest` 注入或编译期清单（与 RM-V26 合并评估） | **已落地**：`asset-manifest.ts` 的 `ubeanAssetManifestPlugin` 由**核心插件**提供 `virtual:ubean-asset-manifest`（两条路径都必然注册的那一个），`buildWithEnvironments` 在 client 环境构建完成后把 manifest 读进闭包变量、经 `prepareBuild(ctx, manifestRef)` 交给服务端环境 —— 不再运行时读盘。**剩余（Phase 4）**：编译期清单由 RM-V27 评估 |
 | **RM-V19** ✅ | 虚拟模块落盘降级 | 删除 `production.ts` 与新路径里的 virtual id → 磁盘文件 `resolve.alias` 映射（两条路径各写一份、共 13 条），落盘保留为构建期快照（`.ubean/virtual`）供 preset 包装与调试。虚拟模块由 `ubeanPlugin` / `ubeanVite` 正常解析，alias 是历史遗留的兜底 | 删除后构建仍通过且产物一致：builder 347 测试、示例构建、`analyze:check`（total −0.6%、entry −2.3%）全绿 |
 | **RM-V20** ✅ | ssg 清理时机 | **核对后无需改动**：全仓只有一处删除 `dist/server`（`cli/src/build.ts:305-312`），位置已经在 prerender 与内容搜索索引之后，且由 `mode === 'ssg' && !process.env.UBEAN_KEEP_SSR` 双条件守护 —— 计划里「挪到 prerender 之后」的目标在之前的构建整改中已达成 | 实测（`examples/ssg-catchall`，`mode: 'ssg'`）：构建后 `dist/` 只有 `manifest.json` 与 `public/`，`dist/server` 不存在；`UBEAN_KEEP_SSR=1` 构建则保留 `dist/server`；静态产物含 `index.html` 与 `404.html` |
-| **RM-V21** 🟡 部分 | `ubean build` 薄别名 | **已落地**：`config` 钩子在 `experimental.viteBuilder` 打开时同时提供 `builder.buildApp`（跑 `prepareBuild` → `runEnvBuilds`）与完整的两个 environment 构建配置（`buildEnvironmentsForConfig` 复用 CLI 同款 `createBuildEnvironments`）；`virtual:ubean-asset-manifest` 改由**核心插件**的 `resolveId`/`load` 提供（它是两条路径都必然注册的那一个 —— 从别的插件 `config` 钩子注入独立插件到不了服务端环境）。于是 `vite build` 单独即可产出 `dist/{public,server,manifest.json}`。**过程中连带解决的三关**：① 极简 env（只写 outDir）会让客户端环境退回 `index.html`；② 上述虚拟模块注册位置；③ 岛屿 chunk 缺失（根因是注册表依赖 transform 顺序，已由 RM-V24 修掉 —— 同一根因同时解释了 `vite build` 与旧 CLI 路径的缺失） | **实测**：`UBEAN_VITE_BUILDER=1 vp build` 产物 172 个文件，与 `ubean build`（181 个）**逐项一致**，唯一差异是 **9 个预渲染 HTML**（`about/index.html`、`index.html`、`user/1/index.html` …）—— 因为 `prerender()` 目前仍由 CLI 调用。岛屿 chunk（6 个）两侧都在。**剩余**：把预渲染接进本路径（`prerender()` + 内容搜索索引目前在 `cli/src/build.ts`），之后 `ubean build` 才能退化成薄别名、`__ubean_build__` 防重复注册才有对象可防；这也是 RM-V23 矩阵「`vite build` 与 `ubean build` 产物一致」的最后一环 |
+| **RM-V21** ✅ | `ubean build` 薄别名 | **已落地**：`config` 钩子在 `experimental.viteBuilder` 打开时同时提供 `builder.buildApp`（跑 `prepareBuild` → `runEnvBuilds`）与完整的两个 environment 构建配置（`buildEnvironmentsForConfig` 复用 CLI 同款 `createBuildEnvironments`）；`virtual:ubean-asset-manifest` 改由**核心插件**的 `resolveId`/`load` 提供（它是两条路径都必然注册的那一个 —— 从别的插件 `config` 钩子注入独立插件到不了服务端环境）。于是 `vite build` 单独即可产出 `dist/{public,server,manifest.json}`。**过程中连带解决的三关**：① 极简 env（只写 outDir）会让客户端环境退回 `index.html`；② 上述虚拟模块注册位置；③ 岛屿 chunk 缺失（根因是注册表依赖 transform 顺序，已由 RM-V24 修掉 —— 同一根因同时解释了 `vite build` 与旧 CLI 路径的缺失）。**预渲染关**（最后一环）：`runPrerenderStep()` 下沉到 `@ubean/build` 并由两条路径共用的 `runEnvBuilds()` 调用，`vite build` 因此也产出静态 HTML 且进程能正常退出（此前会挂在 cron 定时器上，见下方「构建进程不退出」） | **实测**：`UBEAN_VITE_BUILDER=1 vp build` 与 `ubean build` 产物逐项一致（含岛屿 chunk 与 9 个预渲染 HTML）。**归属说明**：CLI 仍是编排入口（扫描 / 内容加载 / ssg 清理 / preset `build:after` 钩子在本侧），「纯别名」形态归 RM-V36 的双轨收敛 |
 | **RM-V22** ✅ | 基线重定 | 在**产物正确的构建**上重新生成 `examples/ubean-test/benchmarks/bundle-baseline.json`（此前基线里虽有岛屿 chunk，但当前构建不再产出它们 —— 基线是对的，构建是错的，因此重定的意义在于把「正确产物」固定下来，让新加的缺 chunk 判据有可信参照） | 新基线：32 个条目、total gzip 111.1 KB、entry gzip 45.2 KB，**含 5 个岛屿 chunk**；重定后 `analyze:check` 报 `total 0.0%, entry 0.0%`（自比），此后任何增长超 5% 或**少了基线里的 chunk** 都会失败 |
-| **RM-V23** | 构建矩阵验收 | 4 种 mode（fullstack / backend / spa / ssg）× preset（node / standard / cloudflare / vercel / netlify / bun / deno）× 有/无用户 vite.config；`scripts/benchmark-lifecycle.mjs --toggle viteBuilder` | 矩阵全绿；`dist/manifest.json`、preset 包装（`server.mjs` / `handler.mjs` / `worker.mjs` / `wrangler.toml`）产出与现状语义等价；build 墙钟与峰值 RSS 的 p50 / p95 对照 `perf-baseline.json` |
+| **RM-V23** ✅ 矩阵 / 🟡 性能 | 构建矩阵验收 | 4 种 mode（fullstack / backend / spa / ssg）× preset（node / cloudflare / standard / vercel / netlify / bun / deno / **aws / azure**）× 有/无用户 vite.config；`scripts/benchmark-lifecycle.mjs --toggle viteBuilder` | **功能矩阵 13 格全绿**（`packages/cli/test/build-paths.test.ts`，各格临时 outDir 独立构建 + 规范化清单比对 + 该 preset 自己的包装文件契约）。**build 臂补上生效证明**：两臂原先都跑 `ubean build`（两条 CLI 路径的构建日志除产物路径字符串外逐行相同，没有可断言的标记位），现 build 臂改跑 `pnpm exec vp build` —— 无 CLI 时服务端产物只可能来自插件，且**不带开关的 `vp build` 直接硬失败**（实测 `Cannot resolve entry module index.html`，exit 1，零产物）；另加 `assertBuildEngaged` 产物契约断言与每臂构建前 `rm -rf dist`。**性能对照**：两次采集一致给出开关路径 build 墙钟 **+0.35s**、峰值 RSS **+66–74MB**；`vp` 启动反而比 CLI 快 0.7–1.1s，故差值不是派发开销（详见 [perf-regression-net.md](perf-regression-net.md)）。**未达标项**：对冻结基线（p50 1.62s）的绝对对照未完成 —— 同一 legacy 臂今日测得 1.93s，而宿主 load average 15，误差与待测差异同阶，需在安静环境复测才可下结论。**顺带查实的元数据偏差**：平台 preset 声明的 `output.dir` / `output.serverDir` / `runtime.entry`（`dist/aws/lambda/index.mjs`、`dist/netlify/functions/index.mjs` …）**构建从不产出**，全仓无消费者，产物恒定是 `<config.build.outputDir>/{public,server}` + `server/{server,worker,handler}.mjs`；已在下方「待决项」登记，不在本任务内改（会动 11 个 preset 的产物布局） |
 
 ### Phase 3 · preview 迁移
 
@@ -206,14 +206,41 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 
 #### RM-V23 矩阵进展（2026-09-16）
 
-`packages/cli/test/build-paths.test.ts` —— **12 格全绿**（临时 outDir 各自构建 + 规范化后比对清单 + 该格自己的产物契约）：
+`packages/cli/test/build-paths.test.ts` —— **13 格全绿**（临时 outDir 各自构建 + 规范化后比对清单 + 该格自己的产物契约）：
 
 | 维度 | 取值 | 状态 |
 | --- | --- | --- |
 | mode | fullstack / spa / backend / ssg | ✅ 四格 |
-| preset | node / cloudflare / standard / bun / deno / vercel / netlify | ✅ 七格（包装文件契约：node·bun·deno → `server/server.mjs`；cloudflare → `server/worker.mjs` + `wrangler.toml`；standard·vercel·netlify → `server/handler.mjs`） |
+| preset | node / cloudflare / standard / bun / deno / vercel / netlify / aws / azure | ✅ 九格（包装文件契约：node·bun·deno → `server/server.mjs`；cloudflare → `server/worker.mjs` + `wrangler.toml`；standard·vercel·netlify·aws·azure → `server/handler.mjs`） |
 | 用户 `vite.config.ts` | 有 | ✅（示例项目） |
 | 用户 `vite.config.ts` | **无** | ✅ 覆盖 CLI 注入全部 builtin 插件那一支（`if (!userViteConfig)`）。**曾发现**：builder 路径比默认路径少 10 个文件（5 个岛屿 JS + 5 个 CSS）—— 根因是 `prepareBuild` 该分支漏注册 `ubeanIslandsPlugin()`，`v-client.*` 指令不被转换、注册表为空、岛屿组件整类不进产物。补齐后本格转绿（做法：把示例 `vite.config.ts` 临时改名，跑完 `finally` 还原，不必另建 fixture） |
-| preset | aws / azure | ⏳ 待补（走 default 分支 → `handler.mjs`，但各有平台配置钩子需确认） |
+| preset | aws / azure | ✅ 两格（2026-09-16 补）。二者 `build:after` 是空钩子、不写平台配置文件，但 `build.outputDir` 是非默认值（`dist/aws` / `dist/azure`）—— 顺带覆盖了「preset 自带 outputDir 时两条路径是否落到同一处」，实测 `--outDir` 覆盖生效、两侧一致 |
 
 两处判断标准值得记下：**只比「两条路径清单一致」不够** —— 两边同时缺同一个包装文件也会通过，因此每格额外断言该 preset 的包装文件；反之，平台配置文件（`vercel.json` / `netlify.toml` / `deno.json`）**不单独断言**，因为一旦某条路径漏写，清单比对就会失败，那正是该覆盖它的地方。
+
+#### 待决项：平台 preset 的输出布局声明与产物不符（2026-09-16 查实）
+
+补 aws / azure 两格时顺手对照了各 preset 的元数据，发现**声明的输出布局与实际产物系统性不符**：
+
+| preset | 声明（`output.*` / `runtime.entry`） | 实际产物 |
+| --- | --- | --- |
+| aws | `dist/aws/lambda`、`lambda/index.mjs` | `<outputDir>/server/handler.mjs` |
+| azure | `dist/azure/functions`、`functions/index.mjs` | `<outputDir>/server/handler.mjs` |
+| netlify | `dist/netlify/functions`、`functions/index.mjs` | `<outputDir>/server/handler.mjs` |
+| vercel | `dist/vercel/server`、`server/index.mjs` | `<outputDir>/server/handler.mjs` |
+| cloudflare | `dist/cloudflare`、`worker/index.mjs` | `<outputDir>/server/worker.mjs` + `wrangler.toml` |
+
+根因：`getBuildOutDirs(cwd, config.build.outputDir)` 只吃 `config.build.outputDir`（默认 `dist`，`--outDir` 可覆盖），preset 的 `output.dir` / `output.serverDir` **全仓没有任何消费者**；`runtime.entry` 同样无人读取。也就是说这些字段目前是纯声明，而且声明值与真实产物不一致 —— 部署配置若照着 `runtime.entry` 写（如 AWS Lambda 指向 `lambda/index.mjs`）会指到不存在的文件。
+
+**为什么不在 RM-V23 里改**：改 `getBuildOutDirs` 去尊重 `output.serverDir` 会同时改变 11 个 preset 的产物布局，属于破坏性变更，必须连带更新部署模板、站点文档与已有示例的部署配置 —— 那是独立一笔（建议并入 RM-V33 站点文档收口，或单开任务）。当前登记为待决项，两格断言只锁「两条路径一致 + 该 preset 的包装文件」，不锁目录名。
+
+#### 构建进程不退出（2026-09-16 修复，RM-V21 的隐藏关卡）
+
+`vite build` 走插件路径时**构建完成后进程不退出**，实测挂满 13 分钟才被外部超时杀掉。排查用了堆栈探针（`.temp/timer-probe.cjs` 定时打 `process._getActiveHandles()` / 各 handle 的 `_idleStart`），定位到两处**跨构建存活的活动句柄**：
+
+1. `createUbeanApp()` 安装的 rate-limit 清理定时器（`setInterval`）不可销毁 —— 改为把 handle 挂到 store 上并提供 `disposeMemoryRateLimitStores()`；
+2. cron 调度器（错误接线的 `startCronScheduler`）—— 生成的服务端入口原先**没有 teardown**，补出 `close()` 依次调用 `disposeMemoryRateLimitStores` / `stopQueueWorkers` / `closeDatabases`。
+
+期间还踩到一个自己造的坑：`cronScheduler` 的声明被放进了 `createApp` 内部，而 `close()` 读的是另一个作用域的（undefined）变量，且异常被 try/catch 吞掉 —— 表现为「修了但没效果」。教训：**这类「清了但没清掉」的排查必须以 handle 存活为准（探针），而不是以代码看起来对为准**。
+
+两处修复都在 `production.ts` 的入口模板与 `@ubean/server` 侧，两条构建路径共用，故对 CLI 路径同样是修复（此前 CLI 靠 `process.exit` 掩盖了它）。

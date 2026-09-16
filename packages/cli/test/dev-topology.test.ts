@@ -204,6 +204,51 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
     }, 30_000);
   });
 
+  /**
+   * JSON-LD（P9-07）：`useSchemaOrg()` 必须真的把 `<script type="application/ld+json">` 注入 head。
+   *
+   * 这条断言来自一个「静默空操作」缺陷：`@ubean/seo` 的同名函数往 `globalThis.__UBEAN_HEAD__` 推，
+   * 而那个全局全仓无人注册 —— 调用方以为注入了，其实什么都没发生（见缺陷 L）。Vue 侧可用的实现
+   * 现在在 `ubean/client`（走 `@unhead/vue` 的 `useHead`）。
+   */
+  describe('JSON-LD（useSchemaOrg）', () => {
+    it('结构化数据出现在 SSR HTML 里', async () => {
+      const res = await probe('/seo-meta');
+      expect(res.status).toBe(200);
+      expect(res.body).toContain('application/ld+json');
+      expect(res.body).toContain('"@type":"Article"');
+    });
+  });
+
+  /**
+   * SSE：`defineSSE()` 返回的中间件应当给出 `text/event-stream` 与首个事件。
+   */
+  describe('SSE（defineSSE）', () => {
+    it('返回事件流并推送 onConnect 的事件', async () => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3_000);
+      try {
+        const res = await fetch(`${baseUrl}/api/sse-demo`, { signal: controller.signal });
+        expect(res.status).toBe(200);
+        expect(res.headers.get('content-type')).toContain('text/event-stream');
+        // 读前两帧即可（连接不会自行结束；拿到 `ready` 就证明 onConnect 真的跑了）
+        const reader = res.body!.getReader();
+        const decoder = new TextDecoder();
+        let text = '';
+        while (!text.includes('event: ready') && text.length < 4_096) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          text += decoder.decode(value, { stream: true });
+        }
+        await reader.cancel().catch(() => undefined);
+        expect(text).toContain('event: ready');
+        expect(text).toContain('connected');
+      } finally {
+        clearTimeout(timer);
+      }
+    }, 20_000);
+  });
+
   describe('页面 404 与 API 404 的分野', () => {
     it('未知页面路径返回 404 + HTML（走页面兜底而非 JSON）', async () => {
       const res = await probe('/definitely-missing-page');

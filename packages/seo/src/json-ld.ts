@@ -49,12 +49,21 @@ export type JsonLdInput =
  * ```
  */
 export function renderJsonLdScript(schema: JsonLdSchema | JsonLdSchema[]): string {
-  const json = JSON.stringify(schema)
+  return `<script type="application/ld+json">${serializeJsonLd(schema)}</script>`;
+}
+
+/**
+ * 把 schema 序列化为**可安全内联进 HTML/JS 字符串**的 JSON。
+ *
+ * 转义 `</script>`、U+2028/U+2029 —— 与 `renderJsonLdScript()` 是同一份实现，供 Vue 侧的
+ * `useSchemaOrg()`（把内容交给 head 的 `textContent`）复用，避免两处转义规则漂移。
+ */
+export function serializeJsonLd(schema: JsonLdSchema | JsonLdSchema[]): string {
+  return JSON.stringify(schema)
     .replace(/</g, '\\u003c')
     .replace(/>/g, '\\u003e')
     .replace(/\u2028/g, '\\u2028')
     .replace(/\u2029/g, '\\u2029');
-  return `<script type="application/ld+json">${json}</script>`;
 }
 
 /**
@@ -111,23 +120,34 @@ export function defineJsonLd(schema: JsonLdInput): JsonLdInput {
  * </script>
  * ```
  */
+let warnedMissingHead = false;
+
+/**
+ * 重置「缺 head」告警标志。**仅供测试**（与 `@ubean/vue` 的 `clearMatchers()` 同一用途）：
+ * 标志是模块级单例，一条用例触发过告警后，后续用例就观察不到它了。
+ */
+export function resetSchemaOrgWarning(): void {
+  warnedMissingHead = false;
+}
+
 export function useSchemaOrg(schema: JsonLdInput): JsonLdInput {
-  try {
-    // 延迟 require 风格的动态 import,避免在非 Vue 环境报错
-    const head = (globalThis as any).__UBEAN_HEAD__ as { push: (entry: HeadEntry) => void } | undefined;
-    if (head && typeof head.push === 'function') {
-      const scriptContent = typeof schema === 'function' ? JSON.stringify(schema) : JSON.stringify(schema);
-      head.push({
-        script: [
-          {
-            type: 'application/ld+json',
-            innerHTML: scriptContent
-          }
-        ]
-      } as unknown as HeadEntry);
-    }
-  } catch {
-    // ignore
+  const head = (globalThis as unknown as { __UBEAN_HEAD__?: { push: (entry: HeadEntry) => void } }).__UBEAN_HEAD__;
+  if (head && typeof head.push === 'function') {
+    head.push({
+      script: [{ type: 'application/ld+json', textContent: serializeJsonLd(schema as JsonLdSchema) }]
+    } as unknown as HeadEntry);
+    return schema;
+  }
+
+  // 没有可用的 head 实例：**告警一次**而不是静默什么都不做（本函数此前就是这样静默失败的 ——
+  // `__UBEAN_HEAD__` 全仓无人注册，调用方以为 JSON-LD 已经注入）。给出两条可用路径。
+  if (!warnedMissingHead) {
+    warnedMissingHead = true;
+    // eslint-disable-next-line no-console
+    console.warn(
+      '[ubean] useSchemaOrg(): 当前没有 head 实例，JSON-LD 未注入。Vue 应用请从 `ubean/client` 导入 ' +
+        '（它走 @unhead/vue 的 useHead）；非 Vue 环境请用 `renderJsonLdScript()` 自行注入。'
+    );
   }
   return schema;
 }

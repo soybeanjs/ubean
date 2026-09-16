@@ -94,7 +94,7 @@ export type {
 export { createUbeanRouter } from './router';
 export type { CreateUbeanRouterOptions } from './router';
 
-export { useHeadInstance } from './head';
+export { useHeadInstance, useSchemaOrg } from './head';
 // Re-export createHead from @unhead/vue so consumers (and ubean's own virtual
 // modules) don't need @unhead/vue as a direct dependency — it's resolved through
 // ubean's node_modules. Renamed to avoid name clash between client/server variants.
@@ -127,6 +127,12 @@ export type { UbeanAppOptions, UbeanAppInstance } from './app';
 export { defineApp, applyAppConfig, createDefaultAppConfig, mergeAppConfig } from './define-app';
 export type { DefineAppOptions, ResolvedAppConfig, AppPluginConfig } from './define-app';
 export type { SeoMetadata, MetaTag, LinkTag } from '@ubean/seo';
+// JSON-LD（P9-07）：schema 工厂与「手动渲染」助手放在客户端入口 —— 它们是**纯数据**，但如果客户端
+// 为了取 `schemaOrg` 去 import 主入口 `ubean`，会把整条聚合链（shared/seo/pages/markdown + 内核 +
+// islands + logger）带进客户端产物（实测示例入口 chunk 又多出约 70 kB）。可用版本 `useSchemaOrg`
+// 见 `./head`。
+export { defineJsonLd, renderJsonLdScript, renderJsonLdScripts, mergeJsonLd, schemaOrg } from '@ubean/seo';
+export type { JsonLdSchema, JsonLdInput } from '@ubean/seo';
 // Islands hydration — single source of truth lives in `@ubean/islands/runtime`
 // (the former in-runtime fork was removed; this re-export keeps the public
 // surface of the old `@ubean/runtime` barrel).

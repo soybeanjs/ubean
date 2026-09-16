@@ -51,6 +51,8 @@ export {
   getInitialState,
   // head
   useHeadInstance,
+  // JSON-LD（P9-07）：Vue 版本（走 useHead），isomorphic 版本在 @ubean/seo / useSeoMeta 一侧
+  useSchemaOrg,
   // composables
   createLinkHandler,
   extractPageData,

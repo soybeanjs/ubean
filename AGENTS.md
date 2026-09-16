@@ -875,7 +875,7 @@ export default defineConfig({
 4. **`definePage`**：静态 head 通过 `head` 字段声明，不使用顶层 `title`
 5. **虚拟模块前缀**：用 `virtual:ubean-`（`#ubean-` 会因 URL hash 导致 404）
 6. **客户端导入入口**：主入口 `ubean` 已 isomorphic 化，客户端代码可安全导入；但服务端符号（`defineHandler`/`useDatabase`/`validator`…）只在 `ubean/server`、构建时符号只在 `ubean/build` —— 在客户端代码中从 `ubean/server` 导入会触发 Vite 在浏览器环境预构建 Hono/`node:*` 依赖。
-   **尺寸陷阱：客户端模块优先从 `ubean/client` 导入，而不是 `ubean` 主入口。** 主入口是聚合 barrel（shared/seo/pages/markdown + Vue 内核 + islands + logger），从客户端图引用它会把整条聚合链带进客户端产物 —— 实测示例项目里一个 `import { defineMatcher } from 'ubean'` 就让入口 chunk 从 **45.2 kB gzip 涨到 111.9 kB**（+148%），换成 `'ubean/client'` 后回到 +1.5%。判据由 `pnpm analyze:check` 守着（它只看体积，不看你从哪儿 import）。
+   **尺寸陷阱：客户端模块优先从 `ubean/client` 导入，而不是 `ubean` 主入口。** 主入口是聚合 barrel（shared/seo/pages/markdown + Vue 内核 + islands + logger），从客户端图引用它会把整条聚合链带进客户端产物 —— 实测示例项目里一个 `import { defineMatcher } from 'ubean'` 就让入口 chunk 从 **45.2 kB gzip 涨到 111.9 kB**（+148%），换成 `'ubean/client'` 后回到 +1.5%。判据由 `pnpm analyze:check` 守着（它只看体积，不看你从哪儿 import），另有**立即反馈的守卫**：`packages/cli/test/example-imports.test.ts` 断言示例的客户端图文件（pages/components/layouts/app.ts/entry.client.ts）不从主入口 `ubean` 导入。
 7. **`createUbeanApp` 消歧**：`@ubean/app` / `ubean/server` 的 `createUbeanApp` 返回 Hono `UbeanApp`；`@ubean/client` 的 Vue 工厂为 `createUbeanClientApp`（返回 `{ app, router, head, page }`）。服务端入口用 `ubean/server`（Hono），客户端用 `createUbeanClientApp`
 8. **中间件注册**：将 async 函数传给 `server.middlewares.use()` 时包装在 `Promise.resolve().then().catch()` 中（Vite dev/preview server 都是 connect 中间件栈；preview 的接线见 `@ubean/build/vite` 的 `attachPreviewMiddleware`）
 9. **Service Worker**：PWA SW 由 vite-plugin-pwa + workbox 生成（`@ubean/integrations/pwa` 薄封装），无需手动处理模板替换

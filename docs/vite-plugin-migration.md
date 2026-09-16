@@ -334,6 +334,16 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 
 修法：dev 的 `buildDevSsrRoutes()` 与产物入口的 `buildRendererSetup()` 都改为按 route 分组、把插槽写成命名视图（`components: { default, <slot> }`，与 `component` 互斥），拦截路由与客户端一致地单独注册（名字加 `__intercept_` 前缀）。`SlotView` 本身已支持懒加载组件（`defineAsyncComponent` 包装），因此分组后 SSR 也能渲染插槽。断言：`dev-topology.test.ts` 与 `preview-cli.test.ts` 各一条（首屏 HTML 同时含默认视图与插槽标记）。
 
+**L. `useSchemaOrg()` 是静默空操作（JSON-LD 从未注入）。** 审计时顺手给示例加了一段结构化数据，才发现这个 API **实际什么都不做**：`@ubean/seo` 的实现把 schema 推给 `globalThis.__UBEAN_HEAD__`，而那个全局**全仓无人注册**（只有它自己在读），文档却写着「内部通过 `useHead` 注入 head」。症状极隐蔽 —— 不报错、不告警，调用方以为 SEO 结构化数据已经就位；SSR HTML 里没有 `<script type="application/ld+json">`。
+
+修法：可用实现放在 **`@ubean/client`**（Vue 侧走 `@unhead/vue` 的 `useHead`，字段用 unhead v3 的 `textContent` —— v1 时代的 `innerHTML` 会被忽略），并从 `ubean/client` 与主入口导出；`@ubean/seo` 的同名函数保留为**非 Vue 环境的降级实现**，但缺 head 时**告警一次**（给出两条可用路径），不再静默。转义逻辑抽出 `serializeJsonLd()` 供两处复用（`</script>`、U+2028/U+2029）。
+
+验证：示例 `seo-meta.vue` 调用后，dev 与生产 SSR HTML 都出现 `application/ld+json` 且含 `"@type":"Article"`；单测覆盖转义与「降级时告警一次」。
+
+**修的过程里我又踩了一次『聚合入口』陷阱**：页面为了取 `schemaOrg` 写了 `import { schemaOrg } from 'ubean'`，门禁立刻报 total **+63.7%**（与之前 `defineMatcher` 那次同一根因）。这次没有只改调用点 —— `ubean/client` 现在也导出 JSON-LD 的纯数据助手（`schemaOrg` / `defineJsonLd` / `renderJsonLdScript` 等），客户端不必再为了一个工厂函数去拉整条聚合链；并新增守卫用例 `cli/test/example-imports.test.ts`：示例的客户端图文件（pages/components/layouts/app.ts/entry.client.ts）**不得**从主入口 `ubean` 导入 —— 把这条纪律从「文档里的提醒」变成「立即反馈的断言」（它当场就找出了另一个历史遗留：`about-alias.reuse.ts` 的 `definePage`）。
+
+**同批顺带验证的 SSE**：示例新增 `src/routes/api/sse-demo.ts`（`defineSSE()` + `onConnect`），dev 与生产都返回 `text/event-stream` 与 `event: ready` 帧（含 keep-alive 注释帧）。
+
 ### 审计已确认「文档承诺 = 实际行为」的部分（2026-09-16）
 
 同一轮审计不只是找缺陷，也把几条**此前零覆盖**的文档承诺变成了可执行断言（避免下次再从「文档写了」推「能用」）：
@@ -345,6 +355,8 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 | Server / Client Components（`.server.vue` / `.client.vue`） | 示例 `ServerGreeting.server.vue` / `BrowserClock.client.vue`；SSR 断言（内容 + 占位符）、产物隔离断言、浏览器水合断言 | 修完 K 后 dev / 生产 / 水合三段都成立 |
 | 配对组件（Task 9.3） | 示例 `ThemeBadge.server.vue` + `.client.vue`；SSR 用服务端变体、水合后切客户端变体 | 行为符合文档 |
 | ISR（`routeRules.isr` + `swr`） | 示例 `isr-demo.vue` + `routeRules`；dev 断言 MISS → HIT → STALE → HIT(新值)，生产断言「预热后连续两次 HIT 且同一份渲染」 | 四段语义与 X-ISR 头都符合文档 |
+| JSON-LD（`useSchemaOrg`） | 示例 `seo-meta.vue`；断言 SSR HTML 含 `application/ld+json` 与 `"@type":"Article"` | 修完 L 后才真正注入 |
+| SSE（`defineSSE`） | 示例 `api/sse-demo.ts`；断言 `text/event-stream` + `onConnect` 的 `ready` 帧 | 行为符合文档 |
 
 **ISR 用例的一处写法值得记下**：生产用 fs 缓存（`.ubean/cache`），它**跨运行留存** —— 手工验证过一次之后，首个请求就从 MISS 变成 STALE。断言因此写成不依赖初始状态的不变量（预热 → 连续两次 HIT + 同一 token），否则用例会因外部状态而假红。
 

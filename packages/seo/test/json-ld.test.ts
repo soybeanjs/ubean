@@ -1,13 +1,15 @@
 /**
  * P9-07 JSON-LD / Schema.org 单元测试
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   renderJsonLdScript,
+  serializeJsonLd,
   renderJsonLdScripts,
   mergeJsonLd,
   defineJsonLd,
   useSchemaOrg,
+  resetSchemaOrgWarning,
   schemaOrg
 } from '../src/json-ld';
 
@@ -135,9 +137,11 @@ describe('P9-07 JSON-LD / Schema.org', () => {
       try {
         useSchemaOrg({ '@context': 'https://schema.org', '@type': 'Organization', name: 'X' });
         expect(pushed).toHaveLength(1);
-        const entry = pushed[0] as { script: Array<{ type: string; innerHTML: string }> };
+        // unhead v3 的 script 条目用 `textContent`（不是 v1 的 `innerHTML`）—— 与
+        // `@ubean/client` 的 Vue 版 `useSchemaOrg` 保持一致，否则注入的内容会被忽略
+        const entry = pushed[0] as { script: Array<{ type: string; textContent: string }> };
         expect(entry.script[0].type).toBe('application/ld+json');
-        expect(entry.script[0].innerHTML).toContain('Organization');
+        expect(entry.script[0].textContent).toContain('Organization');
       } finally {
         delete (globalThis as any).__UBEAN_HEAD__;
       }
@@ -217,5 +221,36 @@ describe('P9-07 JSON-LD / Schema.org', () => {
       expect(offers.priceCurrency).toBe('USD');
       expect(offers.availability).toBe('https://schema.org/InStock');
     });
+  });
+});
+
+describe('serializeJsonLd（转义）与 useSchemaOrg 的降级告警', () => {
+  it('转义 </script>、> 与 U+2028/U+2029', () => {
+    const json = serializeJsonLd({ '@type': 'Article', name: '</script><b>', line: 'a\u2028b\u2029c' });
+    expect(json).not.toContain('</script>');
+    expect(json).toContain('\\u003c');
+    expect(json).toContain('\\u2028');
+    expect(json).toContain('\\u2029');
+  });
+
+  it('renderJsonLdScript 复用同一套转义（两处规则不漂移）', () => {
+    const html = renderJsonLdScript({ '@type': 'Thing', name: '</script>' });
+    expect(html.startsWith('<script type="application/ld+json">')).toBe(true);
+    expect(html).not.toContain('</script></script>');
+    expect(html).toContain('\\u003c/script');
+  });
+
+  it('没有 head 实例时告警一次（此前是静默空操作）', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      delete (globalThis as { __UBEAN_HEAD__?: unknown }).__UBEAN_HEAD__;
+      resetSchemaOrgWarning(); // 标志是模块级单例：本文件前面的用例可能已经触发过
+      useSchemaOrg({ '@type': 'Thing' });
+      useSchemaOrg({ '@type': 'Thing' });
+      expect(warn).toHaveBeenCalledTimes(1);
+      expect(String(warn.mock.calls[0][0])).toContain('ubean/client');
+    } finally {
+      warn.mockRestore();
+    }
   });
 });

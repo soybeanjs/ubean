@@ -1,5 +1,18 @@
 <script setup lang="ts">
-import { useSeoMeta, useHead } from 'ubean/client';
+// 注意：全部从 `ubean/client` 取 —— 客户端模块从主入口 `ubean` 导入会把整条聚合链带进产物
+// （AGENTS §8 的「尺寸陷阱」，`analyze:check` 守着）
+import { useSeoMeta, useHead, useSchemaOrg, schemaOrg } from 'ubean/client';
+
+// JSON-LD（P9-07）：从 `ubean/client` 导入才会真正注入 head（`@ubean/seo` 的同名函数是
+// 非 Vue 环境的降级实现，缺 head 时会告警）
+useSchemaOrg(
+  schemaOrg.article({
+    headline: 'SEO Test Page - Ubean Framework',
+    description: 'Testing structured data injection',
+    author: 'Ubean',
+    datePublished: '2026-01-01'
+  })
+);
 
 useHead({
   title: 'SEO Meta Test - ubean'

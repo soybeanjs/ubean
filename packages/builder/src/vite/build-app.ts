@@ -224,11 +224,12 @@ export async function runEnvBuilds(
     hasServer
   });
 
-  // 注意：这里**暂不**调用 `runPrerenderStep`。预渲染会 `import()` 构建好的 SSR entry，而
-  // 那会把应用侧的 handle（cron 调度器、队列 worker、数据库连接…）带进当前进程 —— CLI 的
-  // build 命令随后显式退出所以看不出来，`vite build` 则**挂住不退**（实测：预渲染完成、
-  // 打了 "Prerendered 8 routes"，进程 13 分钟仍存活）。要接的话需要先给出「预渲染后如何
-  // 干净收尾」的方案（对齐 CLI 的退出路径或让 fetcher 支持 teardown）。
+  // 这里**暂不**调用 `runPrerenderStep`（插件路径）。预渲染会 import() 构建好的 SSR entry，
+  // 把它的运行时资源带进当前进程；entry 现在导出 `close()` 并在渲染后调用，cron 调度器确实
+  // 停掉了，但进程仍不退出（实测：产物已是完整的 181 个文件、`Prerendered 8 routes`，进程却
+  // 一直存活）—— 说明还有别的 handle。`close()` 里对 `@ubean/server/queue`、`@ubean/server/db`
+  // 的清理是 try/catch 静默的，而这两个子路径从**构建产物**解析不到（项目只依赖 `ubean`），
+  // 很可能就是漏网的来源。挂住的构建比缺预渲染更坏（CI 会超时），因此先不接。
   void runPrerenderStep;
 
   return builtManifest;

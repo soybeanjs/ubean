@@ -23,11 +23,17 @@ const logger = getLogger('build');
 
 type Fetcher = (url: string) => Promise<{ html: string; statusCode: number }>;
 
+/** fetcher + 资源释放：entry 会启动进程内 cron 等资源，渲染完必须收尾（RM-V21）。 */
+interface SsrFetcher {
+  fetch: Fetcher;
+  close: () => Promise<void>;
+}
+
 /**
  * 用构建好的 SSR entry 驱动渲染：import `entry.mjs`，取其 `createFetchHandler()`，再用合成的
  * `http://localhost<path>` 请求驱动。
  */
-export async function createSsrFetcher(cwd: string, manifest: BuildManifest): Promise<Fetcher | undefined> {
+export async function createSsrFetcher(cwd: string, manifest: BuildManifest): Promise<SsrFetcher | undefined> {
   try {
     const entryPath = resolve(cwd, manifest.serverDir, 'entry.mjs');
     const entryUrl = pathToFileURL(entryPath).href;
@@ -42,11 +48,21 @@ export async function createSsrFetcher(cwd: string, manifest: BuildManifest): Pr
       logger.warn('SSR entry did not return a fetch handler; falling back to placeholder prerender.');
       return undefined;
     }
-    return async (url: string) => {
-      const req = new Request(`http://localhost${url || '/'}`, { headers: { 'x-ubean-prerender': '1' } });
-      const res = await fetch(req);
-      const html = typeof res.text === 'function' ? await res.text() : String(res.body ?? '');
-      return { html, statusCode: res.status ?? 200 };
+    return {
+      fetch: async (url: string) => {
+        const req = new Request(`http://localhost${url || '/'}`, { headers: { 'x-ubean-prerender': '1' } });
+        const res = await fetch(req);
+        const html = typeof res.text === 'function' ? await res.text() : String(res.body ?? '');
+        return { html, statusCode: res.status ?? 200 };
+      },
+      close: async () => {
+        // entry 导出的 `close()` 释放它自己那份运行时（cron 调度器 / 队列 worker / 数据库）
+        try {
+          await mod.close?.();
+        } catch {
+          /* 收尾失败不影响构建结果 */
+        }
+      }
     };
   } catch (err) {
     logger.warn(
@@ -93,7 +109,7 @@ export async function runPrerenderStep(options: RunPrerenderStepOptions): Promis
     }
   }
 
-  let fetcher: Fetcher | undefined;
+  let ssrFetcher: SsrFetcher | undefined;
   let notFoundRoute = false;
   let expandRoutes: ((routes: string[]) => string[]) | undefined;
 
@@ -105,27 +121,33 @@ export async function runPrerenderStep(options: RunPrerenderStepOptions): Promis
       i18n: config.i18n
     });
     if (staticRenderer) {
-      fetcher = staticRenderer.fetcher;
+      // 静态渲染路径不加载 Hono entry，无需收尾
+      ssrFetcher = { fetch: staticRenderer.fetcher, close: async () => {} };
       expandRoutes = staticRenderer.expandRoutes;
       // 无 pages/404.vue 时不入队哨兵路由（fetcher 会 404，徒增错误噪音）
       notFoundRoute = Boolean(scanResult.notFoundPage);
       logger.info('Using static SSG renderer (direct render, no HTTP pipeline)');
     }
   } else {
-    fetcher = await createSsrFetcher(cwd, manifest);
+    ssrFetcher = await createSsrFetcher(cwd, manifest);
   }
 
-  await prerender({
-    cwd,
-    outputDir: config.build.outputDir,
-    pages: scanResult.pages,
-    prerender: config.prerender,
-    routeRules: config.routeRules,
-    contentRoutes,
-    fetcher,
-    notFoundRoute,
-    expandRoutes
-  });
+  try {
+    await prerender({
+      cwd,
+      outputDir: config.build.outputDir,
+      pages: scanResult.pages,
+      prerender: config.prerender,
+      routeRules: config.routeRules,
+      contentRoutes,
+      fetcher: ssrFetcher?.fetch,
+      notFoundRoute,
+      expandRoutes
+    });
+  } finally {
+    // 渲染完成后释放 entry 打开的资源 —— 否则 `vite build` 进程不退出（实测挂 13 分钟）
+    await ssrFetcher?.close();
+  }
 
   if (!contentSnapshot) return;
 

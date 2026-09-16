@@ -421,6 +421,9 @@ export async function createApp(options = {}) {
   });
 
   // Apply user's defineServer config (plugins, hooks, onAppCreate) before init
+  // 进程内 cron 调度器句柄（RM-V21）：保留以便 close() 释放，否则预渲染后进程不退出
+  let cronScheduler;
+
   const _serverConfig = _resolveServerConfig('prod');
   await applyServerConfig(app, _serverConfig);
 
@@ -429,7 +432,7 @@ export async function createApp(options = {}) {
   ${
     enableInProcessCron
       ? `if (Object.keys(cronModules).length > 0) {
-    startCronScheduler();
+    cronScheduler = startCronScheduler();
   }`
       : ''
   }
@@ -445,6 +448,26 @@ export async function createApp(options = {}) {
 export default async function createFetchHandler() {
   const app = await createApp();
   return app.fetch;
+}
+
+// 释放本 entry 打开的运行时资源（RM-V21）：
+// 预渲染需要 import() 构建好的 entry 来渲染真实 HTML，而 entry 的 createApp() 会启动进程内
+// cron 调度器（以及可能被页面用到的队列 worker / 数据库连接）—— 进程因此不再退出：
+// ubean build 之后 CLI 显式退出看不出来，vite build 则会挂住（实测 13 分钟仍在）。
+// 保留调度器句柄并导出 close()，由预渲染步骤在渲染完成后调用。
+export async function close() {
+  try {
+    cronScheduler?.stop?.();
+    cronScheduler = null;
+  } catch {}
+  try {
+    const queue = await import('@ubean/server/queue');
+    await queue.stopQueueWorkers?.();
+  } catch {}
+  try {
+    const db = await import('@ubean/server/db');
+    await db.closeDatabases?.();
+  } catch {}
 }
 
 export const handler = async (req, ctx) => {

@@ -224,16 +224,13 @@ export async function runEnvBuilds(
     hasServer
   });
 
-  // 这里**暂不**调用 `runPrerenderStep`（插件路径）：会让 `vite build` 进程不退出。
-  // 已排除/已修（2026-09-16）：
-  // - 产物没问题（接上后 181 个文件、Prerendered 8 routes 都正常）；
-  // - cron 调度器不是元凶（stop() 正确清 interval 与各任务 timeout）；
-  // - 内存限流存储的 60s 清理定时器**已能销毁**（`disposeMemoryRateLimitStores()`，
-  //   由 `close()` 调用），但**仍未解决挂住** ⇒ 还有别的定时器；
-  // - `_getActiveHandles()` 为空；`getActiveResourcesInfo()` 报 CloseReq + 4×Timeout。
-  // 下一步（最省事的定位法）：临时给 `setInterval`/`setTimeout` 打补丁，构造时记录调用栈，
-  // 跑一次 `vite build` 就能指名道姓看到是谁留下的定时器。
-  void runPrerenderStep;
+  await runPrerenderStep({
+    cwd,
+    config: prepared.config,
+    scanResult: prepared.scanResult,
+    manifest: builtManifest,
+    contentSnapshot: prepared.contentSnapshot
+  });
 
   return builtManifest;
 }

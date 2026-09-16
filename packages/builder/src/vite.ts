@@ -235,8 +235,13 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
             // `scanProject` 已在文件顶部静态导入，这里不再从动态 import 里取（避免遮蔽）
             const [
               { createBuildContext, prepareBuild, runEnvBuilds },
-              { resolvePresetByName, registerBuiltinPresets }
-            ] = await Promise.all([import('./vite/build-app'), import('@ubean/preset')]);
+              { resolvePresetByName, registerBuiltinPresets },
+              { loadContentForBuild }
+            ] = await Promise.all([
+              import('./vite/build-app'),
+              import('@ubean/preset'),
+              import('./vite/prerender-step')
+            ]);
             registerBuiltinPresets();
             const scanResult = await scanProject({
               cwd: ubeanConfig!.rootDir,
@@ -244,11 +249,14 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
               dirs: ubeanConfig!.dir,
               ignore: ubeanConfig!.scanOptions?.ignore
             });
+            // 内容快照决定内容集合页面是否进入预渲染队列（与 CLI 路径一致）
+            const { snapshot: contentSnapshot } = await loadContentForBuild(ubeanConfig!.rootDir, ubeanConfig!.content);
             const ctx = createBuildContext({
               cwd: ubeanConfig!.rootDir,
               config: ubeanConfig!,
               preset: resolvePresetByName(ubeanConfig!.build.preset),
-              scanResult
+              scanResult,
+              contentSnapshot
             });
             // 复用本插件的 manifest 载体：注入由核心插件的 load 提供，读的必须是同一个对象
             const prepared = await prepareBuild(ctx, assetManifestRef);

@@ -391,6 +391,11 @@ const _notFoundPage = ${notFoundPageJson};
 ${rendererSetup}
 ${assetTagsSetup}
 
+// 进程内 cron 调度器句柄：必须声明在模块作用域 —— createApp() 赋值、导出的 close() 读取；
+// 若声明在 createApp 内部，close() 里读不到（且它整体包在 try/catch 里，会静默失败），
+// 于是 30s 的调度间隔留在进程里，预渲染后进程永不退出（实测：timer-probe 点出这一段栈）。
+let cronScheduler;
+
 export async function createApp(options = {}) {
   const app = createUbeanApp({
     rootDir: ${JSON.stringify(cwd)},
@@ -421,9 +426,6 @@ export async function createApp(options = {}) {
   });
 
   // Apply user's defineServer config (plugins, hooks, onAppCreate) before init
-  // 进程内 cron 调度器句柄（RM-V21）：保留以便 close() 释放，否则预渲染后进程不退出
-  let cronScheduler;
-
   const _serverConfig = _resolveServerConfig('prod');
   await applyServerConfig(app, _serverConfig);
 

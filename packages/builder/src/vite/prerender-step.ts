@@ -72,6 +72,28 @@ export async function createSsrFetcher(cwd: string, manifest: BuildManifest): Pr
   }
 }
 
+/**
+ * 构建期加载内容集合（内容路由 + 快照）。
+ *
+ * 与预渲染同因：`contentSnapshot` 决定内容集合页面（如 `/blog/hello`）是否进入预渲染队列，
+ * 因此两条构建路径都必须加载它 —— 否则插件路径会少产出这些静态页（实测：`vite build` 比
+ * `ubean build` 少 `blog/hello/index.html` 与一个服务端 chunk）。
+ */
+export async function loadContentForBuild(
+  cwd: string,
+  content: unknown
+): Promise<{ snapshot: Record<string, unknown[]> | undefined }> {
+  if (!content) return { snapshot: undefined };
+  try {
+    const mod = await import('@ubean/content');
+    const options = content === true ? {} : (content as Record<string, unknown>);
+    return { snapshot: mod.scanContentSources(cwd, options) as Record<string, unknown[]> };
+  } catch {
+    // `@ubean/content` 未安装或非 content 项目：无快照
+    return { snapshot: undefined };
+  }
+}
+
 export interface RunPrerenderStepOptions {
   cwd: string;
   config: ResolvedConfig;

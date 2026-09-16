@@ -1,10 +1,11 @@
+import { existsSync } from 'node:fs';
 import type { Plugin } from 'vite';
 import { loadUbeanConfig, tryGetConfig } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { createServerRouter } from '@ubean/routes';
 import { scanProject } from '@ubean/scan';
 import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
-import { relative, resolve } from 'pathe';
+import { join, relative, resolve } from 'pathe';
 import { getDevScanCoordinator } from './dev/dev-scan';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { transformMacros } from './macros';
@@ -17,6 +18,8 @@ import {
 } from './virtual-modules';
 import { createVirtualRegistry } from './virtual-registry';
 import type { VirtualModuleRegistry } from './virtual-registry';
+import { ASSET_MANIFEST_VIRTUAL_ID, computeAssetTags } from './vite/asset-manifest';
+import type { ClientManifestEntry } from './vite/asset-manifest';
 
 export { createVirtualRegistry } from './virtual-registry';
 
@@ -99,6 +102,7 @@ export type { VirtualModuleRegistry, VirtualModuleResolver } from './virtual-reg
 
 const VIRTUAL_MODULES = ['ubean:routes', 'ubean:pages', 'ubean:meta', 'ubean:app-config', 'ubean:locales'];
 const VIRTUAL_PREFIX = '\0ubean:';
+const RESOLVED_ASSET_MANIFEST_ID = `\0${ASSET_MANIFEST_VIRTUAL_ID}`;
 
 export interface UbeanPluginOptions {
   /**
@@ -142,12 +146,46 @@ export interface UbeanPluginOptions {
  * ubeanPlugin({ config: resolvedConfig })
  * ```
  */
+
+/**
+ * 开关打开时插件侧的 environment 构建配置（RM-V21）。
+ *
+ * 与 CLI 自建 builder 共用 `createBuildEnvironments()` —— 只写 `outDir` 的极简版本会让客户端
+ * 环境退回默认入口 `index.html`（实测报 `Cannot resolve entry module index.html`）。
+ */
+async function buildEnvironmentsForConfig(config: UbeanResolvedConfig) {
+  const [
+    { createBuildEnvironments, getBuildOutDirsForConfig },
+    { getPresetBuildConfig },
+    { resolvePresetByName, registerBuiltinPresets },
+    { ssrSingletonProdSsr }
+  ] = await Promise.all([
+    import('./vite/build-configs'),
+    import('./production'),
+    import('@ubean/preset'),
+    import('./ssr-singleton')
+  ]);
+  registerBuiltinPresets();
+  const outDirs = getBuildOutDirsForConfig(config);
+  const clientEntryPath = join(resolve(config.rootDir, config.srcDir), 'entry.client.ts');
+  return createBuildEnvironments({
+    outDirs,
+    clientInput: existsSync(clientEntryPath) ? clientEntryPath : join(outDirs.virtual, 'client-entry.mjs'),
+    minify: true,
+    sourcemap: false,
+    presetBuildConfig: getPresetBuildConfig(resolvePresetByName(config.build.preset)),
+    ssrNoExternal: (ssrSingletonProdSsr() as { noExternal?: (string | RegExp)[] }).noExternal
+  });
+}
+
 export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
   const virtualRegistry = options?.registry ?? createVirtualRegistry();
 
   // Config 解析:优先使用传入的,其次从缓存获取
   // 如果都没有,在 buildStart 中异步加载
   let ubeanConfig: UbeanResolvedConfig | undefined = options?.config ?? tryGetConfig() ?? undefined;
+  /** client manifest 的内存载体（RM-V18）：`buildApp` 填、本插件的 load 读。 */
+  const assetManifestRef: { current: Record<string, ClientManifestEntry> | null } = { current: null };
 
   // 派生值 — 在 config 就绪后计算
   let srcDirAbs = '';
@@ -184,21 +222,40 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
       if (!ubeanConfig?.experimental?.viteBuilder) return undefined;
 
       return {
-        environments: {
-          client: {
-            consumer: 'client' as const,
-            build: {
-              // 与旧路径产物布局保持一致（`dist/public`），RM-V36 收敛前不得更换
-              outDir: 'dist/public'
-            }
-          },
-          ubean: {
-            consumer: 'server' as const,
-            build: {
-              outDir: 'dist/server'
-            }
+        /**
+         * RM-V21：开关打开时构建编排也交给插件 —— `vite build`（无 CLI）因此能产出
+         * `dist/{public,server,manifest.json}`。builder 与 environments 由 Vite 按本钩子创建，
+         * 插件只跑拆分好的阶段（`prepareBuild` → `runEnvBuilds`），**不**自建 builder（会递归）。
+         *
+         * 已知缺口：**预渲染**尚未接入本路径（`prerender()` 目前由 CLI 调用），因此
+         * `vite build` 的产物缺静态 HTML，与 `ubean build` 仍不等价（RM-V23 的矩阵会据此判定）。
+         */
+        builder: {
+          async buildApp(builder) {
+            // `scanProject` 已在文件顶部静态导入，这里不再从动态 import 里取（避免遮蔽）
+            const [
+              { createBuildContext, prepareBuild, runEnvBuilds },
+              { resolvePresetByName, registerBuiltinPresets }
+            ] = await Promise.all([import('./vite/build-app'), import('@ubean/preset')]);
+            registerBuiltinPresets();
+            const scanResult = await scanProject({
+              cwd: ubeanConfig!.rootDir,
+              srcDir: ubeanConfig!.srcDir,
+              dirs: ubeanConfig!.dir,
+              ignore: ubeanConfig!.scanOptions?.ignore
+            });
+            const ctx = createBuildContext({
+              cwd: ubeanConfig!.rootDir,
+              config: ubeanConfig!,
+              preset: resolvePresetByName(ubeanConfig!.build.preset),
+              scanResult
+            });
+            // 复用本插件的 manifest 载体：注入由核心插件的 load 提供，读的必须是同一个对象
+            const prepared = await prepareBuild(ctx, assetManifestRef);
+            await runEnvBuilds(builder as never, prepared);
           }
-        }
+        },
+        environments: await buildEnvironmentsForConfig(ubeanConfig)
       };
     },
 
@@ -211,6 +268,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     },
 
     resolveId(id) {
+      // RM-V18：资产标签虚拟模块由核心插件提供 —— 它是两条路径都必然注册的那一个
+      if (id === ASSET_MANIFEST_VIRTUAL_ID) return RESOLVED_ASSET_MANIFEST_ID;
       if (VIRTUAL_MODULES.includes(id)) {
         return VIRTUAL_PREFIX + id;
       }
@@ -218,6 +277,9 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     },
 
     async load(id) {
+      if (id === RESOLVED_ASSET_MANIFEST_ID) {
+        return `export const assetTags = ${JSON.stringify({ ...computeAssetTags(assetManifestRef.current), favicon: null })};\n`;
+      }
       if (id.startsWith(VIRTUAL_PREFIX)) {
         const moduleId = id.slice(VIRTUAL_PREFIX.length);
         const mod = virtualRegistry.getModules().find(m => m.id === moduleId);

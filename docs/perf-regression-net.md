@@ -170,7 +170,12 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 要补的判据（RM-P23 候选）：`analyze:check` 除体积上限外，还要**对照基线的 chunk 名单**，出现基线里存在、当前产物里没有的 chunk（hash 规范化后按名字比）即失败。实现便宜（基线已有 per-chunk 条目），且正是这次能提前发现问题的判据。
 
-岛屿 chunk 消失的**原因尚未定位**：已排除「插件顺序（islands 在 ubeanVite 之前）」—— 那样改会让 islands 先于 vue 处理 `.vue`，构建直接报 `At least one <template> or <script> is required`。范围已缩小到「RM-V14 让 `ubeanVite` 接管 vue 注册」之后的某个时刻，需要独立排查（下一轮从「`virtual:ubean-islands-registry` 在构建期是否被客户端入口引用、islands 插件在 client 环境的 transform 是否命中 `?vue&type=template` 子请求」入手）。
+**原因已定位（2026-09-16，同日）**：岛屿组件不是被页面模块动态 import 的 —— 客户端 hydration 通过**注册表**按名字解析。实测 `dist/public/assets/chunks/islands-test-*.js` 里 `IslandClock`/`IslandCounter`/… 各出现一次（作为 `ubean-island` 的属性值），动态 `import(` 出现 **0** 次；组件只可能来自 `virtual:ubean-islands-registry`。而注册表的实现是：islands 插件在 **`transform` 阶段**遍历 SFC 主模块时把组件填进内存 map（`packages/islands/src/vite.ts:1255`），注册表模块 `load` 时读这份 map（`:1158`）。客户端构建里页面是**惰性** `() => import(...)`（`virtual:ubean-pages` 的 loader），注册表在入口链上先于页面被加载 → 读到的 map 为空 → `generateRegistryModule` 返回 `export const islands = {};` → 组件永不进入 bundle。
+
+也就是说：**「注册表内容取决于模块转换顺序」是这套实现的结构性依赖**，而页面惰性加载让它在构建期天然不满足。它在某次改动前能工作，说明彼时有别的东西先把页面拉进了图（有待进一步确认），这类隐式依赖本身就是隐患。
+
+修法方向（RM-V24 候选）：让 islands 插件在 `buildStart` **主动扫描**含 `v-client.*` 的 SFC 并预填注册表，而不是依赖 transform 的到达顺序（`collectIslandComponents` 已可复用，缺的只是「扫哪些目录」的信息）。
+
 
 ## 7. 明确不做
 

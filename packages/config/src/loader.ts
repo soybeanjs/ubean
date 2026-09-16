@@ -342,7 +342,13 @@ export function loadUbeanConfigSync(cwd: string = process.cwd()): ResolvedConfig
 
   if (configPath) {
     const jiti = createJiti(cwd, { interopDefault: true });
-    config = jiti(configPath) as UbeanConfig;
+    const loaded = jiti(configPath) as UbeanConfig & { default?: UbeanConfig };
+    // jiti 对 `export default {...}` 的 .ts 配置可能仍返回模块命名空间（`{ default: cfg }`），
+    // `interopDefault` 并不总能拆掉它 —— 实测：拿到命名空间后 `config.content`/`i18n` 等全是
+    // undefined，于是 `resolveUbeanConfig` 回落到**全默认值**。CLI 路径因为先异步加载并写入
+    // 缓存（本函数第一段直接命中缓存）而看不到这个缺陷，只有 `vite dev` / `vite build`
+    // （插件自举、没有 CLI 预加载）会整份跑在默认配置上。
+    config = (loaded?.default ?? loaded) as UbeanConfig;
   }
 
   const resolved = resolveUbeanConfig(config, cwd);

@@ -70,7 +70,7 @@ function toVitePath(p: string): string {
   return p.replace(/\\/g, '/');
 }
 
-async function generateVirtualModulesToDisk(
+export async function generateVirtualModulesToDisk(
   cwd: string,
   config: ResolvedConfig,
   scanResult: ScanResult,
@@ -454,7 +454,7 @@ export const handler = async (req, ctx) => {
   return virtualDir;
 }
 
-function getPresetBuildConfig(preset: Preset) {
+export function getPresetBuildConfig(preset: Preset) {
   const presetName = preset.name;
 
   switch (presetName) {
@@ -485,7 +485,7 @@ function getPresetBuildConfig(preset: Preset) {
   }
 }
 
-function generateNodeServerEntry(): string {
+export function generateNodeServerEntry(): string {
   return `// Auto-generated ubean Node.js server entry
 import { createServer } from 'node:http';
 import createFetchHandler from './entry.mjs';
@@ -556,7 +556,7 @@ main();
 `.trim();
 }
 
-function generateStandardHandlerEntry(): string {
+export function generateStandardHandlerEntry(): string {
   return `// Auto-generated ubean standard fetch handler
 import createFetchHandler from './entry.mjs';
 
@@ -568,7 +568,7 @@ export default async function fetch(req, ctx) {
 `.trim();
 }
 
-function generateCloudflareWorkerEntry(): string {
+export function generateCloudflareWorkerEntry(): string {
   return `// Auto-generated ubean Cloudflare Worker entry
 import createFetchHandler from './entry.mjs';
 

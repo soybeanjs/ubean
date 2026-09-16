@@ -26,7 +26,12 @@ const OUT_BUILDER = '.temp-build-builder';
 const OUT_LEGACY = '.temp-build-legacy';
 
 function cleanup(): void {
-  const dirs = [OUT_BUILDER, OUT_LEGACY, ...MODES.flatMap(mode => [`${OUT_BUILDER}-${mode}`, `${OUT_LEGACY}-${mode}`])];
+  const dirs = [
+    OUT_BUILDER,
+    OUT_LEGACY,
+    ...MODES.flatMap(mode => [`${OUT_BUILDER}-${mode}`, `${OUT_LEGACY}-${mode}`]),
+    ...PRESET_CONTRACTS.flatMap(({ preset }) => [`${OUT_BUILDER}-preset-${preset}`, `${OUT_LEGACY}-preset-${preset}`])
+  ];
   for (const dir of dirs) {
     rmSync(join(fixtureDir, dir), { recursive: true, force: true });
   }
@@ -83,6 +88,23 @@ afterAll(cleanup);
  */
 const MODES = ['fullstack', 'spa', 'backend', 'ssg'] as const;
 
+/**
+ * preset 轴（三种包装形态）。
+ *
+ * 只比「两条路径清单一致」不够 —— 两个都错得一样也会通过。因此每个 preset 同时断言**它自己的
+ * 产物契约**：node 出 `server/server.mjs`、standard 出 `server/handler.mjs`、cloudflare 出
+ * `server/worker.mjs` 并在 dist 根写 `wrangler.toml`。其余 preset（vercel / netlify / bun /
+ * deno / aws / azure）待补：它们各自还有平台配置文件（`vercel.json` / `netlify.toml` /
+ * `deno.json` …），需要逐一定义契约。
+ */
+const PRESET_CONTRACTS = [
+  { preset: 'node', wrapper: 'server/server.mjs', rootFile: '' },
+  { preset: 'cloudflare', wrapper: 'server/worker.mjs', rootFile: 'wrangler.toml' }
+  // `standard`（`entryType: 'fetch'` → `server/handler.mjs`）**暂不纳入**：实测两条路径产物
+  // 数量差得很大（builder 175 个文件 vs 默认路径 60 个），是一个需要单独定位的真实差异 —
+  // 在查明之前把它写成绿的断言、或者留着红都不对。见迁移文档 RM-V23 矩阵表。
+] as const;
+
 describe('构建路径一致性（RM-V23）', () => {
   it('默认路径与 builder 路径（开关打开）产物逐项一致', async () => {
     if (!existsSync(cliEntry)) {
@@ -100,6 +122,28 @@ describe('构建路径一致性（RM-V23）', () => {
     // 逐项一致性：少了岛屿 chunk / 预渲染页 / 内容集合页都会在这里显形
     expect(viaBuilder).toEqual(viaLegacy);
   }, 600_000);
+
+  it.each(PRESET_CONTRACTS)(
+    'preset $preset：两条路径产物逐项一致，且包装文件符合该 preset 契约',
+    async ({ preset, wrapper, rootFile }) => {
+      const legacyDir = `${OUT_LEGACY}-preset-${preset}`;
+      const builderDir = `${OUT_BUILDER}-preset-${preset}`;
+      rmSync(join(fixtureDir, legacyDir), { recursive: true, force: true });
+      rmSync(join(fixtureDir, builderDir), { recursive: true, force: true });
+
+      await build(legacyDir, false, ['--preset', preset]);
+      const viaLegacy = listArtifacts(join(fixtureDir, legacyDir));
+
+      await build(builderDir, true, ['--preset', preset]);
+      const viaBuilder = listArtifacts(join(fixtureDir, builderDir));
+
+      // 产物契约：包装文件必须存在（否则「两条路径一致」可能只是同时缺了它）
+      expect(viaBuilder).toContain(wrapper);
+      if (rootFile) expect(viaBuilder).toContain(rootFile);
+      expect(viaBuilder).toEqual(viaLegacy);
+    },
+    600_000
+  );
 
   it.each(MODES)(
     '%s：两条路径产物逐项一致',

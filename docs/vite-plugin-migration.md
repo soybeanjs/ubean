@@ -212,3 +212,6 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 | **mode** 轴：fullstack / spa / backend / ssg | ✅ | 同文件 `it.each(MODES)` —— 四种 mode 下两条路径产物均逐项一致（实测全绿） |
 | preset 轴：node / cloudflare / vercel / netlify / bun / deno | ⏳ 待补 | 需为每个 preset 断言包装文件（`server.mjs` / `worker.mjs` / `handler.mjs` / `wrangler.toml` / `deno.json` …），部分 preset 还缺 fixture 支持 |
 | 有/无用户 `vite.config.ts` | ⏳ 待补 | 「无」这一格需要第二个 fixture（不依赖 CLI 注入 `ubeanPlugin()`），或让 fixture 可切换 |
+| preset 轴：node / cloudflare | ✅ | 包装文件契约也断言（`server/server.mjs`、`server/worker.mjs` + `wrangler.toml`），避免「两条路径同时缺了包装文件」也通过 |
+| preset 轴：**standard** | ⚠️ 发现真实差异 | `entryType: 'fetch'`（→ `server/handler.mjs`）：实测 builder 路径产出 **175** 个文件、默认路径 **60** 个 —— 数量差得很大，需单独定位后才能纳入矩阵（暂不写断言，避免把未知差异固化成绿） |
+| preset 轴：vercel / netlify / bun / deno / aws / azure | ⏳ 待补 | 各有平台配置文件（`vercel.json` / `netlify.toml` / `deno.json` …），需逐一定义契约 |

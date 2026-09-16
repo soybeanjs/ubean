@@ -90,8 +90,22 @@ describe('buildRendererSetup()', () => {
 
   it('builds renderer routes when ssr is enabled', () => {
     const code = buildRendererSetup({ ssrEnabled: true, mode: 'fullstack', localeVueParam: '' });
-    expect(code).toContain('const _rendererRoutes = _pages.map');
+    // 页面 → 路由记录抽成了 `_pageToRoute`，并按 route 路径分组（并行路由是命名视图）
+    expect(code).toContain('const _pageToRoute = ');
+    expect(code).toContain('const _routeGroups = new Map()');
+    expect(code).toContain('_components[_slotPage.slot]');
     expect(code).toContain('createVueRenderer');
+  });
+
+  it('并行路由写成命名视图（components + default），拦截路由单独注册', () => {
+    const code = buildRendererSetup({ ssrEnabled: true, mode: 'fullstack', localeVueParam: '' });
+    // 命名视图：默认视图来自路由记录（不是页面条目 —— 后者没有 component，写成
+    // `_primary.component` 会得到 undefined，vue-router 报 Invalid route component）
+    expect(code).toContain('_components.default = _record.component');
+    expect(code).toContain('delete _record.component');
+    // 拦截路由：单独注册 + 前缀避免与同路径常规路由冲突
+    expect(code).toContain("_r.name = '__intercept_' + _p.name");
+    expect(code).toContain('_rendererRoutes.push(..._interceptRoutes)');
   });
 
   it('omits the NotFound route by default (fullstack entry)', () => {

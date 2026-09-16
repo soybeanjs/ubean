@@ -113,6 +113,16 @@ describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', 
     expect(js.headers.get('content-type')).toContain('javascript');
   });
 
+  it('并行路由的默认视图与插槽都在生产 SSR 首屏里', async () => {
+    // 与 `dev-topology.test.ts` 的同名断言配对：dev 与产物两侧都要成立（曾出现 dev 首屏渲染插槽页、
+    // 客户端渲染默认视图的不一致，根因是 SSR 路由表没有按 route 分组命名视图）。
+    const res = await fetch(`${running!.baseUrl}/parallel`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('class="parallel-default"');
+    expect(html).toContain('class="slot-aside"');
+  });
+
   it('API 与 404 走生产 handler（静态目录里没有这两个路径）', async () => {
     const api = await fetch(`${running!.baseUrl}/api/hello`);
     expect(api.status).toBe(200);

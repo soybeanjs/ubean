@@ -48,7 +48,11 @@ const _defaultLayout = _layouts.find(l => l.isDefault)?.name || null;
 // language-prefixed URLs (e.g. /zh/playground) match the real page on SSR too.
 const _localeVueParam = ${JSON.stringify(localeVueParam)};
 
-const _rendererRoutes = _pages.map(p => {
+// 页面 → Vue Router 路由记录。必须按 route 路径分组：并行路由（@slot/ 目录）在客户端是同一条
+// 路由记录上的命名视图（components: { default, <slot名> }）；SSR 侧若把每个页面各注册成一条路由，
+// 同路径的两条记录会互相覆盖 —— 实测首屏渲染的是插槽页，水合后客户端渲染默认视图（首屏与客户端
+// 不一致）。分组后 SlotView 组件在 SSR 也能解析到插槽组件。
+const _pageToRoute = p => {
   // For reuse routes, load the target page's module (the .reuse.ts file
   // only contains definePage metadata, not a Vue component).
   const _targetPage = p.isReuse && p.reuseTarget ? _pages.find(tp => tp.name === p.reuseTarget) : undefined;
@@ -70,7 +74,43 @@ const _rendererRoutes = _pages.map(p => {
       cache: p.cache === true ? true : undefined
     }
   };
-});${
+};
+
+const _routeGroups = new Map();
+const _interceptRoutes = [];
+for (const _p of _pages) {
+  // 拦截路由（(..)target/ 语法）与客户端一致：单独注册，名字加前缀避免同路径冲突
+  if (_p.interceptTarget) {
+    const _r = _pageToRoute(_p);
+    _r.name = '__intercept_' + _p.name;
+    _interceptRoutes.push(_r);
+    continue;
+  }
+  const _key = _p.route;
+  const _group = _routeGroups.get(_key) || { slots: [] };
+  if (_p.slot) _group.slots.push(_p);
+  else if (!_group.default) _group.default = _p;
+  _routeGroups.set(_key, _group);
+}
+
+const _rendererRoutes = [];
+for (const _group of _routeGroups.values()) {
+  const _primary = _group.default || _group.slots[0];
+  if (!_primary) continue;
+  const _record = _pageToRoute(_primary);
+  if (_group.slots.length > 0) {
+    // 并行路由：命名视图（component 与 components 不能同时出现）。
+    // 注意组件加载器在 _record 上（_primary 是扫描得到的页面条目，没有 component 字段 ——
+    // 写成 _primary.component 会得到 undefined，vue-router 报 Invalid route component）。
+    const _components = {};
+    if (_group.default) _components.default = _record.component;
+    for (const _slotPage of _group.slots) _components[_slotPage.slot] = _pageToRoute(_slotPage).component;
+    delete _record.component;
+    _record.components = _components;
+  }
+  _rendererRoutes.push(_record);
+}
+_rendererRoutes.push(..._interceptRoutes);${
     notFoundCatchAll
       ? `
 

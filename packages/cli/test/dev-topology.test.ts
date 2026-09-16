@@ -134,6 +134,23 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
     });
   });
 
+  /**
+   * 并行路由（P9-18）：`@slot/` 目录不贡献 URL 段，与同路径的默认视图组成**一条**路由记录上的
+   * 命名视图（`components: { default, <slot> }`）。
+   *
+   * 这条断言来自一个真缺陷：dev 的 SSR 路由表曾把每个页面各注册成一条路由，同路径的两条互相覆盖
+   * —— 首屏渲染的是**插槽页**，而客户端水合后渲染默认视图（首屏与客户端不一致）。现在要求两侧都
+   * 出现在首屏 HTML 里。
+   */
+  describe('并行路由（@slot）', () => {
+    it('默认视图与插槽都出现在 SSR 首屏 HTML 里', async () => {
+      const res = await probe('/parallel');
+      expect(res.status).toBe(200);
+      expect(res.body).toContain('class="parallel-default"');
+      expect(res.body).toContain('class="slot-aside"');
+    });
+  });
+
   describe('页面 404 与 API 404 的分野', () => {
     it('未知页面路径返回 404 + HTML（走页面兜底而非 JSON）', async () => {
       const res = await probe('/definitely-missing-page');

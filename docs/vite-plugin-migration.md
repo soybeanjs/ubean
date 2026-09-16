@@ -330,6 +330,12 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 
 **示例侧**：新增 `src/matchers.ts` + `src/pages/order/[id=numeric].vue`，`src/server.ts`（服务端校验）与 `src/app.ts`（`createMatcherGuard()` 客户端守卫）两侧都注册；`dev-dx.test.ts` 新增浏览器用例覆盖「服务端 404 + SPA 导航被守卫拦下」。
 
+**J. 并行路由（`@slot`）在服务端完全没有支持 —— 首屏与客户端不一致。** 同一次「文档承诺 vs 实际覆盖」审计的延续：`@slotName/` 目录在**客户端**是正确实现的（生成器把同路径的页面归入一条记录的命名视图，`<SlotView>` 从 `route.matched[].components` 解析），但两侧的 **SSR 路由表**都没有「按 route 分组」的概念 —— 它们把每个页面各注册成一条路由，同路径的两条记录互相覆盖。实测：`/parallel` 的首屏 HTML 渲染的是**插槽页**，水合后客户端渲染**默认视图**（首屏与客户端不一致，且 SSR 只出了一半内容）。
+
+修法：dev 的 `buildDevSsrRoutes()` 与产物入口的 `buildRendererSetup()` 都改为按 route 分组、把插槽写成命名视图（`components: { default, <slot> }`，与 `component` 互斥），拦截路由与客户端一致地单独注册（名字加 `__intercept_` 前缀）。`SlotView` 本身已支持懒加载组件（`defineAsyncComponent` 包装），因此分组后 SSR 也能渲染插槽。断言：`dev-topology.test.ts` 与 `preview-cli.test.ts` 各一条（首屏 HTML 同时含默认视图与插槽标记）。
+
+**同批查实的另一条，登记为待决（语义有歧义，需 owner 定）**：**拦截路由只有元数据、没有运行时**。生成器会为 `(..)target/` 之类的文件注册带 `meta.interceptFrom` / `interceptTarget` / `isIntercepting` 的路由，但全仓没有任何**消费者** —— 「从 X 导航到 Y 时渲染拦截页」这件事不会发生，拦截页只能靠它自己被清理后的路径访问。实现它需要先定语义（本仓当前把 `(.)target` 段从路径里剥掉、只把 `target` 记进元数据，与 Next 的「拦截页自身路径 = 目标路径」不同），因此不在本轮擅自落地。
+
 **顺带记下一条使用约束**（不是框架缺陷）：运行时路由 import `ubean/build`（示例里那条 `prerender-test.ts`，为 HTTP 集成测试暴露预渲染 API）会把整条构建工具链打进服务端产物 —— Node 上只是体积浪费，worker 上会在**构建期**失败（工具链的可选依赖 `velocityjs` / `atpl` … 无法打包）。因此**矩阵的 cloudflare 格改用 builder 的最小 fixture** 构建，其余格仍用示例项目；这条约束写进了迁移指南。
 
 **E. 配置里的 `preset` 顶层字段不被读取。** 写临时项目时按 `AGENTS.md` 的示例写了顶层 `preset: 'cloudflare'`，构建产物却是 node 形态（`server/package.json`、没有 `worker.mjs`）—— 实际被读取的是 `build.preset`（`cli/src/build.ts:138` 与 loader 默认值）。文档与实现不一致，登记到 RM-V32 一并修正。

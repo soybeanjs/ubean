@@ -26,7 +26,9 @@ export function toVueRouterPagePath(route: string): string {
 export interface DevSsrRoute {
   path: string;
   name: string;
-  component: () => Promise<unknown>;
+  /** 普通路由用 `component`；并行路由（`@slot/`）用 `components` 命名视图，二者互斥。 */
+  component?: () => Promise<unknown>;
+  components?: Record<string, () => Promise<unknown>>;
   meta: {
     /** 单层布局名、多层嵌套数组（P9-17）或 `false`（禁用）。 */
     layout: string | string[] | false | null;
@@ -73,7 +75,7 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
     return async () => (await loadComponent(fullPath)) as { default?: unknown } | unknown;
   };
 
-  const routes: DevSsrRoute[] = pages.map(page => ({
+  const routeFor = (page: ScannedPageRoute): DevSsrRoute => ({
     path: withLocale(toVueRouterPagePath(page.route)),
     name: page.name,
     component: componentFor(page),
@@ -82,7 +84,42 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
       pageName: page.name,
       cache: page.cache === true ? true : undefined
     }
-  }));
+  });
+
+  // **按 route 路径分组**：并行路由（`@slot/`）在客户端是同一条路由记录上的命名视图
+  // （`components: { default, <slot> }`）。若在这里各注册成一条路由，同路径的两条记录会互相
+  // 覆盖 —— 实测 dev SSR 首屏渲染的是插槽页，而客户端水合后渲染默认视图（首屏与客户端不一致）。
+  const grouped = new Map<string, { default?: ScannedPageRoute; slots: ScannedPageRoute[] }>();
+  const interceptRoutes: DevSsrRoute[] = [];
+  for (const page of pages) {
+    // 拦截路由与客户端一致：单独注册（名字加前缀避免与同路径的常规路由冲突）
+    if (page.interceptTarget) {
+      const route = routeFor(page);
+      route.name = `__intercept_${page.name}`;
+      interceptRoutes.push(route);
+      continue;
+    }
+    const group = grouped.get(page.route) ?? { slots: [] };
+    if (page.slot) group.slots.push(page);
+    else if (!group.default) group.default = page;
+    grouped.set(page.route, group);
+  }
+
+  const routes: DevSsrRoute[] = [];
+  for (const group of grouped.values()) {
+    const primary = group.default ?? group.slots[0];
+    if (!primary) continue;
+    const route = routeFor(primary);
+    if (group.slots.length > 0) {
+      const components: Record<string, () => Promise<unknown>> = {};
+      if (group.default) components.default = componentFor(group.default);
+      for (const slotPage of group.slots) components[slotPage.slot!] = componentFor(slotPage);
+      delete route.component;
+      route.components = components;
+    }
+    routes.push(route);
+  }
+  routes.push(...interceptRoutes);
 
   if (notFoundPage) {
     routes.push({

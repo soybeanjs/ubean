@@ -249,6 +249,29 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
     }, 20_000);
   });
 
+  /**
+   * 组件级缓存（P9-08）：`defineCachedFunction` + `cacheLife`/`cacheTag` + `revalidateTag`。
+   *
+   * 走一遍真实用法：两次请求拿到同一个 token（缓存命中）→ 按标签失效 → 再取拿到新 token。
+   */
+  describe('组件级缓存（defineCachedFunction + revalidateTag）', () => {
+    it('缓存命中后可被 revalidateTag 精确失效', async () => {
+      const getToken = async (): Promise<string> => {
+        const res = await fetch(`${baseUrl}/api/cached-fn-demo`);
+        return ((await res.json()) as { token: string }).token;
+      };
+
+      const first = await getToken();
+      expect(first).not.toBe('');
+      expect(await getToken()).toBe(first); // 命中缓存
+
+      const invalidated = await fetch(`${baseUrl}/api/cached-fn-demo?action=revalidate`);
+      expect(((await invalidated.json()) as { removed: number }).removed).toBeGreaterThan(0);
+
+      expect(await getToken()).not.toBe(first); // 失效后重新计算
+    }, 30_000);
+  });
+
   describe('页面 404 与 API 404 的分野', () => {
     it('未知页面路径返回 404 + HTML（走页面兜底而非 JSON）', async () => {
       const res = await probe('/definitely-missing-page');

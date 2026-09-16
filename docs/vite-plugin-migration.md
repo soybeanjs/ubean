@@ -357,6 +357,7 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 | ISR（`routeRules.isr` + `swr`） | 示例 `isr-demo.vue` + `routeRules`；dev 断言 MISS → HIT → STALE → HIT(新值)，生产断言「预热后连续两次 HIT 且同一份渲染」 | 四段语义与 X-ISR 头都符合文档 |
 | JSON-LD（`useSchemaOrg`） | 示例 `seo-meta.vue`；断言 SSR HTML 含 `application/ld+json` 与 `"@type":"Article"` | 修完 L 后才真正注入 |
 | SSE（`defineSSE`） | 示例 `api/sse-demo.ts`；断言 `text/event-stream` + `onConnect` 的 `ready` 帧 | 行为符合文档 |
+| 组件级缓存（`defineCachedFunction` / `cacheLife` / `cacheTag` / `revalidateTag`） | 示例 `api/cached-fn-demo.ts`；断言两次请求同 token → 按标签失效 → 新 token（dev 与生产各一次手工验证，dev 侧进用例） | 行为符合文档 |
 
 **ISR 用例的一处写法值得记下**：生产用 fs 缓存（`.ubean/cache`），它**跨运行留存** —— 手工验证过一次之后，首个请求就从 MISS 变成 STALE。断言因此写成不依赖初始状态的不变量（预热 → 连续两次 HIT + 同一 token），否则用例会因外部状态而假红。
 

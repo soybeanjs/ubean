@@ -213,7 +213,7 @@ Phase 5 收口（RM-V32…V36）    ← RM-V36 依赖 RM-V31
 | mode | fullstack / spa / backend / ssg | ✅ 四格 |
 | preset | node / cloudflare / standard / bun / deno / vercel / netlify | ✅ 七格（包装文件契约：node·bun·deno → `server/server.mjs`；cloudflare → `server/worker.mjs` + `wrangler.toml`；standard·vercel·netlify → `server/handler.mjs`） |
 | 用户 `vite.config.ts` | 有 | ✅（示例项目） |
-| 用户 `vite.config.ts` | **无** | ⏳ 待补：需要第二个 fixture（不带 `ubeanPlugin()`，以验证 CLI 的 builtin 插件注入路径） |
+| 用户 `vite.config.ts` | **无** | ⚠️ **发现真实分叉（待定位）**：无用户配置时（验证 CLI 注入全部 builtin 插件那一支，`if (!userViteConfig)`），两条路径的产物数量不同 —— builder **166** 个文件、默认路径 **176** 个。做法是把示例的 `vite.config.ts` 临时改名后各构建一次（跑完 `finally` 还原）；用例以 `it.skip` 记录该发现，定位后取消 skip。有用户配置的 12 格两条路径一致 |
 | preset | aws / azure | ⏳ 待补（走 default 分支 → `handler.mjs`，但各有平台配置钩子需确认） |
 
 两处判断标准值得记下：**只比「两条路径清单一致」不够** —— 两边同时缺同一个包装文件也会通过，因此每格额外断言该 preset 的包装文件；反之，平台配置文件（`vercel.json` / `netlify.toml` / `deno.json`）**不单独断言**，因为一旦某条路径漏写，清单比对就会失败，那正是该覆盖它的地方。

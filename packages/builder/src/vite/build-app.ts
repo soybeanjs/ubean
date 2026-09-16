@@ -259,8 +259,25 @@ export async function runEnvBuilds(
 /**
  * 一次 `createBuilder` 完成整套生产构建（CLI 路径）。返回值与 `buildProduction` 同形
  * （`BuildManifest`），便于 RM-V22/V23 逐项对照。
+ *
+ * **驱动权声明**：本函数自己就是编排者，因此先在环境里声明「构建由调用方驱动」，让插件侧的
+ * `config` 钩子**不要**再注册它自己的 `builder.buildApp` —— 否则同一个 config 的 `builder` 字段
+ * 会被插件返回值合并掉，本函数的内联编排不再执行、`manifest` 保持 undefined，表现为**静默返回
+ * undefined**（RM-V36 把开关默认打开后由 `build-parity.test.ts` 实测撞到）。与 CLI 用的是同一个
+ * 环境变量，结束后还原，避免影响同进程内的其它调用。
  */
 export async function buildWithEnvironments(options: BuildOptions): Promise<BuildManifest> {
+  const previous = process.env.UBEAN_BUILD_DRIVEN_BY_CLI;
+  process.env.UBEAN_BUILD_DRIVEN_BY_CLI = '1';
+  try {
+    return await runEnvOrchestration(options);
+  } finally {
+    if (previous === undefined) delete process.env.UBEAN_BUILD_DRIVEN_BY_CLI;
+    else process.env.UBEAN_BUILD_DRIVEN_BY_CLI = previous;
+  }
+}
+
+async function runEnvOrchestration(options: BuildOptions): Promise<BuildManifest> {
   const ctx = createBuildContext(options);
   const prepared = await prepareBuild(ctx);
   const { cwd, sourcemap, minify, outDirs, presetBuildConfig } = prepared;

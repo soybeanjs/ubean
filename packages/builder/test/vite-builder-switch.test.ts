@@ -1,9 +1,8 @@
 /**
- * `experimental.viteBuilder` 灰度开关（RM-V07，docs/vite-plugin-migration.md Phase 1 第一步）。
+ * `experimental.viteBuilder` 开关（RM-V07 引入，RM-V36 起**默认打开**）。
  *
- * 开关关闭（默认）时插件不得注册任何额外环境 —— 旧路径（CLI 自建编排 + 两次 `viteBuild`）
- * 必须逐字节保持现状；打开时以插件身份注册 `client` / `ubean` 两个环境，且产物目录沿用
- * `dist/public` + `dist/server`（RM-V36 收敛前不得更换）。
+ * 默认打开时插件注册 `client` / `ubean` 两个环境，产物目录沿用 `dist/public` + `dist/server`；
+ * 显式 `false` 仍能回到旧编排（双轨共存期的逃生口，收敛完成后连同旧编排一起删除）。
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -40,21 +39,28 @@ async function createProject(viteBuilder?: boolean) {
   return { builder, config };
 }
 
-describe('experimental.viteBuilder 灰度开关（RM-V07）', () => {
-  it('默认关闭：配置归一化为 false，插件不注册额外环境', async () => {
+describe('experimental.viteBuilder 开关（RM-V07 / RM-V36）', () => {
+  it('默认打开（RM-V36）：不写配置即注册 client 与 ubean 两个环境', async () => {
     const { builder, config } = await createProject();
+
+    expect(config.experimental).toEqual({ viteBuilder: true });
+    expect(Object.keys(builder.environments).sort()).toEqual(['client', 'ubean']);
+    expect(builder.environments.client.config.build.outDir).toContain('dist/public');
+    expect(builder.environments.ubean.config.build.outDir).toContain('dist/server');
+  }, 60_000);
+
+  it('显式 false 时回到旧编排：只注册一个 client 环境', async () => {
+    const { builder, config } = await createProject(false);
 
     expect(config.experimental).toEqual({ viteBuilder: false });
     // 不显式传 environments 时 Vite 只给一个 client 环境；旧路径因此完全不受影响
     expect(Object.keys(builder.environments)).toEqual(['client']);
   }, 60_000);
 
-  it('打开时注册 client 与 ubean 环境，产物目录保持 dist/public + dist/server', async () => {
+  it('显式 true 与默认行为一致', async () => {
     const { builder, config } = await createProject(true);
 
-    expect(config.experimental.viteBuilder).toBe(true);
+    expect(config.experimental).toEqual({ viteBuilder: true });
     expect(Object.keys(builder.environments).sort()).toEqual(['client', 'ubean']);
-    expect(builder.environments.client.config.build.outDir).toContain('dist/public');
-    expect(builder.environments.ubean.config.build.outDir).toContain('dist/server');
   }, 60_000);
 });

@@ -461,7 +461,9 @@ describe('Prerender / SSG system', () => {
       expect(config.concurrency).toBe(4);
       expect(config.failOnError).toBe(false);
       expect(config.crawlLinks).toBe(true);
-      expect(config.staticDir).toBe('dist/public');
+      // 落盘目录不再有写死的默认值：由 `resolvePrerenderStaticDir()` 从**实际的** `build.outputDir`
+      // 派生为 `<outputDir>/public`（写死 'dist/public' 时 `--outDir` 与 preset 自带目录会产出两棵树）
+      expect(config.staticDir).toBeUndefined();
     });
 
     it('returns disabled config for empty object', () => {

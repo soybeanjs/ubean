@@ -191,6 +191,12 @@ describe('构建产物契约（RM-V23 矩阵 / RM-V36 重写）', () => {
     const serverText = readArtifactText(join(fixtureDir, outDir, 'server'));
     expect(serverText, '服务端入口的页面表应当带 matcher 映射').toContain('"matchers"');
     expect(serverText).toContain('numeric');
+
+    // Server Components 的隔离（Task 9.1）：`.server.vue` 的实现只能进服务端产物 —— 客户端
+    // 只应有通用 stub（元素名 `ubean-server-only`），组件的文案不得出现。
+    const clientText = readArtifactText(join(fixtureDir, outDir, 'public'));
+    expect(clientText, '服务端组件的实现不应进客户端产物').not.toContain('仅服务端渲染');
+    expect(clientText, '客户端产物应当带服务端组件 stub').toContain('ubean-server-only');
   }, 600_000);
 
   it.each(PRESET_CONTRACTS)(

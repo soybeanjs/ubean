@@ -61,8 +61,29 @@ const SERVER_COMPONENT_STUB_RESOLVED_ID = `\0${SERVER_COMPONENT_STUB_VIRTUAL_ID}
 export const CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID = 'virtual:ubean-client-component-placeholder';
 const CLIENT_COMPONENT_PLACEHOLDER_RESOLVED_ID = `\0${CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID}`;
 
-/** `.client.vue` 在 client 构建中文件级包装虚拟模块 ID 前缀 */
+/**
+ * `.client.vue` 在 client 构建中文件级包装虚拟模块 ID 前缀。
+ *
+ * ID 形如 `\0virtual:ubean-client-component:<真实路径><WRAPPER_TAIL>` —— **尾标不能省**：
+ * 若 ID 直接以 `.vue` 结尾，`@vitejs/plugin-vue` 会把它当作真实 SFC 去读盘，报
+ * `The argument 'path' must be a string … without null bytes`（实测：dev 走不到这条路径，
+ * 生产构建必挂）。尾标让文件名不再匹配 `/`\.vue$/`，Vue 插件自然跳过。
+ */
 const CLIENT_COMPONENT_WRAPPER_PREFIX = '\0virtual:ubean-client-component:';
+
+/** 包装虚拟模块 ID 的尾标（见 `CLIENT_COMPONENT_WRAPPER_PREFIX` 的说明）。 */
+const WRAPPER_VIRTUAL_TAIL = '.ubean-wrapper';
+
+/**
+ * 是否是 `@vitejs/plugin-vue` 为 SFC 生成的**子请求**（`Foo.vue?vue&type=script&lang.ts` 等）。
+ *
+ * 包装/重定向**只对主文件 id 生效**：子请求是 Vue 插件自己的内部模块，重定向它们会得到
+ * `\0virtual:…:<真实路径>?vue&type=script…` 这种拼接产物 —— Vue 插件随后把它当真实文件读盘，
+ * 报 `The argument 'path' must be a string … without null bytes`（实测生产构建必挂、dev 侥幸不挂）。
+ */
+function isVueSubRequest(id: string): boolean {
+  return id.includes('?');
+}
 
 /**
  * Task 9.3: 配对组件 (`Foo.vue` 同时存在 `.server.vue` + `.client.vue`) 在
@@ -1141,7 +1162,7 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
 
       // --- Task 9.1: .server.vue → client 构建重定向到通用 stub ---
       // SSR 构建时正常解析到真实文件 (return undefined 走默认解析)
-      if (!options?.ssr && isServerComponentFile(id)) {
+      if (!options?.ssr && !isVueSubRequest(id) && isServerComponentFile(id)) {
         return SERVER_COMPONENT_STUB_RESOLVED_ID;
       }
 
@@ -1151,6 +1172,7 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
       // Task 9.3: 同样排除从配对组件包装模块内部的 import — 配对 wrapper 直接
       // 导入真实 `.client.vue`,不需要 `defineClientComponent` 二次包装。
       if (
+        !isVueSubRequest(id) &&
         isClientComponentFile(id) &&
         !importer?.startsWith(CLIENT_COMPONENT_WRAPPER_PREFIX) &&
         !importer?.startsWith(PAIRED_COMPONENT_WRAPPER_PREFIX)
@@ -1162,7 +1184,7 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
         // client: 解析真实路径,生成文件级包装虚拟模块
         const resolved = await this.resolve(id, importer, { skipSelf: true });
         if (!resolved) return undefined;
-        return `${CLIENT_COMPONENT_WRAPPER_PREFIX}${resolved.id}`;
+        return `${CLIENT_COMPONENT_WRAPPER_PREFIX}${resolved.id}${WRAPPER_VIRTUAL_TAIL}`;
       }
 
       // --- Task 9.3: 配对组件解析 — 普通 .vue 导入检查 .server.vue / .client.vue 兄弟文件 ---
@@ -1172,6 +1194,7 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
       if (
         importer &&
         !importer.startsWith('\0') &&
+        !isVueSubRequest(id) &&
         id.endsWith('.vue') &&
         !isServerComponentFile(id) &&
         !isClientComponentFile(id) &&
@@ -1188,7 +1211,7 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
 
         if (hasServer && hasClient) {
           // 配对:重定向到虚拟 wrapper 模块 (load 钩子根据 ssr 选项生成不同内容)
-          return `${PAIRED_COMPONENT_WRAPPER_PREFIX}${serverSibling}${PAIRED_PATH_SEPARATOR}${clientSibling}`;
+          return `${PAIRED_COMPONENT_WRAPPER_PREFIX}${serverSibling}${PAIRED_PATH_SEPARATOR}${clientSibling}${WRAPPER_VIRTUAL_TAIL}`;
         }
         if (hasServer) {
           // 仅存在 .server.vue:重定向 (SSR=真实文件, client=stub)
@@ -1222,7 +1245,7 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
 
       // Task 9.2: .client.vue client wrapper — import 真实组件 + defineClientComponent
       if (id.startsWith(CLIENT_COMPONENT_WRAPPER_PREFIX)) {
-        const realPath = id.slice(CLIENT_COMPONENT_WRAPPER_PREFIX.length);
+        const realPath = id.slice(CLIENT_COMPONENT_WRAPPER_PREFIX.length).replace(WRAPPER_VIRTUAL_TAIL, '');
         return (
           `import RealComp from ${JSON.stringify(realPath)};\n` +
           `import { defineClientComponent } from '@ubean/islands/runtime';\n` +
@@ -1234,7 +1257,7 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
       // client 同时导入 .server.vue (→ stub) 与 .client.vue (→ 真实文件,通过 importer
       // 检查跳过 defineClientComponent 包装),调用 definePairedComponent 切换。
       if (id.startsWith(PAIRED_COMPONENT_WRAPPER_PREFIX)) {
-        const payload = id.slice(PAIRED_COMPONENT_WRAPPER_PREFIX.length);
+        const payload = id.slice(PAIRED_COMPONENT_WRAPPER_PREFIX.length).replace(WRAPPER_VIRTUAL_TAIL, '');
         const sepIdx = payload.indexOf(PAIRED_PATH_SEPARATOR);
         if (sepIdx === -1) return undefined;
         const serverPath = payload.slice(0, sepIdx);

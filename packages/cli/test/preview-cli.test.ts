@@ -123,6 +123,15 @@ describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', 
     expect(html).toContain('class="slot-aside"');
   });
 
+  it('Server / Client Components 在生产 SSR 里同形（内容 + 占位符）', async () => {
+    const res = await fetch(`${running!.baseUrl}/server-components`);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('class="sc-server"');
+    expect(html).toContain('data-client-only');
+    expect(html).not.toContain('class="sc-client"');
+  });
+
   it('API 与 404 走生产 handler（静态目录里没有这两个路径）', async () => {
     const api = await fetch(`${running!.baseUrl}/api/hello`);
     expect(api.status).toBe(200);

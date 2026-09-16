@@ -151,6 +151,21 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
     });
   });
 
+  /**
+   * Server / Client Components（Task 9.1 / 9.2）：
+   * `.server.vue` 只在服务端渲染，`.client.vue` 在 SSR 只输出 `<div data-client-only>` 占位符。
+   */
+  describe('Server / Client Components', () => {
+    it('SSR：服务端组件出内容，客户端组件出占位符（不出真实内容）', async () => {
+      const res = await probe('/server-components');
+      expect(res.status).toBe(200);
+      expect(res.body).toContain('class="sc-server"');
+      expect(res.body).toContain('data-client-only');
+      // 客户端组件的真实内容必须**不在**首屏里（否则就是 SSR 执行了浏览器侧代码）
+      expect(res.body).not.toContain('class="sc-client"');
+    });
+  });
+
   describe('页面 404 与 API 404 的分野', () => {
     it('未知页面路径返回 404 + HTML（走页面兜底而非 JSON）', async () => {
       const res = await probe('/definitely-missing-page');

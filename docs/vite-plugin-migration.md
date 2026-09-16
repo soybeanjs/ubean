@@ -334,6 +334,17 @@ Failed to resolve import "virtual:ubean-app" from "…/.ubean/virtual/server-ent
 
 修法：dev 的 `buildDevSsrRoutes()` 与产物入口的 `buildRendererSetup()` 都改为按 route 分组、把插槽写成命名视图（`components: { default, <slot> }`，与 `component` 互斥），拦截路由与客户端一致地单独注册（名字加 `__intercept_` 前缀）。`SlotView` 本身已支持懒加载组件（`defineAsyncComponent` 包装），因此分组后 SSR 也能渲染插槽。断言：`dev-topology.test.ts` 与 `preview-cli.test.ts` 各一条（首屏 HTML 同时含默认视图与插槽标记）。
 
+**K. `.client.vue` 让生产构建直接失败（dev 侥幸不挂）。** 补 Server/Client Components 的示例时暴露：dev 下 `.server.vue` / `.client.vue` 一切正常（服务端组件出内容、客户端组件出占位符、客户端模块解析到通用 stub），但 `ubean build` 在 `[plugin vite:vue]` 阶段中断：
+
+```
+The argument 'path' must be a string, Uint8Array, or URL without null bytes.
+Received '\x00virtual:ubean-client-component:/…/BrowserClock.client.vue?vue&type=script&setup=true&lang.ts'
+```
+
+根因两层：① 包装虚拟模块 ID 直接把**真实路径**拼在前缀后面，于是它以 `.vue` 结尾 —— `@vitejs/plugin-vue` 的 `include: /\.vue$/` 命中，把它当真实 SFC 去读盘（新增尾标 `.ubean-wrapper` 让文件名不再匹配）；② 更隐蔽的是**子请求**：Vue 会为 SFC 生成 `Foo.vue?vue&type=script&lang.ts` 这类内部模块，而 `isClientComponentFile()` 用 `id.split('?')[0]` 判定，于是**子请求也被包装**，拼出 `\0virtual:…:<真实路径>?vue&type=script…` 这种产物。修法：三个分支（`.server.vue` 重定向、`.client.vue` 包装、配对组件解析）都先排除子请求（新增 `isVueSubRequest()`）。
+
+验证：dev 与生产两侧行为一致（服务端组件内容 + 客户端占位符），浏览器水合后占位符被真实内容替换且无 error / 无 hydration 告警；**产物隔离**由矩阵基线格守着 —— 客户端产物里不得出现服务端组件的文案，且必须带 stub 元素名 `ubean-server-only`。断言：`dev-topology.test.ts` / `preview-cli.test.ts`（SSR 三态）与 `build-contracts.test.ts`（隔离）。
+
 **同批查实的另一条，登记为待决（语义有歧义，需 owner 定）**：**拦截路由只有元数据、没有运行时**。生成器会为 `(..)target/` 之类的文件注册带 `meta.interceptFrom` / `interceptTarget` / `isIntercepting` 的路由，但全仓没有任何**消费者** —— 「从 X 导航到 Y 时渲染拦截页」这件事不会发生，拦截页只能靠它自己被清理后的路径访问。实现它需要先定语义（本仓当前把 `(.)target` 段从路径里剥掉、只把 `target` 记进元数据，与 Next 的「拦截页自身路径 = 目标路径」不同），因此不在本轮擅自落地。
 
 **顺带记下一条使用约束**（不是框架缺陷）：运行时路由 import `ubean/build`（示例里那条 `prerender-test.ts`，为 HTTP 集成测试暴露预渲染 API）会把整条构建工具链打进服务端产物 —— Node 上只是体积浪费，worker 上会在**构建期**失败（工具链的可选依赖 `velocityjs` / `atpl` … 无法打包）。因此**矩阵的 cloudflare 格改用 builder 的最小 fixture** 构建，其余格仍用示例项目；这条约束写进了迁移指南。

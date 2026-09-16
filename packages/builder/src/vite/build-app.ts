@@ -29,6 +29,7 @@ import { cp } from 'node:fs/promises';
 import { createBuilder, perEnvironmentPlugin } from 'vite';
 import type { Plugin as VitePlugin } from 'vite';
 import { resolveModules } from '@ubean/config';
+import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import { getLogger } from '@ubean/shared/logger';
 import { findUserViteConfig } from '@ubean/shared/node';
 import { join, resolve } from 'pathe';
@@ -156,8 +157,13 @@ export async function prepareBuild(
   const userViteConfig = findUserViteConfig(cwd);
   const builtinPlugins: VitePlugin[] = [ubeanAssetManifestPlugin(() => manifestRef.current)];
   if (!userViteConfig) {
+    // 无用户 vite.config 时由本路径提供全部 builtin 插件 —— 与旧路径（`buildProduction`）逐项对齐：
+    // **islands 插件不能漏**，否则 `v-client.*` 指令不被转换、注册表为空、岛屿组件整类不进产物
+    // （实测：无配置那一格 builder 路径比默认路径少 10 个文件 —— 5 个岛屿 JS + 5 个 CSS）。
     builtinPlugins.push(ubeanPlugin({ config, registry: virtualRegistry }));
-    if (hasPages) builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }));
+    if (hasPages) {
+      builtinPlugins.push(...ubeanVite({ config, registry: virtualRegistry }), ubeanIslandsPlugin());
+    }
   }
   const { plugins } = await resolveModules({ cwd, config, builtinPlugins });
   // islands SSR 空壳只作用于 ubean 环境（env 级 plugins 不在配置面里，用 perEnvironmentPlugin 限定）

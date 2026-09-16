@@ -163,11 +163,10 @@ describe('构建路径一致性（RM-V23）', () => {
    * `if (!userViteConfig)` 那一支）。做法是把示例的配置文件临时改名，跑完在 `finally` 里还原 ——
    * 比再建一个 fixture 便宜，且用的是同一个真实项目。
    */
-  // ⚠️ 已知差异（2026-09-16 实测）：**无用户 `vite.config`** 时两条路径产物数量不同 ——
-  // builder 路径 **166** 个文件，默认路径 **176** 个。这是「CLI 注入 builtin 插件」那一支
-  // （`if (!userViteConfig)`）上的真实分叉，尚未定位；在有用户配置的 12 格里两条路径都是一致的。
-  // 暂以 skip 记录：写成绿的断言会把未知固化，留着红会挡住整套测试。定位后再取消 skip。
-  it.skip('无用户 vite.config：CLI 注入 builtin 插件，两条路径产物逐项一致', async () => {
+  // 曾以 skip 记录过一个真实分叉：无用户配置时 builder 路径比默认路径少 10 个文件
+  // （5 个岛屿 JS + 5 个 CSS）—— 根因是 `prepareBuild` 的 `if (!userViteConfig)` 分支漏注册
+  // `ubeanIslandsPlugin()`，`v-client.*` 指令因此不被转换。补齐后本格转绿。
+  it('无用户 vite.config：CLI 注入 builtin 插件，两条路径产物逐项一致', async () => {
     const viteConfig = join(fixtureDir, 'vite.config.ts');
     const parked = join(fixtureDir, 'vite.config.ts.parked');
     const noCfgLegacy = `${OUT_LEGACY}-no-cfg`;

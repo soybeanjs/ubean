@@ -16,6 +16,7 @@ import { createServer as createViteServer } from 'vite';
 import type { Logger, Plugin, ViteDevServer } from 'vite';
 import {
   createVirtualRegistry,
+  DEVTOOLS_PASS_THROUGH_PREFIXES,
   getDevApp,
   onDevScan,
   peekDevScanCoordinator,
@@ -96,7 +97,7 @@ export async function createDevViteServer(options: DevViteServerOptions): Promis
       : [
           // 重定向与 `passThrough` 都由请求插件自己处理（顺序敏感，见其选项说明）
           ubeanDevRequestPlugin({
-            passThrough: devtoolsEnabled ? ['/__devtools'] : [],
+            passThrough: devtoolsEnabled ? [...DEVTOOLS_PASS_THROUGH_PREFIXES] : [],
             devtoolsRedirect: devtoolsEnabled
           })
         ]),

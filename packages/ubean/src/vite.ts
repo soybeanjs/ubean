@@ -27,7 +27,12 @@
 
 import type { Plugin } from 'vite';
 import { ubeanServerActionsPlugin } from '@ubean/build/actions';
-import { ubeanPlugin as ubeanCorePlugin, ubeanDevRequestPlugin, createVirtualRegistry } from '@ubean/build/vite';
+import {
+  ubeanPlugin as ubeanCorePlugin,
+  ubeanDevRequestPlugin,
+  createVirtualRegistry,
+  DEVTOOLS_PASS_THROUGH_PREFIXES
+} from '@ubean/build/vite';
 import type { UbeanPluginOptions } from '@ubean/build/vite';
 import { ubeanVite } from '@ubean/build/vue';
 import type { UbeanViteOptions } from '@ubean/build/vue';
@@ -67,13 +72,14 @@ export function ubeanPlugin(): Plugin[] {
   // 应用（页面 SSR / API / 内置 `_` 路由 / 404），与 `ubean dev` 行为一致。插件自举的 app 与
   // CLI 的 app 不会并存 —— 显式传入 handler 时插件只用传入的那个。
   //
-  // `passThrough` 与 `devtoolsRedirect` 必须在这里给出：DevTools 外壳挂在 `/__devtools/`（落在
-  // `__` 保留命名空间里，通用判据会判成应用请求 → 404），而 `/_devtools` 需要 302 到它。
-  // 收敛前这两件事分处 CLI 侧两个插件（靠注册顺序保证），收敛后插件由用户 `vite.config.ts`
-  // 注册 —— 顺序不再由注册点决定，因此都收进请求插件自身（`dev-topology` / `dev-dx` 守着）。
+  // `passThrough` 与 `devtoolsRedirect` 必须在这里给出：DevTools 的命名空间（DTK 外壳
+  // `/__devtools*`、SPA `/_devtools*`）都落在保留命名空间里，通用判据会判成应用请求 → 404，
+  // 而裸 `/_devtools` 需要 302 到外壳。收敛前这两件事分处 CLI 侧两个插件（靠注册顺序保证），
+  // 收敛后插件由用户 `vite.config.ts` 注册 —— 顺序不再由注册点决定，因此都收进请求插件自身
+  // （`dev-topology` / `dev-dx` 守着）。
   plugins.push(
     ubeanDevRequestPlugin({
-      passThrough: config.devtools?.enabled ? ['/__devtools'] : [],
+      passThrough: config.devtools?.enabled ? [...DEVTOOLS_PASS_THROUGH_PREFIXES] : [],
       devtoolsRedirect: config.devtools?.enabled === true
     })
   );

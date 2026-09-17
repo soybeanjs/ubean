@@ -10,6 +10,7 @@
  * - 页面 404 与 API 404 的分野（fixture 带 `pages/404.vue`）
  * - 静态资源不被页面 catch-all 吞掉
  * - `/_devtools` 302、`/_openapi.json` 200、`_` 前缀走 JSON 404
+ * - DevTools 的两个命名空间（`/_devtools/**`、`/__devtools*`）归 Vite，不被应用吞成 404
  * - 中间件顺序的可观测证据：安全头/请求 ID 覆盖全部响应类别、i18n 与 CSRF 在处理前生效
  */
 import { spawn } from 'node:child_process';
@@ -335,6 +336,33 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
       const res = await probe('/_devtools');
       expect(res.status).toBe(302);
       expect(res.headers.get('location')).toBeTruthy();
+    });
+
+    /**
+     * 回归（2026-09-17 实测并修复）：DevTools 的两套命名空间都落在 `_` / `__` 保留命名空间里，
+     * 请求判据曾把它们判给应用 —— 面板 iframe（`/_devtools/index.html`）拿到的是应用的 JSON 404
+     * （面板空白），应用页控制台则报 `/__devtools-assets/vite-plus.svg` 404。
+     *
+     * 断言只认「面板真的可用」：SPA 壳 200 且它引用的构建产物可达、连接元数据可达。壳内引用的
+     * 哈希文件名从 HTML 里解析，不写死。
+     */
+    it('DevTools 的静态资源与连接元数据不被应用吞掉', async () => {
+      const spa = await probe('/_devtools/index.html');
+      expect(spa.status).toBe(200);
+      expect(spa.contentType).toContain('text/html');
+      // SPA 用 `base: '/_devtools/'` 构建，产物引用是绝对路径
+      const asset = /src="(\/_devtools\/assets\/[^"]+)"/.exec(spa.body)?.[1];
+      expect(asset, 'DevTools SPA 未引用构建产物').toBeTruthy();
+      const assetRes = await probe(asset!);
+      expect(assetRes.status).toBe(200);
+      expect(assetRes.contentType).toContain('javascript');
+
+      // SPA 与 DTK 外壳各自读同一份连接元数据（`__connection.json`）
+      const spaMeta = await probe('/_devtools/__connection.json');
+      expect(spaMeta.status).toBe(200);
+      expect(spaMeta.contentType).toContain('application/json');
+      const shellMeta = await probe('/__devtools/__connection.json');
+      expect(shellMeta.status).toBe(200);
     });
 
     it('/_openapi.json 返回 OpenAPI 文档', async () => {

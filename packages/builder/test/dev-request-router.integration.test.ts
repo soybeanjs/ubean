@@ -12,9 +12,9 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createServer } from 'vite';
-import type { ViteDevServer } from 'vite';
+import type { Connect, ViteDevServer } from 'vite';
 import { afterEach, describe, expect, it } from 'vitest';
-import { ubeanDevRequestPlugin } from '@ubean/build/vite';
+import { DEVTOOLS_PASS_THROUGH_PREFIXES, ubeanDevRequestPlugin } from '@ubean/build/vite';
 
 let cleanup: Array<() => Promise<void>> = [];
 
@@ -161,6 +161,70 @@ describe('dev 请求路由装配（RM-V10）', () => {
     const { baseUrl, handled } = await startHarness();
     await probe(baseUrl, '/_openapi.json');
     expect(handled).toEqual(['/_openapi.json']);
+  });
+
+  /**
+   * `passThrough` 回归（2026-09-17 实测的真缺陷）：DTK 与 ubean DevTools SPA 把自己的路径挂在
+   * `_` / `__` 保留命名空间里，判据默认会判给 ubean → 应用 404。表现是应用页控制台报
+   * `/__devtools-assets/vite-plus.svg` 404、DevTools 面板的 iframe（`/_devtools/index.html`）空白。
+   *
+   * 这里用桩中间件复刻 DTK 的挂载方式（`server.middlewares.use(<base>, ...)`），验证两条性质：
+   * - 前缀**按裸字符串**匹配：`/__devtools` 覆盖 `/__devtools-assets/...` 这类兄弟路径（DTK 的
+   *   dock 图标、`/__devtools-client-imports.js` 都在这里，只给 `/__devtools/` 会漏）；
+   * - 命中 `passThrough` 的请求不会进 ubean 的 handler。
+   */
+  it('passThrough 覆盖 DevTools 命名空间（含同前缀的兄弟路径）', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ubean-router-pass-'));
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'router-pass', type: 'module' }));
+
+    const handled: string[] = [];
+    const mountStub: Connect.NextHandleFunction = (req, res) => {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.end(`<html><body>stub:${req.url}</body></html>`);
+    };
+    const server = await createServer({
+      root,
+      configFile: false,
+      logLevel: 'silent',
+      server: { host: '127.0.0.1', port: 0 },
+      plugins: [
+        // 与 DTK 一样：静态中间件挂在 base 上，注册发生在请求路由之后
+        {
+          name: 'stub:devtools-hosts',
+          configureServer(devServer) {
+            devServer.middlewares.use('/_devtools/', mountStub);
+            devServer.middlewares.use('/__devtools-assets/', mountStub);
+          }
+        },
+        ubeanDevRequestPlugin({
+          passThrough: [...DEVTOOLS_PASS_THROUGH_PREFIXES],
+          async handler(request, context) {
+            handled.push(context.url);
+            return new Response('app-html', { status: 404, headers: { 'Content-Type': 'text/html' } });
+          }
+        })
+      ]
+    });
+    cleanup.push(() => server.close());
+    await server.listen();
+    cleanup.push(async () => rmSync(root, { recursive: true, force: true }));
+
+    const address = server.httpServer?.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+    const local = `http://127.0.0.1:${port}`;
+
+    // connect 的 `use(<base>, fn)` 会把挂载前缀从 `req.url` 上剥掉，桩只用于证明「请求到了
+    // 静态中间件而不是应用」，因此只断言前缀剥离后的路径。
+    const spa = await probe(local, '/_devtools/index.html');
+    expect(spa.status).toBe(200);
+    expect(spa.body).toContain('stub:/index.html');
+
+    // 兄弟路径：前缀按裸字符串匹配才会命中
+    const dockIcon = await probe(local, '/__devtools-assets/vite-plus.svg');
+    expect(dockIcon.status).toBe(200);
+    expect(dockIcon.body).toContain('stub:/vite-plus.svg');
+
+    expect(handled).toEqual([]);
   });
 
   it('post 兜底：不存在的静态文件最终仍由 ubean 决定响应', async () => {

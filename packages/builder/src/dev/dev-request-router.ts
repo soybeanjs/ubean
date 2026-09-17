@@ -53,6 +53,22 @@ const VITE_URL_PREFIXES = ['/@vite/', '/@id/', '/@fs/', '/node_modules/', '/__vi
  */
 const RESERVED_APP_PREFIXES = ['/_', '/__', '/api/'];
 
+/**
+ * DevTools 相关、**必须交给 Vite** 的命名空间前缀（DTK 外壳 + ubean DevTools SPA）。
+ *
+ * 它们全落在 `_` / `__` 保留命名空间里，判据默认会判给 ubean → 应用 404，因此调用方要把这份
+ * 前缀整体传给 `passThrough`。两个条目覆盖了 DTK 实际使用的四个名字：
+ * - `/__devtools` → `/__devtools/`（外壳 HTML、RPC、WS）、`/__devtools-assets/`（DTK 自带 UI
+ *   的静态资源，dock 图标的 `vite-plus.svg` 就在这里）、`/__devtools-client-imports.js`
+ *   （dock 客户端模块的虚拟模块）；
+ * - `/_devtools` → `/_devtools/index.html`（DTK 以 iframe 载入的 SPA）及其 `assets/*` 与
+ *   `/_devtools/__connection.json`。裸 `/_devtools` 由 `devtoolsRedirect` 抢先 302，不受影响。
+ *
+ * 2026-09-17 实测：`/__devtools-assets/vite-plus.svg`（应用页控制台报 404）与
+ * `/_devtools/index.html`（DevTools 面板空白的真凶）此前都落进了应用 404。
+ */
+export const DEVTOOLS_PASS_THROUGH_PREFIXES = ['/__devtools', '/_devtools'];
+
 /** 「取模块而不是取页面」的查询标记：Vite 的 import-analysis 会在这些请求上加它们。 */
 const MODULE_QUERY_FLAGS = new Set(['import', 'raw', 'url', 'inline', 'direct', 'worker', 'vue', 'html-proxy']);
 
@@ -241,11 +257,15 @@ export interface DevRequestRouterOptions {
   /** `handler` 省略时的自举参数。 */
   bootstrap?: DevBootstrapOptions;
   /**
-   * 额外**必须交给 Vite** 的路径前缀。
+   * 额外**必须交给 Vite** 的路径前缀（按字符串前缀匹配，不要求后随 `/`）。
    *
    * 有些由其他 Vite 插件挂载的路径也落在 `_` / `__` 保留命名空间里（例如 DevTools 外壳挂在
    * `/__devtools/`）。判据把保留命名空间一律判给 ubean，于是这些路径会被交给应用 → 404。
    * 由调用方显式声明，避免把某个插件的路径写死进通用判据。
+   *
+   * **匹配是裸前缀**：`/__devtools` 同时覆盖 `/__devtools/`、`/__devtools-assets/`、
+   * `/__devtools-client-imports.js` 这类同名前缀的兄弟路径 —— 插件的命名空间往往不止一个以
+   * `/` 结尾的挂载点（DTK 就是三处），按路径段匹配会漏掉它们。声明者只需给出命名空间本身。
    */
   passThrough?: string[];
   /**
@@ -433,7 +453,7 @@ export function createUbeanRequestHandlers(
   const passThrough = options.passThrough ?? [];
   const isPassThrough = (url: string) => {
     const pathname = url.split('?')[0].split('#')[0];
-    return passThrough.some(prefix => pathname === prefix || pathname.startsWith(`${prefix}/`));
+    return passThrough.some(prefix => pathname.startsWith(prefix));
   };
 
   const pre: Connect.NextHandleFunction = (req, res, next) => {

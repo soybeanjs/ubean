@@ -56,6 +56,7 @@ export {
 export {
   ubeanDevRequestPlugin,
   createUbeanRequestHandlers,
+  DEVTOOLS_PASS_THROUGH_PREFIXES,
   getDevApp,
   isViteResourceRequest,
   collectDevCssLinks,

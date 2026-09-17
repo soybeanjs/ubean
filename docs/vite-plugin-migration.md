@@ -419,3 +419,19 @@ Received '\x00virtual:ubean-client-component:/…/BrowserClock.client.vue?vue&ty
 修法：客户端把「采用 payload / 触发请求」挪到**挂载之后**（组件上下文用 `onMounted`，非组件上下文退化为 `queueMicrotask`），首帧保持 `pending`，与 SSR 分支一致 —— 不匹配消失，数据仍在挂载后立即就位、不发第二次请求（`dev-dx.test.ts` 的浏览器用例同时断言「无 mismatch 告警」与「`.deferred-value` 出现且文本正确」）。`packages/pages/test/defer.test.ts` 的三条客户端用例随之改为「首帧 pending → 应用后 resolved」（原先断言的正是那个会 mismatch 的同步行为）。
 
 **顺带**：`defer` / `useDeferredData` 此前**只有聚合入口 `ubean` 一条导入路径**，而页面属于客户端图（`example-imports.test.ts` 明令禁止从聚合入口导入，否则整条聚合链进产物）—— 文档示例写的却正是 `from 'ubean'`。已从 `ubean/client` 导出这四个符号（+ 类型），并改掉 `defer.ts` 的 JSDoc 示例。
+
+**O. DevTools 的两个命名空间被判给应用 → 面板空白、应用页控制台报 404（2026-09-17 用户报障，已修）。** 症状两条，看起来无关：① 应用页控制台一条 `Failed to load resource: 404`；② 打开 DevTools 面板时 `{"error":"Not Found","path":"/_devtools/index.html","method":"GET"}`（面板 iframe 空白）。实测（Playwright 记录全部 4xx 响应）确认是同一个根因：DevTools 的路径全落在 `_` / `__` 保留命名空间里，而请求判据把保留命名空间**一律判给应用**。受影响的其实有四个名字，此前只放行了第一个：
+
+| 路径 | 归属 | 2026-09-17 前 |
+| --- | --- | --- |
+| `/__devtools/` | DTK 外壳（dock HTML / RPC / WS） | 200（RM-V15 的 `passThrough: ['/__devtools']` 守着） |
+| `/__devtools-assets/` | DTK 自带 UI 的静态资源（dock 图标 `vite-plus.svg`） | **404** ← 症状① |
+| `/__devtools-client-imports.js` | dock 客户端模块的虚拟模块 | **404** |
+| `/_devtools/**` | ubean DevTools SPA（`views.hostStatic('/_devtools/')`）+ `__connection.json` | **404** ← 症状② |
+
+两个设计缺口，都不是实现笔误：① `passThrough` 的匹配是**按路径段**（`pathname === prefix || startsWith(prefix + '/')`），而 DTK 的命名空间不止一个以 `/` 结尾的挂载点 —— `/__devtools` 匹配不到 `/__devtools-assets/...`；② `passThrough` 的值在两处调用点各写一份（聚合入口 `ubeanPlugin()` 与 CLI 的 `dev-vite.ts` 无配置注入分支），加前缀最容易只加到一处。
+
+修法：匹配改为**裸字符串前缀**（声明者只给命名空间本身），并把前缀收成单一常量 `DEVTOOLS_PASS_THROUGH_PREFIXES = ['/__devtools', '/_devtools']` 供两处调用点共用；裸 `/_devtools` 仍由 `devtoolsRedirect` 抢先 302，不受放行影响。
+
+回归两层：`packages/builder/test/dev-request-router.integration.test.ts` 用桩中间件复刻 DTK 的挂载方式（`server.middlewares.use(<base>, ...)`），钉住「前缀覆盖同前缀的兄弟路径」与「命中放行的请求不进 app handler」；`packages/cli/test/dev-topology.test.ts` 在真示例项目上断言面板**可用**（SPA 壳 200 + 其引用的构建产物可达 + 两套 `__connection.json` 可达，哈希文件名从 HTML 解析而不写死）。修完用 Playwright 走查 12 个 dock 条目：面板渲染出真实扫描数据（28 Pages / 65 API Routes / 配置），应用页与面板均**零 4xx、零控制台错误**。
+

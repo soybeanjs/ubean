@@ -86,6 +86,23 @@ export function serializeCsp(directives: ContentSecurityPolicyDirectives): strin
 }
 
 /**
+ * 在 CSP 指令上追加 `script-src` 来源（去重、保留原顺序），返回新对象（不改动入参）。
+ *
+ * 用于框架内置页面：它们要加载框架自己写在 HTML 里的第三方脚本，而应用的 CSP 是全局的一份 ——
+ * 与其放宽所有人的默认策略，不如只在该页面自己的响应上追加它真正需要的那一个来源。
+ */
+export function extendCspScriptSrc(
+  directives: ContentSecurityPolicyDirectives,
+  origins: string[]
+): ContentSecurityPolicyDirectives {
+  const merged = [...(directives['script-src'] ?? [])];
+  for (const origin of origins) {
+    if (!merged.includes(origin)) merged.push(origin);
+  }
+  return { ...directives, 'script-src': merged };
+}
+
+/**
  * 将 Permissions-Policy 对象序列化为 header 值
  */
 function serializePermissionsPolicy(policy: Record<string, string[]>): string {

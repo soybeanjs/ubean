@@ -69,6 +69,26 @@ const RESERVED_APP_PREFIXES = ['/_', '/__', '/api/'];
  */
 export const DEVTOOLS_PASS_THROUGH_PREFIXES = ['/__devtools', '/_devtools'];
 
+/**
+ * 框架内置的 **HTML 页面**（不是应用页面）：`/_scalar`（Scalar API 文档）与 `/_devtools`
+ * （DevTools SPA）。
+ *
+ * 它们由框架自己产出 HTML，文档里**没有**应用的挂载点，因此不能走应用的客户端入口注入 ——
+ * 被注入时浏览器报 `Failed to mount app: mount target selector "#app" returned null`，且 Vite 的
+ * HTML transform 会把页面里的内联脚本（Scalar 的 `data-configuration` 块）改写成 html-proxy
+ * 模块，页面直接崩（2026-09-17 实测：DevTools 的 API Docs 面板整页空白）。
+ *
+ * 判据被两处共用 —— dev 请求路由（决定要不要对响应做 `transformIndexHtml`）与 vue 插件的
+ * `transformIndexHtml`（决定要不要注入客户端入口）；单点维护，避免两边各写一份字符串判定。
+ */
+const FRAMEWORK_HTML_PAGES = ['/_devtools', '/_scalar'];
+
+/** 该 URL 是否指向框架内置的 HTML 页面（见 {@link FRAMEWORK_HTML_PAGES}）。 */
+export function isFrameworkHtmlPage(url: string): boolean {
+  const pathname = url.split('?')[0].split('#')[0];
+  return FRAMEWORK_HTML_PAGES.some(page => pathname === page || pathname.startsWith(`${page}/`));
+}
+
 /** 「取模块而不是取页面」的查询标记：Vite 的 import-analysis 会在这些请求上加它们。 */
 const MODULE_QUERY_FLAGS = new Set(['import', 'raw', 'url', 'inline', 'direct', 'worker', 'vue', 'html-proxy']);
 
@@ -414,8 +434,11 @@ export function createUbeanRequestHandlers(
 
     const contentType = webRes.headers.get('content-type') || '';
     const skipTransform = skipHtmlTransform?.(url) ?? false;
+    // 框架内置的 HTML 页面不是应用页面：它有自己完整的 HTML（Scalar 文档页），走 Vite 的 HTML
+    // transform 会把内联脚本改写成 html-proxy 模块、并注入应用入口（缺 `#app` → Vue 报错）。
+    const isPage = !isFrameworkHtmlPage(url);
 
-    if (contentType.includes('text/html') && webRes.body && !skipTransform) {
+    if (contentType.includes('text/html') && webRes.body && !skipTransform && isPage) {
       const html = await webRes.text();
       // 阻塞样式先注入，再交给 Vite 追加客户端脚本
       const cssLinks = collectDevCssLinks(server.environments.client.moduleGraph);

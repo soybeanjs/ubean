@@ -365,6 +365,25 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
       expect(shellMeta.status).toBe(200);
     });
 
+    /**
+     * 回归（2026-09-17 实测并修复）：Scalar 文档页是 DevTools「API Docs」面板的 iframe，它有两个
+     * 与请求路由/CSP 相关的坑：① 页面从 jsdelivr 取脚本，而应用的 CSP 是全局一份 —— 默认
+     * `script-src 'self'` 把它整页拦死（面板空白）；② 它不是应用页面，dev 的 HTML transform 曾把
+     * 应用客户端入口注进去（Vue 报 `mount target selector "#app" returned null`），并把内联的
+     * Scalar 配置脚本改写成 html-proxy 模块。
+     */
+    it('Scalar 文档页带自己的 CSP，且不被注入应用入口', async () => {
+      const res = await probe('/_scalar');
+      expect(res.status).toBe(200);
+      expect(res.contentType).toContain('text/html');
+      expect(res.headers.get('content-security-policy') ?? '').toContain('https://cdn.jsdelivr.net');
+      expect(res.body).toContain('<script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference">');
+      // 不是应用页面：没有客户端入口，也没被 Vite 的 HTML transform 改写
+      expect(res.body).not.toContain('virtual:ubean-client-entry');
+      expect(res.body).not.toContain('/@vite/client');
+      expect(res.body).not.toContain('html-proxy');
+    });
+
     it('/_openapi.json 返回 OpenAPI 文档', async () => {
       const res = await probe('/_openapi.json');
       expect(res.status).toBe(200);

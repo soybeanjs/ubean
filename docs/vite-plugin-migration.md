@@ -435,3 +435,19 @@ Received '\x00virtual:ubean-client-component:/…/BrowserClock.client.vue?vue&ty
 
 回归两层：`packages/builder/test/dev-request-router.integration.test.ts` 用桩中间件复刻 DTK 的挂载方式（`server.middlewares.use(<base>, ...)`），钉住「前缀覆盖同前缀的兄弟路径」与「命中放行的请求不进 app handler」；`packages/cli/test/dev-topology.test.ts` 在真示例项目上断言面板**可用**（SPA 壳 200 + 其引用的构建产物可达 + 两套 `__connection.json` 可达，哈希文件名从 HTML 解析而不写死）。修完用 Playwright 走查 12 个 dock 条目：面板渲染出真实扫描数据（28 Pages / 65 API Routes / 配置），应用页与面板均**零 4xx、零控制台错误**。
 
+**P. 框架内置的 Scalar 文档页被框架自己的 CSP 拦死，同时被注入应用客户端入口（2026-09-17 用户报障，已修）。** 症状出现在 DevTools 的「API Docs」面板（它是 `/_scalar` 的 iframe）+ 控制台两条报错：
+
+```
+Loading the script 'https://cdn.jsdelivr.net/npm/@scalar/api-reference' violates the following
+Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval'".
+__x00__virtual:ubean-app.ts:150 [Vue warn]: Failed to mount app: mount target selector "#app" returned null.
+```
+
+两个独立缺陷叠在同一页上，都不是用户配置错：
+
+- **CSP 拦掉页面自己的脚本。** `/_scalar` 的 HTML 由框架生成，里面写死了从 jsdelivr 取 Scalar 的 `<script>`；而 CSP 是应用级的**一份**，默认 `script-src 'self'`（`app.ts` 的 `DEFAULT_SECURITY_HEADERS`）必然把它拦掉 —— 即「框架内置页面被框架自己的默认策略拦死」，且每次打开面板都发生。修法不是在默认策略里放宽所有人：`@ubean/app` 在构造期从**生效的** CSP（= 默认 + 用户覆盖，走 `mergeSecurityHeadersOptions`）追加 `SCALAR_SCRIPT_ORIGIN`（`@ubean/routes` 导出，与 HTML 里的 `<script src>` 同源常量），把结果作为 `contentSecurityPolicy` 传给 `registerOpenAPIRoutes`，只写在 `/_scalar` 这一条响应上。CSP 被用户关掉时不设头（不把自己关掉的策略又加回去）。
+- **应用客户端入口被注入非应用页面。** dev 的请求路由对**所有** `text/html` 响应跑 `transformIndexHtml`，而 vue 插件在该钩子里无条件追加应用入口 —— `/_scalar` 没有 `#app`，于是 Vue 报错；更糟的是 Vite 的 HTML transform 还把页面里 Scalar 的内联配置脚本改写成了 `/@id/__x00__/_scalar?html-proxy&index=0.js`（页面直接崩）。修法：新增「框架内置 HTML 页面」判据 `isFrameworkHtmlPage()`（`['/_devtools', '/_scalar']`，`@ubean/build` 导出），dev 请求路由据此跳过整个 HTML transform，vue 插件的注入判据也改用它（此前是写死的 `ctx.path.includes('_devtools')`，两处各判一次正是这类缺陷的来源）。
+
+**顺带**：Scalar 默认还会拉一整套 `fonts.scalar.com` 的 Web 字体（14 个 woff2），同样被 `font-src 'self' data:` 全数拦掉 —— 页面配置改为 `withDefaultFonts: false`（少 14 条控制台报错，也不再依赖第三方字体）。**保留拦截的一项**：Scalar 的托管搜索索引（`api.scalar.com`）仍被 CSP 挡住 —— 它的启动预热请求是无条件的（`hideSearch` / `agent: false` 都拦不住），放行它等于默认向第三方开放 `connect-src` 数据出口，因此维持默认拒绝，需要该功能的用户在 `security.headers.contentSecurityPolicy.connect-src` 里自行放行（代码注释里写明了）。
+
+回归：`packages/routes/test/openapi-actions.test.ts`（页面用传入的 CSP、脚本来源与常量一致、未传时不设头）、`packages/server/test/security.test.ts`（`extendCspScriptSrc` 追加/去重/不改入参）、`packages/builder/test/dev-request-classify.test.ts`（判据正反例）、`packages/cli/test/dev-topology.test.ts`（真示例项目上断言 `/_scalar` 带 CDN 来源的 CSP、且**不含** `virtual:ubean-client-entry` / `@vite/client` / `html-proxy`）。浏览器走查：应用页零报错；`/_scalar` 与 DevTools「API Docs」面板里 Scalar UI 挂载并渲染出真实接口列表，除上述被有意拦掉的注册表请求外无其他报错。

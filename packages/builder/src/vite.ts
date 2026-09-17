@@ -58,6 +58,7 @@ export {
   createUbeanRequestHandlers,
   DEVTOOLS_PASS_THROUGH_PREFIXES,
   getDevApp,
+  isFrameworkHtmlPage,
   isViteResourceRequest,
   collectDevCssLinks,
   injectStylesheetLinks,

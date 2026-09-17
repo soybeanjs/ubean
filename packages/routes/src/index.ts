@@ -51,8 +51,8 @@ export type { InternalFetchOptions } from './internal-fetch';
 
 export { isBotUserAgent } from './bot-detection';
 
-export { registerOpenAPIRoutes } from './openapi';
-export type { OpenAPIGenerationOptions } from './openapi';
+export { registerOpenAPIRoutes, SCALAR_SCRIPT_ORIGIN } from './openapi';
+export type { OpenAPIGenerationOptions, ScalarDocumentationOptions } from './openapi';
 
 // Re-export shared types for convenience
 export type {

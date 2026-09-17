@@ -247,6 +247,7 @@ export type { CsrfOptions } from './csrf';
 export {
   createSecurityHeadersMiddleware,
   defineSecurityHeaders,
+  extendCspScriptSrc,
   serializeCsp,
   mergeSecurityHeadersOptions
 } from './security-headers';

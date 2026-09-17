@@ -9,6 +9,7 @@ import {
   generateCsrfToken,
   createSecurityHeadersMiddleware,
   defineSecurityHeaders,
+  extendCspScriptSrc,
   serializeCsp,
   mergeSecurityHeadersOptions
 } from '../src/index';
@@ -329,6 +330,40 @@ describe('P9-13: Security Headers Middleware', () => {
       });
       expect(csp).toContain("default-src 'self'");
       expect(csp).not.toContain('script-src');
+    });
+  });
+
+  /**
+   * `extendCspScriptSrc` 供「框架内置页面要加载框架自己写的第三方脚本」使用（Scalar 文档页）：
+   * 只在那一份 CSP 上追加来源，应用的全局策略不变。
+   */
+  describe('extendCspScriptSrc', () => {
+    it('追加 script-src 来源并保留其余指令', () => {
+      const extended = extendCspScriptSrc(
+        { 'default-src': ["'self'"], 'script-src': ["'self'"], 'connect-src': ["'self'", 'https://api.example.com'] },
+        ['https://cdn.jsdelivr.net']
+      );
+      expect(serializeCsp(extended)).toContain("script-src 'self' https://cdn.jsdelivr.net");
+      expect(serializeCsp(extended)).toContain('connect-src');
+      expect(serializeCsp(extended)).toContain('https://api.example.com');
+    });
+
+    it('来源已存在时不重复追加', () => {
+      const extended = extendCspScriptSrc({ 'script-src': ["'self'", 'https://cdn.jsdelivr.net'] }, [
+        'https://cdn.jsdelivr.net'
+      ]);
+      expect(extended['script-src']).toEqual(["'self'", 'https://cdn.jsdelivr.net']);
+    });
+
+    it('原指令对象不被改动（返回新对象）', () => {
+      const source = { 'script-src': ["'self'"] };
+      extendCspScriptSrc(source, ['https://cdn.jsdelivr.net']);
+      expect(source['script-src']).toEqual(["'self'"]);
+    });
+
+    it('没有 script-src 指令时新建一条', () => {
+      const extended = extendCspScriptSrc({ 'default-src': ["'self'"] }, ['https://cdn.jsdelivr.net']);
+      expect(extended['script-src']).toEqual(['https://cdn.jsdelivr.net']);
     });
   });
 

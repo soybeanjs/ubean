@@ -9,6 +9,7 @@ import {
   registerRoutes,
   setInternalFetcher,
   registerOpenAPIRoutes,
+  SCALAR_SCRIPT_ORIGIN,
   createRouteRulesMiddleware
 } from '@ubean/routes';
 import type { RouteRegistrar, RegisterOptions, IsrCacheStore } from '@ubean/routes';
@@ -30,7 +31,9 @@ import { createWebSocketMiddleware } from '@ubean/server/realtime';
 import {
   createCsrfMiddleware,
   createSecurityHeadersMiddleware,
-  mergeSecurityHeadersOptions
+  extendCspScriptSrc,
+  mergeSecurityHeadersOptions,
+  serializeCsp
 } from '@ubean/server/security';
 import type { CsrfOptions, SecurityHeadersOptions } from '@ubean/server/security';
 import { errorToResponse, isNodeRuntime, isUbeanError, UbeanError } from '@ubean/shared';
@@ -234,6 +237,13 @@ export class UbeanApp {
   readonly plugins: UbeanAppPlugin[];
   readonly options: UbeanAppOptions;
   private _ready = false;
+  /**
+   * Scalar 文档页（`/_scalar`）专用的 CSP：生效 CSP + `{@link SCALAR_SCRIPT_ORIGIN}`。
+   *
+   * 该页面从 CDN 取脚本，而 CSP 是全局的一份 —— 只在这一条响应上追加它需要的来源，不放宽应用
+   * 其余部分的策略。CSP 被关闭时为 `undefined`（不重加头）。构造期算好，`init()` 注册路由时用。
+   */
+  private _scalarCsp: string | undefined;
 
   constructor(options: UbeanAppOptions = {}) {
     this.options = options;
@@ -269,11 +279,16 @@ export class UbeanApp {
 
     const securityHeaders = resolveToggle(this.options.securityHeaders, true);
     if (securityHeaders !== false) {
-      this.hono.use(
-        '*',
-        // 深合并:用户只覆盖单个 CSP 指令时(如 connect-src),其余指令保持框架默认
-        createSecurityHeadersMiddleware(mergeSecurityHeadersOptions(DEFAULT_SECURITY_HEADERS, securityHeaders))
-      );
+      // 深合并:用户只覆盖单个 CSP 指令时(如 connect-src),其余指令保持框架默认
+      const mergedSecurity = mergeSecurityHeadersOptions(DEFAULT_SECURITY_HEADERS, securityHeaders);
+      this.hono.use('*', createSecurityHeadersMiddleware(mergedSecurity));
+
+      // 框架内置的 Scalar 文档页从 CDN 取脚本；生效 CSP 未必允许它（默认 `script-src 'self'`
+      // 就挡住了，表现为 DevTools 的 API Docs 面板整页空白）。这里算出该页专用的一份。
+      const effectiveCsp = mergedSecurity.contentSecurityPolicy;
+      if (effectiveCsp && typeof effectiveCsp === 'object') {
+        this._scalarCsp = serializeCsp(extendCspScriptSrc(effectiveCsp, [SCALAR_SCRIPT_ORIGIN]));
+      }
     }
 
     const csrf = resolveToggle(this.options.csrf, true);
@@ -441,7 +456,7 @@ export class UbeanApp {
     // （实测 `/_openapi.json` / `/_scalar` 变为 404，而更早注册的 `/_health` 不受影响）。
     if (this.options.openAPI) {
       const openAPIOpts = typeof this.options.openAPI === 'object' ? this.options.openAPI : {};
-      registerOpenAPIRoutes(this.hono, openAPIOpts);
+      registerOpenAPIRoutes(this.hono, { ...openAPIOpts, contentSecurityPolicy: this._scalarCsp });
     }
 
     await registerRoutes(this as unknown as RouteRegistrar, registerOpts);

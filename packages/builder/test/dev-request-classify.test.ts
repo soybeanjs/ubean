@@ -8,7 +8,7 @@
  * 端到端的表现（真 Vite server + 真中间件顺序）在 `dev-request-router.integration.test.ts`。
  */
 import { describe, expect, it } from 'vitest';
-import { injectStylesheetLinks, isViteResourceRequest } from '@ubean/build/vite';
+import { injectStylesheetLinks, isFrameworkHtmlPage, isViteResourceRequest } from '@ubean/build/vite';
 
 /** Node 的请求头形状（大小写不敏感由 Node 保证，这里直接用规范的小写键）。 */
 type Headers = Record<string, string | string[] | undefined>;
@@ -114,5 +114,19 @@ describe('injectStylesheetLinks', () => {
     const html = '<html><head></head></html>';
     expect(injectStylesheetLinks(html, [])).toBe(html);
     expect(injectStylesheetLinks('<div></div>', ['/a.css'])).toBe('<div></div>');
+  });
+});
+
+/**
+ * 框架内置的 HTML 页面（不是应用页面）：注入应用的客户端入口会让 Vue 在缺 `#app` 的文档里报错，
+ * 且 Vite 的 HTML transform 会把页面内联脚本改写成 html-proxy 模块（`/_scalar` 实测整页崩）。
+ */
+describe('isFrameworkHtmlPage', () => {
+  it.each(['/_scalar', '/_scalar?x=1', '/_devtools/index.html', '/_devtools'])('%s 是框架内置页面', url => {
+    expect(isFrameworkHtmlPage(url)).toBe(true);
+  });
+
+  it.each(['/', '/about', '/zh/about', '/api/hello', '/_openapi.json', '/_scalarx'])('%s 不是框架内置页面', url => {
+    expect(isFrameworkHtmlPage(url)).toBe(false);
   });
 });

@@ -15,6 +15,7 @@ import type { ScanResult } from '@ubean/scan';
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
 import { join, resolve } from 'pathe';
 import { getAutoImportPresets, resolveAutoImportsConfig, resolveComponentsConfig, toArray } from './codegen';
+import { isFrameworkHtmlPage } from './dev/dev-request-router';
 import { getDevScanCoordinator } from './dev/dev-scan';
 import { getComponentResolvers } from './registry';
 import { ssrSingletonDevPolicy } from './ssr-singleton';
@@ -245,9 +246,9 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     },
 
     transformIndexHtml(html, ctx) {
-      // DevTools SPA is served pre-built via DTK's `hostStatic` and has its
-      // own entry — skip injecting the main app's client entry there.
-      if (ctx?.path?.includes('_devtools')) {
+      // 框架内置的 HTML 页面（DevTools SPA、Scalar 文档页）自带入口与文档结构，注入应用的客户端
+      // 入口只会让 Vue 在缺 `#app` 的文档里报错。判据与 dev 请求路由同源（`isFrameworkHtmlPage`）。
+      if (ctx?.path && isFrameworkHtmlPage(ctx.path)) {
         return html;
       }
       let result = html;

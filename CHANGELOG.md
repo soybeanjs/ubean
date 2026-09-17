@@ -1,5 +1,181 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.5.2...main) (2026-09-17)
+
+### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
+
+- **scan**: drop the intercepting-routes convention and fail loudly on its markers &nbsp;-&nbsp; by @soybeanjs [<samp>(ce51f)</samp>](https://github.com/soybeanjs/ubean/commit/ce51f98)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **build**:
+  - register client/ubean environments behind experimental.viteBuilder (RM-V07) &nbsp;-&nbsp; by @soybeanjs [<samp>(0600c)</samp>](https://github.com/soybeanjs/ubean/commit/0600c3e)
+  - add UbeanDevEnvironment with an env-runner worker bridge (RM-V08) &nbsp;-&nbsp; by @soybeanjs [<samp>(f67e7)</samp>](https://github.com/soybeanjs/ubean/commit/f67e790)
+  - generate the dev worker entry and invalidation channel (RM-V09, partial) &nbsp;-&nbsp; by @soybeanjs [<samp>(46310)</samp>](https://github.com/soybeanjs/ubean/commit/46310ec)
+  - route dev requests from a Vite plugin's configureServer (RM-V10) &nbsp;-&nbsp; by @soybeanjs [<samp>(038fe)</samp>](https://github.com/soybeanjs/ubean/commit/038fe5d)
+  - bootstrap the host dev app from the request plugin (RM-V12) &nbsp;-&nbsp; by @soybeanjs [<samp>(5f332)</samp>](https://github.com/soybeanjs/ubean/commit/5f3323c)
+  - make the plugin composition self-sufficient for vite dev (RM-V14) &nbsp;-&nbsp; by @soybeanjs [<samp>(bf492)</samp>](https://github.com/soybeanjs/ubean/commit/bf49212)
+  - drive the production build from one builder and two environments (RM-V16) &nbsp;-&nbsp; by @soybeanjs [<samp>(a1c68)</samp>](https://github.com/soybeanjs/ubean/commit/a1c68b2)
+  - let the plugin drive the whole build for `vite build` (RM-V21, part 2) &nbsp;-&nbsp; by @soybeanjs [<samp>(d0c06)</samp>](https://github.com/soybeanjs/ubean/commit/d0c061a)
+  - give the built entry a teardown, and stop short of wiring prerender (RM-V21, part 4) &nbsp;-&nbsp; by @soybeanjs [<samp>(122f5)</samp>](https://github.com/soybeanjs/ubean/commit/122f59f)
+  - take over `vite preview`, and fix the two artifact defects it exposed (RM-V24) &nbsp;-&nbsp; by @soybeanjs [<samp>(09331)</samp>](https://github.com/soybeanjs/ubean/commit/0933194)
+  - run cloudflare artifacts through miniflare in preview (RM-V26) &nbsp;-&nbsp; by @soybeanjs [<samp>(ec290)</samp>](https://github.com/soybeanjs/ubean/commit/ec290f8)
+- **cli**:
+  - fail the bundle gate when a baseline chunk is missing (RM-P23) &nbsp;-&nbsp; by @soybeanjs [<samp>(23f77)</samp>](https://github.com/soybeanjs/ubean/commit/23f77fd)
+  - let `ubean build` use the builder path behind the switch (RM-V21) &nbsp;-&nbsp; by @soybeanjs [<samp>(c78f9)</samp>](https://github.com/soybeanjs/ubean/commit/c78f963)
+- **config**:
+  - enable the Vite-plugin lifecycle by default (RM-V36, step 1) &nbsp;-&nbsp; by @soybeanjs [<samp>(1c464)</samp>](https://github.com/soybeanjs/ubean/commit/1c46476)
+- **perf**:
+  - add lifecycle benchmark, legacy baseline, and absolute gzip ceilings &nbsp;-&nbsp; by @soybeanjs [<samp>(b1972)</samp>](https://github.com/soybeanjs/ubean/commit/b197210)
+  - measure reload scope to freeze the legacy singleton behaviour &nbsp;-&nbsp; by @soybeanjs [<samp>(a462e)</samp>](https://github.com/soybeanjs/ubean/commit/a462ef3)
+  - measure browser runtime latency in the lifecycle benchmark &nbsp;-&nbsp; by @soybeanjs [<samp>(15c9a)</samp>](https://github.com/soybeanjs/ubean/commit/15c9aa3)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **build**:
+  - make dev worker invalidation hit the realpath-keyed module graph (RM-V09) &nbsp;-&nbsp; by @soybeanjs [<samp>(1c2be)</samp>](https://github.com/soybeanjs/ubean/commit/1c2be39)
+  - allow multi-layer layout arrays in the dev SSR route meta &nbsp;-&nbsp; by @soybeanjs [<samp>(ae97a)</samp>](https://github.com/soybeanjs/ubean/commit/ae97a0d)
+  - stop registering the vue plugin twice in production builds &nbsp;-&nbsp; by @soybeanjs [<samp>(5a957)</samp>](https://github.com/soybeanjs/ubean/commit/5a957c4)
+  - let `vite build` prerender and exit (RM-V21, final gap) &nbsp;-&nbsp; by @soybeanjs [<samp>(14039)</samp>](https://github.com/soybeanjs/ubean/commit/140399b)
+  - stop swallowing the content-loading failure &nbsp;-&nbsp; by @soybeanjs [<samp>(6347a)</samp>](https://github.com/soybeanjs/ubean/commit/6347a23)
+  - inline the server bundle for non-node targets (RM-V23) &nbsp;-&nbsp; by @soybeanjs [<samp>(2e22c)</samp>](https://github.com/soybeanjs/ubean/commit/2e22c0f)
+  - register the islands plugin when there is no user vite.config (RM-V23) &nbsp;-&nbsp; by @soybeanjs [<samp>(515bb)</samp>](https://github.com/soybeanjs/ubean/commit/515bba9)
+  - make the cloudflare artifact boot in workerd (defect D) &nbsp;-&nbsp; by @soybeanjs [<samp>(8643e)</samp>](https://github.com/soybeanjs/ubean/commit/8643e69)
+  - transform page actions declared in SFC script blocks &nbsp;-&nbsp; by @soybeanjs [<samp>(03946)</samp>](https://github.com/soybeanjs/ubean/commit/03946ac)
+- **cli**:
+  - watch dev source directories passed as absolute paths &nbsp;-&nbsp; by @soybeanjs [<samp>(f5e7d)</samp>](https://github.com/soybeanjs/ubean/commit/f5e7da2)
+  - watch entry files so app/server edits trigger a reload &nbsp;-&nbsp; by @soybeanjs [<samp>(219db)</samp>](https://github.com/soybeanjs/ubean/commit/219db54)
+  - register the 404 catch-all in the dev SSR route table (R8) &nbsp;-&nbsp; by @soybeanjs [<samp>(78eec)</samp>](https://github.com/soybeanjs/ubean/commit/78eec9b)
+- **config**:
+  - make the sync loader actually read the user's config file &nbsp;-&nbsp; by @soybeanjs [<samp>(2f209)</samp>](https://github.com/soybeanjs/ubean/commit/2f2094c)
+- **devtools**:
+  - hand the DevTools namespaces back to Vite &nbsp;-&nbsp; by @soybeanjs [<samp>(4d5d0)</samp>](https://github.com/soybeanjs/ubean/commit/4d5d06d)
+  - unbreak the Scalar API Docs panel &nbsp;-&nbsp; by @soybeanjs [<samp>(ca895)</samp>](https://github.com/soybeanjs/ubean/commit/ca895e2)
+- **event**:
+  - correct event name from 'edit-meta' to 'editMeta' &nbsp;-&nbsp; by @soybeanjs [<samp>(8c507)</samp>](https://github.com/soybeanjs/ubean/commit/8c50739)
+- **examples**:
+  - import matchers from `ubean/client`, and document the barrel size trap &nbsp;-&nbsp; by @soybeanjs [<samp>(841b5)</samp>](https://github.com/soybeanjs/ubean/commit/841b57c)
+- **islands**:
+  - prefill the registry from disk instead of transform order (RM-V24) &nbsp;-&nbsp; by @soybeanjs [<samp>(01f1f)</samp>](https://github.com/soybeanjs/ubean/commit/01f1f87)
+  - stop wrapping Vue sub-requests so `.client.vue` survives a production build &nbsp;-&nbsp; by @soybeanjs [<samp>(16d50)</samp>](https://github.com/soybeanjs/ubean/commit/16d50d0)
+- **preset**:
+  - make the declared output layout match the real artifacts &nbsp;-&nbsp; by @soybeanjs [<samp>(b1899)</samp>](https://github.com/soybeanjs/ubean/commit/b1899fa)
+- **projects**:
+  - warm the module before measuring client change latency &nbsp;-&nbsp; by @soybeanjs [<samp>(1a452)</samp>](https://github.com/soybeanjs/ubean/commit/1a45205)
+- **routing**:
+  - keep matcher metadata in the built page table, and make the registry a real process singleton &nbsp;-&nbsp; by @soybeanjs [<samp>(56205)</samp>](https://github.com/soybeanjs/ubean/commit/56205d8)
+- **seo**:
+  - make useSchemaOrg actually inject JSON-LD, and guard the client import discipline &nbsp;-&nbsp; by @soybeanjs [<samp>(c2c76)</samp>](https://github.com/soybeanjs/ubean/commit/c2c7621)
+- **server**:
+  - make the rate-limit sweeper disposable, and fix the entry's teardown imports &nbsp;-&nbsp; by @soybeanjs [<samp>(ed138)</samp>](https://github.com/soybeanjs/ubean/commit/ed13880)
+- **ssr**:
+  - group parallel routes into named views so the first paint matches the client &nbsp;-&nbsp; by @soybeanjs [<samp>(f4f0a)</samp>](https://github.com/soybeanjs/ubean/commit/f4f0af8)
+
+### &nbsp;&nbsp;&nbsp;🔥 Performance
+
+- **bench**: measure build CPU time so comparisons survive a loaded host &nbsp;-&nbsp; by @soybeanjs [<samp>(0a03c)</samp>](https://github.com/soybeanjs/ubean/commit/0a03c46)
+- **build**: minify worker bundles and replace the deprecated inline option &nbsp;-&nbsp; by @soybeanjs [<samp>(7ee8d)</samp>](https://github.com/soybeanjs/ubean/commit/7ee8d92)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **builder**: add vite-ignore comment to dynamic imports in prerender and preview steps &nbsp;-&nbsp; by @soybeanjs [<samp>(01860)</samp>](https://github.com/soybeanjs/ubean/commit/01860b3)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- remove the legacy orchestration and the migration switch (RM-V36, step 2) &nbsp;-&nbsp; by @soybeanjs [<samp>(aa8bb)</samp>](https://github.com/soybeanjs/ubean/commit/aa8bb99)
+- **build**:
+  - make the virtual module registry injectable (RM-V02) &nbsp;-&nbsp; by @soybeanjs [<samp>(99c90)</samp>](https://github.com/soybeanjs/ubean/commit/99c9023)
+  - extract the dev SSR route table and assert it matches the client table (RM-V11) &nbsp;-&nbsp; by @soybeanjs [<samp>(c98b6)</samp>](https://github.com/soybeanjs/ubean/commit/c98b64d)
+  - move the host dev app wiring into the builder (RM-V11) &nbsp;-&nbsp; by @soybeanjs [<samp>(c50d0)</samp>](https://github.com/soybeanjs/ubean/commit/c50d084)
+  - move dev app creation and the ready sequence into the builder (RM-V11) &nbsp;-&nbsp; by @soybeanjs [<samp>(556d9)</samp>](https://github.com/soybeanjs/ubean/commit/556d92b)
+  - unify dev file watching into one scan coordinator (RM-V13) &nbsp;-&nbsp; by @soybeanjs [<samp>(d2626)</samp>](https://github.com/soybeanjs/ubean/commit/d26264f)
+  - share the request logger and hand dev to the plugin under the switch (RM-V14) &nbsp;-&nbsp; by @soybeanjs [<samp>(5a993)</samp>](https://github.com/soybeanjs/ubean/commit/5a9934d)
+  - export the production helpers a builder-driven build needs (RM-V16) &nbsp;-&nbsp; by @soybeanjs [<samp>(43833)</samp>](https://github.com/soybeanjs/ubean/commit/43833b0)
+  - inject the client asset manifest at build time (RM-V18) &nbsp;-&nbsp; by @soybeanjs [<samp>(7d089)</samp>](https://github.com/soybeanjs/ubean/commit/7d089ac)
+  - share the drift-prone build config between both paths (RM-V17) &nbsp;-&nbsp; by @soybeanjs [<samp>(3e31c)</samp>](https://github.com/soybeanjs/ubean/commit/3e31cfb)
+  - split the build orchestration into reusable stages (RM-V21, part 1) &nbsp;-&nbsp; by @soybeanjs [<samp>(e5841)</samp>](https://github.com/soybeanjs/ubean/commit/e58419f)
+  - own the prerender step in the builder (RM-V21, part 3) &nbsp;-&nbsp; by @soybeanjs [<samp>(f57e7)</samp>](https://github.com/soybeanjs/ubean/commit/f57e725)
+- **cli**:
+  - unify the Node↔Web adapter (RM-V03) &nbsp;-&nbsp; by @soybeanjs [<samp>(f727f)</samp>](https://github.com/soybeanjs/ubean/commit/f727fcd)
+  - let Vite own the dev HTTP server (RM-V12) &nbsp;-&nbsp; by @soybeanjs [<samp>(3e511)</samp>](https://github.com/soybeanjs/ubean/commit/3e5113b)
+  - collapse the dev server layer into one thin module (RM-V14) &nbsp;-&nbsp; by @soybeanjs [<samp>(2fa40)</samp>](https://github.com/soybeanjs/ubean/commit/2fa40dc)
+  - delegate `ubean preview` to the plugin middleware (RM-V25) &nbsp;-&nbsp; by @soybeanjs [<samp>(4b2ef)</samp>](https://github.com/soybeanjs/ubean/commit/4b2ef32)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- align AGENTS.md, site docs, skill and a migration guide with ADR-0012 (RM-V32…V35) &nbsp;-&nbsp; by @soybeanjs [<samp>(b396a)</samp>](https://github.com/soybeanjs/ubean/commit/b396a5f)
+- mark the preset metadata item as fixed in the roadmap log &nbsp;-&nbsp; by @soybeanjs [<samp>(47f66)</samp>](https://github.com/soybeanjs/ubean/commit/47f6654)
+- **adr**:
+  - add ADR-0012 for Vite-plugin-first lifecycle handoff &nbsp;-&nbsp; by @soybeanjs [<samp>(cae82)</samp>](https://github.com/soybeanjs/ubean/commit/cae82e1)
+- **build**:
+  - record the confirmed causes behind RM-V09's invalidation gap &nbsp;-&nbsp; by @soybeanjs [<samp>(e6f06)</samp>](https://github.com/soybeanjs/ubean/commit/e6f06c5)
+  - record RM-V14's functional equivalence and the p95 spread &nbsp;-&nbsp; by @soybeanjs [<samp>(9bad5)</samp>](https://github.com/soybeanjs/ubean/commit/9bad5e4)
+  - mark RM-V14 complete after the dev server layer collapse &nbsp;-&nbsp; by @soybeanjs [<samp>(97aba)</samp>](https://github.com/soybeanjs/ubean/commit/97aba03)
+  - close RM-V15 with the browser walkthrough evidence &nbsp;-&nbsp; by @soybeanjs [<samp>(1e0e5)</samp>](https://github.com/soybeanjs/ubean/commit/1e0e547)
+  - record the Phase 2 starting state and the build-path regression &nbsp;-&nbsp; by @soybeanjs [<samp>(70629)</samp>](https://github.com/soybeanjs/ubean/commit/7062909)
+  - mark RM-V16 complete with the parity evidence &nbsp;-&nbsp; by @soybeanjs [<samp>(7bce6)</samp>](https://github.com/soybeanjs/ubean/commit/7bce6f5)
+  - record RM-V19 and RM-V20 with their verification &nbsp;-&nbsp; by @soybeanjs [<samp>(142a3)</samp>](https://github.com/soybeanjs/ubean/commit/142a355)
+  - record the three blockers found wiring the build into the plugin &nbsp;-&nbsp; by @soybeanjs [<samp>(ba9ef)</samp>](https://github.com/soybeanjs/ubean/commit/ba9ef59)
+  - pin the surviving handle to timers, not the cron scheduler &nbsp;-&nbsp; by @soybeanjs [<samp>(87cf7)</samp>](https://github.com/soybeanjs/ubean/commit/87cf709)
+  - record what RM-V23's first assertion surfaced &nbsp;-&nbsp; by @soybeanjs [<samp>(85ef2)</samp>](https://github.com/soybeanjs/ubean/commit/85ef293)
+  - correct the artifact-size claim with a clean-room measurement &nbsp;-&nbsp; by @soybeanjs [<samp>(749c6)</samp>](https://github.com/soybeanjs/ubean/commit/749c694)
+  - pin the standard-preset divergence on the SSR target &nbsp;-&nbsp; by @soybeanjs [<samp>(1dd0b)</samp>](https://github.com/soybeanjs/ubean/commit/1dd0b1d)
+  - close out Phase 4 evaluations, and pin NODE_ENV in build measurements &nbsp;-&nbsp; by @soybeanjs [<samp>(2a4dc)</samp>](https://github.com/soybeanjs/ubean/commit/2a4dc71)
+- **cli**:
+  - record the RM-V08 implementation path found after the spike &nbsp;-&nbsp; by @soybeanjs [<samp>(918f2)</samp>](https://github.com/soybeanjs/ubean/commit/918f28a)
+- **perf**:
+  - add perf regression net plan ahead of Vite plugin migration &nbsp;-&nbsp; by @soybeanjs [<samp>(62cbd)</samp>](https://github.com/soybeanjs/ubean/commit/62cbd78)
+  - record that the size gate cannot see missing output &nbsp;-&nbsp; by @soybeanjs [<samp>(51589)</samp>](https://github.com/soybeanjs/ubean/commit/5158982)
+  - pin down why the island chunks disappeared &nbsp;-&nbsp; by @soybeanjs [<samp>(16270)</samp>](https://github.com/soybeanjs/ubean/commit/1627048)
+- **roadmap**:
+  - fix a module name typo in the RM-V11 progress note &nbsp;-&nbsp; by @soybeanjs [<samp>(30418)</samp>](https://github.com/soybeanjs/ubean/commit/30418f3)
+  - log the audit closing batch (defects M/N, frozen-baseline refresh) &nbsp;-&nbsp; by @soybeanjs [<samp>(a6194)</samp>](https://github.com/soybeanjs/ubean/commit/a6194f0)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **cli**:
+  - spike env-runner compatibility and record the conclusion (RM-V04) &nbsp;-&nbsp; by @soybeanjs [<samp>(972ef)</samp>](https://github.com/soybeanjs/ubean/commit/972efde)
+- **perf**:
+  - refresh legacy baseline with change-propagation metrics &nbsp;-&nbsp; by @soybeanjs [<samp>(1a6dc)</samp>](https://github.com/soybeanjs/ubean/commit/1a6dc7c)
+  - re-freeze the bundle baseline on the corrected build (RM-V22) &nbsp;-&nbsp; by @soybeanjs [<samp>(69843)</samp>](https://github.com/soybeanjs/ubean/commit/6984323)
+- **projects**:
+  - reconcile lockfile after peer re-resolution &nbsp;-&nbsp; by @soybeanjs [<samp>(96c35)</samp>](https://github.com/soybeanjs/ubean/commit/96c3566)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **bench**:
+  - prove the build arm is engaged, and cover aws/azure presets (RM-V23) &nbsp;-&nbsp; by @soybeanjs [<samp>(3c51c)</samp>](https://github.com/soybeanjs/ubean/commit/3c51cb2)
+- **builder**:
+  - pin the vite-plus experimental API surface (RM-V06) &nbsp;-&nbsp; by @soybeanjs [<samp>(adf25)</samp>](https://github.com/soybeanjs/ubean/commit/adf2520)
+- **cli**:
+  - add the dev HTTP topology regression net (RM-V05) &nbsp;-&nbsp; by @soybeanjs [<samp>(c9cf3)</samp>](https://github.com/soybeanjs/ubean/commit/c9cf395)
+  - walk the interactive DX flows in a real browser (RM-V15) &nbsp;-&nbsp; by @soybeanjs [<samp>(5876e)</samp>](https://github.com/soybeanjs/ubean/commit/5876e85)
+  - assert the two build paths agree, building into temp dirs (RM-V23) &nbsp;-&nbsp; by @soybeanjs [<samp>(15c5b)</samp>](https://github.com/soybeanjs/ubean/commit/15c5bd8)
+  - cover i18n routing on the plugin-only dev path (RM-V23) &nbsp;-&nbsp; by @soybeanjs [<samp>(25932)</samp>](https://github.com/soybeanjs/ubean/commit/2593240)
+  - extend the path-equivalence assertion across build modes (RM-V23) &nbsp;-&nbsp; by @soybeanjs [<samp>(69793)</samp>](https://github.com/soybeanjs/ubean/commit/697933b)
+  - add the preset axis to the path-equivalence matrix (RM-V23) &nbsp;-&nbsp; by @soybeanjs [<samp>(72381)</samp>](https://github.com/soybeanjs/ubean/commit/72381b7)
+  - complete the preset axis of the path-equivalence matrix (RM-V23) &nbsp;-&nbsp; by @soybeanjs [<samp>(bd6c8)</samp>](https://github.com/soybeanjs/ubean/commit/bd6c82d)
+  - record the divergence in the no-vite-config cell of the matrix &nbsp;-&nbsp; by @soybeanjs [<samp>(ba52e)</samp>](https://github.com/soybeanjs/ubean/commit/ba52eaf)
+- **e2e**:
+  - cover paired components and fix the stale-artifact trap in the preview test &nbsp;-&nbsp; by @soybeanjs [<samp>(c6242)</samp>](https://github.com/soybeanjs/ubean/commit/c6242ec)
+  - verify ISR semantics end to end, in dev and in the built artifact &nbsp;-&nbsp; by @soybeanjs [<samp>(c006b)</samp>](https://github.com/soybeanjs/ubean/commit/c006b70)
+  - verify component-level caching end to end &nbsp;-&nbsp; by @soybeanjs [<samp>(69a6b)</samp>](https://github.com/soybeanjs/ubean/commit/69a6bf8)
+  - verify PPR, server islands, and deferred data end to end &nbsp;-&nbsp; by @soybeanjs [<samp>(287ff)</samp>](https://github.com/soybeanjs/ubean/commit/287ff40)
+- **perf**:
+  - make the viteBuilder arm run the plugin-only path (RM-P02, RM-V15) &nbsp;-&nbsp; by @soybeanjs [<samp>(22985)</samp>](https://github.com/soybeanjs/ubean/commit/22985e2)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **projects**: remove unused imports from test files &nbsp;-&nbsp; by @soybeanjs [<samp>(d7cd3)</samp>](https://github.com/soybeanjs/ubean/commit/d7cd3f5)
+
+### &nbsp;&nbsp;&nbsp;🤖 CI
+
+- install the Chromium the browser walkthrough suite needs &nbsp;-&nbsp; by @soybeanjs [<samp>(c7160)</samp>](https://github.com/soybeanjs/ubean/commit/c7160b1)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.5.1...main) (2026-09-13)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

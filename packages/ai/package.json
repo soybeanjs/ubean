@@ -39,12 +39,12 @@
     "valibot": "^1.5.0"
   },
   "devDependencies": {
-    "@types/node": "^26.5.0",
-    "hono": "4.13.7",
+    "@types/node": "^26.6.1",
+    "hono": "4.13.8",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.42"
+    "vue": "^3.5.43"
   },
   "peerDependencies": {
     "@ai-sdk/openai-compatible": "^1.0.0 || ^2.0.0 || ^3.0.0",

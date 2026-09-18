@@ -64,7 +64,7 @@
     "@ubean/server": "workspace:*",
     "@ubean/shared": "workspace:*",
     "@ubean/vue": "workspace:*",
-    "@vitejs/plugin-vue": "^6.0.8",
+    "@vitejs/plugin-vue": "^6.0.9",
     "openapi-typescript": "^7.13.0",
     "pathe": "^2.0.3",
     "tinyglobby": "^0.2.17",
@@ -75,8 +75,8 @@
     "vue-i18n": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^26.5.0",
-    "hono": "4.13.7",
+    "@types/node": "^26.6.1",
+    "hono": "4.13.8",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

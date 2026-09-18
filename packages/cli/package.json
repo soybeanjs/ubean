@@ -44,8 +44,8 @@
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.5.0",
-    "@vitejs/plugin-vue": "^6.0.8",
+    "@types/node": "^26.6.1",
+    "@vitejs/plugin-vue": "^6.0.9",
     "env-runner": "0.2.3",
     "typescript": "catalog:",
     "vite": "catalog:",

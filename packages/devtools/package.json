@@ -25,33 +25,33 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "hookable": "^6.1.1",
+    "hookable": "^6.1.2",
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@codemirror/commands": "^6.11.0",
+    "@codemirror/commands": "^6.11.1",
     "@codemirror/lang-javascript": "6.2.5",
     "@codemirror/lang-json": "6.0.2",
     "@codemirror/lang-vue": "^0.1.3",
     "@codemirror/language": "6.12.4",
-    "@codemirror/state": "6.7.4",
+    "@codemirror/state": "6.7.5",
     "@codemirror/theme-one-dark": "6.1.3",
-    "@codemirror/view": "6.43.11",
-    "@soybeanjs/ui": "^0.30.0",
+    "@codemirror/view": "6.43.12",
+    "@soybeanjs/ui": "^0.40.1",
     "@soybeanjs/unocss-preset": "^0.2.0",
     "@soybeanjs/unocss-shadcn": "^0.29.3",
-    "@types/node": "^26.5.0",
-    "@vitejs/devtools": "^0.6.3",
-    "@vitejs/devtools-kit": "^0.6.3",
-    "@vitejs/plugin-vue": "^6.0.8",
+    "@types/node": "^26.6.1",
+    "@vitejs/devtools": "^0.7.5",
+    "@vitejs/devtools-kit": "^0.7.5",
+    "@vitejs/plugin-vue": "^6.0.9",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
-    "hono": "4.13.7",
+    "hono": "4.13.8",
     "typescript": "catalog:",
-    "unocss": "^66.10.2",
+    "unocss": "^66.10.5",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.42"
+    "vue": "^3.5.43"
   },
   "peerDependencies": {
     "hono": "^4.0.0",
@@ -66,7 +66,7 @@
     }
   },
   "optionalDependencies": {
-    "@ai-sdk/openai-compatible": "3.0.48",
-    "ai": "7.0.99"
+    "@ai-sdk/openai-compatible": "3.0.52",
+    "ai": "7.0.106"
   }
 }

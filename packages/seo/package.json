@@ -34,11 +34,11 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@unhead/vue": "^3.4.0",
+    "@unhead/vue": "^3.4.1",
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.1",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },

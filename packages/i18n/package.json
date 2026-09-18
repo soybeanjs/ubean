@@ -32,10 +32,10 @@
   "dependencies": {
     "@intlify/core": "catalog:",
     "@ubean/shared": "workspace:*",
-    "hono": "4.13.7"
+    "hono": "4.13.8"
   },
   "devDependencies": {
-    "@types/node": "^26.5.0",
+    "@types/node": "^26.6.1",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },

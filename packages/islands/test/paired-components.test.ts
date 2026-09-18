@@ -1,19 +1,9 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { dirname, join } from 'node:path';
+import { describe, it, expect } from 'vitest';
 import { h, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
-
-// `vi.mock` 会被提升到文件顶部,在 import 之前执行。mock `node:fs` 的
-// `existsSync` 以便测试 resolveId 的兄弟文件检测逻辑 (无需真实文件系统)。
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn()
-}));
-
-// 在 mock 之后导入 — `existsSync` 此处是 mock 函数,可在每个测试中配置返回值。
-import { existsSync } from 'node:fs';
 import { definePairedComponent, ServerComponentStub } from '../src/runtime';
 import { ubeanIslandsPlugin } from '../src/vite';
-
-const mockedExistsSync = vi.mocked(existsSync);
 
 function getPlugin(): any {
   const plugin = ubeanIslandsPlugin() as any;
@@ -21,20 +11,38 @@ function getPlugin(): any {
   return plugin;
 }
 
+/**
+ * 造一个 Vite 插件上下文：`this.resolve` 只认「存在的文件集合」，其余返回 null。
+ *
+ * 配对解析现在走 Vite 自己的解析器（不再用 `existsSync` + 相对路径拼接），所以测试也必须提供
+ * `this.resolve`。这正是这几条用例的价值所在 —— 「真实文件优先」与「别名导入可用」两条
+ * 都只在真解析器下成立。
+ */
+function makeContext(files: string[]) {
+  const existing = new Set(files);
+  return {
+    resolve: async (spec: string, importer?: string) => {
+      const absolute = spec.startsWith('@/')
+        ? spec.replace('@/', '/project/src/')
+        : importer
+          ? join(dirname(importer), spec)
+          : spec;
+      const normalized = absolute.replace(/\\/g, '/');
+      return existing.has(normalized) ? { id: normalized, external: false } : null;
+    }
+  };
+}
+
 // ============== Task 9.3: resolveId 配对组件解析 ==============
 
 describe('Task 9.3: resolveId paired component resolution', () => {
-  beforeEach(() => {
-    mockedExistsSync.mockReset();
-  });
+  const PAIR = ['/project/src/Foo.server.vue', '/project/src/Foo.client.vue'];
+
+  const resolvePair = (files: string[], id = './Foo.vue', importer = '/project/src/page.vue', ssr = false) =>
+    getPlugin().resolveId.call(makeContext(files), id, importer, { ssr });
 
   it('普通 .vue 同时存在 .server.vue + .client.vue → 重定向到配对 wrapper', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockImplementation(p => {
-      const s = String(p);
-      return s === '/project/src/Foo.server.vue' || s === '/project/src/Foo.client.vue';
-    });
-    const id = await plugin.resolveId.call({}, './Foo.vue', '/project/src/page.vue', { ssr: false });
+    const id = await resolvePair(PAIR);
     expect(id).toContain('virtual:ubean-paired-component:');
     expect(id).toContain('/project/src/Foo.server.vue');
     expect(id).toContain('|');
@@ -42,71 +50,66 @@ describe('Task 9.3: resolveId paired component resolution', () => {
   });
 
   it('配对 wrapper 不区分 SSR / client — 都重定向到同一 wrapper ID', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockImplementation(p => {
-      const s = String(p);
-      return s === '/project/src/Foo.server.vue' || s === '/project/src/Foo.client.vue';
-    });
-    const idSsr = await plugin.resolveId.call({}, './Foo.vue', '/project/src/page.vue', { ssr: true });
-    const idClient = await plugin.resolveId.call({}, './Foo.vue', '/project/src/page.vue', { ssr: false });
+    const idSsr = await resolvePair(PAIR, './Foo.vue', '/project/src/page.vue', true);
+    const idClient = await resolvePair(PAIR, './Foo.vue', '/project/src/page.vue', false);
     expect(idSsr).toBe(idClient);
     expect(idSsr).toContain('virtual:ubean-paired-component:');
   });
 
   it('仅存在 .server.vue → 重定向到 .server.vue (由现有规则处理)', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockImplementation(p => String(p) === '/project/src/Foo.server.vue');
-    const id = await plugin.resolveId.call({}, './Foo.vue', '/project/src/page.vue', { ssr: false });
-    expect(id).toBe('/project/src/Foo.server.vue');
+    expect(await resolvePair(['/project/src/Foo.server.vue'])).toBe('/project/src/Foo.server.vue');
   });
 
   it('仅存在 .client.vue → 重定向到 .client.vue (由现有规则处理)', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockImplementation(p => String(p) === '/project/src/Foo.client.vue');
-    const id = await plugin.resolveId.call({}, './Foo.vue', '/project/src/page.vue', { ssr: false });
-    expect(id).toBe('/project/src/Foo.client.vue');
+    expect(await resolvePair(['/project/src/Foo.client.vue'])).toBe('/project/src/Foo.client.vue');
   });
 
   it('无兄弟文件 → 返回 undefined (走默认解析)', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockReturnValue(false);
-    const id = await plugin.resolveId.call({}, './Foo.vue', '/project/src/page.vue', { ssr: false });
-    expect(id).toBeUndefined();
+    expect(await resolvePair([])).toBeUndefined();
   });
 
-  it('非相对路径 (bare specifier) 不触发兄弟检测', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockReturnValue(true); // 即使存在也不应触发
-    const id = await plugin.resolveId.call({}, 'vue', '/project/src/page.vue', { ssr: false });
-    expect(id).toBeUndefined();
+  /**
+   * 别名导入必须和相对导入一样命中配对。
+   *
+   * 缺陷形态：旧实现用 `id.startsWith('.')` 判据 + 手拼相对路径，于是
+   * `@/components/Foo.vue` 完全走不到配对分支 —— 实测直接 `Cannot find module`，
+   * 而「文件不存在也能按基名导入」正是配对特性的卖点。
+   */
+  it('别名导入 (@/…) 同样命中配对', async () => {
+    const aliasPair = ['/project/src/components/Foo.server.vue', '/project/src/components/Foo.client.vue'];
+    const id = await resolvePair(aliasPair, '@/components/Foo.vue');
+    expect(id).toContain('virtual:ubean-paired-component:');
+    expect(id).toContain('/project/src/components/Foo.server.vue');
   });
 
-  it('绝对路径不触发兄弟检测 (仅相对路径触发)', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockReturnValue(true);
-    const id = await plugin.resolveId.call({}, '/src/Foo.vue', undefined, { ssr: false });
-    expect(id).toBeUndefined();
+  /**
+   * 真实文件存在时，两个半成品必须让位。
+   *
+   * 缺陷形态：旧实现只要同名兄弟存在就劫持导入，真实的 `Foo.vue` 被静默忽略 —— 而 TS 解析的
+   * 是真实文件，于是**类型与运行时不一致**（类型说是这个组件、页面渲染的是配对包装）。
+   */
+  it('真实 Foo.vue 存在 → 交给默认解析（不做配对劫持）', async () => {
+    expect(await resolvePair(['/project/src/Foo.vue', ...PAIR])).toBeUndefined();
+  });
+
+  it('非 .vue 说明符 (bare specifier) 不触发兄弟检测', async () => {
+    expect(await resolvePair(PAIR, 'vue')).toBeUndefined();
   });
 
   it('无 importer (entry) 不触发兄弟检测', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockReturnValue(true);
-    const id = await plugin.resolveId.call({}, './Foo.vue', undefined, { ssr: false });
+    // 直接调用而不是走 resolvePair：后者的 importer 有默认值，传 undefined 会触发默认参数
+    const id = await getPlugin().resolveId.call(makeContext(PAIR), './Foo.vue', undefined, { ssr: false });
     expect(id).toBeUndefined();
   });
 
   it('importer 为虚拟模块 (\\0 前缀) 不触发兄弟检测', async () => {
-    const plugin = getPlugin();
-    mockedExistsSync.mockReturnValue(true);
-    const id = await plugin.resolveId.call({}, './Foo.vue', '\0virtual:ubean-something', { ssr: false });
-    expect(id).toBeUndefined();
+    expect(await resolvePair(PAIR, './Foo.vue', '\0virtual:ubean-something')).toBeUndefined();
   });
 
   it('配对 wrapper 内部 import .client.vue 不被拦截 (importer 检查)', async () => {
-    const plugin = getPlugin();
     // 模拟从配对 wrapper 内部 import .client.vue
     const wrapperImporter = '\0virtual:ubean-paired-component:/project/src/Foo.server.vue|/project/src/Foo.client.vue';
-    const id = await plugin.resolveId.call({}, '/project/src/Foo.client.vue', wrapperImporter, { ssr: false });
+    const id = await getPlugin().resolveId.call({}, '/project/src/Foo.client.vue', wrapperImporter, { ssr: false });
     // 不重定向到 client wrapper,走默认解析 (返回 undefined)
     expect(id).toBeUndefined();
   });
@@ -115,10 +118,6 @@ describe('Task 9.3: resolveId paired component resolution', () => {
 // ============== Task 9.3: load 配对 wrapper 模块 ==============
 
 describe('Task 9.3: load paired component wrapper module', () => {
-  beforeEach(() => {
-    mockedExistsSync.mockReset();
-  });
-
   it('SSR load 直接 re-export .server.vue (不调用 definePairedComponent)', () => {
     const plugin = getPlugin();
     const wrapperId = '\0virtual:ubean-paired-component:/project/src/Foo.server.vue|/project/src/Foo.client.vue';

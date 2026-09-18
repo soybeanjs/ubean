@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import type { Plugin, ResolvedConfig as ViteResolvedConfig } from 'vite';
 import { legacyDirectiveToStrategy, strategyToLegacyDirective } from './directive';
@@ -56,6 +56,19 @@ export function isClientComponentFile(id: string): boolean {
 /** `.server.vue` 在 client 构建中的通用虚拟 stub 模块 ID */
 export const SERVER_COMPONENT_STUB_VIRTUAL_ID = 'virtual:ubean-server-component-stub';
 const SERVER_COMPONENT_STUB_RESOLVED_ID = `\0${SERVER_COMPONENT_STUB_VIRTUAL_ID}`;
+
+/**
+ * `.server.vue` 在 client 构建中的**文件级** stub 模块 ID 前缀。
+ *
+ * 早期所有 `.server.vue` 都重定向到上面那个**共用**的 stub 模块，于是它们在客户端图里成了
+ * 同一个组件对象 —— `name` 全是 `ServerComponentStub`，`<KeepAlive include>`、
+ * `<component :is>`、DevTools 台账都失去区分度。改为按文件生成（与 `.client.vue` 的文件级
+ * 包装模块对称）。
+ *
+ * 尾标同样不能省：ID 若以 `.vue` 结尾，`@vitejs/plugin-vue` 会把它当真实 SFC 读盘
+ * （见 `WRAPPER_VIRTUAL_TAIL` 的说明）。
+ */
+const SERVER_COMPONENT_STUB_PREFIX = '\0virtual:ubean-server-component-stub:';
 
 /** `.client.vue` 在 SSR 构建中的通用占位符虚拟模块 ID */
 export const CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID = 'virtual:ubean-client-component-placeholder';
@@ -119,6 +132,22 @@ export function wrapServerComponentTemplate(code: string): string | null {
   if (tpl.content.trim().startsWith('<ubean-server-only')) return null;
   const newContent = `<ubean-server-only v-once>${tpl.content}</ubean-server-only>`;
   return `${code.slice(0, tpl.start)}<template${tpl.attrs}>${newContent}</template>${code.slice(tpl.end)}`;
+}
+
+/**
+ * `.server.vue` 是否带 `<template>` 块。
+ *
+ * 用于把「包裹不了」的两种情况区分开：**没有 `<template>`**（render 函数 / `export { default }
+ * from …` 这类写法）必须报错，而**已经包裹过**（幂等）应当静默跳过。
+ *
+ * 为什么没有 `<template>` 就必须报错：客户端侧一律替换成 stub（渲染 `<ubean-server-only>`），
+ * 服务端侧的内容必须被包进**同名元素**才能在水合时对齐。没有 `<template>` 时服务端输出的是
+ * 组件自己的根元素，与 stub 的根标签不一致 —— 实测 Vue 报
+ * `Hydration node mismatch: rendered on server: JSHandle@node / expected on client: ubean-server-only`，
+ * 并且**把服务端渲染出来的内容清掉**（首屏有内容、水合后变空），比不渲染更糟。
+ */
+export function hasServerComponentTemplate(code: string): boolean {
+  return extractTemplateBlock(code) !== null;
 }
 
 /**
@@ -1160,10 +1189,13 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
 
       if (!enabled) return undefined;
 
-      // --- Task 9.1: .server.vue → client 构建重定向到通用 stub ---
+      // --- Task 9.1: .server.vue → client 构建重定向到文件级 stub ---
       // SSR 构建时正常解析到真实文件 (return undefined 走默认解析)
       if (!options?.ssr && !isVueSubRequest(id) && isServerComponentFile(id)) {
-        return SERVER_COMPONENT_STUB_RESOLVED_ID;
+        // 解析成绝对路径再拼 ID：同一文件经不同说明符（相对 / 别名）导入必须落到同一个 stub 模块，
+        // 否则会各自生成一份、组件身份被无意义地拆开。
+        const resolved = await this.resolve(id, importer, { skipSelf: true });
+        return `${SERVER_COMPONENT_STUB_PREFIX}${resolved?.id ?? id}${WRAPPER_VIRTUAL_TAIL}`;
       }
 
       // --- Task 9.2: .client.vue → SSR 构建重定向到通用占位符 ---
@@ -1188,38 +1220,42 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
       }
 
       // --- Task 9.3: 配对组件解析 — 普通 .vue 导入检查 .server.vue / .client.vue 兄弟文件 ---
-      // 仅处理相对导入 (id 以 `.` 开头),且 importer 存在且非虚拟模块。
+      // importer 存在且非虚拟模块、说明符以 .vue 结尾、且本身不是半成品。
       // 当同时存在 .server.vue 与 .client.vue 时,重定向到配对 wrapper 虚拟模块;
       // 仅存在一个兄弟时,重定向到该兄弟 (由现有 .server.vue / .client.vue 规则处理)。
+      //
+      // 全部走 Vite 自己的解析器（而不是 `existsSync` + 相对路径拼接），两个原因：
+      // 1. **真实文件优先**：`Foo.vue` 真实存在时直接返回 undefined 走默认解析。此前命中兄弟文件就
+      //    劫持，真实的 `Foo.vue` 被静默忽略 —— 而 TS 解析的是真实文件，于是**类型与运行时不一致**。
+      // 2. **别名可用**：旧的 `id.startsWith('.')` 让 `@/components/Foo.vue` 这类导入完全走不到这里
+      //    （实测直接 `Cannot find module`），而「文件不存在也能按基名导入」正是配对特性的卖点。
       if (
         importer &&
         !importer.startsWith('\0') &&
         !isVueSubRequest(id) &&
         id.endsWith('.vue') &&
         !isServerComponentFile(id) &&
-        !isClientComponentFile(id) &&
-        id.startsWith('.')
+        !isClientComponentFile(id)
       ) {
-        const importerDir = dirname(resolve(importer));
-        const baseVuePath = resolve(importerDir, id);
-        const baseName = baseVuePath.slice(0, -'.vue'.length); // 去掉 .vue 后缀
-        const serverSibling = `${baseName}.server.vue`;
-        const clientSibling = `${baseName}.client.vue`;
+        // 真实文件存在 → 交给默认解析（与 TS 保持一致）
+        const realFile = await this.resolve(id, importer, { skipSelf: true });
+        if (realFile) return undefined;
 
-        const hasServer = existsSync(serverSibling);
-        const hasClient = existsSync(clientSibling);
+        const base = id.slice(0, -'.vue'.length); // 去掉 .vue 后缀
+        const serverSibling = await this.resolve(`${base}.server.vue`, importer, { skipSelf: true });
+        const clientSibling = await this.resolve(`${base}.client.vue`, importer, { skipSelf: true });
 
-        if (hasServer && hasClient) {
+        if (serverSibling && clientSibling) {
           // 配对:重定向到虚拟 wrapper 模块 (load 钩子根据 ssr 选项生成不同内容)
-          return `${PAIRED_COMPONENT_WRAPPER_PREFIX}${serverSibling}${PAIRED_PATH_SEPARATOR}${clientSibling}${WRAPPER_VIRTUAL_TAIL}`;
+          return `${PAIRED_COMPONENT_WRAPPER_PREFIX}${serverSibling.id}${PAIRED_PATH_SEPARATOR}${clientSibling.id}${WRAPPER_VIRTUAL_TAIL}`;
         }
-        if (hasServer) {
+        if (serverSibling) {
           // 仅存在 .server.vue:重定向 (SSR=真实文件, client=stub)
-          return serverSibling;
+          return serverSibling.id;
         }
-        if (hasClient) {
+        if (clientSibling) {
           // 仅存在 .client.vue:重定向 (SSR=占位符, client=wrapper)
-          return clientSibling;
+          return clientSibling.id;
         }
         // 无兄弟文件:走默认解析
       }
@@ -1236,6 +1272,20 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
       // Task 9.1: .server.vue client stub — 导出 ServerComponentStub
       if (id === SERVER_COMPONENT_STUB_RESOLVED_ID) {
         return `import { ServerComponentStub } from '@ubean/islands/runtime';\nexport default ServerComponentStub;`;
+      }
+
+      // Task 9.1（文件级）: 每个 .server.vue 各自一份 stub，带上自己的 name ——
+      // 共用模块会让它们在客户端图里变成同一个组件（name 判别全部失效，见 SERVER_COMPONENT_STUB_PREFIX）。
+      if (id.startsWith(SERVER_COMPONENT_STUB_PREFIX)) {
+        const realPath = id.slice(SERVER_COMPONENT_STUB_PREFIX.length).replace(WRAPPER_VIRTUAL_TAIL, '');
+        const name = realPath
+          .split('/')
+          .pop()!
+          .replace(/\.server\.vue$/, '');
+        return (
+          `import { ServerComponentStub } from '@ubean/islands/runtime';\n` +
+          `export default { ...ServerComponentStub, name: ${JSON.stringify(name)} };\n`
+        );
       }
 
       // Task 9.2: .client.vue SSR placeholder — 导出 ClientComponentPlaceholder
@@ -1307,6 +1357,16 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
         if (wrapped !== null) {
           code = wrapped;
           serverWrapped = true;
+        } else if (!hasServerComponentTemplate(code)) {
+          // 没有 <template> 就包不了 → 水合时服务端内容会被清掉（见 hasServerComponentTemplate）。
+          // 静默放行的代价是「首屏有内容、水合后变空」，所以这里直接失败。
+          throw new Error(
+            `[ubean] \`${normalizedId}\` 是 \`.server.vue\`（Server Component），但没有 <template> 块。\n` +
+              '客户端侧会被替换成通用 stub，服务端内容必须包进 <ubean-server-only> 才能在水合时对齐；' +
+              '没有 <template> 时（render 函数、`export { default } from …` 等写法）两侧根元素不一致，' +
+              '水合会清掉服务端渲染的内容。\n' +
+              '修法：改成 <template> 形式的 SFC。'
+          );
         }
       }
 

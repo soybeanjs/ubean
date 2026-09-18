@@ -6,6 +6,7 @@ import {
   isServerComponentFile,
   isClientComponentFile,
   wrapServerComponentTemplate,
+  hasServerComponentTemplate,
   ubeanIslandsPlugin,
   SERVER_COMPONENT_STUB_VIRTUAL_ID,
   CLIENT_COMPONENT_PLACEHOLDER_VIRTUAL_ID
@@ -85,6 +86,31 @@ describe('Task 9.1: wrapServerComponentTemplate', () => {
     const sfc = `<script setup>const x = 1;</script>`;
     const result = wrapServerComponentTemplate(sfc);
     expect(result).toBeNull();
+  });
+
+  /**
+   * 「包裹不了」的两种情形必须能区分：**没有 `<template>`** 要报错，**已包裹（幂等）** 要静默跳过。
+   *
+   * 没有 `<template>` 的 `.server.vue`（render 函数 / `export { default } from …` 这类写法）在改造前
+   * 会被静默放过，而客户端 stub 的根标签固定是 `<ubean-server-only>` —— 实测 Vue 报
+   * `Hydration node mismatch` 并**把服务端渲染的内容清掉**（首屏有内容、水合后变空）。
+   */
+  it('hasServerComponentTemplate 区分「没有 template」与「已包裹」', () => {
+    expect(hasServerComponentTemplate(`<script setup>const x = 1;</script>`)).toBe(false);
+    expect(hasServerComponentTemplate(`<script>export default {}</script>`)).toBe(false);
+    expect(hasServerComponentTemplate(`<template><div>a</div></template>`)).toBe(true);
+    // 已包裹的仍有 template 块 → 静默跳过（不报错）
+    expect(
+      hasServerComponentTemplate(`<template><ubean-server-only v-once><div>a</div></ubean-server-only></template>`)
+    ).toBe(true);
+  });
+
+  it('无 <template> 的 .server.vue 在 transform 阶段报错（不静默放过）', () => {
+    const plugin = ubeanIslandsPlugin() as any;
+    plugin.configResolved({ root: '/project' }, {});
+    expect(() =>
+      plugin.transform(`<script>export default { setup: () => () => null };</script>`, '/project/src/Foo.server.vue')
+    ).toThrowError(/没有 <template>/);
   });
 
   it('处理多根节点模板 (fragment)', () => {
@@ -205,10 +231,24 @@ describe('Task 9.1/9.2: Vite plugin resolveId / load', () => {
 
   // --- .server.vue ---
 
-  it('9.1: .server.vue 在 client 构建 (ssr=false) 重定向到 stub', async () => {
+  it('9.1: .server.vue 在 client 构建 (ssr=false) 重定向到**文件级** stub', async () => {
     const plugin = getPlugin();
-    const id = await plugin.resolveId.call({}, '/src/Foo.server.vue', undefined, { ssr: false });
-    expect(id).toBe(`\0${SERVER_COMPONENT_STUB_VIRTUAL_ID}`);
+    const id = await plugin.resolveId.call(
+      { resolve: async () => ({ id: '/project/src/Foo.server.vue', external: false }) },
+      '/src/Foo.server.vue',
+      undefined,
+      { ssr: false }
+    );
+    // 文件级（而非共用一个模块）：否则所有 .server.vue 在客户端图里是同一个组件
+    expect(id).toContain(SERVER_COMPONENT_STUB_VIRTUAL_ID);
+    expect(id).toContain('/project/src/Foo.server.vue');
+  });
+
+  it('9.1: 文件级 stub 带上组件自己的 name（name 判别不再全部相同）', () => {
+    const plugin = getPlugin();
+    const code = plugin.load('\0virtual:ubean-server-component-stub:/project/src/Foo.server.vue.ubean-wrapper');
+    expect(code).toContain('ServerComponentStub');
+    expect(code).toContain('name: "Foo"');
   });
 
   it('9.1: .server.vue 在 SSR 构建 (ssr=true) 正常解析 (返回 undefined)', async () => {
@@ -217,7 +257,7 @@ describe('Task 9.1/9.2: Vite plugin resolveId / load', () => {
     expect(id).toBeUndefined();
   });
 
-  it('9.1: load 返回 ServerComponentStub 模块', () => {
+  it('9.1: 通用 stub 虚拟模块仍然可用（向后兼容）', () => {
     const plugin = getPlugin();
     const code = plugin.load(`\0${SERVER_COMPONENT_STUB_VIRTUAL_ID}`);
     expect(code).toContain('ServerComponentStub');

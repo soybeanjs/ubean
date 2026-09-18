@@ -151,6 +151,122 @@ export function hasServerComponentTemplate(code: string): boolean {
 }
 
 /**
+ * 父级元素只允许特定子元素、且浏览器解析器会**重构 DOM** 的那些标签。
+ *
+ * `.server.vue` 在客户端图里会渲染一个 `<ubean-server-only>` 包裹元素（客户端记录
+ * `vdom` 里的节点，水合才能保住服务端内容），而普通元素不可能在所有上下文都合法：
+ *
+ * - **表格上下文**：包裹元素被 foster-parent 到表格**之外**（实测：内容出现在表格前、
+ *   `<tr>` 变空），随后水合报 `Hydration node mismatch` / `Hydration children mismatch`
+ *   并移除内容；生产模式下这些告警被剥掉，表现为静默的错位 + 内容丢失。
+ * - **`select` / `optgroup`**：解析器处于 "in select" 插入模式，无法识别的标签被**直接丢弃**。
+ *
+ * 刻意**不含** `ul` / `ol` / `dl` / `menu`：那些上下文里非 `li` 子元素虽然是不合法 HTML，但解析器
+ * 不会搬移或丢弃它（两侧 DOM 一致，水合正常），报错会是误报。
+ */
+const RESTRICTED_SERVER_COMPONENT_PARENTS = new Set([
+  'table',
+  'thead',
+  'tbody',
+  'tfoot',
+  'tr',
+  'colgroup',
+  'select',
+  'optgroup'
+]);
+
+/** 对 DOM 嵌套透明、不改变实际父级的标签（判断嵌套时向上穿透）。 */
+const TRANSPARENT_NESTING_TAGS = new Set(['template', 'slot']);
+
+export interface RestrictedServerComponentUsage {
+  /** 受限父级标签（小写）。 */
+  parent: string;
+  /** 组件在模板里的写法（原样）。 */
+  tag: string;
+}
+
+/**
+ * 找出「直接作为受限父级子元素」使用的 `.server.vue` 组件（见
+ * {@link RESTRICTED_SERVER_COMPONENT_PARENTS}）。
+ *
+ * 判据只看**静态可解析**的部分：标签名能在 `<script setup>` 的 import 映射里找到，且 import 路径
+ * 以 `.server.vue` 结尾。驼峰/连字符两种写法都认（`<ServerGreeting />` 与 `<server-greeting />`）。
+ * 通过 barrel 再导出、或运行时动态解析的组件看不出来 —— 宁可漏报也不误报。
+ */
+export function findRestrictedServerComponentUsage(
+  code: string,
+  importMap: Map<string, string>
+): RestrictedServerComponentUsage[] {
+  const template = extractTemplateBlock(code)?.content ?? '';
+  if (!template) return [];
+
+  const usages: RestrictedServerComponentUsage[] = [];
+  const stack: string[] = [];
+
+  // 弱解析：只跟踪标签与嵌套层级。属性值里的 `>` 由引号分支吸收。
+  const tagRe = /<(\/?)([A-Za-z][\w.:-]*)((?:"[^"]*"|'[^']*'|[^>"'])*?)(\/?)>/g;
+  let match: RegExpExecArray | null;
+
+  while ((match = tagRe.exec(template)) !== null) {
+    const [, closing, rawName, , selfClosing] = match;
+    const name = rawName;
+
+    if (closing) {
+      // 只弹栈到匹配项（模板里可能有未闭合的标签，不能盲目弹）
+      const idx = stack.lastIndexOf(name);
+      if (idx !== -1) stack.length = idx;
+      continue;
+    }
+
+    // 向上穿透 `<template v-if>` / `<slot>`：它们不改变实际的 DOM 父级
+    let parent: string | undefined;
+    for (let i = stack.length - 1; i >= 0; i--) {
+      if (!TRANSPARENT_NESTING_TAGS.has(stack[i].toLowerCase())) {
+        parent = stack[i];
+        break;
+      }
+    }
+
+    if (parent && RESTRICTED_SERVER_COMPONENT_PARENTS.has(parent.toLowerCase())) {
+      const importPath = importMap.get(name) ?? importMap.get(kebabToPascal(name));
+      if (importPath?.endsWith('.server.vue')) {
+        usages.push({ parent: parent.toLowerCase(), tag: name });
+      }
+    }
+
+    if (!selfClosing && !VOID_TAGS.has(name.toLowerCase())) {
+      stack.push(name);
+    }
+  }
+
+  return usages;
+}
+
+/** 空元素（无闭合标签）——误当作父级会让后面的标签判错层级。 */
+const VOID_TAGS = new Set([
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'source',
+  'track',
+  'wbr'
+]);
+
+function kebabToPascal(name: string): string {
+  return name
+    .split('-')
+    .map(part => (part ? part[0].toUpperCase() + part.slice(1) : part))
+    .join('');
+}
+
+/**
  * 判断 id 是否为 SFC 主模块（非 `?vue&type=...` 子查询）。
  *
  * 收集 island 组件时需要同时访问 `<script setup>` 与 `<template>` 块，
@@ -1366,6 +1482,25 @@ export function ubeanIslandsPlugin(_options: UbeanIslandsPluginOptions = {}): Pl
               '没有 <template> 时（render 函数、`export { default } from …` 等写法）两侧根元素不一致，' +
               '水合会清掉服务端渲染的内容。\n' +
               '修法：改成 <template> 形式的 SFC。'
+          );
+        }
+      }
+
+      // --- 受限父级里的 Server Component：直接失败（见 RESTRICTED_SERVER_COMPONENT_PARENTS）---
+      // 廉价闸门：文件里没提到 `.server.vue` 就不可能命中，跳过整个模板扫描。
+      if (code.includes('.server.vue')) {
+        const restricted = findRestrictedServerComponentUsage(code, parseScriptImports(extractScriptBlock(code)));
+        if (restricted.length > 0) {
+          const detail = restricted.map(u => `\`<${u.parent}> > <${u.tag} />\``).join('、');
+          throw new Error(
+            `[ubean] \`${normalizedId}\` 在受限父级里直接使用了 Server Component：${detail}。\n` +
+              '`.server.vue` 在客户端图里会渲染一个 <ubean-server-only> 包裹元素（客户端 vdom 必须有对应节点，' +
+              '水合才能保住服务端内容），而普通元素不可能在所有上下文都合法：\n' +
+              '  · 表格上下文（table/tr/tbody/…）：包裹元素被解析器提到表格**之外** —— 实测内容出现在表格前、' +
+              '`<tr>` 变空，随后水合报 mismatch 并**移除内容**（生产模式静默）；\n' +
+              '  · select/optgroup：解析器直接**丢弃**不认识的标签。\n' +
+              '修法：让服务端组件自己渲染容器（如整个 <table>），或把它放进允许的子元素（<td> / <li>）。\n' +
+              '（`.client.vue` 没有这个限制：它的占位符是注释节点。）'
           );
         }
       }

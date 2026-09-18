@@ -137,7 +137,9 @@ Two file-name conventions for components that belong to exactly one build graph.
 <ServerTable />
 ```
 
-Measured symptom when used anyway: on first paint the content shows up *outside* the container (moved before the table, leaving an empty `<tr>`), and after hydration Vue reports `Hydration node mismatch` / `Hydration children mismatch` and removes the content. The same applies to `<ul>`, `<ol>`, `<select>` and `<p>`.
+**The plugin rejects this at transform time** — using a `.server.vue` component directly under one of those parents fails the build (dev overlay / `vite build` error) with the parent and the component named. That failure is deliberate: the symptom it prevents is silent in production. Measured before the check existed: on first paint the content shows up *outside* the container (moved before the table, leaving an empty `<tr>`), and after hydration Vue reports `Hydration node mismatch` / `Hydration children mismatch` and removes the content.
+
+The check covers the table ancestors (`table`, `thead`, `tbody`, `tfoot`, `tr`, `colgroup`) and `select` / `optgroup`, where the parser either moves the wrapper out or drops it. It deliberately does **not** cover `ul` / `ol` / `dl`: there the wrapper stays put (invalid HTML, but the DOM is identical on both sides, so hydration is fine).
 
 Workarounds: let the server component render the container (the whole `<table>` / `<ul>`), or place it inside an allowed child (`<td>`, `<li>`). `.client.vue` has no such constraint — a comment node is legal in every context.
 

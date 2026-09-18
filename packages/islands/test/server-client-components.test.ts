@@ -363,3 +363,96 @@ describe('Task 9.1: Vite plugin transform wraps .server.vue template', () => {
     expect(result).toBeNull();
   });
 });
+
+// ============== 受限父级：构建期失败而不是静默错位 ==============
+
+describe('受限父级里的 Server Component', () => {
+  function getPluginForUsage(): any {
+    const plugin = ubeanIslandsPlugin() as any;
+    plugin.configResolved({ root: '/project' }, {});
+    return plugin;
+  }
+
+  const page = (template: string, importPath = './Greeting.server.vue') =>
+    `<script setup lang="ts">\nimport Greeting from '${importPath}';\n</script>\n<template>${template}</template>\n`;
+
+  /**
+   * 判据是**构建期失败**而不是警告：这些位置的失败在生产模式下是静默的
+   * （内容被解析器搬出容器 / 丢弃，Vue 的告警被剥掉），警告留在终端里没人会当回事。
+   */
+  it('表格上下文里直接当子元素用 → transform 抛错', () => {
+    const plugin = getPluginForUsage();
+    for (const template of [
+      '<table><tr><Greeting /></tr></table>',
+      '<table><tbody><Greeting /></tbody></table>',
+      '<table><colgroup><Greeting /></colgroup></table>'
+    ]) {
+      expect(() => plugin.transform(page(template), '/project/src/Page.vue')).toThrowError(/受限父级/);
+    }
+  });
+
+  it('`<template v-if>` 视为透明：穿透后仍命中', () => {
+    const plugin = getPluginForUsage();
+    expect(() =>
+      plugin.transform(
+        page('<table><tr><template v-if="x"><Greeting /></template></tr></table>'),
+        '/project/src/Page.vue'
+      )
+    ).toThrowError(/受限父级/);
+  });
+
+  it('select / optgroup 里 → 抛错（解析器会丢弃未知标签）', () => {
+    const plugin = getPluginForUsage();
+    expect(() => plugin.transform(page('<select><Greeting /></select>'), '/project/src/Page.vue')).toThrowError(
+      /受限父级/
+    );
+    expect(() =>
+      plugin.transform(page('<select><optgroup><Greeting /></optgroup></select>'), '/project/src/Page.vue')
+    ).toThrowError(/受限父级/);
+  });
+
+  it('连字符写法同样命中（<server-greeting /> 对应 import ServerGreeting）', () => {
+    const plugin = getPluginForUsage();
+    const sfc = page('<table><tr><server-greeting /></tr></table>', './ServerGreeting.server.vue').replace(
+      'import Greeting from',
+      'import ServerGreeting from'
+    );
+    expect(() => plugin.transform(sfc, '/project/src/Page.vue')).toThrowError(/受限父级/);
+  });
+
+  it('允许的位置不报错：td / li / 普通容器', () => {
+    const plugin = getPluginForUsage();
+    expect(() =>
+      plugin.transform(page('<table><tr><td><Greeting /></td></tr></table>'), '/project/src/Page.vue')
+    ).not.toThrow();
+    expect(() => plugin.transform(page('<ul><li><Greeting /></li></ul>'), '/project/src/Page.vue')).not.toThrow();
+    expect(() => plugin.transform(page('<div><Greeting /></div>'), '/project/src/Page.vue')).not.toThrow();
+  });
+
+  /**
+   * `ul`/`ol`/`dl` 刻意不在受限集合里：非 `li` 子元素虽然是不合法 HTML，但解析器**不会**搬移或丢弃它，
+   * 两侧 DOM 一致、水合正常 —— 报错会是误报。
+   */
+  it('ul / ol / dl 不报错（解析器不重构 DOM）', () => {
+    const plugin = getPluginForUsage();
+    expect(() => plugin.transform(page('<ul><Greeting /></ul>'), '/project/src/Page.vue')).not.toThrow();
+    expect(() => plugin.transform(page('<ol><Greeting /></ol>'), '/project/src/Page.vue')).not.toThrow();
+  });
+
+  it('普通组件与 .client.vue 不受影响', () => {
+    const plugin = getPluginForUsage();
+    expect(() =>
+      plugin.transform(page('<table><tr><Wrapper /></tr></table>', './Wrapper.vue'), '/project/src/Page.vue')
+    ).not.toThrow();
+    // `.client.vue` 的占位符是注释节点，在表格里合法
+    expect(() =>
+      plugin.transform(page('<table><tr><ClientRow /></tr></table>', './ClientRow.client.vue'), '/project/src/Page.vue')
+    ).not.toThrow();
+  });
+
+  it('服务端组件自身不会被误判（它的 template 里没有自己的 import）', () => {
+    const plugin = getPluginForUsage();
+    const sfc = `<script setup lang="ts">\nconst x = 1;\n</script>\n<template><tr><td>{{ x }}</td></tr></template>\n`;
+    expect(() => plugin.transform(sfc, '/project/src/Greeting.server.vue')).not.toThrow();
+  });
+});

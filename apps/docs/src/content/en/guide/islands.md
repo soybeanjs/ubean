@@ -111,6 +111,36 @@ ubean also ships a `<ClientOnly>` component (from `ubean/client` / `@ubean/vue`)
 
 `<ClientOnly>` is hydration-safe: SSR and the client's first paint render identical placeholder output, and the real content is patched in after mount.
 
+## Server / Client Components (`.server.vue` / `.client.vue`)
+
+Two file-name conventions for components that belong to exactly one build graph. The Vite plugin handles the resolution — no import change and no directive needed.
+
+- **`Foo.client.vue`** — renders only on the client. SSR outputs the `<!--client-only-->` comment placeholder (the same one `<ClientOnly>` uses) and the real component replaces it after mount. For components that depend on browser APIs.
+- **`Foo.server.vue`** — renders only on the server. The client build replaces the import with a stub, so neither the component's implementation nor its imports ever reach the client bundle. For content that needs server-only access (env vars, databases).
+- **`Foo.server.vue` + `Foo.client.vue` together** — import the base name (`import Foo from './Foo.vue'`); that file must **not** exist. SSR renders the server half and the client half takes over once mounted. Relative and aliased specifiers both work. If a real `Foo.vue` also exists it wins, and the two halves are ignored.
+
+### Constraints
+
+**`.server.vue` must be a `<template>`-based SFC.** On the server the template is wrapped in `<ubean-server-only v-once>` so hydration can match it; a render-function SFC (or `export { default } from …`) has nothing to wrap and the build fails with that reason. The silent alternative was measured worse: server output and client stub disagreed on the root element, and hydration *removed* the server-rendered content.
+
+**`.server.vue` occupies a wrapper element, so its context matters.** The client keeps a stub in the tree — it renders `<ubean-server-only>` where the server put the content — and hydration preserves the server-rendered children by matching that element. The wrapper is an ordinary flow element, so a server component may only be used where a flow element is allowed:
+
+```html
+<!-- breaks: the wrapper is not valid inside <tr>, so the parser hoists it out of the table -->
+<table>
+  <tr>
+    <ServerGreeting />
+  </tr>
+</table>
+
+<!-- fine: the server component renders the container itself -->
+<ServerTable />
+```
+
+Measured symptom when used anyway: on first paint the content shows up *outside* the container (moved before the table, leaving an empty `<tr>`), and after hydration Vue reports `Hydration node mismatch` / `Hydration children mismatch` and removes the content. The same applies to `<ul>`, `<ol>`, `<select>` and `<p>`.
+
+Workarounds: let the server component render the container (the whole `<table>` / `<ul>`), or place it inside an allowed child (`<td>`, `<li>`). `.client.vue` has no such constraint — a comment node is legal in every context.
+
 ## Island Components
 
 Create reusable island components:

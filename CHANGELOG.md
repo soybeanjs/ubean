@@ -1,5 +1,55 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.1...main) (2026-09-18)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **build**:
+  - generate OpenAPI types during the build &nbsp;-&nbsp; by @soybeanjs [<samp>(12828)</samp>](https://github.com/soybeanjs/ubean/commit/1282807)
+  - generate OpenAPI types from bare `vite dev` too &nbsp;-&nbsp; by @soybeanjs [<samp>(8c692)</samp>](https://github.com/soybeanjs/ubean/commit/8c69251)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **build**:
+  - keep component halves out of the auto-import table &nbsp;-&nbsp; by @soybeanjs [<samp>(693a9)</samp>](https://github.com/soybeanjs/ubean/commit/693a92e)
+  - run project codegen from the Vite plugin too &nbsp;-&nbsp; by @soybeanjs [<samp>(3d0f9)</samp>](https://github.com/soybeanjs/ubean/commit/3d0f996)
+- **cli**:
+  - let Vite own the Vite DevTools registration &nbsp;-&nbsp; by @soybeanjs [<samp>(8e1c8)</samp>](https://github.com/soybeanjs/ubean/commit/8e1c880)
+- **codegen**:
+  - declare virtual components and template auto-imports &nbsp;-&nbsp; by @soybeanjs [<samp>(f6743)</samp>](https://github.com/soybeanjs/ubean/commit/f674381)
+- **examples**:
+  - clear the type errors the generated-d.ts syntax error was masking &nbsp;-&nbsp; by @soybeanjs [<samp>(0dd19)</samp>](https://github.com/soybeanjs/ubean/commit/0dd19a8)
+- **islands**:
+  - tighten the `.server.vue` / `.client.vue` resolution paths &nbsp;-&nbsp; by @soybeanjs [<samp>(4ae8e)</samp>](https://github.com/soybeanjs/ubean/commit/4ae8e75)
+  - render the `.client.vue` SSR placeholder as a comment node &nbsp;-&nbsp; by @soybeanjs [<samp>(ef25a)</samp>](https://github.com/soybeanjs/ubean/commit/ef25af6)
+  - reject server components under DOM-restricting parents &nbsp;-&nbsp; by @soybeanjs [<samp>(3251d)</samp>](https://github.com/soybeanjs/ubean/commit/3251d74)
+- **seo**:
+  - accept `description` in the article schema factory &nbsp;-&nbsp; by @soybeanjs [<samp>(f9e03)</samp>](https://github.com/soybeanjs/ubean/commit/f9e031d)
+- **vite**:
+  - resolve top-level await configs on the plain Vite paths &nbsp;-&nbsp; by @soybeanjs [<samp>(ced4b)</samp>](https://github.com/soybeanjs/ubean/commit/ced4bbf)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **islands**: document what `.server.vue` / `.client.vue` require &nbsp;-&nbsp; by @soybeanjs [<samp>(0b6f0)</samp>](https://github.com/soybeanjs/ubean/commit/0b6f0a3)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(8c67f)</samp>](https://github.com/soybeanjs/ubean/commit/8c67f12)
+- **examples**: put ubean-test on the plain Vite commands &nbsp;-&nbsp; by @soybeanjs [<samp>(27463)</samp>](https://github.com/soybeanjs/ubean/commit/274632f)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **builder**: follow the vite-plus 0.3.3 upgrade &nbsp;-&nbsp; by @soybeanjs [<samp>(c40c2)</samp>](https://github.com/soybeanjs/ubean/commit/c40c259)
+- **examples**: import the paired component through an alias &nbsp;-&nbsp; by @soybeanjs [<samp>(6cc19)</samp>](https://github.com/soybeanjs/ubean/commit/6cc19f8)
+
+### &nbsp;&nbsp;&nbsp;🤖 CI
+
+- type check the example project &nbsp;-&nbsp; by @soybeanjs [<samp>(f70a4)</samp>](https://github.com/soybeanjs/ubean/commit/f70a4cd)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.5.2...main) (2026-09-17)
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes

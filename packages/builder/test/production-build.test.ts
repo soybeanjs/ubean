@@ -112,5 +112,19 @@ describe('生产构建（buildWithEnvironments）', () => {
     expect(componentsDts, '组件半成品泄漏成了带点的全局声明').not.toMatch(
       /const\s+['"]?\w+\.(?:server|client)['"]?\s*:/
     );
+
+    // OpenAPI 类型声明。此前只有 `ubean dev` 会生成它（从运行中的 server 拉 `/_openapi.json`），
+    // 于是「干净检出 + 只构建」的项目在 type-check 时会报一片 `Cannot find module '.ubean/openapi'`。
+    // 现在构建期用**进程内**请求取 schema（`createApp({ openAPI })` 建一个只用于取 spec 的临时实例）。
+    // `/__actions` 来自 `registerOpenAPIRoutes` 里对 Server Actions 文档的合并 —— 它出现即说明拿到的是
+    // 真实 app 的 spec，而不是空壳。
+    const openApiDts = readFileSync(join(FIXTURE, '.ubean', 'openapi.d.ts'), 'utf-8');
+    expect(openApiDts).toContain('export interface paths');
+    expect(openApiDts).toContain('"/__actions"');
+
+    // 生产产物**不**注册文档路由（`openAPI` 只在 dev 传、以及取 spec 的临时实例上传）——
+    // 这条断言守着「为了让类型生成而把文档路由带进生产」这个退化。
+    const serverEntryBundle = readFileSync(join(serverDir, 'entry.mjs'), 'utf-8');
+    expect(serverEntryBundle).not.toContain('/_openapi.json');
   }, 180_000);
 });

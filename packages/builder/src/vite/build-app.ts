@@ -57,6 +57,7 @@ import {
   writePresetWrapper,
   writeSpaIndexHtml
 } from './build-steps';
+import { runOpenApiTypesStep } from './openapi-step';
 import { runPrerenderStep } from './prerender-step';
 
 const logger = getLogger('build');
@@ -263,6 +264,15 @@ export async function runEnvBuilds(
     manifest: builtManifest,
     contentSnapshot: prepared.contentSnapshot
   });
+
+  // OpenAPI 类型声明（`.ubean/openapi.d.ts`）：此前只有 `ubean dev` 会生成（从运行中的 server
+  // 拉 `/_openapi.json`），于是干净检出下类型声明不存在 —— 见 openapi-step.ts 的说明。
+  // 目录名与 CLI 的 codegen（`buildDir: '.ubean'`）保持一致。
+  if (hasServer) {
+    const openApiResult = await runOpenApiTypesStep({ cwd, manifest: builtManifest, buildDir: '.ubean' });
+    if (openApiResult.filePath) logger.info(`OpenAPI types generated: ${openApiResult.filePath}`);
+    else if (openApiResult.skipped) logger.info(`OpenAPI types skipped (${openApiResult.skipped}).`);
+  }
 
   return builtManifest;
 }

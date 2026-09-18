@@ -59,6 +59,18 @@ jobs:
           pnpm --filter ubean-test build
           pnpm --filter ubean-test analyze:check
 
+      - name: Type check the example project
+        # 示例的 `type-check` 脚本此前没人跑：根 `pnpm typecheck` 只覆盖 `packages/*`，而示例的
+        # type-check 曾经整片失败却 CI 全绿（生成文件 `.ubean/components.d.ts` 里的语法错误 ——
+        # `@ts-nocheck` 压不住语法错误，连带整个项目）。
+        #
+        # 它依赖 `.ubean/*` 生成物，其中 `openapi.d.ts` 也只能由构建产出（构建期用进程内请求取 spec；
+        # 此前只有 `ubean dev` 会生成它）。这里显式构建一次，让这一步自成一体 —— 不依赖前面步骤的
+        # 产物顺序，单独挪动/复跑都成立。
+        run: |
+          pnpm --filter ubean-test build
+          pnpm --filter ubean-test type-check
+
       - name: Verify package tree & extension contract
         # OPT-09 + OPT-07：护栏脚本——AGENTS.md 包名/包数与 packages/*/package.json 一致，
         # engineering.md 契约表覆盖全部派生扩展包。详见 scripts/verify-packages.mjs。

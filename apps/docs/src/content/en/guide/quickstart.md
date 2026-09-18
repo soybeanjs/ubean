@@ -148,6 +148,20 @@ vite preview   # ≡ ubean preview (fullstack / backend go through the built pro
 
 Two differences: `vite build` ignores `--outDir` (it always writes `config.build.outputDir`), and platform-specific wiring (e.g. miniflare preview of cloudflare artifacts) only exists on the `ubean preview` side. Both paths produce item-for-item identical output, so either works in CI.
 
+`ubeanPlugin()` is async (the config is loaded inside the factory), but **the call site needs no `await`** — Vite's `PluginOption` is `Thenable<…>`, so a promise in the plugins array is awaited before any hook runs. Top-level await in `ubean.config.ts` therefore works on both paths, with no extra config loading in `vite.config.ts`:
+
+```ts
+// vite.config.ts — shared by the plain Vite commands and the ubean CLI
+import { defineConfig } from 'vite-plus';
+import { ubeanPlugin } from 'ubean/vite';
+
+export default defineConfig({
+  plugins: [ubeanPlugin()]
+});
+```
+
+Only reach for `await ensureUbeanConfig()` when *you* need the config earlier (a self-managed Vite server, or reading config fields in `vite.config.ts` to pass to another plugin) — it is cache-first, so it never clobbers the CLI's in-place config mutations (`--mode` / `--ssr` / `--verbose`, etc.).
+
 ## Next Steps
 
 - [Application Modes](app-modes.md) — fullstack / spa / ssg / backend

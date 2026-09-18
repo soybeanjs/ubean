@@ -141,6 +141,20 @@ vite preview   # ≡ ubean preview（fullstack / backend 走产物里的生产 h
 
 两处差异：`vite build` 忽略 `--outDir`（固定写 `config.build.outputDir`）；平台相关装配（如 cloudflare 产物的 miniflare 预览）只在 `ubean preview` 里接线。两条路径的产物逐项一致，CI 用哪套都可以。
 
+`ubeanPlugin()` 是 async 的（配置在工厂内异步加载），但**调用点不需要 await** —— Vite 的 `PluginOption` 是 `Thenable<…>`，插件数组里的 Promise 会在跑任何钩子之前被 await 掉。因此 `ubean.config.ts` 里的**顶层 await** 在两条路径上都可用，`vite.config.ts` 也不需要额外加载配置：
+
+```ts
+// vite.config.ts —— 裸 Vite 与 ubean CLI 共用这一份
+import { defineConfig } from 'vite-plus';
+import { ubeanPlugin } from 'ubean/vite';
+
+export default defineConfig({
+  plugins: [ubeanPlugin()]
+});
+```
+
+只有在**你自己**需要提前拿到配置时（自建 Vite server、或在 `vite.config.ts` 里读配置字段传给别的插件），才用 `await ensureUbeanConfig()` —— 它缓存优先，不会覆盖 CLI 对配置的原地修改（`--mode` / `--ssr` / `--verbose` 等）。
+
 ## 下一步
 
 - [应用模式](/zh/guide/app-modes) — 了解 fullstack / spa / ssg / backend 模式

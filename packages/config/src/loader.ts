@@ -305,6 +305,34 @@ function findUbeanConfigFile(cwd: string): string | null {
   return null;
 }
 
+/**
+ * 把 jiti 同步加载顶层 await 配置时抛出的 SyntaxError 转成可操作的错误。
+ *
+ * jiti 同步模式用 `node:vm` 求值编译后的 CJS，顶层 await 报
+ * `SyntaxError: await is only valid in async functions and the top level bodies of modules`，
+ * 栈里全是 `node:vm` / jiti 内部帧，看不出是哪个配置字段、也不知道怎么修。
+ *
+ * 非顶层 await 的错误（如配置里的真实语法错误、运行时异常）原样返回 `undefined`，
+ * 由调用方重新抛出，避免掩盖真正的问题。
+ */
+function topLevelAwaitError(error: unknown, configPath: string): Error | undefined {
+  const message = error instanceof Error ? error.message : String(error);
+  if (!/await is only valid in async functions|top[- ]level await/i.test(message)) return undefined;
+
+  return new Error(
+    [
+      `Failed to load ${configPath}: it uses top-level await, which cannot be resolved synchronously.`,
+      '',
+      'The synchronous loader compiles the config to CommonJS, where top-level await is a syntax error.',
+      'Frameworks do not hit this — `ubeanPlugin()` (from `ubean/vite`) loads the config asynchronously.',
+      'Reach for an async loader instead:',
+      '',
+      '  loadUbeanConfig(cwd)   — load from disk (merged with `.ubeanrc` / env)',
+      '  ensureUbeanConfig(cwd) — cache-first: reuse an already-loaded config, else load'
+    ].join('\n')
+  );
+}
+
 export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<ResolvedConfig> {
   const { config } = await loadConfig<UbeanConfig>({
     cwd,
@@ -320,6 +348,23 @@ export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<Reso
 }
 
 /**
+ * 确保 ubean 配置已加载（异步，缓存优先）。
+ *
+ * 与 `loadUbeanConfig()` 的区别：**已加载时直接返回缓存**，不会从磁盘重新加载。
+ * 这是插件工厂必须的语义 —— `ubean dev`/`build`/`preview` 在加载后会对同一个 resolved 对象
+ * 做原地修改（`config.mode = 'ssg'`、`config.ssr = …`、`config.logging.* = …`），二次加载
+ * 会把这些 CLI 覆盖全部丢弃。
+ *
+ * 主要消费者：`ubean/vite` 的 `ubeanPlugin()` —— 它在工厂内 `await` 本函数，于是
+ * `ubean.config.ts` 的顶层 await 在裸 Vite 与 ubean CLI 两条路径上都能解析。
+ * 自建 Vite server、或想在 `vite.config.ts` 里提前读配置字段时才需要手动调用。
+ */
+export async function ensureUbeanConfig(cwd: string = process.cwd()): Promise<ResolvedConfig> {
+  if (cachedConfig) return cachedConfig;
+  return loadUbeanConfig(cwd);
+}
+
+/**
  * 同步加载 ubean 配置。
  *
  * 用于 Vite 插件工厂等必须同步获取配置的场景（如 `ubeanPlugin()` 在
@@ -331,6 +376,10 @@ export async function loadUbeanConfig(cwd: string = process.cwd()): Promise<Reso
  *
  * 注意：同步路径不支持 c12 的 `.ubeanrc` 和环境变量合并，仅读取 `ubean.config.*` 文件。
  * 实践中 `ubean.config.ts` 是唯一配置源，此限制可接受。
+ *
+ * **顶层 await 不受支持**：jiti 同步模式把配置编译成 CJS，顶层 await 在那里是语法错误，
+ * 而「同步」与「顶层 await」在原理上不可兼容。此时抛出带修复指引的错误（见 `topLevelAwaitError`），
+ * 而不是把 vm 内部的 SyntaxError 直接抛给用户。
  */
 export function loadUbeanConfigSync(cwd: string = process.cwd()): ResolvedConfig {
   // 1. 优先使用缓存（CLI 已加载时命中，包含 CLI 对 mode/ssr 的修改）
@@ -342,7 +391,12 @@ export function loadUbeanConfigSync(cwd: string = process.cwd()): ResolvedConfig
 
   if (configPath) {
     const jiti = createJiti(cwd, { interopDefault: true });
-    const loaded = jiti(configPath) as UbeanConfig & { default?: UbeanConfig };
+    let loaded: UbeanConfig & { default?: UbeanConfig };
+    try {
+      loaded = jiti(configPath) as UbeanConfig & { default?: UbeanConfig };
+    } catch (error) {
+      throw topLevelAwaitError(error, configPath) ?? error;
+    }
     // jiti 对 `export default {...}` 的 .ts 配置可能仍返回模块命名空间（`{ default: cfg }`），
     // `interopDefault` 并不总能拆掉它 —— 实测：拿到命名空间后 `config.content`/`i18n` 等全是
     // undefined，于是 `resolveUbeanConfig` 回落到**全默认值**。CLI 路径因为先异步加载并写入

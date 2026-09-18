@@ -4,6 +4,7 @@
  * 此包提供:
  * - `defineConfig(config)` — 定义 ubean.config.ts 配置
  * - `loadUbeanConfig(cwd)` — 加载配置(从 `ubean.config.ts`、环境变量、默认值合并)
+ * - `ensureUbeanConfig(cwd)` — 缓存优先地异步加载(插件工厂用;不覆盖 CLI 对配置的原地修改)
  * - `getConfig()` / `tryGetConfig()` — 获取已加载的配置
  * - `resolveRoutingConfig(userConfig?)` — 解析 `RoutingConfig` 默认值
  * - `resolvePrerenderConfig(config?)` — 解析 `PrerenderConfig` 默认值与派生字段
@@ -13,6 +14,7 @@
 export {
   defineConfig,
   loadUbeanConfig,
+  ensureUbeanConfig,
   loadUbeanConfigSync,
   getConfig,
   tryGetConfig,

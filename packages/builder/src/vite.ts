@@ -292,8 +292,9 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
          * `dist/{public,server,manifest.json}`。builder 与 environments 由 Vite 按本钩子创建，
          * 插件只跑拆分好的阶段（`prepareBuild` → `runEnvBuilds`），**不**自建 builder（会递归）。
          *
-         * 已知缺口：**预渲染**尚未接入本路径（`prerender()` 目前由 CLI 调用），因此
-         * `vite build` 的产物缺静态 HTML，与 `ubean build` 仍不等价（RM-V23 的矩阵会据此判定）。
+         * 预渲染也在本路径内（`runEnvBuilds` → `runPrerenderStep`，同一份实现 CLI 路径也在用）。
+         * 实测（2026-09，examples/ubean-test，`vp build` vs `ubean build`）：产物树逐项一致，
+         * 189 个文件全部对应，仅资源哈希不同 —— 别再照抄「`vite build` 缺静态 HTML」的旧结论。
          */
         builder: {
           async buildApp(builder) {

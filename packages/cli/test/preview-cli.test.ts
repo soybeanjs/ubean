@@ -151,7 +151,9 @@ describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', 
     expect(res.status).toBe(200);
     const html = await res.text();
     expect(html).toContain('class="sc-server"');
-    expect(html).toContain('data-client-only');
+    // 占位符是注释节点而非元素：元素（旧实现是 <div data-client-only>）放进表格/列表上下文
+    // 会被 HTML 解析器提到容器外，水合随即错位。
+    expect(html).toContain('<!--client-only-->');
     expect(html).not.toContain('class="sc-client"');
     expect(html).toContain('class="paired-server"');
     expect(html).not.toContain('class="paired-client"');

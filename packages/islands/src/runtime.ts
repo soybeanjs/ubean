@@ -1,5 +1,5 @@
-import { createApp, h, defineComponent, Suspense, ref, onMounted, watch } from 'vue';
-import type { Component, App as VueApp } from 'vue';
+import { createApp, h, defineComponent, createCommentVNode, Suspense, ref, onMounted, watch } from 'vue';
+import type { Component, App as VueApp, VNode } from 'vue';
 
 interface DomElement {
   getAttribute(name: string): string | null;
@@ -734,10 +734,26 @@ export const ServerComponentStub = defineComponent({
 });
 
 /**
+ * `.client.vue` 的占位符 vnode —— SSR 与客户端水合首帧共用同一形态。
+ *
+ * **是注释节点，不是元素**（这与 `@ubean/vue` 的 `<ClientOnly>` 一致，标记文本也相同）。
+ * 元素占位符（早先是 `<div data-client-only>`）在受限的父级里会产出**非法嵌套**：放进
+ * `<tr>` / `<table>` / `<ul>` / `<select>` 时会被 HTML 解析器提到容器外（表格里的 `<div>`
+ * 会被 foster-parent 到表格之前），DOM 与客户端 vnode 树随即错位 → 水合 mismatch；放进
+ * `<p>` 也会被自动闭合。注释在任何位置都合法、不占布局，因此没有这类上下文依赖。
+ *
+ * 代价是不能再对它写 CSS（`[data-client-only]` 选择器失效）。需要占位内容/撑高度时用
+ * `<ClientOnly>` 的 `#fallback` 插槽 —— 那是显式的、由使用者决定的占位内容。
+ */
+function clientOnlyPlaceholder(): VNode {
+  return createCommentVNode('client-only');
+}
+
+/**
  * `.client.vue` 组件在 SSR 构建中的通用占位符 (Task 9.2)。
  *
  * Vite 插件在 SSR 构建中将 `.client.vue` 的 import 重定向到虚拟模块,
- * 该模块导出此组件。组件渲染 `<div data-client-only></div>` 占位符,
+ * 该模块导出此组件。组件渲染 {@link clientOnlyPlaceholder}（`<!--client-only-->`）,
  * 与客户端 `defineClientComponent` 初始渲染输出一致,确保水合无 mismatch。
  *
  * SSR 使用通用占位符(而非真实组件)避免了在服务端导入可能含浏览器 API
@@ -746,7 +762,7 @@ export const ServerComponentStub = defineComponent({
 export const ClientComponentPlaceholder = defineComponent({
   name: 'ClientComponentPlaceholder',
   setup() {
-    return () => h('div', { 'data-client-only': '' });
+    return () => clientOnlyPlaceholder();
   }
 });
 
@@ -762,9 +778,8 @@ export const ClientComponentPlaceholder = defineComponent({
  *
  * ## 工作机制
  *
- * - **SSR**: 由 `ClientComponentPlaceholder` 替代,渲染 `<div data-client-only></div>`
- * - **客户端初始渲染**: `isClient` 为 false,渲染相同的 `<div data-client-only></div>`,
- *   与 SSR 输出匹配,水合无 mismatch
+ * - **SSR**: 由 `ClientComponentPlaceholder` 替代,渲染 `<!--client-only-->` 注释占位符
+ * - **客户端初始渲染**: `isClient` 为 false,渲染同一个注释占位符,与 SSR 输出匹配,水合无 mismatch
  * - **客户端 `onMounted` 后**: `isClient` 变为 true,渲染真实组件,Vue 自动 patch 替换占位符
  *
  * 这种模式确保 `.client.vue` 组件只在客户端渲染,SSR 仅输出占位符,
@@ -791,7 +806,7 @@ export function defineClientComponent(component: Component): Component {
       onMounted(() => {
         isClient.value = true;
       });
-      return () => (isClient.value ? h(component, attrs, slots) : h('div', { 'data-client-only': '' }));
+      return () => (isClient.value ? h(component, attrs, slots) : clientOnlyPlaceholder());
     }
   });
 }

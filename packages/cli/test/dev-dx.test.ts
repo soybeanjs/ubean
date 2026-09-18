@@ -195,9 +195,13 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
       );
       await page.waitForTimeout(1_200);
 
-      // `.client.vue`：SSR 的 `<div data-client-only>` 占位符被真实内容替换
-      expect(await page.locator('[data-client-only]').count()).toBe(0);
+      // `.client.vue`：SSR 的注释占位符被真实内容替换
       expect(await page.locator('.sc-client').count()).toBe(1);
+      // 表格行里的 `.client.vue`：占位符是注释，浏览器不会把它提出表格 —— 水合后必须仍是
+      // **表格内**的一行，且单元格已渲染。旧实现的 `<div data-client-only>` 会被解析器
+      // foster-parent 到表格之前（留下空 <tr>），这里就是那个缺陷的回归守卫。
+      expect(await page.locator('table.co-table tr.co-row').count()).toBe(1);
+      expect(await page.locator('table.co-table tr.co-row td.co-cell').count()).toBe(2);
       // 配对组件：首帧的服务端变体被客户端变体替换
       expect(await page.locator('.paired-server').count()).toBe(0);
       expect(await page.locator('.paired-client').count()).toBe(1);

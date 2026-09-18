@@ -157,12 +157,20 @@ describe('Task 9.2: ClientComponentPlaceholder (SSR placeholder)', () => {
     return renderToString(h(Root));
   }
 
-  it('SSR 渲染 <div data-client-only> 占位符', async () => {
+  /**
+   * 占位符必须是**注释节点**，不是元素。
+   *
+   * 元素占位符（早先是 `<div data-client-only>`）在受限父级里会产出非法嵌套：放进
+   * `<tr>` / `<table>` / `<ul>` / `<select>` 会被 HTML 解析器提到容器外，DOM 与客户端
+   * vnode 树错位 → 水合 mismatch（实测浏览器里行被提到表格之前）。注释在任何位置都合法。
+   * 标记文本与 `@ubean/vue` 的 `<ClientOnly>` 保持一致。
+   */
+  it('SSR 渲染 <!--client-only--> 注释占位符（而非元素）', async () => {
     const html = await renderHtml(ClientComponentPlaceholder);
-    expect(html).toContain('<div');
-    expect(html).toContain('data-client-only');
-    // 占位符为空 div
-    expect(html).toMatch(/<div[^>]*data-client-only[^>]*><\/div>/);
+    expect(html).toContain('<!--client-only-->');
+    // 关键：不得有元素包裹（那会在表格/列表上下文里被解析器提出容器）
+    expect(html).not.toContain('<div');
+    expect(html).not.toContain('data-client-only');
   });
 
   it('组件名为 ClientComponentPlaceholder', () => {
@@ -182,12 +190,13 @@ describe('Task 9.2: defineClientComponent (client wrapper)', () => {
     return renderToString(h(Root));
   }
 
-  it('SSR 渲染 <div data-client-only> 占位符 (与 ClientComponentPlaceholder 一致)', async () => {
+  it('SSR 渲染 <!--client-only--> 注释占位符 (与 ClientComponentPlaceholder 一致)', async () => {
     const Inner = defineComponent({ name: 'Inner', setup: () => () => h('div', 'client-only content') });
     const Wrapped = defineClientComponent(Inner);
     const html = await renderHtml(Wrapped);
     // SSR: isClient=false → 渲染占位符 (不是真实组件)
-    expect(html).toContain('data-client-only');
+    expect(html).toContain('<!--client-only-->');
+    expect(html).not.toContain('<div');
     expect(html).not.toContain('client-only content');
   });
 
@@ -202,7 +211,7 @@ describe('Task 9.2: defineClientComponent (client wrapper)', () => {
     const Wrapped = defineClientComponent(Inner);
     // SSR: 渲染占位符,不渲染真实组件
     const html = await renderHtml(Wrapped, { msg: 'hello' });
-    expect(html).toContain('data-client-only');
+    expect(html).toContain('<!--client-only-->');
     expect(html).not.toContain('msg=hello');
   });
 

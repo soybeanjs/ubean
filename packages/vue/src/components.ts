@@ -205,8 +205,8 @@ export interface ClientOnlySlots {
  *   separate app by `hydrateIslands()` (content inside an island placeholder
  *   is replaced on hydration, so `<ClientOnly>` inside island children is
  *   wiped with it).
- * - `defineClientComponent` — programmatic wrapper (always renders a
- *   `<div data-client-only>` wrapper element).
+ * - `defineClientComponent` — programmatic wrapper (renders the same
+ *   `<!--client-only-->` comment placeholder, so it works in table/list contexts).
  */
 export const ClientOnly = defineComponent<ClientOnlyProps, {}, string, SlotsType<ClientOnlySlots>>(
   (props, { slots }) => {

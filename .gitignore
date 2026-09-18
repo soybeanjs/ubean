@@ -50,3 +50,4 @@ __screenshots__
 .ubean
 .trae
 *.tsbuildinfo
+.temp-build*

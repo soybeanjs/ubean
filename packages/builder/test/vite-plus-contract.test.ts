@@ -30,7 +30,7 @@ import { ESModulesEvaluator, ModuleRunner } from 'vite/module-runner';
 const require = createRequire(import.meta.url);
 
 /** ADR-0012 依赖的版本，升级需同步改这里并跑 RM-V23 验收矩阵。 */
-const PINNED_VITE_PLUS = '0.3.1';
+const PINNED_VITE_PLUS = '0.3.3';
 
 let projectDir: string;
 
@@ -98,7 +98,7 @@ describe('实验性 API 形状（ADR-0012 依赖面）', () => {
     for (const method of ['send', 'on', 'off', 'close', 'listen']) {
       expect(typeof (channel as unknown as Record<string, unknown>)[method], `hot.${method}`).toBe('function');
     }
-    channel.close();
+    channel.close?.();
   });
 
   it('vite/module-runner 提供 ModuleRunner 与 ESModulesEvaluator', () => {

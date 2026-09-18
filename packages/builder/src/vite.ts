@@ -12,6 +12,7 @@ import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
 import { join, relative, resolve } from 'pathe';
 import { generateTypes } from './codegen';
+import { ensureDevApp } from './dev/dev-request-router';
 import { getDevScanCoordinator } from './dev/dev-scan';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { transformMacros } from './macros';
@@ -28,6 +29,7 @@ import { createVirtualRegistry } from './virtual-registry';
 import type { VirtualModuleRegistry } from './virtual-registry';
 import { ASSET_MANIFEST_VIRTUAL_ID, resolveInjectedAssetTags } from './vite/asset-manifest';
 import type { ClientManifestEntry } from './vite/asset-manifest';
+import { generateOpenApiTypesFromApp } from './vite/openapi-step';
 import { attachPreviewMiddleware } from './vite/preview';
 import { loadWorkerNodeStub, resolveWorkerNodeStub } from './vite/shims';
 
@@ -59,6 +61,7 @@ export {
   createUbeanRequestHandlers,
   DEVTOOLS_PASS_THROUGH_PREFIXES,
   getDevApp,
+  ensureDevApp,
   isFrameworkHtmlPage,
   isViteResourceRequest,
   collectDevCssLinks,
@@ -448,6 +451,30 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
           }
         }
       });
+
+      // OpenAPI 类型（`.ubean/openapi.d.ts`）：裸 `vite dev` 下没有 CLI 去做，插件自己做。
+      // 该类型只能从 app 的 `/_openapi.json` 现算，所以等 dev server 真正开始服务后再触发一次
+      // 「自举 + 进程内请求」（与 CLI 在 `listening` 里拉自己那份同构，只是不发 HTTP）。
+      // CLI 驱动时让位（`UBEAN_CODEGEN_BY_CLI`，CLI 自己会生成），避免同一份产物写两次。
+      if (process.env.UBEAN_CODEGEN_BY_CLI !== '1') {
+        const runOpenApiTypes = async () => {
+          if (!ubeanConfig) return;
+          try {
+            const app = await ensureDevApp(server);
+            if (!app) return;
+            const result = await generateOpenApiTypesFromApp(app, {
+              cwd: ubeanConfig.rootDir,
+              buildDir: '.ubean'
+            });
+            if (result.filePath) logger.info(`OpenAPI types generated: ${result.filePath}`);
+          } catch (err) {
+            // 类型声明是 DX 产物，不该影响 dev server
+            logger.warn(`Failed to generate OpenAPI types: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        };
+        if (server.httpServer) server.httpServer.once('listening', () => void runOpenApiTypes());
+        else void runOpenApiTypes();
+      }
     },
 
     /**

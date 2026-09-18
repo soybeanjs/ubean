@@ -17,7 +17,7 @@
  */
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -250,6 +250,31 @@ describe('vite dev 等价性（无 CLI 的裸命令）', () => {
     const missing = await probe(running.baseUrl, '/zh/definitely-missing');
     expect(missing.status).toBe(404);
     expect(missing.contentType).toContain('text/html');
+  }, 240_000);
+
+  /**
+   * 裸 `vite dev` 也要产出 OpenAPI 类型。
+   *
+   * 类型只能从 app 的 `/_openapi.json` 现算，而此前只有 CLI 会去取（在 `listening` 里拉自己那份）——
+   * 于是裸 Vite 用户手里永远没有 `.ubean/openapi.d.ts`，`pnpm type-check` 会报一片
+   * `Cannot find module '.ubean/openapi'`。现在插件在 dev server 起服务后触发一次 app 自举 +
+   * 进程内请求，本用例守这条接线。
+   *
+   * 断言前先删掉文件：`.ubean` 会被同套件里其他用例写过，只断言「存在」会被别人的产物蒙对。
+   */
+  it('生成 OpenAPI 类型（.ubean/openapi.d.ts）', async () => {
+    const dtsPath = join(fixtureDir, '.ubean', 'openapi.d.ts');
+    rmSync(dtsPath, { force: true });
+    expect(existsSync(dtsPath)).toBe(false);
+
+    running = await startViteDev();
+
+    // 生成发生在 listening 之后的一次自举里，给它一点时间（不是首个请求触发）
+    for (let i = 0; i < 40 && !existsSync(dtsPath); i++) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+    expect(existsSync(dtsPath), '裸 vite dev 未生成 .ubean/openapi.d.ts').toBe(true);
+    expect(readFileSync(dtsPath, 'utf-8')).toContain('export interface paths');
   }, 240_000);
 
   it('改服务端文件后同样生效（插件自举的 app 会被重建）', async () => {

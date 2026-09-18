@@ -38,6 +38,28 @@ export interface OpenApiTypesStepResult {
 }
 
 /**
+ * 从一个 app 的 `/_openapi.json` 生成类型声明（**进程内**请求，不走 HTTP）。
+ *
+ * 构建路径（`runOpenApiTypesStep`）与 dev 路径（核心插件的 `listening` 钩子，见
+ * `ensureDevApp`）共用这段：两者唯一的差别是 app 从哪来。
+ */
+export async function generateOpenApiTypesFromApp(
+  app: { fetch: (request: Request) => Response | Promise<Response> },
+  options: { cwd: string; buildDir: string }
+): Promise<OpenApiTypesStepResult> {
+  const response = await app.fetch(new Request('http://localhost/_openapi.json'));
+  if (!response.ok) return { skipped: `/_openapi.json responded ${response.status}` };
+
+  // 无后端模式会返回 HTML（页面 fallback）而非 JSON —— 与 `generateOpenApiTypesFromServer`
+  // 同一条判据，避免把 HTML 喂给 openapi-typescript 报出误导性的解析错误。
+  if (!(response.headers.get('content-type') || '').includes('json')) return { skipped: 'no JSON response' };
+
+  const schema = (await response.json()) as object;
+  const filePath = await generateOpenApiTypes(schema, { outDir: join(options.cwd, options.buildDir) });
+  return { filePath };
+}
+
+/**
  * 从构建好的 SSR entry 取 `/_openapi.json` 并生成类型声明。
  *
  * 任何一步不成立都**不抛错**：类型声明是 DX 产物，不该让构建失败（与预渲染的容错策略一致）。
@@ -71,16 +93,7 @@ export async function runOpenApiTypesStep(options: OpenApiTypesStepOptions): Pro
     });
     if (typeof app?.fetch !== 'function') return { skipped: 'app.fetch not available' };
 
-    const response = await app.fetch(new Request('http://localhost/_openapi.json'));
-    if (!response.ok) return { skipped: `/_openapi.json responded ${response.status}` };
-
-    // 无后端模式会返回 HTML（页面 fallback）而非 JSON —— 与 `generateOpenApiTypesFromServer`
-    // 同一条判据，避免把 HTML 喂给 openapi-typescript 报出误导性的解析错误。
-    if (!(response.headers.get('content-type') || '').includes('json')) return { skipped: 'no JSON response' };
-
-    const schema = (await response.json()) as object;
-    const filePath = await generateOpenApiTypes(schema, { outDir: join(cwd, buildDir) });
-    return { filePath };
+    return await generateOpenApiTypesFromApp(app, { cwd, buildDir });
   } catch (err) {
     logger.warn(`Failed to generate OpenAPI types: ${err instanceof Error ? err.message : String(err)}`);
     return { skipped: 'generation failed' };

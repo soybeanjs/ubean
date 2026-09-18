@@ -321,12 +321,16 @@ ubean does not ship its own HTTP client. Typed HTTP requests are powered by [@so
 
 ### Automatic Type Generation
 
-When the dev server starts, it automatically fetches the schema from `/_openapi.json` and uses `openapi-typescript` to generate `.ubean/openapi.d.ts`:
+`.ubean/openapi.d.ts` is generated from the app's own `/_openapi.json` with `openapi-typescript`. The document is computed from a live Hono app (`generateSpecs` walks the registered routes and their `describeRoute` metadata), so the schema always comes from a real instance — but it is requested **in-process**, never over the network:
+
+- **Dev**: once the dev server is serving, both `ubean dev` and a bare `vite dev` bootstrap the app and request `/_openapi.json` from it. The CLI does it from its listening hook; the plugin does it itself when no CLI is driving (`ensureDevApp` + in-process request), so a project that only ever runs `vite dev` still gets the types.
+- **Build**: `ubean build` and a bare `vite build` import the freshly built server entry and make the same in-process request — a clean checkout therefore gets the types from a build alone, without ever starting a dev server.
+
+Generation is one-shot per dev start / per build; it does not re-run on route edits, so restart the dev server (or rebuild) after changing route schemas.
 
 - OpenAPI Operation definitions are collected by the `describeRoute` middleware from `hono-openapi`
 - Request parameter types are derived from the Standard Schema used by `validator(target, schema)`
 - Response types are derived from `responses` in `describeRoute` via `resolver(schema)`
-- In dev mode, HMR updates the types automatically
 
 ```typescript
 // .ubean/openapi.d.ts (自动生成)

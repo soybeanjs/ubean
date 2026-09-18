@@ -340,6 +340,26 @@ export function getDevApp(
   return holder[DEV_APP_KEY] as { fetch: (request: Request) => Response | Promise<Response> } | undefined;
 }
 
+/**
+ * 按需触发自举（而不是等第一个请求），返回当前 app。
+ *
+ * 用途：裸 `vite dev` 下没有 CLI 去生成 OpenAPI 类型，而该类型来自 app 的 `/_openapi.json` ——
+ * 消费方（`@ubean/build` 的 dev openapi 步骤）需要能主动把 app 立起来，不能等页面请求。
+ * 与 `getDevApp` 一样挂在 server 对象上（插件与 CLI 可能持有不同的模块实例）。
+ */
+export function ensureDevApp(
+  server: ViteDevServer
+): Promise<{ fetch: (request: Request) => Response | Promise<Response> }> | undefined {
+  const holder = server as unknown as Record<string, unknown>;
+  const ensure = holder[DEV_ENSURE_KEY] as
+    | (() => Promise<{ fetch: (request: Request) => Response | Promise<Response> }>)
+    | undefined;
+  return ensure?.();
+}
+
+/** `ensureDevApp` 在 server 对象上的键（由 `createLazyBootstrapHandler` 登记）。 */
+const DEV_ENSURE_KEY = '__ubeanEnsureDevApp';
+
 function createLazyBootstrapHandler(
   server: ViteDevServer,
   options: DevBootstrapOptions = {}
@@ -370,7 +390,7 @@ function createLazyBootstrapHandler(
     await bootstrap?.rebuild(result);
   });
 
-  return async request => {
+  const ensureBootstrap = async (): Promise<DevAppBootstrap> => {
     bootstrapPromise ??= start().then(bootstrap => {
       // 暴露给 DevTools 等外部消费者（rebuild 会替换实例，因此登记的是「当前实例」）
       (server as unknown as Record<string, unknown>)[DEV_APP_KEY] = bootstrap.app;
@@ -380,6 +400,14 @@ function createLazyBootstrapHandler(
     await bootstrap.ready();
     // rebuild 会替换 app 实例，因此每个请求都从当前实例取（不能缓存 app 引用）
     (server as unknown as Record<string, unknown>)[DEV_APP_KEY] = bootstrap.app;
+    return bootstrap;
+  };
+
+  // 供 `ensureDevApp()` 主动触发自举（不经过 HTTP）
+  (server as unknown as Record<string, unknown>)[DEV_ENSURE_KEY] = async () => (await ensureBootstrap()).app;
+
+  return async request => {
+    const bootstrap = await ensureBootstrap();
     return bootstrap.app.fetch(request);
   };
 }

@@ -188,6 +188,8 @@ export const schemaOrg = {
     headline: string;
     author: string;
     datePublished: string;
+    /** Article 经 CreativeWork 继承的标准属性；Google 的 Article 富结果会读它。 */
+    description?: string;
     image?: string;
     publisher?: string;
   }): JsonLdSchema {
@@ -197,6 +199,7 @@ export const schemaOrg = {
       headline: options.headline,
       author: { '@type': 'Person', name: options.author },
       datePublished: options.datePublished,
+      ...(options.description ? { description: options.description } : {}),
       ...(options.image ? { image: options.image } : {}),
       ...(options.publisher ? { publisher: { '@type': 'Organization', name: options.publisher } } : {})
     };

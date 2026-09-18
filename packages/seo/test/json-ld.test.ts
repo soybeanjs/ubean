@@ -179,6 +179,7 @@ describe('P9-07 JSON-LD / Schema.org', () => {
         headline: 'My Article',
         author: 'John Doe',
         datePublished: '2026-07-31',
+        description: 'A short summary',
         image: 'https://example.com/img.png',
         publisher: 'ubean Blog'
       });
@@ -186,7 +187,15 @@ describe('P9-07 JSON-LD / Schema.org', () => {
       expect(schema.headline).toBe('My Article');
       expect((schema.author as { name: string }).name).toBe('John Doe');
       expect(schema.datePublished).toBe('2026-07-31');
+      // `description` 是 Article 经 CreativeWork 继承的标准属性（Google 的 Article 富结果会读它）。
+      // 此前工厂参数里没有它，示例项目传了就直接类型报错。
+      expect(schema.description).toBe('A short summary');
       expect((schema.publisher as { name: string }).name).toBe('ubean Blog');
+    });
+
+    it('article() omits description when not provided', () => {
+      const schema = schemaOrg.article({ headline: 'H', author: 'A', datePublished: '2026-01-01' });
+      expect('description' in schema).toBe(false);
     });
 
     it('breadcrumb() builds BreadcrumbList with positions', () => {

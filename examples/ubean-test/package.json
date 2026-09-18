@@ -5,9 +5,9 @@
   "scripts": {
     "analyze": "ubean analyze --out benchmarks/bundle-baseline.json",
     "analyze:check": "ubean analyze --check benchmarks/bundle-baseline.json --write=false",
-    "build": "ubean build",
-    "dev": "ubean dev",
-    "preview": "ubean preview",
+    "build": "vp build",
+    "dev": "vp dev",
+    "preview": "vp preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "vue-tsc --noEmit --skipLibCheck"

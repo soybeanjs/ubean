@@ -58,7 +58,11 @@ export const CODEGEN_FILES: readonly CodegenFileContract[] = [
   { name: 'pages.d.ts', module: 'ubean:pages', required: true, types: ['RouteName', 'LayoutName'] },
   { name: 'i18n.d.ts', module: 'vue-i18n', required: false, types: ['DefineLocaleMessage'] },
   { name: 'auto-imports.d.ts', module: null, required: true, types: [] },
-  { name: 'components.d.ts', module: null, required: true, types: [] }
+  { name: 'components.d.ts', module: null, required: true, types: [] },
+  // 虚拟组件（配对 / 单边 `.server.vue` / `.client.vue` 的基名）的 ambient 声明。
+  // 必须是独立文件：`components.d.ts` 会被 unplugin-vue-components 重写，而它的合并策略会
+  // 丢掉周围的 `declare module` 语句（见 generateVirtualComponentsDts）。
+  { name: 'virtual-components.d.ts', module: null, required: false, types: [] }
 ];
 
 export interface CodegenManifest {
@@ -79,6 +83,7 @@ export interface CodegenResult {
   i18nTypesPath?: string | null;
   autoImportsDtsPath?: string;
   componentsDtsPath?: string;
+  virtualComponentsDtsPath?: string;
   generated: string[];
 }
 
@@ -105,8 +110,8 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
     ...autoImportOptions
   });
 
-  const { autoImportsDtsPath, componentsDtsPath } = autoImportsResult;
-  generated.push(autoImportsDtsPath, componentsDtsPath);
+  const { autoImportsDtsPath, componentsDtsPath, virtualComponentsDtsPath } = autoImportsResult;
+  generated.push(autoImportsDtsPath, componentsDtsPath, virtualComponentsDtsPath);
 
   const manifest: CodegenManifest = {
     contractVersion: CODEGEN_CONTRACT_VERSION,
@@ -120,5 +125,13 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, 'utf8');
   generated.push(manifestPath);
 
-  return { routeTypesPath, pageTypesPath, i18nTypesPath, autoImportsDtsPath, componentsDtsPath, generated };
+  return {
+    routeTypesPath,
+    pageTypesPath,
+    i18nTypesPath,
+    autoImportsDtsPath,
+    componentsDtsPath,
+    virtualComponentsDtsPath,
+    generated
+  };
 }

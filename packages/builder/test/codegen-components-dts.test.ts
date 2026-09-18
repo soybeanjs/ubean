@@ -117,4 +117,43 @@ describe('generateAutoImports components.d.ts format', () => {
     expect(raw).toContain('    "My.Comp": typeof import(');
     expect(raw).not.toContain('    My.Comp: typeof import(');
   });
+
+  /**
+   * 虚拟组件（配对 / 单边 `.server.vue` / `.client.vue` 的基名）需要 ambient 声明。
+   *
+   * 缺陷形态：`import ThemeBadge from '../components/sc/ThemeBadge.vue'` 在磁盘上没有对应文件
+   * （由 `@ubean/islands` 的 `resolveId` 合成），于是 TS 报 `Cannot find module …`。声明必须
+   * 写在**非模块**文件里：`export {}` 会让 `declare module '*X.vue'` 退化成「模块增强」，
+   * 声明随即失效（实测如此，所以这条断言同时守着「没有 `export {}`」）。
+   */
+  it('为配对/单边组件生成可用的 ambient 声明', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ubean-codegen-virtual-'));
+    const componentsDir = join(cwd, 'src/components');
+    await mkdir(componentsDir, { recursive: true });
+    await writeFile(join(componentsDir, 'theme-badge.server.vue'), '<template><b class="s" /></template>');
+    await writeFile(join(componentsDir, 'theme-badge.client.vue'), '<template><b class="c" /></template>');
+    await writeFile(join(componentsDir, 'solo.client.vue'), '<template><b /></template>');
+    // 同名真实文件也在：TS 自己能解析，不该再生成声明（否则是死代码）
+    await writeFile(join(componentsDir, 'plain.vue'), '<template><i /></template>');
+    await writeFile(join(componentsDir, 'plain.server.vue'), '<template><i class="s" /></template>');
+
+    const result = await generateAutoImports(emptyScan(), {
+      cwd,
+      srcDir: resolve(cwd, 'src'),
+      buildDir: '.ubean'
+    });
+    const raw = await readFile(result.virtualComponentsDtsPath, 'utf8');
+
+    // 通配说明符用**文件名基名**（导入里写的就是它），不是 PascalCase。
+    // 单边的 `solo.client.vue` → 虚拟基名是 `solo`（用户导入 `solo.vue`，由插件指向该半边）
+    expect(raw).toContain("declare module '*theme-badge.vue'");
+    expect(raw).toContain("declare module '*solo.vue'");
+    // 配对取服务端变体；单边 .client 取客户端变体
+    expect(raw).toContain("typeof import('./../src/components/theme-badge.server.vue')['default']");
+    expect(raw).toContain("typeof import('./../src/components/solo.client.vue')['default']");
+    // 真实文件存在 → 不生成
+    expect(raw).not.toContain('*plain.vue');
+    // 非模块：出现 `export {}` 会让 declare module 退化成模块增强
+    expect(raw).not.toContain('export {}');
+  });
 });

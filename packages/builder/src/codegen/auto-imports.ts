@@ -286,11 +286,39 @@ export interface ComponentInfo {
   pascalName: string;
 }
 
+/**
+ * 虚拟组件：磁盘上**没有** `Base.vue`，但存在 `Base.server.vue` / `Base.client.vue` 兄弟。
+ *
+ * `@ubean/islands` 在解析阶段按基名合成：两边都有 → 配对包装（首屏服务端变体，水合后切客户端
+ * 变体）；只有一边 → 直接指向那一边（另一侧在不适用的图谱里换 stub）。所以 `Base.vue` 这个
+ * 导入说明符在 Vite 里成立、在 TS 里却不成立 —— 需要一个 ambient 声明（见
+ * `generateVirtualComponentsDts`），否则每个使用配对组件的项目 `pnpm type-check` 都会红。
+ *
+ * 注意与 `ComponentInfo` 的区别：这是**模块路径**级别的事（`*.vue` 说明符），与自动导入的
+ * 组件名、`directoryAsNamespace` 无关。
+ */
+export interface VirtualComponentInfo {
+  /** 文件名基名（`theme-badge`）—— 通配声明必须用它，导入说明符里写的就是它。 */
+  baseName: string;
+  /** PascalCase 名，仅用于生成注释。 */
+  name: string;
+  /** 声明里 `typeof import(...)` 指向的真实文件：优先服务端变体（配对与 server-only），否则客户端变体。 */
+  typeSourcePath: string;
+}
+
+/** 一次目录扫描的结果：可直接自动导入的组件 + 需要 ambient 声明的虚拟组件。 */
+export interface ComponentsScanResult {
+  components: ComponentInfo[];
+  virtualComponents: VirtualComponentInfo[];
+}
+
 export interface AutoImportResult {
   composablesImports: Import[];
   components: ComponentInfo[];
   autoImportsDtsPath: string;
   componentsDtsPath: string;
+  /** 虚拟组件（配对/单边基名）的 ambient 声明文件。没有虚拟组件时内容为空声明。 */
+  virtualComponentsDtsPath: string;
 }
 
 function toPosixPath(p: string): string {
@@ -355,36 +383,49 @@ function isPackageSource(from: string): boolean {
  * unplugin-vue-components 重写时会产出 `const 'Foo.server': …`（`declare global` 块里
  * 非法）—— 结果示例项目的 `pnpm type-check` 直接红。
  *
- * 同一个常量同时喂给 unplugin 的 `globsExclude`（`./vue-plugin.ts`），保证两个写入器
- * 都不产出这些条目。
+ * codegen 侧在 `scanComponentsDir` 里按这个形态分区（半成品不进组件表，但会被收成虚拟组件）；
+ * unplugin 没有分区逻辑，所以这份 glob 直接喂给它的 `globsExclude`（`./vue-plugin.ts`），
+ * 保证两个写入器都不产出这些条目。
  */
 export const COMPONENT_HALF_GLOBS = ['**/*.server.vue', '**/*.client.vue'];
-
-/** 单个文件是否为组件半成品（`.server.vue` / `.client.vue`），忽略查询串。 */
-export function isComponentHalf(filePath: string): boolean {
-  return /\.(server|client)\.vue$/.test(filePath.split('?')[0]);
-}
 
 async function scanComponentsDir(
   dir: string,
   srcDir: string,
   directoryAsNamespace: boolean,
   ignore: string[] = ['**/*.test.*', '**/*.spec.*', '**/_*']
-): Promise<ComponentInfo[]> {
+): Promise<ComponentsScanResult> {
   const components: ComponentInfo[] = [];
+  const virtualComponents: VirtualComponentInfo[] = [];
 
+  // 半成品也要 glob 进来（不能靠 ignore 滤掉）：它们既是「不是独立组件」要排除的对象，
+  // 又是「虚拟组件」的唯一线索。分区在下面的循环里做。
   const files = await glob('**/*.vue', {
     cwd: dir,
     dot: true,
-    ignore: [...ignore, ...COMPONENT_HALF_GLOBS],
+    ignore,
     absolute: true
   }).catch(() => [] as string[]);
+
+  /** 基名 → 半成品真实路径（`/foo/Base.server.vue` 等）。 */
+  const halves = new Map<string, { server?: string; client?: string }>();
+  /** 同目录下真实存在的 `.vue` 基名 —— 它们由 TS 自行解析，不需要 ambient 声明。 */
+  const realBases = new Set<string>();
 
   for (const fullPath of files.sort()) {
     const relativeToSrc = toPosixPath(relative(srcDir, fullPath));
     const relativeToDir = toPosixPath(relative(dir, fullPath));
     const base = fileBasename(fullPath);
     if (base.startsWith('_')) continue;
+
+    const half = /^(.*)\.(server|client)$/.exec(base);
+    if (half) {
+      const entry = halves.get(half[1]) ?? {};
+      entry[half[2] as 'server' | 'client'] = fullPath;
+      halves.set(half[1], entry);
+      continue;
+    }
+    realBases.add(base);
 
     let name: string;
     if (directoryAsNamespace) {
@@ -404,7 +445,18 @@ async function scanComponentsDir(
     });
   }
 
-  return components;
+  // 每个半成品基名 → 一条 ambient 声明，**除非**同名真实文件也在（那时 TS 解析真实文件，
+  // 声明永远不会被用到 —— 那种「真实文件被兄弟文件遮蔽」的运行时优先级另见 islands 插件）。
+  for (const [baseName, pair] of halves) {
+    if (realBases.has(baseName)) continue;
+    virtualComponents.push({
+      baseName,
+      name: toPascalCase(baseName),
+      typeSourcePath: pair.server ?? pair.client!
+    });
+  }
+
+  return { components, virtualComponents };
 }
 
 export async function generateAutoImports(
@@ -425,6 +477,7 @@ export async function generateAutoImports(
 
   let composablesImports: Import[] = [];
   let components: ComponentInfo[] = [];
+  const virtualComponents: VirtualComponentInfo[] = [];
 
   const autoImportsDtsPath = join(outDir, 'auto-imports.d.ts');
   const componentsDtsPath = join(outDir, 'components.d.ts');
@@ -467,15 +520,16 @@ export async function generateAutoImports(
       };
     });
 
+    const resolveFrom = (from: string) => (isPackageSource(from) ? from : transformImportPath(from, srcDir));
+
     const dtsContent = toTypeDeclarationFile(composablesImports, {
-      resolvePath: (imp: Import) => {
-        if (isPackageSource(imp.from)) {
-          return imp.from;
-        }
-        return transformImportPath(imp.from, srcDir);
-      }
+      resolvePath: (imp: Import) => resolveFrom(imp.from)
     });
-    await writeFile(autoImportsDtsPath, dtsContent, 'utf-8');
+    await writeFile(
+      autoImportsDtsPath,
+      `${dtsContent}\n\n${buildTemplateAutoImportBlock(composablesImports, resolveFrom)}`,
+      'utf-8'
+    );
   } else {
     await writeFile(
       autoImportsDtsPath,
@@ -488,19 +542,105 @@ export async function generateAutoImports(
     const allComponentsDirs = [join(srcDir, componentsDir), ...(resolvedComponents.options.dirs ?? [])];
     for (const dir of allComponentsDirs) {
       const scanned = await scanComponentsDir(dir, srcDir, directoryAsNamespace);
-      components.push(...scanned);
+      components.push(...scanned.components);
+      virtualComponents.push(...scanned.virtualComponents);
     }
   }
 
   const componentsDts = generateComponentsDts(components, componentsDtsPath);
   await writeFile(componentsDtsPath, componentsDts, 'utf-8');
 
+  const virtualComponentsDtsPath = join(outDir, 'virtual-components.d.ts');
+  await writeFile(
+    virtualComponentsDtsPath,
+    generateVirtualComponentsDts(virtualComponents, virtualComponentsDtsPath),
+    'utf-8'
+  );
+
   return {
     composablesImports,
     components,
     autoImportsDtsPath,
-    componentsDtsPath
+    componentsDtsPath,
+    virtualComponentsDtsPath
   };
+}
+
+/**
+ * 生成「模板里的自动导入」声明段（对齐 `AutoImport({ vueTemplate: true })` 的产物）。
+ *
+ * **为什么必须自己产出这段**：模板表达式里的标识符由 vue 的**组件实例类型**解析
+ * （vue-tsc 把模板编译成 `__VLS_ctx.x`，即 `ComponentCustomProperties`），而不是走模块作用域的
+ * 全局声明。只有 `declare global { const … }` 时，`<script setup>` 里的自动导入照常工作，而
+ * **模板里**用同一个 helper 会报 `Property 'isPageCached' does not exist on type '{ $: … }'`。
+ *
+ * ubean 的 codegen 与 unplugin-auto-import 写的是同一份文件（谁后写谁赢），所以两边都必须产出
+ * 这段：codegen 只在 `prepare` / CLI dev / build 跑，unplugin 在每次 Vite dev/build 重写 ——
+ * 少一段就会出现「先跑 CLI 时红、跑过一次 dev 后变绿」这种漂移。
+ */
+function buildTemplateAutoImportBlock(imports: Import[], resolveFrom: (from: string) => string): string {
+  const entries = imports
+    .filter(imp => imp.name && imp.from && imp.type !== true)
+    .map(
+      imp => `    readonly ${toDtsKey(imp.name)}: UnwrapRef<typeof import('${resolveFrom(imp.from)}')['${imp.name}']>`
+    )
+    .sort();
+
+  return [
+    '// for vue template auto import',
+    "import { UnwrapRef } from 'vue'",
+    "declare module 'vue' {",
+    '  interface GlobalComponents {}',
+    '  interface ComponentCustomProperties {',
+    ...entries,
+    '  }',
+    '}'
+  ].join('\n');
+}
+
+/**
+ * 生成 `.ubean/virtual-components.d.ts` —— 虚拟组件（配对/单边基名）的 ambient 声明。
+ *
+ * 为什么必须单独一份文件：这份内容会被 `unplugin-vue-components` 的重写丢掉（它只捞
+ * `GlobalComponents` 接口里的条目，周围的 `declare module` 语句一律不保留），而
+ * `components.d.ts` 正是它拥有的文件。
+ *
+ * 用**通配**说明符（`*foo.vue`）而不是相对路径：`declare module` 里的相对路径只在「说明符
+ * 字符串完全相同」时匹配，而同一个虚拟组件可以从任意目录、任意相对路径导入。通配声明只在
+ * TS 无法解析到真实文件时才生效，因此不会遮蔽真实 `.vue` 文件。
+ *
+ * 类型取服务端变体（配对与 server-only 都有），单边 `.client.vue` 则取客户端变体 —— 与
+ * 运行时首屏渲染的那一侧一致。
+ */
+function generateVirtualComponentsDts(virtual: VirtualComponentInfo[], dtsPath: string): string {
+  const dtsDir = fileDirname(toPosixPath(normalize(dtsPath)));
+
+  const lines: string[] = [
+    '// Auto-generated by ubean - do not edit manually',
+    '/* eslint-disable */',
+    '// @ts-nocheck',
+    '',
+    // **不能写 `export {}`**：那会让本文件变成模块，而模块里的 `declare module '*X.vue'` 是
+    // 「模块增强」而不是全局 ambient 声明 —— TS 随后会报找不到被增强的模块，
+    // 声明也就不再解析任何东西（实测：加了 `export {}` 后 `ThemeBadge.vue` 依旧找不到）。
+    '// 本文件刻意保持 script（非模块）语义，让下面的声明成为全局 ambient 声明。',
+    ''
+  ];
+
+  const sorted = [...virtual].sort((a, b) => a.baseName.localeCompare(b.baseName));
+  for (const comp of sorted) {
+    const rel = toPosixPath(relative(dtsDir, toPosixPath(normalize(comp.typeSourcePath))));
+    lines.push(
+      `// ${comp.name}：磁盘上没有 ${comp.baseName}.vue，由 @ubean/islands 按同名 .server.vue / .client.vue 合成`,
+      `declare module '*${comp.baseName}.vue' {`,
+      `  const component: typeof import('./${rel}')['default'];`,
+      '  export default component;',
+      '}',
+      ''
+    );
+  }
+
+  return `${lines.join('\n')}\n`;
 }
 
 /**

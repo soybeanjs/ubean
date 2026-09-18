@@ -133,12 +133,14 @@ export async function createDevViteServer(options: DevViteServerOptions): Promis
       // `@ubean/devtools` 未安装 —— 静默跳过（它是可选依赖）
     }
 
-    try {
-      const { DevTools } = await import('@vitejs/devtools');
-      builtinPlugins.push(...((await DevTools({ builtinDevTools: false })) as unknown as Plugin[]));
-    } catch {
-      // `@vitejs/devtools` 不可用 —— 静默跳过
-    }
+    // DTK（`@vitejs/devtools`）**不再由 CLI 注册**：Vite 自身在 `devtools` 选项开启时会加载它的
+    // integration（`DevToolsIntegration`，见 vite 的 `resolveDevToolsConfig`）。此前这里又手动
+    // `DevTools(...)` 推一份，在 `@vitejs/devtools@0.7.5` 上直接硬报
+    // `DTK0034: Vite DevTools has been registered multiple times.` 并让 dev server 退出
+    // （实测：cli 的 dev-reload / dev-dx / dev-topology 三个文件整片失败）。
+    //
+    // `builtinDevTools: false` 改为通过下面的 `devtools` 选项透传 —— 那个选项就是 DTK 的 user options，
+    // 所以行为不变（DTK 自带面板关掉，面板由上面的 `@ubean/devtools` 提供）。
   }
 
   const { plugins } = await resolveModules({ cwd, config, builtinPlugins });
@@ -157,7 +159,10 @@ export async function createDevViteServer(options: DevViteServerOptions): Promis
     server: { host, port: options.port, strictPort },
     appType: 'custom',
     plugins,
-    devtools: { enabled: devtoolsEnabled, clientAuth: false },
+    // 这个选项就是 DTK 的 user options（`DevToolsConfig extends StartOptions, DevToolsUserOptions`）——
+    // 宿主据此加载 DTK integration。`builtinDevTools: false` 保持原行为：DTK 自带面板关掉，
+    // DevTools 的面板由 `@ubean/devtools` 提供。
+    devtools: { enabled: devtoolsEnabled, clientAuth: false, builtinDevTools: false },
     optimizeDeps: {
       exclude: [
         'ubean',

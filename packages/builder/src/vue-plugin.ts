@@ -15,6 +15,7 @@ import type { ScanResult } from '@ubean/scan';
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
 import { join, resolve } from 'pathe';
 import { getAutoImportPresets, resolveAutoImportsConfig, resolveComponentsConfig, toArray } from './codegen';
+import { COMPONENT_HALF_GLOBS } from './codegen/auto-imports';
 import { isFrameworkHtmlPage } from './dev/dev-request-router';
 import { getDevScanCoordinator } from './dev/dev-scan';
 import { getComponentResolvers } from './registry';
@@ -426,6 +427,10 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
         dirs: componentsDirs,
         extensions,
         include: includePatterns,
+        // `.server.vue` / `.client.vue` 只可能是组件半成品（见 COMPONENT_HALF_GLOBS）：
+        // 按文件名派生会得到 `Foo.server` 这种带点的名字，unplugin 写出的
+        // `declare global { const 'Foo.server': … }` 是非法 TS。与 codegen 侧用同一个常量。
+        globsExclude: [...toArray(userComponents.globsExclude), ...COMPONENT_HALF_GLOBS],
         dts: userComponents.dts === undefined ? join(dtsDir, 'components.d.ts') : userComponents.dts,
         resolvers: [...dynamicResolvers, ...toArray(userComponents.resolvers)]
       }) as Plugin
@@ -434,6 +439,7 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     plugins.push(
       Components({
         dts: true,
+        globsExclude: COMPONENT_HALF_GLOBS,
         resolvers: dynamicResolvers
       }) as Plugin
     );

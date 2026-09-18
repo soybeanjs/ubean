@@ -341,6 +341,30 @@ function isPackageSource(from: string): boolean {
   return !from.startsWith('.') && !from.startsWith('/') && !from.startsWith('~');
 }
 
+/**
+ * `.server.vue` / `.client.vue` 不是独立组件，**不能**进自动导入表。
+ *
+ * 它们是同一个组件的两个变体：`.client.vue` 客户端独有、`.server.vue` 服务端独有，
+ * 成对出现时（`Foo.server.vue` + `Foo.client.vue`）由 `@ubean/islands` 的
+ * `resolveId` 按基名 `Foo.vue` 生成配对包装。用户侧的用法是**显式 import**
+ * （`import Foo from './Foo.vue'` 或直接 import 某一半），不存在 `<Foo.server />` 这种写法。
+ *
+ * 而按文件名派生名字会把它们扫成 `Foo.server` / `Foo.client` —— 这些名字进了
+ * `components.d.ts` 就是**非法 TypeScript**：ubean 自己的写入器会产出未加引号的
+ * 带点键（接口成员不允许限定名，`@ts-nocheck` 也压不住语法错误），
+ * unplugin-vue-components 重写时会产出 `const 'Foo.server': …`（`declare global` 块里
+ * 非法）—— 结果示例项目的 `pnpm type-check` 直接红。
+ *
+ * 同一个常量同时喂给 unplugin 的 `globsExclude`（`./vue-plugin.ts`），保证两个写入器
+ * 都不产出这些条目。
+ */
+export const COMPONENT_HALF_GLOBS = ['**/*.server.vue', '**/*.client.vue'];
+
+/** 单个文件是否为组件半成品（`.server.vue` / `.client.vue`），忽略查询串。 */
+export function isComponentHalf(filePath: string): boolean {
+  return /\.(server|client)\.vue$/.test(filePath.split('?')[0]);
+}
+
 async function scanComponentsDir(
   dir: string,
   srcDir: string,
@@ -352,7 +376,7 @@ async function scanComponentsDir(
   const files = await glob('**/*.vue', {
     cwd: dir,
     dot: true,
-    ignore,
+    ignore: [...ignore, ...COMPONENT_HALF_GLOBS],
     absolute: true
   }).catch(() => [] as string[]);
 
@@ -524,12 +548,27 @@ function generateComponentsDts(components: ComponentInfo[], dtsPath: string): st
   ];
 
   const sorted = [...entries.entries()].sort(([a], [b]) => a.localeCompare(b));
-  lines.push(...sorted.map(([name, declaration]) => `    ${name}: ${declaration}`));
+  lines.push(...sorted.map(([name, declaration]) => `    ${toDtsKey(name)}: ${declaration}`));
   lines.push('  }');
   lines.push('}');
   lines.push('');
 
   return `${lines.join('\n')}\n`;
+}
+
+/**
+ * 接口成员名 → 合法的 TS 键。
+ *
+ * 名字里含 `.` 时（如 `My.Comp.vue` 这种文件名）直接写就是**限定名**，在接口里是语法
+ * 错误 —— 而语法错误不受本文件顶部 `@ts-nocheck` 影响，整个 d.ts 会连累项目 type-check。
+ * 加引号后是合法的字符串字面量键，且 unplugin-vue-components 重写时也用同样形式
+ * （实测它把非标识符名写成 `'My.Comp': …`），两边不会互相反复改写。
+ *
+ * 注意这里只改**写法**不改名字：名字必须与 unplugin 的派生结果一致，否则两个写入器
+ * 会各自重写同一份文件。
+ */
+function toDtsKey(name: string): string {
+  return /^[A-Za-z_$][\w$]*$/.test(name) ? name : JSON.stringify(name);
 }
 
 export function getBuiltinComposables(): Import[] {

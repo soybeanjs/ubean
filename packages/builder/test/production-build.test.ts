@@ -85,5 +85,32 @@ describe('生产构建（buildWithEnvironments）', () => {
     expect(serverBundle).toContain('assets/app-');
     // 注入的 asset tag（bundle 里是 JSON 字符串字面量，引号被转义，因此断言到 src 为止）
     expect(serverBundle).toContain('"body": "<script type=\\"module\\" src=\\"/assets/app-');
+
+    // 组件自动导入的类型声明。这份文件有**两个写入器** —— ubean 的 codegen（`ubean prepare`）
+    // 与 unplugin-vue-components（构建/开发时重写，并附上 `declare global` 块）—— 两边都必须
+    // 产出**合法 TS**：带点的键在接口里是限定名、在 `declare global` 里是 `const 'X':`，
+    // 都是语法错误，而语法错误不受文件顶部 `@ts-nocheck` 影响，会让消费方的 type-check 整片失败
+    // （实测：示例项目的 `pnpm type-check` 因此全红）。
+    // 夹具里的 `PairedBadge.{server,client}.vue` 就是引子：它们是组件半成品而不是独立组件
+    // （见 `COMPONENT_HALF_GLOBS`），一旦被当成组件扫进来就会写出 `PairedBadge.server` 这种键。
+    const componentsDts = readFileSync(join(FIXTURE, '.ubean', 'components.d.ts'), 'utf-8');
+    const componentKeys = componentsDts
+      .split('\n')
+      .filter(line => /^ {4}\S.*: typeof /.test(line))
+      .map(line => line.trim().replace(/:.*$/, ''));
+    expect(componentKeys, '普通组件应照常收录').toContain('PlainBadge');
+    for (const key of componentKeys) {
+      // 键必须是合法 TS（标识符或带引号的字符串 —— 名字含点时必须加引号，见 toDtsKey）
+      expect(key, `components.d.ts 的键不是合法 TS: ${key}`).toMatch(
+        /^(?:[A-Za-z_$][\w$]*|"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')$/
+      );
+      // 组件半成品不该出现在这里：`PairedBadge.server` 这类名字在模板里不可用，
+      // 且是 d.ts 语法错误的源头（接口里是限定名、declare global 里是 `const 'X':`）
+      const bare = key.replace(/^['"]|['"]$/g, '');
+      expect(bare, `组件半成品被扫成了组件: ${bare}`).not.toMatch(/\.(?:server|client)$/);
+    }
+    expect(componentsDts, '组件半成品泄漏成了带点的全局声明').not.toMatch(
+      /const\s+['"]?\w+\.(?:server|client)['"]?\s*:/
+    );
   }, 180_000);
 });

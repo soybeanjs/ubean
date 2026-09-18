@@ -31,7 +31,9 @@ export const GET = defineHandler(async c => {
   const name = c.req.query('name') || 'World';
   const registered = listLocaleCodes();
 
-  const run = async (fn: () => unknown) => {
+  // 泛型要透传：写成 `(fn: () => unknown) => Promise<unknown>` 会把 handler 的返回类型抹成
+  // `unknown`，`defineHandler` 的 handler 契约随即不匹配（`runWithI18n<T>` 本身是泛型的）。
+  const run = async <T>(fn: () => T): Promise<T> => {
     if (localeOverride && routing.locales.includes(localeOverride)) {
       const fallback = getFallbackLocale();
       await ensureLocaleMessages(localeOverride, fallback);

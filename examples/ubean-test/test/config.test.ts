@@ -13,9 +13,13 @@ describe('Config system - defineConfig / loadUbeanConfig', () => {
           strategy: 'prefix_except_default'
         }
       })!;
-      expect(config.i18n?.defaultLocale).toBe('en');
-      expect(config.i18n?.locales).toEqual(['en', 'zh']);
-      expect(config.i18n?.strategy).toBe('prefix_except_default');
+      // `i18n` 的类型是 `false | I18nConfig`（`i18n: false` 表示关闭），`?.` 收窄不了
+      // `false` 那一支 —— 用 toMatchObject 断言整块，既不需要收窄也更严格。
+      expect(config.i18n).toMatchObject({
+        defaultLocale: 'en',
+        locales: ['en', 'zh'],
+        strategy: 'prefix_except_default'
+      });
     });
 
     it('accepts empty config', () => {
@@ -90,8 +94,7 @@ describe('Config system - defineConfig / loadUbeanConfig', () => {
         }
       })!;
       expect(config.srcDir).toBe('app');
-      expect(config.i18n?.defaultLocale).toBe('zh');
-      expect(config.i18n?.strategy).toBe('prefix');
+      expect(config.i18n).toMatchObject({ defaultLocale: 'zh', locales: ['zh', 'en'], strategy: 'prefix' });
     });
   });
 });

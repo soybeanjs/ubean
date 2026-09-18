@@ -9,7 +9,10 @@ definePage({
   meta: { title: 'Order Detail' }
 });
 
-const route = useRoute();
+// 传路由名拿类型化的 route：不带参数的 `useRoute()` 的 params 是**全部路由的联合**
+// （`Record<never,never> | { slug?: string } | { id: string } | …`），`.id` 在这个联合上不成立；
+// 带上 `'OrderDetail'` 后才收窄成本路由的参数（见 `.ubean/typed-router.d.ts` 的 `TypesConfig` 增强）。
+const route = useRoute('OrderDetail');
 const orderId = computed(() => String(route.params.id ?? ''));
 </script>
 

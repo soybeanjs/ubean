@@ -95,6 +95,11 @@ export const devCommand: CommandDef = {
     registerBuiltinPresets();
     const config = await loadUbeanConfig(cwd);
 
+    // 类型声明的生成权归 CLI（下方每次扫描都会 generateTypes）——告诉 Vite 插件不要再跑一遍。
+    // 插件侧读这个标志见 `@ubean/build` 的 `runProjectCodegen`；没有它（裸 `vite dev`）时由插件自己
+    // 生成，否则 `.ubean/*.d.ts` 在裸 Vite 路径下根本不产出。
+    process.env.UBEAN_CODEGEN_BY_CLI = '1';
+
     // ---- 日志分类闸门:CLI flag > ubean.config.ts logging > 模式矩阵 ----
     // 直接改写 resolved config(进程内单例),buildApp/vite-server 等下游统一读取。
     const logging: ResolvedLoggingConfig = config.logging;

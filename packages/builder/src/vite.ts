@@ -11,6 +11,7 @@ import { scanProject } from '@ubean/scan';
 import type { ScanResult, ScannedPageRoute } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
 import { join, relative, resolve } from 'pathe';
+import { generateTypes } from './codegen';
 import { getDevScanCoordinator } from './dev/dev-scan';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { transformMacros } from './macros';
@@ -227,6 +228,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
   // Config 解析:优先使用传入的,其次从缓存获取
   // 如果都没有,在 buildStart 中异步加载
   let ubeanConfig: UbeanResolvedConfig | undefined = options?.config ?? tryGetConfig() ?? undefined;
+  /** 已跑过 codegen 的扫描结果（`buildStart` 会在两个环境各跑一次）。 */
+  let lastCodegenScan: ScanResult | null = null;
   /** client manifest 的内存载体（RM-V18）：`buildApp` 填、本插件的 load 读。 */
   const assetManifestRef: { current: Record<string, ClientManifestEntry> | null } = { current: null };
 
@@ -432,6 +435,7 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
 
       coordinator.subscribe(async (result, changed) => {
         await applyScan(result);
+        await runProjectCodegen(result);
         for (const mod of VIRTUAL_MODULES) {
           const module = server.moduleGraph.getModuleById(VIRTUAL_PREFIX + mod);
           if (module) {
@@ -470,7 +474,45 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
 
   async function scanAndRegister() {
     if (!ubeanConfig) return;
-    await applyScan(await scanProjectOnce());
+    const result = await scanProjectOnce();
+    await applyScan(result);
+    await runProjectCodegen(result);
+  }
+
+  /**
+   * 生成项目类型声明（`.ubean/routes.d.ts`、`pages.d.ts`、`i18n.d.ts`、`auto-imports.d.ts`、
+   * `components.d.ts`、`virtual-components.d.ts` …）。
+   *
+   * **为什么由插件负责**：此前只有 CLI（`ubean dev` / `build` / `prepare`）会跑这套 codegen，
+   * 于是裸 Vite 路径（`vite dev` / `vite build`）下这些文件根本不生成 —— 用户的 type-check
+   * 与编辑器补全直接不成立。实测：`vp build` 之后示例的 `pnpm type-check` 报
+   * `Cannot find module '../components/sc/ThemeBadge.vue'`（虚拟组件声明缺失），以及
+   * `routes.d.ts`/`pages.d.ts` 缺失导致的一连串类型错误。ADR-0012 说两条路径等价，
+   * 那这一步也得在两条路径上都成立。
+   *
+   * 与 CLI 的分工：CLI 已经生成过时插件让位（`UBEAN_CODEGEN_BY_CLI` / 构建期的
+   * `UBEAN_BUILD_DRIVEN_BY_CLI`），避免同一份产物被两个执行者反复重写。
+   */
+  async function runProjectCodegen(result: ScanResult): Promise<void> {
+    if (!ubeanConfig) return;
+    if (process.env.UBEAN_CODEGEN_BY_CLI === '1' || process.env.UBEAN_BUILD_DRIVEN_BY_CLI === '1') return;
+    // 同一份扫描结果只跑一次：`buildStart` 会在 client / ubean 两个环境各触发一次
+    if (lastCodegenScan === result) return;
+    lastCodegenScan = result;
+
+    try {
+      await generateTypes(result, {
+        cwd: ubeanConfig.rootDir,
+        srcDir: ubeanConfig.srcDir,
+        buildDir: '.ubean',
+        dirs: ubeanConfig.dir,
+        autoImports: ubeanConfig.autoImports,
+        components: ubeanConfig.components
+      });
+    } catch (err) {
+      // 类型声明是 DX 产物，不该让 dev / build 失败
+      logger.warn(`Failed to generate type definitions: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   /**

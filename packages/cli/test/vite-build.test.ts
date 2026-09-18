@@ -11,7 +11,7 @@
  * 示例项目的默认 `dist`，跑完用默认路径重建一次，保持 `analyze:check` 面对的产物形态不变。
  */
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -72,6 +72,12 @@ describe('vite build（RM-V31：无 CLI 的完整构建）', () => {
     // `NODE_ENV` 必须固定：vitest 会设 `NODE_ENV=test`，而 Vite 尊重显式设置的这个变量 ——
     // 客户端构建会打进 Vue 开发态代码（实测 entry 从 45.2 kB 涨到 75.9 kB），留下的 dist 会让
     // `analyze:check` 变红，且测的也不是用户拿到的产物。
+    // 先删掉几个「以前只有 CLI 会生成」的类型声明：裸 `vite build` 必须自己把它们补回来。
+    // 插件路径此前不跑 codegen，裸 Vite 用户的 `.ubean` 是残缺的（缺 routes / pages / i18n /
+    // 虚拟组件声明，以及只在构建期产出的 openapi 类型），type-check 与编辑器补全直接不成立。
+    for (const file of ['routes.d.ts', 'pages.d.ts', 'virtual-components.d.ts', 'openapi.d.ts']) {
+      rmSync(join(fixtureDir, '.ubean', file), { force: true });
+    }
     await run(vpEntry, ['build'], { NODE_ENV: 'production' });
   }, 300_000);
 
@@ -101,6 +107,20 @@ describe('vite build（RM-V31：无 CLI 的完整构建）', () => {
       files.some(f => f.includes('IslandClock')),
       '缺少岛屿产物'
     ).toBe(true);
+  });
+
+  it('裸 vite build 也生成完整的类型声明（与 CLI 等价，ADR-0012）', () => {
+    // 判据是「先删掉、构建后必须回来」：`.ubean` 可能被同文件外的 dev 用例写过，
+    // 只断言「文件存在」会被别人的产物蒙对。
+    for (const file of [
+      'routes.d.ts',
+      'pages.d.ts',
+      'virtual-components.d.ts',
+      'openapi.d.ts',
+      'codegen.manifest.json'
+    ]) {
+      expect(existsSync(join(fixtureDir, '.ubean', file)), `裸 vite build 后缺少 .ubean/${file}`).toBe(true);
+    }
   });
 
   it('服务端产物内联了客户端入口 script 与预渲染 HTML 的 script', () => {

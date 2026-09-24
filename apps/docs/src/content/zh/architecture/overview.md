@@ -1,6 +1,8 @@
 ---
 title: Overview
 description: ubean 框架概览：项目结构、设计约定与核心思想。
+translatedFrom: 338146d5cb40
+sections: ["972854d7","e3b0c442","e1cb7d86","b302cbc2","9cba68ee","a6ac9b00","5553db26","149368f6","afc1540a","9229c6e1","c36e0585","0049b7a9","f36bf177","d60dd7cf","fa614021"]
 ---
 
 # 项目概览与约定
@@ -226,3 +228,9 @@ my-app/
 ├── package.json
 └── tsconfig.json
 ```
+
+## 下一步
+
+- <Link to="/architecture/architecture">架构</Link> — 框架架构、数据流与配置系统。
+- <Link to="/architecture/routing">路由</Link> — 文件式路由扫描与路由约定。
+- <Link to="/guide/quickstart">快速开始</Link> — 创建你的第一个 ubean 项目。

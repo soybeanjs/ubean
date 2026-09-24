@@ -1,6 +1,8 @@
 ---
 title: Routing
 description: ubean 路由设计：命名导出 API 路由、文件式页面、路由规则与中间件。
+translatedFrom: d2f02f104d0d
+sections: ["8080066f","e3b0c442","e2cf0058","9f1b21a4","f8d010a1","f59ad465","2057751b","89842e98","f92a35a0","408c83c1","f7d15309","3134035c","4468f7d7","6338a6ff"]
 ---
 
 # 路由设计
@@ -321,4 +323,8 @@ API 路由和 Pages 路由由同一个已规范化的路由清单驱动。当前
 
 > 页面路由约定、`definePage` 宏、布局、复用路由、路由分组、加载器/操作、特殊页面(404/loading/error)、导航守卫和路由规则均已在用户指南中记录:**<Link to="/guide/pages-routing/overview">页面与路由</Link>** 与 **<Link to="/guide/pages-routing/loaders">数据加载器</Link>** / **<Link to="/guide/pages-routing/actions">操作</Link>**。本文档仅保留上方的 API 路由内部实现。
 
+## 下一步
 
+- <Link to="/architecture/overview">架构总览</Link>
+- <Link to="/guide/pages-routing/overview">页面与路由总览</Link>
+- <Link to="/guide/routing-modes">路由模式</Link>

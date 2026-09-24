@@ -1,6 +1,8 @@
 ---
 title: 环境变量
 description: "用 defineEnv 定义类型安全的环境变量：校验、公开暴露与 CLI 命令。"
+translatedFrom: 8f0140bd51ec
+sections: ["215750ed","e3b0c442","1cba358b","29113507","b6b028a9","1b64faf3","3dd94df6","f0883c07","2218ebb2","9b363ac2","3034f10d","a1e167f1","72b5aff5","d24effbc","5f815c0c"]
 ---
 
 # 环境变量

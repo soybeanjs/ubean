@@ -1,6 +1,8 @@
 ---
 title: Engineering
 description: ubean 工程规范：编码约定、测试与发布流程。
+translatedFrom: db55e671c164
+sections: ["9838c4f9","e3b0c442","14ab805c","c327d771","e67dc13c","725b79af","ca1abf0f","23a5ce88","3e2318a6","ffeb3935","88f36d74","971b3291","798ff115","db9c4978","1e86da38","197cf633","d569e6ea","2945c565","46fec4d3","a0213faf","73fc5abd","a8e6548f","e27800d9","3e7f8c66","2b701591","8bf019ee","865aedc7","d68ee035","64661920","b44989e2","6c5ef13f","7538b766","e983527a","8cacb36c","3a4686b7"]
 ---
 
 # 工程规范、测试与发布
@@ -500,3 +502,9 @@ pnpm benchmark:lifecycle:baseline   # 重新生成 examples/ubean-test/benchmark
 
 ---
 
+## 下一步
+
+- <Link to="/architecture/runtime">运行时与开发体验</Link> — dev server、预设与 CLI 命令系统
+- <Link to="/architecture/routing">路由</Link> — 文件式路由与路由规则
+- <Link to="/guide/quickstart">快速开始</Link> — 几分钟内跑起一个项目
+- <Link to="/reference/api/ubean">ubean API 参考</Link> — 核心运行时导出

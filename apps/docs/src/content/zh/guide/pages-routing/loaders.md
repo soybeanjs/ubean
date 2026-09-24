@@ -1,6 +1,8 @@
 ---
 title: 数据加载器
 description: "用 useData 声明式获取数据：缓存、TTL 与失效。"
+translatedFrom: fced5d77a44c
+sections: ["0450430a","e3b0c442","b9095ed4","c45d74a3","8342d9f0","51ba7625","90e3665d","1138c886","dbd7991d","c4e558e3","83f54c80","71f9e2bb","75044df0","512e0e8a","8b9c5525"]
 ---
 
 # 数据获取（useData）

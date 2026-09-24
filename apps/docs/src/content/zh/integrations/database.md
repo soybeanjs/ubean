@@ -1,6 +1,8 @@
 ---
 title: 数据库
 description: 基于 db0 connector 抽象构建的数据库层，提供 defineDatabase/useDatabase 与内存回退。
+translatedFrom: f15e3906cae3
+sections: ["02206c77","e3b0c442","3ecb8b10","d716d0e4","b6398cea","8cca4da5","0862bd87","93fef277","a5505e21","2960a1bc","2150f714","232355de","2b2cc79b","c19c3fff"]
 ---
 
 # 数据库集成

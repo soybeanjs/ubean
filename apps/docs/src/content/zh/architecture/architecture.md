@@ -1,6 +1,8 @@
 ---
 title: Architecture
 description: ubean 的架构设计：五层职责划分、包布局与配置系统。
+translatedFrom: 8884ef3d3812
+sections: ["40f0dcb0","e3b0c442","a38f7bc6","74d5a2cb","03d869b1","f027f419","ac4dea00","1e8af935","5b4d6d99"]
 ---
 
 # 架构

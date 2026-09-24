@@ -1,6 +1,8 @@
 ---
 title: 响应助手
 description: 用于 API 路由的响应助手，建立在 Hono 的 context 对象之上。
+translatedFrom: f80a35f6f2e9
+sections: ["c813d8af","e3b0c442","591ac209","ecde8d73","3f96780a","ac4a085a","1e2c9c3e","e0b9d4e9","b5ef9e61","ffcfb0fa","ea877de1","46e52e1c","679c7c56","535a5c90","d8ae2dec","6ddcc3f1","eafd23a4"]
 ---
 
 # 响应助手

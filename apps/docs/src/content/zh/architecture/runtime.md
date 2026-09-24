@@ -1,6 +1,8 @@
 ---
 title: Runtime
 description: ubean 运行时：defineApp、应用配置、开发服务器、预设与 CLI 命令体系。
+translatedFrom: 1a32a08aeb6d
+sections: ["a7dbe8df","e3b0c442","d80fee02","e8ecb75b","c06bd2aa","e9476b5e","84836587","1b0bc415","4c784f8f","7838b612","85929b83","86902525","8c26e7cd","651fa7f7","841b47df","73490ae9","253c09a8","32087f60","babe75e1","248cd484","b0b11a45","06ef5a9a","e1ebd5e8","d9a86a97","aeab9ece","67be6fed","dbe56967","6c5e49ac","bda8fde1","18bd8fde","c6ee5474","551bce4c","7719808d","428a76d7","d79adf58","a69eb07e","8e9b3eb8","e2720cd6","629cb0af","c80df236","a5b58348","0fd81457","27fd6cbd","b5b31db9","57f86813","82e1dc14","cdd86f19","7cafb2b0","0591401f","72665bac","e94bbfc4","70123441","ca87b816","fb74d912","ab966604","105f2d32","f95e57d0","fcdf98dd","c4fc64d8","4f132b44","20a64dcf","060aa51b","800880e0","f122143f","01501917","8aef359d","04571071","1f0ba46b","541135cc","a5e19fd2","fa13eefa","985da994","0f55ff12","ee101a64","3760dc25","3949c66f","8d4418c6","c200fb33","10f0ff0d","9ad68b28","2dcfbf23","3d4899bc","46f034a8","f6d3d11c","51605e83","6f1378d6","c7818966","bb296a78","5d84f2d3","c61dc0f7","4db472e3","9c2ed404","f6416b2f","8b62375b","a39723e2","3887ebe4","cf6be2a9","e837e83f","64df3b5f","e86c7ce7","e9da32ad","362761ae","595f082c","f72d2382","73c9a15b","64d6e1a3","14d24260","fa92f992","913c29de","e7d5bc78","cab67f39","8ba184c0","146fea8e","5cc0ed4e","81eedc89","82bd5850","8d9a0af7","d9f08935","a9319456"]
 ---
 
 # 运行时与开发体验 (defineApp)
@@ -1381,18 +1383,6 @@ export default defineConfig({
 </template>
 ```
 
-#### `v-client.*` 指令速查
-
-| 指令 | 说明 |
-| --- | --- |
-| `v-client.load` | 页面加载后立即水合 |
-| `v-client.idle` | 空闲时水合（requestIdleCallback） |
-| `v-client.visible` | 进入视口时水合（IntersectionObserver） |
-| `v-client.media` | 媒体查询匹配时水合（值为 Vue 表达式，字符串需加引号） |
-| `v-client.only` | 仅客户端渲染，跳过 SSR |
-
-> `v-client.media` 的值是 Vue 表达式，字符串字面量需要加引号（`"'(max-width: 768px)'"`），也可使用变量（`v-client.media="mediaQuery"`）。
-
 #### 双层设计
 
 `v-client` 指令采用双层架构：
@@ -2503,3 +2493,10 @@ import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integration
 - **配置错误提示**:若 `hydrateState` 被调用但 app 上未检测到 `$pinia`(未注册 `createPinia()` 插件),会在控制台输出明确警告
 
 ---
+
+## 下一步
+
+- <Link to="/architecture/overview">架构总览</Link> — 高层架构与设计原则
+- <Link to="/architecture/routing">路由</Link> — 文件式路由、布局与路由规则
+- <Link to="/guide/app-modes">应用模式</Link> — fullstack / SPA / SSG / backend 模式
+- <Link to="/guide/islands">群岛架构</Link> — 零配置岛屿水合细节

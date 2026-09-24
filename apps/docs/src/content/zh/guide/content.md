@@ -1,6 +1,8 @@
 ---
 title: 内容与搜索
 description: 基于 Markdown 目录的内容集合与静态站点内置全文搜索 —— 章节数据、useContentSearch 与可选的 Pagefind 索引。
+translatedFrom: 913b72386153
+sections: ["645be43b","e3b0c442","4778de66","3f0939b5","9093cee2","d8ffa436","7b28800d","d97446b6","0633ccd5","171dc289","13a106a8","3cabff9c"]
 ---
 
 # 内容与搜索

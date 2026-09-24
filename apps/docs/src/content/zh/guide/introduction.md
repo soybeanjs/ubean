@@ -1,6 +1,8 @@
 ---
 title: 简介
 description: ubean 是基于 Vite、Hono 和 Vue 构建的全栈 Vue 元框架。
+translatedFrom: af8067f905c7
+sections: ["3c354534","e3b0c442","9cc2efd5","4b5e8ef8","a6c0baca","3f67e9c2","71d24776","364b48dc"]
 ---
 
 # 简介

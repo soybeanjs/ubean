@@ -1,6 +1,8 @@
 ---
 title: 图标
 description: 两套图标体系：@ubean/icon 图标集与 @vean/ui 的 SIcon。
+translatedFrom: 98981f04ca39
+sections: ["e51fdb3f","e3b0c442","04660a00","b67b2a7b","05904025","5d96a16c","e91028f3","15a4f852","4e5145a2","26eec2a9","e66e4b89","ca1e43ef","f345b0c2","b4dae2dd","0985af8e","d8c77bc2","80636a73","7432a915","211dfbee","19ade832","86cf40f4","ef93623a","57dc605b","089f78f6","8474f6fa","4adc8b6e"]
 ---
 
 # 图标

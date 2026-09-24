@@ -1,6 +1,8 @@
 ---
 title: 数据库
 description: "数据库操作：defineDatabase、useDatabase 与内存回退实现。"
+translatedFrom: 7f448da8c9a0
+sections: ["4e1e0645","e3b0c442","8de78269","80ede6fa","3eefe41a","b6639bf1","e6199a74","0c6ff9a3","567ead65","d660c1a2","4fd84868","a167d991","911f126a","5625299e","bf5a4892"]
 ---
 
 # 数据库操作

@@ -1,6 +1,8 @@
 ---
 title: 身份认证
 description: 使用 @ubean/auth 做身份认证：集成 Better Auth，未安装 better-auth 时降级到内置的邮箱/密码实现。
+translatedFrom: 603208b4d3d8
+sections: ["3378e58e","e3b0c442","29c73023","293560b9","951267e7","e33fd527","b502573b","81494c17","b8da38de","3478d298","0ddcebb4","85755cbc","10de1414","e3ca1ae8","fadd2660","931d4b2c"]
 ---
 
 # 身份认证

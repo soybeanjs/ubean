@@ -1,6 +1,8 @@
 ---
 title: 群岛架构
 description: 通过 v-client 指令实现部分水合 —— 只对页面中需要交互的部分做水合。
+translatedFrom: 8d8e773906ba
+sections: ["a26f28de","e3b0c442","eaa1dbbc","cffbd73b","dfc79f38","e33ea74e","936f46d7","f36eb0c4","62d1f680","be668c3a","af6131fe","08c5e6ca","1cc9b653","d40ef7a0","d232fd21","a41cccae","9906f98f","b6fa0cf3","bbad89cf","9717160b","5908f4eb","b3b3e8cb","ad02c247","1140a131"]
 ---
 
 # 群岛架构

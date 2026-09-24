@@ -1,6 +1,8 @@
 ---
 title: 框架对比
 description: ubean 与 Next.js、Nuxt、SvelteKit、SolidStart、Astro、TanStack Start、Analog 的对比——按源码成熟度，而非功能清单满格。
+translatedFrom: b6568b76233f
+sections: ["ad779a73","e3b0c442","244aea4d","9dc9d1f1","5c62bde1","6411a66b","0d7bc5db","3225a54a","790bec9b","332d5e9c","2bd668b5","5d43a257","1436356a","ace6f0bd"]
 ---
 
 # 框架对比

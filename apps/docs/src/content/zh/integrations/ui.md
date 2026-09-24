@@ -1,6 +1,8 @@
 ---
 title: UI 组件库
 description: 通过 @ubean/integrations/ui 集成的 @vean/ui UI 组件库。
+translatedFrom: e8e2dd8287b6
+sections: ["82094b02","e3b0c442","cae21a09","87339f35","c10c8730","90185c55","37f210b4","8c2eb6c6","f23f092c","bc0032f2","63bfd61a","f188bd51","fc378b7d","b5ca49fb","4ae887be","7c5d50ca","9adcf45a","6247a8b4","0d381085","2d3bc74b","3e8cd364","bc5287aa","930d3aef","f4825344","659a188b","033b24d2","c19b2854","f50ae296","38a8b234","0d19ab46","e01bf520","c1288afd","f7f6bce1"]
 ---
 
 # UI 组件库（@vean/ui）

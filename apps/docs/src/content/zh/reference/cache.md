@@ -1,6 +1,8 @@
 ---
 title: 缓存
 description: "路由级 HTTP 缓存：CacheStore、defineCachedFunction、cacheLife/cacheTag 与失效。"
+translatedFrom: 53d7f4803180
+sections: ["c9067bc5","e3b0c442","269e6a57","62efe8eb","d2218ee8","02412f13","342eb84e","8acde801","16fc5541","19858349","fcd4a45d","23a70fdf","8e631133","0df77182","8e9c70c0","b040f490","d56204ed","9bf9946a","12c22855"]
 ---
 
 # 缓存操作

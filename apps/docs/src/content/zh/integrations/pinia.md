@@ -1,6 +1,8 @@
 ---
 title: Pinia
 description: 通过内置的 @ubean/integrations/pinia 集成使用 Pinia 状态管理。
+translatedFrom: 736a2e06cafa
+sections: ["589f8092","e3b0c442","29736812","54d9a1e4","bb8ea5f1","37f210b4","e5df4d24","b114995a","1cbe6fed","63bfd61a","5e26f4d5","ddf45265","a3ab4229","f9616990","3fc4b054","9a639767","4779b1ac","203e42e7","6087b529","d17ff600","90c315c9","dd04f506","6f1c1ad9","659a188b","095a13b4","41c93cd1","2ad18bba","30678943","0d19ab46","2ee66e7d","a291b330","fbf1c818"]
 ---
 
 # Pinia 状态管理（@ubean/integrations/pinia）

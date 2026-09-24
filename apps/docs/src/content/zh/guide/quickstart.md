@@ -1,6 +1,8 @@
 ---
 title: 快速开始
 description: 几分钟内开始使用 ubean。
+translatedFrom: f2b23861b0e4
+sections: ["08754184","e3b0c442","3cbeb48d","a1eefbfd","1cd0503f","2867aa3f","52722f8f","f2aaa753","7bafd189","782c32ba","f9ca7d6f","d6e8b6ef","2d05b6e2","4340e1b2","b744d39f"]
 ---
 
 # 快速开始
@@ -107,14 +109,19 @@ pnpm dev
 
 开发服务器默认运行在 `http://localhost:9527`。
 
-## 构建与预览
+## 生产构建
 
 ```bash
-pnpm build      # 生产构建
-pnpm preview    # 预览生产构建
+pnpm build
 ```
 
 构建输出位于 `dist` 目录（客户端为 `dist/public/`，服务端为 `dist/server/` — 各模式的输出请参见 <Link to="/guide/app-modes">应用模式</Link>）。
+
+## 预览生产构建
+
+```bash
+pnpm preview
+```
 
 ## 可用脚本
 

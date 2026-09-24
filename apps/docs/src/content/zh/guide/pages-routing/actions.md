@@ -1,6 +1,8 @@
 ---
 title: Actions
 description: 用 defineAction 与 useAction 实现服务端 action 与表单 action。
+translatedFrom: ae6a43bc88af
+sections: ["643e9b49","e3b0c442","8e995a6c","dda9639b","d7a35e76","7e1d8d64","494bb832","54c62fc3","f5476b91","b771d9f6","174957c0","a5bd8e16"]
 ---
 
 # 服务端 Action 与表单 Action

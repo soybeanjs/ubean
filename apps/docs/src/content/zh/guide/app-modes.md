@@ -1,6 +1,8 @@
 ---
 title: 应用模式
 description: 应用模式（fullstack / spa / ssg / backend）以及 mode 字段如何驱动构建。
+translatedFrom: 8a1d1e9b1a1d
+sections: ["72d8d852","e3b0c442","f8a76ce3","b9ce03d4","c88d8019","5bd23172","1bb6395d","b0fe627a","6e2ecb58","74940451","a6a6ba58","5190fb7d","11404978","396633de","cd88c3aa","f82dff02"]
 ---
 
 # 应用模式

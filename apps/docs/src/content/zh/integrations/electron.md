@@ -1,6 +1,8 @@
 ---
 title: Electron
 description: 使用内置的 @ubean/integrations/electron 集成构建 Electron 桌面应用。
+translatedFrom: 8a30f8cd46bb
+sections: ["c6635ad1","e3b0c442","2971830a","458fcc3a","9f9a418c","37f210b4","2a4cc00f","98872d2b","8981ae7f","9504519b","0c73144c","8deb2877","89ca0bdd","9f9a879c","59c3d8b7","4218a60e","9328cd8c","5cd85299","5d36db6f"]
 ---
 
 # Electron（桌面应用）

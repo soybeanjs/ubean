@@ -42,5 +42,5 @@
 ## 相关目录
 
 - 站点正文：[apps/docs/src/content/](../apps/docs/src/content/)
-- 站点设计档案：[apps/docs/DESIGN.md](../apps/docs/DESIGN.md)（D13 已被 ADR-0007 逆转）
+- 站点设计规范：[apps/docs/AGENTS.md](../apps/docs/AGENTS.md)（原 `DESIGN.md` / `GLOSSARY.md` 已删除，D13 逆转记录见 [ADR-0007](adr/0007-docs-content-classification.md)）
 - 助手导航：[AGENTS.md](../AGENTS.md) §10

@@ -4,6 +4,7 @@
 - **日期**: 2026-08-03
 - **关联**: apps/docs DESIGN.md D13（本 ADR 逆转其站点展示策略）；grill-with-docs 会话
 - **决策者**: grilling 会话（用户 + 助手）
+- **注（2026-09）**: `apps/docs/DESIGN.md` 与 `GLOSSARY.md` 已随文档站重构删除，其规范职责由 [apps/docs/AGENTS.md](../../apps/docs/AGENTS.md)（架构与实现约束）与 [apps/docs/TRANSLATION.md](../../apps/docs/TRANSLATION.md)（中英翻译规范）承接。本文以下对 DESIGN.md D13 的引用属历史记录，不再指向现存文件。
 
 ## 背景
 

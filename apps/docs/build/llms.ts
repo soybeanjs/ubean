@@ -9,6 +9,8 @@ type DocFile = {
   routePath: string;
   title: string;
   value: string;
+  /** Frontmatter says `status: translated-stub`, so the body is a placeholder. */
+  isStub: boolean;
 };
 
 type FrontmatterResult = {
@@ -134,6 +136,24 @@ async function createLlmsOutput(rootDir: string): Promise<LlmsOutput> {
   const sortedDocFiles = docFiles.sort((left, right) => left.routePath.localeCompare(right.routePath));
   const pages = new Map(sortedDocFiles.map(file => [`${file.routePath}.md`, createPageContent(file)]));
 
+  // Locale mirrors: `/zh/guide/x.md` for every zh document. ubean's i18n route
+  // strategy would prefix these at runtime, but these files are written straight
+  // to the static output, so the prefix has to be applied here. Without this the
+  // site shipped English-only `.md` while the HTML had both locales.
+  const zhDir = path.join(rootDir, 'src/content/zh');
+  const zhPaths = await collectMarkdownFiles(zhDir);
+  const zhFiles = await Promise.all(zhPaths.map(docPath => createDocFile(zhDir, docPath)));
+
+  for (const file of zhFiles) {
+    // A stub carries no real translation, so exporting it would feed an LLM the
+    // "not translated yet" notice instead of content.
+    if (file.isStub) {
+      continue;
+    }
+
+    pages.set(`/zh${file.routePath}.md`, createPageContent(file));
+  }
+
   return {
     full: createLlmsFull(sortedDocFiles),
     index: createLlmsIndex(sortedDocFiles),
@@ -175,7 +195,8 @@ async function createDocFile(docsDir: string, filePath: string): Promise<DocFile
     description,
     routePath,
     title,
-    value: normalizedContent
+    value: normalizedContent,
+    isStub: data.status === 'translated-stub'
   };
 }
 

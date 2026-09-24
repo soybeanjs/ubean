@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { SConfigProvider, SIcon } from '@soybeanjs/ui';
+import { SConfigProvider, SIcon } from '@vean/ui';
 import { useRpc } from './composables/useRpc';
 import type { CrudResourceType } from './composables/useRpc';
 import CreateDialog from './components/CreateDialog.vue';

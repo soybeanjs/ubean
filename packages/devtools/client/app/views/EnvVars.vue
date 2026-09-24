@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { SIcon } from '@soybeanjs/ui';
+import { SIcon } from '@vean/ui';
 import CodeEditor from '../components/CodeEditor.vue';
 
 const props = defineProps<{

@@ -4,7 +4,7 @@
 // AppHeader + SiderMenu are auto-imported via the components plugin.
 import { computed, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import type { AnchorOptionData } from '@soybeanjs/ui';
+import type { AnchorOptionData } from '@vean/ui';
 import { useDocOutline } from '~/composables/use-doc-outline';
 import type { DocOutlineItem } from '~/composables/use-doc-outline';
 import { useScrollLock } from '~/composables/use-scroll-lock';
@@ -86,7 +86,7 @@ watch(() => route.path, () => {
           <span>{{ isZh ? '菜单' : 'Menu' }}</span>
         </button>
 
-        <SDrawer
+        <SSheet
           v-if="shouldShowSidebar"
           v-model:open="mobileSidebarOpen"
           side="left"
@@ -94,7 +94,7 @@ watch(() => route.path, () => {
           class="w-72"
         >
           <SiderMenu @select="mobileSidebarOpen = false" />
-        </SDrawer>
+        </SSheet>
 
         <div
           class="mx-auto min-w-0"

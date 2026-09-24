@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { SIcon } from '@soybeanjs/ui';
+import { SIcon } from '@vean/ui';
 
 const props = defineProps<{
   scalarPath?: string;

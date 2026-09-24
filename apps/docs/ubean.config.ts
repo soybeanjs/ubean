@@ -81,7 +81,7 @@ export default defineConfig({
   },
 
   // Color mode (D20): keep ubean's built-in no-flash script + useColorMode()
-  // composable, but align the storageKey + classSuffix with @soybeanjs/ui
+  // composable, but align the storageKey + classSuffix with @vean/ui
   // shadcn (which expects a bare `.dark` class, not `dark-mode`). The custom
   // inline script in app.ts reads the same key + sets the same class as a
   // belt-and-suspenders for SSG prerendered output.

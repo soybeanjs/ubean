@@ -61,15 +61,15 @@ export interface ElectronModuleConfig {
 }
 
 /**
- * UI 模块配置（@soybeanjs/ui 集成）。
+ * UI 模块配置（@vean/ui 集成）。
  * `ui: true` 即可启用，默认自动注入 styles.css + UiResolver。
  */
 export interface UiModuleConfig {
   /** 是否禁用 */
   disabled?: boolean;
   /**
-   * 是否自动注入 `@soybeanjs/ui/styles.css`，默认 true。
-   * 设为 false 时使用 UnoCSS 模式（用户自行配置 @soybeanjs/unocss-shadcn）。
+   * 是否自动注入 `@vean/ui/styles.css`，默认 true。
+   * 设为 false 时使用 UnoCSS 模式（用户自行配置 @vean/unocss）。
    */
   css?: boolean;
 }
@@ -721,7 +721,7 @@ export interface UbeanConfig {
   fonts?: boolean | BuiltinModuleOptions;
   /** Electron 桌面应用配置（`true` 使用默认入口启用） */
   electron?: boolean | ElectronModuleConfig;
-  /** @soybeanjs/ui 集成配置（`true` 启用，默认注入 styles.css + UiResolver） */
+  /** @vean/ui 集成配置（`true` 启用，默认注入 styles.css + UiResolver） */
   ui?: boolean | UiModuleConfig;
   /**
    * Pinia 集成配置（`true` 启用 Vite 预构建优化）。

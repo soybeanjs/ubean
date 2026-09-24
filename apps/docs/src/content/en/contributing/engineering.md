@@ -331,18 +331,18 @@ ubean does **not** ship its own browser HTTP client. Direct HTTP calls use the s
 
 ### 9.1 UI Component Conventions (DevTools)
 
-The DevTools panel UI must be built with the `@soybeanjs/ui` component library and follow these conventions:
+The DevTools panel UI must be built with the `@vean/ui` component library and follow these conventions:
 
-1. **Component library choice**: Prefer the pre-styled `S*` components from `@soybeanjs/ui` (such as `SButton`, `SCard`, `STabs`, `STable`, `SInput`, `SModal`, etc.)
+1. **Component library choice**: Prefer the pre-styled `S*` components from `@vean/ui` (such as `SButton`, `SCard`, `STabs`, `STable`, `SInput`, `SModal`, etc.)
 2. **Style import**: Import the styles at the entry point when used:
    ```typescript
-   import '@soybeanjs/ui/styles.css';
+   import '@vean/ui/styles.css';
    ```
 3. **Auto-import config**: Configure auto-import via `unplugin-vue-components` with `UiResolver`:
 
    ```typescript
    import Components from 'unplugin-vue-components/vite';
-   import { UiResolver } from '@soybeanjs/ui/resolver';
+   import { UiResolver } from '@vean/ui/resolver';
 
    Components({
      resolvers: [UiResolver()]
@@ -380,7 +380,7 @@ The adaptation implementation for each platform (preset) must first reference th
 ### 9.3 Dependency Installation Conventions
 
 - Use `pnpm` as the package manager, following workspace catalog version management
-- UI-related dependencies (@soybeanjs/ui, etc.) are only introduced when needed; users are not forced to install them
+- UI-related dependencies (@vean/ui, etc.) are only introduced when needed; users are not forced to install them
 - DevTools-related dependencies are devDependencies or loaded dynamically on demand
 
 ## 10. CodeGraph Workflow Convention
@@ -433,7 +433,7 @@ Paste the "direct / transitive references" counts and the key file list into the
 | `@ubean/integrations/fonts` | `fonts` | `ubeanFontsPlugin` (subpath main) | `@ubean/integrations` | vite (optional) | none (only defu/ohash/pathe/ufo) | Google Fonts / local fonts / self-hosting / metrics |
 | `@ubean/integrations/electron` | `electron` | `ubeanElectronPlugin` (subpath main) | — | electron, vite (both optional) | **hard** (`vite-plugin-electron` in `dependencies`) | Wraps `vite-plugin-electron`; `electron: true` enables and auto-disables SSR |
 | `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin` (subpath main) | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia (required)**, vue (optional) | **peer** (`pinia` in `peerDependencies`, not optional) | SSR state hydration + dev pre-bundling; does not auto-inject a Pinia instance |
-| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin` (subpath main) | — | **@soybeanjs/ui (required)**, vite (optional) | **peer** (`@soybeanjs/ui` in `peerDependencies`, not optional) | `UiResolver` auto-imports + `styles.css` injection (`css: true` can disable) |
+| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin` (subpath main) | — | **@vean/ui (required)**, vite (optional) | **peer** (`@vean/ui` in `peerDependencies`, not optional) | `UiResolver` auto-imports + `styles.css` injection (`css: true` can disable) |
 
 ### 11.2 Core dependency shapes
 

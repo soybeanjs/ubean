@@ -331,18 +331,18 @@ ubean **不自研浏览器 HTTP 客户端**。直接 HTTP 调用使用标准 `fe
 
 ### 9.1 UI 组件规范 (DevTools)
 
-DevTools 面板的 UI 实现必须使用 `@soybeanjs/ui` 组件库，遵循以下规范：
+DevTools 面板的 UI 实现必须使用 `@vean/ui` 组件库，遵循以下规范：
 
-1. **组件库选择**：优先使用 `@soybeanjs/ui` 的预样式化 `S*` 组件（如 `SButton`、`SCard`、`STabs`、`STable`、`SInput`、`SModal` 等）
+1. **组件库选择**：优先使用 `@vean/ui` 的预样式化 `S*` 组件（如 `SButton`、`SCard`、`STabs`、`STable`、`SInput`、`SModal` 等）
 2. **样式引入**：使用时在入口文件引入样式：
    ```typescript
-   import '@soybeanjs/ui/styles.css';
+   import '@vean/ui/styles.css';
    ```
 3. **自动导入配置**：通过 `unplugin-vue-components` 配合 `UiResolver` 实现自动导入：
 
    ```typescript
    import Components from 'unplugin-vue-components/vite';
-   import { UiResolver } from '@soybeanjs/ui/resolver';
+   import { UiResolver } from '@vean/ui/resolver';
 
    Components({
      resolvers: [UiResolver()]
@@ -380,7 +380,7 @@ DevTools 面板的 UI 实现必须使用 `@soybeanjs/ui` 组件库，遵循以�
 ### 9.3 依赖安装规范
 
 - 使用 `pnpm` 作为包管理器，遵循 workspace catalog 版本管理
-- UI 相关依赖（@soybeanjs/ui 等）仅在需要时引入，不强制用户安装
+- UI 相关依赖（@vean/ui 等）仅在需要时引入，不强制用户安装
 - DevTools 相关依赖作为 devDependencies 或按需动态导入
 - **DevTools AI scaffold 为可选能力**（[ADR-0004](../../../../../../docs/adr/0004-devtools-ai-sdk-optional-deps.md)）：`ai` / `@ai-sdk/openai-compatible` 在 `@ubean/devtools` 中为 `optionalDependencies`，运行时通过动态 `import()` 加载。未安装时框架与普通 DevTools 功能不受影响，仅触发 AI 助手功能时报清晰错误（含安装指引）。如需启用 AI 助手：`pnpm add ai @ai-sdk/openai-compatible`
 
@@ -436,7 +436,7 @@ codegraph impact <symbol>         # 查影响面
 | `@ubean/integrations/fonts` | `fonts` | `ubeanFontsPlugin`（子路径主入口） | `@ubean/integrations` | vite（optional） | none（仅 defu/ohash/pathe/ufo） | Google Fonts / 本地字体 / 自托管 / metrics |
 | `@ubean/integrations/electron` | `electron` | `ubeanElectronPlugin`（子路径主入口） | — | electron, vite（均 optional） | **hard**（`vite-plugin-electron` 在 `dependencies`） | 封装 `vite-plugin-electron`；`electron: true` 启用，自动禁用 SSR |
 | `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin`（子路径主入口） | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia（强制）**, vue（optional） | **peer**（`pinia` 在 `peerDependencies` 非 optional） | SSR 状态水合 + dev 预构建；不自动注入 Pinia 实例 |
-| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin`（子路径主入口） | — | **@soybeanjs/ui（强制）**, vite（optional） | **peer**（`@soybeanjs/ui` 在 `peerDependencies` 非 optional） | `UiResolver` 自动导入 + `styles.css` 注入（`css: true` 可关） |
+| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin`（子路径主入口） | — | **@vean/ui（强制）**, vite（optional） | **peer**（`@vean/ui` 在 `peerDependencies` 非 optional） | `UiResolver` 自动导入 + `styles.css` 注入（`css: true` 可关） |
 
 ### 11.2 核心依赖形态三值
 

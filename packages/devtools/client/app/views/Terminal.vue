@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick } from 'vue';
-import { SIcon } from '@soybeanjs/ui';
+import { SIcon } from '@vean/ui';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal as XTermTerminal } from '@xterm/xterm';
 import type { TerminalStartParams, TerminalPollResult } from '../composables/useRpc';

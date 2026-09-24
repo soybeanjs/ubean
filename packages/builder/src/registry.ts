@@ -39,7 +39,7 @@ function getRegistry(): GlobalRegistry {
 }
 
 /**
- * Register a component resolver (e.g. `UiResolver()` from `@soybeanjs/ui/resolver`).
+ * Register a component resolver (e.g. `UiResolver()` from `@vean/ui/resolver`).
  * The resolver will be merged into `unplugin-vue-components`'s `resolvers` array.
  */
 export function registerComponentResolver(resolver: ComponentResolver): void {
@@ -56,8 +56,8 @@ export function getComponentResolvers(): ComponentResolver[] {
 
 /**
  * Register a CSS import path to be injected into the client entry.
- * e.g. `registerCssImport('@soybeanjs/ui/styles.css')` makes the client
- * entry module prepend `import '@soybeanjs/ui/styles.css'`.
+ * e.g. `registerCssImport('@vean/ui/styles.css')` makes the client
+ * entry module prepend `import '@vean/ui/styles.css'`.
  */
 export function registerCssImport(cssPath: string): void {
   const reg = getRegistry();

@@ -72,7 +72,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - `@ubean/content`: Markdown/YAML/JSON content collections with `queryContent()`
    - `@ubean/integrations/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
    - `@ubean/integrations/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries and auto-disables SSR
-   - `@ubean/integrations/ui`: @soybeanjs/ui integration; `ui: true` enables UiResolver (component auto-import) + `styles.css` auto-injection; `ui: { css: false }` for UnoCSS mode (@soybeanjs/unocss-shadcn)
+   - `@ubean/integrations/ui`: @vean/ui integration; `ui: true` enables UiResolver (component auto-import) + `styles.css` auto-injection; `ui: { css: false }` for UnoCSS mode (@vean/unocss)
 
 ### Project Structure
 
@@ -291,7 +291,7 @@ export default defineConfig({
   pwa: false, // @ubean/integrations/pwa
   auth: false, // @ubean/auth
   electron: false, // @ubean/integrations/electron (enabling auto-disables SSR unless explicitly set)
-  ui: false, // @ubean/integrations/ui (@soybeanjs/ui: UiResolver + styles.css auto-injection)
+  ui: false, // @ubean/integrations/ui (@vean/ui: UiResolver + styles.css auto-injection)
   routing: { mode: 'virtual' }, // virtual (default) | file | both
   i18n: {
     defaultLocale: 'en',

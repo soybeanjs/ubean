@@ -13,7 +13,7 @@
 
 契约表 schema 此前已部分决定（config key → /vite 插件 → runtime 入口 → peerDeps → 核心依赖形态 → 默认行为）。grilling 跨三包核查（`@ubean/pwa` / `@ubean/auth` / `@ubean/ui`）发现：
 
-- **异构性**：`@ubean/ui` 无 `./runtime` 子路径（须允许「—」）；其核心库 `@soybeanjs/ui` 为**强制 peer**（非 optional），与 pwa/auth 的核心库硬依赖自动安装不同。「核心依赖形态」列正捕此不一致。
+- **异构性**：`@ubean/ui` 无 `./runtime` 子路径（须允许「—」）；其核心库 `@vean/ui` 为**强制 peer**（非 optional），与 pwa/auth 的核心库硬依赖自动安装不同。「核心依赖形态」列正捕此不一致。
 - **「扩展包」集合的真理源未定**：硬编码列表会与被护栏保护的文档同病。
 
 ### OPT-08
@@ -29,7 +29,7 @@
 - **契约表形式 = 人工策展 prose 表**（落 `engineering.md`）：6 列，允许「—」（如 `@ubean/ui` 的 runtime 入口）。「默认行为」本就是 prose 性质，结构化字段不好装。
 - **CI 校验 = 存在性检查**：对每个派生出的扩展包名，断言其出现在 `engineering.md` 契约表段。缺行即失败。
 - **与 OPT-09 共用 CI 脚本**：同一脚本读 `packages/*/package.json`，既做 OPT-09 包名校验，也做 OPT-07 扩展覆盖校验（按细化规则派生扩展集）。
-- **核心依赖形态列三值**：hard（`dependencies`，自动装）/ peer（`peerDependencies` 非 optional，用户必装）/ optional-peer（`peerDependencies` + optional:true）。示例：pwa 的 `vite-plugin-pwa`=hard、auth 的 `better-auth`=hard、ui 的 `@soybeanjs/ui`=peer。
+- **核心依赖形态列三值**：hard（`dependencies`，自动装）/ peer（`peerDependencies` 非 optional，用户必装）/ optional-peer（`peerDependencies` + optional:true）。示例：pwa 的 `vite-plugin-pwa`=hard、auth 的 `better-auth`=hard、ui 的 `@vean/ui`=peer。
 
 ### 2. OPT-08 测试优先级
 
@@ -58,7 +58,7 @@
 | --- | --- |
 | 契约表 | `engineering.md` §11 新增四小节：11.1 契约表（6 列 × 9 行，覆盖全部派生扩展包）+ 11.2 核心依赖形态四值说明 + 11.3 已识别的不一致（hard 与 peer 混用）+ 11.4 新增扩展包清单（3 步骤） |
 | 派生规则 | `scripts/verify-packages.mjs` 读 `packages/ubean/package.json` 的 `dependencies` 排除核心包，派生出 9 个扩展包：auth/icon/pwa/image/content/fonts/electron/pinia/ui |
-| 核心依赖形态四值 | hard（auth: better-auth, pwa: vite-plugin-pwa, electron: vite-plugin-electron）/ peer（pinia: pinia, ui: @soybeanjs/ui）/ optional-peer（各包对 vite/vue）/ none（icon/image/content/fonts 仅工具函数依赖） |
+| 核心依赖形态四值 | hard（auth: better-auth, pwa: vite-plugin-pwa, electron: vite-plugin-electron）/ peer（pinia: pinia, ui: @vean/ui）/ optional-peer（各包对 vite/vue）/ none（icon/image/content/fonts 仅工具函数依赖） |
 | CI 校验 | `.github/workflows/ci.yml` 含 `Verify package tree & extension contract` 步骤；`scripts/verify-packages.mjs` 与 OPT-09 共用，既校验 AGENTS 包树又校验 engineering.md 扩展覆盖 |
 | 验证 | `node scripts/verify-packages.mjs` ✅（37 包，9 扩展，全部覆盖） |
 

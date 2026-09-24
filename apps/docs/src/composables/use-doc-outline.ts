@@ -2,7 +2,7 @@
 // Mirrors the reference's use-doc-outline pattern.
 // Doc pages set the outline via setDocOutline() from their parsed markdown headings.
 //
-// Per DESIGN.md D16: this type stays UI-agnostic (no @soybeanjs/headless/anchor
+// Per DESIGN.md D16: this type stays UI-agnostic (no @vean/aria/anchor
 // dependency). `children` carries nested h3 items under an h2 parent; the layout
 // maps this to SAnchor's AnchorOptionData { title, href, children }.
 import { shallowRef } from 'vue';

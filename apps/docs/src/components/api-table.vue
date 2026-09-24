@@ -1,10 +1,10 @@
 <script setup lang="ts">
 // <ApiTable> renders API Reference Entries from public/api/<pkg>.json (TypeDoc output).
-// Per DESIGN.md D4/D6/D15. Uses @soybeanjs/ui's STable in its data-driven form
+// Per DESIGN.md D4/D6/D15. Uses @vean/ui's STable in its data-driven form
 // (columns/data/row-key + per-column slots), mirroring the reference's type-data.vue.
 // Falls back gracefully when build:api emitted a stub (no dist/*.d.ts).
 import { shallowRef, ref, computed, onMounted, watch } from 'vue';
-import type { TableColumn } from '@soybeanjs/ui';
+import type { TableColumn } from '@vean/ui';
 import { useApiI18n } from '~/composables/use-api-i18n';
 
 const props = defineProps<{ pkg: string }>();
@@ -78,10 +78,10 @@ const paramRowsByEntry = computed(() => {
 });
 
 const paramColumns = computed<TableColumn<ApiParam>[]>(() => [
-  { key: 'name', dataIndex: 'name', title: labels.value.name, minWidth: '144px' },
-  { key: 'type', dataIndex: 'type', title: labels.value.type, minWidth: '176px' },
-  { key: 'default', dataIndex: 'default', title: labels.value.default, minWidth: '120px' },
-  { key: 'description', dataIndex: 'description', title: labels.value.description, minWidth: '240px' }
+  { id: 'name', accessorKey: 'name', header: labels.value.name, minSize: 144 },
+  { id: 'type', accessorKey: 'type', header: labels.value.type, minSize: 176 },
+  { id: 'default', accessorKey: 'default', header: labels.value.default, minSize: 120 },
+  { id: 'description', accessorKey: 'description', header: labels.value.description, minSize: 240 }
 ]);
 
 // Property table rows + columns.
@@ -98,9 +98,9 @@ const propRowsByEntry = computed(() => {
 });
 
 const propColumns = computed<TableColumn<ApiProperty>[]>(() => [
-  { key: 'name', dataIndex: 'name', title: labels.value.name, minWidth: '144px' },
-  { key: 'type', dataIndex: 'type', title: labels.value.type, minWidth: '176px' },
-  { key: 'description', dataIndex: 'description', title: labels.value.description, minWidth: '240px' }
+  { id: 'name', accessorKey: 'name', header: labels.value.name, minSize: 144 },
+  { id: 'type', accessorKey: 'type', header: labels.value.type, minSize: 176 },
+  { id: 'description', accessorKey: 'description', header: labels.value.description, minSize: 240 }
 ]);
 
 function rowKey(row: ApiParam | ApiProperty) {

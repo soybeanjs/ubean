@@ -151,7 +151,7 @@ describe('resolveIslandImportPath', () => {
 
   it('keeps bare specifier as-is', () => {
     expect(resolveIslandImportPath('vue', '/src/pages/Foo.vue')).toBe('vue');
-    expect(resolveIslandImportPath('@soybeanjs/ui', '/src/pages/Foo.vue')).toBe('@soybeanjs/ui');
+    expect(resolveIslandImportPath('@vean/ui', '/src/pages/Foo.vue')).toBe('@vean/ui');
   });
 
   it('keeps scoped package specifier as-is', () => {

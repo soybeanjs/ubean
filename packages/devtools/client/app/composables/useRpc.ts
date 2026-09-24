@@ -1,6 +1,6 @@
 import { getDevToolsRpcClient } from '@vitejs/devtools-kit/client';
 import { ref, onMounted, onUnmounted } from 'vue';
-import { toast } from '@soybeanjs/ui';
+import { toast } from '@vean/ui';
 import type { DevframeRpcClient } from 'devframe/client';
 
 // --- Local type definitions (client self-contained; mirrors server types) ---

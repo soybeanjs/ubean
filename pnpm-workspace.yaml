@@ -3,8 +3,8 @@ packages:
   - 'apps/*'
   - 'examples/*'
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@0.3.3
-  vite-plus: 0.3.3
+  vite: npm:@voidzero-dev/vite-plus-core@latest
+  vite-plus: latest
   typescript: npm:typescript-native-bridge@latest
   vue-i18n: 11.4.12
   '@intlify/core': 11.4.12
@@ -17,4 +17,7 @@ ignoreWorkspaceRootCheck: true
 allowBuilds:
   electron: false
   esbuild: false
+  # vue-demi's postinstall only swaps Vue 2/3 entry points; this workspace is Vue 3 only
+  # (it arrives transitively via @vean/ui → @tanstack/vue-store)
+  vue-demi: false
 minimumReleaseAge: 0

@@ -157,10 +157,10 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 3.3 UI 与样式
 
-- **优先**使用 `@soybeanjs/ui` 的 `S*` 组件
-- DevTools UI：Vue SFC（不用内联 HTML 字符串模板），UnoCSS + `@soybeanjs/unocss-shadcn` preset
+- **优先**使用 `@vean/ui` 的 `S*` 组件
+- DevTools UI：Vue SFC（不用内联 HTML 字符串模板），UnoCSS + `@vean/unocss` preset
 - UnoCSS：utility-first（除 `:deep()` 外不用 scoped CSS）；shortcuts 需 ≥3 次引用；`.ts` 中的动态类名写入 safelist；动画/keyframes 放 `uno.config.ts` theme
-- 图标：Iconify；`@soybeanjs/ui` Icon 可用任何 iconify 图标
+- 图标：Iconify；`@vean/ui` Icon 可用任何 iconify 图标
 
 ### 3.4 i18n
 
@@ -811,18 +811,18 @@ export default defineApp({
 
 > Pinia 本身请直接从 `pinia` 导入(`import { createPinia, defineStore } from 'pinia'`),`@ubean/integrations/pinia` 仅负责构建集成和 SSR 水合辅助。
 
-### @ubean/integrations/ui（@soybeanjs/ui）
+### @ubean/integrations/ui（@vean/ui）
 
 ```typescript
 import { ubeanUiPlugin, defineUiConfig } from '@ubean/integrations/ui';
 import type { UiOptions } from '@ubean/integrations/ui';
 ```
 
-- **底层实现**：[@soybeanjs/ui](https://www.npmjs.com/package/@soybeanjs/ui)（ubean 仅提供薄封装层）
+- **底层实现**：[@vean/ui](https://www.npmjs.com/package/@vean/ui)（ubean 仅提供薄封装层）
 - `ubean.config.ts` 中 `ui: true` 或 `ui: { ... }` 启用
 - **组件自动导入**：自动注册 `UiResolver` 到 `unplugin-vue-components`，`S*` 组件（SButton、SInput 等）无需手动 import
-- **CSS 自动注入**：`css: true`（默认）自动将 `import '@soybeanjs/ui/styles.css'` 注入客户端入口
-- **UnoCSS 模式**：`css: false` 时不注入预构建样式，用户需自行配置 `@soybeanjs/unocss-shadcn` preset + UnoCSS Vite 插件
+- **CSS 自动注入**：`css: true`（默认）自动将 `import '@vean/ui/styles.css'` 注入客户端入口
+- **UnoCSS 模式**：`css: false` 时不注入预构建样式，用户需自行配置 `@vean/unocss` preset + UnoCSS Vite 插件
 
 **最简启用**：
 
@@ -837,11 +837,11 @@ export default defineConfig({
 
 ```typescript
 export default defineConfig({
-  ui: { css: false } // 仅注入 UiResolver，样式由 UnoCSS + @soybeanjs/unocss-shadcn 管理
+  ui: { css: false } // 仅注入 UiResolver，样式由 UnoCSS + @vean/unocss 管理
 });
 ```
 
-> 组件库本身请直接从 `@soybeanjs/ui` 导入（`import { SButton } from '@soybeanjs/ui'`），`@ubean/integrations/ui` 仅负责构建集成。
+> 组件库本身请直接从 `@vean/ui` 导入（`import { SButton } from '@vean/ui'`），`@ubean/integrations/ui` 仅负责构建集成。
 
 ## 6. 虚拟模块
 

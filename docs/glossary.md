@@ -67,7 +67,7 @@
 - **真理源（source of truth）**：CI 校验时比对的标准。OPT-09 的真理源是 `packages/*/package.json` 的 `name` 字段（非目录名——`builder`≠`@ubean/build`、`ubean` 无 scope，目录名会误报）。OPT-07 的扩展集真理源是**派生**的：从 package.json 中找有 `./vite` 导出者，不硬编码列表（见 ADR-0005/0006）。
 - **派生真理源（derived source）**：不从硬编码列表读，而从包的客观属性（如 `./vite` 导出有无）推导集合。避免「护栏列表」自身与被保护对象同病漂移。
 - **存在性 + 计数检查**：OPT-09 的校验形态——读全部包名，断言每个出现在 AGENTS.md 且计数一致。不解析树结构（`├──`/`└──` 正则太脆），不生成清单文件。
-- **强制 peer（mandatory peer）**：核心依赖形态之一——在 `peerDependencies` 但非 `optional:true`，用户必须自行安装（如 `@ubean/integrations/ui` 的 `@soybeanjs/ui`）。区别于 optional-peer（optional:true）与 hard（`dependencies` 自动装）。
+- **强制 peer（mandatory peer）**：核心依赖形态之一——在 `peerDependencies` 但非 `optional:true`，用户必须自行安装（如 `@ubean/integrations/ui` 的 `@vean/ui`）。区别于 optional-peer（optional:true）与 hard（`dependencies` 自动装）。
 - **定规与首用**：OPT-11（约定文本）与 OPT-01（首个遵循该约定的样板 PR）的关系。**定规先行**——约定独立于代码 PR 先落地；首用随后。勿将 `codegraph impact` 输出塞入定规自身的非代码 PR（见 ADR-0005）。
 - **dir≠name 不匹配**：包目录名与 `package.json` `name` 不一致的情况。当前两处：`packages/builder`→`@ubean/build`、`packages/ubean`→`ubean`（无 scope）。CI 校验须用 name 字段否则误报。
 

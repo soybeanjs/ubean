@@ -84,7 +84,7 @@ The `ssr` option only applies within `fullstack` mode — `spa` and `backend` al
 | Extension | Content collections + Markdown                      | `content: true` config                 | `@ubean/content`                |
 | Extension | Font optimization + self-hosting                    | `fonts: true` config                   | `@ubean/integrations/fonts`     |
 | Extension | Electron desktop apps                               | `electron: true` config                | `@ubean/integrations/electron`  |
-| Extension | @soybeanjs/ui integration                           | `ui: true` config                      | `@ubean/integrations/ui`        |
+| Extension | @vean/ui integration                                | `ui: true` config                      | `@ubean/integrations/ui`        |
 | Extension | Pinia integration + SSR hydration                   | `pinia: true` config                   | `@ubean/integrations/pinia`     |
 
 ### Package Entry Points
@@ -263,7 +263,7 @@ Built-in modules (`icon`, `pwa`, `auth`, `image`, `fonts`, `electron`, `ui`, `pi
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  ui: true, // @ubean/integrations/ui — auto-injects @soybeanjs/ui styles.css + UiResolver
+  ui: true, // @ubean/integrations/ui — auto-injects @vean/ui styles.css + UiResolver
   icon: true, // @ubean/icon — Iconify integration
   pwa: true, // @ubean/integrations/pwa — manifest + service worker
   auth: true, // @ubean/auth — Better Auth integration
@@ -301,7 +301,7 @@ The v0.4 series supports **Node.js** (`node-server`) and **Cloudflare Workers** 
 - **App:** `defineApp` options-based customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineEnv`, `defineScheduled` (cron), `defineQueue`. i18n is `ubean.config.ts` `i18n` + vue-i18n 11 (`setLocale` from `ubean` / `ubean/client`; `useI18n` directly from `vue-i18n`; server-side ALS `t()` from `ubean/i18n`).
 - **Server:** Built-in database layer (`defineDatabase` / `useDatabase`), storage (`useStorage` / `useKV`), cache (`useCacheStore` / `cachedEventHandler`), rate limiting, CORS, route rules (redirect / rewrite / headers / cache), and SSG prerendering — with a lightweight direct render path for `mode: 'ssg'` (no HTTP pipeline, `404.html` output, i18n route expansion). WebSocket (`defineWebSocket`), SSE streaming, and `internalFetch` (dispatches framework handlers in-process without a network request).
 - **DevTools:** RPC, AI assistant, API playground, and CRUD scaffolding.
-- **Extension packages:** `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/image`, `@ubean/content`, and `@ubean/integrations` (PWA / fonts / Electron desktop apps via vite-plugin-electron with default main/preload entries and auto SSR disable / @soybeanjs/ui with UiResolver and styles.css auto-injection / Pinia SSR hydration).
+- **Extension packages:** `@ubean/auth` (Better Auth with fallback), `@ubean/icon` (Iconify integration), `@ubean/image`, `@ubean/content`, and `@ubean/integrations` (PWA / fonts / Electron desktop apps via vite-plugin-electron with default main/preload entries and auto SSR disable / @vean/ui with UiResolver and styles.css auto-injection / Pinia SSR hydration).
 
 ### Suitable Scenarios
 

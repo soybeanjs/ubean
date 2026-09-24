@@ -247,7 +247,7 @@ describe('ubean-icon core', () => {
   </div>
 </template>
 <script setup>
-import { SIcon } from '@soybeanjs/ui';
+import { SIcon } from '@vean/ui';
 const icon = 'lucide:settings';
 </script>
 `;

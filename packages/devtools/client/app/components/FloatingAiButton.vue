@@ -9,7 +9,7 @@
  * panel-specific questions without the user typing context manually.
  */
 import { ref, nextTick, computed, watch } from 'vue';
-import { SIcon } from '@soybeanjs/ui';
+import { SIcon } from '@vean/ui';
 import { DEEPSEEK_API_BASE, DEEPSEEK_MODEL } from '../composables/useRpc';
 import type { AiChatMessage, AiChatResponse, AiStreamChunk } from '../composables/useRpc';
 

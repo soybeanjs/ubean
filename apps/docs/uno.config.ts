@@ -3,7 +3,7 @@ import { dirname, resolve } from 'pathe';
 import { defineConfig, transformerDirectives, transformerVariantGroup } from 'unocss';
 import type { Theme } from 'unocss/preset-mini';
 import { presetSoybean } from '@soybeanjs/unocss-preset';
-import { presetShadcn } from '@soybeanjs/unocss-shadcn';
+import { presetUi } from '@vean/unocss';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SRC_DIR = resolve(__dirname, 'src');
@@ -23,11 +23,7 @@ export default defineConfig<Theme>({
   // toggling will break silently. Keep presetSoybean for its flex/grid shortcuts.
   presets: [
     presetSoybean(),
-    presetShadcn({
-      generated: {
-        ui: true
-      }
-    })
+    presetUi()
   ],
   theme: {
     fontFamily: {

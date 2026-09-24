@@ -63,10 +63,10 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 **Rationale:** The reference is purpose-built for a component registry; most of its bespoke components have no framework equivalent. The shell (header/sidebar/outline/search/theme) is the valuable, reusable part.
 **Alternatives:** full port (dead code, component-library assumptions); fresh design (loses proven patterns, slower).
 
-### D9. Styling — `@ubean/integrations/ui` UnoCSS mode + `@soybeanjs/unocss-shadcn`
-**Decision:** `ubean.config.ts` sets `ui: { css: false }` (UnoCSS mode) + `@soybeanjs/unocss-shadcn` preset in `uno.config.ts`. This mirrors both the reference's visual system and the existing ubean DevTools styling convention.
-**Rationale:** Consistent with project memory ("DevTools UI: UnoCSS with `@soybeanjs/unocss-shadcn` preset"). Utility-first, no scoped CSS. Same component primitives (`S*`) as the reference.
-**Alternatives:** `@ubean/integrations/ui` CSS mode + Tailwind (diverges from reference + DevTools); direct `@soybeanjs/ui` (bypasses ubean integration, more manual).
+### D9. Styling — `@ubean/integrations/ui` UnoCSS mode + `@vean/unocss`
+**Decision:** `ubean.config.ts` sets `ui: { css: false }` (UnoCSS mode) + `@vean/unocss` preset in `uno.config.ts`. This mirrors both the reference's visual system and the existing ubean DevTools styling convention.
+**Rationale:** Consistent with project memory ("DevTools UI: UnoCSS with `@vean/unocss` preset"). Utility-first, no scoped CSS. Same component primitives (`S*`) as the reference.
+**Alternatives:** `@ubean/integrations/ui` CSS mode + Tailwind (diverges from reference + DevTools); direct `@vean/ui` (bypasses ubean integration, more manual).
 
 ### D10. Search — prerender-time fuse.js index
 **Decision:** At prerender time, walk all markdown content + generated API JSON, build a fuse.js index (title + heading + body excerpt + route), emit to `public/search-index.json`. Client fetches it once and searches in-memory.
@@ -100,13 +100,13 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 > **Updated:** the framework-comparison block was removed from the home page during the ADR-0007 restructure; `framework-comparison.md` now lives in the site content (`src/content/{en,zh}/architecture/`).
 
 ### D15. `<ApiTable>` rendering — data-driven `STable` (columns/data/slots)
-**Decision:** Render API parameter/property tables with `@soybeanjs/ui`'s `STable` in its data-driven form: `:columns` (array of `{key, dataIndex, title, minWidth}`) + `:data` (array of row objects) + `:row-key` + per-column named slots (`#name`, `#type`, …). Mirrors the reference's [`tables/type-data.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/components/tables/type-data.vue).
-**Rationale:** `STable` does **not** export `STableHeader`/`STableBody`/`STableHead` structural subcomponents (only `STable`/`STableRow`/`STableCell`); the supported API is data-driven. This is also mandated by the project convention "ALWAYS prioritize `@soybeanjs/ui` `S*` components over custom implementations".
-**Alternatives:** plain HTML `<table>` with shadcn table classes (simpler/lighter, but violates the S* convention and diverges from the reference visual); definition lists (semantic, but visually inconsistent with reference). Verified by reading [`@soybeanjs/ui` table index](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/packages/ui/src/components/table/index.ts) and the headless `TableSlots` type.
+**Decision:** Render API parameter/property tables with `@vean/ui`'s `STable` in its data-driven form: `:columns` (array of `{key, dataIndex, title, minWidth}`) + `:data` (array of row objects) + `:row-key` + per-column named slots (`#name`, `#type`, …). Mirrors the reference's [`tables/type-data.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/components/tables/type-data.vue).
+**Rationale:** `STable` does **not** export `STableHeader`/`STableBody`/`STableHead` structural subcomponents (only `STable`/`STableRow`/`STableCell`); the supported API is data-driven. This is also mandated by the project convention "ALWAYS prioritize `@vean/ui` `S*` components over custom implementations".
+**Alternatives:** plain HTML `<table>` with shadcn table classes (simpler/lighter, but violates the S* convention and diverges from the reference visual); definition lists (semantic, but visually inconsistent with reference). Verified by reading [`@vean/ui` table index](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/packages/ui/src/components/table/index.ts) and the headless `TableSlots` type.
 
 ### D16. Right-sidebar outline — decoupled `DocOutlineItem` + nested mapping in layout
 **Decision:** Keep `use-doc-outline.ts`'s `DocOutlineItem { label, value, level }` UI-agnostic (as previously decided). Build a nested h2→h3 tree in `[...slug].vue` (h2 = top-level, h3 = `children`). Map `DocOutlineItem[]` → `AnchorOptionData[] { title, href: '#'+value, children }` in `default.vue` before passing to `SAnchor`.
-**Rationale:** Respects the prior decision to keep the outline composable free of `@soybeanjs/headless/anchor` coupling. `SAnchor`'s `AnchorOptionData` requires `href` (not `value`) and supports `children` for indentation — the mapping is a thin layout-layer concern, not a domain concern. Gives the standard indented-h3 outline UX.
+**Rationale:** Respects the prior decision to keep the outline composable free of `@vean/aria/anchor` coupling. `SAnchor`'s `AnchorOptionData` requires `href` (not `value`) and supports `children` for indentation — the mapping is a thin layout-layer concern, not a domain concern. Gives the standard indented-h3 outline UX.
 **Alternatives:** reshape `DocOutlineItem` to `{title,href,children}` to match `AnchorOptionData` directly (re-couples composable to UI shape); flat h2-only outline (loses subsection navigation). Verified against [`anchor/types.ts`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/packages/headless/src/components/anchor/types.ts) (`AnchorOptionData` requires `href`).
 
 ### D17. Locale switching — `switchLocalePath` + `router.push`
@@ -126,9 +126,9 @@ Each entry: **Decision → Rationale → Alternatives considered**.
 > Each entry: **Decision → Rationale → Alternatives considered**.
 
 ### D19. Dark-mode fix — `presetWind3({ dark: 'class' })` + `SConfigProvider` wrap
-**Decision:** Update `uno.config.ts` to include `presetWind3({ dark: 'class' })` (placed before `presetSoybean()`, matching the reference's preset order) and `presetAnimations()`. Wrap the app root in `SConfigProvider` from `@soybeanjs/ui` (in a new `src/App.vue`).
-**Rationale:** Without `presetWind3({ dark: 'class' })`, UnoCSS `dark:` variants use the default `media` strategy (system-driven), not the explicit `.dark` class on `<html>` that `@soybeanjs/unocss-shadcn` tokens assume. This is the root cause of "dark mode anomalies": shadcn `bg-background`/`text-foreground` resolve correctly but `dark:`-prefixed utilities did not flip in lockstep with the runtime class. `SConfigProvider` is the supported `@soybeanjs/ui` integration point for component theming context (SToast/SDialog positioning, locale, etc.).
-**Alternatives:** `presetWind3` only (works for utilities but `@soybeanjs/ui` components lack theming context — toast/dialog mis-themed); `SConfigProvider` only (utilities still on `media` strategy, out of sync with `<html>.dark`).
+**Decision:** Update `uno.config.ts` to include `presetWind3({ dark: 'class' })` (placed before `presetSoybean()`, matching the reference's preset order) and `presetAnimations()`. Wrap the app root in `SConfigProvider` from `@vean/ui` (in a new `src/App.vue`).
+**Rationale:** Without `presetWind3({ dark: 'class' })`, UnoCSS `dark:` variants use the default `media` strategy (system-driven), not the explicit `.dark` class on `<html>` that `@vean/unocss` tokens assume. This is the root cause of "dark mode anomalies": shadcn `bg-background`/`text-foreground` resolve correctly but `dark:`-prefixed utilities did not flip in lockstep with the runtime class. `SConfigProvider` is the supported `@vean/ui` integration point for component theming context (SToast/SDialog positioning, locale, etc.).
+**Alternatives:** `presetWind3` only (works for utilities but `@vean/ui` components lack theming context — toast/dialog mis-themed); `SConfigProvider` only (utilities still on `media` strategy, out of sync with `<html>.dark`).
 **Verified against:** [`soybean-ui/apps/docs/uno.config.ts`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/uno.config.ts#L14-L23) and [`soybean-ui/apps/docs/src/App.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/App.vue#L1-L11).
 
 ### D20. Color-mode bootstrap — inline no-flash script + `SConfigProvider`, drop ubean `colorMode`
@@ -167,7 +167,7 @@ Add `@fontsource-variable/manrope` to `package.json` and import it in `app.ts` b
 
 ### D25. App root — create `src/App.vue` wrapping `RouterView` in `SConfigProvider`
 **Decision:** Create `src/App.vue` whose template is `<SConfigProvider><RouterView /></SConfigProvider>` (no props — `provideThemeContext` from `@playground/theme` is a component-library-specific helper that we skip per D8). ubean's `defineApp` in `app.ts` continues to own head/meta/rootId. The ubean runtime picks up `src/App.vue` as the root component (verify against ubean runtime convention; if not, fall back to wiring `App` in `defineApp.root`).
-**Rationale:** `SConfigProvider` must wrap the entire render tree so `@soybeanjs/ui` components (SToast, SDialog, SPopover) inherit theme context. Putting it in a layout (default.vue/home.vue/blank.vue) would re-mount the provider on layout transitions and lose toast/dialog state. The reference puts it at `App.vue` for the same reason. Skipping `provideThemeContext` keeps the surface minimal — `SConfigProvider` with no props still applies the theme tokens via the `.dark` class on `<html>` (set by the D20 inline script).
+**Rationale:** `SConfigProvider` must wrap the entire render tree so `@vean/ui` components (SToast, SDialog, SPopover) inherit theme context. Putting it in a layout (default.vue/home.vue/blank.vue) would re-mount the provider on layout transitions and lose toast/dialog state. The reference puts it at `App.vue` for the same reason. Skipping `provideThemeContext` keeps the surface minimal — `SConfigProvider` with no props still applies the theme tokens via the `.dark` class on `<html>` (set by the D20 inline script).
 **Alternatives:** wrap in `default.vue` only (loses provider on home/blank routes, re-mounts on transitions); replicate `provideThemeContext` locally (couples to a playground-specific abstraction we don't need).
 **Verified against:** [`soybean-ui/apps/docs/src/App.vue`](file:///Users/soybean/Web/Projects/SoybeanJS/soybean-ui/apps/docs/src/App.vue#L1-L11).
 

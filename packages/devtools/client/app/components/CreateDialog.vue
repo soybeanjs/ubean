@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
-import { SIcon } from '@soybeanjs/ui';
+import { SIcon } from '@vean/ui';
 import type { CrudResourceType, CrudResult } from '../composables/useRpc';
 
 const props = defineProps<{

@@ -81,4 +81,4 @@ keywords: [vue, vite, hono, full-stack, ssr]
 - `@ubean/image`: Image optimization
 - `@ubean/content`: Content management
 - `@ubean/integrations/fonts`: Font optimization
-- `@soybeanjs/ui`: UI component library (includes SIcon for theme-aware icons)
+- `@vean/ui`: UI component library (includes SIcon for theme-aware icons)

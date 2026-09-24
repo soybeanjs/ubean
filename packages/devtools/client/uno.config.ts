@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig, transformerDirectives, transformerVariantGroup } from 'unocss';
 import { presetSoybean } from '@soybeanjs/unocss-preset';
-import { presetShadcn } from '@soybeanjs/unocss-shadcn';
+import { presetUi } from '@vean/unocss';
 import { dirname, resolve } from 'pathe';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -15,7 +15,7 @@ export default defineConfig({
     filesystem: [resolve(APP_DIR, '**/*.vue')]
   },
   transformers: [transformerDirectives(), transformerVariantGroup()],
-  presets: [presetSoybean(), presetShadcn()],
+  presets: [presetSoybean(), presetUi()],
   theme: {
     fontFamily: {
       sans: "'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",

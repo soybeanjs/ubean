@@ -84,7 +84,7 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 | 扩展     | 内容集合 + Markdown                         | `content: true` 配置                   | `@ubean/content`                |
 | 扩展     | 字体优化 + 自托管                           | `fonts: true` 配置                     | `@ubean/integrations/fonts`     |
 | 扩展     | Electron 桌面应用                           | `electron: true` 配置                  | `@ubean/integrations/electron`  |
-| 扩展     | @soybeanjs/ui 集成                          | `ui: true` 配置                        | `@ubean/integrations/ui`        |
+| 扩展     | @vean/ui 集成                               | `ui: true` 配置                        | `@ubean/integrations/ui`        |
 | 扩展     | Pinia 集成 + SSR 水合                       | `pinia: true` 配置                     | `@ubean/integrations/pinia`     |
 
 ### 包入口点
@@ -262,7 +262,7 @@ export default defineConfig({
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  ui: true, // @ubean/integrations/ui —— 自动注入 @soybeanjs/ui styles.css + UiResolver
+  ui: true, // @ubean/integrations/ui —— 自动注入 @vean/ui styles.css + UiResolver
   icon: true, // @ubean/icon —— Iconify 集成
   pwa: true, // @ubean/integrations/pwa —— manifest + service worker
   auth: true, // @ubean/auth —— Better Auth 集成
@@ -300,7 +300,7 @@ v0.4 系列将 **Node.js**（`node-server`）和 **Cloudflare Workers** 作为�
 - **应用：** `defineApp` 基于选项的定制（含 `router.setup` 用于在 client 与 SSR 两端注册全局导航守卫）、`definePage` 宏、`defineMiddleware`、`defineEnv`、`defineScheduled`（cron）、`defineQueue`。i18n 写在 `ubean.config.ts` 的 `i18n`，Vue 端 vue-i18n 11（从 `ubean` / `ubean/client` 导入 `setLocale`；直接从 `vue-i18n` 导入 `useI18n`；服务端 ALS 从 `ubean/i18n` 导入 `t()`）。
 - **服务器：** 内置数据库层（`defineDatabase` / `useDatabase`）、存储（`useStorage` / `useKV`）、缓存（`useCacheStore` / `cachedEventHandler`）、限流、CORS、route rules（重定向 / 重写 / headers / cache）与 SSG 预渲染——包含 `mode: 'ssg'` 的轻量直接渲染路径（无 HTTP 管道、`404.html` 输出、i18n 路由扩展）。WebSocket（`defineWebSocket`）、SSE 流、`internalFetch`（直接在进程内调度框架 handler，不发起网络请求）。
 - **DevTools：** RPC、AI 助手、API playground 与 CRUD 脚手架。
-- **扩展包：** `@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/image`、`@ubean/content`，以及 `@ubean/integrations`（PWA / 字体 / 基于 vite-plugin-electron 的 Electron 桌面应用，默认 main/preload 入口，自动关闭 SSR / @soybeanjs/ui 集成，UiResolver + styles.css 自动注入 / Pinia SSR 水合）。
+- **扩展包：** `@ubean/auth`（Better Auth 集成 + fallback）、`@ubean/icon`（Iconify 集成）、`@ubean/image`、`@ubean/content`，以及 `@ubean/integrations`（PWA / 字体 / 基于 vite-plugin-electron 的 Electron 桌面应用，默认 main/preload 入口，自动关闭 SSR / @vean/ui 集成，UiResolver + styles.css 自动注入 / Pinia SSR 水合）。
 
 ### 适用场景
 

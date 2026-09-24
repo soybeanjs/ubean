@@ -338,7 +338,7 @@ export default defineConfig({
   fonts: false, // @ubean/integrations/fonts
   electron: false, // @ubean/integrations/electron (enabling auto-disables SSR unless explicitly set)
   pinia: false, // @ubean/integrations/pinia (Pinia integration: dev optimizeDeps + SSR state hydration helpers)
-  ui: false, // @ubean/integrations/ui (@soybeanjs/ui: UiResolver + styles.css auto-injection)
+  ui: false, // @ubean/integrations/ui (@vean/ui: UiResolver + styles.css auto-injection)
   // Route generation mode (virtual | file | both)
   routing: { mode: 'virtual' },
   // i18n routing
@@ -393,7 +393,7 @@ Use these keys in `dependsOn` for built-in modules:
 | `content`  | @ubean/content (content management)                                       |
 | `electron` | @ubean/integrations/electron (desktop apps, auto-disables SSR)            |
 | `pinia`    | @ubean/integrations/pinia (Pinia: dev optimizeDeps + SSR state hydration) |
-| `ui`       | @ubean/integrations/ui (@soybeanjs/ui: UiResolver + styles.css)           |
+| `ui`       | @ubean/integrations/ui (@vean/ui: UiResolver + styles.css)                |
 
 ## Key Features
 
@@ -472,7 +472,7 @@ Use these keys in `dependsOn` for built-in modules:
 - `@ubean/integrations/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
 - `@ubean/integrations/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR
 - `@ubean/integrations/pinia`: Pinia integration; `pinia: true` enables dev `optimizeDeps` pre-bundling; pair with `defineApp({ serializeState: serializePiniaState, hydrateState: hydratePiniaState })` for SSR state hydration (Pinia itself imported from `pinia`)
-- `@ubean/integrations/ui`: @soybeanjs/ui integration; `ui: true` enables UiResolver (component auto-import) + styles.css injection; `ui: { css: false }` for UnoCSS mode (@soybeanjs/unocss-shadcn)
+- `@ubean/integrations/ui`: @vean/ui integration; `ui: true` enables UiResolver (component auto-import) + styles.css injection; `ui: { css: false }` for UnoCSS mode (@vean/unocss)
 
 ## Project Structure (user project)
 
@@ -631,5 +631,5 @@ console.log(n(1234.56));
   - Prerender / SSG
   - Built-in cron, queue, storage, database, WebSocket, SSE
   - `@ubean/integrations/electron` desktop app support (default main/preload entries, auto-disable SSR)
-  - `@ubean/integrations/ui` @soybeanjs/ui integration (UiResolver component auto-import + styles.css auto-injection)
+  - `@ubean/integrations/ui` @vean/ui integration (UiResolver component auto-import + styles.css auto-injection)
   - `@ubean/integrations/pinia` Pinia integration (dev optimizeDeps + SSR state hydration helpers via `defineApp({ serializeState, hydrateState })`)

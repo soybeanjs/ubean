@@ -1,19 +1,19 @@
 ---
 title: Ui
-description: UI components from @soybeanjs/ui, integrated via @ubean/integrations/ui.
+description: UI components from @vean/ui, integrated via @ubean/integrations/ui.
 ---
 
-# UI Components (@soybeanjs/ui)
+# UI Components (@vean/ui)
 
-`@ubean/integrations/ui` is ubean's **built-in UI integration** that integrates [`@soybeanjs/ui`](https://www.npmjs.com/package/@soybeanjs/ui) — a shadcn-style Vue component library. The module is a thin orchestration layer that wires `@soybeanjs/ui`'s component resolver and (optionally) prebuilt styles into ubean's Vite pipeline. The component library itself is consumed directly from `@soybeanjs/ui`.
+`@ubean/integrations/ui` is ubean's **built-in UI integration** that integrates [`@vean/ui`](https://www.npmjs.com/package/@vean/ui) — a shadcn-style Vue component library. The module is a thin orchestration layer that wires `@vean/ui`'s component resolver and (optionally) prebuilt styles into ubean's Vite pipeline. The component library itself is consumed directly from `@vean/ui`.
 
 ## Features
 
 - One-line enable: `ui: true` in `ubean.config.ts`
 - `UiResolver` auto-registration — `S*` components (`SButton`, `SInput`, `SConfigProvider`, ...) are auto-imported on first use, no manual `import` needed
 - Two styling modes:
-  - **Prebuilt CSS** (default): `@soybeanjs/ui/styles.css` is auto-injected into the client entry — zero CSS setup
-  - **UnoCSS mode** (`css: false`): use `@soybeanjs/unocss-shadcn` preset for utility-first styling and theming
+  - **Prebuilt CSS** (default): `@vean/ui/styles.css` is auto-injected into the client entry — zero CSS setup
+  - **UnoCSS mode** (`css: false`): use `@vean/unocss` preset for utility-first styling and theming
 - Type-safe configuration via `UiOptions`
 - dev `optimizeDeps` pre-bundling for fast first load
 
@@ -22,17 +22,17 @@ description: UI components from @soybeanjs/ui, integrated via @ubean/integration
 `@ubean/integrations/ui` is a built-in integration (a subpath of `@ubean/integrations`). Install it as a dependency in your project:
 
 ```bash
-pnpm add @ubean/integrations/ui @soybeanjs/ui
+pnpm add @ubean/integrations/ui @vean/ui
 ```
 
-> `@soybeanjs/ui` is a peer dependency — you control its version. `@ubean/integrations/ui` requires `@soybeanjs/ui@>=0.29.0`.
+> `@vean/ui` is a peer dependency — you control its version. `@ubean/integrations/ui` requires `@vean/ui@>=0.29.0`.
 
 ### UnoCSS mode (optional)
 
 If you choose `css: false` (UnoCSS mode), also install the preset:
 
 ```bash
-pnpm add -D @soybeanjs/unocss-shadcn
+pnpm add -D @vean/unocss
 ```
 
 ## Configuration
@@ -52,7 +52,7 @@ export default defineConfig({
 
 This gives you:
 - Auto-imported `S*` components everywhere (no imports needed)
-- Prebuilt `@soybeanjs/ui/styles.css` injected into the client bundle
+- Prebuilt `@vean/ui/styles.css` injected into the client bundle
 
 ### UnoCSS Mode
 
@@ -72,18 +72,18 @@ Then configure UnoCSS with the shadcn preset:
 ```typescript
 // uno.config.ts
 import { defineConfig, presetUno } from 'unocss';
-import { presetShadcn } from '@soybeanjs/unocss-shadcn';
+import { presetUi } from '@vean/unocss';
 
 export default defineConfig({
   presets: [
     presetUno(),
-    presetShadcn({
+    presetUi({
       // Customize theme color tokens here (CSS variables driven)
       // color: { primary: 'hsl(var(--primary))' }
     })
   ],
   // Recommended: enable reset + global + ui generated styles
-  // (see @soybeanjs/unocss-shadcn docs for full options)
+  // (see @vean/unocss docs for full options)
 });
 ```
 
@@ -106,7 +106,7 @@ export default defineConfig({
 
 ### Auto-imported Components
 
-With `ui: true`, all `S*` components from `@soybeanjs/ui` are auto-imported — just use them in templates:
+With `ui: true`, all `S*` components from `@vean/ui` are auto-imported — just use them in templates:
 
 ```vue
 <template>
@@ -121,19 +121,19 @@ const value = ref('');
 </script>
 ```
 
-No `import { SButton } from '@soybeanjs/ui'` needed — `UiResolver` resolves `S*` names to `@soybeanjs/ui` exports at compile time and registers them in `components.d.ts`.
+No `import { SButton } from '@vean/ui'` needed — `UiResolver` resolves `S*` names to `@vean/ui` exports at compile time and registers them in `components.d.ts`.
 
 ### Explicit Import (when needed)
 
 For programmatic usage or when you want explicit imports:
 
 ```typescript
-import { SButton, useToast } from '@soybeanjs/ui';
+import { SButton, useToast } from '@vean/ui';
 ```
 
 ### Available Components
 
-`@soybeanjs/ui` ships a growing list of shadcn-style components. Common ones:
+`@vean/ui` ships a growing list of shadcn-style components. Common ones:
 
 - **Form**: `SInput`, `STextarea`, `SSelect`, `SCheckbox`, `SRadioGroup`, `SSwitch`, `SSlider`, `SDatePicker`
 - **Layout**: `SCard`, `SSeparator`, `STabs`, `SAccordion`, `SResizable`
@@ -142,7 +142,7 @@ import { SButton, useToast } from '@soybeanjs/ui';
 - **Data**: `STable`, `SDataTable`, `STree`
 - **Misc**: `SButton`, `SBadge`, `SAvatar`, `SDropdownMenu`, `SContextMenu`
 
-See the [`@soybeanjs/ui` docs](https://www.npmjs.com/package/@soybeanjs/ui) for the full list and props.
+See the [`@vean/ui` docs](https://www.npmjs.com/package/@vean/ui) for the full list and props.
 
 ## How It Works
 
@@ -150,13 +150,13 @@ See the [`@soybeanjs/ui` docs](https://www.npmjs.com/package/@soybeanjs/ui) for 
 
 1. **Module system loads** `@ubean/integrations/ui` and calls `ubeanUiPlugin(options)` (where `options` comes from `extractBuiltinOptions(config.ui)` — an object is passed through as-is minus the module-system `disabled` flag; `true` yields `{}`).
 
-2. **`ubeanUiPlugin` registers** `UiResolver()` (from `@soybeanjs/ui/resolver`) into ubean's module extension registry (in `@ubean/build-core`).
+2. **`ubeanUiPlugin` registers** `UiResolver()` (from `@vean/ui/resolver`) into ubean's module extension registry (in `@ubean/build-core`).
 
 3. **`ubeanVite` reads** the registry when constructing `unplugin-vue-components` and merges all registered resolvers into the `resolvers` array. This makes `S*` components resolvable from any `.vue` / `.md` file.
 
-4. **CSS injection** (when `css !== false`): `ubeanUiPlugin` calls `registerCssImport('@soybeanjs/ui/styles.css')`. The `virtual:ubean-client-entry` virtual module prepends `import '@soybeanjs/ui/styles.css';` to the client entry, so the prebuilt stylesheet ships with the client bundle automatically.
+4. **CSS injection** (when `css !== false`): `ubeanUiPlugin` calls `registerCssImport('@vean/ui/styles.css')`. The `virtual:ubean-client-entry` virtual module prepends `import '@vean/ui/styles.css';` to the client entry, so the prebuilt stylesheet ships with the client bundle automatically.
 
-5. **dev `optimizeDeps`**: `ubeanUiPlugin` adds `@soybeanjs/ui` to Vite's `optimizeDeps.include`, ensuring the component library is pre-bundled for fast first page load in dev.
+5. **dev `optimizeDeps`**: `ubeanUiPlugin` adds `@vean/ui` to Vite's `optimizeDeps.include`, ensuring the component library is pre-bundled for fast first page load in dev.
 
 > The registry pattern keeps `@ubean/vite` decoupled from any specific component library — future built-in UI integrations can reuse the same mechanism.
 
@@ -182,10 +182,10 @@ export interface UiOptions {
   /** Whether the module is enabled (default: true) */
   enabled?: boolean;
   /**
-   * Whether to auto-inject `@soybeanjs/ui/styles.css` (default: true).
+   * Whether to auto-inject `@vean/ui/styles.css` (default: true).
    *
    * - `true` (default): prebuilt CSS auto-injected, zero CSS setup
-   * - `false`: UnoCSS mode — configure `@soybeanjs/unocss-shadcn` yourself
+   * - `false`: UnoCSS mode — configure `@vean/unocss` yourself
    */
   css?: boolean;
 }
@@ -217,19 +217,19 @@ The prebuilt `styles.css` ships with default shadcn-inspired styles driven by CS
 }
 ```
 
-Refer to `@soybeanjs/ui`'s theme tokens for the full variable list.
+Refer to `@vean/ui`'s theme tokens for the full variable list.
 
 ### UnoCSS Mode
 
-With `css: false`, theming is handled by `@soybeanjs/unocss-shadcn` preset. The preset generates utility classes for all shadcn components and respects the same CSS variables. Configure theme tokens in `uno.config.ts`:
+With `css: false`, theming is handled by `@vean/unocss` preset. The preset generates utility classes for all shadcn components and respects the same CSS variables. Configure theme tokens in `uno.config.ts`:
 
 ```typescript
 // uno.config.ts
 import { defineConfig, presetUno } from 'unocss';
-import { presetShadcn } from '@soybeanjs/unocss-shadcn';
+import { presetUi } from '@vean/unocss';
 
 export default defineConfig({
-  presets: [presetUno(), presetShadcn()],
+  presets: [presetUno(), presetUi()],
   theme: {
     colors: {
       primary: 'hsl(var(--primary))',
@@ -241,9 +241,9 @@ export default defineConfig({
 
 ## SSR Considerations
 
-`@soybeanjs/ui` is SSR-safe — components render correctly during ubean's SSR pass. The prebuilt `styles.css` is injected into the client entry only (not the SSR bundle), so server-rendered HTML uses inline styles or class-based styling that the client hydrates with the full stylesheet.
+`@vean/ui` is SSR-safe — components render correctly during ubean's SSR pass. The prebuilt `styles.css` is injected into the client entry only (not the SSR bundle), so server-rendered HTML uses inline styles or class-based styling that the client hydrates with the full stylesheet.
 
-For UnoCSS mode, ensure `@soybeanjs/unocss-shadcn`'s generated styles are included in both client and SSR builds (UnoCSS's Vite plugin handles this automatically).
+For UnoCSS mode, ensure `@vean/unocss`'s generated styles are included in both client and SSR builds (UnoCSS's Vite plugin handles this automatically).
 
 ## Best Practices
 
@@ -264,9 +264,9 @@ For UnoCSS mode, ensure `@soybeanjs/unocss-shadcn`'s generated styles are includ
 
 4. **Customize via CSS variables, not overrides**: Both modes respect shadcn's CSS variable system. Override variables in `:root` / `.dark` instead of writing component-scoped CSS — this keeps your styles portable across component library upgrades.
 
-5. **Use the Icon component from `@soybeanjs/ui`**: `SIcon` (or `<Icon />` from `@soybeanjs/ui`) supports any Iconify icon. If you also have `@ubean/icon` enabled, both can coexist — `@ubean/icon` handles local SVG collections, while `@soybeanjs/ui`'s Icon handles the full Iconify catalog via `@iconify/vue`.
+5. **Use the Icon component from `@vean/ui`**: `SIcon` (or `<Icon />` from `@vean/ui`) supports any Iconify icon. If you also have `@ubean/icon` enabled, both can coexist — `@ubean/icon` handles local SVG collections, while `@vean/ui`'s Icon handles the full Iconify catalog via `@iconify/vue`.
 
-6. **Keep `@soybeanjs/ui` version aligned**: Pin `@soybeanjs/ui` to a known-good version in your `package.json`. The library is under active development — breaking changes may occur between minor versions before 1.0.
+6. **Keep `@vean/ui` version aligned**: Pin `@vean/ui` to a known-good version in your `package.json`. The library is under active development — breaking changes may occur between minor versions before 1.0.
 
 ## Troubleshooting
 
@@ -274,18 +274,18 @@ For UnoCSS mode, ensure `@soybeanjs/unocss-shadcn`'s generated styles are includ
 
 - Verify `ui: true` (or `ui: { css: ... }`) is set in `ubean.config.ts`
 - Run `ubean prepare` to regenerate `.ubean/components.d.ts`
-- Check that `@ubean/integrations/ui` and `@soybeanjs/ui` are installed (not just one of them)
+- Check that `@ubean/integrations/ui` and `@vean/ui` are installed (not just one of them)
 - Ensure the component name starts with `S` (e.g. `SButton`, not `Button`)
 
 ### Styles missing in prebuilt CSS mode
 
 - Verify `css` is not set to `false` (default is `true`)
-- Check the client entry virtual module output: run `ubean dev` and inspect the loaded modules in Vite — `@soybeanjs/ui/styles.css` should appear
+- Check the client entry virtual module output: run `ubean dev` and inspect the loaded modules in Vite — `@vean/ui/styles.css` should appear
 - If using a custom Vite config, ensure `ubeanUiPlugin`'s output isn't being filtered out
 
 ### UnoCSS classes not generated
 
-- Verify `@soybeanjs/unocss-shadcn` is installed and added to `uno.config.ts` presets
+- Verify `@vean/unocss` is installed and added to `uno.config.ts` presets
 - Enable the preset's `generated: { reset: true, global: true, ui: true }` option if available
 - Check `uno.config.ts` `content` / `include` patterns cover your `.vue` files
 
@@ -293,7 +293,7 @@ For UnoCSS mode, ensure `@soybeanjs/unocss-shadcn`'s generated styles are includ
 
 - Run `ubean prepare` to regenerate type declarations
 - Verify `tsconfig.json` includes `.ubean/components.d.ts`
-- If using explicit imports, ensure you import from `@soybeanjs/ui` (not `@ubean/integrations/ui`)
+- If using explicit imports, ensure you import from `@vean/ui` (not `@ubean/integrations/ui`)
 
 ## Examples
 
@@ -376,7 +376,7 @@ async function confirmDelete() {
 
 ## Resources
 
-- [`@soybeanjs/ui` on npm](https://www.npmjs.com/package/@soybeanjs/ui)
-- [`@soybeanjs/unocss-shadcn` on npm](https://www.npmjs.com/package/@soybeanjs/unocss-shadcn)
+- [`@vean/ui` on npm](https://www.npmjs.com/package/@vean/ui)
+- [`@vean/unocss` on npm](https://www.npmjs.com/package/@vean/unocss)
 - [shadcn/ui (reference design)](https://ui.shadcn.com/)
 - [Iconify](https://iconify.design/) — for `SIcon` icon names

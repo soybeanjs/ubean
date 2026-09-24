@@ -1,25 +1,25 @@
 /**
  * ubean UI Vite 插件
  *
- * 这是 @soybeanjs/ui 的薄封装层，职责：
+ * 这是 @vean/ui 的薄封装层，职责：
  * 1. 将 UiResolver 注册到 ubean 的组件自动导入系统
- * 2. 可选将 @soybeanjs/ui/styles.css 注册到客户端入口（默认启用）
+ * 2. 可选将 @vean/ui/styles.css 注册到客户端入口（默认启用）
  *
- * 组件库本身由 @soybeanjs/ui 提供，本模块不重新导出组件。
+ * 组件库本身由 @vean/ui 提供，本模块不重新导出组件。
  */
 
 export type { UiOptions } from './types';
 
 import type { Plugin } from 'vite';
 import { registerComponentResolver, registerCssImport } from '@ubean/build';
-import UiResolver from '@soybeanjs/ui/resolver';
+import UiResolver from '@vean/ui/resolver';
 import type { UiOptions } from './types';
 
-/** @soybeanjs/ui 预构建样式路径 */
-const SOYBEAN_UI_STYLES = '@soybeanjs/ui/styles.css';
+/** @vean/ui 预构建样式路径 */
+const VEAN_UI_STYLES = '@vean/ui/styles.css';
 
 /**
- * ubean UI Vite 插件（@soybeanjs/ui 集成）
+ * ubean UI Vite 插件（@vean/ui 集成）
  *
  * `ui: true` 即可启用，默认自动注入 styles.css + UiResolver。
  *
@@ -47,7 +47,7 @@ export function ubeanUiPlugin(options: UiOptions = {}): Plugin[] {
   // 注册 CSS 导入（默认 true）
   // ubean 客户端入口虚拟模块会从 registry 读取并注入 import 语句
   if (options.css !== false) {
-    registerCssImport(SOYBEAN_UI_STYLES);
+    registerCssImport(VEAN_UI_STYLES);
   }
 
   // 返回一个标识性插件（实际工作通过 registry 完成）
@@ -56,10 +56,10 @@ export function ubeanUiPlugin(options: UiOptions = {}): Plugin[] {
       name: 'ubean:ui',
       enforce: 'pre',
       config() {
-        // 确保 @soybeanjs/ui 被 Vite 预构建（dev 模式下避免首次请求延迟）
+        // 确保 @vean/ui 被 Vite 预构建（dev 模式下避免首次请求延迟）
         return {
           optimizeDeps: {
-            include: ['@soybeanjs/ui']
+            include: ['@vean/ui']
           }
         };
       }

@@ -1,6 +1,6 @@
 ---
 title: Icons
-description: "The two icon systems: @ubean/icon collections and @soybeanjs/ui’s SIcon."
+description: "The two icon systems: @ubean/icon collections and @vean/ui’s SIcon."
 ---
 
 # Icons
@@ -175,13 +175,13 @@ When `iconifyApiEnabled` and `fallbackToApi` are both on, a `/_iconify` dev rout
 
 ---
 
-## 2. @soybeanjs/ui SIcon Component
+## 2. @vean/ui SIcon Component
 
-`SIcon` is a **UI component from @soybeanjs/ui** that provides a styled icon component integrated with SoybeanUI's design system, theming, and styling conventions.
+`SIcon` is a **UI component from @vean/ui** that provides a styled icon component integrated with SoybeanUI's design system, theming, and styling conventions.
 
 ### Features
 
-- Integrated with @soybeanjs/ui theme system (light/dark mode, theme colors)
+- Integrated with @vean/ui theme system (light/dark mode, theme colors)
 - Consistent sizing with UI components (xs/sm/md/lg/xl presets)
 - Styled with shadcn-ui design system conventions
 - Works with SConfigProvider for global size/theme configuration
@@ -191,7 +191,7 @@ When `iconifyApiEnabled` and `fallbackToApi` are both on, a `/_iconify` dev rout
 
 Use `SIcon` when:
 
-- You are building UI with @soybeanjs/ui components
+- You are building UI with @vean/ui components
 - You need consistent theming with your application's design system
 - You want preset sizes that match SoybeanUI components
 - You're using SButton, SCard, etc. and need matching icon styles
@@ -199,7 +199,7 @@ Use `SIcon` when:
 ### Installation
 
 ```bash
-pnpm add @soybeanjs/ui
+pnpm add @vean/ui
 ```
 
 ### Configuration (with unplugin-vue-components)
@@ -207,7 +207,7 @@ pnpm add @soybeanjs/ui
 ```typescript
 // vite.config.ts
 import Components from 'unplugin-vue-components/vite';
-import { UiResolver } from '@soybeanjs/ui/resolver';
+import { UiResolver } from '@vean/ui/resolver';
 
 export default defineConfig({
   plugins: [
@@ -222,7 +222,7 @@ export default defineConfig({
 
 ```vue
 <script setup lang="ts">
-import { SConfigProvider } from '@soybeanjs/ui';
+import { SConfigProvider } from '@vean/ui';
 </script>
 
 <template>
@@ -242,7 +242,7 @@ import { SConfigProvider } from '@soybeanjs/ui';
 
 ```vue
 <script setup lang="ts">
-import { SIcon } from '@soybeanjs/ui';
+import { SIcon } from '@vean/ui';
 </script>
 
 <template>
@@ -283,12 +283,12 @@ import { SIcon } from '@soybeanjs/ui';
 
 ## Key Differences
 
-| Feature            | @ubean/icon (UbeanIcon)                           | @soybeanjs/ui (SIcon)                  |
+| Feature            | @ubean/icon (UbeanIcon)                           | @vean/ui (SIcon)                  |
 | ------------------ | ------------------------------------------------- | -------------------------------------- |
 | Component          | `<Icon>` (internal name `UbeanIcon`)                | `<SIcon>`                              |
 | Icon prop          | `name` (e.g. `name="mdi:home"`)                   | `icon` (e.g. `icon="mdi:home"`)        |
 | Purpose            | Build-time + runtime icon engine                  | UI-styled icon component               |
-| Dependencies       | None (built-in module, opt-in via `icon: true`)   | Requires @soybeanjs/ui                 |
+| Dependencies       | None (built-in module, opt-in via `icon: true`)   | Requires @vean/ui                 |
 | Theming            | Raw CSS color support                             | Integrated with SoybeanUI theme tokens |
 | Size format        | CSS values/px numbers                             | xs/sm/md/lg/xl presets + numbers       |
 | Rendering modes    | SVG and CSS modes                                 | SVG only (styled)                      |
@@ -299,8 +299,8 @@ import { SIcon } from '@soybeanjs/ui';
 
 ## Recommendation
 
-- **Use `Icon`** for general icon needs, custom icon collections, server-side icon generation, or when not using @soybeanjs/ui
-- **Use SIcon** when building UI with @soybeanjs/ui components for consistent theming and styling across your application
+- **Use `Icon`** for general icon needs, custom icon collections, server-side icon generation, or when not using @vean/ui
+- **Use SIcon** when building UI with @vean/ui components for consistent theming and styling across your application
 - Both systems use the same Iconify icon naming (`collection:icon` format)
 - You can use both in the same project if needed: Icon for infrastructure/non-UI icons, SIcon for UI components
 

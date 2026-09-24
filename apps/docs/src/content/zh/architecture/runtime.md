@@ -16,7 +16,7 @@ ubean 的应用外壳由框架内部生成（`UbeanAppRoot` → 布局链 → `P
 ```vue
 <!-- src/app.vue — 自动检测的应用根组件(小写优先;也可用大写 src/App.vue) -->
 <script setup lang="ts">
-import { SConfigProvider } from '@soybeanjs/ui';
+import { SConfigProvider } from '@vean/ui';
 </script>
 
 <template>
@@ -1052,10 +1052,10 @@ export default defineConfig({
 
 #### UI 技术栈
 
-DevTools 客户端（iframe 内的 Vue 应用）使用 **`@soybeanjs/ui`** **+** **`@soybeanjs/headless`** 构建：
+DevTools 客户端（iframe 内的 Vue 应用）使用 **`@vean/ui`** **+** **`@vean/aria`** 构建：
 
-- **`@soybeanjs/ui`**：提供 Button/Input/Select/Modal/Tree/Table/Tabs/Form/CodeEditor 等组件，统一设计语言
-- **`@soybeanjs/headless`**：提供无样式的功能基元（组合式函数、状态管理）
+- **`@vean/ui`**：提供 Button/Input/Select/Modal/Tree/Table/Tabs/Form/CodeEditor 等组件，统一设计语言
+- **`@vean/aria`**：提供无样式的功能基元（组合式函数、状态管理）
 - **CodeMirror 6**：代码编辑器（API Playground 编辑、虚拟文件查看），只读模式下也用于代码片段高亮显示
 - **fuse.js**：路由/接口/组件模糊搜索
 - DevTools 客户端作为独立 Vue 应用预构建为单文件（内联 CSS/JS），通过 Vite 虚拟模块注入，无需额外安装依赖

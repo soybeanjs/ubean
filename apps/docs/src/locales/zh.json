@@ -63,5 +63,39 @@
     }
   },
   "not_found_page": "此页面不存在。",
-  "back_to_home": "返回首页"
+  "back_to_home": "返回首页",
+  "sidebar_items": {
+    "guide_introduction": "简介",
+    "guide_quickstart": "快速开始",
+    "guide_app_modes": "应用模式",
+    "guide_routing_modes": "路由模式",
+    "guide_pages_routing_overview": "页面与路由",
+    "guide_pages_routing_loaders": "数据加载器",
+    "guide_pages_routing_actions": "Actions",
+    "guide_i18n": "国际化",
+    "guide_content": "内容与搜索",
+    "guide_islands": "群岛架构",
+    "integrations_auth": "身份认证",
+    "integrations_database": "数据库",
+    "integrations_electron": "Electron",
+    "integrations_icons": "图标",
+    "integrations_pinia": "Pinia",
+    "integrations_ui": "UI 组件库",
+    "reference_cache": "缓存",
+    "reference_database": "数据库",
+    "reference_env": "环境变量",
+    "reference_i18n": "国际化",
+    "reference_response_helpers": "响应助手",
+    "reference_route_helpers": "路由助手",
+    "architecture_overview": "总览",
+    "architecture_architecture": "架构",
+    "architecture_routing": "路由",
+    "architecture_runtime": "运行时",
+    "architecture_framework_comparison": "框架对比",
+    "ecosystem_ecosystem": "生态系统",
+    "contributing_engineering": "工程实践"
+  },
+  "sidebar_groups": {
+    "api_reference": "API 参考"
+  }
 }

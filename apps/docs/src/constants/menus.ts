@@ -9,11 +9,37 @@
 // `to` paths are locale-agnostic (no `/zh` prefix) — ubean's `<Link>` and
 // `@vean/ui`'s link handling both resolve through the framework's injected
 // localizer, so the same table drives both locales.
+//
+// `label` is an i18n key suffix under `sidebar_items.*`, NOT display text: the
+// sidebar renders these in both locales, and hardcoded English is what made the
+// Chinese sidebar read "Introduction / Quick Start / Cache" while the page
+// titles beside it were「简介」「快速开始」「缓存」. Keys are derived from each
+// item's route so the two cannot drift apart.
 import { API_PACKAGES, apiRoutePath } from '~/shared/api-packages';
 
+/**
+ * `to` is the locale-agnostic route; the sidebar resolves the display label from
+ * it via `sidebarItemKey()`. `label` is kept only as a fallback for routes that
+ * have no translated entry.
+ */
 export interface MenuItem {
   label: string;
   to: string;
+}
+
+/**
+ * Route → i18n key suffix under `sidebar_items.*`.
+ *
+ * The full path, verbatim: `/guide/pages-routing/overview` →
+ * `guide_pages_routing_overview`. No special cases — an earlier version dropped
+ * a trailing `overview` to make section keys shorter, and that rule silently
+ * disagreed with the catalogue (it produced `architecture` where the key file
+ * said `architecture_overview`), so the sidebar fell back to English. Deriving
+ * the key mechanically is what keeps the two in step.
+ */
+export function sidebarItemKey(to: string): string {
+  // `pages-routing` → `pages_routing`: keys are snake_case, routes are kebab.
+  return to.split('/').filter(Boolean).join('_').replace(/-/gu, '_');
 }
 
 export interface MenuSection {

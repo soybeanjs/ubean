@@ -63,5 +63,39 @@
     }
   },
   "not_found_page": "This page doesn't exist in the docs.",
-  "back_to_home": "Back to home"
+  "back_to_home": "Back to home",
+  "sidebar_items": {
+    "guide_introduction": "Introduction",
+    "guide_quickstart": "Quickstart",
+    "guide_app_modes": "App Modes",
+    "guide_routing_modes": "Routing Modes",
+    "guide_pages_routing_overview": "Pages & Routing",
+    "guide_pages_routing_loaders": "Data Loaders",
+    "guide_pages_routing_actions": "Actions",
+    "guide_i18n": "Internationalization",
+    "guide_content": "Content & Search",
+    "guide_islands": "Islands",
+    "integrations_auth": "Auth",
+    "integrations_database": "Database",
+    "integrations_electron": "Electron",
+    "integrations_icons": "Icons",
+    "integrations_pinia": "Pinia",
+    "integrations_ui": "UI",
+    "reference_cache": "Cache",
+    "reference_database": "Database",
+    "reference_env": "Env",
+    "reference_i18n": "I18n",
+    "reference_response_helpers": "Response Helpers",
+    "reference_route_helpers": "Route Helpers",
+    "architecture_overview": "Overview",
+    "architecture_architecture": "Architecture",
+    "architecture_routing": "Routing",
+    "architecture_runtime": "Runtime",
+    "architecture_framework_comparison": "Framework Comparison",
+    "ecosystem_ecosystem": "Ecosystem",
+    "contributing_engineering": "Engineering"
+  },
+  "sidebar_groups": {
+    "api_reference": "API Reference"
+  }
 }

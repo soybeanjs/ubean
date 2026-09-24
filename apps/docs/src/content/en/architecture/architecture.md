@@ -115,7 +115,7 @@ ubean build
 
 ## 3. Configuration System
 
-The configuration entry point is `ubean.config.ts`, declared with `defineConfig` (loading and types live in `@ubean/config`). Defaults are merged by `loadUbeanConfig`; the full field list is in the [API Reference](/reference/api/config).
+The configuration entry point is `ubean.config.ts`, declared with `defineConfig` (loading and types live in `@ubean/config`). Defaults are merged by `loadUbeanConfig`; the full field list is in the <Link to="/reference/api/config">API Reference</Link>.
 
 ```typescript
 // ubean.config.ts
@@ -189,4 +189,4 @@ export default defineConfig({
 - Extension top-level fields accept either `true` or an options object.
 - `routeRules` supports `ssr` (`boolean | 'streaming'`) / `prerender` / `isr` (`number | { ttl, swr? }`) / `ppr`, sorted by rule and path specificity, and readable at runtime via `c.get('routeRule')`.
 
-See [Overview §3](overview.md#3-directory-structure) for the convention-based app directory structure.
+See <Link to="/architecture/overview#3-directory-structure">Overview §3</Link> for the convention-based app directory structure.

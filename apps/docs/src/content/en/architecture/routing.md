@@ -32,7 +32,7 @@ Drawing on hono-ssr's `createDefineRoute` type inference pattern, `defineHandler
 import { defineHandler, defineHandlerMeta, defineMiddleware, validator, describeRoute, resolver } from 'ubean/server';
 import { z } from 'zod';
 
-// 权限中间件示例
+// permission middleware example
 const requireAdmin = defineMiddleware(async (c, next) => {
   if (c.get('user')?.role !== 'admin') {
     return c.json({ error: 'Forbidden' }, 403);
@@ -45,8 +45,8 @@ const userUpdateSchema = z.object({ name: z.string().optional(), email: z.string
 const idParamSchema = z.object({ id: z.string() });
 const includeQuerySchema = z.object({ include: z.string().optional() });
 
-// GET /users/:id — 获取用户详情
-// describeRoute、validator、defineHandlerMeta 作为 handler 链的一部分传入
+// GET /users/:id — fetch a user
+// describeRoute, validator and defineHandlerMeta are passed as part of the handler chain
 export const GET = defineHandler(
   describeRoute({
     tags: ['Users'],
@@ -68,8 +68,8 @@ export const GET = defineHandler(
   validator('param', idParamSchema),
   validator('query', includeQuerySchema),
   async c => {
-    // ✅ 类型推导: c.req.valid('param') → { id: string }
-    // ✅ 类型推导: c.req.valid('query') → { include?: string }
+    // ✅ type inference: c.req.valid('param') -> { id: string }
+    // ✅ type inference: c.req.valid('query') -> { include?: string }
     const { id } = c.req.valid('param');
     const { include } = c.req.valid('query');
     const user = await db.select().from(users).where(eq(users.id, id)).get();
@@ -78,7 +78,7 @@ export const GET = defineHandler(
   }
 );
 
-// PATCH /users/:id — 更新用户（需要管理员权限）
+// PATCH /users/:id — update a user (admin required)
 export const PATCH = defineHandler(
   describeRoute({
     tags: ['Users'],
@@ -103,7 +103,7 @@ export const PATCH = defineHandler(
   }
 );
 
-// DELETE /users/:id — 删除用户（管理员 + 中间件链 + 类型推导）
+// DELETE /users/:id — delete a user (admin + middleware chain + type inference)
 export const DELETE = defineHandler(
   describeRoute({
     tags: ['Users'],
@@ -117,9 +117,9 @@ export const DELETE = defineHandler(
   }),
   defineHandlerMeta({}),
   validator('param', idParamSchema),
-  requireAdmin, // 自定义中间件在 validator 之后，可以访问 c.req.valid('param')
+  requireAdmin, // custom middleware runs after validator, so it can read c.req.valid('param')
   async c => {
-    // ✅ requireAdmin 中也可以使用 c.req.valid('param') 获取 id
+    // ✅ requireAdmin can also use c.req.valid('param') to get the id
     const { id } = c.req.valid('param');
     await db.delete(users).where(eq(users.id, id));
     return c.json({ success: true });
@@ -141,7 +141,7 @@ export const meta = {
   cache: { ttl: 60 }
 };
 
-// GET 继承文件级 cache，defineHandlerMeta 补充 per-method 字段
+// GET inherits the file-level cache; defineHandlerMeta adds per-method fields
 export const GET = defineHandler(
   describeRoute({ tags: ['Users'], summary: 'Get user', responses: { 200: { description: 'OK' } } }),
   defineHandlerMeta({ public: true }),
@@ -171,7 +171,7 @@ export const POST = defineHandler(
       200: { description: 'Success', content: { 'application/json': { schema: resolver(tokenResponseSchema) } } }
     }
   }),
-  defineHandlerMeta({ public: true }), // auth middleware 跳过此路由
+  defineHandlerMeta({ public: true }), // auth middleware skips this route
   validator('json', loginSchema),
   async c => {
     const { email, password } = c.req.valid('json');
@@ -185,14 +185,14 @@ export const POST = defineHandler(
 ubean reuses the hono-openapi ecosystem. `validator`, `describeRoute`, and `resolver` are re-exported from hono-openapi, and type inference is performed automatically by hono-openapi through Hono's middleware chain mechanism:
 
 ```typescript
-// 从 ubean 导入（实际重导出自 hono-openapi）
+// imported from ubean (re-exported from hono-openapi)
 import { validator, describeRoute, resolver } from 'ubean/server';
 
-// validator: 验证指定 target 的数据，验证后通过 c.req.valid(target) 获取
+// validator: validates the given target; read it afterwards via c.req.valid(target)
 // target: 'json' | 'form' | 'query' | 'param' | 'header' | 'cookie'
 function validator<T extends Target, S extends StandardSchemaV1>(target: T, schema: S): MiddlewareHandler;
 
-// describeRoute: 定义 OpenAPI Operation 元数据
+// describeRoute: defines OpenAPI operation metadata
 function describeRoute(route: {
   tags?: string[];
   summary?: string;
@@ -205,7 +205,7 @@ function describeRoute(route: {
   >;
 }): MiddlewareHandler;
 
-// resolver: 包装 Standard Schema 用于 OpenAPI responses 定义
+// resolver: wraps a Standard Schema for OpenAPI responses definitions
 function resolver<S extends StandardSchemaV1>(schema: S): { schema: S };
 ```
 
@@ -227,13 +227,13 @@ function resolver<S extends StandardSchemaV1>(schema: S): { schema: S };
 // src/types/handler.ts
 export interface RouteMeta {
   /**
-   * 是否为公开路由（auth middleware 跳过鉴权）
+    * Whether this is a public route (auth middleware skips authentication)
    * @default false
    */
   public?: boolean;
 
   /**
-   * 缓存配置
+    * Cache config
    */
   cache?: {
     ttl?: number;
@@ -241,7 +241,7 @@ export interface RouteMeta {
   };
 
   /**
-   * 限流配置
+    * Rate limit config
    */
   rateLimit?: {
     max: number;
@@ -249,12 +249,12 @@ export interface RouteMeta {
   };
 
   /**
-   * 是否禁用此路由（构建时跳过注册）
+    * Whether to disable this route (skipped at registration during build)
    */
   disabled?: boolean;
 
   /**
-   * 允许用户通过 TypeScript 模块扩展自定义 meta
+    * Lets users add custom meta via TypeScript module augmentation
    */
   [key: string]: unknown;
 }
@@ -271,19 +271,19 @@ import { defineMiddleware } from 'ubean/server';
 export default defineMiddleware(async (c, next) => {
   const meta = c.route.meta;
 
-  // 公开路由跳过鉴权
+  // public route: skip authentication
   if (meta?.public) {
     await next();
     return;
   }
 
-  // 验证 token
+  // validate the token
   const token = c.req.header('Authorization');
   if (!token) {
     return c.json({ error: 'Unauthorized' }, 401);
   }
 
-  // 验证并注入用户信息
+  // validate and inject user info
   const user = await verifyToken(token);
   c.set('user', user);
 
@@ -319,10 +319,10 @@ Page actions, form enhancements, and client navigation share a single protocol: 
 
 ## Pages Routing Design
 
-> The page routing conventions, `definePage` macro, layouts, reuse routes, route groups, loaders/actions, special pages (404/loading/error), navigation guards, and route rules are documented in the user-facing guide: **[Pages and Routing](/guide/pages-routing/overview)** and **[Data Loaders](/guide/pages-routing/loaders)** / **[Actions](/guide/pages-routing/actions)**. This architecture doc retains only the API routing internals above.
+> The page routing conventions, `definePage` macro, layouts, reuse routes, route groups, loaders/actions, special pages (404/loading/error), navigation guards, and route rules are documented in the user-facing guide: **<Link to="/guide/pages-routing/overview">Pages and Routing</Link>** and **<Link to="/guide/pages-routing/loaders">Data Loaders</Link>** / **<Link to="/guide/pages-routing/actions">Actions</Link>**. This architecture doc retains only the API routing internals above.
 
 ## Next Steps
 
-- [Architecture Overview](/architecture/overview)
-- [Pages and Routing Overview](/guide/pages-routing/overview)
-- [Routing Modes](/guide/routing-modes)
+- <Link to="/architecture/overview">Architecture Overview</Link>
+- <Link to="/guide/pages-routing/overview">Pages and Routing Overview</Link>
+- <Link to="/guide/routing-modes">Routing Modes</Link>

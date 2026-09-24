@@ -43,7 +43,7 @@ export default defineConfig({
 
 ### Full Option Reference
 
-See the `RoutingConfig` type in [`@ubean/config`](../../../../../../packages/config/src/types.ts).
+See the `RoutingConfig` type in [`@ubean/config`](https://github.com/soybeanjs/ubean/blob/main/packages/config/src/types.ts).
 
 | Field | Type | Default | Description |
 |---|---|---|---|

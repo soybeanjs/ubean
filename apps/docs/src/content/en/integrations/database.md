@@ -7,7 +7,7 @@ description: The database layer with defineDatabase/useDatabase, built on the db
 
 ubean's database layer (`defineDatabase` / `useDatabase`) is built on the `db0` connector abstraction and ships with an in-memory fallback. For richer query APIs, bring your own ORM and wire it through a virtual module so handlers import a shared client instance.
 
-See [Database Operations](/reference/database) for the full built-in API reference.
+See <Link to="/reference/database">Database Operations</Link> for the full built-in API reference.
 
 ## Drizzle ORM
 

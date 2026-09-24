@@ -252,7 +252,7 @@ describe('route utils', () => {
 
 ## 7. CLI Command Design
 
-The CLI command list and framework implementation are detailed in [Runtime & Developer Experience §4.13](/architecture/runtime#413-cli-command-system).
+The CLI command list and framework implementation are detailed in <Link to="/architecture/runtime#413-cli-command-system">Runtime & Developer Experience §4.13</Link>.
 
 ---
 
@@ -385,7 +385,7 @@ The adaptation implementation for each platform (preset) must first reference th
 
 ## 10. CodeGraph Workflow Convention
 
-> Before changing a core symbol, check its blast radius with CodeGraph instead of guessing from intuition or doc wording. Source: [ADR-0005](../../../../../../docs/adr/0005-opt09-impl-opt11-timing-opt01-subitem.md).
+> Before changing a core symbol, check its blast radius with CodeGraph instead of guessing from intuition or doc wording. Source: [ADR-0005](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0005-opt09-impl-opt11-timing-opt01-subitem.md).
 
 ### 10.1 When to run
 
@@ -416,7 +416,7 @@ Paste the "direct / transitive references" counts and the key file list into the
 
 ## 11. Extension Package Contract Table
 
-> Every "extension package" (a package with a `./vite` subpath export **and not in the main `ubean` package's `dependencies`**) must register a row below. CI (`scripts/verify-packages.mjs`, shared with the package-tree check) derives the extension set from `packages/*/package.json` and asserts each one appears in this table. Source: [ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md).
+> Every "extension package" (a package with a `./vite` subpath export **and not in the main `ubean` package's `dependencies`**) must register a row below. CI (`scripts/verify-packages.mjs`, shared with the package-tree check) derives the extension set from `packages/*/package.json` and asserts each one appears in this table. Source: [ADR-0006](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0006-opt07-contract-table-opt08-test-priority.md).
 >
 > **Note**: `pwa` / `fonts` / `electron` / `pinia` / `ui` are subpaths of `@ubean/integrations` (`@ubean/integrations/pwa` etc.). Their Vite plugins are exported from the subpath main entry; runtime helper functions (e.g. `serializePiniaState` / `hydratePiniaState`) are exported from the `@ubean/integrations` main entry.
 
@@ -444,7 +444,7 @@ Paste the "direct / transitive references" counts and the key file list into the
 
 ### 11.3 Known inconsistency
 
-The `hard` / `peer` mix is a known inconsistency: auth, `@ubean/integrations/pwa`, and `@ubean/integrations/electron` install their core library automatically, while `@ubean/integrations/pinia` and `@ubean/integrations/ui` require the user to install theirs. New extension packages should pick one shape explicitly and register it here; a future cleanup is possible (see [ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md)).
+The `hard` / `peer` mix is a known inconsistency: auth, `@ubean/integrations/pwa`, and `@ubean/integrations/electron` install their core library automatically, while `@ubean/integrations/pinia` and `@ubean/integrations/ui` require the user to install theirs. New extension packages should pick one shape explicitly and register it here; a future cleanup is possible (see [ADR-0006](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0006-opt07-contract-table-opt08-test-priority.md)).
 
 ### 11.4 New extension package checklist
 
@@ -501,7 +501,7 @@ The browser metrics need Playwright's Chromium (`npx playwright install chromium
 
 ## Next Steps
 
-- [Runtime & Dev Experience](/architecture/runtime) — dev server, presets, and CLI command system
-- [Routing](/architecture/routing) — file-based routing and route rules
-- [Quickstart](/guide/quickstart) — get a project running in minutes
-- [ubean API Reference](/reference/api/ubean) — core runtime exports
+- <Link to="/architecture/runtime">Runtime & Dev Experience</Link> — dev server, presets, and CLI command system
+- <Link to="/architecture/routing">Routing</Link> — file-based routing and route rules
+- <Link to="/guide/quickstart">Quickstart</Link> — get a project running in minutes
+- <Link to="/reference/api/ubean">ubean API Reference</Link> — core runtime exports

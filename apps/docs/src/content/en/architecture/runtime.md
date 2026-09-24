@@ -52,13 +52,13 @@ import { createPinia } from 'pinia';
 import GlobalComponent from './src/components/GlobalComponent.vue';
 
 export default defineApp({
-  // 注册 Vue 插件（可附带 options 数组或 { plugin, mode } 配置）
+  // Register Vue plugins (options array or { plugin, mode } both work)
   plugins: [
     createPinia(),
-    [SomePlugin, { option: true }] // 等价于 app.use(SomePlugin, { option: true })
+    [SomePlugin, { option: true }] // equivalent to app.use(SomePlugin, { option: true })
   ],
 
-  // 全局组件注册
+  // Global component registration
   globalComponents: {
     GlobalComponent
   },
@@ -68,20 +68,20 @@ export default defineApp({
     appVersion: '1.0.0'
   },
 
-  // <head> 默认内容
+  // Default <head> contents
   head: {
     title: 'My ubean App',
     meta: [{ name: 'description', content: 'Built with ubean' }]
   },
 
-  // 根元素属性（#app）
+  // Root element attributes (#app)
   rootId: 'app',
   rootAttrs: { 'data-app': 'true' },
 
-  // 路由钩子 — 注册 vue-router 的导航守卫
-  // 在 router 实例创建后、app.use(router) 之前调用,
-  // 因此守卫能拦截首次导航(包括 SSR 的初始 URL push)。
-  // Client 和 SSR 都会执行;setup 必须同步注册守卫(守卫本身可返回 Promise)。
+  // Router hooks — register vue-router navigation guards
+  // Called after the router instance is created but before app.use(router),
+  // so guards can intercept the first navigation (including SSR's initial URL push).
+  // Runs for both client and SSR; setup must register guards synchronously (a guard itself may return a Promise).
   router: {
     setup(router) {
       router.beforeEach((to, from) => {
@@ -90,7 +90,7 @@ export default defineApp({
         }
       });
       router.afterEach((to) => {
-        // 埋点、设置文档标题等
+        // Analytics, setting the document title, etc.
         if (typeof document !== 'undefined' && to.meta?.title) {
           document.title = String(to.meta.title);
         }
@@ -98,31 +98,31 @@ export default defineApp({
     }
   },
 
-  // 命令式访问 app 实例（替代旧的工厂函数）
+  // Imperative access to the app instance (replaces the old factory function)
   onAppCreated(app) {
-    // 注册全局指令
+    // Register a global directive
     app.directive('focus', {
       mounted(el) {
         el.focus();
       }
     });
 
-    // 全局错误处理
+    // Global error handling
     app.config.errorHandler = (err, _instance, info) => {
       console.error('[Vue Error]', err, info);
     };
   },
 
-  // 客户端就绪回调（仅客户端执行）
+  // Client-ready callback (client only)
   onClientReady(app) {
-    // PWA 注册、分析埋点等
+    // PWA registration, analytics, etc.
   },
 
-  // 自定义错误/加载组件(覆盖 pages/error.vue 和 pages/loading.vue 自动检测)
+  // Custom error/loading components (overrides pages/error.vue and pages/loading.vue auto-detection)
   errorComponent: () => import('./src/components/ErrorBoundary.vue'),
   loadingComponent: () => import('./src/components/LoadingSpinner.vue'),
 
-  // 启用 View Transitions
+  // Enable View Transitions
   viewTransitions: true
 });
 ```
@@ -135,7 +135,7 @@ export default defineApp({
 - Client: `app.ts` + `app.client.ts` (only plugins with `mode: 'client' | 'all'` take effect)
 
 ```typescript
-// app.server.ts — 仅在 SSR 时合并
+// app.server.ts — merged only during SSR
 import { defineApp } from 'ubean';
 
 export default defineApp({
@@ -143,17 +143,17 @@ export default defineApp({
     isSSR: true
   },
   onAppCreated(app) {
-    // SSR 特有逻辑，如注入 SSR 状态
+    // SSR-only logic, e.g. injecting SSR state
   }
 });
 
-// app.client.ts — 仅在客户端水合时合并
+// app.client.ts — merged only during client hydration
 import { defineApp } from 'ubean';
 
 export default defineApp({
-  plugins: [/* 仅客户端需要的插件 */],
+  plugins: [/* client-only plugins */],
   onClientReady(app) {
-    // PWA 注册、客户端埋点等
+    // PWA registration, client-side analytics, etc.
   }
 });
 ```
@@ -173,28 +173,28 @@ export interface AppPluginConfig {
 }
 
 /**
- * 路由钩子配置 — 暴露 vue-router 的导航守卫注册入口。
- * `setup(router)` 在 router 创建后、`app.use(router)` 之前调用,
- * 因此守卫能拦截首次导航(包括 SSR 的初始 URL push)。
- * Client 和 SSR 都会执行。
+  * Router hook config — the entry point for registering vue-router navigation guards.
+  * `setup(router)` runs after the router is created but before `app.use(router)`,
+  * so guards can intercept the first navigation (including SSR's initial URL push).
+  * Runs for both client and SSR.
  */
 export interface RouterConfig {
-  /** 在 router 创建后、初始导航前同步注册守卫(守卫本身可返回 Promise) */
+  /** Register guards synchronously after the router is created, before the initial navigation (a guard itself may return a Promise) */
   setup?: (router: Router) => void;
 }
 
 export interface DefineAppOptions {
-  /** Vue 插件列表（支持 Plugin、[Plugin, ...opts]、或 { plugin, mode }） */
+  /** Vue plugin list (accepts Plugin, [Plugin, ...opts], or { plugin, mode }) */
   plugins?: Array<Plugin | [Plugin, ...any[]] | AppPluginConfig>;
-  /** 全局组件（key → 组件） */
+  /** Global components (key → component) */
   globalComponents?: Record<string, Component>;
-  /** provide/inject 的键值对 */
+  /** provide/inject key-value pairs */
   provides?: Record<string | symbol, unknown>;
-  /** 默认 <head> 内容 */
+  /** Default <head> contents */
   head?: PageHead;
-  /** 根元素 id（默认 'app'） */
+  /** Root element id (default 'app') */
   rootId?: string;
-  /** 根元素额外属性 */
+  /** Extra root element attributes */
   rootAttrs?: Record<string, string>;
   /**
    * Application root component (wrapper) — the programmatic equivalent of a
@@ -204,28 +204,28 @@ export interface DefineAppOptions {
    * `src/App.vue`.
    */
   appRoot?: Component;
-  /** 路由钩子配置 — 注册 beforeEach/beforeResolve/afterEach 等导航守卫 */
+  /** Router hook config — register beforeEach/beforeResolve/afterEach and other navigation guards */
   router?: RouterConfig;
-  /** App 创建后回调（替代旧工厂函数中直接操作 app） */
+  /** Called after the app is created (replaces touching app directly in the old factory function) */
   onAppCreated?: (app: VueApp) => void | Promise<void>;
-  /** 客户端 mount 完成后回调 */
+  /** Called after the client finishes mounting */
   onClientReady?: (app: VueApp) => void | Promise<void>;
-  /** 自定义错误边界组件(覆盖 pages/error.vue 自动检测) */
+  /** Custom error boundary component (overrides pages/error.vue auto-detection) */
   errorComponent?: Component;
-  /** 异步路由的加载占位组件(覆盖 pages/loading.vue 自动检测) */
+  /** Loading placeholder for async routes (overrides pages/loading.vue auto-detection) */
   loadingComponent?: Component;
-  /** 启用/配置 View Transitions */
+  /** Enable/configure View Transitions */
   viewTransitions?: boolean | ViewTransitionOptions;
   /**
-   * SSR 状态序列化钩子 — 在 renderToString 完成后调用。
-   * 返回的对象会被序列化到 HTML 的 `__UBEAN_STATE__` script 标签中。
-   * 配合 @ubean/integrations/pinia 等状态管理扩展使用。
+    * SSR state serialization hook — called after renderToString completes.
+    * The returned object is serialized into the HTML `__UBEAN_STATE__` script tag.
+    * Pairs with state-management extensions such as @ubean/integrations/pinia.
    */
   serializeState?: (app: VueApp) => Record<string, unknown> | Promise<Record<string, unknown>>;
   /**
-   * 客户端状态水合钩子 — 在 applyAppConfig(注册插件)之后、app.mount() 之前调用。
-   * 接收从 `__UBEAN_STATE__` 反序列化的状态对象(或 null)。
-   * 必须在 mount 前执行,否则 store 已用默认值初始化,水合无效。
+    * Client state hydration hook — called after applyAppConfig (plugin registration) and before app.mount().
+    * Receives the state object deserialized from `__UBEAN_STATE__` (or null).
+    * Must run before mount, otherwise the store is already initialized with defaults and hydration has no effect.
    */
   hydrateState?: (app: VueApp, state: Record<string, unknown> | null) => void;
 }
@@ -291,9 +291,9 @@ import { defineApp } from 'ubean';
 export default defineApp({
   router: {
     setup(router) {
-      // ✅ 同步注册守卫(守卫本身可异步)
+      // ✅ Register guards synchronously (a guard itself may be async)
       router.beforeEach(async (to, from) => {
-        // 异步逻辑放在守卫函数体内,这里可以 await
+        // Put async logic inside the guard body; awaiting here is fine
         if (to.meta.requiresAuth) {
           const user = await fetchCurrentUser();
           if (!user) return '/login';
@@ -301,7 +301,7 @@ export default defineApp({
       });
 
       router.afterEach((to) => {
-        // 埋点、设置文档标题等
+        // Analytics, setting the document title, etc.
         if (typeof document !== 'undefined' && to.meta?.title) {
           document.title = String(to.meta.title);
         }
@@ -333,7 +333,7 @@ Generation is one-shot per dev start / per build; it does not re-run on route ed
 - Response types are derived from `responses` in `describeRoute` via `resolver(schema)`
 
 ```typescript
-// .ubean/openapi.d.ts (自动生成)
+// .ubean/openapi.d.ts (auto-generated)
 export interface paths {
   '/api/users/{id}': {
     get: {
@@ -439,11 +439,11 @@ Every instance exposes `get` / `post` / `put` / `patch` / `delete` shortcuts. `p
 ```typescript
 api.post('/api/users', {
   params: {
-    path: { id: 1 },              // 替换 URL 中的 {id}
+    path: { id: 1 },              // substitutes {id} in the URL
     query: { page: 1 },            // query string
-    header: { Authorization: '' }  // 请求头
+    header: { Authorization: '' }  // request headers
   },
-  body: { name: 'test' }           // 请求体(POST/PUT/PATCH)
+  body: { name: 'test' }           // request body (POST/PUT/PATCH)
 });
 ```
 
@@ -512,14 +512,14 @@ const scheduler = startCronScheduler({
 import { defineEnv } from 'ubean';
 
 export const { env, validate } = defineEnv({
-  // 服务端密钥
+  // server-side secrets
   server: {
     DATABASE_URL: { type: String, required: true },
     API_SECRET: { type: String, required: true },
     PORT: { type: Number, default: 9527 },
     DEBUG: { type: Boolean, default: false }
   },
-  // 公共变量 (exposed to the client via import.meta.env)
+  // public variables (exposed to the client via import.meta.env)
   public: {
     APP_NAME: { type: String, default: 'My App' },
     API_URL: { type: String, default: '/api' }
@@ -533,7 +533,7 @@ export const { env, validate } = defineEnv({
 - The `env` proxy is fully typed (`InferEnvOutput<S>` derives `string` / `number` / `boolean` from each constructor), so `env.DATABASE_URL` is `string`
 - Only variables prefixed with `UBEAN_PUBLIC_`, `VITE_`, or `PUBLIC_` reach the client via `import.meta.env`
 - Use `validate(source)` to check a custom source (test fixture, request-scoped env); the result is `{ success, errors }`
-- The `ubean env` CLI (`init` / `list` / `add` / `remove`) manages `.env` files — see the [Env reference](/reference/env) for the full API
+- The `ubean env` CLI (`init` / `list` / `add` / `remove`) manages `.env` files — see the <Link to="/reference/env">Env reference</Link> for the full API
 
 ## 4.11 Preset System Design
 
@@ -613,7 +613,7 @@ Modeled after Nuxt DevTools' iframe + RPC architecture, ubean ships a built-in v
 │  │  DevTools Floating Button (small Vue widget)│  │
 │  └────────────────────────────────────────────┘  │
 │  ┌────────────────────────────────────────────┐  │
-│  │  DevTools Iframe (独立 Vue 应用)            │  │
+│  │  DevTools Iframe (standalone Vue app)       │  │
 │  │  ┌────────┬────────┬────────┬────────────┐ │  │
 │  │  │Overview│ Pages  │ Routes │ Config ... │ │  │
 │  │  ├────────┴────────┴────────┴────────────┤ │  │
@@ -659,13 +659,13 @@ Modeled after Nuxt DevTools' iframe + RPC architecture, ubean ships a built-in v
 #### Config Management (Config Tab)
 
 ```typescript
-// DevTools 中可视化编辑 ubean.config.ts
-// 通过 AST 操作（ts-morph）安全修改配置文件，支持：
-// - preset 切换
-// - 路由/页面目录配置
-// - 构建选项
-// - 环境变量 schema
-// - DevTools 自身配置
+// Edit ubean.config.ts visually in DevTools
+// Safely modify the config file via AST manipulation (ts-morph). Supports:
+// - switching presets
+// - route/page directory settings
+// - build options
+// - environment variable schema
+// - DevTools' own config
 ```
 
 Config editing goes through the real DevTools RPC functions. `@ubean/devtools` registers them with `defineRpcFunction` from `@vitejs/devtools-kit`; the info/env ones are:
@@ -697,7 +697,7 @@ Full create/read/update/delete for page routes. Pages, APIs, layouts, middleware
 When a page is created, a template file is auto-generated:
 
 ```vue
-<!-- DevTools 创建 pages/users/[id].vue 时生成 -->
+<!-- generated when DevTools creates pages/users/[id].vue -->
 <script setup lang="ts">
 import { definePage } from 'ubean';
 
@@ -721,7 +721,7 @@ API routes use the same `ubean:crud:*` functions with `type: 'api'` (the optiona
 When an API is created, a handler file is auto-generated:
 
 ```typescript
-// DevTools 创建 routes/users.ts 时生成
+// generated when DevTools creates routes/users.ts
 import { defineHandler, defineHandlerMeta, validator, describeRoute, resolver } from 'ubean/server';
 import { z } from 'zod';
 
@@ -775,30 +775,30 @@ export default defineApp({
   onAppCreated(app) {
     const hooks = useDevToolsHooks();
 
-    // 页面路由创建前：可做权限校验、数据预存到 DB
+    // Before a page route is created: permission checks, pre-seeding the DB
     hooks.hook('page:beforeCreate', async (input, context) => {
-      // 例如：记录到数据库
+      // e.g. write to the database
       await db.pages.create({
         data: { name: input.name, path: input.path, createdBy: context.user.id }
       });
     });
 
-    // 页面路由创建后：可触发 Git 提交、通知等
+    // After a page route is created: trigger a Git commit, notifications, etc.
     hooks.hook('page:afterCreate', async (result, context) => {
       console.log(`Page ${result.name} created by ${context.user?.name}`);
     });
 
-    // API 接口创建前
+    // Before an API route is created
     hooks.hook('api:beforeCreate', async input => {
-      // 校验接口路径规范
+      // validate the route path convention
       if (!input.path.startsWith('/api/')) {
         throw new Error('API path must start with /api/');
       }
     });
 
-    // 环境变量更新前
+    // Before an environment variable is updated
     hooks.hook('env:beforeUpdate', async (key, value) => {
-      // 例如：同步到外部密钥管理服务
+      // e.g. sync to an external secret manager
       await secretsManager.set(key, value);
     });
   }
@@ -841,24 +841,24 @@ export default defineApp({
 Integrates an LLM that drives DevTools operations through natural-language conversation. The AI does not write files directly; instead it calls DevTools RPC methods (i.e. the CRUD interfaces), ensuring all operations pass through hook validation:
 
 ```typescript
-// AI 可用的 Tool 定义（基于 RPC 方法自动生成）
+// AI-available Tool definitions (auto-generated from the RPC methods)
 const devtoolsTools = [
   {
     name: 'create_page',
-    description: '创建一个新的页面路由',
+    description: 'Create a new page route',
     parameters: {
       type: 'object',
       properties: {
-        path: { type: 'string', description: '路由路径，如 /users/[id]' },
-        layout: { type: 'string', description: '布局名', enum: ['default', 'blank', 'admin'] },
-        withLoader: { type: 'boolean', description: '是否创建 server loader' }
+        path: { type: 'string', description: 'Route path, e.g. /users/[id]' },
+        layout: { type: 'string', description: 'Layout name', enum: ['default', 'blank', 'admin'] },
+        withLoader: { type: 'boolean', description: 'Whether to create a server loader' }
       },
       required: ['path']
     }
   },
   {
     name: 'create_api_route',
-    description: '创建 API 接口',
+    description: 'Create an API route',
     parameters: {
       type: 'object',
       properties: {
@@ -871,15 +871,15 @@ const devtoolsTools = [
   },
   {
     name: 'list_pages',
-    description: '列出所有页面路由'
+    description: 'List all page routes'
   },
   {
     name: 'list_api_routes',
-    description: '列出所有 API 接口'
+    description: 'List all API routes'
   },
   {
     name: 'update_env',
-    description: '更新环境变量',
+    description: 'Update an environment variable',
     parameters: {
       type: 'object',
       properties: {
@@ -889,7 +889,7 @@ const devtoolsTools = [
       required: ['key', 'value']
     }
   }
-  // ... 所有 RPC 方法映射为 AI Tools
+  // ... every RPC method is mapped to an AI Tool
 ];
 ```
 
@@ -922,14 +922,14 @@ const devtoolsTools = [
 // ubean.config.ts
 export default defineConfig({
   devtools: {
-    enabled: true, // dev 默认 true，prod 强制 false
+    enabled: true, // true by default in dev, forced false in prod
     ai: {
       enabled: true,
-      // 支持多种 LLM provider
+      // supports multiple LLM providers
       provider: 'openai', // 'openai' | 'anthropic' | 'custom'
-      apiKey: process.env.OPENAI_API_KEY, // 也可在 DevTools UI 中填写
+      apiKey: process.env.OPENAI_API_KEY, // can also be filled in from the DevTools UI
       model: 'gpt-4o'
-      // 自定义 provider
+      // custom provider
       // provider: 'custom',
       // endpoint: 'https://your-llm-proxy.com/v1/chat/completions',
     }
@@ -943,7 +943,7 @@ Implements a type-safe RPC over `postMessage`. DevTools is only enabled in dev m
 
 ```typescript
 // src/devtools/rpc.ts
-// Host 侧（应用内）
+// Host side (inside the app)
 export function createDevToolsServer({ iframeWindow, devtoolsOrigin, sessionToken }) {
   const handlers = createRpcHandlers();
 
@@ -968,7 +968,7 @@ export function createDevToolsServer({ iframeWindow, devtoolsOrigin, sessionToke
   });
 }
 
-// Client 侧（DevTools iframe 内）
+// Client side (inside the DevTools iframe)
 export function createDevToolsClient({ parentOrigin, sessionToken }) {
   let nextId = 0;
   const pending = new Map();
@@ -1025,24 +1025,24 @@ All DevTools file-write operations follow these safety policies:
 export default defineConfig({
   devtools: {
     /**
-     * 是否启用 DevTools
+      * Whether DevTools is enabled
      * @default true in dev, false in prod
      */
     enabled?: boolean;
 
     /**
-     * DevTools 面板访问路径
+      * DevTools panel access path
      * @default '/_devtools'
      */
     route?: string;
 
     /**
-     * 自定义 Tab 插件
+      * Custom tab plugins
      */
     tabs?: DevToolsTab[];
 
     /**
-     * AI 助手配置
+      * AI assistant config
      */
     ai?: {
       enabled?: boolean;
@@ -1050,7 +1050,7 @@ export default defineConfig({
       apiKey?: string;
       model?: string;
       endpoint?: string;
-      /** AI 可使用的工具白名单，默认全部 */
+      /** Allow-list of tools the AI may use; all by default */
       allowedTools?: string[];
     };
   },
@@ -1079,9 +1079,9 @@ export default defineDevToolsTab({
   name: 'my-feature',
   title: 'My Feature',
   icon: '🔧',
-  // Tab 的 Vue 组件
+  // the tab's Vue component
   component: () => import('./devtools/MyFeatureTab.vue'),
-  // 自定义 RPC 方法
+  // custom RPC methods
   rpc: {
     'my-feature:get-data': async () => { return db.query(...); },
     'my-feature:update-data': async (data) => { ... },
@@ -1096,53 +1096,53 @@ Built on `citty` for type-safe CLI tooling. **Every DevTools visual operation ha
 #### Command Overview
 
 ```bash
-ubean              # 显示帮助
-ubean init         # 初始化新项目脚手架
-ubean dev          # 启动开发服务器
-ubean build        # 构建生产版本
-ubean preview      # 预览生产构建
-ubean prepare      # 准备类型生成 (dev 前自动执行)
-ubean analyze      # 分析客户端 bundle 体积 (支持 --check 对照基线)
+ubean              # show help
+ubean init         # scaffold a new project
+ubean dev          # start the dev server
+ubean build        # build for production
+ubean preview      # preview the production build
+ubean prepare      # prepare type generation (runs automatically before dev)
+ubean analyze      # analyze client bundle size (--check compares against the baseline)
 
-# ─── 页面路由 ───
-ubean page add <path>         # 添加页面 (支持 --force 覆盖 / --dry 预览)
-ubean page add-reuse <path>   # 添加 reuse 路由 (.reuse.ts)
-ubean page delete <path>      # 删除 (默认创建 .bak 备份, --force 彻底删除)
-ubean page recovery <path>    # 从 .bak 备份恢复
-ubean page list               # 列出已存在的文件
+# --- page routes ---
+ubean page add <path>         # add a page (--force overwrites / --dry previews)
+ubean page add-reuse <path>   # add a reuse route (.reuse.ts)
+ubean page delete <path>      # delete (writes a .bak backup by default; --force removes it entirely)
+ubean page recovery <path>    # restore from a .bak backup
+ubean page list               # list existing files
 
-# ─── 其他脚手架资源 (同一组子命令) ───
-ubean api add|delete|recovery|list          # API 接口
-ubean layout add|delete|recovery|list       # 布局
-ubean middleware add|delete|recovery|list   # 中间件
-ubean cron add|delete|recovery|list         # 定时任务
-ubean plugin add|delete|recovery|list       # 插件
+# --- other scaffold resources (same subcommand set) ---
+ubean api add|delete|recovery|list          # API routes
+ubean layout add|delete|recovery|list       # layouts
+ubean middleware add|delete|recovery|list   # middleware
+ubean cron add|delete|recovery|list         # crons
+ubean plugin add|delete|recovery|list       # plugins
 
-# ─── 环境变量 ───
-ubean env init                        # 从模板创建 .env 与 .env.example
-ubean env list [--public]             # 列出变量
-ubean env add <key> [value] [--public] [--force]  # 新增/更新变量 (--public 自动加 UBEAN_PUBLIC_ 前缀)
-ubean env remove <key>                # 移除变量
+# --- environment variables ---
+ubean env init                        # create .env and .env.example from a template
+ubean env list [--public]             # list variables
+ubean env add <key> [value] [--public] [--force]  # add/update a variable (--public adds the UBEAN_PUBLIC_ prefix)
+ubean env remove <key>                # remove a variable
 
-# ─── 配置 ───
-ubean config init [--preset standard] # 创建默认 ubean.config.ts (--force 覆盖)
-ubean config show                     # 显示配置文件位置与内容
-ubean config example                  # 打印完整配置示例
-ubean config path                     # 打印解析后的配置文件路径
+# --- config ---
+ubean config init [--preset standard] # create a default ubean.config.ts (--force overwrites)
+ubean config show                     # show the config file's location and contents
+ubean config example                  # print a complete config example
+ubean config path                     # print the resolved config file path
 
 # ─── DevTools ───
-ubean devtools info               # 显示 DevTools 信息 (访问方式/功能/配置)
-ubean devtools path [--port 9527] # 打印 DevTools URL 路径
+ubean devtools info               # show DevTools info (how to reach it, features, config)
+ubean devtools path [--port 9527] # print the DevTools URL path
 
-# ─── 脚手架目录 (studio / IDE 插件) ───
-ubean scaffold describe   # 输出机器可读 scaffold JSON 清单
+# --- scaffold catalog (studio / IDE plugins) ---
+ubean scaffold describe   # emit the machine-readable scaffold JSON manifest
 ```
 
 #### CLI & DevTools Shared Core Logic
 
 ```
 ┌─────────────┐     ┌──────────────┐
-│  DevTools   │     │  CLI 命令行  │
+│  DevTools   │     │  CLI         │
 │  (Vue UI)   │     │  (citty)     │
 └──────┬──────┘     └──────┬───────┘
        │  RPC call        │  direct call
@@ -1150,10 +1150,10 @@ ubean scaffold describe   # 输出机器可读 scaffold JSON 清单
 ┌─────────────────────────────────┐
 │  CLI Shared Layer               │
 │  (cli/shared/fs-ops.ts)         │
-│  - AST 文件操作 (ts-morph)      │
-│  - 模板生成                     │
-│  - 备份/恢复                    │
-│  - hooks 触发                   │
+│  - AST file edits (ts-morph)    │
+│  - template generation          │
+│  - backup/restore               │
+│  - hook triggering              │
 └─────────────────────────────────┘
 ```
 
@@ -1166,13 +1166,13 @@ ubean scaffold describe   # 输出机器可读 scaffold JSON 清单
 
 ```bash
 $ ubean page add
-? 路由路径: /products/[id]
-? 选择布局: default
-? 是否创建 server loader? Yes
-? 是否创建 server action? No
-? 模板类型: Vue SFC
+? Route path: /products/[id]
+? Choose a layout: default
+? Create a server loader? Yes
+? Create a server action? No
+? Template type: Vue SFC
 
-✅ 已创建:
+✅ Created:
   - pages/products/[id].vue       (page: ProductId)
   - pages/products/[id].server.ts (loader)
 ```
@@ -1181,15 +1181,15 @@ $ ubean page add
 
 ```bash
 $ ubean api add
-? API 路径: /api/products
-? HTTP 方法 (空格多选): GET, POST, DELETE
-? 生成 OpenAPI 文档骨架? Yes
+? API path: /api/products
+? HTTP methods (space to multi-select): GET, POST, DELETE
+? Generate an OpenAPI doc skeleton? Yes
 
-✅ 已创建:
+✅ Created:
   - routes/api/products.ts (GET, POST)
-  - routes/api/products/[id].ts (DELETE)? 哦，路径含 [id] 了，是否拆分到子文件? Yes
+  - routes/api/products/[id].ts (DELETE)? The path already contains [id], split into a sub-file? Yes
 
-✅ 已创建:
+✅ Created:
   - routes/api/products.ts     (GET, POST)
   - routes/api/products/[id].ts (GET, PATCH, DELETE)
 ```
@@ -1228,7 +1228,7 @@ class UbeanError extends Error {
   data?: unknown;
 }
 
-// 预定义错误
+// predefined errors
 throw createError({ statusCode: 404, statusMessage: 'Not Found' });
 throw createError({ statusCode: 400, statusMessage: 'Bad Request', data: { field: 'email' } });
 ```
@@ -1332,26 +1332,26 @@ export default defineConfig({
 // ubean.config.ts
 export default defineConfig({
   markdown: {
-    enabled: true, // 默认 true，设为 false 禁用
-    mdx: false, // 是否启用 MDX 真实编译（需安装 @mdx-js/mdx）
-    theme: 'vitesse-dark', // Shiki 代码高亮主题（支持双主题: { light, dark }）
+    enabled: true, // true by default; set false to disable
+    mdx: false, // enable real MDX compilation (requires @mdx-js/mdx)
+    theme: 'vitesse-dark', // Shiki code highlight theme (also accepts a dual theme: { light, dark })
     markdownExit: {
-      // markdown-exit 配置（原生 async 渲染）
+      // markdown-exit options (native async rendering)
       html: true,
       linkify: true,
       breaks: false
     },
     headings: {
-      // 标题锚点
+      // heading anchors
       anchorLinks: true
     },
     components: {
-      // 自动导入的 Vue 组件可在 md/mdx 中使用
+      // auto-imported Vue components usable in md/mdx
       autoImport: true
     },
-    // MDX 编译插件（仅 mdx: true 时生效）
-    remarkPlugins: [],   // 传递给 @mdx-js/mdx 的 remark 插件
-    rehypePlugins: []    // 传递给 @mdx-js/mdx 的 rehype 插件
+    // MDX compile plugins (only active when mdx: true)
+    remarkPlugins: [],   // remark plugins passed to @mdx-js/mdx
+    rehypePlugins: []    // rehype plugins passed to @mdx-js/mdx
   }
 });
 ```
@@ -1370,20 +1370,20 @@ The `v-client.*` Vue custom directive provides full TypeScript type definitions,
 
 ```vue
 <template>
-  <!-- v-client.load：页面加载后立即 hydrate -->
+  <!-- v-client.load: hydrate as soon as the page loads -->
   <Counter v-client.load />
 
-  <!-- v-client.idle：空闲时 hydrate -->
+  <!-- v-client.idle: hydrate when the browser is idle -->
   <HeavyChart v-client.idle />
 
-  <!-- v-client.visible：进入视口时 hydrate -->
+  <!-- v-client.visible: hydrate when it enters the viewport -->
   <Comments v-client.visible />
 
-  <!-- v-client.media：媒体查询匹配时 hydrate -->
-  <!-- 注意：值是 Vue 表达式，字符串需加引号 -->
+  <!-- v-client.media: hydrate when the media query matches -->
+  <!-- Note: the value is a Vue expression, so string literals need quotes -->
   <MobileNav v-client.media="'(max-width: 768px)'" />
 
-  <!-- v-client.only：仅客户端渲染，跳过 SSR -->
+  <!-- v-client.only: client-only rendering, skips SSR -->
   <ClientWidget v-client.only />
 </template>
 ```
@@ -1397,10 +1397,10 @@ The `v-client` directive uses a dual-layer architecture:
 2. **Runtime (Vue directive)**: When the Vite plugin is not enabled (CSR-only apps, unit tests, component libraries), the `vClient` directive is registered as a normal Vue directive on the app, tagging elements with attributes like `data-client-directive` so that `hydrateIslands()` can still discover and process them.
 
 ```typescript
-// 框架自动注册（createUbeanClientApp 内部）：
+// Automatic framework registration (inside createUbeanClientApp):
 app.directive('client', vClient);
 
-// 手动注册（独立 Vue 应用）：
+// Manual registration (standalone Vue app):
 import { vClient } from '@ubean/islands';
 app.directive('client', vClient);
 ```
@@ -1413,12 +1413,12 @@ The `v-client` directive provides full type definitions, including directive arg
 import type {
   ClientStrategy,              // 'load' | 'idle' | 'visible' | 'media' | 'only'
   ClientDirectiveModifiers,    // { load?, idle?, visible?, media?, only? }
-  ClientDirectiveValue,        // string | undefined (媒体查询)
+  ClientDirectiveValue,        // string | undefined (media query)
   ClientDirectiveBinding,      // DirectiveBinding<ClientDirectiveValue>
   VClientDirective             // Directive<HTMLElement, ClientDirectiveValue>
 } from '@ubean/islands';
 
-// 策略解析工具函数
+// strategy resolution helper
 import { resolveClientStrategy } from '@ubean/islands';
 
 const strategy = resolveClientStrategy({ idle: true }); // → 'idle'
@@ -1457,11 +1457,11 @@ Since ubean v1.0, **Islands components are auto-registered** — no need to manu
 7. After SPA navigation, `router.afterEach` auto-hydrates islands in the new page
 
 ```typescript
-// app.ts —— 零配置，无需任何 islands 相关代码
+// app.ts — zero config, no islands-related code needed at all
 import { defineApp } from 'ubean/client';
 
 export default defineApp({
-  // islands 自动注册、自动水合
+  // islands are auto-registered and auto-hydrated
 });
 ```
 
@@ -1476,7 +1476,7 @@ export default defineApp({
 | Components in `node_modules` | Works normally (bare specifiers passed to Vite as-is) |
 | Adding a new island usage in dev mode | Transform re-scans → updates registry → invalidates virtual module → full-reload (only triggered on HMR updates, not on initial load) |
 
-> See [Islands](/guide/islands) for the detailed design.
+> See <Link to="/guide/islands">Islands</Link> for the detailed design.
 
 #### Comparison with void's Import Attributes
 
@@ -1494,7 +1494,7 @@ Auto import comes in two categories, both enabled by default and both configurab
 Automatically imports the project's `composables/`, `utils/` directories, and ubean's built-in composables — no manual import needed:
 
 ```typescript
-// 无需 import，自动可用
+// no import needed, available automatically
 const { t, locale, setLocale } = useI18n();
 const user = useUser();
 const data = await useAsyncData('key', async () => ({ /* ... */ }));
@@ -1513,7 +1513,7 @@ Automatically imports Vue components under the project's `components/` directory
 
 ```vue
 <template>
-  <!-- 无需 import，自动注册 -->
+  <!-- no import needed, registered automatically -->
   <BaseButton>Click</BaseButton>
   <Icon name="home" />
 </template>
@@ -1561,7 +1561,7 @@ Auto-generates `.ubean/auto-imports.d.ts` and `.ubean/components.d.ts`, which ar
 
 ubean uses vue-i18n 11 (`legacy: false`) as the Vue message engine and `@intlify/core` + ALS in handlers. Locale routing is compact prefixes: `compileLocalePaths()` feeds both vue-router and Hono. Configure `i18n` in `ubean.config.ts`; `createUbeanApp` mounts detection middleware automatically.
 
-See [Guide · I18n](/guide/i18n) and [API · i18n](/reference/i18n).
+See <Link to="/guide/i18n">Guide · I18n</Link> and <Link to="/reference/i18n">API · i18n</Link>.
 
 ```typescript
 // ubean.config.ts
@@ -1589,13 +1589,13 @@ ubean ships built-in dark/light mode support, aligned with Nuxt `@nuxtjs/color-m
 #### Basic Usage
 
 ```typescript
-// 在任意 Vue 组件中使用（自动导入）
+// Use in any Vue component (auto-imported)
 const colorMode = useColorMode();
 
-colorMode.value;       // 'light' | 'dark' — 当前实际模式
-colorMode.preference;  // 'system' | 'light' | 'dark' — 用户偏好
-colorMode.set('dark'); // 设置偏好并持久化
-colorMode.toggle();    // 在 modes 之间循环切换
+colorMode.value;       // 'light' | 'dark' — the mode actually in effect
+colorMode.preference;  // 'system' | 'light' | 'dark' — the user's preference
+colorMode.set('dark'); // set the preference and persist it
+colorMode.toggle();    // cycle through the available modes
 ```
 
 #### How It Works
@@ -1610,14 +1610,14 @@ colorMode.toggle();    // 在 modes 之间循环切换
 // ubean.config.ts
 export default defineConfig({
   colorMode: {
-    preference: 'system',    // 默认偏好: 'system' | 'light' | 'dark' | 自定义
-    fallback: 'light',       // 系统偏好无法检测时的回退值
-    classPrefix: '',         // class 前缀
-    classSuffix: '-mode',    // class 后缀 → 'light-mode', 'dark-mode'
-    storageKey: 'ubean-color-mode',  // localStorage 键名
-    cookieName: 'ubean-color-mode',  // cookie 名（SSR）
-    dataValue: false,        // 使用 data-color-mode 属性代替 class
-    modes: ['light', 'dark'] // 可用模式列表
+    preference: 'system',    // default preference: 'system' | 'light' | 'dark' | custom
+    fallback: 'light',       // fallback when the system preference cannot be detected
+    classPrefix: '',         // class prefix
+    classSuffix: '-mode',    // class suffix -> 'light-mode', 'dark-mode'
+    storageKey: 'ubean-color-mode',  // localStorage key
+    cookieName: 'ubean-color-mode',  // cookie name (SSR)
+    dataValue: false,        // use a data-color-mode attribute instead of a class
+    modes: ['light', 'dark'] // list of available modes
   }
 });
 ```
@@ -1646,11 +1646,11 @@ export default defineConfig({
 #### CSS Integration
 
 ```css
-/* 使用 class 模式（默认） */
+/* class mode (default) */
 html.light-mode { background: #fff; color: #333; }
 html.dark-mode  { background: #1a1a1a; color: #eee; }
 
-/* 使用 data 属性模式 */
+/* data attribute mode */
 html[data-color-mode="light"] { background: #fff; color: #333; }
 html[data-color-mode="dark"]  { background: #1a1a1a; color: #eee; }
 ```
@@ -1660,7 +1660,7 @@ html[data-color-mode="dark"]  { background: #1a1a1a; color: #eee; }
 Force the color mode at the route level via `forceColorMode()` / `unforceColorMode()`:
 
 ```typescript
-// 在路由守卫中
+// inside a router guard
 router.beforeEach((to) => {
   if (to.meta.colorMode) {
     forceColorMode(to.meta.colorMode as string);
@@ -1677,14 +1677,14 @@ ubean ships built-in third-party script optimization, aligned with Nuxt `@nuxtjs
 #### Basic Usage
 
 ```typescript
-// 在任意 Vue 组件中使用（自动导入）
+// Use in any Vue component (auto-imported)
 const { loaded, load, remove } = useScript('https://www.googletagmanager.com/gtag/js?id=GA_ID', {
-  partytown: true,       // 通过 Partytown 在 Web Worker 中执行
-  trigger: 'idle',       // 浏览器空闲时加载
+  partytown: true,       // execute in a Web Worker via Partytown
+  trigger: 'idle',       // load when the browser is idle
   attrs: { 'data-ga-id': 'GA_ID' }
 });
 
-// 手动加载（trigger: 'manual'）
+// manual loading (trigger: 'manual')
 const script = useScript('/heavy-script.js', { trigger: 'manual' });
 script.load();
 script.waitForLoad().then(() => console.log('loaded'));
@@ -1700,12 +1700,12 @@ script.waitForLoad().then(() => console.log('loaded'));
 | `'manual'` | Load only on manual `load()` call | User-interaction triggered |
 
 ```typescript
-// visible 策略：元素进入视口时加载
+// visible strategy: load when the element enters the viewport
 const mapRef = ref<HTMLElement | null>(null);
 useScript('https://maps.googleapis.com/maps/api/js', {
   trigger: 'visible',
   target: mapRef,
-  rootMargin: '200px'  // 提前 200px 加载
+  rootMargin: '200px'  // load 200px early
 });
 ```
 
@@ -1717,16 +1717,16 @@ Enable Partytown in `ubean.config.ts`:
 export default defineConfig({
   partyTown: {
     enabled: true,
-    forward: ['dataLayer.push'],   // 转发主线程调用
-    mainAccess: ['document.cookie'], // 主线程访问器
-    debug: false,                   // 调试模式
-    libPath: '~partytown'           // lib 文件路径
+    forward: ['dataLayer.push'],   // forwarded main-thread calls
+    mainAccess: ['document.cookie'], // main-thread accessors
+    debug: false,                   // debug mode
+    libPath: '~partytown'           // lib file path
   }
 });
 
-// 或简写
+// or the shorthand
 export default defineConfig({
-  partyTown: true  // 使用默认配置启用
+  partyTown: true  // enable with default config
 });
 ```
 
@@ -1774,12 +1774,12 @@ ubean adds dynamic head-tag capture and injection to the streaming render flow:
 4. **Inject into the tail**: Dynamic tags are injected after the SSR state script and before the tail. The browser automatically moves `<meta>` / `<title>` / `<link>` tags into `<head>`
 
 ```typescript
-// 任意 Vue 组件——动态 metadata 会被自动捕获
+// Any Vue component — dynamic metadata is captured automatically
 import { useHead } from '@unhead/vue';
 
 export default defineComponent({
   setup() {
-    // 这些标签在流式渲染期间添加，会被捕获并注入到响应中
+    // these tags are added during streaming render, captured, and injected into the response
     useHead({
       title: 'Dynamic Page Title',
       meta: [
@@ -1799,20 +1799,20 @@ export default defineComponent({
 #### How It Works
 
 ```
-流式响应结构:
+Streaming response structure:
 ┌─────────────────────────────────────────┐
-│ <!doctype html>                         │ ← head 部分(立即发送)
-│ <html><head>                            │   - 静态 title/meta/link
-│   <title>静态标题</title>               │   - CSS/JS 预加载
+│ <!doctype html>                         │ <- head part (sent immediately)
+│ <html><head>                            │   - static title/meta/link
+│   <title>Static title</title>           │   - CSS/JS preload
 │   <meta name="description" ...>         │
 │ </head><body>                           │
 │   <div id="app">                        │
-│     <!-- Vue app HTML 边渲染边流式输出 --> │ ← app 部分
-│     <div>页面内容</div>                  │
+│     <!-- Vue app HTML streamed as it renders --> | <- app part
+│     <div>Page content</div>             │
 │   </div>                                │
-│   <script id="__UBEAN_STATE__">...</script> │ ← tail 部分
-│   <meta name="og:title" content="...">  │   - 动态 head 标签(P9-24)
-│   <link rel="canonical" href="...">     │   - 浏览器自动移入 <head>
+│   <script id="__UBEAN_STATE__">...</script> │ <- tail part
+│   <meta name="og:title" content="...">  │   - dynamic head tags (P9-24)
+│   <link rel="canonical" href="...">     │   - browser moves them into <head>
 │ </body></html>                          │
 └─────────────────────────────────────────┘
 ```
@@ -1824,7 +1824,7 @@ Streaming metadata depends on streaming SSR; you must enable `ssr.streaming` in 
 ```typescript
 export default defineConfig({
   ssr: {
-    streaming: true  // 启用流式 SSR（自动启用流式 metadata）
+    streaming: true  // enable streaming SSR (streaming metadata turns on automatically)
   }
 });
 ```
@@ -1848,14 +1848,14 @@ ubean ships built-in full-text search support, aligned with Astro's Pagefind int
 #### Basic Usage
 
 ```typescript
-// ubean.config.ts — 启用 Pagefind
+// ubean.config.ts — enable Pagefind
 export default defineConfig({
   search: true
-  // 或自定义配置:
+  // or with a custom config:
   // search: {
-  //   site: 'dist',           // HTML 输出目录
-  //   indexPath: 'pagefind',  // 索引输出子目录
-  //   verbose: true           // 详细日志
+  //   site: 'dist',           // HTML output directory
+  //   indexPath: 'pagefind',  // index output subdirectory
+  //   verbose: true           // verbose logging
   // }
 });
 ```
@@ -1877,10 +1877,10 @@ const { search, results, loading, error } = useSearch({ debounce: 200 });
 <template>
   <input
     type="search"
-    placeholder="搜索文档..."
+    placeholder="Search docs..."
     @input="search($event.target.value)"
   />
-  <div v-if="loading">搜索中...</div>
+  <div v-if="loading">Searching...</div>
   <div v-else-if="error">{{ error }}</div>
   <ul v-else>
     <li v-for="r in results" :key="r.id">
@@ -1894,24 +1894,24 @@ const { search, results, loading, error } = useSearch({ debounce: 200 });
 #### How It Works
 
 ```
-构建时:
+At build time:
 ┌──────────────────────────────────────────┐
 │ ubean build                              │
-│   ├── Vite 构建 → 生成 HTML 文件到 dist/ │
+│   ├── Vite build -> emits HTML into dist/ │
 │   └── closeBundle hook                   │
 │       └── npx pagefind --site dist       │
-│           → 生成 dist/pagefind/ 索引文件  │
-│             (pagefind-modern.js, 索引碎片) │
+│           -> emits the dist/pagefind/ idx │
+│             (pagefind-modern.js, fragments) │
 └──────────────────────────────────────────┘
 
-运行时:
+At runtime:
 ┌──────────────────────────────────────────┐
-│ 浏览器                                    │
+│ Browser                                  │
 │   ├── useSearch()                        │
-│   │   └── 首次搜索时动态 import           │
+│   │   └── dynamic import on first search │
 │   │       /pagefind/pagefind-modern.js   │
 │   └── pagefind.search(query)             │
-│       → 返回匹配结果(url/excerpt/meta)    │
+│       -> returns url/excerpt/meta        │
 └──────────────────────────────────────────┘
 ```
 
@@ -1920,12 +1920,12 @@ const { search, results, loading, error } = useSearch({ debounce: 200 });
 ```typescript
 export default defineConfig({
   search: {
-    enabled: true,           // 启用（默认 true 当 search 为对象时）
-    site: 'dist',            // HTML 输出目录（默认从 Vite outDir 推导）
-    indexPath: 'pagefind',   // 索引输出子目录（默认 'pagefind'）
-    glob: '**/*.html',       // HTML 文件 glob（默认所有 .html）
-    excludeSelectors: ['nav', 'footer', '.sidebar'],  // 排除的 CSS 选择器
-    verbose: false           // 详细索引日志
+    enabled: true,           // enable (defaults to true when search is an object)
+    site: 'dist',            // HTML output directory (derived from Vite outDir by default)
+    indexPath: 'pagefind',   // index output subdirectory (default 'pagefind')
+    glob: '**/*.html',       // HTML file glob (all .html by default)
+    excludeSelectors: ['nav', 'footer', '.sidebar'],  // CSS selectors to exclude
+    verbose: false           // verbose indexing log
   }
 });
 ```
@@ -1934,22 +1934,22 @@ export default defineConfig({
 
 ```typescript
 const {
-  query,    // Ref<string> — 当前查询
-  results,  // ShallowRef<SearchResult[]> — 搜索结果
-  loading,  // Ref<boolean> — 是否搜索中
-  error,    // Ref<string | null> — 错误信息
-  ready,    // Ref<boolean> — Pagefind 是否已加载
+  query,    // Ref<string> — the current query
+  results,  // ShallowRef<SearchResult[]> — search results
+  loading,  // Ref<boolean> — whether a search is in flight
+  error,    // Ref<string | null> — error message
+  ready,    // Ref<boolean> — whether Pagefind has loaded
   search,   // (query: string, filters?) => Promise<void>
-  clear,    // () => void — 清除结果
-  preload   // () => Promise<void> — 预加载 Pagefind
+  clear,    // () => void — clear results
+  preload   // () => Promise<void> — preload Pagefind
 } = useSearch({
-  debounce: 150,   // debounce 延迟(ms)，默认 150
-  limit: 10,       // 最大结果数，默认 10
-  filters: {       // 默认过滤器
+  debounce: 150,   // debounce delay in ms, 150 by default
+  limit: 10,       // max results, 10 by default
+  filters: {       // default filters
     filters: { tags: 'guide' },
     sort: { date: 'desc' }
   },
-  immediate: '初始查询'  // 挂载时自动搜索
+  immediate: 'initial query'  // search automatically on mount
 });
 ```
 
@@ -1958,7 +1958,7 @@ const {
 Mark filter fields via the `data-pagefind-filter` attribute in HTML, then pass filters when searching:
 
 ```html
-<!-- 在页面 HTML 中 -->
+<!-- in your page HTML -->
 <article data-pagefind-filter="tags:guide">
   <h1>Getting Started</h1>
   ...
@@ -1966,12 +1966,12 @@ Mark filter fields via the `data-pagefind-filter` attribute in HTML, then pass f
 ```
 
 ```typescript
-// 搜索时过滤
+// filter at search time
 await search('vue', {
   filters: { tags: 'guide' }
 });
 
-// 按日期排序
+// sort by date
 await search('vue', {
   sort: { date: 'desc' }
 });
@@ -2016,7 +2016,7 @@ export const emailQueue = defineQueue<EmailJob>(
   },
   async message => {
     const job = message.body;
-    // 处理队列任务
+    // process the queue job
     await sendEmail(job.to, job.subject, job.body);
   }
 );
@@ -2037,7 +2037,7 @@ const signupSchema = z.object({ email: z.string().email() });
 
 export const POST = defineHandler(validator('json', signupSchema), async c => {
   const { email } = c.req.valid('json');
-  // ... 创建用户
+  // ... create the user
   await sendMessage('email', { to: email, subject: 'Welcome', body: '...' });
   // batch: await sendMessages('email', [job1, job2]);
   return c.json({ success: true });
@@ -2078,7 +2078,7 @@ export default {
         cookieName: 'ubean_session',
         expiresIn: 60 * 60 * 24 * 7
       },
-      // 传入 betterAuth 配置即启用完整 Better Auth
+      // passing a betterAuth config enables full Better Auth
       betterAuth: {
         emailAndPassword: { enabled: true },
         socialProviders: {
@@ -2113,18 +2113,18 @@ The `to` prop of the `<Link>` component is typed as a union of route names defin
 
 ```vue
 <script setup lang="ts">
-<!-- Link 为全局注册组件，无需导入；或 import { Link } from 'ubean/client' -->
+<!-- Link is globally registered, no import needed; or import { Link } from 'ubean/client' -->
 </script>
 
 <template>
-  <!-- to 只能传已定义的 RouteName，TS 自动补全 -->
-  <Link to="UserDetail" :params="{ id: '123' }">用户详情</Link>
+  <!-- to accepts only defined RouteNames, with TS autocomplete -->
+  <Link to="UserDetail" :params="{ id: '123' }">User detail</Link>
 
-  <!-- 字符串路径也支持，但 params 类型推导 -->
-  <Link to="/users/123">用户详情</Link>
+  <!-- string paths work too, but lose params type inference -->
+  <Link to="/users/123">User detail</Link>
 
-  <!-- 对象形式 -->
-  <Link :to="{ name: 'UserDetail', params: { id: '123' }, query: { tab: 'profile' } }">用户详情</Link>
+  <!-- object form -->
+  <Link :to="{ name: 'UserDetail', params: { id: '123' }, query: { tab: 'profile' } }">User detail</Link>
 </template>
 ```
 
@@ -2140,7 +2140,7 @@ After installing `@ubean/icon`, the Vue app can use the `<Icon>` component autom
 
 ```vue
 <template>
-  <Icon name="lucide:search" size="20" aria-label="搜索" />
+  <Icon name="lucide:search" size="20" aria-label="Search" />
   <Icon name="brand:logo" class="brand-logo" />
   <Icon :name="isDark ? 'lucide:moon' : 'lucide:sun'" />
 </template>
@@ -2171,11 +2171,11 @@ export default {
         search: 'lucide:search',
         github: 'logos:github-icon'
       },
-      // Custom Local Collections（对标 @nuxt/icon）
+      // Custom Local Collections (mirrors @nuxt/icon)
       customCollections: {
-        // 简写：key 为 prefix，value 为本地 SVG 目录
+        // shorthand: key is the prefix, value is the local SVG directory
         'my-icons': './assets/icons',
-        // 完整对象配置
+        // full object config
         brand: {
           dir: './assets/brand-svgs',
           prefix: 'brand',
@@ -2221,12 +2221,12 @@ Implements page-navigation transitions based on the browser-native [View Transit
 
 ```vue
 <script setup lang="ts">
-// 页面内启用 view transition（默认通过 ubean config 全局配置）
-// app.vue 或 layout 中无需额外代码
+// enable a view transition for a page (globally configured via ubean config by default)
+// no extra code needed in app.vue or the layout
 </script>
 
 <style>
-/* 自定义过渡动画 */
+/* custom transition animation */
 ::view-transition-old(root) {
   animation: fade-out 0.2s ease-out;
 }
@@ -2259,8 +2259,8 @@ Implements page-navigation transitions based on the browser-native [View Transit
 // ubean.config.ts
 export default defineConfig({
   viewTransition: {
-    enabled: true // 默认 true，自动检测浏览器支持
-    // 不支持 View Transitions 的浏览器自动 fallback（无动画，不阻塞导航）
+    enabled: true // true by default; browser support is detected automatically
+    // browsers without View Transitions fall back automatically (no animation, navigation is not blocked)
   }
 });
 ```
@@ -2270,12 +2270,12 @@ export default defineConfig({
 Supports naming shared elements via the `view-transition-name` CSS property to achieve cross-page shared-element transitions (e.g. image zoom transitions):
 
 ```vue
-<!-- 列表页 -->
+<!-- list page -->
 <article>
   <img src="/photo.jpg" style="view-transition-name: photo-1" />
 </article>
 
-<!-- 详情页 -->
+<!-- detail page -->
 <div class="hero">
   <img src="/photo.jpg" style="view-transition-name: photo-1" />
 </div>
@@ -2326,22 +2326,22 @@ export default {
 import { usePwa } from '@ubean/integrations';
 
 const {
-  isInstalled, // 是否已安装为 PWA
-  isUpdateAvailable, // 是否有新版本
-  isOfflineReady, // 是否已缓存可离线使用
-  needRefresh, // 需要用户确认刷新
+  isInstalled, // whether installed as a PWA
+  isUpdateAvailable, // whether a new version is available
+  isOfflineReady, // whether it is cached and usable offline
+  needRefresh, // the user needs to confirm a refresh
   registration, // ServiceWorkerRegistration
-  register, // 手动注册 SW
-  updateServiceWorker // 激活新版本
+  register, // register the SW manually
+  updateServiceWorker // activate the new version
 } = usePwa();
 </script>
 
 <template>
   <div v-if="needRefresh" class="update-banner">
-    有新版本可用
-    <button @click="updateServiceWorker()">立即刷新</button>
+    A new version is available
+    <button @click="updateServiceWorker()">Refresh now</button>
   </div>
-  <div v-else-if="isOfflineReady" class="offline-badge">可离线使用</div>
+  <div v-else-if="isOfflineReady" class="offline-badge">Available offline</div>
 </template>
 ```
 
@@ -2457,12 +2457,12 @@ ubean's SSR state protocol is implemented via two hooks on `defineApp`:
 
 ```ts
 export interface UbeanPiniaOptions {
-  /** 是否启用,默认 true。设为 false 等价于 `pinia: false` */
+  /** Whether enabled; true by default. Setting false is equivalent to `pinia: false` */
   enabled?: boolean;
   /**
-   * 是否将 `pinia` 加入 Vite 的 `optimizeDeps.include`,默认 true。
-   * dev 模式下预构建 pinia 可避免首次请求的依赖扫描延迟。
-   * 若你使用了自定义的 pinia 别名或 monorepo 内的 pinia 源码,可设为 false。
+    * Whether to add `pinia` to Vite's `optimizeDeps.include`; true by default.
+    * Pre-bundling pinia in dev avoids the dependency-scan delay on the first request.
+    * Set false if you use a custom pinia alias or pinia sources inside the monorepo.
    */
   optimizeDeps?: boolean;
 }
@@ -2473,7 +2473,7 @@ Explicit configuration example:
 ```ts
 // ubean.config.ts
 export default defineConfig({
-  pinia: { optimizeDeps: false } // 禁用 dev 预构建(如使用 monorepo 内的 pinia 源码)
+  pinia: { optimizeDeps: false } // disable dev pre-bundling (e.g. when using pinia sources inside the monorepo)
 });
 ```
 
@@ -2501,7 +2501,7 @@ import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integration
 
 ## Next Steps
 
-- [Overview](overview.md) — high-level architecture and design principles
-- [Routing](routing.md) — file-based routing, layouts, and route rules
-- [App Modes](/guide/app-modes) — fullstack / SPA / SSG / backend modes
-- [Islands](/guide/islands) — zero-config island hydration details
+- <Link to="/architecture/overview">Overview</Link> — high-level architecture and design principles
+- <Link to="/architecture/routing">Routing</Link> — file-based routing, layouts, and route rules
+- <Link to="/guide/app-modes">App Modes</Link> — fullstack / SPA / SSG / backend modes
+- <Link to="/guide/islands">Islands</Link> — zero-config island hydration details

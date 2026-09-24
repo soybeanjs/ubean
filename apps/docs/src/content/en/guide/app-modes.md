@@ -105,7 +105,7 @@ export default defineConfig({
 | `'streaming'`          | Force streaming SSR for matching routes (overrides `SsrOptions.streaming`) |
 | `'data-only'`          | Run loaders/data but return a CSR shell with dehydrated data              |
 
-Combine with `routeRules.isr` for incremental static regeneration, or `routeRules.prerender` for build-time prerendering. See [Route Rules](/guide/pages-routing/overview#per-route-rendering-rules-p9-03) for the full field reference.
+Combine with `routeRules.isr` for incremental static regeneration, or `routeRules.prerender` for build-time prerendering. See <Link to="/guide/pages-routing/overview#per-route-rendering-rules-p9-03">Route Rules</Link> for the full field reference.
 
 ### `spa`
 
@@ -125,7 +125,7 @@ Static site generation — prerender at build time via a **direct render path** 
 - Output: static HTML files under `dist/public/**/*.html`
 - `pages/404.vue` (if present) renders to `404.html` — picked up by GitHub Pages / Netlify / Cloudflare Pages as the custom 404 page
 - i18n routes are expanded per strategy: `/about` → `/about` + `/zh/about` under `prefix_except_default`; hreflang / canonical / og:locale tags are emitted automatically
-- Full-text search index is generated automatically when `content: true` (see [Content & Search](/guide/content)): `dist/public/__search.json` (section payload for `useContentSearch()`) plus a chunked [Pagefind](https://pagefind.app/) index under `dist/public/pagefind/` when the optional `pagefind` dev dependency is installed — both CJK-aware
+- Full-text search index is generated automatically when `content: true` (see <Link to="/guide/content">Content & Search</Link>): `dist/public/__search.json` (section payload for `useContentSearch()`) plus a chunked [Pagefind](https://pagefind.app/) index under `dist/public/pagefind/` when the optional `pagefind` dev dependency is installed — both CJK-aware
 - Page `loader` is **not executed** (one-time warning) — data comes from content collections, module constants, or client-side hydration fetch
 - Not available in static output: server actions, form POST, ISR / PPR / streaming, route-rule redirect/rewrite (no execution point in static files) — use `fullstack` with `prerender` when you need those
 - Security response headers (CSP/HSTS/…) are not part of the static output — configure them on your hosting platform (e.g. Netlify / Cloudflare Pages `_headers`). Dev disables them by default to mirror that; set `security.headers` in `ubean.config.ts` to re-enable them in dev as a CSP debugging console

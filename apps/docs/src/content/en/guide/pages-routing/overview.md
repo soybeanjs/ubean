@@ -68,7 +68,7 @@ Only root-level files are treated as special. A nested file like `pages/users/40
 
 #### Application Root Component (`src/app.vue` / `src/App.vue`)
 
-Separate from the `pages/` specials, ubean also auto-detects an **application root component** at `src/app.vue` (lowercase, preferred — aligns with the `app.ts` defineApp entry) or `src/App.vue` (capitalized, classic Vue). When both exist, lowercase `app.vue` wins. It's a wrapper above the framework root component: the layout chain + page are injected through its **default slot** — render it with `<slot />`. This is where global context providers (`SConfigProvider` etc.), app-wide error boundaries above layouts, or global transition containers belong. See [Runtime — Application Root Component](/architecture/runtime#application-root-component--appvue--approot) for the full contract.
+Separate from the `pages/` specials, ubean also auto-detects an **application root component** at `src/app.vue` (lowercase, preferred — aligns with the `app.ts` defineApp entry) or `src/App.vue` (capitalized, classic Vue). When both exist, lowercase `app.vue` wins. It's a wrapper above the framework root component: the layout chain + page are injected through its **default slot** — render it with `<slot />`. This is where global context providers (`SConfigProvider` etc.), app-wide error boundaries above layouts, or global transition containers belong. See <Link to="/architecture/runtime#application-root-component-appvue-approot">Runtime — Application Root Component</Link> for the full contract.
 
 #### Overriding via `defineApp`
 
@@ -540,7 +540,7 @@ export default defineConfig({
 - `isr` → GET requests are served from ISR cache (HIT / STALE / MISS, marked via `X-ISR` header); the renderer runs on MISS (and on STALE when `swr` is enabled, in the background)
 - `prerender` → `collectPrerenderRoutes()` automatically collects these patterns at build time (merged with `prerender.include` / `prerender.all`)
 
-See also [Cache Operations](/reference/cache) for `CacheStore.peek()` and ISR internals.
+See also <Link to="/reference/cache">Cache Operations</Link> for `CacheStore.peek()` and ISR internals.
 
 ## Data Fetching
 
@@ -557,7 +557,7 @@ const { data, error, loading, refresh, invalidate } = await useData({
 
 ## Next Steps
 
-- [Data Fetching (useData)](/guide/pages-routing/loaders)
-- [Form Actions](/guide/pages-routing/actions)
-- [Route Helpers](/reference/route-helpers)
-- [Internationalization](/guide/i18n)
+- <Link to="/guide/pages-routing/loaders">Data Fetching (useData)</Link>
+- <Link to="/guide/pages-routing/actions">Form Actions</Link>
+- <Link to="/reference/route-helpers">Route Helpers</Link>
+- <Link to="/guide/i18n">Internationalization</Link>

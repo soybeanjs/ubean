@@ -5,7 +5,7 @@ description: "Routing helpers: useRouter, the Link component, and navigation uti
 
 # Route Helpers
 
-ubean's routing helpers revolve around `useRouter()` (from `vue-router`; auto-imported only when `autoImports: { vueRouter: true }` is enabled — off by default) and the globally-registered `<Link>` component. ubean does **not** provide `useRoute()`, `navigateTo()`, `redirectTo()`, `useRouteParams()`, or `useRouteQuery()` — use `router.currentRoute` (see below) or `vue-router`'s `useRoute()` instead. For i18n path helpers (`useLocalePath`, `useSwitchLocalePath`), see the [I18n reference](/reference/i18n).
+ubean's routing helpers revolve around `useRouter()` (from `vue-router`; auto-imported only when `autoImports: { vueRouter: true }` is enabled — off by default) and the globally-registered `<Link>` component. ubean does **not** provide `useRoute()`, `navigateTo()`, `redirectTo()`, `useRouteParams()`, or `useRouteQuery()` — use `router.currentRoute` (see below) or `vue-router`'s `useRoute()` instead. For i18n path helpers (`useLocalePath`, `useSwitchLocalePath`), see the <Link to="/reference/i18n">I18n reference</Link>.
 
 ## useRouter()
 
@@ -95,7 +95,7 @@ There are two ways to register navigation guards:
 
 #### 1. Global guards via `defineApp({ router })` — **recommended**
 
-Register once at app startup in `src/app.ts`. Guards run on **both client and SSR**, and can intercept the first navigation. See [Navigation Guards guide](/guide/pages-routing/overview#navigation-guards-client--ssr) for details.
+Register once at app startup in `src/app.ts`. Guards run on **both client and SSR**, and can intercept the first navigation. See <Link to="/guide/pages-routing/overview#navigation-guards-client-ssr">Navigation Guards guide</Link> for details.
 
 ```typescript
 // src/app.ts

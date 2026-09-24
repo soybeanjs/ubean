@@ -232,7 +232,7 @@ ubean/
 └── tsconfig.json
 ```
 
-> Package-architecture details (aggregator pattern, subpath exports, extension mechanism) — see [Architecture §1](architecture.md#1-layered-architecture).
+> Package-architecture details (aggregator pattern, subpath exports, extension mechanism) — see <Link to="/architecture/architecture#1-layered-architecture">Architecture §1</Link>.
 
 ### User App Directory Structure
 
@@ -276,6 +276,6 @@ my-app/
 
 ## Next Steps
 
-- [Architecture](/architecture/architecture) — framework architecture, data flow, and configuration system.
-- [Routing](/architecture/routing) — file-based routing scan and route conventions.
-- [Quick Start](/guide/quickstart) — create your first ubean project.
+- <Link to="/architecture/architecture">Architecture</Link> — framework architecture, data flow, and configuration system.
+- <Link to="/architecture/routing">Routing</Link> — file-based routing scan and route conventions.
+- <Link to="/guide/quickstart">Quick Start</Link> — create your first ubean project.

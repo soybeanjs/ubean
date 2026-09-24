@@ -62,6 +62,6 @@ ubean ships with optional extension packages under the `@ubean/` scope:
 
 ## Next Steps
 
-- [Quick Start](/guide/quickstart) — Create your first ubean project.
-- [App Modes](/guide/app-modes) — Understand SSG, SSR, and SPA modes.
-- [Routing Modes](/guide/routing-modes) — File-based routing in depth.
+- <Link to="/guide/quickstart">Quick Start</Link> — Create your first ubean project.
+- <Link to="/guide/app-modes">App Modes</Link> — Understand SSG, SSR, and SPA modes.
+- <Link to="/guide/routing-modes">Routing Modes</Link> — File-based routing in depth.

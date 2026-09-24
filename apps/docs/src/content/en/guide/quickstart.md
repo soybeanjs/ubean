@@ -115,7 +115,7 @@ Visit `http://localhost:9527` to see your application.
 pnpm build
 ```
 
-The build output will be in the `dist` directory (`dist/public/` for client, `dist/server/` for server — see [App Modes](app-modes.md) for mode-specific output).
+The build output will be in the `dist` directory (`dist/public/` for client, `dist/server/` for server — see <Link to="/guide/app-modes">App Modes</Link> for mode-specific output).
 
 ## Preview Production Build
 
@@ -164,10 +164,10 @@ Only reach for `await ensureUbeanConfig()` when *you* need the config earlier (a
 
 ## Next Steps
 
-- [Application Modes](app-modes.md) — fullstack / spa / ssg / backend
-- [Route Generation Modes](routing-modes.md) — virtual / file / both
-- [Pages and Routing](pages-routing/overview.md)
-- [Data Loaders](pages-routing/loaders.md)
-- [Actions](pages-routing/actions.md)
-- [Internationalization](i18n.md)
-- [Islands Architecture](islands.md)
+- <Link to="/guide/app-modes">Application Modes</Link> — fullstack / spa / ssg / backend
+- <Link to="/guide/routing-modes">Route Generation Modes</Link> — virtual / file / both
+- <Link to="/guide/pages-routing/overview">Pages and Routing</Link>
+- <Link to="/guide/pages-routing/loaders">Data Loaders</Link>
+- <Link to="/guide/pages-routing/actions">Actions</Link>
+- <Link to="/guide/i18n">Internationalization</Link>
+- <Link to="/guide/islands">Islands Architecture</Link>

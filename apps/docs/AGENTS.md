@@ -45,6 +45,23 @@ explicitly. `build/docs-routes.ts` handles this — don't hand-write route lists
 
 ## API REFERENCE PIPELINE
 
+`src/generated/api/<pkg>.json` is the TypeDoc output. **Its location is load-bearing**:
+it lives under `src/` (not `public/`) because `<ApiTable>` imports it through
+`import.meta.glob`.
+
+Two failures follow from serving it over HTTP instead, and both were real:
+
+1. **The request never reaches the file.** ubean's static middleware skips `/api/*`
+   (`packages/server/src/static.ts`) to leave that prefix for `src/routes/` handlers.
+   This site has no API routes, so `/api/<pkg>.json` fell through to the 404 fallback
+   and returned HTML — the browser then threw `Unexpected token '<', "<!doctype "…`.
+   Any path without the `/api/` prefix serves normally; that prefix, and only that
+   prefix, is intercepted.
+2. **Prerender captured the loading state.** `onMounted` runs only in the browser, so
+   the SSG output was `<p>Loading…</p>` and nothing else — no content for a crawler.
+
+Importing the JSON fixes both at once. Don't reintroduce a fetch here.
+
 `src/shared/api-packages.ts` is **the** curated package list. It feeds three consumers
 that previously disagreed with each other, which produced four 404 sidebar links and four
 pages prerendered with no data behind them:
@@ -66,6 +83,14 @@ repo-level decision, not an app-level one.
 
 ## RENDERING RULES
 
+- **Sidebar labels are i18n keys, not display text.** `src/constants/menus.ts` holds
+  routes; the label for each is resolved from `sidebar_items.<key>`, where `<key>` is the
+  route path with `/`→`_` and `-`→`_` (`sidebarItemKey()`, e.g.
+  `/guide/pages-routing/loaders` → `guide_pages_routing_loaders`). Sub-groups use
+  `sidebar_groups.<slug(label)>`. Keep the derivation purely mechanical: an earlier
+  version special-cased a trailing `overview`, which produced `architecture` where the
+  catalogue said `architecture_overview`, and the sidebar silently fell back to English
+  for those entries. Add a route ⇒ add its key to **both** `src/locales/{en,zh}.json`.
 - **`doc-md.vue` renders the untranslated notice itself.** The page's render happens before
   a child's `onServerPrefetch` resolves, so a parent-owned `v-if` never reaches the
   prerendered HTML. Anything that must appear in the static output has to be owned by the

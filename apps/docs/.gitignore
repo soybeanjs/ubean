@@ -3,7 +3,7 @@ dist
 .ubean
 
 # Generated API reference (TypeDoc output — run `pnpm build:api`)
-public/api/*.json
+src/generated/api
 
 # Dependencies
 node_modules

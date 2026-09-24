@@ -1,6 +1,14 @@
 // @ubean/docs — build:api script.
 // Runs TypeDoc over the curated subset of ubean packages' built dist/*.d.ts and
-// emits apps/docs/public/api/<pkg>.json for the <ApiTable> renderer.
+// emits apps/docs/src/generated/api/<pkg>.json for the <ApiTable> renderer.
+//
+// Output lives under `src/` (not `public/`) so <ApiTable> can `import.meta.glob`
+// it. A runtime `fetch('/api/x.json')` could not work here: ubean's static
+// middleware skips `/api/*` (reserving it for `src/routes/` handlers), so on a
+// site with no API routes — this one — the request fell through to the 404
+// fallback and returned HTML, which the client then failed to JSON.parse
+// ("Unexpected token '<'"). Importing the data also lets the SSG prerender the
+// tables instead of shipping "Loading…" as the static content.
 //
 //  - The curated package list lives in `src/shared/api-packages.ts`, shared with
 //    the prerender collector and the sidebar, so the three cannot diverge (they
@@ -23,7 +31,7 @@ import { API_PACKAGES } from '../src/shared/api-packages';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = resolve(__dirname, '..');
-const OUT_DIR = resolve(APP_ROOT, 'public/api');
+const OUT_DIR = resolve(APP_ROOT, 'src/generated/api');
 const TSCONFIG = resolve(APP_ROOT, 'tsconfig.typedoc.json');
 
 // `pkg` is the public name used in the route /reference/api/<pkg>; `distDir` is

@@ -1,9 +1,21 @@
 <script setup lang="ts">
-// <ApiTable> renders API Reference Entries from public/api/<pkg>.json (TypeDoc output).
-// Per DESIGN.md D4/D6/D15. Uses @vean/ui's STable in its data-driven form
-// (columns/data/row-key + per-column slots), mirroring the reference's type-data.vue.
-// Falls back gracefully when build:api emitted a stub (no dist/*.d.ts).
-import { shallowRef, ref, computed, onMounted, watch } from 'vue';
+// <ApiTable> renders API Reference entries from src/generated/api/<pkg>.json
+// (TypeDoc output, written by scripts/build-api.ts).
+//
+// The data is imported, not fetched. A runtime `fetch('/api/<pkg>.json')` is
+// what this used to do, and it failed twice over:
+//
+//   1. ubean's static middleware skips `/api/*` to leave it for `src/routes/`
+//      handlers. This site has no API routes, so the request reached the 404
+//      fallback and came back as HTML — the client then threw
+//      `Unexpected token '<', "<!doctype "... is not valid JSON`.
+//   2. `onMounted` only runs in the browser, so SSG prerendered the page with
+//      the "Loading…" placeholder as its permanent static content — nothing for
+//      a crawler to index.
+//
+// `import.meta.glob` (eager) fixes both: the JSON is bundled at build time, so
+// the tables render during prerender and there is no request to route.
+import { computed } from 'vue';
 import type { TableColumn } from '@vean/ui';
 import { useApiI18n } from '~/composables/use-api-i18n';
 
@@ -43,24 +55,16 @@ interface ApiDoc {
   entries?: ApiEntry[];
 }
 
-const data = shallowRef<ApiDoc | null>(null);
-const error = ref<string | null>(null);
+/**
+ * One glob per generated file. Eager so the data is inlined into the page chunk
+ * — the tables must be present in the prerendered HTML.
+ */
+const apiModules = import.meta.glob<ApiDoc>('../generated/api/*.json', { eager: true, import: 'default' });
 
-async function load() {
-  try {
-    const res = await fetch(`/api/${props.pkg}.json`);
-    if (!res.ok) {
-      error.value = `HTTP ${res.status}`;
-      return;
-    }
-    data.value = (await res.json()) as ApiDoc;
-  } catch (e) {
-    error.value = (e as Error).message;
-  }
-}
+const data = computed<ApiDoc | null>(() => apiModules[`../generated/api/${props.pkg}.json`] ?? null);
 
-onMounted(load);
-watch(() => props.pkg, load);
+/** Set only when the JSON for this package is genuinely absent (build:api not run). */
+const error = computed(() => (data.value ? null : `No data for "${props.pkg}" — run \`pnpm build:api\`.`));
 
 const { labels } = useApiI18n();
 

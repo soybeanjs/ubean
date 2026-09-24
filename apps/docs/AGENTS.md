@@ -20,6 +20,10 @@ top-level `docs/` directory (maintainer docs) — do not move content between th
 - **i18n**: `prefix_except_default`, default `en`, so zh lives under `/zh`. Message
   catalogs are `src/locales/{en,zh}.json`. A `|` inside a message is vue-i18n's plural
   separator — escape literal pipes as `{'|'}` (see `home.features.islands.desc`).
+- **Writing or translating content? Read [TRANSLATION.md](./TRANSLATION.md) first.** It is
+  the terminology table plus the link rules. The load-bearing rule: internal links in
+  content use `<Link to="/path">` (no `/zh` prefix, no bare markdown link) so the framework
+  localizes them — `prefix_except_default` yields `/guide/x` for en and `/zh/guide/x` for zh.
 
 ## CONTENT → ROUTE MAPPING
 
@@ -74,6 +78,30 @@ repo-level decision, not an app-level one.
   highlighter, so without the hook fences render as plain `<pre><code>`.
 - **Do not wrap prerendered content in `<ClientOnly>`.** ubean's `ClientOnly` renders a
   comment on the server by design, so it silently removes content from the static HTML.
+- **Internal content links use `<Link to="/path">`, never a bare markdown link.** A bare
+  `[text](/path)` compiles to a plain `<a>`, which ubean does **not** localize, so a zh page
+  sends readers to the English page. `<Link>` goes through `LOCALIZE_PATH_KEY` and yields
+  `/guide/x` for en and `/zh/guide/x` for zh. `localizePath` strips an existing prefix
+  before re-applying the current locale, so the result is idempotent — still write
+  prefixless paths and let the framework decide. See [TRANSLATION.md](./TRANSLATION.md).
+
+## LOCALIZATION
+
+`src/content/en/**` is the source of truth; `src/content/zh/**` must mirror it (same files,
+same section order, same fenced blocks). [TRANSLATION.md](./TRANSLATION.md) holds the
+terminology table and the per-page checklist — read it before writing either locale.
+
+- **`status: translated-stub` is a render-time signal, not decoration.** `doc-md.vue`
+  reads frontmatter via a `?raw` glob and treats a stubbed page as *absent content*, so the
+  English body shows with a notice instead of the placeholder. Deleting a stub's marker
+  without supplying a real translation silently downgrades the page to the placeholder text.
+- **Content is per-page, not per-file**: a locale can exist on disk and still be a stub.
+- **`build/llms.ts` writes `/zh/…/<route>.md` mirrors** in addition to the English ones,
+  and skips stubbed zh pages so no LLM export contains a "not translated" notice.
+  `createLlmsOutput` reads both content directories; it previously read only `en`, so the
+  site shipped English-only `.md` mirrors while the HTML had both locales.
+- **English files must not contain Chinese**, including code comments (the reverse is fine
+  and expected — zh code comments are translated per TRANSLATION.md §3).
 
 ## BUILD
 

@@ -83,3 +83,15 @@ jobs:
         # OPT-09 + OPT-07：护栏脚本——AGENTS.md 包名/包数与 packages/*/package.json 一致，
         # engineering.md 契约表覆盖全部派生扩展包。详见 scripts/verify-packages.mjs。
         run: node scripts/verify-packages.mjs
+
+      - name: Check docs i18n
+        # 文档国际化的漂移门禁：缺译文 / en 正文变更后译文未同步 / 译文破坏 markdown
+        # 结构（标题层级、代码块语言、链接条数）→ 退出 1。
+        #
+        # 加这一步是因为漂移此前是静默的：en 内容有 43 次提交、zh 只有 38 次，差额
+        # 没人发现；站点还曾有过 17/29 篇是占位页却无人察觉的阶段。它不调用 DeepL
+        # （只读文件比对），所以不需要密钥、不消耗配额，可以安全地阻断 merge。
+        #
+        # 判定「什么算漂移」用的是 zh frontmatter 里的 translatedFrom 源哈希 +
+        # sections 分节指纹，两者由 `node scripts/i18n-stamp.mjs` 维护。
+        run: node scripts/i18n-check.mjs

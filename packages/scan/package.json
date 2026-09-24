@@ -36,7 +36,7 @@
     "tinyglobby": "^0.2.17"
   },
   "devDependencies": {
-    "@types/node": "^26.6.1",
+    "@types/node": "^26.6.2",
     "@ubean/markdown": "workspace:*",
     "typescript": "catalog:",
     "vite-plus": "catalog:",

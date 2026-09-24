@@ -55,7 +55,7 @@ ubean ships with optional extension packages under the `@ubean/` scope:
 | `@ubean/content` | Content collections and Markdown processing |
 | `@ubean/integrations/fonts` | Font optimization and subsetting |
 | `@ubean/integrations/electron` | Electron desktop app integration |
-| `@ubean/integrations/ui` | SoybeanUI integration (component resolver + styles) |
+| `@ubean/integrations/ui` | VeanUI integration (component resolver + styles) |
 | `@ubean/integrations/pinia` | Pinia state management with SSR hydration helpers |
 
 > The PWA, fonts, Electron, UI, and Pinia integrations are subpaths of `@ubean/integrations` — they are not standalone packages.

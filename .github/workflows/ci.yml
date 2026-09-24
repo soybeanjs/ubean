@@ -71,6 +71,14 @@ jobs:
           pnpm --filter ubean-test build
           pnpm --filter ubean-test type-check
 
+      - name: Build the docs site
+        # apps/docs 此前完全不在 CI 覆盖范围内：上次构建是手工跑的，之后源文件持续更新却无人察觉，
+        # 直到整个站点的 markdown 内容静默不渲染。这里跑完整 SSG 构建，让预渲染失败（例如 SSR 期间
+        # 取不到 ui 主题上下文 → 0 路由）在 CI 就暴露，而不是等部署后才发现。
+        #
+        # build:api 依赖 packages/*/dist/*.d.ts，由上一步的 `pnpm typecheck`(内含 pnpm build) 产出。
+        run: pnpm --filter @ubean/docs build
+
       - name: Verify package tree & extension contract
         # OPT-09 + OPT-07：护栏脚本——AGENTS.md 包名/包数与 packages/*/package.json 一致，
         # engineering.md 契约表覆盖全部派生扩展包。详见 scripts/verify-packages.mjs。

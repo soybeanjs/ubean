@@ -1,5 +1,5 @@
-.markdown-body {
-  --uno: 'relative min-w-0 max-w-none text-start text-base leading-[1.85] text-foreground';
+.markdown-wrapper {
+  --uno: 'relative min-w-0 max-w-none text-start text-base leading-[1.75] text-foreground';
 
   > :first-child {
     --uno: mt-0;
@@ -26,7 +26,7 @@
   }
 
   > p {
-    --uno: 'my-6 max-w-none text-base leading-[1.85] text-muted-foreground';
+    --uno: 'my-5 max-w-none text-base leading-[1.75] text-muted-foreground';
   }
 
   > hr {
@@ -34,7 +34,7 @@
   }
 
   > ul {
-    --uno: 'my-6 list-disc ps-6 space-y-4 text-base leading-[1.85] text-muted-foreground';
+    --uno: 'my-5 list-disc ps-6 space-y-3 text-base leading-[1.75] text-muted-foreground';
 
     > li {
       --uno: 'marker:text-foreground/20';
@@ -42,7 +42,7 @@
   }
 
   > ol {
-    --uno: 'my-6 list-decimal ps-6 space-y-4 text-base leading-[1.85] text-muted-foreground';
+    --uno: 'my-5 list-decimal ps-6 space-y-3 text-base leading-[1.75] text-muted-foreground';
 
     > li {
       --uno: 'marker:text-foreground/50';
@@ -52,7 +52,7 @@
   li > p,
   li > ul,
   li > ol {
-    --uno: 'my-3';
+    --uno: 'my-2';
   }
 
   strong {
@@ -65,9 +65,7 @@
 
   code:not(pre code) {
     --uno: 'rounded-xl border px-2.5 py-1 font-semibold text-primary';
-    background: var(--docs-chip-bg);
     background: color-mix(in srgb, hsl(var(--primary) / 0.1) 72%, var(--docs-chip-bg));
-    border-color: hsl(var(--primary) / 0.16);
     border-color: color-mix(in srgb, hsl(var(--primary) / 0.16) 70%, transparent);
   }
 
@@ -75,13 +73,15 @@
     --uno: 'my-0 max-w-full overflow-x-auto rounded-none bg-transparent px-5 py-5 text-[13px] leading-6';
   }
 
-  a:not([data-link]) {
+  a:not([data-vean-link]) {
     --uno: 'font-medium text-primary decoration-primary/40 underline underline-offset-4 transition-colors duration-200 hover:text-primary/80';
   }
 
+  /* Fence panels are the shiki <pre> itself (see wrapFenceWithCopyButton in
+     build/highlight.ts): the badge/copy button pin to the pre while horizontal
+     scrolling happens on the inner <code>. */
   .md-code-block {
-    --uno: 'relative my-8 border border-border rounded-xl overflow-hidden';
-    background: var(--docs-surface-strong);
+    --uno: 'relative my-8 max-w-full overflow-hidden border border-border rounded-xl p-0';
     background: color-mix(in srgb, var(--docs-surface-strong) 96%, transparent);
     box-shadow: var(--docs-shadow), var(--docs-panel-inset);
     -webkit-backdrop-filter: saturate(170%) blur(var(--docs-panel-blur));
@@ -101,15 +101,13 @@
     --uno: 'absolute left-3 top-3 z-1 border border-border bg-accent rounded-full px-2.5 py-1 text-2xs font-semibold uppercase tracking-[0.2em] text-muted-foreground';
   }
 
-  .md-code-block > pre {
-    --uno: 'my-0 pt-12';
+  .md-code-block > code {
+    --uno: 'block max-w-full overflow-x-auto px-5 pt-12 pb-5';
   }
 
   blockquote {
-    --uno: 'my-6 rounded-xl border px-5 py-4';
-    background: var(--docs-panel-bg);
+    --uno: 'my-6 rounded-4 border px-5 py-4';
     background: color-mix(in srgb, hsl(var(--primary) / 0.08) 68%, var(--docs-panel-bg));
-    border-color: hsl(var(--primary) / 0.2);
     border-color: color-mix(in srgb, hsl(var(--primary) / 0.2) 64%, transparent);
     box-shadow: var(--docs-panel-shadow), var(--docs-panel-inset);
 
@@ -119,10 +117,8 @@
   }
 
   details {
-    --uno: 'my-6 overflow-hidden rounded-xl border';
-    background: var(--docs-panel-bg);
+    --uno: 'my-6 overflow-hidden rounded-4 border';
     background: color-mix(in srgb, var(--docs-panel-bg) 92%, transparent);
-    border-color: var(--docs-panel-border);
     border-color: color-mix(in srgb, var(--docs-panel-border) 78%, transparent);
     box-shadow: var(--docs-panel-shadow), var(--docs-panel-inset);
   }
@@ -133,9 +129,7 @@
 
   details[open] > summary {
     --uno: 'border-b';
-    background: var(--docs-chip-bg);
     background: color-mix(in srgb, var(--docs-chip-bg) 82%, transparent);
-    border-color: var(--docs-panel-border);
     border-color: color-mix(in srgb, var(--docs-panel-border) 76%, transparent);
   }
 
@@ -144,21 +138,11 @@
   }
 
   > table {
-    --uno: 'my-6 w-full text-sm';
-    /* Make the table a scrollable block for horizontal overflow (MDN recommended
-       pattern for responsive tables). display:block turns the <table> into a
-       scroll container; the browser generates an anonymous table box for the
-       inner thead/tbody/tr/td so the table layout is preserved. */
-    display: block;
-    overflow-x: auto;
-    max-width: 100%;
-    -webkit-overflow-scrolling: touch;
+    --uno: 'my-6 w-full overflow-hidden text-sm';
     border-collapse: separate;
     border-spacing: 0;
-    border: 1px solid var(--docs-panel-border);
-    border-color: color-mix(in srgb, var(--docs-panel-border) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--docs-panel-border) 80%, transparent);
     border-radius: var(--docs-panel-radius);
-    background: var(--docs-panel-bg);
     background: color-mix(in srgb, var(--docs-panel-bg) 96%, transparent);
     box-shadow: var(--docs-panel-shadow), var(--docs-panel-inset);
     -webkit-backdrop-filter: saturate(160%) blur(8px);
@@ -167,42 +151,15 @@
 
   > table thead th {
     --uno: 'px-4 py-3 text-start text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground';
-    /* min-width prevents header columns from collapsing too narrow when
-       the table is wider than the viewport. */
-    min-width: 5rem;
-    white-space: nowrap;
     background: var(--docs-table-head-bg);
   }
 
   > table tbody td {
     --uno: 'px-4 py-3 align-top text-sm leading-6 text-muted-foreground';
-    /* Allow long code cells to wrap instead of forcing the table wider. */
-    overflow-wrap: break-word;
-    word-break: break-word;
     border-top: 1px solid var(--docs-table-row-border);
   }
 
   > table tbody tr:nth-child(even) td {
-    background: var(--docs-chip-bg);
     background: color-mix(in srgb, var(--docs-chip-bg) 44%, transparent);
-  }
-
-  .docs-page-grid > & {
-    --uno: 'relative';
-  }
-
-  .code-btn {
-    --uno: 'inline-flex items-center rounded-full border px-3 py-1 font-mono text-xs font-semibold text-primary text-center text-nowrap';
-    background: var(--docs-chip-bg);
-    background: color-mix(in srgb, hsl(var(--primary) / 0.09) 72%, var(--docs-chip-bg));
-    border-color: hsl(var(--primary) / 0.18);
-    border-color: color-mix(in srgb, hsl(var(--primary) / 0.18) 64%, transparent);
-  }
-
-  .code-btn-outline {
-    --uno: 'inline-flex items-center rounded-full border px-3 py-1 font-mono text-xs font-medium text-foreground text-nowrap';
-    background: var(--docs-chip-bg);
-    border-color: color-mix(in srgb, var(--docs-chip-border) 90%, transparent);
-    box-decoration-break: clone;
   }
 }

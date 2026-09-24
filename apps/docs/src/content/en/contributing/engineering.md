@@ -351,9 +351,9 @@ The DevTools panel UI must be built with the `@vean/ui` component library and fo
 
 4. **Theme config**: Use `SConfigProvider` for global theme, size, and language configuration.
 5. **Reference docs**:
-   - Local Skill: `~/.agents/skills/soybean-ui/`
-   - Online docs: `https://ui.soybeanjs.cn/`
-   - Component reference: `https://ui.soybeanjs.cn/llms.txt`
+   - UI Skill: `https://github.com/soybeanjs/vean-ui/skills`
+   - Online docs: `https://veanui.com`
+   - Component reference: `https://veanui.com/llms.txt`
 
 ### 9.2 Platform Adaptation References
 

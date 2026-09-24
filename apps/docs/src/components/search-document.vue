@@ -1,68 +1,197 @@
 <script setup lang="ts">
-// Client-side search trigger + results popover. Uses useDocSearch (fuse.js over public/search-index.json).
+import { computed, nextTick, onMounted, shallowRef, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { useDocSearch } from '~/composables/use-doc-search';
-import { useLocalePrefix } from '~/composables/use-locale-prefix';
+import { useMagicKeys } from '@vueuse/core';
+import { useI18n } from 'vue-i18n';
+import { localizePath } from 'ubean/client';
+import { useContentSearch } from '@ubean/content/vue';
+import type { CommandSingleOptionData, SelectEvent } from '@vean/ui';
+import { resolveContentRoutePath } from '~/shared/content-route';
+import { createMatchSnippet, splitHighlight } from '~/shared/search-highlight';
+import type { HighlightSegment } from '~/shared/search-highlight';
+
+defineOptions({
+  name: 'SearchDocument'
+});
+
+/** 搜索结果项：SCommand 的 items 元素；`crumbs` / `*Parts` 由对应插槽消费（类型经 generic 推断）。 */
+interface SearchOption extends CommandSingleOptionData {
+  /** 章节面包屑标题链（hit.titles）。 */
+  crumbs?: string[];
+  /** 标题按命中词切分的高亮片段。 */
+  labelParts: HighlightSegment[];
+  /** 正文上下文片段按命中词切分的高亮片段。 */
+  descriptionParts: HighlightSegment[];
+}
+
+/** 命中词高亮样式，标题与正文片段共用。 */
+const HIGHLIGHT_CLASS = 'px-1 py-0.5 rounded-sm bg-primary/20 text-primary';
 
 const router = useRouter();
-const { query, results, loading, open, onInput, close } = useDocSearch();
-const { isZh, localizedTo } = useLocalePrefix();
+const { t, locale } = useI18n();
+const keys = useMagicKeys();
 
-function onSelect(route: string) {
-  router.push(localizedTo(route));
-  close();
+const searchTerm = shallowRef('');
+
+// Full-text search over the SSG `__search.json` payload, built from the same
+// content collections the pages render (@ubean/content). Lazy init: sections load
+// on first client use, never during SSR. minisearch enables prefix/fuzzy
+// matching; `processTerm` lowercases so searching "ubean" finds "ubean".
+//
+// `combineWith: 'AND'` is required: MiniSearch defaults to OR, and the shared
+// CJK tokenizer splits one Chinese sentence into several word tokens, so OR
+// matches any section containing a single token.
+const { status, error, results, search, init } = useContentSearch({
+  immediate: false,
+  searchOptions: {
+    miniSearch: {
+      processTerm: (term: string) => term.toLowerCase()
+    },
+    searchOptions: {
+      combineWith: 'AND'
+    },
+    loadMiniSearch: () => import('minisearch')
+  }
+});
+
+const searchOpen = shallowRef(false);
+const wrapperRef = shallowRef<HTMLElement | null>(null);
+
+const CmdK = computed(() => keys['Cmd+K']?.value);
+
+/** The payload holds separate en / zh collections (see ubean.config `content.sources`). */
+function isCurrentLocaleHit(id: string): boolean {
+  return locale.value === 'zh' ? id.startsWith('/zh/') : !id.startsWith('/zh/');
 }
+
+/**
+ * Map a search hit id (`/zh?/guide/islands#usage`) to a route with the proper
+ * locale prefix. The section anchor is intentionally dropped: ubean's content
+ * anchor ids differ from the ids doc-md assigns at render time
+ * (`toHeadingId`), so hash navigation cannot be trusted.
+ */
+function toRoute(id: string): string {
+  const localePrefix = locale.value === 'en' ? '' : `/${locale.value}`;
+  const stripPrefix = id.startsWith(localePrefix) ? id.slice(localePrefix.length) : id;
+  const slug = stripPrefix.split('#')[0].replace(/^\/+/u, '');
+
+  return localizePath(resolveContentRoutePath(slug));
+}
+
+// 同一页面的多个 section 命中合并为一条（保留最高分 hit），避免重复 value 冲突。
+const commandItems = computed<SearchOption[]>(() => {
+  const seen = new Map<string, SearchOption>();
+  const query = searchTerm.value;
+
+  for (const hit of results.value) {
+    if (!isCurrentLocaleHit(hit.id)) continue;
+    const route = toRoute(hit.id);
+
+    if (!seen.has(route)) {
+      const snippet = createMatchSnippet(hit.content, query);
+
+      seen.set(route, {
+        label: hit.title,
+        value: route,
+        description: snippet,
+        crumbs: hit.titles,
+        labelParts: splitHighlight(hit.title, query),
+        descriptionParts: splitHighlight(snippet, query)
+      });
+    }
+  }
+
+  return [...seen.values()];
+});
+
+function handleOpenChange() {
+  searchOpen.value = !searchOpen.value;
+}
+
+function handleSelect(event: SelectEvent<string>) {
+  const route = event.detail.value;
+  if (!route) return;
+
+  router.push(route);
+  searchOpen.value = false;
+  searchTerm.value = '';
+}
+
+watch(searchTerm, term => {
+  // 引擎 init 后 search 是同步的；首次输入会等待一次 sections fetch。
+  void search(term);
+});
+
+watch(searchOpen, open => {
+  if (open) {
+    void nextTick(() => wrapperRef.value?.querySelector('input')?.focus());
+  }
+});
+
+watch(CmdK, v => {
+  if (v) {
+    handleOpenChange();
+  }
+});
+
+// Preload sections while the panel stays closed so the first search is instant.
+onMounted(() => {
+  void init();
+});
 </script>
 
 <template>
-  <SPopover v-model:open="open" placement="bottom-start" :modal="false">
+  <SDialog v-model:open="searchOpen" pure :show-close="false">
     <template #trigger>
-      <SButton
-        variant="outline"
-        shape="rounded"
-        class="w-64 lt-md:w-12 lt-md:px-2"
-        :aria-label="isZh ? '搜索文档' : 'Search docs'"
-      >
-        <template #leading>
-          <SIcon icon="lucide:search" />
-        </template>
-        <span class="lt-md:hidden text-muted-foreground">{{ isZh ? '搜索文档…' : 'Search docs…' }}</span>
+      <SButton color="accent" variant="soft">
+        <SIcon icon="lucide:search" class="text-base" />
+        <SKbd :value="['command', 'k']" class="ms-auto" />
       </SButton>
     </template>
 
-    <div class="docs-subtle-card w-72 max-w-[calc(100vw-1.5rem)] p-2 md:w-96">
-      <SInput
-        v-model="query"
-        :placeholder="isZh ? '输入关键词搜索…' : 'Type to search…'"
-        :aria-label="isZh ? '搜索文档' : 'Search docs'"
-        autofocus
-        @input="onInput"
+    <div ref="wrapperRef" class="w-150 lt-md:w-full border rounded-lg shadow-md">
+      <SCommand
+        v-model:search-term="searchTerm"
+        external-filter
+        :items="commandItems"
+        :input-props="{ placeholder: t('layout.header.search') }"
+        @select="handleSelect"
       >
-        <template #leading>
-          <SIcon icon="lucide:search" class="text-muted-foreground" />
+        <template #empty>
+          <span v-if="status === 'error'">Search failed: {{ error?.message }}</span>
+          <span v-else-if="status === 'loading'">Searching…</span>
+          <span v-else>{{ t('layout.header.search_empty') }}</span>
         </template>
-      </SInput>
-
-      <div v-if="loading" class="py-4 text-center text-xs text-muted-foreground" role="status">{{ isZh ? '搜索中…' : 'Searching…' }}</div>
-      <div v-else-if="results.length" class="mt-2 flex max-h-80 flex-col gap-0.5 overflow-auto" role="listbox" :aria-label="isZh ? '搜索结果' : 'Search results'">
-        <button
-          v-for="r in results"
-          :key="r.item.route"
-          type="button"
-          role="option"
-          class="rounded-md px-2 py-1.5 text-start transition-colors hover:bg-active focus-visible:bg-active focus-visible:outline-none"
-          @click="onSelect(r.item.route)"
-        >
-          <div class="truncate text-sm font-medium">{{ r.item.title }}</div>
-          <div class="truncate text-xs text-muted-foreground">
-            <span class="opacity-70">{{ r.item.section }}</span> · {{ r.item.route }}
+        <template #item-label="{ item }">
+          <span class="truncate">
+            <span v-for="crumb in item.crumbs" :key="crumb" class="text-muted-foreground">{{ crumb }} ›</span>
+            <span
+              v-for="(part, index) in item.labelParts"
+              :key="index"
+              :class="part.match ? HIGHLIGHT_CLASS : undefined"
+            >
+              {{ part.text }}
+            </span>
+          </span>
+        </template>
+        <template #item-description="{ item }">
+          <span>
+            <span
+              v-for="(part, index) in item.descriptionParts"
+              :key="index"
+              :class="part.match ? HIGHLIGHT_CLASS : undefined"
+            >
+              {{ part.text }}
+            </span>
+          </span>
+        </template>
+        <template #bottom>
+          <div class="flex-y-center gap-2 h-10 px-4 border-t border-solid">
+            <SKbd value="enter" />
+            <span>Go to Page</span>
           </div>
-        </button>
-      </div>
-      <div v-else-if="query" class="py-4 text-center text-xs text-muted-foreground">{{ isZh ? '未找到匹配结果。' : 'No matches.' }}</div>
-      <div v-else class="py-3 text-center text-xs text-muted-foreground">
-        {{ isZh ? '搜索索引在预渲染时构建。请运行 ' : 'Index builds at prerender time. Run ' }}<code class="font-mono">pnpm build</code>{{ isZh ? '。' : '.' }}
-      </div>
+        </template>
+      </SCommand>
     </div>
-  </SPopover>
+  </SDialog>
 </template>

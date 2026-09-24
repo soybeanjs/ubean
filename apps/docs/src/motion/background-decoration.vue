@@ -1,22 +1,27 @@
 <script setup lang="ts">
-// Background decoration: subtle grid + floating primary-tone orbs + tech particles.
-// Ported from soybean-ui/apps/docs/src/motion/background-decoration.vue so the
-// ubean docs share the same visual language and brand identity across pages.
-// Rendered once per layout (fixed + pointer-events-none) so it never blocks
-// interaction and scrolls with the viewport, not the content.
 import { computed } from 'vue';
 
 type PrimaryTone = 'primary' | '50' | '100' | '200' | '300' | '400' | '500' | '600' | '700' | '800' | '900' | '950';
 
 function resolvePrimaryTone(tone: PrimaryTone, alpha: number) {
   const variable = tone === 'primary' ? '--primary' : `--primary-${tone}`;
+
   return `hsl(var(${variable}) / ${alpha})`;
 }
 
 const orbs = [
-  { size: 'w-[500px] h-[500px]', color: resolvePrimaryTone('400', 0.06) },
-  { size: 'w-[400px] h-[400px]', color: resolvePrimaryTone('500', 0.055) },
-  { size: 'w-[300px] h-[300px]', color: resolvePrimaryTone('700', 0.05) }
+  {
+    size: 'w-[500px] h-[500px]',
+    color: resolvePrimaryTone('400', 0.06)
+  },
+  {
+    size: 'w-[400px] h-[400px]',
+    color: resolvePrimaryTone('500', 0.055)
+  },
+  {
+    size: 'w-[300px] h-[300px]',
+    color: resolvePrimaryTone('700', 0.05)
+  }
 ];
 
 // Tech Particles Config
@@ -43,13 +48,25 @@ const particles = computed(() => {
   return Array.from({ length: totalParticles }, (_, index) => {
     const col = index % gridCols;
     const row = Math.floor(index / gridCols);
-    // Evenly distributed positions (leave margins to avoid being too close to edges)
+
+    // Calculate evenly distributed positions (leave margins to avoid being too close to the edges)
     const leftPercent = 10 + col * (80 / (gridCols - 1));
     const topPercent = 10 + row * (80 / (gridRows - 1));
+
+    // Choose color and size based on index to ensure variety while keeping it deterministic
     const color = particleColors[index % particleColors.length];
     const size = particleSizes[index % particleSizes.length];
+
+    // Delay time (between 0-2000ms, with about 200ms intervals between particles)
     const delay = index * 200;
-    return { color, size, left: leftPercent, top: topPercent, delay };
+
+    return {
+      color,
+      size,
+      left: leftPercent,
+      top: topPercent,
+      delay
+    };
   });
 });
 </script>
@@ -62,6 +79,7 @@ const particles = computed(() => {
     />
 
     <!-- Floating Orbs -->
+
     <div
       v-for="(orb, index) in orbs"
       :key="index"

@@ -1,0 +1,67 @@
+{
+  "layout": {
+    "header": {
+      "search": "搜索文档",
+      "search_empty": "未找到结果",
+      "language": "切换语言",
+      "toggle_dark": "切换深色模式",
+      "github": "GitHub 仓库"
+    }
+  },
+  "locale": {
+    "en": "English",
+    "zh": "中文"
+  },
+  "sidebar": {
+    "guide": "指南",
+    "integrations": "集成",
+    "reference": "参考",
+    "api": "API 参考",
+    "architecture": "架构",
+    "ecosystem": "生态系统",
+    "contributing": "参与贡献"
+  },
+  "home": {
+    "tagline": "基于 Vite、Hono 和 Vue 构建的全栈 Vue 元框架。",
+    "get_started": "快速开始",
+    "docs": "文档",
+    "architecture": "架构",
+    "ecosystem_title": "生态系统",
+    "features": {
+      "ssr": {
+        "title": "全栈 SSR",
+        "desc": "Vue SSR 配合 Inertia 式页面路由、群岛架构和视图过渡。支持按路由控制 SSR 和流式渲染，提升 TTFB。"
+      },
+      "routing": {
+        "title": "文件式路由",
+        "desc": "类型安全的 API + 页面路由，defineHandler 链式调用，definePage 宏，路由守卫。"
+      },
+      "islands": {
+        "title": "群岛架构",
+        "desc": "通过 client:load{'|'}idle{'|'}visible{'|'}media{'|'}only 指令实现部分水合，自动注册并自动水合。"
+      },
+      "platforms": {
+        "title": "多平台部署",
+        "desc": "支持 Node、Cloudflare、Vercel、Netlify、Bun、Deno 预设及能力矩阵。"
+      },
+      "devtools": {
+        "title": "开发者工具",
+        "desc": "检查面板包含页面、API、中间件、定时任务、环境变量、Playground 和 AI 助手。完整的路由检查和服务器操作调试。"
+      },
+      "i18n": {
+        "title": "国际化",
+        "desc": "vue-i18n 11 + 约束前缀语言路由，支持 SSR 水合。"
+      }
+    },
+    "ecosystem": {
+      "auth": "邮箱/密码和 OAuth 认证，支持会话管理。",
+      "icon": "本地 SVG 图标集，支持 Iconify API 回退。",
+      "content": "Markdown 内容集合，支持 frontmatter、目录和全文搜索。",
+      "image": "图片优化处理和响应式 srcset。",
+      "ai": "基于 Vercel AI SDK 的 Agent 与工具定义。",
+      "integrations": "PWA、字体、Electron、Pinia 和 UI 集成。"
+    }
+  },
+  "not_found_page": "此页面不存在。",
+  "back_to_home": "返回首页"
+}

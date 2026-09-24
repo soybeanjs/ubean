@@ -1,35 +1,54 @@
 <script setup lang="ts">
-// Top-level nav: 4 primary destinations. Horizontal by default, vertical in the mobile popover.
 import { computed } from 'vue';
-import { menuSections } from '~/constants/menus';
-import { useLocalePrefix } from '~/composables/use-locale-prefix';
+import { useRoute } from 'vue-router';
+import { useI18n } from 'vue-i18n';
+import { extractLocaleFromPath } from 'ubean/client';
+import type { NavMenuOptionData } from '@vean/aria/nav-menu';
+import { headerNavSections, menuSections } from '~/constants/menus';
 
-const props = defineProps<{ orientation?: 'horizontal' | 'vertical' }>();
-const { isZh, localizedTo } = useLocalePrefix();
+interface Props {
+  orientation?: 'horizontal' | 'vertical';
+}
 
-// Use the first item of each of the first 4 sections as the nav target.
-const navItems = computed(() =>
-  menuSections.slice(0, 4).map(s => ({
-    label: s.label,
-    labelZh: s.labelZh,
-    to: s.items[0].to
-  }))
-);
+withDefaults(defineProps<Props>(), {
+  orientation: 'horizontal'
+});
+
+const route = useRoute();
+const { t } = useI18n();
+
+const iconBySection: Record<string, string> = {
+  guide: 'lucide:rocket',
+  integrations: 'lucide:plug',
+  reference: 'lucide:book-open',
+  architecture: 'lucide:blocks'
+};
+
+const menus = computed<NavMenuOptionData[]>(() => {
+  const path = extractLocaleFromPath(route.path).pathWithoutLocale;
+
+  return headerNavSections.flatMap(sectionValue => {
+    const section = menuSections.find(s => s.value === sectionValue);
+
+    if (!section || section.items.length === 0) {
+      return [];
+    }
+
+    const target = section.items[0].to;
+
+    return [
+      {
+        value: sectionValue,
+        label: t(`sidebar.${sectionValue}`),
+        icon: iconBySection[sectionValue],
+        to: target,
+        selected: path.startsWith(`/${sectionValue}`)
+      }
+    ];
+  });
+});
 </script>
 
 <template>
-  <nav
-    class="flex gap-1"
-    :class="props.orientation === 'vertical' ? 'flex-col' : 'flex-row'"
-  >
-    <SLink
-      v-for="item in navItems"
-      :key="item.to"
-      :to="localizedTo(item.to)"
-      class="px-3 py-1.5 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-active transition-colors"
-      active-class="text-foreground bg-active"
-    >
-      {{ isZh ? (item.labelZh || item.label) : item.label }}
-    </SLink>
-  </nav>
+  <SNavMenu :orientation="orientation" :items="menus" />
 </template>

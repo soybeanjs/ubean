@@ -1,119 +1,98 @@
-// Sidebar Information Architecture (8 sections) per DESIGN.md §6, as revised by
-// ADR-0007 (D13 reversal): Architecture holds only explanatory content
-// (overview/architecture/routing/runtime); engineering moved to a dedicated
-// Contributing section; ecosystem is a top-level section.
-// Drives <SiderMenu> and the home page's section links.
-// Labels are bilingual (EN + ZH) so the sidebar can switch language with
-// the current locale without a separate i18n message file.
+// Sidebar Information Architecture.
+//
+// Six top-level groups matching the actual content tree under `src/content/{locale}/`:
+// guide/, integrations/, reference/, architecture/, ecosystem/, contributing/.
+// The previous 8-section layout split `reference/` into two parallel groups
+// (generated API pages + hand-written guides) which duplicated one directory;
+// that is folded back into a single `reference` group with an `api` subgroup.
+//
+// `to` paths are locale-agnostic (no `/zh` prefix) — ubean's `<Link>` and
+// `@vean/ui`'s link handling both resolve through the framework's injected
+// localizer, so the same table drives both locales.
+import { API_PACKAGES, apiRoutePath } from '~/shared/api-packages';
+
 export interface MenuItem {
   label: string;
-  /** Chinese label; falls back to `label` when undefined. */
-  labelZh?: string;
   to: string;
 }
 
 export interface MenuSection {
-  /** i18n key suffix, e.g. 'getting-started' → sidebar.getting_started */
+  /** i18n key suffix under `sidebar.*`, also used as the STreeMenu group value. */
   value: string;
-  /** Display label (EN). */
-  label: string;
-  /** Chinese label; falls back to `label` when undefined. */
-  labelZh?: string;
   items: MenuItem[];
+  /** Optional nested subgroups (rendered as a nested STreeMenu level). */
+  groups?: { label: string; items: MenuItem[] }[];
 }
 
 export const menuSections: MenuSection[] = [
   {
-    value: 'getting-started',
-    label: 'Getting Started',
-    labelZh: '快速入门',
-    items: [
-      { label: 'Introduction', labelZh: '简介', to: '/guide/introduction' },
-      { label: 'Quick Start', labelZh: '快速开始', to: '/guide/quickstart' },
-      { label: 'App Modes', labelZh: '应用模式', to: '/guide/app-modes' },
-      { label: 'Routing Modes', labelZh: '路由模式', to: '/guide/routing-modes' }
-    ]
-  },
-  {
     value: 'guide',
-    label: 'Guide',
-    labelZh: '指南',
     items: [
-      { label: 'Pages & Routing', labelZh: '页面与路由', to: '/guide/pages-routing/overview' },
-      { label: 'Data Loaders', labelZh: '数据加载器', to: '/guide/pages-routing/loaders' },
-      { label: 'Actions', labelZh: '操作', to: '/guide/pages-routing/actions' },
-      { label: 'Internationalization', labelZh: '国际化', to: '/guide/i18n' },
-      { label: 'Content & Search', labelZh: '内容与搜索', to: '/guide/content' },
-      { label: 'Islands', labelZh: '群岛架构', to: '/guide/islands' }
+      { label: 'Introduction', to: '/guide/introduction' },
+      { label: 'Quick Start', to: '/guide/quickstart' },
+      { label: 'App Modes', to: '/guide/app-modes' },
+      { label: 'Routing Modes', to: '/guide/routing-modes' },
+      { label: 'Pages & Routing', to: '/guide/pages-routing/overview' },
+      { label: 'Data Loaders', to: '/guide/pages-routing/loaders' },
+      { label: 'Actions', to: '/guide/pages-routing/actions' },
+      { label: 'Internationalization', to: '/guide/i18n' },
+      { label: 'Content & Search', to: '/guide/content' },
+      { label: 'Islands', to: '/guide/islands' }
     ]
   },
   {
     value: 'integrations',
-    label: 'Integrations',
-    labelZh: '集成',
     items: [
-      { label: 'Auth', labelZh: '认证', to: '/integrations/auth' },
-      { label: 'Database', labelZh: '数据库', to: '/integrations/database' },
-      { label: 'Electron', labelZh: 'Electron', to: '/integrations/electron' },
-      { label: 'Icons', labelZh: '图标', to: '/integrations/icons' },
-      { label: 'Pinia', labelZh: 'Pinia', to: '/integrations/pinia' },
-      { label: 'UI', labelZh: 'UI 组件', to: '/integrations/ui' }
+      { label: 'Auth', to: '/integrations/auth' },
+      { label: 'Database', to: '/integrations/database' },
+      { label: 'Electron', to: '/integrations/electron' },
+      { label: 'Icons', to: '/integrations/icons' },
+      { label: 'Pinia', to: '/integrations/pinia' },
+      { label: 'UI', to: '/integrations/ui' }
     ]
   },
   {
     value: 'reference',
-    label: 'Reference',
-    labelZh: 'API 参考',
     items: [
-      { label: 'ubean (main)', to: '/reference/api/ubean' },
-      { label: '@ubean/client', to: '/reference/api/client' },
-      { label: '@ubean/vue', to: '/reference/api/vue' },
-      { label: '@ubean/scan', to: '/reference/api/scan' },
-      { label: '@ubean/config', to: '/reference/api/config' },
-      { label: '@ubean/auth', to: '/reference/api/auth' },
-      { label: '@ubean/integrations', to: '/reference/api/integrations' }
-    ]
-  },
-  {
-    value: 'reference-guides',
-    label: 'Reference Guides',
-    labelZh: '参考指南',
-    items: [
-      { label: 'Cache', labelZh: '缓存', to: '/reference/cache' },
-      { label: 'Database', labelZh: '数据库', to: '/reference/database' },
-      { label: 'Env', labelZh: '环境变量', to: '/reference/env' },
-      { label: 'I18n', labelZh: '国际化', to: '/reference/i18n' },
-      { label: 'Response Helpers', labelZh: '响应助手', to: '/reference/response-helpers' },
-      { label: 'Route Helpers', labelZh: '路由助手', to: '/reference/route-helpers' }
+      { label: 'Cache', to: '/reference/cache' },
+      { label: 'Database', to: '/reference/database' },
+      { label: 'Env', to: '/reference/env' },
+      { label: 'I18n', to: '/reference/i18n' },
+      { label: 'Response Helpers', to: '/reference/response-helpers' },
+      { label: 'Route Helpers', to: '/reference/route-helpers' }
+    ],
+    groups: [
+      {
+        label: 'API Reference',
+        // Derived from the shared curated list so the sidebar cannot link to a
+        // package that has no generated JSON (the old 4-way divergence).
+        items: API_PACKAGES.map(pkg => ({ label: pkg.label, to: apiRoutePath(pkg.slug) }))
+      }
     ]
   },
   {
     value: 'architecture',
-    label: 'Architecture',
-    labelZh: '架构',
+    // Explanatory content only — how the framework works under the hood (ADR-0007).
     items: [
-      // Explanatory content only — how the framework works under the hood (ADR-0007)
-      { label: 'Overview', labelZh: '概览', to: '/architecture/overview' },
-      { label: 'Architecture', labelZh: '架构', to: '/architecture/architecture' },
-      { label: 'Routing', labelZh: '路由', to: '/architecture/routing' },
-      { label: 'Runtime', labelZh: '运行时', to: '/architecture/runtime' },
-      { label: 'Framework Comparison', labelZh: '框架对比', to: '/architecture/framework-comparison' }
+      { label: 'Overview', to: '/architecture/overview' },
+      { label: 'Architecture', to: '/architecture/architecture' },
+      { label: 'Routing', to: '/architecture/routing' },
+      { label: 'Runtime', to: '/architecture/runtime' },
+      { label: 'Framework Comparison', to: '/architecture/framework-comparison' }
     ]
   },
   {
     value: 'ecosystem',
-    label: 'Ecosystem',
-    labelZh: '生态系统',
-    items: [
-      { label: 'Ecosystem', labelZh: '生态系统', to: '/ecosystem/ecosystem' }
-    ]
+    items: [{ label: 'Ecosystem', to: '/ecosystem/ecosystem' }]
   },
   {
     value: 'contributing',
-    label: 'Contributing',
-    labelZh: '参与贡献',
-    items: [
-      { label: 'Engineering', labelZh: '工程化', to: '/contributing/engineering' }
-    ]
+    items: [{ label: 'Engineering', to: '/contributing/engineering' }]
   }
 ];
+
+/**
+ * Top-level header destinations: one representative route per major group.
+ * Derived from `menuSections` so the header cannot drift from the sidebar.
+ */
+export const headerNavSections = ['guide', 'integrations', 'reference', 'architecture'] as const;

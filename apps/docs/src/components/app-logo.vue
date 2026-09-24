@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// ubean logo mark. Uses /favicon.svg (the brand bean mark) instead of an
-// inline SVG so the header logo and the favicon stay in sync.
+// ubean logo mark. Uses the brand SVG served from R2 so the header logo and the
+// favicon in ubean.config.ts stay in sync (same asset, same cache-busting tag).
 defineProps<{ class?: string }>();
 </script>
 

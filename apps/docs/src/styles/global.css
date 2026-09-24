@@ -2,7 +2,6 @@
 @import './frosted.css';
 
 html {
-  --docs-font-sans: 'Manrope Variable', 'Manrope', ui-sans-serif, system-ui, sans-serif;
   --docs-page-bg-solid: rgb(244, 247, 255);
   --docs-page-bg: linear-gradient(
     180deg,
@@ -24,18 +23,20 @@ html {
   --docs-shell-bg: rgba(255, 255, 255, 0.2);
   --docs-shell-border: rgba(255, 255, 255, 0.34);
   --docs-shell-blur: 18px;
-  /* Panel surface tokens (referenced by markdown.css / frosted.css).
-     Previously missing; restoring the card/code-block/table/blockquote
-     shadows, borders, radius, blur and table internals. */
-  --docs-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 16px -4px rgba(15, 23, 42, 0.08);
-  --docs-panel-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.12);
-  --docs-panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+  /* Panel/table tokens consumed by markdown.css. These were referenced there but
+     never defined, so the whole `color-mix()`/`box-shadow` declaration was
+     invalid at computed-value time and silently dropped. Defined here so code
+     panels, tables and details blocks actually render their surface treatment. */
+  --docs-panel-border: rgba(148, 163, 184, 0.28);
+  --docs-panel-radius: 0.75rem;
   --docs-panel-blur: 10px;
-  --docs-panel-border: rgba(148, 163, 184, 0.24);
-  --docs-panel-radius: 12px;
-  --docs-table-head-bg: color-mix(in srgb, var(--docs-chip-bg) 70%, transparent);
-  --docs-table-row-border: rgba(148, 163, 184, 0.18);
+  --docs-panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --docs-panel-shadow: 0 18px 40px -32px rgba(15, 23, 42, 0.45);
+  --docs-shadow: 0 22px 48px -36px rgba(15, 23, 42, 0.5);
   --docs-shell-inset: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  --docs-table-head-bg: rgba(148, 163, 184, 0.1);
+  --docs-table-row-border: rgba(148, 163, 184, 0.22);
 }
 
 html.dark {
@@ -55,31 +56,20 @@ html.dark {
   --docs-shell-bg: rgba(27, 22, 30, 0.32);
   --docs-shell-border: rgba(255, 255, 255, 0.075);
   --docs-shell-blur: 20px;
-  /* Dark-mode overrides for the panel surface tokens above. */
-  --docs-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 4px 16px -4px rgba(0, 0, 0, 0.4);
-  --docs-panel-shadow: 0 1px 2px rgba(0, 0, 0, 0.24), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
-  --docs-panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  --docs-panel-blur: 14px;
+
   --docs-panel-border: rgba(255, 255, 255, 0.09);
-  --docs-table-head-bg: color-mix(in srgb, var(--docs-chip-bg) 60%, transparent);
-  --docs-table-row-border: rgba(255, 255, 255, 0.07);
+  --docs-panel-inset: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --docs-panel-shadow: 0 18px 40px -30px rgba(0, 0, 0, 0.6);
+  --docs-shadow: 0 22px 48px -34px rgba(0, 0, 0, 0.68);
   --docs-shell-inset: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --docs-table-head-bg: rgba(255, 255, 255, 0.05);
+  --docs-table-row-border: rgba(255, 255, 255, 0.07);
 }
 
 html,
 body,
 #app {
   min-height: 100%;
-}
-
-/* Page background: the soft vertical gradient sits behind the
-   BackgroundDecoration component (grid + orbs + particles) so the
-   decorative layer inherits the same brand-colored backdrop on every
-   page, matching the soybean-ui docs visual identity. */
-body {
-  background: var(--docs-page-bg-solid);
-  background-image: var(--docs-page-bg);
-  background-attachment: fixed;
 }
 
 button,
@@ -95,7 +85,7 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--docs-font-sans);
+  font-family: var(--font-heading);
 }
 
 * {
@@ -140,19 +130,4 @@ html.dark .shiki,
 html.dark .shiki span {
   color: var(--shiki-dark);
   background: var(--shiki-dark-bg);
-}
-
-/* Respect prefers-reduced-motion: disable all transitions and animations
-   for users who request reduced motion. This covers the header scroll
-   transitions (transition-all-800/300), hover transitions on cards/links,
-   and any keyframe-based animations. */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
 }

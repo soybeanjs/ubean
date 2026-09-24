@@ -1,31 +1,24 @@
-// Right-side outline (TOC) state for the current Doc Page.
-// Mirrors the reference's use-doc-outline pattern.
-// Doc pages set the outline via setDocOutline() from their parsed markdown headings.
-//
-// Per DESIGN.md D16: this type stays UI-agnostic (no @vean/aria/anchor
-// dependency). `children` carries nested h3 items under an h2 parent; the layout
-// maps this to SAnchor's AnchorOptionData { title, href, children }.
-import { shallowRef } from 'vue';
+import { inject, provide, shallowRef } from 'vue';
+import type { InjectionKey, ShallowRef } from 'vue';
+import type { AnchorOptionData } from '@vean/aria/anchor';
 
-/** UI-agnostic outline item shape. `value` is the heading anchor id (no '#'). */
-export interface DocOutlineItem {
-  label: string;
-  value: string;
-  level?: number;
-  children?: DocOutlineItem[];
+const DOC_OUTLINE_KEY: InjectionKey<ShallowRef<AnchorOptionData[]>> = Symbol('doc-outline');
+
+/**
+ * Creates the per-render-tree outline state in the layout (provider side).
+ *
+ * State must NOT live in a module-level singleton: under SSR the module is
+ * shared across requests, so a previous page's outline would leak into the
+ * next render and produce hydration mismatches (children + class) on the
+ * anchor aside.
+ */
+export function provideDocOutline() {
+  const items = shallowRef<AnchorOptionData[]>([]);
+  provide(DOC_OUTLINE_KEY, items);
+  return items;
 }
 
-const docOutlineItems = shallowRef<DocOutlineItem[]>([]);
-
-export function useDocOutline() {
-  return docOutlineItems;
+/** Outline state consumer (pages/doc-md write `items.value`; layout aside reads it). */
+export function useDocOutline(): ShallowRef<AnchorOptionData[]> {
+  return inject(DOC_OUTLINE_KEY, shallowRef<AnchorOptionData[]>([]));
 }
-
-export function setDocOutline(items: DocOutlineItem[]) {
-  docOutlineItems.value = items;
-}
-
-export function resetDocOutline() {
-  docOutlineItems.value = [];
-}
-

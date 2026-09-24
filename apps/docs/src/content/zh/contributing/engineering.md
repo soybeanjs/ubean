@@ -351,9 +351,9 @@ DevTools 面板的 UI 实现必须使用 `@vean/ui` 组件库，遵循以下规�
 
 4. **主题配置**：使用 `SConfigProvider` 进行全局主题、尺寸、语言配置
 5. **参考文档**：
-   - 本地 Skill: `~/.agents/skills/soybean-ui/`
-   - 在线文档: `https://ui.soybeanjs.cn/`
-   - 组件参考: `https://ui.soybeanjs.cn/llms.txt`
+   - 组件库 Skill: `https://github.com/soybeanjs/vean-ui/skills`
+   - 在线文档: `https://veanui.com/`
+   - 组件参考: `https://veanui.com/llms.txt`
 
 ### 9.2 平台适配参考
 

@@ -177,7 +177,7 @@ When `iconifyApiEnabled` and `fallbackToApi` are both on, a `/_iconify` dev rout
 
 ## 2. @vean/ui SIcon Component
 
-`SIcon` is a **UI component from @vean/ui** that provides a styled icon component integrated with SoybeanUI's design system, theming, and styling conventions.
+`SIcon` is a **UI component from @vean/ui** that provides a styled icon component integrated with VeanUI's design system, theming, and styling conventions.
 
 ### Features
 
@@ -193,7 +193,7 @@ Use `SIcon` when:
 
 - You are building UI with @vean/ui components
 - You need consistent theming with your application's design system
-- You want preset sizes that match SoybeanUI components
+- You want preset sizes that match VeanUI components
 - You're using SButton, SCard, etc. and need matching icon styles
 
 ### Installation
@@ -289,7 +289,7 @@ import { SIcon } from '@vean/ui';
 | Icon prop          | `name` (e.g. `name="mdi:home"`)                   | `icon` (e.g. `icon="mdi:home"`)        |
 | Purpose            | Build-time + runtime icon engine                  | UI-styled icon component               |
 | Dependencies       | None (built-in module, opt-in via `icon: true`)   | Requires @vean/ui                 |
-| Theming            | Raw CSS color support                             | Integrated with SoybeanUI theme tokens |
+| Theming            | Raw CSS color support                             | Integrated with VeanUI theme tokens |
 | Size format        | CSS values/px numbers                             | xs/sm/md/lg/xl presets + numbers       |
 | Rendering modes    | SVG and CSS modes                                 | SVG only (styled)                      |
 | Transforms         | Built-in flip/rotate props                        | CSS transforms via class/style         |

@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "skipLibCheck": true,
@@ -10,11 +11,11 @@
   },
   "include": [
     "../../packages/ubean/dist/**/*.d.ts",
-    "../../packages/runtime/dist/**/*.d.ts",
-    "../../packages/routing/dist/**/*.d.ts",
+    "../../packages/client/dist/**/*.d.ts",
+    "../../packages/vue/dist/**/*.d.ts",
+    "../../packages/scan/dist/**/*.d.ts",
     "../../packages/config/dist/**/*.d.ts",
     "../../packages/auth/dist/**/*.d.ts",
-    "../../packages/ui/dist/**/*.d.ts",
-    "../../packages/pinia/dist/**/*.d.ts"
+    "../../packages/integrations/dist/**/*.d.ts"
   ]
 }

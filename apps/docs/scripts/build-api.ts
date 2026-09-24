@@ -1,41 +1,38 @@
 // @ubean/docs — build:api script.
-// Runs TypeDoc over the curated subset of ubean packages' built dist/*.d.ts
-// and emits apps/docs/public/api/<pkg>.json for the <ApiTable> renderer.
+// Runs TypeDoc over the curated subset of ubean packages' built dist/*.d.ts and
+// emits apps/docs/public/api/<pkg>.json for the <ApiTable> renderer.
 //
-// Per DESIGN.md D4/D5/D6:
-//  - Curated subset (7): ubean, @ubean/client, @ubean/vue, @ubean/scan,
-//    @ubean/config, @ubean/auth, @ubean/integrations.
-//  - Reads BUILT dist/*.d.ts (run `pnpm build` at repo root first).
+//  - The curated package list lives in `src/shared/api-packages.ts`, shared with
+//    the prerender collector and the sidebar, so the three cannot diverge (they
+//    used to, which produced four 404 sidebar links).
+//  - Reads BUILT dist/*.d.ts (run `pnpm build` at the repo root first).
 //  - Maps TypeDoc's verbose JSON → the small ubean-specific ApiDoc schema
-//    consumed by <ApiTable> (see src/components/api-table.vue). Per Risks §7:
-//    "write a thin mapper to a small ubean-specific JSON schema".
-//  - Per-package failure does NOT abort the build; a stub JSON is emitted so
-//    the app renders gracefully (ApiTable shows "no entries").
+//    consumed by <ApiTable> (see src/components/api-table.vue).
+//  - Per-package failure does NOT abort the build; a stub JSON is emitted so the
+//    app renders gracefully (ApiTable shows "no entries").
+//  - The output directory is cleared of stale `*.json` first: a package removed
+//    from the curated list must not keep serving month-old data.
 //
-// Usage: node scripts/build-api.mjs [--packages-root <path>]
-import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+// Usage: pnpm build:api
+import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync, readdirSync } from 'node:fs';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
+import { API_PACKAGES } from '../src/shared/api-packages';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = resolve(__dirname, '..');
 const OUT_DIR = resolve(APP_ROOT, 'public/api');
 const TSCONFIG = resolve(APP_ROOT, 'tsconfig.typedoc.json');
 
-// Map: output file → package name + dist path. `pkg` is the public name used
-// in the route /reference/api/<pkg>; `distDir` is where its built .d.ts lives.
+// `pkg` is the public name used in the route /reference/api/<pkg>; `distDir` is
+// where its built .d.ts lives.
 const PACKAGES_ROOT = resolve(APP_ROOT, '../../packages');
-const CURATED = [
-  { pkg: 'ubean', distDir: resolve(PACKAGES_ROOT, 'ubean/dist') },
-  { pkg: 'client', distDir: resolve(PACKAGES_ROOT, 'client/dist') },
-  { pkg: 'vue', distDir: resolve(PACKAGES_ROOT, 'vue/dist') },
-  { pkg: 'scan', distDir: resolve(PACKAGES_ROOT, 'scan/dist') },
-  { pkg: 'config', distDir: resolve(PACKAGES_ROOT, 'config/dist') },
-  { pkg: 'auth', distDir: resolve(PACKAGES_ROOT, 'auth/dist') },
-  { pkg: 'integrations', distDir: resolve(PACKAGES_ROOT, 'integrations/dist') }
-];
+const CURATED = API_PACKAGES.map(({ slug, distDir }) => ({
+  pkg: slug,
+  distDir: resolve(PACKAGES_ROOT, distDir, 'dist')
+}));
 
 // ---------------------------------------------------------------------------
 // TypeDoc kind codes → human-readable labels (subset used by <ApiTable>).
@@ -290,6 +287,15 @@ function runTypeDoc(entryPoint, outPath, pkgName) {
 
 function main() {
   mkdirSync(OUT_DIR, { recursive: true });
+
+  // Drop previously generated JSON before regenerating. Without this, a package
+  // removed from the curated list keeps serving its last successful output, and
+  // its prerendered page renders stale data instead of "no entries".
+  for (const file of readdirSync(OUT_DIR)) {
+    if (file.endsWith('.json')) {
+      rmSync(resolve(OUT_DIR, file), { force: true });
+    }
+  }
 
   let built = 0;
   let stubs = 0;

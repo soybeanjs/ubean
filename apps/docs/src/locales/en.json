@@ -1,0 +1,67 @@
+{
+  "layout": {
+    "header": {
+      "search": "Search documentation",
+      "search_empty": "No results found",
+      "language": "Change language",
+      "toggle_dark": "Toggle dark mode",
+      "github": "GitHub repository"
+    }
+  },
+  "locale": {
+    "en": "English",
+    "zh": "中文"
+  },
+  "sidebar": {
+    "guide": "Guide",
+    "integrations": "Integrations",
+    "reference": "Reference",
+    "api": "API Reference",
+    "architecture": "Architecture",
+    "ecosystem": "Ecosystem",
+    "contributing": "Contributing"
+  },
+  "home": {
+    "tagline": "A full-stack Vue meta-framework built on Vite, Hono and Vue.",
+    "get_started": "Get Started",
+    "docs": "Docs",
+    "architecture": "Architecture",
+    "ecosystem_title": "Ecosystem",
+    "features": {
+      "ssr": {
+        "title": "Full-stack SSR",
+        "desc": "Vue SSR with Inertia-style page routing, islands architecture, and view transitions. Per-route SSR control and streaming support for fast TTFB."
+      },
+      "routing": {
+        "title": "File-based Routing",
+        "desc": "Typed API + page routes, defineHandler chains, definePage macro, route guards."
+      },
+      "islands": {
+        "title": "Islands",
+        "desc": "Partial hydration via client:load{'|'}idle{'|'}visible{'|'}media{'|'}only, auto-registered and hydrated."
+      },
+      "platforms": {
+        "title": "Multi-platform",
+        "desc": "Node, Cloudflare, Vercel, Netlify, Bun, Deno presets with a capability matrix."
+      },
+      "devtools": {
+        "title": "DevTools",
+        "desc": "Panel with Pages, API, Middleware, Cron, Env, Playground and an AI assistant. Full route inspection and server action debugging."
+      },
+      "i18n": {
+        "title": "i18n",
+        "desc": "vue-i18n 11 with compact locale routing and SSR hydration."
+      }
+    },
+    "ecosystem": {
+      "auth": "Email/password and OAuth authentication with session management.",
+      "icon": "Local SVG icon collections with Iconify API fallback.",
+      "content": "Markdown collections with frontmatter, TOC and full-text search.",
+      "image": "Optimized image processing and responsive srcset.",
+      "ai": "Agent and tool definitions on top of the Vercel AI SDK.",
+      "integrations": "PWA, fonts, Electron, Pinia and UI integrations."
+    }
+  },
+  "not_found_page": "This page doesn't exist in the docs.",
+  "back_to_home": "Back to home"
+}

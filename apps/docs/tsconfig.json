@@ -8,6 +8,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "src/**/*.vue", "src/**/*.md", ".ubean/**/*.d.ts"],
+  "include": ["src/**/*", "src/**/*.vue", "src/**/*.md", "build/**/*", ".ubean/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "public"]
 }

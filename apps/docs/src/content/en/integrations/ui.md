@@ -25,7 +25,7 @@ description: UI components from @vean/ui, integrated via @ubean/integrations/ui.
 pnpm add @ubean/integrations/ui @vean/ui
 ```
 
-> `@vean/ui` is a peer dependency — you control its version. `@ubean/integrations/ui` requires `@vean/ui@>=0.29.0`.
+> `@vean/ui` is a peer dependency — you control its version. `@ubean/integrations/ui` requires `@vean/ui@>=0.50.0`.
 
 ### UnoCSS mode (optional)
 

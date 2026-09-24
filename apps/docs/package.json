@@ -34,6 +34,7 @@
     "typescript": "catalog:",
     "unocss": "^66.10.5",
     "vite-plus": "catalog:",
-    "vue-tsc": "^3.3.11"
+    "vue-tsc": "^3.3.11",
+    "typescript-real": "npm:typescript@5.9.3"
   }
 }

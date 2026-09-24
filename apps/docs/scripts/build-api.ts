@@ -23,6 +23,7 @@
 //
 // Usage: pnpm build:api
 import { existsSync, mkdirSync, writeFileSync, readFileSync, rmSync, readdirSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { resolve, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
@@ -33,6 +34,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const APP_ROOT = resolve(__dirname, '..');
 const OUT_DIR = resolve(APP_ROOT, 'src/generated/api');
 const TSCONFIG = resolve(APP_ROOT, 'tsconfig.typedoc.json');
+
+/** Installs the `typescript` → aliased-real-TypeScript hook before TypeDoc loads. */
+const REGISTER_LOADER = resolve(__dirname, 'typedoc-register.mjs');
 
 // `pkg` is the public name used in the route /reference/api/<pkg>; `distDir` is
 // where its built .d.ts lives.
@@ -248,14 +252,44 @@ function emitStub(outPath, pkgName, reason) {
 }
 
 /**
+ * Resolve TypeDoc's CLI entry, the real `bin/typedoc` script.
+ *
+ * Not `npx typedoc`: npx resolves through the workspace's `.bin`, which points at the
+ * TypeDoc instance peer-bound to the tsgo bridge. We need to invoke Node ourselves so
+ * the loader hook (see below) is installed before TypeDoc loads its `typescript` import.
+ */
+function resolveTypeDocBin(): string | null {
+  try {
+    const require = createRequire(import.meta.url);
+    const pkgPath = require.resolve('typedoc/package.json');
+
+    return resolve(dirname(pkgPath), 'bin', 'typedoc');
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Run TypeDoc over a single package's dist/index.d.ts.
  * Writes the simplified ApiDoc JSON to outPath.
  * Returns true on success, false on failure (stub emitted).
  */
 function runTypeDoc(entryPoint, outPath, pkgName) {
   const tmpJson = resolve(tmpdir(), `typedoc-${pkgName}-${Date.now()}.json`);
+  const typedocBin = resolveTypeDocBin();
+
+  if (!typedocBin || !existsSync(typedocBin)) {
+    emitStub(outPath, pkgName, 'typedoc not installed (run pnpm install)');
+    return false;
+  }
+
+  // Run TypeDoc through the loader that points its `typescript` import at the aliased
+  // real TypeScript. Without it TypeDoc exits 6 (`declaration.type.getChildAt is not a
+  // function`) because the workspace forces the tsgo bridge, which does not implement
+  // every compiler API TypeDoc drives. See scripts/typedoc-typescript-loader.mjs.
   const args = [
-    'typedoc',
+    '--import', REGISTER_LOADER,
+    typedocBin,
     '--json', tmpJson,
     '--entryPoints', entryPoint,
     '--entryPointStrategy', 'expand',
@@ -265,10 +299,14 @@ function runTypeDoc(entryPoint, outPath, pkgName) {
     '--excludeInternal',
     '--readme', 'none'
   ];
-  const result = spawnSync('npx', args, { encoding: 'utf8', cwd: APP_ROOT });
+  const result = spawnSync(process.execPath, args, { encoding: 'utf8', cwd: APP_ROOT });
 
   if (result.status !== 0) {
-    emitStub(outPath, pkgName, `typedoc exit ${result.status}: ${(result.stderr || result.stdout || '').split('\n').find(l => l.trim() && !l.includes('npm warn')) || 'unknown error'}`);
+    const detail =
+      (result.stderr || result.stdout || '')
+        .split('\n')
+        .find(l => l.trim() && !l.includes('npm warn') && !l.includes('TNB ACTIVE')) || 'unknown error';
+    emitStub(outPath, pkgName, `typedoc exit ${result.status}: ${detail}`);
     rmSync(tmpJson, { force: true });
     return false;
   }

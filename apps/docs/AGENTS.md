@@ -66,20 +66,35 @@ Importing the JSON fixes both at once. Don't reintroduce a fetch here.
 that previously disagreed with each other, which produced four 404 sidebar links and four
 pages prerendered with no data behind them:
 
-1. `scripts/build-api.ts` — which `public/api/<slug>.json` files get generated
+1. `scripts/build-api.ts` — which `src/generated/api/<slug>.json` files get generated
 2. `build/docs-routes.ts` — which API routes are prerendered
 3. `src/constants/menus.ts` — which API links the sidebar renders
 
 Adding a package is a one-line change there. The script clears stale `*.json` from
-`public/api/` first, so removing a package cannot leave month-old data served.
+`src/generated/api/` first, so removing a package cannot leave month-old data served.
 
-**TypeDoc is currently broken for 5 of 7 packages.** The root `pnpm-workspace.yaml` forces
-`typescript: npm:typescript-native-bridge` (tsgo) workspace-wide, and TypeDoc drives the
-TypeScript compiler API directly (`getChildAt`) — which the native bridge does not
-implement. TypeDoc exits 6 and the script emits a stub, so those pages render "no entries"
-rather than failing the build. Only `scan` and `auth` currently generate real data. Fixing
-this requires giving TypeDoc a real TypeScript, which the root override prevents; that is a
-repo-level decision, not an app-level one.
+**TypeDoc runs on a real TypeScript, via an aliased dependency + loader.** It drives the
+compiler API directly (`declaration.type.getChildAt`), which the workspace's forced
+`typescript-native-bridge` (tsgo) does not fully implement — TypeDoc exits 6 and every
+package but `scan`/`auth` rendered as "stub data".
+
+The obstacle is that the root `pnpm-workspace.yaml` sets
+`overrides.typescript: 'catalog:'`, which rewrites **every** `typescript` specifier in the
+graph. That override is load-bearing: drop it and the graph holds two TypeScript instances,
+vue-router's types resolve from both, and `packages/client` fails with
+`RouteLocationNormalizedLoadedGeneric is not assignable to …`. So it cannot be relaxed.
+
+These do **not** work — don't retry them: `overrides['typedoc>typescript']` in any spelling
+(`@0.28.20>`, `>typedoc>`, npm alias), `packageExtensions.typedoc.{dependencies,peer}`,
+declaring a real version in `apps/docs`, or patching TypeDoc to skip `getChildAt` (the error
+just moves to the next compiler API).
+
+What works: `typescript-real: npm:typescript@5.9.3` in `apps/docs` — the alias name isn't
+`typescript`, so the override leaves it alone — plus a Node loader
+(`scripts/typedoc-typescript-loader.mjs`, registered by `typedoc-register.mjs`) that points
+TypeDoc's bare `import ts from "typescript"` at it. The graph still holds exactly one
+`typescript`, so every package keeps typechecking on tsgo; only `build:api` sees the real
+compiler. Do not "simplify" this back to `npx typedoc`.
 
 ## RENDERING RULES
 

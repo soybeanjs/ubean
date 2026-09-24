@@ -252,7 +252,7 @@ describe('route utils', () => {
 
 ## 7. CLI 命令设计
 
-CLI 命令清单与框架实现详见 [运行时与开发体验 §4.13](../architecture/runtime.md#413-cli-命令系统)。
+CLI 命令清单与框架实现详见 <Link to="/architecture/runtime#413-cli-命令系统">运行时与开发体验 §4.13</Link>。
 
 ---
 
@@ -382,13 +382,13 @@ DevTools 面板的 UI 实现必须使用 `@vean/ui` 组件库，遵循以下规�
 - 使用 `pnpm` 作为包管理器，遵循 workspace catalog 版本管理
 - UI 相关依赖（@vean/ui 等）仅在需要时引入，不强制用户安装
 - DevTools 相关依赖作为 devDependencies 或按需动态导入
-- **DevTools AI scaffold 为可选能力**（[ADR-0004](../../../../../../docs/adr/0004-devtools-ai-sdk-optional-deps.md)）：`ai` / `@ai-sdk/openai-compatible` 在 `@ubean/devtools` 中为 `optionalDependencies`，运行时通过动态 `import()` 加载。未安装时框架与普通 DevTools 功能不受影响，仅触发 AI 助手功能时报清晰错误（含安装指引）。如需启用 AI 助手：`pnpm add ai @ai-sdk/openai-compatible`
+- **DevTools AI scaffold 为可选能力**（[ADR-0004](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0004-devtools-ai-sdk-optional-deps.md)）：`ai` / `@ai-sdk/openai-compatible` 在 `@ubean/devtools` 中为 `optionalDependencies`，运行时通过动态 `import()` 加载。未安装时框架与普通 DevTools 功能不受影响，仅触发 AI 助手功能时报清晰错误（含安装指引）。如需启用 AI 助手：`pnpm add ai @ai-sdk/openai-compatible`
 
 ---
 
 ## 10. CodeGraph 工作流约定
 
-> 改动核心符号前，先用 CodeGraph 核查影响面，而非凭直觉或文档措辞估计。来源：[ADR-0005](../../../../../../docs/adr/0005-opt09-impl-opt11-timing-opt01-subitem.md)。
+> 改动核心符号前，先用 CodeGraph 核查影响面，而非凭直觉或文档措辞估计。来源：[ADR-0005](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0005-opt09-impl-opt11-timing-opt01-subitem.md)。
 
 ### 10.1 何时执行
 
@@ -419,7 +419,7 @@ codegraph impact <symbol>         # 查影响面
 
 ## 11. 扩展包接入契约表
 
-> 所有「扩展包」（有 `./vite` 子路径导出 **且不在主包 `ubean` 的 `dependencies` 中** 的包）须在下表登记一行。CI（`scripts/verify-packages.mjs`，与包树校验共用脚本）会从 `packages/*/package.json` 派生扩展集，断言每个都在本表出现。来源：[ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md)。
+> 所有「扩展包」（有 `./vite` 子路径导出 **且不在主包 `ubean` 的 `dependencies` 中** 的包）须在下表登记一行。CI（`scripts/verify-packages.mjs`，与包树校验共用脚本）会从 `packages/*/package.json` 派生扩展集，断言每个都在本表出现。来源：[ADR-0006](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0006-opt07-contract-table-opt08-test-priority.md)。
 >
 > **注意**：`pwa` / `fonts` / `electron` / `pinia` / `ui` 是 `@ubean/integrations` 的子路径（`@ubean/integrations/pwa` 等），Vite 插件由子路径主入口导出，运行时会话辅助函数（如 `serializePiniaState` / `hydratePiniaState`）由 `@ubean/integrations` 主入口导出。
 
@@ -447,7 +447,7 @@ codegraph impact <symbol>         # 查影响面
 
 ### 11.3 已识别的不一致
 
-`hard` 与 `peer` 混用是已知不一致：auth 与 `@ubean/integrations/pwa`、`@ubean/integrations/electron` 自动装核心库，`@ubean/integrations/pinia`、`@ubean/integrations/ui` 要求用户手动装。新增扩展包应明确选择一种并在本表登记；后续可视情况统一（见 [ADR-0006](../../../../../../docs/adr/0006-opt07-contract-table-opt08-test-priority.md)）。
+`hard` 与 `peer` 混用是已知不一致：auth 与 `@ubean/integrations/pwa`、`@ubean/integrations/electron` 自动装核心库，`@ubean/integrations/pinia`、`@ubean/integrations/ui` 要求用户手动装。新增扩展包应明确选择一种并在本表登记；后续可视情况统一（见 [ADR-0006](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0006-opt07-contract-table-opt08-test-priority.md)）。
 
 ### 11.4 新增扩展包清单
 

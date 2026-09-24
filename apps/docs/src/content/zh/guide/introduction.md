@@ -60,6 +60,6 @@ ubean 在 `@ubean/` 作用域下提供了可选的扩展包（`pwa` / `fonts` / 
 
 ## 下一步
 
-- [快速开始](/zh/guide/quickstart) — 创建你的第一个 ubean 项目。
-- [应用模式](/zh/guide/app-modes) — 了解 SSG、SSR 和 SPA 模式。
-- [路由模式](/zh/guide/routing-modes) — 深入了解文件式路由。
+- <Link to="/guide/quickstart">快速开始</Link> — 创建你的第一个 ubean 项目。
+- <Link to="/guide/app-modes">应用模式</Link> — 了解 SSG、SSR 和 SPA 模式。
+- <Link to="/guide/routing-modes">路由模式</Link> — 深入了解文件式路由。

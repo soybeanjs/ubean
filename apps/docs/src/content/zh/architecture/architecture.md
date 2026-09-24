@@ -115,7 +115,7 @@ ubean build
 
 ## 3. 配置系统
 
-配置入口为 `ubean.config.ts`，通过 `defineConfig` 声明（配置加载与类型定义位于 `@ubean/config`）。默认值由 `loadUbeanConfig` 合并，全部字段见 [API 参考](/reference/api/config)。
+配置入口为 `ubean.config.ts`，通过 `defineConfig` 声明（配置加载与类型定义位于 `@ubean/config`）。默认值由 `loadUbeanConfig` 合并，全部字段见 <Link to="/reference/api/config">API 参考</Link>。
 
 ```typescript
 // ubean.config.ts
@@ -189,4 +189,4 @@ export default defineConfig({
 - 扩展包顶层字段均支持 `true` 或选项对象两种形式。
 - `routeRules` 支持 `ssr`（`boolean | 'streaming'`）/ `prerender` / `isr`（`number | { ttl, swr? }`）/ `ppr`，按规则与路径特异性排序，运行时可经 `c.get('routeRule')` 读取。
 
-应用约定式目录结构详见 [项目概览与约定 §3](overview.md#3-目录结构)。
+应用约定式目录结构详见 <Link to="/architecture/overview#3-目录结构">项目概览与约定 §3</Link>。

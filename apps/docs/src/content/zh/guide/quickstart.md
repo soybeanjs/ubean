@@ -114,7 +114,7 @@ pnpm build      # 生产构建
 pnpm preview    # 预览生产构建
 ```
 
-构建输出位于 `dist` 目录（客户端为 `dist/public/`，服务端为 `dist/server/` — 各模式的输出请参见[应用模式](/zh/guide/app-modes)）。
+构建输出位于 `dist` 目录（客户端为 `dist/public/`，服务端为 `dist/server/` — 各模式的输出请参见 <Link to="/guide/app-modes">应用模式</Link>）。
 
 ## 可用脚本
 
@@ -157,10 +157,10 @@ export default defineConfig({
 
 ## 下一步
 
-- [应用模式](/zh/guide/app-modes) — 了解 fullstack / spa / ssg / backend 模式
-- [路由模式](/zh/guide/routing-modes) — 深入了解文件式路由
-- [页面与路由](/zh/guide/pages-routing/overview) — 页面路由与导航
-- [数据加载](/zh/guide/pages-routing/loaders) — useData 数据获取
-- [Actions](/zh/guide/pages-routing/actions) — 渐进增强的表单动作
-- [国际化](/zh/guide/i18n) — 多语言支持
-- [群岛架构](/zh/guide/islands) — 部分水合
+- <Link to="/guide/app-modes">应用模式</Link> — 了解 fullstack / spa / ssg / backend 模式
+- <Link to="/guide/routing-modes">路由模式</Link> — 深入了解文件式路由
+- <Link to="/guide/pages-routing/overview">页面与路由</Link> — 页面路由与导航
+- <Link to="/guide/pages-routing/loaders">数据加载</Link> — useData 数据获取
+- <Link to="/guide/pages-routing/actions">Actions</Link> — 渐进增强的表单动作
+- <Link to="/guide/i18n">国际化</Link> — 多语言支持
+- <Link to="/guide/islands">群岛架构</Link> — 部分水合

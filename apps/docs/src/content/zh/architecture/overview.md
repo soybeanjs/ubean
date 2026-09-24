@@ -187,7 +187,7 @@ ubean/
 └── tsconfig.json
 ```
 
-> 包架构详情（聚合器模式、子路径导出、扩展包机制）见 [架构 §1](architecture.md#1-分层架构)。
+> 包架构详情（聚合器模式、子路径导出、扩展包机制）见 <Link to="/architecture/architecture#1-分层架构">架构 §1</Link>。
 
 ### 用户应用目录结构
 

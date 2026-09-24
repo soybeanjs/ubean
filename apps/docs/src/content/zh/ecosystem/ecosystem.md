@@ -105,7 +105,7 @@ export default defineContentConfig({
 - `page` collection 建立内容文件到 URL 的一对一映射并提供 path、title、description、seo、body、navigation 字段；`data` collection 仅用于结构化查询。
 - Markdown、YAML、JSON 与 CSV 通过统一 source、schema、AST 和类型生成管线处理；查询使用 `queryCollection().where().order().select().all()`。
 - 生产构建将解析结果写为内容 dump；Node/Edge 通过驱动恢复查询库，避免冷启动全量读文件。
-- 全文搜索开箱即用：文档按标题层级切分为章节（`queryCollectionSearchSections()`），SSG 构建产出 `__search.json` 数据与可选的 [Pagefind](https://pagefind.app/) 分片索引，客户端通过 `useContentSearch()` 组合式函数检索 —— 基于 `Intl.Segmenter` 的 CJK 分词，MiniSearch/Pagefind 均为可选依赖（详见[内容与搜索指南](/guide/content)）。浏览器 SQLite、远程 Git source 与可视化编辑器不进入初版。
+- 全文搜索开箱即用：文档按标题层级切分为章节（`queryCollectionSearchSections()`），SSG 构建产出 `__search.json` 数据与可选的 [Pagefind](https://pagefind.app/) 分片索引，客户端通过 `useContentSearch()` 组合式函数检索 —— 基于 `Intl.Segmenter` 的 CJK 分词，MiniSearch/Pagefind 均为可选依赖（详见 <Link to="/guide/content">内容与搜索指南</Link>）。浏览器 SQLite、远程 Git source 与可视化编辑器不进入初版。
 - `<ContentRenderer>`、Prose 组件、Shiki、目录与导航属于 `@ubean/content` Vue 层。Markdown 中可嵌入 Vue 组件，但只能使用显式注册的 allowlist，props 必须可校验；默认消毒原始 HTML，禁止任意表达式执行。
 
 ### 4.3 `@ubean/integrations/fonts`：参考 Nuxt Fonts
@@ -327,7 +327,7 @@ export const useCounterStore = defineStore('counter', {
 
 ## 下一步
 
-- [路由](/zh/architecture/routing) — 文件式路由与路由规则
-- [应用模式](/zh/guide/app-modes) — fullstack / spa / ssg / backend
-- [快速开始](/zh/guide/quickstart) — 几分钟内跑起一个项目
-- [ubean API 参考](/reference/api/ubean) — 核心运行时导出
+- <Link to="/architecture/routing">路由</Link> — 文件式路由与路由规则
+- <Link to="/guide/app-modes">应用模式</Link> — fullstack / spa / ssg / backend
+- <Link to="/guide/quickstart">快速开始</Link> — 几分钟内跑起一个项目
+- <Link to="/reference/api/ubean">ubean API 参考</Link> — 核心运行时导出

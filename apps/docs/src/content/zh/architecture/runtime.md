@@ -524,7 +524,7 @@ export const { env, validate } = defineEnv({
 - `env` 代理是全类型化的（`InferEnvOutput<S>` 从每个构造器推导 `string` / `number` / `boolean`）,`env.DATABASE_URL` 即 `string`
 - 仅 `UBEAN_PUBLIC_`、`VITE_` 或 `PUBLIC_` 前缀的变量会通过 `import.meta.env` 暴露给客户端
 - 用 `validate(source)` 校验自定义来源（测试 fixture、请求级 env）;返回 `{ success, errors }`
-- `ubean env` CLI（`init` / `list` / `add` / `remove`）管理 `.env` 文件——完整 API 见 [Env 参考](/reference/env)
+- `ubean env` CLI（`init` / `list` / `add` / `remove`）管理 `.env` 文件——完整 API 见 <Link to="/reference/env">Env 参考</Link>
 
 ## 4.11 Preset 系统设计
 
@@ -1481,7 +1481,7 @@ export default defineApp({
 | `node_modules` 中的组件 | 正常工作（bare specifier 原样传递给 Vite 解析） |
 | dev 模式新增 island 用法 | transform 重新扫描 → 更新 registry → 失效虚拟模块 → full-reload（仅 HMR 更新时触发，初次加载不触发） |
 
-> 详细设计见 [Islands](/zh/guide/islands)。
+> 详细设计见 <Link to="/guide/islands">Islands</Link>。
 
 #### 对比 void 的 Import Attributes
 
@@ -1566,7 +1566,7 @@ export default defineConfig({
 
 ubean 用 vue-i18n 11（`legacy: false`）做 Vue 翻译引擎，用 `@intlify/core` + ALS 做 handler 翻译。语言路由是约束前缀：`compileLocalePaths()` 的结果同时注入 vue-router 与 Hono。配置写在 `ubean.config.ts` 的 `i18n`，中间件由 `createUbeanApp` 自动挂载。
 
-详见 [指南 · 国际化](/guide/i18n) 与 [API · i18n](/reference/i18n)。
+详见 <Link to="/guide/i18n">指南 · 国际化</Link> 与 <Link to="/reference/i18n">API · i18n</Link>。
 
 ```typescript
 // ubean.config.ts

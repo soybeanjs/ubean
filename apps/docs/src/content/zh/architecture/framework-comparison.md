@@ -34,7 +34,7 @@ ubean 列按**默认路径是否真的做了**来标，而不是「类型里有�
 
 - **已接线**：流式 SSR、SSG、文件路由（含并行路由）、Server Actions / `defineServerFn`、`useFetch`、select SSR（`false` / `'data-only'` / `true`）、`.server.vue`、Islands、vue-i18n 11、OpenAPI + Scalar、平台预设生成器。
 - **有 API、默认不完整**：ISR 在 Node 生产默认 **fs**（`.ubean/cache`），serverless/edge 仍是进程内存；组件缓存仍是内存。Sessions 仍 opt-in。CSRF（origin）与安全头、fetch Data Cache 中间件默认挂载。`src/sitemap.ts` / `robots.ts` 等 SEO 约定由 `createUbeanApp` 自动注册。启用 `image` 时开发态与生产都挂 `/_ipx`（无变换库则透传，`X-IPX-Mode: passthrough`）。`src/crons` 生产会打进 server-entry；持久运行时启动进程内调度器，serverless 不装。CF / Vercel 的 Queue/DB 用 `@ubean/server/drivers`，默认不是内存替代品。
-- **刻意不做**：React Server Components、多 UI 运行时、自研第二套 i18n 引擎、**拦截路由**（`(.)` / `(..)` / `(...)` 目录约定，替代做法见 [用对话框呈现另一条路由](/guide/pages-routing/overview#dialogs-and-shareable-urls)）、Nuxt 式客户端 `middleware/*.global`（用 `defineApp({ router: { setup } })` 挂守卫）。需要 RSC 请用 Next.js；需要多框架内容站请用 Astro。
+- **刻意不做**：React Server Components、多 UI 运行时、自研第二套 i18n 引擎、**拦截路由**（`(.)` / `(..)` / `(...)` 目录约定，替代做法见 <Link to="/guide/pages-routing/overview#对话框与可分享-url">用对话框呈现另一条路由</Link>）、Nuxt 式客户端 `middleware/*.global`（用 `defineApp({ router: { setup } })` 挂守卫）。需要 RSC 请用 Next.js；需要多框架内容站请用 Astro。
 
 ## 功能亮点
 

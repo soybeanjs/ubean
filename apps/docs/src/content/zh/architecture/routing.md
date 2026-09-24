@@ -319,6 +319,6 @@ API 路由和 Pages 路由由同一个已规范化的路由清单驱动。当前
 
 ## 页面路由设计
 
-> 页面路由约定、`definePage` 宏、布局、复用路由、路由分组、加载器/操作、特殊页面(404/loading/error)、导航守卫和路由规则均已在用户指南中记录:**[页面与路由](/zh/guide/pages-routing/overview)** 与 **[数据加载器](/zh/guide/pages-routing/loaders)** / **[操作](/zh/guide/pages-routing/actions)**。本文档仅保留上方的 API 路由内部实现。
+> 页面路由约定、`definePage` 宏、布局、复用路由、路由分组、加载器/操作、特殊页面(404/loading/error)、导航守卫和路由规则均已在用户指南中记录:**<Link to="/guide/pages-routing/overview">页面与路由</Link>** 与 **<Link to="/guide/pages-routing/loaders">数据加载器</Link>** / **<Link to="/guide/pages-routing/actions">操作</Link>**。本文档仅保留上方的 API 路由内部实现。
 
 

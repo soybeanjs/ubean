@@ -1,5 +1,45 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.2...main) (2026-09-25)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **scripts**: add the docs i18n drift gate and a DeepL translate command &nbsp;-&nbsp; by @soybeanjs [<samp>(2209d)</samp>](https://github.com/soybeanjs/ubean/commit/2209db5)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **site**:
+  - route content links through `Link` and repair stale anchors &nbsp;-&nbsp; by @soybeanjs [<samp>(e74c8)</samp>](https://github.com/soybeanjs/ubean/commit/e74c860)
+  - emit the zh `.md` mirrors and drop the dangling design-doc refs &nbsp;-&nbsp; by @soybeanjs [<samp>(9c129)</samp>](https://github.com/soybeanjs/ubean/commit/9c129de)
+  - localize the sidebar labels &nbsp;-&nbsp; by @soybeanjs [<samp>(84afd)</samp>](https://github.com/soybeanjs/ubean/commit/84afdd8)
+  - import the generated API data instead of fetching it &nbsp;-&nbsp; by @soybeanjs [<samp>(af773)</samp>](https://github.com/soybeanjs/ubean/commit/af773ee)
+  - run TypeDoc on a real TypeScript so every API page has data &nbsp;-&nbsp; by @soybeanjs [<samp>(dbb95)</samp>](https://github.com/soybeanjs/ubean/commit/dbb9596)
+
+### &nbsp;&nbsp;&nbsp;🛠 Optimizations
+
+- **markdown**: unify markdown class name to 'markdown-body' &nbsp;-&nbsp; by @soybeanjs [<samp>(ca3af)</samp>](https://github.com/soybeanjs/ubean/commit/ca3afdb)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- **packages**: use "@vean/ui" replace "@soybeanjs/ui" &nbsp;-&nbsp; by @soybeanjs [<samp>(0438d)</samp>](https://github.com/soybeanjs/ubean/commit/0438dc7)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **projects**:
+  - refactor docs follow soybean-ui docs &nbsp;-&nbsp; by @soybeanjs [<samp>(26de7)</samp>](https://github.com/soybeanjs/ubean/commit/26de7cc)
+- **site**:
+  - add the zh translation spec and record the locale rules &nbsp;-&nbsp; by @soybeanjs [<samp>(dea9f)</samp>](https://github.com/soybeanjs/ubean/commit/dea9f04)
+  - translate the remaining 17 zh pages &nbsp;-&nbsp; by @soybeanjs [<samp>(499c7)</samp>](https://github.com/soybeanjs/ubean/commit/499c7f4)
+  - stamp translation baselines and fill the sections the gate flagged &nbsp;-&nbsp; by @soybeanjs [<samp>(34988)</samp>](https://github.com/soybeanjs/ubean/commit/34988f6)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(b3b08)</samp>](https://github.com/soybeanjs/ubean/commit/b3b0841)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.1...main) (2026-09-18)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

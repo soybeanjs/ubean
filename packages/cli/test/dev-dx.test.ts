@@ -14,7 +14,7 @@
  */
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -26,6 +26,10 @@ const fixtureDir = join(repoRoot, 'examples/ubean-test');
 const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
 /** 客户端文件：改动它既要触发 rescan，也要让浏览器整页重载。 */
 const clientFile = join(fixtureDir, 'src/app.ts');
+/** 页面组件：改它的正文只应触发 HMR（扫描产物不变 → 协调器不重载），不应整页重载。 */
+const pageFile = join(fixtureDir, 'src/pages/index.vue');
+/** 结构变化用的临时页面（新增页面文件 = 路由表变化 → 协调器整页重载）。 */
+const addedPageFile = join(fixtureDir, 'src/pages/zz-dx-hmr-probe.vue');
 
 let child: ChildProcess | undefined;
 let baseUrl: string;
@@ -105,6 +109,7 @@ afterAll(async () => {
     if (current !== clientOriginal) writeFileSync(clientFile, clientOriginal);
     clientOriginal = null;
   }
+  rmSync(addedPageFile, { force: true });
 });
 
 async function openPage(timeout = 20_000): Promise<Page> {
@@ -373,7 +378,9 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
       await page.waitForTimeout(1_500);
       const loadsBefore = loads;
 
-      // 追加一行注释：既触发 rescan（app.ts 是入口文件），也让协调器发 full-reload
+      // 追加一行注释：`app.ts` 是入口文件，改动它会让 **Vite 自己**沿 `virtual:ubean-app` 的
+      // importer 链冒到根（无 `accept` 边界）→ 整页重载。协调器只在**扫描产物变化**时才自己发
+      // `full-reload`（下一条用例），这里两者不冲突。
       const current = readFileSync(clientFile, 'utf8');
       writeFileSync(clientFile, `${current}\n// dx-probe-${Date.now()}\n`);
 
@@ -381,6 +388,60 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     } finally {
       await page.close();
       writeFileSync(clientFile, clientOriginal!);
+    }
+  }, 120_000);
+
+  /**
+   * 整页重载的判据是「**扫描产物**变了」，不是「文件变了」。
+   *
+   * 此前 `apps/docs` 的实测症状：只把页面正文里的一个词改掉，浏览器也会整页刷 —— Vue 的 HMR
+   * `update` 已经送到，152ms 后又被协调器的 `full-reload` 顶掉。这里把两条判据都钉住：
+   * 正文改动必须**上屏且不整页重载**，结构变化（新增页面文件）必须整页重载。
+   */
+  it('改页面正文只做 HMR（DOM 上屏、不整页重载），新增页面文件才整页重载', async () => {
+    const page = await openPage(30_000);
+    let loads = 0;
+    page.on('load', () => (loads += 1));
+    const original = readFileSync(pageFile, 'utf8');
+    const heading = original.match(/<h1>([^<]*)<\/h1>/)?.[1];
+    expect(heading, `${pageFile} 应有可供替换的 <h1>`).toBeTruthy();
+    try {
+      await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
+      await page.waitForFunction(
+        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
+        undefined,
+        { timeout: 30_000 }
+      );
+      // 先等 dev server 自身的整页重载彻底安静（依赖预构建会在随机时刻补一次刷新），再取基线 ——
+      // 只有这样，后面的 load 计数才只反映「本次改动」（否则会拿到随机的背景噪声）。
+      await page.waitForTimeout(1_500);
+      let quiet = 0;
+      let seenLoads = loads;
+      while (quiet < 2) {
+        await page.waitForTimeout(600);
+        if (loads === seenLoads) quiet += 1;
+        else {
+          seenLoads = loads;
+          quiet = 0;
+        }
+      }
+      const loadsBefore = loads;
+
+      // 1) 只改正文（不进扫描产物）→ Vite 的 Vue HMR 热替换，DOM 上屏且**不**整页重载
+      const marker = `dx-hmr-${Date.now()}`;
+      writeFileSync(pageFile, original.replace(`<h1>${heading}</h1>`, `<h1>${marker}</h1>`));
+      await expect.poll(() => page.locator('h1').first().textContent(), { timeout: 30_000 }).toContain(marker);
+      // 留出「本该不出现的重载」的到达窗口：协调器去抖 150ms + 扫描 + 订阅者，再保守一点
+      await page.waitForTimeout(1_200);
+      expect(loads, '正文改动不该整页重载').toBe(loadsBefore);
+
+      // 2) 结构变化（多一个页面文件 = 路由表变了）→ 协调器统一整页重载
+      writeFileSync(addedPageFile, '<template><div>dx hmr probe</div></template>\n');
+      await expect.poll(() => loads, { timeout: 30_000, interval: 200 }).toBeGreaterThan(loadsBefore);
+    } finally {
+      await page.close();
+      writeFileSync(pageFile, original);
+      rmSync(addedPageFile, { force: true });
     }
   }, 120_000);
 });

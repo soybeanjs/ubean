@@ -13,11 +13,12 @@ import { renderFaviconLink } from '@ubean/pages';
 import { scanProject } from '@ubean/scan';
 import type { ScanResult } from '@ubean/scan';
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite';
-import { join, resolve } from 'pathe';
+import { join, relative, resolve } from 'pathe';
 import { getAutoImportPresets, resolveAutoImportsConfig, resolveComponentsConfig, toArray } from './codegen';
 import { COMPONENT_HALF_GLOBS } from './codegen/auto-imports';
 import { isFrameworkHtmlPage } from './dev/dev-request-router';
 import { getDevScanCoordinator } from './dev/dev-scan';
+import type { DevScanCoordinator } from './dev/dev-scan';
 import { getComponentResolvers } from './registry';
 import { ssrSingletonDevPolicy } from './ssr-singleton';
 import { createVirtualRegistry } from './virtual-registry';
@@ -136,8 +137,10 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
     });
   }
 
-  async function scanAndRegister() {
-    applyScan(await scanProjectOnce());
+  async function scanAndRegister(): Promise<ScanResult> {
+    const result = await scanProjectOnce();
+    applyScan(result);
+    return result;
   }
 
   /**
@@ -164,12 +167,28 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
 
   const HASH_IDS = Object.keys(HASH_ID_TO_VIRTUAL);
 
+  /**
+   * dev 扫描协调器（`configureServer` 建立）。
+   *
+   * `buildStart` 需要它来登记结构基线，但 Vite 的顺序是 `configureServer` → `buildStart`
+   * （dev 下每个环境各跑一次 `buildStart`，`prime` 幂等），所以这里是闭包引用而不是参数传递。
+   */
+  let devCoordinator: DevScanCoordinator | undefined;
+
   const corePlugin: Plugin = {
     name: 'ubean:vue',
     enforce: 'pre',
 
     async buildStart() {
-      await scanAndRegister();
+      // 首次扫描的产物就是「当前结构」，登记为基线：没有它，启动后第一次「只改组件内容」的编辑
+      // 会被当成结构变化而整页重载一次（协调器无基线时的保守行为）。
+      //
+      // `await` 必须写在外面：`devCoordinator?.prime(await …)` 里的实参在 `devCoordinator`
+      // 为空时会被可选链**整体短路掉**（构建期没有 dev server，这里必然是空），`scanAndRegister()`
+      // 于是根本不会执行 —— 虚拟模块注册表为空，`vite build` 报 `UNLOADABLE_DEPENDENCY:
+      // \0virtual:ubean-app.ts`（实测踩到）。
+      const result = await scanAndRegister();
+      devCoordinator?.prime(result);
     },
 
     resolveId(id, importer, opts) {
@@ -300,8 +319,16 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
         ignore: ubeanConfig.scanOptions?.ignore,
         source,
         scan: scanProjectOnce,
-        reload: () => server.ws.send({ type: 'full-reload' })
+        reload: () => server.ws.send({ type: 'full-reload' }),
+        // 结构没变 → 不重载，交给 Vite 的 HMR。这里只留一行日志（`logging.lifecycle` 闸门，
+        // 与 CLI 的 `File change detected` 同一分类），否则「为什么没刷新」无从追查。
+        onStructureUnchanged: changed => {
+          if (!ubeanConfig.logging.lifecycle) return;
+          const files = changed.map(file => relative(ubeanConfig.rootDir, file)).join(', ');
+          server.config.logger.info(`[ubean] structure unchanged (${files}) — keeping HMR, no full reload`);
+        }
       }));
+      devCoordinator = coordinator;
 
       coordinator.subscribe(result => {
         applyScan(result);

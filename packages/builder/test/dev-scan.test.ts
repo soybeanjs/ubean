@@ -53,6 +53,7 @@ function setup(
     scan?: () => Promise<ScanResult>;
     debounceMs?: number;
     onError?: (error: unknown) => void;
+    onStructureUnchanged?: (changed: string[]) => void;
   } = {}
 ) {
   const { source, added, emit, listenerCount } = fakeSource();
@@ -64,6 +65,7 @@ function setup(
     source,
     scan,
     reload,
+    onStructureUnchanged: options.onStructureUnchanged,
     debounceMs: options.debounceMs ?? 5,
     onError: options.onError ?? (() => {})
   });
@@ -256,5 +258,87 @@ describe('dev 扫描协调器', () => {
 
     expect(seen).not.toHaveBeenCalled();
     expect(coordinator.subscriberCount()).toBe(0);
+  });
+});
+
+/**
+ * 重载判据：结构变了才重载。
+ *
+ * `apps/docs` 的实测症状是「改页面正文一个字 → 整页重载」：扫描产物其实毫无变化（正文不进
+ * 产物），而 Vite 的 Vue HMR 已经把 `update` 送进浏览器，随后被协调器的 `full-reload` 顶掉。
+ */
+describe('dev 扫描协调器 · 重载判据', () => {
+  it('无基线时保守重载（未 prime 的独立用法与整改前一致）', async () => {
+    const { coordinator, emit, reload } = setup();
+    coordinator.start();
+
+    emit('change', `${SRC}/pages/index.vue`);
+    await tick();
+
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('prime 之后：扫描产物一致（只改页面正文）不发 full-reload，订阅者照常收到结果', async () => {
+    const { coordinator, emit, scan, reload } = setup();
+    coordinator.start();
+    const seen = vi.fn();
+    coordinator.subscribe(seen);
+    coordinator.prime(scanResult());
+
+    emit('change', `${SRC}/pages/index.vue`);
+    await tick();
+
+    expect(scan).toHaveBeenCalledTimes(1);
+    // 订阅者照常跑：app 重建 / 虚拟模块失效 / 类型生成管的是服务端代码新鲜度，与浏览器是否
+    // 整页刷新无关
+    expect(seen).toHaveBeenCalledTimes(1);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('prime 之后：产物变化（新增页面 / definePage 元数据）仍然重载', async () => {
+    let result = scanResult();
+    const { coordinator, emit, reload } = setup({ scan: async () => result });
+    coordinator.start();
+    coordinator.prime(result);
+
+    // 1) 内容改动：产物一致 → 不重载
+    emit('change', `${SRC}/pages/index.vue`);
+    await tick();
+    expect(reload).not.toHaveBeenCalled();
+
+    // 2) 新增页面：产物多出一条路由 → 重载
+    result = scanResult({ pages: [{ fullPath: `${SRC}/pages/blog.vue`, route: '/blog' }] as ScanResult['pages'] });
+    emit('add', `${SRC}/pages/blog.vue`);
+    await tick();
+    expect(reload).toHaveBeenCalledTimes(1);
+
+    // 3) 再次内容改动：基线已随上次扫描更新 → 又不重载
+    emit('change', `${SRC}/pages/blog.vue`);
+    await tick();
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('结构未变时回调收到本次变更文件（供调用方记日志）', async () => {
+    const onStructureUnchanged = vi.fn();
+    const { coordinator, emit } = setup({ onStructureUnchanged });
+    coordinator.start();
+    coordinator.prime(scanResult());
+
+    emit('change', `${SRC}/pages/index.vue`);
+    await tick();
+
+    expect(onStructureUnchanged).toHaveBeenCalledWith([`${SRC}/pages/index.vue`]);
+  });
+
+  it('prime 可重复调用（dev 下每个环境各跑一次 buildStart）', async () => {
+    const { coordinator, emit, reload } = setup();
+    coordinator.start();
+    coordinator.prime(scanResult());
+    coordinator.prime(scanResult());
+
+    emit('change', `${SRC}/pages/index.vue`);
+    await tick();
+
+    expect(reload).not.toHaveBeenCalled();
   });
 });

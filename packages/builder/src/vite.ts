@@ -14,6 +14,7 @@ import { join, relative, resolve } from 'pathe';
 import { generateTypes } from './codegen';
 import { ensureDevApp } from './dev/dev-request-router';
 import { getDevScanCoordinator } from './dev/dev-scan';
+import type { DevScanCoordinator } from './dev/dev-scan';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { transformMacros } from './macros';
 // 别名：`buildEnvironmentsForConfig()` 内部有同名解构局部变量（eslint no-shadow）
@@ -233,6 +234,13 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
   let ubeanConfig: UbeanResolvedConfig | undefined = options?.config ?? tryGetConfig() ?? undefined;
   /** 已跑过 codegen 的扫描结果（`buildStart` 会在两个环境各跑一次）。 */
   let lastCodegenScan: ScanResult | null = null;
+  /**
+   * dev 扫描协调器（`configureServer` 建立、`buildStart` 用）。
+   *
+   * Vite 的顺序是 `configureServer` → `buildStart`，且 dev 下每个环境各跑一次 `buildStart`
+   * （`prime` 幂等），所以这里用闭包引用登记结构基线。
+   */
+  let devCoordinator: DevScanCoordinator | undefined;
   /** client manifest 的内存载体（RM-V18）：`buildApp` 填、本插件的 load 读。 */
   const assetManifestRef: { current: Record<string, ClientManifestEntry> | null } = { current: null };
 
@@ -344,7 +352,10 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         ubeanConfig = await loadUbeanConfig();
         ensureDerived();
       }
-      await scanAndRegister();
+      // 首次扫描的产物登记为结构基线，使「只改组件内容」的首个编辑也不触发整页重载
+      // （协调器无基线时按结构变化处理）。dev 下 `configureServer` 先于本钩子，`prime` 幂等。
+      const initial = await scanAndRegister();
+      if (initial) devCoordinator?.prime(initial);
     },
 
     resolveId(id) {
@@ -432,9 +443,17 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         source,
         scan: () => scanProjectOnce(),
         // 仅当没有其他订阅者（无 CLI 的 `vite dev`）时也保证重载 —— 协调器只认第一个 init，
-        // 因此这里定义的 reload 就是全局唯一的那一个。
-        reload: () => server.ws.send({ type: 'full-reload' })
+        // 因此这里定义的 reload 就是全局唯一的那一个 —— 且只在结构变化时发出。
+        reload: () => server.ws.send({ type: 'full-reload' }),
+        // 结构没变 → 不重载，交给 Vite 的 HMR；日志挂 `logging.lifecycle` 闸门后面。
+        onStructureUnchanged: changed => {
+          const config = ubeanConfig;
+          if (!config?.logging.lifecycle) return;
+          const files = changed.map(file => relative(config.rootDir, file)).join(', ');
+          server.config.logger.info(`[ubean] structure unchanged (${files}) — keeping HMR, no full reload`);
+        }
       }));
+      devCoordinator = coordinator;
 
       coordinator.subscribe(async (result, changed) => {
         await applyScan(result);
@@ -499,11 +518,12 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     });
   }
 
-  async function scanAndRegister() {
+  async function scanAndRegister(): Promise<ScanResult | undefined> {
     if (!ubeanConfig) return;
     const result = await scanProjectOnce();
     await applyScan(result);
     await runProjectCodegen(result);
+    return result;
   }
 
   /**

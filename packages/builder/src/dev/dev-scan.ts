@@ -21,6 +21,28 @@ import { scanProject } from '@ubean/scan';
  *
  * 订阅者通过 `onDevScan(server, fn)` 注册，按注册顺序串行执行（前面的结果可能被后面读到，
  * 例如 CLI 需要 core 先更新路由虚拟模块）。
+ *
+ * ## 重载判据：结构变了才重载
+ *
+ * 此前**任何**被监听目录内的变更都会走完「扫描 → 订阅者 → `full-reload`」，包括「只改了页面
+ * 组件模板里的一个字」。实测（`apps/docs`，改 `src/pages/index.vue` 的正文文本），Vite HMR 的
+ * `update` 与协调器的 `full-reload` 只差 152ms：
+ *
+ * ```text
+ * +7588ms [msg] type=update      {"updates":[{"type":"js-update","path":"/src/pages/index.vue",…}]}
+ * +7740ms [msg] type=full-reload {}
+ * ```
+ *
+ * 即：Vue 的 HMR 已经把热替换送进浏览器，协调器随后又整页刷掉 —— 热更新被自己发的重载顶掉。
+ * 根因是把「文件变了」当成「结构变了」。
+ *
+ * 现在判据换成**扫描产物本身**：`ScanResult` 一致（页面正文、组件模板、处理器函数体…都不进
+ * 产物）就只跑订阅者、不发 `full-reload`，把这次改动交给 Vite 的 HMR；产物变化（新增/删除
+ * 文件、`definePage` 元数据、API 导出、布局、`app.ts` 入口…）才照旧统一重载。
+ *
+ * 基线由 `prime()` 登记 —— 调用方把「启动时磁盘上的结构」交给协调器（插件在 `buildStart` 的
+ * 首次扫描后调用）。没有基线时按「结构变化」处理：宁可多一次重载，也不能让浏览器带着旧路由表
+ * 跑。
  */
 import type { ScanResult } from '@ubean/scan';
 
@@ -60,8 +82,13 @@ export interface DevScanCoordinatorOptions {
   source: DevScanSource;
   /** 扫描实现；默认 `scanProject`（调用方一般不需要覆盖）。 */
   scan?: () => Promise<ScanResult>;
-  /** 扫描结束后、重载前的用户回调（`full-reload` 由协调器统一发）。 */
+  /**
+   * 扫描产物与基线不一致（结构变化）时的重载回调：`full-reload` 由协调器统一发。
+   * 产物一致时**不调用**（那次改动交给 Vite 的 HMR）。
+   */
   reload?: () => void;
+  /** 扫描产物与基线一致（结构没变、不发重载）时的回调，供调用方记日志。 */
+  onStructureUnchanged?: (changed: string[]) => void;
   debounceMs?: number;
   /** 扫描失败回调；默认打到 console.error。 */
   onError?: (error: unknown) => void;
@@ -72,6 +99,11 @@ export interface DevScanCoordinator {
   subscribe(fn: DevScanSubscriber): () => void;
   /** 建立监听（幂等）。 */
   start(): void;
+  /**
+   * 登记结构基线：把「当前磁盘上的结构」交给协调器，作为后续「结构是否变化」的比对面。
+   * 只记基线，不通知订阅者、不重载（供插件在 `buildStart` 的首次扫描后调用）。
+   */
+  prime(result: ScanResult): void;
   /** 手动触发一次扫描（DevTools CRUD 后、测试）。 */
   rescan(changed?: string[]): Promise<ScanResult>;
   /** 是否已有订阅者（供调用方判断「框架是否接管了 dev 重载」）。 */
@@ -90,6 +122,8 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
   let running: Promise<ScanResult> | null = null;
   let rerunRequested = false;
   let started = false;
+  /** 上一次扫描产物 = 「当前结构」。由 `prime()` 登记，之后每次扫描后更新。 */
+  let baseline: ScanResult | undefined;
 
   const warn = options.onError ?? ((error: unknown) => console.error('[ubean] scan failed:', error));
 
@@ -141,16 +175,42 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
     }
   }
 
+  /**
+   * 扫描产物是否与基线不同（= 项目结构变了）。
+   *
+   * 判据刻意用**整份产物的序列化**，而不是手写「哪些字段算结构」的清单：扫描器是路由表/元数据的
+   * 唯一生产者，产物一致即结构一致；清单则会随 `definePage` 之类新增字段而失配 —— 漏一个字段，
+   * 浏览器就会带着旧元数据一直跑（且没有任何报错）。扫描产物是纯数据（实测两次扫描序列化结果
+   * 逐字节相同），所以直接比对。
+   *
+   * 无基线时一律返回 `true`：`prime()` 之前的行为与整改前一致（保守多发一次重载）。
+   */
+  function structureChanged(result: ScanResult): boolean {
+    if (baseline === undefined) return true;
+    return JSON.stringify(result) !== JSON.stringify(baseline);
+  }
+
   async function runScan(changed: string[]): Promise<ScanResult> {
     const scan =
       options.scan ?? (() => scanProject({ cwd: rootDir, srcDir, dirs: options.dirs, ignore: options.ignore }));
     const result = await scan();
     registerExtraFiles(result);
-    // 串行 await：订阅者之间可能有先后依赖（CLI 的 app 重建依赖 core 已更新路由虚拟模块）
+    // 判定必须在更新基线之前：否则本次扫描会把自己当成基线，永远判「没变」。
+    const structural = structureChanged(result);
+    baseline = result;
+    // 串行 await：订阅者之间可能有先后依赖（CLI 的 app 重建依赖 core 已更新路由虚拟模块）。
+    // 订阅者始终执行 —— 它们管的是服务端代码新鲜度（app 重建、虚拟模块失效、类型生成），
+    // 与「浏览器要不要整页刷新」是两件事。
     for (const subscriber of subscribers) {
       await subscriber(result, changed);
     }
-    options.reload?.();
+    // 结构没变（典型：只改了页面组件的模板/脚本）时不发 `full-reload`：Vite 的 HMR 已经把
+    // `update` 送进浏览器，再重载等于把刚送到的热替换丢掉。
+    if (structural) {
+      options.reload?.();
+    } else {
+      options.onStructureUnchanged?.(changed);
+    }
     return result;
   }
 
@@ -206,6 +266,10 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
       source.on('add', onFileEvent);
       source.on('unlink', onFileEvent);
       source.on('change', onFileEvent);
+    },
+
+    prime(result) {
+      baseline = result;
     },
 
     rescan,

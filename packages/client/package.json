@@ -50,7 +50,7 @@
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "typescript": "catalog:",
     "vite-plus": "catalog:"
   },

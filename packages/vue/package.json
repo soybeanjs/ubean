@@ -38,7 +38,7 @@
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "@ubean/markdown": "workspace:*",
     "@unhead/vue": "^3.4.1",
     "@vue/server-renderer": "^3.5.43",
@@ -46,7 +46,7 @@
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vitest": "5.0.1"
+    "vitest": "5.0.2"
   },
   "peerDependencies": {
     "@ubean/markdown": ">=0.1.0",

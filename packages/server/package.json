@@ -84,7 +84,7 @@
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

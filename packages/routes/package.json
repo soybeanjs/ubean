@@ -37,7 +37,7 @@
     "rou3": "^0.9.2"
   },
   "devDependencies": {
-    "@types/node": "^26.6.2",
+    "@types/node": "^26.6.3",
     "@ubean/pages": "workspace:*",
     "@ubean/scan": "workspace:*",
     "typescript": "catalog:",

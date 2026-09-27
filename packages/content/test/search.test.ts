@@ -182,20 +182,27 @@ describe('tokenizeText', () => {
 });
 
 describe('createSectionSearch (fallback engine)', () => {
-  // minisearch 未安装于测试环境 → 确定性走 fallback 路径
+  // 不能依赖「minisearch 未安装」这一环境事实：pnpm `shamefullyHoist` 会把
+  // 工作区内任意包（如 apps/docs）的 minisearch 提升到仓库根 node_modules，
+  // 于是默认加载器可以解析成功。注入失败加载器确定性覆盖「加载失败」分支
+  // （与 `PagefindIndexOptions.loadPagefind` 同一套路）。
+  const loadWithoutMiniSearch = async (): Promise<never> => {
+    throw new TypeError('Failed to resolve module specifier "minisearch"');
+  };
+
   const sections = [
     { id: '/a', title: 'Installation Guide', titles: [], level: 0, content: 'how to install the package' },
     { id: '/b', title: 'Cooking Recipes', titles: [], level: 0, content: 'install the oven before cooking' },
     { id: '/c', title: '安装指南', titles: [], level: 0, content: '如何安装依赖包' }
   ];
 
-  it('falls back to built-in engine when minisearch is absent', async () => {
-    const engine = await createSectionSearch(sections);
+  it('falls back to built-in engine when minisearch cannot be loaded', async () => {
+    const engine = await createSectionSearch(sections, { loadMiniSearch: loadWithoutMiniSearch });
     expect(engine.engine).toBe('fallback');
   });
 
   it('ranks title matches above content matches', async () => {
-    const engine = await createSectionSearch(sections);
+    const engine = await createSectionSearch(sections, { loadMiniSearch: loadWithoutMiniSearch });
     const hits = engine.search('install');
     expect(hits.length).toBeGreaterThan(0);
     expect(hits[0].id).toBe('/a'); // 标题命中 > 正文命中
@@ -203,20 +210,20 @@ describe('createSectionSearch (fallback engine)', () => {
   });
 
   it('supports CJK queries', async () => {
-    const engine = await createSectionSearch(sections);
+    const engine = await createSectionSearch(sections, { loadMiniSearch: loadWithoutMiniSearch });
     const hits = engine.search('安装');
     expect(hits.length).toBeGreaterThan(0);
     expect(hits[0].id).toBe('/c');
   });
 
   it('returns empty for no match and empty query', async () => {
-    const engine = await createSectionSearch(sections);
+    const engine = await createSectionSearch(sections, { loadMiniSearch: loadWithoutMiniSearch });
     expect(engine.search('zzzznonexistent')).toEqual([]);
     expect(engine.search('')).toEqual([]);
   });
 
   it('respects limit option', async () => {
-    const engine = await createSectionSearch(sections);
+    const engine = await createSectionSearch(sections, { loadMiniSearch: loadWithoutMiniSearch });
     const hits = engine.search('install', { limit: 1 });
     expect(hits).toHaveLength(1);
   });

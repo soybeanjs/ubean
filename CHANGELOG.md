@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.3...main) (2026-09-27)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **dev**: implement structure change criteria for reloads and enhance dev scan coordination &nbsp;-&nbsp; by @soybeanjs [<samp>(c911d)</samp>](https://github.com/soybeanjs/ubean/commit/c911d60)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(c5f92)</samp>](https://github.com/soybeanjs/ubean/commit/c5f92a2)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.2...main) (2026-09-25)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

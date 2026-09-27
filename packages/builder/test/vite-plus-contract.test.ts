@@ -16,11 +16,19 @@
  * 配置下，开关前后 `env.config` 身份与插件实例身份都没有变化，因此不能把它们写成
  * 「开启后 X === Y」——那会是假契约。RM-V09 / RM-V17 真正依赖其语义时，需另行用
  * 能观测到的信号（如跨环境共享的模块状态）验证。
+ *
+ * **版本锁**：期望版本不写死在测试里，而是从 `pnpm-workspace.yaml` 的 catalog
+ * （工作区唯一事实来源）读取 —— 升级只改 catalog，测试自动跟随，不会再出现
+ * 「catalog 已升到 X、测试还钉着 Y」的假红。catalog 写成精确版本时精确比对自动
+ * 生效（于是「升级 → 重跑 RM-V23」的闸门由 catalog 变更触发）；写 dist-tag
+ *（`latest`）时版本由安装时解析，断言退化为「两个入口必须同版本」—— 这正是
+ * ADR-0012 真正依赖的不变量。
  */
-import { mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createBuilder, DevEnvironment, createServerHotChannel } from 'vite';
 import type { Plugin } from 'vite';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -29,8 +37,25 @@ import { ESModulesEvaluator, ModuleRunner } from 'vite/module-runner';
 
 const require = createRequire(import.meta.url);
 
-/** ADR-0012 依赖的版本，升级需同步改这里并跑 RM-V23 验收矩阵。 */
-const PINNED_VITE_PLUS = '0.3.3';
+/** ADR-0012 依赖的版本清单（catalog）所在文件。 */
+const WORKSPACE_YAML = fileURLToPath(new URL('../../../pnpm-workspace.yaml', import.meta.url));
+const EXACT_VERSION = /^\d+\.\d+\.\d+/;
+
+/**
+ * 读取 `pnpm-workspace.yaml` 顶层 `catalog:` 里的 `<name>: <spec>`。
+ * 只解析这个扁平映射（不引入 YAML 依赖）；找不到文件/键时返回 undefined，由调用方断言失败。
+ */
+function readCatalogSpec(name: string): string | undefined {
+  const yaml = readFileSync(WORKSPACE_YAML, 'utf8');
+  const block = yaml.split(/^catalog:[ \t]*$/m)[1];
+  if (!block) return undefined;
+  for (const line of block.split('\n').slice(1)) {
+    if (/^\S/.test(line)) break; // 回到顶层 key（含空行）→ catalog 块结束
+    const match = line.match(/^\s+['"]?([^'":]+)['"]?:[ \t]*(.+?)[ \t]*$/);
+    if (match?.[1] === name) return match[2].replace(/^['"]|['"]$/g, '');
+  }
+  return undefined;
+}
 
 let projectDir: string;
 
@@ -57,17 +82,30 @@ function baseConfig(root: string, extra: Record<string, unknown> = {}) {
 }
 
 describe('依赖版本锁', () => {
-  it('vite-plus 与 vite（catalog 别名 → vite-plus-core）都在锁定版本上', () => {
+  it('vite-plus 与 vite（catalog 别名 → vite-plus-core）解析到同一版本', () => {
     const vitePlus = require('vite-plus/package.json') as { name: string; version: string };
     const coreEntry = require.resolve('vite');
     const corePkg = require(coreEntry.replace(/dist\/vite\/node\/index\.(js|mjs)$/, 'package.json')) as {
       name: string;
       version: string;
     };
-    expect(vitePlus.version).toBe(PINNED_VITE_PLUS);
-    expect(corePkg.version).toBe(PINNED_VITE_PLUS);
+
     // catalog 把 `vite` 指向 vite-plus-core：ADR-0012 的全部 Vite API 都来自这里
     expect(corePkg.name).toBe('@voidzero-dev/vite-plus-core');
+    expect(readCatalogSpec('vite'), 'catalog 的 vite 别名必须指向 vite-plus-core').toMatch(
+      /^npm:@voidzero-dev\/vite-plus-core@/
+    );
+
+    // 真正的锁：CLI 与 core 两条安装路径必须同版本，升级错位时这里先红
+    expect(vitePlus.version).toBe(corePkg.version);
+    expect(vitePlus.version).toMatch(EXACT_VERSION);
+
+    // catalog 写精确版本 → 精确比对自动生效；写 dist-tag（latest）→ 版本由安装时解析
+    const declared = readCatalogSpec('vite-plus');
+    expect(declared, 'pnpm-workspace.yaml catalog 应声明 vite-plus').toBeTruthy();
+    if (declared && EXACT_VERSION.test(declared)) {
+      expect(vitePlus.version).toBe(declared);
+    }
   });
 });
 

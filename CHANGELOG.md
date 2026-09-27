@@ -1,5 +1,25 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.4...main) (2026-09-27)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: derive the vite-plus version lock from the workspace catalog &nbsp;-&nbsp; by @soybeanjs [<samp>(97735)</samp>](https://github.com/soybeanjs/ubean/commit/9773534)
+- **docs**: update typecheck script to include ubean prepare &nbsp;-&nbsp; by @soybeanjs [<samp>(c90bc)</samp>](https://github.com/soybeanjs/ubean/commit/c90bcbb)
+- **test**: update createSectionSearch tests to handle minisearch loading failure &nbsp;-&nbsp; by @soybeanjs [<samp>(78351)</samp>](https://github.com/soybeanjs/ubean/commit/7835133)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **ubean**: prune landed task lists and resurface their content into ADRs &nbsp;-&nbsp; by @soybeanjs [<samp>(2af41)</samp>](https://github.com/soybeanjs/ubean/commit/2af4191)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: pin vite-plus to 1.0.0-rc.1 and unify the root on the catalog &nbsp;-&nbsp; by @soybeanjs [<samp>(cd30e)</samp>](https://github.com/soybeanjs/ubean/commit/cd30e81)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.3...main) (2026-09-27)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

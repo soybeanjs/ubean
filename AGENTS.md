@@ -66,7 +66,7 @@ ubean/
 │   ├── platform-drivers/   # 平台非内存驱动示例（D1/KV/Blob…）
 │   └── ssg-catchall/       # SSG catch-all 预渲染示例
 ├── skills/ubean/            # AI Skill（CLI 命令文档与 agent 提示词）
-├── docs/                     # 仓库级工程文档（ADR、领域词汇表、结构评估报告、产品方案）
+├── docs/                     # 仓库级工程文档（ADR、词汇表、路线图、性能口径、对外契约）
 └── AGENTS.md                 # 本文件
 ```
 
@@ -889,6 +889,12 @@ export default defineConfig({
 17. **Islands 水合**：常规 islands 由框架在客户端入口自动水合（首次 mount 双重 rAF；SPA `afterEach` 无 pending 岛时跳过第二帧）；仅在需要传入手动注册组件（escape hatch）时在 `onClientReady` 中额外调用 `hydrateIslands()`
 18. **第三方 API 不经 ubean 透传**：`vue`/`vue-router`/`vue-i18n`/`@vue/server-renderer` 的 API 一律从对应包直接导入，ubean 不再 re-export（如 `useRouter` 从 `vue-router`、`renderToString` 从 `@vue/server-renderer`、`I18n` 类型从 `vue-i18n`）；自动导入预设也直源这些包（`VUE_ROUTER_PRESET`/`VUE_I18N_PRESET`/`HONO_OPENAPI_PRESET`）。ubean 的 `useI18n`/`t` vue-i18n 包装已移除——`useI18n` 从 `vue-i18n` 导入，`t` 从其返回的 composer 解构。例外：`validator`/`describeRoute` 等 hono-openapi API 从 `ubean/server` 重新导出；`useHead`/`useSeoMeta`/`Head`（ubean 品牌 head 门面，主入口与 `@ubean/seo` 有消歧设计）；`createClientHead`/`createServerHead`（builder 虚拟模块的依赖卫生门面）；`setLocale`/`useLocalePath` 等 i18n 封装（ubean 自有实现，主入口 isomorphic 化后恢复自然命名，不再有 `setVueLocale` 别名）。示例项目（ubean-test/frontend-only/routing-file-mode）与 apps/docs 已在 `package.json` 中显式声明 `vue-router` + `hono-openapi` + `vue-i18n`
 
+19. **跨模块实例共享状态**：dev 的 SSR 图会内联 `ubean`、外部化 `@ubean/vue`，框架因此存在**两份模块实例**；模块级注册表 / `Map` 会让两侧读到的不是同一份，且**没有任何报错**。需要跨实例共享的状态挂 `server` 对象或 `globalThis`（matcher 注册表即为此改挂 `globalThis`）。
+20. **dev 请求路由的保留命名空间**：DevTools 有多个挂载点（`/__devtools`、`/__devtools-assets/`、`/__devtools-client-imports.js`、`/_devtools/**`），放行判据必须按**裸字符串前缀**匹配（按路径段会漏掉兄弟路径），且前缀常量只在一处声明。框架内置 HTML 页面（`/_devtools`、`/_scalar`）由 `isFrameworkHtmlPage()` 判定并跳过整个 HTML transform —— 否则应用客户端入口会被注入到没有 `#app` 的页面上。
+21. **页面元数据序列化白名单**：dev 的 SSR 路由表用扫描得到的**活对象**，产物入口走**序列化白名单** —— 白名单漏字段会静默丢语义（`matchers`/`slot`/`reuseTarget` 曾因此只在产物里失效，dev 完全正常）。改动 `ScannedPage` 字段时必须同步 `serializePagesForEntry()` 的白名单，`packages/builder/test/page-metadata.test.ts` 逐字段锁住。
+22. **peer 变体漂移**：catalog 里的 `typescript: npm:typescript-native-bridge@latest` 会让 peer 解析漂移出两份 `vite-plus-core`，表现为 `Plugin` 类型身份不一致的类型报错；遇到先 `pnpm install` 收敛。`env-runner` 必须留在 `packages/cli`，**不得**成为 `@ubean/build` 的依赖（同样会触发该分裂）。
+23. **worker 目标产物**：不要把 `ubean/build` 这类构建期 API 从运行时路由 import —— 在 Node 上只是体积浪费，在 worker 上**构建期直接失败**。静态资源与缓存走平台层；完整契约见 [ADR-0013](docs/adr/0013-platform-artifact-contract.md)。
+
 ## 9. 开发命令
 
 ```bash
@@ -920,7 +926,7 @@ vite preview   # ≡ ubean preview（fullstack/backend 走产物里的生产 han
 
 先决条件与灰阶：
 
-- 用户 `vite.config.ts` 里要有 `ubeanPlugin()`；没有该文件时 CLI 会代注入 builtin 插件（两条路径产物一致，见 `packages/cli/test/build-paths.test.ts`）。
+- 用户 `vite.config.ts` 里要有 `ubeanPlugin()`；没有该文件时 CLI 会代注入 builtin 插件（两条路径产物一致，见 `packages/cli/test/build-contracts.test.ts`）。
 - 插件注册 `client`/`ubean` 两个环境与 `builder.buildApp`（唯一形态，开关已随 RM-V36 收敛删除）。
 - `vite build` **忽略** `--outDir`（那是 ubean CLI 的参数）—— 产物固定写 `config.build.outputDir`。
 - 三条命令都有端到端用例：`packages/cli/test/dev-reload.test.ts`（`vp dev`）、`vite-build.test.ts`（`vp build`）、`preview-vite.test.ts`（`vp preview`）。
@@ -933,15 +939,16 @@ vite preview   # ≡ ubean preview（fullstack/backend 走产物里的生产 han
 | 文档索引                  | [docs/README.md](docs/README.md)                                                                                   | 仓库级工程文档索引                                                                     |
 | 文档翻译流程              | [docs/i18n.md](docs/i18n.md)                                                                                       | 站点的中英双语文案怎么生成、怎么防漂移、哪些面刻意不译（**不是**框架 i18n）            |
 | 站点翻译用词规范          | [apps/docs/TRANSLATION.md](apps/docs/TRANSLATION.md)                                                               | 术语表 + `<Link>` 链接规则；译前必读                                                   |
-| 路线图（2026Q4–2027H1）   | [docs/roadmap.md](docs/roadmap.md)                                                                                 | i18n 落地后还债与用户缺口（ADR-0010；任务 ID 不进站点）                                |
+| 路线图（已收口清单）      | [docs/roadmap.md](docs/roadmap.md)                                                                                 | 已收口能力清单、刻意不做与后续入口（ADR-0010；任务 ID 不进站点）                       |
+| 文档内容分类（政策）      | [docs/adr/0007-docs-content-classification.md](docs/adr/0007-docs-content-classification.md)                       | 站点 / 仓库文档边界；「任务清单落地后删除正文」的出处                                  |
 | studio 开口契约           | [docs/contracts/](docs/contracts/)                                                                                 | `ubean/scaffold` JSON Schema + `.ubean/` codegen 契约                                  |
 | 领域词汇表                | [docs/glossary.md](docs/glossary.md)                                                                               | 领域建模词汇表 + ADR 决策索引                                                          |
 | i18n 决策                 | [docs/adr/0009-i18n-engine-and-compact-locale-routing.md](docs/adr/0009-i18n-engine-and-compact-locale-routing.md) | vue-i18n 11 + 约束前缀；任务清单已删                                                   |
 | 竞品北极星                | [docs/adr/0010-competitive-north-star-and-gap-filter.md](docs/adr/0010-competitive-north-star-and-gap-filter.md)   | 对标 Next 能力 / Nuxt 约定；RSC 刻意不做                                               |
 | 轻量 SSG 决策             | [docs/adr/0011-lightweight-ssg-direct-render.md](docs/adr/0011-lightweight-ssg-direct-render.md)                   | ssg 直接渲染路径（绕过 Hono 管道）；任务清单已删                                       |
 | Vite 插件化决策           | [docs/adr/0012-vite-plugin-first-lifecycle.md](docs/adr/0012-vite-plugin-first-lifecycle.md)                       | dev/build/preview 生命周期下放；不拆 ssr 环境；产物布局不变                            |
-| Vite 插件化方案           | [docs/vite-plugin-migration.md](docs/vite-plugin-migration.md)                                                     | 迁移任务清单（RM-V01…V36，落地后按 ADR-0007 删除）                                     |
-| 性能回归网方案            | [docs/perf-regression-net.md](docs/perf-regression-net.md)                                                         | 生命周期基准与体积闸门（RM-P01…P08，先于 Vite 插件化；落地后按 ADR-0007 删除）         |
+| 平台产物契约              | [docs/adr/0013-platform-artifact-contract.md](docs/adr/0013-platform-artifact-contract.md)                         | workerd / Cloudflare 目标的产物契约（10 条约束）与三条部署约束                         |
+| 性能回归网                | [docs/perf-regression-net.md](docs/perf-regression-net.md)                                                         | 生命周期度量口径、基线（RM-P05）与体积闸门（RM-P01…P08）                               |
 | 架构 / 指南 / API（正文） | [apps/docs/src/content/](apps/docs/src/content/)                                                                   | 中英文档源（overview / routing / runtime / framework-comparison / guide / reference…） |
 | CLI 命令                  | [skills/ubean/command/ubean.md](skills/ubean/command/ubean.md)                                                     | CLI 命令文档                                                                           |
 | AI Skill                  | [skills/ubean/SKILL.md](skills/ubean/SKILL.md)                                                                     | Agent 技能入口                                                                         |

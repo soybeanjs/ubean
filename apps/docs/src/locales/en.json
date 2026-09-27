@@ -68,6 +68,7 @@
     "guide_introduction": "Introduction",
     "guide_quickstart": "Quickstart",
     "guide_app_modes": "App Modes",
+    "guide_vite_plugin_migration": "Vite Plugin Migration",
     "guide_routing_modes": "Routing Modes",
     "guide_pages_routing_overview": "Pages & Routing",
     "guide_pages_routing_loaders": "Data Loaders",

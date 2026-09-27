@@ -290,32 +290,33 @@ export const GET = defineHandler(
 
 ### Guide
 
-- `/docs/guide/quickstart`: Quick start guide
-- `/docs/guide/app-modes`: Application modes (fullstack / spa / ssg / backend)
-- `/docs/guide/routing-modes`: Route generation modes (virtual / file / both)
-- `/docs/guide/pages-routing/overview`: Pages and routing overview
-- `/docs/guide/pages-routing/loaders`: Data loaders
-- `/docs/guide/pages-routing/actions`: Actions
-- `/docs/guide/i18n`: Internationalization
-- `/docs/guide/islands`: Islands architecture
+- `/guide/quickstart`: Quick start guide
+- `/guide/app-modes`: Application modes (fullstack / spa / ssg / backend)
+- `/guide/vite-plugin-migration`: Vite plugin migration (post-convergence config changes)
+- `/guide/routing-modes`: Route generation modes (virtual / file / both)
+- `/guide/pages-routing/overview`: Pages and routing overview
+- `/guide/pages-routing/loaders`: Data loaders
+- `/guide/pages-routing/actions`: Actions
+- `/guide/i18n`: Internationalization
+- `/guide/islands`: Islands architecture
 
 ### Reference
 
-- `/docs/reference/api/route-helpers`: Route helper functions
-- `/docs/reference/api/response-helpers`: Response helper functions
-- `/docs/reference/api/env`: Environment variables
-- `/docs/reference/api/database`: Database operations
-- `/docs/reference/api/cache`: Cache operations
-- `/docs/reference/api/i18n`: I18n API
+- `/reference/route-helpers`: Route helper functions
+- `/reference/response-helpers`: Response helper functions
+- `/reference/env`: Environment variables
+- `/reference/database`: Database operations
+- `/reference/cache`: Cache operations
+- `/reference/i18n`: I18n API
 
 ### Integrations
 
-- `/docs/integrations/database`: Database integrations (Drizzle, db0)
-- `/docs/integrations/auth`: Authentication (`@ubean/auth`)
-- `/docs/integrations/icons`: Icons (`@ubean/icon`)
-- `/docs/integrations/electron`: Desktop apps (`@ubean/integrations/electron`)
-- `/docs/integrations/pinia`: State management (`@ubean/integrations/pinia`)
-- `/docs/integrations/ui`: UI components (`@ubean/integrations/ui`)
+- `/integrations/database`: Database integrations (Drizzle, db0)
+- `/integrations/auth`: Authentication (`@ubean/auth`)
+- `/integrations/icons`: Icons (`@ubean/icon`)
+- `/integrations/electron`: Desktop apps (`@ubean/integrations/electron`)
+- `/integrations/pinia`: State management (`@ubean/integrations/pinia`)
+- `/integrations/ui`: UI components (`@ubean/integrations/ui`)
 
 ## Configuration
 
@@ -351,7 +352,7 @@ export default defineConfig({
 });
 ```
 
-> **App modes**: `mode` controls which build steps run. `fullstack` (default) builds client + SSR + server; `spa` builds client only; `ssg` prerenders to static HTML via the direct render path (minimal static bundle, no Hono pipeline; `pages/404.vue` → `404.html`; i18n routes auto-expanded; page `loader` not executed); `backend` builds API server only. See [App Modes](/docs/guide/app-modes) and [Route Generation Modes](/docs/guide/routing-modes).
+> **App modes**: `mode` controls which build steps run. `fullstack` (default) builds client + SSR + server; `spa` builds client only; `ssg` prerenders to static HTML via the direct render path (minimal static bundle, no Hono pipeline; `pages/404.vue` → `404.html`; i18n routes auto-expanded; page `loader` not executed); `backend` builds API server only. See [App Modes](/guide/app-modes) and [Route Generation Modes](/guide/routing-modes).
 >
 > **Electron**: `electron: true` enables `@ubean/integrations/electron` with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR (desktop apps don't need SSR unless explicitly set via `ssr: true`).
 

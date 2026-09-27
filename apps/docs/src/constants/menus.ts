@@ -57,6 +57,7 @@ export const menuSections: MenuSection[] = [
       { label: 'Introduction', to: '/guide/introduction' },
       { label: 'Quick Start', to: '/guide/quickstart' },
       { label: 'App Modes', to: '/guide/app-modes' },
+      { label: 'Vite Plugin Migration', to: '/guide/vite-plugin-migration' },
       { label: 'Routing Modes', to: '/guide/routing-modes' },
       { label: 'Pages & Routing', to: '/guide/pages-routing/overview' },
       { label: 'Data Loaders', to: '/guide/pages-routing/loaders' },

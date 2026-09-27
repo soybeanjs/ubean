@@ -1,5 +1,5 @@
 /**
- * vite-plus 实验性 API 契约测试（RM-V06，docs/vite-plugin-migration.md Phase 0）。
+ * vite-plus 实验性 API 契约测试（RM-V06，ADR-0012 的 Phase 0）。
  *
  * ADR-0012 把 dev / build / preview 生命周期交给 Vite，依赖 vite-plus-core 的一批
  * `@experimental` API。它们没有稳定性承诺，升级时可能静默改签名 —— 本文件把 ADR 实际

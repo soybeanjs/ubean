@@ -68,6 +68,7 @@
     "guide_introduction": "简介",
     "guide_quickstart": "快速开始",
     "guide_app_modes": "应用模式",
+    "guide_vite_plugin_migration": "Vite 插件迁移",
     "guide_routing_modes": "路由模式",
     "guide_pages_routing_overview": "页面与路由",
     "guide_pages_routing_loaders": "数据加载器",

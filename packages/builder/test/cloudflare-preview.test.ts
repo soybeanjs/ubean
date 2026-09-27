@@ -177,7 +177,7 @@ describe('findUnsupportedNodeImports（构建期审计）', () => {
  * 真机验收：**构建出来的 cloudflare 产物**能在 workerd 里启动并服务请求（缺陷 D 的回归判据）。
  *
  * 需要 `miniflare`（可选 peer，仓库不装）+ 一次真实 cloudflare 构建（约 5s），因此与上面那条
- * 「合成 worker」用例一样按依赖在场与否跳过。跑法见 docs/vite-plugin-migration.md 的 RM-V26。
+ * 「合成 worker」用例一样按依赖在场与否跳过。跑法见 docs/adr/0013-platform-artifact-contract.md。
  */
 describe('真实 miniflare：cloudflare 产物（依赖在场时才跑）', () => {
   it('产物在 workerd 里启动，SSR / API / 404 都正常', async ctx => {

@@ -2,6 +2,7 @@
 
 - **状态**: accepted（P1/P2 已落地，T3.1 基准完成）
 - **日期**: 2026-09-09
+- **修订**: 2026-09-27（包数改为 24、去掉会漂移的测试计数；「未决」三项收尾为「不做」）
 - **关联**: [ADR-0010](0010-competitive-north-star-and-gap-filter.md)（性能权重 25%）、[benchmark 脚本](../../scripts/benchmark-ssg.mjs)
 - **参照实现**: [vite-ssg](https://github.com/antfu-collective/vite-ssg)
 - **设计正文**: 原 `docs/ssg.md`（任务落地后按 ADR-0007 约定删除，git 历史保留）
@@ -27,10 +28,12 @@
 
 ## 结果
 
-基准（3 轮中位数，Node 24 / darwin arm64，`pnpm benchmark:ssg`）：单路由渲染 **-46% ~ -52%**（约 2ms vs 3ms），总构建 **-6% ~ -11%**，峰值 RSS **-7% ~ -10%**——且 ssg 模式多渲染 2x 路由（i18n 展开 + 404 哨兵）。回归：builder 234 tests、全仓 25 包、typecheck 全绿。
+基准（3 轮中位数，Node 24 / darwin arm64，`pnpm benchmark:ssg`）：单路由渲染 **-46% ~ -52%**（约 2ms vs 3ms），总构建 **-6% ~ -11%**，峰值 RSS **-7% ~ -10%**——且 ssg 模式多渲染 2x 路由（i18n 展开 + 404 哨兵）。回归：builder 全量测试绿、全仓 **24** 包（2026-09 复核 `ls packages/`）、typecheck 全绿。（原文写死的测试数与包数会随套件/包增减而漂移，故不再写死。）
 
-## 未决
+## 已决（2026-09-27 收尾）
 
-- beasties critical CSS 作为可选 peer 依赖引入（对齐 vite-ssg optional peerDeps 模式），按用户反馈决定
-- 调试开关：现用 `UBEAN_KEEP_SSR` 保留 server bundle，是否更名 / 增加 `UBEAN_KEEP_SSG_STATIC` 待定
-- loader 受限 stub context（仅 params + env）是否值得做
+原「未决」三项逐条判定，均**不做**：
+
+- **beasties critical CSS 作为可选 peer 依赖** —— **不引入**：全仓对 `beasties` 零引用（除本 ADR 外无任何命中），从未采纳。若将来引入，按 ADR-0006 的 optional-peer 形态登记进 engineering.md 契约表。
+- **调试开关更名 / 新增 `UBEAN_KEEP_SSG_STATIC`** —— **不改名、不新增**：`UBEAN_KEEP_SSR` 保留现有语义并已在站点 `guide/app-modes` 记录（预渲染后保留 `dist/server/`）；`UBEAN_KEEP_SSG_STATIC` 全仓零引用，属未落地的设想。
+- **loader 受限 stub context（仅 params + env）** —— **不做**：已由本 ADR 决定 5 收口（语义歧义大，宁可显式不支持；检测到页面导出 `loader` 只输出一次性 warn）。

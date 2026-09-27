@@ -9,9 +9,9 @@
  * 在**主进程**里跑 SSR 模块图）。因此「dev 下服务端代码在 worker 里执行」目前**不成立**，本模块
  * 与它的测试（`dev-environment.test.ts` / `dev-worker.test.ts`）验证的是能力与 IPC 契约，不是线上
  * 行为。Phase 4 的 RM-V28（跨环境单例代理）与 RM-V29（services 环境机制）都服务于这套多环境
- * 拓扑，在拓扑被采用之前不落地 —— 结论与理由见 docs/vite-plugin-migration.md。
+ * 拓扑，在拓扑被采用之前不落地 —— 结论与理由见 docs/adr/0012-vite-plugin-first-lifecycle.md。
  *
- * 分工（依据 `docs/env-runner-spike.md` §7 的实测结论）：
+ * 分工（依据 ADR-0012 §3 落地注记与 docs/adr/0013-platform-artifact-contract.md 的实测结论）：
  * - **Vite 自己**负责模块图语义与 `vite:invoke` 的分发 —— `DevEnvironment` 构造时会把传入的
  *   transport 规范化，并挂到 `environment.hot`（`NormalizedHotChannel`）上，其
  *   `handleInvoke()` 是公开方法，不需要我们复刻；

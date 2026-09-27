@@ -1,8 +1,8 @@
 ---
 title: Engineering
 description: ubean 工程规范：编码约定、测试与发布流程。
-translatedFrom: db55e671c164
-sections: ["9838c4f9","e3b0c442","14ab805c","c327d771","e67dc13c","725b79af","ca1abf0f","23a5ce88","3e2318a6","ffeb3935","88f36d74","971b3291","798ff115","db9c4978","1e86da38","197cf633","d569e6ea","2945c565","46fec4d3","a0213faf","73fc5abd","a8e6548f","e27800d9","3e7f8c66","2b701591","8bf019ee","865aedc7","d68ee035","64661920","b44989e2","6c5ef13f","7538b766","e983527a","8cacb36c","3a4686b7"]
+translatedFrom: 6b55ad92ed98
+sections: ["9838c4f9","e3b0c442","14ab805c","c327d771","e67dc13c","725b79af","ca1abf0f","23a5ce88","3e2318a6","ffeb3935","88f36d74","971b3291","798ff115","db9c4978","1e86da38","197cf633","d569e6ea","2945c565","46fec4d3","a0213faf","73fc5abd","a8e6548f","e27800d9","3e7f8c66","2b701591","8bf019ee","865aedc7","d68ee035","6a7defb8","bbc098a5","b9a1a519","7538b766","e983527a","4f0bbc71","3a4686b7"]
 ---
 
 # 工程规范、测试与发布
@@ -437,19 +437,19 @@ codegraph impact <symbol>         # 查影响面
 | `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` + `./vue`（`useContentSearch`） | vite, vue（均 optional） | none（仅 defu/pathe/scule + `@ubean/shared`） | markdown/MDX/YAML/JSON 内容集合；按标题层级切分搜索章节，SSG 产出 `__search.json` + 可选 Pagefind 索引 |
 | `@ubean/integrations/fonts` | `fonts` | `ubeanFontsPlugin`（子路径主入口） | `@ubean/integrations` | vite（optional） | none（仅 defu/ohash/pathe/ufo） | Google Fonts / 本地字体 / 自托管 / metrics |
 | `@ubean/integrations/electron` | `electron` | `ubeanElectronPlugin`（子路径主入口） | — | electron, vite（均 optional） | **hard**（`vite-plugin-electron` 在 `dependencies`） | 封装 `vite-plugin-electron`；`electron: true` 启用，自动禁用 SSR |
-| `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin`（子路径主入口） | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia（强制）**, vue（optional） | **peer**（`pinia` 在 `peerDependencies` 非 optional） | SSR 状态水合 + dev 预构建；不自动注入 Pinia 实例 |
-| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin`（子路径主入口） | — | **@vean/ui（强制）**, vite（optional） | **peer**（`@vean/ui` 在 `peerDependencies` 非 optional） | `UiResolver` 自动导入 + `styles.css` 注入（`css: true` 可关） |
+| `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin`（子路径主入口） | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia（optional）**, vue（optional） | **optional-peer**（`pinia` 在 `peerDependencies` 且 optional） | SSR 状态水合 + dev 预构建；不自动注入 Pinia 实例 |
+| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin`（子路径主入口） | — | **@vean/ui（optional）**, vite（optional） | **optional-peer**（`@vean/ui` 在 `peerDependencies` 且 optional） | `UiResolver` 自动导入 + `styles.css` 注入（`css: true` 可关） |
 
-### 11.2 核心依赖形态三值
+### 11.2 核心依赖形态四值
 
 - **hard**：核心库在 `dependencies`，安装扩展即自动安装（auth 与 `@ubean/integrations/pwa`、`@ubean/integrations/electron`）。
-- **peer**：核心库在 `peerDependencies` 且**非** optional，用户必须自行安装（pinia/ui）。
-- **optional-peer**：在 `peerDependencies` 且 `optional: true`（如各包对 vite/vue）。
+- **peer**：核心库在 `peerDependencies` 且**非** optional，用户必须自行安装（**当前扩展表里没有这一形态**）。
+- **optional-peer**：在 `peerDependencies` 且 `optional: true`（如各包对 vite/vue，以及 `pinia`/`@vean/ui`）。
 - **none**：无重核心库，仅工具函数依赖（icon/image/content/fonts）。
 
 ### 11.3 已识别的不一致
 
-`hard` 与 `peer` 混用是已知不一致：auth 与 `@ubean/integrations/pwa`、`@ubean/integrations/electron` 自动装核心库，`@ubean/integrations/pinia`、`@ubean/integrations/ui` 要求用户手动装。新增扩展包应明确选择一种并在本表登记；后续可视情况统一（见 [ADR-0006](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0006-opt07-contract-table-opt08-test-priority.md)）。
+`hard` 与 `optional-peer` 并存是已知不一致：auth 与 `@ubean/integrations/pwa`、`@ubean/integrations/electron` 自动装核心库；`@ubean/integrations/pinia`、`@ubean/integrations/ui` 的核心库是 **optional peer** —— 不装也能安装扩展包，但启用对应能力时需自行安装。新增扩展包应明确选择一种并在本表登记；后续可视情况统一（见 [ADR-0006](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0006-opt07-contract-table-opt08-test-priority.md)）。
 
 ### 11.4 新增扩展包清单
 
@@ -488,7 +488,7 @@ ubean analyze --max-total-kb 160 --max-entry-kb 12 --max-chunk-kb 60
 声称「更快」同样必须带数字。体积预算是确定性的、进 CI 阻塞；dev / build 生命周期延迟受机器噪声影响，**不进 CI 阻塞**，用于整改前后对照（`docs/perf-regression-net.md`）。
 
 ```bash
-pnpm benchmark:lifecycle            # 报告（默认 legacy 臂；warmup 1 + 5 次，报 p50/p95）
+pnpm benchmark:lifecycle            # 报告（默认 cli 臂；可用臂 cli / vite；warmup 1 + 5 次，报 p50/p95）
 pnpm benchmark:lifecycle -- --runs 3 --warmup 1
 pnpm benchmark:lifecycle -- --skip-browser   # 跳过浏览器运行时指标
 pnpm benchmark:lifecycle:baseline   # 重新生成 examples/ubean-test/benchmarks/perf-baseline.json

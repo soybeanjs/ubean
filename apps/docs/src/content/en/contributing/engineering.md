@@ -432,19 +432,19 @@ Paste the "direct / transitive references" counts and the key file list into the
 | `@ubean/content` | `content` | `ubeanContentPlugin` | `./runtime` + `./vue` (`useContentSearch`) | vite, vue (both optional) | none (only defu/pathe/scule + `@ubean/shared`) | markdown/MDX/YAML/JSON content collections; heading-level search sections, `__search.json` + optional Pagefind index in SSG |
 | `@ubean/integrations/fonts` | `fonts` | `ubeanFontsPlugin` (subpath main) | `@ubean/integrations` | vite (optional) | none (only defu/ohash/pathe/ufo) | Google Fonts / local fonts / self-hosting / metrics |
 | `@ubean/integrations/electron` | `electron` | `ubeanElectronPlugin` (subpath main) | — | electron, vite (both optional) | **hard** (`vite-plugin-electron` in `dependencies`) | Wraps `vite-plugin-electron`; `electron: true` enables and auto-disables SSR |
-| `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin` (subpath main) | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia (required)**, vue (optional) | **peer** (`pinia` in `peerDependencies`, not optional) | SSR state hydration + dev pre-bundling; does not auto-inject a Pinia instance |
-| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin` (subpath main) | — | **@vean/ui (required)**, vite (optional) | **peer** (`@vean/ui` in `peerDependencies`, not optional) | `UiResolver` auto-imports + `styles.css` injection (`css: true` can disable) |
+| `@ubean/integrations/pinia` | `pinia` | `ubeanPiniaPlugin` (subpath main) | `@ubean/integrations` (`serializePiniaState`/`hydratePiniaState`) | **pinia (optional)**, vue (optional) | **optional-peer** (`pinia` in `peerDependencies`, optional) | SSR state hydration + dev pre-bundling; does not auto-inject a Pinia instance |
+| `@ubean/integrations/ui` | `ui` | `ubeanUiPlugin` (subpath main) | — | **@vean/ui (optional)**, vite (optional) | **optional-peer** (`@vean/ui` in `peerDependencies`, optional) | `UiResolver` auto-imports + `styles.css` injection (`css: true` can disable) |
 
 ### 11.2 Core dependency shapes
 
 - **hard**: core library in `dependencies`, installed automatically with the extension (auth, `@ubean/integrations/pwa`, `@ubean/integrations/electron`).
-- **peer**: core library in `peerDependencies`, **not** optional — the user must install it (pinia/ui).
-- **optional-peer**: in `peerDependencies` with `optional: true` (e.g. each package's vite/vue).
+- **peer**: core library in `peerDependencies`, **not** optional — the user must install it (**no row in the table currently uses this shape**).
+- **optional-peer**: in `peerDependencies` with `optional: true` (e.g. each package's vite/vue, plus `pinia`/`@vean/ui`).
 - **none**: no heavy core library, only utility deps (icon/image/content/fonts).
 
 ### 11.3 Known inconsistency
 
-The `hard` / `peer` mix is a known inconsistency: auth, `@ubean/integrations/pwa`, and `@ubean/integrations/electron` install their core library automatically, while `@ubean/integrations/pinia` and `@ubean/integrations/ui` require the user to install theirs. New extension packages should pick one shape explicitly and register it here; a future cleanup is possible (see [ADR-0006](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0006-opt07-contract-table-opt08-test-priority.md)).
+The `hard` / `optional-peer` mix is a known inconsistency: auth, `@ubean/integrations/pwa`, and `@ubean/integrations/electron` install their core library automatically, while the `@ubean/integrations/pinia` and `@ubean/integrations/ui` core libraries are **optional peers** — the extension installs without them, but you install them yourself to use the capability. New extension packages should pick one shape explicitly and register it here; a future cleanup is possible (see [ADR-0006](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0006-opt07-contract-table-opt08-test-priority.md)).
 
 ### 11.4 New extension package checklist
 
@@ -485,7 +485,7 @@ Values are kB and each flag stands on its own; `--max-chunk-kb` failures list th
 Claims of "faster" need numbers too. Bundle budgets are deterministic and block CI; dev / build lifecycle latency is machine-noise sensitive, so it is **not** a CI gate — it exists for before/after comparison (`docs/perf-regression-net.md`).
 
 ```bash
-pnpm benchmark:lifecycle            # report (legacy arm; warmup 1 + 5 runs, p50/p95)
+pnpm benchmark:lifecycle            # report (default arm: cli; available arms: cli / vite; warmup 1 + 5 runs, p50/p95)
 pnpm benchmark:lifecycle -- --runs 3 --warmup 1
 pnpm benchmark:lifecycle -- --skip-browser   # skip the browser runtime metrics
 pnpm benchmark:lifecycle:baseline   # regenerate examples/ubean-test/benchmarks/perf-baseline.json

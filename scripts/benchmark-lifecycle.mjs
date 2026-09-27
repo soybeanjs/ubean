@@ -2,7 +2,7 @@
 /**
  * ubean dev / build 生命周期性能基准（docs/perf-regression-net.md RM-P01–P05）。
  *
- * 目的：在 **旧路径** 上冻结性能基线，供 Vite 插件化（ADR-0012 / vite-plugin-migration.md）
+ * 目的：在 **旧路径** 上冻结性能基线，供 Vite 插件化（ADR-0012）
  * 整改前后对照。RM-V36 双轨收敛后旧实现删除，届时基线将无法再产出。
  *
  * 采集指标：
@@ -424,7 +424,7 @@ async function runBuildPhase(arm) {
   const samples = { buildWall: [], buildPeakRss: [], buildCpu: [] };
   const total = warmup + runs;
   // 干净产物：两条路径都设 `emptyOutDir: false`，上一臂/上一次的残留会让产物目录累积 ——
-  // 这正是「体积断言把残留读成回归」那次的成因（见 vite-plugin-migration.md 的自我更正）。
+  // 这正是「体积断言把残留读成回归」那次的成因（口径见 docs/perf-regression-net.md 与 ADR-0012 的落地结果）。
   const distDir = resolve(fixture, 'dist');
   rmSync(distDir, { recursive: true, force: true });
   for (let i = 1; i <= total; i += 1) {

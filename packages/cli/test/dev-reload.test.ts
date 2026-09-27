@@ -231,7 +231,7 @@ describe('vite dev 等价性（无 CLI 的裸命令）', () => {
    * 这条**不是** `loadUbeanConfigSync()` 那个缺陷的守卫 —— 我把它写成守卫后做过证伪：把修复从
    * 构建产物里撤掉，本用例仍然通过。原因是 dev 侧 app 由 `bootstrapDevApp()` 经**异步**加载器
    * （`loadUbeanConfig`）拿配置，同步加载器的缺陷不经过这条路；它的影响面是**构建路径**
-   * （config 直接喂给 `prepareBuild` 与 env 配置），已在 `build-paths` 与手工对照里量到。
+   * （config 直接喂给 `prepareBuild` 与 env 配置），已在 `build-contracts` 与手工对照里量到。
    *
    * 保留它的价值在于：插件自举的 dev 路径确实按用户配置工作（示例是 `prefix_except_default`
    * + locales en/zh），且前缀路径上的未知页面仍走 404 页面兜底而不是 JSON。

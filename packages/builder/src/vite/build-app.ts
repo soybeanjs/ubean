@@ -13,9 +13,9 @@
  * ```
  *
  * 三个阶段刻意拆成三个出口（RM-V21），因为**谁来建 builder** 有两种情况：
- * - `buildWithEnvironments()`：调用方（CLI 的旧路径或未来的薄别名）自己建 builder，
- *   env 定义在这里；
- * - 插件（`ubeanPlugin` 的 `config` 钩子）在 `experimental.viteBuilder` 打开时提供
+ * - `buildWithEnvironments()`：调用方自己建 builder，env 定义在这里（旧路径已随 RM-V36 删除，
+ *   该出口保留给仍自行驱动构建的场景）；
+ * - 插件（`ubeanPlugin` 的 `config` 钩子）提供
  *   `builder.buildApp`：此时 builder 由 Vite 自己创建、env 由同一钩子注册，插件只需
  *   `prepareBuild` + `runEnvBuilds` —— **不能**再调 `buildWithEnvironments`（那会递归建 builder）。
  *

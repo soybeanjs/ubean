@@ -31,6 +31,21 @@ i18n 落地后需要一份半年规划，但「竞品有我们没有」会把路
 
 1. 移除约定的全部痕迹 —— 扫描器的标记段解析与两个元数据字段、生成器的 `__intercept_*` 路由注册、dev SSR 与产物入口里的两处同名分支、`serializePagesForEntry` 白名单里的两个字段、以及相关测试；
 2. 扫到标记段**响亮失败**（抛错并给出替代做法），而不是静默退化成 `/feed/(.)photo/:id` 这种字面垃圾路径 —— 路由组正则只吞整段 `(group)/`，不吞 `(.)photo`；
-3. 站点中英 `framework-comparison.md` 从「已接线」里删除该项，并在 `guide/pages-routing` 补「用对话框呈现另一条路由」的替代做法（并行路由 `@dialog/` + `<SlotView>` + 守卫决定何时以对话框呈现）。
+3. 站点中英 `framework-comparison.md` 从「已接线」里删除该项，并在站点 `guide/pages-routing/overview` 补「用对话框呈现另一条路由」的替代做法（并行路由 `@dialog/` + `<SlotView>` + 守卫决定何时以对话框呈现）。`guide/pages-routing` 现为目录，含 `overview` / `loaders` / `actions` 三篇。
 
 若将来「Next 迁移平滑」被正式纳入北极星（那时「用户习惯缺口」论据才成立），可重新评估；机制已验证可行：同一 URL 两条路由记录、按路径解析落到真实页（直链/刷新渲染完整页）、按名字解析落到拦截记录（软导航渲染对话框），守卫需**先判断 `to.name` 前缀**防重定向环，且背景页必须是构建期静态可解的（在守卫里动态 `addRoute` 试过，实测进重定向环并丢参数）。
+
+## 补记 · Vue 导航中间件文件约定判为刻意不做（2026-09-27）
+
+从 [docs/roadmap.md](../roadmap.md) 迁入：该项原以任务 ID **RM-U03** 记在路线图里，路线图正文按 [ADR-0007](0007-docs-content-classification.md) 删除后，决策留在本 ADR。
+
+**候选**：Vue 导航中间件文件约定 —— 对齐 Nuxt `middleware/*.global` 的**客户端**一半（按目录/文件名自动挂载的导航守卫）。
+
+按第 2 条门槛逐项过：
+
+- **架构还债**？否。**性能**？否。
+- **差异化**？否 —— 它不是能力缺口，只是「把已有能力换一种声明形式」。
+- **用户习惯缺口**？弱。Nuxt（本仓的约定北极星）确有该文件约定，Vue 用户对它并不陌生；但本仓**已经**提供等价且更显式的能力：`defineApp({ router: { setup } })` 能挂 `beforeEach` / `beforeResolve` / `afterEach`，客户端与服务端 SSR 都会执行，`app.ts` + `app.server.ts` / `app.client.ts` 的 `setup` 累加执行。缺的只是「第二套文件约定」这一形式。
+- 还有一条**反对**理由：AGENTS.md §3.1 已把「客户端导航守卫用 `defineApp({ router: { setup } })`，不要发明第二套 `middleware/*.global` 文件约定」写成纪律。再加一套文件约定会直接与它冲突，并让「路由级中间件」出现两个真相源（`meta.middleware` 透传 vs 文件约定）。
+
+**结论**：走第 2 条的「刻意不做」。保留现状 —— 导航守卫走 `defineApp({ router: { setup } })`，服务端中间件走 `src/middleware/`（`global` / `global.*` → `/*`，其余按目录前缀挂载）。

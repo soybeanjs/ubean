@@ -1,8 +1,8 @@
 ---
 title: 应用模式
 description: 应用模式（fullstack / spa / ssg / backend）以及 mode 字段如何驱动构建。
-translatedFrom: 8a1d1e9b1a1d
-sections: ["72d8d852","e3b0c442","f8a76ce3","b9ce03d4","c88d8019","5bd23172","1bb6395d","b0fe627a","6e2ecb58","74940451","a6a6ba58","5190fb7d","11404978","396633de","cd88c3aa","f82dff02"]
+translatedFrom: f3dfb3fa2670
+sections: ["72d8d852","e3b0c442","f8a76ce3","b9ce03d4","d3fb35f1","5bd23172","1bb6395d","b0fe627a","6e2ecb58","74940451","a6a6ba58","5190fb7d","11404978","396633de","cd88c3aa","f82dff02"]
 ---
 
 # 应用模式
@@ -41,7 +41,7 @@ ubean build --mode fullstack --no-ssr
 ubean build --ssg          # --mode ssg 的简写
 ```
 
-启用 `experimental.viteBuilder` 时，`mode` 同样决定 `vite build` 的产物 —— 插件会注册 `client` / `ubean` 两个环境，因此裸 `vite build` 产出相同的 `dist/{public,server}` 布局（外加为需要预渲染的路由生成的 HTML）。`vite build` 会忽略 `--outDir`，始终写入 `build.outputDir`。
+`mode` 同样决定裸 `vite build` 的产物 —— 插件无条件注册 `client` / `ubean` 两个环境，因此 `vite build` 与 `ubean build` 产出相同的 `dist/{public,server}` 布局（外加为需要预渲染的路由生成的 HTML）。`vite build` 会忽略 `--outDir`，始终写入 `build.outputDir`。
 
 ## 模式详解
 

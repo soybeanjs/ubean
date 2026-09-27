@@ -1,5 +1,5 @@
 /**
- * dev 请求拓扑回归网（RM-V05，docs/vite-plugin-migration.md Phase 0 硬前置）。
+ * dev 请求拓扑回归网（RM-V05，ADR-0012 的 Phase 0 硬前置）。
  *
  * 目的：在 **旧实现** 上把 `ubean dev` 的 HTTP 拓扑钉住，供 Vite 插件化（ADR-0012）
  * 整改前后对照。因此断言必须走**公共入口**（子进程 `ubean dev` + HTTP），不碰任何内部

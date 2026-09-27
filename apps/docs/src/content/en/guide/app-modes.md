@@ -39,7 +39,7 @@ ubean build --mode fullstack --no-ssr
 ubean build --ssg          # shortcut for --mode ssg
 ```
 
-With `experimental.viteBuilder` enabled the mode is also what `vite build` produces — the plugin registers the `client` / `ubean` environments, so a plain `vite build` yields the same `dist/{public,server}` layout (plus prerendered HTML for the routes that ask for it). `vite build` ignores `--outDir` and always writes `build.outputDir`.
+The mode is also what a plain `vite build` produces — the plugin registers the `client` / `ubean` environments unconditionally, so `vite build` yields the same `dist/{public,server}` layout as `ubean build` (plus prerendered HTML for the routes that ask for it). `vite build` ignores `--outDir` and always writes `build.outputDir`.
 
 ## Mode Details
 

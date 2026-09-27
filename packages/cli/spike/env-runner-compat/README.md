@@ -1,6 +1,6 @@
 # env-runner 兼容性 spike（RM-V04）
 
-结论文档：[docs/env-runner-spike.md](../../../docs/env-runner-spike.md)。这里是产出结论用的可复现脚本，
+结论文档：[ADR-0012 · dev 服务端执行的落地注记](../../../docs/adr/0012-vite-plugin-first-lifecycle.md)。这里是产出结论用的可复现脚本，
 **不参与 CI**（需要拉起 worker 进程与 vite dev server，不适合作为回归闸门）。
 
 ```bash

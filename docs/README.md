@@ -5,43 +5,43 @@
 > 用户向说明归 `apps/docs`（公开站点，中英双语），不放这里。
 >
 > **任务清单落地后删除正文**，决策留在 ADR，词汇留在 glossary。git 保留历史。别的产品（studio、SoybeanAdmin）的方案不进本目录。
+>
+> 本目录只有三类内容：**活的工程过程**（落地后按上一行删正文）、**长期参考**（词汇与流程手册）、**对外契约**（版本化冻结，为外部消费者而留）。
 
-## 仍在推进
+## 仍在推进（活文档）
 
 | 文档 | 说明 |
 | --- | --- |
-| [roadmap.md](roadmap.md) | 2026 Q4 还债 / 2027 H1 用户可见缺口（ADR-0010） |
-| [vite-plugin-migration.md](vite-plugin-migration.md) | dev / build / preview 生命周期下放给 Vite 的整改方案与任务清单（ADR-0012） |
-| [migration-guide-vite-plugin.md](migration-guide-vite-plugin.md) | 迁移指南（用户视角）：行为差异、要改什么、收敛与回滚（RM-V35） |
-| [perf-regression-net.md](perf-regression-net.md) | 性能回归网：生命周期基准与体积闸门绝对上限（RM-P01–P08，先于 Vite 插件化） |
-| [env-runner-spike.md](env-runner-spike.md) | env-runner 兼容性 spike 结论（RM-V04）：已验证项、未打通的宿主通道契约、Plan B 成本量化 |
-| [contracts/](contracts/) | studio 开口：scaffold JSON Schema + `.ubean/` codegen 契约 |
+| [roadmap.md](roadmap.md) | 已收口能力清单、刻意不做与后续入口（口径见 [ADR-0010](adr/0010-competitive-north-star-and-gap-filter.md)） |
+| [perf-regression-net.md](perf-regression-net.md) | 性能度量口径、基线与体积闸门（RM-P01–P08 已落地；绝对上限待接线） |
+
+> 行内任务清单全部 ✅ 后，按政策删除正文：决策归 ADR，词汇归 glossary，历史归 git。
 
 ## 长期参考
 
 | 文档 | 说明 |
 | --- | --- |
-| [i18n.md](i18n.md) | 文档国际化流程：译文的生成、漂移门禁、刻意不翻译的面 |
-| [glossary.md](glossary.md) | 领域词汇表 |
+| [i18n.md](i18n.md) | 文档国际化流水线：译文生成、漂移门禁、刻意不翻译的面 |
+| [glossary.md](glossary.md) | 领域词汇表（政策指定的词汇沉淀处） |
 | [adr/](adr/) | 决策记录（为什么这样做；不是任务跟踪） |
+
+## 对外契约
+
+版本化冻结，供 studio / IDE 插件等外部消费者读取。改动即破坏兼容，须升 `contractVersion`。
+
+| 契约 | 说明 |
+| --- | --- |
+| [contracts/codegen-v1.md](contracts/codegen-v1.md) | `.ubean/` codegen 契约 v1：文件清单、`declare module` 映射、manifest 形态 |
+| [contracts/scaffold-v1.schema.json](contracts/scaffold-v1.schema.json) | scaffold catalog JSON Schema v1（`ubean/scaffold` 的机器可读出口） |
 
 ## 决策记录（ADR）
 
-- [0001](adr/0001-rename-vue-create-ubean-app.md) — `createUbeanApp` 命名消歧
-- [0002](adr/0002-sequencing-enablers-and-test-boundaries.md) — 构建时序使能项与测试边界
-- [0003](adr/0003-server-subpaths-rejustification.md) — `@ubean/server` 语义聚合子路径
-- [0004](adr/0004-devtools-ai-sdk-optional-deps.md) — DevTools AI SDK 可选依赖
-- [0005](adr/0005-opt09-impl-opt11-timing-opt01-subitem.md) — OPT-09 / OPT-11 / OPT-01
-- [0006](adr/0006-opt07-contract-table-opt08-test-priority.md) — OPT-07 扩展契约表 + OPT-08
-- [0007](adr/0007-docs-content-classification.md) — 站点 / 仓库文档边界
-- [0008](adr/0008-ai-package-architecture.md) — `@ubean/ai` 包架构
-- [0009](adr/0009-i18n-engine-and-compact-locale-routing.md) — vue-i18n 11 + 约束前缀语言路由
-- [0010](adr/0010-competitive-north-star-and-gap-filter.md) — 竞品北极星与「值得做」过滤器
-- [0011](adr/0011-lightweight-ssg-direct-render.md) — 轻量 SSG：直接渲染路径（vite-ssg 式）
-- [0012](adr/0012-vite-plugin-first-lifecycle.md) — Vite 插件优先：dev / build / preview 生命周期下放
+见 [adr/](adr/)（13 篇；状态写在各文件头部：`proposed` / `accepted` / `implemented` / `superseded`）。
+
+当前主线决策：Vite 插件化的生命周期归属见 [ADR-0012](adr/0012-vite-plugin-first-lifecycle.md)，平台产物契约见 [ADR-0013](adr/0013-platform-artifact-contract.md)。
 
 ## 相关目录
 
 - 站点正文：[apps/docs/src/content/](../apps/docs/src/content/)
-- 站点设计规范：[apps/docs/AGENTS.md](../apps/docs/AGENTS.md)（原 `DESIGN.md` / `GLOSSARY.md` 已删除，D13 逆转记录见 [ADR-0007](adr/0007-docs-content-classification.md)）
+- 站点规范：[apps/docs/AGENTS.md](../apps/docs/AGENTS.md)（架构与实现约束）、[apps/docs/TRANSLATION.md](../apps/docs/TRANSLATION.md)（中英翻译规范）
 - 助手导航：[AGENTS.md](../AGENTS.md) §10

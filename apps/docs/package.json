@@ -10,7 +10,7 @@
     "build:api": "tsx scripts/build-api.ts",
     "build:seo": "tsx build/seo.ts",
     "preview": "ubean preview",
-    "typecheck": "vue-tsc --noEmit --skipLibCheck"
+    "typecheck": "ubean prepare && vue-tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
     "@ubean/content": "workspace:*",

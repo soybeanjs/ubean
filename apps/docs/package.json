@@ -19,22 +19,22 @@
     "@vean/ui": "^0.50.0-beta.3",
     "@vueuse/core": "^15.0.0",
     "minisearch": "^7.2.0",
-    "shiki": "^4.4.3",
+    "shiki": "^4.5.0",
     "ubean": "workspace:*",
     "vue": "^3.5.43",
-    "vue-i18n": "^11.4.12",
+    "vue-i18n": "^11.4.13",
     "vue-router": "^5.3.1"
   },
   "devDependencies": {
     "@soybeanjs/unocss-preset": "^0.2.0",
     "@vean/unocss": "^0.50.0-beta.3",
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "tsx": "^4.23.15",
     "typedoc": "^0.28.20",
     "typescript": "catalog:",
     "unocss": "^66.10.5",
     "vite-plus": "catalog:",
-    "vue-tsc": "^3.3.11",
+    "vue-tsc": "^3.3.12",
     "typescript-real": "npm:typescript@7.0.2"
   }
 }

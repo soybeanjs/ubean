@@ -30,9 +30,9 @@
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
+    "@types/node": "^26.6.4",
     "@ubean/content": "workspace:*",
-    "hono": "4.13.9",
+    "hono": "4.13.12",
     "typescript": "catalog:",
     "unplugin-auto-import": "21.1.0",
     "unplugin-vue-components": "^32.1.0",

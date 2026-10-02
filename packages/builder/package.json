@@ -75,8 +75,8 @@
     "vue-i18n": "catalog:"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
-    "hono": "4.13.9",
+    "@types/node": "^26.6.4",
+    "hono": "4.13.12",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

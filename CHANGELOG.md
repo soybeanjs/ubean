@@ -1,6 +1,6 @@
 # Changelog
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.4...main) (2026-09-27)
+## [v0.6.0-beta.5](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.4...v0.6.0-beta.5) (2026-09-27) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -20,7 +20,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.3...main) (2026-09-27)
+## [v0.6.0-beta.4](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.3...v0.6.0-beta.4) (2026-09-27) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -34,7 +34,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.2...main) (2026-09-25)
+## [v0.6.0-beta.3](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.2...v0.6.0-beta.3) (2026-09-25) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -74,7 +74,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.1...main) (2026-09-18)
+## [v0.6.0-beta.2](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.1...v0.6.0-beta.2) (2026-09-18) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -124,7 +124,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.5.2...main) (2026-09-17)
+## [v0.6.0-beta.1](https://github.com/soybeanjs/ubean/compare/v0.5.2...v0.6.0-beta.1) (2026-09-17) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
 
@@ -300,7 +300,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.5.1...main) (2026-09-13)
+## [v0.5.2](https://github.com/soybeanjs/ubean/compare/v0.5.1...v0.5.2) (2026-09-13)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -310,7 +310,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.5.0...main) (2026-09-13)
+## [v0.5.1](https://github.com/soybeanjs/ubean/compare/v0.5.0...v0.5.1) (2026-09-13)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -324,7 +324,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.10...main) (2026-09-13)
+## [v0.5.0](https://github.com/soybeanjs/ubean/compare/v0.4.10...v0.5.0) (2026-09-13)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -343,7 +343,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.9...main) (2026-09-10)
+## [v0.4.10](https://github.com/soybeanjs/ubean/compare/v0.4.9...v0.4.10) (2026-09-10)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -354,7 +354,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.8...main) (2026-09-10)
+## [v0.4.9](https://github.com/soybeanjs/ubean/compare/v0.4.8...v0.4.9) (2026-09-10)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -364,7 +364,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.7...main) (2026-09-10)
+## [v0.4.8](https://github.com/soybeanjs/ubean/compare/v0.4.7...v0.4.8) (2026-09-10)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -374,13 +374,12 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.5...main) (2026-09-10)
+## [v0.4.7](https://github.com/soybeanjs/ubean/compare/v0.4.6...v0.4.7) (2026-09-10)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
 - **cli**: disable security headers by default for ssg dev &nbsp;-&nbsp; by @soybeanjs [<samp>(60dc8)</samp>](https://github.com/soybeanjs/ubean/commit/60dc843)
 - **content**: add full-text search with sections payload and pagefind &nbsp;-&nbsp; by @soybeanjs [<samp>(e4913)</samp>](https://github.com/soybeanjs/ubean/commit/e4913b8)
-- **vue**: add typed ClientOnly component for client-only template fragments &nbsp;-&nbsp; by @soybeanjs [<samp>(a5946)</samp>](https://github.com/soybeanjs/ubean/commit/a5946a1)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -388,12 +387,7 @@
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation
 
-- propagate ADR-0011 SSG direct render path across project docs &nbsp;-&nbsp; by @soybeanjs [<samp>(bf4a9)</samp>](https://github.com/soybeanjs/ubean/commit/bf4a916)
 - add Content & Search guide and cross-reference search artifacts &nbsp;-&nbsp; by @soybeanjs [<samp>(68e6d)</samp>](https://github.com/soybeanjs/ubean/commit/68e6d08)
-
-### &nbsp;&nbsp;&nbsp;🏡 Chore
-
-- **projects**: unify ts version and update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(bd594)</samp>](https://github.com/soybeanjs/ubean/commit/bd594bf)
 
 ### &nbsp;&nbsp;&nbsp;✅ Tests
 
@@ -407,7 +401,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.5...main) (2026-09-09)
+## [v0.4.6](https://github.com/soybeanjs/ubean/compare/v0.4.5...v0.4.6) (2026-09-09)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -425,7 +419,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.4...main) (2026-09-09)
+## [v0.4.5](https://github.com/soybeanjs/ubean/compare/v0.4.4...v0.4.5) (2026-09-09)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -449,7 +443,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.3...main) (2026-09-08)
+## [v0.4.4](https://github.com/soybeanjs/ubean/compare/v0.4.3...v0.4.4) (2026-09-08)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -465,7 +459,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.2...main) (2026-09-08)
+## [v0.4.3](https://github.com/soybeanjs/ubean/compare/v0.4.2...v0.4.3) (2026-09-08)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -479,7 +473,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.1...main) (2026-09-08)
+## [v0.4.2](https://github.com/soybeanjs/ubean/compare/v0.4.1...v0.4.2) (2026-09-08)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -496,7 +490,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.4.0...main) (2026-09-07)
+## [v0.4.1](https://github.com/soybeanjs/ubean/compare/v0.4.0...v0.4.1) (2026-09-07)
 
 ### &nbsp;&nbsp;&nbsp;🏡 Chore
 
@@ -507,7 +501,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.3.7...main) (2026-09-07)
+## [v0.4.0](https://github.com/soybeanjs/ubean/compare/v0.3.7...v0.4.0) (2026-09-07)
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
 
@@ -564,7 +558,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.3.6...main) (2026-09-02)
+## [v0.3.7](https://github.com/soybeanjs/ubean/compare/v0.3.6...v0.3.7) (2026-09-02)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -574,7 +568,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.3.5...main) (2026-09-02)
+## [v0.3.6](https://github.com/soybeanjs/ubean/compare/v0.3.5...v0.3.6) (2026-09-02)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -600,7 +594,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.3.4...main) (2026-09-01)
+## [v0.3.5](https://github.com/soybeanjs/ubean/compare/v0.3.4...v0.3.5) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -620,7 +614,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.3.3...main) (2026-09-01)
+## [v0.3.4](https://github.com/soybeanjs/ubean/compare/v0.3.3...v0.3.4) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -634,7 +628,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.3.2...main) (2026-09-01)
+## [v0.3.3](https://github.com/soybeanjs/ubean/compare/v0.3.2...v0.3.3) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -648,7 +642,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.3.1...main) (2026-09-01)
+## [v0.3.2](https://github.com/soybeanjs/ubean/compare/v0.3.1...v0.3.2) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -660,7 +654,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.3.0...main) (2026-09-01)
+## [v0.3.1](https://github.com/soybeanjs/ubean/compare/v0.3.0...v0.3.1) (2026-09-01)
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
 
@@ -674,7 +668,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.2.2...main) (2026-08-23)
+## [v0.3.0](https://github.com/soybeanjs/ubean/compare/v0.2.2...v0.3.0) (2026-08-23)
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features
 
@@ -734,7 +728,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;[![cursoragent](https://github.com/cursoragent.png?size=48)](https://github.com/cursoragent)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.2.1...main) (2026-08-21)
+## [v0.2.2](https://github.com/soybeanjs/ubean/compare/v0.2.1...v0.2.2) (2026-08-21)
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation
 
@@ -749,7 +743,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [main](https://github.com/soybeanjs/ubean/compare/v0.2.0...main) (2026-08-20)
+## [v0.2.1](https://github.com/soybeanjs/ubean/compare/v0.2.0...v0.2.1) (2026-08-20)
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation
 
@@ -1108,7 +1102,7 @@
 
 [![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
 
-## [v0.1.0](https://github.com/soybeanjs/ubean/compare/v0.1.0...main) (2026-07-26)
+## [v0.1.0](https://github.com/soybeanjs/ubean/compare/636a03fac61ea8a5cb4674ac1326377b6883e453...v0.1.0) (2026-07-26)
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
 

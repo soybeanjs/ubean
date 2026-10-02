@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.5...main) (2026-10-02) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **projects**: update CHANGELOG &nbsp;-&nbsp; by @soybeanjs [<samp>(124d7)</samp>](https://github.com/soybeanjs/ubean/commit/124d701)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(3afce)</samp>](https://github.com/soybeanjs/ubean/commit/3afce5f)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [v0.6.0-beta.5](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.4...v0.6.0-beta.5) (2026-09-27) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

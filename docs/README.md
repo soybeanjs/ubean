@@ -17,6 +17,7 @@
 | [test-e2e-migration.md](test-e2e-migration.md) | `examples/ubean-test` 用例向 E2E 迁移的可行性分析（TS-34–TS-37 的输入） |
 | [perf-regression-net.md](perf-regression-net.md) | 性能度量口径、基线与体积闸门（RM-P01–P08 已落地；绝对上限待接线） |
 | [vite-bundled-dev-compat.md](vite-bundled-dev-compat.md) | Vite `experimental.bundledDev` 兼容性调查：**现状不支持**，三处故障已定位（其中一处根因已对照实验证明）、修法方向与未知数 |
+| [config-to-vite-passthrough.md](config-to-vite-passthrough.md) | ubean 配置到 Vite 的传递与覆盖调查：**只有 CLI inlineConfig 一条通道**（裸 `vite dev` 读不到 `dev.*`）、覆盖顺序实测、三处「配了不生效」+ 四个死字段、命名取舍 |
 
 > 行内任务清单全部 ✅ 后，按政策删除正文：决策归 ADR，词汇归 glossary，历史归 git。
 

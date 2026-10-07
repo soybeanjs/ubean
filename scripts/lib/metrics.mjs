@@ -5,6 +5,7 @@
  * 共用。只放进程级与端到端采集原语，不放任何指标定义。
  */
 import { execFile, spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { cpus, totalmem } from 'node:os';
 import { promisify } from 'node:util';
@@ -113,6 +114,98 @@ export function startRssSampler(rootPid, intervalMs = 50) {
       return total;
     }
   };
+}
+
+/**
+ * `ps` 可用性探测（结果缓存）。
+ *
+ * macOS 的 `/bin/ps` 带 setuid 位（`-rwsr-xr-x`），受限沙箱会以
+ * `Operation not permitted` 拒绝执行它 —— 此前基准在这类环境里只能输出
+ * `buildCpu=0` / `buildPeakRss=0`（假数据，会掩盖真实回归）。这里的探测让
+ * 采集器能明确知道要走 `/usr/bin/time -l` 回退，而不是静默产出零值。
+ */
+let psAvailability;
+export async function isPsAvailable() {
+  if (psAvailability !== undefined) return psAvailability;
+  try {
+    await execFileAsync('ps', ['-axo', 'pid=']);
+    psAvailability = true;
+  } catch {
+    psAvailability = false;
+  }
+  return psAvailability;
+}
+
+/** 解析 BSD `/usr/bin/time -l` 的报告（real/user/sys 秒 + 峰值 RSS 字节）。 */
+export function parseTimeLReport(stderr) {
+  const times = /^\s*([\d.]+)\s+real\s+([\d.]+)\s+user\s+([\d.]+)\s+sys\s*$/m.exec(stderr);
+  const rss = /^\s*(\d+)\s+maximum resident set size\s*$/m.exec(stderr);
+  if (!times && !rss) return null;
+  return {
+    realMs: times ? Math.round(Number(times[1]) * 1000) : null,
+    cpuMs: times ? Math.round((Number(times[2]) + Number(times[3])) * 1000) : null,
+    peakRssKB: rss ? Math.round(Number(rss[1]) / 1024) : null
+  };
+}
+
+/**
+ * 用 BSD `/usr/bin/time -l` 采集一次运行的 CPU 时间与峰值 RSS。
+ *
+ * 仅在 `ps` 不可用时兜底：`time` 报告的 rusage 覆盖被 wait 的子进程树，量级与
+ * `ps` 轮询一致（轮询仍更细，能区分进程树的分布），因此回退结果可继续用于
+ * buildCpu / buildPeakRss。非 darwin 或缺少 `/usr/bin/time` 时返回 `null`。
+ */
+export async function measureWithTime(command, args, options = {}) {
+  if (process.platform !== 'darwin' || !existsSync('/usr/bin/time')) return null;
+  const started = performance.now();
+  const { readStdout, readStderr, exited } = spawnCaptured('/usr/bin/time', ['-l', command, ...args], options);
+  const exitCode = await exited;
+  const wallMs = performance.now() - started;
+  const stderr = readStderr();
+  const parsed = parseTimeLReport(stderr) ?? {};
+  return {
+    wallMs,
+    cpuMs: parsed.cpuMs ?? 0,
+    peakRssKB: parsed.peakRssKB ?? 0,
+    exitCode,
+    stdout: readStdout(),
+    stderr,
+    via: 'time-l'
+  };
+}
+
+/**
+ * 运行子进程并采集墙钟 / 累计 CPU / 峰值 RSS。
+ *
+ * 优先 `ps` 轮询（跨平台，逐 pid 取最大值）；`ps` 不可用时回退到
+ * `/usr/bin/time -l`（macOS）。两者都不可用则**抛错**，绝不返回零值 ——
+ * 零值会被读成「构建不耗 CPU / 不占内存」的假基线。
+ */
+export async function runWithResourceMetrics(command, args, options = {}) {
+  if (await isPsAvailable()) {
+    const started = performance.now();
+    const { child, readStdout, readStderr, exited } = spawnCaptured(command, args, options);
+    const sampler = startRssSampler(child.pid, options.intervalMs ?? 50);
+    const exitCode = await exited;
+    const peakRssKB = sampler.stop();
+    const cpuMs = sampler.stopCpuMs();
+    return {
+      wallMs: performance.now() - started,
+      cpuMs,
+      peakRssKB,
+      exitCode,
+      stdout: readStdout(),
+      stderr: readStderr(),
+      via: 'ps'
+    };
+  }
+  const timed = await measureWithTime(command, args, options);
+  if (!timed) {
+    throw new Error(
+      `无法采集 CPU/内存指标：当前环境禁止执行 ps（setuid），且 ${process.platform} 上没有 /usr/bin/time 兜底`
+    );
+  }
+  return timed;
 }
 
 /* -------------------------------------------------------------------------- */

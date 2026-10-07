@@ -11,7 +11,8 @@
  * - prerender   prerender 阶段耗时（解析 CLI 日志 `Prerendered N routes in Xms`）
  * - routes      渲染路由数（ssg 含 i18n 展开 + 404 哨兵，故另算单路由耗时）
  * - perRoute    prerender 耗时 / 路由数
- * - peakRss     构建进程树峰值内存（50ms 轮询 ps 求和）
+ * - cpu         构建进程树累计 CPU 时间（user+sys）
+ * - peakRss     构建进程树峰值内存（`ps` 轮询；受限环境回退 `/usr/bin/time -l`）
  *
  * 用法：
  *   pnpm benchmark:ssg                          # 默认 fixture + 1 轮
@@ -19,9 +20,9 @@
  *   pnpm benchmark:ssg -- --fixture examples/x  # 指定 fixture
  *   pnpm benchmark:ssg -- --json report.json    # 追加写 JSON（机器可读）
  */
-import { spawn } from 'node:child_process';
 import { rm, writeFile } from 'node:fs/promises';
 import { resolve, relative } from 'node:path';
+import { runWithResourceMetrics } from './lib/metrics.mjs';
 
 /* -------------------------------------------------------------------------- */
 /* 参数解析                                                                     */
@@ -41,49 +42,6 @@ const jsonOut = argValue('--json', null);
 const MODES = /** @type {const} */ (['ssg', 'fullstack']);
 
 /* -------------------------------------------------------------------------- */
-/* 进程树峰值内存                                                                */
-/* -------------------------------------------------------------------------- */
-
-/** 快照当前全部进程 {pid → {ppid, rssKB}}（ps 输出，macOS/Linux 通用） */
-async function psSnapshot() {
-  const { execFile } = await import('node:child_process');
-  const { promisify } = await import('node:util');
-  const execFileAsync = promisify(execFile);
-  const { stdout } = await execFileAsync('ps', ['-axo', 'pid=,ppid=,rss=']);
-  const map = new Map();
-  for (const line of stdout.split('\n')) {
-    const parts = line.trim().split(/\s+/);
-    if (parts.length < 3) continue;
-    const [pid, ppid, rss] = parts.map(Number);
-    if (Number.isFinite(pid) && Number.isFinite(rss)) {
-      map.set(pid, { ppid, rssKB: rss });
-    }
-  }
-  return map;
-}
-
-/** 自 rootPid 向下收集整棵进程树的 RSS 之和（KB） */
-function treeRssKB(rootPid, snapshot) {
-  const childrenOf = new Map();
-  for (const [pid, { ppid }] of snapshot) {
-    if (!childrenOf.has(ppid)) childrenOf.set(ppid, []);
-    childrenOf.get(ppid).push(pid);
-  }
-  let total = 0;
-  const stack = [rootPid];
-  const seen = new Set();
-  while (stack.length) {
-    const pid = stack.pop();
-    if (seen.has(pid)) continue;
-    seen.add(pid);
-    const info = snapshot.get(pid);
-    if (info) total += info.rssKB;
-    for (const c of childrenOf.get(pid) || []) stack.push(c);
-  }
-  return total;
-}
-
-/* -------------------------------------------------------------------------- */
 /* 单次构建                                                                     */
 /* -------------------------------------------------------------------------- */
 
@@ -91,55 +49,29 @@ const PRERENDER_LOG = /Prerendered (\d+) routes(?: \(\d+ errors?\))? in (\d+)ms/
 
 /**
  * @param {string} mode
- * @returns {Promise<{mode: string, wallMs: number, prerenderMs: number|null, routes: number|null, peakRssKB: number, exitCode: number|null, stdout: string, stderr: string}>}
+ * @returns {Promise<{mode: string, wallMs: number, cpuMs: number, prerenderMs: number|null, routes: number|null, peakRssKB: number, via: string, exitCode: number|null, stdout: string, stderr: string}>}
  */
 async function runBuild(mode) {
   await rm(resolve(fixture, 'dist'), { recursive: true, force: true });
 
-  const t0 = performance.now();
-  const child = spawn('pnpm', ['exec', 'ubean', 'build', '--mode', mode], {
-    cwd: fixture,
-    stdio: ['ignore', 'pipe', 'pipe']
-  });
+  // 资源采集器内部处理 `ps` ↔ `/usr/bin/time -l` 的选择（见 scripts/lib/metrics.mjs）：
+  // 受限沙箱禁止执行 setuid 的 /bin/ps，此前会静默产出 peakRss=0。
+  const result = await runWithResourceMetrics('pnpm', ['exec', 'ubean', 'build', '--mode', mode], { cwd: fixture });
 
-  let stdout = '';
-  let stderr = '';
-  child.stdout.on('data', d => (stdout += d));
-  child.stderr.on('data', d => (stderr += d));
-
-  // 50ms 轮询进程树 RSS（busy 防重入：ps 慢时不堆积采样）
-  let peakRssKB = 0;
-  let busy = false;
-  const sampler = setInterval(() => {
-    if (busy) return;
-    busy = true;
-    psSnapshot()
-      .then(snap => {
-        const rss = treeRssKB(child.pid, snap);
-        if (rss > peakRssKB) peakRssKB = rss;
-      })
-      .catch(() => {
-        /* ps 不可用时跳过内存采集 */
-      })
-      .finally(() => (busy = false));
-  }, 50);
-
-  const exitCode = await new Promise(resolve_ => child.on('exit', resolve_));
-  clearInterval(sampler);
-  const wallMs = performance.now() - t0;
-
-  const matches = [...stdout.matchAll(PRERENDER_LOG)];
+  const matches = [...result.stdout.matchAll(PRERENDER_LOG)];
   const last = matches[matches.length - 1];
 
   return {
     mode,
-    wallMs,
+    wallMs: result.wallMs,
+    cpuMs: result.cpuMs,
     prerenderMs: last ? Number(last[2]) : null,
     routes: last ? Number(last[1]) : null,
-    peakRssKB,
-    exitCode,
-    stdout,
-    stderr
+    peakRssKB: result.peakRssKB,
+    via: result.via,
+    exitCode: result.exitCode,
+    stdout: result.stdout,
+    stderr: result.stderr
   };
 }
 
@@ -181,7 +113,7 @@ async function main() {
   console.log(`Node:      ${process.version}  ${process.platform}/${process.arch}`);
   console.log('');
 
-  /** @type {Record<string, Array<{mode: string, wallMs: number, prerenderMs: number|null, routes: number|null, peakRssKB: number, exitCode: number|null, stdout: string, stderr: string}>>} */
+  /** @type {Record<string, Array<{mode: string, wallMs: number, cpuMs: number, prerenderMs: number|null, routes: number|null, peakRssKB: number, via: string, exitCode: number|null, stdout: string, stderr: string}>>} */
   const results = { ssg: [], fullstack: [] };
 
   for (let i = 1; i <= runs; i++) {
@@ -195,13 +127,14 @@ async function main() {
         process.exit(1);
       }
       console.log(
-        `wall ${fmtMs(r.wallMs)}, prerender ${fmtMs(r.prerenderMs)} (${r.routes} routes), peak ${fmtMB(r.peakRssKB)}`
+        `wall ${fmtMs(r.wallMs)}, cpu ${fmtMs(r.cpuMs)}, prerender ${fmtMs(r.prerenderMs)} (${r.routes} routes), peak ${fmtMB(r.peakRssKB)} [${r.via}]`
       );
     }
   }
 
   const stat = mode => ({
     wall: median(results[mode].map(r => r.wallMs)),
+    cpu: median(results[mode].map(r => r.cpuMs)),
     prerender: median(results[mode].map(r => r.prerenderMs).filter(v => v != null)),
     routes: results[mode][results[mode].length - 1].routes,
     peakRss: median(results[mode].map(r => r.peakRssKB))
@@ -223,12 +156,14 @@ async function main() {
     `| 指标 | ssg（直接渲染） | fullstack（Hono 管道） | Δ |`,
     `| --- | --- | --- | --- |`,
     `| 总构建时间 | ${fmtMs(ssg.wall)} | ${fmtMs(fullstack.wall)} | ${fmtPct(delta(ssg.wall, fullstack.wall))} |`,
+    `| build CPU 时间 | ${fmtMs(ssg.cpu)} | ${fmtMs(fullstack.cpu)} | ${fmtPct(delta(ssg.cpu, fullstack.cpu))} |`,
     `| prerender 阶段 | ${fmtMs(ssg.prerender)} | ${fmtMs(fullstack.prerender)} | ${fmtPct(delta(ssg.prerender, fullstack.prerender))} |`,
     `| 渲染路由数 | ${ssg.routes ?? '—'} | ${fullstack.routes ?? '—'} | — |`,
     `| 单路由渲染 | ${fmtMs(perRoute(ssg))} | ${fmtMs(perRoute(fullstack))} | ${fmtPct(delta(perRoute(ssg), perRoute(fullstack)))} |`,
     `| 峰值内存 (RSS) | ${fmtMB(ssg.peakRss)} | ${fmtMB(fullstack.peakRss)} | ${fmtPct(delta(ssg.peakRss, fullstack.peakRss))} |`,
     ``,
     `> Δ 为负表示 ssg 更优。单路由渲染 = prerender 耗时 / 渲染路由数。`,
+    `> 资源指标采集方式：${[...new Set(results.ssg.concat(results.fullstack).map(r => r.via))].join(' / ')}（ps 轮询优先，受限环境回退 \`/usr/bin/time -l\` rusage）。`,
     ``
   ].join('\n');
 
@@ -236,6 +171,14 @@ async function main() {
   console.log(report);
 
   if (jsonOut) {
+    // 落盘时剥掉 stdout/stderr：完整构建日志会让产物膨胀两个数量级（实测 113KB → 数 KB），
+    // 且 prerender 的解析结果已单独成字段；失败排查仍可从终端回放。
+    const raw = Object.fromEntries(
+      Object.entries(results).map(([mode, entries]) => [
+        mode,
+        entries.map(({ stdout: _stdout, stderr: _stderr, ...rest }) => rest)
+      ])
+    );
     const payload = {
       fixture: relative(repoRoot, fixture),
       runs,
@@ -243,10 +186,10 @@ async function main() {
       platform: `${process.platform}/${process.arch}`,
       generatedAt: new Date().toISOString(),
       median: { ssg, fullstack },
-      raw: results
+      raw
     };
     const out = resolve(repoRoot, jsonOut);
-    await writeFile(out, JSON.stringify(payload, null, 2), 'utf-8');
+    await writeFile(out, `${JSON.stringify(payload, null, 2)}\n`, 'utf-8');
     console.log(`JSON report written to ${out}`);
   }
 }

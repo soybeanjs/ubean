@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "kind": "ubean-perf-lifecycle-baseline",
+  "generatedAt": "2026-10-06T14:48:34.757Z",
+  "fixture": "examples/ubean-test",
+  "recordedOn": "current",
+  "note": "RM-V36 收敛后（ADR-0012 唯一形态）的本机基线；warmup 1 + runs 5，浏览器指标启用。buildCpu/buildPeakRss 由 /usr/bin/time -l rusage 采集（本机禁止执行 setuid 的 /bin/ps）。",
+  "iterations": {
+    "warmup": 1,
+    "runs": 5
+  },
+  "environment": {
+    "node": "v24.21.0",
+    "platform": "darwin",
+    "arch": "arm64",
+    "cpuModel": "Apple M5",
+    "cpuCount": 10,
+    "totalMemMb": 16384
+  },
+  "arms": {
+    "cli": {
+      "summary": {
+        "devColdStart": {
+          "n": 5,
+          "p50": 1086.0197910000006,
+          "p95": 1102.7808168,
+          "min": 1056.9009999999998,
+          "max": 1106.277
+        },
+        "browserHydration": {
+          "n": 5,
+          "p50": 210.89999997615814,
+          "p95": 227.33999999165536,
+          "min": 189.90000000596046,
+          "max": 231.09999999403954
+        },
+        "browserNavigation": {
+          "n": 5,
+          "p50": 79,
+          "p95": 81.6,
+          "min": 78,
+          "max": 82
+        },
+        "devChangeServer": {
+          "n": 5,
+          "p50": 218.05987500000083,
+          "p95": 322.02522499999975,
+          "min": 213.90845799999988,
+          "max": 322.20787500000006
+        },
+        "devChangeClient": {
+          "n": 5,
+          "p50": 107.18262500000128,
+          "p95": 210.09491699999998,
+          "min": 106.0969159999986,
+          "max": 210.4374170000001
+        },
+        "buildWall": {
+          "n": 5,
+          "p50": 1294.402958999999,
+          "p95": 1308.8492749999998,
+          "min": 1260.3077090000006,
+          "max": 1311.7751250000001
+        },
+        "buildCpu": {
+          "n": 5,
+          "p50": 2050,
+          "p95": 2076,
+          "min": 2040,
+          "max": 2080
+        },
+        "buildPeakRss": {
+          "n": 5,
+          "p50": 626672,
+          "p95": 630140.8,
+          "min": 621616,
+          "max": 630496
+        },
+        "reloadScope": {
+          "n": 5,
+          "preserved": 5,
+          "reevaluated": 0,
+          "processRestarted": 0
+        }
+      },
+      "observation": {
+        "serverChange": {
+          "observed": 5,
+          "total": 5
+        },
+        "clientChange": {
+          "observed": 5,
+          "total": 5
+        },
+        "hydration": {
+          "observed": 5,
+          "total": 5
+        },
+        "navigation": {
+          "observed": 5,
+          "total": 5
+        }
+      },
+      "notes": [
+        "资源指标回退口径：本机禁止执行 ps（setuid），buildCpu/buildPeakRss 由 `/usr/bin/time -l` 的 rusage 给出。"
+      ]
+    }
+  }
+}

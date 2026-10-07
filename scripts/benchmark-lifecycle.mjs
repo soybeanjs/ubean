@@ -29,6 +29,7 @@
  *   pnpm benchmark:lifecycle                                   # 报告（默认 cli 臂）
  *   pnpm benchmark:lifecycle -- --runs 5 --warmup 1
  *   pnpm benchmark:lifecycle -- --out examples/ubean-test/benchmarks/perf-baseline.json
+ *   pnpm benchmark:lifecycle -- --out examples/ubean-test/benchmarks/perf-current.json --label current --note "…"
  *   pnpm benchmark:lifecycle -- --skip-browser                  # 跳过浏览器运行时指标
  *   pnpm benchmark:lifecycle -- --toggle vite                    # 改跑裸 `vite` 入口的臂（见下）
  *
@@ -51,8 +52,8 @@ import {
   killTree,
   pollUntil,
   resolveBaseUrl,
+  runWithResourceMetrics,
   spawnCaptured,
-  startRssSampler,
   summarizeSamples
 } from './lib/metrics.mjs';
 
@@ -85,6 +86,11 @@ const skipBuild = argFlag('--skip-build');
 const skipBrowser = argFlag('--skip-browser');
 const jsonOut = argValue('--json', null);
 const baselineOut = argValue('--out', null);
+// `--out` 产物里的口径标签：默认 legacy（历史基线），刷新当前基线时用 `--label current`，
+// 避免把新采集的九项口径误标成「旧编排上的历史基线」。
+// 命名避开循环里的 `label`（warmup/run 序号），否则触发 no-shadow。
+const recordedOnLabel = argValue('--label', 'legacy');
+const noteOverride = argValue('--note', null);
 
 /* -------------------------------------------------------------------------- */
 /* 被测臂（单变量开关 + 生效证明，RM-P02）                                        */
@@ -406,22 +412,18 @@ async function runDevPhase(arm) {
 /* -------------------------------------------------------------------------- */
 
 async function measureBuild(arm) {
-  const started = performance.now();
   const [command, ...commandArgs] = arm.buildCommand();
-  const { child, readStdout, readStderr, exited } = spawnCaptured('pnpm', [command, ...commandArgs], {
+  // 资源采集器内部处理 `ps` ↔ `/usr/bin/time -l` 的选择（见 scripts/lib/metrics.mjs）：
+  // 受限沙箱禁止执行 setuid 的 /bin/ps，此前会静默产出 buildCpu=0 / buildPeakRss=0。
+  return runWithResourceMetrics('pnpm', [command, ...commandArgs], {
     cwd: fixture,
     env: { ...process.env, ...arm.env() }
   });
-  const sampler = startRssSampler(child.pid, 50);
-  const exitCode = await exited;
-  const peakRssKB = sampler.stop();
-  const cpuMs = sampler.stopCpuMs();
-  const wallMs = performance.now() - started;
-  return { wallMs, peakRssKB, cpuMs, exitCode, stdout: readStdout(), stderr: readStderr() };
 }
 
 async function runBuildPhase(arm) {
   const samples = { buildWall: [], buildPeakRss: [], buildCpu: [] };
+  const notes = [];
   const total = warmup + runs;
   // 干净产物：两条路径都设 `emptyOutDir: false`，上一臂/上一次的残留会让产物目录累积 ——
   // 这正是「体积断言把残留读成回归」那次的成因（口径见 docs/perf-regression-net.md 与 ADR-0012 的落地结果）。
@@ -455,13 +457,18 @@ async function runBuildPhase(arm) {
       }
     }
     console.log(`wall ${fmtMs(result.wallMs)}, cpu ${fmtMs(result.cpuMs)}, peak ${fmtMB(result.peakRssKB)}`);
+    if (result.via === 'time-l' && !notes.some(note => note.includes('time -l'))) {
+      notes.push(
+        '资源指标回退口径：本机禁止执行 ps（setuid），buildCpu/buildPeakRss 由 `/usr/bin/time -l` 的 rusage 给出。'
+      );
+    }
     if (!isWarmup) {
       samples.buildWall.push(result.wallMs);
       samples.buildPeakRss.push(result.peakRssKB);
       samples.buildCpu.push(result.cpuMs);
     }
   }
-  return { samples };
+  return { samples, notes };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -549,6 +556,7 @@ async function main() {
       armSamples.buildWall = buildPhase.samples.buildWall;
       armSamples.buildPeakRss = buildPhase.samples.buildPeakRss;
       armSamples.buildCpu = buildPhase.samples.buildCpu;
+      notes.push(...buildPhase.notes);
     }
 
     report.arms[name] = {
@@ -635,8 +643,10 @@ async function main() {
       kind: 'ubean-perf-lifecycle-baseline',
       generatedAt: new Date().toISOString(),
       fixture: relative(repoRoot, fixture).replace(/\\/g, '/'),
-      recordedOn: 'legacy',
-      note: '在 Vite 插件化（ADR-0012）之前、于旧编排上采集；见 docs/perf-regression-net.md RM-P05。收敛（RM-V36）后旧编排已删除，本文件是历史基线。',
+      recordedOn: recordedOnLabel,
+      note:
+        noteOverride ??
+        '在 Vite 插件化（ADR-0012）之前、于旧编排上采集；见 docs/perf-regression-net.md RM-P05。收敛（RM-V36）后旧编排已删除，本文件是历史基线。',
       iterations: { warmup, runs },
       environment,
       arms: Object.fromEntries(

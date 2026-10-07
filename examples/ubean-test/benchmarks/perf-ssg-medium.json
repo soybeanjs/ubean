@@ -1,0 +1,89 @@
+{
+  "fixture": ".tmp-bench-medium",
+  "runs": 3,
+  "node": "v24.21.0",
+  "platform": "darwin/arm64",
+  "generatedAt": "2026-10-06T14:48:55.062Z",
+  "median": {
+    "ssg": {
+      "wall": 1073.537875,
+      "cpu": 1650,
+      "prerender": 83,
+      "routes": 82,
+      "peakRss": 587280
+    },
+    "fullstack": {
+      "wall": 1109.7126249999997,
+      "cpu": 1730,
+      "prerender": 80,
+      "routes": 81,
+      "peakRss": 609632
+    }
+  },
+  "raw": {
+    "ssg": [
+      {
+        "mode": "ssg",
+        "wallMs": 1073.537875,
+        "cpuMs": 1650,
+        "prerenderMs": 90,
+        "routes": 82,
+        "peakRssKB": 587280,
+        "via": "time-l",
+        "exitCode": 0
+      },
+      {
+        "mode": "ssg",
+        "wallMs": 1045.12525,
+        "cpuMs": 1640,
+        "prerenderMs": 73,
+        "routes": 82,
+        "peakRssKB": 574784,
+        "via": "time-l",
+        "exitCode": 0
+      },
+      {
+        "mode": "ssg",
+        "wallMs": 1080.3127910000003,
+        "cpuMs": 1680,
+        "prerenderMs": 83,
+        "routes": 82,
+        "peakRssKB": 591472,
+        "via": "time-l",
+        "exitCode": 0
+      }
+    ],
+    "fullstack": [
+      {
+        "mode": "fullstack",
+        "wallMs": 1097.8483749999998,
+        "cpuMs": 1730,
+        "prerenderMs": 80,
+        "routes": 81,
+        "peakRssKB": 609632,
+        "via": "time-l",
+        "exitCode": 0
+      },
+      {
+        "mode": "fullstack",
+        "wallMs": 1109.7126249999997,
+        "cpuMs": 1720,
+        "prerenderMs": 79,
+        "routes": 81,
+        "peakRssKB": 609056,
+        "via": "time-l",
+        "exitCode": 0
+      },
+      {
+        "mode": "fullstack",
+        "wallMs": 1155.7887089999995,
+        "cpuMs": 1780,
+        "prerenderMs": 81,
+        "routes": 81,
+        "peakRssKB": 610672,
+        "via": "time-l",
+        "exitCode": 0
+      }
+    ]
+  }
+}

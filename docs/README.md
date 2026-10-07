@@ -16,6 +16,7 @@
 | [test.md](test.md) | 全栈元框架的功能测试方案与任务清单（TS-01–TS-37）：§5 任务明细、§6 配置覆盖矩阵、§8 验收台账 |
 | [test-e2e-migration.md](test-e2e-migration.md) | `examples/ubean-test` 用例向 E2E 迁移的可行性分析（TS-34–TS-37 的输入） |
 | [perf-regression-net.md](perf-regression-net.md) | 性能度量口径、基线与体积闸门（RM-P01–P08 已落地；绝对上限待接线） |
+| [vite-bundled-dev-compat.md](vite-bundled-dev-compat.md) | Vite `experimental.bundledDev` 兼容性调查：**现状不支持**，三处故障已定位（其中一处根因已对照实验证明）、修法方向与未知数 |
 
 > 行内任务清单全部 ✅ 后，按政策删除正文：决策归 ADR，词汇归 glossary，历史归 git。
 

@@ -1,8 +1,20 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite-plus';
 
 export default defineConfig({
   resolve: {
     tsconfigPaths: true
+  },
+  test: {
+    include: ['test/**/*.test.ts'],
+    environment: 'node',
+    alias: {
+      // `dist/client.js` 对 `virtual:ubean-islands-registry` 有一条静态 import,
+      // 该模块平时由用户项目的 `ubeanIslandsPlugin` 生成。Node 环境下无插件解析,
+      // 会以 `Received protocol 'virtual:'` 失败,故指向测试替身。
+      // 与 `examples/ubean-test/vitest.config.ts` 的做法一致。
+      'virtual:ubean-islands-registry': resolve(__dirname, 'test/stubs/islands-registry.ts')
+    }
   },
   pack: {
     dts: true,

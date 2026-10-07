@@ -269,10 +269,6 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   const resolved = defu(config as Partial<ResolvedConfig>, configDefaults) as ResolvedConfig;
   resolved.rootDir = resolve(cwd);
   resolved.srcDir = resolve(cwd, resolved.srcDir);
-  // Electron 启用时，ssr 默认改为 false（桌面应用无需 SSR，除非用户显式指定）
-  if (resolved.electron !== false && config.ssr === undefined) {
-    resolved.ssr = resolveSsrConfig(false);
-  }
   // 重新解析 routing(确保用户提供的 routing 字段被正确合并默认值)
   resolved.routing = resolveRoutingConfig(config.routing);
   // 重新解析 prerender(defu 浅合并会让派生字段 enabled 失真,
@@ -280,6 +276,15 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   resolved.prerender = resolvePrerenderConfig(config.prerender);
   // 重新解析 ssr(boolean | 对象 → ResolvedSsrConfig)
   resolved.ssr = resolveSsrConfig(config.ssr);
+  // Electron 启用时，ssr 默认改为 false（桌面应用无需 SSR，除非用户显式指定）。
+  //
+  // 必须在上面这次重算**之后**应用：早先的写法把它放在重算之前，于是紧接着被
+  // `resolveSsrConfig(config.ssr)`（此处 `config.ssr === undefined` → 默认 enabled:true）
+  // 覆盖回去，派生默认值静默失效、`electron: true` 根本不关 SSR。
+  // TS-14 的 `electron × ssr` 矩阵把它逼了出来（此前 §6.2 记录的正是「ssr 联动零验证」）。
+  if (resolved.electron !== false && config.ssr === undefined) {
+    resolved.ssr = resolveSsrConfig(false);
+  }
   // 重新解析 devtools(同 prerender,defu 浅合并会让 enabled 失真)
   resolved.devtools = resolveDevToolsConfig(config.devtools);
   resolved.i18n = resolveI18nConfig(config.i18n);

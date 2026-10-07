@@ -28,7 +28,17 @@ export interface MiniflareInstanceLike {
   ready: Promise<unknown>;
   dispatchFetch(
     input: string,
-    init?: { method?: string; headers?: Headers | Record<string, string>; body?: BodyInit }
+    init?: {
+      method?: string;
+      headers?: Headers | Record<string, string>;
+      body?: BodyInit;
+      /**
+       * 必须显式转发：`dispatchFetch` 走的是 fetch 语义，默认 `redirect: 'follow'`。
+       * 不转发时 worker 返回的 302 会被**跟随**到目标页，调用方只看到最终的 200 ——
+       * i18n 语言重定向这类断言会因此假绿（实测 cloudflare + miniflare）。
+       */
+      redirect?: RequestRedirect;
+    }
   ): Promise<Response>;
   dispose(): Promise<void>;
 }
@@ -151,7 +161,9 @@ export async function createCloudflarePreviewRunner(
         return instance.dispatchFetch(request.url, {
           method,
           headers: request.headers,
-          body: hasBody ? await request.arrayBuffer() : undefined
+          body: hasBody ? await request.arrayBuffer() : undefined,
+          // 转发 redirect 模式，否则 302 会被跟随掉（见 MiniflareInstanceLike.dispatchFetch 注释）。
+          redirect: request.redirect
         });
       },
       dispose: () => instance.dispose()

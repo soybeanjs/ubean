@@ -30,6 +30,33 @@ const FIXTURE = resolve(import.meta.dirname, 'fixtures/build-project');
 /** 产物写到 fixture 内的临时目录，避免污染仓库（跑完删除）。 */
 const OUT_DIR = '.temp-build';
 
+interface InjectedAssetTags {
+  css: string;
+  preloads: string;
+  body: string;
+  favicon: string | null;
+}
+
+/**
+ * 从 server bundle 里取出构建期注入的 `assetTags` 对象字面量。
+ * 该字面量由 `JSON.stringify` 产出，是 JSON 兼容的，所以直接解析就能拿到注入值 ——
+ * 断言的是**产物内容**，而不是重跑一遍 `computeAssetTags()` 得到的读回值。
+ */
+function readInjectedAssetTags(bundle: string): InjectedAssetTags {
+  const marker = 'var assetTags = {';
+  const start = bundle.indexOf(marker);
+  expect(start, 'server bundle 应内联构建期注入的 assetTags（RM-V18：产物自包含）').toBeGreaterThan(-1);
+  const end = bundle.indexOf('\n};', start);
+  expect(end, 'assetTags 对象字面量应完整闭合').toBeGreaterThan(-1);
+  return JSON.parse(bundle.slice(start + marker.length - 1, end + 2)) as InjectedAssetTags;
+}
+
+/** 取出 HTML 片段里某个属性的值（避免在断言里写正则转义）。 */
+function attrValue(fragment: string, attr: string): string {
+  const afterAttr = fragment.split(`${attr}="`)[1];
+  return afterAttr ? afterAttr.split('"')[0] : '';
+}
+
 afterEach(() => {
   rmSync(join(FIXTURE, OUT_DIR), { recursive: true, force: true });
   rmSync(join(FIXTURE, '.ubean'), { recursive: true, force: true });
@@ -85,6 +112,43 @@ describe('生产构建（buildWithEnvironments）', () => {
     expect(serverBundle).toContain('assets/app-');
     // 注入的 asset tag（bundle 里是 JSON 字符串字面量，引号被转义，因此断言到 src 为止）
     expect(serverBundle).toContain('"body": "<script type=\\"module\\" src=\\"/assets/app-');
+
+    // TS-09：内容级断言 —— 防「体积门禁全绿但产物空」重演（历史事故 #2 / RM-V21）。
+    // 那次两个 manifest provider 竞态，导致内联进去的 assetTags 是 `computeAssetTags(null)`
+    // 的产物：`body`/`css` 全空，生产 HTML 既没有入口 `<script>` 也没有样式表 ——
+    // 而体积门禁、文件清单 diff 都看不出问题（文件都在，只是没被引用）。
+    // 因此这里断言「注入内容非空且指向真实存在的文件」，而不是断言配置读回值。
+    const tags = readInjectedAssetTags(serverBundle);
+
+    // ① 入口 `<script>`：src 必须指向 public 下真实存在的 JS 产物。
+    const entrySrc = attrValue(tags.body, 'src');
+    expect(entrySrc.startsWith('/assets/'), `入口 script 应指向 /assets/ 下的产物，实际：${tags.body}`).toBe(true);
+    expect(entrySrc.endsWith('.js')).toBe(true);
+    expect(existsSync(join(publicDir, entrySrc.slice(1))), `入口 script 指向的文件应真实存在：${entrySrc}`).toBe(true);
+
+    // ② 样式表：夹具的 `src/app.vue` 带 `<style>`，且它是静态 import 进 client entry 的，
+    // 所以入口 chunk 一定带 css —— 若 `css` 为空即说明注入链路又退化成空标签。
+    const cssHrefs = tags.css
+      .split('\n')
+      .filter(line => line.length > 0)
+      .map(line => attrValue(line, 'href'));
+    expect(
+      cssHrefs.length,
+      `内联 assetTags.css 应至少含 1 个 <link rel="stylesheet">，实际：${JSON.stringify(tags.css)}`
+    ).toBeGreaterThan(0);
+    for (const href of cssHrefs) {
+      expect(href.startsWith('/assets/')).toBe(true);
+      expect(href.endsWith('.css')).toBe(true);
+      expect(existsSync(join(publicDir, href.slice(1))), `样式表指向的文件应真实存在：${href}`).toBe(true);
+    }
+
+    // ③ manifest 侧同样要能看出「入口带了哪些 css」—— 光有 assets 条目不代表可用。
+    const entryAsset = manifest.assets.find(asset => asset.isEntry);
+    expect(entryAsset).toBeDefined();
+    expect(entryAsset?.file.endsWith('.js')).toBe(true);
+    expect(entryAsset?.css ?? [], 'manifest 入口条目应记录 css（构建产物契约）').toEqual(
+      cssHrefs.map(href => href.slice(1))
+    );
 
     // 组件自动导入的类型声明。这份文件有**两个写入器** —— ubean 的 codegen（`ubean prepare`）
     // 与 unplugin-vue-components（构建/开发时重写，并附上 `declare global` 块）—— 两边都必须

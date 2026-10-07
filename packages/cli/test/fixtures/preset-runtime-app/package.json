@@ -1,0 +1,5 @@
+{
+  "name": "ubean-preset-runtime-app",
+  "private": true,
+  "type": "module"
+}

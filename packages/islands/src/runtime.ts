@@ -312,13 +312,94 @@ export function hydrateIslands(options: HydrateIslandsOptions = {}): void {
   }
 }
 
+/**
+ * 把注册表里的 value 归一化成「组件或组件 Promise」。
+ *
+ * 注册表的 value 有两种合法形态,**而且都是函数**,不能靠 `typeof` 区分:
+ *  - 惰性 loader:`() => import('…')` —— 必须**调用**才能拿到组件
+ *  - 函数式组件:`(props, ctx) => VNode` —— 必须原样交给 Vue
+ *
+ * 判据是「调用后的返回值是不是 thenable」。
+ *
+ * 这修复了一个**静默**错误:`virtual:ubean-islands-registry` 导出的是惰性
+ * loader,而此前 `Promise.resolve(loader)` 不会调用 loader —— 它只是把
+ * loader 本身当成组件交给 Vue。Vue 于是把 `import()` 的 Promise 渲染成文本
+ * 节点 `[object Promise]`,而 `hydrateIsland` 又提前打上
+ * `data-hydrated="true"`,最终表现为「水合标记已完成、内容却是
+ * `[object Promise]`」——断言 `data-hydrated` 的测试会误判为通过,
+ * 只有真正读 DOM 内容的测试才能发现(靠 30s 超时暴露)。
+ */
+function resolveComponentValue(value: Component | (() => Promise<Component>)): Component | Promise<Component> {
+  if (typeof value !== 'function') return unwrapComponentModule(value) as Component;
+
+  // 已是 Vue 组件对象(带 render/setup)或 defineAsyncComponent 产物 —— 原样返回
+  const asRecord = value as { render?: unknown; setup?: unknown };
+  if (asRecord.render || asRecord.setup) return value;
+
+  try {
+    const maybe = unwrapComponentModule((value as () => unknown)());
+    // 形态 1:惰性 loader 返回 Promise(`() => import('…')`,注册表的真实形态)
+    if (maybe && typeof (maybe as Promise<Component>).then === 'function') {
+      return (maybe as Promise<unknown>).then(unwrapped => unwrapComponentModule(unwrapped) as Component);
+    }
+    // 形态 2:同步返回组件对象的 loader(`() => Foo`)
+    if (looksLikeComponent(maybe)) return maybe as Component;
+  } catch {
+    // 函数式组件在 props 为 undefined 时可能抛错 —— 说明它不是 loader
+  }
+
+  // 形态 3:它本来就是函数式组件 —— 调用结果不是组件(可能是 VNode/字符串),
+  // 必须把**原函数**交给 Vue,而不是这次试探性调用的返回值
+  return value as Component;
+}
+
+/**
+ * 判断一次试探性调用的返回值「像不像组件」。
+ *
+ * 关键是排除 VNode:函数式组件 `(props, ctx) => VNode` 被以 `undefined` props
+ * 调用时返回的正是 VNode,若把它当成组件返回,就会把渲染结果当组件二次挂载。
+ * Vue 的 VNode 带 `__v_isVNode` 标记,用它做否定判据。
+ */
+function looksLikeComponent(value: unknown): boolean {
+  if (typeof value === 'function') return true;
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  if (record.__v_isVNode) return false;
+  return 'render' in record || 'setup' in record || '__name' in record || 'template' in record;
+}
+
+/**
+ * 拆掉 ESM 模块命名空间,取出 `default` 导出。
+ *
+ * 惰性 loader 的真实形态是 `() => import('/src/components/X.vue')`,它 resolve 的
+ * **不是组件本身**,而是模块命名空间 `{ default: Component }`。若把命名空间当组件
+ * 交给 Vue,会得到 `[Vue warn] Component is missing template or render function: Module`
+ * —— 内容依然是空的。这里统一在「调用后」和「Promise resolve 后」两处拆包。
+ *
+ * 只认带 `default` 且**没有** `__esModule` 标记之外其它组件特征的普通对象,
+ * 避免误拆 `defineAsyncComponent` 之类的合法组件对象。
+ */
+function unwrapComponentModule(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const record = value as Record<string, unknown>;
+  // 本身就是组件对象 / VNode —— 不拆
+  if (record.__v_isVNode || record.render || record.setup || record.template) return value;
+  // 只有模块命名空间才有 `default`;SFC 编译产物正是 `{ default: Component }`
+  if (!('default' in record)) return value;
+  const inner = record.default;
+  return looksLikeComponent(inner) ? inner : value;
+}
+
 function resolveComponent(
   name: string,
   components: Record<string, Component | (() => Promise<Component>)>,
   getComponent?: (name: string) => Component | Promise<Component> | null
 ): Component | Promise<Component> | null {
-  if (components[name]) return components[name];
-  if (getComponent) return getComponent(name);
+  if (components[name]) return resolveComponentValue(components[name]);
+  if (getComponent) {
+    const resolved = getComponent(name);
+    return resolved ? resolveComponentValue(resolved as Component | (() => Promise<Component>)) : null;
+  }
 
   // 诊断警告:组件未在注册表中找到,输出可能原因与已注册组件列表
   // 帮助快速定位「island 静默不水合」问题(常见于组件名不匹配或忘记注册)

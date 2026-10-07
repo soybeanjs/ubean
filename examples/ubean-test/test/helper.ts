@@ -4,13 +4,40 @@
  * and importing ubean functions directly for function-level testing.
  */
 
+/**
+ * 解析 dev server 地址。
+ *
+ * 这里**不设兜底端口**：真实端口由 `test/global-setup.ts` 决定（当前 `:3999`），
+ * 写死一个猜测值只会让 IDE 单跑时连到错误的端口、然后以 ECONNREFUSED 失败——
+ * 那是最难排查的一类噪声。缺 env 时直接抛错，让失败原因在第一行就可见。
+ *
+ * @throws 当 `UBEAN_TEST_BASE_URL` 未设置时
+ */
 export function getBaseUrl(): string {
-  // Fall back to localhost:3000 when the env var is not set (e.g. when the
-  // IDE Vitest extension evaluates tests without the global-setup script).
-  // Tests will fail with a network error instead of throwing, and
-  // describe.skipIf(!process.env.UBEAN_TEST_BASE_URL) will skip them
-  // when running via `pnpm test` without the dev server.
-  return process.env.UBEAN_TEST_BASE_URL || 'http://localhost:3000';
+  const baseUrl = process.env.UBEAN_TEST_BASE_URL;
+  if (!baseUrl) {
+    throw new Error(
+      'UBEAN_TEST_BASE_URL 未设置：本测试文件需要真实运行的 dev server。\n' +
+        '  · 正常方式：在 examples/ubean-test 下跑 `pnpm test`，\n' +
+        '    test/global-setup.ts 会自动在 :3999 启动 dev server 并设置该变量；\n' +
+        '  · 手动方式：先启动 dev server，再设 UBEAN_TEST_BASE_URL=http://localhost:3999。\n' +
+        '（此文件不再静默 skip——绿灯的含义必须是「真的验证过」。）'
+    );
+  }
+  return baseUrl;
+}
+
+/**
+ * 文件级前置断言：声明「本文件依赖真实 dev server」。
+ *
+ * 在 `beforeAll` 里调用。缺 env 时立刻以**统一的明确错误**失败，让全部依赖
+ * dev server 的文件语义一致。
+ *
+ * 刻意不使用 `describe.skipIf` / `ctx.skip()`：静默跳过会让
+ * 「global-setup 因故没跑」伪装成绿灯，腐化的恰好是那几个文件。
+ */
+export function requireDevServer(): void {
+  getBaseUrl();
 }
 
 export interface ApiResult {

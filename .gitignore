@@ -36,7 +36,12 @@ coverage
 .pnpm-store
 
 .vitest-attachments
+.vitest/attachments
 __screenshots__
+# Playwright trace 产物目录（root vite.config.ts 的 test.browser.trace.tracesDir）。
+# 一次失败运行会写入 .trace.zip + 大量原始中间产物；绿跑亦会留下原始暂存
+# （由 global-setup 的 cleanTraceStaging() 回收），属机器生成，不入库。
+test-results
 .VSCodeCounter
 
 .temp
@@ -51,3 +56,11 @@ __screenshots__
 .trae
 *.tsbuildinfo
 .temp-build*
+
+# 基准测试的机器本地产物（scripts/benchmark-*.mjs）：
+# - .tmp-bench-shim/      受限环境下替代 `pnpm exec` 的 shim（$HOME 不可写时 pnpm 无法切换版本）
+# - .playwright-browsers/ 基准用 Playwright Chromium（PLAYWRIGHT_BROWSERS_PATH 指向此处）
+# - .tmp-bench-*/         运行时生成的中型站 fixture（页数由生成器控制，不入库）
+.tmp-bench-shim/
+.playwright-browsers/
+.tmp-bench-*/

@@ -15,7 +15,7 @@
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { resolvePrerenderStaticDir } from '../src/prerender';
 import {
@@ -26,6 +26,20 @@ import {
 } from '../src/vite/asset-manifest';
 
 let root: string;
+
+/**
+ * TS-13（OS 矩阵）：下面这些断言比较的是**文件系统绝对路径**，期望值必须用平台原生的分隔符与
+ * 盘符构造。原先把它们写成 `'/app/dist/public'`、`'/abs/site'` 这类 POSIX 字面量 —— 在
+ * macOS/Linux 上恰好等价，在 Windows 上**必然红**，而且是两重原因：
+ * 1. 实现走 `join()`，在 Windows 上产出 `\` 分隔符，字面量 `'/'` 比不过；
+ * 2. `'/abs/site'` 在 Windows 上**不是**绝对路径（需要盘符或 UNC），于是 `resolvePrerenderStaticDir`
+ *    会走「拼 cwd」那条分支，语义与断言假设完全不同。
+ * 用 `resolve()` 构造基准，两平台都得到该平台的绝对路径，断言的语义（兄弟目录 / 派生 public /
+ * 显式 staticDir 优先）保持不变。
+ */
+const appRoot = resolve('/app');
+const absOut = resolve('/tmp/out');
+const absStatic = resolve('/abs/site');
 
 beforeAll(() => {
   root = mkdtempSync(join(tmpdir(), 'ubean-asset-tags-'));
@@ -86,7 +100,7 @@ describe('resolveInjectedAssetTags', () => {
 
 describe('clientPublicDirFor', () => {
   it('服务端 outDir 的兄弟目录即客户端产物目录', () => {
-    expect(clientPublicDirFor('/app/dist/server')).toBe('/app/dist/public');
+    expect(clientPublicDirFor(join(appRoot, 'dist', 'server'))).toBe(join(appRoot, 'dist', 'public'));
   });
 
   it('读盘失败（清单损坏/缺失）时返回 null 而不是抛错', () => {
@@ -99,16 +113,18 @@ describe('clientPublicDirFor', () => {
 
 describe('resolvePrerenderStaticDir', () => {
   it('未配置时从构建产物目录派生 `<outputDir>/public`', () => {
-    expect(resolvePrerenderStaticDir('/app', 'dist', {})).toBe('/app/dist/public');
-    expect(resolvePrerenderStaticDir('/app', '.temp-x', {})).toBe('/app/.temp-x/public');
+    expect(resolvePrerenderStaticDir(appRoot, 'dist', {})).toBe(join(appRoot, 'dist', 'public'));
+    expect(resolvePrerenderStaticDir(appRoot, '.temp-x', {})).toBe(join(appRoot, '.temp-x', 'public'));
   });
 
   it('产物目录是绝对路径时不再拼 cwd（`--outDir` 可传绝对路径）', () => {
-    expect(resolvePrerenderStaticDir('/app', '/tmp/out', {})).toBe('/tmp/out/public');
+    expect(resolvePrerenderStaticDir(appRoot, absOut, {})).toBe(join(absOut, 'public'));
   });
 
   it('显式配置的 staticDir 优先（相对与绝对都支持）', () => {
-    expect(resolvePrerenderStaticDir('/app', 'dist', { staticDir: 'build/site' })).toBe('/app/build/site');
-    expect(resolvePrerenderStaticDir('/app', 'dist', { staticDir: '/abs/site' })).toBe('/abs/site');
+    expect(resolvePrerenderStaticDir(appRoot, 'dist', { staticDir: 'build/site' })).toBe(
+      join(appRoot, 'build', 'site')
+    );
+    expect(resolvePrerenderStaticDir(appRoot, 'dist', { staticDir: absStatic })).toBe(absStatic);
   });
 });

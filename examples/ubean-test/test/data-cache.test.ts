@@ -4,10 +4,13 @@
  * 通过 /api/data-cache-test?action=xxx 端点验证 `createDataCacheMiddleware` 端到端行为。
  * 测试需 dev server 运行(global-setup 启动)。
  */
-import { describe, it, expect } from 'vitest';
-import { getJson } from './helper';
+import { beforeAll, describe, it, expect } from 'vitest';
+import { getJson, requireDevServer } from './helper';
+import { isBuildMode } from './mode';
 
-describe.skipIf(!process.env.UBEAN_TEST_BASE_URL)('fetch Data Cache (Task 4)', () => {
+beforeAll(requireDevServer);
+
+describe('fetch Data Cache (Task 4)', () => {
   it('cacheHit: next: { revalidate: 60 } 跨请求缓存命中', async () => {
     const res = await getJson('/api/data-cache-test?action=cacheHit');
     expect(res.status).toBe(200);
@@ -62,11 +65,16 @@ describe.skipIf(!process.env.UBEAN_TEST_BASE_URL)('fetch Data Cache (Task 4)', (
     });
   });
 
-  it('devNoCache: dev 模式默认不缓存', async () => {
+  it('devNoCache: 数据缓存按 NODE_ENV 开关（dev 轨关 / build 轨开）', async () => {
     const res = await getJson('/api/data-cache-test?action=devNoCache');
     expect(res.status).toBe(200);
-    expect(res.data).toMatchObject({
-      devNotCached: true
-    });
+    // 该 action 在服务端 `new Hono()` + `createDataCacheMiddleware()`（不传 `dev` 选项，
+    // 于是按 `NODE_ENV` 决定）：
+    // · dev 轨：dev server 的 NODE_ENV 不是 production ⇒ 数据缓存关闭 ⇒ 两次 fetch 真的都发出；
+    // · build 轨：`test/global-setup.ts` 以 `NODE_ENV=production` 启动 preview ⇒ 缓存开启 ⇒ 只发一次。
+    // 这是 TS-33 双轨**实测发现的差异之一**，两端的期望值都钉住（而不是整条跳过）。
+    expect(res.data).toMatchObject(
+      isBuildMode ? { devNotCached: false, fetchCount: 1 } : { devNotCached: true, fetchCount: 2 }
+    );
   });
 });

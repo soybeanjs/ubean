@@ -184,6 +184,29 @@ export interface PageHead {
 /* Hono 应用上下文类型                                                          */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * 请求级「基础中间件/步骤」顺序记录的步骤名(TS-07)。
+ *
+ * 顺序即 `createUbeanApp()` 在 `_setupBaseMiddleware()` 中的注册顺序,与
+ * `docs/test.md` §5 TS-07 的 13 步表一一对应。该顺序是结构性事实 ——
+ * 只断言「某中间件存在」无法发现「注册顺序被调换」这类回归,因此框架把
+ * 实际经过的步骤按序记录,供黑盒断言(见 `GET /_health` 的 `middlewareOrder`)。
+ */
+export type UbeanMiddlewareStep =
+  | 'handle'
+  | 'requestId'
+  | 'actionContext'
+  | 'securityHeaders'
+  | 'csrf'
+  | 'dataCache'
+  | 'cacheStore'
+  | 'i18n'
+  | 'routeRules'
+  | 'routeCache'
+  | 'websocket'
+  | 'lifecycle'
+  | 'healthEndpoint';
+
 export interface UbeanVariables extends RequestIdVariables {
   route: { meta: RouteMeta; path: string; method: string };
   span?: Span;
@@ -195,6 +218,14 @@ export interface UbeanVariables extends RequestIdVariables {
    * 未启用 routeRules 中间件时为 `undefined`。
    */
   routeRule?: RouteRule;
+  /**
+   * 本次请求实际经过的基础中间件步骤名,按注册(执行)顺序记录(TS-07)。
+   *
+   * 由 `_setupBaseMiddleware()` 中各中间件在进入时 push 自身名称;被配置关闭的
+   * 步骤(如 `security: false`)不会出现在数组里,因此「缺席」也是可断言的。
+   * 供 `GET /_health` 的 `mwOrder` 字段与 `packages/app/test` 的顺序断言消费。
+   */
+  __ubean_mw_order__?: UbeanMiddlewareStep[];
 }
 
 export interface UbeanBindings {}

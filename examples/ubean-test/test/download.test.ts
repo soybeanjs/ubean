@@ -16,6 +16,7 @@ import { describe, it, expect } from 'vitest';
 import { createRequest } from '@soybeanjs/fetch';
 import type { FileResponseData } from '@soybeanjs/fetch';
 import { api, getBaseUrl } from './helper';
+import { isBuildMode } from './mode';
 
 describe('File download system', () => {
   describe('HTTP integration - /api/download (default behavior)', () => {
@@ -113,7 +114,11 @@ describe('File download system', () => {
     });
   });
 
-  describe('OpenAPI metadata (describeRoute)', () => {
+  // TS-33 双轨：`/_openapi.json` 只在 dev 注册，所以「schema 里有这个路径 / 有哪些 tag 和参数」
+  // 这类断言只在 dev 轨有意义。这里用 `runIf` 而不是静默 early-return —— 跳过必须在报告里
+  // **看得见**（`docs/test.md` §1.3 纪律①）。build 轨的对应断言在 `devtools.test.ts` 与
+  // `static-files.test.ts`：`/_openapi.json` 必须 404（生产不泄漏文档端点）。
+  describe.runIf(!isBuildMode)('OpenAPI metadata (describeRoute)', () => {
     it('GET /api/download is documented in OpenAPI schema', async () => {
       const res = await api('/_openapi.json');
       expect(res.status).toBe(200);

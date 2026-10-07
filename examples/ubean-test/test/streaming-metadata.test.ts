@@ -5,10 +5,12 @@
  * 通过 `ubean` 主包导出的端到端可达性与运行时行为。
  * 测试需 dev server 运行(global-setup 启动)。
  */
-import { describe, it, expect } from 'vitest';
-import { getJson } from './helper';
+import { beforeAll, describe, it, expect } from 'vitest';
+import { getJson, requireDevServer } from './helper';
 
-describe.skipIf(!process.env.UBEAN_TEST_BASE_URL)('流式 metadata 爬虫降级 (Task 6 / P9-24)', () => {
+beforeAll(requireDevServer);
+
+describe('流式 metadata 爬虫降级 (Task 6 / P9-24)', () => {
   it('detect: 识别 Googlebot UA', async () => {
     const ua = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
     const res = await getJson(`/api/streaming-metadata-test?action=detect&ua=${encodeURIComponent(ua)}`);

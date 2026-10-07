@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { api, getJson } from './helper';
+import { perMode } from './mode';
 
 describe('Static files serving', () => {
   describe('public/ directory', () => {
@@ -54,10 +55,10 @@ describe('Static files serving', () => {
       expect(res.data).toHaveProperty('message');
     });
 
-    it('/_openapi.json is accessible (DevTools)', async () => {
+    it('/_openapi.json 在 dev 可达；build 轨必须 404（生产不泄漏文档端点）', async () => {
       const res = await api('/_openapi.json');
-      // OpenAPI should be available in dev mode
-      expect(res.status).toBe(200);
+      // TS-33 双轨：OpenAPI 端点只在 dev 注册，生产构建里必须不可达。
+      expect(res.status).toBe(perMode(200, 404));
     });
   });
 

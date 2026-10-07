@@ -6,8 +6,9 @@
  * 1. **接线层**（永远跑）：注入假 miniflare，断言「worker 缺失 / 依赖缺失 / 成功」三种结果、
  *    以及请求如何被派发进去（实测这个版本的 `dispatchFetch` 不接受 `Request` 实例，必须拆成
  *    url + init，POST 体要 `arrayBuffer()` 带过去）—— 这层不依赖任何可选依赖。
- * 2. **真机层**（miniflare 在场时才跑）：`miniflare` 是可选 peer，CI 里通常不在；装了才跑，
- *    没装则跳过并说明原因。不假装验证过。
+ * 2. **真机层**（默认**真实执行**）：`miniflare` 自 TS-04 起已在根 devDependencies 里，CI 安装后
+ *    这两条用例真的在 workerd 里起产物、真的 fetch。只有显式 `UBEAN_SKIP_MINIFLARE=1` 才跳过，
+ *    且跳过时会打印可见警告——不允许「依赖缺失就静默绿」。
  */
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -17,12 +18,27 @@ import {
   createCloudflarePreviewRunner,
   defaultLoadMiniflare,
   findUnsupportedNodeImports,
+  MINIFLARE_INSTALL_HINT,
   readCompatibilityDate
 } from '../src/vite/cloudflare-preview';
 import type { MiniflareConstructorLike, MiniflareInstanceLike } from '../src/vite/cloudflare-preview';
 
 let root: string;
 let workerPath: string;
+
+/**
+ * 显式 opt-out 的可见警告。
+ *
+ * TS-04 之前这两条用例是「依赖不在场就静默跳过」——那让「真机从未被验证过」看起来像绿灯。
+ * 现在只有 `UBEAN_SKIP_MINIFLARE=1` 才能跳过，且必须把这件事喊出来。
+ */
+function warnMiniflareSkipped(testName: string): void {
+  console.warn(
+    `\n[cloudflare-preview] ⚠️  跳过真机验收：「${testName}」\n` +
+      '    原因：显式设置了 UBEAN_SKIP_MINIFLARE=1。\n' +
+      '    该跳过是人为的，不代表产物已验证——CI 不设置此变量，因此 CI 中这两条真实执行。\n'
+  );
+}
 
 /** 记录构造参数与派发内容的假 miniflare。 */
 function createFakeMiniflare() {
@@ -176,16 +192,22 @@ describe('findUnsupportedNodeImports（构建期审计）', () => {
 /**
  * 真机验收：**构建出来的 cloudflare 产物**能在 workerd 里启动并服务请求（缺陷 D 的回归判据）。
  *
- * 需要 `miniflare`（可选 peer，仓库不装）+ 一次真实 cloudflare 构建（约 5s），因此与上面那条
- * 「合成 worker」用例一样按依赖在场与否跳过。跑法见 docs/adr/0013-platform-artifact-contract.md。
+ * `miniflare` 已在根 devDependencies 里（TS-04），CI 安装后这两条**真实执行**。
+ * 唯一允许跳过的方式是显式设置 `UBEAN_SKIP_MINIFLARE=1`——跳过时会打印可见警告，
+ * 不允许「依赖缺失就静默绿」。
  */
-describe('真实 miniflare：cloudflare 产物（依赖在场时才跑）', () => {
+describe('真实 miniflare：cloudflare 产物', () => {
   it('产物在 workerd 里启动，SSR / API / 404 都正常', async ctx => {
-    const loadMiniflare = await defaultLoadMiniflare();
-    if (!loadMiniflare) {
-      ctx.skip('miniflare 未安装：pnpm add -D miniflare 后本条才会执行');
+    if (process.env.UBEAN_SKIP_MINIFLARE === '1') {
+      warnMiniflareSkipped('cloudflare 产物在 workerd 里启动');
+      ctx.skip('UBEAN_SKIP_MINIFLARE=1：显式跳过真机验收');
       return;
     }
+
+    const loadMiniflare = await defaultLoadMiniflare();
+    // 走到这里说明没有显式 opt-out，依赖缺失就是**真失败**：让安装问题暴露出来
+    expect(loadMiniflare, `miniflare 应已在根 devDependencies 中。${MINIFLARE_INSTALL_HINT}`).not.toBeNull();
+    if (!loadMiniflare) return;
 
     const { spawnSync } = await import('node:child_process');
     const repoRoot = resolve(import.meta.dirname, '../../..');
@@ -196,8 +218,7 @@ describe('真实 miniflare：cloudflare 产物（依赖在场时才跑）', () =
     const outDir = '.temp-cf-preview';
     const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
     if (!existsSync(cliEntry)) {
-      ctx.skip('CLI 未构建：先跑 pnpm build');
-      return;
+      throw new Error(`CLI 未构建：${cliEntry} 不存在。测试依赖已构建的 dist，请先跑 pnpm build。`);
     }
 
     const build = spawnSync(process.execPath, [cliEntry, 'build', '--preset', 'cloudflare', '--outDir', outDir], {
@@ -234,13 +255,17 @@ describe('真实 miniflare：cloudflare 产物（依赖在场时才跑）', () =
   }, 300_000);
 });
 
-describe('真实 miniflare（依赖在场时才跑）', () => {
+describe('真实 miniflare', () => {
   it('worker 产物在 miniflare 里真实响应', async ctx => {
-    const loadMiniflare = await defaultLoadMiniflare();
-    if (!loadMiniflare) {
-      ctx.skip(`miniflare 未安装：pnpm add -D miniflare 后本条才会执行（${root}）`);
+    if (process.env.UBEAN_SKIP_MINIFLARE === '1') {
+      warnMiniflareSkipped('worker 产物在 miniflare 里真实响应');
+      ctx.skip('UBEAN_SKIP_MINIFLARE=1：显式跳过真机验收');
       return;
     }
+
+    const loadMiniflare = await defaultLoadMiniflare();
+    expect(loadMiniflare, `miniflare 应已在根 devDependencies 中。${MINIFLARE_INSTALL_HINT}`).not.toBeNull();
+    if (!loadMiniflare) return;
 
     const result = await createCloudflarePreviewRunner({ workerPath, loadMiniflare: async () => loadMiniflare });
     expect(result.ok).toBe(true);

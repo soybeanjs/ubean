@@ -9,6 +9,7 @@
     "dev": "vp dev",
     "preview": "vp preview",
     "test": "vitest run",
+    "test:build": "UBEAN_TEST_MODE=build vitest run",
     "test:watch": "vitest",
     "type-check": "vue-tsc --noEmit --skipLibCheck"
   },

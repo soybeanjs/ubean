@@ -5,9 +5,11 @@
   "scripts": {
     "analyze": "pnpm --filter ubean-test analyze",
     "analyze:check": "pnpm --filter ubean-test analyze:check",
+    "benchmark:fixture": "node scripts/bench-medium-fixture.mjs",
     "benchmark:lifecycle": "node scripts/benchmark-lifecycle.mjs",
     "benchmark:lifecycle:baseline": "node scripts/benchmark-lifecycle.mjs --out examples/ubean-test/benchmarks/perf-baseline.json",
     "benchmark:ssg": "node scripts/benchmark-ssg.mjs",
+    "benchmark:ssr": "node scripts/benchmark-ssr.mjs",
     "build": "pnpm -F './packages/*' --parallel build",
     "build:docs": "pnpm build && pnpm --filter @ubean/docs build",
     "commit": "soy git-commit",
@@ -22,8 +24,10 @@
     "lint:vue": "eslint . --ext .vue",
     "prepare": "vp config --no-hooks --no-agent",
     "release": "soy release",
-    "test": "pnpm -r --parallel test -- --passWithNoTests",
-    "test:watch": "pnpm -r --parallel test:watch -- --passWithNoTests",
+    "test": "pnpm -r test",
+    "test:build": "UBEAN_TEST_MODE=build pnpm --filter ubean-test test",
+    "test:e2e": "vp test",
+    "test:watch": "pnpm -r test:watch",
     "typecheck": "pnpm build && pnpm typecheck-only",
     "typecheck-only": "pnpm -r --parallel typecheck",
     "upkg": "ncu -u -w"
@@ -36,6 +40,7 @@
     "@vitest/browser": "^5.0.3",
     "@vitest/browser-playwright": "^5.0.3",
     "eslint": "^10.12.0",
+    "miniflare": "^4.20250214.0",
     "vite-plus": "catalog:",
     "vitest": "5.0.3"
   },

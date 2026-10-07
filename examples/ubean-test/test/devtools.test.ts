@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { defineDevToolsTab, getCustomTabs, clearCustomTabs } from '@ubean/devtools';
 import { api } from './helper';
+import { perMode } from './mode';
 
 describe('DevTools system', () => {
   beforeEach(() => {
@@ -56,15 +57,14 @@ describe('DevTools system', () => {
   });
 
   describe('HTTP integration - DevTools endpoints', () => {
-    it('/_openapi.json is accessible in dev', async () => {
-      const res = await api('/_openapi.json');
-      expect(res.status).toBe(200);
-    });
+    // TS-33 双轨：这两个端点**只在 dev 暴露**（生产构建里应当 404）。把 dev-only 断言改写成
+    // 「双轨两端的期望值都钉住」，顺带成为一道**生产泄漏守卫** —— 比单边断言更有价值。
+    it('OpenAPI / Scalar 文档端点只在 dev 暴露（build 轨必须 404）', async () => {
+      const openapi = await api('/_openapi.json');
+      expect(openapi.status).toBe(perMode(200, 404));
 
-    it('/_scalar is accessible in dev', async () => {
-      const res = await api('/_scalar');
-      // Scalar UI should return HTML
-      expect(res.status).toBe(200);
+      const scalar = await api('/_scalar');
+      expect(scalar.status).toBe(perMode(200, 404));
     });
 
     it('DevTools RPC endpoint exists', async () => {

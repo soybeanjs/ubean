@@ -1,0 +1,62 @@
+name: Compat
+
+# TS-18：依赖版本兼容矩阵 —— 周期性（nightly）或手动触发，**不进 PR 门禁**。
+#
+# 为什么不进门禁：装一遍 node_modules 很慢，而兼容矩阵的价值在**揭示**「升级会坏在哪」，
+# 不在阻断 merge —— 真正阻断 merge 的是 `pnpm-workspace.yaml` 里钉住的精确版本（那是显式提交，
+# 由 `packages/builder/test/vite-plus-contract.test.ts` 的精确比对守着）。
+#
+# 机制照 Waku 的 `react_version` override 先例：改 `pnpm-workspace.yaml` 的 `overrides`
+# → 重新 install → 跑同一套 L2 → 逐字节还原两份入库文件（`scripts/dep-matrix.mjs`）。
+
+on:
+  schedule:
+    # 每天 18:30 UTC（= 北京时间 02:30），错开 CI 高峰
+    - cron: '30 18 * * *'
+  workflow_dispatch:
+    inputs:
+      dep:
+        description: '要覆盖的依赖轴'
+        required: false
+        default: 'vue'
+      version:
+        description: '目标版本（留空 = 跑该轴的全部版本）'
+        required: false
+        default: ''
+
+concurrency:
+  group: compat-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  compat:
+    name: ${{ matrix.dep }}@${{ matrix.version }}
+    runs-on: ubuntu-latest
+    strategy:
+      # 一格失败不取消其余格 —— 兼容矩阵要的是**完整**的「哪里会坏」图
+      fail-fast: false
+      matrix:
+        # Vue 当前 minor（3.5，`packages/*/package.json` 的 `^3.5.43`）与前一 minor（3.4）
+        # —— 即 TS-18 验收「Vue 当前 minor 与前一 minor 各跑一轮 L2」。
+        # 加 Vite 大版本轴时在这里加 `include:`，并在 `scripts/dep-matrix.mjs` 的 AXES 登记。
+        dep: [vue]
+        version: ['3.5.43', '3.4.38']
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run L2 against ${{ matrix.dep }}@${{ matrix.version }}
+        # 脚本内部会改 overrides → install → 跑 L2 → 逐字节还原两份入库文件并重装，
+        # 所以这里不需要（也不应该）单独跑一遍 restore step。
+        run: node scripts/dep-matrix.mjs --dep ${{ matrix.dep }} --version ${{ matrix.version }}

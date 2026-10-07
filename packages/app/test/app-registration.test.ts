@@ -7,8 +7,12 @@
  *
  * 不引入 supertest/HTTP 集成测（ADR-0002 测试边界）。
  */
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { clearInternalFetcher } from '@ubean/routes';
+import type { ScannedApiRoute } from '@ubean/scan';
 import { clearGlobalHooks } from '../src/hooks';
 import { UbeanApp } from '../src/app';
 import type { UbeanAppPlugin } from '../src/app';
@@ -27,6 +31,50 @@ function registeredPaths(app: UbeanApp): { method: string; path: string }[] {
 
 function hasRoute(app: UbeanApp, method: string, path: string): boolean {
   return registeredPaths(app).some(r => r.method === method && r.path === path);
+}
+
+/**
+ * TS-08：携带注册序号与 handler 引用的条目视图。
+ *
+ * `registeredPaths` 只保留 (method, path)，无法表达**注册顺序**与**条目身份**；
+ * 而 `app.hono.routes` 的顺序就是 Hono 的匹配顺序，顺序本身是被测契约
+ * （static 中间件必须先于用户路由，否则预渲染 HTML 会被 SSR 处理器抢走）。
+ *
+ * 注意：内部中间件以 `ALL /*` 且 `handler.name === ''` 出现，**不能按名字识别**，
+ * 只能按 handler 引用身份区分（见 `_setupBaseMiddleware` 与 `init()` 的注册点）。
+ */
+interface RegisteredEntry {
+  index: number;
+  method: string;
+  path: string;
+  handler: unknown;
+}
+
+function registeredEntries(app: UbeanApp): RegisteredEntry[] {
+  return (app.hono.routes as Array<{ method: string; path: string; handler: unknown }>).map((r, index) => ({
+    index,
+    method: r.method,
+    path: r.path,
+    handler: r.handler
+  }));
+}
+
+/**
+ * 去重后的 API 路由方法集：`path → 已注册方法列表`。
+ *
+ * `registerApiRoutes` 每个 (method, path) 会压入 **3 个条目**
+ * （`metaMiddleware` → `matcherMiddleware` → `handlerWrapper`），
+ * 所以「方法集」必须按 (method, path) 去重，不能数原始条目数。
+ */
+function apiMethodSets(app: UbeanApp): Record<string, string[]> {
+  const sets = new Map<string, Set<string>>();
+  for (const entry of registeredEntries(app)) {
+    if (entry.method === 'ALL' || !entry.path.startsWith('/api/')) continue;
+    const set = sets.get(entry.path) ?? new Set<string>();
+    set.add(entry.method);
+    sets.set(entry.path, set);
+  }
+  return Object.fromEntries([...sets].map(([path, set]) => [path, [...set].sort()]));
 }
 
 beforeEach(() => {
@@ -353,6 +401,95 @@ describe('UbeanApp 路由方法链式调用', () => {
     app.on(['GET', 'POST'], '/multi', c => c.text('m'));
     expect(hasRoute(app, 'GET', '/multi')).toBe(true);
     expect(hasRoute(app, 'POST', '/multi')).toBe(true);
+  });
+});
+
+describe('TS-08 路由栈内省 — 顺序与内容', () => {
+  const PKG_ROOT = fileURLToPath(new URL('..', import.meta.url));
+  const EXAMPLE_API_DIR = join(PKG_ROOT, '..', '..', 'examples', 'ubean-test', 'src', 'routes', 'api');
+  const DECLARED_METHOD_RE = /^export\s+const\s+(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)\b/gm;
+  const noop = (): Response => new Response('x');
+
+  function declaredMethodsOf(relativePath: string): string[] {
+    const source = readFileSync(join(EXAMPLE_API_DIR, relativePath), 'utf8');
+    const methods = [...source.matchAll(DECLARED_METHOD_RE)].map(match => match[1]);
+    return [...new Set(methods)].sort();
+  }
+
+  function apiRouteFixtures(urlPath: string, relativePath: string, methods: string[]): ScannedApiRoute[] {
+    return methods.map(method => ({
+      route: urlPath,
+      method,
+      relativePath,
+      fullPath: join(EXAMPLE_API_DIR, relativePath),
+      dirname: 'routes/api',
+      basename: relativePath.split('/').pop() as string,
+      exports: methods,
+      hasMeta: false
+    }));
+  }
+
+  function loaderFor(methods: string[]): () => Promise<Record<string, () => Response>> {
+    return async () => Object.fromEntries(methods.map(method => [method, noop]));
+  }
+
+  const SAMPLES = [
+    { urlPath: '/api/hello', relativePath: 'hello.ts' },
+    { urlPath: '/api/cookies', relativePath: 'cookies.ts' },
+    { urlPath: '/api/users', relativePath: 'users/index.ts' }
+  ];
+
+  it('抽样：注册方法集与源码声明一致', async () => {
+    const declared = SAMPLES.map(sample => ({ ...sample, methods: declaredMethodsOf(sample.relativePath) }));
+
+    // 抽样前提：每个样本都真的解析出声明，否则断言会空转通过。
+    for (const sample of declared) {
+      expect(sample.methods.length, `${sample.relativePath} 未解析出方法声明`).toBeGreaterThan(0);
+    }
+
+    const app = new UbeanApp({
+      routes: declared.flatMap(sample => apiRouteFixtures(sample.urlPath, sample.relativePath, sample.methods)),
+      routeLoaders: Object.fromEntries(declared.map(sample => [sample.relativePath, loaderFor(sample.methods)]))
+    });
+    await app.init();
+
+    const registered = apiMethodSets(app);
+    for (const sample of declared) {
+      expect(registered[sample.urlPath], `${sample.urlPath} 注册方法集`).toEqual(sample.methods);
+    }
+  });
+
+  it('方法集是声明与模块导出的交集：缺失导出被静默丢弃', async () => {
+    // 声明 GET+POST，模块只导出 GET，POST 不应进入路由栈。
+    const app = new UbeanApp({
+      routes: apiRouteFixtures('/api/partial', 'hello.ts', ['GET', 'POST']),
+      routeLoaders: { 'hello.ts': loaderFor(['GET']) }
+    });
+    await app.init();
+
+    expect(apiMethodSets(app)['/api/partial']).toEqual(['GET']);
+  });
+
+  it('static 中间件先于用户路由注册', async () => {
+    const app = new UbeanApp({
+      publicDir: 'src',
+      rootDir: PKG_ROOT,
+      routes: apiRouteFixtures('/api/hello', 'hello.ts', ['GET']),
+      routeLoaders: { 'hello.ts': loaderFor(['GET']) }
+    });
+
+    // 构造器只挂基础中间件；init() 才挂 static + 用户路由。
+    // 用 init 前条目数当分界线，避免把内部中间件条数写死。
+    const ctorCount = registeredEntries(app).length;
+    await app.init();
+
+    const added = registeredEntries(app).filter(entry => entry.index >= ctorCount);
+    const staticEntry = added.find(entry => entry.method === 'ALL' && entry.path === '/*');
+    const firstUserRoute = added.find(entry => entry.path.startsWith('/api/'));
+
+    expect(staticEntry, 'init() 未挂载 static 中间件').toBeDefined();
+    expect(firstUserRoute, 'init() 未挂载用户路由').toBeDefined();
+    expect(staticEntry!.index).toBeLessThan(firstUserRoute!.index);
   });
 });
 

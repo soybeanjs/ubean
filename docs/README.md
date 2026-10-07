@@ -13,6 +13,8 @@
 | 文档 | 说明 |
 | --- | --- |
 | [roadmap.md](roadmap.md) | 已收口能力清单、刻意不做与后续入口（口径见 [ADR-0010](adr/0010-competitive-north-star-and-gap-filter.md)） |
+| [test.md](test.md) | 全栈元框架的功能测试方案与任务清单（TS-01–TS-37）：§5 任务明细、§6 配置覆盖矩阵、§8 验收台账 |
+| [test-e2e-migration.md](test-e2e-migration.md) | `examples/ubean-test` 用例向 E2E 迁移的可行性分析（TS-34–TS-37 的输入） |
 | [perf-regression-net.md](perf-regression-net.md) | 性能度量口径、基线与体积闸门（RM-P01–P08 已落地；绝对上限待接线） |
 
 > 行内任务清单全部 ✅ 后，按政策删除正文：决策归 ADR，词汇归 glossary，历史归 git。

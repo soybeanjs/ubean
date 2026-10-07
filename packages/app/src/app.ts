@@ -37,7 +37,15 @@ import {
 } from '@ubean/server/security';
 import type { CsrfOptions, SecurityHeadersOptions } from '@ubean/server/security';
 import { errorToResponse, isNodeRuntime, isUbeanError, UbeanError } from '@ubean/shared';
-import type { RouteRule, UbeanEnv, RouteMeta, UbeanMiddleware, ComposedHandler, ActionContext } from '@ubean/shared';
+import type {
+  RouteRule,
+  UbeanEnv,
+  RouteMeta,
+  UbeanMiddleware,
+  UbeanMiddlewareStep,
+  ComposedHandler,
+  ActionContext
+} from '@ubean/shared';
 import { Hono } from 'hono';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { requestId } from 'hono/request-id';
@@ -219,6 +227,40 @@ function resolveToggle<T extends object>(value: boolean | T | undefined, default
   return value;
 }
 
+/**
+ * TS-07：把中间件链的每一步按**注册/执行顺序**记进请求级变量。
+ *
+ * 顺序是结构性事实 —— `docs/test.md` §5 TS-07 用一张 13 步表把它固定下来，改动注册顺序即破坏
+ * 契约。记录值只用于可观测性断言（`GET /_health` 回读），不参与任何请求处理逻辑。
+ */
+function markMiddlewareStep(c: Context<UbeanEnv>, step: UbeanMiddlewareStep): void {
+  const recorded = c.get('__ubean_mw_order__');
+  c.set('__ubean_mw_order__', recorded ? [...recorded, step] : [step]);
+}
+
+/** 给中间件套一层「记录步骤名」外壳；注册顺序与不套壳时完全一致。 */
+function withStep(step: UbeanMiddlewareStep, handler: MiddlewareHandler<UbeanEnv>): MiddlewareHandler<UbeanEnv> {
+  return async (c: Context<UbeanEnv>, next: Next) => {
+    markMiddlewareStep(c, step);
+    // 必须转发返回值：短路型中间件（缓存命中 / i18n 重定向 / CSRF 拒绝）靠 `return Response`
+    // 结束请求而不写 `c.res`；丢弃返回值会让 Hono 判定 `Context is not finalized` 并返回 500。
+    return handler(c, next);
+  };
+}
+
+/**
+ * TS-07：链上存在「不是中间件、但有固定位置」的步骤（如 ⑦ cacheStore 初始化）。
+ *
+ * 为了让 13 步全序可观测，这里在该位置插一个**纯记录、纯透传**的空壳：它不读不写请求、
+ * 不改响应，只把步骤名按注册位置记进请求级序列。
+ */
+function recordOnlyStep(step: UbeanMiddlewareStep): MiddlewareHandler<UbeanEnv> {
+  return async (c: Context<UbeanEnv>, next: Next) => {
+    markMiddlewareStep(c, step);
+    return next();
+  };
+}
+
 export interface UbeanAppPlugin {
   name: string;
   /** Called after app is created but before routes are registered */
@@ -256,6 +298,13 @@ export class UbeanApp {
   }
 
   private _setupBaseMiddleware(): void {
+    // TS-07：本方法就是「13 步中间件链」的唯一事实来源 —— 注册顺序即契约，见 `docs/test.md` §5 TS-07。
+    // 每个中间件按注册顺序包一层 `withStep()`，把步骤名写进请求级 `__ubean_mw_order__`；非中间件的
+    // 两步（⑦ cacheStore 初始化、⑬ /_health）在各自位置单独打点。
+    // ① handle ② requestId ③ actionContext ④ securityHeaders ⑤ csrf ⑥ dataCache ⑦ cacheStore
+    // ⑧ i18n ⑨ routeRules ⑩ routeCache ⑪ websocket ⑫ lifecycle ⑬ healthEndpoint
+    // 被配置关闭的步骤整段不注册，于是在序列里整段缺席（TS-07 验收③）。
+    //
     // P9-09: Global `handle` hook — registered FIRST so it wraps everything
     // (all middleware, routes, 404, and error responses). The hook is stored
     // in a global registry set by `applyServerConfig`. If no `handle` hook
@@ -263,25 +312,31 @@ export class UbeanApp {
     // proceeds normally via `next()`. When a `handle` hook IS registered,
     // it owns the response (it must call `resolve` to invoke downstream
     // handlers, or return its own Response to short-circuit).
-    this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
-      const handled = await applyHandleHook(c, next);
-      if (!handled) {
-        // No global `handle` hook — proceed with normal middleware chain
-        await next();
-      }
-    });
+    this.hono.use(
+      '*',
+      withStep('handle', async (c: Context<UbeanEnv>, next: Next) => {
+        const handled = await applyHandleHook(c, next);
+        if (!handled) {
+          // No global `handle` hook — proceed with normal middleware chain
+          await next();
+        }
+      })
+    );
 
-    this.hono.use('*', requestId());
+    this.hono.use('*', withStep('requestId', requestId()));
 
-    this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
-      await actionContextAls.run(buildActionContext(c), () => next());
-    });
+    this.hono.use(
+      '*',
+      withStep('actionContext', async (c: Context<UbeanEnv>, next: Next) => {
+        await actionContextAls.run(buildActionContext(c), () => next());
+      })
+    );
 
     const securityHeaders = resolveToggle(this.options.securityHeaders, true);
     if (securityHeaders !== false) {
       // 深合并:用户只覆盖单个 CSP 指令时(如 connect-src),其余指令保持框架默认
       const mergedSecurity = mergeSecurityHeadersOptions(DEFAULT_SECURITY_HEADERS, securityHeaders);
-      this.hono.use('*', createSecurityHeadersMiddleware(mergedSecurity));
+      this.hono.use('*', withStep('securityHeaders', createSecurityHeadersMiddleware(mergedSecurity)));
 
       // 框架内置的 Scalar 文档页从 CDN 取脚本；生效 CSP 未必允许它（默认 `script-src 'self'`
       // 就挡住了，表现为 DevTools 的 API Docs 面板整页空白）。这里算出该页专用的一份。
@@ -295,17 +350,20 @@ export class UbeanApp {
     if (csrf !== false) {
       this.hono.use(
         '*',
-        createCsrfMiddleware({
-          mode: 'origin',
-          ...csrf,
-          exclude: [...DEFAULT_CSRF_EXCLUDE, ...(csrf.exclude ?? [])]
-        })
+        withStep(
+          'csrf',
+          createCsrfMiddleware({
+            mode: 'origin',
+            ...csrf,
+            exclude: [...DEFAULT_CSRF_EXCLUDE, ...(csrf.exclude ?? [])]
+          })
+        )
       );
     }
 
     const dataCache = resolveToggle(this.options.dataCache, true);
     if (dataCache !== false) {
-      this.hono.use('*', createDataCacheMiddleware(dataCache));
+      this.hono.use('*', withStep('dataCache', createDataCacheMiddleware(dataCache)));
     }
 
     if (this.options.cacheStore) {
@@ -317,6 +375,11 @@ export class UbeanApp {
       const fsDir = this.options.cache.dir || '.ubean/cache';
       useCacheStore(createLazyCacheStore(() => loadFsCacheStore(fsDir)));
     }
+    // ⑦ cacheStore 初始化本身不是中间件（构造期同步执行），此处在同一位置插纯记录空壳，
+    // 让 13 步全序在请求期可观测。仅在真的初始化了 store 时登记。
+    if (this.options.cacheStore || this.options.cache?.store === 'fs') {
+      this.hono.use('*', recordOnlyStep('cacheStore'));
+    }
 
     const i18nCfg = this.options.i18nConfig;
     const i18nEnabled = i18nCfg?.enabled !== false && (i18nCfg?.locales?.length ?? 0) > 0;
@@ -324,22 +387,28 @@ export class UbeanApp {
       const locales = (i18nCfg.locales || []).map(l => (typeof l === 'string' ? l : l.code));
       this.hono.use(
         '*',
-        createI18nMiddleware({
-          defaultLocale: i18nCfg.defaultLocale || 'en',
-          locales,
-          strategy: i18nCfg.strategy || 'prefix_except_default',
-          detectBrowserLanguage: i18nCfg.detectBrowserLanguage,
-          loadMessages: (locale, fallback) => ensureLocaleMessages(locale, fallback)
-        })
+        withStep(
+          'i18n',
+          createI18nMiddleware({
+            defaultLocale: i18nCfg.defaultLocale || 'en',
+            locales,
+            strategy: i18nCfg.strategy || 'prefix_except_default',
+            detectBrowserLanguage: i18nCfg.detectBrowserLanguage,
+            loadMessages: (locale, fallback) => ensureLocaleMessages(locale, fallback)
+          })
+        )
       );
     }
 
     if (this.options.routeRules && Object.keys(this.options.routeRules).length > 0) {
       this.hono.use(
         '*',
-        createRouteRulesMiddleware(this.options.routeRules, {
-          dispatch: req => Promise.resolve(this.hono.fetch(req))
-        })
+        withStep(
+          'routeRules',
+          createRouteRulesMiddleware(this.options.routeRules, {
+            dispatch: req => Promise.resolve(this.hono.fetch(req))
+          })
+        )
       );
       const cacheRules = resolveRouteCacheRules(this.options.routeRules);
       // P9-03: 总是初始化全局 cacheStore(即使无 cache 规则),供 ISR 使用。
@@ -350,32 +419,36 @@ export class UbeanApp {
           useCacheStore(createMemoryStore());
         }
         if (Object.keys(cacheRules).length > 0) {
-          this.hono.use('*', createCacheMiddleware({ rules: cacheRules }));
+          this.hono.use('*', withStep('routeCache', createCacheMiddleware({ rules: cacheRules })));
         }
       }
     }
 
-    this.hono.use('*', createWebSocketMiddleware());
+    this.hono.use('*', withStep('websocket', createWebSocketMiddleware()));
 
-    this.hono.use('*', async (c: Context<UbeanEnv>, next: Next) => {
-      c.set('route', {
-        meta: { requiresAuth: true } as RouteMeta,
-        path: c.req.path,
-        method: c.req.method
-      });
-      await this.hooks.callHook('request:start', c);
-      try {
-        await next();
-        await this.hooks.callHook('request:end', c, c.res as Response);
-      } catch (err) {
-        await this.hooks.callHook('request:error', c, err as Error);
-        throw err;
-      }
-    });
+    this.hono.use(
+      '*',
+      withStep('lifecycle', async (c: Context<UbeanEnv>, next: Next) => {
+        c.set('route', {
+          meta: { requiresAuth: true } as RouteMeta,
+          path: c.req.path,
+          method: c.req.method
+        });
+        await this.hooks.callHook('request:start', c);
+        try {
+          await next();
+          await this.hooks.callHook('request:end', c, c.res as Response);
+        } catch (err) {
+          await this.hooks.callHook('request:error', c, err as Error);
+          throw err;
+        }
+      })
+    );
 
     if (this.options.healthEndpoint !== false) {
+      this.hono.use('*', recordOnlyStep('healthEndpoint'));
       this.hono.get('/_health', (c: Context<UbeanEnv>) => {
-        return c.json({ status: 'ok', timestamp: Date.now() });
+        return c.json({ status: 'ok', timestamp: Date.now(), mwOrder: c.get('__ubean_mw_order__') ?? [] });
       });
     }
   }

@@ -16,8 +16,28 @@ concurrency:
 
 jobs:
   ci:
-    name: Typecheck / Lint / Test
-    runs-on: ubuntu-latest
+    name: ${{ matrix.os }} / Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    # TS-13：OS × Node 矩阵。
+    strategy:
+      # fail-fast: false 是必需的：默认行为下某一格失败会**取消**其余格，于是你既看不到
+      # Windows 到底挂在哪一条断言，也不知道 ubuntu 是否本来就绿 —— 矩阵的价值在于一次拿到
+      # 完整的平台×版本图，而不是第一个红灯。
+      fail-fast: false
+      matrix:
+        # 轴选择理由：
+        # · os —— ubuntu 是主平台；windows 补的正是本任务要消灭的盲区：路径分隔符、CRLF、
+        #   `fs.watch` 语义（HMR / rescan 都依赖它）在 ubuntu 上完全不可见。
+        #   刻意**不加 macos**：runner 单价约 10×，而本仓没有 darwin 专属代码路径。
+        # · node —— 22 = 当前支持的最老 LTS；24 = 当前 LTS，也是本地开发版本（v24.21.0）。
+        #   本仓 `engines` 未声明，故下限以 pnpm 12 的要求（Node ≥ 18）与 LTS 口径取 22。
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+        # 刻意**不写 exclude**：这 4 格都能跑 L1（`packages/*` 单测）+ L4（构建产物契约 ——
+        # 断言就在 `packages/cli/test/build-contracts.test.ts` 与 `packages/builder/test/**`，
+        # 属于 `pnpm test` 的一部分）。平台/成本专属的步骤（浏览器 E2E、体积门禁、文档站构建、
+        # 仓库护栏脚本）用 `if: runner.os == 'ubuntu-latest'` 门控，而不是用 exclude 缩小矩阵 ——
+        # exclude 会让「这一格从来没跑过」变成不可见的缺口（`docs/test.md` §1.3 纪律①）。
     steps:
       - uses: actions/checkout@v6
 
@@ -27,34 +47,97 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: lts/*
+          node-version: ${{ matrix.node }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # chromium 在**每一格**都要装，不只是 ubuntu：`packages/cli/test/dev-dx.test.ts` 属于 L1，
+      # 它会在真实浏览器里走查交互（语言切换 / matcher / Server Action / HMR 整页重载）。
+      # runner 镜像里没有浏览器二进制，缺了就只会看到一个 suite 级错误（10 条用例显示成 skipped），
+      # 极易被误读成「跳过而非失败」。
       - name: Cache Playwright browsers
         uses: actions/cache@v6
         with:
-          # dev-dx.test.ts 在真实浏览器里走查（语言切换 / matcher / Server Action / PPR / 服务端岛屿 /
-          # 延迟数据）。runner 镜像里没有浏览器二进制，必须显式下载 —— 只装 chromium，那是这套用例
-          # 唯一用到的浏览器。缓存键跟着 lockfile 走：playwright 版本由它钉住，升级会自动换键。
-          path: ~/.cache/ms-playwright
+          # 不显式设 PLAYWRIGHT_BROWSERS_PATH，让 CI 与**本地开发**共用同一个默认位置 ——
+          # 若在这里把浏览器装到别的地方，本地通过、CI 失败的差异就不可复现了。
+          # 代价是默认位置按平台不同：ubuntu 是 `~/.cache/ms-playwright`，
+          # Windows 是 `%LOCALAPPDATA%\ms-playwright`（即 `~/AppData/Local/ms-playwright`）。
+          path: ${{ runner.os == 'Windows' && '~/AppData/Local/ms-playwright' || '~/.cache/ms-playwright' }}
+          # 缓存键只按 OS + lockfile 分离，**不**含 `matrix.node`：浏览器版本由 lockfile 里的
+          # playwright 钉住，与 Node 版本无关。两个 Node 格并发写同一个 key 时，后到的那次保存
+          # 会被 actions/cache 判为「已存在」而跳过 —— 是无害的空操作，好过缓存体积翻倍。
           key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
 
       - name: Install Playwright browsers
+        # `--with-deps` 只在 Linux 上真的装系统依赖，Windows 上是空操作，故可以无条件写。
         run: pnpm exec playwright install --with-deps chromium
 
       - name: Type check
+        # `pnpm typecheck` = `pnpm build && pnpm typecheck-only`：它同时是**唯一的全量构建步骤**，
+        # 后续 `pnpm test` 依赖各包 `dist/`（`pnpm test` 自己**不**构建，曾经的假失败根因）。
         run: pnpm typecheck
 
       - name: Lint
         run: pnpm lint
 
       - name: Test
+        # L1（`packages/*/test`，含 L4 的构建产物契约）+ L2（`examples/ubean-test`，dev 轨）。
         run: pnpm test
 
+      - name: Test (build track)
+        # TS-33：上一 step 是 **dev 轨**（`pnpm test` 内部跑 `ubean dev`）。这一步用**同一套断言族**
+        # 再跑一遍**生产构建**（`ubean build --outDir .temp-build` + `ubean preview`）。
+        #
+        # 为什么要两轨：ubean 的既有口径默认只测 dev，与主流**相反**（Nuxt e2e 默认 `build=true`；
+        # SvelteKit 用 `DEV=true` 跑两遍）。而 dev 与生产构建走的是两条不同代码路径 —— 实测两轨之间
+        # 有 4 类真实差异（OpenAPI 端点只在 dev 注册、`cacheStore` 中间件步只在生产 fs 后端下打点、
+        # 数据缓存按 NODE_ENV 开关），历次「dev 绿、build 坏」的漏检正是这个形态。
+        #
+        # 只跑示例的 L2 套件（17s + 一次构建），不重复整套 `pnpm test`。
+        run: pnpm test:build
+
+      # ----------------------------------------------------------------------
+      # 以下步骤只在 ubuntu 上跑。它们要么与平台无关（体积/类型/文档/仓库护栏），
+      # 要么成本高且已在 ubuntu 覆盖（浏览器 E2E）。放在 `if` 里而不是靠 matrix.exclude 裁剪，
+      # 是为了让「Windows 格少跑了什么」在 workflow 里一眼可见。
+      # ----------------------------------------------------------------------
+
+      - name: Browser E2E (Playwright)
+        # TS-32：根 vite.config.ts 早就配好了浏览器模式，test/browser/ 下 12 个 spec /
+        # 201 条用例也早已写完，但既没有 npm script 也没有 CI step —— 孤儿测试，从未跑过。
+        # 本 step 不新增任何测试，只做接线（因此是全部任务里性价比最高的一项）。
+        #
+        # 必须在**仓库根**执行：只有根 vite.config.ts 的 `include` 命中
+        # `test/browser/**/*.e2e.spec.ts`，global-setup 会拉起 ubean-test 的 dev server
+        # 到 :3998 并预热 20 条路径。
+        #
+        # TS-13：刻意只在 ubuntu 跑 —— 浏览器 E2E 的 201 条断言验的是**交互语义**，与宿主 OS
+        # 无关（要补的是「从没跑过」，不是「在哪个 OS 跑」）；而 L1 里的 dev-dx 走查已在两平台跑，
+        # Windows 的浏览器路径已经有人守。Windows 上加一份会让矩阵时间翻倍而边际信息接近零。
+        if: runner.os == 'ubuntu-latest'
+        run: pnpm test:e2e
+
+      - name: Upload Playwright traces
+        # 失败时把 trace 上传，否则「红了但不知道为什么」只能靠猜。用 if: failure() 避免
+        # 成功路径也产生 artifact 噪声。
+        #
+        # path 必须收窄到 `**/*.trace.zip`：Playwright 的 tracing 会在 tracesDir 里先铺开
+        # 原始中间产物（.trace/.network/.jpeg/.jsonl/screencast/…），zip 打包后并不清理它们。
+        # 实测一次失败运行会留下 604M / 3427 个文件，而真正的 trace.zip 只有 804K ——
+        # 若按目录上传，artifact 体积会膨胀约 750 倍且几乎全是噪声。
+        if: failure() && runner.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: test-results/**/*.trace.zip
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Client JS budget
+        # 体积门禁与宿主 OS 无关（产物是同一份 JS），故只在 ubuntu 跑。
+        if: runner.os == 'ubuntu-latest'
         run: |
           pnpm --filter ubean-test build
           pnpm --filter ubean-test analyze:check
@@ -67,6 +150,9 @@ jobs:
         # 它依赖 `.ubean/*` 生成物，其中 `openapi.d.ts` 也只能由构建产出（构建期用进程内请求取 spec；
         # 此前只有 `ubean dev` 会生成它）。这里显式构建一次，让这一步自成一体 —— 不依赖前面步骤的
         # 产物顺序，单独挪动/复跑都成立。
+        #
+        # TS-13：与 OS 无关，只在 ubuntu 跑。
+        if: runner.os == 'ubuntu-latest'
         run: |
           pnpm --filter ubean-test build
           pnpm --filter ubean-test type-check
@@ -77,11 +163,16 @@ jobs:
         # 取不到 ui 主题上下文 → 0 路由）在 CI 就暴露，而不是等部署后才发现。
         #
         # build:api 依赖 packages/*/dist/*.d.ts，由上一步的 `pnpm typecheck`(内含 pnpm build) 产出。
+        #
+        # TS-13：与 OS 无关，只在 ubuntu 跑。
+        if: runner.os == 'ubuntu-latest'
         run: pnpm --filter @ubean/docs build
 
       - name: Verify package tree & extension contract
         # OPT-09 + OPT-07：护栏脚本——AGENTS.md 包名/包数与 packages/*/package.json 一致，
         # engineering.md 契约表覆盖全部派生扩展包。详见 scripts/verify-packages.mjs。
+        # TS-13：只读仓库文本，与 OS 无关。
+        if: runner.os == 'ubuntu-latest'
         run: node scripts/verify-packages.mjs
 
       - name: Check docs i18n
@@ -94,4 +185,33 @@ jobs:
         #
         # 判定「什么算漂移」用的是 zh frontmatter 里的 translatedFrom 源哈希 +
         # sections 分节指纹，两者由 `node scripts/i18n-stamp.mjs` 维护。
+        # TS-13：只读仓库文本，与 OS 无关。
+        if: runner.os == 'ubuntu-latest'
         run: node scripts/i18n-check.mjs
+
+  # TS-05：聚合门禁。此前分支保护直接挂在 `ci` 上 —— 每加/删一个 step、矩阵格（TS-13）
+  # 都要同步改分支保护规则，漏改就等于放行。这个 job 只做一件事：把所有
+  # 需要阻断 merge 的 job 收进 `needs`，任一非 success 就红。分支保护从此只需挂
+  # `ci-ok` 一个 check。
+  #
+  # TS-13：`ci` 现在是矩阵 job，`needs: [ci]` **天然等待全部格**（GitHub 对矩阵 job 的
+  # `needs` 语义是「所有格都结束」，且 `needs.ci.result` 是各格的聚合结论）——所以矩阵化
+  # 不需要改这里，也就没有「新加的格忘了挂门禁」这类漏改空间。
+  #
+  # `if: always()` 是必需的：默认行为下 needs 里的 job 失败会让本 job 直接 skipped，
+  # 而 skipped 在 GitHub 上不算失败，门禁就形同虚设。配合 `always()` 后本 job 一定
+  # 会跑，再由下面的显式判断把失败翻译成非零退出。
+  ci-ok:
+    name: ci-ok
+    needs: [ci]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify all required jobs succeeded
+        run: |
+          echo '${{ toJSON(needs) }}'
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}" = "true" ]; then
+            echo "::error::One or more required jobs did not succeed."
+            exit 1
+          fi
+          echo "All required jobs succeeded."

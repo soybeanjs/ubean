@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { beforeAll, describe, it, expect } from 'vitest';
 import type { RouteRule, UbeanContext } from 'ubean';
 import { compileRouteRules, matchRouteRules, createRouteRulesMiddleware } from 'ubean/server';
-import { getJson, api } from './helper';
+import { getJson, api, requireDevServer } from './helper';
+
+beforeAll(requireDevServer);
 
 describe('Route rules system', () => {
   describe('compileRouteRules()', () => {
@@ -164,26 +166,50 @@ describe('Route rules system', () => {
     });
   });
 
-  // HTTP integration tests — skipped when the dev server is not running
-  // (e.g. when the IDE Vitest extension evaluates the file without global-setup)
+  // HTTP 集成测试：本文件声明依赖真实 dev server（与其它 35 个文件语义一致）。
+  // 不再用 ctx.skip()——静默跳过会让「global-setup 没跑」伪装成绿灯。
   describe('HTTP integration - /api/route-rules-test', () => {
-    it('returns route rules info', async ctx => {
-      if (!process.env.UBEAN_TEST_BASE_URL) {
-        ctx.skip();
-        return;
-      }
+    it('returns route rules info', async () => {
       const res = await getJson('/api/route-rules-test');
       expect(res.status).toBe(200);
+
+      const data = res.data as {
+        action: string;
+        testPath: string;
+        matched: { cache?: unknown; headers?: Record<string, string>; redirect?: unknown } | null;
+        availableRules: string[];
+        ruleCount: number;
+      };
+      expect(data.action).toBe('route-rules-test');
+      // 默认探测路径 /api/cached/items 命中第一条规则
+      expect(data.testPath).toBe('/api/cached/items');
+      expect(data.ruleCount).toBe(3);
+      expect(data.availableRules).toEqual(
+        expect.arrayContaining(['/api/cached/**', '/api/secure/**', '/api/redirect-old/**'])
+      );
+      expect(data.matched).not.toBeNull();
+      expect(data.matched?.cache).toEqual({ ttl: 60, swr: true });
+      expect(data.matched?.headers).toEqual({ 'X-Cache-Rule': 'enabled' });
+
+      // 命中不同规则时返回该规则自身的 headers，且不泄漏其它规则的字段
+      const secure = await api('/api/route-rules-test?path=/api/secure/data');
+      expect(secure.status).toBe(200);
+      const secureData = secure.data as {
+        matched: { headers?: Record<string, string>; cache?: unknown } | null;
+      };
+      expect(secureData.matched?.headers).toEqual({ 'X-Security-Rule': 'enforced' });
+      expect(secureData.matched?.cache).toBeUndefined();
     });
 
-    it('route rules apply headers', async ctx => {
-      if (!process.env.UBEAN_TEST_BASE_URL) {
-        ctx.skip();
-        return;
-      }
-      const res = await api('/api/route-rules-test');
-      // Headers may be set by route rules
+    it('不匹配的路径必须返回 matched: null（负向断言）', async () => {
+      // 这是原先 ctx.skip() 想表达的「条件不满足」分支：不留静默出口，
+      // 而是直接断言「不该匹配时确实没有匹配」——否则规则匹配退化成恒真也没人发现。
+      const res = await api('/api/route-rules-test?path=/api/nonexistent/thing');
       expect(res.status).toBe(200);
+
+      const data = res.data as { testPath: string; matched: unknown };
+      expect(data.testPath).toBe('/api/nonexistent/thing');
+      expect(data.matched).toBeNull();
     });
   });
 });

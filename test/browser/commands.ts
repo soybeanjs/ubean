@@ -80,17 +80,58 @@ export const e2eClick = defineBrowserCommand(async (ctx, selector: string) => {
   return true;
 });
 
-/** Click and wait for navigation to settle (handles both SPA and full reloads). */
+/**
+ * 等待 DOM 稳定下来(在 `quietMs` 毫秒内没有任何 mutation)。
+ *
+ * 为什么需要:Vue Router 的 SPA 导航**先** `history.pushState` 改 URL,**之后**才
+ * 异步解析并挂载目标页面组件。只等「URL 变了」会在组件挂载前就返回 —— 此时
+ * `document.querySelector('h1')` 读到的仍是**上一个页面**的内容。
+ *
+ * 这正是 `00-poc` / `01-home-navigation` 里「点 /about 后 URL 已是 /about、h1 却还是
+ * 首页文案」的根因:断言 URL 的用例通过,断言内容的用例失败。
+ */
+async function waitForDomQuiet(page: Page, quietWindowMs = 120, hardTimeoutMs = 10000): Promise<void> {
+  await page.evaluate(
+    ({ quietMs, timeout }) =>
+      new Promise<void>(resolve => {
+        const started = Date.now();
+        let timer: ReturnType<typeof setTimeout>;
+        const obs = new MutationObserver(() => {
+          clearTimeout(timer);
+          timer = setTimeout(done, quietMs);
+        });
+        function done() {
+          clearTimeout(timer);
+          clearInterval(hardStop);
+          obs.disconnect();
+          resolve();
+        }
+        obs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true });
+        // 兜底:即使一直有 mutation(动画/时钟)也不能挂死
+        const hardStop = setInterval(() => {
+          if (Date.now() - started >= timeout) done();
+        }, quietMs);
+        timer = setTimeout(done, quietMs);
+      }),
+    { quietMs: quietWindowMs, timeout: hardTimeoutMs }
+  );
+}
+
+/**
+ * Click and wait for navigation to settle (handles both SPA and full reloads).
+ *
+ * 等两件事,缺一不可:
+ *  1. URL 变化 —— SPA 用 `history.pushState`,不会有 network load 事件
+ *  2. DOM 静默 —— 目标页面组件挂载完成(见 `waitForDomQuiet` 注释)
+ */
 export const e2eClickNav = defineBrowserCommand(async (ctx, selector: string) => {
   const page = await getPage(ctx);
   const beforeUrl = page.url();
   await page.locator(selector).first().click();
-  // SPA navigation (Vue Router) updates the URL via history.pushState without a
-  // network load event, so wait for the URL to change. Fall back to networkidle
-  // for full-page navigations.
   await page
     .waitForFunction(prev => location.href !== prev, beforeUrl, { timeout: 10000 })
     .catch(() => page.waitForLoadState('networkidle').catch(() => {}));
+  await waitForDomQuiet(page);
   return { url: page.url(), title: await page.title() };
 });
 
@@ -101,10 +142,17 @@ export const e2eFill = defineBrowserCommand(async (ctx, selector: string, value:
   return true;
 });
 
-/** Get the text content of the first element matching `selector`. */
+/**
+ * Get the text content of the first element matching `selector`.
+ *
+ * 先等元素 attach,再读文本。此前直接 `textContent()` 会在元素还没渲染出来时读到
+ * `null`(或上一个页面的残留),把「尚未渲染」误判成「内容不对」。
+ */
 export const e2eText = defineBrowserCommand(async (ctx, selector: string) => {
   const page = await getPage(ctx);
-  return page.locator(selector).first().textContent();
+  const locator = page.locator(selector).first();
+  await locator.waitFor({ state: 'attached', timeout: 10000 });
+  return locator.textContent();
 });
 
 /** Get innerHTML of the first element matching `selector` (or whole body if omitted). */

@@ -67,6 +67,7 @@
 - **模板漂移（template drift）**：fullstack 与 static 两个 entry 模板各自演化导致水合结构不一致的风险。防法：`buildRendererSetup` / `buildAssetTagsSetup` 提取为共享函数，两变体引用同一份代码。
 - **404 哨兵路由（not-found sentinel）**：`STATIC_NOT_FOUND_ROUTE` 假路由，入队渲染 `pages/404.vue` → `404.html`。
 - **`routeRules.ssr` 三态**：`boolean | 'streaming' | 'data-only'`。`false` 跳过 loader，`'data-only'` 跑 loader 但 HTML 为 CSR shell；优先级 `definePage({ ssr })` > `routeRule.ssr` > 全局 `ssr.exclude` / `SsrOptions.streaming`。
+- **`mode` 优先于 `ssr`**：`ssr` 只在 `mode: 'fullstack'` 下生效。判据是 `packages/builder/src/vite/build-app.ts` 与 `packages/builder/src/production.ts` 里同一行表达式 `ssrEnabled = (mode === 'fullstack' && config.ssr.enabled) || mode === 'ssg'` —— 即 `mode: 'spa'` / `'backend'` 下 `ssr: true` 被**静默忽略**（`spa` 产出静态客户端外壳 `public/index.html`、不产出 `server/entry.mjs`；`ssg` 走构建期渲染、与 `ssr` 开关无关）。所以「开 SSR」必须同时满足 `mode: 'fullstack'`。TS-14 的 `spa + ssr: true` 一格把这个口径钉在测试里。
 - **`ppr`**：`routeRules` 的 `ppr: true` 是**强制流式 SSR + 预渲染发现**的别名（等价 `ssr: 'streaming'`，隐含 `prerender: true`），**不是** Next.js 式静态壳。
   _Avoid_: Partial Prerendering（字面误导：这里没有静态壳）
 

@@ -23,4 +23,9 @@ allowBuilds:
   # vue-demi's postinstall only swaps Vue 2/3 entry points; this workspace is Vue 3 only
   # (it arrives transitively via @vean/ui → @tanstack/vue-store)
   vue-demi: false
+  # workerd's postinstall only resolves/validates the platform binary; that binary already
+  # ships as an optionalDependency (@cloudflare/workerd-darwin-arm64) and runs as-is —
+  # same shape as esbuild above. Needed by miniflare for the real-workerd assertions in
+  # packages/builder/test/cloudflare-preview.test.ts (TS-04).
+  workerd: false
 minimumReleaseAge: 0

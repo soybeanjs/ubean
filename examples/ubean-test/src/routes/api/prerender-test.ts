@@ -15,6 +15,9 @@ import {
 } from 'ubean/build';
 import type { ScannedPageRoute } from 'ubean/build';
 import { defineHandler } from 'ubean/server';
+// normalize：tmpdir() 是原生分隔符（Windows 反斜杠），routeToDataFilePath 返回 posix；
+// 剥离前缀前必须先归一化，否则 replace 不命中，响应里残留绝对路径（Windows CI 回归）。
+import { normalize } from 'pathe';
 
 // Bypass HTTP proxy for localhost requests
 if (process.env.HTTP_PROXY) delete process.env.HTTP_PROXY;
@@ -750,9 +753,9 @@ export const GET = defineHandler(async c => {
 
         return c.json({
           paths: {
-            root: rootPath.replace(tmpDir, ''),
-            about: aboutPath.replace(tmpDir, ''),
-            nested: nestedPath.replace(tmpDir, '')
+            root: rootPath.replace(normalize(tmpDir), ''),
+            about: aboutPath.replace(normalize(tmpDir), ''),
+            nested: nestedPath.replace(normalize(tmpDir), '')
           },
           rootIsIndexHtml: rootPath.endsWith('index.html'),
           aboutHasIndexHtml: aboutPath.endsWith('about/index.html'),
@@ -904,8 +907,8 @@ export const GET = defineHandler(async c => {
           generatedRoutes: result.generated,
           generatedCount: result.generated.length,
           // __data.json written with correct content
-          rootDataPath: rootDataPath.replace(tmpDir, ''),
-          aboutDataPath: aboutDataPath.replace(tmpDir, ''),
+          rootDataPath: rootDataPath.replace(normalize(tmpDir), ''),
+          aboutDataPath: aboutDataPath.replace(normalize(tmpDir), ''),
           rootDataMatches:
             JSON.parse(rootDataRaw).test?.key === undefined &&
             JSON.stringify(JSON.parse(rootDataRaw)) === JSON.stringify(payload),

@@ -40,6 +40,7 @@ import {
   resolveRetries,
   writeFlakyReport
 } from '../../../scripts/flaky.mjs';
+import { withStepSummaryEnv } from './helpers/step-summary-env';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const scriptSource = readFileSync(join(repoRoot, 'scripts/flaky.mjs'), 'utf8');
@@ -290,7 +291,12 @@ describe('TS-25 flaky 报告与待修清单门禁', () => {
       const written = readFileSync(target, 'utf8');
       expect(written, '两次都保留：追加语义').toContain('# flaky');
       expect(written, 'TS-24 的报告不能被覆盖').toContain('# 覆盖率');
-      expect(appendStepSummary('# flaky', undefined), '本地无该环境变量时静默跳过').toBe(false);
+      // 必须真的摘掉环境变量：`appendStepSummary(markdown, file = process.env.GITHUB_STEP_SUMMARY)`
+      // 是默认参数，传 `undefined` 一样落回默认值 —— runner 上该变量存在，于是这里既返回 true
+      // 又往真 step summary 里追加垃圾（CI 实测红过：`本地无该环境变量时静默跳过… expected true to be false`）。
+      withStepSummaryEnv(undefined, () => {
+        expect(appendStepSummary('# flaky'), '本地无该环境变量时静默跳过').toBe(false);
+      });
     } finally {
       rmSync(target, { force: true });
     }

@@ -30,6 +30,7 @@ import {
   TIMED_EXAMPLES,
   VP_TEST_ARGS
 } from '../../../scripts/coverage.mjs';
+import { withStepSummaryEnv } from './helpers/step-summary-env';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const scriptSource = readFileSync(join(repoRoot, 'scripts/coverage.mjs'), 'utf8');
@@ -331,10 +332,21 @@ describe('TS-24 耗时采集与分片决策', () => {
       expect(written, '写的是 markdown 报告本身').toContain('# 报告');
       expect(written, '末尾补换行，避免下一段粘上来').toMatch(/\n$/);
 
-      expect(
-        appendStepSummary('# 报告', undefined),
-        '本地跑（无 GITHUB_STEP_SUMMARY）时静默跳过，诊断步骤不该因此失败'
-      ).toBe(false);
+      // 关键：必须**真的把环境变量摘掉**，不能只传 `undefined`。
+      // `appendStepSummary(markdown, file = process.env.GITHUB_STEP_SUMMARY)` 是默认参数，
+      // 显式传 `undefined` 一样会落回默认值 —— 于是在 GitHub runner 上（该变量真实存在）
+      // 这里返回 true，还会往**真的** step summary 里追加一段垃圾（CI 实测红过一次：
+      // `本地跑（无 GITHUB_STEP_SUMMARY）时静默跳过… expected true to be false`）。
+      withStepSummaryEnv(undefined, () => {
+        expect(appendStepSummary('# 报告'), '本地跑（无 GITHUB_STEP_SUMMARY）时静默跳过，诊断步骤不该因此失败').toBe(
+          false
+        );
+      });
+      // 反向也钉住：变量存在时**确实**走默认路径，否则「摘掉变量」就成了空跑。
+      withStepSummaryEnv(target, () => {
+        expect(appendStepSummary('# 报告'), '默认参数回落到 $GITHUB_STEP_SUMMARY').toBe(true);
+      });
+      expect(readFileSync(target, 'utf8'), '反向用例也写进了同一个文件').toContain('# 报告');
     } finally {
       rmSync(target, { force: true });
     }

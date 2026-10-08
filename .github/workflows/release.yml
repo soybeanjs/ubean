@@ -33,6 +33,21 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
+      # `pnpm test` 会跑 `pnpm -r test`，其中 `packages/cli/test/dev-dx.test.ts` 直接
+      # `chromium.launch()`。Playwright 的浏览器不在 node_modules 里、也不在缓存里，
+      # 缺了它就是 `Executable doesn't exist at /home/runner/.cache/ms-playwright/...`
+      # （2026-10-07 v0.6.1-beta.1 的发布就是这么挂的，而它发生在 publish 之前 一步 ——
+      #  好在门禁把住了，否则是「带着红灯发出去」）。cache key 与 ci.yml 同口径
+      # （不钉 PLAYWRIGHT_BROWSERS_PATH，让本地与 CI 共用默认位置）。
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
       - name: PNPM build
         run: pnpm run build
 

@@ -11,7 +11,7 @@
     "benchmark:ssg": "node scripts/benchmark-ssg.mjs",
     "benchmark:ssr": "node scripts/benchmark-ssr.mjs",
     "benchmark:trend": "node scripts/benchmark-trend.mjs",
-    "build": "pnpm -F './packages/*' --parallel build",
+    "build": "pnpm -F \"./packages/*\" --parallel build",
     "build:docs": "pnpm build && pnpm --filter @ubean/docs build",
     "commit": "soy git-commit",
     "coverage": "node scripts/coverage.mjs",

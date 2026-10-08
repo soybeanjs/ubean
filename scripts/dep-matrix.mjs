@@ -152,6 +152,20 @@ const installedVersion = run(
 );
 console.log(`实际安装 ${dep}: ${installedVersion.out.trim()}`);
 
+// L2 的 globalSetup 跑的是 `node node_modules/ubean/bin/ubean.mjs dev`（examples/ubean-test/test/
+// global-setup.ts），而 `packages/ubean` 在 workspace 里是指向源码的**符号链接**，入口又直接
+// `import '@ubean/cli/cli'` —— 那要 `packages/cli/dist/cli.js` 存在。
+// `dist` 在 .gitignore:12，CI 也不会提交它：兼容矩阵原本没跑任何 build，于是 dev 进程一启动就
+// `ERR_MODULE_NOT_FOUND` 退出，globalSetup 却只能轮询到 180s 超时才抛一句「服务不可达」
+// （2026-10-07 实测：L2 恰好烧了 181s，栈里只有 `initializeGlobalSetup`，看不到子进程的报错）。
+// 装完 override 先构建一次，dist 与被覆盖的依赖版本无关（构建只读源码），还原后无需重建。
+const build = run('构建 packages（为 L2 提供 dist）', 'pnpm', ['-F', './packages/*', '--parallel', 'build'], 900_000);
+if (build.code !== 0) {
+  console.error('构建失败 —— 还原后退出');
+  restore();
+  process.exit(1);
+}
+
 const l2 = run('pnpm --filter ubean-test test  (L2)', 'pnpm', ['--filter', 'ubean-test', 'test'], 900_000);
 console.log(`\n== L2 结果: EXIT=${l2.code} ==`);
 

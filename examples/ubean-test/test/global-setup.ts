@@ -30,15 +30,46 @@ const CLI_PREFIX = ['node_modules/ubean/bin/ubean.mjs'];
 
 let serverProcess: ChildProcess | null = null;
 
+/**
+ * 子进程最近输出的环形缓冲。
+ *
+ * 为什么需要：等服务起来之前，`ubean dev` 一挂（最常见的是 `@ubean/cli/cli` 找不到，
+ * 因为各包的 dist 没构建），我们只能一直轮询到 `waitForServer` 的 180s 超时 ——
+ * 一次失败要烧 3 分钟，且最终抛出的信息只有「服务不可达」。有了它，进程一退出就能立刻
+ * 把**它自己的报错**带进异常信息。
+ */
+const recentOutput: string[] = [];
+
+function record(tag: string, msg: string) {
+  recentOutput.push(`[${tag}] ${msg}`);
+  if (recentOutput.length > 200) recentOutput.shift();
+}
+
+/** 子进程输出的尾部，够看出「为什么启动失败」，又不至于淹没 CI 日志。 */
+function outputTail(lines = 20): string {
+  return recentOutput.slice(-lines).join('\n');
+}
+
 function pipeOutput(child: ChildProcess, tag: string): void {
   child.stdout?.on('data', data => {
     const msg = data.toString().trim();
-    if (msg) console.log(`[${tag}] ${msg}`);
+    if (msg) {
+      record(tag, msg);
+      console.log(`[${tag}] ${msg}`);
+    }
   });
   child.stderr?.on('data', data => {
     const msg = data.toString().trim();
-    if (msg) console.error(`[${tag}] ${msg}`);
+    if (msg) {
+      record(tag, msg);
+      console.error(`[${tag}] ${msg}`);
+    }
   });
+}
+
+/** 子进程是否已经结束（含被信号杀死的情况 —— 那时 `exitCode` 仍是 null）。 */
+function hasExited(child: ChildProcess): boolean {
+  return child.exitCode !== null || child.signalCode !== null;
 }
 
 function spawnCli(args: string[], tag: string, env: NodeJS.ProcessEnv = {}): ChildProcess {
@@ -81,10 +112,17 @@ function waitForExit(child: ChildProcess, timeoutMs: number, label: string): Pro
  * 不接受单一硬编码 host：dev/preview 在不同平台的默认绑定族不同（IPv4 vs IPv6），
  * 只试一个会让「服务其实起来了」变成 ECONNREFUSED 假红。
  */
-async function waitForServer(candidates: string[], timeoutMs = 180000): Promise<string> {
+async function waitForServer(candidates: string[], timeoutMs = 180000, child?: ChildProcess): Promise<string> {
   const start = Date.now();
   let lastError = 'no attempt';
   while (Date.now() - start < timeoutMs) {
+    // 进程已经死了就别再等了：直接把它自己的输出带进异常，省掉剩下的等待时间
+    // （TS-18 的兼容矩阵曾在「dist 没构建」的场景下白烧 3 分钟才报一句「服务不可达」）。
+    if (child && hasExited(child)) {
+      throw new Error(
+        `服务进程已退出（code=${child.exitCode} signal=${child.signalCode}），最后输出：\n${outputTail()}`
+      );
+    }
     for (const candidate of candidates) {
       try {
         const res = await fetch(candidate);
@@ -132,7 +170,7 @@ export async function setup() {
   }
 
   const candidates = [`http://127.0.0.1:${TEST_PORT}${healthPath}`, `http://localhost:${TEST_PORT}${healthPath}`];
-  const healthUrl = await waitForServer(candidates);
+  const healthUrl = await waitForServer(candidates, 180000, serverProcess);
   const baseUrl = healthUrl.slice(0, -healthPath.length);
 
   console.log(`[global-setup] ${TEST_MODE} 轨服务就绪：${baseUrl}（探测命中：${healthUrl}）`);

@@ -1,9 +1,10 @@
 import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { brotliCompressSync, gzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
+// pathe：`findClientManifest` 输出 posix 路径，断言用同样的 join 才不会在 Windows 上因分隔符不一致而失败
+import { join } from 'pathe';
 import { findClientManifest, summarizeBundle, writeBundleBaseline, compareBundleBaseline } from '../src/analyze-lib';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));

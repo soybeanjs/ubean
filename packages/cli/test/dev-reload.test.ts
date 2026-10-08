@@ -22,11 +22,13 @@ import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 // TS-37：端口 / 进程 / 就绪探测收敛到共用 harness（与 L3 的职责边界见该文件头注释）
 import { findFreePort, resolveBaseUrl, stopChild } from './helpers/cli-harness';
+import { resolveVpEntry } from './helpers/vp';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
 const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
-const vpEntry = join(repoRoot, 'node_modules/.bin/vp');
+// 跨平台真实 vp 入口（.bin/vp 是 POSIX-only 的 sh shim，Windows spawn 会 ENOENT）
+const vpEntry = resolveVpEntry(repoRoot);
 const probeFile = join(fixtureDir, 'src/routes/api/perf-probe.ts');
 const probeInitial = "const probeTag = 'initial';";
 
@@ -169,7 +171,8 @@ describe('ubean dev（插件接管的请求路由）', () => {
 describe('vite dev 等价性（无 CLI 的裸命令）', () => {
   const startViteDev = (): Promise<Running> => {
     if (!existsSync(vpEntry)) throw new Error(`${vpEntry} 不存在：仓库根未安装依赖`);
-    return startServer({ command: vpEntry, args: ['dev'], env: {} });
+    // `.bin/vp` 是 sh shim；真入口是纯 JS，用 process.execPath 直跑，POSIX/Windows 通吃
+    return startServer({ command: process.execPath, args: [vpEntry, 'dev'], env: {} });
   };
 
   it('页面 SSR / API / 内置 `_` 路由 / 404 四类请求都由插件服务', async () => {

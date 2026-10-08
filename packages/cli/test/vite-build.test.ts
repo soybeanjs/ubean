@@ -14,10 +14,12 @@ import { spawn } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { resolveVpEntry } from './helpers/vp';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
-const vpEntry = join(repoRoot, 'node_modules/.bin/vp');
+// 跨平台真实 vp 入口（.bin/vp 是 POSIX-only 的 sh shim，Windows spawn 会 ENOENT）
+const vpEntry = resolveVpEntry(repoRoot);
 const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
 
 function run(command: string, args: string[], env: Record<string, string> = {}): Promise<string> {
@@ -78,7 +80,7 @@ describe('vite build（RM-V31：无 CLI 的完整构建）', () => {
     for (const file of ['routes.d.ts', 'pages.d.ts', 'virtual-components.d.ts', 'openapi.d.ts']) {
       rmSync(join(fixtureDir, '.ubean', file), { force: true });
     }
-    await run(vpEntry, ['build'], { NODE_ENV: 'production' });
+    await run(process.execPath, [vpEntry, 'build'], { NODE_ENV: 'production' });
   }, 300_000);
 
   afterAll(async () => {

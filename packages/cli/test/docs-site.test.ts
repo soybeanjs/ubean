@@ -16,8 +16,7 @@
  * ubuntu-only 步骤还在」（`UBUNTU_ONLY_STEPS` 反向断言），这边守「那个步骤跑的东西真的
  * 会产出内容」—— 步骤还在但路由发现退化成 0 条，是 CI 全绿的另一种形态。
  */
-import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -40,8 +39,12 @@ const routes = (await import(docsRoutesModule)) as DocsRoutesModule;
 /** `apps/docs/src/content/<locale>/` 下的 `.md` 数量（含子目录）。 */
 function countMarkdown(dir: string): number {
   if (!existsSync(dir)) return 0;
-  const out = spawnSync('find', [dir, '-name', '*.md', '-type', 'f'], { encoding: 'utf8' });
-  return out.stdout.split('\n').filter(Boolean).length;
+  // 递归计数用 Node 原生 readdir；此前 shell 出 Unix `find`，Windows 的 find.exe 语法不同恒返回 0
+  let count = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true, recursive: true })) {
+    if (entry.isFile() && entry.name.endsWith('.md')) count += 1;
+  }
+  return count;
 }
 
 describe('docs 站点的内容发现（RM-T02）', () => {

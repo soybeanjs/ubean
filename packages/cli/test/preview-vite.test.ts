@@ -18,11 +18,12 @@ import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 // TS-37：端口 / 进程 / 就绪探测收敛到共用 harness
 import { findFreePort, resolveBaseUrl, stopChild } from './helpers/cli-harness';
+import { resolveVpEntry } from './helpers/vp';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
 const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
-const vpEntry = join(repoRoot, 'node_modules/.bin/vp');
+const vpEntry = resolveVpEntry(repoRoot);
 const serverEntry = join(fixtureDir, 'dist/server/entry.mjs');
 
 let child: ChildProcess | null = null;
@@ -49,7 +50,7 @@ beforeAll(async () => {
   await ensureDist();
 
   const port = await findFreePort({ base: 20_000 });
-  const proc = spawn(vpEntry, ['preview', '--port', String(port), '--strictPort'], {
+  const proc = spawn(process.execPath, [vpEntry, 'preview', '--port', String(port), '--strictPort'], {
     cwd: fixtureDir,
     env: { ...process.env },
     stdio: ['ignore', 'pipe', 'pipe']

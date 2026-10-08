@@ -45,6 +45,7 @@ import { scanProject } from '@ubean/scan';
  * 跑。
  */
 import type { ScanResult } from '@ubean/scan';
+import { isAbsolute, join, normalize } from 'pathe';
 
 /** `server.watcher` 用到的最小面（测试可传假实现）。 */
 export interface DevScanSource {
@@ -113,7 +114,11 @@ export interface DevScanCoordinator {
 
 export function createDevScanCoordinator(options: DevScanCoordinatorOptions): DevScanCoordinator {
   const { rootDir, source, debounceMs = 150 } = options;
-  const srcDir = options.srcDir.startsWith('/') ? options.srcDir : `${rootDir}/${options.srcDir}`;
+  // pathe 的 `isAbsolute` 认识 Windows 盘符（`C:/x` 也是绝对路径）。此前用 `startsWith('/')`
+  // 判断，Windows 上绝对 srcDir（`C:/Users/…/src`）被误判为相对，拼成 `C:/root/C:/Users/…/src`
+  // 这种垃圾监听路径 —— 协调器从此收不到任何 watcher 事件，dev 热重载整体静默失效（无报错；
+  // 2026-10 Windows CI 的 dev-reload / dev-dx 全组失败即此）。normalize 顺带统一分隔符。
+  const srcDir = normalize(isAbsolute(options.srcDir) ? options.srcDir : join(rootDir, options.srcDir));
   const srcDirNormalized = srcDir.replace(/\/+$/, '');
 
   const subscribers = new Set<DevScanSubscriber>();

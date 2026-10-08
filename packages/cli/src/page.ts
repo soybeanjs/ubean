@@ -1,6 +1,6 @@
-import { join, extname } from 'node:path';
 import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
+import { extname, isAbsolute, join, normalize, relative } from 'pathe';
 import {
   createFsOps,
   renderPageTemplate,
@@ -64,7 +64,8 @@ function getDirForType(cwd: string, type: ScaffoldType): string {
 
 /** Resolve a baseDir that may be relative or absolute into an absolute path. */
 function resolveBaseDir(cwd: string, baseDir: string): string {
-  return baseDir.startsWith('/') ? baseDir : join(cwd, baseDir);
+  // pathe 的 isAbsolute 认识 Windows 盘符；`startsWith('/')` 会把 `C:/…` 当相对路径拼到 cwd 后面
+  return isAbsolute(baseDir) ? baseDir : join(cwd, baseDir);
 }
 
 function resolveTargetPath(baseDir: string, path: string, type: ScaffoldType): string {
@@ -221,7 +222,8 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   try {
     const baseDir = options.baseDir ? resolveBaseDir(cwd, options.baseDir) : getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
-    const relativePath = targetPath.replace(`${cwd}/`, '');
+    // pathe 的 relative 接受混合分隔符（Windows 上 targetPath 是反斜杠绝对路径），输出恒 posix
+    const relativePath = relative(cwd, targetPath);
 
     if (await fs.exists(relativePath)) {
       if (!options.force) {
@@ -263,7 +265,7 @@ export async function deleteScaffold(options: {
   try {
     const baseDir = options.baseDir ? resolveBaseDir(cwd, options.baseDir) : getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
-    const relativePath = targetPath.replace(`${cwd}/`, '');
+    const relativePath = relative(cwd, targetPath);
 
     if (!(await fs.exists(relativePath))) {
       result.errors.push(`${relativePath} does not exist`);
@@ -304,7 +306,7 @@ export async function recoverScaffold(options: {
   try {
     const baseDir = options.baseDir ? resolveBaseDir(cwd, options.baseDir) : getDirForType(cwd, options.type);
     const targetPath = resolveTargetPath(baseDir, options.path, options.type);
-    const relativePath = targetPath.replace(`${cwd}/`, '');
+    const relativePath = relative(cwd, targetPath);
 
     if (options.dry) {
       const backupPath = `${relativePath}.bak`;
@@ -333,9 +335,10 @@ export async function recoverScaffold(options: {
 export async function listScaffoldableFiles(cwd: string, type: ScaffoldType, baseDir?: string): Promise<string[]> {
   const fs = createFsOps(cwd);
   const absBaseDir = baseDir ? resolveBaseDir(cwd, baseDir) : getDirForType(cwd, type);
-  const relativeBase = absBaseDir.replace(`${cwd}/`, '');
+  const relativeBase = relative(cwd, absBaseDir);
   const files = await fs.listFiles(relativeBase);
-  return files.map(f => f.replace(`${cwd}/`, ''));
+  // listFiles 返回相对路径（Windows 上是反斜杠），normalize 统一成 posix
+  return files.map(f => normalize(f));
 }
 
 const scaffoldTypes = ['page', 'api', 'layout', 'middleware', 'cron', 'plugin'] as const;

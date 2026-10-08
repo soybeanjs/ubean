@@ -48,7 +48,7 @@ async function startServer(options: {
   const port = await findFreePort();
   const child = spawn(options.command, [...options.args, '--port', String(port), '--strictPort'], {
     cwd: fixtureDir,
-    env: { ...process.env, ...options.env },
+    env: { ...process.env, ...options.env, UBEAN_DEBUG_WATCH: '1' },
     stdio: ['ignore', 'pipe', 'pipe']
   });
   let output = '';
@@ -135,7 +135,10 @@ describe('ubean dev 热重载', () => {
     writeProbe(marker);
     const result = await pollMarker(running.baseUrl, marker);
 
-    expect(result.ok, `未观察到新内容；最后响应：${result.body.slice(0, 200)}`).toBe(true);
+    expect(
+      result.ok,
+      `未观察到新内容；最后响应：${result.body.slice(0, 200)}\n服务器输出尾部：\n${running.output().slice(-3000)}`
+    ).toBe(true);
   }, 240_000);
 });
 
@@ -164,7 +167,10 @@ describe('ubean dev（插件接管的请求路由）', () => {
     const marker = `cli-switch-${Date.now()}`;
     writeProbe(marker);
     const result = await pollMarker(running.baseUrl, marker);
-    expect(result.ok, `未观察到新内容；最后响应：${result.body.slice(0, 200)}`).toBe(true);
+    expect(
+      result.ok,
+      `未观察到新内容；最后响应：${result.body.slice(0, 200)}\n服务器输出尾部：\n${running.output().slice(-3000)}`
+    ).toBe(true);
   }, 240_000);
 });
 
@@ -260,6 +266,9 @@ describe('vite dev 等价性（无 CLI 的裸命令）', () => {
     writeProbe(marker);
     const result = await pollMarker(running.baseUrl, marker);
 
-    expect(result.ok, `未观察到新内容；最后响应：${result.body.slice(0, 200)}`).toBe(true);
+    expect(
+      result.ok,
+      `未观察到新内容；最后响应：${result.body.slice(0, 200)}\n服务器输出尾部：\n${running.output().slice(-3000)}`
+    ).toBe(true);
   }, 240_000);
 });

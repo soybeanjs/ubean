@@ -124,6 +124,8 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
 
   const subscribers = new Set<DevScanSubscriber>();
   const pending = new Set<string>();
+  /** 排障用：start() 实际 add 进 watcher 的目录（UBEAN_DEBUG_WATCH=1 时随事件一起输出）。 */
+  const addedDirs: string[] = [];
   let debounceTimer: ReturnType<typeof setTimeout> | null = null;
   let running: Promise<ScanResult> | null = null;
   let rerunRequested = false;
@@ -132,6 +134,7 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
   let baseline: ScanResult | undefined;
 
   const warn = options.onError ?? ((error: unknown) => console.error('[ubean] scan failed:', error));
+  const debugWatch = process.env.UBEAN_DEBUG_WATCH === '1';
 
   /** 扫描目录（绝对）与「额外监听的文件」（入口文件，由扫描结果给出）。 */
   const scanDirPaths = DEV_SCAN_DIRS.map(dir => `${srcDirNormalized}/${dir}`);
@@ -212,6 +215,11 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
     }
     // 结构没变（典型：只改了页面组件的模板/脚本）时不发 `full-reload`：Vite 的 HMR 已经把
     // `update` 送进浏览器，再重载等于把刚送到的热替换丢掉。
+    if (debugWatch) {
+      process.stderr.write(
+        `[ubean:watch] scan changed=[${changed.join(', ')}] structural=${structural} subscribers=${subscribers.size}\n`
+      );
+    }
     if (structural) {
       options.reload?.();
     } else {
@@ -253,6 +261,16 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
   }
 
   const onFileEvent = (file: string): void => {
+    // 排障开关（UBEAN_DEBUG_WATCH=1）：把原始 watcher 事件与相关性判定打到 stderr ——
+    // Windows CI 上 dev 热重载静默失聪时，这是唯一能区分「事件没来 / 判定不过 / 扫描没跑」的证据。
+    if (debugWatch) {
+      const relevant = !isIgnored(file) && isScanRelevant(file);
+      process.stderr.write(
+        `[ubean:watch] event=${file} relevant=${relevant} srcDir=${srcDirNormalized} addedDirs=[${addedDirs.join(', ')}]\n`
+      );
+      if (relevant) queue(file);
+      return;
+    }
     if (isIgnored(file) || !isScanRelevant(file)) return;
     queue(file);
   };
@@ -274,7 +292,10 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
       // `src/` 整个子树打哑 —— dev-reload / dev-dx 全组「改了文件无反应」即此。
       // 不存在的目录等它真的出现时由结构扫描（`rescan`）兜底，与整改前行为一致。
       for (const dir of scanDirPaths) {
-        if (existsSync(dir)) source.add(dir);
+        if (existsSync(dir)) {
+          addedDirs.push(dir);
+          source.add(dir);
+        }
       }
       source.on('add', onFileEvent);
       source.on('unlink', onFileEvent);

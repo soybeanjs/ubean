@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import type { ViteDevServer } from 'vite';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { scanProject } from '@ubean/scan';
@@ -267,7 +268,14 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
       started = true;
       // 目录交给 watcher 递归监听；Vite 已监听项目根，这里是显式声明「这些目录必须有事件」
       // （`srcDir` 可能位于 root 之外，或其中的目录不在模块图里）。
-      for (const dir of scanDirPaths) source.add(dir);
+      // 只 add **存在**的目录：chokidar#1470（v5 仍在，Windows 专属症状）—— 向递归 watch 里
+      // add 一个不存在的嵌套路径，会静默停掉其父目录子树的事件分发（无任何报错）。实测
+      // 2026-10 Windows CI：示例缺 `src/plugins`/`src/app`/`src/api`，三个不存在的 add 把
+      // `src/` 整个子树打哑 —— dev-reload / dev-dx 全组「改了文件无反应」即此。
+      // 不存在的目录等它真的出现时由结构扫描（`rescan`）兜底，与整改前行为一致。
+      for (const dir of scanDirPaths) {
+        if (existsSync(dir)) source.add(dir);
+      }
       source.on('add', onFileEvent);
       source.on('unlink', onFileEvent);
       source.on('change', onFileEvent);

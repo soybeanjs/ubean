@@ -5,6 +5,9 @@
  * 还各不相同 —— 浏览器重载与 app 重建会抢跑。这里用假 watcher 把协调器的契约钉住：
  * 一套监听、一次扫描、一个重载顺序。
  */
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import { createDevScanCoordinator, DEV_SCAN_DIRS } from '@ubean/build/vite';
 import type { DevScanSource } from '@ubean/build/vite';
@@ -50,6 +53,7 @@ const tick = (ms = 40) => new Promise(resolve => setTimeout(resolve, ms));
 
 function setup(
   options: {
+    srcDir?: string;
     scan?: () => Promise<ScanResult>;
     debounceMs?: number;
     onError?: (error: unknown) => void;
@@ -61,7 +65,7 @@ function setup(
   const reload = vi.fn();
   const coordinator = createDevScanCoordinator({
     rootDir: ROOT,
-    srcDir: SRC,
+    srcDir: options.srcDir ?? SRC,
     source,
     scan,
     reload,
@@ -73,12 +77,26 @@ function setup(
 }
 
 describe('dev 扫描协调器', () => {
-  it('start 后监听扫描目录与三类事件', () => {
-    const { coordinator, added, listenerCount } = setup();
-    coordinator.start();
+  it('start 后只监听**存在**的扫描目录（不存在的必须跳过）+ 三类事件', () => {
+    // chokidar#1470（v5 仍在，Windows 专属症状）：向递归 watch add 一个不存在的嵌套路径，
+    // 会静默停掉其父目录子树的事件分发 —— 示例缺 `src/plugins` 等目录时，Windows 上 dev
+    // 热重载整体失聪。这条用例把「存在的才 add」钉住。
+    const root = mkdtempSync(join(tmpdir(), 'ubean-dev-scan-'));
+    const src = join(root, 'src');
+    mkdirSync(join(src, 'routes'), { recursive: true });
+    mkdirSync(join(src, 'pages'));
+    // `src/plugins` 故意不建
+    try {
+      const { coordinator, added, listenerCount } = setup({ srcDir: src });
+      coordinator.start();
 
-    for (const dir of DEV_SCAN_DIRS) expect(added).toContain(`${SRC}/${dir}`);
-    expect(listenerCount()).toBe(3);
+      expect(added).toContain(join(src, 'routes'));
+      expect(added).toContain(join(src, 'pages'));
+      expect(added).not.toContain(join(src, 'plugins'));
+      expect(listenerCount()).toBe(3);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 
   it('扫描目录内的文件变更触发一次扫描，订阅者按注册顺序收到结果与变更文件', async () => {

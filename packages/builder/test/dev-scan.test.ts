@@ -8,7 +8,7 @@
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { describe, expect, it, vi } from 'vitest';
-import { createDevScanCoordinator, DEV_SCAN_DIRS } from '@ubean/build/vite';
+import { createDevScanCoordinator } from '@ubean/build/vite';
 import type { DevScanSource } from '@ubean/build/vite';
 import type { ScanResult } from '@ubean/scan';
 // pathe：协调器内部把 srcDir normalize 成 posix，断言用同样的 join 才不会在 Windows 上因分隔符失配

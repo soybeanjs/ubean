@@ -261,18 +261,22 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
   }
 
   const onFileEvent = (file: string): void => {
+    // Windows 事件路径是原生分隔符（`D:\a\…\src\routes\api\x.ts`，vite-plus 的 watcher 原样转发
+    // fs.watch 的相对名），而 srcDir / extraWatchFiles 都是 posix —— 不归一化则 startsWith/has
+    // 永远不匹配，协调器静默失聪（2026-10 Windows CI 的 dev-reload / dev-dx 全组失败即此）。
+    const normalized = normalize(file);
     // 排障开关（UBEAN_DEBUG_WATCH=1）：把原始 watcher 事件与相关性判定打到 stderr ——
     // Windows CI 上 dev 热重载静默失聪时，这是唯一能区分「事件没来 / 判定不过 / 扫描没跑」的证据。
     if (debugWatch) {
-      const relevant = !isIgnored(file) && isScanRelevant(file);
+      const relevant = !isIgnored(normalized) && isScanRelevant(normalized);
       process.stderr.write(
         `[ubean:watch] event=${file} relevant=${relevant} srcDir=${srcDirNormalized} addedDirs=[${addedDirs.join(', ')}]\n`
       );
-      if (relevant) queue(file);
+      if (relevant) queue(normalized);
       return;
     }
-    if (isIgnored(file) || !isScanRelevant(file)) return;
-    queue(file);
+    if (isIgnored(normalized) || !isScanRelevant(normalized)) return;
+    queue(normalized);
   };
 
   return {

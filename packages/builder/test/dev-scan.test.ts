@@ -127,6 +127,19 @@ describe('dev 扫描协调器', () => {
     expect(scan).toHaveBeenCalledTimes(1);
   });
 
+  it('Windows 原生分隔符事件也能命中（反斜杠路径归一化后判定）', async () => {
+    // Windows 的事件路径是原生分隔符（`D:\a\…\src\routes\api\perf-probe.ts`），而 srcDir
+    // 与 extraWatchFiles 都是 posix —— 不归一化则所有 startsWith 都失配，协调器静默失聪
+    // （2026-10 Windows CI dev-reload / dev-dx 全组失败即此）。这条用例把该行为钉住。
+    const { coordinator, emit, scan } = setup({ srcDir: 'C:/proj/src' });
+    coordinator.start();
+
+    emit('change', 'C:\\proj\\src\\routes\\api\\perf-probe.ts');
+    await tick();
+
+    expect(scan).toHaveBeenCalledTimes(1);
+  });
+
   it('扫描目录之外的文件不触发扫描', async () => {
     const { coordinator, emit, scan } = setup();
     coordinator.start();

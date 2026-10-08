@@ -1,5 +1,36 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0...main) (2026-10-08) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **perf**: complete the nine-metric net and add whole-site + SSR throughput baselines &nbsp;-&nbsp; by @soybeanjs [<samp>(dc3df)</samp>](https://github.com/soybeanjs/ubean/commit/dc3dffe)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **build**:
+  - record the `experimental.bundledDev` compatibility investigation &nbsp;-&nbsp; by @soybeanjs [<samp>(fdef9)</samp>](https://github.com/soybeanjs/ubean/commit/fdef906)
+  - record the ubean-config-to-Vite passthrough investigation &nbsp;-&nbsp; by @soybeanjs [<samp>(61b24)</samp>](https://github.com/soybeanjs/ubean/commit/61b2462)
+- **projects**:
+  - introduce comprehensive test coverage optimization plan for ubean framework &nbsp;-&nbsp; by @soybeanjs [<samp>(20788)</samp>](https://github.com/soybeanjs/ubean/commit/20788b5)
+  - sync test plan ledger with actual progress &nbsp;-&nbsp; by @soybeanjs [<samp>(25de8)</samp>](https://github.com/soybeanjs/ubean/commit/25de8d7)
+  - archive the landed test coverage plan &nbsp;-&nbsp; by @soybeanjs [<samp>(44970)</samp>](https://github.com/soybeanjs/ubean/commit/44970ae)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(fc6a0)</samp>](https://github.com/soybeanjs/ubean/commit/fc6a071)
+- **projects**: drop dead code-comment references to the archived test plan &nbsp;-&nbsp; by @soybeanjs [<samp>(8b0fa)</samp>](https://github.com/soybeanjs/ubean/commit/8b0fa95)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **projects**:
+  - implement test coverage optimization (stages 0-3) &nbsp;-&nbsp; by @soybeanjs [<samp>(02d47)</samp>](https://github.com/soybeanjs/ubean/commit/02d478f)
+  - complete the test coverage optimization (stages 3-5) &nbsp;-&nbsp; by @soybeanjs [<samp>(49074)</samp>](https://github.com/soybeanjs/ubean/commit/49074b2)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0-beta.5...main) (2026-10-02) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;📖 Documentation

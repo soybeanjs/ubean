@@ -29,7 +29,7 @@
     "prepare": "vp config --no-hooks --no-agent",
     "release": "soy release",
     "test": "pnpm -r test",
-    "test:build": "UBEAN_TEST_MODE=build pnpm --filter ubean-test test",
+    "test:build": "pnpm --filter ubean-test test:build",
     "test:e2e": "vp test",
     "test:watch": "pnpm -r test:watch",
     "typecheck": "pnpm build && pnpm typecheck-only",

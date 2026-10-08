@@ -209,17 +209,15 @@ describe('dev 扫描协调器', () => {
     coordinator.start();
 
     emit('change', `${SRC}/pages/a.vue`);
-    await tick(20); // 第一次扫描开始并挂起
-    expect(scan).toHaveBeenCalledTimes(1);
+    // 等条件而不是睡固定时长。这里有两段 setTimeout（5ms 去抖 + 扫描启动），Windows 的定时器
+    // 粒度约 15.6ms，`await tick(20)` 会在扫描还没开始时断言。
+    await vi.waitFor(() => expect(scan).toHaveBeenCalledTimes(1));
 
     emit('change', `${SRC}/pages/b.vue`);
     emit('change', `${SRC}/pages/c.vue`);
-    await tick(20); // 事件进入 pending
+    // `pending` 是同步写入的（`onFileEvent` → `queue` 里 `pending.add`），无需等待
     release?.();
-    await tick(30);
-
-    // 三次事件 = 两次扫描（首扫 + 合并后的一次补扫），而不是三次
-    expect(scan).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => expect(scan).toHaveBeenCalledTimes(2));
   });
 
   it('reload 在所有订阅者完成之后调用（重载不得抢在 app 重建之前）', async () => {
@@ -234,9 +232,32 @@ describe('dev 扫描协调器', () => {
     });
 
     emit('change', `${SRC}/pages/index.vue`);
-    await tick(40);
+    // 等条件而不是睡固定时长。本用例在 Windows CI 上红过（2026-10，Node 24 格）：`events` 到
+    // 断言时还是 `[]`，即 40ms 的睡眠窗口没能覆盖「5ms 去抖 + 10ms 订阅者」这两段定时器。
+    // 当时的输入无法在 Linux 上复现（本地 506 例全绿），已确认的两个偏离方向是：
+    //   · Windows 定时器粒度约 15.6ms —— 小于该值的 `ms` 被抬到下一个刻度；
+    //   · CI runner 核心少且 `fileParallelism` 下 45 个文件里的 Vite 构建会压住 worker，
+    //     回调落到墙钟睡眠之后。
+    // 两者叠加就不再是「40ms 够不够」的问题，而是**这个断言本就不该依赖墙钟**：要验的语义
+    // 是「订阅者先完成、reload 后到」，`waitFor` 恰好只断言这件事，少一条事件也不会被放过。
+    await vi.waitFor(() => expect(events).toEqual(['cli-rebuild-done', 'reload']));
+  });
 
-    expect(events).toEqual(['cli-rebuild-done', 'reload']);
+  it('订阅者耗时超过普通睡眠窗口时，reload 仍等它完成', async () => {
+    // 上一条用例（Windows CI 假红）的回归护栏：订阅者故意慢过任何「睡一觉再断言」的窗口，
+    // 把「reload 必须排在最后」钉成条件等待，而不是碰运气。
+    const events: string[] = [];
+    const { coordinator, emit, reload } = setup();
+    reload.mockImplementation(() => void events.push('reload'));
+    coordinator.start();
+
+    coordinator.subscribe(async () => {
+      await new Promise(resolve => setTimeout(resolve, 120));
+      events.push('cli-rebuild-done');
+    });
+
+    emit('change', `${SRC}/pages/index.vue`);
+    await vi.waitFor(() => expect(events).toEqual(['cli-rebuild-done', 'reload']));
   });
 
   it('rescan 可手动触发（DevTools CRUD 后的即时刷新）', async () => {

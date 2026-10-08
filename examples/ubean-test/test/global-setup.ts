@@ -1,10 +1,13 @@
 /**
  * TS-33：dev / build 双轨的服务启动器。
  *
- * - `dev` 轨（默认）：`ubean dev --port 3999`，与既有行为一致，跑 `test/**` 全集。
- * - `build` 轨（`UBEAN_TEST_MODE=build`）：先 `ubean build --outDir .temp-build`，
- *   再 `ubean preview --outDir .temp-build --port 3999 --host 127.0.0.1 --strictPort`，
- *   只跑 `test/mode-family/**`（高风险子集）。
+ * - `dev` 轨（默认）：`ubean dev --port 3999`，与既有行为一致。
+ * - `build` 轨（`UBEAN_TEST_MODE=build` 或 `pnpm test:build`）：先 `ubean build --outDir
+ *   .temp-build`，再 `ubean preview --outDir .temp-build --port 3999 --host 127.0.0.1
+ *   --strictPort`。
+ *
+ * 两轨跑的是**同一套** `test/**`；只在两端确实不同的地方用 `mode.ts` 的 `perMode` /
+ * `isBuildMode` 分支，没有子集过滤。
  *
  * 两处刻意的选择：
  * 1. **产物目录用 `.temp-build` 而不是 `dist`** —— 仓内 `examples/ubean-test/dist` 是既有产物，

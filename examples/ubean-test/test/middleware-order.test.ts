@@ -12,7 +12,7 @@
  *   （`ubean.config.ts` 未设 `cache.store` ⇒ 开发态按内存默认，构造期不落地），故不打点；
  *   build 轨走 `resolveProductionCacheStore()`，node 预设得到
  *   `{ store: 'fs', dir: '.ubean/cache' }` ⇒ store 真的被初始化 ⇒ 打点。
- *   这是 TS-33 双轨**实测发现的第一处 dev/build 行为差异**（记录见 `docs/test.md` §8）。
+ *   这是双轨**实测发现的第一处 dev/build 行为差异**。
  * - ⑩ `routeCache`：两轨都缺席。`resolveRouteCacheRules()` 只在 `rule.cache.ttl != null` 时
  *   产出规则（`packages/server/src/cache.ts`），而本示例的 `routeRules` 只有 `isr` / `ppr`
  *   ⇒ 产出 0 条缓存规则 ⇒ 中间件整段不挂载。

@@ -230,8 +230,8 @@ function resolveToggle<T extends object>(value: boolean | T | undefined, default
 /**
  * TS-07：把中间件链的每一步按**注册/执行顺序**记进请求级变量。
  *
- * 顺序是结构性事实 —— `docs/test.md` §5 TS-07 用一张 13 步表把它固定下来，改动注册顺序即破坏
- * 契约。记录值只用于可观测性断言（`GET /_health` 回读），不参与任何请求处理逻辑。
+ * 顺序是结构性事实 —— 13 步表（见 `_setupBaseMiddleware()` 与本包 middleware-order 测试）把它
+ * 固定下来，改动注册顺序即破坏契约。记录值只用于可观测性断言（`GET /_health` 回读），不参与任何请求处理逻辑。
  */
 function markMiddlewareStep(c: Context<UbeanEnv>, step: UbeanMiddlewareStep): void {
   const recorded = c.get('__ubean_mw_order__');
@@ -298,7 +298,7 @@ export class UbeanApp {
   }
 
   private _setupBaseMiddleware(): void {
-    // TS-07：本方法就是「13 步中间件链」的唯一事实来源 —— 注册顺序即契约，见 `docs/test.md` §5 TS-07。
+    // 本方法就是「13 步中间件链」的唯一事实来源 —— 注册顺序即契约。
     // 每个中间件按注册顺序包一层 `withStep()`，把步骤名写进请求级 `__ubean_mw_order__`；非中间件的
     // 两步（⑦ cacheStore 初始化、⑬ /_health）在各自位置单独打点。
     // ① handle ② requestId ③ actionContext ④ securityHeaders ⑤ csrf ⑥ dataCache ⑦ cacheStore

@@ -10,7 +10,6 @@
  * 里被同步调用）就只让出微任务；涉及重试退避的用真实短延迟而不是假时钟 ——
  * `retryDelay` 直接进 `setTimeout`，假时钟会和 `await handler()` 的微任务队列
  * 搅在一起，真实短延迟下断言更稳且仍然是确定性的。
- * 红证见 docs/test.md 的 TS-34 台账。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {

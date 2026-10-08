@@ -1,7 +1,7 @@
 /**
  * Route rules 测试（L2 · 只保留 HTTP 集成层）
  *
- * TS-34（docs/test.md）把原先放在这里的**函数级**用例下沉到了
+ * 原先放在这里的**函数级**用例已下沉到
  * `packages/routes/test/route-rules.test.ts`（compileRouteRules / matchRouteRules /
  * createRouteRulesMiddleware / specificity 排序 / `normalizeIsrRule` / P9-03/P9-04 字段）
  * 与 `packages/routes/test/route-rules-rewrite.test.ts`（proxy / rewrite 内部重派发 /

@@ -13,7 +13,7 @@
  *   4. ubean.config.ts 导出不可调用的值      9. vite.config.ts 语法错误
  *   5. 拦截路由目录标记 (.)（ADR-0010 刻意不做）
  *
- * **偏差记录（重要）**：docs/test.md 的 TS-10 原始类表里还列了「srcDir 不存在」与「非法路由组 /
+ * **偏差记录（重要）**：立项时的类表里还列了「srcDir 不存在」与「非法路由组 /
  * 并行路由标记」两类。实测这两类在 CLI 里**没有抛错点**：stripRouteGroups() 静默剥离路由组，扫描器
  * 的 glob().catch(() => []) 把缺失 srcDir 吞成 0 个页面，配置也没有形状校验，resolvePresetByName()
  * 对未知预设回退 standard。它们被下面的「静默接受面」用例固化为**可观测的当前行为**（退出码 0 +
@@ -296,7 +296,7 @@ describe('构建期错误契约（TS-10 / 参照 SvelteKit build-errors）', () 
       const dir = writeFixture(testCase.name, withBase(testCase.files));
       const result = await runBuild(dir, silentExtraArgs[testCase.name] ?? []);
       const tail = result.output.slice(-2000);
-      // 固化的当前行为：不报错。若这里开始失败，说明框架补上了校验 —— 请同步更新 docs/test.md 的 TS-10 台账。
+      // 固化的当前行为：不报错。若这里开始失败，说明框架补上了校验 —— 请同步更新本文件的偏差记录。
       expect(result.code, `${testCase.name}：该类输入当前预期被静默接受，行为已改变\n${tail}`).toBe(0);
       for (const item of testCase.evidence) {
         expect(result.output, `${testCase.name}：缺少静默行为证据「${item}」\n${tail}`).toContain(item);

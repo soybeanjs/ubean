@@ -5,11 +5,11 @@
  * ## 为什么需要它
  *
  * 全仓此前没有任何覆盖率工具，于是「哪些能力域一行没测」只能靠人工 `grep` 符号名去猜
- * ——`docs/test.md` 的 P1-9 就是这么发现的：observability / websocket / sse / queue /
+ * ——就是这么发现的：observability / websocket / sse / queue /
  * cron / storage 六个域在 L2 有 HTTP 层覆盖，**纯逻辑层零覆盖**（「走通一条路」有测，
  * 「边界与错误路径」没测）。这种结论应该由工具周期性地给出，而不是靠一次性审计。
  *
- * ## 刻意不设阈值（与 docs/test.md §7 不做清单一致）
+ * ## 刻意不设阈值
  *
  * 12 个主流框架里 0 个设覆盖率阈值（唯一近似的 Nitro `.github/codecov.yml`
  * `threshold: 50%` 在 CI 中从未生效）。设了阈值，团队就会为了数字写空断言；本脚本的
@@ -28,8 +28,8 @@
  * ## 为什么逐包 spawn 而不是 `pnpm -r`
  *
  * `pnpm -r test` 会撞上 workspace 任务环
- * （`ERR_PNPM_TASK_CYCLE: packages/builder#test → packages/preset#test`，见
- * `docs/test.md` §8 的 TS-21 台账），且 pnpm 会把额外 flag 透传给每个包的 `vp test`，
+ * （`ERR_PNPM_TASK_CYCLE: packages/builder#test → packages/preset#test`），且 pnpm 会把
+ * 额外 flag 透传给每个包的 `vp test`，
  * 出错时难以定位是哪个包。逐包 spawn 慢一点（本机约 3 分钟），但每个包的日志独立、
  * 单包失败不牵连其它包。
  *
@@ -46,9 +46,9 @@
  * `dist/*.js` 与测试替身 —— 那是产物覆盖率，不是源码覆盖率，混在一起会让「零覆盖文件」
  * 清单失真。显式排除后报告只谈 `src/`。
  *
- * ## 为什么顺带采集耗时（TS-24）
+ * ## 为什么顺带采集耗时
  *
- * `docs/test.md` 的 TS-24 要求「先测量各包耗时；仅当总时长超过阈值时才引入 `--shard`」。
+ * 分片策略是「先测量各包耗时；仅当总时长超过阈值时才引入 `--shard`」。
  * 测量本身**不能**再起一遍全量测试：CI 已经跑了 `pnpm test`，再跑一次 coverage 已经
  * 是第二遍，第三遍纯为计时而跑会让流水线时长翻半。所以耗时**搭在这趟已有的逐包 spawn
  * 上** —— 每个包本来就要等它跑完，顺手记墙钟几乎零成本。
@@ -349,7 +349,7 @@ export function renderMarkdown(report) {
   lines.push('');
   lines.push(`生成时间：${report.generatedAt}`);
   lines.push('');
-  lines.push('> **本报告不设阈值**：覆盖率数字不参与任何门禁（见 `docs/test.md` §7 不做清单）。');
+  lines.push('> **本报告不设阈值**：覆盖率数字不参与任何门禁。');
   lines.push('> 用途是定位**零覆盖文件**，不是卡数字。');
   lines.push('');
   lines.push('## 汇总');

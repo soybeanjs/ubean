@@ -1,7 +1,7 @@
 /**
  * prender 预渲染/SSG 纯逻辑测试（L1）。
  *
- * 本文件是 `docs/test.md` TS-34「L2 → L1 下沉」的一部分：把原先只存在于
+ * 本文件是「L2 → L1 下沉」的一部分：把原先只存在于
  * `examples/ubean-test/test/prerender.test.ts`（L2）里的**函数级**用例搬到这里，
  * 让它们在包自己的单测层就能跑（不需要起示例项目、不需要 HTTP）。
  *

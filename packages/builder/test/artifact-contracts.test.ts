@@ -1,7 +1,7 @@
 /**
  * 可选产物契约断言 + 入库生成物可复现性守卫（TS-20）。
  *
- * 背景（`docs/test.md` P2）：`docs/contracts/codegen-v1.md` 把三个产物声明为
+ * 背景：`docs/contracts/codegen-v1.md` 把三个产物声明为
  * 「由 `generateTypes()` 之外的工具写出」，但**只有文档、没有任何断言**：
  *
  * | 产物 | 写入者 | 此前的唯一覆盖 |

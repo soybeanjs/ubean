@@ -7,8 +7,7 @@
  * 1. `mode: 'spa'` + `ssr: true` —— 钉住「`mode` 优先于 `ssr`」这条语义。
  *    实现见 `packages/builder/src/vite/build-app.ts:117` /
  *    `packages/builder/src/production.ts:98`：`ssrEnabled = (mode === 'fullstack' && ssr.enabled) || mode === 'ssg'`
- *    —— 即 `mode` 不是 `fullstack` 时，`ssr: true` 被**静默忽略**。`docs/test.md` §5 TS-14 要求
- *    「若未定义，先在 ADR 或 glossary 定稿再测」，此语义此前只在代码里、没进文档；本用例把它固定在
+ *    —— 即 `mode` 不是 `fullstack` 时，`ssr: true` 被**静默忽略**。该语义此前只在代码里；本用例把它固定在
  *    测试里，并把口径写进 `docs/glossary.md`。
  * 2. `autoImports × components × i18n` 三关同开 —— 三套 codegen 同时产出生成物、互不覆盖。
  *    单维断言证明不了「一起开会不会互相踩」。

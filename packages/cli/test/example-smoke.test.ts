@@ -12,7 +12,7 @@
  * `packages/cli/vite.config.ts` 里 `fileParallelism: false` —— 三个示例各起一次构建 + 一次
  * preview，必须串行，避免端口与磁盘产物互相踩。
  *
- * 四条纪律（与 `docs/test.md` §1 一致）：
+ * 四条纪律：
  * 1. **只测产物与响应，不读配置回显**：断言的是「构建退出码 + 磁盘上的文件 + 请求的状态码
  *    与正文片段」，不是「CLI 打印了什么配置」。
  * 2. **产物存在 ≠ 产物可用**：所以每个示例都额外起一次 `ubean preview` 真发请求。
@@ -388,7 +388,7 @@ describe('示例目录定性：platform-drivers 是代码片段集，不是可�
 
   it('目录里没有可运行示例的骨架（无 package.json / 无 ubean.config.ts / 无 src）', () => {
     // 这个「负向断言」是刻意的：只要有人把它补成真示例，这条就会红，提醒把本文件的
-    // 定性说明与 `docs/test.md` 的 TS-11 记录一起更新 —— 避免文档与目录长期不一致。
+    // 定性说明一起更新 —— 避免文档与目录长期不一致。
     expect(existsSync(join(dir, 'package.json')), 'platform-drivers 目前不是可运行示例').toBe(false);
     expect(existsSync(join(dir, 'ubean.config.ts'))).toBe(false);
     expect(existsSync(join(dir, 'src'))).toBe(false);

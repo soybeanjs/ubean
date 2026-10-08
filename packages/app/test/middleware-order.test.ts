@@ -1,7 +1,7 @@
 /**
- * TS-07：基础中间件链「13 步全序」断言
+ * 基础中间件链「13 步全序」断言
  *
- * `docs/test.md` §5 TS-07 把 `_setupBaseMiddleware()` 的注册顺序固定为一张 13 步表：
+ * `_setupBaseMiddleware()` 的注册顺序是一张 13 步表：
  *
  *   ① handle ② requestId ③ actionContext ④ securityHeaders ⑤ csrf ⑥ dataCache
  *   ⑦ cacheStore ⑧ i18n ⑨ routeRules ⑩ routeCache ⑪ websocket ⑫ lifecycle ⑬ healthEndpoint
@@ -23,7 +23,7 @@ import { clearGlobalHooks } from '../src/hooks';
 import { UbeanApp } from '../src/app';
 import type { UbeanAppOptions } from '../src/app';
 
-/** 13 步全序（`docs/test.md` §5 TS-07 表） */
+/** 13 步全序 */
 const FULL_ORDER = [
   'handle',
   'requestId',

@@ -1,7 +1,7 @@
 /**
  * Prerender / SSG 系统测试（L2 · 只保留 HTTP 集成层）
  *
- * TS-34（docs/test.md）把原先放在这里的**函数级**用例下沉到了
+ * 原先放在这里的**函数级**用例已下沉到
  * `packages/builder/test/prerender-l1.test.ts`（54 例，不需要起示例项目）。
  * 本文件现在只保留「只有 HTTP 层能证明的东西」：
  * `/api/prerender-test` 端点可路由、状态码、响应形状。

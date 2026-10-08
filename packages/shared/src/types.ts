@@ -187,8 +187,8 @@ export interface PageHead {
 /**
  * 请求级「基础中间件/步骤」顺序记录的步骤名(TS-07)。
  *
- * 顺序即 `createUbeanApp()` 在 `_setupBaseMiddleware()` 中的注册顺序,与
- * `docs/test.md` §5 TS-07 的 13 步表一一对应。该顺序是结构性事实 ——
+ * 顺序即 `createUbeanApp()` 在 `_setupBaseMiddleware()` 中的注册顺序,13 步全序由
+ * `packages/app/test/middleware-order.test.ts` 锁定。该顺序是结构性事实 ——
  * 只断言「某中间件存在」无法发现「注册顺序被调换」这类回归,因此框架把
  * 实际经过的步骤按序记录,供黑盒断言(见 `GET /_health` 的 `middlewareOrder`)。
  */

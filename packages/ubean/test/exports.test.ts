@@ -1,7 +1,7 @@
 /**
  * ubean 主包导出面快照（TS-01）。
  *
- * 依据 docs/test.md P0-1：`import { x } from 'ubean'` 的任意导出被删/改名后，
+ * 依据：`import { x } from 'ubean'` 的任意导出被删/改名后，
  * 调用方拿到 `undefined`，运行时才炸，而全仓没有一条测试会变红。
  *
  * 做法：对 8 个子路径逐一动态 `import()`，断言导出名集合与快照完全一致。

@@ -9,7 +9,7 @@ import { BasePage, api } from '../pages/base.page';
  * 的 `api` 对象 → `e2e.fetch` → Node 侧 fetch 这条桥接通路本身可用**（它需要
  * `commands.ts` / `lib/runner.ts` / `__vitest_browser_runner__` 三者都正常）。
  * 其余 100 条纯 HTTP 用例（不验证桥接、只验证 HTTP 契约）已全部下沉到 L2
- * （`examples/ubean-test/test/http-contracts.test.ts` 等），见 `docs/test.md` 的 TS-35 台账。
+ * （`examples/ubean-test/test/http-contracts.test.ts` 等）。
  */
 describe('POC: e2e infrastructure', () => {
   it('opens the home page via Playwright and reads SSR content', async () => {

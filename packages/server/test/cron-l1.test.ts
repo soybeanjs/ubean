@@ -10,7 +10,6 @@
  * 形状、超时、runOnStart、next-run 推算、start/stop 幂等。
  * **不**启动 30 秒心跳去等真实触发 —— 那既慢又不可靠；`checkAndRun` 的匹配语义
  * 由 `parseCron` 的解析结果 + `runTask` 的执行语义组合覆盖。
- * 红证见 docs/test.md 的 TS-34 台账。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {

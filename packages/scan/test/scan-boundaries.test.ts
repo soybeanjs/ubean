@@ -440,7 +440,7 @@ describe('TS-31 · 排序前缀与目录扫描边界', () => {
     expect(result.apiRoutes.map(a => a.relativePath)).toEqual(['real.ts']);
   });
 
-  it('用户传入 ignore 会**替换**默认列表（而不是合并）—— 已在 docs/test.md 记录为已知尖角', async () => {
+  it('用户传入 ignore 会**替换**默认列表（而不是合并）—— 已知尖角，刻意固化', async () => {
     write('pages/index.vue');
     write('pages/legacy.vue');
     write('routes/thing.test.ts', 'export const GET = 1;\n');
@@ -451,7 +451,7 @@ describe('TS-31 · 排序前缀与目录扫描边界', () => {
     expect(result.pages.map(p => p.route)).toEqual(['/']);
     // 但 `scan.ts` 里是 `options.ignore || [默认]`：一旦传了 ignore，
     // `**/*.test.*` / `**/_*` 这组保护就不在列表里了（路由侧没有硬编码补充）。
-    // 这是一个已确认的行为（不是本测试想固定的"正确"行为），见 docs/test.md 的 TS-31 台账。
+    // 这是一个已确认的行为（不是本测试想固定的"正确"行为），刻意固化以免无声漂移。
     expect(result.apiRoutes.map(a => a.relativePath)).toEqual(['thing.test.ts']);
   });
 

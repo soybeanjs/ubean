@@ -7,7 +7,7 @@
  *
  * 这里通过**真实读 body 流**来断言「写进管道里的字节」，而不是 mock writer ——
  * 帧格式（`: comment` / `id:` / `event:` / `retry:` / 多行 data）是这个协议唯一
- * 的对外契约，值得用最接近真实的方式钉住。红证见 docs/test.md 的 TS-34 台账。
+ * 的对外契约，值得用最接近真实的方式钉住。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {

@@ -5,12 +5,12 @@
  * `api.{get,post,…}`（`test/browser/pages/base.page.ts` 的 `e2e.fetch` → Node 侧 fetch，
  * 无 CORS）断言的是**纯 HTTP 语义**。那正是 L2 的领域（§1.2：纯 HTTP 语义留 L2）。
  * 同样的断言在 L2 更便宜（无浏览器启动、无 Playwright、无 20 条路径预热），
- * 且能跑 TS-33 的 dev/build 双轨。故 TS-35 把它们迁到 L2，并从 L3 删除。
+ * 且能跑 dev/build 双轨。故把它们迁到 L2，并从 L3 删除。
  *
  * 本文件**只收 L3 独有的、更严格的契约**。L2 已有的更强断言（`manifest.test.ts`、
  * `download.test.ts`、`errors.test.ts`、`stream.test.ts`、`rate-limit.test.ts`、
- * `data-cache.test.ts` 的大部分）不在此重复 —— 逐条对照见 `docs/test.md` 的
- * TS-35 台账。每条用例上方的 `// ← 原 …` 注释标明它在 L3 的出处。
+ * `data-cache.test.ts` 的大部分）不在此重复。每条用例上方的 `// ← 原 …` 注释标明它在 L3
+ * 的出处。
  *
  * 两条刻意的取舍（都写在台账里）：
  * 1. **不断言 fixture 种子字面量**（如 `/api/users/1 → {id:1,name:'张三'}`）。

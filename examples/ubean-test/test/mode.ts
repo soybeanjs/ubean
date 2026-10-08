@@ -11,7 +11,7 @@
  * - 不设：`dev` 轨 —— 与既有行为完全一致（`ubean dev`，跑 `test/**` 全集）
  * - `UBEAN_TEST_MODE=build`：`build` 轨 —— `ubean build --outDir .temp-build` +
  *   `ubean preview --outDir .temp-build`，只跑 `test/mode-family/**`（高风险子集，
- *   不全量翻倍，见 `docs/test.md` §5 TS-33 做法③）
+ *   不全量翻倍）
  */
 export type TestMode = 'dev' | 'build';
 

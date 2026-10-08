@@ -116,7 +116,7 @@ describe('File download system', () => {
 
   // TS-33 双轨：`/_openapi.json` 只在 dev 注册，所以「schema 里有这个路径 / 有哪些 tag 和参数」
   // 这类断言只在 dev 轨有意义。这里用 `runIf` 而不是静默 early-return —— 跳过必须在报告里
-  // **看得见**（`docs/test.md` §1.3 纪律①）。build 轨的对应断言在 `devtools.test.ts` 与
+  // **看得见**（纪律①：跳过必须可见）。build 轨的对应断言在 `devtools.test.ts` 与
   // `static-files.test.ts`：`/_openapi.json` 必须 404（生产不泄漏文档端点）。
   describe.runIf(!isBuildMode)('OpenAPI metadata (describeRoute)', () => {
     it('GET /api/download is documented in OpenAPI schema', async () => {

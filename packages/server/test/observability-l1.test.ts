@@ -10,7 +10,6 @@
  * exporter 投递与 flush/shutdown 顺序。HTTP 层能证明的东西（header 透传、
  * 中间件挂载位置、状态码映射到 span.status）留在 L2，不重复。
  *
- * 红证见 docs/test.md 的 TS-34 台账。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {

@@ -7,7 +7,6 @@
  *
  * 这个文件钉住的是「注册表与 peer 自己的契约」：谁进谁出、广播条件、解除订阅、
  * 空房间回收、hook 只在对应时机触发、路径命中优先级（精确 > `/*`）。
- * 红证见 docs/test.md 的 TS-34 台账。
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {

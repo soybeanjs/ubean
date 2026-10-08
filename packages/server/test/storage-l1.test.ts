@@ -6,7 +6,7 @@
  * TTL 过期、mount 的最长前缀匹配、KV 前缀剥离全部零覆盖；L2 的
  * `examples/ubean-test/test/storage.test.ts` 走的是 HTTP 端点。
  *
- * 这里覆盖的是存储层自己的契约。红证见 docs/test.md 的 TS-34 台账。
+ * 这里覆盖的是存储层自己的契约。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { clearGlobalStorage, createKV, createMemoryDriver, createStorage, useKV, useStorage } from '../src/storage';

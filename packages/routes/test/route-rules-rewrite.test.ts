@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { Hono } from 'hono';
 import { createRouteRulesMiddleware, matchRouteRules, compileRouteRules } from '../src/route-rules';
 
-// TS-34（docs/test.md）把 L2 `examples/ubean-test/test/route-rules.test.ts` 里的
+// 从 L2 `examples/ubean-test/test/route-rules.test.ts` 下沉来的：那里
 // `createRouteRulesMiddleware()` 三例下沉到这里，但 L2 那三例只断言了 `nextCalled`，
 // 没断言 header / redirect 真被写进响应（等于没测）—— 于是顺手升级成**真 Hono + 真 ctx**
 // 的端到端断言（见文件末 6 例）。

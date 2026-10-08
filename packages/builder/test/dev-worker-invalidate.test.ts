@@ -16,6 +16,9 @@ import { join } from 'pathe';
 
 let cleanup: string[] = [];
 
+/** 与 `candidateFileKeys` 同规：模块图键一律 posix 形态（node:fs 在 Windows 上吐反斜杠）。 */
+const toPosix = (p: string) => p.replace(/\\/g, '/');
+
 afterEach(() => {
   for (const dir of cleanup) rmSync(dir, { recursive: true, force: true });
   cleanup = [];
@@ -46,7 +49,8 @@ describe('invalidateDevWorkerModules 的文件键', () => {
     const file = join(raw, 'changing.ts');
     writeFileSync(file, 'export const value = "v1";\n');
 
-    const real = realpathSync(file);
+    // realpathSync 返回平台原生形态（Windows 反斜杠）；索引键须与 Vite 一致取 posix 形态
+    const real = toPosix(realpathSync(file));
     // 只有 realpath 与原始路径不同时这个测试才有意义（macOS 上 /var → /private/var）
     if (real === file) return;
 

@@ -21,7 +21,7 @@
  * 既在仓库内（依赖解析正常），又互不共享（并行安全）。
  */
 import { cpSync, mkdirSync, rmSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { join, resolve } from 'pathe';
 
 /** 仓库根的 `.temp/`（`.gitignore:47` 的 `.temp` 覆盖此处）。 */
 const TEMP_ROOT = resolve(import.meta.dirname, '../../../../.temp');

@@ -11,9 +11,10 @@
  */
 import { mkdtemp, rm, writeFile, mkdir, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { describe, it, expect, afterAll } from 'vitest';
 import type { ScannedPageRoute } from '@ubean/scan';
+// pathe（不是 node:path）：`routeToFilePath` 内部走 pathe，断言必须同形态。
+import { join } from 'pathe';
 import { prerender, routeToFilePath } from '../src/prerender';
 import {
   STATIC_NOT_FOUND_ROUTE,

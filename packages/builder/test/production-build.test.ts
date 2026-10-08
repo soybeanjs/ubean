@@ -18,13 +18,15 @@
  * 已 exclude `test`，因此 fixture 的 `src/**` 不参与 typecheck。
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 // 编排函数走 `/production` 子路径（主入口只导出构建期工具链）
 import { buildWithEnvironments } from '@ubean/build/production';
 import { loadUbeanConfig } from '@ubean/config';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
 import { scanProject } from '@ubean/scan';
+// pathe（不是 node:path）：`resolveInjectedAssetTags` / `clientPublicDirFor` / `buildWithEnvironments`
+// 的产物路径都走 pathe（Windows 上是正斜杠），断言必须同形态。
+import { join } from 'pathe';
 import { materializeFixture, removeMaterializedFixture } from './fixtures/materialize';
 
 /**

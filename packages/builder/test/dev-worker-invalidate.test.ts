@@ -9,9 +9,10 @@
  */
 import { mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { invalidateDevWorkerModules } from '@ubean/build/vite';
+// pathe（不是 node:path）：模块图键与候选键都在 posix 形态上比对，期望值必须同形态。
+import { join } from 'pathe';
 
 let cleanup: string[] = [];
 
@@ -76,6 +77,20 @@ describe('invalidateDevWorkerModules 的文件键', () => {
 
     expect(result.urls).toEqual([`/@fs/${linkedFile}`]);
     expect(invalidated).toEqual([`/@fs/${linkedFile}`]);
+  });
+
+  // 历史事故 #9（2026-10-08 的 Windows CI）：候选链用 vite 的 `normalizePath`，而它在
+  // `pathNeedsCleaning()` 为假时**原样返回** —— 那把判定把 `isWindows` 写死了，于是 Windows 上
+  // 输入已是反斜杠形态，判定反而为假，`normalizePath('C:\a\b.ts')` 吐的还是反斜杠，而模块图键
+  // （来自 resolve 后的 resolvedId）是正斜杠 → 查表必然落空，dev 热重载静默失效。
+  // 本用例直接喂反斜杠形态，不依赖平台，所以在哪跑都能守住。
+  it('反斜杠形态的输入被归一成正斜杠后才查表（Windows 上原先全部落空）', () => {
+    const { environment, invalidated } = fakeEnvironment(['C:/a/ubean/src/state.ts']);
+    const result = invalidateDevWorkerModules(environment, { sendMessage: () => {} }, ['C:\\a\\ubean\\src\\state.ts']);
+
+    expect(result.keys).toEqual(['C:/a/ubean/src/state.ts']);
+    expect(result.urls).toEqual(['/@fs/C:/a/ubean/src/state.ts']);
+    expect(invalidated).toEqual(['/@fs/C:/a/ubean/src/state.ts']);
   });
 
   it('未命中的文件不通知 worker（避免无谓地重置入口缓存）', () => {

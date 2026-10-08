@@ -11,9 +11,10 @@
  */
 import { mkdtemp, rm, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { DATA_PAYLOAD_ID } from '@ubean/pages';
+// pathe（不是 node:path）：`routeToDataFilePath` / `prerender()` 内部走 pathe，断言必须同形态。
+import { join } from 'pathe';
 import { extractDataPayload, routeToDataFilePath, prerender, writePrerenderedFile } from '../src/prerender';
 
 const PAYLOAD_OPEN = `<script id="${DATA_PAYLOAD_ID}" type="application/json">`;

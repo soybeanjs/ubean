@@ -21,9 +21,13 @@
  * outDir 旁的磁盘 manifest（`<outputDir>/public/.vite/manifest.json`）→ 空 + 构建期告警」。
  */
 import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
 import type { Plugin as VitePlugin } from 'vite';
 import { getLogger } from '@ubean/shared/logger';
+// pathe（不是 node:path）：本文件产出的路径会进**生成的代码**（SSR entry 里的 manifest 读盘路径、
+// `clientPublicDirFor` 的结果），Windows 上 node:path 会吐 `D:\a\...\public`，与同链路的
+// prerender.ts（已用 pathe）、以及消费这些路径的调用方形态不一致。pathe 在所有平台输出正斜杠，
+// 而 Windows 的 fs 两种形态都接受，所以这是单向的安全收敛。
+import { dirname, join } from 'pathe';
 
 const logger = getLogger('build');
 

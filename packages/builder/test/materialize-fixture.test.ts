@@ -11,8 +11,10 @@
  * 本文件把这条判据钉住：传入仓内 fixture 路径时必须是空操作。
  */
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+// pathe（不是 node:path）：`materializeFixture` 的返回值走 pathe（正斜杠），`tempRoot` 也必须
+// 同形态 —— node:path 在 Windows 上吐反斜杠，`dir.startsWith(`${tempRoot}/`)` 必然 false。
+import { join, resolve } from 'pathe';
 import { materializeFixture, removeMaterializedFixture } from './fixtures/materialize';
 
 const fixtureRoot = resolve(import.meta.dirname, 'fixtures');

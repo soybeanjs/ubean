@@ -27,11 +27,11 @@
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createBuilder, DevEnvironment, createServerHotChannel } from 'vite';
 import type { Plugin } from 'vite';
 import { afterEach, describe, expect, it } from 'vitest';
+import { join, normalize } from 'pathe';
 /** ADR-0012 / RM-V09 记的 specifier；vite-plus-core 与 vite-plus 两个入口都暴露它。 */
 import { ESModulesEvaluator, ModuleRunner } from 'vite/module-runner';
 
@@ -84,8 +84,11 @@ function baseConfig(root: string, extra: Record<string, unknown> = {}) {
 describe('依赖版本锁', () => {
   it('vite-plus 与 vite（catalog 别名 → vite-plus-core）解析到同一版本', () => {
     const vitePlus = require('vite-plus/package.json') as { name: string; version: string };
+    // `require.resolve('vite')` 在 Windows 上是反斜杠形态，而下面的正则只认正斜杠 → 替换不生效，
+    // 于是拿 index.js **本身**当 package.json 读（`.name` 为 undefined，断言报得莫名其妙）。
+    // pathe 的 normalize 把分隔符统一成正斜杠，两平台走同一条分支。
     const coreEntry = require.resolve('vite');
-    const corePkg = require(coreEntry.replace(/dist\/vite\/node\/index\.(js|mjs)$/, 'package.json')) as {
+    const corePkg = require(normalize(coreEntry).replace(/dist\/vite\/node\/index\.(js|mjs)$/, 'package.json')) as {
       name: string;
       version: string;
     };

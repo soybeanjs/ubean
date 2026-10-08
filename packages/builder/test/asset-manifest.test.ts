@@ -15,8 +15,10 @@
  */
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+// pathe（不是 node:path）：被测的 `resolvePrerenderStaticDir` / `clientPublicDirFor` 都走 pathe，
+// 断言必须用同一种路径形态。node:path 在 Windows 上吐反斜杠，与实现差一个分隔符就会红。
+import { join, resolve } from 'pathe';
 import { resolvePrerenderStaticDir } from '../src/prerender';
 import {
   clientPublicDirFor,

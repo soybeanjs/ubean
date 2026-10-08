@@ -10,8 +10,7 @@
  */
 import { realpathSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { normalizePath } from 'vite';
+import { join } from 'pathe';
 
 /** 生成到 `.ubean/` 下的文件名。 */
 export const DEV_WORKER_FILE = 'dev-worker.mjs';
@@ -159,11 +158,20 @@ export function invalidateDevWorkerModules(
   return { keys, urls: [...urls] };
 }
 
-/** 模块图可能用原始路径或 realpath 建索引，两种都试（去重、保序）。 */
+/**
+ * 模块图可能用原始路径或 realpath 建索引，两种都试（去重、保序）。
+ *
+ * 这里不能用 vite 的 `normalizePath`：它只在 `pathNeedsCleaning(path)` 为真时才动手，而那把
+ * `isWindows` 写死了 —— Windows 上输入已是反斜杠形态，判定反而为假，于是**原样返回反斜杠**。
+ * 可 Vite 的模块图键来自 `normalizePath(resolvedId)`，两边的形态必须一致，所以这条候选链的
+ * 每个键都得自己把 `\` 换成 `/`。这是一处静默失效：dev 下 Windows 的模块失效全部落空，热重载
+ * 无报错、也不命中（`dev-worker-invalidate.test.ts` 的符号链接用例就是它暴露的）。
+ */
 function candidateFileKeys(file: string): string[] {
-  const keys = [normalizePath(file)];
+  const toPosix = (p: string) => p.replace(/\\/g, '/');
+  const keys = [toPosix(file)];
   try {
-    keys.push(normalizePath(realpathSync.native(file)));
+    keys.push(toPosix(realpathSync.native(file)));
   } catch {
     // 文件可能刚被删除 —— 原始路径仍然是有效候选
   }

@@ -219,7 +219,6 @@ const _pendingReincludes = new Set<string>();
  * Restore cache declarations for pages whose cache was reset via
  * `resetRouteCache` once they are no longer the active page.
  *
- * @internal — called from `createUbeanRouter`'s `afterEach` hook.
  */
 export function _flushPendingReincludes(currentPageName?: string): void {
   if (_pendingReincludes.size === 0) return;
@@ -307,7 +306,6 @@ export function initCachedViewsFromRoutes(routes: Array<{ name?: string | symbol
  * rendered inside the wrapper. When the original changes (HMR in dev), the
  * wrapper is rebuilt so the new component takes effect.
  *
- * @internal — used by `createLayoutWrapper` in `app.ts`.
  */
 export function getNamedPageWrapper(routeName: string, original: Component): Component {
   const cached = _wrapperRegistry.get(routeName);

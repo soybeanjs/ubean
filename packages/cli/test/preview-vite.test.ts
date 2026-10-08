@@ -14,9 +14,10 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+// TS-37：端口 / 进程 / 就绪探测收敛到共用 harness
+import { findFreePort, resolveBaseUrl, stopChild } from './helpers/cli-harness';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
@@ -27,20 +28,6 @@ const serverEntry = join(fixtureDir, 'dist/server/entry.mjs');
 let child: ChildProcess | null = null;
 let baseUrl = '';
 let output = '';
-
-async function findFreePort(): Promise<number> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const port = 20_000 + Math.floor(Math.random() * 20_000);
-    const free = await new Promise<boolean>(resolveFree => {
-      const server = createServer();
-      server.unref();
-      server.once('error', () => resolveFree(false));
-      server.listen(port, '127.0.0.1', () => server.close(() => resolveFree(true)));
-    });
-    if (free) return port;
-  }
-  throw new Error('找不到可用端口');
-}
 
 /** 用 CLI 的默认路径（开关关闭）产出 dist —— 与 `analyze:check` 的期望一致。 */
 async function ensureDist(): Promise<void> {
@@ -53,19 +40,7 @@ async function ensureDist(): Promise<void> {
 }
 
 async function stopPreview(): Promise<void> {
-  if (!child || child.exitCode != null) return;
-  const proc = child;
-  proc.kill('SIGTERM');
-  await new Promise<void>(resolveExit => {
-    const timer = setTimeout(() => {
-      proc.kill('SIGKILL');
-      resolveExit();
-    }, 5_000);
-    proc.once('exit', () => {
-      clearTimeout(timer);
-      resolveExit();
-    });
-  });
+  await stopChild(child ?? undefined);
   child = null;
 }
 
@@ -73,7 +48,7 @@ beforeAll(async () => {
   if (!existsSync(vpEntry)) throw new Error(`${vpEntry} 不存在：仓库根未安装依赖`);
   await ensureDist();
 
-  const port = await findFreePort();
+  const port = await findFreePort({ base: 20_000 });
   const proc = spawn(vpEntry, ['preview', '--port', String(port), '--strictPort'], {
     cwd: fixtureDir,
     env: { ...process.env },
@@ -84,24 +59,7 @@ beforeAll(async () => {
   proc.stdout?.on('data', collect);
   proc.stderr?.on('data', collect);
 
-  const started = Date.now();
-  while (Date.now() - started < 60_000) {
-    for (const host of ['::1', '127.0.0.1']) {
-      const candidate = host.includes(':') ? `http://[${host}]:${port}` : `http://${host}:${port}`;
-      try {
-        const res = await fetch(`${candidate}/_health`, { signal: AbortSignal.timeout(2_000) });
-        if (res.status > 0) {
-          baseUrl = candidate;
-          return;
-        }
-      } catch {
-        /* 换下一个候选 */
-      }
-    }
-    if (proc.exitCode != null) throw new Error(`preview 提前退出（exit ${proc.exitCode}）\n${output}`);
-    await new Promise(resolveDelay => setTimeout(resolveDelay, 150));
-  }
-  throw new Error(`preview 在 60s 内不可达\n${output}`);
+  baseUrl = await resolveBaseUrl(port, { path: '/_health', timeoutMs: 60_000, child: proc, output: () => output });
 }, 120_000);
 
 afterAll(stopPreview);

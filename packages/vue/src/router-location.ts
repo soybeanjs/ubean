@@ -48,8 +48,6 @@ export function resolveRoute(to: RouteLocation, routeMap?: Record<string, { path
   return path;
 }
 
-export type RouteNamesFromMap<_T extends Record<string, { path: string; route: string }>> = keyof _T & string;
-
 export type TypedLinkProps = {
   to?: RouteLocation;
   href?: string;

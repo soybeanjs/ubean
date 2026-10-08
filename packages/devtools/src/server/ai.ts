@@ -114,17 +114,11 @@ function nextToolId(): string {
 
 // --- Factory ---
 
-export interface AiServerOptions {
-  crud: DevToolsCrudServer;
-  getInfo: () => DevToolsInfo;
-  /** Called for each text delta during streaming. The RPC layer wires this
-   *  to a sharedState key so the client receives live updates. */
-  onStreamChunk?: (chunk: AiStreamChunk) => void;
-}
-
 export function createAiServer(
   crud: DevToolsCrudServer,
   getInfo: () => DevToolsInfo,
+  /** Called for each text delta during streaming. The RPC layer wires this
+   *  to a sharedState key so the client receives live updates. */
   onStreamChunk?: (chunk: AiStreamChunk) => void
 ) {
   // ------------------------------------------------------------------

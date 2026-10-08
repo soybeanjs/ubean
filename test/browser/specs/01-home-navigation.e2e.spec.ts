@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { AboutPage } from '../pages/about.page';
-import { api } from '../pages/base.page';
 import { FeaturesPage } from '../pages/features.page';
 import { HomePage } from '../pages/home.page';
 
@@ -13,6 +12,11 @@ import { HomePage } from '../pages/home.page';
  * - Layout system (header nav, footer)
  * - Page routing (file-system routes)
  * - useHead title injection
+ *
+ * TS-35：本 spec 原先还包含 6 条纯 HTTP 用例（404 API / 404 页面 JSON / 4 个 public 静态
+ * 文件）。那 6 条不需要浏览器（原 `api.*` 走的是 Node 侧 fetch），已下沉到
+ * `examples/ubean-test/test/`（`http-contracts.test.ts` + 既有 `static-files.test.ts` /
+ * `routing.test.ts`）。此处只保留**只有真实浏览器能证明**的 SSR / SPA 导航语义。
  */
 describe('Home & Navigation', () => {
   describe('Home page SSR', () => {
@@ -103,43 +107,6 @@ describe('Home & Navigation', () => {
       // The layout header should still be present after SPA nav
       const logo = await home.text('.logo');
       expect(logo).toBe('ubean-test');
-    });
-  });
-
-  describe('404 handling', () => {
-    it('returns 404 for non-existent API route', async () => {
-      const res = await api.get('/api/this-does-not-exist');
-      expect(res.status).toBe(404);
-    });
-
-    it('returns 404 for non-existent page route (JSON)', async () => {
-      const res = await api.get('/this-page-does-not-exist', { accept: 'application/json' });
-      expect(res.status).toBe(404);
-    });
-  });
-
-  describe('Static files from public/', () => {
-    it('serves data.json from public/', async () => {
-      const res = await api.get('/data.json');
-      expect(res.status).toBe(200);
-      expect(res.headers['content-type']).toContain('application/json');
-    });
-
-    it('serves test.txt from public/', async () => {
-      const res = await api.get('/test.txt');
-      expect(res.status).toBe(200);
-    });
-
-    it('serves favicon.svg from public/', async () => {
-      const res = await api.get('/favicon.svg');
-      expect(res.status).toBe(200);
-      expect(res.headers['content-type']).toContain('image/svg');
-    });
-
-    it('serves style.css from public/', async () => {
-      const res = await api.get('/style.css');
-      expect(res.status).toBe(200);
-      expect(res.headers['content-type']).toContain('css');
     });
   });
 });

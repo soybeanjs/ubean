@@ -22,6 +22,7 @@ import {
   readCompatibilityDate
 } from '../src/vite/cloudflare-preview';
 import type { MiniflareConstructorLike, MiniflareInstanceLike } from '../src/vite/cloudflare-preview';
+import { materializeFixture, removeMaterializedFixture } from './fixtures/materialize';
 
 let root: string;
 let workerPath: string;
@@ -214,7 +215,10 @@ describe('真实 miniflare：cloudflare 产物', () => {
     // 用 builder 的最小 fixture 而不是示例项目：示例里有一条测试路由 import `ubean/build`，
     // 会把整条构建工具链（@vue/compiler-sfc → 可选依赖 velocityjs）拉进 worker 产物 —— 那是
     // 示例自身的用法问题，会淹没这里要验证的东西（产物能否在 workerd 里跑起来）。
-    const fixture = join(repoRoot, 'packages/builder/test/fixtures/build-project');
+    //
+    // TS-29：用**本 suite 独占的**副本。`production-build.test.ts` 跑的是同一个 fixture，
+    // 共享时两者的 `.ubean/**` 与产物目录会互相踩（详见 `fixtures/materialize.ts`）。
+    const fixture = materializeFixture('build-project', 'cloudflare-preview');
     const outDir = '.temp-cf-preview';
     const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
     if (!existsSync(cliEntry)) {
@@ -250,7 +254,7 @@ describe('真实 miniflare：cloudflare 产物', () => {
       expect(api.status).toBe(200);
       expect(api.headers.get('content-type')).toContain('application/json');
     } finally {
-      rmSync(join(fixture, outDir), { recursive: true, force: true });
+      removeMaterializedFixture(fixture);
     }
   }, 300_000);
 });

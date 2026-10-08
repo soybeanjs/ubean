@@ -1,4 +1,4 @@
-import type { CompiledLocalePath, HonoLocalePath, I18nRoutingStrategy, LocaleRoutingConfig } from './types';
+import type { CompiledLocalePath, HonoLocalePath, LocaleRoutingConfig } from './types';
 
 function escapeRegex(code: string): string {
   return code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -133,5 +133,3 @@ export function compileLocalePaths(pagePath: string, cfg: LocaleRoutingConfig): 
     hono: honoPathsFor(pagePath, cfg)
   };
 }
-
-export type { I18nRoutingStrategy };

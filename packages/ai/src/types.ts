@@ -45,14 +45,6 @@ export interface ProviderDefinition {
   modelAliases?: Record<string, string>;
 }
 
-/** Provider registry used by the kernel. Registered via `defineProvider` / `useUbeanAI`. */
-export interface ProviderRegistry {
-  providers: Map<string, ProviderDefinition>;
-  get(id: string): ProviderDefinition | undefined;
-  set(definition: ProviderDefinition): void;
-  resolve(model: ModelString): ResolvedModel;
-}
-
 /** The result of resolving a `provider/model` string. */
 export interface ResolvedModel {
   /** The provider definition that handled the model string. */

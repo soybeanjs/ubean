@@ -257,9 +257,13 @@ L3 的 12 个 spec 已用真实 Chromium 覆盖同一批能力，断言强度**�
 
 该 ADR 的 2026-09-27 诚实补记承认：**这条边界从未真正执行**——`packages/builder/test/production-build.test.ts` 是完整构建集成测试（真实 `vite build`），且 `grep -rl toMatchSnapshot packages/builder/test/` **零命中**。
 
-**对本迁移方案的直接约束**：任何「声明某能力归某层」的结论，必须**在同一变更里落地可执行的断言**，否则就是第二次重复这个失败模式。§7 的验收清单必须勾选到可执行状态。
+**2026-09-28 更新（TS-28 已收口）**：逐模块实测发现这条边界**只落地了一半**——`virtual-modules.ts` 语句覆盖 97.7%（有断言），`production.ts` 仅 6.2%（三份 preset 入口模板与 islands SSR 空壳插件零断言）。已补 `packages/builder/test/codegen-entry-templates.test.ts`（6 例，1.0s），`production.ts` 语句覆盖升至 16.5%、函数 39.1%。两处修订写进 ADR 正文：①「snapshot/断言」在本仓的实际形态是**显式契约断言**而非 `toMatchSnapshot()`（整串快照会在改注释时变红）；②「真实 Vite build 归 e2e」**刻意不执行**——它是全仓唯一的 build 侧端到端断言，而历史事故 #1（RM-V14 双编译）正是「build 侧 0 断言」造成的。
 
-[test.md](test.md) TS-28 已把这条列为待办（「ADR-0002 边界 land-or-revise」）。
+**对本迁移方案的直接约束**（这条教训仍然成立）：任何「声明某能力归某层」的结论，必须**在同一变更里落地可执行的断言**，否则就是第二次重复这个失败模式。§7 的验收清单必须勾选到可执行状态。
+
+> 注意：TS-28 的结论**部分收窄了本方案的 §5「慢集成测上移」建议** —— 真实构建**可以**留在单测层，但必须显式标记（`// 历史事故 #N` 编号 + 文件头说明）且受体积/耗时闸门约束；「必须上移」不再是判据。TS-33 的 build 轨（`UBEAN_TEST_MODE=build`）与 `packages/cli/test/build-*.test.ts` 族已经这么做了。
+
+[test.md](test.md) TS-28 已收口（「ADR-0002 边界 land-or-revise」）。
 
 ### 6.2 [test.md](test.md) §6 的 do-not-do 清单（迁移方案不得违反）
 
@@ -335,6 +339,13 @@ L2 的三个 `describe.skipIf(!process.env.UBEAN_TEST_BASE_URL)` 意味着：**�
 - 长期把 `dev-dx` 的浏览器交互用例**迁入 vitest browser mode**，复用 POM 与 `e2eFetch`
 - 但 `dev-dx` 的**源码改写 + 恢复**能力（HMR/整页重载语义）在 vitest browser mode 下无法表达（需要重启 dev server）→ **这部分保留在裸 Playwright**
 - 这与 [test.md](test.md) TS-28「land-or-revise 边界」是同一个决策点：**必须显式写清哪套 harness 负责哪类语义**，并落地断言
+
+> **2026-09-28 更新（TS-37 已收口）**：实际做法**部分收窄了本条建议**。
+>
+> - **没有迁移**：保留两套 harness，改为「固化边界 + 消除重复」。理由是迁移的前提是能复用 POM，而 `dev-dx` 的 10 例里 3 例核心动作是改示例源码再还原（`src/app.ts` 整页重载探针、`src/pages/index.vue` HMR 探针、新增 `src/pages/zz-dx-hmr-probe.vue` 触发结构变化）—— 这类语义在 vitest browser mode 里既不安全（同进程浏览器 + 并发 suite 会读到源码中间态）也无法表达（无子进程管理）。**边界由语义决定，不是由「合并更优雅」决定**。
+> - **真正的问题不是两套 harness，而是重复的 helper**：实测 `findFreePort()` 被复制 **6 份**、就绪探测有 **6 种形态**、`playwright` 在 `packages/cli/test/` 只有 1 个消费者。新增 `packages/cli/test/helpers/cli-harness.ts` 作为唯一实现，6 个测试文件本地重复全部删除（合计 −268 行）。
+> - **落地了断言**（本条建议最后一句要求的）：新增 `packages/cli/test/harness-boundary.test.ts`（4 例）钉住边界 —— L3 不得自己起进程/端口、cli 侧 `findFreePort`/`node:net` 只允许住 harness、cli 不得长出 POM 类、harness 文件头必须含边界说明。红证 5/5 咬住。
+> - 边界表、判据与重复消除清单见 [test.md](test.md#ts-37-harness-边界台账)。
 
 ---
 

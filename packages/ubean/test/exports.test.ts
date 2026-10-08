@@ -875,6 +875,9 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
 const SUBPATHS = Object.keys(EXPECTED_EXPORTS);
 
 describe('ubean 主包导出面（TS-01）', () => {
+  // 历史事故 #6（RM-T04）：codegen / 导出面这类「生成物契约」此前**从未被断言过** ——
+  // ADR-0002 声称用快照/断言做门禁，但 `grep -rl toMatchSnapshot packages/builder/test/` = 0 命中，
+  // 即声明与执行脱节。本文件是首次落地的合法快照（导出面是必须逐符号锁定的稳定契约）。
   it('覆盖全部 8 个已声明的子路径导出', () => {
     expect(SUBPATHS).toEqual(['.', './vite', './client', './ssr', './server', './build', './i18n', './scaffold']);
   });

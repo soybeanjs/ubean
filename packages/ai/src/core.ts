@@ -46,7 +46,11 @@ export function configureAI(options: { defaultProvider?: string }): void {
   if (options.defaultProvider) defaultProviderId = options.defaultProvider;
 }
 
-/** Internal: clear registered providers & default (used by tests). */
+/**
+ * Clear registered providers & default.
+ *
+ * @internal — only the AI test suite calls this; production code never resets the registry.
+ */
 export function resetAIState(): void {
   registeredProviders.clear();
   defaultProviderId = undefined;
@@ -314,17 +318,3 @@ export function defineAgent<T = unknown>(config: AgentConfig): UbeanAgent<T> {
 
   return { config, run, stream, asHandler };
 }
-
-// Re-export types for convenience.
-export type {
-  AgentConfig,
-  AgentInput,
-  AgentRunResult,
-  AgentStreamChunk,
-  AgentTool,
-  AgentToolResult,
-  ProviderDefinition,
-  ProviderKind,
-  ResolvedModel,
-  UbeanAgent
-} from './types';

@@ -29,8 +29,7 @@ const RESOLVE_TIMEOUT_MS = 15_000;
  * 在页面脚本执行前装好观察器：`document` 上的 attribute 观察可以覆盖解析全过程，
  * 避免「水合发生在 DOMContentLoaded 之前」导致漏采。
  */
-function hydrationProbe() {
-  const selector = 'ubean-island[data-hydrated]';
+function hydrationProbe(selector) {
   const finish = () => {
     if (window.__ubeanPerfHydration !== undefined) return true;
     if (document.querySelector(selector)) {
@@ -52,7 +51,7 @@ function hydrationProbe() {
 export async function createBrowserSession(options = {}) {
   const browser = await chromium.launch(options.launchOptions);
   const context = await browser.newContext();
-  await context.addInitScript(hydrationProbe);
+  await context.addInitScript(hydrationProbe, HYDRATED_SELECTOR);
   return {
     context,
     browser,

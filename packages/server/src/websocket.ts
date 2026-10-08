@@ -238,7 +238,11 @@ export function handleUpgrade(
 
   if (def?.hooks?.open) {
     queueMicrotask(() => {
-      Promise.resolve(def.hooks!.open!(peer)).catch(() => {});
+      // 同步抛错在 `Promise.resolve(fn())` 这个写法里逃得出来 —— `fn()` 在包装**之前**
+      // 就被求值了。必须外层再包 try/catch，否则 sync throw 会变成 unhandled rejection。
+      try {
+        Promise.resolve(def.hooks!.open!(peer)).catch(() => {});
+      } catch {}
     });
   }
 
@@ -252,7 +256,9 @@ export function handleMessage(peer: Peer, message: string | ArrayBuffer): void {
   const path = new URL(peer.url).pathname;
   const def = definitions.get(path) || definitions.get('/*');
   if (def?.hooks?.message) {
-    Promise.resolve(def.hooks.message(peer, message)).catch(() => {});
+    try {
+      Promise.resolve(def.hooks.message(peer, message)).catch(() => {});
+    } catch {}
   }
 }
 
@@ -270,7 +276,9 @@ export function handleClose(peer: Peer, code: number = 1000, reason: string = ''
   internal._subscriptions.clear();
 
   if (def?.hooks?.close) {
-    Promise.resolve(def.hooks.close(peer, code, reason)).catch(() => {});
+    try {
+      Promise.resolve(def.hooks.close(peer, code, reason)).catch(() => {});
+    } catch {}
   }
 }
 
@@ -278,7 +286,9 @@ export function handleError(peer: Peer, error: Error): void {
   const path = new URL(peer.url).pathname;
   const def = definitions.get(path) || definitions.get('/*');
   if (def?.hooks?.error) {
-    Promise.resolve(def.hooks.error(peer, error)).catch(() => {});
+    try {
+      Promise.resolve(def.hooks.error(peer, error)).catch(() => {});
+    } catch {}
   }
 }
 

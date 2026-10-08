@@ -32,9 +32,10 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs';
-import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+// TS-37：端口 / 进程 / 就绪探测收敛到共用 harness
+import { findFreePort, resolveBaseUrl, stopChild } from './helpers/cli-harness';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
@@ -61,20 +62,6 @@ function exampleDir(name: string): string {
 
 function outDir(name: string): string {
   return join(exampleDir(name), OUT);
-}
-
-async function findFreePort(): Promise<number> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const port = 20_000 + Math.floor(Math.random() * 20_000);
-    const free = await new Promise<boolean>(resolveFree => {
-      const server = createServer();
-      server.unref();
-      server.once('error', () => resolveFree(false));
-      server.listen(port, '127.0.0.1', () => server.close(() => resolveFree(true)));
-    });
-    if (free) return port;
-  }
-  throw new Error('找不到可用端口');
 }
 
 /**
@@ -111,7 +98,7 @@ async function buildExample(name: string): Promise<{ code: number; output: strin
 
 async function startPreview(name: string): Promise<Running> {
   const dir = exampleDir(name);
-  const port = await findFreePort();
+  const port = await findFreePort({ base: 20_000 });
   const child = spawn(
     process.execPath,
     [cliEntry, 'preview', '--port', String(port), '--strictPort', '--outDir', OUT],
@@ -121,42 +108,21 @@ async function startPreview(name: string): Promise<Running> {
   child.stdout?.on('data', chunk => (output += String(chunk)));
   child.stderr?.on('data', chunk => (output += String(chunk)));
 
-  const deadline = Date.now() + PREVIEW_TIMEOUT_MS;
-  // 只监听 `::1`，所以先探 `::1` 再退回 `127.0.0.1`（后者是给未来监听形态留的兼容位）。
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(`${name} preview 提前退出（exit ${child.exitCode}）：\n${output}`);
-    }
-    for (const host of ['::1', '127.0.0.1']) {
-      const baseUrl = `http://${host === '::1' ? '[::1]' : host}:${port}`;
-      try {
-        const res = await fetch(`${baseUrl}/`, { signal: AbortSignal.timeout(2_000) });
-        if (res.status > 0) return { child, baseUrl, output: () => output };
-      } catch {
-        // 还没起来，继续等
-      }
-    }
-    await new Promise(r => setTimeout(r, 250));
+  try {
+    const baseUrl = await resolveBaseUrl(port, {
+      timeoutMs: PREVIEW_TIMEOUT_MS,
+      child,
+      output: () => output
+    });
+    return { child, baseUrl, output: () => output };
+  } catch (error) {
+    await stopChild(child);
+    throw error;
   }
-  child.kill('SIGKILL');
-  throw new Error(`${name} preview ${PREVIEW_TIMEOUT_MS}ms 内未就绪：\n${output}`);
 }
 
 async function stopPreview(running: Running | null): Promise<void> {
-  if (!running) return;
-  const { child } = running;
-  if (child.exitCode !== null) return;
-  await new Promise<void>(resolveStop => {
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      resolveStop();
-    }, 5_000);
-    child.once('exit', () => {
-      clearTimeout(timer);
-      resolveStop();
-    });
-    child.kill('SIGTERM');
-  });
+  await stopChild(running?.child);
 }
 
 async function get(running: Running, path: string): Promise<Probe> {

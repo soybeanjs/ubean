@@ -17,16 +17,23 @@
  * tmpdir 在工作区外时 Vite 的依赖解析会失败（RM-V14 的 fixture 陷阱）。builder 的 tsconfig
  * 已 exclude `test`，因此 fixture 的 `src/**` 不参与 typecheck。
  */
-import { existsSync, readFileSync, readdirSync, rmSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import { afterAll, describe, expect, it } from 'vitest';
 // 编排函数走 `/production` 子路径（主入口只导出构建期工具链）
 import { buildWithEnvironments } from '@ubean/build/production';
 import { loadUbeanConfig } from '@ubean/config';
 import { resolvePresetByName, registerBuiltinPresets } from '@ubean/preset';
 import { scanProject } from '@ubean/scan';
+import { materializeFixture, removeMaterializedFixture } from './fixtures/materialize';
 
-const FIXTURE = resolve(import.meta.dirname, 'fixtures/build-project');
+/**
+ * TS-29：本 suite 用**自己独占的** fixture 副本（而非共享的 `test/fixtures/build-project`）。
+ * 它与 `cloudflare-preview.test.ts` 都跑真实构建、都往 fixture 里写 `.ubean/**`，共享时
+ * 会互相踩（详见 `fixtures/materialize.ts` 的说明）。副本落在仓库根的 `.temp/` 下，
+ * 仍在工作区内以保证 Vite 的依赖解析正常。
+ */
+const FIXTURE = materializeFixture('build-project', 'production-build');
 /** 产物写到 fixture 内的临时目录，避免污染仓库（跑完删除）。 */
 const OUT_DIR = '.temp-build';
 
@@ -57,12 +64,13 @@ function attrValue(fragment: string, attr: string): string {
   return afterAttr ? afterAttr.split('"')[0] : '';
 }
 
-afterEach(() => {
-  rmSync(join(FIXTURE, OUT_DIR), { recursive: true, force: true });
-  rmSync(join(FIXTURE, '.ubean'), { recursive: true, force: true });
+afterAll(() => {
+  removeMaterializedFixture(FIXTURE);
 });
 
 describe('生产构建（buildWithEnvironments）', () => {
+  // 历史事故 #1（RM-V14）：build 路径漏改导致 `.vue` 被编译两次。
+  // 这是全仓**唯一**的 build 侧断言 —— 事故当时正是「dev 侧 500+ 断言、build 侧 0 断言」。
   it('完整构建：编译 .vue、产出 dist 布局、preset 包装与 manifest', async () => {
     registerBuiltinPresets();
     const config = await loadUbeanConfig(FIXTURE);

@@ -2,8 +2,6 @@ import { readFile } from 'node:fs/promises';
 import { extractCallObject } from '@ubean/vue/vite';
 import type { DefineMetaResult } from './types';
 
-export type { PageMeta, DefineMetaResult } from './types';
-
 // 页面路由的 `definePage` 提取器已迁移至 `@ubean/vue`(页面路由唯一所有者):
 // - `extractDefinePage` / `extractDefinePageFromCode`:`@ubean/vue/vite`
 // - 通用宏调用解析器:`@ubean/vue/vite` 的 `extractCallObject`(单一实现)

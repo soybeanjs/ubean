@@ -3,7 +3,7 @@ import { validateParams as _validateParams } from '@ubean/scan';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 import { isServerAction, matchAnyGlob } from '@ubean/shared';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/shared';
-import type { Context, Next, MiddlewareHandler, Hono } from 'hono';
+import type { Context, Next, MiddlewareHandler } from 'hono';
 import { isBotUserAgent } from './bot-detection';
 import { extractRouteMeta, isHandlerChain } from './handler';
 import { serveIsr } from './isr';
@@ -842,6 +842,3 @@ export function createRouteLoader(importMetaGlob: Record<string, () => Promise<a
     })
   );
 }
-
-// Re-export Hono type for convenience
-export type { Hono };

@@ -32,7 +32,6 @@
   "dependencies": {
     "defu": "6.1.7",
     "ohash": "^2.0.12",
-    "pathe": "^2.0.3",
     "ufo": "1.6.4"
   },
   "devDependencies": {

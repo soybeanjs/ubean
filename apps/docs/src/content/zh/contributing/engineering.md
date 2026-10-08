@@ -1,8 +1,8 @@
 ---
 title: Engineering
 description: ubean 工程规范：编码约定、测试与发布流程。
-translatedFrom: 6b55ad92ed98
-sections: ["9838c4f9","e3b0c442","14ab805c","c327d771","e67dc13c","725b79af","ca1abf0f","23a5ce88","3e2318a6","ffeb3935","88f36d74","971b3291","798ff115","db9c4978","1e86da38","197cf633","d569e6ea","2945c565","46fec4d3","a0213faf","73fc5abd","a8e6548f","e27800d9","3e7f8c66","2b701591","8bf019ee","865aedc7","d68ee035","6a7defb8","bbc098a5","b9a1a519","7538b766","e983527a","4f0bbc71","3a4686b7"]
+translatedFrom: d23dc166f3da
+sections: ["9838c4f9","e3b0c442","14ab805c","c327d771","e67dc13c","725b79af","ca1abf0f","23a5ce88","3e2318a6","ffeb3935","88f36d74","971b3291","798ff115","db9c4978","1e86da38","197cf633","d569e6ea","2945c565","46fec4d3","a0213faf","73fc5abd","a8e6548f","e27800d9","3e7f8c66","2b701591","8bf019ee","865aedc7","d68ee035","6a7defb8","bbc098a5","b9a1a519","7538b766","e983527a","9de5a3b5","3a4686b7"]
 ---
 
 # 工程规范、测试与发布
@@ -492,11 +492,14 @@ pnpm benchmark:lifecycle            # 报告（默认 cli 臂；可用臂 cli / 
 pnpm benchmark:lifecycle -- --runs 3 --warmup 1
 pnpm benchmark:lifecycle -- --skip-browser   # 跳过浏览器运行时指标
 pnpm benchmark:lifecycle:baseline   # 重新生成 examples/ubean-test/benchmarks/perf-baseline.json
+pnpm benchmark:trend -- --report .temp/perf-report.json   # 追加趋势点并渲染对比表
 ```
 
 采集四组指标：dev 冷启动、浏览器运行时（首个岛屿水合 / 站内导航）、变更生效延迟（服务端 / 客户端分开）、build 墙钟与峰值内存；另有 reload 正确性对照（改无关文件后模块实例是否保留）。原始样本与运行环境记录一并落盘，报告里的数字只有配上该文件才可复核。基线在 **Vite 插件化之前** 于旧路径上采集（RM-P05），是 `vite-plugin-migration.md` 风险 R3 与 RM-V13 / V15 / V23 的对照口径。
 
 浏览器指标需要 Playwright 的 Chromium（`npx playwright install chromium`）；缺失时报告会标注「不可用」并跳过该组，不影响其余指标。
+
+**周期性趋势**：`.github/workflows/nightly-perf.yml` 每天跑一次基准，把点追加进 `.temp/perf-trend.jsonl` 并渲染「与上一次」「与 committed 基线」两张对比表到 job summary。它**不设阈值、不因数值变化失败**，也不在 PR 路径上。一处要留意：committed 基线在 darwin/arm64 上采集、nightly 在 ubuntu 上跑，趋势脚本会检测 `platform`/`arch`/`cpuModel` 是否一致，不同则把整段差值标为「机器不同、绝对值不可比，只看方向」—— 换机器时趋势表里会看到这条警告，那不是性能回归。
 
 **性能主张的纪律**：任何声称性能收益的 PR 必须附可复现基准、正确性对照与前后数字；不接受「感觉没变慢」或「应该更快」。
 

@@ -55,6 +55,10 @@ const ENTRY_MANIFEST = {
 };
 
 describe('computeAssetTags', () => {
+  // 历史事故 #2（RM-V21「体积门禁全绿但产物空」）的产物侧判据，由 RM-V24 接管 `vite preview` 时的
+  // 验收断言逼出来：`virtual:ubean-asset-manifest` 有两个提供者，核心插件那份 ref 只在它自己的
+  // `buildApp` 里被填 → CLI 驱动的路径拿到空值 → 生产 HTML 既无入口 `<script>` 也无样式表。
+  // 文件清单比对与体积门禁都看不见（HTML 内容不在比对范围内）。
   it('从 entry 项派生 `<script type="module">`', () => {
     expect(computeAssetTags(ENTRY_MANIFEST).body).toBe('<script type="module" src="/assets/app-abc123.js"></script>');
   });

@@ -1,0 +1,131 @@
+name: Nightly perf
+
+# TS-26：生命周期基准的**趋势**采集 —— 周期性（nightly）或手动触发，**不进 PR 门禁**。
+#
+# 为什么单独一个 workflow 而不塞进 ci.yml：
+#
+# ①它必须在**不被 PR 触发**的前提下跑（本 workflow 的 `on` 里没有 pull_request）；
+# ②它依赖 `scripts/benchmark-lifecycle.mjs` 的九项进程级/端到端指标，单次要跑 dev 冷启动 ×N、
+#   变更生效 ×N、build ×N 与两条浏览器路径 —— 成本远高于 `pnpm test`，放进 PR 路径会让每次
+#   提交都等它；
+# ③TS-18 已经开了先例：周期性的 compat.yml 是独立 workflow，不在 ci.yml 的 `ci-ok` 聚合里
+#   （`ci-ok` 的 `needs` 只覆盖 ci.yml 自己的 job）。同一个形态。
+#
+# 为什么**不设阈值、不因数值变化失败**（`docs/perf-regression-net.md` §4.4）：
+#
+# GitHub 共享 runner 噪声大，性能数字做成阻塞阈值会持续假阳性，最终结局是被绕过或放宽。
+# 本仓的定位是「可复现的本地 / 定期基准 + 迁移前后的对照证据」；CI 里确定性的门禁只有体积
+# 预算（RM-P06，在 ci.yml 的 `Client JS budget`）。所以本 workflow 的每一个 step 都不会因为
+# 「慢了 20%」而红 —— 它只负责把点追加进历史、把趋势贴到 job summary、把产物传上去。
+# 验收第二格「PR 门禁中无性能阻断」由两件事共同保证：本 workflow 不被 PR 触发，且 ci.yml
+# 里没有任何 benchmark step（`packages/cli/test/benchmark-trend.test.ts` 对两者都有断言）。
+#
+# 趋势怎么跨运行累积：runner 是临时的，`.temp/perf-trend.jsonl` 跑完就没了。用
+# `actions/cache` 以 `perf-trend-<run_id>` 为键（永远不命中，故每次都会写回）+ 前缀
+# `restore-keys: perf-trend-` 恢复最近一次的历史 —— 于是每次 nightly 都在上一次的基础上追加。
+# 代价是 GitHub 的缓存会按 10GB 上限淘汰旧条目，趋势因此是**滚动窗口**而非全量历史；
+# 这没关系：趋势要的是「最近有没有变差」，不是考古。
+
+on:
+  schedule:
+    # 每天 19:00 UTC（= 北京时间 03:00）。刻意排在 compat.yml（18:30 UTC）之后半小时 ——
+    # 两者都是长任务，错开可以让它们各自独占 runner 而不是互相抢 CPU（性能数字对同机负载敏感）。
+    - cron: '0 19 * * *'
+  workflow_dispatch:
+    inputs:
+      runs:
+        description: '每个指标的有效迭代次数'
+        required: false
+        default: '3'
+      label:
+        description: '本次运行的标签（写进趋势点）'
+        required: false
+        default: 'nightly'
+
+concurrency:
+  group: nightly-perf-${{ github.ref }}
+  # 不取消进行中的运行：趋势点是**追加**的，半路取消会浪费已经跑完的采样；
+  # 而且一次运行要几分钟到十几分钟，取消后重跑并不会更快。
+  cancel-in-progress: false
+
+jobs:
+  perf:
+    name: lifecycle benchmark trend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          # 与 ci.yml 一致取 24（当前 LTS）。趋势点的 `environment.node` 会记录实际版本，
+          # 将来换 Node 时趋势表里能一眼看出「这里换了机器」。
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 浏览器指标（browserHydration / browserNavigation）需要真实 Chromium；
+      # 缺了它 `benchmark-lifecycle.mjs` 只会标注「不可用」并跳过（不失败），
+      # 那样 nightly 就永远少两个指标 —— 所以这里显式装上。
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build packages
+        # 示例 fixture（`examples/ubean-test`）里 `pnpm exec ubean dev|build` 解析到
+        # `packages/cli` 的 `dist/`，所以必须先构建 workspace 包。
+        # ci.yml 里这一步隐含在 `pnpm typecheck`（= `pnpm build && pnpm typecheck-only`）里；
+        # 本 workflow 不跑 typecheck，故显式构建。
+        run: pnpm build
+
+      - name: Restore perf trend history
+        # 见文件头「趋势怎么跨运行累积」。键里带 run_id 是为了让它**永不命中**，
+        # 从而每次都能把更新后的文件写回去（actions/cache 的键一旦存在就不会覆盖）。
+        uses: actions/cache@v6
+        with:
+          path: .temp/perf-trend.jsonl
+          key: perf-trend-${{ github.run_id }}
+          restore-keys: |
+            perf-trend-
+
+      - name: Run lifecycle benchmark
+        # 产出 `{ environment, arms }` 报告（含原始样本，便于事后复盘异常点）。
+        # `--runs 3 --warmup 1` 与 committed 基线的口径一致（`perf-current.json` 的
+        # `iterations`），避免趋势点与基线之间还有一层方法差异。
+        run: >-
+          pnpm benchmark:lifecycle --
+          --runs ${{ github.event.inputs.runs || '3' }}
+          --warmup 1
+          --json .temp/perf-report.json
+          --label ${{ github.event.inputs.label || 'nightly' }}
+
+      - name: Compute trend
+        # 追加趋势点 + 渲染 markdown（贴到 job summary）+ 与上一次 / 与 committed 基线对比。
+        # 退出码恒为 0：本步骤是采集，不是门禁。
+        run: >-
+          node scripts/benchmark-trend.mjs
+          --report .temp/perf-report.json
+          --label ${{ github.event.inputs.label || 'nightly' }}
+
+      - name: Upload perf report & trend
+        # `if: always()`：基准本身失败时，已经跑完的那部分报告仍然有诊断价值。
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-perf
+          path: |
+            .temp/perf-report.json
+            .temp/perf-trend.jsonl
+          if-no-files-found: warn
+          # 比 ci.yml 的 7 天长：趋势要能回溯到「几周前开始变慢」，7 天不够看。
+          retention-days: 30

@@ -167,7 +167,10 @@ export function createSSEStream(c: Context<UbeanEnv>, handler: SSEHandler, optio
   }
 
   queueMicrotask(() => {
-    Promise.resolve(handler.onConnect?.(connection)).catch(() => {});
+    // 同 websocket.ts：`handler.onConnect?.(...)` 是同步求值，sync throw 必须靠外层 try/catch 拦住。
+    try {
+      Promise.resolve(handler.onConnect?.(connection)).catch(() => {});
+    } catch {}
   });
 
   return new Response(readable, { headers });

@@ -30,9 +30,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@ubean/app": "workspace:*",
     "@ubean/build": "workspace:*",
-    "@ubean/client": "workspace:*",
     "@ubean/config": "workspace:*",
     "@ubean/i18n": "workspace:*",
     "@ubean/islands": "workspace:*",
@@ -45,7 +43,6 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
-    "@vitejs/plugin-vue": "^6.0.9",
     "env-runner": "0.3.3",
     "typescript": "catalog:",
     "vite": "catalog:",

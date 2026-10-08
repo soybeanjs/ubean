@@ -435,14 +435,34 @@ export const SERVER_COMPONENT_ENDPOINT = '/__server-component';
  *
  * 中间件 `createServerComponentMiddleware()` 通过 `getServerComponent(path)` 取出
  * 组件,用 `renderToString(h(Comp, props))` 重新渲染并返回 HTML。
+ *
+ * **真·进程单例(挂在 `globalThis` 上)** —— 不能用模块级 `Map`:dev 的 SSR 图会把本文件
+ * 内联进 Vite 预构建 chunk(实测 `form-action-*.js`),而 `createUbeanApp()` 由 `@ubean/app`
+ * 的产物静态 `import '@ubean/islands/server'` 走 Node 原生解析取到**另一份** `dist/runtime.js`。
+ * 模块级状态只在同一个模块实例内共享,于是「SSR 渲染时注册」与「`POST /__server-component`
+ * 查找」读的是两个 Map,表现为该端点恒 404 `Component not registered for path`。
+ *
+ * 同类先例:`@ubean/vue` 的 matcher 注册表(`packages/vue/src/matchers.ts`)与
+ * `@ubean/build` 的模块注册表都出于同一理由挂在 `globalThis` 上(AGENTS.md §8 #19)。
  */
-const serverComponentRegistry = new Map<string, Component>();
+const SERVER_COMPONENT_REGISTRY_KEY = '__ubean_server_component_registry__';
+
+function getServerComponentRegistry(): Map<string, Component> {
+  const store = globalThis as unknown as Record<string, unknown>;
+  const existing = store[SERVER_COMPONENT_REGISTRY_KEY];
+  if (existing instanceof Map) return existing as Map<string, Component>;
+  const created = new Map<string, Component>();
+  store[SERVER_COMPONENT_REGISTRY_KEY] = created;
+  return created;
+}
 
 /**
  * 注册服务端组件到全局注册表 (SSR 构建中由 `defineServerIsland` 自动调用)。
+ *
+ * 同名重复注册会覆盖 —— HMR 重新求值页面模块时因此能拿到最新组件引用。
  */
 export function registerServerComponent(path: string, component: Component): void {
-  serverComponentRegistry.set(path, component);
+  getServerComponentRegistry().set(path, component);
 }
 
 /**
@@ -450,12 +470,12 @@ export function registerServerComponent(path: string, component: Component): voi
  * 未注册时返回 `undefined`。
  */
 export function getServerComponent(path: string): Component | undefined {
-  return serverComponentRegistry.get(path);
+  return getServerComponentRegistry().get(path);
 }
 
 /** 清空注册表 (仅用于测试)。 */
 export function _clearServerComponentRegistry(): void {
-  serverComponentRegistry.clear();
+  getServerComponentRegistry().clear();
 }
 
 /**

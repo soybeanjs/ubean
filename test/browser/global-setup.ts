@@ -99,7 +99,12 @@ async function warmup(baseUrl: string): Promise<void> {
     '/user/1',
     '/marketing-page',
     '/about-alias',
-    '/md-test'
+    '/md-test',
+    // TS-36：`12-special-rendering` 用例涉及的特殊渲染形态
+    '/marketing',
+    '/parallel',
+    '/blog/foo/bar',
+    '/server-island-props'
   ];
   for (const path of targets) {
     // Retry each target until it responds (server may be recompiling).

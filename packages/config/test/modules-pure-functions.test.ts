@@ -17,7 +17,7 @@ import {
   extractPlugins,
   topologicalSort
 } from '../src/index';
-import type { ModuleDefinition } from '../types';
+import type { ModuleDefinition } from '../src/types';
 
 describe('extractPackageName()', () => {
   it('scoped 包：@scope/name/sub → @scope/name', () => {

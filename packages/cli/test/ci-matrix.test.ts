@@ -39,9 +39,13 @@ const workflow = YAML.parse(readFileSync(join(repoRoot, '.github/workflows/ci.ym
 /** 「只有 ubuntu 能/才该跑」的步骤 —— 必须显式门控。 */
 const UBUNTU_ONLY_STEPS = [
   'Browser E2E (Playwright)',
+  // TS-25：L3 的 flaky 报告只在 ubuntu 产生，判定缺了它就不完整，所以整道门禁也只在 ubuntu 跑。
+  'Flaky test ledger gate (TS-25)',
   'Client JS budget',
   'Type check the example project',
   'Build the docs site',
+  'Dead code & unused dependencies (knip, report-only)',
+  'Coverage report (diagnostic, no thresholds)',
   'Verify package tree & extension contract',
   'Check docs i18n'
 ];
@@ -99,6 +103,27 @@ describe('TS-13 CI OS × Node 矩阵', () => {
       expect(step, `找不到 step「${name}」—— 改名了就要同步这张表`).toBeDefined();
       expect(step?.if, `step「${name}」缺少 if 门控`).toContain("runner.os == 'ubuntu-latest'");
     }
+  });
+
+  it('反向断言：workflow 里每个 ubuntu 门控步骤都在 UBUNTU_ONLY_STEPS 里（删数组项会红）', () => {
+    // 只做正向断言时，UBUNTU_ONLY_STEPS 是一张「自己检查自己」的表 —— 从数组里删掉
+    // 一项，对应的断言就整条消失，CI 全绿而覆盖静默缩水（实测删掉 knip 那项确实
+    // 不报错）。这条反向断言把表钉回 workflow 文本：workflow 里出现的 ubuntu 门控
+    // 步骤集合必须**恰好等于** UBUNTU_ONLY_STEPS ∪ 条件性 artifact 上传。
+    const steps = workflow.jobs.ci.steps ?? [];
+    const ubuntuGated = steps
+      .filter(s => s.if?.includes("runner.os == 'ubuntu-latest'"))
+      .map(s => s.name ?? '<unnamed>');
+
+    // 带额外 `failure()` / `always()` 条件的 artifact 上传步骤不属于「只有 ubuntu 才该跑」
+    // 的语义，而是「在 ubuntu 上收集证据」；它们同样需要 ubuntu 门控，但按 `uses` 自动
+    // 收集，这样将来新增 artifact 步骤不必回来改这张表。
+    const artifactSteps = steps
+      .filter(s => s.uses?.startsWith('actions/upload-artifact') && s.if?.includes("runner.os == 'ubuntu-latest'"))
+      .map(s => s.name ?? '<unnamed>');
+    const expected = [...UBUNTU_ONLY_STEPS, ...artifactSteps].sort();
+
+    expect([...ubuntuGated].sort(), 'ubuntu 门控步骤集合必须与表一致（新增/删除步骤都要同步）').toEqual(expected);
   });
 
   it('TS-05 聚合门禁覆盖全部 job（新增 job 忘了挂 needs 会红）', () => {

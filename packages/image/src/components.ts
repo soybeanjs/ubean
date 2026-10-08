@@ -335,5 +335,3 @@ export const NuxtPicture = defineComponent({
     };
   }
 });
-
-export default NuxtImg;

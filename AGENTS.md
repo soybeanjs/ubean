@@ -889,7 +889,7 @@ export default defineConfig({
 17. **Islands 水合**：常规 islands 由框架在客户端入口自动水合（首次 mount 双重 rAF；SPA `afterEach` 无 pending 岛时跳过第二帧）；仅在需要传入手动注册组件（escape hatch）时在 `onClientReady` 中额外调用 `hydrateIslands()`
 18. **第三方 API 不经 ubean 透传**：`vue`/`vue-router`/`vue-i18n`/`@vue/server-renderer` 的 API 一律从对应包直接导入，ubean 不再 re-export（如 `useRouter` 从 `vue-router`、`renderToString` 从 `@vue/server-renderer`、`I18n` 类型从 `vue-i18n`）；自动导入预设也直源这些包（`VUE_ROUTER_PRESET`/`VUE_I18N_PRESET`/`HONO_OPENAPI_PRESET`）。ubean 的 `useI18n`/`t` vue-i18n 包装已移除——`useI18n` 从 `vue-i18n` 导入，`t` 从其返回的 composer 解构。例外：`validator`/`describeRoute` 等 hono-openapi API 从 `ubean/server` 重新导出；`useHead`/`useSeoMeta`/`Head`（ubean 品牌 head 门面，主入口与 `@ubean/seo` 有消歧设计）；`createClientHead`/`createServerHead`（builder 虚拟模块的依赖卫生门面）；`setLocale`/`useLocalePath` 等 i18n 封装（ubean 自有实现，主入口 isomorphic 化后恢复自然命名，不再有 `setVueLocale` 别名）。示例项目（ubean-test/frontend-only/routing-file-mode）与 apps/docs 已在 `package.json` 中显式声明 `vue-router` + `hono-openapi` + `vue-i18n`
 
-19. **跨模块实例共享状态**：dev 的 SSR 图会内联 `ubean`、外部化 `@ubean/vue`，框架因此存在**两份模块实例**；模块级注册表 / `Map` 会让两侧读到的不是同一份，且**没有任何报错**。需要跨实例共享的状态挂 `server` 对象或 `globalThis`（matcher 注册表即为此改挂 `globalThis`）。
+19. **跨模块实例共享状态**：dev 的 SSR 图会内联 `ubean`、外部化 `@ubean/vue`，框架因此存在**两份模块实例**；模块级注册表 / `Map` 会让两侧读到的不是同一份，且**没有任何报错**。需要跨实例共享的状态挂 `server` 对象或 `globalThis`（matcher 注册表即为此改挂 `globalThis`，`@ubean/islands` 的服务端组件注册表同样如此 —— dev 下 SSR 图把 `packages/islands/dist/runtime.js` 内联进预构建 chunk，而 `@ubean/app` 产物静态 `import '@ubean/islands/server'` 走 Node 原生解析拿到另一份，曾导致 `POST /__server-component` 恒 404；守卫见 `packages/islands/test/server-component-registry-singleton.test.ts`）。
 20. **dev 请求路由的保留命名空间**：DevTools 有多个挂载点（`/__devtools`、`/__devtools-assets/`、`/__devtools-client-imports.js`、`/_devtools/**`），放行判据必须按**裸字符串前缀**匹配（按路径段会漏掉兄弟路径），且前缀常量只在一处声明。框架内置 HTML 页面（`/_devtools`、`/_scalar`）由 `isFrameworkHtmlPage()` 判定并跳过整个 HTML transform —— 否则应用客户端入口会被注入到没有 `#app` 的页面上。
 21. **页面元数据序列化白名单**：dev 的 SSR 路由表用扫描得到的**活对象**，产物入口走**序列化白名单** —— 白名单漏字段会静默丢语义（`matchers`/`slot`/`reuseTarget` 曾因此只在产物里失效，dev 完全正常）。改动 `ScannedPage` 字段时必须同步 `serializePagesForEntry()` 的白名单，`packages/builder/test/page-metadata.test.ts` 逐字段锁住。
 22. **peer 变体漂移**：catalog 里的 `typescript: npm:typescript-native-bridge@latest` 会让 peer 解析漂移出两份 `vite-plus-core`，表现为 `Plugin` 类型身份不一致的类型报错；遇到先 `pnpm install` 收敛。`env-runner` 必须留在 `packages/cli`，**不得**成为 `@ubean/build` 的依赖（同样会触发该分裂）。
@@ -907,6 +907,7 @@ pnpm analyze          # 读 Vite client manifest；示例基线 `examples/ubean-
 pnpm analyze:check    # 对照 committed 基线，gzip 相对增长超过 5% 则失败；可加 --max-total-kb/--max-entry-kb/--max-chunk-kb 设绝对上限
 pnpm benchmark:lifecycle           # dev 冷启动 / 浏览器水合与导航 / 变更生效 / build 墙钟与峰值内存（p50/p95；不进 CI 阻塞）
 pnpm benchmark:lifecycle:baseline  # 重新生成 `examples/ubean-test/benchmarks/perf-baseline.json`（须在旧路径上采集）
+pnpm benchmark:trend -- --report <benchmark-lifecycle --json 产物>  # 趋势：追加点到 `.temp/perf-trend.jsonl` 并渲染对比表（nightly 用；不设阈值）
 pnpm benchmark:ssg    # ssg 直接渲染 vs fullstack 管道的构建对比（ADR-0011）
 pnpm dev              # watch 构建主包 ubean（vp pack --watch）；示例 dev server 用 pnpm --filter ubean-test dev
 pnpm build            # 构建

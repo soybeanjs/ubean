@@ -3,13 +3,8 @@ import { getLogger } from '@ubean/shared/logger';
 
 const logger = getLogger('dev-server');
 
-export { startDevServer, type DevServer, type DevServerOptions } from './server';
-
 // RM-V14：dev 的 Vite 装配（取代 vite-server.ts + runner.ts）
-export { createDevViteServer, type DevViteServer, type DevViteServerOptions } from './dev-vite';
-
-// RM-V03：dev / preview 共用的 Node↔Web 适配（Phase 1 的 dev 路由与 preview 接管都会用到）
-export { toWebRequest, sendWebResponse } from '@ubean/build/vite';
+export { createDevViteServer, type DevViteServer } from './dev-vite';
 
 export function formatDiagnostics(diagnostics: CapabilityDiagnosisResult): { errors: string[]; warnings: string[] } {
   const errors: string[] = [];

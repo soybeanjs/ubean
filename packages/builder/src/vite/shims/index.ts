@@ -96,5 +96,10 @@ export function loadWorkerNodeStub(id: string): string | undefined {
   return STUB_SOURCES[id.slice(STUB_PREFIX.length)];
 }
 
-/** 供构建期审计与测试使用的清单。 */
+/**
+ * 供构建期审计与测试使用的清单。
+ *
+ * @internal — 唯一消费者是 `test/worker-target.test.ts`；构建链路只用
+ * `resolveWorkerNodeStub` / `loadWorkerNodeStub`。
+ */
 export const WORKER_NODE_STUB_IDS = Object.freeze(Object.keys(STUB_SOURCES));

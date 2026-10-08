@@ -10,11 +10,11 @@
  * 客户端不应导入此包。
  */
 
-export { UbeanApp, createUbeanApp, applyServerConfig } from './app';
+export { UbeanApp, createUbeanApp } from './app';
 
 export type { UbeanAppOptions, UbeanAppPlugin, UbeanRuntimeHooks, AppPlugin, PageRenderer, PageAssetTags } from './app';
 
-export { defineServer, createDefaultServerConfig, mergeServerConfigs } from './define-server';
+export { defineServer, createDefaultServerConfig, mergeServerConfigs, applyServerConfig } from './define-server';
 
 export type { DefineServerOptions, ResolvedServerConfig, ServerHooks } from './define-server';
 

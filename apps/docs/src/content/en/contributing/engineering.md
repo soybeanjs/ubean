@@ -489,11 +489,14 @@ pnpm benchmark:lifecycle            # report (default arm: cli; available arms: 
 pnpm benchmark:lifecycle -- --runs 3 --warmup 1
 pnpm benchmark:lifecycle -- --skip-browser   # skip the browser runtime metrics
 pnpm benchmark:lifecycle:baseline   # regenerate examples/ubean-test/benchmarks/perf-baseline.json
+pnpm benchmark:trend -- --report .temp/perf-report.json   # append a trend point and render comparisons
 ```
 
 It measures four groups: dev cold start, browser runtime (first island hydration / in-app navigation), change-propagation latency (server and client separately), and build wall time plus peak RSS — plus a reload correctness control (does a module instance survive an unrelated file change). Raw samples and the recorded environment are written next to the summary, because a number is only reviewable together with that file. The baseline was recorded on the **old path, before the Vite plugin-first migration** (RM-P05) and is the comparison reference for risk R3 and RM-V13 / V15 / V23 in `vite-plugin-migration.md`.
 
 The browser metrics need Playwright's Chromium (`npx playwright install chromium`). When it is missing the report marks that group as unavailable and skips it, leaving the other metrics intact.
+
+**Periodic trend:** `.github/workflows/nightly-perf.yml` runs the benchmark once a day, appends the points to `.temp/perf-trend.jsonl`, and renders two comparison tables ("vs. previous run" and "vs. committed baseline") into the job summary. It sets **no thresholds and never fails on a number change**, and it is not on the PR path. One thing to keep in mind: the committed baseline was recorded on darwin/arm64 while nightly runs on ubuntu, so the trend script checks `platform`/`arch`/`cpuModel` and marks the whole comparison as "different machines, absolute values not comparable, direction only" — that warning in the trend table is not a performance regression.
 
 **Discipline for performance claims:** a PR that claims a performance win must include a reproducible benchmark, a correctness control, and before/after numbers. "Feels no slower" or "should be faster" is not evidence.
 

@@ -22,7 +22,7 @@
  */
 import { rm, writeFile } from 'node:fs/promises';
 import { resolve, relative } from 'node:path';
-import { runWithResourceMetrics } from './lib/metrics.mjs';
+import { runWithResourceMetrics, fmtMs, fmtMB, fmtPct } from './lib/metrics.mjs';
 
 /* -------------------------------------------------------------------------- */
 /* 参数解析                                                                     */
@@ -84,22 +84,6 @@ function median(values) {
   if (sorted.length === 0) return null;
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-function fmtMs(ms) {
-  if (ms == null) return '—';
-  return ms >= 1000 ? `${(ms / 1000).toFixed(2)}s` : `${Math.round(ms)}ms`;
-}
-
-function fmtMB(kb) {
-  if (!kb) return '—';
-  return `${(kb / 1024).toFixed(1)}MB`;
-}
-
-function fmtPct(delta) {
-  if (delta == null || !Number.isFinite(delta)) return '—';
-  const sign = delta <= 0 ? '' : '+';
-  return `${sign}${delta.toFixed(1)}%`;
 }
 
 /* -------------------------------------------------------------------------- */

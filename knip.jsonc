@@ -1,0 +1,361 @@
+{
+  "$schema": "./node_modules/knip/schema.json",
+  // ---------------------------------------------------------------------------
+  // TS-21：knip 配置。逐项结论见 docs/test.md §8「TS-21 knip 台账」。
+  //
+  // 运行：pnpm knip（只报告，非阻断）；pnpm knip:production（仅生产源）。
+  // 判据：报告里剩下的每一项都必须有「删除 / 加 ignore + 原因」的结论 ——
+  // 见 docs/test.md 的台账，那里逐条登记了本文件的每个 ignore 及其理由。
+  // ---------------------------------------------------------------------------
+
+  // `export function foo() {}` 同时用于本文件内部调用时不算「未使用导出」。
+  // 本仓大量模块既对外导出又在内部复用（如 cli 的 fs-ops、dev-server 的适配器），
+  // 不打开会把这类真实使用误报成死代码。
+  "ignoreExportsUsedInFile": true,
+
+  // 入口文件自身的导出不参与「未使用导出」判定 —— 包入口就是公共 API 边界，
+  // 消费方在仓库之外（用户项目）。不关闭会产出 87 条假阳性。
+  "includeEntryExports": false,
+
+  // 平台驱动示例没有 package.json（只有源码 + README），只被文档引用，
+  // 不参与构建或测试；纳入分析只会制造噪音。
+  "ignoreWorkspaces": ["examples/platform-drivers"],
+
+  // `Duplicate exports`：本仓每个 Vite 插件包都同时提供具名导出（`ubeanXxxPlugin`）
+  // 与 default 导出，另有若干刻意别名（`defineAction`/`defineServerFn`、
+  // `defineCachedFunction`/`wrapWithCache`、`DEV_REQUIREMENTS`/`NODE_REQUIREMENTS`）。
+  // 这是对外 API 设计（具名 + default 双形态、语义别名），不是缺陷 —— 关掉该类
+  // issue 而不逐条 ignoreIssues（ignoreIssues 只能按文件 glob，会把同文件其他
+  // issue 一并屏蔽）。
+  "rules": {
+    "duplicates": "off",
+    // 「声明为 optional peer 且源码里动态 import」是**刻意的降级契约**
+    // （缺包时不报错、走 fallback）。7 条已逐条核对引用点并登记在
+    // docs/test.md 的 TS-21 台账里，因此降为 warn：报告里仍可见，但不作为
+    // 退出码失败项，让 `pnpm knip` 只对**新出现**的问题类别报警。
+    "optionalPeerDependencies": "warn"
+  },
+
+  // 测试夹具与入库生成物是**测试输入**，不是待分析的源码 —— 它们由扫描器 /
+  // Vite 插件 / vitest 按约定发现（无 import 边），也不是任何包的公共 API。
+  "ignoreFiles": [
+    // routing-file-mode 的 `routing.mode: 'file'` 实体产物，入库以便审阅 diff。
+    "examples/routing-file-mode/src/router/_generated/**",
+    // builder / cli 的框架约定夹具（pages/ routes/ ubean.config.ts 等）。
+    "packages/builder/test/fixtures/**",
+    "packages/cli/test/fixtures/**"
+  ],
+
+  // 二进制由传递依赖提供，或由仓库脚本按名字调用。
+  "ignoreBinaries": [
+    // 由 `@vitest/browser-playwright` 传递安装；CI 用 `pnpm exec playwright install`。
+    "playwright",
+    // 由 `@soybeanjs/cli` 传递安装；根 `upkg` 脚本调用 `ncu -u -w`。
+    "ncu",
+    // `scripts/benchmark-ssr.mjs` 用 `pnpm exec ubean ...` 跑本仓构建产物。
+    "ubean"
+  ],
+
+  // 由**另一个包**在运行时按需解析的依赖：声明在示例里只是为了让它可解析，
+  // 示例自身源码不 import（knip 因此判为未使用）。
+  "ignoreDependencies": [
+    // 示例里的 `content: { sources: ... }` 走 builtins 的**计算型**动态 import
+    // （`packages/config/src/modules/builtins.ts:11` 的
+    // `modulePath: '@ubean/content/vite'`）。
+    "@ubean/content",
+    // `devtools: true` 同样走 builtins 的计算型动态 import：
+    // `packages/config/src/modules/builtins.ts` 的 `modulePath` 由
+    // `packages/config/src/modules/index.ts:219` 的
+    // `await import(/* @vite-ignore */ builtin.modulePath)` 加载，
+    // 静态分析看不到这条边；examples/ubean-test 声明它才能启用 DevTools。
+    "@ubean/devtools",
+    // pagefind 是 `@ubean/content` 的可选运行时依赖：
+    // `packages/content/src/search.ts:447` 用
+    // `await import(/* @vite-ignore */ 'pagefind')` 动态加载，未安装时降级为
+    // `pagefind-not-installed`。examples/ssg-catchall 声明它是为了让该可选依赖
+    // 在示例里真实可解析。
+    "pagefind",
+    // `@intlify/core` / `@intlify/core-base` 的**子路径**由 builder 用
+    // `require.resolve` 字符串解析（`packages/builder/src/vue-plugin.ts:240,245`，
+    // try/catch 失败则保留裸说明符），不是 import；两个包是
+    // `@intlify/unplugin-vue-i18n` 的传递依赖。
+    "@intlify/core",
+    "@intlify/core-base",
+    // UnoCSS 虚拟模块（`import 'uno.css'`）：由 UnoCSS Vite 插件在运行时提供，
+    // 不是可声明的 npm 依赖。knip 把它归为 unlisted 而非 unresolved，
+    // 因此 ignoreUnresolved 不生效。
+    "uno.css",
+    // `ipx` 是 `@ubean/image` 的**可选**运行时依赖：
+    // `packages/image/src/ipx.ts:124` 用 `await import('ipx')` 动态加载，
+    // 未安装时降级为 no-op（`node_modules/ipx` 当前未安装）。
+    "ipx",
+    // 根 `tsconfig.json` 的 `jsxImportSource: 'vue'` —— 是编译器选项里的
+    // 裸说明符，不是 import。
+    "vue",
+    // `miniflare` 是根 devDependency，由 builder 的 cloudflare-preview 按名字
+    // 动态 import（`packages/builder/src/vite/cloudflare-preview.ts:85`，缺失时
+    // 降级为 `miniflare-not-installed`）；本地跑真机断言（TS-04）时需要它。
+    "miniflare"
+  ],
+
+  // 无类型声明的虚拟模块（由 Vite 插件在运行时解析）。
+  "ignoreUnresolved": [
+    // `@/` 别名指向的配对组件包装模块，由 Vite 插件按同名 `.server.vue` /
+    // `.client.vue` 生成（examples/ubean-test 的 e2e 判据）。
+    "^@/components/sc/ThemeBadge\\.vue$"
+  ],
+
+  "workspaces": {
+    // 仓库根：benchmark / i18n / verify 脚本与浏览器 e2e harness 由 package.json
+    // scripts、vite.config.ts 的 test 配置按路径调用，没有 import 边。
+    ".": {
+      "entry": ["scripts/**/*.mjs", "test/browser/**/*.ts"],
+      "project": ["scripts/**/*.mjs", "test/**/*.ts"]
+    },
+    // -------------------------------------------------------------------------
+    // 文档站：ubean 的框架约定路由/页面/中间件全部是隐式入口（无 import 边），
+    // 需显式声明为 entry；否则 knip 会把 35 个页面当死文件。
+    // -------------------------------------------------------------------------
+    "apps/docs": {
+      "entry": [
+        "src/app.ts!",
+        "src/app.vue!",
+        "src/pages/**/*.{vue,ts}!",
+        "src/layouts/**/*.vue!",
+        "src/components/**/*.vue!",
+        "src/middleware/**/*.ts!",
+        "src/routes/**/*.ts!",
+        "scripts/**/*.{ts,mjs}",
+        "build/**/*.ts!",
+        "ubean.config.ts!"
+      ],
+      "project": ["src/**/*.{ts,vue}", "scripts/**/*.{ts,mjs}", "build/**/*.ts"],
+      "ignoreDependencies": []
+    },
+
+    // -------------------------------------------------------------------------
+    // 示例项目：pages/ 由扫描器发现、routes/ 由 Hono 挂载、test/ 由 vitest 跑。
+    // -------------------------------------------------------------------------
+    "examples/*": {
+      "entry": [
+        "src/app.ts!",
+        "src/app.vue!",
+        "src/server.ts!",
+        "src/matchers.ts!",
+        "src/pages/**/*.{vue,ts,md}!",
+        "src/layouts/**/*.vue!",
+        "src/components/**/*.vue!",
+        "src/middleware/**/*.ts!",
+        "src/routes/**/*.ts!",
+        "src/crons/**/*.ts!",
+        "src/queues/**/*.ts!",
+        "test/**/*.ts",
+        "*.ts!",
+        "*.mjs!"
+      ],
+      "project": ["src/**/*.{ts,vue}", "test/**/*.ts"],
+      "ignoreDependencies": []
+    },
+
+    // -------------------------------------------------------------------------
+    // 框架包：入口 = package.json `exports` 反推出的源文件。这份映射必须与
+    // `exports` 同步 —— 新增子路径导出时同步加 entry，否则该子路径的导出
+    // 会被误报为未使用。
+    // -------------------------------------------------------------------------
+    "packages/ai": {
+      "entry": ["src/index.ts!", "src/vite.ts!", "src/runtime/vue.ts!", "src/gateway.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/app": {
+      "entry": ["src/index.ts!", "vite.config.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/auth": {
+      "entry": ["src/index.ts!", "src/vite.ts!", "src/runtime.ts!", "src/core.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/builder": {
+      "entry": [
+        "src/index.ts!",
+        "src/vite.ts!",
+        "src/vue.ts!",
+        "src/production.ts!",
+        "src/prerender.ts!",
+        "src/static-render.ts!",
+        "src/codegen/index.ts!",
+        "src/actions-plugin.ts!",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/cli": {
+      "entry": ["src/index.ts!", "src/cli.ts!", "vite.config.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"],
+      "ignoreDependencies": [
+        // `src/dev-server/dev-vite.ts:185` 把 `@ubean/i18n` 列为 SSR external
+        // （字符串，非 import），用于让用户项目的 i18n 运行时不被打包。
+        "@ubean/i18n"
+      ]
+    },
+    "packages/client": {
+      "entry": [
+        "src/index.ts!",
+        "src/app.ts!",
+        "src/define-app.ts!",
+        "src/server.ts!",
+        "src/ssr.ts!",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/config": {
+      "entry": ["src/index.ts!", "vite.config.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/content": {
+      "entry": ["src/index.ts!", "src/vite.ts!", "src/runtime.ts!", "src/vue.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    // DevTools：server 入口 + 独立的 iframe SPA（client/）+ 构建/开发脚本。
+    // client/ 里的 `.vue` 只被 `index.html` 引用，UnoCSS 配置由插件隐式加载。
+    "packages/devtools": {
+      "entry": [
+        "src/index.ts!",
+        "client/index.html!",
+        // knip 不跟随 HTML 的 `<script type="module" src="./app/main.ts">`，
+        // 所以 iframe SPA 的源码要单独声明为 entry。
+        "client/app/**/*.{ts,vue}!",
+        "client/vite.config.ts!",
+        "client/uno.config.ts!",
+        "scripts/**/*.mjs",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts!", "client/**/*.{ts,vue}!", "test/**/*.ts"],
+      "ignoreDependencies": ["hono"]
+    },
+    "packages/i18n": {
+      "entry": ["src/index.ts!", "src/routing.ts!", "src/browser.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/icon": {
+      "entry": ["src/index.ts!", "src/vite.ts!", "src/runtime.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/image": {
+      "entry": ["src/index.ts!", "src/vite.ts!", "src/runtime.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/integrations": {
+      "entry": [
+        "src/index.ts!",
+        "src/pwa/index.ts!",
+        "src/fonts/index.ts!",
+        "src/electron/index.ts!",
+        "src/ui/index.ts!",
+        "src/pinia/index.ts!",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/islands": {
+      "entry": [
+        "src/index.ts!",
+        "src/vite.ts!",
+        "src/directive.ts!",
+        "src/runtime.ts!",
+        "src/server-component.ts!",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/markdown": {
+      "entry": ["src/index.ts!", "src/jsx-runtime.ts!", "src/mdx.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/pages": {
+      "entry": ["src/index.ts!", "vite.config.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/preset": {
+      "entry": ["src/index.ts!", "vite.config.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"],
+      "ignoreDependencies": [
+        // `test/presets.test.ts:15` 从 `@ubean/build/production` 取
+        // `getPresetBuildConfig()`，用来断言 preset 声明的 `runtime.entry` 与真实产物一致。
+        // **不能**在这里声明 devDependency：builder 的 `dependencies` 含 `@ubean/preset`，
+        // preset 再 devDep 回 builder 会让 pnpm 的任务图成环
+        //（`ERR_PNPM_TASK_CYCLE: packages/builder#test → packages/preset#test`），
+        // 根 `pnpm test` 在跑任何用例前就退出 1。测试靠根 `node_modules/@ubean/build`
+        //（`shamefullyHoist: true`）解析，与 HEAD 一致。
+        "@ubean/build"
+      ]
+    },
+    "packages/routes": {
+      "entry": ["src/index.ts!", "src/runtime.ts!", "vite.config.ts", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/scan": {
+      "entry": ["src/index.ts!", "src/generator/index.ts!", "src/types.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"],
+      "ignoreDependencies": [
+        // scan 的公开类型里出现 vue-router 的 `RouteRecordRaw`（类型层 peer），
+        // 运行时不 import；devDep 用于本地类型解析。
+        "vue-router"
+      ]
+    },
+    "packages/seo": {
+      "entry": ["src/index.ts!", "src/conventions.ts!", "src/og-image.ts!", "src/json-ld.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/server": {
+      "entry": [
+        "src/index.ts!",
+        "src/cache-entry.ts!",
+        "src/cache-directive.ts!",
+        "src/database.ts!",
+        "src/realtime.ts!",
+        "src/security.ts!",
+        "src/queue.ts!",
+        "src/cron-entry.ts!",
+        "src/storage.ts!",
+        "src/observability.ts!",
+        "src/email.ts!",
+        "src/analytics-entry.ts!",
+        "src/static.ts!",
+        "src/drivers.ts!",
+        "src/middleware.ts!",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/shared": {
+      "entry": ["src/index.ts!", "src/node.ts!", "src/logger/index.ts!", "src/logger/hono.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    },
+    "packages/ubean": {
+      "entry": [
+        "src/index.ts!",
+        "src/vite.ts!",
+        "src/client.ts!",
+        "src/ssr.ts!",
+        "src/server.ts!",
+        "src/build.ts!",
+        "src/i18n.ts!",
+        "src/scaffold.ts!",
+        "test/**/*.test.ts"
+      ],
+      "project": ["src/**/*.ts!", "test/**/*.ts"],
+      "ignoreDependencies": [
+        // 主包是「用户装一个 ubean 就有全部扩展能力」的依赖承载点。扩展包由
+        // `packages/config/src/modules/builtins.ts` 的 `modulePath`
+        // （`@ubean/integrations/pwa` 等）在配置解析时用**计算型**动态
+        // `import(/* @vite-ignore */ builtin.modulePath)` 加载，knip 看不穿。
+        "@ubean/integrations"
+      ]
+    },
+    "packages/vue": {
+      "entry": ["src/index.ts!", "src/vite.ts!", "src/generator.ts!", "test/**/*.test.ts"],
+      "project": ["src/**/*.ts!", "test/**/*.ts"]
+    }
+  }
+}

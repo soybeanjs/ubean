@@ -6,6 +6,10 @@
  *
  * 对生成的字符串做断言（关键结构 + 不可变基线），锁定 codegen 输出形态。
  * 不做整串快照（含绝对路径/CWD 敏感内容），改为对关键片段断言。
+ *
+ * 历史事故 #6（RM-T04）：ADR-0002 Decision 1 声称「codegen 用快照/断言做快速门禁」，
+ * 但该边界从未执行（`grep -rl toMatchSnapshot packages/builder/test/` = 0 命中），
+ * 声明与代码脱节。本文件就是那条声明的实际形态：**关键片段断言**，不是 `toMatchSnapshot`。
  */
 import { describe, it, expect } from 'vitest';
 import type { CompiledRoute, CompiledPage, CompiledLayout, CompiledMiddleware } from '@ubean/routes';

@@ -629,5 +629,3 @@ export const ubeanVue: Plugin<UbeanVueOptions> = {
     }
   }
 };
-
-export default ubeanVue;

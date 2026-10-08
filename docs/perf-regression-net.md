@@ -68,6 +68,8 @@ warmup + N 次迭代；报 p50 / p95（单次中位数掩盖长尾与抖动）�
 
 GitHub 共享 runner 噪声大，性能数字做成阻塞阈值会持续假阳性，最终结局是被绕过或放宽。定位是「可复现的本地 / 定期基准 + 迁移前后的对照证据」。CI 只保留体积预算——它是确定性的。
 
+**周期性趋势（RM-P24）**：`scripts/benchmark-trend.mjs` + `.github/workflows/nightly-perf.yml` 每天把一次基准的点追加进 `.temp/perf-trend.jsonl`（用 `actions/cache` 跨运行累积，故是滚动窗口），并渲染「与上一次」「与 committed 基线」两张对比表贴到 job summary。**它不设阈值、不因数值变化失败**（退出码恒 0），也不在 `ci.yml` 里（`on` 无 `pull_request`）—— 这是「PR 门禁中无性能阻断」的机器判据，由 `packages/cli/test/benchmark-trend.test.ts` 守着。一处必须注意的设计：committed 基线在 darwin/arm64 上采、nightly 在 ubuntu EPYC 上跑，`compareMetrics` 会先比对 `platform`/`arch`/`cpuModel`，不同则标 `comparable: false` 并写明差异字段（数字仍给出但整体标不可比）—— 不做这道判定，趋势就是本节说的那部假阳性制造机。
+
 ### 4.5 不做编译器级精度
 
 farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化的 rAF）+ CDP Performance domain 取 CPU，是为其约 22k 行的 AOT React 编译器准备的高风险优化护栏。ubean 当前没有对应量级的编译期优化对象；等真有（如 Vapor 类编译优化）再升级到该精度（RM-P07 保留入口）。
@@ -99,7 +101,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
-| **RM-P06** ✅ | 体积闸门绝对上限 | `analyze-lib.ts` 新增 `BundleBudgetOptions`（`maxTotalGzip` / `maxEntryGzip` / `maxChunkGzip`，字节）与 `BundleBudgetViolation`；`summarizeBundle` 增加 brotli；CLI 新增 `--max-total-kb` / `--max-entry-kb` / `--max-chunk-kb`（kB） | 超限失败信息含 chunk 名与实测值（实测：`4 chunk(s) exceed the absolute budget 5.0 kB: assets/app-*.js 46.2 kB, …`）；相对 5% 门禁与 `analyze:check` 行为不变；新增 3 个单测。**机制落地 ≠ 已启用**：当前无调用点传 `--max-*-kb`（见 §8.4） |
+| **RM-P06** ✅ | 体积闸门绝对上限 | `analyze-lib.ts` 新增 `BundleBudgetOptions`（`maxTotalGzip` / `maxEntryGzip` / `maxChunkGzip`，字节）与 `BundleBudgetViolation`；`summarizeBundle` 增加 brotli；CLI 新增 `--max-total-kb` / `--max-entry-kb` / `--max-chunk-kb`（kB） | 超限失败信息含 chunk 名与实测值（实测：`4 chunk(s) exceed the absolute budget 5.0 kB: assets/app-*.js 46.2 kB, …`）；相对 5% 门禁与 `analyze:check` 行为不变；新增 3 个单测。**上限已启用**：`examples/ubean-test/package.json` 的 `analyze:check` 传 `--max-total-kb 180 --max-entry-kb 64 --max-chunk-kb 48`，CI 调该脚本（见 §8.4） |
 | **RM-P23** ✅ | 缺 chunk 判据（防「少产出」） | `analyze-lib.ts:181` 在体积上限之外**按名字对照基线 chunk 名单**（内容哈希规范化后比较）：基线里存在、当前产物里没有即失败，且与「超限」用不同措辞抛出（`client JS budget check failed` vs `exceeded`），避免把缺失误读成体积超标 | `analyze:check` 能拦下「体积变小但功能被静默砍掉」的回归（由 `packages/cli/test/analyze.test.ts:64,94` 两条用例保证：一条构造「体积变小但缺 chunk」并断言被拦下，一条断言重命名不误报） |
 
 ### Phase 3 · 浏览器运行时（可选，后置）
@@ -113,6 +115,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
 | **RM-P08** ✅ | 纪律条款与文档 | `AGENTS.md` §9 增加两条 benchmark 命令；站点 `contributing/engineering.md`（中英）新增「13. 生命周期性能基准」并补绝对上限用法与性能主张纪律；`docs/README.md` 索引本文件 | 文档与实现一致；纪律条款可被 PR 直接引用 |
+| **RM-P24** ✅ | 周期性基准趋势 | `scripts/benchmark-trend.mjs`（趋势点提取 + JSONL 追加 + 可比性判定 + markdown 渲染）+ `.github/workflows/nightly-perf.yml`（每天 19:00 UTC + `workflow_dispatch`，**不进 PR 门禁**）+ 根 `benchmark:trend` script | nightly 产出趋势；PR 门禁中无性能阻断。见 [test.md](test.md) TS-26 |
 
 ## 6. 与 Vite 插件化迁移（RM-V）的接口
 
@@ -156,5 +159,5 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 1. Phase 0 结束（dev 迁移 Phase 1 开始前）：`perf-baseline.json` 已 committed，且在旧实现上可重复产出（同机两次跑的 p50 差异落在声明区间内）。
 2. 生效证明有反例测试：臂未真正接管时基准必须失败（实测：不带生效条件的 `vp build` 直接硬失败）；reload 正确性同样只在本次变更已生效时判读（否则「实例保留」是假阴性）。
 3. Phase 1 / Phase 2 每个 PR 的验收引用 RM-P05 基线数字，不接受定性的「感觉没变慢」。
-4. 迁移全程 `analyze:check` 保持绿。RM-P06 的绝对上限**机制已落地**（`packages/cli/src/analyze-lib.ts:133-152` 的 `maxTotalGzip` / `maxEntryGzip` / `maxChunkGzip`），但**门禁当前未启用（opt-in）**：`examples/ubean-test/package.json` 的 `analyze:check` 与 CI `.github/workflows/ci.yml:57-60` 都没传 `--max-*-kb`，实际生效的只有相对 5% 门禁与缺 chunk 判据。**是否给基线配上绝对上限并强制执行，是余下的决策**。
+4. 迁移全程 `analyze:check` 保持绿。RM-P06 的绝对上限**已启用**：`examples/ubean-test/package.json` 的 `analyze:check` 传 `--max-total-kb 180 --max-entry-kb 64 --max-chunk-kb 48`，CI 的 `Client JS budget` 步骤调该脚本，与相对 5% 门禁、RM-P23 缺 chunk 判据**三者并存**。数值是**宽松阈值**（只挡数量级异常）：committed 基线为 total 118.1 kB / entry 43.3 kB / 最大 chunk 27.3 kB，上限给出约 1.5–1.8× 余量 —— 挡得住「产物从 0 涨到很大但基线被一起改大」这类相对门禁看不见的事故（历史事故 #2「体积门禁全绿但产物空」），又不会把正常的 5% 增长也拦掉。上限数值与余量的自洽由 `packages/cli/test/analyze.test.ts` 的 `TS-23 · 绝对上限已启用` 四条用例守着（含「去掉 `--max-*-kb` 即红」「配得形同虚设即红」「配得过紧即红」「CI 步骤跑的就是该脚本」）。
 5. （历史）RM-V36 收敛前最后一次在旧路径上跑基准并归档 —— 该动作已完成：RM-V36 已落地、旧路径已删除，`perf-baseline.json` 是旧实现唯一留存的口径。

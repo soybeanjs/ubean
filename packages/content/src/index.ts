@@ -69,6 +69,16 @@ export type {
   ContentSearchOptions
 } from './types';
 
+export {
+  // P9-19: Live Content Collections —— 运行时按需从外部源（CMS / API / DB）取内容。
+  // 值导出此前漏在包入口外，导致该功能只能通过 `@ubean/content/src/live` 这类
+  // 深路径消费（发布产物里没有该子路径）。补上后它与 `queryCollection` 同级公开。
+  defineLiveCollection,
+  getLiveCollection,
+  listLiveCollections,
+  clearLiveCollections
+} from './live';
+
 export type {
   LiveCollection,
   LiveCollectionEntry,

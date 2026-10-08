@@ -29,7 +29,10 @@ export * from '@ubean/client';
 export { callAction, useAction, useFormAction, invokeServerFn } from '@ubean/routes/runtime';
 export type { UseActionReturn, UseFormActionReturn } from '@ubean/routes/runtime';
 
-export { createHead as createServerHead } from '@unhead/vue/server';
+// 服务端 head 工厂从 `@ubean/client/server` 转出 —— 那里已经是 `@unhead/vue/server` 的
+// 唯一声明点（`@unhead/vue` 是 `@ubean/client` 的 dependency）。直接 import
+// `@unhead/vue/server` 会让本包出现未声明的裸说明符。
+export { createServerHead } from '@ubean/client/server';
 
 /**
  * `hydrateIslands` 的桥接版本:自动合并虚拟注册表与手动 `components`。

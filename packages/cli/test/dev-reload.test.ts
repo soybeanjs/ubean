@@ -18,9 +18,10 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+// TS-37：端口 / 进程 / 就绪探测收敛到共用 harness（与 L3 的职责边界见该文件头注释）
+import { findFreePort, resolveBaseUrl, stopChild } from './helpers/cli-harness';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
@@ -33,20 +34,6 @@ interface Running {
   child: ChildProcess;
   baseUrl: string;
   output: () => string;
-}
-
-async function findFreePort(): Promise<number> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const port = 10_000 + Math.floor(Math.random() * 20_000);
-    const free = await new Promise<boolean>(resolveFree => {
-      const server = createServer();
-      server.unref();
-      server.once('error', () => resolveFree(false));
-      server.listen(port, '127.0.0.1', () => server.close(() => resolveFree(true)));
-    });
-    if (free) return port;
-  }
-  throw new Error('找不到可用端口');
 }
 
 /** 起一个 dev server 并等到可服务（探测路径有响应即算就绪）。 */
@@ -67,41 +54,23 @@ async function startServer(options: {
   child.stderr?.on('data', collect);
   child.stdout?.on('data', collect);
 
-  const started = Date.now();
-  while (Date.now() - started < 180_000) {
-    for (const host of ['::1', '127.0.0.1']) {
-      const candidate = host.includes(':') ? `http://[${host}]:${port}` : `http://${host}:${port}`;
-      try {
-        const res = await fetch(`${candidate}${options.readyPath ?? '/_health'}`, {
-          signal: AbortSignal.timeout(2_000)
-        });
-        if (res.status > 0) return { child, baseUrl: candidate, output: () => output };
-      } catch {
-        /* 换下一个候选 */
-      }
-    }
-    if (child.exitCode != null) throw new Error(`dev server 提前退出（exit ${child.exitCode}）\n${output}`);
-    await new Promise(resolveDelay => setTimeout(resolveDelay, 150));
+  try {
+    const baseUrl = await resolveBaseUrl(port, {
+      path: options.readyPath ?? '/_health',
+      timeoutMs: 180_000,
+      child,
+      output: () => output
+    });
+    return { child, baseUrl, output: () => output };
+  } catch (error) {
+    await stopChild(child);
+    throw error;
   }
-  throw new Error(`dev server 在 180s 内不可达\n${output}`);
 }
 
 async function stopServer(running: Running | null): Promise<void> {
-  if (!running || running.child.exitCode != null) return;
-  const child = running.child;
-  child.kill('SIGTERM');
-  await new Promise<void>(resolveExit => {
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      resolveExit();
-    }, 5_000);
-    child.once('exit', () => {
-      clearTimeout(timer);
-      resolveExit();
-    });
-  });
+  await stopChild(running?.child);
 }
-
 function writeProbe(marker: string): void {
   const current = readFileSync(probeFile, 'utf8');
   if (!current.includes(probeInitial)) {
@@ -148,6 +117,10 @@ afterEach(async () => {
 });
 
 describe('ubean dev 热重载', () => {
+  // 历史事故 #7（RM-V13）：dev-scan 协调器的注册表曾放在模块级 `WeakMap`，而真实项目的
+  // `vite.config.ts` 由 Vite 自己打包加载 → 插件实例与 CLI import 的那份是**两个模块实例**，
+  // CLI 注册的回调静默落进另一个注册表：服务端改动完全不生效且无任何报错。
+  // 所以这条断言必须跑真 dev server（`configFile: false` + 进程内 import 插件会共享模块实例，永远绿）。
   it('改服务端路由文件后响应反映新内容（扫描 → 重建 app 的链路真的通）', async () => {
     if (!existsSync(cliEntry)) {
       throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 CLI 集成测试`);

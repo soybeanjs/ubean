@@ -704,19 +704,7 @@ export function createUbeanApp(options: UbeanAppOptions = {}): UbeanApp {
   return new UbeanApp(options);
 }
 
-/* -------------------------------------------------------------------------- */
-/* Re-exports from define-server (server-side counterpart of defineApp)         */
-/* -------------------------------------------------------------------------- */
-
-export { defineServer, createDefaultServerConfig, mergeServerConfigs, applyServerConfig } from './define-server';
-export type { DefineServerOptions, ResolvedServerConfig, ServerHooks } from './define-server';
-
-/* -------------------------------------------------------------------------- */
-/* Convenience type re-exports                                                 */
-/* -------------------------------------------------------------------------- */
-
-export type { RouteRule, RouteMeta, UbeanEnv, UbeanMiddleware, ComposedHandler } from '@ubean/shared';
-
-export type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
-
-export type { RouteRegistrar, RegisterOptions } from '@ubean/routes';
+// NOTE: the public surface of this module (`./app` entry) is re-exported from
+// `./index.ts`. Do not add convenience re-exports here — a duplicate export from
+// both files makes every symbol look unused to static analysis (knip), and the
+// package only exposes the `.` entry anyway.

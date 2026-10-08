@@ -324,15 +324,3 @@ export function buildActionContext(c: Context<UbeanEnv>): ActionContext {
     params: c.req.param() as Record<string, string>
   };
 }
-
-// Re-export commonly used types and helpers from @ubean/shared
-export { ActionError, fail, isActionFailure, isServerAction } from '@ubean/shared';
-export type {
-  ActionContext,
-  ActionFailure,
-  ActionHandler,
-  ActionSchema,
-  ActionResult,
-  ServerAction,
-  ActionId
-} from '@ubean/shared';

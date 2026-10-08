@@ -36,6 +36,9 @@ function fakeEnvironment(keys: string[]) {
 }
 
 describe('invalidateDevWorkerModules 的文件键', () => {
+  // 历史事故 #7（RM-V09）：Vite 的模块图按 `cleanUrl(resolvedId)`（realpath 后）建索引，
+  // watcher 给的却是原始路径 → 只传原始路径必然落空，dev 热重载整体失效且**无任何报错**。
+  // macOS 上 `os.tmpdir()` → `/var/folders/...`、realpath → `/private/var/folders/...`。
   it('realpath 索引的模块图：传原始路径也能命中', () => {
     const raw = mkdtempSync(join(tmpdir(), 'ubean-invalidate-'));
     cleanup.push(raw);

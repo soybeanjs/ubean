@@ -26,10 +26,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@hono/standard-validator": "^0.4.0",
     "@soybeanjs/fetch": "^0.1.0",
-    "@standard-community/standard-json": "^0.3.6",
-    "@standard-community/standard-openapi": "^0.2.10",
     "@ubean/i18n": "workspace:*",
     "@ubean/shared": "workspace:*",
     "hono": "4.13.12",

@@ -119,6 +119,24 @@ jobs:
         if: runner.os == 'ubuntu-latest'
         run: pnpm test:e2e
 
+      - name: Flaky test ledger gate (TS-25)
+        # TS-25：上面两步（`Test` 跑 L2、`Browser E2E` 跑 L3）各自产出一份
+        # `coverage/flaky-report.json`；这一步把它们与 `docs/test-flaky.md` 的待修清单对照。
+        #
+        # 这是**门禁**，不是诊断步骤：观测到 flaky 但没写进清单 → 退出 1。
+        # 红的不是「有 flaky」（flaky 本来就会偶发，CI 的 retry 已保证它不会误伤 PR），
+        # 而是「你观测到了却没记下来」—— 只重试不记录才是掩盖（SvelteKit 的
+        # print-flaky-test-report.js 也是「报告而非掩盖」的立场）。
+        #
+        # 三条语义：观测到未记录 → 失败；清单有但本次未复现 → 只提示不判定
+        # （flaky 是间歇的，一次未复现不是「已修」证据）；报告显示 `retriesEnabled: false`
+        # → 不参与判定（「0 条 flaky」不等于「没有 flaky」，只说明没给过重试机会）。
+        #
+        # TS-13：L3 只在 ubuntu 跑，故这里也只在 ubuntu 跑；Windows 格上 L2 报告
+        # 照样会产出，但缺 L3 时判定不完整，不如统一由 ubuntu 格守。
+        if: runner.os == 'ubuntu-latest'
+        run: node scripts/flaky.mjs --check
+
       - name: Upload Playwright traces
         # 失败时把 trace 上传，否则「红了但不知道为什么」只能靠猜。用 if: failure() 避免
         # 成功路径也产生 artifact 噪声。
@@ -137,6 +155,9 @@ jobs:
 
       - name: Client JS budget
         # 体积门禁与宿主 OS 无关（产物是同一份 JS），故只在 ubuntu 跑。
+        # 绝对上限（RM-P06 机制）**在这里启用**：只守相对 5% 增长时，「产物从 0 涨到很大但
+        # 仍在 baseline 附近」与「产物被清空」两头都看不见（后者由 RM-P23 缺 chunk 判据补）。
+        # 数值是宽松阈值（只挡数量级异常），推导见 examples/ubean-test/package.json 的 analyze:check。
         if: runner.os == 'ubuntu-latest'
         run: |
           pnpm --filter ubean-test build
@@ -167,6 +188,55 @@ jobs:
         # TS-13：与 OS 无关，只在 ubuntu 跑。
         if: runner.os == 'ubuntu-latest'
         run: pnpm --filter @ubean/docs build
+
+      - name: Dead code & unused dependencies (knip, report-only)
+        # TS-21：非阻断。`pnpm knip` 只报告，不因命中而失败（`knip.jsonc` 把
+        # optional-peer / duplicates 两类刻意形态降为 warn/off，其余已清零）。
+        # 判据：新增的「未使用文件/导出/依赖」应出现在这一步的输出里，而不是
+        # 等它变成线上问题。逐项 ignore 理由登记在 docs/test.md §8 的 TS-21 台账。
+        # 刻意不加 `--production`：生产模式下测试辅助文件与配置文件被排除，
+        # 会产出「仅测试消费的导出」这类已知噪音（同样登记在台账里）。
+        # TS-13：只读仓库文本，与 OS 无关，只在 ubuntu 跑以省掉 3 个矩阵格。
+        if: runner.os == 'ubuntu-latest'
+        run: pnpm knip
+        continue-on-error: true
+
+      - name: Coverage report (diagnostic, no thresholds)
+        # TS-22：逐包收集覆盖率，聚合成「零覆盖文件」清单并作为 artifact 上传。
+        #
+        # 这是**诊断**步骤，不是门禁：`scripts/coverage.mjs` 刻意不设阈值（与
+        # docs/test.md §7「不设覆盖率阈值」一致），覆盖率数字再低也不会让这一步失败。
+        # 它唯一会退出非零的情况是「一个报告都没产出」—— 那说明工具本身坏了。
+        #
+        # 非阻断的另一个原因：这一步会重跑一遍全部测试（约 3 分钟），而测试失败
+        # 已经由上面的 `pnpm test` 负责阻断；这里即使有包失败也要把报告收上来。
+        #
+        # TS-24：同一趟运行顺带输出**各包 / 各层耗时**（逐包墙钟 + vitest 的 Duration
+        # 行 + 分层累计），并贴到 job summary（`$GITHUB_STEP_SUMMARY`）—— 不用点开
+        # artifact 就能看到。耗时数字含覆盖率插桩开销，对「要不要分片」是保守方向。
+        #
+        # **未超阈值，延后分片**：分片阈值取 **关键路径 10 分钟（600s）**，口径是
+        # `pnpm -r` 并发调度下最慢的那个项目（不是各项目之和）。当前实测关键路径
+        # **119.5s ≈ 2.0 分钟**（`packages/cli` 的浏览器走查，占全仓 ~72%），余量 ~5×，
+        # 因此 **不引入 `--shard`**，也不需要 Next 那套 `--require-timings`（它的语义是
+        # 「缺 timings 数据即硬失败」，本仓没有分片需求就没有这个前置）。
+        # 若将来关键路径逼近 600s，优先切 `packages/cli`，其次 `packages/builder`。
+        #
+        # TS-13：与 OS 无关，只在 ubuntu 跑以省掉 3 个矩阵格。
+        if: runner.os == 'ubuntu-latest'
+        run: node scripts/coverage.mjs
+        continue-on-error: true
+
+      - name: Upload coverage report
+        # 与上一步配对：报告只有在能被人看到时才有价值（本地跑 coverage 的人看不到
+        # CI 的历史趋势）。artifact 里是聚合后的 markdown/json，不是每包的原始产物。
+        if: always() && runner.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Verify package tree & extension contract
         # OPT-09 + OPT-07：护栏脚本——AGENTS.md 包名/包数与 packages/*/package.json 一致，

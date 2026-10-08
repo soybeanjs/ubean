@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AboutAliasPage } from '../pages/about-alias.page';
 import { AboutPage } from '../pages/about.page';
-import { api } from '../pages/base.page';
 import { DashboardPage, DashboardSettingsPage, DashboardProfilePage } from '../pages/dashboard.page';
 import { MarkdownPage } from '../pages/markdown.page';
 import { MarketingPage } from '../pages/marketing.page';
@@ -16,6 +15,10 @@ import { UserDetailPage } from '../pages/user-detail.page';
  * - Route groups ((marketing)/marketing-page → /marketing-page)
  * - Reuse routes (about-alias.reuse.ts → /about-alias reusing About component)
  * - Markdown pages (.md files as routes)
+ *
+ * TS-35：原先尾部还有 `404 page` 的 2 条纯 HTTP 用例（页面 404 + API 404）。
+ * 它们不需要浏览器，已下沉到 `examples/ubean-test/test/http-contracts.test.ts`
+ * 与既有 `routing.test.ts`（未知 API 路由 404）。
  */
 describe('Special Routes', () => {
   describe('Dynamic routes (/user/[id])', () => {
@@ -163,18 +166,6 @@ describe('Special Routes', () => {
       const page = await new MarkdownPage().open();
       const strongCount = await page.count('strong');
       expect(strongCount).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  describe('404 page', () => {
-    it('returns 404 status for non-existent page', async () => {
-      const res = await api.get('/this-does-not-exist');
-      expect(res.status).toBe(404);
-    });
-
-    it('returns 404 for non-existent API route', async () => {
-      const res = await api.get('/api/no-such-route');
-      expect(res.status).toBe(404);
     });
   });
 });

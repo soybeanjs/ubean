@@ -1,5 +1,5 @@
 import { getDevToolsRpcClient } from '@vitejs/devtools-kit/client';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, getCurrentInstance } from 'vue';
 import { toast } from '@vean/ui';
 import type { DevframeRpcClient } from 'devframe/client';
 
@@ -170,12 +170,85 @@ function getClient(): Promise<DevframeRpcClient> {
 
 // Untyped call helper — the birpc client is typed server-side via module
 // augmentation; on the client we cast to keep the SPA build self-contained.
-async function rpc<T = unknown>(method: string, ...args: unknown[]): Promise<T> {
-  const client = await getClient();
+//
+// Declared at module scope so tests can drive it with a fake client instead of
+// the real DTK dock (see `RpcClientFactory` below).
+async function callRpc<T = unknown>(client: DevframeRpcClient, method: string, args: unknown[]): Promise<T> {
   return (client.call as unknown as (m: string, ...a: unknown[]) => Promise<T>)(method, ...args);
 }
 
-export function useRpc() {
+/** Where `useRpc` gets its RPC client. Overridable for tests and non-dock use. */
+export type RpcClientFactory = () => Promise<DevframeRpcClient>;
+
+export interface UseRpcOptions {
+  /**
+   * Override the RPC client source (default: the DTK dock connection).
+   * Tests use this to exercise the success and failure paths without a dock.
+   */
+  client?: RpcClientFactory;
+}
+
+// --- Pure formatters ---
+// Hoisted to module scope (and exported) so they can be asserted directly,
+// without setting up a component instance. `useRpc()` just returns them.
+
+export function fmtUptime(ms: number): string {
+  const s = Math.floor(ms / 1000);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}h ${m % 60}m`;
+  if (m > 0) return `${m}m ${s % 60}s`;
+  return `${s}s`;
+}
+
+export function fmtTime(ts: number): string {
+  return new Date(ts).toLocaleTimeString();
+}
+
+export function fmtVal(v: unknown): string {
+  if (v === null || v === undefined) return '—';
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'string') return v;
+  if (Array.isArray(v)) return `[${v.length} items]`;
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+
+export function fileName(p?: string): string {
+  if (!p) return '';
+  return p.split('/').pop() || p;
+}
+
+/** 长路径省略中段：保留前 3 段 + 最后 2 段，`parts.length <= 5` 时原样返回。 */
+export function filePath(p?: string): string {
+  if (!p) return '';
+  const parts = p.split('/');
+  if (parts.length <= 5) return p;
+  const prefix = parts.slice(0, 3).join('/');
+  const suffix = parts.slice(-2).join('/');
+  return `${prefix}/…/${suffix}`;
+}
+
+const METHOD_CLASS: Record<string, string> = {
+  GET: 'bg-success/12 text-success',
+  POST: 'bg-info/12 text-info',
+  PUT: 'bg-warning/12 text-warning',
+  DELETE: 'bg-destructive/12 text-destructive',
+  PATCH: 'bg-purple-500/12 text-purple-400'
+};
+
+/** 未知方法回退到中性样式（不是空串——按钮仍需要有可见底色）。 */
+export function methodClass(method: string): string {
+  return METHOD_CLASS[method] || 'bg-secondary text-muted-foreground';
+}
+
+export function useRpc(useOptions: UseRpcOptions = {}) {
+  const clientFactory: RpcClientFactory = useOptions.client ?? getClient;
+
+  async function rpc<T = unknown>(method: string, ...args: unknown[]): Promise<T> {
+    return callRpc<T>(await clientFactory(), method, args);
+  }
   const loading = ref(true);
   const error = ref<string | null>(null);
   const info = ref<DevToolsInfo | null>(null);
@@ -183,6 +256,11 @@ export function useRpc() {
   const uptime = ref(0);
   let uptimeInterval: ReturnType<typeof setInterval> | null = null;
   let unsubscribe: (() => void) | null = null;
+  // `init` / `dispose` are idempotent: the composable runs them on mount/unmount,
+  // but they are also part of the returned API (and reachable from tests), so a
+  // double call must not double-subscribe or double-clear.
+  let initialized = false;
+  let disposed = false;
 
   function showToast(type: 'success' | 'error' | 'info' | 'warning', message: string) {
     const options = { duration: 3000, position: 'top-right' as const };
@@ -203,8 +281,10 @@ export function useRpc() {
   }
 
   async function init() {
+    if (initialized || disposed) return;
+    initialized = true;
     try {
-      const client = await getClient();
+      const client = await clientFactory();
       // Subscribe to the `ubean:info` sharedState — replaces 3s polling.
       // The server pushes patches on every app rebuild.
       const state = await client.sharedState.get('ubean:info');
@@ -364,7 +444,7 @@ export function useRpc() {
     const requestId = `stream_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     try {
-      const client = await getClient();
+      const client = await clientFactory();
       const streamState = await client.sharedState.get('ubean:ai:stream');
 
       // Filter by requestId so concurrent streams don't crosstalk.
@@ -436,62 +516,30 @@ export function useRpc() {
     }
   }
 
-  function fmtUptime(ms: number): string {
-    const s = Math.floor(ms / 1000);
-    const m = Math.floor(s / 60);
-    const h = Math.floor(m / 60);
-    if (h > 0) return `${h}h ${m % 60}m`;
-    if (m > 0) return `${m}m ${s % 60}s`;
-    return `${s}s`;
+  /** 释放 sharedState 订阅与 uptime 计时器；可重复调用。 */
+  function dispose() {
+    if (disposed) return;
+    disposed = true;
+    if (unsubscribe) {
+      unsubscribe();
+      unsubscribe = null;
+    }
+    if (uptimeInterval) {
+      clearInterval(uptimeInterval);
+      uptimeInterval = null;
+    }
   }
 
-  function fmtTime(ts: number): string {
-    return new Date(ts).toLocaleTimeString();
+  // 只在组件 setup 中注册生命周期：`useRpc` 也可在组件外（测试、程序式初始化）调用，
+  // 那里调用 `onMounted` 会让 Vue 打 `[Vue warn] onMounted is called when there is no
+  // active component instance` 并静默丢弃回调 —— 调用方会误以为订阅已自动生效。
+  if (getCurrentInstance()) {
+    onMounted(() => {
+      void init();
+    });
+
+    onUnmounted(dispose);
   }
-
-  function fmtVal(v: unknown): string {
-    if (v === null || v === undefined) return '—';
-    if (typeof v === 'boolean') return v ? 'true' : 'false';
-    if (typeof v === 'number') return String(v);
-    if (typeof v === 'string') return v;
-    if (Array.isArray(v)) return `[${v.length} items]`;
-    if (typeof v === 'object') return JSON.stringify(v);
-    return String(v);
-  }
-
-  function fileName(p?: string): string {
-    if (!p) return '';
-    return p.split('/').pop() || p;
-  }
-
-  function filePath(p?: string): string {
-    if (!p) return '';
-    const parts = p.split('/');
-    if (parts.length <= 5) return p;
-    const prefix = parts.slice(0, 3).join('/');
-    const suffix = parts.slice(-2).join('/');
-    return `${prefix}/…/${suffix}`;
-  }
-
-  function methodClass(method: string): string {
-    const map: Record<string, string> = {
-      GET: 'bg-success/12 text-success',
-      POST: 'bg-info/12 text-info',
-      PUT: 'bg-warning/12 text-warning',
-      DELETE: 'bg-destructive/12 text-destructive',
-      PATCH: 'bg-purple-500/12 text-purple-400'
-    };
-    return map[method] || 'bg-secondary text-muted-foreground';
-  }
-
-  onMounted(() => {
-    init();
-  });
-
-  onUnmounted(() => {
-    if (unsubscribe) unsubscribe();
-    if (uptimeInterval) clearInterval(uptimeInterval);
-  });
 
   return {
     loading,
@@ -505,6 +553,8 @@ export function useRpc() {
     fileName,
     filePath,
     methodClass,
+    init,
+    dispose,
     refresh,
     crudCreate,
     crudRead,

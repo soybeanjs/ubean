@@ -1,145 +1,15 @@
+/**
+ * Cron HTTP 集成测试（L2）
+ *
+ * 纯逻辑契约（`parseCron`/`validateCron` 表达式解析、`defineScheduled` 校验、
+ * `createMemoryCronScheduler` 执行语义、`getNextRuns`、`runOnSchedule`）已于 TS-34
+ * 下沉到 `packages/server/test/cron-l1.test.ts`（44 例），此处不再重复。
+ * 保留的只有**只有 HTTP 层能证明**的东西：端点可路由、状态码、响应形状。
+ */
 import { describe, it, expect } from 'vitest';
-import {
-  parseCron,
-  validateCron,
-  createMemoryCronScheduler,
-  resetCronRunCounts,
-  defineScheduled,
-  clearScheduledTasks
-} from 'ubean/server';
 import { getJson, postJson } from './helper';
 
 describe('Cron system', () => {
-  describe('parseCron() - expression parsing', () => {
-    it('parses basic 5-field expression', () => {
-      const parsed = parseCron('* * * * *');
-      expect(parsed).toBeDefined();
-      expect(parsed).not.toBeNull();
-    });
-
-    it('parses "every minute" expression', () => {
-      const parsed = parseCron('* * * * *');
-      expect(parsed).toBeDefined();
-      expect(parsed!.minute).toHaveLength(60);
-    });
-
-    it('parses weekday morning expression', () => {
-      const parsed = parseCron('0 9 * * 1-5');
-      expect(parsed).not.toBeNull();
-      expect(parsed!.hour).toContain(9);
-      expect(parsed!.dow).toEqual([1, 2, 3, 4, 5]);
-    });
-
-    it('parses every 15 minutes', () => {
-      const parsed = parseCron('*/15 * * * *');
-      expect(parsed).not.toBeNull();
-      expect(parsed!.minute).toEqual([0, 15, 30, 45]);
-    });
-
-    it('parses first of month', () => {
-      const parsed = parseCron('0 0 1 * *');
-      expect(parsed).not.toBeNull();
-      expect(parsed!.dom).toContain(1);
-    });
-
-    it('parses Sunday midnight', () => {
-      const parsed = parseCron('0 0 * * 0');
-      expect(parsed).not.toBeNull();
-      expect(parsed!.dow).toContain(0);
-    });
-
-    it('returns null on invalid expression', () => {
-      expect(parseCron('invalid')).toBeNull();
-    });
-  });
-
-  describe('validateCron() - expression validation', () => {
-    it('validates correct expressions as true', () => {
-      expect(validateCron('* * * * *')).toBe(true);
-      expect(validateCron('0 9 * * 1-5')).toBe(true);
-      expect(validateCron('*/15 * * * *')).toBe(true);
-      expect(validateCron('0 0 1 * *')).toBe(true);
-      expect(validateCron('0 0 * * 0')).toBe(true);
-    });
-
-    it('validates invalid expressions as false', () => {
-      expect(validateCron('invalid')).toBe(false);
-      expect(validateCron('0 0 0 0 0')).toBe(false);
-      expect(validateCron('')).toBe(false);
-    });
-  });
-
-  describe('createMemoryCronScheduler()', () => {
-    it('creates a scheduler instance', () => {
-      const scheduler = createMemoryCronScheduler();
-      expect(scheduler).toBeDefined();
-      expect(typeof scheduler.start).toBe('function');
-      expect(typeof scheduler.stop).toBe('function');
-      expect(typeof scheduler.runTask).toBe('function');
-      expect(typeof scheduler.isRunning).toBe('function');
-      expect(typeof scheduler.getTasks).toBe('function');
-      expect(typeof scheduler.getNextRuns).toBe('function');
-    });
-
-    it('starts and stops without errors', async () => {
-      clearScheduledTasks();
-      defineScheduled(
-        { name: 'test-task', schedule: '* * * * *', timezone: 'UTC', runOnStart: false, timeout: 5000 },
-        async () => {}
-      );
-      const scheduler = createMemoryCronScheduler();
-      await scheduler.start();
-      expect(scheduler.isRunning()).toBe(true);
-      await scheduler.stop();
-      expect(scheduler.isRunning()).toBe(false);
-    });
-
-    it('returns task list', async () => {
-      resetCronRunCounts();
-      clearScheduledTasks();
-      defineScheduled(
-        { name: 'status-task', schedule: '* * * * *', timezone: 'UTC', runOnStart: false, timeout: 5000 },
-        async () => {}
-      );
-      const scheduler = createMemoryCronScheduler();
-      await scheduler.start();
-      const tasks = scheduler.getTasks();
-      expect(tasks.length).toBeGreaterThan(0);
-      const nextRuns = scheduler.getNextRuns();
-      expect(nextRuns.length).toBe(tasks.length);
-      await scheduler.stop();
-    });
-  });
-
-  describe('runOnStart', () => {
-    it('executes tasks with runOnStart immediately', async () => {
-      resetCronRunCounts();
-      clearScheduledTasks();
-      const executed: string[] = [];
-
-      defineScheduled(
-        { name: 'immediate', schedule: '0 0 1 1 *', timezone: 'UTC', runOnStart: true, timeout: 5000 },
-        async ctx => {
-          executed.push(ctx.name);
-        }
-      );
-      defineScheduled(
-        { name: 'delayed', schedule: '0 0 1 1 *', timezone: 'UTC', runOnStart: false, timeout: 5000 },
-        async ctx => {
-          executed.push(ctx.name);
-        }
-      );
-
-      const scheduler = createMemoryCronScheduler();
-      await scheduler.start();
-      await new Promise(r => setTimeout(r, 100));
-      await scheduler.stop();
-
-      expect(executed).toContain('immediate');
-      expect(executed).not.toContain('delayed');
-    });
-  });
-
   describe('HTTP integration - /api/cron-parse-test', () => {
     it('parse action returns parsed results', async () => {
       const res = await getJson('/api/cron-parse-test?action=parse');

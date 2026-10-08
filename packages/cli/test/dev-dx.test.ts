@@ -15,11 +15,12 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { chromium } from 'playwright';
 import type { Browser, Page } from 'playwright';
+// TS-37：端口 / 进程 / 就绪探测 / 水合探针收敛到共用 harness
+// （与 L3 `test/browser/` 的职责边界见 `helpers/cli-harness.ts` 文件头注释）
+import { findFreePort, launchBrowser, resolveBaseUrl, stopChild, waitForApp } from './helpers/cli-harness';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
@@ -37,20 +38,6 @@ let browser: Browser | undefined;
 let output = '';
 let clientOriginal: string | null = null;
 
-async function findFreePort(): Promise<number> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const port = 10_000 + Math.floor(Math.random() * 20_000);
-    const free = await new Promise<boolean>(resolveFree => {
-      const server = createServer();
-      server.unref();
-      server.once('error', () => resolveFree(false));
-      server.listen(port, '127.0.0.1', () => server.close(() => resolveFree(true)));
-    });
-    if (free) return port;
-  }
-  throw new Error('找不到可用端口');
-}
-
 beforeAll(async () => {
   if (!existsSync(cliEntry)) {
     throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 DX 走查`);
@@ -65,44 +52,14 @@ beforeAll(async () => {
   child.stdout?.on('data', chunk => (output += chunk));
   child.stderr?.on('data', chunk => (output += chunk));
 
-  const started = Date.now();
-  while (Date.now() - started < 180_000) {
-    for (const host of ['::1', '127.0.0.1']) {
-      const candidate = host.includes(':') ? `http://[${host}]:${port}` : `http://${host}:${port}`;
-      try {
-        const res = await fetch(`${candidate}/_health`, { signal: AbortSignal.timeout(2_000) });
-        if (res.status > 0) {
-          baseUrl = candidate;
-          break;
-        }
-      } catch {
-        /* 换下一个候选 */
-      }
-    }
-    if (baseUrl) break;
-    if (child.exitCode != null) throw new Error(`dev server 提前退出（exit ${child.exitCode}）\n${output}`);
-    await new Promise(resolveDelay => setTimeout(resolveDelay, 150));
-  }
-  if (!baseUrl) throw new Error(`dev server 在 180s 内不可达\n${output}`);
+  baseUrl = await resolveBaseUrl(port, { path: '/_health', timeoutMs: 180_000, child, output: () => output });
 
-  browser = await chromium.launch();
+  browser = await launchBrowser();
 }, 240_000);
 
 afterAll(async () => {
   await browser?.close();
-  if (child && child.exitCode == null) {
-    child.kill('SIGTERM');
-    await new Promise<void>(resolveExit => {
-      const timer = setTimeout(() => {
-        child?.kill('SIGKILL');
-        resolveExit();
-      }, 5_000);
-      child?.once('exit', () => {
-        clearTimeout(timer);
-        resolveExit();
-      });
-    });
-  }
+  await stopChild(child);
   // 改过示例项目源码，必须还原
   if (clientOriginal !== null) {
     const current = readFileSync(clientFile, 'utf8');
@@ -129,12 +86,7 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
       // 等应用水合完成再交互：SSR 首屏的按钮此时还没有监听器，早点击会被丢掉。
       // 同时把「首个整页重载」等掉 —— dev server 首次请求后依赖预构建完成会触发一次，
       // 它会在随机时刻打断 page.evaluate（实测报 Execution context was destroyed）。
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
-      await page.waitForTimeout(1_500);
+      await waitForApp(page, { settleMs: 1_500 });
       const loadsBefore = loads;
 
       await page.getByRole('button', { name: 'zh', exact: true }).click();
@@ -160,12 +112,7 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     const page = await openPage();
     try {
       await page.goto(`${baseUrl}/order/123`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
-      await page.waitForTimeout(1_500);
+      await waitForApp(page, { settleMs: 1_500 });
 
       // 客户端：同名 matcher 由 `router.beforeEach(createMatcherGuard())` 校验 —— 用 history 跳转
       // 触发一次真正的 SPA 导航（不带整页刷新），非法 id 应被拦下并落到 404 路由。
@@ -193,12 +140,7 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     });
     try {
       await page.goto(`${baseUrl}/server-components`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
-      await page.waitForTimeout(1_200);
+      await waitForApp(page, { settleMs: 1_200 });
 
       // `.client.vue`：SSR 的注释占位符被真实内容替换
       expect(await page.locator('.sc-client').count()).toBe(1);
@@ -239,12 +181,7 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     });
     try {
       await page.goto(`${baseUrl}/ppr-demo`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
-      await page.waitForTimeout(1_000);
+      await waitForApp(page, { settleMs: 1_000 });
       // 组件真的挂上了（该页的 setup 只有 definePage，剥离宏后靠宏转换保留块才有默认导出：
       // 缺默认导出时这里会是「路由组件解析失败」，不是断言失败 —— 所以两种信号都要）
       expect(await page.locator('.ppr-demo').count()).toBe(1);
@@ -266,12 +203,7 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     page.on('pageerror', e => errors.push(`pageerror: ${String(e).slice(0, 120)}`));
     try {
       await page.goto(`${baseUrl}/server-island-demo`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
-      await page.waitForTimeout(1_000);
+      await waitForApp(page, { settleMs: 1_000 });
       expect(await page.locator('.slow-widget').count()).toBe(1);
       expect(errors, errors[0] ?? '').toHaveLength(0);
     } finally {
@@ -300,11 +232,7 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     });
     try {
       await page.goto(`${baseUrl}/deferred-demo`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
+      await waitForApp(page, { settleMs: 0 });
       // 挂载后切到 resolved 分支：class 与文本都必须是 resolved 那一支
       await expect.poll(() => page.locator('.deferred-value').count(), { timeout: 15_000 }).toBe(1);
       expect(await page.locator('.deferred-value').textContent()).toContain('deferred-resolved');
@@ -330,13 +258,8 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     page.on('load', () => (loads += 1));
     try {
       await page.goto(`${baseUrl}/action-demo`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
       // 等掉 dev server 首轮的预构建重载，之后观察到的 load 才算「本次提交触发」
-      await page.waitForTimeout(1_500);
+      await waitForApp(page, { settleMs: 1_500 });
       const loadsBefore = loads;
 
       // 成功路径：action 的返回值进客户端状态，列表里出现一行
@@ -369,13 +292,8 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     page.on('load', () => (loads += 1));
     try {
       await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
       // 先把 dev server 自己的首次重载等掉，之后观察到的 load 才算「本次改动触发」
-      await page.waitForTimeout(1_500);
+      await waitForApp(page, { settleMs: 1_500 });
       const loadsBefore = loads;
 
       // 追加一行注释：`app.ts` 是入口文件，改动它会让 **Vite 自己**沿 `virtual:ubean-app` 的
@@ -407,14 +325,9 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     expect(heading, `${pageFile} 应有可供替换的 <h1>`).toBeTruthy();
     try {
       await page.goto(`${baseUrl}/`, { waitUntil: 'domcontentloaded' });
-      await page.waitForFunction(
-        () => Boolean((document.querySelector('#app') as never as Record<string, unknown>)?.__vue_app__),
-        undefined,
-        { timeout: 30_000 }
-      );
       // 先等 dev server 自身的整页重载彻底安静（依赖预构建会在随机时刻补一次刷新），再取基线 ——
       // 只有这样，后面的 load 计数才只反映「本次改动」（否则会拿到随机的背景噪声）。
-      await page.waitForTimeout(1_500);
+      await waitForApp(page, { settleMs: 1_500 });
       let quiet = 0;
       let seenLoads = loads;
       while (quiet < 2) {

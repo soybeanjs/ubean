@@ -23,9 +23,9 @@
 ## 测试
 
 - **注册断言（registration assertion）**：对 `app.hono` 的路由栈/中间件栈做断言，验证某中间件/路由已挂载，**不发起 HTTP 请求**。适用于 `UbeanApp` init 这类以同步注册为主的场景（见 ADR-0002）。
-- **快照单测（snapshot unit test）**：对 codegen 模块产出的字符串做 snapshot/断言，作为快速单元门禁（见 ADR-0002）。**该边界目前未被应用** —— `production.ts` 的现有守卫是整构建集成测（`production-build.test.ts`），仓内 `toMatchSnapshot` 零命中。
-- **临时目录集成测**：在临时目录跑真实 Vite build 验证产出可执行。属慢集成测，归 e2e，不进包内单测（见 ADR-0002）。
-- **codegen 模块**：产出模板字符串（如生成的 server entry）的模块。`production.ts` 即此类，其**声明的**测试边界是快照单测而非临时目录构建（见 ADR-0002；与实际落地不一致，见上条）。
+- **快照单测（snapshot unit test）**：对 codegen 模块产出的字符串做 snapshot/断言，作为快速单元门禁（见 ADR-0002 Decision 1）。**实际形态是显式断言（锁契约片段），不是 `toMatchSnapshot()`** —— 整串快照会在改一行注释时变红，那是噪音不是信号。已落地两处：`packages/builder/test/virtual-modules.test.ts`（`virtual-modules.ts`）与 `packages/builder/test/codegen-entry-templates.test.ts`（`production.ts` 的三份 preset 入口模板 + islands SSR 空壳插件）。
+- **临时目录集成测**：在临时目录跑真实 Vite build 验证产出可执行。属慢集成测；ADR-0002 Decision 1 原意是归 e2e，但**现状刻意保留在单测层**（`packages/builder/test/production-build.test.ts`，0.86s）—— 理由见 ADR-0002「未按 ADR 字面执行的一处，明确保留」：它是全仓唯一的 build 侧端到端断言，移走等于把历史事故 #1 的盲区还给默认路径。
+- **codegen 模块**：产出模板字符串（如生成的 server entry）的模块。`production.ts` / `virtual-modules.ts` 均属此类，其测试边界是**快照单测（显式断言形态）**；`production.ts` 里的**文件写入**部分（`generateVirtualModulesToDisk`、`writePresetWrapper`）是 IO 装配，不由字符串断言覆盖。
 
 ## 依赖形态
 

@@ -37,21 +37,6 @@ function getCustomTabs(): any[] {
   return _customTabsGetter();
 }
 
-/**
- * dev 环境 SecurityHeaders 解析（ADR-0011）。
- *
- * ssg 模式默认关闭：静态产物不携带框架注入的安全头（响应头由托管平台
- * 控制），dev 默认关闭以对齐生产行为，消除「dev 有 CSP / 线上没有」的
- * 偏差。显式配置（`headers: true` 或对象）仍会被尊重，作为 CSP 调试
- * 入口。其余模式默认开启不变。
- */
-export function resolveDevSecurityHeaders(config: any): boolean | Record<string, unknown> {
-  if (config.security === false) return false;
-  if (config.security?.headers === false) return false;
-  if (config.security?.headers !== undefined) return config.security.headers;
-  return config.mode !== 'ssg';
-}
-
 export const devCommand: CommandDef = {
   meta: {
     name: 'dev',

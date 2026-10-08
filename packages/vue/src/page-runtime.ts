@@ -130,7 +130,6 @@ export interface UseReloadSignalReturn {
  * leave path, but if a stray re-render does, 'default' mode produces no
  * hollow placeholders).
  *
- * @internal — consumed by `components.ts` (same package).
  */
 export const _reloading: Ref<boolean> = (_g.__ubeanReloading ??= ref(false));
 
@@ -139,7 +138,6 @@ export const _reloading: Ref<boolean> = (_g.__ubeanReloading ??= ref(false));
  * renders a comment vnode instead of the page. Drives the reload sequence
  * in `_remountWithFreshCache`.
  *
- * @internal — consumed by `components.ts` (same package).
  */
 export const _reloadBlank: Ref<boolean> = (_g.__ubeanReloadBlank ??= ref(false));
 
@@ -149,7 +147,6 @@ export const _reloadBlank: Ref<boolean> = (_g.__ubeanReloadBlank ??= ref(false))
  * unrelated page's reload. (A global counter in the key would invalidate
  * every page's cache on any reload.)
  *
- * @internal — consumed by `components.ts` (same package).
  */
 export const _pageReloadCounts: Map<string, number> = (_g.__ubeanPageReloadCounts ??= reactive(
   new Map<string, number>()

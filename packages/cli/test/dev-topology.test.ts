@@ -16,9 +16,10 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+// TS-37：端口 / 进程 / 就绪探测收敛到共用 harness（与 L3 的职责边界见该文件头注释）
+import { findFreePort, resolveBaseUrl, stopChild } from './helpers/cli-harness';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
@@ -28,74 +29,22 @@ let child: ChildProcess | undefined;
 let baseUrl: string;
 let stderrOutput = '';
 
-/**
- * dev 端口除自身外还会占用 `port + 1000`（HMR 独立端口），因此只在 10000–30000 取样，
- * 并保证两个端口都空闲；否则 `port + 1000` 可能越过 65535 触发 ERR_SOCKET_BAD_PORT。
- */
-async function findFreePort(): Promise<number> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const port = 10_000 + Math.floor(Math.random() * 20_000);
-    if (port + 1000 > 65_535) continue;
-    const free = await Promise.all([port, port + 1000].map(isPortFree));
-    if (free.every(Boolean)) return port;
-  }
-  throw new Error('找不到可用端口');
-}
-
-function isPortFree(port: number): Promise<boolean> {
-  return new Promise(resolveFree => {
-    const server = createServer();
-    server.unref();
-    server.once('error', () => resolveFree(false));
-    server.listen(port, '127.0.0.1', () => server.close(() => resolveFree(true)));
-  });
-}
-
-/** dev 默认只绑 IPv6 `[::1]`（dev.host: 'localhost'），先试 IPv6 再回退 IPv4。 */
-async function resolveBaseUrl(port: number, timeoutMs = 120_000): Promise<string> {
-  const started = Date.now();
-  while (Date.now() - started < timeoutMs) {
-    for (const host of ['::1', '127.0.0.1']) {
-      const candidate = host.includes(':') ? `http://[${host}]:${port}` : `http://${host}:${port}`;
-      try {
-        const res = await fetch(`${candidate}/`, { signal: AbortSignal.timeout(1_000) });
-        if (res.status > 0) return candidate;
-      } catch {
-        /* 换下一个候选 */
-      }
-    }
-    if (child?.exitCode != null) throw new Error(`dev server 提前退出（exit ${child.exitCode}）\n${stderrOutput}`);
-    await new Promise(resolveDelay => setTimeout(resolveDelay, 100));
-  }
-  throw new Error(`dev server 在 ${timeoutMs}ms 内不可达\n${stderrOutput}`);
-}
-
 beforeAll(async () => {
   if (!existsSync(cliEntry)) {
     throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 CLI 集成测试`);
   }
-  const port = await findFreePort();
+  // dev 会额外占用 port + 1000（HMR 独立端口），两个都预留
+  const port = await findFreePort({ reservedOffsets: [1000] });
   child = spawn(process.execPath, [cliEntry, 'dev', '--port', String(port), '--strictPort'], {
     cwd: fixtureDir,
     stdio: ['ignore', 'pipe', 'pipe']
   });
   child.stderr?.on('data', chunk => (stderrOutput += chunk));
-  baseUrl = await resolveBaseUrl(port);
+  baseUrl = await resolveBaseUrl(port, { child, output: () => stderrOutput });
 }, 180_000);
 
 afterAll(async () => {
-  if (!child || child.exitCode != null) return;
-  child.kill('SIGTERM');
-  await new Promise<void>(resolveExit => {
-    const timer = setTimeout(() => {
-      child?.kill('SIGKILL');
-      resolveExit();
-    }, 5_000);
-    child?.once('exit', () => {
-      clearTimeout(timer);
-      resolveExit();
-    });
-  });
+  await stopChild(child);
 });
 
 interface Probed {

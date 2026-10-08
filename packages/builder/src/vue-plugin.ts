@@ -563,5 +563,3 @@ async function runPagefindIndexing(
     });
   });
 }
-
-export default ubeanVite;

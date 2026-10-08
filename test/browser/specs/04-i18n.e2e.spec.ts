@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { api } from '../pages/base.page';
 import { I18nPage } from '../pages/i18n.page';
 
 /**
@@ -12,7 +11,11 @@ import { I18nPage } from '../pages/i18n.page';
  * - Translations (t function with interpolation)
  * - useSwitchLocalePath / useLocalePath
  * - i18n routing strategy: prefix_except_default (vue-router + Hono aligned)
- * - Server-side i18n API (/api/i18n-test)
+ *
+ * TS-35：本 spec 原先还有 13 条纯 HTTP 用例（`/about` 前缀 3 条 + `/api/i18n-test` 10 条）。
+ * 它们不需要浏览器，已下沉到 `examples/ubean-test/test/http-contracts.test.ts`
+ * （routing 3 条 + API 8 条）。`/api/i18n-test` 的 info/translate/plural/linked 4 条
+ * 已由既有 `i18n.test.ts` 覆盖。此处只保留**只有真实浏览器能证明**的客户端切换语义。
  */
 describe('i18n', () => {
   describe('i18n test page (client-side)', () => {
@@ -77,109 +80,6 @@ describe('i18n', () => {
       await page.waitForFunction('return /\\/zh/.test(location.pathname)', 8000);
       const url = await page.url();
       expect(url).toMatch(/\/zh/);
-    });
-  });
-
-  describe('i18n routing (prefix_except_default strategy)', () => {
-    it('serves /about without prefix for default locale (en)', async () => {
-      const res = await api.get('/about');
-      // Should return 200 (SSR HTML) — not a redirect
-      expect(res.status).toBe(200);
-    });
-
-    it('serves /zh/about with zh prefix', async () => {
-      const res = await api.get('/zh/about');
-      expect(res.status).toBe(200);
-    });
-
-    it('redirects /en/about to /about (default locale has no prefix)', async () => {
-      // prefix_except_default: a default-locale prefix is not a registered page
-      // path. The i18n middleware 302s it to the unprefixed canonical URL.
-      const res = await api.get('/en/about');
-      expect(res.status).toBe(302);
-      expect(res.headers['location']).toBe('/about');
-    });
-  });
-
-  describe('Server-side i18n API (/api/i18n-test)', () => {
-    it('returns i18n info with action=info', async () => {
-      const res = await api.get('/api/i18n-test?action=info');
-      expect(res.status).toBe(200);
-      const body = res.json as any;
-      expect(body).toHaveProperty('currentLocale');
-      expect(body).toHaveProperty('defaultLocale');
-      expect(body).toHaveProperty('registeredLocales');
-      expect(body.registeredLocales).toContain('en');
-      expect(body.registeredLocales).toContain('zh');
-    });
-
-    it('translates keys with action=translate', async () => {
-      const res = await api.get('/api/i18n-test?action=translate&key=common.hello&name=World');
-      expect(res.status).toBe(200);
-      const body = res.json as any;
-      expect(body).toHaveProperty('translation');
-      expect(body.translation).toContain('World');
-    });
-
-    it('translates in zh locale', async () => {
-      const res = await api.get('/api/i18n-test?action=translate&locale=zh&key=common.hello&name=World');
-      expect(res.status).toBe(200);
-      const body = res.json as any;
-      expect(body.locale).toBe('zh');
-      expect(body).toHaveProperty('translation');
-    });
-
-    it('handles pluralization with action=plural', async () => {
-      const res = await api.get('/api/i18n-test?action=plural');
-      expect(res.status).toBe(200);
-      const body = res.json as any;
-      expect(body).toHaveProperty('plural');
-      expect(body.plural).toHaveProperty('items.count');
-    });
-
-    it('handles linked messages with action=linked', async () => {
-      const res = await api.get('/api/i18n-test?action=linked');
-      expect(res.status).toBe(200);
-      const body = res.json as any;
-      expect(body).toHaveProperty('greeting');
-      expect(body).toHaveProperty('nested');
-    });
-
-    it('handles routing helpers with action=routing', async () => {
-      const res = await api.get('/api/i18n-test?action=routing');
-      expect(res.status).toBe(200);
-      const body = res.json as any;
-      expect(body).toHaveProperty('localizePath');
-      expect(body.localizePath.home_en).toBe('/');
-      expect(body.localizePath.home_zh).toBe('/zh');
-    });
-
-    it('detects locale from Accept-Language', async () => {
-      const res = await api.get('/api/i18n-test?action=detect', {
-        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8'
-      });
-      expect(res.status).toBe(200);
-      const body = res.json as any;
-      expect(body).toHaveProperty('detected');
-      expect(body.detected).toBe('zh');
-    });
-
-    it('switches locale with action=setLocale', async () => {
-      const res = await api.get('/api/i18n-test?action=setLocale&locale=zh');
-      expect(res.status).toBe(200);
-      const body = res.json as any;
-      expect(body.success).toBe(true);
-      expect(body.after).toBe('zh');
-    });
-
-    it('returns 400 for setLocale without locale param', async () => {
-      const res = await api.get('/api/i18n-test?action=setLocale');
-      expect(res.status).toBe(400);
-    });
-
-    it('returns 400 for unknown action', async () => {
-      const res = await api.get('/api/i18n-test?action=unknown_action');
-      expect(res.status).toBe(400);
     });
   });
 });

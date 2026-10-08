@@ -13,9 +13,10 @@
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:net';
 import { join, resolve } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+// TS-37：端口 / 进程 / 就绪探测收敛到共用 harness
+import { findFreePort, resolveBaseUrl, stopChild } from './helpers/cli-harness';
 
 const repoRoot = resolve(import.meta.dirname, '../../..');
 const fixtureDir = join(repoRoot, 'examples/ubean-test');
@@ -26,20 +27,6 @@ interface Running {
   child: ChildProcess;
   baseUrl: string;
   output: () => string;
-}
-
-async function findFreePort(): Promise<number> {
-  for (let attempt = 0; attempt < 40; attempt += 1) {
-    const port = 20_000 + Math.floor(Math.random() * 20_000);
-    const free = await new Promise<boolean>(resolveFree => {
-      const server = createServer();
-      server.unref();
-      server.once('error', () => resolveFree(false));
-      server.listen(port, '127.0.0.1', () => server.close(() => resolveFree(true)));
-    });
-    if (free) return port;
-  }
-  throw new Error('找不到可用端口');
 }
 
 /**
@@ -60,7 +47,7 @@ async function buildFixture(): Promise<void> {
 
 async function startPreview(cwd: string, readyPath = '/'): Promise<Running> {
   if (!existsSync(cliEntry)) throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 CLI 集成测试`);
-  const port = await findFreePort();
+  const port = await findFreePort({ base: 20_000 });
   const child = spawn(process.execPath, [cliEntry, 'preview', '--port', String(port), '--strictPort'], {
     cwd,
     env: { ...process.env },
@@ -71,37 +58,22 @@ async function startPreview(cwd: string, readyPath = '/'): Promise<Running> {
   child.stdout?.on('data', collect);
   child.stderr?.on('data', collect);
 
-  const started = Date.now();
-  while (Date.now() - started < 60_000) {
-    for (const host of ['::1', '127.0.0.1']) {
-      const candidate = host.includes(':') ? `http://[${host}]:${port}` : `http://${host}:${port}`;
-      try {
-        const res = await fetch(`${candidate}${readyPath}`, { signal: AbortSignal.timeout(2_000) });
-        if (res.status > 0) return { child, baseUrl: candidate, output: () => output };
-      } catch {
-        /* 换下一个候选 */
-      }
-    }
-    if (child.exitCode != null) throw new Error(`preview 提前退出（exit ${child.exitCode}）\n${output}`);
-    await new Promise(resolveDelay => setTimeout(resolveDelay, 150));
+  try {
+    const baseUrl = await resolveBaseUrl(port, {
+      path: readyPath,
+      timeoutMs: 60_000,
+      child,
+      output: () => output
+    });
+    return { child, baseUrl, output: () => output };
+  } catch (error) {
+    await stopChild(child);
+    throw error;
   }
-  throw new Error(`preview 在 60s 内不可达\n${output}`);
 }
 
 async function stopPreview(running: Running | null): Promise<void> {
-  if (!running || running.child.exitCode != null) return;
-  const child = running.child;
-  child.kill('SIGTERM');
-  await new Promise<void>(resolveExit => {
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      resolveExit();
-    }, 5_000);
-    child.once('exit', () => {
-      clearTimeout(timer);
-      resolveExit();
-    });
-  });
+  await stopChild(running?.child);
 }
 
 describe('ubean preview（fullstack，委托 vite preview + 生产 handler）', () => {

@@ -1,6 +1,9 @@
 import { readFileSync, readdirSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
 import type { Plugin, ResolvedConfig as ViteResolvedConfig } from 'vite';
+// 路径一律走 pathe（不是 node:path）：产物里的绝对路径要进虚拟模块的
+// `import('/abs/path')` 与 Task 9.4 的第 3 参数注入，跨平台必须形态一致。
+// 详见 `resolveIslandImportPath` 的说明。
+import { dirname, join, resolve as posixResolve } from 'pathe';
 import { legacyDirectiveToStrategy, strategyToLegacyDirective } from './directive';
 import type { ClientDirective } from './types';
 
@@ -791,7 +794,12 @@ export function scanIslandDirectiveNames(template: string): Set<string> {
  */
 export function resolveIslandImportPath(importPath: string, sourceFile: string): string {
   if (importPath.startsWith('.')) {
-    return resolve(dirname(sourceFile), importPath);
+    // pathe 而非 node:path —— 产物里的这些绝对路径会进虚拟模块的 `import('/abs/path')`
+    // 和 Task 9.4 的第 3 参数注入（`JSON.stringify`）。node:path 在 Windows 上吐出
+    // `D:\a\ubean\ubean\src\...`：反斜杠会被 JSON.stringify 转义成 `\\`，Vite 的
+    // import 解析与运行时字符串比对（服务端组件注册表的 path 查找）都对不上，
+    // 测试与产物也会因平台而异。pathe 在所有平台输出同一个正斜杠形态。
+    return posixResolve(dirname(sourceFile), importPath);
   }
   return importPath;
 }

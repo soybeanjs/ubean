@@ -20,8 +20,10 @@
  */
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+// pathe 而非 node:path：loader 用 pathe 拼配置路径（packages/config/src/loader.ts），
+// 断言必须比同一个形态 —— Windows 上 node:path 会拼出反斜杠，与 pathe 的正斜杠对不上。
+import { join } from 'pathe';
 
 const dirs: string[] = [];
 

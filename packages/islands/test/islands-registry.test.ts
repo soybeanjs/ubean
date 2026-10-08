@@ -157,6 +157,19 @@ describe('resolveIslandImportPath', () => {
   it('keeps scoped package specifier as-is', () => {
     expect(resolveIslandImportPath('@ubean/islands', '/src/Foo.vue')).toBe('@ubean/islands');
   });
+
+  // 这些绝对路径会进虚拟模块的 `import('/abs/path')` 与 Task 9.4 的第 3 参数注入。
+  // node:path 在 Windows 上吐 `D:\a\...`，反斜杠会被 JSON.stringify 转义、Vite 的 import
+  // 解析也对不上 —— 2026-10 的 CI Windows 格就是这么炸的（islands + config 两处）。
+  // pathe 保证任何平台都是同一个正斜杠形态，所以这里直接喂 Windows 形态的输入。
+  it('normalizes Windows-shaped source paths to forward slashes', () => {
+    expect(resolveIslandImportPath('./Foo.vue', 'D:\\a\\ubean\\ubean\\src\\pages\\Bar.vue')).toBe(
+      'D:/a/ubean/ubean/src/pages/Foo.vue'
+    );
+    expect(resolveIslandImportPath('../components/Foo.vue', 'D:\\a\\ubean\\ubean\\src\\pages\\sub\\P.vue')).toBe(
+      'D:/a/ubean/ubean/src/pages/components/Foo.vue'
+    );
+  });
 });
 
 describe('collectIslandComponents', () => {

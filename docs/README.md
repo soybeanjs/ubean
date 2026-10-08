@@ -13,9 +13,7 @@
 | 文档 | 说明 |
 | --- | --- |
 | [roadmap.md](roadmap.md) | 已收口能力清单、刻意不做与后续入口（口径见 [ADR-0010](adr/0010-competitive-north-star-and-gap-filter.md)） |
-| [test.md](test.md) | 全栈元框架的功能测试方案与任务清单（TS-01–TS-37）：§5 任务明细、§6 配置覆盖矩阵、§8 验收台账 |
-| [test-flaky.md](test-flaky.md) | flaky 用例待修清单（TS-25 的人工维护部分）：门禁语义、表格填法、当前待修条目 |
-| [test-e2e-migration.md](test-e2e-migration.md) | `examples/ubean-test` 用例向 E2E 迁移的可行性分析（TS-34–TS-37 的输入） |
+| [test-flaky.md](test-flaky.md) | flaky 用例待修清单（`scripts/flaky.mjs --check` 门禁的 committed 输入）：门禁语义、表格填法、当前待修条目 |
 | [perf-regression-net.md](perf-regression-net.md) | 性能度量口径、基线、体积闸门与 nightly 趋势（RM-P01–P08、RM-P23/P24 已落地） |
 | [vite-bundled-dev-compat.md](vite-bundled-dev-compat.md) | Vite `experimental.bundledDev` 兼容性调查：**现状不支持**，三处故障已定位（其中一处根因已对照实验证明）、修法方向与未知数 |
 | [config-to-vite-passthrough.md](config-to-vite-passthrough.md) | ubean 配置到 Vite 的传递与覆盖调查：**只有 CLI inlineConfig 一条通道**（裸 `vite dev` 读不到 `dev.*`）、覆盖顺序实测、三处「配了不生效」+ 四个死字段、命名取舍 |

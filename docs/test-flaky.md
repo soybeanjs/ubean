@@ -1,9 +1,9 @@
-# flaky 用例待修清单（TS-25）
+# flaky 用例待修清单
 
 > 本文件是 **committed 的人工维护清单**，与 `scripts/flaky.mjs` 配套。它记录的是「观测到过
 > flaky（重试后才通过）但尚未修掉」的用例 —— flaky 用例的唯一归宿是修掉它，不是靠重试转绿。
 >
-> 生成与判定的机制见 [test.md](test.md) 的 TS-25；实现见 [`scripts/flaky.mjs`](../scripts/flaky.mjs)。
+> 生成与判定的机制与实现见 [`scripts/flaky.mjs`](../scripts/flaky.mjs)（CI 门禁：`node scripts/flaky.mjs --check`）。
 
 ## 为什么需要这份清单
 

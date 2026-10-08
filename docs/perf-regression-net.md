@@ -115,7 +115,7 @@ farm.js 用 MutationObserver 捕获 DOM 写入完成时刻（替代受帧量化�
 | ID | 任务 | 关键改动 | 完成定义 |
 | --- | --- | --- | --- |
 | **RM-P08** ✅ | 纪律条款与文档 | `AGENTS.md` §9 增加两条 benchmark 命令；站点 `contributing/engineering.md`（中英）新增「13. 生命周期性能基准」并补绝对上限用法与性能主张纪律；`docs/README.md` 索引本文件 | 文档与实现一致；纪律条款可被 PR 直接引用 |
-| **RM-P24** ✅ | 周期性基准趋势 | `scripts/benchmark-trend.mjs`（趋势点提取 + JSONL 追加 + 可比性判定 + markdown 渲染）+ `.github/workflows/nightly-perf.yml`（每天 19:00 UTC + `workflow_dispatch`，**不进 PR 门禁**）+ 根 `benchmark:trend` script | nightly 产出趋势；PR 门禁中无性能阻断。见 [test.md](test.md) TS-26 |
+| **RM-P24** ✅ | 周期性基准趋势 | `scripts/benchmark-trend.mjs`（趋势点提取 + JSONL 追加 + 可比性判定 + markdown 渲染）+ `.github/workflows/nightly-perf.yml`（每天 19:00 UTC + `workflow_dispatch`，**不进 PR 门禁**）+ 根 `benchmark:trend` script | nightly 产出趋势；PR 门禁中无性能阻断 |
 
 ## 6. 与 Vite 插件化迁移（RM-V）的接口
 

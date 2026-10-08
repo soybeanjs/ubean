@@ -37,7 +37,7 @@ jobs:
         # 断言就在 `packages/cli/test/build-contracts.test.ts` 与 `packages/builder/test/**`，
         # 属于 `pnpm test` 的一部分）。平台/成本专属的步骤（浏览器 E2E、体积门禁、文档站构建、
         # 仓库护栏脚本）用 `if: runner.os == 'ubuntu-latest'` 门控，而不是用 exclude 缩小矩阵 ——
-        # exclude 会让「这一格从来没跑过」变成不可见的缺口（`docs/test.md` §1.3 纪律①）。
+        # exclude 会让「这一格从来没跑过」变成不可见的缺口（测试纪律①：跳过必须可见）。
     steps:
       - uses: actions/checkout@v6
 
@@ -193,7 +193,7 @@ jobs:
         # TS-21：非阻断。`pnpm knip` 只报告，不因命中而失败（`knip.jsonc` 把
         # optional-peer / duplicates 两类刻意形态降为 warn/off，其余已清零）。
         # 判据：新增的「未使用文件/导出/依赖」应出现在这一步的输出里，而不是
-        # 等它变成线上问题。逐项 ignore 理由登记在 docs/test.md §8 的 TS-21 台账。
+        # 等它变成线上问题。逐项 ignore 理由就地登记在根 `knip.jsonc`。
         # 刻意不加 `--production`：生产模式下测试辅助文件与配置文件被排除，
         # 会产出「仅测试消费的导出」这类已知噪音（同样登记在台账里）。
         # TS-13：只读仓库文本，与 OS 无关，只在 ubuntu 跑以省掉 3 个矩阵格。
@@ -204,8 +204,8 @@ jobs:
       - name: Coverage report (diagnostic, no thresholds)
         # TS-22：逐包收集覆盖率，聚合成「零覆盖文件」清单并作为 artifact 上传。
         #
-        # 这是**诊断**步骤，不是门禁：`scripts/coverage.mjs` 刻意不设阈值（与
-        # docs/test.md §7「不设覆盖率阈值」一致），覆盖率数字再低也不会让这一步失败。
+        # 这是**诊断**步骤，不是门禁：`scripts/coverage.mjs` 刻意不设阈值（测试纪律：
+        # 覆盖率只作诊断信号，不设阈值），覆盖率数字再低也不会让这一步失败。
         # 它唯一会退出非零的情况是「一个报告都没产出」—— 那说明工具本身坏了。
         #
         # 非阻断的另一个原因：这一步会重跑一遍全部测试（约 3 分钟），而测试失败

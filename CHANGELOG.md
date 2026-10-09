@@ -1,5 +1,56 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.1-beta.1...main) (2026-10-09) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **i18n**: add Azure Translator engine and prefer it over DeepL &nbsp;-&nbsp; by @soybeanjs [<samp>(f7c6d)</samp>](https://github.com/soybeanjs/ubean/commit/f7c6d30)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**:
+  - unify path dialect on pathe, fix three Windows-only failures &nbsp;-&nbsp; by @soybeanjs [<samp>(50c3d)</samp>](https://github.com/soybeanjs/ubean/commit/50c3d4c)
+- **ci**:
+  - repair Windows build filter, step-summary tests, release Playwright, compat build &nbsp;-&nbsp; by @soybeanjs [<samp>(564f4)</samp>](https://github.com/soybeanjs/ubean/commit/564f45f)
+  - unblock Windows build track and de-flake dev-scan reload test &nbsp;-&nbsp; by @soybeanjs [<samp>(51828)</samp>](https://github.com/soybeanjs/ubean/commit/518282b)
+- **cli**:
+  - include .ubean in scaffolded tsconfig and declare @valibot/to-json-schema &nbsp;-&nbsp; by @soybeanjs [<samp>(896c2)</samp>](https://github.com/soybeanjs/ubean/commit/896c28e)
+- **codegen**:
+  - surface why .ubean/openapi.d.ts was skipped instead of failing silently &nbsp;-&nbsp; by @soybeanjs [<samp>(f7aa0)</samp>](https://github.com/soybeanjs/ubean/commit/f7aa0cd)
+- **dev**:
+  - only add existing scan dirs to the watcher &nbsp;-&nbsp; by @soybeanjs in https://github.com/soybeanjs/ubean/issues/1470 [<samp>(af96c)</samp>](https://github.com/soybeanjs/ubean/commit/af96ca4)
+  - normalize watcher event paths to posix before relevance check &nbsp;-&nbsp; by @soybeanjs [<samp>(26613)</samp>](https://github.com/soybeanjs/ubean/commit/2661368)
+- **examples**:
+  - strip temp-dir prefix dialect-safely in prerender-test fixture &nbsp;-&nbsp; by @soybeanjs [<samp>(b6e02)</samp>](https://github.com/soybeanjs/ubean/commit/b6e0209)
+- **i18n**:
+  - pace Azure translate by characters instead of retrying 429s &nbsp;-&nbsp; by @soybeanjs [<samp>(c9f32)</samp>](https://github.com/soybeanjs/ubean/commit/c9f325c)
+- **islands,config**:
+  - normalize artifact paths with pathe, fix two Windows CI separator assertions &nbsp;-&nbsp; by @soybeanjs [<samp>(98635)</samp>](https://github.com/soybeanjs/ubean/commit/9863546)
+- **vue**:
+  - move generated router dts imports out of module augmentations &nbsp;-&nbsp; by @soybeanjs [<samp>(141b2)</samp>](https://github.com/soybeanjs/ubean/commit/141b2c9)
+- **windows**:
+  - make dev coordinator, scaffold CLI and cli e2e tests Windows-safe &nbsp;-&nbsp; by @soybeanjs [<samp>(3e485)</samp>](https://github.com/soybeanjs/ubean/commit/3e485c2)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **i18n**: document the Azure engine and its character pacing &nbsp;-&nbsp; by @soybeanjs [<samp>(340f4)</samp>](https://github.com/soybeanjs/ubean/commit/340f4d5)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **builder**: drop unused DEV_SCAN_DIRS import in dev-scan test &nbsp;-&nbsp; by @soybeanjs [<samp>(c2026)</samp>](https://github.com/soybeanjs/ubean/commit/c20267c)
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(1c6e6)</samp>](https://github.com/soybeanjs/ubean/commit/1c6e671)
+- **dev**: UBEAN_DEBUG_WATCH diagnostics for silent watcher failures &nbsp;-&nbsp; by @soybeanjs [<samp>(2bed7)</samp>](https://github.com/soybeanjs/ubean/commit/2bed7be)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **builder**:
+  - posix-normalize realpath key in fake module graph &nbsp;-&nbsp; by @soybeanjs [<samp>(7e532)</samp>](https://github.com/soybeanjs/ubean/commit/7e532a3)
+  - posix-join temp dir expectations in dev-scan test &nbsp;-&nbsp; by @soybeanjs [<samp>(4b98f)</samp>](https://github.com/soybeanjs/ubean/commit/4b98f42)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.0...main) (2026-10-08) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

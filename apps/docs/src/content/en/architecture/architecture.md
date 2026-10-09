@@ -45,8 +45,9 @@ ubean is a full-stack meta-framework built on Vite, Hono, and Vue 3, organized i
 │                             │                                       │
 │  ┌──────────────────────────▼──────────────────────────────────┐   │
 │  │               Platform Preset Layer (@ubean/preset)         │   │
-│  │  standard │ node │ cloudflare │ vercel │ vercel-edge        │   │
-│  │  netlify │ bun │ deno (auto-detected by detectPreset)       │   │
+│  │  standard │ node │ cloudflare │ cloudflare-dev              │   │
+│  │  vercel │ vercel-edge │ netlify │ bun                       │   │
+│  │  deno │ aws │ azure (auto-detected by detectPreset)         │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘

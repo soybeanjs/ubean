@@ -59,17 +59,22 @@ ubean init [dir]
 
 **Options:**
 
-| Option           | Short | Description                                      | Default |
-| ---------------- | ----- | ------------------------------------------------ | ------- |
-| --force          | -f    | Overwrite existing files                         | false   |
-| --name           | -     | Project name                                     | -       |
-| --template       | -     | Project template (unify/minimal/starter/blog)    | -       |
-| --preset         | -     | Target preset (standard/node/cloudflare)         | -       |
-| --packageManager | -pm   | Package manager (npm/pnpm/yarn/bun)              | -       |
-| --git            | -     | Initialize git repository (use --no-git to skip) | -       |
-| --yes            | -y    | Skip prompts and use defaults                    | false   |
+| Option           | Alias | Description                                      | Default    |
+| ---------------- | ----- | ------------------------------------------------ | ---------- |
+| --force          | -f    | Overwrite existing files                         | false      |
+| --name           | -     | Project name                                     | -          |
+| --template       | -     | Project template (unify/minimal/starter/blog)    | `unify`    |
+| --preset         | -     | Target preset (standard/node/cloudflare/…)       | `standard` |
+| --packageManager | --pm  | Package manager (npm/pnpm/yarn/bun)              | `npm`      |
+| --git            | -     | Initialize git repository (use --no-git to skip) | -          |
+| --yes            | -y    | Skip prompts and use defaults                    | false      |
 
-> There are no `-n`/`-t`/`-p` short aliases — only `-f`, `-y`, and `-pm`.
+> Only `-f`, `-y` and `--pm` have short forms. There are **no** `-n`/`-t`/`-p` aliases — citty parses them as
+> boolean flags and leaves `blog` as the positional `dir`, so `init -n blog -t blog` yields
+> `{ n: true, t: true, _: ["blog", "blog"], dir: "blog" }` with `template`/`preset`/`name` all `undefined`
+> (they fall back to `unify`/`standard`/the directory name). Likewise `-pm pnpm` is read as `-p -m pnpm`
+> (`{ p: true, m: true, _: ["pnpm"], dir: "pnpm" }`), so the package manager silently stays `npm`.
+> Always spell the long form (`--name` / `--template` / `--preset` / `--pm`).
 
 **Behavior:**
 
@@ -619,12 +624,12 @@ ubean config <init|show|example|path>
 
 **Subcommands:**
 
-| Subcommand | Options                                                                           | Description                                          |
-| ---------- | --------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `init`     | `--preset` (standard, node, cloudflare; default standard), `-f, --force`, `--dry` | Create a default `ubean.config.ts`                   |
-| `show`     | -                                                                                 | Show the current config file location and content    |
-| `example`  | -                                                                                 | Show a full example configuration with all options   |
-| `path`     | -                                                                                 | Print the resolved config file path (exit 1 if none) |
+| Subcommand | Options                                                                                                                | Description                                          |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `init`     | `--preset` (default `standard`; any registered preset name — `vercel-edge`, `aws`, `azure`, …), `-f, --force`, `--dry` | Create a default `ubean.config.ts`                   |
+| `show`     | -                                                                                                                      | Show the current config file location and content    |
+| `example`  | -                                                                                                                      | Show a full example configuration with all options   |
+| `path`     | -                                                                                                                      | Print the resolved config file path (exit 1 if none) |
 
 > There are no `--json` or `--env` flags.
 

@@ -124,20 +124,23 @@ Initialize a new ubean project with interactive wizard or non-interactive mode.
 
 **Options:**
 
-- `--name, -n`: Project name
-- `--template, -t`: Template (`starter`, `minimal`, `blog`)
-- `--preset, -p`: Preset (`standard`, `node`, `cloudflare`, `vercel`, `vercel-edge`, `netlify`, `bun`, `deno`)
-- `--pm`: Package manager (`npm`, `pnpm`, `yarn`)
-- `--yes, -y`: Skip interactive prompts
-- `--force, -f`: Overwrite existing directory
-- `--git`: Initialize git repository
+- `--name`: Project name
+- `--template`: Template (`unify`, `minimal`, `starter`, `blog`; default `unify`)
+- `--preset`: Preset (`standard`, `node`, `cloudflare`, `vercel`, `vercel-edge`, `netlify`, `bun`, `deno`, `aws`, `azure`; default `standard` — the interactive menu only offers the first three)
+- `--pm <npm|pnpm|yarn|bun>`: Package manager (default `npm`)
+- `--yes, -y`: Skip interactive prompts and use defaults
+- `--force, -f`: Overwrite existing files
+- `--git` / `--no-git`: Initialize a git repository (prompts when neither is passed)
+
+> Only `-f`, `-y` and `--pm` have short forms. There are **no** `-n` / `-t` / `-p` aliases — citty parses them as boolean flags, so `init -n blog -t blog` leaves `template`/`preset`/`name` unset (falling back to `unify` / `standard`) and takes `blog` as the target directory.
 
 **Examples:**
 
 ```bash
 ubean init
 ubean init --name my-app --template starter --preset node
-ubean init -n blog -t blog -y
+ubean init --name blog --template blog -y
+ubean init my-app --preset vercel-edge -y
 ```
 
 #### ubean dev

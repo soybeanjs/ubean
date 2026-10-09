@@ -138,7 +138,7 @@ Dependencies are split by runtime boundary; each sub-package keeps minimal deps 
 | --- | --- | --- |
 | Foundation sub-packages | Only dependencies shared by Node and edge | `@ubean/shared` (Hono, Hookable, rou3, Standard Schema types) |
 | Vue Integration | Vue and Vue Router as `peerDependencies`; SSR renderer pulled in via server entry | `vue`, `vue-router`, `@vue/server-renderer` |
-| Preset Packages | `@ubean/preset` ships all platform presets; not statically imported by the core | `standard`/`node`/`cloudflare`/`vercel`/`netlify`/`bun`/`deno` |
+| Preset Packages | `@ubean/preset` ships all platform presets; not statically imported by the core | `standard`/`node`/`cloudflare`/`cloudflare-dev`/`vercel`/`vercel-edge`/`netlify`/`bun`/`deno`/`aws`/`azure` |
 | Browser Transport Adapters | Only bundled in the browser client entry; do not enter Node, edge, or SSR bundles | database drivers, upload-progress adapters |
 | DevTools and Auth/PWA | Standalone packages / integration subpaths, not in the production bundle by default | `@ubean/devtools`, `@ubean/auth`, `@ubean/integrations/pwa` |
 | Asset and Content Extensions | Standalone packages; dependencies and platform implementations split by feature, not statically imported by core | `@ubean/icon`, `@ubean/image`, `@ubean/content`, `@ubean/integrations/fonts` |

@@ -1,8 +1,8 @@
 ---
 title: 应用模式
 description: 应用模式（fullstack / spa / ssg / backend）以及 mode 字段如何驱动构建。
-translatedFrom: f3dfb3fa2670
-sections: ["72d8d852","e3b0c442","f8a76ce3","b9ce03d4","d3fb35f1","5bd23172","1bb6395d","b0fe627a","6e2ecb58","74940451","a6a6ba58","5190fb7d","11404978","396633de","cd88c3aa","f82dff02"]
+translatedFrom: ab83ca30a454
+sections: ["72d8d852","e3b0c442","f8a76ce3","b9ce03d4","d3fb35f1","5bd23172","1bb6395d","b0fe627a","6e2ecb58","74940451","a6a6ba58","5190fb7d","11404978","db666ff1","cd88c3aa","f82dff02"]
 ---
 
 # 应用模式
@@ -148,7 +148,7 @@ export default defineConfig({
 
 | 配置字段 | 与 `mode` 的关系 |
 | --- | --- |
-| `build.preset` | 互不影响 —— `mode` 控制架构，`preset` 控制部署平台（standard/node/cloudflare/vercel/vercel-edge/netlify/bun/deno） |
+| `build.preset` | 互不影响 —— `mode` 控制架构，`preset` 控制部署平台（全部 11 个：standard/node/cloudflare/cloudflare-dev/vercel/vercel-edge/netlify/bun/deno/aws/azure） |
 | `routing.mode` | 互不影响 —— 控制路由文件生成方式（virtual/file/both），与应用 `mode` 无关 |
 | `prerender.enabled` | `ssg` 强制开启；`spa`/`backend`/`fullstack`+`ssr:false` 强制关闭 |
 | `ssr` | 仅 `fullstack` 的子选项；其他模式忽略它 |

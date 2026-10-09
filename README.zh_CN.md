@@ -132,7 +132,7 @@ packages/
 │   ── 构建时工具 ──
 ├── builder/        # @ubean/build — Vite 插件（./vite + ./vue + ./actions）+ 生产构建 + ./prerender + ./codegen
 ├── config/         # @ubean/config — 配置加载器 + 模块系统
-├── preset/         # @ubean/preset — 平台预设 (node/cloudflare + capabilities)
+├── preset/         # @ubean/preset — 平台预设（11 个，node/cloudflare/aws/azure + capabilities）
 │
 │   ── 路由扫描 ──
 ├── scan/           # @ubean/scan — 项目扫描器 + 路由元数据聚合（页面扫描委托 @ubean/vue）
@@ -210,7 +210,7 @@ pnpm dlx ubean init my-app
 npx ubean init my-app
 ```
 
-init 向导会询问模板（minimal / starter / blog）、预设（standard / node / cloudflare）和包管理器。
+init 向导会询问模板（`unify`［默认，全栈，含 islands/i18n/layouts/middleware］/ minimal / starter / blog）、预设和包管理器。`pnpm dlx ubean init my-app --template starter --preset node -y` 以非交互方式走同一流程。
 
 ### 手动搭建
 

@@ -1,8 +1,8 @@
 ---
 title: Overview
 description: ubean 框架概览：项目结构、设计约定与核心思想。
-translatedFrom: 338146d5cb40
-sections: ["972854d7","e3b0c442","e1cb7d86","b302cbc2","9cba68ee","a6ac9b00","5553db26","149368f6","afc1540a","9229c6e1","c36e0585","0049b7a9","f36bf177","d60dd7cf","fa614021"]
+translatedFrom: f4b9a5bac710
+sections: ["972854d7","e3b0c442","e1cb7d86","b302cbc2","9cba68ee","a6ac9b00","5553db26","149368f6","afc1540a","9229c6e1","c36e0585","548530ba","f36bf177","d60dd7cf","fa614021"]
 ---
 
 # 项目概览与约定
@@ -140,7 +140,7 @@ sections: ["972854d7","e3b0c442","e1cb7d86","b302cbc2","9cba68ee","a6ac9b00","55
 | --------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------- |
 | `packages/ubean` 核心 | 仅保留 Node 与 edge 共用的依赖                                               | Hono、Hookable、rou3、Standard Schema 类型                      |
 | Vue 集成              | Vue 及 Vue Router 使用 `peerDependencies`；SSR renderer 按 server entry 引入 | `vue`、`vue-router`、`@vue/server-renderer`                     |
-| preset 包             | `@ubean/preset` 内置全部平台预设；不被核心包静态导入                         | `standard`/`node`/`cloudflare`/`vercel`/`netlify`/`bun`/`deno`  |
+| preset 包             | `@ubean/preset` 内置全部平台预设；不被核心包静态导入                         | `standard`/`node`/`cloudflare`/`cloudflare-dev`/`vercel`/`vercel-edge`/`netlify`/`bun`/`deno`/`aws`/`azure`  |
 | 浏览器传输适配器      | 仅在浏览器 client entry 打包；不进入 Node、edge 或 SSR bundle                | 数据库驱动、上传进度适配器                                      |
 | DevTools 与 Auth/PWA  | 独立包，默认不进入生产 bundle                                                | `@ubean/devtools`、`@ubean/auth`、`@ubean/integrations/pwa`     |
 | 资源与内容扩展        | 独立包；依赖及平台实现按功能拆分，核心不静态引入                             | `@ubean/icon`、`@ubean/image`、`@ubean/content`、`@ubean/integrations/fonts` |

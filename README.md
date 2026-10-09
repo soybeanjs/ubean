@@ -46,7 +46,7 @@ ubean supports four application modes controlled by the `mode` field in `ubean.c
 | `ssg`                            | Yes    | Yes (static bundle) | No     | Yes (forced) | Static site / blog / docs (direct render) |
 | `backend`                        | No     | No                  | Yes    | No           | Pure API service, no Vue pages            |
 
-The `ssr` option only applies within `fullstack` mode — `spa` and `backend` always skip SSR, while `ssg` always requires it (for build-time rendering). Mode is **orthogonal** to preset (deployment platform) and routing mode (virtual / file generation), so you can freely combine `mode: 'fullstack'` with `preset: 'cloudflare'` and `routing.mode: 'file'`.
+The `ssr` option only applies within `fullstack` mode — `spa` and `backend` always skip SSR, while `ssg` always requires it (for build-time rendering). Mode is **orthogonal** to preset (deployment platform) and routing mode (virtual / file generation), so you can freely combine `mode: 'fullstack'` with `build: { preset: 'cloudflare' }` and `routing.mode: 'file'`.
 
 ## Features at a Glance
 
@@ -132,7 +132,7 @@ packages/
 │   ── Build-time tools ──
 ├── builder/        # @ubean/build — Vite plugins (./vite + ./vue + ./actions) + production + ./prerender + ./codegen
 ├── config/         # @ubean/config — config loader + module system
-├── preset/         # @ubean/preset — platform presets (node/cloudflare + capabilities)
+├── preset/         # @ubean/preset — platform presets (11, node/cloudflare/aws/azure + capabilities)
 │
 │   ── Route scanning ──
 ├── scan/           # @ubean/scan — project scanner + route metadata aggregator (delegates pages to @ubean/vue)
@@ -210,7 +210,7 @@ pnpm dlx ubean init my-app
 npx ubean init my-app
 ```
 
-The init wizard will prompt you for template (`unify` [default, full-stack with islands/i18n/layouts/middleware] / minimal / starter / blog), preset, and package manager. `pnpm create ubean@latest my-app --template starter --preset node -y` runs the same flow non-interactively.
+The init wizard will prompt you for template (`unify` [default, full-stack with islands/i18n/layouts/middleware] / minimal / starter / blog), preset, and package manager. `pnpm dlx ubean init my-app --template starter --preset node -y` runs the same flow non-interactively.
 
 ### Manual Setup
 

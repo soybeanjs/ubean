@@ -243,10 +243,12 @@ const { data, error, loading, refresh, invalidate } = await useData('posts', () 
 </template>
 ```
 
-Programmatic navigation uses `useRouter()` (auto-imported from `vue-router`):
+Programmatic navigation uses `useRouter()` from `vue-router` — imported explicitly (the `vueRouter` auto-import preset is **off** by default, so enable it with `autoImports: { vueRouter: true }` if you want it implicit):
 
 ```vue
 <script setup lang="ts">
+import { useRouter } from 'vue-router';
+
 const router = useRouter();
 function go() {
   router.push('/about');

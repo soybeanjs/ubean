@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 /**
  * `typed-router.d.ts` 的**两个写入器**都必须在顶层导入 vue-router 类型。
  *
@@ -30,7 +31,6 @@
  * TS2667），保证夹具解析链路一旦断掉就大声失败，而不是静默通过。
  */
 import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
-import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { join } from 'pathe';
@@ -77,7 +77,13 @@ function compileDts(name: string, dts: string): string[] {
 const PAGES = [
   { name: 'Dashboard', route: '/dashboard', fullPath: '/src/pages/dashboard.vue', isReuse: false, isMarkdown: false },
   { name: 'UsersId', route: '/users/:id', fullPath: '/src/pages/users/[id].vue', isReuse: false, isMarkdown: false },
-  { name: 'DocsSlug', route: '/docs/:slug?', fullPath: '/src/pages/docs/[[slug]].vue', isReuse: false, isMarkdown: false }
+  {
+    name: 'DocsSlug',
+    route: '/docs/:slug?',
+    fullPath: '/src/pages/docs/[[slug]].vue',
+    isReuse: false,
+    isMarkdown: false
+  }
 ];
 
 /** 复刻 bug：把顶层 import 搬进 `declare module 'vue-router/auto-routes'` 块内部。 */
@@ -99,18 +105,35 @@ function generateFromVirtualPages(): string {
   return generateTypedRouter({ pages: PAGES as never, layouts: [] });
 }
 
+/**
+ * 本文件里两个用例要 `execFileSync` 真跑 `tsc` —— 外进程 + 磁盘，且 tsgo 要拉起原生二进制。
+ *
+ * vitest 默认的 5s 预算是按纯内存单测定的，这条用例在本机各 0.7s / 1.2s，在 CI runner 上
+ * 同一个用例冲到 **5.7s** 即 `Test timed out in 5000ms`（release `v0.6.1-beta.2` 与紧随的
+ * CI run 都因此红）。这不是 flaky：预算是死的，机器快慢是活的，重试只是碰运气。
+ *
+ * 给足预算是必要且充分的 —— 超时是唯一失败模式，「很慢但结果错」会照常由断言抓住。
+ * 30s 与仓库根 `vite.config.ts` 的 `testTimeout: 30000` 同口径（`packages/cli` 里那些
+ * 跑构建的用例也是同一个量级）。
+ */
+const TSC_TIMEOUT_MS = 30_000;
+
 afterEach(() => {
   rmSync(FIXTURE_ROOT, { recursive: true, force: true });
 });
 
 describe('typed-router.d.ts · TS2667 守卫（模块增强内不得有 import）', () => {
-  it('夹具链路有效：把 import 搬回块内必须报出 TS2667（否则守卫是假通过）', () => {
-    const mutated = relocateImportIntoBlock(generateFromGenerator());
-    const errors = compileDts('control', mutated).join('\n');
+  it(
+    '夹具链路有效：把 import 搬回块内必须报出 TS2667（否则守卫是假通过）',
+    () => {
+      const mutated = relocateImportIntoBlock(generateFromGenerator());
+      const errors = compileDts('control', mutated).join('\n');
 
-    expect(errors, 'fixture could not resolve vue-router → guard would be vacuous').not.toContain('TS2307');
-    expect(errors, 'fixture did not reach the module augmentation → guard would be vacuous').toContain('TS2667');
-  });
+      expect(errors, 'fixture could not resolve vue-router → guard would be vacuous').not.toContain('TS2307');
+      expect(errors, 'fixture did not reach the module augmentation → guard would be vacuous').toContain('TS2667');
+    },
+    TSC_TIMEOUT_MS
+  );
 
   it('generator 写入器把 import type 放在 declare module 之前', () => {
     const dts = generateFromGenerator();
@@ -130,13 +153,17 @@ describe('typed-router.d.ts · TS2667 守卫（模块增强内不得有 import�
     expect(dts).not.toMatch(/declare module '[^']+' \{\s*\n\s*import /);
   });
 
-  it('两个写入器的真实产物在不吃 skipLibCheck 的项目里编译且无 TS2667', () => {
-    const fromGenerator = compileDts('generator', generateFromGenerator());
-    const fromVirtualPages = compileDts('virtual-pages', generateFromVirtualPages());
+  it(
+    '两个写入器的真实产物在不吃 skipLibCheck 的项目里编译且无 TS2667',
+    () => {
+      const fromGenerator = compileDts('generator', generateFromGenerator());
+      const fromVirtualPages = compileDts('virtual-pages', generateFromVirtualPages());
 
-    expect(fromGenerator.join('\n'), 'generator dts failed to resolve vue-router').not.toContain('TS2307');
-    expect(fromVirtualPages.join('\n'), 'virtual-pages dts failed to resolve vue-router').not.toContain('TS2307');
-    expect(fromGenerator.join('\n')).not.toContain('TS2667');
-    expect(fromVirtualPages.join('\n')).not.toContain('TS2667');
-  });
+      expect(fromGenerator.join('\n'), 'generator dts failed to resolve vue-router').not.toContain('TS2307');
+      expect(fromVirtualPages.join('\n'), 'virtual-pages dts failed to resolve vue-router').not.toContain('TS2307');
+      expect(fromGenerator.join('\n')).not.toContain('TS2667');
+      expect(fromVirtualPages.join('\n')).not.toContain('TS2667');
+    },
+    TSC_TIMEOUT_MS
+  );
 });

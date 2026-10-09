@@ -8,6 +8,7 @@ import { getLogger, setMinLevel } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { green, cyan, dim, bold } from 'kolorist';
 import { relative, resolve } from 'pathe';
+import { exitCli } from './shared/exit';
 import { createDevViteServer, logDiagnostics } from './dev-server';
 import type { DevViteServer } from './dev-server';
 
@@ -231,7 +232,7 @@ export const devCommand: CommandDef = {
     } catch (err: any) {
       // 输出完整堆栈：仅 message 无法定位插件/虚拟模块层的启动错误。
       logger.error(err?.stack || err?.message || String(err));
-      process.exit(1);
+      await exitCli(1);
     }
 
     // RM-V13/V14：文件监听、去抖、扫描与重载顺序全在 `@ubean/build` 的 dev-scan 协调器
@@ -240,7 +241,7 @@ export const devCommand: CommandDef = {
     const cleanup = async () => {
       if (logging.lifecycle) logger.info('\nShutting down...');
       await devServer?.stop();
-      process.exit(0);
+      await exitCli(0);
     };
 
     process.on('SIGINT', cleanup);

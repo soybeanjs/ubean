@@ -16,6 +16,7 @@ import { findUserViteConfig, findAvailablePort } from '@ubean/shared/node';
 import type { CommandDef } from 'citty';
 import { bold, cyan, dim, green } from 'kolorist';
 import { join, resolve } from 'pathe';
+import { exitCli } from './shared/exit';
 
 /**
  * 静态文件服务器（spa / ssg 的降级路径）。
@@ -132,7 +133,8 @@ export const previewCommand: CommandDef = {
       } else {
         logger.error(`Failed to resolve a port: ${err?.message || String(err)}`);
       }
-      process.exit(1);
+      // `return` 而非 `await`：TS 只有看到 catch 里真的 return 才会认定 actualPort 已赋值。
+      return exitCli(1);
     }
     if (actualPort !== requestedPort) {
       logger.warn(`Port ${requestedPort} is in use, trying ${actualPort} instead.`);
@@ -169,7 +171,7 @@ export const previewCommand: CommandDef = {
     if (!existsSync(requiredArtifact)) {
       logger.error(`Build output not found: ${requiredArtifact}`);
       logger.info('Run `ubean build` first to create a production build.');
-      process.exit(1);
+      return exitCli(1);
     }
 
     if (isCloudflare) {
@@ -178,7 +180,7 @@ export const previewCommand: CommandDef = {
       const probe = await createCloudflarePreviewRunner({ workerPath: requiredArtifact });
       if (!probe.ok) {
         logger.error(probe.message);
-        process.exit(1);
+        return exitCli(1);
       }
       await probe.runner.dispose();
     }
@@ -202,7 +204,7 @@ export const previewCommand: CommandDef = {
       // 预览必须经过生产 handler，降级成静态服务会给出「看着能开、实际没渲染」的假象。
       if (!staticMode) {
         logger.error(`Failed to start the preview server: ${err instanceof Error ? err.message : String(err)}`);
-        process.exit(1);
+        return exitCli(1);
       }
       logger.warn(
         `Vite preview unavailable (${err instanceof Error ? err.message : String(err)}); falling back to the built-in static server.`
@@ -210,8 +212,8 @@ export const previewCommand: CommandDef = {
       const fallback = startStaticServer({ root: staticRoot, port: actualPort, host, mode });
       printBanner(actualPort, `static (${mode})`);
       const cleanupFallback = () => {
-        fallback.close(() => process.exit(0));
-        setTimeout(() => process.exit(0), 1000).unref();
+        fallback.close(() => void exitCli(0));
+        setTimeout(() => void exitCli(0), 1000).unref();
       };
       process.on('SIGINT', cleanupFallback);
       process.on('SIGTERM', cleanupFallback);
@@ -224,9 +226,9 @@ export const previewCommand: CommandDef = {
       void server
         ?.close()
         .catch(() => undefined)
-        .finally(() => process.exit(0));
+        .finally(() => void exitCli(0));
       // close 卡住时兜底退出
-      setTimeout(() => process.exit(0), 1000).unref();
+      setTimeout(() => void exitCli(0), 1000).unref();
     };
     process.on('SIGINT', cleanup);
     process.on('SIGTERM', cleanup);

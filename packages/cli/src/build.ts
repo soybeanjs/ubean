@@ -9,6 +9,7 @@ import { scanProject } from '@ubean/scan';
 import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
 import { resolve, join } from 'pathe';
+import { exitCli } from './shared/exit';
 
 const logger = getLogger('cli');
 
@@ -242,10 +243,13 @@ export const buildCommand: CommandDef = {
       logger.info(`  Client assets: ${manifest.assets.length} files`);
     } catch (err) {
       logger.error(err instanceof Error ? err.message : String(err));
-      process.exit(1);
+      await exitCli(1);
     }
     // 显式退出:Vite/unplugin 的 worker pool (tinypool) 以及 prerender
     // 动态导入的 SSR entry 可能保留事件循环引用,导致进程无法自然退出。
-    process.exit(0);
+    //
+    // 必须走 exitCli 而不是直接 process.exit：配置模块**成功加载**后立刻强退在 Windows / Node 24 上
+    // 会踩到 libuv 关闭竞态，表现为「已打印错误却不退出」（ci run 37954075109）。详见 shared/exit.ts。
+    await exitCli(0);
   }
 };

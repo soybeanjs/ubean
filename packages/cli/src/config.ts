@@ -1,5 +1,6 @@
 import { getLogger } from '@ubean/shared/logger';
 import type { CommandDef } from 'citty';
+import { exitCli } from './shared/exit';
 import { createFsOps } from './shared/fs-ops';
 import { renderTemplate } from './shared/templates';
 
@@ -143,8 +144,8 @@ export const configCommand: CommandDef = {
 
         const configFile = await findConfigFile(fs);
         if (!configFile) {
-          logger.error('No config file found');
-          process.exit(1);
+          // `return` 而非 `await`：让 TS 知道该分支是终态的，后面的 configFile 才收窄成 string。
+          return exitCli(1);
         }
 
         logger.info(fs.resolve(configFile));

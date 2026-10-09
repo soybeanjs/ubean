@@ -31,7 +31,7 @@ app.mount('#app');
     - [definePage 宏](#definepage-宏)
     - [reuse 路由](#reuse-路由)
     - [特殊页](#特殊页)
-    - [并行路由与拦截路由](#并行路由与拦截路由)
+    - [并行路由](#并行路由)
     - [动态参数 matcher](#动态参数-matcher)
     - [Markdown 页面（opt-in）](#markdown-页面opt-in)
   - [路由输出模式](#路由输出模式)
@@ -76,7 +76,7 @@ app.mount('#app');
 - `definePage` 客户端宏（构建期提取，运行时 no-op）
 - 动态路由 matcher（`[param=matcher]` 语法 + 注册表 + 守卫）
 - 页面级 head（`setupPageHeadGuard` / 懒加载 `createPageHead`）
-- 文件路由 Vite 插件（`/vite` 子路径）：多目录扫描、reuse 路由、特殊页、并行/拦截路由、markdown 与 head 按需开启
+- 文件路由 Vite 插件（`/vite` 子路径）：多目录扫描、reuse 路由、特殊页、并行路由（`@slotName/`）、markdown 与 head 按需开启
 - 实体路由文件生成器（`/generator` 子路径）：`routes.ts` + `imports.ts` + `typed-router.d.ts`（file 模式）
 
 **不包含**（框架运行时 `@ubean/client` 的职责）：
@@ -226,15 +226,15 @@ definePage({ reuse: 'About' });
 
 仅根级文件是特殊页 —— `users/404.vue` 仍是 `/users/404` 的常规路由。
 
-### 并行路由与拦截路由
+### 并行路由
 
 - **并行路由**：`@slotName/` 目录注册命名视图，用 `<SlotView name="slotName" />` 渲染。
-- **拦截路由**：`(..)target/`、`(.)target/`、`(...)target/`（上一级 / 同级 / 根级），Next.js 风格。
 
 ```
 src/pages/dashboard/@analytics/index.vue   → 并行插槽 "analytics"
-src/pages/photos/(..)photo/[id].vue        → 从 /photos/* 拦截 /photo/:id
 ```
+
+> **拦截路由刻意不做**（`(.)target/` / `(..)target/` / `(...)target/`）。扫描器扫到这些标记段会**直接报错**，而不是静默降级成 `/feed/(.)photo/:id` 这种字面路径 —— 见 [ADR-0010](../../docs/adr/0010-competitive-north-star-and-gap-filter.md) 与 `src/scan-pages.ts` 的完整理由（全仓曾有 `interceptFrom`/`interceptTarget` 元数据但零消费者；真接线需要运行时守卫 + 同 URL 双记录 + 故意 SSR/客户端分叉）。需要「URL 可分享、back 关闭」的对话框时，用并行路由 + 自己的导航守卫实现。
 
 ### 动态参数 matcher
 
@@ -296,7 +296,7 @@ ubeanVueVite({
 });
 ```
 
-插件还导出独立工具函数：`scanPages`、`scanClientPages`、`extractSlotAndIntercept`、`generatePagesModuleSource`、`generateTypedRouter`、`stripDefinePageCalls`、`filePathToRoute`、`parseMatchers`、`stripRouteGroups`、`generateRouteName`、`generateLayoutName`、`extractDefinePage`、`extractDefinePageFromCode`、`extractCallObject`、`normalizePageHead`。
+插件还导出独立工具函数：`scanPages`、`scanClientPages`、`extractSlotFromPath`、`generatePagesModuleSource`、`generateTypedRouter`、`generateVirtualModuleDts`、`stripDefinePageCalls`、`filePathToRoute`、`parseMatchers`、`stripRouteGroups`、`generateRouteName`、`generateLayoutName`、`extractDefinePage`、`extractDefinePageFromCode`、`extractCallObject`、`normalizePageHead`。
 
 ## 实体路由文件生成器
 
@@ -326,7 +326,7 @@ const result = await generateRouteFiles(
 
 - `routes.ts` —— 扁平 `RouteRecord[]`（`name` / `path` / `component`（`views` 的 key）/ `layout` / `meta` / `cache` / `requiresAuth`；reuse 路由的 `component` 指向目标页）
 - `imports.ts` —— `views` / `layouts` 懒加载映射 + 分类 key 类型（`RouteKey` / `RouteFileKey` / `RouteReuseKey` / `LayoutKey`）
-- `typed-router.d.ts` —— `@ubean/scan` 模块增强（`RouteKey` / `RoutePathMap` / `RouteLayoutKey` / `ReuseRouteKey`）+ `vue-router/auto-routes` 的 `RouteNamedMap`（类型化 `useRoute<Name>(name)` 参数推断）
+- `typed-router.d.ts` —— `@ubean/scan` 模块增强（`RouteKey` / `RoutePathMap` / `RouteLayoutKey` / `ReuseRouteKey`）+ `vue-router/auto-routes` 的 `RouteNamedMap` 声明 —— 正是它让 vue-router 自己的 `useRoute<Name>()` 能推断路径参数
 
 同时导出 `RouteFileGenerator` 类供增量使用（`new RouteFileGenerator(options).generate(scan)`）。
 
@@ -427,7 +427,7 @@ Props：`to`（字符串或位置对象）、`href`、`replace`、`activeClass`�
 ## 组合式函数
 
 - **`usePage<T>()`** —— 精简版页面数据访问：原样返回 `PAGE_KEY` 注入的数据（`props` / `component` / `errors`），未注入时返回共享空对象。**不含**路由态（`url` / `params` / `query` / `meta`）—— 请直接用 vue-router 的 `useRoute()`。框架运行时（`@ubean/client`）在其上叠加自己的路由感知 `usePage` 提供完整 PageObject 协议。
-- **`useRouter()`** —— 请直接导入 vue-router 的 `useRouter()`，`push` / `replace` 保留 `RouteNamedMap` 类型化重载（`@ubean/client` 仅作纯 re-export）。
+- **`useRoute()` / `useRouter()`** —— 请直接导入 vue-router 的 `useRoute()` / `useRouter()`（`RouteNamedMap` 类型化重载来自生成的 `typed-router.d.ts`）；`@ubean/vue` 刻意不提供 `useRoute` / `navigateTo` / `redirectTo` 包装。
 - **`useCacheViews()`** —— 见[页面缓存](#页面缓存keep-alive)。
 - **`usePageTransition()`** —— `{ name, set, clear, enabled }` 全局过渡名。
 - **`useReloadSignal()`** —— `{ counter, reloading, reload(routeName?, duration?) }`。

@@ -16,7 +16,7 @@
 
 [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/soybeanjs/ubean)
 
-> **当前状态：v0.4.10（预览版）。** ubean 是一个可用、仍在活跃开发中的元框架，但尚未标记为生产稳定：版本间公开 API 仍可能变更，部分子系统（数据库层、队列 worker、cron 调度器）尚未在真实负载下验证。详见下方[状态](#当前状态)小节中关于当前状态、适用场景与已知限制的说明。
+> **当前状态：v0.6.1-beta.3（预览版）。** ubean 是一个可用、仍在活跃开发中的元框架，但尚未标记为生产稳定：版本间公开 API 仍可能变更，部分子系统（数据库层、队列 worker、cron 调度器）尚未在真实负载下验证。详见下方[状态](#当前状态)小节中关于当前状态、适用场景与已知限制的说明。
 
 ---
 
@@ -38,15 +38,15 @@ Nuxt、Next.js、SvelteKit 都已存在 —— ubean 带来了什么真正不同
 
 ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式。默认为 **`fullstack`**，生成客户端 + SSR + 服务端包。其他三种模式会跳过不必要的构建步骤以减少输出大小和构建时间：
 
-| 模式                           | 客户端 | SSR        | 服务端 | 预渲染     | 典型用例                          |
-| ------------------------------ | ------ | ---------- | ------ | ---------- | --------------------------------- |
-| `fullstack`（默认，ssr: true） | 是     | 是         | 是     | 可选       | 有 SEO 需求的全栈应用             |
-| `fullstack` + `ssr: false`     | 是     | 否         | 是     | 否         | 无 SEO 需求的全栈应用（管理面板） |
-| `spa`                          | 是     | 否         | 否     | 否         | 纯客户端渲染，无服务器            |
-| `ssg`                          | 是     | 是（临时） | 否     | 是（强制） | 静态营销网站 / 博客               |
-| `backend`                      | 否     | 否         | 是     | 否         | 纯 API 服务，无 Vue 页面          |
+| 模式                           | 客户端 | SSR | 服务端 | 预渲染     | 典型用例                           |
+| ------------------------------ | ------ | --- | ------ | ---------- | ---------------------------------- |
+| `fullstack`（默认，ssr: true） | 是     | 是  | 是     | 可选       | 有 SEO 需求的全栈应用              |
+| `fullstack` + `ssr: false`     | 是     | 否  | 是     | 否         | 无 SEO 需求的全栈应用（管理面板）  |
+| `spa`                          | 是     | 否  | 否     | 否         | 纯客户端渲染，无服务器             |
+| `ssg`                          | 是     | 是  | 否     | 是（强制） | 静态站点 / 博客 / 文档（直接渲染） |
+| `backend`                      | 否     | 否  | 是     | 否         | 纯 API 服务，无 Vue 页面           |
 
-`ssr` 选项仅在 `fullstack` 模式内生效 —— `spa` 和 `backend` 始终跳过 SSR，而 `ssg` 始终要求它（用于构建时渲染）。模式与预设（部署平台）、路由模式（虚拟 / 文件生成）是**正交的**，可以自由组合 `mode: 'fullstack'` + `preset: 'cloudflare'` + `routing.mode: 'file'`。
+`ssr` 选项仅在 `fullstack` 模式内生效 —— `spa` 和 `backend` 始终跳过 SSR，而 `ssg` 始终要求它（用于构建时渲染）。模式与预设（部署平台）、路由模式（虚拟 / 文件生成）是**正交的**，可以自由组合 `mode: 'fullstack'` + `build: { preset: 'cloudflare' }` + `routing.mode: 'file'`。
 
 ## 功能一览
 
@@ -91,17 +91,18 @@ ubean 支持由 `ubean.config.ts` 中 `mode` 字段控制的四种应用模式�
 
 `ubean` 主包除默认的 `.` 入口外，还提供多个子路径导出。该设计可防止浏览器通过 Vite 预构建拉入服务端依赖：
 
-| 子路径               | 用途                                      | 典型用法             |
-| -------------------- | ----------------------------------------- | -------------------- |
-| `ubean`              | 主入口 —— re-export 所有子包              | 服务端代码、API 路由 |
-| `ubean/vite`         | 组合式 Vite 插件（build + vue + islands） | `vite.config.ts`     |
-| `ubean/client`       | 一等客户端入口（`@ubean/client`）         | 客户端代码、SPA 入口 |
-| `ubean/runtime/vue`  | 浏览器 Vue 客户端运行时（无服务端依赖）   | 客户端自动导入       |
-| `ubean/runtime/app`  | 服务端 Hono 应用入口（`createUbeanApp`）  | `src/server.ts`      |
-| `ubean/runtime/i18n` | 服务端纯函数 i18n                         | 构建时语言环境处理   |
-| `ubean/vue-ssr`      | Vue SSR 渲染器（`createVueRenderer`）     | 自定义 SSR 配置      |
+| 子路径           | 用途                                                                    | 典型用法                  |
+| ---------------- | ----------------------------------------------------------------------- | ------------------------- |
+| `ubean`          | 同构主入口（client-safe，re-export 各子包）                             | 配置、客户端与同构代码    |
+| `ubean/vite`     | 默认 Vite 插件组合（build + vue + islands + server actions）            | `vite.config.ts`          |
+| `ubean/client`   | 唯一客户端入口（内核 + head + Server Actions + islands 桥接）           | 客户端代码、SPA 入口      |
+| `ubean/server`   | 服务端运行时聚合（`createUbeanApp` / `defineHandler` / `useDatabase`…） | `src/server.ts`、API 路由 |
+| `ubean/build`    | 构建时工具（prerender / 预设 / config 加载 / codegen / Vite 插件本体）  | 构建脚本、CI              |
+| `ubean/i18n`     | 服务端 i18n（ALS `t()` + `createI18nMiddleware`）                       | Handler、构建时语言环境   |
+| `ubean/ssr`      | Vue SSR 渲染器（`createVueRenderer`）                                   | 自定义 SSR 配置           |
+| `ubean/scaffold` | 脚手架库 + 机器可读 catalog                                             | studio / IDE 工具         |
 
-**新手关键规则：** 客户端自动导入**必须**使用 `ubean/runtime/vue` 或 `ubean/client` 入口，**绝不能**使用 `ubean` 主入口。在浏览器代码中从 `ubean` 导入会触发 Vite 预构建服务端依赖（Hono、数据库驱动、存储适配器）—— 严重的性能损耗，且可能在非 Node 环境引发运行时错误。
+**新手关键规则：** `ubean` 主入口已**同构化**（client-safe），客户端与共享代码可自由导入；但服务端符号只在 `ubean/server`、构建时符号只在 `ubean/build` —— 在客户端代码中从 `ubean/server` 导入会触发 Vite 在浏览器环境预构建 Hono / `node:*` 依赖。**体积建议：** 客户端模块优先从 `ubean/client` 导入而非主入口 barrel，否则整条聚合链会进入客户端产物（实测入口 chunk 从 45.2 kB gzip 涨到 111.9 kB）。
 
 **客户端内核分层：** `@ubean/vue` 是精简客户端内核（仅 vue + vue-router），拥有页面路由全部能力（文件扫描、虚拟模块、页面缓存、过渡、matchers）；`@ubean/client` 在其上叠加框架运行时（app 工厂、unhead/SEO、i18n、数据层、islands 水合）；`ubean/client` 子路径 re-export 之。独立 SPA 可直接依赖 `@ubean/vue`，不拉入框架构建工具链。
 
@@ -197,7 +198,7 @@ my-app/
 
 ## 快速开始
 
-> **说明：** ubean 目前是 v0.4.10 预览版，可以用于实际项目，但需预期版本之间偶尔会有破坏性变更。详见[状态](#当前状态)。
+> **说明：** ubean 目前是 v0.6.1-beta.3 预览版，可以用于实际项目，但需预期版本之间偶尔会有破坏性变更。详见[状态](#当前状态)。
 
 ### 脚手架新项目
 
@@ -226,7 +227,8 @@ import { defineConfig } from 'ubean';
 
 export default defineConfig({
   srcDir: 'src',
-  preset: 'standard'
+  // 平台预设写在 `build` 里 —— 顶层 `preset` 字段会被静默忽略。
+  build: { preset: 'standard' }
 });
 ```
 
@@ -290,13 +292,13 @@ ubean 的核心实现遵循六大边界：
 
 ## 当前状态
 
-ubean 处于 **v0.4.10**，是一个活跃的预览版。最初定位的 v0.1 版本线早已被超越——当前里程碑反映的是一个完整得多的框架。
+ubean 处于 **v0.6.1-beta.3**，是一个活跃的预览版。最初定位的 v0.1 版本线早已被超越——当前里程碑反映的是一个完整得多的框架。
 
 ### 当前能力
 
-v0.4 系列将 **Node.js**（`node-server`）和 **Cloudflare Workers** 作为一等预设支持。Bun、Deno、Vercel 和 Netlify 不在当前承诺范围内，但将通过预设能力矩阵陆续支持。核心功能集已实现并通过类型检查和基础测试：
+v0.6 系列将 **Node.js**（`node-server`）和 **Cloudflare Workers** 作为经验最充分的预设；Vercel、Vercel Edge、Netlify、Bun、Deno、AWS Lambda 与 Azure Static Web Apps 通过同一套预设能力矩阵发布。核心功能集已实现并通过类型检查和基础测试：
 
-- **路由：** `routes/` API 文件路由，支持 `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` 命名导出，由 `defineHandler` 包装；`pages/` Vue SSR 页面、layouts、路由组、reuse 路由、并行/拦截路由、动态参数 matchers、特殊页面与类型化导航；`defineHandlerMeta` 路由元数据（`requiresAuth`、`cache`、`rateLimit`）；来自 `hono-openapi` 的 `validator` / `describeRoute` / `resolver` 用于请求验证和 OpenAPI 3.1 生成；在 `.ubean/routes.d.ts` 生成 `paths` 类型。
+- **路由：** `routes/` API 文件路由，支持 `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` 命名导出，由 `defineHandler` 包装；`pages/` Vue SSR 页面、layouts、路由组、reuse 路由、并行路由（`@slotName/`）、动态参数 matchers、特殊页面与生成的路由路径类型；`defineHandlerMeta` 路由元数据（`requiresAuth`、`cache`、`rateLimit`）；来自 `hono-openapi` 的 `validator` / `describeRoute` / `resolver` 用于请求验证和 OpenAPI 3.1 生成；在 `.ubean/routes.d.ts` 生成 `paths` 类型。拦截路由（`(.)` / `(..)` / `(...)`）刻意**不做**——扫描器会对这类标记段直接报错（ADR-0010）；需要可分享对话框时改用并行路由。
 - **应用：** `defineApp` 基于选项的定制（含 `router.setup` 用于在 client 与 SSR 两端注册全局导航守卫）、`definePage` 宏、`defineMiddleware`、`defineEnv`、`defineScheduled`（cron）、`defineQueue`。i18n 写在 `ubean.config.ts` 的 `i18n`，Vue 端 vue-i18n 11（从 `ubean` / `ubean/client` 导入 `setLocale`；直接从 `vue-i18n` 导入 `useI18n`；服务端 ALS 从 `ubean/i18n` 导入 `t()`）。
 - **服务器：** 内置数据库层（`defineDatabase` / `useDatabase`）、存储（`useStorage` / `useKV`）、缓存（`useCacheStore` / `cachedEventHandler`）、限流、CORS、route rules（重定向 / 重写 / headers / cache）与 SSG 预渲染——包含 `mode: 'ssg'` 的轻量直接渲染路径（无 HTTP 管道、`404.html` 输出、i18n 路由扩展）。WebSocket（`defineWebSocket`）、SSE 流、`internalFetch`（直接在进程内调度框架 handler，不发起网络请求）。
 - **DevTools：** RPC、AI 助手、API playground 与 CRUD 脚手架。
@@ -314,7 +316,7 @@ v0.4 系列将 **Node.js**（`node-server`）和 **Cloudflare Workers** 作为�
 
 - **公开 API 稳定性：** 处于 v1 之前，返工成本高的破坏性变更可能在版本之间出现。请锁定精确版本并在升级时仔细检查。
 - **负载硬化：** 若干子系统——尤其是数据库层、队列 worker（`defineQueue`）和 cron 调度器（`defineScheduled`）——尚未经过负载测试或针对生产流量硬化。它们通过类型检查和基础测试，但在没有自行压测的情况下，不应被信任用于高吞吐关键负载。
-- **平台广度：** 目前仅 Node.js 和 Cloudflare Workers 是一等预设；其他平台将通过能力矩阵逐步加入。
+- **平台广度：** Node.js 与 Cloudflare Workers 是经验最充分的预设；其余平台预设（Vercel、Vercel Edge、Netlify、Bun、Deno、AWS Lambda、Azure SWA）同样通过能力矩阵发布，但真实场景覆盖较浅。
 
 ## 开发
 

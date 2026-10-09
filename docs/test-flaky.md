@@ -25,6 +25,24 @@
   不构成「没有 flaky」的证据。CI 下 L2 / L3 由 `process.env.CI` 自动启用 1 次重试；
   本地可用 `UBEAN_TEST_RETRIES=1` 复现同一条链路。
 
+## 覆盖面：L1 尚未接入
+
+| 层 | 目录 | retry | reporter | 门禁是否判定 |
+| --- | --- | --- | --- | --- |
+| L1 包内单测 | `packages/*/test/` | 无 | 无 | 否 |
+| L2 示例集成 | `examples/ubean-test/test/` | ✅ | ✅ | 是 |
+| L3 浏览器 E2E | `test/browser/` | ✅ | ✅ | 是 |
+
+L1 跑得最多（CI 里 33 个文件 / 436 例，且含所有 spawn 起构建的用例），却是唯一没接 retry 与
+reporter 的一层：`packages/*/vite.config.ts` 的 `test` 段只配了串行/超时，没有 `retry: resolveRetries()`，
+也没有 `reporters: [[flakyReporter, { layer: 'L1' }]]`（`scripts/flaky.mjs` 的 `LAYER_LABELS` 同样
+还没有 `L1`）。因此这份清单**不代表 L1 没有 flaky**，只代表它的 flaky 现在无人记录。
+
+要不要接 L1 是一个独立议题（24 个包的配置面 + 重试会掩盖 spawn 类挂住的代价）；在那之前，
+**别把门禁全绿读成「全仓没有 flaky」**。L1 里唯一被观测到的偶发「红」是挂住而不是结果错
+（CI run 37943643207，windows-latest / Node 24），它的处置不是重试，而是让看门狗自己说话 ——
+见 `packages/cli/test/build-errors.test.ts` 文件头的「看门狗必须先于用例超时触发」。
+
 ## 表格怎么填
 
 - **用例**：vitest 的用例全名（`describe` 拼接后的 `fullName`）。

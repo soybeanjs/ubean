@@ -199,7 +199,7 @@ return () => { server.middlewares.use(post); };  // 返回函数 → 进 postHoo
 
 ### 4.3 文档/模板漂移（顺带发现）
 
-- `packages/cli/src/config.ts` 的 `CONFIG_EXAMPLE_FULL` 模板已腐坏：写的是顶层 `preset: 'standard'`（AGENTS.md 明确说顶层 `preset` 已死、只认 `build.preset`）、`build: { outDir: 'dist' }`（真实字段是 `build.outputDir`）、`viewTransitions`（不在 `UbeanConfig` 里）；只有 `srcDir` / `dev` 是对的。
+- ~~`packages/cli/src/config.ts` 的 `CONFIG_EXAMPLE_FULL` 模板已腐坏~~ **已修复**：模板与 `ubean init` 脚手架（`packages/cli/src/shared/unify-template.ts` 的 `UBEAN_CONFIG` / `UBEAN_CONFIG_BASE`）现均写 `build: { preset }`（与 `config.build.preset` 的唯一读取路径一致）、`build.outputDir`（非 `outDir`），并删掉了不存在的 `viewTransitions` 与死字段 `dev.open`。
 - `apps/docs/src/content/{zh,en}/architecture/architecture.md`（`:181` / `:179`）写 `dev: { port: 9527, host: 'localhost' }`，未提 `open`，也未提「裸 `vite dev` 读不到」。
 
 ---

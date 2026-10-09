@@ -29,7 +29,7 @@ app.mount('#app');
   - [`definePage` Macro](#definepage-macro)
   - [Reuse Routes](#reuse-routes)
   - [Special Pages](#special-pages)
-  - [Parallel & Intercepting Routes](#parallel--intercepting-routes)
+  - [Parallel Routes](#parallel-routes)
   - [Dynamic Param Matchers](#dynamic-param-matchers)
   - [Markdown Pages (opt-in)](#markdown-pages-opt-in)
 - [Route Output Modes](#route-output-modes)
@@ -68,7 +68,7 @@ app.mount('#app');
 - `definePage` client macro (compile-time extracted, runtime no-op)
 - Dynamic route matchers (`[param=matcher]` syntax + registry + guard)
 - Page-level head (`setupPageHeadGuard` / lazy `createPageHead`)
-- File-routing Vite plugin (`/vite` subpath): multi-dir scan, reuse routes, special pages, parallel/intercepting routes, markdown & head opt-in
+- File-routing Vite plugin (`/vite` subpath): multi-dir scan, reuse routes, special pages, parallel routes (`@slotName/`), markdown & head opt-in
 - Physical route file generator (`/generator` subpath): `routes.ts` + `imports.ts` + `typed-router.d.ts` (file mode)
 
 **NOT included** (framework runtime `@ubean/client` concerns):
@@ -218,15 +218,15 @@ Root-level files in a pages directory are wired to framework slots:
 
 Only root-level files are special — `users/404.vue` remains a regular route at `/users/404`.
 
-### Parallel & Intercepting Routes
+### Parallel Routes
 
 - **Parallel routes:** `@slotName/` directories register named views; render them with `<SlotView name="slotName" />`.
-- **Intercepting routes:** `(..)target/`, `(.)target/`, `(...)target/` (one level up / same level / root), Next.js-style.
 
 ```
 src/pages/dashboard/@analytics/index.vue   → parallel slot "analytics"
-src/pages/photos/(..)photo/[id].vue        → intercept /photo/:id from /photos/*
 ```
+
+> **Intercepting routes are deliberately not implemented** (`(.)target/` / `(..)target/` / `(...)target/`). The scanner errors on those marker segments instead of silently degrading them into literal paths like `/feed/(.)photo/:id` — see [ADR-0010](../../docs/adr/0010-competitive-north-star-and-gap-filter.md) and the rationale in `src/scan-pages.ts`. Build shareable dialogs with parallel routes plus your own navigation guard.
 
 ### Dynamic Param Matchers
 
@@ -288,7 +288,7 @@ ubeanVueVite({
 });
 ```
 
-The plugin also exposes standalone helpers: `scanPages`, `scanClientPages`, `extractSlotAndIntercept`, `generatePagesModuleSource`, `generateTypedRouter`, `stripDefinePageCalls`, `filePathToRoute`, `parseMatchers`, `stripRouteGroups`, `generateRouteName`, `generateLayoutName`, `extractDefinePage`, `extractDefinePageFromCode`, `extractCallObject`, `normalizePageHead`.
+The plugin also exposes standalone helpers: `scanPages`, `scanClientPages`, `extractSlotFromPath`, `generatePagesModuleSource`, `generateTypedRouter`, `generateVirtualModuleDts`, `stripDefinePageCalls`, `filePathToRoute`, `parseMatchers`, `stripRouteGroups`, `generateRouteName`, `generateLayoutName`, `extractDefinePage`, `extractDefinePageFromCode`, `extractCallObject`, `normalizePageHead`.
 
 ## Physical Route File Generator
 
@@ -318,7 +318,7 @@ Produces 3 files under `outDir`:
 
 - `routes.ts` — flat `RouteRecord[]` (`name` / `path` / `component`(key into `views`) / `layout` / `meta` / `cache` / `requiresAuth`; reuse routes point `component` at their target)
 - `imports.ts` — `views` / `layouts` lazy-loader maps + categorized key types (`RouteKey` / `RouteFileKey` / `RouteReuseKey` / `LayoutKey`)
-- `typed-router.d.ts` — `@ubean/scan` module augmentation (`RouteKey` / `RoutePathMap` / `RouteLayoutKey` / `ReuseRouteKey`) + `vue-router/auto-routes` `RouteNamedMap` (typed `useRoute<Name>(name)` params inference)
+- `typed-router.d.ts` — `@ubean/scan` module augmentation (`RouteKey` / `RoutePathMap` / `RouteLayoutKey` / `ReuseRouteKey`) + a `vue-router/auto-routes` `RouteNamedMap` declaration, which is what makes `vue-router`'s own `useRoute<Name>()` infer path params
 
 The `RouteFileGenerator` class is also exported for incremental use (`new RouteFileGenerator(options).generate(scan)`).
 
@@ -419,7 +419,7 @@ Renders its content ONLY on the client, after hydration. Useful for browser-only
 ## Composables
 
 - **`usePage<T>()`** — lean page-data access: returns the `PAGE_KEY` injected data (`props` / `component` / `errors`) as-is, or a shared empty object when nothing was provided. Route state (`url` / `params` / `query` / `meta`) is NOT included — use vue-router's `useRoute()` directly. The framework runtime (`@ubean/client`) layers its own route-aware `usePage` on top for the full PageObject protocol.
-- **`useRouter()`** — not shipped: import vue-router's `useRouter()` directly so `push` / `replace` keep their `RouteNamedMap` typed overloads. (`@ubean/client` re-exports it purely for auto-import convenience.)
+- **`useRoute()` / `useRouter()`** — not shipped: import both from `vue-router` directly (its `RouteNamedMap` overloads come from the generated `typed-router.d.ts`); `@ubean/vue` deliberately provides no `useRoute` / `navigateTo` / `redirectTo` wrapper.
 - **`useCacheViews()`** — see [Page Cache](#page-cache-keep-alive).
 - **`usePageTransition()`** — `{ name, set, clear, enabled }` global transition name.
 - **`useReloadSignal()`** — `{ counter, reloading, reload(routeName?, duration?) }`.

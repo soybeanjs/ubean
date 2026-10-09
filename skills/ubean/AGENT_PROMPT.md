@@ -19,7 +19,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
 1. **Full-Stack Rendering**
    - Server-side rendering (SSR) with Vue + `@vue/server-renderer`
    - Client-side hydration via `createUbeanClientApp` / `createUbeanSSRApp`
-   - Islands architecture for partial hydration (`client:load|idle|visible|media|only`)
+   - Islands architecture for partial hydration (`v-client.load|idle|visible|media|only` directives; legacy `client:*` still works)
    - View Transitions API for native page transitions
 
 2. **Vite Integration**
@@ -40,7 +40,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - Route groups: `(group)/` directories don't contribute URL segments
    - `definePage` compile-time macro for meta/layout/name/path override
    - Middleware: `middleware/` with numeric prefix ordering; `global`/`global.*` → `/*`, others by directory prefix
-   - Typed navigation: `useRoute('RouteName')` infers path params from `typed-router.d.ts`; route generation supports `virtual` (default) / `file` / `both` modes via `routing.mode`
+   - Typed route helpers: **ubean exports no `useRoute`/`navigateTo`/`redirectTo` wrappers** — import `useRoute()` / `useRouter()` from `vue-router` directly. Route-path types are generated at `.ubean/typed-router.d.ts`; route generation supports `virtual` (default) / `file` / `both` modes via `routing.mode`
    - Route guards: `defineApp({ router: { setup(router) { router.beforeEach(...) } } })` registers navigation guards on both client and SSR
 
 5. **Internationalization**
@@ -61,7 +61,8 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - `standard`: generic fetch handler
    - `node`: Node.js HTTP server via `@hono/node-server`
    - `cloudflare`: Cloudflare Workers (generates `wrangler.toml`)
-   - Preset auto-detection: explicit config > config-file hints (wrangler.toml) > environment vars > default `standard`
+   - Also: `cloudflare-dev`, `vercel`, `vercel-edge`, `netlify`, `bun`, `deno`, `aws` (Lambda/SAM), `azure` (Static Web Apps)
+   - Preset auto-detection: explicit config > config-file hints (wrangler.toml/vercel.json/netlify.toml/deno.json/template.yaml/staticwebapp.config.json) > environment vars > default `standard`
    - Capability matrix (19 capabilities: `staticServe`, `websocket`, `sse`, `cronTriggers`, `queues`, `kv`, `storage`, `database`, `envVars`, `secrets`, `nodeCompat`, `streaming`, `compression`, `https`, `http2`, `middleware`, `bodyLimit`, `multipart`, `rpc`, ...) with build-time diagnostics
 
 8. **Extension Packages** (`@ubean/*` scope, kebab-case)
@@ -69,7 +70,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - `@ubean/auth`: Better Auth integration with email/password fallback, `useAuth()` composable
    - `@ubean/integrations/pwa`: Manifest + Service Worker generation, `usePwa()` composable
    - `@ubean/image`: Multi-provider image optimization (IPX/Cloudinary/Imgix/...)
-   - `@ubean/content`: Markdown/YAML/JSON content collections with `queryContent()`
+   - `@ubean/content`: Markdown/YAML/JSON content collections with `queryCollection()` (`queryContent` is only a backwards-compat alias)
    - `@ubean/integrations/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
    - `@ubean/integrations/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries and auto-disables SSR
    - `@ubean/integrations/ui`: @vean/ui integration; `ui: true` enables UiResolver (component auto-import) + `styles.css` auto-injection; `ui: { css: false }` for UnoCSS mode (@vean/unocss)
@@ -89,7 +90,9 @@ my-app/
 │   ├── locales/          # i18n messages (en.json, zh.json, etc.)
 │   ├── crons/            # Cron jobs (defineScheduled)
 │   ├── queues/           # Queue workers (defineQueue)
-│   └── plugins/          # Runtime plugins
+│   ├── plugins/          # Runtime plugins
+│   ├── app.ts            # Vue app config (defineApp)
+│   └── env.ts            # Environment schema (defineEnv)
 ├── public/               # Static assets
 ├── .ubean/                # Auto-generated types
 │   ├── routes.d.ts
@@ -97,8 +100,6 @@ my-app/
 │   ├── auto-imports.d.ts
 │   └── components.d.ts
 ├── ubean.config.ts       # Framework config (defineConfig)
-├── app.ts                # Vue app config (defineApp)
-├── env.ts                # Environment schema (defineEnv)
 └── package.json
 ```
 
@@ -161,7 +162,7 @@ definePage({
 </template>
 ```
 
-> `definePage` is a compile-time macro. Its top-level fields are `name`, `path`, `layout`, `reuse`, `meta`, `middleware`, `requiresAuth`, `head`. There is no top-level `title` field; use `meta: { title }`.
+> `definePage` is a compile-time macro. Its top-level fields are `name`, `path`, `layout` (`string` | `string[]` | `false`), `reuse`, `meta`, `requiresAuth`, `cache`, `transition`, `head`, `ssr`. There is no top-level `title` field (use `meta: { title }`) and no top-level `middleware` field — pass route-level middleware through `meta: { middleware }`.
 
 ### Creating API Routes
 

@@ -2,7 +2,7 @@
 
 > 开发任务型（[ADR-0007](adr/0007-docs-content-classification.md)）。门槛口径见 [ADR-0010](adr/0010-competitive-north-star-and-gap-filter.md)；公开选型对比见站点 [framework-comparison](../apps/docs/src/content/zh/architecture/framework-comparison.md)（该矩阵的**唯一维护副本**），本文件不复述对照表。
 >
-> **评估基线：2026-08-21 —— 已过期快照，勿当现状读。** `codegraph status` 的 645 files / 6540 nodes / 24806 edges 同样是该日数字。i18n 已按 [ADR-0009](adr/0009-i18n-engine-and-compact-locale-routing.md) 落地，本周期不回头再造引擎。
+> **评估基线：2026-08-21 快照 —— 该日的规划判断，勿当现状读。** 文中的 `codegraph status` 数字（645 files / 6540 nodes / 24806 edges）同样是该日数字；截至本文件最近一次校对（**887 files / 9,170 nodes / 33,757 edges**）。i18n 已按 [ADR-0009](adr/0009-i18n-engine-and-compact-locale-routing.md) 落地，本周期不回头再造引擎。
 >
 > **本文件当前没有任何未开始的任务。** 2026 Q4（RM-D01–D08）与 2027 H1（RM-U01–U08）两段 horizon 都已收口，而 2026 Q4 尚未开始 —— 即两段规划被提前用尽。**下一个 horizon 由维护者重新开启**：本文件不发明新任务 ID、不补写新规划。
 
@@ -21,7 +21,7 @@
 
 | 现象 | 现状 |
 | --- | --- |
-| 24 包（含聚合器，即 23 个 `@ubean/*` + `ubean`） | 卫生合并完成（Wave 1+2）；`@ubean/vue` 保持独立。2026-09 复核 `ls packages/` = 24 |
+| 24 包（含聚合器，即 23 个 `@ubean/*` + `ubean`） | 卫生合并完成（Wave 1+2）；`@ubean/vue` 保持独立。按 `packages/*/package.json` 的 `name` 字段复核 = 24（`ls packages/` 裸目录数不止此数，因为存在未被 git 跟踪的构建残留目录）；该计数由 `scripts/verify-packages.mjs` 守着 |
 | 单份 SSR runtime | `ssrSingletonDevPolicy` / `ssrSingletonProdSsr` 共用 |
 | `routeRules.rewrite` / `proxy` | 已执行（内部再匹配 / 反向代理） |
 | `ppr: true` | 强制流式别名，不是 Next 静态壳 |

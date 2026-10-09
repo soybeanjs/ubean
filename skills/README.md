@@ -9,26 +9,16 @@ skills/
 └── ubean/
     ├── SKILL.md              # Main skill definition (Claude Skills format)
     ├── AGENT_PROMPT.md       # Agent prompt for AI assistants
-    ├── command/
-    │   └── ubean.md          # CLI command reference
-    └── docs/
-        ├── guide/            # Getting started guides
-        │   ├── quickstart.md
-        │   ├── app-modes.md       # Application modes (fullstack/spa/ssg/backend)
-        │   ├── routing-modes.md   # Route generation modes (virtual/file/both)
-        │   ├── pages-routing/
-        │   │   ├── overview.md
-        │   │   ├── loaders.md
-        │   │   └── actions.md
-        │   ├── i18n.md
-        │   └── islands.md
-        ├── reference/        # API reference
-        │   └── api/
-        └── integrations/     # Integration guides
-            ├── database.md
-            ├── auth.md
-            └── icons.md
+    └── command/
+        └── ubean.md          # CLI command reference
 ```
+
+The full guide / reference / integration docs live in the documentation site source, not here — see [`apps/docs/src/content/`](../apps/docs/src/content/) (`en/` + `zh/`):
+
+- `guide/` — quickstart, app-modes, routing-modes, pages-routing (overview / loaders / actions), i18n, islands, content
+- `reference/` — cache, database, env, i18n, response-helpers, route-helpers
+- `integrations/` — auth, database, electron, icons, pinia, ui
+- `architecture/` — overview, architecture, routing, runtime, framework-comparison
 
 ## Usage
 
@@ -65,8 +55,8 @@ The main skill entry point uses the Claude Skills format with YAML frontmatter:
 ---
 name: ubean
 display_name: ubean Framework
-description: Full-stack web framework powered by Vite, Hono, and Vue
-version: 0.0.1
+description: Full-stack Vue meta-framework built on Vite, Hono and Vue. File-based routing, SSR, islands architecture, i18n, DevTools, OpenAPI and multi-platform presets.
+version: 0.6.1-beta.3
 category: Web Framework
 keywords: [vue, vite, hono, full-stack, ssr]
 ---
@@ -75,10 +65,14 @@ keywords: [vue, vite, hono, full-stack, ssr]
 ## Related Packages
 
 - `ubean`: Core framework package (npm name: `ubean`)
+- `@ubean/ai`: AI model integration (Vercel AI SDK orchestration)
 - `@ubean/auth`: Better Auth integration
-- `@ubean/icon`: Built-in icon system (UbeanIcon component)
+- `@ubean/icon`: Iconify integration with custom local SVG collections
 - `@ubean/integrations/pwa`: PWA manifest + service worker
 - `@ubean/image`: Image optimization
-- `@ubean/content`: Content management
+- `@ubean/content`: Content collections
 - `@ubean/integrations/fonts`: Font optimization
+- `@ubean/integrations/electron`: Electron desktop apps
+- `@ubean/integrations/pinia`: Pinia integration + SSR state hydration
+- `@ubean/integrations/ui`: @vean/ui integration (UiResolver + styles.css)
 - `@vean/ui`: UI component library (includes SIcon for theme-aware icons)

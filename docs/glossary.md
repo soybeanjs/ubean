@@ -77,7 +77,7 @@
 - **派生真理源（derived source）**：不从硬编码列表读，而从包的客观属性推导集合，避免「护栏列表」自身与被保护对象同病漂移。扩展集判据（`scripts/verify-packages.mjs`）：有 `./vite` 导出 **且** 不是主包 `ubean` **且** 不在主包 `dependencies` **且** 不在核心排除集（`CORE_VUE_VITE_PKGS`，含 `@ubean/vue`）。
 - **存在性 + 计数检查**：OPT-09 的校验形态——读全部包名，断言每个出现在 AGENTS.md 且计数一致。不解析树结构（`├──`/`└──` 正则太脆），不生成清单文件。
 - **强制 peer（mandatory peer）**：在 `peerDependencies` 且**非** `optional:true`，用户必须自行安装（如 `@ubean/pages`、`@ubean/markdown` 对 `vue`）。区别于 optional-peer（`optional:true`）与 hard（`dependencies` 自动装）。
-  - 更正：`@ubean/integrations/ui` 的 `@vean/ui` 在 `packages/integrations/package.json` 中同时列入 `peerDependencies` 与 `peerDependenciesMeta`（`optional: true`），按定义属 **optional-peer**；`apps/docs/src/content/{zh,en}/contributing/engineering.md` 的「@vean/ui（强制）」与「peer（非 optional）」是错的，须在站点侧另行更正（不在本文件范围内）。
+  - 已核对：`@ubean/integrations/ui` 的 `@vean/ui` 在 `packages/integrations/package.json` 中同时列入 `peerDependencies` 与 `peerDependenciesMeta`（`optional: true`），按定义属 **optional-peer**；站点侧 `apps/docs/src/content/{zh,en}/contributing/engineering.md` 已改为「@vean/ui（optional）」/「optional-peer」，与此一致。
 - **定规与首用**：OPT-11（约定文本）与 OPT-01（首个遵循该约定的样板 PR）的关系。**定规先行**——约定独立于代码 PR 先落地；首用随后。勿将 `codegraph impact` 输出塞入定规自身的非代码 PR（见 ADR-0005）。
 - **dir≠name 不匹配**：包目录名与 `package.json` `name` 不一致的情况。当前恰好两处：`packages/builder`→`@ubean/build`、`packages/ubean`→`ubean`（无 scope）。CI 校验须用 name 字段否则误报。
 

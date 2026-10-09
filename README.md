@@ -16,7 +16,7 @@
 
 [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/soybeanjs/ubean)
 
-> **Current status: v0.4.10 (preview).** ubean is a usable, actively developed meta-framework. It is not yet marked production-stable: public APIs can still change between releases, and several subsystems (database layer, queue workers, cron scheduler) have not been load-tested against real-world traffic. See [Status](#status) for the current state, suitable scenarios, and known limitations.
+> **Current status: v0.6.1-beta.3 (preview).** ubean is a usable, actively developed meta-framework. It is not yet marked production-stable: public APIs can still change between releases, and several subsystems (database layer, queue workers, cron scheduler) have not been load-tested against real-world traffic. See [Status](#status) for the current state, suitable scenarios, and known limitations.
 
 ---
 
@@ -198,7 +198,7 @@ my-app/
 
 ## Quick Start
 
-> **Note:** ubean is currently a v0.4.10 preview. It can be used for real projects, but expect occasional breaking changes between releases. See [Status](#status) for details.
+> **Note:** ubean is currently a v0.6.1-beta.3 preview. It can be used for real projects, but expect occasional breaking changes between releases. See [Status](#status) for details.
 
 ### Scaffold a New Project
 
@@ -210,7 +210,7 @@ pnpm dlx ubean init my-app
 npx ubean init my-app
 ```
 
-The init wizard will prompt you for template (`unify` [default, full-stack with islands/i18n/layouts/middleware] / minimal / starter / blog), preset (standard / node / cloudflare), and package manager.
+The init wizard will prompt you for template (`unify` [default, full-stack with islands/i18n/layouts/middleware] / minimal / starter / blog), preset, and package manager. `pnpm create ubean@latest my-app --template starter --preset node -y` runs the same flow non-interactively.
 
 ### Manual Setup
 
@@ -227,7 +227,8 @@ import { defineConfig } from 'ubean';
 
 export default defineConfig({
   srcDir: 'src',
-  preset: 'standard'
+  // Platform preset lives under `build` — a top-level `preset` field is silently ignored.
+  build: { preset: 'standard' }
 });
 ```
 
@@ -291,13 +292,13 @@ ubean's core implementation follows six boundaries:
 
 ## Status
 
-ubean is at **v0.4.10**, an active preview. The originally targeted release line (v0.1) has long since been superseded — the current milestone reflects a much more complete framework.
+ubean is at **v0.6.1-beta.3**, an active preview. The originally targeted release line (v0.1) has long since been superseded — the current milestone reflects a much more complete framework.
 
 ### Current State
 
-The v0.4 series supports **Node.js** (`node-server`) and **Cloudflare Workers** as first-class presets. Bun, Deno, Vercel, and Netlify are outside the current support commitment but arrive progressively through the preset capability matrix. The core feature set is implemented and passes type-checks and basic tests:
+The current line supports **Node.js** (`node-server`) and **Cloudflare Workers** as the most exercised presets; Vercel, Vercel Edge, Netlify, Bun, Deno, AWS Lambda, and Azure Static Web Apps ship through the same preset capability matrix. The core feature set is implemented and passes type-checks and basic tests:
 
-- **Routing:** `routes/` API file routing with named `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` exports wrapped by `defineHandler`; `pages/` Vue SSR pages, layouts, route groups, reuse routes, parallel/intercepting routes, dynamic param matchers, special pages, and typed navigation; `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`); `validator` / `describeRoute` / `resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation; generated `paths` types at `.ubean/routes.d.ts`.
+- **Routing:** `routes/` API file routing with named `GET` / `POST` / `PUT` / `PATCH` / `DELETE` / `OPTIONS` / `HEAD` exports wrapped by `defineHandler`; `pages/` Vue SSR pages, layouts, route groups, reuse routes, parallel routes (`@slotName/`), dynamic param matchers, special pages, and generated route-path types; `defineHandlerMeta` for route metadata (`requiresAuth`, `cache`, `rateLimit`); `validator` / `describeRoute` / `resolver` from `hono-openapi` for request validation and OpenAPI 3.1 generation; generated `paths` types at `.ubean/routes.d.ts`. Intercepting routes (`(.)` / `(..)` / `(...)`) are deliberately not implemented — the scanner errors on those marker segments (ADR-0010); build shareable dialogs with parallel routes instead.
 - **App:** `defineApp` options-based customization (including `router.setup` for global navigation guards on both client and SSR), `definePage` macro, `defineMiddleware`, `defineEnv`, `defineScheduled` (cron), `defineQueue`. i18n is `ubean.config.ts` `i18n` + vue-i18n 11 (`setLocale` from `ubean` / `ubean/client`; `useI18n` directly from `vue-i18n`; server-side ALS `t()` from `ubean/i18n`).
 - **Server:** Built-in database layer (`defineDatabase` / `useDatabase`), storage (`useStorage` / `useKV`), cache (`useCacheStore` / `cachedEventHandler`), rate limiting, CORS, route rules (redirect / rewrite / headers / cache), and SSG prerendering — with a lightweight direct render path for `mode: 'ssg'` (no HTTP pipeline, `404.html` output, i18n route expansion). WebSocket (`defineWebSocket`), SSE streaming, and `internalFetch` (dispatches framework handlers in-process without a network request).
 - **DevTools:** RPC, AI assistant, API playground, and CRUD scaffolding.
@@ -315,7 +316,7 @@ Use ubean today for:
 
 - **Public API stability:** pre-v1, backport-hard breaking changes can land between releases. Pin an exact version and audit upgrades.
 - **Load hardening:** several subsystems — especially the database layer, queue workers (`defineQueue`), and cron scheduler (`defineScheduled`) — have not been load-tested or hardened against production traffic. They pass type-checks and basic tests but should not be trusted for high-throughput critical workloads without your own stress testing.
-- **Platform breadth:** currently Node.js and Cloudflare Workers are first-class presets; other platforms arrive incrementally through the capability matrix.
+- **Platform breadth:** Node.js and Cloudflare Workers are the most exercised presets; the remaining platform presets (Vercel, Vercel Edge, Netlify, Bun, Deno, AWS Lambda, Azure SWA) ship through the capability matrix but see lighter real-world coverage.
 
 ## Development
 

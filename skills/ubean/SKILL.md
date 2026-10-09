@@ -2,7 +2,7 @@
 name: ubean
 display_name: ubean Framework
 description: Full-stack Vue meta-framework built on Vite, Hono and Vue. File-based routing, SSR, islands architecture, i18n, DevTools, OpenAPI and multi-platform presets.
-version: 0.0.1
+version: 0.6.1-beta.3
 author: SoybeanJS
 license: MIT
 category: Web Framework
@@ -35,8 +35,8 @@ Use this skill when working with ubean framework projects, including:
 - Building API routes with Hono (`routes/**`, `defineHandler`, named exports `GET`/`POST`/...)
 - Using hono-openapi `validator` / `describeRoute` / `resolver` for typed requests and OpenAPI
 - Configuring internationalization (i18n) with `ubean.config.ts` `i18n` + `useI18n` / `setLocale`
-- Using islands architecture (`client:load|idle|visible|media|only`)
-- Configuring modules and platform presets (`standard` / `node` / `cloudflare` / `vercel` / `vercel-edge` / `netlify` / `bun` / `deno`)
+- Using islands architecture (`v-client.load|idle|visible|media|only`)
+- Configuring modules and platform presets (`standard` / `node` / `cloudflare` / `cloudflare-dev` / `vercel` / `vercel-edge` / `netlify` / `bun` / `deno` / `aws` / `azure`)
 - Debugging with ubean DevTools
 - Using the built-in icon / image / content / fonts / pwa / auth / electron / pinia / ui extension packages
 
@@ -64,7 +64,7 @@ pnpm dev
 
 - **Name**: ubean
 - **Description**: Full-stack Vue meta-framework built on Vite, Hono and Vue
-- **Version**: 0.0.1
+- **Version**: 0.6.1-beta.3
 - **Category**: Web Framework
 - **Public package**: `ubean` (workspace `packages/ubean`)
 
@@ -402,7 +402,7 @@ Use these keys in `dependsOn` for built-in modules:
 
 - Server-side rendering (SSR) with Vue + `@vue/server-renderer`
 - Client-side hydration with `createUbeanClientApp` / `createUbeanSSRApp`
-- Islands architecture for partial hydration (`client:load|idle|visible|media|only`) with auto-registration and auto-hydration (zero-config, no manual `hydrateIslands()` call needed)
+- Islands architecture for partial hydration (`v-client.load|idle|visible|media|only` directives; legacy `client:*` still works) with auto-registration and auto-hydration (zero-config, no manual `hydrateIslands()` call needed)
 - View Transitions API for native page transitions
 
 ### 2. Vite Integration
@@ -427,7 +427,7 @@ Use these keys in `dependsOn` for built-in modules:
 - Route groups: `(group)/` directories don't contribute URL segments
 - `definePage` compile-time macro for meta/layout/name/path override
 - Middleware: `middleware/` with numeric prefix ordering; `global`/`global.*` → `/*`, others by directory prefix
-- Typed navigation: `useRoute('RouteName')` infers path params from `typed-router.d.ts`; route generation supports `virtual` (default) / `file` / `both` modes via `routing.mode`
+- Typed route helpers: **ubean exports no `useRoute`/`navigateTo`/`redirectTo` wrappers** — import `useRoute()` / `useRouter()` from `vue-router` directly. Route-path types are generated at `.ubean/typed-router.d.ts`; route generation supports `virtual` (default) / `file` / `both` modes via `routing.mode`
 - Route guards: `defineApp({ router: { setup(router) { router.beforeEach(...) } } })` registers navigation guards on both client and SSR (shared setup runs first, then client/server-specific setups)
 
 ### 5. Internationalization
@@ -459,6 +459,8 @@ Use these keys in `dependsOn` for built-in modules:
 - `netlify`: Netlify Serverless Functions (generates `netlify.toml`, aliases `netlify-functions`/`netlify-node`)
 - `bun`: Bun runtime with native TypeScript + `bun:sqlite` (generates `bunfig.toml`, alias `bun-runtime`)
 - `deno`: Deno runtime with Deno KV/cron/Queue (generates `deno.json`, aliases `deno-deploy`/`deno-runtime`)
+- `aws`: AWS Lambda (aliases `aws-lambda`/`lambda`/`amazon`/`sam`; generates an AWS SAM template)
+- `azure`: Azure Static Web Apps / Functions (aliases `azure-swa`/`swa`/`azure-functions`)
 - Preset auto-detection: explicit config > config-file hints (wrangler.toml/vercel.json/netlify.toml/deno.json) > environment vars (VERCEL/NETLIFY/globalThis.Deno/globalThis.Bun) > default `standard`
 - Capability matrix (19 capabilities: `staticServe`, `websocket`, `sse`, `cronTriggers`, `queues`, `kv`, `storage`, `database`, `envVars`, `secrets`, `nodeCompat`, `streaming`, `compression`, `https`, `http2`, `middleware`, `bodyLimit`, `multipart`, `rpc`, ...) with build-time diagnostics
 - Config generators: `generateWranglerConfig` / `generateVercelConfig` / `generateNetlifyConfig` / `generateBunfigConfig` / `generateDenoConfig`
@@ -469,7 +471,7 @@ Use these keys in `dependsOn` for built-in modules:
 - `@ubean/auth`: Better Auth integration with email/password fallback, `useAuth()` composable
 - `@ubean/integrations/pwa`: Manifest + Service Worker generation, `usePwa()` composable
 - `@ubean/image`: Multi-provider image optimization (IPX/Cloudinary/Imgix/...)
-- `@ubean/content`: Markdown/YAML/JSON content collections with `queryContent()`
+- `@ubean/content`: Markdown/YAML/JSON content collections with `queryCollection()` (`queryContent` is only a backwards-compat alias)
 - `@ubean/integrations/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
 - `@ubean/integrations/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries (`electron/main.ts`, `electron/preload.ts`) and auto-disables SSR
 - `@ubean/integrations/pinia`: Pinia integration; `pinia: true` enables dev `optimizeDeps` pre-bundling; pair with `defineApp({ serializeState: serializePiniaState, hydrateState: hydratePiniaState })` for SSR state hydration (Pinia itself imported from `pinia`)
@@ -490,7 +492,10 @@ my-app/
 │   ├── locales/          # i18n messages (en.json, zh.json, etc.)
 │   ├── crons/            # Cron jobs (defineScheduled)
 │   ├── queues/           # Queue workers (defineQueue)
-│   └── plugins/          # Runtime plugins
+│   ├── plugins/          # Runtime plugins
+│   ├── app.ts            # Vue app config (defineApp)
+│   ├── env.ts            # Environment schema (defineEnv)
+│   └── server.ts         # Server hooks (defineServer)
 ├── public/               # Static assets
 ├── .ubean/                # Auto-generated types
 │   ├── routes.d.ts
@@ -498,8 +503,6 @@ my-app/
 │   ├── auto-imports.d.ts
 │   └── components.d.ts
 ├── ubean.config.ts       # Framework config (defineConfig)
-├── app.ts                # Vue app config (defineApp)
-├── env.ts                # Environment schema (defineEnv)
 └── package.json
 ```
 
@@ -524,7 +527,7 @@ definePage({
 </template>
 ```
 
-> `definePage` is a compile-time macro — auto-imported, no explicit import needed. Its top-level fields are `name`, `path`, `layout`, `reuse`, `meta`, `middleware`, `requiresAuth`, `head`. There is no top-level `title` field; use `meta: { title }`.
+> `definePage` is a compile-time macro — auto-imported, no explicit import needed. Its top-level fields are `name`, `path`, `layout` (`string` | `string[]` | `false`), `reuse`, `meta`, `requiresAuth`, `cache`, `transition`, `head`, `ssr`. There is no top-level `title` field (use `meta: { title }`) and no top-level `middleware` field — pass route-level middleware through `meta: { middleware }`.
 
 ### Creating an API Route
 
@@ -618,19 +621,16 @@ console.log(n(1234.56));
 
 ## Version History
 
-- **v0.0.1**: Initial release
-  - Vite middleware mode dev server with module auto-loading
-  - SSR with Vue + `@unhead/vue` head management
-  - File-based routing (API + Pages) with `defineHandler` / `definePage`
-  - hono-openapi integration (`validator` / `describeRoute` / `resolver`)
-  - i18n with vue-i18n 11, compact locale routing, SSR hydration
-  - Islands architecture (`client:*` directives)
-  - View Transitions API
-  - DevTools with CRUD + AI assistant
-  - Platform presets (Standard, Node, Cloudflare, Vercel, Vercel Edge, Netlify, Bun, Deno)
-  - Extension packages: icon, auth, pwa, image, content, fonts
-  - Prerender / SSG
-  - Built-in cron, queue, storage, database, WebSocket, SSE
-  - `@ubean/integrations/electron` desktop app support (default main/preload entries, auto-disable SSR)
-  - `@ubean/integrations/ui` @vean/ui integration (UiResolver component auto-import + styles.css auto-injection)
-  - `@ubean/integrations/pinia` Pinia integration (dev optimizeDeps + SSR state hydration helpers via `defineApp({ serializeState, hydrateState })`)
+- **v0.6.1-beta.3** (current):
+  - Vite plugin-first lifecycle (ADR-0012): bare `vite dev|build|preview` is the full toolchain; the old `experimental.viteBuilder` switch is gone
+  - 24-package monorepo + `ubean` aggregator with subpath entries (`ubean/server` / `ubean/build` / `ubean/client` / `ubean/i18n` / `ubean/ssr` / `ubean/vite` / `ubean/scaffold`)
+  - Islands via Vue directives `v-client.load|idle|visible|media|only` (P9-29; legacy `client:*` still supported)
+  - Page routing owned by `@ubean/vue`: parallel routes (`@slotName/`), `[param=matcher]` dynamic matchers, reuse routes, KeepAlive page cache
+  - Server Actions (`defineAction` / `useAction` / `useFormAction`, `POST /__actions`), component-level cache (`defineCachedFunction` / `cacheTag` / `revalidateTag`), ISR, PPR / Server Islands (`defineServerIsland`)
+  - 11 platform presets: `standard` / `node` / `cloudflare` / `cloudflare-dev` / `vercel` / `vercel-edge` / `netlify` / `bun` / `deno` / `aws` / `azure`
+  - Extension packages: icon, auth, image, content, ai + `@ubean/integrations` (pwa / fonts / electron / ui / pinia)
+  - Global hooks (`defineServer({ globalHooks })`), Sessions, CSRF, security headers, draft mode, fetch memoization + Data Cache
+  - `mode: 'ssg'` lightweight direct-render path (ADR-0011)
+  - Plain `.server.vue` / `.client.vue` / paired components, `defineServerIsland` props re-render
+
+- **Pre-0.6 line** (historical, superseded): Vite middleware-mode dev server, Vue SSR with `@unhead/vue`, file-based API + page routing (`defineHandler` / `definePage`), hono-openapi integration, vue-i18n 11 compact locale routing, Islands (`client:*` directives), View Transitions, DevTools, prerender/SSG, built-in cron/queue/storage/database/WebSocket/SSE.

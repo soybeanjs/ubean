@@ -42,7 +42,7 @@ import { execFileSync } from 'node:child_process';
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, resolve } from 'node:path';
+import { dirname, basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { join } from 'pathe';
@@ -170,8 +170,12 @@ describe('typed-router.d.ts · TS2667 守卫（模块增强内不得有 import�
     // 这条守着 Windows 上踩过的坑：`.bin/tsc` 是 POSIX 专属的 sh shim，`execFileSync` 在
     // win32 上 ENOENT；而它一旦被吞掉（返回 []），下面只断言「不含 TS2667」的用例就会以
     // 7ms 静默绿 —— 断言被缺席满足。所以入口必须是可被 Node 直接执行的 JS。
-    expect(TSC_ENTRY.endsWith('bin/tsc'), `unexpected tsc entry: ${TSC_ENTRY}`).toBe(true);
-    expect(TSC_ENTRY).not.toContain('.bin');
+    //
+    // 路径比较先把 `\` 归一化成 `/`：Windows 上 `path.resolve` 给的是 `…\bin\tsc`，
+    // 拿 `endsWith('bin/tsc')` 去卡会把自己卡红（本文件真实踩过）。
+    const normalized = TSC_ENTRY.replaceAll('\\', '/');
+    expect(basename(TSC_ENTRY)).toBe('tsc');
+    expect(normalized, `unexpected tsc entry: ${TSC_ENTRY}`).not.toContain('node_modules/.bin/');
     expect(readFileSync(TSC_ENTRY, 'utf8').startsWith('#!')).toBe(true);
 
     const version = execFileSync(process.execPath, [TSC_ENTRY, '--version'], { encoding: 'utf8' });

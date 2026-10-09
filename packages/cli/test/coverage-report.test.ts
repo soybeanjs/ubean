@@ -171,8 +171,8 @@ describe('TS-22 覆盖率报告', () => {
   it('根 package.json 提供 coverage script，且 @vitest/coverage-v8 版本与内嵌 vitest 对齐', () => {
     expect(rootPkg.scripts.coverage, '根 scripts 必须有 coverage 入口').toBeDefined();
     expect(rootPkg.scripts.coverage).toContain('scripts/coverage.mjs');
-    // vite-plus 内嵌 vitest 5.0.1；coverage-v8 版本不一致会报 provider 版本冲突。
-    expect(rootPkg.devDependencies['@vitest/coverage-v8']).toMatch(/^5\.0\.1$/);
+    // vite-plus 内嵌 vitest 5.0.3；coverage-v8 版本不一致会报 provider 版本冲突。
+    expect(rootPkg.devDependencies['@vitest/coverage-v8']).toMatch(/^5\.0\.3$/);
   });
 
   it('覆盖率步骤是非阻断的（continue-on-error），且报告会上传为 artifact', () => {

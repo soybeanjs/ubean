@@ -16,13 +16,20 @@
  * 这些用例**不联网**：只测纯函数与本地分批逻辑。真实 API 的形状（`textType=html`
  * 保真度、429 退避）由 docs/i18n.md 记录，CI 不依赖网络。
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 interface AzureModule {
+  AZURE_MAX_CHARS_PER_REQUEST: number;
+  AZURE_MAX_ITEMS_PER_REQUEST: number;
+  DEFAULT_AZURE_CHARS_PER_HOUR: number;
+  AZURE_DEFAULT_CHARS_PER_REQUEST: number;
   encodeLine: (text: string) => { text: string; spans: string[] };
   decodeLine: (text: string, spans: string[]) => string;
   pendingTokens: (text: string) => string[];
-  batchByChars: (texts: string[], maxChars?: number) => string[][];
+  toAzureLanguage: (locale: string) => string;
+  batchByChars: (texts: string[], maxChars?: number, maxItems?: number) => string[][];
+  createCharacterBudgetGate: (charsPerHour: number, capacity: number) => (characters: number) => Promise<void>;
+  readRetryAfterMs: (response: { headers: { get: (name: string) => string | null } }) => number | null;
   createAzureTranslator: (options?: { sourceLang?: string; targetLang?: string }) => {
     name: string;
     translateLines: (texts: string[]) => Promise<string[]>;
@@ -115,6 +122,21 @@ describe('Azure 驱动的字符分批（scripts/i18n/azure.mjs）', () => {
     expect(batches.flat()).toHaveLength(3);
   });
 
+  it('默认粒度是「被调度的请求大小」，明显小于传输硬上限', () => {
+    // 闸门按请求粒度记账：粒度越小等待越平滑。若默认值漂到 50k（传输上限），
+    // 一个 50k 的批次会一次性抽走整个容量，退化成突发。
+    expect(azure.AZURE_DEFAULT_CHARS_PER_REQUEST).toBeLessThan(azure.AZURE_MAX_CHARS_PER_REQUEST);
+    expect(azure.AZURE_MAX_CHARS_PER_REQUEST).toBe(50_000);
+  });
+
+  it('元素数也参与切批（数组长度是另一条上限）', () => {
+    const many = Array.from({ length: 25 }, () => 'x');
+    const batches = azure.batchByChars(many, 1_000_000, 10);
+    expect(batches).toHaveLength(3);
+    expect(batches.every(batch => batch.length <= 10)).toBe(true);
+    expect(batches.flat()).toHaveLength(25);
+  });
+
   it('单行超过上限时仍单独成批（不静默丢弃）', () => {
     const huge = 'x'.repeat(60_000);
     const batches = azure.batchByChars([huge, 'small'], 45_000);
@@ -124,6 +146,134 @@ describe('Azure 驱动的字符分批（scripts/i18n/azure.mjs）', () => {
 
   it('空输入返回空批，不产生空请求', () => {
     expect(azure.batchByChars([])).toEqual([]);
+  });
+});
+
+describe('Azure 语言码映射（scripts/i18n/azure.mjs）', () => {
+  it('DeepL 风格的语言码转成 Azure 语言码', () => {
+    // 调用方用 `EN`/`ZH`（环境变量 TRANSLATE_SOURCE_LANG 的历史形态），Azure 用
+    // `en` / `zh-Hans`。两边不同源，写错的表现是请求直接被拒。
+    expect(azure.toAzureLanguage('EN')).toBe('en');
+    expect(azure.toAzureLanguage('ZH')).toBe('zh-Hans');
+    expect(azure.toAzureLanguage('zh_cn')).toBe('zh-Hans');
+    expect(azure.toAzureLanguage('ZH-TW')).toBe('zh-Hant');
+  });
+
+  it('没有独立模型的地区变体塌回基础语言', () => {
+    // `en-GB` / `de-AT` 这类 Azure 不发布地区模型，必须塌回；否则报语言码不支持。
+    expect(azure.toAzureLanguage('EN-GB')).toBe('en');
+    expect(azure.toAzureLanguage('de-AT')).toBe('de');
+    // 分叉语言保留地区子标签
+    expect(azure.toAzureLanguage('PT-BR')).toBe('pt');
+    // 4 字母子标签是脚本，不是地区
+    expect(azure.toAzureLanguage('sr-Latn')).toBe('sr-Latn');
+  });
+});
+
+describe('Azure 字符预算闸门（scripts/i18n/azure.mjs）', () => {
+  it('预算够时直接放行', async () => {
+    const awaitBudget = azure.createCharacterBudgetGate(3_600_000, 100);
+    const startedAt = Date.now();
+
+    await awaitBudget(50);
+    await awaitBudget(50);
+
+    expect(Date.now() - startedAt).toBeLessThan(50);
+  });
+
+  it('预算不足时等它回填', async () => {
+    // 3 600 000 字符/小时 = 每毫秒回填 1 个字符。
+    const awaitBudget = azure.createCharacterBudgetGate(3_600_000, 100);
+
+    await awaitBudget(100);
+
+    const startedAt = Date.now();
+
+    await awaitBudget(100);
+
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(90);
+  });
+
+  it('预算在请求前扣减 —— 被拒的批次也要记账，重试得排队', async () => {
+    const awaitBudget = azure.createCharacterBudgetGate(3_600_000, 100);
+
+    await awaitBudget(100);
+
+    const startedAt = Date.now();
+
+    await awaitBudget(60);
+
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(50);
+  });
+});
+
+describe('Azure 的 Retry-After 解析（scripts/i18n/azure.mjs）', () => {
+  const response = value => ({ headers: { get: () => value } });
+
+  it('秒数与 HTTP 日期两种形态都认', () => {
+    expect(azure.readRetryAfterMs(response('15'))).toBe(15_000);
+    const future = new Date(Date.now() + 5_000).toUTCString();
+    const parsed = azure.readRetryAfterMs(response(future));
+    expect(parsed).toBeGreaterThan(0);
+    expect(parsed).toBeLessThanOrEqual(5_000);
+  });
+
+  it('缺失或不可解析时返回 null（退回自己的退避）', () => {
+    expect(azure.readRetryAfterMs(response(null))).toBeNull();
+    expect(azure.readRetryAfterMs(response('not-a-date'))).toBeNull();
+  });
+});
+
+describe('Azure 驱动的请求节奏（scripts/i18n/azure.mjs）', () => {
+  it('闸门在一次运行里只建一次 —— 否则每批都拿到满额预算，直接冲进 429', async () => {
+    // 上游 soybean-ui 的 `sui translate` 第一次加闸门时正是这个 bug：`createCharacterBudgetGate`
+    // 建在**每个批次**里，于是每批都有完整预算，跑起来立刻撞 429。闸门必须由驱动
+    // 在整个生命周期里共享。
+    //
+    // 判据：预算小到只够第一批，若闸门共享，第二批必须等回填并打出等待日志；
+    // 若每批新建，预算永远满，永远不会等 —— 日志里一条都没有。
+    const original = {
+      hour: process.env.AZURE_CHARACTERS_PER_HOUR,
+      request: process.env.AZURE_CHARACTERS_PER_REQUEST,
+      key: process.env.AZURE_TRANSLATE_KEY,
+      fetch: globalThis.fetch
+    };
+
+    // 3 600 000 × 10 字符/小时 = 10 字符/毫秒，容量 7 000。两行长度刻意让它们落在
+    // **同一个** batchByChars 批次边界之外（6 016 + 5 016 > 默认的 10 000），
+    // 否则整篇只有一个请求，闸门建在哪里都看不出区别。
+    process.env.AZURE_CHARACTERS_PER_HOUR = '360000000';
+    process.env.AZURE_CHARACTERS_PER_REQUEST = '7000';
+    process.env.AZURE_TRANSLATE_KEY = 'test-key';
+
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    globalThis.fetch = async (url, init) => {
+      const body = JSON.parse(init.body);
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        text: async () => JSON.stringify(body.map(item => ({ translations: [{ text: item.text, to: 'zh-Hans' }] })))
+      };
+    };
+
+    try {
+      // 第一批 6 016 字符（容量 7 000，放行），第二批 5 016 就必须等回填了。
+      await azure.createAzureTranslator().translateLines(['x'.repeat(6000), 'y'.repeat(5000)]);
+
+      expect(log.mock.calls.map(call => String(call[0])).join('\n')).toContain('字符预算不足');
+    } finally {
+      log.mockRestore();
+      globalThis.fetch = original.fetch;
+      for (const [key, value] of [
+        ['AZURE_CHARACTERS_PER_HOUR', original.hour],
+        ['AZURE_CHARACTERS_PER_REQUEST', original.request],
+        ['AZURE_TRANSLATE_KEY', original.key]
+      ]) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
   });
 });
 
@@ -153,8 +303,9 @@ describe('Azure 驱动的密钥与错误处理', () => {
   it('name 里带上语言对与区域，便于在日志里确认真的走了 Azure', () => {
     process.env.AZURE_TRANSLATE_KEY ??= 'test-key';
     process.env.AZURE_TRANSLATE_REGION ??= 'southeastasia';
-    const translator = azure.createAzureTranslator({ sourceLang: 'en', targetLang: 'zh-Hans' });
+    const translator = azure.createAzureTranslator({ sourceLang: 'EN', targetLang: 'ZH' });
     expect(translator.name).toContain('Azure');
+    // 语言码在驱动内归一：日志里看到的必须是真正发给 Azure 的那个码
     expect(translator.name).toContain('en → zh-Hans');
     expect(translator.name).toContain('southeastasia');
   });

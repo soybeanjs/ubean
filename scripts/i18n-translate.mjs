@@ -94,6 +94,18 @@ function resolveProvider() {
 
 const PROVIDER = resolveProvider();
 
+/**
+ * 一次 `translateBatch` 交出去多少行（外层步长）。
+ *
+ * 两个引擎自己的分批语义不同，这个步长只是「函数调用粒度」：
+ *   - DeepL 的 `TRANSLATE_BATCH_SIZE` 本身就是「一个请求装多少行」（默认 24），
+ *     所以步长取同值；
+ *   - Azure 自己按**字符**切批、并按字符闸门调速（见 `scripts/i18n/azure.mjs`），
+ *     所以步长应尽量大 —— 在这里再切一层只会把同一份字符预算拆成更多次请求，
+ *     让闸门的等待与请求交织，反而更慢。
+ */
+const CHUNK_SIZE = PROVIDER === 'azure' ? Number.MAX_SAFE_INTEGER : BATCH_SIZE;
+
 /* -------------------------------------------------------------------------- */
 /* DeepL 引擎（--provider deepl）                                              */
 /* -------------------------------------------------------------------------- */
@@ -276,12 +288,9 @@ function getEngine() {
   if (engine) return engine;
 
   if (PROVIDER === 'azure') {
-    // 语言码映射：调用方仍用 DeepL 风格的 `EN`/`ZH`（环境变量 TRANSLATE_SOURCE_LANG
-    // 与旧脚本兼容），Azure 需要 `en` / `zh-Hans`。
-    engine = createAzureTranslator({
-      sourceLang: SOURCE_LANG.toLowerCase(),
-      targetLang: TARGET_LANG.toLowerCase() === 'zh' ? 'zh-Hans' : TARGET_LANG
-    });
+    // 语言码映射（`EN` → `en`、`ZH-TW` → `zh-Hant`）在驱动内部完成：调用方只
+    // 表达「源/目标语言」这层意图，DeepL 与 Azure 的语言码不同源。
+    engine = createAzureTranslator({ sourceLang: SOURCE_LANG, targetLang: TARGET_LANG });
   } else {
     engine = { name: 'DeepL', translateLines: deeplTranslateBatch };
   }
@@ -293,20 +302,14 @@ function getEngine() {
  * 翻译一批文本行 —— 两个引擎共用的唯一入口。
  *
  * 两个引擎的分批语义不同，这是刻意的：
- *   - Azure 一次请求收**多个元素**，行数守恒由数组长度保证；
- *   - DeepL 把多行拼成**一个** `text`，靠 `split_sentences: '0'` 让换行原样返回。
- *
- * 所以 BATCH_SIZE（默认 24）只对 DeepL 生效，Azure 的分批在 azure.mjs 里按
- * 字符数决定（实测 50k 字符硬上限）。
+ *   - Azure 一次请求收**多个元素**，行数守恒由数组长度保证，并且它按**源字符计流**，
+ *     所以它的分批（字符预算 + 请求粒度）和调速（字符闸门）全在 azure.mjs 里；
+ *   - DeepL 把多行拼成**一个** `text`，靠 `split_sentences: '0'` 让换行原样返回，
+ *     分批是纯粹的“每请求多少行”，由 `TRANSLATE_BATCH_SIZE`（默认 24）控制。
  */
 async function translateBatch(texts) {
   if (PROVIDER !== 'azure') return deeplTranslateBatch(texts);
-
-  const out = [];
-  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
-    out.push(...(await getEngine().translateLines(texts.slice(i, i + BATCH_SIZE))));
-  }
-  return out;
+  return getEngine().translateLines(texts);
 }
 
 /** 一批译文的落盘前后处理：术语校正 + 组件标签归一（两个引擎共用）。 */
@@ -445,8 +448,8 @@ async function translateDocument(item, glossary) {
       body = en.body;
     } else {
       const translated = [];
-      for (let i = 0; i < units.length; i += BATCH_SIZE) {
-        const batch = units.slice(i, i + BATCH_SIZE);
+      for (let i = 0; i < units.length; i += CHUNK_SIZE) {
+        const batch = units.slice(i, i + CHUNK_SIZE);
         const out = await translateBatch(batch.map(u => u.text));
         translated.push(...postProcessBatch(out));
       }
@@ -465,8 +468,8 @@ async function translateDocument(item, glossary) {
       }
 
       const translated = [];
-      for (let i = 0; i < units.length; i += BATCH_SIZE) {
-        const batch = units.slice(i, i + BATCH_SIZE);
+      for (let i = 0; i < units.length; i += CHUNK_SIZE) {
+        const batch = units.slice(i, i + CHUNK_SIZE);
         const out = await translateBatch(batch.map(u => u.text));
         translated.push(...postProcessBatch(out));
       }
@@ -550,8 +553,8 @@ async function translateMessages(glossary) {
     return 0;
   }
 
-  for (let i = 0; i < pending.length; i += BATCH_SIZE) {
-    const batch = pending.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < pending.length; i += CHUNK_SIZE) {
+    const batch = pending.slice(i, i + CHUNK_SIZE);
     const out = await translateBatch(batch.map(p => p.value));
     if (out.length !== batch.length) {
       throw new Error(`消息目录行数不符：送入 ${batch.length}，返回 ${out.length}`);

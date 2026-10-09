@@ -39,7 +39,7 @@ useHead({
         </div>
         <div class="feature-item enabled">
           <span class="check">✅</span>
-          <span>Islands 架构(client:load 等指令)</span>
+          <span>Islands 架构(v-client.load 等指令)</span>
         </div>
         <div class="feature-item enabled">
           <span class="check">✅</span>

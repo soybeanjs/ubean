@@ -60,12 +60,12 @@ onMounted(loadUser);
         <h3>🏝️ Islands</h3>
         <p class="hint">
           下方计数器通过
-          <code>client:load</code>
+          <code>v-client.load</code>
           指令水合,SSR 输出含
           <code>&lt;ubean-island&gt;</code>
           元素。
         </p>
-        <IslandCounter client:load />
+        <IslandCounter v-client.load />
       </div>
 
       <div class="card">

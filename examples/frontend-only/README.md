@@ -19,7 +19,7 @@ ubean 的 **frontend-only** 示例 — 一个不含后端业务逻辑的项目�
 ## 演示的能力
 
 - **文件式路由** — `src/pages/index.vue`、`about.vue`、`users/[id].vue`(动态路由)
-- **Islands 架构** — `<IslandCounter client:load />`(见 `src/pages/index.vue`)
+- **Islands 架构** — `<IslandCounter v-client.load />`(见 `src/pages/index.vue`)
 - **@soybeanjs/fetch** — 通过 `createRequest({ baseURL })` 调用外部 API(jsonplaceholder)
 - **SEO** — `useHead()` 设置页面标题与 meta(从 `ubean` 自动导入)
 - **客户端导航** — `<Link to="..." />` 全局组件
@@ -33,7 +33,7 @@ examples/frontend-only/
 │   └── favicon.svg
 ├── src/
 │   ├── components/
-│   │   └── IslandCounter.vue       # Island 组件(client:load)
+│   │   └── IslandCounter.vue       # Island 组件(v-client.load)
 │   ├── layouts/
 │   │   └── default.vue             # 默认布局(nav + PageView)
 │   ├── pages/

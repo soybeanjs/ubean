@@ -9,7 +9,7 @@ const CONFIG_TEMPLATE = `import { defineConfig } from 'ubean';
 
 export default defineConfig({
   srcDir: 'src',
-  preset: '{{preset}}'
+  build: { preset: '{{preset}}' }
 });
 `;
 
@@ -19,27 +19,20 @@ export default defineConfig({
   // Source directory
   srcDir: 'src',
 
-  // Preset: 'standard' | 'node' | 'cloudflare'
-  preset: 'standard',
+  // Build options (platform preset lives here — a top-level \`preset\` field
+  // is silently ignored, so always nest it under \`build\`).
+  build: {
+    preset: 'standard', // 'standard' | 'node' | 'cloudflare' | 'vercel' | 'netlify' | 'bun' | 'deno' | 'aws' | 'azure'
+    outputDir: 'dist'
+  },
 
   // Dev server options
   dev: {
     port: 9527,
-    host: 'localhost',
-    open: false
+    host: 'localhost'
   },
 
-  // Build options
-  build: {
-    outDir: 'dist'
-  },
-
-  // View transitions
-  viewTransitions: {
-    enabled: true
-  },
-
-  // DevTools
+  // DevTools (disabled by default)
   devtools: {
     enabled: true
   }

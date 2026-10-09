@@ -109,7 +109,7 @@ const UBEAN_CONFIG = `import { defineConfig } from 'ubean';
 
 export default defineConfig({
   srcDir: 'src',
-  preset: '{{preset}}',
+  build: { preset: '{{preset}}' },
   i18n: {
     defaultLocale: 'zh',
     locales: ['en', 'zh'],
@@ -849,7 +849,7 @@ const UBEAN_CONFIG_BASE = `import { defineConfig } from 'ubean';
 
 export default defineConfig({
   srcDir: 'src',
-  preset: '{{preset}}'
+  build: { preset: '{{preset}}' }
 });
 `;
 

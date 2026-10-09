@@ -1,36 +1,45 @@
 #!/usr/bin/env node
 /**
- * DeepL 驱动的文档翻译（站点正文与消息目录）。
+ * 机器翻译驱动的文档翻译（站点正文与消息目录）。默认引擎是 **Azure Translator**，
+ * 可用 `--provider deepl` 切回 DeepL。
  *
  * 设计与参考站（soybean-ui）的 `sui translate` 不同，原因值得写下来：它的 DeepL
  * 只处理 `api` / `changelog` / `locale` 三类**扁平 JSON**，从不翻译 markdown 正文 ——
  * 它那 111 篇中文正文是 LLM 写的。照搬它的形状来翻 markdown 会毁站点（实测
  * 见 scripts/i18n/chunk.mjs 顶部）。所以这里：
  *
- *   1. **分块**：只把「可翻译的正文行」送去 DeepL，结构行（frontmatter、代码块、
+ *   1. **分块**：只把「可翻译的正文行」送去翻译，结构行（frontmatter、代码块、
  *      表格、围栏）原样保留，按原行号回填
- *   2. **术语表**：翻完用 apps/docs/TRANSLATION.md 的术语表校正（DeepL 把
+ *   2. **术语表**：翻完用 apps/docs/TRANSLATION.md 的术语表校正（机器翻译把
  *      `hydration` 译成「加载」而非「水合」，`islands` 译成「孤岛」而非「群岛」）
- *   3. **结构校验卡口**：落盘前比对结构指纹，不符**拒绝写入** —— 把「DeepL 不会
+ *   3. **结构校验卡口**：落盘前比对结构指纹，不符**拒绝写入** —— 把「翻译引擎不会
  *      破坏站点」从运气变成机制
+ *
+ * 两个引擎的差异封装在各自的模块里（`scripts/i18n/azure.mjs` 与本文档下方），
+ * 共用同一套分块 / 术语校正 / 卡口。选 Azure 的理由与实测差异见 azure.mjs 头部。
  *
  * 用法：
  *   node scripts/i18n-translate.mjs                    # 翻译全部待译/漂移的文件
  *   node scripts/i18n-translate.mjs guide/islands      # 只翻一篇
  *   node scripts/i18n-translate.mjs --dry-run          # 只报告要翻什么，不调 API
  *   node scripts/i18n-translate.mjs --messages         # 只翻站点消息目录
+ *   node scripts/i18n-translate.mjs --provider deepl   # 切回 DeepL
  *
  * 环境变量：
- *   DEEPL_API_KEY      必填（TRANSLATE_API_KEY 作为别名）
- *   TRANSLATE_BASE_URL 覆盖端点（默认按密钥形态自动选 free / pro）
+ *   TRANSLATE_PROVIDER 引擎选择：`azure`（默认，前提是有密钥）| `deepl`
+ *   AZURE_TRANSLATE_KEY / AZURE_TRANSLATE_REGION / AZURE_TEXT_TRANSLATE_URL
+ *                      Azure Translator 凭据（见 docs/i18n.md）
+ *   DEEPL_API_KEY      DeepL 密钥（TRANSLATE_API_KEY 作为别名）
+ *   TRANSLATE_BASE_URL 覆盖 DeepL 端点（默认按密钥形态自动选 free / pro）
  *   TRANSLATE_SOURCE_LANG / TRANSLATE_TARGET_LANG
  *
- * 配额：DeepL 免费版按字符计费。全站正文约 20 万字符，quota 紧张时请用
- * `<slug>` 逐篇翻，并先用 `--dry-run` 看量。
+ * 配额：Azure 按字符计费但额度更宽；DeepL 免费版额度紧张。全站正文约 20 万字符，
+ * 请用 `<slug>` 逐篇翻，并先用 `--dry-run` 看量。
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { applyGlossary, mergeTranslatable, normalizeComponentTags, splitTranslatable } from './i18n/chunk.mjs';
+import { createAzureTranslator, postProcess } from './i18n/azure.mjs';
+import { mergeTranslatable, normalizeComponentTags, splitTranslatable } from './i18n/chunk.mjs';
 import {
   SITE_LOCALES_DIR,
   SOURCE_LOCALE,
@@ -57,6 +66,37 @@ const messagesOnly = flags.has('--messages');
 const SOURCE_LANG = process.env.TRANSLATE_SOURCE_LANG?.trim() || 'EN';
 const TARGET_LANG = process.env.TRANSLATE_TARGET_LANG?.trim() || 'ZH';
 const BATCH_SIZE = Number.parseInt(process.env.TRANSLATE_BATCH_SIZE ?? '', 10) || 24;
+
+/**
+ * 引擎选择：**Azure 优先**，DeepL 作为回退。
+ *
+ * 判据是「有没有 Azure 密钥」而不是「有没有 DeepL 密钥」—— 环境里两个都可能存在
+ * （本机 .zshrc 就同时导出了 `AZURE_TRANSLATE_KEY` 与 `DEEPL_API_KEY`），必须有
+ * 一个确定的优先级，否则「装了 Azure 却还在走 DeepL」会成为静默的意外。
+ * `TRANSLATE_PROVIDER` / `--provider` 可显式覆盖，显式值缺失对应密钥时**报错而非
+ * 静默回退** —— 静默回退会让「我以为在用 Azure」这种误判无从发现。
+ */
+function resolveProvider() {
+  const at = args.indexOf('--provider');
+  const explicit = (at !== -1 ? args[at + 1] : undefined) ?? process.env.TRANSLATE_PROVIDER?.trim();
+
+  if (explicit) {
+    const name = explicit.toLowerCase();
+    if (name !== 'azure' && name !== 'deepl') {
+      console.error(`✗ 未知引擎：${explicit}（可选 azure | deepl）`);
+      process.exit(1);
+    }
+    return name;
+  }
+
+  return process.env.AZURE_TRANSLATE_KEY?.trim() ? 'azure' : 'deepl';
+}
+
+const PROVIDER = resolveProvider();
+
+/* -------------------------------------------------------------------------- */
+/* DeepL 引擎（--provider deepl）                                              */
+/* -------------------------------------------------------------------------- */
 
 /**
  * DeepL 端点与密钥。免费版密钥以 `:fx` 结尾且只能用 api-free；付费密钥用 api。
@@ -173,7 +213,7 @@ async function setupGlossary(glossary) {
  * 每行带一个行首标记（`\u200b<序号>\u200b`）作为兜底：若 DeepL 仍增删了行，
  * 调用方能据此精确重排而不是整批丢弃。
  */
-async function translateBatch(texts) {
+async function deeplTranslateBatch(texts) {
   const payload = texts.join('\n');
 
   const body = new URLSearchParams({
@@ -219,6 +259,62 @@ async function translateBatch(texts) {
 }
 
 /* -------------------------------------------------------------------------- */
+/* 统一翻译入口                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * 引擎实例（延迟创建）。
+ *
+ * Azure 不在模块顶层创建：`--dry-run` / `--messages` 之外的路径里，即使只需翻
+ * frontmatter 也要先构造实例，而构造会校验密钥 —— 早失败是好事，但没必要在
+ * 「一篇都不用翻」时也报错。
+ */
+let engine = null;
+
+/** 取当前引擎实例。`deepl` 走下面的 `deeplTranslateBatch`，无需实例。 */
+function getEngine() {
+  if (engine) return engine;
+
+  if (PROVIDER === 'azure') {
+    // 语言码映射：调用方仍用 DeepL 风格的 `EN`/`ZH`（环境变量 TRANSLATE_SOURCE_LANG
+    // 与旧脚本兼容），Azure 需要 `en` / `zh-Hans`。
+    engine = createAzureTranslator({
+      sourceLang: SOURCE_LANG.toLowerCase(),
+      targetLang: TARGET_LANG.toLowerCase() === 'zh' ? 'zh-Hans' : TARGET_LANG
+    });
+  } else {
+    engine = { name: 'DeepL', translateLines: deeplTranslateBatch };
+  }
+
+  return engine;
+}
+
+/**
+ * 翻译一批文本行 —— 两个引擎共用的唯一入口。
+ *
+ * 两个引擎的分批语义不同，这是刻意的：
+ *   - Azure 一次请求收**多个元素**，行数守恒由数组长度保证；
+ *   - DeepL 把多行拼成**一个** `text`，靠 `split_sentences: '0'` 让换行原样返回。
+ *
+ * 所以 BATCH_SIZE（默认 24）只对 DeepL 生效，Azure 的分批在 azure.mjs 里按
+ * 字符数决定（实测 50k 字符硬上限）。
+ */
+async function translateBatch(texts) {
+  if (PROVIDER !== 'azure') return deeplTranslateBatch(texts);
+
+  const out = [];
+  for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    out.push(...(await getEngine().translateLines(texts.slice(i, i + BATCH_SIZE))));
+  }
+  return out;
+}
+
+/** 一批译文的落盘前后处理：术语校正 + 组件标签归一（两个引擎共用）。 */
+function postProcessBatch(lines) {
+  return lines.map(line => postProcess(line, glossary));
+}
+
+/* -------------------------------------------------------------------------- */
 /* frontmatter 的 title / description                                          */
 /* -------------------------------------------------------------------------- */
 
@@ -247,7 +343,7 @@ async function translateFrontmatter(frontmatter, glossary) {
   const out = [...lines];
   targets.forEach((target, i) => {
     const key = lines[target.index].match(/^\s*([A-Za-z_]+)\s*:/u)[1];
-    const value = applyGlossary(translated[i].trim(), glossary);
+    const value = postProcess(translated[i].trim(), glossary);
 
     // 值里含 YAML 敏感字符（冒号、中文引号等）时加引号，避免解析歧义。
     const needsQuote = /[:#{}[\],&*?|>'"%@`]/u.test(value);
@@ -352,7 +448,7 @@ async function translateDocument(item, glossary) {
       for (let i = 0; i < units.length; i += BATCH_SIZE) {
         const batch = units.slice(i, i + BATCH_SIZE);
         const out = await translateBatch(batch.map(u => u.text));
-        translated.push(...out.map(line => applyGlossary(normalizeComponentTags(line), glossary)));
+        translated.push(...postProcessBatch(out));
       }
       body = normalizeComponentTags(mergeTranslatable(lines, units, translated));
     }
@@ -372,7 +468,7 @@ async function translateDocument(item, glossary) {
       for (let i = 0; i < units.length; i += BATCH_SIZE) {
         const batch = units.slice(i, i + BATCH_SIZE);
         const out = await translateBatch(batch.map(u => u.text));
-        translated.push(...out.map(line => applyGlossary(normalizeComponentTags(line), glossary)));
+        translated.push(...postProcessBatch(out));
       }
       rebuilt[target.index] = normalizeComponentTags(mergeTranslatable(lines, units, translated));
     }
@@ -461,7 +557,7 @@ async function translateMessages(glossary) {
       throw new Error(`消息目录行数不符：送入 ${batch.length}，返回 ${out.length}`);
     }
     batch.forEach((entry, k) => {
-      entry.target[entry.path.at(-1)] = applyGlossary(out[k].trim(), glossary);
+      entry.target[entry.path.at(-1)] = postProcess(out[k].trim(), glossary);
     });
   }
 
@@ -489,10 +585,12 @@ async function translateMessages(glossary) {
 /* -------------------------------------------------------------------------- */
 
 const glossary = loadGlossary();
+console.log(`引擎：${PROVIDER === 'azure' ? getEngine().name : 'DeepL'}（--provider azure|deepl 可覆盖）`);
 console.log(`术语表：${Object.keys(glossary).length} 条（apps/docs/TRANSLATION.md）`);
 
 if (messagesOnly) {
-  glossaryId = await setupGlossary(glossary);
+  // Azure 的术语校正走本地替换，没有可上传的术语表；只有 DeepL 需要这一步。
+  if (PROVIDER === 'deepl') glossaryId = await setupGlossary(glossary);
   await translateMessages(glossary);
   process.exit(0);
 }
@@ -526,11 +624,11 @@ console.log(`待处理：${queue.length} 篇`);
 for (const { item, why } of queue) console.log(`  · ${item.slug} — ${why}`);
 
 if (dryRun) {
-  console.log('\n[dry-run] 未调用 DeepL。去掉 --dry-run 执行翻译。');
+  console.log('\n[dry-run] 未调用翻译 API。去掉 --dry-run 执行翻译。');
   process.exit(0);
 }
 
-glossaryId = await setupGlossary(glossary);
+if (PROVIDER === 'deepl') glossaryId = await setupGlossary(glossary);
 
 let done = 0;
 let failed = 0;

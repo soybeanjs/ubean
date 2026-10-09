@@ -349,6 +349,12 @@ export function loadGlossary(markdownPath = join(root, 'apps/docs/TRANSLATION.md
     // （如 `Vite` `Vue` 这类保留英文的词）没有中文值，自然被排除。
     if (!/^[a-z][a-z\s-]*$/u.test(key)) return;
     if (!/[\u4e00-\u9fff]/u.test(val)) return;
+    // 含 `/` 的译法是**依上下文二选一**的，不是可以直接替换的字符串。
+    // 典型：`server / client` → `服务端 / 客户端`（作定语时不加「的」）。
+    // 直接替换会把 `The server renders and the client hydrates.` 变成
+    // `The 服务端 / 客户端 renders and the 服务端 / 客户端 hydrates.` —— 正文里
+    // 凭空多出一个带斜杠的复合词，比不校正更糟。这类条目交给人工/LLM 判断。
+    if (val.includes('/')) return;
     if (!glossary[key]) glossary[key] = val;
   };
 

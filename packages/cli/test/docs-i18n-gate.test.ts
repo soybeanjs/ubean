@@ -37,6 +37,7 @@ interface I18nLib {
   sourceHash: (source: string) => string;
   listSiteContent: () => { slug: string; enPath: string; zhPath: string; en: string; zh: string | null }[];
   diffStructure: (en: string, zh: string) => string[];
+  loadGlossary: () => Record<string, string>;
 }
 
 const lib = (await import(libPath)) as I18nLib;
@@ -93,6 +94,22 @@ describe('文档 i18n 漂移判据（RM-T03）', () => {
     // 表格行被翻译工具吞掉
     const withTable = `${EN_MD}\n| a | b |\n| - | - |\n| 1 | 2 |\n`;
     expect(lib.diffStructure(withTable, `${EN_MD}\n| a | b |\n| - | - |\n`).join('')).toContain('表格行数不符');
+  });
+
+  it('术语表丢掉含 `/` 的条目 —— 那是上下文二选一的译法，不能直接替换', () => {
+    // `server / client` → `服务端 / 客户端`（作定语时不加「的」）。直接替换会把
+    // `The server renders and the client hydrates.` 变成 `The 服务端 / 客户端
+    // renders and the 服务端 / 客户端 hydrates.` —— 正文里凭空多出一个带斜杠的
+    // 复合词，比不校正更糟。
+    const glossary = lib.loadGlossary();
+    expect(glossary.server).toBeUndefined();
+    expect(glossary.client).toBeUndefined();
+    expect(glossary.build).toBeUndefined();
+
+    // 正常条目（单一译法）不受影响 —— 否则这条修正会把术语校正整体关掉。
+    expect(glossary.islands).toBeTruthy();
+    expect(glossary.hydration).toBeTruthy();
+    expect(Object.values(glossary).some(value => value.includes('/'))).toBe(false);
   });
 
   it('刻意不翻译的面是有理由的清单，不是注释', () => {

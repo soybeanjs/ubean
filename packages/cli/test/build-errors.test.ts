@@ -26,6 +26,10 @@
  * - fixture 独立于 packages/builder/test/fixtures/build-project：共享 .temp-* / .ubean 在
  *   pnpm -r --parallel test 下会互相干扰（实测「单跑绿、全量跑红」）。
  * - 固定 NODE_ENV=production：否则 Vue 换成 dev runtime，产物形状与体积都不同。
+ * - **看门狗必须先于用例超时触发**：`BUILD_WATCHDOG_MS` 是 spawn 的看门狗，失败信息里带 fixture
+ *   目录与输出尾巴；`TEST_TIMEOUT_MS` 必须严格大于它。两者相等（旧值都是 300_000）时 vitest 会赢下
+ *   竞态，挂住的唯一诊断被顶成一句 `Test timed out in 300000ms.` —— CI run 37943643207 的
+ *   windows-latest / Node 24 就是这样：日志里既不知道哪个 fixture 挂的，也看不到它最后打印了什么。
  * - 基线用例是错误用例的反向对照：若 CLI 整体坏掉（例如 dist 缺失），错误用例会因为「什么都退出 1」
  *   而全绿 —— 基线把这种假绿挡在门外。
  */
@@ -38,7 +42,21 @@ const repoRoot = resolve(import.meta.dirname, '../../..');
 const cliEntry = join(repoRoot, 'packages/cli/dist/cli.js');
 const fixtureRoot = join(repoRoot, 'packages/cli/test/fixtures/build-errors');
 const OUT = '.temp-build';
-const BUILD_TIMEOUT_MS = 300_000;
+
+/**
+ * spawn 的看门狗：超时即 `SIGKILL`，并以**可操作**信息失败（fixture 目录 + 完整命令行 + 输出尾巴）。
+ *
+ * 合法构建在本机 0.1–2.7s，CI runner 上最慢的同类构建 2.8s —— 120s 已是约 40 倍余量，留这么大只是
+ * 为了不把「慢机器」误判成挂住；真挂住时不必等满。
+ */
+const BUILD_WATCHDOG_MS = 120_000;
+
+/**
+ * 用例级超时：必须**严格大于** `BUILD_WATCHDOG_MS`，理由见文件头的「看门狗必须先于用例超时触发」。
+ *
+ * 这个不变量由 `describe` 里的第一个用例钉死，调这两条常量调错会立刻变红。
+ */
+const TEST_TIMEOUT_MS = BUILD_WATCHDOG_MS + 30_000;
 
 interface FixtureFile {
   path: string;
@@ -101,7 +119,7 @@ function writeFixture(name: string, files: FixtureFile[]): string {
 }
 
 /** 跑一次构建，**不因非零退出而 reject**：错误用例断言的就是非零退出。 */
-function runBuild(cwd: string, extraArgs: string[] = [], timeoutMs = BUILD_TIMEOUT_MS): Promise<BuildResult> {
+function runBuild(cwd: string, extraArgs: string[] = [], timeoutMs = BUILD_WATCHDOG_MS): Promise<BuildResult> {
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(process.execPath, [cliEntry, 'build', '--outDir', OUT, ...extraArgs], {
       cwd,
@@ -111,9 +129,17 @@ function runBuild(cwd: string, extraArgs: string[] = [], timeoutMs = BUILD_TIMEO
     let output = '';
     child.stdout?.on('data', chunk => (output += chunk));
     child.stderr?.on('data', chunk => (output += chunk));
+    const command = [cliEntry, 'build', '--outDir', OUT, ...extraArgs].join(' ');
     const timer = setTimeout(() => {
       child.kill('SIGKILL');
-      rejectRun(new Error(`构建未在 ${timeoutMs}ms 内退出（挂住即为回归）\n${output.slice(-2000)}`));
+      rejectRun(
+        new Error(
+          `构建未在 ${timeoutMs}ms 内退出（挂住即为回归）\n` +
+            `fixture: ${cwd}\n` +
+            `命令: ${process.execPath} ${command}\n` +
+            `输出尾巴:\n${output.slice(-2000)}`
+        )
+      );
     }, timeoutMs);
     child.once('exit', code => {
       clearTimeout(timer);
@@ -260,6 +286,14 @@ afterAll(() => {
 });
 
 describe('构建期错误契约（TS-10 / 参照 SvelteKit build-errors）', () => {
+  it('看门狗必须先于用例超时触发（否则挂住会丢掉唯一诊断）', () => {
+    expect(
+      TEST_TIMEOUT_MS,
+      `TEST_TIMEOUT_MS(${TEST_TIMEOUT_MS}) 必须严格大于 BUILD_WATCHDOG_MS(${BUILD_WATCHDOG_MS})：` +
+        '两者相等或前者更小时 vitest 会先超时，runBuild 的看门狗（带 fixture 目录与输出尾巴）永远不打印'
+    ).toBeGreaterThan(BUILD_WATCHDOG_MS);
+  });
+
   it('前置条件：CLI 已构建（pnpm test 不构建，stale dist 会给出假结果）', () => {
     if (!existsSync(cliEntry)) {
       throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 CLI 集成测试`);
@@ -277,7 +311,7 @@ describe('构建期错误契约（TS-10 / 参照 SvelteKit build-errors）', () 
       expect(result.output).toContain('Build complete');
       expect(existsSync(join(dir, OUT, 'server', 'server.mjs'))).toBe(true);
     },
-    BUILD_TIMEOUT_MS
+    TEST_TIMEOUT_MS
   );
 
   it.each(ERROR_CASES)(
@@ -287,7 +321,7 @@ describe('构建期错误契约（TS-10 / 参照 SvelteKit build-errors）', () 
       const result = await runBuild(dir);
       expectBuildError(testCase.name, result, testCase.fragments);
     },
-    BUILD_TIMEOUT_MS
+    TEST_TIMEOUT_MS
   );
 
   it.each(SILENT_CASES)(
@@ -302,6 +336,6 @@ describe('构建期错误契约（TS-10 / 参照 SvelteKit build-errors）', () 
         expect(result.output, `${testCase.name}：缺少静默行为证据「${item}」\n${tail}`).toContain(item);
       }
     },
-    BUILD_TIMEOUT_MS
+    TEST_TIMEOUT_MS
   );
 });

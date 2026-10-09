@@ -85,7 +85,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.4",
-    "nodemailer": "^7.0.13",
+    "nodemailer": "^9.1.1",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

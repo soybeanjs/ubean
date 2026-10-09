@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@ubean/content": "workspace:*",
-    "@vean/aria": "^0.50.0",
-    "@vean/theme": "^0.50.0",
-    "@vean/ui": "^0.50.0",
+    "@vean/aria": "^0.50.2",
+    "@vean/theme": "^0.50.2",
+    "@vean/ui": "^0.50.2",
     "@vueuse/core": "^15.0.0",
     "minisearch": "^7.2.0",
     "shiki": "^4.5.0",
@@ -27,7 +27,7 @@
   },
   "devDependencies": {
     "@soybeanjs/unocss-preset": "^0.2.0",
-    "@vean/unocss": "^0.50.0",
+    "@vean/unocss": "^0.50.2",
     "@types/node": "^26.6.4",
     "tsx": "^4.23.15",
     "typedoc": "^0.28.20",

@@ -37,4 +37,21 @@ describe('generateOpenApiTypesFromServer', () => {
     const result = await generateOpenApiTypesFromServer('http://localhost:9527', { outDir });
     expect(result).toBeNull();
   });
+
+  // 回归（实测 soybean-agent）：spec 生成失败时 hono-openapi 返回 500 且 body 里带**根因**
+  // （`standard-json: Missing dependencies "@valibot/to-json-schema"`）。此前错误信息只有状态码，
+  // 用户看到的是「`.ubean/openapi.d.ts` 不存在 + 一片 TS2307」，猜不到是缺依赖。
+  it('surfaces the response body when `/_openapi.json` fails, so the root cause is actionable', async () => {
+    const body = '{"error":"standard-json: Missing dependencies \\"@valibot/to-json-schema\\".","statusCode":500}';
+    const fetchMock = vi.fn(async () => {
+      return new Response(body, { status: 500, headers: { 'content-type': 'application/json' } });
+    });
+    // @ts-expect-error 注入 fetch mock
+    globalThis.fetch = fetchMock;
+
+    const outDir = await mkdtemp(join(tmpdir(), 'ubean-openapi-500-'));
+    await expect(generateOpenApiTypesFromServer('http://localhost:9527', { outDir })).rejects.toThrow(
+      /@valibot\/to-json-schema/
+    );
+  });
 });

@@ -471,11 +471,49 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         }
       });
 
-      // OpenAPI 类型（`.ubean/openapi.d.ts`）：裸 `vite dev` 下没有 CLI 去做，插件自己做。
+      // OpenAPI 类型（`.ubean/openapi.d.ts`）：裸 `vite dev` 与 `ubean dev` 两条路径都必须产出。
       // 该类型只能从 app 的 `/_openapi.json` 现算，所以等 dev server 真正开始服务后再触发一次
-      // 「自举 + 进程内请求」（与 CLI 在 `listening` 里拉自己那份同构，只是不发 HTTP）。
-      // CLI 驱动时让位（`UBEAN_CODEGEN_BY_CLI`，CLI 自己会生成），避免同一份产物写两次。
-      if (process.env.UBEAN_CODEGEN_BY_CLI !== '1') {
+      // 「自举 + 进程内请求」。
+      //
+      // **互斥策略**：裸 `vite dev`（无 CLI）下只能由插件自己跑，否则干净检出永远没有这份类型；
+      // `ubean dev` 下 CLI 会在自己的 `listening` 里生成（那条路径还要拿 HTTP URL 显示在 banner），
+      // 因此 `UBEAN_CODEGEN_BY_CLI=1` 时让位，避免同一份产物并发写两次。
+      //
+      // 但让位不能变成**静默**：CLI 那条路径失败（例如 `/_openapi.json` 返回 500）时，
+      // 看插件日志的人会以为「CLI 会处理」，于是两处都不出声 —— 实测 soybean-agent 就是这样
+      // 拿到「openapi.d.ts 不存在 + 一片 TS2307」而毫无线索。这里在让位时把缺失喊出来。
+      const announceMissingOpenApiTypes = async () => {
+        if (!ubeanConfig) return;
+        const filePath = join(ubeanConfig.rootDir, '.ubean', 'openapi.d.ts');
+        try {
+          const app = await ensureDevApp(server);
+          // 拿不到 app 便无法判断 spec 能否生成，交给 CLI 自己的告警处理。
+          if (app) {
+            const response = await app.fetch(new Request('http://localhost/_openapi.json'));
+            if (!response.ok) {
+              const detail = await response
+                .clone()
+                .text()
+                .then(t => t.slice(0, 300))
+                .catch(() => '');
+              logger.warn(
+                `openapi.d.ts was NOT generated: /_openapi.json responded ${response.status}${detail ? ` — ${detail}` : ''}`
+              );
+            }
+          }
+        } catch {
+          /* 自举失败由 ensureDevApp 自己的日志负责 */
+        }
+        // 成功路径由 CLI 打印；这里只在产物确实缺失时补一句可行动的提示。
+        if (!existsSync(filePath)) {
+          logger.warn('`.ubean/openapi.d.ts` is missing — typecheck of `import type { paths } from .../.ubean/openapi` will fail.');
+        }
+      };
+
+      if (process.env.UBEAN_CODEGEN_BY_CLI === '1') {
+        if (server.httpServer) server.httpServer.once('listening', () => void announceMissingOpenApiTypes());
+        else void announceMissingOpenApiTypes();
+      } else {
         const runOpenApiTypes = async () => {
           if (!ubeanConfig) return;
           try {
@@ -486,6 +524,9 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
               buildDir: '.ubean'
             });
             if (result.filePath) logger.info(`OpenAPI types generated: ${result.filePath}`);
+            // 跳过必须出声：`.ubean/openapi.d.ts` 是用户代码的 import 目标，
+            // 静默跳过会让用户只看到一片 TS2307（实测 soybean-agent）。
+            else if (result.skipped) logger.warn(`OpenAPI types skipped (${result.skipped}).`);
           } catch (err) {
             // 类型声明是 DX 产物，不该影响 dev server
             logger.warn(`Failed to generate OpenAPI types: ${err instanceof Error ? err.message : String(err)}`);

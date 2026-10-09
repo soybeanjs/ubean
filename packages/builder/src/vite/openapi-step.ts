@@ -48,7 +48,18 @@ export async function generateOpenApiTypesFromApp(
   options: { cwd: string; buildDir: string }
 ): Promise<OpenApiTypesStepResult> {
   const response = await app.fetch(new Request('http://localhost/_openapi.json'));
-  if (!response.ok) return { skipped: `/_openapi.json responded ${response.status}` };
+  if (!response.ok) {
+    // 把响应体片段带进 skipped 理由：hono-openapi 的 spec 生成器在缺失 JSON-Schema
+    // 转换器时返回 500 + `{"error":"standard-json: Missing dependencies \"@valibot/to-json-schema\""}`，
+    // 只报状态码的话用户拿到的是「openapi.d.ts 没生成」而没有任何可行动的线索
+    // （实测 soybean-agent 就是这样：500 被静默吞掉，只剩 TS2307）。
+    const detail = await response
+      .clone()
+      .text()
+      .then(t => t.slice(0, 300))
+      .catch(() => '');
+    return { skipped: `/_openapi.json responded ${response.status}${detail ? ` — ${detail}` : ''}` };
+  }
 
   // 无后端模式会返回 HTML（页面 fallback）而非 JSON —— 与 `generateOpenApiTypesFromServer`
   // 同一条判据，避免把 HTML 喂给 openapi-typescript 报出误导性的解析错误。

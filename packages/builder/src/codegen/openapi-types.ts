@@ -60,8 +60,16 @@ export async function generateOpenApiTypesFromServer(
   const response = await fetch(url);
 
   if (!response.ok) {
+    // 带响应体：spec 生成失败（如 `standard-json: Missing dependencies
+    // "@valibot/to-json-schema"`）时只报状态码无法行动——用户看到的是
+    // `.ubean/openapi.d.ts` 不存在 + 一片 TS2307，猜不到根因在依赖缺失。
+    const detail = await response
+      .clone()
+      .text()
+      .then(t => t.slice(0, 300))
+      .catch(() => '');
     throw new Error(
-      `[openapi-types] Failed to fetch OpenAPI schema from ${url}: ${response.status} ${response.statusText}`
+      `[openapi-types] Failed to fetch OpenAPI schema from ${url}: ${response.status} ${response.statusText}${detail ? ` — ${detail}` : ''}`
     );
   }
 

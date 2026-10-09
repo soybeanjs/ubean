@@ -218,6 +218,8 @@ export const devCommand: CommandDef = {
           if (hasBackend) {
             generateOpenApiTypesFromServer(url, { outDir: resolve(cwd, '.ubean') })
               .then(filePath => {
+                // 类型声明是用户代码的 import 目标，成败都该可见：成功走 scan 闸门，
+                // 失败走 warn（警告永远输出）。静默跳过会让用户只看到 TS2307。
                 if (filePath && logging.scan) logger.info(`OpenAPI types generated: ${filePath}`);
               })
               .catch(err => {

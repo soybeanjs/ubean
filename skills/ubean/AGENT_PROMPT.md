@@ -19,7 +19,8 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
 1. **Full-Stack Rendering**
    - Server-side rendering (SSR) with Vue + `@vue/server-renderer`
    - Client-side hydration via `createUbeanClientApp` / `createUbeanSSRApp`
-   - Islands architecture for partial hydration (`v-client.load|idle|visible|media|only` directives; legacy `client:*` still works)
+   - Islands: put `v-client.load|idle|visible|media|only` on the **component element** (not a plain `<div>`); legacy `client:*` is still accepted. Components are auto-registered through `virtual:ubean-islands-registry` and auto-hydrated after mount + on SPA navigation — a manual `hydrateIslands()` call is only the escape hatch for globally registered / dynamically imported components
+   - Component file conventions: `Foo.client.vue` (client only, SSR emits `<!--client-only-->`), `Foo.server.vue` (server only, client build substitutes a stub; must be a `<template>` SFC and cannot sit directly under `table`/`tr`/`select`/… — rejected at transform time), and paired `.server.vue` + `.client.vue` imported via the base name (which must not exist). `defineIsland(Component, strategy)` and `defineServerIsland(Component, { fallback })` are the programmatic equivalents (the latter needs an async component to stream)
    - View Transitions API for native page transitions
 
 2. **Vite Integration**
@@ -40,8 +41,12 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - Route groups: `(group)/` directories don't contribute URL segments
    - `definePage` compile-time macro for meta/layout/name/path override
    - Middleware: `middleware/` with numeric prefix ordering; `global`/`global.*` → `/*`, others by directory prefix
+   - Dynamic params: `[id].vue` → `/user/:id`; matchers `[id=numeric].vue` via `defineMatcher(name, fn)` (falsy = skip → next candidate or 404). Server side is enforced by a Hono middleware; the client additionally needs `router.beforeEach(createMatcherGuard())` in `defineApp({ router: { setup } })`
+   - Parallel routes: `@slotName/` → Vue Router named views rendered with `<SlotView name="dialog" />` in the layout. Intercepting routes (`(.)` / `(..)` / `(...)`) are deliberately unsupported — the scanner throws
+   - Special root-level pages: `pages/404.vue` (catch-all + real 404 status, SSG emits `404.html`), `pages/loading.vue` (Suspense fallback, SPA navigation only), `pages/error.vue` (error boundary, client only); `src/app.vue` (wins over `src/App.vue`) wraps the layout chain and exposes the outlet as its **default slot**
+   - Page cache: `definePage({ cache: true })` auto-names the component and enables `onActivated`/`onDeactivated`; runtime helpers `useCacheViews`, `enablePageCache`, `disablePageCache`, `excludePageCache`, `includePageCache`, `invalidatePageCache`, `isPageCached`, `resetRouteCache`. Reuse routes inherit the target's `cache` unless explicitly set
    - Typed route helpers: **ubean exports no `useRoute`/`navigateTo`/`redirectTo` wrappers** — import `useRoute()` / `useRouter()` from `vue-router` directly. Route-path types are generated at `.ubean/typed-router.d.ts`; route generation supports `virtual` (default) / `file` / `both` modes via `routing.mode`
-   - Route guards: `defineApp({ router: { setup(router) { router.beforeEach(...) } } })` registers navigation guards on both client and SSR
+   - Route guards: `defineApp({ router: { setup(router) { router.beforeEach(...) } } })` registers navigation guards on both client and SSR; registration must be synchronous (shared setup runs first, then client/server-specific setups)
 
 5. **Internationalization**
    - vue-i18n 11 (`legacy: false`) on Vue; `@intlify/core` + ALS in handlers
@@ -66,13 +71,15 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - Capability matrix (19 capabilities: `staticServe`, `websocket`, `sse`, `cronTriggers`, `queues`, `kv`, `storage`, `database`, `envVars`, `secrets`, `nodeCompat`, `streaming`, `compression`, `https`, `http2`, `middleware`, `bodyLimit`, `multipart`, `rpc`, ...) with build-time diagnostics
 
 8. **Extension Packages** (`@ubean/*` scope, kebab-case)
-   - `@ubean/icon`: Iconify-based icons with custom local SVG collections, `/_iconify` dev route
-   - `@ubean/auth`: Better Auth integration with email/password fallback, `useAuth()` composable
+   - `@ubean/icon`: Iconify-based icons with custom local SVG collections (`defineIconCollection`), `/_iconify` dev route
+   - `@ubean/auth`: Better Auth integration with email/password fallback; `createAuthHandler()` server-side, `useAuth()` / `useSession()` / `getSessionFromHeaders()` client-side; protect with `definePage({ requiresAuth: true })`
    - `@ubean/integrations/pwa`: Manifest + Service Worker generation, `usePwa()` composable
-   - `@ubean/image`: Multi-provider image optimization (IPX/Cloudinary/Imgix/...)
-   - `@ubean/content`: Markdown/YAML/JSON content collections with `queryCollection()` (`queryContent` is only a backwards-compat alias)
+   - `@ubean/image`: Multi-provider image optimization (IPX/Cloudinary/Imgix/static) — `UbeanImg` / `UbeanPicture` components, `useImage()`, `resolveImage()`
+   - `@ubean/content`: Markdown/YAML/JSON content collections with `defineCollection()` + `queryCollection()` (`queryContent` is only a backwards-compat alias); search with `useContentSearch()` from `@ubean/content/vue` (not auto-imported)
+   - `@ubean/ai`: Vercel AI SDK orchestration — `defineAgent` / `defineAgentTool`, Vue runtime `useChat` / `useAgent` from `@ubean/ai/runtime/vue`
    - `@ubean/integrations/fonts`: Google/Bunny/Fontshare fonts with `@font-face` generation
    - `@ubean/integrations/electron`: Desktop apps via vite-plugin-electron; `electron: true` enables with default main/preload entries and auto-disables SSR
+   - `@ubean/integrations/pinia`: Pinia integration; `pinia: true` enables dev `optimizeDeps` pre-bundling; pair with `defineApp({ serializeState: serializePiniaState, hydrateState: hydratePiniaState })`. Pinia itself imports from `pinia`.
    - `@ubean/integrations/ui`: @vean/ui integration; `ui: true` enables UiResolver (component auto-import) + `styles.css` auto-injection; `ui: { css: false }` for UnoCSS mode (@vean/unocss)
 
 ### Project Structure
@@ -164,6 +171,17 @@ definePage({
 
 > `definePage` is a compile-time macro. Its top-level fields are `name`, `path`, `layout` (`string` | `string[]` | `false`), `reuse`, `meta`, `requiresAuth`, `cache`, `transition`, `head`, `ssr`. There is no top-level `title` field (use `meta: { title }`) and no top-level `middleware` field — pass route-level middleware through `meta: { middleware }`.
 
+#### Special Pages and App Root
+
+Only **root-level** files are special (`pages/users/404.vue` is a normal `/users/404` route):
+
+- `pages/404.vue` — catch-all (`/:pathMatch(.*)*` + Hono `GET *` fallback) returning a real 404 status; `/api/*` and `/_*` keep JSON 404s; SSG emits `404.html`.
+- `pages/loading.vue` — `<Suspense>` fallback for lazy page components; SPA navigation only (SSR resolves synchronously).
+- `pages/error.vue` — error boundary over Vue `errorCaptured`; receives an `error` prop, resets on navigation; client only.
+- `src/app.vue` (wins over `src/App.vue`) — application root wrapping the layout chain + page. The framework outlet is the **default slot** (`<slot />`); do not render `<PageView />` / `<RouterView />` there.
+
+Priority: `defineApp({ appRoot | loadingComponent | errorComponent })` > `src/app.vue` > `src/App.vue` > `pages/loading.vue` / `pages/error.vue`.
+
 ### Creating API Routes
 
 ```typescript
@@ -184,7 +202,7 @@ export const POST = defineHandler(async c => {
 
 ### Typed Requests + OpenAPI (hono-openapi)
 
-`validator`, `describeRoute`, `resolver` are re-exported from `ubean` (originally from `hono-openapi`). `defineHandlerMeta` carries ubean-specific metadata such as `requiresAuth`, `cache`, `rateLimit`.
+`validator`, `describeRoute`, `resolver` are re-exported from **`ubean/server`** (originally from `hono-openapi`). The isomorphic main entry `ubean` does not re-export them. `defineHandlerMeta` carries ubean-specific metadata such as `requiresAuth`, `cache`, `rateLimit`.
 
 ```typescript
 // src/routes/api/users/[id].ts
@@ -211,24 +229,27 @@ export const GET = defineHandler(
 );
 ```
 
-### Fetching Data (useData)
+### Fetching Data (useData / useAsyncData / useFetch)
 
-`useData` is auto-imported. ubean does not bundle a browser HTTP client — use the native `fetch`, or [`@soybeanjs/fetch`](https://www.npmjs.com/package/@soybeanjs/fetch) for a typed client with upload progress and flat error mode.
+All three are auto-imported from `ubean/client` and return `{ data, error, loading, pending, status, timestamp, refresh(), invalidate() }` (`status`: `'idle' | 'pending' | 'success' | 'error'`).
+
+- `useData(options)` takes **one options object**: `{ key?, fetcher, ttl?, tags?, dedupe? }`. `fetcher` is required. The positional form is `useAsyncData(key, fn)`; `useFetch(key, url)` wraps that around an HTTP client.
+- `key` is the cache identity (omit it and you get a fresh `Symbol` per mount). `ttl` is freshness in ms; `tags` make an entry reachable by `invalidateData(tag)`; `dedupe` defaults to `true` (in-flight requests collapse).
+- Keys are static — to react to changing params, re-run `refresh()` from a `watch()` instead of parameterising the key.
+- For a typed HTTP client call `setDefaultFetch(createRequest())` from `@soybeanjs/fetch` at startup; without it `useFetch` falls back to native `fetch` + JSON.
+- SSR serialises the payload into `__UBEAN_DATA__` and auto-hydrates it on the client.
+- `defer(factory)` + `useDeferredData(key, deferred)` stream non-critical data after the initial render.
 
 ```vue
 <script setup lang="ts">
-const { data, error, loading, refresh, invalidate } = await useData('posts', () =>
-  fetch('/api/posts').then(r => r.json())
-);
+const { data, error, loading, refresh, invalidate } = await useData({
+  key: 'posts',
+  fetcher: () => fetch('/api/posts').then(r => r.json()),
+  ttl: 60_000,
+  tags: ['posts']
+});
+const { data: posts } = await useFetch('posts', '/api/posts');
 </script>
-
-<template>
-  <div v-if="loading">Loading…</div>
-  <div v-else-if="error">Error: {{ error.message }}</div>
-  <ul v-else>
-    <li v-for="post in data.posts" :key="post.id">{{ post.title }}</li>
-  </ul>
-</template>
 ```
 
 ### Navigation & Link
@@ -268,7 +289,7 @@ function go() {
 
 ```vue
 <script setup lang="ts">
-const { t, locale, d, n } = useI18n(); // useI18n 自动导入(直源 vue-i18n)
+const { t, locale, d, n } = useI18n(); // opt-in: requires autoImports: { vueI18n: true }; otherwise import { useI18n } from 'vue-i18n'
 // 切换语言用框架 setLocale(自动导入,来自 ubean/client)
 
 console.log(t('hello'));
@@ -278,6 +299,10 @@ console.log(n(1234.56));
 </script>
 ```
 
+- Path helpers (auto-imported from `ubean/client`): `useLocalePath()`, `useSwitchLocalePath()`, `useLocaleRoute()`, `useLocaleHead()`. Never assign `locale.value` as the switch API.
+- Server side (`ubean/i18n`): `t()` / `d()` / `n()` read the request ALS and **throw** outside it (no process-global locale); plus `getRequestLocale(c)`, `compileLocalePaths`, `runWithI18n`. `createI18nMiddleware` is mounted automatically by `createUbeanApp` — rarely called by hand.
+- Typed keys come from `.ubean/i18n.d.ts` (include `.ubean/*.d.ts` in `tsconfig.json`). Removed with no compat layer: `defineLocale`, `addLocale`, `formatDate`/`formatNumber`/`formatCurrency`.
+
 ### Configuration
 
 ```typescript
@@ -285,15 +310,16 @@ console.log(n(1234.56));
 import { defineConfig } from 'ubean';
 
 export default defineConfig({
-  rootDir: '.',
   srcDir: 'src',
   mode: 'fullstack', // 'fullstack' (default) | 'spa' | 'ssg' | 'backend'
   ssr: true, // only effective when mode === 'fullstack'
   modules: [],
+  build: { preset: 'node' }, // presets live under `build` — there is NO top-level `preset` field
   icon: false, // @ubean/icon
   pwa: false, // @ubean/integrations/pwa
   auth: false, // @ubean/auth
   electron: false, // @ubean/integrations/electron (enabling auto-disables SSR unless explicitly set)
+  pinia: false, // @ubean/integrations/pinia
   ui: false, // @ubean/integrations/ui (@vean/ui: UiResolver + styles.css auto-injection)
   routing: { mode: 'virtual' }, // virtual (default) | file | both
   i18n: {
@@ -301,9 +327,80 @@ export default defineConfig({
     locales: ['en', 'zh'],
     strategy: 'prefix_except_default'
   },
+  colorMode: { preference: 'system' },
+  partyTown: false,
+  search: false, // Pagefind static search
+  dataCache: true, // cross-request fetch() Data Cache
+  cache: { store: 'auto' },
+  security: { csrf: true, headers: true },
+  autoImports: { ubean: true, vue: false, vueRouter: false, vueI18n: false, honoOpenapi: false },
   routeRules: {}
 });
 ```
+
+> **Presets**: `preset` is **not** a top-level `UbeanConfig` field — writing it at the root is silently ignored. Use `build: { preset: 'vercel-edge' }`, or omit it so `detectPreset()` infers from config files / environment variables.
+
+### Route Rules
+
+`routeRules` overrides rendering and HTTP behaviour per path (`*` = one segment, `**` = recursive). Order: `redirect` > `rewrite` > `proxy` > `headers` > `cache`; the matched rule is available as `c.get('routeRule')`.
+
+```typescript
+routeRules: {
+  '/blog/**': { prerender: true },
+  '/dashboard/**': { ssr: false }, // false also skips loaders
+  '/news/**': { isr: { ttl: 60, swr: true } },
+  '/products/**': { ppr: true }, // forced streaming SSR + prerender discovery
+  '/api/public/**': { cache: { ttl: 300, swr: true } }
+}
+```
+
+`ssr` per route accepts `true` | `false` | `'streaming'` | `'data-only'` (loaders run, CSR shell returned). Precedence: `definePage({ ssr })` > `routeRule.ssr` > global `ssr.exclude`.
+
+### Server Actions
+
+Page modules (or `src/actions/*`) may export an `actions` map. `POST /__actions` serves RPC calls; native forms post to `?/<name>` (no `?/name` → `actions.default`).
+
+```typescript
+export const actions = {
+  login: defineAction(loginSchema, async (input, ctx) => {
+    const user = await verify(input.email, input.password);
+    if (!user) return fail(400, { password: 'incorrect' });
+    if (banned(user)) throw new ActionError('Account suspended', { code: 'BANNED' });
+    return { user };
+  })
+};
+```
+
+`useAction(action)` → `{ submit, pending, data, error, errors, status, reset }`; `useFormAction(name)` → `{ action, pending, onSubmit, data, errors }`; `callAction(id, args)` for raw RPC; `invokeServerFn(fn, input?)` is isomorphic. `defineServerFn` is an alias of `defineAction`. Action IDs are `act_` + base32(fnv1a(`filePath:exportName`)).
+
+### Server Config and Global Hooks
+
+`src/server.ts` default-exports `defineServer({...})` — the server counterpart of `defineApp`:
+
+```typescript
+// src/server.ts
+import { defineServer } from 'ubean/server';
+
+export default defineServer({
+  globalHooks: {
+    handle: async ({ event, resolve }) => {
+      const response = await resolve(event);
+      response.headers.set('X-Response-Time', '…');
+      return response;
+    },
+    handleFetch: async ({ request, fetch }) => fetch(request), // intercepts internalFetch
+    handleError: async ({ status, message }) => console.error(`[${status}] ${message}`)
+  },
+  onAppCreate: async app => {
+    /* before app.init() */
+  },
+  onServerReady: async app => {
+    /* after app.init() — start workers/schedulers */
+  }
+});
+```
+
+Middleware factories (all from `ubean/server`): `createCorsMiddleware`, `createRateLimitMiddleware`, `createCsrfMiddleware`, `createSecurityHeadersMiddleware`, `createSessionMiddleware` + `useSession`, `createDraftModeMiddleware` + `enableDraftMode`/`isDraftMode`, `createFetchMemoizationMiddleware`, `createDataCacheMiddleware`, `createTracingMiddleware`, `after(callback)`.
 
 ### Built-in / Internal Routes
 
@@ -324,7 +421,9 @@ export default defineConfig({
 3. **Routing issues**: Check file structure (void-style named exports in a single file)
 4. **SSR errors**: Check for browser-only code in server paths
 5. **i18n issues**: Check locale configuration and message keys
-6. **Wrong import path**: isomorphic APIs from `ubean`, server APIs from `ubean/server`, build-time APIs from `ubean/build`, server i18n from `ubean/i18n`
+6. **Wrong import path**: isomorphic APIs from `ubean`, server APIs from `ubean/server`, build-time APIs from `ubean/build`, server i18n from `ubean/i18n`; client modules should prefer `ubean/client` over the main entry to avoid pulling the whole aggregator into the client bundle
+7. **Missing auto-import**: `useRouter` / `useI18n` / `validator` are opt-in — enable `autoImports: { vueRouter: true }` / `{ vueI18n: true }` / `{ honoOpenapi: true }`, otherwise import them from `vue-router` / `vue-i18n` / `ubean/server`
+8. **Preset ignored**: a top-level `preset` in `ubean.config.ts` is silently dropped — use `build: { preset }`
 
 ### Debugging Tips
 
@@ -358,9 +457,8 @@ export default defineConfig({
 
 ## Resources
 
-- **Project docs**: `/docs/`
-- **Agent guide**: `/AGENTS.md` (project root)
-- **Skill docs**: `/skills/ubean/docs/`
+- **Project docs**: `/docs/`, `/AGENTS.md` (project root)
+- **Skill entry**: `skills/ubean/SKILL.md`; full docs live in `apps/docs/src/content/` — there is no `skills/ubean/docs/` directory
 - **CLI Help**: `ubean --help`
 - **DevTools**: open the floating button in dev (or `Shift+Alt+D`)
 - **OpenAPI UI**: `/_scalar` in dev

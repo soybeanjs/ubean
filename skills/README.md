@@ -6,6 +6,7 @@ AI Agent skills for the ubean full-stack framework.
 
 ```
 skills/
+├── README.md                 # This file
 └── ubean/
     ├── SKILL.md              # Main skill definition (Claude Skills format)
     ├── AGENT_PROMPT.md       # Agent prompt for AI assistants
@@ -13,12 +14,33 @@ skills/
         └── ubean.md          # CLI command reference
 ```
 
+### Which file answers which question
+
+| Question                                                  | File                     |
+| --------------------------------------------------------- | ------------------------ |
+| What is ubean, what can it do, which API/field do I use?  | `ubean/SKILL.md`         |
+| “Act as a ubean assistant for this project” system prompt | `ubean/AGENT_PROMPT.md`  |
+| Exact CLI flags, subcommands, env vars, exit codes        | `ubean/command/ubean.md` |
+
+`SKILL.md` and `AGENT_PROMPT.md` overlap by design (the prompt is a distilled subset); when they disagree, `SKILL.md` wins, and source code wins over both.
+
 The full guide / reference / integration docs live in the documentation site source, not here — see [`apps/docs/src/content/`](../apps/docs/src/content/) (`en/` + `zh/`):
 
-- `guide/` — quickstart, app-modes, routing-modes, pages-routing (overview / loaders / actions), i18n, islands, content
-- `reference/` — cache, database, env, i18n, response-helpers, route-helpers
+- `guide/` — introduction, quickstart, app-modes, vite-plugin-migration, routing-modes, pages-routing (overview / loaders / actions), i18n, content, islands
 - `integrations/` — auth, database, electron, icons, pinia, ui
+- `reference/` — cache, database, env, i18n, response-helpers, route-helpers
 - `architecture/` — overview, architecture, routing, runtime, framework-comparison
+- `ecosystem/`, `contributing/engineering`
+
+## Keeping Skills in Sync
+
+The skills are hand-maintained (nothing in `packages/`, scripts or CI reads them). To re-audit against the docs:
+
+1. Diff API tokens: extract every `use*` / `define*` / `create*` / `set*` identifier from `apps/docs/src/content/en/**/*.md` and grep each one across `skills/`.
+2. Verify every candidate against real source in `packages/*/src` before writing it down — docs can lag behind code and vice versa.
+3. Prefer claims that cite a path or a signature (e.g. `packages/server/src/cron.ts:47 defineScheduled`); that is what makes a stale skill detectable next time.
+
+Known traps worth re-checking on every audit: auto-import defaults (`autoImports.vueRouter` / `vueI18n` / `honoOpenapi` are **off**), `build.preset` vs a top-level `preset`, `ubean/server` vs `ubean` for `validator` / `describeRoute`, and the `src/server/crons` scaffolder path vs the `src/crons` scanner default.
 
 ## Usage
 

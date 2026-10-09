@@ -349,6 +349,8 @@ The scaffold commands create, delete, recover, and list files. Shared convention
 | cron         | `src/server/crons/` | `.ts`                |
 | plugin       | `src/plugins/`      | `.ts`                |
 
+> **Known mismatch for cron files**: the scaffolder and DevTools write crons to `src/server/crons/`, but the scanner reads `config.dir.crons`, which defaults to **`src/crons`** (on disk in `examples/ubean-test/src/crons/01.test-cron.ts`). Move generated cron files from `src/server/crons/` to `src/crons/` — or point `dir.crons` at `server/crons` — or the scheduled task is never registered.
+
 - `add` skips existing files unless `-f/--force` is passed (which creates a `.bak` backup before overwriting).
 - `delete` creates a `.bak` backup by default; `-f/--force` deletes permanently without backup.
 - `recovery` restores the most recent `.bak` backup; `--dry` only checks whether recovery is possible.

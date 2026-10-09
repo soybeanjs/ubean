@@ -1,5 +1,22 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.1-beta.2...main) (2026-10-09) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: stub nodemailer in worker target to keep node:http out of the bundle &nbsp;-&nbsp; by @soybeanjs [<samp>(600de)</samp>](https://github.com/soybeanjs/ubean/commit/600de75)
+- **release**: publish prereleases under a beta dist-tag, never latest &nbsp;-&nbsp; by @soybeanjs [<samp>(58dba)</samp>](https://github.com/soybeanjs/ubean/commit/58dbadc)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**:
+  - update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(999e2)</samp>](https://github.com/soybeanjs/ubean/commit/999e2ef)
+  - bump nodemailer to v10 &nbsp;-&nbsp; by @soybeanjs [<samp>(7c335)</samp>](https://github.com/soybeanjs/ubean/commit/7c335e5)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.1-beta.1...main) (2026-10-09) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

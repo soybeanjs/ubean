@@ -206,7 +206,7 @@ export const initCommand: CommandDef = {
     },
     preset: {
       type: 'string',
-      description: 'Target preset (standard/node/cloudflare)'
+      description: 'Target preset (any registered preset; the interactive menu offers standard/node/cloudflare)'
     },
     packageManager: {
       type: 'string',

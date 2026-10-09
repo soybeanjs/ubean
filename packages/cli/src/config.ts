@@ -62,7 +62,7 @@ export const configCommand: CommandDef = {
       args: {
         preset: {
           type: 'string',
-          description: 'Preset to use (standard, node, cloudflare)',
+          description: 'Preset to use (standard, node, cloudflare, vercel, netlify, bun, deno, aws, azure, ...)',
           default: 'standard'
         },
         force: {

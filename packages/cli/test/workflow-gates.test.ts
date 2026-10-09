@@ -25,7 +25,7 @@ const repoRoot = resolve(import.meta.dirname, '../../..');
 const rootRequire = createRequire(join(repoRoot, 'package.json'));
 const YAML = rootRequire('yaml') as typeof import('yaml');
 
-type Step = { name?: string; run?: string; uses?: string };
+type Step = { id?: string; name?: string; run?: string; uses?: string };
 type Job = { steps?: Step[] };
 
 /** 取 workflow 里**唯一**那个 job 的步骤列表。release.yml / compat.yml 都只有一个 job。 */
@@ -59,6 +59,28 @@ describe('release.yml 的门禁完整性', () => {
     expect(gateIdx, '必须有 `pnpm test` 门禁（TS-06）').toBeGreaterThan(-1);
     expect(publishIdx, '必须有 publish 步骤').toBeGreaterThan(-1);
     expect(gateIdx, '门禁必须排在 publish 之前，否则就是「带着红灯发版」').toBeLessThan(publishIdx);
+  });
+
+  it('publish 必须显式指定 dist-tag，且预发布不能占 latest', () => {
+    // 2026-10-09 实测事故：`pnpm -r publish` 没带 `--tag`，npm 默认给预发布也打 `latest`，
+    // 于是 24 个包的 `latest` 全部从 0.6.0 挪到 0.6.1-beta.2 —— `pnpm add ubean` 会装到 beta。
+    // 当时那次 Publish 步是 **success**（没有任何红灯），是事后手动回滚的。
+    // 这里锁两件事：publish 带 `--tag`，且 tag 是按「版本号带不带 `-`」算出来的。
+    // 注意匹配 `pnpm -r publish` 而不是裸的 `publish`：上面 Resolve 步的 echo 里也有
+    // “publishing”，裸匹配会命中它而不是真正的 publish 步骤。
+    const publish = steps.find(s => s.run?.includes('pnpm -r publish'));
+
+    expect(publish?.run, 'publish 必须显式 `--tag` —— 不带就是 npm 默认的 `latest`，预发布会顶掉正式版').toMatch(
+      /--tag/
+    );
+    expect(publish?.run, 'tag 必须来自算出来的 dist-tag，不能写死').toContain('steps.dist-tag.outputs.tag');
+
+    // 纯字符串断言（不跑 shell）：semver 里 `-` 即预发布。
+    const resolveStep = steps.find(s => s.id === 'dist-tag');
+
+    expect(resolveStep?.run, '必须先算出 dist-tag 再 publish').toBeTruthy();
+    expect(resolveStep?.run, '版本号含 `-` 即预发布 → 走 beta').toContain('*-*');
+    expect(resolveStep?.run, '否则才是 latest').toMatch(/tag=latest/);
   });
 });
 

@@ -63,8 +63,25 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # 预发布**绝不能**占 `latest`。npm publish 默认给每个版本打 `latest`，而 `latest`
+      # 正是 `pnpm add ubean` 装到的版本。2026-10-09 发布 v0.6.1-beta.2 时就这么把全部
+      # 24 个包的 `latest` 从 0.6.0 挪到了 beta 上（该次发布本身的 Publish 步是成功的，
+      # 所以没有任何红灯提示），事后用 `npm dist-tag add <pkg>@0.6.0 latest` 才回滚。
+      # semver 规定版本号带 `-` 即预发布，据此选 dist-tag；只有正式版才动 `latest`。
+      - name: Resolve npm dist-tag
+        id: dist-tag
+        run: |
+          version="$(node -p "require('./packages/ubean/package.json').version")"
+          if [[ "$version" == *-* ]]; then
+            tag=beta
+          else
+            tag=latest
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "publishing $version under dist-tag '$tag'"
+
       - name: Publish to NPM
-        run: pnpm -r publish --access public --no-git-checks
+        run: pnpm -r publish --access public --no-git-checks --tag "${{ steps.dist-tag.outputs.tag }}"
         env:
           NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
           NPM_CONFIG_PROVENANCE: true

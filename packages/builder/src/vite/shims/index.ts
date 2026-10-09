@@ -11,7 +11,12 @@
  * 把桩源码内联，与包布局无关。也**不能用 `resolve.alias`**：Vite 解析器对 `node:` 前缀会短路，
  * alias 命不中（实测配了 alias 产物里照样有 `node:fs`）。
  *
- * 只覆盖运行时不支持、且实测会出现在服务端图里的两个：`node:fs` / `node:fs/promises`。
+ * 覆盖三类：
+ * - `node:fs` / `node:fs/promises`：运行时不支持，且实测会出现在服务端图里；
+ * - `nodemailer`：**可选依赖**，`@ubean/server` 的 SMTP provider 用变量化 specifier 延迟加载，
+ *   但 worker 目标全量内联（`noExternal: [/./]` + `codeSplitting: false`）会把动态 import 一起
+ *   打包。10.x 起 nodemailer 是 ESM，入口图顶层静态 `import 'node:http'` → workerd 实例化即失败。
+ *
  * `node:crypto` / `node:async_hooks` / `node:path` 由 `nodejs_compat` 兼容标志支持，保持原样。
  *
  * 桩**抛错而不是静默返回空值**：静默降级会把「静态资源没被服务」「缓存没落盘」变成谜题。
@@ -78,11 +83,40 @@ const FS_PROMISES_STUB_SOURCE = buildStubSource(
   'fs/promises'
 );
 
+/* -------------------------------------------------------------------------- */
+/* worker 目标下的 nodemailer 桩（可选依赖，Node-only）                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * `nodemailer` 的桩：worker 目标下把它换成「调用即抛错」的模块。
+ *
+ * 为什么需要：worker 目标 `noExternal: [/./]` + `codeSplitting: false`，**任何**动态 import
+ * 都会被内联。`@ubean/server/src/email.ts` 用变量化 specifier 延迟加载 nodemailer（SMTP
+ * provider 用），内联后 nodemailer 的完整图进入产物。10.x 起它是 ESM 包，入口图里
+ * `dist/esm/fetch/index.js` **顶层静态** `import 'node:http'` —— workerd 在模块实例化阶段
+ * 直接失败 `No such module "node:http"`（`nodejs_compat` 不覆盖 http/net/tls，只有 fs 系列
+ * 有桩）。9.x 是 CJS 单包，恰好没有这类静态导入，所以问题只在 10.x 暴露。
+ *
+ * 语义正确：worker 里本来也发不了 SMTP（没有 net/tls），桩把「运行时谜团」变成「明确的
+ * 平台约束错误」，与 fs 桩同一策略。
+ */
+const NODEMAILER_STUB_SOURCE = `const MESSAGE = (api) =>
+  api + ' 需要 Node 系运行时（SMTP 依赖 net/tls）。当前运行时（Cloudflare Workers 等）不支持：' +
+  '请在 Node 系平台上发送邮件，或改用提供 HTTP API 的邮件服务商。';
+function unsupported(api) {
+  throw new Error(MESSAGE(api));
+}
+export function createTransport() { return unsupported('nodemailer.createTransport'); }
+export function createTestAccount() { return unsupported('nodemailer.createTestAccount'); }
+export default new Proxy({}, { get: (_t, prop) => () => unsupported('nodemailer.' + String(prop)) });
+`;
+
 const STUB_SOURCES: Record<string, string> = {
   'node:fs': FS_STUB_SOURCE,
   fs: FS_STUB_SOURCE,
   'node:fs/promises': FS_PROMISES_STUB_SOURCE,
-  'fs/promises': FS_PROMISES_STUB_SOURCE
+  'fs/promises': FS_PROMISES_STUB_SOURCE,
+  nodemailer: NODEMAILER_STUB_SOURCE
 };
 
 /** 该 id 在 worker 目标下是否要换成桩；命中时返回虚拟模块 id。 */

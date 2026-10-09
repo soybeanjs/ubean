@@ -71,11 +71,27 @@ describe('worker 目标的构建配置', () => {
 });
 
 describe('node 内建桩', () => {
-  it('只桩 node:fs 系列（crypto / async_hooks / path 由 nodejs_compat 支持）', () => {
-    expect([...WORKER_NODE_STUB_IDS].sort()).toEqual(['fs', 'fs/promises', 'node:fs', 'node:fs/promises']);
+  it('只桩 node:fs 系列与 nodemailer（crypto / async_hooks / path 由 nodejs_compat 支持）', () => {
+    expect([...WORKER_NODE_STUB_IDS].sort()).toEqual([
+      'fs',
+      'fs/promises',
+      'node:fs',
+      'node:fs/promises',
+      'nodemailer'
+    ]);
     expect(resolveWorkerNodeStub('node:crypto')).toBeUndefined();
     expect(resolveWorkerNodeStub('node:async_hooks')).toBeUndefined();
     expect(resolveWorkerNodeStub('node:path')).toBeUndefined();
+  });
+
+  it('nodemailer 被桩住：worker 里发不了 SMTP，不能把 node:http 带进产物', () => {
+    // 10.x 起 nodemailer 是 ESM，入口图 `dist/esm/fetch/index.js` 顶层静态 `import 'node:http'`；
+    // worker 目标全量内联（`noExternal: [/./]` + `codeSplitting: false`），一旦被打包
+    // workerd 在模块实例化阶段就报 `No such module "node:http"`。
+    expect(resolveWorkerNodeStub('nodemailer')).toBe(`${'\0'}ubean-node-stub:nodemailer`);
+    const stub = loadWorkerNodeStub(resolveWorkerNodeStub('nodemailer')!)!;
+    expect(stub).toContain('export function createTransport()');
+    expect(stub).not.toContain('node:http');
   });
 
   it('桩源码覆盖 Node 的完整导出面，且不含非法标识符（`default` 之类）', () => {

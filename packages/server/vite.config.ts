@@ -30,7 +30,12 @@ export default defineConfig({
       'src/drivers.ts'
     ],
     deps: {
-      neverBundle: ['hono', 'vite', /^node:/, /^@ubean\//]
+      // `nodemailer` 必须外置：它只是 devDependency，产物里保留 `import('nodemailer')` 交给目标
+      // 运行时解析。10.x 起它是 ESM 包，入口图里 `fetch/index.js` **顶层静态** `import 'node:http'`
+      // —— 一旦被打包，该 chunk 顶部就是硬编码的 `node:http`，worker 运行时（workerd）在模块
+      // 实例化阶段直接失败 `No such module "node:http"`（`nodejs_compat` 不覆盖 http/net/tls，
+      // 只有 fs 系列有构建期桩）。9.x 是 CJS 单包，恰好没有这类静态导入，所以问题只在 10.x 暴露。
+      neverBundle: ['hono', 'vite', 'nodemailer', /^node:/, /^@ubean\//]
     }
   }
 });

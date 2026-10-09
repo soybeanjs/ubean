@@ -29,8 +29,20 @@ import { execFileSync } from 'node:child_process';
  * 守卫因此分成两层：**形状断言**（import 在 declare 之前）+ **真实 tsc 编译**，
  * 后者自带一条**变异对照**（把生成结果里的顶层 import 搬回块内，必须报出
  * TS2667），保证夹具解析链路一旦断掉就大声失败，而不是静默通过。
+ *
+ * ## 两个平台坑（都是 CI 实测踩出来的）
+ *
+ * 3. **`tsc` 要走 `process.execPath` + 真实 JS 入口**。`node_modules/.bin/tsc` 是 pnpm 的
+ *    sh shim（POSIX 专属），Windows 上 `execFileSync` 直接 ENOENT —— 于是控制用例红、
+ *    而只断言「不含 TS2667」的用例静默绿。
+ *
+ * 4. **预算是 5s 不够用**。`execFileSync` 是外进程 + 磁盘（tsgo 还要拉起原生二进制），
+ *    本机各 0.7s / 1.2s，CI runner 上实测 4.4～5.9s —— 正好骑在 vitest 默认 5s 上，
+ *    所以红的总是「较慢的那一条」（下面 `TSC_TIMEOUT_MS`）。
  */
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import { join } from 'pathe';
@@ -38,7 +50,27 @@ import { RouteFileGenerator } from '../src/generator';
 import { generateTypedRouter } from '../src/virtual-pages';
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
-const TSC = join(REPO_ROOT, 'node_modules', '.bin', 'tsc');
+
+/**
+ * 解析 `tsc` 的**真实 JS 入口**（靠仓库根 package.json 锚定，不依赖 `.pnpm` 哈希目录名）。
+ *
+ * 不能拿 `node_modules/.bin/tsc` 去 `execFileSync`：那是 pnpm 生成的 **sh shim**（POSIX 专属），
+ * Windows 上直接 ENOENT —— `packages/cli/test/helpers/vp.ts` 为 `vp` 记下过同一个坑。
+ * 本仓的 `typescript` 是 `typescript-native-bridge` 桥接包，它的 `bin.tsc` 指向一个 80 字节的
+ * `require('../lib/tsc.js')` shim，用 `process.execPath` 直接跑它，POSIX / Windows 通吃。
+ *
+ * 从 package.json 的 `bin` 字段取路径而不是写死 `typescript/bin/tsc`：桥接包换布局时这里跟着走。
+ */
+function resolveTscEntry(repoRoot: string): string {
+  const req = createRequire(join(repoRoot, 'package.json'));
+  const pkgPath = req.resolve('typescript/package.json');
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { bin?: string | Record<string, string> };
+  const bin = typeof pkg.bin === 'string' ? pkg.bin : pkg.bin?.tsc;
+  if (!bin) throw new Error('typescript 包没有暴露 `tsc` bin');
+  return resolve(dirname(pkgPath), bin);
+}
+
+const TSC_ENTRY = resolveTscEntry(REPO_ROOT);
 const FIXTURE_ROOT = join(REPO_ROOT, '.temp', 'typed-router-imports');
 
 const TSCONFIG = {
@@ -64,9 +96,20 @@ function compileDts(name: string, dts: string): string[] {
   writeFileSync(join(dir, FIXTURE_DTS_PATH), dts, 'utf8');
   writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify(TSCONFIG), 'utf8');
   try {
-    execFileSync(TSC, ['-p', join(dir, 'tsconfig.json')], { cwd: REPO_ROOT, encoding: 'utf8', stdio: 'pipe' });
+    execFileSync(process.execPath, [TSC_ENTRY, '-p', join(dir, 'tsconfig.json')], {
+      cwd: REPO_ROOT,
+      encoding: 'utf8',
+      stdio: 'pipe'
+    });
     return [];
   } catch (err: any) {
+    // tsc **没跑起来**（ENOENT / EACCES / 被杀）和 tsc 跑完但报了错是两件事。
+    // 前者若也返回 []，那些只断言「不含 TS2667」的用例就**假通过**了 —— 正是本文件
+    // 开头警告的「断言被缺席满足」（Windows 上 `.bin/tsc` shim 不可执行时就是这样：
+    // 控制用例红，而「真实产物编译」用例静默绿）。所以这里大声抛出去。
+    if (typeof err.status !== 'number') {
+      throw new Error(`tsc 未能启动（${TSC_ENTRY}）：${err.message}`, { cause: err });
+    }
     return String(err.stdout || '')
       .split('\n')
       .filter(l => l.includes('error TS'));
@@ -123,6 +166,18 @@ afterEach(() => {
 });
 
 describe('typed-router.d.ts · TS2667 守卫（模块增强内不得有 import）', () => {
+  it('tsc 入口可被 Node 直接启动，且不是 pnpm 的 sh shim', () => {
+    // 这条守着 Windows 上踩过的坑：`.bin/tsc` 是 POSIX 专属的 sh shim，`execFileSync` 在
+    // win32 上 ENOENT；而它一旦被吞掉（返回 []），下面只断言「不含 TS2667」的用例就会以
+    // 7ms 静默绿 —— 断言被缺席满足。所以入口必须是可被 Node 直接执行的 JS。
+    expect(TSC_ENTRY.endsWith('bin/tsc'), `unexpected tsc entry: ${TSC_ENTRY}`).toBe(true);
+    expect(TSC_ENTRY).not.toContain('.bin');
+    expect(readFileSync(TSC_ENTRY, 'utf8').startsWith('#!')).toBe(true);
+
+    const version = execFileSync(process.execPath, [TSC_ENTRY, '--version'], { encoding: 'utf8' });
+    expect(version).toMatch(/Version \d+\.\d+\.\d+/);
+  });
+
   it(
     '夹具链路有效：把 import 搬回块内必须报出 TS2667（否则守卫是假通过）',
     () => {

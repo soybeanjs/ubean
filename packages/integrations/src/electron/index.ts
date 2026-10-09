@@ -5,17 +5,26 @@
  * 1. 将 ubean 风格的 ElectronOptions 转换为 vite-plugin-electron/simple 的配置
  * 2. 透传 vite-plugin-electron 的全部能力（Hot Restart / Hot Reload / HMR / 自动启动）
  * 3. 在 Vite closeBundle hook 中自动执行 `electron .` 启动桌面应用
+ * 4. 清掉 `vite-plugin-electron` 写在项目根目录的占位 `index.html`（`./index-html-cleanup`）
  *
  * Electron main/preload 构建、进程管理、HMR 均由 vite-plugin-electron 实现。
  */
 
 export { DEFAULT_MAIN_ENTRY, DEFAULT_PRELOAD_INPUT } from './constants';
 
+export {
+  VITE_PLUGIN_ELECTRON_MOCK_INDEX_HTML,
+  ELECTRON_INDEX_CLEANUP_PLUGIN_NAME,
+  isVitePluginElectronMock,
+  createElectronIndexHtmlCleanupPlugin
+} from './index-html-cleanup';
+
 export type { ElectronOptions, ElectronMainOptions, ElectronPreloadOptions, ElectronRendererOptions } from './types';
 
 import type { Plugin } from 'vite';
 import electron from 'vite-plugin-electron/simple';
 import { DEFAULT_MAIN_ENTRY, DEFAULT_PRELOAD_INPUT } from './constants';
+import { createElectronIndexHtmlCleanupPlugin } from './index-html-cleanup';
 import type { ElectronOptions } from './types';
 
 /**
@@ -70,10 +79,15 @@ export async function ubeanElectronPlugin(options: ElectronOptions = {}): Promis
   // vite-plugin-electron/simple 返回 Plugin[]，重命名便于识别
   const pluginArray = Array.isArray(plugins) ? plugins : [plugins];
 
-  return pluginArray.map(p => ({
-    ...p,
-    name: p.name?.startsWith('ubean:') ? p.name : `ubean:electron(${p.name ?? 'unknown'})`
-  }));
+  return [
+    ...pluginArray.map(p => ({
+      ...p,
+      name: p.name?.startsWith('ubean:') ? p.name : `ubean:electron(${p.name ?? 'unknown'})`
+    })),
+    // 必须排在 vite-plugin-electron 之后：它的 `configResolved` 写出占位 `index.html`，
+    // 本插件的 `configResolved` 把它删掉。Vite 按注册顺序跑同批钩子，所以放数组末尾。
+    createElectronIndexHtmlCleanupPlugin()
+  ];
 }
 
 /**

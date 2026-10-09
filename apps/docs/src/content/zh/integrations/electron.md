@@ -1,8 +1,8 @@
 ---
 title: Electron
 description: 使用内置的 @ubean/integrations/electron 集成构建 Electron 桌面应用。
-translatedFrom: 8a30f8cd46bb
-sections: ["c6635ad1","e3b0c442","2971830a","458fcc3a","9f9a418c","37f210b4","2a4cc00f","98872d2b","8981ae7f","9504519b","0c73144c","8deb2877","89ca0bdd","9f9a879c","59c3d8b7","4218a60e","9328cd8c","5cd85299","5d36db6f"]
+translatedFrom: 387781227438
+sections: ["c6635ad1","e3b0c442","2971830a","458fcc3a","9f9a418c","37f210b4","2a4cc00f","98872d2b","8981ae7f","9504519b","0c73144c","8deb2877","89ca0bdd","9f9a879c","6de452a8","a27a733e","4218a60e","49dfd2e7","5cd85299","5d36db6f"]
 ---
 
 # Electron（桌面应用）
@@ -212,23 +212,34 @@ onMounted(async () => {
 
 ## 工作原理
 
-`@ubean/integrations/electron` 是对 `vite-plugin-electron/simple` 的薄封装。该插件会：
+`@ubean/integrations/electron`是一个薄薄的包裹`vite-plugin-electron/simple`。插件：
 
-1. **构建主进程**（`electron/main.ts` → `dist/main/index.js`），目标为 Node.js
-2. **构建 preload 脚本**（`electron/preload.ts` → `dist/preload/index.js`），使用 Electron 渲染进程上下文
-3. **与渲染进程构建协同** —— 你的 ubean 应用的客户端构建产物即渲染进程
-4. **自动启动 Electron** —— dev 模式下构建完成后执行 `electron .`
-5. **提供 HMR** —— main/preload 的改动触发 Hot Restart；渲染进程的改动走标准 Vite HMR
+1. **构建主进程**（`electron/main.ts` → `dist/main/index.js`）与Node.js目标
+2. **构建预加载脚本**（`electron/preload.ts` → `dist/preload/index.js`），并带有Electron渲染器上下文
+3. **与渲染器构建协调** —— 你的 ubean 应用客户端构建就是渲染器
+4. **构建完成后通过`electron .`自动启动Electron**
+5. **提供 HMR** —— 主进程/预加载脚本的改动触发 Hot Restart；渲染器改动走标准 Vite HMR
+6. **移除 `vite-plugin-electron` 写入的项目根目录占位 `index.html`**
+
+### 多出来的根 `index.html`
+
+`vite-plugin-electron` 通过三个来源判断 Vite 是否有入口：`build.rollupOptions.input`、`build.lib`，或项目根目录下已存在的 `index.html`。ubean 三者都不提供 —— 它的入口是**按环境**声明的（`environments.client.build.rollupOptions.input`），而且 dev 下的客户端入口是虚拟模块（`virtual:ubean-client-entry`）。于是每次 `ubean dev`，插件都会往项目根目录写一份 178 字节的占位 `index.html`。
+
+这个文件从来没被用到：`GET /` 由 ubean 的 SSR 管道响应，`GET /index.html` 返回 404。它唯一出现的地方是 `git status`。
+
+而且这个过程是**静默**的 —— 插件自己打的 `No entry found, writing mock ...` 被 ubean 的日志闸门归入信息类输出，默认隐藏，不会有任何提示告诉你它发生了。并且 `vite-plugin-electron` 只在优雅退出时清理：硬杀（`SIGKILL`、崩溃、从 IDE 停任务）会把占位文件留下，而它与下一次运行要写入的内容逐字节相同，因此会一直存活。
+
+ubean 会替你删掉它。一个注册在 `vite-plugin-electron` 之后的插件会在 `configResolved` 里删除该文件，但**只在内容与官方 mock 逐字节相同时**才删 —— 你自己写的根 `index.html` 永远不会被碰。dev server 不依赖这个文件，任何时候手动删除都可以。
 
 ## SSR 行为
 
-设置了 `electron: true` 且未显式配置 `ssr` 时，ubean 会自动把 `ssr` 设为 `false`。原因在于：
+当设置了 `electron: true` 且未显式配置 `ssr` 时，ubean 会自动设 `ssr: false`。原因：
 
-- 桌面应用在本地渲染 —— 服务端渲染带不来收益
-- 关闭 SSR 可简化构建（不必再管理 SSR bundle）
-- 渲染进程从 Vite dev server（开发态）或构建出的静态文件（生产态）加载
+- 桌面应用在本地渲染，服务端渲染没有收益
+- 关掉 SSR 能简化构建（不用管理 SSR bundle）
+- 渲染器从 Vite dev server（dev）或构建出的静态文件（生产）加载
 
-若希望保留 SSR（例如同时作为 Web 服务运行的混合应用），显式设置 `ssr: true`。
+若要保持 SSR 开启（例如同时作为 Web 服务运行的混合应用），显式设置 `ssr: true`。
 
 ## 编程式 API
 
@@ -237,7 +248,10 @@ import {
   ubeanElectronPlugin,
   defineElectronConfig,
   DEFAULT_MAIN_ENTRY,
-  DEFAULT_PRELOAD_INPUT
+  DEFAULT_PRELOAD_INPUT,
+  createElectronIndexHtmlCleanupPlugin,
+  isVitePluginElectronMock,
+  ELECTRON_INDEX_CLEANUP_PLUGIN_NAME
 } from '@ubean/integrations/electron';
 
 import type {
@@ -247,22 +261,31 @@ import type {
   ElectronRendererOptions
 } from '@ubean/integrations/electron';
 
-// 直接使用默认值
+// Use defaults directly
 const defaultEntry = DEFAULT_MAIN_ENTRY;       // 'electron/main.ts'
 const defaultPreload = DEFAULT_PRELOAD_INPUT;   // 'electron/preload.ts'
 
-// 类型安全的配置辅助函数
+// Type-safe config helper
 const config = defineElectronConfig({
   main: { entry: 'electron/main.ts' },
   preload: { input: 'electron/preload.ts' }
 });
 ```
 
-> 通常不需要直接调用 `ubeanElectronPlugin` —— 当 `ubean.config.ts` 中设置了 `electron: true` 时，模块系统会自动加载它。只有在自定义 Vite 配置中手动集成时才需要用到这套 API。
+`ubeanElectronPlugin()` 已经自动附加了清理插件；只有在你手动把封装集成进自定义 Vite 配置时，才需要下面这几个导出：
+
+| 导出 | 用途 |
+| --- | --- |
+| `createElectronIndexHtmlCleanupPlugin()` | `apply: 'serve'` 插件，负责删除该占位文件。 |
+| `isVitePluginElectronMock(content)` | 判断字符串是否为 `vite-plugin-electron` 的占位内容，可用于你自己的清理逻辑。 |
+| `VITE_PLUGIN_ELECTRON_MOCK_INDEX_HTML` | 占位内容原文，用于逐字节比对。 |
+| `ELECTRON_INDEX_CLEANUP_PLUGIN_NAME` | `'ubean:electron:index-html-cleanup'`，用于在插件列表中定位它。 |
+
+> 通常你不需要直接调用 `ubeanElectronPlugin` —— 模块系统会在 `ubean.config.ts` 设置 `electron: true` 时自动加载它。只有手动集成自定义 Vite 配置时才用这个 API。
 
 ## 打包
 
-`@ubean/integrations/electron` 只负责构建流水线，不负责把应用打成可分发的安装包。打包请使用 [`electron-builder`](https://www.electron.build/)：
+`@ubean/integrations/electron` 负责构建流程，但不打包应用进行分发。使用 [`electron-builder`](https://www.electron.build/) 进行打包：
 
 ```bash
 pnpm add -D electron-builder
@@ -297,14 +320,14 @@ linux:
 
 ## 最佳实践
 
-1. **使用默认入口**：除非有充分理由，否则就用 `electron/main.ts` 和 `electron/preload.ts` —— 这样项目结构更可预期。
+1. **使用默认条目**：除非有充分理由偏离，否则坚持使用`electron/main.ts`和`electron/preload.ts`——这样能保持项目结构的可预测性。
 
-2. **启用 contextIsolation**：BrowserWindow 的 webPreferences 中始终设置 `contextIsolation: true` 与 `nodeIntegration: false`，只通过 `contextBridge` 暴露必要的能力。
+2. **启用上下文隔离**：始终在浏览器窗口的 webPreferences 中设置 `contextIsolation: true` 和 `nodeIntegration: false`。只通过 `contextBridge` 暴露所需的内容。
 
-3. **保持主进程精简**：主进程只应处理窗口生命周期、IPC 与原生系统集成。业务逻辑放在渲染进程或 ubean 的服务端运行时里。
+3. **保持主进程精简**：主进程应仅处理窗口生命周期、IPC和原生操作系统集成。业务逻辑应属于渲染器或Ubean的服务器运行时。
 
-4. **外部化原生模块**：若使用 `better-sqlite3`、`node-pty` 这类原生模块，请在主进程的 Vite 配置中把它们标记为 external，并用 `electron-rebuild` 针对 Electron 重新编译。
+4. **外部原生模块**：如果你使用`better-sqlite3`或`node-pty`等原生模块，请在主进程的Vite配置中标记为外部，然后用`electron-rebuild`重建它们用于Electron。
 
-5. **只在需要时启用 SSR**：桌面应用几乎不需要 SSR，交给 `@ubean/integrations/electron` 自动关闭即可。
+5. **只有在需要时才启用SSR**：桌面应用几乎不需要SSR。让`@ubean/integrations/electron`自动禁用SSR。
 
-6. **为 preload 桥接声明类型**：始终为 `window.electronAPI` 声明类型，这样 main 与 renderer 之间才有端到端的类型安全。
+6. **输入预加载桥**：始终为`window.electronAPI`声明类型，以实现主渲染器和渲染器之间的端到端类型安全。

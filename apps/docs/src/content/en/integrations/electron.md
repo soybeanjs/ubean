@@ -217,6 +217,17 @@ onMounted(async () => {
 3. **Coordinates with the renderer build** — your ubean app's client build becomes the renderer
 4. **Auto-starts Electron** in dev mode via `electron .` after builds complete
 5. **Provides HMR** — changes to main/preload trigger Hot Restart; renderer changes use standard Vite HMR
+6. **Removes the stray root `index.html`** that `vite-plugin-electron` writes (see below)
+
+### The stray root `index.html`
+
+`vite-plugin-electron` decides whether Vite has an entry from three sources: `build.rollupOptions.input`, `build.lib`, or an existing `index.html` in the project root. ubean provides none of them — its entries are declared **per environment** (`environments.client.build.rollupOptions.input`) and the dev client entry is a virtual module (`virtual:ubean-client-entry`). The plugin therefore writes its own 178-byte placeholder `index.html` to your project root on every `ubean dev`.
+
+That file is never served: `GET /` is answered by ubean's SSR pipeline and `GET /index.html` returns 404. It only shows up in `git status`.
+
+It is also silent — the plugin's own `No entry found, writing mock ...` message is classified as informational by ubean's logging gate and hidden by default, so nothing tells you it happened. And `vite-plugin-electron` only cleans it up on graceful exit: a hard kill (`SIGKILL`, a crash, stopping the task from your IDE) leaves the placeholder behind, where it survives because it is byte-identical to what the next run would write.
+
+ubean removes it for you. A `enforce: 'post'`-style plugin registered after `vite-plugin-electron` deletes the file in `configResolved`, but **only when its contents match the official mock byte for byte** — a root `index.html` you wrote yourself is never touched. Nothing about the dev server depends on the file; delete it manually whenever you like.
 
 ## SSR Behavior
 
@@ -235,7 +246,10 @@ import {
   ubeanElectronPlugin,
   defineElectronConfig,
   DEFAULT_MAIN_ENTRY,
-  DEFAULT_PRELOAD_INPUT
+  DEFAULT_PRELOAD_INPUT,
+  createElectronIndexHtmlCleanupPlugin,
+  isVitePluginElectronMock,
+  ELECTRON_INDEX_CLEANUP_PLUGIN_NAME
 } from '@ubean/integrations/electron';
 
 import type {
@@ -255,6 +269,15 @@ const config = defineElectronConfig({
   preload: { input: 'electron/preload.ts' }
 });
 ```
+
+`ubeanElectronPlugin()` already appends the cleanup plugin, so you only need these two exports when integrating the wrapper into a custom Vite config by hand:
+
+| Export | Purpose |
+| --- | --- |
+| `createElectronIndexHtmlCleanupPlugin()` | The `apply: 'serve'` plugin that deletes the placeholder. |
+| `isVitePluginElectronMock(content)` | Whether a string is `vite-plugin-electron`'s placeholder. Use it to guard your own cleanup. |
+| `VITE_PLUGIN_ELECTRON_MOCK_INDEX_HTML` | The placeholder verbatim, for byte comparison. |
+| `ELECTRON_INDEX_CLEANUP_PLUGIN_NAME` | `'ubean:electron:index-html-cleanup'`, to find the plugin in a list. |
 
 > Usually you don't need to call `ubeanElectronPlugin` directly — the module system loads it automatically when `electron: true` is set in `ubean.config.ts`. Use this API only when integrating manually in a custom Vite config.
 

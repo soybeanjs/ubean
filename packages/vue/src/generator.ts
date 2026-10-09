@@ -378,7 +378,12 @@ ${views}
         ? scan.pages.map(p => `    "${p.name}": ${this.renderRouteRecordInfo(p)};`).join('\n')
         : '    // (no pages scanned)';
 
+    // `RouteRecordInfo` / `ParamValue*` 必须在**顶层**导入:文件本身已是 module(尾部有
+    // `export type {...}`),所以顶层 import 合法;而 `import` 写在 `declare module` 块**内部**
+    // 会触发 TS2667(Imports are not permitted in module augmentations)——实测该错误此前被
+    // 各 example 的 `skipLibCheck: true` 掩盖,不吃 skipLibCheck 的项目一启动 typecheck 就红。
     return `${header}
+import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne } from 'vue-router';
 
 declare module '@ubean/scan' {
   /**
@@ -424,8 +429,6 @@ ${pathMapEntries}
 }
 
 declare module 'vue-router/auto-routes' {
-  import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne } from 'vue-router';
-
   /**
    * Route named map — enables typed \`useRoute<Name>(name)\` via vue-router's
    * \`TypesConfig\` augmentation below.

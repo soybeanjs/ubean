@@ -59,7 +59,7 @@ const TYPES: ScaffoldTypeManifest[] = [
   {
     type: 'cron',
     cli: true,
-    baseDir: 'server/crons',
+    baseDir: 'crons',
     extensions: ['.ts'],
     args: [
       { name: 'path', required: true, description: 'Cron task path (e.g. daily-cleanup)' },

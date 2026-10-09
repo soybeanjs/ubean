@@ -97,7 +97,7 @@ Available resource types for creation: page, api, layout, middleware, cron, plug
 - api: API route handler under src/api/
 - layout: Layout component under src/layouts/
 - middleware: Middleware under src/middleware/
-- cron: Scheduled task under src/server/crons/
+- cron: Scheduled task under src/crons/
 - plugin: Plugin under src/plugins/
 
 When creating resources, always use the create_resource tool and confirm the path with the user if ambiguous.

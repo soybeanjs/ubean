@@ -340,16 +340,16 @@ ubean analyze --check benchmarks/bundle-baseline.json --no-write
 
 The scaffold commands create, delete, recover, and list files. Shared conventions:
 
-| Type         | Base directory      | Extension            |
-| ------------ | ------------------- | -------------------- |
-| page / reuse | `src/pages/`        | `.vue` / `.reuse.ts` |
-| api          | `src/routes/`       | `.ts`                |
-| layout       | `src/layouts/`      | `.vue`               |
-| middleware   | `src/middleware/`   | `.ts`                |
-| cron         | `src/server/crons/` | `.ts`                |
-| plugin       | `src/plugins/`      | `.ts`                |
+| Type         | Base directory    | Extension            |
+| ------------ | ----------------- | -------------------- |
+| page / reuse | `src/pages/`      | `.vue` / `.reuse.ts` |
+| api          | `src/routes/`     | `.ts`                |
+| layout       | `src/layouts/`    | `.vue`               |
+| middleware   | `src/middleware/` | `.ts`                |
+| cron         | `src/crons/`      | `.ts`                |
+| plugin       | `src/plugins/`    | `.ts`                |
 
-> **Known mismatch for cron files**: the scaffolder and DevTools write crons to `src/server/crons/`, but the scanner reads `config.dir.crons`, which defaults to **`src/crons`** (on disk in `examples/ubean-test/src/crons/01.test-cron.ts`). Move generated cron files from `src/server/crons/` to `src/crons/` — or point `dir.crons` at `server/crons` — or the scheduled task is never registered.
+> Cron files land in `src/crons/` (matches the scanner default `dir.crons`). Numeric filename prefixes control registration order (`01.cleanup.ts`).
 
 - `add` skips existing files unless `-f/--force` is passed (which creates a `.bak` backup before overwriting).
 - `delete` creates a `.bak` backup by default; `-f/--force` deletes permanently without backup.

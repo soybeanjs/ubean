@@ -163,7 +163,7 @@ async function handleSubmit() {
               Layout name without extension (e.g. "admin" → layouts/admin.vue)
             </p>
             <p v-else-if="resourceType === 'cron'" class="mt-1 text-[10px] text-muted-foreground">
-              Cron job file name (e.g. "daily" → server/crons/daily.ts)
+              Cron job file name (e.g. "daily" → crons/daily.ts)
             </p>
           </div>
 

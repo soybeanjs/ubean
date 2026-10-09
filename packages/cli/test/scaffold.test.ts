@@ -61,16 +61,16 @@ describe('scaffold() — 创建', () => {
     await expectFileExists('src/middleware/auth.ts', true);
   });
 
-  it('cron：创建 src/server/crons/cleanup.ts', async () => {
+  it('cron：创建 src/crons/cleanup.ts', async () => {
     const result = await scaffold({
       cwd: tmpDir,
       type: 'cron',
       path: 'cleanup',
       schedule: '0 * * * *'
     });
-    expect(result.created).toContain('src/server/crons/cleanup.ts');
-    await expectFileExists('src/server/crons/cleanup.ts', true);
-    const content = readFileSync(join(tmpDir, 'src/server/crons/cleanup.ts'), 'utf-8');
+    expect(result.created).toContain('src/crons/cleanup.ts');
+    await expectFileExists('src/crons/cleanup.ts', true);
+    const content = readFileSync(join(tmpDir, 'src/crons/cleanup.ts'), 'utf-8');
     expect(content).toContain('0 * * * *');
   });
 

@@ -122,7 +122,13 @@ export function createCrudServer(options: CrudServerOptions) {
 
         result = normalizeResult(scaffoldRes || ({} as ScaffoldResult));
       } else if (type === 'cron') {
-        const cronDir = 'src/server/crons';
+        // 必须与 scanner 默认一致（`DEFAULT_DIRS.crons = 'crons'`），且与 CLI 脚手架同源。
+        // 这里不再手写路径：自定义 dir.crons 也要跟着走。
+        const config = getConfig?.() ?? {};
+        const dir = (config.dir ?? {}) as Record<string, string>;
+        const rawSrcDir = (config.srcDir as string) || 'src';
+        const srcDir = isAbsolute(rawSrcDir) ? rawSrcDir : resolve(cwd, rawSrcDir);
+        const cronDir = join(srcDir, dir.crons || 'crons');
         const normalizedPath = path.startsWith('/') ? path.slice(1) : path;
         const fileName = normalizedPath.endsWith('.ts') ? normalizedPath : `${normalizedPath}.ts`;
         const filePath = join(cronDir, fileName);

@@ -40,7 +40,7 @@ The skills are hand-maintained (nothing in `packages/`, scripts or CI reads them
 2. Verify every candidate against real source in `packages/*/src` before writing it down — docs can lag behind code and vice versa.
 3. Prefer claims that cite a path or a signature (e.g. `packages/server/src/cron.ts:47 defineScheduled`); that is what makes a stale skill detectable next time.
 
-Known traps worth re-checking on every audit: auto-import defaults (`autoImports.vueRouter` / `vueI18n` / `honoOpenapi` are **off**), `build.preset` vs a top-level `preset`, `ubean/server` vs `ubean` for `validator` / `describeRoute`, and the `src/server/crons` scaffolder path vs the `src/crons` scanner default.
+Known traps worth re-checking on every audit: auto-import defaults (`autoImports.vueRouter` / `vueI18n` / `honoOpenapi` are **off**), `build.preset` vs a top-level `preset`, and `ubean/server` vs `ubean` for `validator` / `describeRoute`.
 
 ## Usage
 

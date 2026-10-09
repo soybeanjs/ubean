@@ -54,7 +54,9 @@ function getDirForType(cwd: string, type: ScaffoldType): string {
     case 'middleware':
       return join(srcDir, 'middleware');
     case 'cron':
-      return join(srcDir, 'server', 'crons');
+      // 必须与 scanner 的默认一致（`DEFAULT_DIRS.crons = 'crons'`），否则脚手架
+      // 写出的文件永远扫不到，dev 与生产都不会注册该任务
+      return join(srcDir, 'crons');
     case 'plugin':
       return join(srcDir, 'plugins');
     default:

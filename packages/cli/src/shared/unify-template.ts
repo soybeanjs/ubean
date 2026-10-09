@@ -39,6 +39,7 @@ const PACKAGE_JSON = `{
     "@soybeanjs/cli": "^1.8.1",
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.3",
+    "@valibot/to-json-schema": "^1.8.0",
     "eslint": "^10.8.0",
     "typescript": "^6.0.3",
     "vite-plus": "^0.2.6",
@@ -76,6 +77,11 @@ const TSCONFIG = `{
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true
   },
+  // .ubean/**/* 必须显式纳入：编译器默认的 include 是 **/*，但**排除**点开头目录，
+  // 于是 typed-router.d.ts / openapi.d.ts / auto-imports.d.ts 全部对 typecheck 不可见
+  // （实测：漏掉这一行时 import type { paths } from '../../.ubean/openapi' 报 TS2307，
+  // 且 RouteRecordInfo 的模块增强也不生效）。
+  "include": ["src/**/*", ".ubean/**/*"],
   "exclude": ["node_modules", "dist"]
 }
 `;

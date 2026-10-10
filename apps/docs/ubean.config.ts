@@ -23,7 +23,7 @@ export default defineConfig({
   mode: 'ssg',
   srcDir: 'src',
 
-  favicon: 'https://r2.soybeanjs.tech/soybeanjs/logo-ubean.svg?v=202608211738',
+  favicon: 'https://img.soybeanjs.dev/logo-ubean.svg?v=202608211738',
 
   i18n: {
     defaultLocale: 'en',

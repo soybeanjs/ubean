@@ -129,9 +129,9 @@ describe('useRpc 纯格式化函数', () => {
 // ---------------------------------------------------------------------------
 
 describe('useRpc 请求构造', () => {
-  it('CRUD 系列用 `ubean:crud:*` 方法名，create/update/delete 合并成单个对象参数', async () => {
+  it('CRUD 系列用 `ubean:crud-*` 方法名，create/update/delete 合并成单个对象参数', async () => {
     const fake = createFakeClient({
-      onCall: method => (method === 'ubean:crud:read' ? { success: true, content: 'x' } : { success: true })
+      onCall: method => (method === 'ubean:crud-read' ? { success: true, content: 'x' } : { success: true })
     });
     const api = useRpc({ client: async () => fake.client });
 
@@ -142,12 +142,12 @@ describe('useRpc 请求构造', () => {
     await api.crudRestore('src/pages/old.vue');
 
     // 只看 CRUD 调用；refresh 会穿插 `ubean:get-env`（创建/更新/删除/恢复成功后各一次）。
-    expect(fake.calls.filter(c => c.method.startsWith('ubean:crud:'))).toEqual([
-      { method: 'ubean:crud:read', args: [{ type: 'page', path: 'src/pages/a.vue' }] },
-      { method: 'ubean:crud:create', args: [{ type: 'page', path: 'src/pages/b.vue', method: 'GET', force: true }] },
-      { method: 'ubean:crud:update', args: [{ type: 'env', key: 'A', value: '1' }] },
-      { method: 'ubean:crud:delete', args: [{ type: 'cron', path: 'x', force: true }] },
-      { method: 'ubean:crud:restore', args: ['src/pages/old.vue'] }
+    expect(fake.calls.filter(c => c.method.startsWith('ubean:crud-'))).toEqual([
+      { method: 'ubean:crud-read', args: [{ type: 'page', path: 'src/pages/a.vue' }] },
+      { method: 'ubean:crud-create', args: [{ type: 'page', path: 'src/pages/b.vue', method: 'GET', force: true }] },
+      { method: 'ubean:crud-update', args: [{ type: 'env', key: 'A', value: '1' }] },
+      { method: 'ubean:crud-delete', args: [{ type: 'cron', path: 'x', force: true }] },
+      { method: 'ubean:crud-restore', args: ['src/pages/old.vue'] }
     ]);
     // create / update / delete / restore 各自成功后都会 refresh（重新拉 env）；read 不会。
     expect(rpcMethods(fake.calls).filter(m => m === 'ubean:get-env')).toHaveLength(4);
@@ -156,14 +156,14 @@ describe('useRpc 请求构造', () => {
   it('AI 调用透传 messages 与 provider 选项', async () => {
     const fake = createFakeClient({
       onCall: method =>
-        method === 'ubean:ai:tools' ? [] : { message: { role: 'assistant', content: 'ok', timestamp: 1 } }
+        method === 'ubean:ai-tools' ? [] : { message: { role: 'assistant', content: 'ok', timestamp: 1 } }
     });
     const api = useRpc({ client: async () => fake.client });
 
     await api.aiChat([{ role: 'user', content: 'hi' }], { model: 'm', apiKey: 'k', apiBase: 'b' });
     await api.aiGetTools();
 
-    expect(fake.calls[0].method).toBe('ubean:ai:chat');
+    expect(fake.calls[0].method).toBe('ubean:ai-chat');
     expect(fake.calls[0].args).toEqual([
       {
         messages: [{ role: 'user', content: 'hi' }],
@@ -172,15 +172,15 @@ describe('useRpc 请求构造', () => {
         apiBase: 'b'
       }
     ]);
-    expect(fake.calls[1]).toEqual({ method: 'ubean:ai:tools', args: [] });
+    expect(fake.calls[1]).toEqual({ method: 'ubean:ai-tools', args: [] });
   });
 
   it('terminal 系列参数形状', async () => {
     const fake = createFakeClient({
       onCall: method =>
-        method === 'ubean:terminal:start'
+        method === 'ubean:terminal-start'
           ? { sessionId: 's1' }
-          : method === 'ubean:terminal:poll'
+          : method === 'ubean:terminal-poll'
             ? { data: '', exited: false, exitCode: null }
             : true
     });
@@ -193,11 +193,11 @@ describe('useRpc 请求构造', () => {
     await api.terminalKill('s1');
 
     expect(fake.calls).toEqual([
-      { method: 'ubean:terminal:start', args: [{ cwd: '/tmp', cols: 80, rows: 24 }] },
-      { method: 'ubean:terminal:input', args: [{ sessionId: 's1', data: 'ls\n' }] },
-      { method: 'ubean:terminal:resize', args: [{ sessionId: 's1', cols: 120, rows: 40 }] },
-      { method: 'ubean:terminal:poll', args: [{ sessionId: 's1' }] },
-      { method: 'ubean:terminal:kill', args: [{ sessionId: 's1' }] }
+      { method: 'ubean:terminal-start', args: [{ cwd: '/tmp', cols: 80, rows: 24 }] },
+      { method: 'ubean:terminal-input', args: [{ sessionId: 's1', data: 'ls\n' }] },
+      { method: 'ubean:terminal-resize', args: [{ sessionId: 's1', cols: 120, rows: 40 }] },
+      { method: 'ubean:terminal-poll', args: [{ sessionId: 's1' }] },
+      { method: 'ubean:terminal-kill', args: [{ sessionId: 's1' }] }
     ]);
   });
 });
@@ -449,7 +449,7 @@ describe('useRpc aiChatStream', () => {
     let captured: { requestId: string } | null = null;
     const fake = createFakeClient({
       onCall: (method, args) => {
-        if (method === 'ubean:ai:chat-stream') {
+        if (method === 'ubean:ai-chat-stream') {
           captured = args[0] as { requestId: string };
           // 同一条 streamState 上混入别人（另一个流）的 chunk。
           streamState.push({ requestId: 'other-request', text: 'WRONG', done: false } as AiStreamChunk);
@@ -478,7 +478,7 @@ describe('useRpc aiChatStream', () => {
     const streamState = createManualState();
     const fake = createFakeClient({
       onCall: (method, args) => {
-        if (method === 'ubean:ai:chat-stream') {
+        if (method === 'ubean:ai-chat-stream') {
           seen.push((args[0] as { requestId: string }).requestId);
           return { message: { role: 'assistant', content: '', timestamp: 1 } };
         }

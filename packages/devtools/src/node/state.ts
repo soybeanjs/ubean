@@ -6,7 +6,7 @@
  * via `ctx.rpc.sharedState`.
  */
 import { relative, join } from 'node:path';
-import type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
+import type { DevframeNodeContext } from 'devframe/types';
 import type { SharedState } from 'devframe/utils/shared-state';
 import { maskSensitiveEnv } from '../shared/env';
 import type { DevToolsInfo, DevToolsCustomTab } from '../types';
@@ -199,10 +199,10 @@ export function emptyDevToolsInfo(startTime: number): DevToolsInfo {
 
 /**
  * Create or retrieve the `ubean:info` shared state.
- * Called once during `devtools.setup`.
+ * Called once during the devframe's `setup(ctx)`.
  */
 export async function initSharedState(
-  ctx: ViteDevToolsNodeContext,
+  ctx: DevframeNodeContext,
   initialValue: DevToolsInfo
 ): Promise<SharedState<DevToolsInfo>> {
   return ctx.rpc.sharedState.get(UBEAN_INFO_STATE_KEY, { initialValue });

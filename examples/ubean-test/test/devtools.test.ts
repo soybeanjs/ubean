@@ -67,19 +67,16 @@ describe('DevTools system', () => {
       expect(scalar.status).toBe(perMode(200, 404));
     });
 
-    it('DevTools RPC endpoint exists', async () => {
-      // The DevTools RPC path is /_devtools/rpc
-      const res = await api('/_devtools/rpc', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: 'overview.get',
-          params: {},
-          id: 'test-1'
-        })
-      });
-      // Should return some response (may be JSON-RPC or error)
-      expect(res.status).toBeLessThan(500);
+    it('devframe hub 声明了 ubean frame（RPC 宿主已接线）', async () => {
+      // 迁移前这里探 `/_devtools/rpc`（旧 DTK 的 JSON-RPC 端点）。devframe 的 RPC 走 WebSocket
+      // （`/__devframes/__ws`），HTTP 侧能断言的「宿主真的在」的凭据是 hub 的 `__index.json`：
+      // 它列出已安装的 devframe 与各端点。build 轨不挂 hub → 404（生产泄漏守卫）。
+      const res = await api('/__devframes/__index.json');
+      expect(res.status).toBe(perMode(200, 404));
+      if (res.status === 200) {
+        const body = res.data as { frames: Array<{ id: string }> };
+        expect(body.frames.map(f => f.id)).toContain('ubean');
+      }
     });
   });
 });

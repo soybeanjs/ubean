@@ -21,11 +21,13 @@ export const devtoolsCommand: CommandDef = {
         logger.info('');
         logger.info('  Access:');
         logger.info('    - Start dev server: pnpm dev');
-        logger.info('    - Open DevTools: Press Shift+Alt+D in the browser, or visit /__ubean/devtools/');
+        logger.info('    - Open the DevTools URL printed in the dev server banner (default /_devtools)');
+        logger.info('      which redirects to the devframe hub shell.');
         logger.info('');
         logger.info('  Configuration (ubean.config.ts):');
         logger.info('    devtools: {');
         logger.info('      enabled: true,     // Enable/disable DevTools (dev only)');
+        logger.info("      route: '/_devtools'  // Panel path (optional)");
         logger.info('    }');
         logger.info('');
         logger.info('  Features:');
@@ -54,7 +56,7 @@ export const devtoolsCommand: CommandDef = {
       },
       async run({ args }) {
         const port = args.port as string;
-        logger.info(`http://localhost:${port}/__ubean/devtools/`);
+        logger.info(`http://localhost:${port}/_devtools`);
       }
     }
   }

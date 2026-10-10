@@ -126,7 +126,25 @@ describe('isFrameworkHtmlPage', () => {
     expect(isFrameworkHtmlPage(url)).toBe(true);
   });
 
-  it.each(['/', '/about', '/zh/about', '/api/hello', '/_openapi.json', '/_scalarx'])('%s 不是框架内置页面', url => {
-    expect(isFrameworkHtmlPage(url)).toBe(false);
+  /**
+   * devframe hub 的整个 base 命名空间都要跳过 HTML transform：外壳页与每个 devframe 的产物都不带
+   * 应用的挂载点，且 hub 自己会给外壳注入 `embedded.js` 引导脚本 —— 再注一份应用入口就是同一页启动
+   * 两次（devframe 会在 console 报 `A client context is already published on this page`）。
+   */
+  it.each([
+    '/__devframes',
+    '/__devframes/',
+    '/__devframes/ubean/',
+    '/__devframes/ubean/index.html',
+    '/__devframes/__connection.json'
+  ])('%s 是 devframe hub 的页面（跳过应用入口注入）', url => {
+    expect(isFrameworkHtmlPage(url)).toBe(true);
   });
+
+  it.each(['/', '/about', '/zh/about', '/api/hello', '/_openapi.json', '/_scalarx', '/__devframesx'])(
+    '%s 不是框架内置页面',
+    url => {
+      expect(isFrameworkHtmlPage(url)).toBe(false);
+    }
+  );
 });

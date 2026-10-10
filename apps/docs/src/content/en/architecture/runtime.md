@@ -595,12 +595,14 @@ Preset auto-resolution is `detectPreset(hints?)` with priority **explicit > conf
 
 Modeled after Nuxt DevTools' iframe + RPC architecture, ubean ships a built-in visual DevTools panel that provides UI-driven management of config, environment variables, page routes, and API endpoints. It also exposes hooks to support persisting data to a database, and integrates an AI LLM to assist development operations.
 
+The panel is mounted on a **devframe hub** ([ADR-0014](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0014-devtools-on-devframe-hub.md)): `@ubean/devtools` is just a `DevframeDefinition`, while the shell (dock sidebar + RPC transport + auth) comes from `@devframes/hub`.
+
 #### Design Philosophy
 
-- **In-app panel**: A floating button within the app opens DevTools (`Shift+Alt+D` shortcut); UI is isolated from the app via an iframe
-- **Dev-only**: Production builds tree-shake away all DevTools code, with zero runtime overhead
-- **Bidirectional RPC**: The DevTools iframe and host app communicate via `postMessage` + a type-safe RPC channel
-- **Extensible tab system**: Built-in core tabs plus support for custom tab plugins
+- **Standalone dock panel**: open the DevTools URL printed in the dev server banner (default `/_devtools`, 302 to the hub shell); the panel is an iframe in the dock sidebar — no floating button or client script is injected into the app page
+- **Dev-only**: production builds emit no DevTools code, with zero runtime overhead
+- **Views reported by the client**: the SPA posts its view manifest to the hub shell via the frame-nav protocol (`postMessage`), and the shell composes the dock buttons; the server hardcodes no view list
+- **Extensible tab system**: Built-in core tabs plus support for custom tabs (`defineDevToolsTab`, with its registry on `globalThis`)
 - **Hooks system**: Hooks fire before/after all CRUD operations; users can listen to sync data to databases/external systems
 - **AI-driven**: Integrates an LLM so natural language can drive create/update/delete of routes/endpoints/config
 
@@ -608,53 +610,50 @@ Modeled after Nuxt DevTools' iframe + RPC architecture, ubean ships a built-in v
 
 ```
 ┌──────────────────────────────────────────────────┐
-│               ubean App (Host)                    │
-│  ┌────────────────────────────────────────────┐  │
-│  │  DevTools Floating Button (small Vue widget)│  │
-│  └────────────────────────────────────────────┘  │
-│  ┌────────────────────────────────────────────┐  │
-│  │  DevTools Iframe (standalone Vue app)       │  │
-│  │  ┌────────┬────────┬────────┬────────────┐ │  │
-│  │  │Overview│ Pages  │ Routes │ Config ... │ │  │
-│  │  ├────────┴────────┴────────┴────────────┤ │  │
-│  │  │           Tab Content                  │ │  │
-│  │  │  ┌──────────────┐  ┌────────────────┐  │ │  │
-│  │  │  │  CRUD UI     │  │  AI Chat Panel │  │ │  │
-│  │  │  └──────────────┘  └────────────────┘  │ │  │
-│  │  └────────────────────────────────────────┘ │  │
-│  └────────────────────────────────────────────┘  │
-│         ▲                    ▲                    │
-│         │ RPC (postMessage)  │ Hook Events        │
-│         ▼                    ▼                    │
-│  ┌────────────────────────────────────────────┐  │
-│  │  ubean DevTools Server (Vite plugin)       │  │
-│  │  - File system operations (read/write)     │  │
-│  │  - Route/API meta extraction               │  │
-│  │  - Code generation (d.ts updates)          │  │
-│  │  - Hook dispatch (before/after CRUD)       │  │
-│  └────────────────────────────────────────────┘  │
+│      devframe hub shell (/__devframes/)          │
+│  ┌──────────┐  ┌──────────────────────────────┐  │
+│  │dock side │  │  iframe: ubean DevTools SPA  │  │
+│  │Overview  │  │  ┌────────┬────────┬────────┐ │  │
+│  │Pages     │  │  │Overview│ Pages  │ API    │ │  │
+│  │API  ...  │  │  ├────────┴────────┴────────┤ │  │
+│  │Terminal  │  │  │        Tab Content       │ │  │
+│  └──────────┘  │  │  ┌────────┐ ┌─────────┐  │ │  │
+│       ▲        │  │  │ CRUD UI│ │AI Chat  │  │ │  │
+│       │        │  │  └────────┘ └─────────┘  │ │  │
+│       │ frame-nav (postMessage)               │ │  │
+│       ▼        │  └──────────────────────────┘  │  │
+│  ┌──────────────────────────────────────────┐   │  │
+│  │ shared RPC transport (WebSocket `__ws`)  │   │  │
+│  └──────────────────────────────────────────┘   │  │
+└──────────────────────────────────────────────────┘
+                    ▲ RPC (scoped: `ubean:*`)
+                    │ Hook Events
+┌──────────────────────────────────────────────────┐
+│  @ubean/devtools devframe (in Vite dev server)   │
+│  - File system operations (read/write)           │
+│  - Route/API meta extraction                     │
+│  - Code generation (d.ts updates)                │
+│  - Hook dispatch (before/after CRUD)             │
 └──────────────────────────────────────────────────┘
 ```
 
-#### Built-in Tabs
+#### Built-in Views
 
-| Tab | Function | Capabilities |
+These views are declared in `UBEAN_VIEWS` (`packages/devtools/client/app/views-manifest.ts`). Once the SPA boots it reports them to the hub shell over frame-nav, and each one becomes a dock button:
+
+| View | Function | Capabilities |
 | --- | --- | --- |
 | **Overview** | Project overview: ubean version, Vue version, route/API counts, plugin list, build status, startup time | Read-only |
-| **Pages** | Visual page-route management: list/tree view of all page routes, layouts, meta, reuse relationships | CRUD + preview navigation |
-| **API Routes** | API route management: list of all GET/POST/... endpoints, OpenAPI docs, built-in API testing playground | CRUD + in-browser testing |
+| **Pages** | Visual page-route management: list/tree view of all page routes, layouts, meta, reuse relationships (sub-tab switches to Layouts) | CRUD + preview navigation |
+| **API** | API route management: list of all GET/POST/... endpoints (sub-tab switches to the Playground for in-browser testing) | CRUD + in-browser testing |
+| **Middleware** | Middleware chain visualization: execution order, meta matching, timing | Read-only + create |
+| **Crons** | Cron job management: visual cron expression editing, manual trigger, execution history | CRUD + trigger |
 | **Config** | Project config editing: visually modify `ubean.config.ts`, live preview | Edit |
 | **Env** | Environment variable management: `.env` file editing, schema validation, server/client variable separation display | CRUD + validation |
-| **Layouts** | Layout component preview: component tree, slot structure, usage stats for all layouts | Read-only + create |
-| **Middlewares** | Middleware chain visualization: execution order, meta matching, timing | Read-only + create |
-| **Plugins** | Plugin list: load order, hook registration, execution time | Read-only |
-| **Cron Jobs** | Cron job management: visual cron expression editing, manual trigger, execution history | CRUD + trigger |
-| **Storage/KV** | Storage browser: browse, edit, clear unstorage data | CRUD |
+| **API Docs** | API reference browsing backed by `/_openapi.json` | Read-only |
 | **Database** | Database panel: browse Drizzle table structure, simple SQL queries (optional) | Read-only + query |
-| **Hooks** | Hook monitoring: all hookable event listeners, timing, call-chain tracing | Read-only |
-| **Virtual Files** | Virtual file viewer: `.ubean/routes.d.ts`, `.ubean/pages.d.ts`, virtual module sources | Read-only |
 | **Terminal** | Terminal panel: embedded terminal to run `ubean page add`, `ubean api add`, etc. | Interactive |
-| **AI Assistant** | AI chat panel: natural-language-driven CRUD operations | Conversational |
+| **AI** | AI chat panel: natural-language-driven CRUD operations | Conversational |
 
 #### Config Management (Config Tab)
 
@@ -668,15 +667,15 @@ Modeled after Nuxt DevTools' iframe + RPC architecture, ubean ships a built-in v
 // - DevTools' own config
 ```
 
-Config editing goes through the real DevTools RPC functions. `@ubean/devtools` registers them with `defineRpcFunction` from `@vitejs/devtools-kit`; the info/env ones are:
+Config editing goes through the real DevTools RPC functions. `@ubean/devtools` registers them with `defineUbeanRpc` on a devframe-scoped registry (`ctx.scope('ubean')`), so every wire name is `ubean:<bare-name>`; the info/env ones are:
 
 | RPC function | Type | Signature | Description |
 | --- | --- | --- | --- |
 | `ubean:get-info` | query | `() => DevToolsInfo` | Project info snapshot (versions, routes, pages, plugins); most clients subscribe to the `ubean:info` shared state and use this as a fallback |
 | `ubean:get-env` | query | `() => Record<string, string>` | Environment variables with sensitive values masked |
-| `ubean:crud:read` | query | `(params: { type: 'config' \| 'env' \| CrudResourceType, path? }) => CrudReadResult` | Read the config file, `.env` entries, or scaffolded resources |
-| `ubean:crud:update` | action | `(params: { type, path?, key?, content?, value? }) => CrudResult` | Update config values or `.env` entries (AST-safe edits, backup by default) |
-| `ubean:crud:delete` | action | `(params: { type, path?, key?, force? }) => CrudResult` | Delete files or env entries (`.bak` backup unless `force`) |
+| `ubean:crud-read` | query | `(params: { type: 'config' \| 'env' \| CrudResourceType, path? }) => CrudReadResult` | Read the config file, `.env` entries, or scaffolded resources |
+| `ubean:crud-update` | action | `(params: { type, path?, key?, content?, value? }) => CrudResult` | Update config values or `.env` entries (AST-safe edits, backup by default) |
+| `ubean:crud-delete` | action | `(params: { type, path?, key?, force? }) => CrudResult` | Delete files or env entries (`.bak` backup unless `force`) |
 
 #### Page Route CRUD (Pages Tab)
 
@@ -686,11 +685,11 @@ Full create/read/update/delete for page routes. Pages, APIs, layouts, middleware
 
 | RPC function | Type | Signature | Description |
 | --- | --- | --- | --- |
-| `ubean:crud:create` | action | `(params: { type: CrudResourceType, path, method?, schedule?, content?, force? }) => Promise<CrudResult>` | Scaffold a page / API / layout / middleware / reuse route / cron / plugin (`schedule` for crons, `method` for APIs) |
-| `ubean:crud:read` | query | `(params: { type, path? }) => Promise<CrudReadResult>` | List or read resources of a type |
-| `ubean:crud:update` | action | `(params: { type, path?, content? }) => Promise<CrudResult>` | Update a resource file |
-| `ubean:crud:delete` | action | `(params: { type, path?, force? }) => Promise<CrudResult>` | Delete a resource (creates a `.bak` backup unless `force`) |
-| `ubean:crud:restore` | action | `(path: string) => Promise<CrudResult>` | Restore a deleted file from its backup |
+| `ubean:crud-create` | action | `(params: { type: CrudResourceType, path, method?, schedule?, content?, force? }) => Promise<CrudResult>` | Scaffold a page / API / layout / middleware / reuse route / cron / plugin (`schedule` for crons, `method` for APIs) |
+| `ubean:crud-read` | query | `(params: { type, path? }) => Promise<CrudReadResult>` | List or read resources of a type |
+| `ubean:crud-update` | action | `(params: { type, path?, content? }) => Promise<CrudResult>` | Update a resource file |
+| `ubean:crud-delete` | action | `(params: { type, path?, force? }) => Promise<CrudResult>` | Delete a resource (creates a `.bak` backup unless `force`) |
+| `ubean:crud-restore` | action | `(path: string) => Promise<CrudResult>` | Restore a deleted file from its backup |
 
 `CrudResourceType` = `'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin'`; `CrudResult` reports `{ success, created?, deleted?, restored?, updated?, skipped?, errors? }`. Every operation fires the before/after hooks described below.
 
@@ -716,7 +715,7 @@ definePage({
 
 #### API Route CRUD (API Routes Tab)
 
-API routes use the same `ubean:crud:*` functions with `type: 'api'` (the optional `method` selects `GET`/`POST`/...) — there is no separate `api:*` RPC surface. The built-in testing playground invokes handlers through `ubean:playground:invoke` (`(params) => Promise<PlaygroundInvokeResult>`), executing against the dev server with cookies/auth headers attached — like Postman but zero-config.
+API routes use the same `ubean:crud-*` functions with `type: 'api'` (the optional `method` selects `GET`/`POST`/...) — there is no separate `api:*` RPC surface. The built-in testing playground invokes handlers through `ubean:playground-invoke` (`(params) => Promise<PlaygroundInvokeResult>`), executing against the dev server with cookies/auth headers attached — like Postman but zero-config.
 
 When an API is created, a handler file is auto-generated:
 
@@ -764,77 +763,54 @@ export const POST = defineHandler(
 
 #### Hooks System
 
-All DevTools operations trigger hookable events before and after. Users can register hooks to sync data to a database, trigger CI/CD, or perform permission checks:
+The DevTools CRUD service (`packages/devtools/src/server/crud.ts`) fires hookable events before and after every create/update/delete. The hook layer is built by `createDevToolsHooks()` (on top of `hookable`), and the CRUD service invokes it via `hooks.runHook(type, ctx)`:
 
 ```typescript
-// app.ts
-import { defineApp } from 'ubean';
-import { useDevToolsHooks } from 'ubean/devtools';
+// packages/devtools/src/server/hooks.ts
+import { createHooks } from 'hookable';
+import type { CrudHookContext } from '../types';
 
-export default defineApp({
-  onAppCreated(app) {
-    const hooks = useDevToolsHooks();
+export interface DevToolsHooks {
+  beforeCreate: (ctx: CrudHookContext) => void | Promise<void>;
+  afterCreate: (ctx: CrudHookContext) => void | Promise<void>;
+  // beforeUpdate / afterUpdate / beforeDelete / afterDelete are identical in shape
+}
 
-    // Before a page route is created: permission checks, pre-seeding the DB
-    hooks.hook('page:beforeCreate', async (input, context) => {
-      // e.g. write to the database
-      await db.pages.create({
-        data: { name: input.name, path: input.path, createdBy: context.user.id }
-      });
-    });
-
-    // After a page route is created: trigger a Git commit, notifications, etc.
-    hooks.hook('page:afterCreate', async (result, context) => {
-      console.log(`Page ${result.name} created by ${context.user?.name}`);
-    });
-
-    // Before an API route is created
-    hooks.hook('api:beforeCreate', async input => {
-      // validate the route path convention
-      if (!input.path.startsWith('/api/')) {
-        throw new Error('API path must start with /api/');
-      }
-    });
-
-    // Before an environment variable is updated
-    hooks.hook('env:beforeUpdate', async (key, value) => {
-      // e.g. sync to an external secret manager
-      await secretsManager.set(key, value);
-    });
-  }
-});
+export function createDevToolsHooks() {
+  const hooks = createHooks<DevToolsHooks>();
+  return {
+    registerHook: (type, handler) => hooks.hook(type, handler),
+    runHook: (type, ctx) => hooks.callHook(type, ctx),
+    removeHook: (type, handler) => hooks.removeHook(type, handler),
+    removeAllHooks: () => hooks.removeAllHooks()
+  };
+}
 ```
 
-**Complete hook list**:
+**The six hooks and their context**:
 
-| Hook name | Parameters | Description |
-| --- | --- | --- |
-| `page:beforeCreate` | `(input, ctx)` | Before page creation; can throw to abort |
-| `page:afterCreate` | `(result, ctx)` | After page creation |
-| `page:beforeUpdate` | `(name, patch, ctx)` | Before page update |
-| `page:afterUpdate` | `(name, ctx)` | After page update |
-| `page:beforeDelete` | `(name, ctx)` | Before page deletion |
-| `page:afterDelete` | `(name, ctx)` | After page deletion |
-| `api:beforeCreate` | `(input, ctx)` | Before API creation |
-| `api:afterCreate` | `(result, ctx)` | After API creation |
-| `api:beforeUpdate` | `(method, path, patch, ctx)` | Before API update |
-| `api:afterUpdate` | `(method, path, ctx)` | After API update |
-| `api:beforeDelete` | `(method, path, ctx)` | Before API deletion |
-| `api:afterDelete` | `(method, path, ctx)` | After API deletion |
-| `config:beforeUpdate` | `(patch, ctx)` | Before config update |
-| `config:afterUpdate` | `(config, ctx)` | After config update |
-| `env:beforeCreate` | `(key, value, opts, ctx)` | Before env var creation |
-| `env:afterCreate` | `(key, ctx)` | After env var creation |
-| `env:beforeUpdate` | `(key, value, ctx)` | Before env var update |
-| `env:afterUpdate` | `(key, ctx)` | After env var update |
-| `env:beforeDelete` | `(key, ctx)` | Before env var deletion |
-| `env:afterDelete` | `(key, ctx)` | After env var deletion |
-| `cron:beforeCreate` / `cron:afterCreate` | ... | Cron job CRUD |
-| `devtools:ready` | `(ctx)` | DevTools panel loaded |
-| `ai:beforeToolCall` | `(toolName, args, ctx)` | Before AI tool call; for permission/audit |
-| `ai:afterToolCall` | `(toolName, result, ctx)` | After AI tool call |
+| Hook | Fires |
+| --- | --- |
+| `beforeCreate` | Before a resource is created |
+| `afterCreate` | After a resource is created |
+| `beforeUpdate` | Before a resource is updated |
+| `afterUpdate` | After a resource is updated |
+| `beforeDelete` | Before a resource is deleted |
+| `afterDelete` | After a resource is deleted |
 
-> The **Ctx object** includes the current user info (if DevTools auth is configured), request origin, timestamp, etc.
+`CrudHookContext` has a **single uniform shape** (there are no per-resource prefixes):
+
+```typescript
+interface CrudHookContext {
+  type: CrudResourceType | 'env' | 'config'; // 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin' | 'env' | 'config'
+  path?: string;
+  key?: string;
+  content?: string;
+  value?: string;
+}
+```
+
+> **There is no public registration entry point yet.** `createDevToolsHooks()` is called internally by `createUbeanDevtoolsPlugin()`, and `@ubean/devtools` is not a dependency of `ubean` (see [ADR-0004](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0004-devtools-ai-sdk-optional-deps.md)), so applications cannot currently register hooks. To integrate an external system, go through a path other than AI/CRUD (for example, watch project file changes).
 
 #### AI Assistant (AI Assistant Tab)
 
@@ -939,72 +915,26 @@ export default defineConfig({
 
 #### RPC Communication Layer
 
-Implements a type-safe RPC over `postMessage`. DevTools is only enabled in dev mode and on loopback hosts; the RPC handshake generates a one-time session token and binds the iframe window, allowed origin, and token together. Production builds must not include DevTools RPC handlers or AI provider configuration.
+RPC is provided by the **devframe hub**; ubean implements no transport of its own. The hub opens a WebSocket (`/__devframes/__ws`) between the shell and each devframe, described by the connection metadata at `/__devframes/ubean/__connection.json`. `@ubean/devtools` only declares functions and registers them into the `ctx.scope('ubean')` namespace.
 
 ```typescript
-// src/devtools/rpc.ts
-// Host side (inside the app)
-export function createDevToolsServer({ iframeWindow, devtoolsOrigin, sessionToken }) {
-  const handlers = createRpcHandlers();
+// packages/devtools/src/node/rpc/crud.ts (excerpt)
+import { defineUbeanRpc } from './types';
 
-  window.addEventListener('message', async event => {
-    const { id, method, params, token } = event.data ?? {};
-    if (
-      event.origin !== devtoolsOrigin ||
-      event.source !== iframeWindow ||
-      token !== sessionToken ||
-      !isAllowedDevToolsMethod(method)
-    ) {
-      return;
+export const crudRpc = [
+  defineUbeanRpc({
+    name: 'crud-read', // bare name → wire name `ubean:crud-read`
+    type: 'query',
+    async handler(params) {
+      return crud.read(params);
     }
-    try {
-      await hooks.callHook(`${methodToHook(method)}:before`, ...params);
-      const result = await handlers[method](...params);
-      await hooks.callHook(`${methodToHook(method)}:after`, result);
-      iframeWindow.postMessage({ __ubean_devtools__: true, id, result }, devtoolsOrigin);
-    } catch (error) {
-      iframeWindow.postMessage({ __ubean_devtools__: true, id, error: toPublicError(error) }, devtoolsOrigin);
-    }
-  });
-}
-
-// Client side (inside the DevTools iframe)
-export function createDevToolsClient({ parentOrigin, sessionToken }) {
-  let nextId = 0;
-  const pending = new Map();
-
-  window.addEventListener('message', event => {
-    if (
-      event.origin === parentOrigin &&
-      event.source === window.parent &&
-      event.data?.__ubean_devtools__ &&
-      pending.has(event.data.id)
-    ) {
-      const { resolve, reject } = pending.get(event.data.id);
-      pending.delete(event.data.id);
-      if (event.data.error) reject(new Error(event.data.error));
-      else resolve(event.data.result);
-    }
-  });
-
-  return new Proxy(
-    {},
-    {
-      get(_, method: string) {
-        return (...params: unknown[]) =>
-          new Promise((resolve, reject) => {
-            const id = nextId++;
-            pending.set(id, { resolve, reject });
-            window.parent.postMessage(
-              { __ubean_devtools__: true, id, method, params, token: sessionToken },
-              parentOrigin
-            );
-          });
-      }
-    }
-  ) as DevToolsRPC;
-}
+  })
+] as const;
 ```
+
+On the client, `connectDevframe()` from `@devframes/hub/client` yields the connection and `client.call('ubean:crud-read', params)` invokes it; continuously changing surfaces such as scan data go through sharedState (`client.sharedState.get('ubean:info')` + `on('updated')`) instead of polling. DevTools is dev-only; production builds emit no DevTools code.
+
+> Transport and authentication (with `auth: false` it binds loopback only) belong to the hub; ubean's own security boundary is the **File Operation Safety** section below.
 
 #### File Operation Safety
 
@@ -1065,29 +995,26 @@ The DevTools client (the Vue app inside the iframe) is built with **`@vean/ui`**
 - **`@vean/aria`**: Provides unstyled functional primitives (composables, state management)
 - **CodeMirror 6**: Code editor (API Playground editing, virtual file viewing); also used for code-snippet highlighting in read-only mode
 - **fuse.js**: Fuzzy search for routes/endpoints/components
-- The DevTools client is pre-built as a single file (inlined CSS/JS) as an independent Vue app and injected via Vite virtual modules, requiring no extra dependency installation
+- The DevTools client is an independent Vue app pre-built into `@ubean/devtools`'s `dist/client/`, declared as the devframe's `clientAssets` and served statically by the hub under `/__devframes/ubean/` (the client uses `base: './'`, so a prefix change never blanks the panel)
 
-#### Extensible Custom Tabs
+#### Extensible Custom Views
 
-Users/plugins can register custom DevTools tabs:
+Users/plugins can register custom DevTools views. The registry is a **process singleton** (hung on `globalThis`), because in dev a single process often holds a second copy of `@ubean/devtools` (the CLI dynamic `import()`s one, the user's `vite.config.ts` statically imports another) — a module-level array shows up as "registered but never visible in the panel", with no error at all:
 
 ```typescript
 // plugins/my-devtools-tab.ts
 import { defineDevToolsTab } from '@ubean/devtools';
 
 export default defineDevToolsTab({
-  name: 'my-feature',
-  title: 'My Feature',
-  icon: '🔧',
-  // the tab's Vue component
-  component: () => import('./devtools/MyFeatureTab.vue'),
-  // custom RPC methods
-  rpc: {
-    'my-feature:get-data': async () => { return db.query(...); },
-    'my-feature:update-data': async (data) => { ... },
-  },
+  id: 'my-feature', // required; also determines the dock id `ubean:custom:my-feature`
+  label: 'My Feature',
+  icon: 'lucide:wand-sparkles', // Iconify name; defaults to lucide:plugin
+  src: '/my-feature/', // required: URL of your own page, opened as a standalone iframe dock
+  sandbox: ['allow-scripts', 'allow-same-origin'] // optional
 });
 ```
+
+A custom view is a **standalone iframe dock** (`ctx.docks.register`, `category: 'framework'`, `defaultOrder: 50`) pointing straight at `src` — it does not go through ubean's own SPA. To use RPC, call `connectDevframe()` inside your page and invoke your own scoped functions (see the RPC Communication Layer above).
 
 ## 4.13 CLI Command System
 
@@ -1130,7 +1057,7 @@ ubean config show                     # show the config file's location and cont
 ubean config example                  # print a complete config example
 ubean config path                     # print the resolved config file path
 
-# ─── DevTools ───
+# --- DevTools (devframe hub) ---
 ubean devtools info               # show DevTools info (how to reach it, features, config)
 ubean devtools path [--port 9527] # print the DevTools URL path
 

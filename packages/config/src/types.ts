@@ -99,8 +99,8 @@ export interface UbeanPiniaOptions {
  * DevTools 配置。
  *
  * - `devtools: true` 启用（使用默认配置）
- * - `devtools: false`（默认）禁用 — dev server 不加载 `@ubean/devtools` 与
- *   `@vitejs/devtools` 插件，不注入 DevTools 客户端脚本
+ * - `devtools: false`（默认）禁用 — dev server 不挂 devframe hub，不加载
+ *   `@ubean/devtools`，也不注入 DevTools 客户端脚本
  * - `devtools: { enabled: true, ... }` 启用并自定义
  *
  * @example
@@ -115,14 +115,17 @@ export interface DevToolsConfig {
   /**
    * 是否启用 DevTools，默认 `false`。
    *
-   * 启用后 dev server 会加载 `@ubean/devtools` Vite 插件（提供路由/页面/
-   * API/配置等可视化面板）和 `@vitejs/devtools`（提供 `devtools.setup`
-   * hook 与客户端注入脚本）。
+   * 启用后 dev server 会挂一个 devframe hub（`@devframes/vite/hub` 的
+   * `viteDevframeHub()`，提供外壳 / dock 侧栏 / RPC 传输），并把 `@ubean/devtools`
+   * 的 devframe（路由/页面/API/配置等可视化面板）挂到它上面。
    */
   enabled?: boolean;
 
   /**
    * DevTools 面板访问路径，默认 `/_devtools`。
+   *
+   * 它是**用户可见**的入口（CLI banner 印的就是它），会 302 到 devframe hub 的外壳
+   * （`/__devframes/`）；面板本身是挂在那里的一个 iframe devframe。
    */
   route?: string;
 

@@ -54,20 +54,24 @@ const VITE_URL_PREFIXES = ['/@vite/', '/@id/', '/@fs/', '/node_modules/', '/__vi
 const RESERVED_APP_PREFIXES = ['/_', '/__', '/api/'];
 
 /**
- * DevTools 相关、**必须交给 Vite** 的命名空间前缀（DTK 外壳 + ubean DevTools SPA）。
+ * DevTools 相关、**必须交给 Vite** 的命名空间前缀（devframe hub 外壳 + ubean DevTools SPA）。
  *
  * 它们全落在 `_` / `__` 保留命名空间里，判据默认会判给 ubean → 应用 404，因此调用方要把这份
- * 前缀整体传给 `passThrough`。两个条目覆盖了 DTK 实际使用的四个名字：
- * - `/__devtools` → `/__devtools/`（外壳 HTML、RPC、WS）、`/__devtools-assets/`（DTK 自带 UI
- *   的静态资源，dock 图标的 `vite-plus.svg` 就在这里）、`/__devtools-client-imports.js`
- *   （dock 客户端模块的虚拟模块）；
- * - `/_devtools` → `/_devtools/index.html`（DTK 以 iframe 载入的 SPA）及其 `assets/*` 与
- *   `/_devtools/__connection.json`。裸 `/_devtools` 由 `devtoolsRedirect` 抢先 302，不受影响。
+ * 前缀整体传给 `passThrough`。三个条目覆盖了 devframe hub 实际使用的名字：
+ * - `/__devframes` → hub base（默认 `/__devframes/`）：外壳 HTML、`__connection.json`、
+ *   `__ws`（WebSocket upgrade）、`__sse`、`__mcp`、`__client-imports.js`、每个 devframe 的
+ *   静态产物（`/__devframes/<id>/`）与远程 assets 代理；
+ * - `/_devtools` → ubean DevTools 的 devframe 挂载点（`basePath`）：`index.html` 与
+ *   `assets/*` 及 `/_devtools/__connection.json`。裸 `/_devtools` 由 `devtoolsRedirect`
+ *   抢先 302 到 hub 外壳，不受影响；
+ * - `/__devtools` → **历史条目**（旧 DTK 外壳），保留是为了兼容仍装了 `@vitejs/devtools` 的
+ *   用户项目 —— 那套外壳的 `/__devtools-assets/`、`/__devtools-client-imports.js` 仍在
+ *   `__` 命名空间里。
  *
  * 2026-09-17 实测：`/__devtools-assets/vite-plus.svg`（应用页控制台报 404）与
  * `/_devtools/index.html`（DevTools 面板空白的真凶）此前都落进了应用 404。
  */
-export const DEVTOOLS_PASS_THROUGH_PREFIXES = ['/__devtools', '/_devtools'];
+export const DEVTOOLS_PASS_THROUGH_PREFIXES = ['/__devframes', '/__devtools', '/_devtools'];
 
 /**
  * 框架内置的 **HTML 页面**（不是应用页面）：`/_scalar`（Scalar API 文档）与 `/_devtools`
@@ -83,9 +87,20 @@ export const DEVTOOLS_PASS_THROUGH_PREFIXES = ['/__devtools', '/_devtools'];
  */
 const FRAMEWORK_HTML_PAGES = ['/_devtools', '/_scalar'];
 
+/**
+ * devframe hub 自身的 base（`DEVFRAMES_HUB_BASE`）以及 hub 下的全部子路径。
+ *
+ * hub 的外壳页与 devframe 的产物都不带应用的挂载点，且 `@devframes/hub-ui` 的嵌入式引导脚本
+ * 由 hub 自己注入（`transformIndexHtml` 会再注一份应用入口 → 同一个页面被启动两次，devframe
+ * 会在 console 报 `A client context is already published on this page`）。因此整个
+ * `/__devframes/` 命名空间都跳过 HTML transform。
+ */
+const HUB_BASE_PREFIX = '/__devframes/';
+
 /** 该 URL 是否指向框架内置的 HTML 页面（见 {@link FRAMEWORK_HTML_PAGES}）。 */
 export function isFrameworkHtmlPage(url: string): boolean {
   const pathname = url.split('?')[0].split('#')[0];
+  if (pathname === HUB_BASE_PREFIX.slice(0, -1) || pathname.startsWith(HUB_BASE_PREFIX)) return true;
   return FRAMEWORK_HTML_PAGES.some(page => pathname === page || pathname.startsWith(`${page}/`));
 }
 
@@ -553,7 +568,9 @@ export function ubeanDevRequestPlugin(options: DevRequestRouterOptions): Plugin 
           const pathname = (req.url || '/').split('?')[0].split('#')[0];
           if (pathname === '/_devtools' || pathname === '/_devtools/') {
             res.statusCode = 302;
-            res.setHeader('Location', '/__devtools/');
+            // devframe hub 的默认 base（`DEVFRAMES_HUB_BASE`）：外壳（dock 侧栏 + 认证）在这里，
+            // ubean 的 DevTools SPA 作为它的一个 iframe devframe 挂在 `/_devtools/`。
+            res.setHeader('Location', '/__devframes/');
             res.end();
             return;
           }

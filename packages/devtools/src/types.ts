@@ -100,12 +100,14 @@ export interface DevToolsInfo {
 }
 
 // ---------------------------------------------------------------------------
-// Module augmentation — registers ubean's RPC functions and shared-state keys
-// with the devframe type system so `getDevToolsRpcClient()` calls are
-// type-safe on both server and client.
+// 模块增强 —— 让 `client.scope('ubean').rpc.call(...)` / `client.sharedState.get(...)`
+// 在服务端与客户端都是类型安全的。
+//
+// wire 名是**单冒号**的 `ubean:<裸名>`：devframe 的 `ctx.scope('ubean').rpc.register()`
+// 只接受不含 `:` 的裸名（带 `:` 会抛 `DF0034`），前缀由 scope 统一添加。
 // ---------------------------------------------------------------------------
 
-/** Read-result shape returned by `ubean:crud:read`. */
+/** Read-result shape returned by `ubean:crud-read`. */
 export interface CrudReadResult {
   success: boolean;
   content?: string;
@@ -113,7 +115,7 @@ export interface CrudReadResult {
   error?: string;
 }
 
-/** Params for `ubean:ai:chat`. */
+/** Params for `ubean:ai-chat`. */
 export interface AiChatParams {
   messages: import('./server/ai').AiChatMessage[];
   apiKey?: string;
@@ -121,23 +123,23 @@ export interface AiChatParams {
   model?: string;
 }
 
-declare module 'devframe' {
+declare module 'devframe/types' {
   interface DevframeRpcServerFunctions {
     'ubean:get-info': () => Promise<DevToolsInfo>;
     'ubean:get-env': () => Promise<Record<string, string>>;
-    'ubean:crud:create': (params: CreateCrudParams) => Promise<CrudResult>;
-    'ubean:crud:read': (params: ReadCrudParams) => Promise<CrudReadResult>;
-    'ubean:crud:update': (params: UpdateCrudParams) => Promise<CrudResult>;
-    'ubean:crud:delete': (params: DeleteCrudParams) => Promise<CrudResult>;
-    'ubean:crud:restore': (path: string) => Promise<CrudResult>;
-    'ubean:ai:tools': () => Promise<AiToolDefinition[]>;
-    'ubean:ai:chat': (params: AiChatParams) => Promise<AiChatResponse>;
-    'ubean:playground:invoke': (params: PlaygroundInvokeParams) => Promise<PlaygroundInvokeResult>;
-    'ubean:terminal:start': (params: TerminalStartParams) => Promise<{ sessionId: string }>;
-    'ubean:terminal:input': (params: { sessionId: string; data: string }) => Promise<boolean>;
-    'ubean:terminal:resize': (params: { sessionId: string; cols: number; rows: number }) => Promise<boolean>;
-    'ubean:terminal:poll': (params: { sessionId: string }) => Promise<TerminalPollResult>;
-    'ubean:terminal:kill': (params: { sessionId: string }) => Promise<boolean>;
+    'ubean:crud-create': (params: CreateCrudParams) => Promise<CrudResult>;
+    'ubean:crud-read': (params: ReadCrudParams) => Promise<CrudReadResult>;
+    'ubean:crud-update': (params: UpdateCrudParams) => Promise<CrudResult>;
+    'ubean:crud-delete': (params: DeleteCrudParams) => Promise<CrudResult>;
+    'ubean:crud-restore': (path: string) => Promise<CrudResult>;
+    'ubean:ai-tools': () => Promise<AiToolDefinition[]>;
+    'ubean:ai-chat': (params: AiChatParams) => Promise<AiChatResponse>;
+    'ubean:playground-invoke': (params: PlaygroundInvokeParams) => Promise<PlaygroundInvokeResult>;
+    'ubean:terminal-start': (params: TerminalStartParams) => Promise<{ sessionId: string }>;
+    'ubean:terminal-input': (params: { sessionId: string; data: string }) => Promise<boolean>;
+    'ubean:terminal-resize': (params: { sessionId: string; cols: number; rows: number }) => Promise<boolean>;
+    'ubean:terminal-poll': (params: { sessionId: string }) => Promise<TerminalPollResult>;
+    'ubean:terminal-kill': (params: { sessionId: string }) => Promise<boolean>;
   }
 
   interface DevframeRpcSharedStates {

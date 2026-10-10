@@ -1,11 +1,10 @@
 /**
- * Playground RPC function — `ubean:playground:invoke`.
+ * Playground RPC function — `playground-invoke`（裸名，注册到 `ubean` scope）。
  *
- * Forwards an HTTP request to the Hono app in-process (no network
- * round-trip), mirroring the `internalFetch` / `callInternal` pattern
- * used elsewhere in ubean.
+ * 在进程内把 HTTP 请求转给 Hono app（无网络往返），与框架其余处的
+ * `internalFetch` / `callInternal` 同一思路。
  */
-import { defineRpcFunction } from '@vitejs/devtools-kit';
+import { defineUbeanRpc } from './types';
 
 export interface PlaygroundInvokeParams {
   method: string;
@@ -21,11 +20,13 @@ export interface PlaygroundInvokeResult {
   headers: Record<string, string>;
 }
 
-export function createPlaygroundRpcFunctions(opts: {
+export interface PlaygroundRpcDeps {
   getApp?: () => { fetch: (req: Request) => Response | Promise<Response> } | undefined;
-}) {
-  const playgroundInvoke = defineRpcFunction({
-    name: 'ubean:playground:invoke',
+}
+
+export function createPlaygroundRpcFunctions(opts: PlaygroundRpcDeps) {
+  const playgroundInvoke = defineUbeanRpc({
+    name: 'playground-invoke',
     type: 'action',
     setup: () => ({
       handler: async (params: PlaygroundInvokeParams): Promise<PlaygroundInvokeResult> => {
@@ -72,5 +73,5 @@ export function createPlaygroundRpcFunctions(opts: {
     })
   });
 
-  return [playgroundInvoke];
+  return [playgroundInvoke] as const;
 }

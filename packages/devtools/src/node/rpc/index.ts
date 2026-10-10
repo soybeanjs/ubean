@@ -1,9 +1,13 @@
 /**
- * Aggregates all ubean devtools RPC function definitions.
+ * 汇总本包全部 RPC 函数定义（**裸名**，注册到 `ubean` scope）。
  *
- * Each sub-module returns an array of `RpcFunctionDefinition` objects
- * produced by `defineRpcFunction`. The plugin registers them all via
- * `ctx.rpc.register(fn)` during `devtools.setup`.
+ * 调用方（`ubeanDevframe` 的 `setup`）用 `ctx.scope(UBEAN_RPC_NAMESPACE).rpc.register(fn)`
+ * 逐个注册 —— scope 会统一加 `ubean:` 前缀，因此这里**不能**写带 `:` 的名字
+ * （devframe 的 `prefixDefinition` 会抛 `DF0034`）。
+ *
+ * `UbeanRpcFunctions` 是定义元组类型：注册端与客户端都从它的
+ * `RpcDefinitionsToFunctionsWithNamespace<'ubean', UbeanRpcFunctions>`
+ * 推导 wire 签名，签名只有一处来源。
  */
 import type { SharedState } from 'devframe/utils/shared-state';
 import type { DevToolsAiServer } from '../../server/ai';
@@ -26,13 +30,9 @@ export interface RpcDeps {
 }
 
 /**
- * Returns an array of `defineRpcFunction` definitions. The return type is
- * intentionally loose (`any[]`) because the DTK `ctx.rpc.register()` accepts
- * definitions parameterized on `ViteDevToolsNodeContext`, and the exact
- * generic instantiation varies per function — the individual functions are
- * already type-checked at their definition site.
+ * 全部 RPC 定义（裸名）。`setup` 里逐个 `ctx.scope('ubean').rpc.register(fn)`。
  */
-export function createAllRpcFunctions(deps: RpcDeps): any[] {
+export function createAllRpcFunctions(deps: RpcDeps) {
   return [
     ...createInfoRpcFunctions({ state: deps.state, getEnvData: deps.getEnvData }),
     ...createCrudRpcFunctions(deps.crud),
@@ -41,3 +41,10 @@ export function createAllRpcFunctions(deps: RpcDeps): any[] {
     ...createTerminalRpcFunctions(deps.terminal)
   ];
 }
+
+/**
+ * 全部 RPC 定义的元组类型（每个子模块返回 `as const` 元组，故这里是精确的窄元组）。
+ * 客户端侧的 wire 签名由 `RpcDefinitionsToFunctionsWithNamespace<'ubean', UbeanRpcFunctions>`
+ * 推导。
+ */
+export type UbeanRpcFunctions = ReturnType<typeof createAllRpcFunctions>;

@@ -24,7 +24,7 @@ export default defineConfig({
   },
   shortcuts: [
     {
-      // --- Vite DevTools semantic tokens (mirror @vitejs/devtools-ui) ---
+      // --- DevTools semantic tokens (mirror the devframe hub UI design system) ---
       // Concrete light/dark values so panels render identically to the Vite
       // built-in panels regardless of shadcn token resolution.
       'bg-secondary': 'bg-#eee dark:bg-#222',

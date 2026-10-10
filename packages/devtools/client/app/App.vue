@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { SConfigProvider, SIcon } from '@vean/ui';
+import { useFrameTabs } from './composables/useFrameTabs';
 import { useRpc } from './composables/useRpc';
 import type { CrudResourceType } from './composables/useRpc';
 import CreateDialog from './components/CreateDialog.vue';
@@ -8,6 +9,7 @@ import EditDialog from './components/EditDialog.vue';
 import EnvEditDialog from './components/EnvEditDialog.vue';
 import FloatingAiButton from './components/FloatingAiButton.vue';
 import PageMetaDialog from './components/PageMetaDialog.vue';
+import { UBEAN_VIEWS } from './views-manifest';
 import AiAssistant from './views/AiAssistant.vue';
 import ApiDocs from './views/ApiDocs.vue';
 import ApiPlayground from './views/ApiPlayground.vue';
@@ -47,12 +49,28 @@ const {
 } = useRpc();
 
 // --- Hash-based routing ---
-// Each dock entry points to /_devtools/index.html#/<route>.
-// DTK dock shell provides navigation; the SPA renders only the matching view.
-const route = computed(() => {
-  const hash = window.location.hash.slice(2); // remove '#/'
-  return hash || 'overview';
+// 视图切换由 devframe 的 frame-nav 驱动（hub 外壳的 member dock → postMessage → 这里改
+// hash），但 hash 仍是**唯一真相源**：SPA 也可以直接打开（`/_devtools/#/pages`），
+// 因此监听 `hashchange` 而不是只在收到 navigate 时改状态。
+const route = ref(window.location.hash.slice(2) || 'overview');
+
+function navigateTo(view: string) {
+  if (route.value === view) return;
+  window.location.hash = `#/${view}`;
+}
+
+// frame-nav shim：把视图清单报给 hub 外壳（合成 dock 侧栏），并响应它的软导航。
+useFrameTabs({
+  tabs: UBEAN_VIEWS,
+  current: () => route.value,
+  onNavigate: navigateTo
 });
+
+function onHashChange() {
+  route.value = window.location.hash.slice(2) || 'overview';
+}
+onMounted(() => window.addEventListener('hashchange', onHashChange));
+onUnmounted(() => window.removeEventListener('hashchange', onHashChange));
 
 // --- Sub-tab state for grouped views ---
 const apiSubTab = ref<'routes' | 'playground'>('routes');

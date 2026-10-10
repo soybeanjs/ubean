@@ -39,7 +39,22 @@ export default defineConfig({
     outDir: 'dist',
     entry: ['src/index.ts', 'src/cli.ts'],
     deps: {
-      neverBundle: [/^@ubean\//, /^node:/, /^@vitejs\//, 'citty', 'pathe', 'kolorist', 'vite', '@vitejs/plugin-vue']
+      // `@devframes/*` / `devframe` 必须外部化：`@devframes/hub-ui` 的 `clientDir()` 用
+      // `fileURLToPath(new URL('.', import.meta.url))` 定位自己的 `dist/client/`（embedded.js /
+      // standalone SPA）。被内联进本包产物后那个基准会变成 `packages/cli/dist/`，于是
+      // `/__devframes/embedded.js` 去读一个不存在的文件 → 500、面板整个打不开。
+      neverBundle: [
+        /^@ubean\//,
+        /^node:/,
+        /^@vitejs\//,
+        /^@devframes\//,
+        'devframe',
+        'citty',
+        'pathe',
+        'kolorist',
+        'vite',
+        '@vitejs/plugin-vue'
+      ]
     }
   }
 });

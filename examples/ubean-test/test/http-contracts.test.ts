@@ -556,17 +556,26 @@ describe('HTTP contracts (TS-35：L3 HTTP 用例下沉)', () => {
     });
 
     // ← 原 11-devtools-openapi.e2e.spec.ts "redirects /_devtools to the devtools UI (302)"
-    it('GET /_devtools redirects to the devtools UI', async () => {
+    // 现在落到 devframe hub 外壳（ADR-0014）：`/_devtools` 302 → `/__devframes/`。
+    it('GET /_devtools redirects to the devframe hub shell', async () => {
       const res = await api('/_devtools');
       expect(res.status).toBe(302);
-      expect(res.headers.get('location')).toContain('devtools');
+      expect(res.headers.get('location')).toBe('/__devframes/');
     });
 
     // ← 原 11-devtools-openapi.e2e.spec.ts "returns HTML content for the devtools UI"
-    it('GET /__devtools/ serves the devtools HTML', async () => {
-      const res = await api('/__devtools/');
+    // 面板本身是 hub 里的一个 iframe devframe（`/__devframes/ubean/`），
+    // 连接元数据在 `/__devframes/ubean/__connection.json`。
+    it('GET /__devframes/ serves the devframe hub shell', async () => {
+      const res = await api('/__devframes/');
       expect(res.status).toBe(200);
       expect(res.headers.get('Content-Type')).toContain('text/html');
+    });
+
+    it('GET /__devframes/ubean/__connection.json exposes the DevTools connection meta', async () => {
+      const res = await api('/__devframes/ubean/__connection.json');
+      expect(res.status).toBe(200);
+      expect(res.headers.get('Content-Type')).toContain('json');
     });
   });
 });

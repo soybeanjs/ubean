@@ -281,13 +281,14 @@ export const GET = defineHandler(
 
 ### Built-in / Internal Routes
 
-| Route                           | Method   | Description                                      |
-| ------------------------------- | -------- | ------------------------------------------------ |
-| `/_health`                      | GET      | Health check endpoint                            |
-| `/_openapi.json`                | GET      | OpenAPI 3.1 spec (dev)                           |
-| `/_scalar`                      | GET      | Scalar API docs UI (dev)                         |
-| `/_iconify`                     | GET      | Local icon collection dev server (`@ubean/icon`) |
-| `/_devtools` / `/_devtools/rpc` | GET/POST | DevTools iframe + RPC (dev only)                 |
+| Route             | Method   | Description                                                             |
+| ----------------- | -------- | ----------------------------------------------------------------------- |
+| `/_health`        | GET      | Health check endpoint                                                   |
+| `/_openapi.json`  | GET      | OpenAPI 3.1 spec (dev)                                                  |
+| `/_scalar`        | GET      | Scalar API docs UI (dev)                                                |
+| `/_iconify`       | GET      | Local icon collection dev server (`@ubean/icon`)                        |
+| `/_devtools`      | GET      | DevTools entry (dev; 302 → devframe hub shell `/__devframes/`)          |
+| `/__devframes/**` | GET/POST | devframe hub (dev): shell, `__connection.json`, `__ws`, devframe assets |
 
 ## Document Routes
 
@@ -497,13 +498,16 @@ Priority for all three app-level slots: `defineApp({ appRoot })` > `src/app.vue`
 
 ### 6. DevTools
 
-- iframe-based panel injected in dev only (production tree-shaken)
-- RPC over `postMessage` with session token + origin binding
-- Built-in tabs: Overview, Pages, API Routes, Middlewares, Layouts, Cron Jobs, Env Vars, Config, API Playground, AI Assistant
+- devframe-based dock panel, dev only (production emits no DevTools code)
+- `@ubean/devtools` is a `DevframeDefinition`; the shell (dock sidebar, RPC transport, auth) comes from `@devframes/hub`
+- Entry: `/_devtools` (302 → hub shell `/__devframes/`); the panel is an iframe devframe at `/__devframes/ubean/`
+- Views are reported by the SPA over the frame-nav `postMessage` protocol — the server hardcodes no view list
+- RPC goes through a devframe-scoped registry (`ctx.scope('ubean')`), so wire names are `ubean:<bare-name>` (e.g. `ubean:crud-read`)
+- Built-in views: Overview, Pages, API, Middleware, Crons, Config, Env, API Docs, Database, Terminal, AI
 - CRUD operations share logic with CLI (`packages/cli/src/shared/fs-ops.ts`)
 - Hookable CRUD lifecycle (`page:beforeCreate`, `api:afterUpdate`, `env:beforeDelete`, ...)
 - AI assistant with LLM function calling driving CRUD via RPC
-- `defineDevToolsTab(tab)` (`@ubean/devtools`) registers a custom panel tab; modules can also add one via the kit's `addDevToolsTab()`
+- `defineDevToolsTab(tab)` (`@ubean/devtools`) registers a custom DevTools view — it becomes a standalone iframe dock (`ubean:custom:<id>`) pointing at `tab.src` (registry lives on `globalThis` so dev's duplicate module instances agree)
 
 ### 7. Platform Presets
 
@@ -1081,7 +1085,7 @@ Preset membership: `UBEAN_CLIENT_PRESET` (`ubean/client`) covers `definePage`, `
 
 - **Project docs**: `/docs/`
 - **CLI help**: `ubean --help`
-- **DevTools**: open the floating button in dev (or `Shift+Alt+D`)
+- **DevTools**: open the DevTools URL printed in the dev server banner (default `/_devtools`, redirects to the devframe hub shell)
 - **OpenAPI UI**: `/_scalar` in dev
 - **Agent guide**: `/AGENTS.md` (project root)
 - **Full docs source**: `apps/docs/src/content/` (en + zh) — there is **no** `skills/ubean/docs/` directory

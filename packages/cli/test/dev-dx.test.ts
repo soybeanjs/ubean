@@ -249,7 +249,9 @@ describe('dev DX 走查（浏览器内真实交互）', () => {
     const html = await response.text();
     // 外壳是预构建 SPA：能返回 HTML 且引用了脚本即算可进入（不锁 UI 结构）
     expect(html).toContain('<script');
-    expect(response.url).toContain('/__devtools');
+    // `/_devtools` 302 到 devframe hub 的外壳（`/__devframes/`）；ubean 的面板是挂在它下面的
+    // 一个 iframe devframe（`/__devframes/ubean/`）。
+    expect(response.url).toContain('/__devframes');
   }, 60_000);
 
   it('Server Action 表单：浏览器内提交、无整页刷新、错误回填', async () => {

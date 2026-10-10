@@ -665,10 +665,10 @@ ubean devtools <info|path>
 
 **Subcommands:**
 
-| Subcommand | Options                 | Description                                                         |
-| ---------- | ----------------------- | ------------------------------------------------------------------- |
-| `info`     | -                       | Show DevTools information (access shortcuts, config, features)      |
-| `path`     | `--port` (default 9527) | Print the DevTools URL: `http://localhost:<port>/__ubean/devtools/` |
+| Subcommand | Options                 | Description                                                    |
+| ---------- | ----------------------- | -------------------------------------------------------------- |
+| `info`     | -                       | Show DevTools information (access shortcuts, config, features) |
+| `path`     | `--port` (default 9527) | Print the DevTools URL: `http://localhost:<port>/_devtools`    |
 
 **Examples:**
 
@@ -680,7 +680,7 @@ ubean devtools path
 ubean devtools path --port 3000
 ```
 
-In the browser, DevTools can be opened with `Shift+Alt+D` or by visiting `/__ubean/devtools/` while the dev server is running.
+In the browser, DevTools can be opened by visiting the URL printed in the dev server banner (default `/_devtools`) while the dev server is running; it redirects to the devframe hub shell, which hosts the panel as an iframe devframe.
 
 ## Global Options
 

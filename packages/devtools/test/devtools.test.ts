@@ -708,22 +708,27 @@ describe('createAllRpcFunctions', () => {
     expect(fns.length).toBe(16); // 2 info + 5 crud + 3 ai + 1 playground + 5 terminal
 
     const names = fns.map((f: any) => f.name);
-    expect(names).toContain('ubean:get-info');
-    expect(names).toContain('ubean:get-env');
-    expect(names).toContain('ubean:crud:create');
-    expect(names).toContain('ubean:crud:read');
-    expect(names).toContain('ubean:crud:update');
-    expect(names).toContain('ubean:crud:delete');
-    expect(names).toContain('ubean:crud:restore');
-    expect(names).toContain('ubean:ai:tools');
-    expect(names).toContain('ubean:ai:chat');
-    expect(names).toContain('ubean:ai:chat-stream');
-    expect(names).toContain('ubean:playground:invoke');
-    expect(names).toContain('ubean:terminal:start');
-    expect(names).toContain('ubean:terminal:input');
-    expect(names).toContain('ubean:terminal:resize');
-    expect(names).toContain('ubean:terminal:poll');
-    expect(names).toContain('ubean:terminal:kill');
+    // 定义里是**裸名**：`ctx.scope('ubean')` 注册时才加 `ubean:` 前缀（devframe 的
+    // `prefixDefinition` 拒绝含 `:` 的名字，会抛 DF0034）。wire 名因此是单冒号的
+    // `ubean:crud-create`，不是旧的 `ubean:crud:create`。
+    expect(names).toContain('get-info');
+    expect(names).toContain('get-env');
+    expect(names).toContain('crud-create');
+    expect(names).toContain('crud-read');
+    expect(names).toContain('crud-update');
+    expect(names).toContain('crud-delete');
+    expect(names).toContain('crud-restore');
+    expect(names).toContain('ai-tools');
+    expect(names).toContain('ai-chat');
+    expect(names).toContain('ai-chat-stream');
+    expect(names).toContain('playground-invoke');
+    expect(names).toContain('terminal-start');
+    expect(names).toContain('terminal-input');
+    expect(names).toContain('terminal-resize');
+    expect(names).toContain('terminal-poll');
+    expect(names).toContain('terminal-kill');
+    // 一条防回归：定义里**不允许**出现带 `:` 的名字（会被 scope 注册拒掉）。
+    expect(names.filter((n: string) => n.includes(':'))).toEqual([]);
   });
 });
 
@@ -737,10 +742,16 @@ describe('ubeanDevtoolsPlugin', () => {
     expect(plugin.name).toBe('ubean:devtools');
   });
 
-  it('has a devtools.setup hook', () => {
+  it('carries the devframe definition for the hub to mount', () => {
     const plugin = ubeanDevtoolsPlugin({ getCwd: () => '.' });
-    expect(plugin.devtools).toBeDefined();
-    expect(typeof plugin.devtools?.setup).toBe('function');
+    const def = plugin.__ubeanDevframe;
+    expect(def.id).toBe('ubean');
+    expect(def.name).toBe('Ubean DevTools');
+    expect(typeof def.setup).toBe('function');
+    // DevTools 写真实文件，静态导出只会得到一个不能写的空壳。
+    expect(def.capabilities?.build).toBe(false);
+    // 挂载在用户可见的 `/_devtools/`（不是 hub 默认的 `/__ubean/`）。
+    expect(def.basePath).toBe('/_devtools/');
   });
 
   it('accepts all option accessors', () => {
@@ -756,9 +767,9 @@ describe('ubeanDevtoolsPlugin', () => {
     expect(plugin.name).toBe('ubean:devtools');
   });
 
-  it('uses default getCwd when not provided', () => {
-    const plugin = ubeanDevtoolsPlugin();
-    expect(plugin.name).toBe('ubean:devtools');
+  it('accepts a custom basePath (devtools.route)', () => {
+    const plugin = ubeanDevtoolsPlugin({ getCwd: () => '.', basePath: '/_dt/' });
+    expect(plugin.__ubeanDevframe.basePath).toBe('/_dt/');
   });
 });
 

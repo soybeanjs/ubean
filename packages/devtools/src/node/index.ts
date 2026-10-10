@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { Plugin, Connect } from 'vite';
-import type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
+import type { Plugin } from 'vite';
+import type { DevframeHubContext } from '@devframes/hub';
+import type { DevframeDefinition, DevframeNodeContext } from 'devframe/types';
+import type { SharedState } from 'devframe/utils/shared-state';
 import { maskSensitiveEnv } from '../shared/env';
 import { createDevToolsHooks } from '../server/hooks';
 import { createAiServer } from '../server/ai';
@@ -13,6 +15,7 @@ import { createTerminalServer } from '../server/terminal';
 import type { TerminalServer } from '../server/terminal';
 import type { DevToolsCustomTab, DevToolsInfo, DevToolsScaffoldOps } from '../types';
 import { createAllRpcFunctions } from './rpc';
+import { UBEAN_AI_STREAM_STATE_KEY, UBEAN_RPC_NAMESPACE } from './rpc/types';
 import {
   buildDevToolsInfo,
   emptyDevToolsInfo,
@@ -22,10 +25,11 @@ import {
 } from './state';
 import type { ScanResultLike, DevToolsConfigMeta } from './state';
 
-export { defineRpcFunction } from '@vitejs/devtools-kit';
-export type { ViteDevToolsNodeContext } from '@vitejs/devtools-kit';
 export { buildDevToolsInfo, emptyDevToolsInfo, UBEAN_INFO_STATE_KEY };
 export type { ScanResultLike, DevToolsConfigMeta };
+// anchor dock 的共享 iframe 配置（`frameId` / `subTabs` / `visibility`）属于
+// `DevframeViewIframe`，必须经 `ctx.install(def, { dock })` 传入 —— CLI 从这里取。
+export { UBEAN_ANCHOR_DOCK } from './rpc/types';
 
 /**
  * Options injected by the ubean dev runner so the DevTools plugin can reach
@@ -70,245 +74,175 @@ export interface UbeanDevtoolsPluginOptions {
    * via sharedState — replacing the old 3s polling pattern.
    */
   registerRefresh?: (fn: () => void) => void;
+  /**
+   * Mount base for the DevTools SPA. Defaults to `/_devtools/`.
+   *
+   * devframe 的约定是每个 devframe 挂在 hub base 的 `<id>/` 下；ubean 保留
+   * `/_devtools/` 作为**用户可见**的路径（CLI banner、文档、`devtools` 命令都印它），
+   * 与 Vite 自己的 `/__devtools/` 外壳互不干扰。SPA 产物必须用相对 base 构建
+   * （见 `client/vite.config.ts` 的 `base: './'`），否则换前缀就白屏。
+   */
+  basePath?: string;
 }
 
 /**
  * Path to the pre-built client SPA. Resolved relative to the built server
- * bundle (`dist/index.mjs`), so this points to `dist/client/` at runtime.
+ * bundle (`dist/index.js`), so this points to `dist/client/` at runtime.
  */
 const CLIENT_DIST = resolve(dirname(fileURLToPath(import.meta.url)), 'client');
 
 /**
- * Ubean DevTools as a Vite plugin.
+ * 构建 `@ubean/devtools` 的 devframe 定义。
  *
- * Registers a dock entry (iframe pointing at the pre-built SPA), hosts the
- * SPA's static assets, and wires up the type-safe RPC + sharedState used by
- * the SPA. This replaces the previous Hono-middleware-based transport with
- * the Vite DevTools Kit (DTK) birpc + shared-state machinery.
+ * 与旧 DTK 接线的区别：
+ * - 不再手动 `ctx.views.hostStatic` / 手写 11 个 dock entry —— hub 的 `ctx.install()`
+ *   负责服务 SPA、注册 anchor dock 与 `__connection.json`；
+ * - 不再有那段 `__connection.json` 转发 hack（hub 的 `mountConnectionMeta` 原生支持）；
+ * - RPC 走 `ctx.scope('ubean')`，裸名注册（`get-info` → wire 名 `ubean:get-info`）。
  */
-export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions = { getCwd: () => process.cwd() }): Plugin {
+export function createUbeanDevframe(options: UbeanDevtoolsPluginOptions): DevframeDefinition {
+  const basePath = options.basePath ?? '/_devtools/';
+
   return {
-    name: 'ubean:devtools',
-    devtools: {
-      async setup(ctx: ViteDevToolsNodeContext) {
-        // eslint-disable-next-line no-console
-        console.log('[ubean:devtools] devtools.setup hook fired — DTK integration active');
+    id: 'ubean',
+    name: 'Ubean DevTools',
+    version: '0.6.1',
+    packageName: '@ubean/devtools',
+    homepage: 'https://github.com/SoybeanJS/ubean',
+    description: 'Ubean 项目的路由 / 页面 / API / 配置 / 终端 / AI 可视化面板。',
+    // 解析基准：让 hub 用**本包自己的依赖图**解析 client assets 与远程资源，
+    // 而不是消费方 app 的（devframe 的 importMetaUrl 契约）。
+    importMetaUrl: import.meta.url,
+    icon: 'https://img.soybeanjs.dev/logo-ubean.svg?v=202608192144',
+    basePath,
+    // DevTools 写真实文件（页面 / API / 布局增删改），静态导出只会得到一个不能写的空壳。
+    capabilities: { build: false },
+    clientAssets: CLIENT_DIST,
+    dock: {
+      title: 'Ubean',
+      defaultOrder: 100,
+      category: 'framework'
+    },
+    setup: async (nodeCtx: DevframeNodeContext) => {
+      // devframe 把 `setup(ctx)` 的类型写成框架中立的 `DevframeNodeContext`，但 hub 实际传入的
+      // 是自己的 `DevframeHubContext`（多出 docks / terminals / messages / commands）。
+      // 这是 devframe 的已知类型缺口，不是运行时风险：`ctx.install()` 只在 hub 内可用。
+      const ctx = nodeCtx as DevframeHubContext;
+      const cwd = options.getCwd();
+      const startTime = Date.now();
+      const scoped = ctx.scope(UBEAN_RPC_NAMESPACE);
+      const envData = snapshotEnv(cwd);
 
-        // 1. Host the pre-built SPA static assets (replaces runtime/middleware.ts).
-        ctx.views.hostStatic('/_devtools/', CLIENT_DIST);
-
-        // 1b. Serve `__connection.json` at both the SPA base (`/_devtools/`)
-        //     and the site root (`/`) so the client can discover the WebSocket
-        //     endpoint:
-        //       - When opened directly at `/_devtools/index.html`, the SPA
-        //         fetches `/_devtools/__connection.json`.
-        //       - The auto-injected inspector.js (devframe/DTK) fetches
-        //         `/__connection.json` from the page origin.
-        //     DTK itself hosts the canonical metadata at `/__devtools/__connection.json`
-        //     (note the double-underscore prefix — that's DTK's own mount point,
-        //     separate from our single-underscore `/_devtools/` SPA base).
-        //     We proxy to that canonical endpoint using the request's Host
-        //     header (instead of `viteServer.resolvedUrls` which may not be
-        //     populated yet when the devtools.setup hook fires). We also
-        //     rewrite websocket.path to an absolute path so it resolves
-        //     correctly no matter which URL the client fetched meta from.
-        const viteServer = ctx.viteServer;
-        if (viteServer?.middlewares) {
-          const serveConnectionMeta: Connect.NextHandleFunction = (req, res) => {
-            const protocol = req.headers['x-forwarded-proto'] || 'http';
-            const host = req.headers.host || 'localhost:9527';
-            const targetUrl = `${protocol}://${host}/__devtools/__connection.json`;
-
-            fetch(targetUrl)
-              .then(async metaRes => {
-                const meta = await metaRes.json();
-
-                if (meta.websocket && typeof meta.websocket === 'object') {
-                  meta.websocket = { ...meta.websocket, path: '/__devtools/__ws' };
-                }
-
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify(meta));
-              })
-              .catch(() => {
-                res.statusCode = 500;
-                res.setHeader('Content-Type', 'application/json');
-                res.end(JSON.stringify({ error: 'Failed to resolve connection meta' }));
-              });
-          };
-          viteServer.middlewares.use('/_devtools/__connection.json', serveConnectionMeta);
-          viteServer.middlewares.use('/__connection.json', serveConnectionMeta);
-        }
-
-        // 2. Register dock entries — one per view (or grouped domain).
-        //    Routes + Playground share an iframe to preserve the "try route"
-        //    cross-view interaction; Middlewares + Layouts are grouped as
-        //    "Structure". DTK dock shell provides navigation chrome; the SPA
-        //    renders only the view matching `window.location.hash`.
-        const SPA_BASE = '/_devtools/index.html';
-        const dockEntries = [
-          {
-            id: 'ubean:overview',
-            title: 'Overview',
-            icon: 'lucide:layout-dashboard',
-            url: `${SPA_BASE}#/overview`,
-            order: 100
-          },
-          { id: 'ubean:pages', title: 'Pages', icon: 'lucide:file-text', url: `${SPA_BASE}#/pages`, order: 95 },
-          { id: 'ubean:api', title: 'API', icon: 'lucide:send', url: `${SPA_BASE}#/api`, order: 90 },
-          {
-            id: 'ubean:middleware',
-            title: 'Middleware',
-            icon: 'lucide:layers',
-            url: `${SPA_BASE}#/middleware`,
-            order: 85
-          },
-          { id: 'ubean:crons', title: 'Crons', icon: 'lucide:clock', url: `${SPA_BASE}#/crons`, order: 80 },
-          { id: 'ubean:config', title: 'Config', icon: 'lucide:settings', url: `${SPA_BASE}#/config`, order: 75 },
-          { id: 'ubean:env', title: 'Env', icon: 'lucide:terminal', url: `${SPA_BASE}#/env`, order: 70 },
-          {
-            id: 'ubean:api-docs',
-            title: 'API Docs',
-            icon: 'lucide:book-open',
-            url: `${SPA_BASE}#/api-docs`,
-            order: 65
-          },
-          { id: 'ubean:database', title: 'Database', icon: 'lucide:database', url: `${SPA_BASE}#/database`, order: 60 },
-          {
-            id: 'ubean:terminal',
-            title: 'Terminal',
-            icon: 'lucide:square-terminal',
-            url: `${SPA_BASE}#/terminal`,
-            order: 58
-          },
-          { id: 'ubean:ai', title: 'AI', icon: 'lucide:sparkles', url: `${SPA_BASE}#/ai`, order: 55 }
-        ];
-        for (const entry of dockEntries) {
-          ctx.docks.register({
-            id: entry.id,
-            title: entry.title,
-            icon: entry.icon,
-            type: 'iframe',
-            url: entry.url,
-            category: 'framework',
-            defaultOrder: entry.order
-          });
-        }
-
-        // 3. Build the initial DevToolsInfo snapshot from scan + config data.
-        const startTime = Date.now();
-        const customTabs = options.getCustomTabs?.() ?? [];
-        const envData = snapshotEnv(options.getCwd());
-        const initialInfo = options.getScanResult
+      // 1. 初始 DevToolsInfo 快照（扫描 + 配置元数据）。
+      const buildInfo = (): DevToolsInfo => {
+        const scan = options.getScanResult?.() ?? null;
+        return scan
           ? buildDevToolsInfo({
-              scan: options.getScanResult(),
+              scan,
               configMeta: options.getConfigMeta?.() ?? null,
-              customTabs,
+              customTabs: options.getCustomTabs?.() ?? [],
               ai: options.ai,
               startTime,
               envData
             })
           : emptyDevToolsInfo(startTime);
+      };
 
-        // 3b. Register custom tabs as independent dock entries (each points
-        //     directly to the user-provided src URL, not through the SPA).
-        for (const tab of customTabs) {
-          ctx.docks.register({
-            id: `ubean:custom:${tab.id}`,
-            title: tab.label,
-            icon: tab.icon || 'lucide:plugin',
-            type: 'iframe',
-            url: tab.src,
-            category: 'framework',
-            defaultOrder: 50
-          });
+      // 2. shared state：`ubean:info`（客户端订阅，取代旧 3s 轮询）。
+      const state: SharedState<DevToolsInfo> = await initSharedState(ctx, buildInfo());
+
+      // 3. AI 流式分片 state —— AI server 把文本增量推到这里，客户端按 requestId 过滤。
+      const aiStreamState = await ctx.rpc.sharedState.get(UBEAN_AI_STREAM_STATE_KEY, {
+        initialValue: { requestId: '', text: '', done: true } as {
+          requestId: string;
+          text: string;
+          done: boolean;
+          toolCalls?: unknown[];
+          toolResults?: unknown[];
+          error?: string;
         }
+      });
 
-        // 4. Initialise the shared state — clients subscribe to `ubean:info`
-        //    and receive patches on every refresh (no polling).
-        const state = await initSharedState(ctx, initialInfo);
-
-        // 4b. AI streaming shared state — the AI server pushes text deltas
-        //     here during `streamText`, and clients subscribe to render
-        //     live updates. Keyed by `requestId` so multiple clients don't
-        //     clobber each other.
-        const aiStreamState = await ctx.rpc.sharedState.get('ubean:ai:stream', {
-          initialValue: { requestId: '', text: '', done: true } as {
-            requestId: string;
-            text: string;
-            done: boolean;
-            toolCalls?: unknown[];
-            toolResults?: unknown[];
-            error?: string;
+      // 4. CRUD / AI / Terminal server（传输无关，原样复用）。
+      const hooks = createDevToolsHooks();
+      const crud: DevToolsCrudServer = createCrudServer({
+        cwd,
+        hooks,
+        scaffoldOps: options.scaffoldOps,
+        getEnv: () => envData,
+        setEnv: env => {
+          Object.keys(envData).forEach(k => delete envData[k]);
+          Object.assign(envData, env);
+        },
+        getConfig: () => (options.getConfigMeta?.() ?? {}) as Record<string, unknown>,
+        onFileChange: async () => {
+          // 立刻重扫，别等文件监听的 debounce：rescan 会重建扫描结果 → updateApp() →
+          // refreshDevtools() → 经 sharedState 把新数据推给客户端。
+          if (options.triggerRescan) {
+            await options.triggerRescan();
           }
+        }
+      });
+      const ai: DevToolsAiServer = createAiServer(
+        crud,
+        () => state.value() as DevToolsInfo,
+        chunk => {
+          // 推给 shared state —— 客户端靠 `on('updated')` 订阅收到。
+          aiStreamState.mutate(() => chunk);
+        }
+      );
+      const terminal: TerminalServer = createTerminalServer();
+
+      // 5. 注册 RPC（裸名 → scope 统一加 `ubean:` 前缀）。
+      const fns = createAllRpcFunctions({
+        state,
+        getEnvData: () => envData,
+        crud,
+        ai,
+        terminal,
+        getApp: options.getApp
+      });
+      for (const fn of fns) scoped.rpc.register(fn);
+
+      // 6. custom tabs 作为独立 dock entry（直接指向用户给的 src，不经过本 SPA）。
+      for (const tab of options.getCustomTabs?.() ?? []) {
+        ctx.docks.register({
+          id: `ubean:custom:${tab.id}`,
+          title: tab.label,
+          icon: tab.icon || 'lucide:plugin',
+          type: 'iframe',
+          url: tab.src,
+          category: 'framework',
+          defaultOrder: 50
         });
-
-        // 5. Instantiate the CRUD + AI servers (reused as-is from the old
-        //    server/ modules — only the transport layer changed).
-        const hooks = createDevToolsHooks();
-        const crud: DevToolsCrudServer = createCrudServer({
-          cwd: options.getCwd(),
-          hooks,
-          scaffoldOps: options.scaffoldOps,
-          getEnv: () => envData,
-          setEnv: env => {
-            Object.keys(envData).forEach(k => delete envData[k]);
-            Object.assign(envData, env);
-          },
-          getConfig: () => (options.getConfigMeta?.() ?? {}) as Record<string, unknown>,
-          onFileChange: async () => {
-            // Trigger an immediate rescan so the DevTools list updates
-            // without waiting for the file watcher's debounce. The rescan
-            // rebuilds the scan result, calls `updateApp()`, which calls
-            // `refreshDevtools()`, which pushes fresh data to clients via
-            // sharedState.
-            if (options.triggerRescan) {
-              await options.triggerRescan();
-            }
-          }
-        });
-        const ai: DevToolsAiServer = createAiServer(
-          crud,
-          () => state.value() as DevToolsInfo,
-          chunk => {
-            // Push each chunk to the shared state — clients receive the
-            // updated value via their `on('updated')` subscription.
-            aiStreamState.mutate(() => chunk);
-          }
-        );
-        const terminal: TerminalServer = createTerminalServer();
-
-        // 6. Register all RPC functions (info / crud / ai / playground / terminal).
-        const fns = createAllRpcFunctions({
-          state,
-          getEnvData: () => envData,
-          crud,
-          ai,
-          terminal,
-          getApp: options.getApp
-        });
-        for (const fn of fns) ctx.rpc.register(fn);
-
-        // 7. Register the refresh callback so the dev runner can push scan
-        //    updates to all connected clients after an app rebuild.
-        const refresh = () => {
-          const info = options.getScanResult
-            ? buildDevToolsInfo({
-                scan: options.getScanResult(),
-                configMeta: options.getConfigMeta?.() ?? null,
-                customTabs: options.getCustomTabs?.() ?? [],
-                ai: options.ai,
-                startTime,
-                envData
-              })
-            : initialInfo;
-          refreshSharedState(state, info);
-        };
-        options.registerRefresh?.(refresh);
-
-        void ctx;
       }
+
+      // 7. 刷新回调：dev runner 在每次重建后调用它推新快照。
+      const refresh = () => {
+        refreshSharedState(state, buildInfo());
+      };
+      options.registerRefresh?.(refresh);
     }
+  };
+}
+
+/**
+ * Ubean DevTools 的 Vite 插件 —— `createUbeanDevframe()` 的装配壳。
+ *
+ * 插件本身**不挂 hub**：hub 由 `@devframes/vite/hub` 的 `viteDevframeHub()` 在 dev server
+ * 里挂载，本插件只是把 devframe 定义交给它（`devframes: [createUbeanDevframe(...)]`）。
+ * 因此这个函数返回的 `Plugin` 仅用于携带 `__ubeanDevframe` 标记，便于 CLI 组装。
+ */
+export interface UbeanDevtoolsPlugin extends Plugin {
+  /** 供 CLI 取出定义并挂到 hub 上。 */
+  readonly __ubeanDevframe: DevframeDefinition;
+}
+
+export function ubeanDevtoolsPlugin(options: UbeanDevtoolsPluginOptions): UbeanDevtoolsPlugin {
+  const devframe = createUbeanDevframe(options);
+  return {
+    name: 'ubean:devtools',
+    __ubeanDevframe: devframe
   };
 }
 

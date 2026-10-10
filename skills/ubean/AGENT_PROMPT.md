@@ -57,9 +57,12 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
    - SSR hydration: locale injected via `<script id="__UBEAN_LOCALE__">`, auto syncs `<html lang/dir>`
 
 6. **DevTools**
-   - iframe-based panel injected in dev only (production tree-shaken)
-   - RPC over `postMessage` with session token + origin binding
-   - Built-in tabs: Overview, Pages, API Routes, Middlewares, Layouts, Cron Jobs, Env Vars, Config, API Playground, AI Assistant
+   - devframe-based dock panel, dev only (production emits no DevTools code)
+   - `@ubean/devtools` is a `DevframeDefinition`; the shell (dock sidebar, RPC transport, auth) comes from `@devframes/hub`
+   - Entry: `/_devtools` (302 → hub shell `/__devframes/`); the panel is an iframe devframe at `/__devframes/ubean/`
+   - Views are reported by the SPA over the frame-nav `postMessage` protocol — the server hardcodes no view list
+   - RPC is devframe-scoped (`ctx.scope('ubean')`), so wire names are `ubean:<bare-name>` (e.g. `ubean:crud-read`)
+   - Built-in views: Overview, Pages, API, Middleware, Crons, Config, Env, API Docs, Database, Terminal, AI
    - Hookable CRUD lifecycle (`page:beforeCreate`, `api:afterUpdate`, `env:beforeDelete`, ...)
 
 7. **Platform Presets**
@@ -404,13 +407,14 @@ Middleware factories (all from `ubean/server`): `createCorsMiddleware`, `createR
 
 ### Built-in / Internal Routes
 
-| Route                           | Method   | Description                                      |
-| ------------------------------- | -------- | ------------------------------------------------ |
-| `/_health`                      | GET      | Health check endpoint                            |
-| `/_openapi.json`                | GET      | OpenAPI 3.1 spec (dev)                           |
-| `/_scalar`                      | GET      | Scalar API docs UI (dev)                         |
-| `/_iconify`                     | GET      | Local icon collection dev server (`@ubean/icon`) |
-| `/_devtools` / `/_devtools/rpc` | GET/POST | DevTools iframe + RPC (dev only)                 |
+| Route             | Method   | Description                                                             |
+| ----------------- | -------- | ----------------------------------------------------------------------- |
+| `/_health`        | GET      | Health check endpoint                                                   |
+| `/_openapi.json`  | GET      | OpenAPI 3.1 spec (dev)                                                  |
+| `/_scalar`        | GET      | Scalar API docs UI (dev)                                                |
+| `/_iconify`       | GET      | Local icon collection dev server (`@ubean/icon`)                        |
+| `/_devtools`      | GET      | DevTools entry (dev; 302 → devframe hub shell `/__devframes/`)          |
+| `/__devframes/**` | GET/POST | devframe hub (dev): shell, `__connection.json`, `__ws`, devframe assets |
 
 ## Error Handling
 
@@ -427,7 +431,7 @@ Middleware factories (all from `ubean/server`): `createCorsMiddleware`, `createR
 
 ### Debugging Tips
 
-- Use DevTools for real-time inspection (floating button in dev or `Shift+Alt+D`)
+- Use DevTools for real-time inspection (open the DevTools URL printed in the dev server banner, default `/_devtools`)
 - Check console for error messages
 - Open `/_scalar` in dev to inspect OpenAPI spec
 - Review `docs/` for common patterns
@@ -460,7 +464,7 @@ Middleware factories (all from `ubean/server`): `createCorsMiddleware`, `createR
 - **Project docs**: `/docs/`, `/AGENTS.md` (project root)
 - **Skill entry**: `skills/ubean/SKILL.md`; full docs live in `apps/docs/src/content/` — there is no `skills/ubean/docs/` directory
 - **CLI Help**: `ubean --help`
-- **DevTools**: open the floating button in dev (or `Shift+Alt+D`)
+- **DevTools**: open the DevTools URL printed in the dev server banner (default `/_devtools`, redirects to the devframe hub shell)
 - **OpenAPI UI**: `/_scalar` in dev
 
 ## Response Format

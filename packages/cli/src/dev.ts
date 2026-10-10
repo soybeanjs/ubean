@@ -148,6 +148,8 @@ export const devCommand: CommandDef = {
         if (logging.lifecycle) logger.info(`File change detected: ${lastChangedFile}`);
       }
       currentScanResult = result;
+      // DevTools 面板靠 sharedState 推新快照；不在这里刷新，面板会一直停在启动时的那份。
+      devServer?.refreshDevtools();
 
       try {
         await generateTypes(result, {

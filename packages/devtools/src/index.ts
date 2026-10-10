@@ -1,16 +1,18 @@
-// Vite DevTools Kit (DTK) integration — Vite plugin entry point + state helpers.
+// Devframe integration — devframe definition + Vite plugin shell + state helpers.
 export {
+  createUbeanDevframe,
   ubeanDevtoolsPlugin,
-  defineRpcFunction,
   buildDevToolsInfo,
   emptyDevToolsInfo,
   UBEAN_INFO_STATE_KEY,
   maskSensitiveEnv
 } from './node';
-export type { UbeanDevtoolsPluginOptions, ViteDevToolsNodeContext, ScanResultLike, DevToolsConfigMeta } from './node';
+export type { UbeanDevtoolsPlugin, UbeanDevtoolsPluginOptions, ScanResultLike, DevToolsConfigMeta } from './node';
 
 // RPC function aggregator (for testing / custom setups).
 export { createAllRpcFunctions } from './node/rpc';
+export type { UbeanRpcFunctions, RpcDeps } from './node/rpc';
+export { UBEAN_RPC_NAMESPACE, UBEAN_AI_STREAM_STATE_KEY, UBEAN_ANCHOR_DOCK } from './node/rpc/types';
 
 // Reused server modules (CRUD/AI/terminal/hooks — transport-agnostic, used by the RPC layer).
 export { createCrudServer } from './server/crud';

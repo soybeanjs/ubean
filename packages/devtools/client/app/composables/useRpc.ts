@@ -1,5 +1,5 @@
-import { getDevToolsRpcClient } from '@vitejs/devtools-kit/client';
 import { ref, onMounted, onUnmounted, getCurrentInstance } from 'vue';
+import { connectDevframe } from '@devframes/hub/client';
 import { toast } from '@vean/ui';
 import type { DevframeRpcClient } from 'devframe/client';
 
@@ -148,10 +148,10 @@ export type CrudResourceType =
   | 'config';
 
 // --- RPC client singleton ---
-// `getDevToolsRpcClient()` auto-detects the DTK dock connection from the
-// parent window — no explicit URL/setup needed inside the iframe.
-// A timeout is added so the SPA shows a helpful error instead of hanging
-// forever when opened directly (not embedded in the DTK dock shell).
+// `connectDevframe()` 自动从父窗口/自身位置发现 `__connection.json`（devframe 的
+// `setupDevframeConnection()` 会先查跨 window 的 `__DEVFRAME_CONNECTION__`，再回退到
+// `baseURL`），因此 iframe 内无需显式 URL。加超时是为了在**直接打开**该页面（没嵌在 hub
+// 外壳里）时给出可读错误，而不是永久挂起。
 
 let clientPromise: Promise<DevframeRpcClient> | null = null;
 function getClient(): Promise<DevframeRpcClient> {
@@ -159,11 +159,13 @@ function getClient(): Promise<DevframeRpcClient> {
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(
         () =>
-          reject(new Error('DTK connection timeout — open this page via the Vite DevTools dock shell, not directly.')),
+          reject(
+            new Error('Devframe connection timeout — 请从 dev server 的 DevTools 外壳进入本页面，而不是直接打开它。')
+          ),
         5000
       )
     );
-    clientPromise = Promise.race([getDevToolsRpcClient(), timeout]);
+    clientPromise = Promise.race([connectDevframe(), timeout]);
   }
   return clientPromise;
 }
@@ -172,7 +174,7 @@ function getClient(): Promise<DevframeRpcClient> {
 // augmentation; on the client we cast to keep the SPA build self-contained.
 //
 // Declared at module scope so tests can drive it with a fake client instead of
-// the real DTK dock (see `RpcClientFactory` below).
+// the real devframe connection (see `RpcClientFactory` below).
 async function callRpc<T = unknown>(client: DevframeRpcClient, method: string, args: unknown[]): Promise<T> {
   return (client.call as unknown as (m: string, ...a: unknown[]) => Promise<T>)(method, ...args);
 }
@@ -182,8 +184,8 @@ export type RpcClientFactory = () => Promise<DevframeRpcClient>;
 
 export interface UseRpcOptions {
   /**
-   * Override the RPC client source (default: the DTK dock connection).
-   * Tests use this to exercise the success and failure paths without a dock.
+   * Override the RPC client source (default: the devframe hub connection).
+   * Tests use this to exercise the success and failure paths without a hub.
    */
   client?: RpcClientFactory;
 }
@@ -327,7 +329,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
     options?: { method?: string; content?: string; force?: boolean }
   ): Promise<CrudResult> {
     try {
-      const result = await rpc<CrudResult>('ubean:crud:create', { type, path, ...options });
+      const result = await rpc<CrudResult>('ubean:crud-create', { type, path, ...options });
       if (result.success) {
         showToast('success', `Created ${type}: ${path}`);
         await refresh();
@@ -347,7 +349,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
     path?: string
   ): Promise<{ success: boolean; content?: string; data?: unknown; error?: string }> {
     try {
-      return await rpc('ubean:crud:read', { type, path });
+      return await rpc('ubean:crud-read', { type, path });
     } catch (e) {
       return { success: false, error: e instanceof Error ? e.message : 'Read failed' };
     }
@@ -358,7 +360,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
     options: { path?: string; key?: string; content?: string; value?: string }
   ): Promise<CrudResult> {
     try {
-      const result = await rpc<CrudResult>('ubean:crud:update', { type, ...options });
+      const result = await rpc<CrudResult>('ubean:crud-update', { type, ...options });
       if (result.success) {
         showToast('success', `Updated ${type}`);
         await refresh();
@@ -378,7 +380,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
     options: { path?: string; key?: string; force?: boolean }
   ): Promise<CrudResult> {
     try {
-      const result = await rpc<CrudResult>('ubean:crud:delete', { type, ...options });
+      const result = await rpc<CrudResult>('ubean:crud-delete', { type, ...options });
       if (result.success) {
         showToast('success', `Deleted ${type}`);
         await refresh();
@@ -395,7 +397,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
 
   async function crudRestore(path: string): Promise<CrudResult> {
     try {
-      const result = await rpc<CrudResult>('ubean:crud:restore', path);
+      const result = await rpc<CrudResult>('ubean:crud-restore', path);
       if (result.success) {
         showToast('success', `Restored: ${path}`);
         await refresh();
@@ -415,7 +417,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
     options?: { apiKey?: string; apiBase?: string; model?: string }
   ): Promise<AiChatResponse> {
     try {
-      return await rpc<AiChatResponse>('ubean:ai:chat', { messages, ...options });
+      return await rpc<AiChatResponse>('ubean:ai-chat', { messages, ...options });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'AI request failed';
       return { message: { role: 'assistant', content: `Error: ${msg}`, timestamp: Date.now() } };
@@ -424,7 +426,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
 
   async function aiGetTools(): Promise<AiToolDefinition[]> {
     try {
-      return await rpc<AiToolDefinition[]>('ubean:ai:tools');
+      return await rpc<AiToolDefinition[]>('ubean:ai-tools');
     } catch {
       return [];
     }
@@ -432,7 +434,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
 
   /**
    * Streaming AI chat — subscribes to the `ubean:ai:stream` sharedState
-   * and calls `ubean:ai:chat-stream`. The `onChunk` callback is invoked
+   * and calls `ubean:ai-chat-stream`. The `onChunk` callback is invoked
    * for each text delta pushed by the server. Returns the final response
    * when the stream completes.
    */
@@ -455,7 +457,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
       }) as unknown as () => void;
 
       try {
-        const response = await rpc<AiChatResponse>('ubean:ai:chat-stream', {
+        const response = await rpc<AiChatResponse>('ubean:ai-chat-stream', {
           messages,
           requestId,
           ...options
@@ -472,11 +474,11 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
 
   // --- Terminal RPC wrappers ---
   // The server keeps shell sessions in memory; the client opens one session
-  // per Terminal view and polls for output via `ubean:terminal:poll`.
+  // per Terminal view and polls for output via `ubean:terminal-poll`.
 
   async function terminalStart(params: TerminalStartParams): Promise<{ sessionId: string } | null> {
     try {
-      return await rpc<{ sessionId: string }>('ubean:terminal:start', params);
+      return await rpc<{ sessionId: string }>('ubean:terminal-start', params);
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'Terminal start failed';
       showToast('error', msg);
@@ -486,7 +488,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
 
   async function terminalInput(sessionId: string, data: string): Promise<boolean> {
     try {
-      return await rpc<boolean>('ubean:terminal:input', { sessionId, data });
+      return await rpc<boolean>('ubean:terminal-input', { sessionId, data });
     } catch {
       return false;
     }
@@ -494,7 +496,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
 
   async function terminalResize(sessionId: string, cols: number, rows: number): Promise<boolean> {
     try {
-      return await rpc<boolean>('ubean:terminal:resize', { sessionId, cols, rows });
+      return await rpc<boolean>('ubean:terminal-resize', { sessionId, cols, rows });
     } catch {
       return false;
     }
@@ -502,7 +504,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
 
   async function terminalPoll(sessionId: string): Promise<TerminalPollResult> {
     try {
-      return await rpc<TerminalPollResult>('ubean:terminal:poll', { sessionId });
+      return await rpc<TerminalPollResult>('ubean:terminal-poll', { sessionId });
     } catch {
       return { data: '', exited: true, exitCode: -1 };
     }
@@ -510,7 +512,7 @@ export function useRpc(useOptions: UseRpcOptions = {}) {
 
   async function terminalKill(sessionId: string): Promise<boolean> {
     try {
-      return await rpc<boolean>('ubean:terminal:kill', { sessionId });
+      return await rpc<boolean>('ubean:terminal-kill', { sessionId });
     } catch {
       return false;
     }

@@ -10,7 +10,7 @@
  * - 页面 404 与 API 404 的分野（fixture 带 `pages/404.vue`）
  * - 静态资源不被页面 catch-all 吞掉
  * - `/_devtools` 302、`/_openapi.json` 200、`_` 前缀走 JSON 404
- * - DevTools 的两个命名空间（`/_devtools/**`、`/__devtools*`）归 Vite，不被应用吞成 404
+ * - DevTools 的命名空间（`/_devtools` 与 devframe hub 的 `/__devframes/**`）归 Vite，不被应用吞成 404
  * - 中间件顺序的可观测证据：安全头/请求 ID 覆盖全部响应类别、i18n 与 CSRF 在处理前生效
  */
 import { spawn } from 'node:child_process';
@@ -281,37 +281,50 @@ describe('dev 请求拓扑（RM-V05 基线）', () => {
   });
 
   describe('内置保留路由', () => {
-    it('/_devtools 302 到 DevTools UI', async () => {
+    it('/_devtools 302 到 devframe hub 外壳', async () => {
       const res = await probe('/_devtools');
       expect(res.status).toBe(302);
-      expect(res.headers.get('location')).toBeTruthy();
+      // hub 的默认 base（`DEVFRAMES_HUB_BASE`）；外壳在那儿，面板作为它的 iframe devframe。
+      expect(res.headers.get('location')).toBe('/__devframes/');
     });
 
     /**
-     * 回归（2026-09-17 实测并修复）：DevTools 的两套命名空间都落在 `_` / `__` 保留命名空间里，
-     * 请求判据曾把它们判给应用 —— 面板 iframe（`/_devtools/index.html`）拿到的是应用的 JSON 404
-     * （面板空白），应用页控制台则报 `/__devtools-assets/vite-plus.svg` 404。
+     * 回归（2026-09-17 实测并修复；2026-10-11 迁到 devframe hub 后重写）：DevTools 的命名空间都
+     * 落在 `_` / `__` 保留命名空间里，请求判据曾把它们判给应用 —— 面板 iframe 拿到应用的 JSON 404
+     * （面板空白），应用页控制台则报静态资源 404。
      *
-     * 断言只认「面板真的可用」：SPA 壳 200 且它引用的构建产物可达、连接元数据可达。壳内引用的
+     * 迁移后的形态：`/_devtools` 仍是**用户可见**的入口（CLI banner 印它），302 到 devframe hub
+     * 的外壳 `/__devframes/`；ubean 的面板是挂在那里的一个 iframe devframe，落在
+     * `/__devframes/ubean/`。SPA 产物用**相对** base（`./assets/...`），因为挂载点由 hub 决定。
+     *
+     * 断言只认「面板真的可用」：devframe 壳 200 且它引用的构建产物可达、连接元数据可达。壳内引用的
      * 哈希文件名从 HTML 里解析，不写死。
      */
     it('DevTools 的静态资源与连接元数据不被应用吞掉', async () => {
-      const spa = await probe('/_devtools/index.html');
+      const spa = await probe('/__devframes/ubean/index.html');
       expect(spa.status).toBe(200);
       expect(spa.contentType).toContain('text/html');
-      // SPA 用 `base: '/_devtools/'` 构建，产物引用是绝对路径
-      const asset = /src="(\/_devtools\/assets\/[^"]+)"/.exec(spa.body)?.[1];
+      // SPA 用**相对** base 构建（`./assets/…`）：挂载点由 hub 决定，写死前缀会让换前缀白屏。
+      const asset = /src="(\.\/assets\/[^"]+)"/.exec(spa.body)?.[1];
       expect(asset, 'DevTools SPA 未引用构建产物').toBeTruthy();
-      const assetRes = await probe(asset!);
+      const assetRes = await probe(`/__devframes/ubean/${asset!.replace(/^\.\//, '')}`);
       expect(assetRes.status).toBe(200);
       expect(assetRes.contentType).toContain('javascript');
 
-      // SPA 与 DTK 外壳各自读同一份连接元数据（`__connection.json`）
-      const spaMeta = await probe('/_devtools/__connection.json');
+      // devframe 的连接元数据：frame 自己的那份，与 hub 外壳的那份。
+      const spaMeta = await probe('/__devframes/ubean/__connection.json');
       expect(spaMeta.status).toBe(200);
       expect(spaMeta.contentType).toContain('application/json');
-      const shellMeta = await probe('/__devtools/__connection.json');
+      const shellMeta = await probe('/__devframes/__connection.json');
       expect(shellMeta.status).toBe(200);
+
+      // hub 外壳（dock 侧栏 + 认证）本身，以及它声明的 frame 清单。
+      const shell = await probe('/__devframes/');
+      expect(shell.status).toBe(200);
+      expect(shell.contentType).toContain('text/html');
+      const index = await probe('/__devframes/__index.json');
+      expect(index.status).toBe(200);
+      expect(index.body).toContain('"ubean"');
     });
 
     /**

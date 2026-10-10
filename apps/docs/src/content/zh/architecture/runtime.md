@@ -1,8 +1,8 @@
 ---
 title: Runtime
 description: ubean 运行时：defineApp、应用配置、开发服务器、预设与 CLI 命令体系。
-translatedFrom: 1a32a08aeb6d
-sections: ["a7dbe8df","e3b0c442","d80fee02","e8ecb75b","c06bd2aa","e9476b5e","84836587","1b0bc415","4c784f8f","7838b612","85929b83","86902525","8c26e7cd","651fa7f7","841b47df","73490ae9","253c09a8","32087f60","babe75e1","248cd484","b0b11a45","06ef5a9a","e1ebd5e8","d9a86a97","aeab9ece","67be6fed","dbe56967","6c5e49ac","bda8fde1","18bd8fde","c6ee5474","551bce4c","7719808d","428a76d7","d79adf58","a69eb07e","8e9b3eb8","e2720cd6","629cb0af","c80df236","a5b58348","0fd81457","27fd6cbd","b5b31db9","57f86813","82e1dc14","cdd86f19","7cafb2b0","0591401f","72665bac","e94bbfc4","70123441","ca87b816","fb74d912","ab966604","105f2d32","f95e57d0","fcdf98dd","c4fc64d8","4f132b44","20a64dcf","060aa51b","800880e0","f122143f","01501917","8aef359d","04571071","1f0ba46b","541135cc","a5e19fd2","fa13eefa","985da994","0f55ff12","ee101a64","3760dc25","3949c66f","8d4418c6","c200fb33","10f0ff0d","9ad68b28","2dcfbf23","3d4899bc","46f034a8","f6d3d11c","51605e83","6f1378d6","c7818966","bb296a78","5d84f2d3","c61dc0f7","4db472e3","9c2ed404","f6416b2f","8b62375b","a39723e2","3887ebe4","cf6be2a9","e837e83f","64df3b5f","e86c7ce7","e9da32ad","362761ae","595f082c","f72d2382","73c9a15b","64d6e1a3","14d24260","fa92f992","913c29de","e7d5bc78","cab67f39","8ba184c0","146fea8e","5cc0ed4e","81eedc89","82bd5850","8d9a0af7","d9f08935","a9319456"]
+translatedFrom: 4f9beb5a866d
+sections: ["a7dbe8df","e3b0c442","d80fee02","e8ecb75b","c06bd2aa","e9476b5e","84836587","1b0bc415","4c784f8f","7838b612","85929b83","86902525","8c26e7cd","651fa7f7","841b47df","73490ae9","253c09a8","32087f60","babe75e1","b7f0e0c5","03654165","e6ab77fe","a7a049b5","63c4471a","195c7c3b","95dea120","ecf808be","6c5e49ac","03052a6f","18bd8fde","c6ee5474","2c1db8bf","cc2de56b","428a76d7","8aa70b39","a69eb07e","8e9b3eb8","e2720cd6","629cb0af","c80df236","a5b58348","0fd81457","27fd6cbd","b5b31db9","57f86813","82e1dc14","cdd86f19","7cafb2b0","0591401f","72665bac","e94bbfc4","70123441","ca87b816","fb74d912","ab966604","105f2d32","f95e57d0","fcdf98dd","c4fc64d8","4f132b44","20a64dcf","060aa51b","800880e0","f122143f","01501917","8aef359d","04571071","1f0ba46b","541135cc","a5e19fd2","fa13eefa","985da994","0f55ff12","ee101a64","3760dc25","3949c66f","8d4418c6","c200fb33","10f0ff0d","9ad68b28","2dcfbf23","3d4899bc","46f034a8","f6d3d11c","51605e83","6f1378d6","c7818966","bb296a78","5d84f2d3","c61dc0f7","4db472e3","9c2ed404","f6416b2f","8b62375b","a39723e2","3887ebe4","cf6be2a9","e837e83f","64df3b5f","e86c7ce7","e9da32ad","362761ae","595f082c","f72d2382","73c9a15b","64d6e1a3","14d24260","fa92f992","913c29de","e7d5bc78","cab67f39","8ba184c0","146fea8e","5cc0ed4e","81eedc89","82bd5850","8d9a0af7","d9f08935","a9319456"]
 ---
 
 # 运行时与开发体验 (defineApp)
@@ -588,12 +588,14 @@ Preset 自动解析由 `detectPreset(hints?)` 完成,优先级为 **explicit > c
 
 参考 Nuxt DevTools 的 iframe + RPC 架构模式，为 ubean 内置可视化开发工具面板，提供配置/环境变量/页面路由/API 接口的 UI 化管理，并暴露钩子函数支持数据持久化到数据库，同时集成 AI 大模型辅助开发操作。
 
+面板挂在 **devframe hub** 上（[ADR-0014](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0014-devtools-on-devframe-hub.md)）：`@ubean/devtools` 只是一个 `DevframeDefinition`，外壳（dock 侧栏 + RPC 传输 + 认证）由 `@devframes/hub` 提供。
+
 #### 设计理念
 
-- **In-App 面板**：应用内浮动按钮唤起 DevTools（`Shift+Alt+D` 快捷键），通过 iframe 隔离 UI 与应用
-- **仅开发模式可用**：生产构建自动 tree-shake 移除所有 DevTools 代码，零运行时开销
-- **双向 RPC 通信**：DevTools iframe 与宿主应用通过 `postMessage` + 类型安全 RPC 通道通信
-- **可扩展 Tab 系统**：内置核心 Tab，同时支持自定义 Tab 插件扩展
+- **独立 dock 面板**：打开 dev server banner 里的 DevTools 地址（默认 `/_devtools`，302 到 hub 外壳）即可进入；面板是 dock 侧栏里的一个 iframe，不往应用页注入任何浮动按钮或客户端脚本
+- **仅开发模式可用**：生产构建不产出 DevTools 代码，零运行时开销
+- **视图由客户端上报**：SPA 通过 frame-nav 协议（`postMessage`）把视图清单报给 hub 外壳，外壳合成 dock 按钮；服务端不硬编码视图列表
+- **可扩展 Tab 系统**：内置核心 Tab，同时支持自定义 Tab（`defineDevToolsTab`，注册表挂 `globalThis`）
 - **钩子系统**：所有 CRUD 操作前后触发 hooks，用户可监听以将数据同步到数据库/外部系统
 - **AI 驱动**：集成 LLM，自然语言驱动路由/接口/配置的增删改
 
@@ -601,53 +603,50 @@ Preset 自动解析由 `detectPreset(hints?)` 完成,优先级为 **explicit > c
 
 ```
 ┌──────────────────────────────────────────────────┐
-│               ubean App (Host)                    │
-│  ┌────────────────────────────────────────────┐  │
-│  │  DevTools Floating Button (small Vue widget)│  │
-│  └────────────────────────────────────────────┘  │
-│  ┌────────────────────────────────────────────┐  │
-│  │  DevTools Iframe (独立 Vue 应用)            │  │
-│  │  ┌────────┬────────┬────────┬────────────┐ │  │
-│  │  │Overview│ Pages  │ Routes │ Config ... │ │  │
-│  │  ├────────┴────────┴────────┴────────────┤ │  │
-│  │  │           Tab Content                  │ │  │
-│  │  │  ┌──────────────┐  ┌────────────────┐  │ │  │
-│  │  │  │  CRUD UI     │  │  AI Chat Panel │  │ │  │
-│  │  │  └──────────────┘  └────────────────┘  │ │  │
-│  │  └────────────────────────────────────────┘ │  │
-│  └────────────────────────────────────────────┘  │
-│         ▲                    ▲                    │
-│         │ RPC (postMessage)  │ Hook Events        │
-│         ▼                    ▼                    │
-│  ┌────────────────────────────────────────────┐  │
-│  │  ubean DevTools Server (Vite plugin)       │  │
-│  │  - File system operations (read/write)     │  │
-│  │  - Route/API meta extraction               │  │
-│  │  - Code generation (d.ts updates)          │  │
-│  │  - Hook dispatch (before/after CRUD)       │  │
-│  └────────────────────────────────────────────┘  │
+│      devframe hub 外壳 (/__devframes/)           │
+│  ┌──────────┐  ┌──────────────────────────────┐  │
+│  │ dock 侧栏 │  │  iframe: ubean DevTools SPA  │  │
+│  │ Overview │  │  ┌────────┬────────┬────────┐ │  │
+│  │ Pages    │  │  │Overview│ Pages  │ API    │ │  │
+│  │ API  ... │  │  ├────────┴────────┴────────┤ │  │
+│  │ Terminal │  │  │        Tab Content       │ │  │
+│  └──────────┘  │  │  ┌────────┐ ┌─────────┐  │ │  │
+│       ▲        │  │  │ CRUD UI│ │AI Chat  │  │ │  │
+│       │        │  │  └────────┘ └─────────┘  │ │  │
+│       │ frame-nav (postMessage)               │ │  │
+│       ▼        │  └──────────────────────────┘  │  │
+│  ┌──────────────────────────────────────────┐   │  │
+│  │ 共享 RPC 传输（WebSocket `__ws`）        │   │  │
+│  └──────────────────────────────────────────┘   │  │
+└──────────────────────────────────────────────────┘
+                    ▲ RPC (scoped: `ubean:*`)
+                    │ Hook Events
+┌──────────────────────────────────────────────────┐
+│  @ubean/devtools devframe（Vite dev server 内）  │
+│  - File system operations (read/write)           │
+│  - Route/API meta extraction                     │
+│  - Code generation (d.ts updates)                │
+│  - Hook dispatch (before/after CRUD)             │
 └──────────────────────────────────────────────────┘
 ```
 
-#### 内置 Tab 功能
+#### 内置视图
 
-| Tab               | 功能                                                                            | 操作能力        |
-| ----------------- | ------------------------------------------------------------------------------- | --------------- |
-| **Overview**      | 项目概览：ubean 版本、Vue 版本、路由/API 数量、插件列表、构建状态、启动时间     | 只读            |
-| **Pages**         | 页面路由可视化管理：列表/树形展示所有页面路由、布局、meta、reuse 关系           | CRUD + 跳转预览 |
-| **API Routes**    | API 接口管理：所有 GET/POST/... 端点列表、OpenAPI 文档、内置接口测试 playground | CRUD + 在线测试 |
-| **Config**        | 项目配置编辑：可视化修改 `ubean.config.ts`，实时预览效果                        | 编辑            |
-| **Env**           | 环境变量管理：`.env` 文件编辑、schema 校验、服务端/客户端变量分离展示           | CRUD + 校验     |
-| **Layouts**       | 布局组件预览：所有 layouts 的组件树、slot 结构、使用情况统计                    | 只读 + 创建     |
-| **Middlewares**   | 中间件链可视化：执行顺序、meta 匹配情况、耗时监控                               | 只读 + 创建     |
-| **Plugins**       | 插件列表：加载顺序、hook 注册情况、执行耗时                                     | 只读            |
-| **Cron Jobs**     | 定时任务管理：cron 表达式可视化编辑、手动触发、执行历史                         | CRUD + 触发     |
-| **Storage/KV**    | 存储浏览器：unstorage 数据浏览、编辑、清理                                      | CRUD            |
-| **Database**      | 数据库面板：Drizzle 表结构浏览、简单 SQL 查询（可选）                           | 只读 + 查询     |
-| **Hooks**         | 钩子监控：所有 hookable 事件监听、耗时、调用链追踪                              | 只读            |
-| **Virtual Files** | 虚拟文件查看：`.ubean/routes.d.ts`、`.ubean/pages.d.ts`、虚拟模块源码           | 只读            |
-| **Terminal**      | 终端面板：内嵌终端，运行 `ubean page add`、`ubean api add` 等 CLI 命令          | 交互            |
-| **AI Assistant**  | AI 聊天面板：自然语言驱动所有 CRUD 操作                                         | 对话            |
+这些视图在 `packages/devtools/client/app/views-manifest.ts` 的 `UBEAN_VIEWS` 里声明，SPA 启动后经 frame-nav 上报给 hub 外壳，每个视图变成一个 dock 按钮：
+
+| 视图           | 功能                                                                            | 操作能力        |
+| -------------- | ------------------------------------------------------------------------------- | --------------- |
+| **Overview**   | 项目概览：ubean 版本、Vue 版本、路由/API 数量、插件列表、构建状态、启动时间     | 只读            |
+| **Pages**      | 页面路由可视化管理：列表/树形展示所有页面路由、布局、meta、reuse 关系（子 tab 切到 Layouts） | CRUD + 跳转预览 |
+| **API**        | API 接口管理：所有 GET/POST/... 端点列表（子 tab 切到 Playground 在线测试）     | CRUD + 在线测试 |
+| **Middleware** | 中间件链可视化：执行顺序、meta 匹配情况、耗时监控                               | 只读 + 创建     |
+| **Crons**      | 定时任务管理：cron 表达式可视化编辑、手动触发、执行历史                         | CRUD + 触发     |
+| **Config**     | 项目配置编辑：可视化修改 `ubean.config.ts`，实时预览效果                        | 编辑            |
+| **Env**        | 环境变量管理：`.env` 文件编辑、schema 校验、服务端/客户端变量分离展示           | CRUD + 校验     |
+| **API Docs**   | 基于 `/_openapi.json` 的接口文档浏览                                            | 只读            |
+| **Database**   | 数据库面板：Drizzle 表结构浏览、简单 SQL 查询（可选）                           | 只读 + 查询     |
+| **Terminal**   | 终端面板：内嵌终端，运行 `ubean page add`、`ubean api add` 等 CLI 命令          | 交互            |
+| **AI**         | AI 聊天面板：自然语言驱动所有 CRUD 操作                                         | 对话            |
 
 #### 配置管理 (Config Tab)
 
@@ -661,15 +660,15 @@ Preset 自动解析由 `detectPreset(hints?)` 完成,优先级为 **explicit > c
 // - DevTools 自身配置
 ```
 
-配置编辑通过真实的 DevTools RPC 函数完成。`@ubean/devtools` 使用 `@vitejs/devtools-kit` 的 `defineRpcFunction` 注册它们;info/env 相关的有:
+配置编辑通过真实的 DevTools RPC 函数完成。`@ubean/devtools` 用 `defineUbeanRpc` 把它们注册到 devframe 的 scoped 注册表（`ctx.scope('ubean')`），因此 wire 名统一是 `ubean:<裸名>`；info/env 相关的有：
 
 | RPC 函数 | 类型 | 签名 | 说明 |
 | --- | --- | --- | --- |
 | `ubean:get-info` | query | `() => DevToolsInfo` | 项目信息快照(版本/路由/页面/插件);客户端通常订阅 `ubean:info` shared state,此函数作为回退 |
 | `ubean:get-env` | query | `() => Record<string, string>` | 环境变量(敏感值已脱敏) |
-| `ubean:crud:read` | query | `(params: { type: 'config' \| 'env' \| CrudResourceType, path? }) => CrudReadResult` | 读取配置文件、`.env` 条目或脚手架资源 |
-| `ubean:crud:update` | action | `(params: { type, path?, key?, content?, value? }) => CrudResult` | 更新配置值或 `.env` 条目(AST 安全编辑,默认备份) |
-| `ubean:crud:delete` | action | `(params: { type, path?, key?, force? }) => CrudResult` | 删除文件或 env 条目(非 `force` 时创建 `.bak` 备份) |
+| `ubean:crud-read` | query | `(params: { type: 'config' \| 'env' \| CrudResourceType, path? }) => CrudReadResult` | 读取配置文件、`.env` 条目或脚手架资源 |
+| `ubean:crud-update` | action | `(params: { type, path?, key?, content?, value? }) => CrudResult` | 更新配置值或 `.env` 条目(AST 安全编辑,默认备份) |
+| `ubean:crud-delete` | action | `(params: { type, path?, key?, force? }) => CrudResult` | 删除文件或 env 条目(非 `force` 时创建 `.bak` 备份) |
 
 #### 页面路由 CRUD (Pages Tab)
 
@@ -679,11 +678,11 @@ Preset 自动解析由 `detectPreset(hints?)` 完成,优先级为 **explicit > c
 
 | RPC 函数 | 类型 | 签名 | 说明 |
 | --- | --- | --- | --- |
-| `ubean:crud:create` | action | `(params: { type: CrudResourceType, path, method?, schedule?, content?, force? }) => Promise<CrudResult>` | 创建页面 / API / 布局 / 中间件 / reuse 路由 / 定时任务 / 插件（cron 用 `schedule`,API 用 `method`） |
-| `ubean:crud:read` | query | `(params: { type, path? }) => Promise<CrudReadResult>` | 列出或读取某类型的资源 |
-| `ubean:crud:update` | action | `(params: { type, path?, content? }) => Promise<CrudResult>` | 更新资源文件 |
-| `ubean:crud:delete` | action | `(params: { type, path?, force? }) => Promise<CrudResult>` | 删除资源(非 `force` 时创建 `.bak` 备份) |
-| `ubean:crud:restore` | action | `(path: string) => Promise<CrudResult>` | 从备份恢复已删除文件 |
+| `ubean:crud-create` | action | `(params: { type: CrudResourceType, path, method?, schedule?, content?, force? }) => Promise<CrudResult>` | 创建页面 / API / 布局 / 中间件 / reuse 路由 / 定时任务 / 插件（cron 用 `schedule`,API 用 `method`） |
+| `ubean:crud-read` | query | `(params: { type, path? }) => Promise<CrudReadResult>` | 列出或读取某类型的资源 |
+| `ubean:crud-update` | action | `(params: { type, path?, content? }) => Promise<CrudResult>` | 更新资源文件 |
+| `ubean:crud-delete` | action | `(params: { type, path?, force? }) => Promise<CrudResult>` | 删除资源(非 `force` 时创建 `.bak` 备份) |
+| `ubean:crud-restore` | action | `(path: string) => Promise<CrudResult>` | 从备份恢复已删除文件 |
 
 `CrudResourceType` = `'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin'`;`CrudResult` 返回 `{ success, created?, deleted?, restored?, updated?, skipped?, errors? }`。所有操作都会触发下文描述的 before/after hooks。
 
@@ -709,7 +708,7 @@ definePage({
 
 #### API 接口 CRUD (API Routes Tab)
 
-API 接口复用同一组 `ubean:crud:*` 函数(`type: 'api'`,可选 `method` 选择 `GET`/`POST`/...)——不存在独立的 `api:*` RPC 面。内置测试 Playground 通过 `ubean:playground:invoke`（`(params) => Promise<PlaygroundInvokeResult>`）调用 handler,针对 dev server 执行并自动附带 cookie/auth 请求头——像 Postman 但零配置。
+API 接口复用同一组 `ubean:crud-*` 函数(`type: 'api'`,可选 `method` 选择 `GET`/`POST`/...)——不存在独立的 `api:*` RPC 面。内置测试 Playground 通过 `ubean:playground-invoke`（`(params) => Promise<PlaygroundInvokeResult>`）调用 handler,针对 dev server 执行并自动附带 cookie/auth 请求头——像 Postman 但零配置。
 
 API 创建时自动生成 handler 文件：
 
@@ -759,77 +758,54 @@ API 测试 Playground：在 DevTools 中直接填写参数、发送请求、查�
 
 #### 钩子系统 (Hooks)
 
-DevTools 所有操作前后触发 hookable 事件，用户可以注册钩子将数据同步到数据库、触发 CI/CD、或做权限校验：
+DevTools 的 CRUD 服务（`packages/devtools/src/server/crud.ts`）在每次创建/更新/删除前后触发 hookable 事件。钩子层由 `createDevToolsHooks()` 构建（基于 `hookable`），CRUD 服务通过 `hooks.runHook(type, ctx)` 调用：
 
 ```typescript
-// app.ts
-import { defineApp } from 'ubean';
-import { useDevToolsHooks } from 'ubean/devtools';
+// packages/devtools/src/server/hooks.ts
+import { createHooks } from 'hookable';
+import type { CrudHookContext } from '../types';
 
-export default defineApp({
-  onAppCreated(app) {
-    const hooks = useDevToolsHooks();
+export interface DevToolsHooks {
+  beforeCreate: (ctx: CrudHookContext) => void | Promise<void>;
+  afterCreate: (ctx: CrudHookContext) => void | Promise<void>;
+  // beforeUpdate / afterUpdate / beforeDelete / afterDelete 同形
+}
 
-    // 页面路由创建前：可做权限校验、数据预存到 DB
-    hooks.hook('page:beforeCreate', async (input, context) => {
-      // 例如：记录到数据库
-      await db.pages.create({
-        data: { name: input.name, path: input.path, createdBy: context.user.id }
-      });
-    });
-
-    // 页面路由创建后：可触发 Git 提交、通知等
-    hooks.hook('page:afterCreate', async (result, context) => {
-      console.log(`Page ${result.name} created by ${context.user?.name}`);
-    });
-
-    // API 接口创建前
-    hooks.hook('api:beforeCreate', async input => {
-      // 校验接口路径规范
-      if (!input.path.startsWith('/api/')) {
-        throw new Error('API path must start with /api/');
-      }
-    });
-
-    // 环境变量更新前
-    hooks.hook('env:beforeUpdate', async (key, value) => {
-      // 例如：同步到外部密钥管理服务
-      await secretsManager.set(key, value);
-    });
-  }
-});
+export function createDevToolsHooks() {
+  const hooks = createHooks<DevToolsHooks>();
+  return {
+    registerHook: (type, handler) => hooks.hook(type, handler),
+    runHook: (type, ctx) => hooks.callHook(type, ctx),
+    removeHook: (type, handler) => hooks.removeHook(type, handler),
+    removeAllHooks: () => hooks.removeAllHooks()
+  };
+}
 ```
 
-**完整钩子列表**：
+**六个 hook 与上下文**：
 
-| Hook 名称                                | 参数                         | 说明                          |
-| ---------------------------------------- | ---------------------------- | ----------------------------- |
-| `page:beforeCreate`                      | `(input, ctx)`               | 页面创建前，可 throw 阻止操作 |
-| `page:afterCreate`                       | `(result, ctx)`              | 页面创建后                    |
-| `page:beforeUpdate`                      | `(name, patch, ctx)`         | 页面更新前                    |
-| `page:afterUpdate`                       | `(name, ctx)`                | 页面更新后                    |
-| `page:beforeDelete`                      | `(name, ctx)`                | 页面删除前                    |
-| `page:afterDelete`                       | `(name, ctx)`                | 页面删除后                    |
-| `api:beforeCreate`                       | `(input, ctx)`               | API 创建前                    |
-| `api:afterCreate`                        | `(result, ctx)`              | API 创建后                    |
-| `api:beforeUpdate`                       | `(method, path, patch, ctx)` | API 更新前                    |
-| `api:afterUpdate`                        | `(method, path, ctx)`        | API 更新后                    |
-| `api:beforeDelete`                       | `(method, path, ctx)`        | API 删除前                    |
-| `api:afterDelete`                        | `(method, path, ctx)`        | API 删除后                    |
-| `config:beforeUpdate`                    | `(patch, ctx)`               | 配置更新前                    |
-| `config:afterUpdate`                     | `(config, ctx)`              | 配置更新后                    |
-| `env:beforeCreate`                       | `(key, value, opts, ctx)`    | 环境变量创建前                |
-| `env:afterCreate`                        | `(key, ctx)`                 | 环境变量创建后                |
-| `env:beforeUpdate`                       | `(key, value, ctx)`          | 环境变量更新前                |
-| `env:afterUpdate`                        | `(key, ctx)`                 | 环境变量更新后                |
-| `env:beforeDelete`                       | `(key, ctx)`                 | 环境变量删除前                |
-| `env:afterDelete`                        | `(key, ctx)`                 | 环境变量删除后                |
-| `cron:beforeCreate` / `cron:afterCreate` | ...                          | Cron 任务 CRUD                |
-| `devtools:ready`                         | `(ctx)`                      | DevTools 面板加载完成         |
-| `ai:beforeToolCall`                      | `(toolName, args, ctx)`      | AI 调用工具前，可做权限/审计  |
-| `ai:afterToolCall`                       | `(toolName, result, ctx)`    | AI 调用工具后                 |
+| Hook            | 触发时机         |
+| --------------- | ---------------- |
+| `beforeCreate`  | 资源创建前       |
+| `afterCreate`   | 资源创建后       |
+| `beforeUpdate`  | 资源更新前       |
+| `afterUpdate`  | 资源更新后       |
+| `beforeDelete`  | 资源删除前       |
+| `afterDelete`   | 资源删除后       |
 
-> **Ctx 对象**包含当前用户信息（若配置了 DevTools 认证）、请求来源、时间戳等。
+`CrudHookContext` 的形状是**统一的**（不是按资源分前缀）：
+
+```typescript
+interface CrudHookContext {
+  type: CrudResourceType | 'env' | 'config'; // 'page' | 'api' | 'layout' | 'middleware' | 'reuse' | 'cron' | 'plugin' | 'env' | 'config'
+  path?: string;
+  key?: string;
+  content?: string;
+  value?: string;
+}
+```
+
+> **注册入口尚未公开。** `createDevToolsHooks()` 由 `createUbeanDevtoolsPlugin()` 在内部调用，而 `@ubean/devtools` 不在 `ubean` 的依赖里（见 [ADR-0004](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0004-devtools-ai-sdk-optional-deps.md)），因此用户目前无法从应用侧注册钩子。想接外部系统时，走 AI/CRUD 之外的路径（例如监听项目文件变化）。
 
 #### AI 助手 (AI Assistant Tab)
 
@@ -934,72 +910,26 @@ export default defineConfig({
 
 #### RPC 通信层
 
-基于 `postMessage` 实现类型安全的 RPC。DevTools 仅在开发模式与 loopback host 启用；RPC 握手生成一次性 session token，并将 iframe window、允许 origin 与 token 绑定。生产构建不得包含 DevTools RPC handler 或 AI provider 配置。
+RPC 由 **devframe hub** 提供，ubean 不自己实现传输层：hub 在外壳与每个 devframe 之间建一条 WebSocket（`/__devframes/__ws`），连接元数据由 `/__devframes/ubean/__connection.json` 描述。`@ubean/devtools` 只声明函数，注册到 `ctx.scope('ubean')` 的命名空间里。
 
 ```typescript
-// src/devtools/rpc.ts
-// Host 侧（应用内）
-export function createDevToolsServer({ iframeWindow, devtoolsOrigin, sessionToken }) {
-  const handlers = createRpcHandlers();
+// packages/devtools/src/node/rpc/crud.ts（节选）
+import { defineUbeanRpc } from './types';
 
-  window.addEventListener('message', async event => {
-    const { id, method, params, token } = event.data ?? {};
-    if (
-      event.origin !== devtoolsOrigin ||
-      event.source !== iframeWindow ||
-      token !== sessionToken ||
-      !isAllowedDevToolsMethod(method)
-    ) {
-      return;
+export const crudRpc = [
+  defineUbeanRpc({
+    name: 'crud-read', // 裸名 → wire 名 `ubean:crud-read`
+    type: 'query',
+    async handler(params) {
+      return crud.read(params);
     }
-    try {
-      await hooks.callHook(`${methodToHook(method)}:before`, ...params);
-      const result = await handlers[method](...params);
-      await hooks.callHook(`${methodToHook(method)}:after`, result);
-      iframeWindow.postMessage({ __ubean_devtools__: true, id, result }, devtoolsOrigin);
-    } catch (error) {
-      iframeWindow.postMessage({ __ubean_devtools__: true, id, error: toPublicError(error) }, devtoolsOrigin);
-    }
-  });
-}
-
-// Client 侧（DevTools iframe 内）
-export function createDevToolsClient({ parentOrigin, sessionToken }) {
-  let nextId = 0;
-  const pending = new Map();
-
-  window.addEventListener('message', event => {
-    if (
-      event.origin === parentOrigin &&
-      event.source === window.parent &&
-      event.data?.__ubean_devtools__ &&
-      pending.has(event.data.id)
-    ) {
-      const { resolve, reject } = pending.get(event.data.id);
-      pending.delete(event.data.id);
-      if (event.data.error) reject(new Error(event.data.error));
-      else resolve(event.data.result);
-    }
-  });
-
-  return new Proxy(
-    {},
-    {
-      get(_, method: string) {
-        return (...params: unknown[]) =>
-          new Promise((resolve, reject) => {
-            const id = nextId++;
-            pending.set(id, { resolve, reject });
-            window.parent.postMessage(
-              { __ubean_devtools__: true, id, method, params, token: sessionToken },
-              parentOrigin
-            );
-          });
-      }
-    }
-  ) as DevToolsRPC;
-}
+  })
+] as const;
 ```
+
+客户端从 `@devframes/hub/client` 的 `connectDevframe()` 拿连接，再 `client.call('ubean:crud-read', params)`；扫描数据这类持续变化的面走 sharedState（`client.sharedState.get('ubean:info')` + `on('updated')`），不再轮询。DevTools 仅在开发模式启用，生产构建不产出 DevTools 代码。
+
+> 传输层与认证（`auth: false` 时只绑 loopback）归 hub；ubean 侧的安全边界见下一节的**文件操作安全**。
 
 #### 文件操作安全
 
@@ -1060,29 +990,26 @@ DevTools 客户端（iframe 内的 Vue 应用）使用 **`@vean/ui`** **+** **`@
 - **`@vean/aria`**：提供无样式的功能基元（组合式函数、状态管理）
 - **CodeMirror 6**：代码编辑器（API Playground 编辑、虚拟文件查看），只读模式下也用于代码片段高亮显示
 - **fuse.js**：路由/接口/组件模糊搜索
-- DevTools 客户端作为独立 Vue 应用预构建为单文件（内联 CSS/JS），通过 Vite 虚拟模块注入，无需额外安装依赖
+- DevTools 客户端是独立 Vue 应用，预构建进 `@ubean/devtools` 的 `dist/client/`，作为 devframe 的 `clientAssets` 由 hub 在 `/__devframes/ubean/` 下静态服务（客户端 `base: './'`，换前缀不白屏）
 
-#### 可扩展自定义 Tab
+#### 可扩展自定义视图
 
-用户/插件可以注册自定义 DevTools Tab：
+用户/插件可以注册自定义 DevTools 视图。注册表是**进程单例**（挂 `globalThis`），因为 dev 下同一个进程里常常有第二份 `@ubean/devtools`（CLI 动态 `import()` 一份、用户的 `vite.config.ts` 又静态引一份）——模块级数组会表现成「注册了但面板里永远看不到」，且没有任何报错：
 
 ```typescript
 // plugins/my-devtools-tab.ts
 import { defineDevToolsTab } from '@ubean/devtools';
 
 export default defineDevToolsTab({
-  name: 'my-feature',
-  title: 'My Feature',
-  icon: '🔧',
-  // Tab 的 Vue 组件
-  component: () => import('./devtools/MyFeatureTab.vue'),
-  // 自定义 RPC 方法
-  rpc: {
-    'my-feature:get-data': async () => { return db.query(...); },
-    'my-feature:update-data': async (data) => { ... },
-  },
+  id: 'my-feature', // 必填，同时决定 dock id `ubean:custom:my-feature`
+  label: 'My Feature',
+  icon: 'lucide:wand-sparkles', // Iconify 名，缺省为 lucide:plugin
+  src: '/my-feature/', // 必填：自托管页面的 URL，以独立 iframe dock 打开
+  sandbox: ['allow-scripts', 'allow-same-origin'] // 可选
 });
 ```
+
+自定义视图是**独立 iframe dock**（`ctx.docks.register`，`category: 'framework'`、`defaultOrder: 50`），直接指向 `src`，不经过 ubean 自带的 SPA。需要 RPC 时在自己的页面里 `connectDevframe()` 并调自己注册的 scoped 函数（见上文 RPC 通信层）。
 
 ## 4.13 CLI 命令系统
 
@@ -1125,7 +1052,7 @@ ubean config show                     # 显示配置文件位置与内容
 ubean config example                  # 打印完整配置示例
 ubean config path                     # 打印解析后的配置文件路径
 
-# ─── DevTools ───
+# ─── DevTools (devframe hub) ───
 ubean devtools info               # 显示 DevTools 信息 (访问方式/功能/配置)
 ubean devtools path [--port 9527] # 打印 DevTools URL 路径
 

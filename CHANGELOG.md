@@ -1,5 +1,36 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.1-beta.3...main) (2026-10-10) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **cli**:
+  - make the build-spawn watchdog fire before the test timeout &nbsp;-&nbsp; by @soybeanjs [<samp>(a92f8)</samp>](https://github.com/soybeanjs/ubean/commit/a92f892)
+  - scaffold `build.preset` — a top-level `preset` is silently ignored &nbsp;-&nbsp; by @soybeanjs [<samp>(06c4c)</samp>](https://github.com/soybeanjs/ubean/commit/06c4cce)
+  - stop calling process.exit() on the CLI failure path &nbsp;-&nbsp; by @soybeanjs [<samp>(92fbb)</samp>](https://github.com/soybeanjs/ubean/commit/92fbbb1)
+  - widen the misleading `--preset` help text &nbsp;-&nbsp; by @soybeanjs [<samp>(5d7f0)</samp>](https://github.com/soybeanjs/ubean/commit/5d7f082)
+  - write scaffolded cron files where the scanner reads them &nbsp;-&nbsp; by @soybeanjs [<samp>(3f70b)</samp>](https://github.com/soybeanjs/ubean/commit/3f70b11)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **examples**:
+  - switch the frontend-only demo to the `v-client.load` directive &nbsp;-&nbsp; by @soybeanjs [<samp>(0ecc4)</samp>](https://github.com/soybeanjs/ubean/commit/0ecc488)
+- **projects**:
+  - align the shipped docs with v0.6.1-beta.3 and the current API surface &nbsp;-&nbsp; by @soybeanjs [<samp>(b7009)</samp>](https://github.com/soybeanjs/ubean/commit/b7009c0)
+  - correct the preset inventory, init flags and auto-import claims &nbsp;-&nbsp; by @soybeanjs [<samp>(5d690)</samp>](https://github.com/soybeanjs/ubean/commit/5d6901a)
+- **skills**:
+  - align the agent skills with the current docs and API surface &nbsp;-&nbsp; by @soybeanjs [<samp>(36c86)</samp>](https://github.com/soybeanjs/ubean/commit/36c8649)
+- **ubean**:
+  - update logo and favicon urls &nbsp;-&nbsp; by @soybeanjs [<samp>(5c1fb)</samp>](https://github.com/soybeanjs/ubean/commit/5c1fbbc)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(97468)</samp>](https://github.com/soybeanjs/ubean/commit/9746828)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.1-beta.2...main) (2026-10-09) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

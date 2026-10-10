@@ -48,7 +48,7 @@
     "vue": "^3.5.43"
   },
   "devDependencies": {
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

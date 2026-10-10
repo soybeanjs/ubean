@@ -9,8 +9,8 @@ catalog:
   vite: npm:@voidzero-dev/vite-plus-core@1.1.0
   vite-plus: 1.1.0
   typescript: npm:typescript-native-bridge@latest
-  vue-i18n: 11.4.13
-  '@intlify/core': 11.4.13
+  vue-i18n: 11.4.14
+  '@intlify/core': 11.4.14
   '@intlify/unplugin-vue-i18n': 11.2.5
 overrides:
   vite: 'catalog:'

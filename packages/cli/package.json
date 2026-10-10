@@ -42,7 +42,7 @@
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "env-runner": "0.3.3",
     "typescript": "catalog:",
     "vite": "catalog:",

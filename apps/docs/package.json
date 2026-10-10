@@ -22,13 +22,13 @@
     "shiki": "^4.5.0",
     "ubean": "workspace:*",
     "vue": "^3.5.43",
-    "vue-i18n": "^11.4.13",
+    "vue-i18n": "^11.4.14",
     "vue-router": "^5.4.0"
   },
   "devDependencies": {
     "@soybeanjs/unocss-preset": "^0.2.0",
     "@vean/unocss": "^0.50.2",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "tsx": "^4.23.15",
     "typedoc": "^0.28.20",
     "typescript": "catalog:",

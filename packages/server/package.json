@@ -84,8 +84,8 @@
     "pathe": "^2.0.3"
   },
   "devDependencies": {
-    "@types/node": "^26.6.4",
-    "nodemailer": "^10.0.16",
+    "@types/node": "^26.6.5",
+    "nodemailer": "^10.1.0",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

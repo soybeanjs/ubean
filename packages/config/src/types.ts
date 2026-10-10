@@ -525,6 +525,38 @@ export interface PrerenderResult {
  */
 export type AppMode = 'fullstack' | 'spa' | 'ssg' | 'backend';
 
+/**
+ * `@ubean/preset` 内置平台预设的**规范名**（不含别名）。
+ *
+ * 类型硬编码在此而非从 `@ubean/preset` import —— `@ubean/config` 只依赖
+ * `@ubean/shared`，反向或正向新增依赖边都会打乱包图（`@ubean/preset` 是零
+ * workspace 依赖的叶子包）。代价是需要防漂移测试，见
+ * `packages/builder/test/preset-name-drift.test.ts`。
+ *
+ * 别名（`cf`/`wrangler`/`lambda`/`swa`/`node-server`/`vercel-serverless` …）刻意不列入：
+ * 别名表是 `@ubean/preset` 注册表的事实来源，复制进联合类型必然两边漂移。
+ */
+export type BuiltinPresetName =
+  | 'standard'
+  | 'node'
+  | 'cloudflare'
+  | 'cloudflare-dev'
+  | 'vercel'
+  | 'vercel-edge'
+  | 'netlify'
+  | 'bun'
+  | 'deno'
+  | 'aws'
+  | 'azure';
+
+/**
+ * 平台预设名：内置规范名 + 任意自定义 preset 名（`registerPreset` / `definePreset`）。
+ *
+ * `(string & {})` 是**逃生舱，不可删除** —— `registerPreset` 是公开 API，用户自定义
+ * 预设名无法在编译期穷举。去掉它等于砍能力，而不是收紧类型。
+ */
+export type PresetName = BuiltinPresetName | (string & {});
+
 export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
 
 export interface I18nLocaleObject {
@@ -818,7 +850,18 @@ export interface UbeanConfig {
     strictPort?: boolean;
   };
   build?: {
-    preset?: string;
+    /**
+     * 平台预设名。内置规范名有编辑器补全；拼错的内置名不再是静默回退。
+     *
+     * 注意**只有 `build.preset` 被读取** —— 顶层的 `preset` 字段从来不被读取，
+     * 写了会被静默忽略（现已由未知顶层 key 警告提示）。
+     *
+     * @example
+     * ```ts
+     * export default defineConfig({ build: { preset: 'vercel' } });
+     * ```
+     */
+    preset?: PresetName;
     outputDir?: string;
     minify?: boolean;
     sourcemap?: boolean;

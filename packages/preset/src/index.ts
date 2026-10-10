@@ -5,7 +5,7 @@ import { cloudflarePreset, cloudflareDevPreset } from './cloudflare';
 import { denoPreset } from './deno';
 import { netlifyPreset } from './netlify';
 import { nodePreset } from './node';
-import { registerPreset, resolvePreset, getPresetAliases } from './registry';
+import { registerPreset, resolvePreset, getPresetAliases, getPresetNames } from './registry';
 import type { Preset, ResolvedPreset } from './registry';
 import { standardPreset } from './standard';
 import { vercelPreset, vercelEdgePreset } from './vercel';
@@ -40,11 +40,24 @@ export function registerBuiltinPresets(): void {
 
 registerBuiltinPresets();
 
+/**
+ * 按名称/别名解析预设，未命中时回退到 `standard`。
+ *
+ * 回退本身是刻意的（`standard` 在任意运行时都可用，避免配置里一个 typo 直接炸构建），
+ * 但**静默**回退会让 `preset: 'vercle'` 表现为「一切正常」—— 产物按 Node 预设产出，
+ * 直到部署到目标平台才失败。因此回退路径打印一次 `console.warn`。
+ *
+ * 用 `console.warn` 而非 `@ubean/shared/logger`：本包是零 workspace 依赖的叶子包
+ * （见 package.json），同 `@ubean/vue` / `@ubean/content` 的既有做法。
+ */
 export function resolvePresetByName(name: string): ResolvedPreset {
   const aliases = getPresetAliases();
   const resolvedName = aliases.get(name) || name;
   const preset = resolvePreset(resolvedName);
   if (preset) return preset;
+
+  const known = getPresetNames().join(', ');
+  console.warn(`[ubean/preset] Unknown preset "${name}", falling back to "standard". Known presets: ${known}.`);
 
   const standardResolved = resolvePreset('standard');
   if (standardResolved) return standardResolved;

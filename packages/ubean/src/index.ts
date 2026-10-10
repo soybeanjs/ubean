@@ -172,6 +172,9 @@ export type { UbeanLogger, UbeanLoggerOptions, LogLevelName, RequestLoggerOption
 export function defineConfig(config?: UbeanConfig): UbeanConfig {
   return config ?? {};
 }
+// `PresetName` 是 type-only，编译期擦除，不会把 `@ubean/config` 的 node 依赖带进主入口
+// （与 `UbeanConfig` 同一处理方式）。用户才能在自己的配置里标注自定义预设名。
+export type { BuiltinPresetName, PresetName, UbeanConfig, ResolvedConfig } from '@ubean/config';
 
 // ============== 冲突消歧与类型固定(显式 re-export 优先于上方 `export *`)==============
 export { defineDataKey } from '@ubean/pages';

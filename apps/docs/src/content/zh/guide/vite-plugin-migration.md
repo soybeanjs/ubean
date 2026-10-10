@@ -1,8 +1,8 @@
 ---
 title: Vite 插件迁移
 description: dev / build / preview 生命周期从 CLI 下放到 Vite 插件（ADR-0012）后有哪些变化，以及配置里需要核对什么。
-translatedFrom: 889572313574
-sections: ["9599422c","e3b0c442","016b58cb","127a2ba9","bc71106e","9498e38d","6c7581bc","0c8df940","c32924e5","ee8370f0"]
+translatedFrom: a13be544b8f6
+sections: ["9599422c","e3b0c442","016b58cb","91243b22","bc71106e","9498e38d","6c7581bc","0c8df940","c32924e5","ee8370f0"]
 ---
 
 # Vite 插件迁移
@@ -21,7 +21,7 @@ ubean preview  # ≡ vite preview
 
 | 你现在有的是 | 要做什么 |
 | --- | --- |
-| 顶层 `preset: 'vercel'` | 改成 `build: { preset: 'vercel' }`。顶层字段从来不被读取：它会被静默忽略，构建退回默认的 `node` 预设。 |
+| 顶层 `preset: 'vercel'` | 改成 `build: { preset: 'vercel' }`。顶层字段从来不被读取：它会被静默忽略，构建退回默认的 `node` 预设（现在会打印一条未知配置项警告）。 |
 | `experimental: { viteBuilder: … }` | 删掉这一项。开关已不存在；留着会被当作未知字段忽略。 |
 | 依赖的某个 `prerender.staticDir` 默认值 | 显式写上你要的目录。默认值不再写死 `dist/public`，改为从**实际的** `build.outputDir` 派生为 `<outputDir>/public` —— 这样 `--outDir` 与 preset 自带目录才成立。 |
 | 按 `runtime.entry` / `output.serverDir` 找入口的部署脚本 | 别按它找。这些字段是纯声明、全仓无消费者。真实产物恒定是 `<build.outputDir>/{public,server}`，以及 `server/{server,worker,handler}.mjs`（按 preset 的 entryType 三选一）。 |

@@ -19,7 +19,7 @@ The convergence is complete. `experimental.viteBuilder` was the temporary switch
 
 | What you have | What to do |
 | --- | --- |
-| Top-level `preset: 'vercel'` | Move it to `build: { preset: 'vercel' }`. The top-level field was never read: it was silently ignored and the build fell back to the default `node` preset. |
+| Top-level `preset: 'vercel'` | Move it to `build: { preset: 'vercel' }`. The top-level field was never read: it was silently ignored and the build fell back to the default `node` preset (a warning about the unknown config option is now printed). |
 | `experimental: { viteBuilder: … }` | Delete the entry. The switch no longer exists; leaving it in place is ignored as an unknown field. |
 | A `prerender.staticDir` default you depended on | Set the directory explicitly. The default is no longer the hardcoded `dist/public`; it derives from the **actual** `build.outputDir` as `<outputDir>/public`, which is what makes `--outDir` and preset-provided directories hold. |
 | Deployment scripts looking for `runtime.entry` / `output.serverDir` | Don't look there. Those fields are declaration-only and have no consumer in this repo. The real output is always `<build.outputDir>/{public,server}`, with `server/{server,worker,handler}.mjs` — one of the three, per the preset's entry type. |

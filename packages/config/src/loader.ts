@@ -257,6 +257,46 @@ const configDefaults: ResolvedConfig = {
   search: false
 };
 
+/**
+ * c12 的约定键：`$env` / `$test` 等按环境选择配置，`$meta` 会被 c12 自己删除。
+ * 它们不是拼错的 ubean 配置项，不得进未知 key 警告。
+ */
+const C12_RESERVED_KEYS = new Set(['$env', '$test', '$meta']);
+
+/**
+ * 对用户配置里**不在 `UbeanConfig` 上**的顶层 key 发一次警告。
+ *
+ * 为什么需要：c12 不做未知字段校验，`defineConfig` 也不做（它只是 identity 函数，
+ * 参数类型完全不参与运行时）。于是两类真实事故都是静默的：
+ *
+ * 1. **写错层级** —— 顶层 `preset: 'vercel'` 从来不被读取，构建安静地按默认 `node`
+ *    预设产出，直到部署到目标平台才失败（`apps/docs` 的 `guide/vite-plugin-migration.md`
+ *    专门记了这个坑）。
+ * 2. **拼错字段名** —— `autoImport: true`（少了 s）整份配置静默失效。
+ *
+ * 白名单直接用 `configDefaults` 的 key 集合：`ResolvedConfig extends Required<Omit<UbeanConfig, …>>`
+ * 而 `configDefaults` 的类型就是 `ResolvedConfig`，所以给 `UbeanConfig` 新增一个不被 `Omit` 的字段
+ * 时，**不写进 `configDefaults` 会直接编译报错** —— 检测白名单因此不需要第二份手写列表，
+ * 也不可能漏掉新字段。（`Omit` 清单里的 20 个也是全在 `configDefaults` 里的。）
+ *
+ * 警告不抛出：未知 key 多为笔误，不该阻断构建；真正的类型错误由 TS 在 `defineConfig` 处拦下。
+ */
+function warnUnknownConfigKeys(config: Record<string, unknown>): void {
+  if (!config || typeof config !== 'object') return;
+
+  const unknown = Object.keys(config).filter(key => !(key in configDefaults) && !C12_RESERVED_KEYS.has(key));
+  if (unknown.length === 0) return;
+
+  const hints = unknown.map(key =>
+    // `preset` 是最容易写错层级的一个，单独给出正确的写法
+    key === 'preset' ? '`preset` (did you mean `build.preset`?)' : `\`${key}\``
+  );
+  console.warn(
+    `[ubean] Unknown config option${unknown.length > 1 ? 's' : ''} in ubean.config: ${hints.join(', ')}. ` +
+      'These are ignored — check for a typo or a wrong nesting level.'
+  );
+}
+
 let cachedConfig: ResolvedConfig | null = null;
 
 /**
@@ -266,6 +306,8 @@ let cachedConfig: ResolvedConfig | null = null;
  * 确保两条路径产出完全一致的配置对象。
  */
 function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
+  warnUnknownConfigKeys(config as Record<string, unknown>);
+
   const resolved = defu(config as Partial<ResolvedConfig>, configDefaults) as ResolvedConfig;
   resolved.rootDir = resolve(cwd);
   resolved.srcDir = resolve(cwd, resolved.srcDir);

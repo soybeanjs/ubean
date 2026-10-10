@@ -23,7 +23,7 @@ export default defineConfig({
   // Build options (platform preset lives here — a top-level \`preset\` field
   // is silently ignored, so always nest it under \`build\`).
   build: {
-    preset: 'standard', // 'standard' | 'node' | 'cloudflare' | 'vercel' | 'netlify' | 'bun' | 'deno' | 'aws' | 'azure'
+    preset: 'standard', // 'standard' | 'node' | 'cloudflare' | 'cloudflare-dev' | 'vercel' | 'vercel-edge' | 'netlify' | 'bun' | 'deno' | 'aws' | 'azure'
     outputDir: 'dist'
   },
 

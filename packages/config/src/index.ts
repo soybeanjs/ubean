@@ -80,6 +80,8 @@ export type {
   DevToolsConfig,
   ResolvedDevToolsConfig,
   AppMode,
+  BuiltinPresetName,
+  PresetName,
   I18nRoutingStrategy,
   I18nLocaleObject,
   I18nDetectBrowserLanguage,

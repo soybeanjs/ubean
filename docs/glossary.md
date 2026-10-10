@@ -108,10 +108,15 @@
 - **环境运行器（env runner）**：承载服务端模块执行的隔离运行时，由 `env-runner` 提供。ubean **不**绑定它的 `EnvRunner`，只声明用到的结构化最小面 `EnvRunnerLike`（`packages/builder/src/dev/dev-environment.ts`）：builder 不必为 dev 环境把 env-runner 拉进类型依赖。默认 `node-worker`（worker 线程），可选 `miniflare` / `vercel` / `netlify` 等平台保真 runner；该 worker 拓扑**尚未接入实际 dev 路径**（见该文件头注释）。
   _Avoid_: dev server（过载：dev server 指 Vite 的 HTTP server 本身）
 - **开发宿主（dev host）**：Vite dev server 所在的进程。持有 `DevApp`（devtools、错误页、`/_openapi.json`、VFS）与路由匹配；未命中的请求经 `dispatchFetch` 分流。`DevApp` 定义在 `packages/builder/src/dev/dev-app.ts`，由 `packages/builder/src/vite.ts` 以 `type DevApp` 导出。
+- **devframe**：可插拔的开发工具面板单元（`DevframeDefinition`：id / name / version / basePath / clientAssets / dock / `setup(ctx)`）。一个 devframe 由宿主安装后拿到一个 iframe dock 与一块共享 RPC 命名空间。ubean 的 DevTools 是一个 id 为 `ubean` 的 devframe。
+- **devframe hub（hub）**：承载多个 devframe 的宿主（`@devframes/hub`），提供外壳（dock 侧栏 + 认证）、`__connection.json` 连接元数据、WebSocket / SSE RPC 传输、每个 devframe 的静态产物服务与共享状态注册表。ubean 通过 `@devframes/vite/hub` 的 `viteDevframeHub()` 在 dev server 里挂它（默认共享 Vite 的 httpServer，无 side-car 端口）。
+- **anchor dock / member dock**：anchor 是载入 devframe SPA 的那个 dock（ubean 的 anchor 带 `frameId: 'ubean'` 与 `subTabs: { protocol: 'postmessage' }`）；member 是 SPA 经 frame-nav 上报后由外壳合成的子 dock（id 形如 `ubean:pages`）。**anchor 不能被隐藏**（`visibility: 'false'`）——iframe 只在 anchor 被激活时挂载，隐藏它就永远发现不了视图清单。
+- **frame-nav 协议**：iframe 内的 SPA 与 hub 外壳之间的 `postMessage` 协议（`FRAME_NAV_CHANNEL` / `FRAME_NAV_VERSION`）。frame 侧发 `ready`/`manifest`（带 `FrameTab[]` 清单）与 `navigated`；host 侧发 `hello` 与 `navigate`。SPA 必须先连上 RPC 再报 tabs。
+- **scoped RPC**：devframe 的命名空间注册（`ctx.scope(ns).rpc.register(fn)`），只接受**不含 `:` 的裸名**（含 `:` 会抛 `DF0034`），前缀由 scope 统一加 —— 因此 ubean 的 wire 名是 `ubean:crud-read` 而非 `ubean:crud:read`。
 - **作用域化重载（scoped reload）**：服务端文件变更时只失效该文件及其 importer 的求值结果，其余模块保留单例与状态；仅 scan 目录增删才全量失效并重扫路由表。取代现状「任何服务端变更 → 全量 rescan + 重建 app + full-reload」。
 - **资产-导航歧义（asset-navigation ambiguity）**：dev 下 catch-all 或未匹配的请求既可能是页面导航（→ 框架）、也可能是静态资产（→ Vite）。判据为显式路由优先，其余按 `Sec-Fetch-Dest` / 扩展名 / `?import` query / `Accept` 启发式分流。
 - **构建期快照（build-time snapshot）**：`.ubean/virtual/*` 落盘文件的定位——供 preset 包装与调试读取，**不再**被 virtual id → 磁盘文件的 alias 映射依赖（虚拟模块由无状态插件提供）。
 
 ---
 
-_术语按 ADR 沉淀整理：内容分类 ← ADR-0007；产品规划与拦截/并行路由 ← ADR-0010；SSG 渲染路径 ← ADR-0011；`routeRules.ssr`/`ppr` ← P9-03/P9-04；reuse 路由与 matcher ← `definePage`/Task 7 约定；studio 开口 ← RM-S01/RM-S02；i18n ← ADR-0009；Vite 插件化 ← ADR-0012；真理源与校验 ← ADR-0005/ADR-0006 及第二轮 grilling。决策与论证归各 ADR。_
+_术语按 ADR 沉淀整理：内容分类 ← ADR-0007；产品规划与拦截/并行路由 ← ADR-0010；SSG 渲染路径 ← ADR-0011；`routeRules.ssr`/`ppr` ← P9-03/P9-04；reuse 路由与 matcher ← `definePage`/Task 7 约定；studio 开口 ← RM-S01/RM-S02；i18n ← ADR-0009；Vite 插件化 ← ADR-0012；devframe 宿主 ← ADR-0014；真理源与校验 ← ADR-0005/ADR-0006 及第二轮 grilling。决策与论证归各 ADR。_

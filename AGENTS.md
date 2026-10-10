@@ -47,7 +47,7 @@ ubean/
 │   │   ── 服务 / 工具 ──
 │   ├── islands/             # @ubean/islands — Islands 架构（指令转换 + 组件自动注册）
 │   ├── cli/                 # @ubean/cli — CLI 命令（dev/build/preview 的装配 + 参数与 banner；请求处理归 @ubean/build 的插件）
-│   ├── devtools/            # @ubean/devtools — DevTools 独立包（opt-in，不进聚合器硬依赖；禁止 peer `ubean` 以免与 cli 成环）
+│   ├── devtools/            # @ubean/devtools — DevTools 独立包（opt-in，不进聚合器硬依赖；禁止 peer `ubean` 以免与 cli 成环）；devframe hub 宿主见 ADR-0014
 │   │
 │   │   ── 扩展包 ──
 │   ├── ai/                  # @ubean/ai — AI 大模型集成（defineAgent/defineAgentTool + Vue runtime，薄封装 Vercel AI SDK）
@@ -656,10 +656,10 @@ const json = serializeVercelConfig(config);
 ### @ubean/ai
 
 ```typescript
-import { ubeanAiPlugin, defineAiConfig } from '@ubean/ai/vite';
 import { defineAgent, defineAgentTool, defineProvider, configureAI, resolveModel } from '@ubean/ai';
-import { useChat, useAgent, useAIProvider } from '@ubean/ai/runtime/vue';
 import { deepseek, openrouter, openai, anthropic, google, groq, allGatewayProviders } from '@ubean/ai/gateway';
+import { useChat, useAgent, useAIProvider } from '@ubean/ai/runtime/vue';
+import { ubeanAiPlugin, defineAiConfig } from '@ubean/ai/vite';
 ```
 
 - **底层实现**：[Vercel AI SDK](https://ai-sdk.dev/)（`ai` + `@ai-sdk/openai-compatible`，ubean 仅提供薄编排层，agent loop / tool-calling / streaming 由 AI SDK 代理）
@@ -672,7 +672,6 @@ import { deepseek, openrouter, openai, anthropic, google, groq, allGatewayProvid
 ### @ubean/auth
 
 ```typescript
-import { ubeanAuthPlugin, defineAuthConfig } from '@ubean/auth/vite';
 import {
   createAuthHandler,
   getUser,
@@ -684,6 +683,7 @@ import {
   resolveAuthOptions
 } from '@ubean/auth';
 import { useAuth, useSession, getSessionFromHeaders } from '@ubean/auth/runtime';
+import { ubeanAuthPlugin, defineAuthConfig } from '@ubean/auth/vite';
 ```
 
 - `ubeanAuthPlugin`：Vite 插件，dev 时挂载 `/api/auth/*`
@@ -694,7 +694,6 @@ import { useAuth, useSession, getSessionFromHeaders } from '@ubean/auth/runtime'
 ### @ubean/icon
 
 ```typescript
-import { ubeanIconPlugin } from '@ubean/icon/vite';
 import {
   Icon,
   defineIconCollection,
@@ -704,6 +703,7 @@ import {
   getIcon,
   addIconCollection
 } from '@ubean/icon';
+import { ubeanIconPlugin } from '@ubean/icon/vite';
 ```
 
 - `ubean.config.ts` 中 `icon: true` 或 `icon: { ... }` 启用
@@ -717,8 +717,8 @@ import {
 > `pwa`/`fonts`/`electron`/`ui`/`pinia` 原为独立扩展包，现合并进 `@ubean/integrations`（子路径导出）。Vite 插件在 `@ubean/integrations/<name>`，浏览器安全的运行时/类型在 `@ubean/integrations` 主入口。
 
 ```typescript
-import { ubeanPwaPlugin, definePwaConfig } from '@ubean/integrations/pwa';
 import { usePwa } from '@ubean/integrations';
+import { ubeanPwaPlugin, definePwaConfig } from '@ubean/integrations/pwa';
 ```
 
 - **底层实现**：[vite-plugin-pwa](https://vite-pwa-org.netlify.app/) + workbox（ubean 仅提供薄封装层）
@@ -771,8 +771,8 @@ export default defineConfig({
 ### @ubean/integrations/pinia（Pinia）
 
 ```typescript
-import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/integrations/pinia';
 import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
+import { ubeanPiniaPlugin, definePiniaConfig } from '@ubean/integrations/pinia';
 import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integrations/pinia';
 ```
 
@@ -797,10 +797,10 @@ export default defineConfig({
 **SSR 状态水合配置**：
 
 ```typescript
+import { defineApp } from 'ubean';
+import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
 // src/app.ts
 import { createPinia } from 'pinia';
-import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
-import { defineApp } from 'ubean';
 
 export default defineApp({
   plugins: [createPinia()],
@@ -863,7 +863,8 @@ export default defineConfig({
 | `/_openapi.json`           | OpenAPI schema                                                                                                |
 | `/_scalar`                 | Scalar UI                                                                                                     |
 | `/_iconify`                | 本地 SVG 服务（dev）                                                                                          |
-| `/_devtools`               | DevTools（dev）                                                                                               |
+| `/_devtools`               | DevTools 入口（dev，302 → devframe hub 外壳 `/__devframes/`）                                                 |
+| `/__devframes/**`          | devframe hub（dev）：外壳、`__connection.json`、`__ws`、各 devframe 的产物（`/__devframes/ubean/`）           |
 | `POST /__actions`          | Server Actions RPC 端点(P9-02,由 `createActionsMiddleware` 处理)                                              |
 | `POST /__server-component` | Task 9.4:Server Component props 重渲染端点(由 `createServerComponentMiddleware` 处理,`@ubean/islands/server`) |
 
@@ -890,7 +891,7 @@ export default defineConfig({
 18. **第三方 API 不经 ubean 透传**：`vue`/`vue-router`/`vue-i18n`/`@vue/server-renderer` 的 API 一律从对应包直接导入，ubean 不再 re-export（如 `useRouter` 从 `vue-router`、`renderToString` 从 `@vue/server-renderer`、`I18n` 类型从 `vue-i18n`）；自动导入预设也直源这些包（`VUE_ROUTER_PRESET`/`VUE_I18N_PRESET`/`HONO_OPENAPI_PRESET`）。ubean 的 `useI18n`/`t` vue-i18n 包装已移除——`useI18n` 从 `vue-i18n` 导入，`t` 从其返回的 composer 解构。例外：`validator`/`describeRoute` 等 hono-openapi API 从 `ubean/server` 重新导出；`useHead`/`useSeoMeta`/`Head`（ubean 品牌 head 门面，主入口与 `@ubean/seo` 有消歧设计）；`createClientHead`/`createServerHead`（builder 虚拟模块的依赖卫生门面）；`setLocale`/`useLocalePath` 等 i18n 封装（ubean 自有实现，主入口 isomorphic 化后恢复自然命名，不再有 `setVueLocale` 别名）。示例项目（ubean-test/frontend-only/routing-file-mode）与 apps/docs 已在 `package.json` 中显式声明 `vue-router` + `hono-openapi` + `vue-i18n`
 
 19. **跨模块实例共享状态**：dev 的 SSR 图会内联 `ubean`、外部化 `@ubean/vue`，框架因此存在**两份模块实例**；模块级注册表 / `Map` 会让两侧读到的不是同一份，且**没有任何报错**。需要跨实例共享的状态挂 `server` 对象或 `globalThis`（matcher 注册表即为此改挂 `globalThis`，`@ubean/islands` 的服务端组件注册表同样如此 —— dev 下 SSR 图把 `packages/islands/dist/runtime.js` 内联进预构建 chunk，而 `@ubean/app` 产物静态 `import '@ubean/islands/server'` 走 Node 原生解析拿到另一份，曾导致 `POST /__server-component` 恒 404；守卫见 `packages/islands/test/server-component-registry-singleton.test.ts`）。
-20. **dev 请求路由的保留命名空间**：DevTools 有多个挂载点（`/__devtools`、`/__devtools-assets/`、`/__devtools-client-imports.js`、`/_devtools/**`），放行判据必须按**裸字符串前缀**匹配（按路径段会漏掉兄弟路径），且前缀常量只在一处声明。框架内置 HTML 页面（`/_devtools`、`/_scalar`）由 `isFrameworkHtmlPage()` 判定并跳过整个 HTML transform —— 否则应用客户端入口会被注入到没有 `#app` 的页面上。
+20. **dev 请求路由的保留命名空间**：DevTools 的挂载点跨两个命名空间 —— devframe hub 的 base（`/__devframes/**`：外壳、`__connection.json`、`__ws`、每个 devframe 的产物）与用户可见的 `/_devtools`（302 到前者）；`/__devtools*` 作为历史条目保留（兼容仍装了 `@vitejs/devtools` 的项目）。放行判据必须按**裸字符串前缀**匹配（按路径段会漏掉兄弟路径），且前缀常量只在一处声明。框架内置 HTML 页面（`/_devtools`、`/_scalar`，以及整个 `/__devframes/**`）由 `isFrameworkHtmlPage()` 判定并跳过整个 HTML transform —— 否则应用客户端入口会被注入到没有 `#app` 的页面上；hub 外壳更严重：它自带 `embedded.js` 引导脚本，再注一份应用入口就是同页启动两次（devframe 报 `A client context is already published on this page`）。详见 [ADR-0014](docs/adr/0014-devtools-on-devframe-hub.md)。
 21. **页面元数据序列化白名单**：dev 的 SSR 路由表用扫描得到的**活对象**，产物入口走**序列化白名单** —— 白名单漏字段会静默丢语义（`matchers`/`slot`/`reuseTarget` 曾因此只在产物里失效，dev 完全正常）。改动 `ScannedPage` 字段时必须同步 `serializePagesForEntry()` 的白名单，`packages/builder/test/page-metadata.test.ts` 逐字段锁住。
 22. **peer 变体漂移**：catalog 里的 `typescript: npm:typescript-native-bridge@latest` 会让 peer 解析漂移出两份 `vite-plus-core`，表现为 `Plugin` 类型身份不一致的类型报错；遇到先 `pnpm install` 收敛。`env-runner` 必须留在 `packages/cli`，**不得**成为 `@ubean/build` 的依赖（同样会触发该分裂）。
 23. **worker 目标产物**：不要把 `ubean/build` 这类构建期 API 从运行时路由 import —— 在 Node 上只是体积浪费，在 worker 上**构建期直接失败**。静态资源与缓存走平台层；完整契约见 [ADR-0013](docs/adr/0013-platform-artifact-contract.md)。

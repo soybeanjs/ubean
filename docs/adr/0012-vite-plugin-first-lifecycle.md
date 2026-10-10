@@ -84,7 +84,7 @@ prepare（order: pre，生成 .ubean 虚拟模块与类型）
 
 以下都是在 Vite 拥有 server 之后自然消失的结构，当时不作为独立任务，现已全部移除：
 
-- `httpServerBinderPlugin`——DTK 的 server 绑定补丁不再需要。
+- `httpServerBinderPlugin`——DTK 的 server 绑定补丁不再需要（DTK 本身也已在 2026-10 被 devframe hub 取代，见 [ADR-0014](0014-devtools-on-devframe-hub.md)）。
 - HMR 独立端口 hack——Vite 拥有 server 后 HMR 同端口。
 - 手工 `transformIndexHtml` 调用与 CSS link 注入——改为请求路由中间件处理。
 - 三套 watcher 合一——复用 `server.watcher`（收敛为一个 dev-scan 协调器：一套监听、一次扫描、一个重载顺序）。
@@ -127,8 +127,8 @@ prepare（order: pre，生成 .ubean 虚拟模块与类型）
 迁移过程中撞出来的、**不随任务结束而失效**的约束：
 
 1. **跨插件↔CLI 的共享状态必须挂在 `server` 对象上，不能用模块级注册表。** dev 下框架存在两份模块实例（SSR 图内联 `ubean`、外部化 `@ubean/vue`），模块级 `Map` 会导致两侧读到的不是同一份，且**没有任何报错**。同样的原因，需要跨实例共享的注册表挂 `globalThis`。
-2. **保留命名空间的归属必须用一处常量声明，且按裸字符串前缀匹配。** DevTools 有多个以 `/` 结尾的挂载点（`/__devtools`、`/__devtools-assets/`、`/__devtools-client-imports.js`、`/_devtools/**`），按路径段匹配会漏掉兄弟路径；分散在多处声明则最容易只改一处。
-3. **"框架内置 HTML 页面"需要显式判据**（`isFrameworkHtmlPage()`：`/_devtools`、`/_scalar`），dev 请求路由据此跳过整个 HTML transform——否则应用客户端入口会被注入到没有 `#app` 的框架页面上。
+2. **保留命名空间的归属必须用一处常量声明，且按裸字符串前缀匹配。** DevTools 的挂载点跨两个命名空间：devframe hub 的 base（`/__devframes/**`：外壳、`__connection.json`、`__ws`、每个 devframe 的产物）与用户可见的 `/_devtools`（302 到前者）。按路径段匹配会漏掉兄弟路径；分散在多处声明则最容易只改一处。**2026-10 注**：迁到 devframe hub 后 DTK 自己的 `/__devtools-assets/`、`/__devtools-client-imports.js` 不再由本框架产出，`/__devtools` 前缀作为历史条目保留。
+3. **"框架内置 HTML 页面"需要显式判据**（`isFrameworkHtmlPage()`：`/_devtools`、`/_scalar`，以及整个 `/__devframes/**`），dev 请求路由据此跳过整个 HTML transform——否则应用客户端入口会被注入到没有 `#app` 的框架页面上；hub 外壳更严重：它自带 `embedded.js` 引导脚本，再注一份应用入口就是同一个页面启动两次（devframe 报 `A client context is already published on this page`）。
 4. **框架自己的 CSP 不得拦死框架自己的页面。** 内置 Scalar 页需要 CDN 来源时，只在**那一条响应**上从生效策略追加来源，而不是放宽默认策略；用户显式关闭 CSP 时不设头。
 5. **`env-runner` 必须留在 `packages/cli`，不得成为 `@ubean/build` 的依赖**——它会触发 pnpm 的 peer 变体分裂，表现为 `Plugin` 类型身份不一致的类型错误。`@ubean/build` 用本地结构性接口避免这个依赖。
 

@@ -39,9 +39,9 @@
 
 ## 决策记录（ADR）
 
-见 [adr/](adr/)（13 篇；状态写在各文件头部：`proposed` / `accepted` / `implemented` / `superseded`）。
+见 [adr/](adr/)（14 篇；状态写在各文件头部：`proposed` / `accepted` / `implemented` / `superseded`）。
 
-当前主线决策：Vite 插件化的生命周期归属见 [ADR-0012](adr/0012-vite-plugin-first-lifecycle.md)，平台产物契约见 [ADR-0013](adr/0013-platform-artifact-contract.md)。
+当前主线决策：Vite 插件化的生命周期归属见 [ADR-0012](adr/0012-vite-plugin-first-lifecycle.md)，平台产物契约见 [ADR-0013](adr/0013-platform-artifact-contract.md)，DevTools 的 devframe hub 宿主见 [ADR-0014](adr/0014-devtools-on-devframe-hub.md)。
 
 ## 相关目录
 

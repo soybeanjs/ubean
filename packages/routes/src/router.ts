@@ -150,6 +150,55 @@ export function sortPagesForRegistration<T extends { route: string }>(pages: rea
   });
 }
 
+/**
+ * Specificity score for a Hono path shape. Higher wins, so sorting
+ * descending puts literal paths in front of dynamic ones.
+ *
+ * Same idea as `pathSpecificity` in ./route-rules (which tiebreaks route
+ * rules and therefore stays private there), adapted to Hono path shapes:
+ * `:id{regex}` counts as dynamic, `*` as a catch-all.
+ *
+ * - literal segment: `+1`
+ * - `:param` (optionally with a `{regex}` suffix): `-1`
+ * - `*` / `*name` catch-all: `-10`
+ */
+export function apiPathSpecificity(path: string): number {
+  const segments = path.split('/').filter(segment => segment.length > 0);
+  let score = 0;
+
+  for (const segment of segments) {
+    if (segment.startsWith('*')) {
+      score -= 10;
+    } else if (segment.startsWith(':')) {
+      score -= 1;
+    } else {
+      score += 1;
+    }
+  }
+
+  return score;
+}
+
+/**
+ * Sort API routes so literal paths are registered before paths with dynamic
+ * segments, keeping catch-alls last.
+ *
+ * Hono resolves routes in registration order (`TrieRouter`, the router the
+ * default `SmartRouter` silently falls back to once a `:param` and a literal
+ * sibling coexist). Without this sort, `/api/user/:id` may be registered
+ * before `/api/user/list` and answer `id === 'list'`.
+ *
+ * The scan order is a plain sort of absolute file paths, so apps used to
+ * carry a `(r)/` route group to force literals first — `(` (0x28) sorts
+ * before `[` (0x5b). That was a naming accident; the guarantee belongs here.
+ *
+ * Stable: paths with equal specificity keep their scan order (e.g.
+ * `/api/user/:id/roles` stays after `/api/user/:id`).
+ */
+export function sortApiRoutesForRegistration<T extends { route: string }>(routes: readonly T[]): T[] {
+  return [...routes].sort((a, b) => apiPathSpecificity(b.route) - apiPathSpecificity(a.route));
+}
+
 function middlewarePathToHonoPath(relativePath: string): string {
   const noExt = relativePath.replace(/\.(mjs|js|jsx|cjs|ts|tsx|mts|cts)$/i, '');
   const segments = noExt.split('/');
@@ -312,7 +361,14 @@ export async function registerApiRoutes(app: RouteRegistrar, options: RegisterOp
     }
   }
 
-  for (const [honoPath, pathMethods] of routesByPath) {
+  // Literal paths must be registered before dynamic ones: the router the
+  // default SmartRouter falls back to (`TrieRouter`) is first-match-wins, so
+  // `/api/user/:id` scanned before `/api/user/list` would swallow the latter.
+  const orderedApiPaths = [...routesByPath.entries()].sort(
+    (a, b) => apiPathSpecificity(b[0]) - apiPathSpecificity(a[0])
+  );
+
+  for (const [honoPath, pathMethods] of orderedApiPaths) {
     for (const [method, entry] of pathMethods) {
       const { definition, fileMeta, matchers } = entry;
       const matchingMiddleware = getMatchingMiddleware(honoPath);

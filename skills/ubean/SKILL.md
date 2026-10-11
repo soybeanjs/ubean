@@ -465,6 +465,7 @@ Use these keys in `dependsOn` for built-in modules:
 - Page routes: `pages/**/*.vue` (+ `.reuse.ts`, `.md`)
 - Layouts: `layouts/` (`xx.vue` or `xx/index.vue`), supports nested layout chain (`layout: ['default', 'admin']` = outer → inner)
 - Route groups: `(group)/` directories don't contribute URL segments
+- Registration order: literal API paths are registered before `:param` ones (Hono's default router falls back to the first-match-wins `TrieRouter` whenever a literal and a `:param` sibling coexist), so `/api/user/list` never lands on `/api/user/:id`. A `(r)/` route group is therefore a readability choice, not a correctness requirement
 - `definePage` compile-time macro for meta/layout/name/path override
 - Middleware: `middleware/` with numeric prefix ordering; `global`/`global.*` → `/*`, others by directory prefix (mounts at `/dir/*`)
 - Dynamic params: `[id].vue` → `/user/:id`; matchers `[id=numeric].vue` validate params via `defineMatcher(name, fn)` (falsy = no match → next candidate or 404). Server side validated by Hono middleware (404 on reject); client side needs `router.beforeEach(createMatcherGuard())` inside `defineApp({ router: { setup } })`. Works for pages (`[id=numeric].vue`), catch-all (`[...slug=any].vue`), optional (`[[page=numeric]].vue`) and API routes (`[id=numeric].get.ts`)

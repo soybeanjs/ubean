@@ -11,6 +11,8 @@ export {
   registerPageRoutes,
   createRouteLoader,
   sortPagesForRegistration,
+  sortApiRoutesForRegistration,
+  apiPathSpecificity,
   convertUbeanRoutePath
 } from './router';
 export type { RouteRegistrar, RegisterOptions } from './router';

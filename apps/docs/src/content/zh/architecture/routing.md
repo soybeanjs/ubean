@@ -1,8 +1,8 @@
 ---
 title: Routing
 description: ubean 路由设计：命名导出 API 路由、文件式页面、路由规则与中间件。
-translatedFrom: d2f02f104d0d
-sections: ["8080066f","e3b0c442","e2cf0058","9f1b21a4","f8d010a1","f59ad465","2057751b","89842e98","f92a35a0","408c83c1","f7d15309","3134035c","4468f7d7","6338a6ff"]
+translatedFrom: ab8dd182197b
+sections: ["8080066f","e3b0c442","e2cf0058","9f1b21a4","f8d010a1","f59ad465","2057751b","89842e98","f92a35a0","408c83c1","f7d15309","153334a4","4468f7d7","6338a6ff"]
 ---
 
 # 路由设计
@@ -314,8 +314,11 @@ API 路由和 Pages 路由由同一个已规范化的路由清单驱动。当前
 | 命中 API 路由        | 按方法分派到 `routes/` 中的命名导出；API 路由优先于同路径 Pages 路由       |
 | 命中 Pages 路由      | `GET`/`HEAD` 执行 SSR 或客户端页面协议；页面 action 仅接受其显式声明的方法 |
 | 路径存在但方法不支持 | 规范目标：`405` + `Allow`。当前实现回退到 `404` 处理器（405/`Allow` 尚未接线） |
+| 静态与动态路由同段 | 字面量路径先于 `:param` 注册：`/api/user/list` 不会被 `/api/user/:id` 截获；catch-all（`*`）排最后 |
 | 路径不存在           | 返回 `404`；在 Pages 模式下可交由 `error.404.vue` 渲染                     |
 | URL 规范化           | 统一解码规则、尾斜杠策略和 catch-all 参数编码；重定向只在配置明确时发生    |
+
+注册顺序由框架保证，不依赖文件路径的字典序：扫描阶段产出的是文件绝对路径的排序结果，而 Hono 默认的 `SmartRouter` 一旦遇到静态/动态兄弟（`/api/user/list` 与 `/api/user/:id`）就会因为 `RegExpRouter` 抛 `UnsupportedPathError` 而静默回退到 `TrieRouter`，后者是 **first-match-wins**。`registerApiRoutes` 因此在注册前按路径特异性降序排序（字面段 `+1`、`:param` `-1`、`*` `-10`，同分保持扫描序），`sortApiRoutesForRegistration` / `apiPathSpecificity` 是这份契约的导出入口。这意味着 `(r)/` 路由组不再是正确性的必要条件 —— 它现在只剩「把同一资源的静态端点聚在一起」的可读性价值。
 
 页面 action、表单增强与客户端导航共享一个协议：请求携带框架版本和页面导航标识，服务端按协商格式返回页面数据、重定向或字段错误；不满足协议的普通表单请求仍返回标准 HTML/HTTP 响应。所有改变服务端状态的 Pages action 必须具备可配置的 CSRF 防护。
 

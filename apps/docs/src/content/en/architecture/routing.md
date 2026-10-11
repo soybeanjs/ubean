@@ -313,7 +313,10 @@ API routes and Pages routes are driven by the same normalized route manifest. Du
 | Pages route hit | `GET`/`HEAD` execute SSR or the client page protocol; page actions only accept their explicitly declared methods |
 | Path exists but method not supported | Spec target: `405` + `Allow`. Current implementation falls back to the `404` handler (405/`Allow` not yet wired) |
 | Path does not exist | Returns `404`; in Pages mode, can be rendered by `error.404.vue` |
+| Static and dynamic routes share a segment | Literal paths are registered before `:param` ones, so `/api/user/list` is not captured by `/api/user/:id`; catch-alls (`*`) go last |
 | URL normalization | Unified decoding rules, trailing slash policy, and catch-all parameter encoding; redirects only occur when explicitly configured |
+
+The registration order is guaranteed by the framework instead of relying on the lexicographic order of file paths. The scan step emits routes sorted by absolute file path, and Hono's default `SmartRouter` silently falls back to `TrieRouter` as soon as a literal and a `:param` sibling coexist (`/api/user/list` next to `/api/user/:id`, where `RegExpRouter` throws `UnsupportedPathError`) — and `TrieRouter` is **first-match-wins**. `registerApiRoutes` therefore sorts paths by descending specificity before registering (literal segment `+1`, `:param` `-1`, `*` `-10`, ties keep scan order); `sortApiRoutesForRegistration` / `apiPathSpecificity` are the exported entry points for that contract. As a result, a `(r)/` route group is no longer required for correctness — it now only carries readability value by grouping the literal endpoints of one resource together.
 
 Page actions, form enhancements, and client navigation share a single protocol: requests carry the framework version and a page navigation identifier; the server returns page data, redirects, or field errors in the negotiated format; plain form requests that do not satisfy the protocol still return standard HTML/HTTP responses. All Pages actions that change server-side state must have configurable CSRF protection.
 

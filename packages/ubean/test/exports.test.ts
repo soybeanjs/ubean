@@ -644,6 +644,8 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'setIsrCache',
     'setQueueDriver',
     'sortPagesForRegistration',
+    'sortApiRoutesForRegistration',
+    'apiPathSpecificity',
     'sqlRaw',
     'sqlRawAlias',
     'sseHeaders',

@@ -129,6 +129,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **layouts**：`src/layouts/`（`xx.vue` 或 `xx/index.vue`）
 - **middleware**：`src/middleware/`，`global`/`global.*` → `/*`，其他按目录前缀挂载
 - **路由组**：`(group-name)/` 不贡献 URL 段
+- **注册顺序**：字面量路径先于 `:param` 注册（Hono 默认路由在静态/动态兄弟并存时回退到 first-match-wins 的 `TrieRouter`），故 `/api/user/list` 不会被 `/api/user/:id` 截获，catch-all 排最后。`(r)/` 路由组只是可读性选择，不再是正确性前提；契约入口 `sortApiRoutesForRegistration` / `apiPathSpecificity`
 - **并行路由 (Parallel Routes, P9-18)**：`@slotName/` 目录约定，同一路径下多个页面渲染到布局的不同命名插槽；虚拟模块按路径分组为 Vue Router named views (`components: { default, slotName }`)；布局中使用 `<SlotView name="slotName" />` 渲染对应插槽
 - **拦截路由（`(.)` / `(..)` / `(...)` 目录约定）：刻意不做**（[ADR-0010](docs/adr/0010-competitive-north-star-and-gap-filter.md) 的刻意不做清单）。扫描器扫到标记段会**直接抛错**（不会静默降级成 `/feed/(.)photo/:id` 这种字面路径）。需要「URL 可分享、back 关闭」的对话框时用并行路由自己实现：对话框页面放 `src/pages/@dialog/…`，布局里用 `<SlotView name="dialog" />` 承载，由导航守卫决定何时以对话框形式呈现（站点文档 `guide/pages-routing`）
 - **reuse 路由**：`xxx.reuse.ts` / `xxx.reuse.vue`；未显式声明 `cache` 时自动继承 target 的 `cache` 值，可显式 `cache: false` 关闭

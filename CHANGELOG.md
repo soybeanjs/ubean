@@ -1,5 +1,27 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.1...main) (2026-10-11) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
+
+- **devtools**: host the devtools panel on a devframe hub &nbsp;-&nbsp; by @soybeanjs [<samp>(c832f)</samp>](https://github.com/soybeanjs/ubean/commit/c832f20)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **config**: warn on unknown config keys and narrow build.preset &nbsp;-&nbsp; by @soybeanjs [<samp>(4411e)</samp>](https://github.com/soybeanjs/ubean/commit/4411e4c)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **routes**: register literal API paths before dynamic ones &nbsp;-&nbsp; by @soybeanjs [<samp>(a1df2)</samp>](https://github.com/soybeanjs/ubean/commit/a1df266)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **adr**: record the devtools devframe hub decision as ADR-0014 &nbsp;-&nbsp; by @soybeanjs [<samp>(da85b)</samp>](https://github.com/soybeanjs/ubean/commit/da85bd1)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.1-beta.3...main) (2026-10-10) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import type { Plugin } from 'vite';
-import { loadUbeanConfig, tryGetConfig } from '@ubean/config';
+import { loadUbeanConfig, tryGetConfig, checkProjectDependenciesOnce } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import {
   registerBuiltinPresets as registerPresetsSync,
@@ -298,6 +298,24 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         ubeanConfig = await loadUbeanConfig();
         ensureDerived();
       }
+
+      // 项目依赖提醒（ADR-0012：裸 `vite dev` / `vite build` 与 CLI 两条路径必须等价）。
+      // CLI 的 `prepare` 也会跑同一份检查，靠 `checkProjectDependenciesOnce` 的进程内缓存去重；
+      // 但 `ubean dev` 不经 `prepare`，所以这里才是覆盖面最广的那个入口。
+      // 不 await 之外的副作用：检查本身永不抛错（内部全量 catch，失败降级为 warning）。
+      if (!process.env.UBEAN_SKIP_DEP_CHECK) {
+        await checkProjectDependenciesOnce({
+          cwd: ubeanConfig.rootDir,
+          config: ubeanConfig as unknown as Record<string, unknown>,
+          srcDir: ubeanConfig.srcDir,
+          mode: 'prompt',
+          logger: {
+            info: message => logger.info(message),
+            warn: message => logger.warn(message)
+          }
+        });
+      }
+
       if (process.env.UBEAN_BUILD_DRIVEN_BY_CLI === '1') return undefined;
 
       return {
@@ -506,7 +524,9 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         }
         // 成功路径由 CLI 打印；这里只在产物确实缺失时补一句可行动的提示。
         if (!existsSync(filePath)) {
-          logger.warn('`.ubean/openapi.d.ts` is missing — typecheck of `import type { paths } from .../.ubean/openapi` will fail.');
+          logger.warn(
+            '`.ubean/openapi.d.ts` is missing — typecheck of `import type { paths } from .../.ubean/openapi` will fail.'
+          );
         }
       };
 

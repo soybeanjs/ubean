@@ -15,6 +15,16 @@
  *   由 `vite.config.ts` 的 `test.alias` 指向 `test/stubs/islands-registry.ts`。
  * - 此快照是 ADR-0002 语境下**首次合法使用**（此前全仓 `toMatchSnapshot` 使用数为 0）：
  *   导出面是必须逐符号锁定的稳定契约，不是实现细节。
+ *
+ * **几条最容易被误判为「偶发/环境问题」的失败形态**（2026-10 实际踩过）：
+ *
+ * 1. 本地绿、CI 红 → 本机 `dist/` 陈旧。本测试读产物，本机不重建就永远看到旧导出面。
+ *    复现：`pnpm build && pnpm --filter ubean test`。
+ * 2. `./build` 的 `extra` 里出现一串没见过的符号 → 某人不小心通过
+ *    `export * from '@ubean/config'`（`src/build.ts`）把新符号带进了公开面。
+ *    这是**故意的**（子包公开 API 允许进入聚合入口），此时更新快照。
+ * 3. `missing` 里出现符号 → 真的删/改名了，调用方会拿到 `undefined`。
+ *    这是破坏性变更，不是改快照就能消的。
  */
 import { describe, expect, it } from 'vitest';
 
@@ -687,6 +697,7 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'BUILTIN_PRESETS',
     'CODEGEN_CONTRACT_VERSION',
     'CODEGEN_FILES',
+    'CORE_PROJECT_DEPENDENCIES',
     'DEFAULT_PRERENDER_EXCLUDE',
     'DEV_REQUIREMENTS',
     'HONO_OPENAPI_PRESET',
@@ -703,8 +714,13 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'WORKER_CAPABILITIES',
     'awsPreset',
     'azurePreset',
+    'buildInstallCommand',
+    'buildInstallPlan',
     'bunPreset',
+    'checkProjectDependencies',
+    'checkProjectDependenciesOnce',
     'clearMatchers',
+    'clearProjectDependencyProbeCache',
     'cloudflareDevPreset',
     'cloudflarePreset',
     'collectPrerenderRoutes',
@@ -719,6 +735,8 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'denoPreset',
     'detectHttpExports',
     'detectHttpExportsFromCode',
+    'detectOgImageConvention',
+    'detectPackageManager',
     'detectPreset',
     'diagnoseCapabilities',
     'ensureUbeanConfig',
@@ -729,11 +747,16 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'extractDefinePage',
     'extractDefinePageFromCode',
     'extractLinks',
+    'extractMissingPackageName',
     'extractPackageName',
     'extractPlugins',
     'extractPrerenderRoutesFromRules',
     'extractSlotFromPath',
     'filePathToRoute',
+    'findMissingProjectDependencies',
+    'formatCommand',
+    'formatMissingDependencyReport',
+    'formatSatisfiedReport',
     'generateApiRouteId',
     'generateAutoImports',
     'generateAwsSamConfig',
@@ -770,6 +793,7 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'isBuiltinModuleConfig',
     'isEphemeralCachePreset',
     'isModuleDefinition',
+    'isProjectDependencyInstalled',
     'isVitePlugin',
     'listDetectablePresets',
     'listMatcherNames',
@@ -785,8 +809,10 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'registerBuiltinPresets',
     'registerPreset',
     'requireCapability',
+    'resetProjectDependencyCheckCache',
     'resolveAutoImportsConfig',
     'resolveComponentsConfig',
+    'resolveConfigDependencies',
     'resolveDevToolsConfig',
     'resolveFavicon',
     'resolveI18nConfig',
@@ -799,11 +825,14 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'resolvePresetWithDetection',
     'resolvePreviewFile',
     'resolveProductionCacheStore',
+    'resolveProjectUbeanVersion',
     'resolveRoutingConfig',
+    'resolveSelectedCapabilities',
     'resolveSsrConfig',
     'routeToDataFilePath',
     'routeToFilePath',
     'routingConfigDefaults',
+    'runInstallPlan',
     'scanProject',
     'serializeAwsSamConfig',
     'serializeBunfigConfig',

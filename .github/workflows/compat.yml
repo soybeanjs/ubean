@@ -36,11 +36,17 @@ jobs:
       # 一格失败不取消其余格 —— 兼容矩阵要的是**完整**的「哪里会坏」图
       fail-fast: false
       matrix:
-        # Vue 当前 minor（3.5，`packages/*/package.json` 的 `^3.5.43`）与前一 minor（3.4）
-        # —— 即 TS-18 验收「Vue 当前 minor 与前一 minor 各跑一轮 L2」。
-        # 加 Vite 大版本轴时在这里加 `include:`，并在 `scripts/dep-matrix.mjs` 的 AXES 登记。
+        # Vue 当前 minor（3.5，`packages/*/package.json` 的 `^3.5.43`）与**下一个** minor。
+        #
+        # 为什么不是「前一 minor」：`@vean/ui@0.50.2` 的 peer 是 `vue: ">=3.5.0"`，产物里用了
+        # 3.5 才有的 `useTemplateRef`/`useId`/`onWatcherCleanup`，钉到 3.4.38 会让
+        # `packages/devtools` 的客户端构建报 `[MISSING_EXPORT]` 失败，连累 L2。
+        # 而 3.4.38 与 3.5.43 之间**没有可用的 Vue 发布**（3.5.x 起点是 3.5.0），
+        # 「跑得通的上一 minor」并不存在。3.6 预发布则是 `@vitejs/plugin-vue` 的 peer
+        # （`^3.2.25 || ^3.6.0-rc.10`）明确留出的格子。详见 `scripts/dep-matrix.mjs` 的 AXES。
+        # 加 Vite 大版本轴时在这里加 `include:`，并在 AXES 登记。
         dep: [vue]
-        version: ['3.5.43', '3.4.38']
+        version: ['3.5.43', '3.6.0-rc.11']
     steps:
       - uses: actions/checkout@v6
 

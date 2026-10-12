@@ -123,4 +123,27 @@ describe('compat.yml 的 L2 前置条件', () => {
 
     expect(l2Step?.run, 'compat.yml 必须直接把 dep-matrix.mjs 跑在 job 里（退出码即格子的结论）').toBeTruthy();
   });
+
+  it('矩阵格只覆盖「装了能跑」的版本：3.4.x 与 @vean/ui 的 peer 范围互斥', () => {
+    // TS-18 原话是「当前 minor 与前一 minor」，但 3.4.38 跑不过：@vean/ui@0.50.2 的 peer 是
+    // `vue: ">=3.5.0"`，其产物引用 `useTemplateRef`/`useId`/`onWatcherCleanup`（3.5 才有）；
+    // 钉到 3.4.38 后 packages/devtools 的客户端构建报 `[MISSING_EXPORT]` 失败。
+    // 而 3.4.38 → 3.5.43 之间**没有可用的 Vue 发布**，所以不存在合法的「前一 minor」格子；
+    // 矩阵改为当前 minor + 下一个 minor（3.6 预发布，也是 @vitejs/plugin-vue 的 peer 留的格子）。
+    //
+    // 这条断言守的是「别把 3.4.x 加回去」：加回去不会让任何人发现，只会让 compat 每晚红一格，
+    // 而红的理由（peer 范围互斥，非本仓缺陷）藏在被吞掉的 rolldown 诊断里。
+    const matrix = /version:\s*\[([^\]]+)\]/.exec(readFileSync(join(repoRoot, '.github/workflows/compat.yml'), 'utf8'));
+    const versions = (matrix?.[1] ?? '').split(',').map(v => v.trim().replace(/^'|'$/g, ''));
+
+    expect(versions.length, 'compat.yml 的 version 矩阵应当非空').toBeGreaterThan(0);
+    expect(
+      versions.filter(v => /^3\.[0-4]\./.test(v)),
+      '3.4.x 与 @vean/ui 的 peer（vue >=3.5.0）互斥，跑不通；矩阵应为 3.5.x + 下一 minor'
+    ).toEqual([]);
+
+    const axes = readFileSync(join(repoRoot, 'scripts/dep-matrix.mjs'), 'utf8');
+
+    expect(axes, 'dep-matrix.mjs 的 AXES 必须与 workflow 矩阵一致').toContain(versions[0]);
+  });
 });

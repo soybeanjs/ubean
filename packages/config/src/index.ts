@@ -28,8 +28,50 @@ export {
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
 export { resolveI18nConfig, localeCodesOf } from './i18n';
 
+// 项目依赖清单（`ensurePackages` 式的主动提醒）：按配置算出「用户项目里该装什么」，
+// 供 CLI `prepare` 与 Vite 插件的 `config` 钩子共用（裸 `vite dev` 也覆盖）。
+export {
+  CORE_PROJECT_DEPENDENCIES,
+  resolveSelectedCapabilities,
+  detectOgImageConvention,
+  resolveConfigDependencies,
+  isProjectDependencyInstalled,
+  resolveProjectUbeanVersion,
+  findMissingProjectDependencies,
+  clearProjectDependencyProbeCache
+} from './project-deps';
+export type {
+  ProjectDependencyKind,
+  ProjectDependencyInstallAs,
+  ProjectDependencySpec,
+  DependencyRequirement,
+  ResolvedProjectDependencies
+} from './project-deps';
+
+// 依赖检查编排（提示 / 询问 / 安装）：CLI `prepare` 与 Vite 插件 `config` 钩子共用
+export {
+  checkProjectDependencies,
+  checkProjectDependenciesOnce,
+  buildInstallPlan,
+  formatMissingDependencyReport,
+  formatSatisfiedReport,
+  runInstallPlan,
+  resetProjectDependencyCheckCache
+} from './project-deps-check';
+export type {
+  DependencyCheckLogger,
+  InstallPlan,
+  ProjectDependencyCheckOptions,
+  ProjectDependencyCheckResult
+} from './project-deps-check';
+
+// 包管理器探测与安装命令构造（CLI `prepare` 与依赖提醒共用）
+export { detectPackageManager, buildInstallCommand, formatCommand } from './package-manager';
+export type { PackageManager } from './package-manager';
+
 export {
   extractPackageName,
+  extractMissingPackageName,
   isModuleDefinition,
   isVitePlugin,
   getModuleKey,

@@ -20,24 +20,24 @@ Both paths produce item-for-item identical output (`packages/cli/test/build-cont
 
 ## Command Reference
 
-| Command            | Description                                                                             |
-| ------------------ | --------------------------------------------------------------------------------------- |
-| `ubean init`       | Initialize a new ubean project                                                          |
-| `ubean dev`        | Start the ubean development server                                                      |
-| `ubean build`      | Build the ubean application for production                                              |
-| `ubean preview`    | Preview the production build locally                                                    |
-| `ubean prepare`    | Generate type definitions and prepare the project (runs automatically before dev/build) |
-| `ubean analyze`    | Report client JS budget from the Vite client manifest (run after `ubean build`)         |
-| `ubean page`       | Scaffold pages, api routes, layouts, middleware, crons, and plugins                     |
-| `ubean api`        | Scaffold API routes                                                                     |
-| `ubean layout`     | Scaffold layout components                                                              |
-| `ubean middleware` | Scaffold middleware                                                                     |
-| `ubean cron`       | Scaffold scheduled cron tasks                                                           |
-| `ubean plugin`     | Scaffold ubean plugins                                                                  |
-| `ubean env`        | Manage environment variables                                                            |
-| `ubean config`     | Manage ubean configuration                                                              |
-| `ubean devtools`   | Manage DevTools configuration and information                                           |
-| `ubean scaffold`   | Machine-readable scaffold catalog (studio / IDE plugins)                                |
+| Command            | Description                                                                     |
+| ------------------ | ------------------------------------------------------------------------------- |
+| `ubean init`       | Initialize a new ubean project                                                  |
+| `ubean dev`        | Start the ubean development server                                              |
+| `ubean build`      | Build the ubean application for production                                      |
+| `ubean preview`    | Preview the production build locally                                            |
+| `ubean prepare`    | Generate type definitions and check project dependencies                        |
+| `ubean analyze`    | Report client JS budget from the Vite client manifest (run after `ubean build`) |
+| `ubean page`       | Scaffold pages, api routes, layouts, middleware, crons, and plugins             |
+| `ubean api`        | Scaffold API routes                                                             |
+| `ubean layout`     | Scaffold layout components                                                      |
+| `ubean middleware` | Scaffold middleware                                                             |
+| `ubean cron`       | Scaffold scheduled cron tasks                                                   |
+| `ubean plugin`     | Scaffold ubean plugins                                                          |
+| `ubean env`        | Manage environment variables                                                    |
+| `ubean config`     | Manage ubean configuration                                                      |
+| `ubean devtools`   | Manage DevTools configuration and information                                   |
+| `ubean scaffold`   | Machine-readable scaffold catalog (studio / IDE plugins)                        |
 
 ## Project Lifecycle
 
@@ -265,7 +265,7 @@ ubean preview --strictPort
 
 ### ubean prepare
 
-Generate type definitions and prepare the project. Runs automatically before `dev`/`build`.
+Generate type definitions and check project dependencies.
 
 **Usage:**
 
@@ -275,25 +275,30 @@ ubean prepare
 
 **Options:**
 
-| Option    | Description                                                                | Default |
-| --------- | -------------------------------------------------------------------------- | ------- |
-| --cwd     | Project root directory                                                     | `.`     |
-| --install | Auto-install missing built-in module packages (use `--no-install` to skip) | true    |
+| Option    | Description                                                                      | Default |
+| --------- | -------------------------------------------------------------------------------- | ------- |
+| --cwd     | Project root directory                                                           | `.`     |
+| --install | Prompt to install missing project dependencies (use `--no-install` to only warn) | true    |
 
 **Behavior:**
 
 - Scans the project and generates type definitions into `.ubean/`.
-- Detects built-in extension modules enabled in config but not installed, and installs them with the project's package manager (detected from lockfiles: pnpm > yarn > bun > npm), pinned to `@^<ubean-version>`.
-- There is no `--force` flag. Install failures are non-fatal and reported as warnings.
-- `--no-install` skips auto-installation (useful in CI where installs are pre-managed).
+- Checks **project dependencies** against the resolved config and reports anything the project must declare but doesn't:
+  - **required** — core packages (`vue`, `vue-router`, `vue-i18n`), the packages behind every enabled built-in module (`ui: true` → `@ubean/integrations` + `@vean/ui`), and those modules' required peers;
+  - **optional** — feature-gated packages (`@mdx-js/mdx` for MDX, `satori` + `@resvg/resvg-js` when an OG-image convention file exists, `pagefind` for content search, `miniflare` for `cloudflare-dev`, `nodemailer` for email).
+- Each missing entry names **who requires it** and why (`required by \`ui\``), followed by a copy-pasteable install command. Build-time peers go to `devDependencies`, runtime peers to `dependencies`.
+- On an interactive terminal (not CI, stdout+stdin are TTYs) it asks before installing, using the project's package manager (detected from lockfiles: pnpm > yarn > bun > npm), with `@ubean/*` packages pinned to `@^<ubean-version>`.
+- The same check also runs from the Vite plugin's `config` hook, so bare `vite dev` / `vite build` (which never call `prepare`) are covered too. Set `UBEAN_SKIP_DEP_CHECK=1` to disable it.
+- There is no `--force` flag. Missing dependencies and install failures are non-fatal and reported as warnings.
+- `--no-install` skips auto-installation only — the warning is still printed (useful in CI where installs are pre-managed).
 
 **Examples:**
 
 ```bash
-# Scan and generate types (auto-installs missing built-in packages)
+# Scan and generate types (prompts to install missing project dependencies)
 ubean prepare
 
-# Skip auto-installation
+# Warn only, never install
 ubean prepare --no-install
 ```
 

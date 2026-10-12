@@ -7,14 +7,20 @@
  * - `treePids` / `treeRssKB` 决定「进程树」的边界：构建会 spawn 子进程（pnpm → node → vite），
  *   漏掉子树的 CPU / 内存就是系统性低估；
  * - `parseTimeLReport` 是 `ps` 不可用时的回退口径（BSD `/usr/bin/time -l`）—— 解析错了会
- *   把峰值 RSS（字节）当成 KB 用，或把 user/sys 秒读成毫秒。
+ *   把峰值 RSS（字节）当成 KB 用，或把 user/sys 秒读成毫秒；
+ * - `spawnCaptured` 关掉的两个句柄：后台孙进程继承管道写端后，不清理读端会让 Node
+ *   **永不退出** —— 这个形态在 nightly-perf 上连红了 4 晚却没人知道原因（CI 只报
+ *   「6h 超时」，日志停在 `wrote …` 后面一片空白）。见本文件最后一个 describe。
  */
+import { spawn } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
   isPsAvailable,
+  killTree,
   parseCpuTime,
   parseTimeLReport,
   psSnapshot,
+  spawnCaptured,
   treePids,
   treeRssKB
 } from '../../../scripts/lib/metrics.mjs';
@@ -102,4 +108,80 @@ describe('isPsAvailable', () => {
     expect(typeof first).toBe('boolean');
     expect(await isPsAvailable()).toBe(first);
   });
+});
+
+/**
+ * 子进程句柄泄漏（nightly-perf 6h 超时的根因）。
+ *
+ * 形态：直接子进程（`pnpm` / `sh` 中转）退出，但它后台派生的孙进程（`ubean dev`、Chromium）
+ * 还握着我们 stdout/stderr 管道的**写端**。只要写端没关完，读端就等不到 EOF，该 pipe 的
+ * handle 继续是「活动的」→ 事件循环非空 → Node 进程一直不 returned。
+ *
+ * 为什么这个抽屉里的测试值得存在：它守的是一类**完全静默**的回归 —— 指标数字全对、脚本
+ * 「跑完」了、只是进程不退。CI 上表现为 job 跑满 6h 上限被取消（日志停在 `wrote …`
+ * 之后空白），本地因为交互式会话不会退出而不易察觉。修前实测挂 >21s，修后 ~215ms。
+ *
+ * 用真实子进程 + 看门狗而不是 mocked 句柄：要验证的正是「Node 到底退不退出」，
+ * 那是事件循环的真实行为，mock 掉就只能测到自己写的假象。
+ */
+describe('spawnCaptured 不泄漏子进程句柄', () => {
+  const HANG_TIMEOUT_MS = 8_000;
+
+  /** 跑一个脚本，返回它是否在超时前自然退出（不 kill）。 */
+  function spawnedChildExits(script) {
+    return new Promise(resolve => {
+      const probe = spawn(process.execPath, ['-e', script], { stdio: ['ignore', 'ignore', 'ignore'] });
+      const timer = setTimeout(() => {
+        probe.kill('SIGKILL');
+        resolve(false);
+      }, HANG_TIMEOUT_MS);
+      probe.on('exit', () => {
+        clearTimeout(timer);
+        resolve(true);
+      });
+    });
+  }
+
+  // 两段脚本走**同一个** `spawnCaptured`，唯一差别是子进程是否留下后台孙进程。
+  // 对照脚本排除「spawn 本身就不会退出」这类与本次修改无关的干扰。
+  const benignChild = `
+    import { spawnCaptured } from ${JSON.stringify(new URL('../../../scripts/lib/metrics.mjs', import.meta.url).href)};
+    const { child, exited } = spawnCaptured(process.execPath, ['-e', 'process.exit(0)'], {});
+    await exited;
+    console.log('child exit code', child.exitCode);
+  `;
+  const childWithBackgroundGrandchild = `
+    import { spawnCaptured } from ${JSON.stringify(new URL('../../../scripts/lib/metrics.mjs', import.meta.url).href)};
+    const { exited } = spawnCaptured('sh', ['-c', 'sleep 30 & exit 0'], {});
+    await exited;
+    console.log('direct child gone, grandchild still holds the pipe');
+  `;
+
+  it.skipIf(process.platform === 'win32')(
+    '给了后台孙进程时仍在超时前退出（修前挂死）',
+    async () => {
+      expect(await spawnedChildExits(childWithBackgroundGrandchild)).toBe(true);
+    },
+    HANG_TIMEOUT_MS * 3
+  );
+
+  it.skipIf(process.platform === 'win32')(
+    '没有后台孙进程时照常退出（对照，不是回归）',
+    async () => {
+      expect(await spawnedChildExits(benignChild)).toBe(true);
+    },
+    HANG_TIMEOUT_MS * 3
+  );
+
+  it.skipIf(process.platform === 'win32')(
+    '子进程自成一个进程组，killTree 才杀得到整棵树',
+    async () => {
+      const { child, exited } = spawnCaptured('sh', ['-c', 'sleep 30 & exit 0'], {});
+      await exited;
+      // 负 pid 的组杀要求子进程是组长；不是组长时 process.kill 会抛 ESRCH。
+      expect(() => process.kill(-child.pid, 'SIGTERM')).not.toThrow();
+      killTree(child);
+    },
+    HANG_TIMEOUT_MS
+  );
 });

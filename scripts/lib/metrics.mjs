@@ -214,23 +214,65 @@ export async function runWithResourceMetrics(command, args, options = {}) {
 
 /**
  * 启动子进程并缓冲 stdout/stderr（供日志解析与失败回放）。
+ *
+ * 两处非显然的设置，都是踩过坑之后加的：
+ *
+ * 1. `detached: true`（POSIX）：让子进程自成一个**进程组**，这样 `killTree` 的
+ *    `process.kill(-child.pid)` 才真能覆盖整棵树。不设时它与我们同组，`-pid` 不存在
+ *    （`ESRCH`），只能退回单杀直接子进程 —— 而直接子进程往往只是个 `pnpm`/`sh` 中转，
+ *    真正要杀的 `ubean dev` 孙进程会活下来（CI 取消时的孤儿清单就是它）。
+ *    Windows 上 detached 会另开控制台窗口，语义不同，故不启用。
+ * 2. 直接子进程退出后**主动销毁读端**：后台孙进程会继承管道的写端，只要它活着，读端就
+ *    永远等不到 EOF，事件循环不空 → Node 进程**永不退出**。实测 `sh -c 'sleep 40 & exit 0'`
+ *    会把父进程挂到 `sleep` 结束（>21s），清理读端后 215ms 返回。这正是 nightly-perf 在
+ *    CI 上 6h 超时（`The job has exceeded the maximum execution time of 6h0m0s`）的机制。
+ *    用 `setImmediate` 延后一拍，让已排队的 `data` 事件先落到缓冲区，避免截断日志尾部。
+ *
+ * 清理读端优先用 `unref()`（仍有 `data` 监听时也可调用，只把句柄从事件循环的
+ * keep-alive 集合里摘掉），这样孙进程还活着时我们仍能继续缓冲它的输出；只有当
+ * `unref` 不可用时才 `destroy()`，代价是丢掉孙进程此后写到管道的内容。
+ *
  * @returns {{ child: import('node:child_process').ChildProcess, readStdout: () => string, readStderr: () => string, exited: Promise<number|null> }}
  */
 export function spawnCaptured(command, args, options = {}) {
-  const child = spawn(command, args, { cwd: options.cwd, env: options.env, stdio: ['ignore', 'pipe', 'pipe'] });
+  const detached = options.detached ?? process.platform !== 'win32';
+  const child = spawn(command, args, {
+    cwd: options.cwd,
+    env: options.env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    detached
+  });
   let stdout = '';
   let stderr = '';
   child.stdout.on('data', d => (stdout += d));
   child.stderr.on('data', d => (stderr += d));
+  const exited = new Promise(resolve => child.on('exit', resolve));
+  // 见上「非显然的设置」第 2 条。
+  const releasePipes = () => {
+    for (const stream of [child.stdout, child.stderr]) {
+      if (typeof stream.unref === 'function') stream.unref();
+      else {
+        stream.destroy();
+      }
+    }
+  };
+  void exited.then(() => setImmediate(releasePipes));
   return {
     child,
     readStdout: () => stdout,
     readStderr: () => stderr,
-    exited: new Promise(resolve => child.on('exit', resolve))
+    exited,
+    /** 供调用方提前释放管道（例如确定不再需要输出时）；`exited` 后自动调用。 */
+    releasePipes
   };
 }
 
-/** 向进程（及其子进程）发送信号；child 已退出时静默忽略 */
+/**
+ * 向进程**及其整棵子树**发送信号；child 已退出时静默忽略。
+ *
+ * 负 pid 的组杀依赖 `spawnCaptured` 的 `detached: true`（见其说明）；没有它就只能退回
+ * 单杀直接子进程，孙进程会活下来。
+ */
 export function killTree(child, signal = 'SIGTERM') {
   if (!child || child.exitCode !== null || child.signalCode !== null) return;
   try {

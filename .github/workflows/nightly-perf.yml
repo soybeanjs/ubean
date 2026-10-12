@@ -52,6 +52,12 @@ jobs:
   perf:
     name: lifecycle benchmark trend
     runs-on: ubuntu-latest
+    # 这道超时是 2026-10 那次事故的直接产物：benchmark 打印 `wrote …` 后进程不返回，而 job
+    # 没设 timeout，于是一路挂到 GitHub 的 6h 硬上限才被取消（连红 4 晚）。真实耗时：本机整跑
+    # 约 21s，共享 runner 慢一些也在几分钟量级，30 分钟足够区分「慢」与「卡死」。
+    # 根因已修（`scripts/lib/metrics.mjs` 的 spawnCaptured：后台孙进程持有管道写端 → 事件循环
+    # 不空），但再加一道上限：将来任何新的挂死都应当快速、可诊断地失败，而不是烧 6 小时。
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
 

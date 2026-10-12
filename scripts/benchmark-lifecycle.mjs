@@ -662,8 +662,16 @@ async function main() {
   }
 }
 
-main().catch(error => {
-  console.error('');
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+main()
+  // 显式退出，不等事件循环空。本脚本会不断启停 dev server 与浏览器，只要**任何一次**
+  // spawn 留下了后台孙进程（继承了我们的 stdout/stderr 管道写端），事件循环就不会空，
+  // Node 便永不返回 —— CI 上的表现是 job 跑满 6h 上限被取消，而且日志停在「wrote …」
+  // 之后一片空白，看不出原因（`actions/runner` 一直等 stdout 的 EOF，下一步从不启动）。
+  // `spawnCaptured` 里的管道销毁已堵住主路径，这里再加一道：报告已经落盘，可以退了。
+  // 必须挂在 then 上 —— `main()` 是异步的，写在顶层会在它真正开跑之前就退出。
+  .then(() => process.exit(0))
+  .catch(error => {
+    console.error('');
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });

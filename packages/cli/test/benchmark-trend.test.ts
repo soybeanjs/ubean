@@ -314,4 +314,17 @@ describe('TS-26 nightly 接线与 PR 门禁边界', () => {
     const names = ci.jobs.ci.steps.map(step => step.name ?? step.uses ?? '');
     expect(names.filter(name => /benchmark|perf|trend|budget/i.test(name))).toEqual(['Client JS budget']);
   });
+
+  it('job 有自己的 timeout-minutes —— 没有它时挂死要等到 GitHub 的 6h 上限', () => {
+    // nightly-perf 曾连续 4 晚跑满 6h0m 被取消：benchmark 打印 `wrote …` 后不返回，
+    // 而 workflow 没设 timeout，于是 job 一直挂到平台硬上限；更糟的是日志在 `wrote` 之后
+    // 一片空白，看不出下一步（Compute trend）从未启动。
+    // 根因见 `scripts/lib/metrics.mjs` 的 spawnCaptured（后台孙进程持有管道写端 → 事件循环不空），
+    // 但根因修了也仍需这一道：将来任何新的挂死都应当快速地、可诊断地失败。
+    //
+    // 数值取 30 分钟：实测本机跑完约 21s，CI 共享 runner 慢一些，正常不会超过几分钟；
+    // 留 30 分钟既明确区分「慢」与「卡死」，也不至于误杀正常的慢机器。
+    expect(typeof nightly.jobs.perf['timeout-minutes']).toBe('number');
+    expect(nightly.jobs.perf['timeout-minutes']).toBeLessThanOrEqual(30);
+  });
 });

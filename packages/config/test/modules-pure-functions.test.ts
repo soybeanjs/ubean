@@ -10,6 +10,7 @@ import type { Plugin as VitePlugin } from 'vite';
 import { describe, it, expect } from 'vitest';
 import {
   extractPackageName,
+  extractMissingPackageName,
   isModuleDefinition,
   isVitePlugin,
   getModuleKey,
@@ -32,6 +33,32 @@ describe('extractPackageName()', () => {
   it('非 scoped 包：取首段', () => {
     expect(extractPackageName('some-pkg/sub')).toBe('some-pkg');
     expect(extractPackageName('some-pkg')).toBe('some-pkg');
+  });
+});
+
+describe('extractMissingPackageName()', () => {
+  it('ERR_MODULE_NOT_FOUND 的裸包说明符 → 包名', () => {
+    expect(
+      extractMissingPackageName(
+        new Error("Cannot find package '@vean/ui' imported from /x/node_modules/@ubean/integrations/dist/ui/index.js")
+      )
+    ).toBe('@vean/ui');
+  });
+
+  it('scoped 子路径说明符 → 去掉子路径', () => {
+    expect(extractMissingPackageName(new Error("Cannot find package '@scope/pkg/sub'"))).toBe('@scope/pkg');
+  });
+
+  it('相对 / 绝对 / node: 说明符 → null（不是项目该装的包）', () => {
+    expect(extractMissingPackageName(new Error("Cannot find module './missing.js'"))).toBeNull();
+    expect(extractMissingPackageName(new Error("Cannot find module '/abs/missing.js'"))).toBeNull();
+    expect(extractMissingPackageName(new Error("Cannot find module 'node:fs'"))).toBeNull();
+  });
+
+  it('无关错误 / 非 Error 值 → null（调用方回退到模块包名）', () => {
+    expect(extractMissingPackageName(new Error('boom'))).toBeNull();
+    expect(extractMissingPackageName(undefined)).toBeNull();
+    expect(extractMissingPackageName('Cannot find package')).toBeNull();
   });
 });
 

@@ -28,6 +28,28 @@ export function extractPackageName(modulePath: string): string {
   return modulePath.split('/')[0];
 }
 
+const MISSING_PACKAGE_RE = /Cannot find (?:package|module) '([^']+)'/;
+
+/**
+ * 从模块加载错误里抠出**真正缺失**的包名。
+ *
+ * 两种失败原因必须区分开：模块包自己没装，还是模块包在、它静态 import 的 peer 没装。
+ * 旧实现无条件报 `extractPackageName(builtin.modulePath)`，于是 `@ubean/integrations` 装着、
+ * 缺的是 `@vean/ui` 时，报错却说「@ubean/integrations is not installed」，用户照着装也修不好
+ * （真实案例：soybean-agent 的 `ui: true`）。
+ *
+ * 只认裸包说明符：相对 / 绝对路径与 `node:` 内建都不是「项目该装的包」，返回 `null`
+ * 让调用方回退到模块包名。
+ */
+export function extractMissingPackageName(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : '';
+  const match = message.match(MISSING_PACKAGE_RE);
+  const specifier = match?.[1];
+  if (!specifier) return null;
+  if (specifier.startsWith('.') || specifier.startsWith('/') || specifier.startsWith('node:')) return null;
+  return extractPackageName(specifier);
+}
+
 export {
   BUILTIN_MODULES,
   getBuiltinModuleByKey,
@@ -239,13 +261,19 @@ async function loadBuiltinModule(
       }
     }
   } catch (err) {
-    // Module is enabled in config but the package is not installed.
-    // Emit a clear warning so users know the module is silently skipped
-    // (rather than puzzling over why `ui: true` has no effect).
-    const packageName = extractPackageName(builtin.modulePath);
+    // 模块加载失败有两种原因，报错必须指向**真正缺的那个包**：
+    // 1. 模块包自己没装（`ui: true` 但 `@ubean/integrations` 不在项目里）
+    // 2. 模块包在，但它静态 import 的 peer 没装（`@ubean/integrations/ui` → `@vean/ui`）
+    // 旧实现无条件报 `extractPackageName(builtin.modulePath)`，于是第 2 种情况会告诉用户
+    // 「@ubean/integrations 未安装」—— 而它明明装着，用户照着装也修不好。真实案例：
+    // soybean-agent 的 `ui: true` 因为缺 `@vean/ui` 而整块模块被跳过，报错却指向 @ubean/integrations。
+    const modulePackage = extractPackageName(builtin.modulePath);
+    const missingPackage = extractMissingPackageName(err) ?? modulePackage;
+    const isPeer = missingPackage !== modulePackage;
     logger.warn(
-      `Built-in module "${builtin.key}" is enabled in ubean.config but \`${packageName}\` is not installed. ` +
-        `The module will be skipped. Install it with: pnpm add ${packageName} (or npm/yarn/bun equivalent).`
+      `Built-in module "${builtin.key}" is enabled in ubean.config but ${
+        isPeer ? `its peer dependency \`${missingPackage}\` is not installed` : `\`${missingPackage}\` is not installed`
+      }. The module will be skipped. Install it with: pnpm add ${missingPackage} (or npm/yarn/bun equivalent).`
     );
     if (process.env.UBEAN_DEBUG) {
       logger.debug(`Import error for ${builtin.modulePath}:`, err);

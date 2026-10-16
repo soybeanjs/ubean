@@ -1,5 +1,43 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.2...main) (2026-10-16) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **cli**: check project dependencies in prepare and the vite plugin &nbsp;-&nbsp; by @soybeanjs [<samp>(2b5d9)</samp>](https://github.com/soybeanjs/ubean/commit/2b5d908b)
+- **config**: add project dependency manifest and check &nbsp;-&nbsp; by @soybeanjs [<samp>(abe9e)</samp>](https://github.com/soybeanjs/ubean/commit/abe9edef)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**:
+  - inject dev stylesheets on the first page request &nbsp;-&nbsp; by @soybeanjs [<samp>(67cda)</samp>](https://github.com/soybeanjs/ubean/commit/67cda87c)
+  - inject css of every chunk into production asset tags &nbsp;-&nbsp; by @soybeanjs [<samp>(463c7)</samp>](https://github.com/soybeanjs/ubean/commit/463c7b62)
+- **ci**:
+  - make the compat matrix cover versions that can actually run &nbsp;-&nbsp; by @soybeanjs [<samp>(3b103)</samp>](https://github.com/soybeanjs/ubean/commit/3b103d46)
+- **config**:
+  - name the actually-missing package in the builtin module warning &nbsp;-&nbsp; by @soybeanjs [<samp>(0d823)</samp>](https://github.com/soybeanjs/ubean/commit/0d823aff)
+- **scripts**:
+  - stop leaking child stdout pipes so benchmarks can exit &nbsp;-&nbsp; by @soybeanjs [<samp>(d53ce)</samp>](https://github.com/soybeanjs/ubean/commit/d53cedc0)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **packages**: add bilingual READMEs to every workspace package &nbsp;-&nbsp; by @soybeanjs [<samp>(1b2d7)</samp>](https://github.com/soybeanjs/ubean/commit/1b2d773d)
+- **skills**: document the prepare dependency check &nbsp;-&nbsp; by @soybeanjs [<samp>(8c9bd)</samp>](https://github.com/soybeanjs/ubean/commit/8c9bdd34)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(ed212)</samp>](https://github.com/soybeanjs/ubean/commit/ed212545)
+- **gitattributes**: set text=auto eol=lf &nbsp;-&nbsp; by @soybeanjs [<samp>(b64ff)</samp>](https://github.com/soybeanjs/ubean/commit/b64ffc2b)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **cli**: derive embedded vitest version from vite-plus package &nbsp;-&nbsp; by @soybeanjs [<samp>(69621)</samp>](https://github.com/soybeanjs/ubean/commit/69621433)
+- **ubean**: sync the build export snapshot with @ubean/config &nbsp;-&nbsp; by @soybeanjs [<samp>(a0749)</samp>](https://github.com/soybeanjs/ubean/commit/a07499e3)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.1...main) (2026-10-11) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes

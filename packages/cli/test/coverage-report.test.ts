@@ -18,6 +18,7 @@
  * 证明「给定的 summary 会被正确分类」与「脚本的 flag 组合正确」。
  */
 import { readdirSync, readFileSync, rmSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
@@ -38,6 +39,11 @@ const rootPkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'))
   scripts: Record<string, string>;
   devDependencies: Record<string, string>;
 };
+
+// 内嵌版本从 vite-plus 自己的 package.json 读，不写死 —— 升 vite-plus 时这条断言自动跟随。
+const vitePlusPkg = JSON.parse(
+  readFileSync(createRequire(join(repoRoot, 'package.json')).resolve('vite-plus/package.json'), 'utf8')
+) as { dependencies: Record<string, string> };
 
 /** 造一份最小 summary：一个零覆盖文件、一个低覆盖文件、一个健康文件。 */
 function summaryFixture() {
@@ -171,8 +177,8 @@ describe('TS-22 覆盖率报告', () => {
   it('根 package.json 提供 coverage script，且 @vitest/coverage-v8 版本与内嵌 vitest 对齐', () => {
     expect(rootPkg.scripts.coverage, '根 scripts 必须有 coverage 入口').toBeDefined();
     expect(rootPkg.scripts.coverage).toContain('scripts/coverage.mjs');
-    // vite-plus 内嵌 vitest 5.0.3；coverage-v8 版本不一致会报 provider 版本冲突。
-    expect(rootPkg.devDependencies['@vitest/coverage-v8']).toMatch(/^5\.0\.3$/);
+    // coverage-v8 必须与 vite-plus 内嵌的 vitest 精确同版，否则报 provider 版本冲突。
+    expect(rootPkg.devDependencies['@vitest/coverage-v8']).toBe(vitePlusPkg.dependencies.vitest);
   });
 
   it('覆盖率步骤是非阻断的（continue-on-error），且报告会上传为 artifact', () => {

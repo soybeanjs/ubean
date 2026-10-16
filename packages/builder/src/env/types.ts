@@ -9,7 +9,8 @@
  * `client+secret` 在**规范化阶段**就抛错（配置期失败，比构建期失败早）。
  */
 
-import { isEnvFieldMeta, type EnvFieldMeta } from '@ubean/shared';
+import { isEnvFieldMeta } from '@ubean/shared';
+import type { EnvFieldMeta } from '@ubean/shared';
 
 /**
  * schema 条目的类型。

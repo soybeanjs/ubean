@@ -23,6 +23,6 @@ export type { ResolvedEnvConfig };
 export function resolveEnvConfig(config?: EnvConfig): ResolvedEnvConfig {
   if (!config) return { ...envConfigDefaults };
 
-  const flat = { ...(config.public ?? {}), ...(config.server ?? {}), ...(config.schema ?? {}) };
+  const flat = { ...config.public, ...config.server, ...config.schema };
   return { schema: flat, mode: config.mode };
 }

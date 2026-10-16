@@ -12,10 +12,11 @@
  * 即可（core 只会拦它自己那份清单，不会碰 `ubean:env/*`）。
  */
 
-import type { Plugin } from 'vite';
 import { loadEnv } from 'vite';
+import type { Plugin } from 'vite';
 import type { ResolvedConfig } from '@ubean/config';
-import { renderEnvClientModule, renderEnvServerModule, resolveEnvModules, type EnvModules } from './types';
+import { renderEnvClientModule, renderEnvServerModule, resolveEnvModules } from './types';
+import type { EnvModules } from './types';
 
 export const ENV_CLIENT_ID = 'ubean:env/client';
 export const ENV_SERVER_ID = 'ubean:env/server';

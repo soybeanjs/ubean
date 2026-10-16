@@ -35,6 +35,7 @@
 | 契约 | 说明 |
 | --- | --- |
 | [contracts/codegen-v1.md](contracts/codegen-v1.md) | `.ubean/` codegen 契约 v1：文件清单、`declare module` 映射、manifest 形态 |
+| [contracts/env-v1.md](contracts/env-v1.md) | `env` 契约 v1：`context`/`access` 两维模型、`ubean:env/client` 与 `ubean:env/server` 取值语义、客户端 import 服务端 env 的构建期失败、与 `import.meta.env` 的关系 |
 | [contracts/scaffold-v1.schema.json](contracts/scaffold-v1.schema.json) | scaffold catalog JSON Schema v1（`ubean/scaffold` 的机器可读出口） |
 
 ## 决策记录（ADR）

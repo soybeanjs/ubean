@@ -249,6 +249,28 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 环境变量
 
+**构建期 env 走 `env.schema` + 两个虚拟模块**（契约：[docs/contracts/env-v1.md](docs/contracts/env-v1.md)）：
+
+```ts
+// ubean.config.ts —— 两个维度：context（client|server）× access（public|secret）
+env: {
+  mode: 'throw',
+  schema: {
+    APP_TITLE: envField.string({ context: 'client', access: 'public', default: 'MyApp' }),
+    JWT_SECRET: envField.string({ context: 'server', access: 'secret' }),
+    PORT: envField.number({ context: 'server', access: 'public', default: 9527 })
+  }
+}
+```
+
+- `ubean:env/client` —— 构建期内联成字面量（来源顺序：`import.meta.env[key]` → `.env` 原始内容 → `default`）。**不要求 `VITE_` 前缀**（插件直接读 `.env`）。
+- `ubean:env/server` —— 运行期读 `process.env`，static 语义（模块求值时读一次）；缺值回落 `default`。**客户端代码 import 它会让构建直接失败**（抄 SvelteKit `$env/static/private`，比 Astro 的「类型上没有」更强）。
+- `client` + `secret` 是同义反复的非法组合，在配置解析期抛错。
+- 插件在 `configResolved` 把 `.env` 合并进 `process.env`（只填空缺）—— `vite dev` 自己**不**做这件事，不合并的话 `.env` 里的服务端变量在运行期全是 `undefined`。
+- `.ubean/env.d.ts` 由 codegen 生成：两个虚拟模块的类型 + `ImportMetaEnv`（`VITE_*` + Vite 内建）。**不要手写 `ImportMetaEnv`** —— 手写清单没有东西能提醒它过期（`VITE_API_PROXY_KEYS` 曾是实例）。该文件**不**进 `CODEGEN_FILES`，列在 `CODEGEN_NON_CONTRACT_FILES`。
+
+运行期读取仍用下面这组：
+
 | API                                      | 说明                                        |
 | ---------------------------------------- | ------------------------------------------- |
 | `defineEnv(schema)`                      | 类型安全环境变量定义 + Standard Schema 验证 |

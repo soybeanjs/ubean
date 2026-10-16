@@ -1,4 +1,4 @@
-import { defineConfig } from 'ubean';
+import { defineConfig, envField } from 'ubean';
 
 // 顶层 await 是**刻意保留的回归夹具**，不要「顺手清理」成同步写法：它守着
 // 「配置在裸 Vite 路径也能解析」这条不变量（`ubeanPlugin()` 异步加载；此前的同步
@@ -42,6 +42,23 @@ export default defineConfig({
     }
   },
   devtools: true,
+  /**
+   * `env.schema` 回归夹具（contract: docs/contracts/env-v1.md）。
+   *
+   * 三个维度各取一个，让 `src/routes/api/env-typed.ts` 能真的在两模块上都读到值，
+   * 也让 `.ubean/env.d.ts` 同时生成 `ubean:env/client` 与 `ubean:env/server` 两个声明块
+   * —— 只声明一侧的话，另一侧的类型缺失不会被任何测试发现。
+   */
+  env: {
+    mode: 'throw',
+    schema: {
+      EXAMPLE_APP_TITLE: envField.string({ context: 'client', access: 'public', default: 'ubean-test' }),
+      EXAMPLE_API_PREFIX: envField.string({ context: 'client', access: 'public', default: '/api' }),
+      EXAMPLE_PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
+      EXAMPLE_SECRET: envField.string({ context: 'server', access: 'secret', default: 'example-secret' }),
+      EXAMPLE_REDIS_URL: envField.string({ context: 'server', access: 'secret', optional: true })
+    }
+  },
   prerender: {
     include: prerender
   }

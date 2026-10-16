@@ -215,4 +215,42 @@ describe('Environment variables - defineEnv', () => {
       expect((res.data as { types: Record<string, string> }).types.ENABLE_FEATURES).toBe('boolean');
     });
   });
+
+  /**
+   * `ubean:env/*` 契约（docs/contracts/env-v1.md）的端到端面。
+   *
+   * 这条路径跨了四个组件，任何单测都盖不全：`ubean.config.ts` 的 `env.schema` →
+   * 生成 `.ubean/env.d.ts` → 构建期把 `ubean:env/client` 内联成字面量 →
+   * `ubean:env/server` 在运行期读 `process.env`。所以断言必须走真实 HTTP，
+   * 而不是 import 虚拟模块（后者在测试进程里解析不了）。
+   */
+  describe('ubean:env/* virtual modules (env-v1 contract)', () => {
+    it('client 字段内联成字面量，server 字段带上声明的类型', async () => {
+      const res = await getJson('/api/env-typed');
+      expect(res.status).toBe(200);
+
+      const data = res.data as {
+        client: { appTitle: string; apiPrefix: string };
+        server: { port: number; portType: string; hasSecret: boolean; hasRedisUrl: boolean };
+      };
+
+      expect(data.client.appTitle).toBe('ubean-test');
+      expect(data.client.apiPrefix).toBe('/api');
+
+      // number 字段真的被 `Number()` 转换过，而不是留成字符串
+      expect(data.server.portType).toBe('number');
+      expect(data.server.port).toBe(9527);
+
+      expect(data.server.hasSecret).toBe(true);
+      // optional 且未提供 → undefined，而不是报错
+      expect(data.server.hasRedisUrl).toBe(false);
+    });
+
+    it('客户端页面拿到的是内联后的字面量', async () => {
+      const res = await getJson('/env-client');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('ubean-test');
+      expect(res.text).toContain('/api');
+    });
+  });
 });

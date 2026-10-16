@@ -53,20 +53,36 @@ export interface ClientManifestEntry {
 /**
  * 从 client manifest 算出资产标签。
  *
- * 与旧运行时逻辑逐字等价（`<script type="module" src="/…">` + 每个 css 一个 `<link>`），
- * 只是执行时机从「服务端启动时」提前到「服务端构建时」。
+ * CSS 取**全量 chunk 的并集**，而不是只读 entry：代码分割后页面/布局的样式落在各自的 chunk 上，
+ * entry 的 `css` 常常是空的（实测 `examples/ubean-test` 为 0 条），只读 entry 会让生产 HTML
+ * 首帧无样式（FOUC）—— 与 dev 侧 `collectDevCssLinks` 读 client 图为空是同一类缺陷。
+ * entry 自己的 css 排在前面，其余按文件名排序，保证构建可重现。
+ *
+ * 代价：会多加载未访问页面的 CSS（实测 ubean-test 15 个 chunk 共 12.0KB、docs 仅 +0.3KB）。
+ * 若要收敛到「只注入当前页实际用到的」，需要走 ssr-manifest + 渲染期收集（见 dev 侧的
+ * `isCssModuleUrl` 路径），属于更大的改造。
  */
 export function computeAssetTags(
   manifest: Record<string, ClientManifestEntry> | null | undefined,
   favicon?: string | null
 ): InjectedAssetTags {
   const tags: InjectedAssetTags = { css: '', preloads: '', body: '', favicon: favicon ?? null };
-  const entry = manifest ? Object.values(manifest).find(item => item.isEntry) : undefined;
+  const entries = manifest ? Object.values(manifest) : [];
+  const entry = entries.find(item => item.isEntry);
   if (!entry) return tags;
 
   tags.body = `<script type="module" src="/${entry.file}"></script>`;
-  if (Array.isArray(entry.css)) {
-    tags.css = entry.css.map(css => `<link rel="stylesheet" href="/${css}">`).join('\n');
+
+  const cssFiles = new Set<string>();
+  for (const css of entry.css ?? []) cssFiles.add(css);
+  const rest = new Set<string>();
+  for (const item of entries) {
+    for (const css of item.css ?? []) if (!cssFiles.has(css)) rest.add(css);
+  }
+  for (const css of [...rest].sort()) cssFiles.add(css);
+
+  if (cssFiles.size > 0) {
+    tags.css = [...cssFiles].map(css => `<link rel="stylesheet" href="/${css}">`).join('\n');
   }
   return tags;
 }

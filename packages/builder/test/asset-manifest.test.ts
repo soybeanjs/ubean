@@ -74,6 +74,38 @@ describe('computeAssetTags', () => {
     );
   });
 
+  // FOUC 产物侧判据：代码分割后页面/布局的样式落在各自的 chunk 上，entry 的 `css` 常常为空
+  // （实测 examples/ubean-test 为 0 条、docs 只有 1 条），只读 entry 就会产出 0 个 stylesheet link。
+  it('entry 没有 css 时取全量 chunk 的 CSS 并集（去重 + 排序 + 可重现）', () => {
+    const tags = computeAssetTags({
+      'src/pages/index.vue': { file: 'assets/pages-a.js', css: ['assets/pages-b.css', 'assets/pages-a.css'] },
+      'src/layouts/default.vue': { file: 'assets/default-a.js', css: ['assets/default-a.css'] },
+      entry: { file: 'assets/app.js', isEntry: true },
+      // 与 entry 重复的 css 只出现一次
+      'src/other.vue': { file: 'assets/other.js', css: ['assets/pages-a.css'] }
+    });
+    expect(tags.css).toBe(
+      [
+        '<link rel="stylesheet" href="/assets/default-a.css">',
+        '<link rel="stylesheet" href="/assets/pages-a.css">',
+        '<link rel="stylesheet" href="/assets/pages-b.css">'
+      ].join('\n')
+    );
+    expect(tags.body).toBe('<script type="module" src="/assets/app.js"></script>');
+  });
+
+  it('entry 自己的 css 排在最前，其余按文件名排序', () => {
+    const tags = computeAssetTags({
+      'src/pages/z.vue': { file: 'assets/z.js', css: ['assets/zzz.css', 'assets/aaa.css'] },
+      entry: { file: 'assets/app.js', isEntry: true, css: ['assets/app.css'] }
+    });
+    expect(tags.css.split('\n').map(l => l.split('/').pop()!.replace('">', ''))).toEqual([
+      'app.css',
+      'aaa.css',
+      'zzz.css'
+    ]);
+  });
+
   it('清单缺失或没有 entry 时给出空标签（不抛错）', () => {
     expect(computeAssetTags(null).body).toBe('');
     expect(computeAssetTags({ 'src/x.vue': { file: 'assets/x.js' } }).body).toBe('');

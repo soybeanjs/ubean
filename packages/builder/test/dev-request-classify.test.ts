@@ -8,7 +8,8 @@
  * 端到端的表现（真 Vite server + 真中间件顺序）在 `dev-request-router.integration.test.ts`。
  */
 import { describe, expect, it } from 'vitest';
-import { injectStylesheetLinks, isFrameworkHtmlPage, isViteResourceRequest } from '@ubean/build/vite';
+import type { ViteDevServer } from 'vite';
+import { collectDevCssLinks, injectStylesheetLinks, isFrameworkHtmlPage, isViteResourceRequest } from '@ubean/build/vite';
 
 /** Node 的请求头形状（大小写不敏感由 Node 保证，这里直接用规范的小写键）。 */
 type Headers = Record<string, string | string[] | undefined>;
@@ -114,6 +115,59 @@ describe('injectStylesheetLinks', () => {
     const html = '<html><head></head></html>';
     expect(injectStylesheetLinks(html, [])).toBe(html);
     expect(injectStylesheetLinks('<div></div>', ['/a.css'])).toBe('<div></div>');
+  });
+});
+
+/**
+ * FOUC 回归：首个页面请求时 **client 模块图还是空的**（它由浏览器后续请求客户端入口才
+ * 填充），CSS 只能从 ssr 图拿；SFC `<style>` 块的 URL 自带查询串，`direct` 必须写在最前，
+ * 否则 Vite 的 `CSS_LANGS_RE` 不认、按 JS 返回（浏览器拒绝把 JS 当样式表 → 仍是 FOUC）。
+ */
+describe('collectDevCssLinks', () => {
+  const fakeServer = (modules: Record<string, string[]>) =>
+    ({
+      environments: Object.fromEntries(
+        Object.entries(modules).map(([name, urls]) => [
+          name,
+          { moduleGraph: { idToModuleMap: new Map(urls.map(url => [url, { url, id: url }])) } }
+        ])
+      )
+    }) as unknown as ViteDevServer;
+
+  it('client 图为空时仍从 ssr 图取到 SFC style 块', () => {
+    const links = collectDevCssLinks(
+      fakeServer({ client: [], ssr: ['/src/pages/index.vue?vue&type=style&index=0&lang.css'] })
+    );
+    expect(links).toEqual(['/src/pages/index.vue?direct&vue&type=style&index=0&lang.css']);
+  });
+
+  it('两个图都收集且去重，纯 .css 模块 direct 写在 ? 后', () => {
+    const links = collectDevCssLinks(
+      fakeServer({
+        ssr: ['/src/style.css', '/src/layouts/default.vue?vue&type=style&index=0&lang.css'],
+        client: ['/src/style.css', '/@id/__x00__/__uno.css']
+      })
+    );
+    expect(links.sort()).toEqual(
+      ['/@id/__x00__/__uno.css?direct', '/src/layouts/default.vue?direct&vue&type=style&index=0&lang.css', '/src/style.css?direct'].sort()
+    );
+  });
+
+  it('模块图里已有的 `?direct&…` 变体被归一化，不随请求次数累加', () => {
+    const links = collectDevCssLinks(
+      fakeServer({
+        ssr: ['/src/pages/index.vue?vue&type=style&index=0&lang.css'],
+        client: [
+          '/src/pages/index.vue?direct&vue&type=style&index=0&lang.css',
+          '/src/pages/index.vue?direct&direct&vue&type=style&index=0&lang.css'
+        ]
+      })
+    );
+    expect(links).toEqual(['/src/pages/index.vue?direct&vue&type=style&index=0&lang.css']);
+  });
+
+  it('非 CSS 模块不入列', () => {
+    expect(collectDevCssLinks(fakeServer({ ssr: ['/src/app.ts', '/src/pages/index.vue'] }))).toEqual([]);
   });
 });
 

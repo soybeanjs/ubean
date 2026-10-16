@@ -251,25 +251,47 @@ function toDevCssHref(url: string): string {
 }
 
 /**
- * 从客户端模块图收集 render-blocking CSS 链接。
+ * 收集 render-blocking CSS 链接。
  *
- * dev 下由 JS 引入的 CSS（虚拟 uno.css 入口、全局样式、字体 css）要等客户端模块图执行完才生效，
- * SSR HTML 在这段间隙是**无样式**的（FOUC）。把同一批 CSS 以阻塞 `<link>` 注入，浏览器可与 JS
- * 并行抓取，首屏即有样式。
+ * dev 下由 JS 引入的 CSS 要等模块图执行完才生效，SSR HTML 在这段间隙是**无样式**的（FOUC）。
+ * 把同一批 CSS 以阻塞 `<link>` 注入，浏览器可与 JS 并行抓取，首屏即有样式。
+ *
+ * 数据源是 **ssr + client 两个模块图**，缺一不可：
+ * - `client` 提供客户端入口 import 的全局样式（虚拟 uno.css、`@vean/ui/styles.css`）；
+ * - `ssr` 提供 SFC `<style>` 块，且**首次页面请求时 client 图是空的**（它由浏览器后续请求
+ *   客户端入口才填充）—— 只读 client 图等于首个请求永远注入 0 个链接，正是 FOUC 的来源。
  *
  * `?direct` 让 Vite 的 transform 中间件返回原始 CSS（`Content-Type: text/css`）而不是注入式 JS
- * 包装；URL 自带查询串的模块（SFC `<style>` 块形如 `*.vue?vue&type=style`）无法这样服务，跳过。
+ * 包装。它必须紧跟路径（`?direct&vue&…`）：Vite 的 `CSS_LANGS_RE` 只认 `.css` 结尾或紧跟
+ * `?`，写成 `&lang.css&direct` 会落到 JS 分支，浏览器拒绝把 JS 当样式表。
  */
-export function collectDevCssLinks(moduleGraph: ViteDevServer['environments']['client']['moduleGraph']): string[] {
+export function collectDevCssLinks(server: ViteDevServer): string[] {
   const links = new Set<string>();
-  for (const mod of moduleGraph.idToModuleMap.values()) {
-    const { url, id } = mod;
-    if (!url || url.includes('?')) continue;
-    if (id?.endsWith('.css') || url.endsWith('.css')) {
-      links.add(`${toDevCssHref(url)}?direct`);
+  for (const name of ['ssr', 'client'] as const) {
+    const moduleGraph = server.environments[name]?.moduleGraph;
+    if (!moduleGraph) continue;
+    for (const mod of moduleGraph.idToModuleMap.values()) {
+      const { url, id } = mod;
+      if (!url) continue;
+      // SFC style 块在模块图里的 url 以 `?vue&type=style` 结尾，id 也带查询串
+      if (!isCssModuleUrl(url) && !isCssModuleUrl(String(id ?? ''))) continue;
+      const [pathname, query = ''] = toDevCssHref(url).split(/(?=\?)/);
+      // 模块图里同时存在我们自己请求过的 `?direct&…` 变体（每次链接拉取都会新建一个模块），
+      // 先剥掉 direct 再拼，否则同一份样式会随请求次数累加出 `direct&direct&…` 的重复链接。
+      const search = (query.slice(1) ? query.slice(1).split('&') : []).filter(
+        part => part !== 'direct' && !part.startsWith('direct=')
+      );
+      links.add(search.length ? `${pathname}?direct&${search.join('&')}` : `${pathname}?direct`);
     }
   }
   return [...links];
+}
+
+/** CSS 模块判据：`.css` 结尾，或 SFC 的 `<style>` 块（`?vue&type=style&…`）。 */
+function isCssModuleUrl(url: string): boolean {
+  const [pathname, search = ''] = url.split(/(?=\?)/);
+  if (pathname.endsWith('.css')) return true;
+  return search.includes('type=style');
 }
 
 /** 在 `</head>` 前插入阻塞样式链接。 */
@@ -484,7 +506,7 @@ export function createUbeanRequestHandlers(
     if (contentType.includes('text/html') && webRes.body && !skipTransform && isPage) {
       const html = await webRes.text();
       // 阻塞样式先注入，再交给 Vite 追加客户端脚本
-      const cssLinks = collectDevCssLinks(server.environments.client.moduleGraph);
+      const cssLinks = collectDevCssLinks(server);
       const transformed = await server.transformIndexHtml(url, injectStylesheetLinks(html, cssLinks));
       res.statusCode = webRes.status;
       res.statusMessage = webRes.statusText;

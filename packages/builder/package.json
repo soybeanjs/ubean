@@ -76,7 +76,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
-    "@vue/compiler-sfc": "^3.5.43",
+    "@vue/compiler-sfc": "^3.5.44",
     "hono": "4.13.13",
     "typescript": "catalog:",
     "vite": "catalog:",

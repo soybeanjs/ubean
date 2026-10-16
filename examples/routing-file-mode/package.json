@@ -10,13 +10,13 @@
   },
   "dependencies": {
     "ubean": "workspace:*",
-    "vue": "^3.5.43",
+    "vue": "^3.5.44",
     "vue-router": "^5.4.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
     "typescript": "catalog:",
-    "vue-tsc": "^3.3.12"
+    "vue-tsc": "^3.3.13"
   },
   "peerDependencies": {},
   "optionalDependencies": {}

@@ -34,7 +34,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@unhead/vue": "^3.4.2",
+    "@unhead/vue": "^3.4.3",
     "pathe": "^2.0.3"
   },
   "devDependencies": {

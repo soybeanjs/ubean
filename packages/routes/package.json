@@ -26,7 +26,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
-    "@soybeanjs/fetch": "^0.1.0",
+    "@soybeanjs/fetch": "^0.1.2",
     "@ubean/i18n": "workspace:*",
     "@ubean/shared": "workspace:*",
     "hono": "4.13.13",
@@ -39,7 +39,7 @@
     "@ubean/scan": "workspace:*",
     "typescript": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.43"
+    "vue": "^3.5.44"
   },
   "peerDependencies": {
     "@ubean/pages": "workspace:*",

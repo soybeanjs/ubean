@@ -21,7 +21,7 @@
     "minisearch": "^7.2.0",
     "shiki": "^4.5.0",
     "ubean": "workspace:*",
-    "vue": "^3.5.43",
+    "vue": "^3.5.44",
     "vue-i18n": "^11.4.14",
     "vue-router": "^5.4.0"
   },
@@ -32,9 +32,9 @@
     "tsx": "^4.23.15",
     "typedoc": "^0.28.20",
     "typescript": "catalog:",
-    "unocss": "^66.10.5",
+    "unocss": "^66.11.0",
     "vite-plus": "catalog:",
-    "vue-tsc": "^3.3.12",
+    "vue-tsc": "^3.3.13",
     "typescript-real": "npm:typescript@7.0.2"
   }
 }

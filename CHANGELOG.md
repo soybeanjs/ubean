@@ -1,5 +1,27 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.3...main) (2026-10-16) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **env**: add envField schema with ubean:env/client and ubean:env/server &nbsp;-&nbsp; by @soybeanjs [<samp>(0d20a)</samp>](https://github.com/soybeanjs/ubean/commit/0d20a52c)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **env**: document the env contract and cover it in the example project &nbsp;-&nbsp; by @soybeanjs [<samp>(b35c3)</samp>](https://github.com/soybeanjs/ubean/commit/b35c328f)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **ubean**: lock the new env exports into the export-surface snapshot &nbsp;-&nbsp; by @soybeanjs [<samp>(59fb2)</samp>](https://github.com/soybeanjs/ubean/commit/59fb2b78)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **config,builder**: satisfy the repo lint rules the CI enforces &nbsp;-&nbsp; by @soybeanjs [<samp>(69c71)</samp>](https://github.com/soybeanjs/ubean/commit/69c71b4b)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.2...main) (2026-10-16) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

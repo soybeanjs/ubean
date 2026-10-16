@@ -41,6 +41,10 @@
     "./actions": {
       "types": "./dist/actions-plugin.d.ts",
       "import": "./dist/actions-plugin.js"
+    },
+    "./env": {
+      "types": "./dist/env/plugin.d.ts",
+      "import": "./dist/env/plugin.js"
     }
   },
   "scripts": {

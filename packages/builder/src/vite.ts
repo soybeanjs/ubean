@@ -235,6 +235,14 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
   /** 已跑过 codegen 的扫描结果（`buildStart` 会在两个环境各跑一次）。 */
   let lastCodegenScan: ScanResult | null = null;
   /**
+   * 本插件实例拿到的 Vite 解析后环境变量快照（`configResolved` 钩子填充）。
+   *
+   * 为什么不在 `runProjectCodegen` 里自己 `loadEnv()`：Vite 已经在 `configResolved` 把
+   * **合并完 `.env` / `.env.local` / `.env.[mode]` / 进程环境**的结果给了插件，再自己读一遍
+   * 就多一份可能漂移的实现（优先级规则容易抄错），而且与 `import.meta.env` 的实际内容未必一致。
+   */
+  let resolvedImportMetaEnv: Record<string, unknown> = {};
+  /**
    * dev 扫描协调器（`configureServer` 建立、`buildStart` 用）。
    *
    * Vite 的顺序是 `configureServer` → `buildStart`，且 dev 下每个环境各跑一次 `buildStart`
@@ -363,6 +371,10 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         },
         environments: await buildEnvironmentsForConfig(ubeanConfig)
       };
+    },
+
+    configResolved(resolved) {
+      resolvedImportMetaEnv = resolved.env as unknown as Record<string, unknown>;
     },
 
     async buildStart() {
@@ -615,7 +627,9 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         buildDir: '.ubean',
         dirs: ubeanConfig.dir,
         autoImports: ubeanConfig.autoImports,
-        components: ubeanConfig.components
+        components: ubeanConfig.components,
+        env: ubeanConfig.env,
+        importMetaEnv: resolvedImportMetaEnv
       });
     } catch (err) {
       // 类型声明是 DX 产物，不该让 dev / build 失败

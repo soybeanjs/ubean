@@ -4,6 +4,7 @@ import { loadConfig } from 'c12';
 import { createJiti } from 'jiti';
 import { resolve, join } from 'pathe';
 import { resolveI18nConfig } from './i18n';
+import { resolveEnvConfig } from './env';
 import { resolveRoutingConfig } from './routing';
 import type {
   UbeanConfig,
@@ -249,6 +250,7 @@ const configDefaults: ResolvedConfig = {
   dataCache: true,
   cache: { store: 'auto' },
   logging: resolveLoggingConfig(undefined, 'fullstack'),
+  env: { schema: {} },
   prerender: resolvePrerenderConfig(),
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
   favicon: null,
@@ -333,6 +335,9 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   // 重新解析 logging(按 mode 应用请求日志的模式矩阵;defu 浅合并会让
   // requestSuppressed 等派生字段失真,必须基于用户原始值重算)
   resolved.logging = resolveLoggingConfig(config.logging, resolved.mode);
+  // 重新解析 env(同 logging:用户写 `env: undefined` 时 defu 会留下 undefined,
+  // 而消费侧(env 插件 / codegen)期望一个空对象)
+  resolved.env = resolveEnvConfig(config.env);
   // 解析 favicon(自动检测 public 目录或使用用户配置的路径)
   const publicDir = join(resolved.rootDir, resolved.dir.public);
   resolved.favicon = resolveFavicon(config.favicon, publicDir);

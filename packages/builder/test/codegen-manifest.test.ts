@@ -37,4 +37,26 @@ describe('generateTypes codegen.manifest.json', () => {
     expect(manifest.files.find(f => f.name === 'pages.d.ts')?.generated).toBe(true);
     expect(manifest.files.find(f => f.name === 'i18n.d.ts')?.generated).toBe(false);
   });
+
+  it('同时写 env.d.ts（不属于 CODEGEN_FILES，但仍由 generateTypes 产出）', async () => {
+    const cwd = await mkdtemp(join(tmpdir(), 'ubean-codegen-env-'));
+    await mkdir(join(cwd, 'src'), { recursive: true });
+    const result = await generateTypes(emptyScan(), {
+      cwd,
+      srcDir: 'src',
+      buildDir: '.ubean',
+      // schema 为空时也必须生成：文件里还有 `ImportMetaEnv` 那半，与 schema 无关。
+      importMetaEnv: { MODE: 'development', DEV: true, VITE_APP_TITLE: 'SoybeanAdmin' }
+    });
+
+    expect(result.envTypesPath.endsWith('/.ubean/env.d.ts')).toBe(true);
+    const contents = await readFile(result.envTypesPath, 'utf8');
+    // 客户端可见的 key 进 ImportMetaEnv，服务端变量不进。
+    expect(contents).toContain('readonly VITE_APP_TITLE: string;');
+    expect(contents).toContain('readonly MODE: string;');
+    expect(contents).toContain("declare module 'ubean:env/client'");
+    expect(contents).toContain("declare module 'ubean:env/server'");
+    // `ImportMetaEnv` 必须在全局作用域 —— 顶层一旦出现 `export {}` 类型增强就失效。
+    expect(contents).not.toMatch(/^export \{\}/m);
+  });
 });

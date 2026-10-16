@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
-import { CODEGEN_CONTRACT_VERSION, CODEGEN_FILES } from '../src/codegen/index';
+import { CODEGEN_CONTRACT_VERSION, CODEGEN_FILES, CODEGEN_NON_CONTRACT_FILES } from '../src/codegen/index';
 
 /**
  * `docs/contracts/codegen-v1.md` 是 `.ubean/` codegen 的对外冻结契约（studio / IDE 插件按它读产物）。
@@ -31,7 +31,9 @@ describe('docs/contracts/codegen-v1.md 与 CODEGEN_FILES', () => {
     // 「Optional / not written by `generateTypes()`」表按定义就含清单外的文件。
     const filesSection = doc.split(/^## Optional/m)[0] ?? '';
     const declared = [...filesSection.matchAll(/`([a-z-]+\.d\.ts)`/g)].map(m => m[1]);
-    const known = new Set(CODEGEN_FILES.map(f => f.name));
+    // `env.d.ts` 有产物但不进 `CODEGEN_FILES`（只给 tsc 读，不是 studio 的冻结契约），
+    // 所以合法产物面 = 契约清单 + `CODEGEN_NON_CONTRACT_FILES`。两份名单都是单一来源。
+    const known = new Set([...CODEGEN_FILES.map(f => f.name), ...CODEGEN_NON_CONTRACT_FILES]);
     const phantom = [...new Set(declared)].filter(name => !known.has(name));
     expect(phantom, `文档声明了不存在的契约文件：${phantom.join(', ')}`).toEqual([]);
   });

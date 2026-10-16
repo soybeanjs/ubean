@@ -1,7 +1,20 @@
 import type { Plugin as VitePlugin } from 'vite';
-import type { RouteRule } from '@ubean/shared';
+import type { EnvConfig, RouteRule } from '@ubean/shared';
 
 export type { RouteRule } from '@ubean/shared';
+
+export type { EnvConfig, EnvSchema, EnvFieldMeta, EnvContext, EnvAccess } from '@ubean/shared';
+
+/**
+ * 归一化后的 `env` 配置。
+ *
+ * 只保留 `schema` 一个字段：分组糖（`server:` / `public:`）在 `defineEnv()` /
+ * `normalizeEnvSchema()` 里才有意义，而 `ubean.config.ts` 的入口只认 `schema`。
+ */
+export interface ResolvedEnvConfig {
+  schema: Record<string, unknown>;
+  mode?: 'warn' | 'throw';
+}
 
 /* -------------------------------------------------------------------------- */
 /* Module System                                                                */
@@ -1023,6 +1036,33 @@ export interface UbeanConfig {
    */
   cache?: { store?: 'memory' | 'fs' | 'auto'; dir?: string };
   prerender?: PrerenderConfig;
+
+  /**
+   * 环境变量 schema（`envField.*()` 声明），`env.schema` 下直写。
+   *
+   * 构建期 ubean 会：
+   * 1. 生成 `.ubean/env.d.ts`（`ubean:env/client` / `ubean:env/server` 的类型 + `ImportMetaEnv`）；
+   * 2. 在 `ubean:env/server` 被**客户端环境** import 时直接让构建失败。
+   *
+   * 值来自 `process.env`（服务端运行时）与 Vite 的 `import.meta.env`（客户端构建期）；
+   * `.env` / `.env.[mode]` 由 Vite 加载，与本配置无关。
+   *
+   * @example
+   * ```ts
+   * import { defineConfig, envField } from 'ubean';
+   *
+   * export default defineConfig({
+   *   env: {
+   *     schema: {
+   *       PUBLIC_API_BASE: envField.string({ context: 'client', access: 'public', default: '/api' }),
+   *       JWT_SECRET: envField.string({ context: 'server', access: 'secret', optional: true })
+   *     }
+   *   }
+   * });
+   * ```
+   */
+  env?: EnvConfig;
+
   scanOptions?: {
     ignore?: string[];
   };
@@ -1075,10 +1115,18 @@ export interface ResolvedConfig extends Required<
     | 'dataCache'
     | 'cache'
     | 'logging'
+    | 'env'
   >
 > {
   rootDir: string;
   srcDir: string;
+  /**
+   * 解析后的环境变量配置。
+   *
+   * `defu` 会浅合并用户对象与 `configDefaults`，所以 `undefined` 会变成 `{}` —— 统一归一成
+   * `{ schema: {} }` 可以让消费侧（env 插件 / codegen）不必再判 `undefined`。
+   */
+  env: ResolvedEnvConfig;
   modules: ModuleConfiguration[];
   content: boolean | NonNullable<UbeanConfig['content']>;
   icon: boolean | BuiltinModuleOptions;

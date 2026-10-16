@@ -33,6 +33,7 @@
 
 import type { Plugin } from 'vite';
 import { ubeanServerActionsPlugin } from '@ubean/build/actions';
+import { ubeanEnvPlugin } from '@ubean/build/env';
 import {
   ubeanPlugin as ubeanCorePlugin,
   ubeanDevRequestPlugin,
@@ -89,7 +90,11 @@ export async function ubeanPlugin(): Promise<Plugin[]> {
     ubeanCorePlugin({ config, registry }),
     ...ubeanVite({ config, registry }),
     ubeanIslandsPlugin(),
-    ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() })
+    ubeanServerActionsPlugin({ root: config.rootDir || process.cwd() }),
+    // `ubean:env/client` / `ubean:env/server` 虚拟模块 + 客户端 import 服务端 env 的构建期护栏。
+    // 放在数组尾部（插件自己的 `enforce: 'post'` 再确保一次）—— core 的 `resolveId`
+    // 只认 `VIRTUAL_MODULES`，不会与 `ubean:env/*` 相撞。
+    ubeanEnvPlugin({ config })
   ];
 
   // ADR-0012（RM-V36 收敛后为唯一路径）：请求路由归插件，于是 `vite dev` 单独就能服务整个

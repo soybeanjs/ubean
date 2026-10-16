@@ -25,6 +25,8 @@ export {
   resolveLoggingConfig,
   DEFAULT_PRERENDER_EXCLUDE
 } from './loader';
+export { resolveEnvConfig, envConfigDefaults } from './env';
+export type { ResolvedEnvConfig } from './env';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
 export { resolveI18nConfig, localeCodesOf } from './i18n';
 
@@ -133,5 +135,6 @@ export type {
   AutoImportOptions,
   ComponentsOptions,
   LoggingConfig,
-  ResolvedLoggingConfig
+  ResolvedLoggingConfig,
+  EnvConfig
 } from './types';

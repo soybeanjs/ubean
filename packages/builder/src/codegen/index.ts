@@ -1,6 +1,9 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import type { ScanResult } from '@ubean/scan';
+import type { ResolvedEnvConfig } from '@ubean/config';
 import { join } from 'pathe';
+import { generateEnvTypes, ENV_TYPES_FILE_NAME } from '../env/codegen';
+import { resolveEnvModules } from '../env/types';
 import { generateAutoImports } from './auto-imports';
 import type { GenerateAutoImportsOptions } from './auto-imports';
 import { generateI18nTypes } from './i18n-types';
@@ -65,6 +68,15 @@ export const CODEGEN_FILES: readonly CodegenFileContract[] = [
   { name: 'virtual-components.d.ts', module: null, required: false, types: [] }
 ];
 
+/**
+ * `generateTypes()` 会写、但**不属于**外部冻结契约的产物。
+ *
+ * 存在的意义只为一个可执行断言服务：`test/codegen-doc-contract.test.ts` 断言「文档里列出的
+ * `*.d.ts` 必须在代码里真的产出」，而 `env.d.ts` 故意不进 `CODEGEN_FILES`（理由见那里），
+ * 于是它有产物、没契约条目。把名字登记在这里，比在测试里硬编码字符串更难漂移。
+ */
+export const CODEGEN_NON_CONTRACT_FILES: readonly string[] = [ENV_TYPES_FILE_NAME];
+
 export interface CodegenManifest {
   contractVersion: typeof CODEGEN_CONTRACT_VERSION;
   generatedAt: string;
@@ -75,6 +87,10 @@ export interface CodegenOptions extends Omit<GenerateAutoImportsOptions, 'cwd' |
   cwd: string;
   srcDir: string;
   buildDir: string;
+  /** `env.schema` 的归一化配置（`ResolvedConfig.env`）。 */
+  env?: ResolvedEnvConfig;
+  /** Vite 解析后的 `import.meta.env` 快照，用于生成 `ImportMetaEnv`。 */
+  importMetaEnv?: Record<string, unknown>;
 }
 
 export interface CodegenResult {
@@ -84,11 +100,19 @@ export interface CodegenResult {
   autoImportsDtsPath?: string;
   componentsDtsPath?: string;
   virtualComponentsDtsPath?: string;
+  /**
+   * `.ubean/env.d.ts`（`ubean:env/*` 虚拟模块类型 + 生成的 `ImportMetaEnv`）。
+   *
+   * **刻意不进 `CODEGEN_FILES`**：那份清单是 studio / IDE 插件按名字读产物的**冻结契约**，
+   * 加一个文件就要把 `contractVersion` 推到 2 并同步 `docs/contracts/codegen-v1.md`，
+   * 而这份产物只给 TypeScript 编译器读，不在外部工具消费面上。
+   */
+  envTypesPath: string;
   generated: string[];
 }
 
 export async function generateTypes(result: ScanResult, options: CodegenOptions): Promise<CodegenResult> {
-  const { cwd, srcDir, buildDir, ...autoImportOptions } = options;
+  const { cwd, srcDir, buildDir, env, importMetaEnv, ...autoImportOptions } = options;
   const outDir = join(cwd, buildDir);
   await mkdir(outDir, { recursive: true });
 
@@ -102,6 +126,17 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
 
   const i18nTypesPath = await generateI18nTypes(result, { outDir });
   if (i18nTypesPath) generated.push(i18nTypesPath);
+
+  // schema 为空也生成：文件里还有 `ImportMetaEnv` 一半，而那一半与 schema 无关。
+  const envTypesPath = await generateEnvTypes({
+    outDir,
+    modules: resolveEnvModules({
+      schema: (env?.schema ?? {}) as Record<string, unknown>,
+      importMetaEnv
+    }),
+    importMetaEnv
+  });
+  generated.push(envTypesPath);
 
   const autoImportsResult = await generateAutoImports(result, {
     cwd,
@@ -132,6 +167,7 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
     autoImportsDtsPath,
     componentsDtsPath,
     virtualComponentsDtsPath,
+    envTypesPath,
     generated
   };
 }

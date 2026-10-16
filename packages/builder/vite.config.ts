@@ -18,7 +18,10 @@ export default defineConfig({
       'src/prerender.ts',
       'src/static-render.ts',
       'src/codegen/index.ts',
-      'src/actions-plugin.ts'
+      'src/actions-plugin.ts',
+      // 独立入口：`ubeanPlugin()` 从主入口静态 import 它，但 `@ubean/build/env` 子路径导出
+      // （子包想单独用 env 插件时）需要它自己的产物。
+      'src/env/plugin.ts'
     ],
     deps: {
       neverBundle: [/^@ubean\//, /^node:/, 'openapi-typescript', 'pathe', 'unimport', 'tinyglobby']

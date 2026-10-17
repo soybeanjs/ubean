@@ -76,13 +76,11 @@ export const buildCommand: CommandDef = {
     },
     minify: {
       type: 'boolean',
-      description: 'Minify output',
-      default: true
+      description: 'Minify output (overrides ubean.config.ts build.minify)'
     },
     sourcemap: {
       type: 'boolean',
-      description: 'Generate sourcemaps',
-      default: false
+      description: 'Generate sourcemaps (overrides ubean.config.ts build.sourcemap)'
     },
     prerender: {
       type: 'boolean',
@@ -208,8 +206,9 @@ export const buildCommand: CommandDef = {
         config,
         preset: resolvedPreset,
         scanResult: result,
-        minify: args.minify as boolean,
-        sourcemap: args.sourcemap as boolean,
+        // 不传时留 `undefined`，让 `createBuildContext` 回落到 `config.build.*`。
+        minify: args.minify as boolean | undefined,
+        sourcemap: args.sourcemap as boolean | undefined,
         contentSnapshot
       });
 

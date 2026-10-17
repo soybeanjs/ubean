@@ -28,7 +28,12 @@ export interface BuildOptions {
   config: ResolvedConfig;
   preset: Preset;
   scanResult: ScanResult;
+  /**
+   * 缺省时回落到 `config.build.minify`，再回落到 `true`。
+   * CLI `--minify` 优先级最高，由 `packages/cli/src/build.ts` 传入。
+   */
   minify?: boolean;
+  /** 缺省时回落到 `config.build.sourcemap`，再回落到 `false`。 */
   sourcemap?: boolean;
   /** Inlined content collections for production SSR (`queryCollection`). */
   contentSnapshot?: Record<string, unknown[]>;

@@ -490,6 +490,23 @@ export function createUbeanRequestHandlers(
   // handler 缺省 → 自举；显式传入 → 用调用方的（CLI 路径）
   const handler = options.handler ?? createLazyBootstrapHandler(server, options.bootstrap);
 
+  /**
+   * `vite.config.ts` 的 `server.headers` 合并到 ubean 自己渲染的响应上。
+   *
+   * Vite 只把它应用到自己的中间件（`servePublicMiddleware` / `transformMiddleware`），而 ubean 的
+   * 页面走 `respond()` 直接输出 —— 不合并的话「给所有响应加 header」在应用页面上静默失效。
+   * 通过 `res.setHeader` 写的值优先（框架/Hono 显式设置的不该被配置文件盖掉）。
+   */
+  function applyConfiguredHeaders(res: ServerResponse): void {
+    const headers = server.config.server.headers;
+    if (!headers) return;
+    for (const [key, value] of Object.entries(headers)) {
+      if (value === undefined) continue;
+      if (res.hasHeader(key)) continue;
+      res.setHeader(key, value);
+    }
+  }
+
   async function respond(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const url = req.url || '/';
     // @ts-expect-error Node 的 Socket 类型没有 `encrypted`
@@ -513,10 +530,14 @@ export function createUbeanRequestHandlers(
       webRes.headers.forEach((value, key) => {
         res.setHeader(key, value);
       });
+      applyConfiguredHeaders(res);
       res.end(transformed);
       return;
     }
 
+    // `sendWebResponse` 末尾就会 `res.end()`，所以配置头必须在它之前写。
+    // 它的 `setHeader` 会覆盖同名键 —— 响应头优先于配置文件，这正是期望的语义。
+    applyConfiguredHeaders(res);
     await sendWebResponse(res, webRes);
   }
 
@@ -544,8 +565,33 @@ export function createUbeanRequestHandlers(
     return passThrough.some(prefix => pathname.startsWith(prefix));
   };
 
+  /**
+   * 命中 `vite.config.ts` 的 `server.proxy` 键？命中则让给 Vite。
+   *
+   * `proxyMiddleware` 在上游是 **`configureServer` 钩子之后**才 `use()` 的（本插件的 `pre` 走
+   * 钩子体内），因此无扩展名的代理路径会被 `pre` 先吃掉 —— `isViteResourceRequest` 不认识
+   * proxy 键，`/probe-proxy` 这种路径最终返回 ubean 的 404 而不是被代理。`/api/**` 这类路径
+   * 明明写了 `server.proxy` 也一样，因为保留命名空间判据先命中。
+   *
+   * 前置让给 Vite 与 `routeRules.proxy` 不冲突：Vite 只代理配置里显式写了的键，没写就照旧归 ubean。
+   */
+  const proxyKeys = Object.keys(server.config.server.proxy ?? {});
+  const isProxyPath = (url: string) => {
+    if (proxyKeys.length === 0) return false;
+    const pathname = url.split('?')[0].split('#')[0];
+    return proxyKeys.some(key => {
+      // Vite 的键可以是字符串前缀或 RegExp（`ProxyOptions` 允许两种写法）
+      const pattern = key.startsWith('^') ? new RegExp(key) : null;
+      return pattern ? pattern.test(pathname) : pathname.startsWith(key);
+    });
+  };
+
   const pre: Connect.NextHandleFunction = (req, res, next) => {
-    if (isPassThrough(req.url || '/') || isViteResourceRequest(req.url || '/', req.headers)) {
+    if (
+      isPassThrough(req.url || '/') ||
+      isProxyPath(req.url || '/') ||
+      isViteResourceRequest(req.url || '/', req.headers)
+    ) {
       next();
       return;
     }

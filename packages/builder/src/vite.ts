@@ -219,8 +219,8 @@ async function buildEnvironmentsForConfig(config: UbeanResolvedConfig) {
   return createBuildEnvironments({
     outDirs,
     clientInput: existsSync(clientEntryPath) ? clientEntryPath : join(outDirs.virtual, 'client-entry.mjs'),
-    minify: true,
-    sourcemap: false,
+    minify: config.build.minify,
+    sourcemap: config.build.sourcemap,
     presetBuildConfig: getPresetBuildConfig(resolvePresetByName(config.build.preset)),
     ssrNoExternal: (ssrSingletonProdSsr() as { noExternal?: (string | RegExp)[] }).noExternal
   });

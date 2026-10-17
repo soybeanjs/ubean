@@ -32,7 +32,7 @@ import { resolveModules } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import { getLogger } from '@ubean/shared/logger';
 import { findUserViteConfig } from '@ubean/shared/node';
-import { join, resolve } from 'pathe';
+import { isAbsolute, join, resolve } from 'pathe';
 import {
   createIslandsSsrStubPlugin,
   generateCloudflareWorkerEntry,
@@ -99,7 +99,15 @@ export interface PreparedBuild extends BuildContext {
 
 /** 由 options 派生上下文（不做任何 IO）。 */
 export function createBuildContext(options: BuildOptions): BuildContext {
-  const { cwd, config, preset, scanResult, minify = true, sourcemap = false, contentSnapshot } = options;
+  const {
+    cwd,
+    config,
+    preset,
+    scanResult,
+    minify = config.build.minify,
+    sourcemap = config.build.sourcemap,
+    contentSnapshot
+  } = options;
   const mode = config.mode;
   const hasPages = mode !== 'backend';
   const hasServer = mode !== 'spa';
@@ -211,9 +219,12 @@ export async function runEnvBuilds(
     await builder.build(builder.environments.ubean);
   }
 
-  // 公共目录在客户端产物之后拷贝（避免被 emptyOutDir 清掉，与旧路径顺序一致）
+  // 公共目录在客户端产物之后拷贝（避免被 emptyOutDir 清掉，与旧路径顺序一致）。
+  // 路径取自 `config.dir.public`（默认 `public`），否则改了这个字段生产构建会照旧读 `public/`。
   if (hasPages) {
-    const publicDir = join(cwd, 'public');
+    const publicDir = isAbsolute(prepared.config.dir.public)
+      ? prepared.config.dir.public
+      : join(cwd, prepared.config.dir.public);
     if (existsSync(publicDir)) {
       logger.info('Copying public assets...');
       await cp(publicDir, outDirs.public, { recursive: true });

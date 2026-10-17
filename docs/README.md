@@ -16,7 +16,7 @@
 | [test-flaky.md](test-flaky.md) | flaky 用例待修清单（`scripts/flaky.mjs --check` 门禁的 committed 输入）：门禁语义、表格填法、当前待修条目 |
 | [perf-regression-net.md](perf-regression-net.md) | 性能度量口径、基线、体积闸门与 nightly 趋势（RM-P01–P08、RM-P23/P24 已落地） |
 | [vite-bundled-dev-compat.md](vite-bundled-dev-compat.md) | Vite `experimental.bundledDev` 兼容性调查：**现状不支持**，三处故障已定位（其中一处根因已对照实验证明）、修法方向与未知数 |
-| [config-to-vite-passthrough.md](config-to-vite-passthrough.md) | ubean 配置到 Vite 的传递与覆盖调查：**只有 CLI inlineConfig 一条通道**（裸 `vite dev` 读不到 `dev.*`）、覆盖顺序实测、三处「配了不生效」+ 四个死字段、命名取舍 |
+| [config-to-vite-passthrough.md](config-to-vite-passthrough.md) | ubean 配置到 Vite 的传递与覆盖调查：**只有 CLI inlineConfig 一条通道**（裸 `vite dev` 读不到 `dev.*`）、覆盖顺序实测；原报的三处「配了不生效」+ 四个死字段**已于 2026-11 修复**（命名取舍与「是否对裸命令生效」仍待决） |
 
 > 行内任务清单全部 ✅ 后，按政策删除正文：决策归 ADR，词汇归 glossary，历史归 git。
 

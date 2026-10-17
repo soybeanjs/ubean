@@ -1,7 +1,11 @@
 # ubean 配置到 Vite 的传递与覆盖调查
 
 > **性质**：开发任务型（dev-task，见 [ADR-0007](adr/0007-docs-content-classification.md)）。**这是调查记录，不是决策** —— 是否调整配置面尚未决定，`docs/roadmap.md` 也未开任务 ID。
-> **状态**：调查完成，结论已实测验证（2026-10）。**未实施任何改动**，仓库现状 = 下表所列的字段子集与覆盖顺序。
+> **状态**：调查完成，结论已实测验证（2026-10）。**§6 清单的第 1、2、3、4、5 项已实施**（2026-11）；命名决策（§5）与「是否让 ubean 配置对裸 `vite dev` 生效」仍未决定 —— 详见下方「实施记录」。
+> **实施记录（2026-11）**：
+> - **已修**：`strictPort` 透传（dev + preview，citty 去 `default`）、`dev.open` 接线、`build.minify`/`build.sourcemap` 接线（两条构建路径）、`server.headers` 合并、`server.proxy` 放行、`dir.public` 在构建侧生效。
+> - **仍未决定**：§5 的命名取舍；以及「ubean 配置是否对裸 `vite dev` 生效」。
+> - **新增回归网**：`packages/cli/test/config-fallbacks.test.ts`（citty 声明不得带 `default`）、`packages/cli/test/config-strict-port.test.ts`（配置里的 `strictPort: true` 必须真的让进程退出）、`packages/builder/test/public-dir-and-build-options.test.ts`（`build.minify`/`sourcemap`/`dir.public` 接线）、`dev-request-router.integration.test.ts` 新增 proxy / headers 两组用例。
 > **关联**：[ADR-0012](adr/0012-vite-plugin-first-lifecycle.md)（Vite 插件化生命周期 —— `ubeanPlugin()` 的 `config()` 钩子与裸 `vite dev` 等价性都在它确立的架构里）、[vite-bundled-dev-compat.md](vite-bundled-dev-compat.md)（同为「ubean 与 Vite 上游边界」类调查）
 > **复现环境**：`examples/ubean-test`，`vite-plus` 1.0.0 / `@voidzero-dev/vite-plus-core` 1.0.0（版本由根 `pnpm-workspace.yaml` 精确钉住）。上游内部行号引用该版本的 `dist/vite/node/chunks/node.js`。
 
@@ -14,9 +18,9 @@
 - **`dev` / `preview` 的 host/port 是 CLI 的 `InlineConfig`**，不是插件的 `config()` 钩子返回值。全仓 6 个 `config()` 钩子**没有一个**碰 `server.port` / `server.host`。
 - **裸 `vite dev` / `vp dev` 拿不到 ubean 配置里的 `dev`** —— 而 `examples/ubean-test` 的 scripts 恰恰是 `dev: "vp dev"`（不是 `ubean dev`）。这是最容易踩的坑：在 `ubean.config.ts` 里写 `dev: { port: 5401 }` 再跑 `vp dev`，实际监听 **5173**（Vite 默认值）。（配置文件本身仍被插件读取，页面/路由等照常生效。）
 - **覆盖顺序（实测）**：`Vite 默认值 < vite.config.ts < ubean 配置（经 CLI inlineConfig）< CLI flag`。即 `ubean dev` 下 `ubean.config.ts` 的 `dev.port` **赢过** `vite.config.ts` 的 `server.port`。
-- **三处「配了不生效」**：`strictPort` 恒被 citty 默认值 `false` 冲掉（dev 与 preview 都是）、`server.proxy` 在 ubean 下对**无扩展名**应用路径失效（中间件顺序问题）、`server.headers` 只作用于 Vite 自己服务的资源。
-- **四个死字段**：`dev.open`（无人读）、`preview.strictPort`（被 citty 默认值冲掉）、`build.minify` / `build.sourcemap`（构建环境配置里硬编码 `minify: true, sourcemap: false`）。
-- **命名问题**：ubean **既不接受顶层 `vite` 也不接受 `server` 字段**，写进去会被 c12 静默忽略。所以「ubean 配置里直接使用 Vite 同名的 `server` 字段」目前**不可行**。核心痛点不是命名而是「配了不生效」，两条候选路线的取舍见 §5。
+- **三处「配了不生效」**：`strictPort` 曾被 citty 默认值 `false` 冲掉（dev 与 preview 都是，**已修**）、`server.proxy` 在 ubean 下对**无扩展名**应用路径失效（中间件顺序问题，**已修**）、`server.headers` 只作用于 Vite 自己服务的资源（**已修**）。
+- **四个死字段**：`dev.open`（无人读）、`preview.strictPort`（被 citty 默认值冲掉）、`build.minify` / `build.sourcemap`（构建环境配置里硬编码 `minify: true, sourcemap: false`）—— **四个均已接线**。
+- **命名问题**：ubean **既不接受顶层 `vite` 也不接受 `server` 字段**，写进去会被 c12 静默忽略（**注**：2026-10-10 起 `warnUnknownConfigKeys` 会对未知顶层 key 打警告，不再是静默）。所以「ubean 配置里直接使用 Vite 同名的 `server` 字段」目前**不可行**。核心痛点不是命名而是「配了不生效」，两条候选路线的取舍见 §5。
 
 ---
 
@@ -107,9 +111,9 @@ Vite 默认值  <  vite.config.ts  <  插件 config() 返回  <  CLI inlineConfi
 
 ---
 
-## 3. 三处「配了不生效」（实测，非推测）
+## 3. 三处「配了不生效」（实测，非推测）—— **均已于 2026-11 修复**
 
-### 3.1 `strictPort` 恒被冲成 `false`
+### 3.1 `strictPort` 恒被冲成 `false` → 已修
 
 `packages/cli/src/dev.ts:69-73` 与 `packages/cli/src/preview.ts:83-87` 都给 citty 声明了 `default: false`。实测 citty 在**不给任何 flag** 时产出 `args = {"_":[],"strictPort":false,"strict-port":false}`，于是：
 
@@ -118,16 +122,16 @@ Vite 默认值  <  vite.config.ts  <  插件 config() 返回  <  CLI inlineConfi
 
 对照实验（占住端口 + `strictPort: true`）：
 
-| 场景 | 裸 Vite | ubean CLI |
+| 场景 | 裸 Vite | ubean CLI（修复前） |
 | --- | --- | --- |
 | dev：占 5420 + `vite.config server.strictPort: true` | **直接抛错退出**（栈尾 `startServer … node.js:30299`） | 照常在 9528 起来，**0 条 in-use 提示** |
 | preview：占 5495 + ubean `preview.strictPort: true` | 裸 `vp preview` + vite.config 同条件 **直接崩**（栈尾 `preview … node.js:40649`） | 落到 **5496**，**0 条 in-use 提示** |
 
 **注意 `dev` 甚至没有 `strictPort` 字段**（`packages/config/src/types.ts:810-814` 只有 `port`/`host`/`open`）—— 所以 dev 侧当前**无法**表达 strict 语义，只能靠 `--strictPort` flag。
 
-修法方向：citty 的 `strictPort` 去掉 `default: false`（用 `undefined` 区分「未传」），取值改 `args.strictPort ?? config.<dev|preview>.strictPort ?? false`。注意 `packages/cli/src/dev.ts:130-131` 的注释已经为 port/host 记录了同一类坑（「CLI args 不能设 citty default，否则 `||` 短路」），`strictPort` 是漏网的那个。
+~~修法方向：citty 的 `strictPort` 去掉 `default: false`（用 `undefined` 区分「未传」），取值改 `args.strictPort ?? config.<dev|preview>.strictPort ?? false`。~~ **已按此实施**：`packages/cli/src/dev.ts` 与 `packages/cli/src/preview.ts` 的 citty 声明去掉 `default`，取值改 `?? config.*.strictPort`；`packages/config/src/types.ts` 的 `dev` 补上 `strictPort`（默认 `false` 落在 `packages/config/src/loader.ts:230`）。回归网：`packages/cli/test/config-fallbacks.test.ts`（声明不得带 `default`）+ `packages/cli/test/config-strict-port.test.ts`（真的起子进程验证会退出）。
 
-### 3.2 `server.proxy` 对无扩展名应用路径失效（中间件顺序）
+### 3.2 `server.proxy` 对无扩展名应用路径失效（中间件顺序）—— **已修**
 
 不是配置丢失（§2 读数显示 `proxyKeys` 非空），是**中间件顺序**：
 
@@ -155,11 +159,15 @@ return () => { server.middlewares.use(post); };  // 返回函数 → 进 postHoo
 
 判据在 `dev-request-router.ts:198-225` 的 `isViteResourceRequest()`：第 4 条 `sec-fetch-dest`（`RESOURCE_DESTS`，`:100`）与第 5 条扩展名启发式（`hasAssetExtension()` `:186`，`ASSET_EXTENSIONS` `:123`）让带扩展名的请求回给 Vite。`/api/**` 这类无扩展名路径会被 ubean 的 API 路由接走 —— ubean 自带 `routeRules.proxy` 作为替代方案（`packages/routes/src/route-rules.ts`）。
 
-修法方向（任一）：① 在 `pre` 的放行判据里加入 `server.proxy` 的键前缀（`Object.keys(server.config.server.proxy)`）；② 把 ubean 的请求路由改成 `configureServer` 的**返回函数**（post 位置），让 Vite 内置中间件先跑 —— 但会改变现有 `appType: 'custom'` 的拓扑（见 `dev-request-router.ts:532-535` 的注释），风险更大。
+~~修法方向（任一）：① 在 `pre` 的放行判据里加入 `server.proxy` 的键前缀（`Object.keys(server.config.server.proxy)`）；② 把 ubean 的请求路由改成 `configureServer` 的**返回函数**（post 位置），让 Vite 内置中间件先跑 —— 但会改变现有 `appType: 'custom'` 的拓扑（见 `dev-request-router.ts:532-535` 的注释），风险更大。~~
 
-### 3.3 `server.headers` 只作用于 Vite 自己服务的资源
+**已按方案 ① 实施**：`packages/builder/src/dev/dev-request-router.ts` 的 `createUbeanRequestHandlers()` 里新增 `isProxyPath()`，把 `Object.keys(server.config.server.proxy ?? {})` 的键前缀（含 `^` 开头的 RegExp 形式）加进 `pre` 的放行判据。回归网：`packages/builder/test/dev-request-router.integration.test.ts` 的「server.proxy 的键前缀归 Vite」用例（同时覆盖保留命名空间 `_` 前缀这条以前必踩的路径）。
+
+### 3.3 `server.headers` 只作用于 Vite 自己服务的资源 —— **已修**
 
 `/@vite/client` → 200 **且带 `X-Probe`**，但 ubean 渲染的 HTML **不带**。原因：`dev-request-router.ts:456-483` 的 `respond()` 只把 webRes 的头 `setHeader` 出去，没有合并 `server.config.server.headers`。上游那边 `servePublicMiddleware` / `transformMiddleware` 等都会读它（`node.js:22758` / `:22859`）。
+
+**已修**：`respond()` 新增 `applyConfiguredHeaders(res)`，在 HTML 分支与 `sendWebResponse()` 之前各调一次；`res.hasHeader(key)` 为真时跳过 —— 框架/Hono 显式设置的响应头优先于配置文件。回归网：`dev-request-router.integration.test.ts` 的「server.headers 合并到 ubean 渲染的 HTML 与 JSON 响应上」与「响应自带同名 header 时优先于 server.headers」两条用例。
 
 ---
 
@@ -173,29 +181,30 @@ return () => { server.middlewares.use(post); };  // 返回函数 → 进 postHoo
 | `srcDir` | 客户端入口路径（`entry.client.ts`）+ 扫描 glob | 始终 |
 | `build.outputDir` | `build.outDir`（`getBuildOutDirsForConfig`） | 始终 |
 | `build.preset` | 环境配置（worker 分流、`resolve.noExternal`、`define` 垫片） | 始终（CLI 经 `UBEAN_BUILD_PRESET` 传给插件，因为插件读的是它自己那份配置副本） |
-| `dev.{port,host}` | inlineConfig `server.{port,host}` | **仅 `ubean dev`** |
-| `preview.{port,host}` | inlineConfig `preview.{port,host}` | **仅 `ubean preview`** |
+| `dev.{port,host,strictPort,open}` | inlineConfig `server.{port,host,strictPort,open}` | **仅 `ubean dev`** |
+| `preview.{port,host,strictPort}` | inlineConfig `preview.{port,host,strictPort}` | **仅 `ubean preview`** |
+| `build.{minify,sourcemap}` | 构建环境配置（`createBuildContext` → `createBuildEnvironments`） | 始终（`vite build` 与 `ubean build` 两条路径都已接线） |
 | `modules[].vitePlugin` | 任意 Vite 插件（`packages/config/src/types.ts:12-18` 的 `ModuleDefinition.vitePlugin`） | 始终 |
 | `autoImports` / `components` | codegen（生成 `.ubean/*.d.ts` 与虚拟模块），**不是** Vite 配置 | 始终 |
-| `dir.public` | ❌ 只喂 ubean 自己的静态服务（dev：`packages/builder/src/dev/dev-app.ts:125` 的 `publicDir: config.dir.public` 是 `createUbeanApp` 的选项，**不是** Vite 的 `publicDir`） | — |
 
-**两个与 `dir.public` 相关的边界：**
+**`dir.public` 的三个边界**（已修第 2 条）：
 
-1. **ubean 从不设置 Vite 的 `publicDir`**（全仓 grep 确认；`packages/preset/src/*.ts` 与 `packages/app/src/app.ts:136` 的 `publicDir` 都是平台预设 / ubean 静态服务自己的选项）。Vite 用它的默认推导（`root/public`），恰好与 `dir.public` 默认值同名，所以行为上通常一致 —— 但把 `dir.public` 改成别的名字，Vite 的 `publicDir` 不会跟着变。
-2. **`dir.public` 在构建侧根本没有消费者**：`packages/builder/src/vite/build-app.ts:216` 硬编码 `join(cwd, 'public')` 来拷公共资源，不看 `config.dir.public`。全仓 `config.dir.public` 只有两处读取 —— `dev-app.ts:125`（dev 静态服务）与 `loader.ts:295`（favicon 探测）。即改 `dir.public` 只影响 dev 与 favicon，生产构建照旧读 `public/`。
+1. **ubean 从不设置 Vite 的 `publicDir`**（全仓 grep 确认；`packages/preset/src/*.ts` 与 `packages/app/src/app.ts:136` 的 `publicDir` 都是平台预设 / ubean 静态服务自己的选项）。Vite 用它的默认推导（`root/public`），恰好与 `dir.public` 默认值同名，所以行为上通常一致 —— 但把 `dir.public` 改成别的名字，Vite 的 `publicDir` 不会跟着变（仍待决定，属 §5 的同一类命名问题）。
+2. ~~**`dir.public` 在构建侧根本没有消费者**~~ **已修**：`packages/builder/src/vite/build-app.ts` 的 `runEnvBuilds()` 改为读 `prepared.config.dir.public`（绝对路径原样用，相对路径拼 `cwd`），不再硬编码 `join(cwd, 'public')`。回归网：`packages/builder/test/public-dir-and-build-options.test.ts` 的「runEnvBuilds 按 config.dir.public 拷贝公共资源」用例。
+3. 另两处读取点是 `dev-app.ts:125`（dev 静态服务）与 `loader.ts:295`（favicon 探测）—— 行为不变。
 
-### 4.2 死字段（grep + 实测确认无消费者）
+### 4.2 死字段（grep + 实测确认无消费者）—— **四个均已接线**
 
-| 字段 | 为什么是死的 |
-| --- | --- |
-| `dev.open` | 全仓无人读 `config.dev.open`；`packages/cli/src/dev.ts:82-85` 声明的 `args.open` 也从未被读（`dev.ts` 里的 `open` 命中全是 `openAPI` / `OpenAPI`） |
-| `preview.strictPort` | 被 citty `default: false` 冲掉（§3.1） |
-| `build.minify` | `packages/builder/src/vite.ts:222` 硬编码 `minify: true`；唯一的 `.minify` 读取是 `packages/cli/src/build.ts:210` 传的 **CLI flag** `args.minify`（citty `default: true`） |
-| `build.sourcemap` | 同上，`packages/builder/src/vite.ts:223` 硬编码 `sourcemap: false`；`packages/cli/src/build.ts:211` 传 `args.sourcemap`（citty `default: false`） |
+| 字段 | 修前为什么是死的 | 现状态 |
+| --- | --- | --- |
+| `dev.open` | 全仓无人读 `config.dev.open`；`packages/cli/src/dev.ts:82-85` 声明的 `args.open` 也从未被读 | **已接线**：`args.open ?? config.dev.open` → `createDevViteServer` → inlineConfig `server.open` |
+| `preview.strictPort` | 被 citty `default: false` 冲掉（§3.1） | **已接线**（§3.1） |
+| `build.minify` | `packages/builder/src/vite.ts:222` 硬编码 `minify: true`；唯一的读取是 CLI flag（citty `default: true`） | **已接线**：`createBuildContext` 改为 `minify = config.build.minify`，`vite.ts` 与 CLI 都从配置取 |
+| `build.sourcemap` | 同上，`packages/builder/src/vite.ts:223` 硬编码 `sourcemap: false` | **已接线**：`sourcemap = config.build.sourcemap` |
 
-即 `ubean.config.ts` 里写 `build: { minify: false, sourcemap: true }` 完全无效；想改只能走 `ubean build --minify=false --sourcemap`。
+`ubean.config.ts` 里写 `build: { minify: false, sourcemap: true }` 现已生效；CLI flag 仍最高优先（`args.minify ?? config.build.minify`）。回归网：`packages/builder/test/public-dir-and-build-options.test.ts`。
 
-另有一个**半死**字段：`dir.public` 在构建侧无消费者（见 §4.1 注 2）。
+另有一个**半死**字段：`dir.public` 在构建侧无消费者（见 §4.1 注 2）—— **已修**。
 
 ### 4.3 文档/模板漂移（顺带发现）
 
@@ -227,16 +236,20 @@ return () => { server.middlewares.use(post); };  // 返回函数 → 进 postHoo
 
 ---
 
-## 6. 若要动手：清单
+## 6. 若要动手：清单（**1–5 已于 2026-11 完成**，6 待决）
 
-按「独立可交付」排序：
+按「独立可交付」排序，完成后逐项标注：
 
-1. **`strictPort` 透传**（§3.1）—— 改 `packages/cli/src/dev.ts:69-73` / `:188`、`packages/cli/src/preview.ts:83-87` / `:118`（citty 去 `default`，取值 `??`）。给 `dev` 补 `strictPort` 字段（`packages/config/src/types.ts:810-814`）。
-2. **`open` 接线**（§4.2）—— `dev.open` / `args.open` 目前无消费者，接上 `server.open`。
-3. **`build.minify` / `build.sourcemap` 接线**（§4.2）—— 注意有**两条路径**要接：裸 `vite build` 走 `packages/builder/src/vite.ts:222-223`（硬编码），`ubean build` 走 `packages/cli/src/build.ts:210-211`（传 CLI flag）。两条都改成 `args.minify ?? config.build.minify` 之类的三级回退，才能让配置文件字段真正生效；CLI flag 仍应最高优先。
-4. **`server.proxy` 放行**（§3.2）—— 在 `dev-request-router.ts` 的 `pre` 判据里加入 proxy 键前缀。改动面小但需要 `packages/builder/test/` 下的 dev 拓扑用例守着。
-5. **`server.headers` 合并**（§3.3）—— `respond()` 里并入 `server.config.server.headers`。
-6. **配置面命名决策**（§5）—— 需要 ADR，因为它改变的是对外契约而不是 bug。
+1. ~~**`strictPort` 透传**（§3.1）—— 改 `packages/cli/src/dev.ts:69-73` / `:188`、`packages/cli/src/preview.ts:83-87` / `:118`（citty 去 `default`，取值 `??`）。给 `dev` 补 `strictPort` 字段（`packages/config/src/types.ts:810-814`）。~~ **已完成**（`packages/cli/src/dev.ts`、`packages/cli/src/preview.ts`、`packages/config/src/types.ts` + `packages/config/src/loader.ts`）。
+2. ~~**`open` 接线**（§4.2）—— `dev.open` / `args.open` 目前无消费者，接上 `server.open`。~~ **已完成**（`packages/cli/src/dev.ts` 取 `args.open ?? config.dev.open`，经 `packages/cli/src/dev-server/dev-vite.ts` 传入 inlineConfig）。
+3. ~~**`build.minify` / `build.sourcemap` 接线**（§4.2）~~ **已完成**：`createBuildContext`（`packages/builder/src/vite/build-app.ts`）改为从 `config.build` 取值，`packages/builder/src/vite.ts` 不再硬编码；CLI 侧（`packages/cli/src/build.ts`）与裸 `vite build` 两条路径都走同一份 `createBuildContext`，CLI flag 仍最高优先。
+4. ~~**`server.proxy` 放行**（§3.2）~~ **已完成**：`packages/builder/src/dev/dev-request-router.ts` 新增 `isProxyPath()`。
+5. ~~**`server.headers` 合并**（§3.3）~~ **已完成**：`respond()` 新增 `applyConfiguredHeaders()`。
+6. **配置面命名决策**（§5）—— **仍待决**，需要 ADR，因为它改变的是对外契约而不是 bug。
+
+**`dir.public`（原§4.1 注 2 的半死字段）**：已单独修 —— `packages/builder/src/vite/build-app.ts` 的 `runEnvBuilds()` 改为读 `prepared.config.dir.public`（绝对路径原样用，相对路径拼 `cwd`），不再硬编码 `join(cwd, 'public')`。
+
+**新增回归网**：`packages/cli/test/config-fallbacks.test.ts`（citty 声明不得带 `default`）、`packages/cli/test/config-strict-port.test.ts`（配置里的 `strictPort: true` 必须真的让进程退出）、`packages/builder/test/public-dir-and-build-options.test.ts`（`build.minify`/`sourcemap`/`dir.public` 接线）、`dev-request-router.integration.test.ts` 新增 proxy / headers 用例。
 
 **回归网**：`packages/cli/test/` 下有 `dev-reload.test.ts`（`vp dev`）、`vite-build.test.ts`（`vp build`）、`preview-vite.test.ts`（`vp preview`）三条端到端用例守着「裸命令 ≡ CLI」这条 ADR-0012 的契约 —— 任何让 ubean 配置对裸命令生效的改动都会碰到它们。
 
@@ -284,7 +297,7 @@ export default defineConfig({ server: {…}, preview: {…}, plugins: [probe, ub
 - curl 必须打 `http://localhost:<port>`。Vite 默认绑 `[::1]`，`127.0.0.1` 会得到 `000`（连接被拒）。
 - `vp dev` 必须在**示例目录**里跑（`cd examples/ubean-test`），在仓库根跑会 root 错 → 全站 404，且探针插件钩子不触发。
 - macOS 无 GNU `timeout`；用 `nohup … &` + pid 文件。
-- 端口用完清理：`for p in 5401 5402 5411 5420 …; do lsof -ti tcp:$p | xargs -r kill -9; done`。**注意 `9527` 可能被别的东西占着**（本轮调查期间就有一个无关的 dev server 在 `[::1]:9527` 上，会让 `ubean dev` 静默落到 9528）。
+- 端口用完清理：`for p in 5401 5402 5411 5412 5413 5414 5482 5483 5490 5491; do lsof -ti tcp:$p | xargs -r kill -9; done`。**注意 `9527` 可能被别的东西占着**（本轮调查期间就有一个无关的 dev server 在 `[::1]:9527` 上，会让 `ubean dev` 静默落到 9528）。
 
 ---
 

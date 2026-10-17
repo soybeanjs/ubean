@@ -188,6 +188,7 @@ export default defineConfig({
 
 - The platform preset is set via `build.preset`; when omitted, `detectPreset()` auto-detects from `vercel.json` / `netlify.toml` / `deno.json` and runtime globals.
 - Extension top-level fields accept either `true` or an options object.
+- `dev` accepts `port` / `host` / `strictPort` / `open`; `preview` accepts `port` / `host` / `strictPort`; `build` accepts `minify` / `sourcemap` / `outputDir`. These fields **only take effect under the ubean CLI** — a bare `vite dev` / `vite build` cannot read them (see `docs/config-to-vite-passthrough.md` in the repo).
 - `routeRules` supports `ssr` (`boolean | 'streaming'`) / `prerender` / `isr` (`number | { ttl, swr? }`) / `ppr`, sorted by rule and path specificity, and readable at runtime via `c.get('routeRule')`.
 
 See <Link to="/architecture/overview#3-directory-structure">Overview §3</Link> for the convention-based app directory structure.

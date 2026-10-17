@@ -1,8 +1,8 @@
 ---
 title: Architecture
 description: ubean 的架构设计：五层职责划分、包布局与配置系统。
-translatedFrom: c7bf45a68b5c
-sections: ["40f0dcb0","e3b0c442","a38f7bc6","9cba2727","03d869b1","f027f419","ac4dea00","1e8af935","5b4d6d99"]
+translatedFrom: edda633e35cd
+sections: ["40f0dcb0","e3b0c442","a38f7bc6","9cba2727","03d869b1","f027f419","ac4dea00","1e8af935","a324e999"]
 ---
 
 # 架构
@@ -190,6 +190,7 @@ export default defineConfig({
 
 - 平台 preset 通过 `build.preset` 指定；未指定时 `detectPreset()` 会根据 `vercel.json` / `netlify.toml` / `deno.json` 及运行时全局自动识别。
 - 扩展包顶层字段均支持 `true` 或选项对象两种形式。
+- `dev` 支持 `port` / `host` / `strictPort` / `open`，`preview` 支持 `port` / `host` / `strictPort`，`build` 支持 `minify` / `sourcemap` / `outputDir`。这些字段**只在 ubean CLI 下生效** —— 裸 `vite dev` / `vite build` 读不到（详见仓库 `docs/config-to-vite-passthrough.md`）。
 - `routeRules` 支持 `ssr`（`boolean | 'streaming'`）/ `prerender` / `isr`（`number | { ttl, swr? }`）/ `ppr`，按规则与路径特异性排序，运行时可经 `c.get('routeRule')` 读取。
 
 应用约定式目录结构详见 <Link to="/architecture/overview#3-目录结构">项目概览与约定 §3</Link>。

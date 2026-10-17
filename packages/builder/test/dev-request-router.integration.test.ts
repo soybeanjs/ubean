@@ -227,6 +227,108 @@ describe('dev 请求路由装配（RM-V10）', () => {
     expect(handled).toEqual([]);
   });
 
+  /**
+   * `vite.config.ts` 的 `server.proxy` 放行（2026-10 调查确认的真缺陷）：
+   * 上游的 `proxyMiddleware` 在上游是 `configureServer` 钩子**之后**才 `use()` 的，而本插件的
+   * `pre` 走钩子体内 —— 无扩展名的代理路径以前会被 ubean 先吃掉（返回 ubean 的 404 而不是被代理）。
+   * `/api/**` 这类路径同理（保留命名空间判据先命中），所以这里用带 `_` 保留命名空间的路径。
+   */
+  it('server.proxy 的键前缀归 Vite（无扩展名路径不被 ubean 吞掉）', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ubean-router-proxy-'));
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'router-proxy', type: 'module' }));
+
+    const handled: string[] = [];
+    const proxyStub: Connect.NextHandleFunction = (req, res) => {
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.end(`PROXY-OK ${req.url}`);
+    };
+    const server = await createServer({
+      root,
+      configFile: false,
+      logLevel: 'silent',
+      server: { host: '127.0.0.1', port: 0 },
+      plugins: [
+        // 复刻 Vite `proxyMiddleware` 的位置：挂在请求路由之后
+        {
+          name: 'stub:proxy',
+          configureServer(devServer) {
+            devServer.middlewares.use('/probe-proxy', proxyStub);
+            devServer.middlewares.use('/_probe-proxy', proxyStub);
+          }
+        },
+        ubeanDevRequestPlugin({
+          async handler(request, context) {
+            handled.push(context.url);
+            return new Response('app-html', { headers: { 'Content-Type': 'text/html' } });
+          }
+        })
+      ]
+    });
+    // proxy 键要在插件 `configureServer` 之后才被读取，因此在这之前注入
+    server.config.server.proxy = { '/probe-proxy': 'http://127.0.0.1:1', '/_probe-proxy': 'http://127.0.0.1:1' };
+    cleanup.push(() => server.close());
+    await server.listen();
+    cleanup.push(async () => rmSync(root, { recursive: true, force: true }));
+
+    const address = server.httpServer?.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+    const local = `http://127.0.0.1:${port}`;
+
+    // 无扩展名 + 不在保留命名空间：原本就归 Vite（靠 proxy 键才走到代理桩）
+    const plain = await probe(local, '/probe-proxy');
+    expect(plain.body).toContain('PROXY-OK');
+
+    // 保留命名空间（`_` 前缀）：没有 proxy 放行就会被 ubean 吃掉
+    const reserved = await probe(local, '/_probe-proxy');
+    expect(reserved.body).toContain('PROXY-OK');
+
+    expect(handled).toEqual([]);
+  });
+
+  /**
+   * `server.headers` 合并：Vite 只把它应用到自己的中间件，而 ubean 的页面/API 响应由
+   * `respond()` 直接输出 —— 不合并就表现为「给所有响应加 header」在应用页面上静默失效。
+   */
+  it('server.headers 合并到 ubean 渲染的 HTML 与 JSON 响应上', async () => {
+    const { baseUrl, server } = await startHarness();
+    server.config.server.headers = { 'X-Probe': 'on' };
+
+    const page = await fetch(`${baseUrl}/`);
+    expect(page.headers.get('x-probe')).toBe('on');
+
+    const api = await fetch(`${baseUrl}/api/definitely-missing`);
+    expect(api.headers.get('x-probe')).toBe('on');
+  });
+
+  it('响应自带同名 header 时优先于 server.headers', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ubean-router-hdr-'));
+    writeFileSync(join(root, 'package.json'), JSON.stringify({ name: 'router-hdr', type: 'module' }));
+
+    const server = await createServer({
+      root,
+      configFile: false,
+      logLevel: 'silent',
+      server: { host: '127.0.0.1', port: 0, headers: { 'X-Probe': 'from-config' } },
+      plugins: [
+        ubeanDevRequestPlugin({
+          async handler() {
+            return new Response('<html><body>ok</body></html>', {
+              headers: { 'Content-Type': 'text/html', 'X-Probe': 'from-handler' }
+            });
+          }
+        })
+      ]
+    });
+    cleanup.push(() => server.close());
+    await server.listen();
+    cleanup.push(async () => rmSync(root, { recursive: true, force: true }));
+
+    const address = server.httpServer?.address();
+    const port = typeof address === 'object' && address ? address.port : 0;
+    const res = await fetch(`http://127.0.0.1:${port}/`);
+    expect(res.headers.get('x-probe')).toBe('from-handler');
+  });
+
   it('post 兜底：不存在的静态文件最终仍由 ubean 决定响应', async () => {
     const { baseUrl, handled } = await startHarness();
     // 有扩展名 → pre 判给 Vite；Vite 静态找不到 → post 兜底回 ubean

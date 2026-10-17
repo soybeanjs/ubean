@@ -858,6 +858,12 @@ export interface UbeanConfig {
   dev?: {
     port?: number;
     host?: string;
+    /**
+     * 端口被占用时是否直接退出（默认 `false`，自动递增到下一个可用端口）。
+     * CLI `--strictPort` 优先级更高。
+     */
+    strictPort?: boolean;
+    /** 启动后是否自动打开浏览器（默认 `false`）。CLI `--open` 优先级更高。 */
     open?: boolean;
   };
   preview?: {

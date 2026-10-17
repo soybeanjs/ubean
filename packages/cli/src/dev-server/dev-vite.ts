@@ -56,6 +56,8 @@ export interface DevViteServerOptions {
   host: string;
   port: number;
   strictPort?: boolean;
+  /** 启动后自动打开浏览器（`ubean.config.ts` 的 `dev.open` 或 CLI `--open`）。 */
+  open?: boolean;
   config: UbeanResolvedConfig;
   /** DevTools 数据访问器（`@ubean/devtools` 插件读取）。类型保持宽松：devtools 是可选依赖。 */
   devtools?: {
@@ -189,7 +191,7 @@ export async function createDevViteServer(options: DevViteServerOptions): Promis
       // provide 的 router 与组件侧 inject 必须同一份，因此强制去重到根副本。
       dedupe: ['vue', 'vue-router']
     },
-    server: { host, port: options.port, strictPort },
+    server: { host, port: options.port, strictPort, open: options.open ?? false },
     appType: 'custom',
     plugins,
     // 注意：**不再**传 Vite 的 `devtools` 选项 —— 那个选项是 DTK（`@vitejs/devtools`）的入口。

@@ -54,8 +54,7 @@ export const devCommand: CommandDef = {
     },
     strictPort: {
       type: 'boolean',
-      description: 'Exit if the port is already in use, instead of auto-incrementing',
-      default: false
+      description: 'Exit if the port is already in use, instead of auto-incrementing'
     },
     verbose: {
       type: 'boolean',
@@ -115,6 +114,9 @@ export const devCommand: CommandDef = {
     // CLI args 不能设 citty default，否则默认值会让 || 短路、config.dev 永远读不到。
     const port = Number(args.port) || config.dev.port;
     const host = args.host || config.dev.host;
+    // `strictPort` / `open` 同 port/host：citty 不能设 `default`，否则 `??` 永不回落到配置文件。
+    const strictPort = args.strictPort ?? config.dev.strictPort;
+    const open = args.open ?? config.dev.open;
 
     const preset = resolvePresetByName(config.build.preset);
     if (logging.scan) {
@@ -173,7 +175,8 @@ export const devCommand: CommandDef = {
         cwd,
         port,
         host,
-        strictPort: args.strictPort,
+        strictPort,
+        open,
         config,
         onScan,
         devtools: {

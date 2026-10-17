@@ -83,8 +83,7 @@ export const previewCommand: CommandDef = {
     },
     strictPort: {
       type: 'boolean',
-      description: 'Exit if the port is already in use, instead of auto-incrementing',
-      default: false
+      description: 'Exit if the port is already in use, instead of auto-incrementing'
     },
     cwd: {
       type: 'string',

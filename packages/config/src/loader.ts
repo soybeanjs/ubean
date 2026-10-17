@@ -227,7 +227,7 @@ const configDefaults: ResolvedConfig = {
     queues: 'queues',
     locales: 'locales'
   },
-  dev: { port: 9527, host: 'localhost', open: false },
+  dev: { port: 9527, host: 'localhost', strictPort: false, open: false },
   preview: { port: 9725, host: 'localhost', strictPort: false },
   build: { preset: 'node', outputDir: 'dist', minify: true, sourcemap: false },
   markdown: {

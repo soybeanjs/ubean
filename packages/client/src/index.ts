@@ -94,6 +94,17 @@ export type {
 export { createUbeanRouter } from './router';
 export type { CreateUbeanRouterOptions } from './router';
 
+// 应用实例访问（`useUbeanApp`/`useUbeanRouter`/`UBEAN_APP_KEY`）。放在这里而非 `./app`，
+// 因为 `./app` 带 vue-i18n / @unhead/vue / @ubean/islands/directive 等较重的框架依赖；
+// 只需要 router 句柄的消费者（如路由守卫工具）不必把那些一并拉进图。
+export {
+  UBEAN_APP_KEY,
+  useUbeanApp,
+  useUbeanRouter,
+  getUbeanAppInstance,
+  setUbeanAppInstance
+} from './app-instance';
+
 export { useHeadInstance, useSchemaOrg } from './head';
 // Re-export createHead from @unhead/vue so consumers (and ubean's own virtual
 // modules) don't need @unhead/vue as a direct dependency — it's resolved through

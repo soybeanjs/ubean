@@ -48,6 +48,8 @@ import { localizePath, initClientI18n, createUbeanI18n, bindI18nRuntime, getI18n
 // Framework router factory (the lean kernel ships no factory — see ./router.ts)
 import { createUbeanRouter } from './router';
 import type { RouterConfig } from './define-app';
+// 应用实例的运行时访问入口（模块级单例 + UBEAN_APP_KEY）—— 见 ./app-instance.ts
+import { UBEAN_APP_KEY, setUbeanAppInstance } from './app-instance';
 
 // Re-export the lean surface for framework consumers of this subpath.
 // `usePage`(路由感知版)见下方;`useRouter` 不再透传,请直接从 `vue-router` 导入。
@@ -334,13 +336,21 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
   app.directive('client', vClient);
   app.config.globalProperties.$ubean = { page, head, router };
 
-  return {
+  const instance: UbeanAppInstance = {
     app,
     router,
     head,
     page,
     preloadLayouts: () => loadClientLayouts(router.currentRoute.value)
   };
+
+  // 两端都 provide：组件内 `inject(UBEAN_APP_KEY)` 因此客户端/服务端通吃，
+  // 也是服务端 SSR 唯一安全的取法（实例每请求新建，模块级单例会被并发覆盖）。
+  app.provide(UBEAN_APP_KEY, instance);
+  // 模块级单例**仅客户端**写入 —— 服务端并发下不安全，见 ./app-instance.ts。
+  setUbeanAppInstance(instance);
+
+  return instance;
 }
 
 export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAppOptions, 'initialPage'>) {
@@ -398,12 +408,18 @@ export function createUbeanSSRApp(initialPage: PageObject, options: Omit<UbeanAp
   app.directive('client', vClient);
   app.config.globalProperties.$ubean = { page, head, router };
 
-  return {
+  const instance: UbeanAppInstance = {
     app,
     router,
     head,
+    page,
     preloadLayouts: () => loadSsrLayouts(router.currentRoute.value)
   };
+
+  // 只 provide，**不**写模块级单例：SSR 实例每请求新建，单例会被并发请求覆盖。
+  app.provide(UBEAN_APP_KEY, instance);
+
+  return instance;
 }
 
 export const Head = UnheadHeadComponent;

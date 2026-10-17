@@ -152,6 +152,30 @@ const ssr = createUbeanSSRApp(initialPage, { routes, resolveLayoutComponent, hea
 - Both are normally called by the framework's generated client/server entry — you only call them by hand when building a custom entry.
 - `preloadLayouts()` resolves the layout chain for the current route up-front so the first render already includes layouts.
 
+### Getting the app instance outside a component
+
+`useRouter()` only works inside `setup()`. When you need the router from a navigation guard, a plugin, a utility module, or anywhere else, the framework generated client entry registers the instance as a module-level singleton:
+
+```ts
+import { useUbeanApp, useUbeanRouter } from 'ubean/client';
+
+const { router, head, page } = useUbeanApp(); // full instance
+const router2 = useUbeanRouter(); // shorthand for useUbeanApp().router
+```
+
+On the server this singleton is deliberately **not** written — SSR creates one instance per request, so a module-level variable would be overwritten by concurrent requests. Inside an SSR component, inject instead:
+
+```ts
+import { inject } from 'vue';
+import { UBEAN_APP_KEY } from 'ubean/client';
+
+const { router } = inject(UBEAN_APP_KEY)!;
+```
+
+- Both entry points provide `UBEAN_APP_KEY`, so `inject` works on client and server alike. Prefer it (or `useRouter()`) inside components; use `useUbeanApp()` where there is no component context.
+- `getUbeanAppInstance()` returns `null` instead of throwing — for isomorphic code that needs to test whether an instance exists. It is `null` on the server, always.
+- `setUbeanAppInstance()` is internal wiring for `createUbeanClientApp()`. You do not call it.
+
 ### `@ubean/client/app`
 
 The app subpath re-exports the kernel surface for framework consumers (`PageView`, `SlotView`, `Link`, `ClientOnly`, `ubeanVue`, `useViewTransition`, `usePage`, the injection keys, `LayoutChainRenderer`, the no-op macros `definePage` / `defineMeta` / `defineMiddleware`, `createUbeanRouter`, `Head` / `useHead` / `useSeoMeta`) together with the two app factories.

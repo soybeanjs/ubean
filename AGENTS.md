@@ -220,6 +220,8 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `applyAppConfig(app, config, mode)`                        | 应用配置到 Vue 实例                                                                   |
 | `createUbeanApp(options)`（`@ubean/app` / `ubean/server`） | 创建 ubean **Hono** 应用（`UbeanApp`）。`createUbeanApp` 全仓专指 Hono 工厂           |
 | `createUbeanClientApp(options)`（`@ubean/client`）         | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。主入口 `ubean` 不导出此函数 |
+| `useUbeanApp()` / `useUbeanRouter()`（`ubean/client`）     | 取当前应用实例 / router。**不需要组件上下文** —— 给路由守卫、插件、工具模块用（`useRouter()` 只能在 `setup()` 里调）；服务端调用会抛错，SSR 请用 `inject(UBEAN_APP_KEY)` |
+| `UBEAN_APP_KEY` / `getUbeanAppInstance()`（`ubean/client`） | `app.provide` 注入键（客户端/服务端都 provide，SSR 唯一安全取法）；`getUbeanAppInstance()` 不抛错、服务端恒为 `null` |
 
 `DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`appRoot`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
 

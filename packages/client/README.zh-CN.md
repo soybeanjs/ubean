@@ -154,6 +154,30 @@ const ssr = createUbeanSSRApp(initialPage, { routes, resolveLayoutComponent, hea
 - 两者通常由框架生成的客户端/服务端入口调用 —— 只有自建入口时才手写。
 - `preloadLayouts()` 会预先解析当前路由的布局链，使首次渲染就已包含布局。
 
+### 在组件之外取得应用实例
+
+`useRouter()` 只能在 `setup()` 里用。需要在路由守卫、插件、工具模块等地方拿 router 时，框架生成的客户端入口已把实例注册为模块级单例：
+
+```ts
+import { useUbeanApp, useUbeanRouter } from 'ubean/client';
+
+const { router, head, page } = useUbeanApp(); // 完整实例
+const router2 = useUbeanRouter(); // 等价于 useUbeanApp().router
+```
+
+服务端**故意不写**这个单例 —— SSR 每请求新建一个实例，模块级变量会被并发请求覆盖。SSR 组件内请改用 inject：
+
+```ts
+import { inject } from 'vue';
+import { UBEAN_APP_KEY } from 'ubean/client';
+
+const { router } = inject(UBEAN_APP_KEY)!;
+```
+
+- 两个入口都 provide 了 `UBEAN_APP_KEY`，因此 `inject` 在客户端与服务端都可用。组件内优先用它（或 `useRouter()`）；没有组件上下文时才用 `useUbeanApp()`。
+- `getUbeanAppInstance()` 不抛错，不存在时返回 `null` —— 给同构代码判断「现在有没有实例」用。服务端恒为 `null`。
+- `setUbeanAppInstance()` 是 `createUbeanClientApp()` 的内部接线，用户不需要调用。
+
 ### `@ubean/client/app`
 
 app 子路径为框架侧消费者 re-export 内核导出面（`PageView`、`SlotView`、`Link`、`ClientOnly`、`ubeanVue`、`useViewTransition`、`usePage`、各注入 key、`LayoutChainRenderer`、no-op 宏 `definePage` / `defineMeta` / `defineMiddleware`、`createUbeanRouter`、`Head` / `useHead` / `useSeoMeta`），外加两个应用工厂。

@@ -1,8 +1,8 @@
 ---
 title: 路由助手
 description: "路由辅助 API：useRouter、Link 组件与导航工具。"
-translatedFrom: 1c22be4b62ba
-sections: ["b796b6bc","e3b0c442","76a55e45","f163b508","b658cb7e","bb15e274","1da939ea","0f9ab036","2ccdf592","7733dc06","37e8f1d0","f9d15bfe","57880fc8","8fe845b1","e90debf5","ac2790bc","29d22aa9","58e47c48"]
+translatedFrom: 6cc07c109531
+sections: ["b796b6bc","e3b0c442","76a55e45","f163b508","b658cb7e","bb15e274","1da939ea","0f9ab036","2ccdf592","7733dc06","67b22670","37e8f1d0","f9d15bfe","57880fc8","8fe845b1","e90debf5","ac2790bc","29d22aa9","58e47c48"]
 ---
 
 # 路由助手
@@ -138,6 +138,34 @@ router.afterEach((to, from) => {
 ```
 
 > 生产环境的鉴权/埋点守卫应放在 `defineApp({ router })` 中，以避免重复注册，并确保它们在 SSR 期间也会执行。
+
+### 在 `setup()` 之外取得 Router
+
+`useRouter()` 需要组件上下文。路由守卫、插件、普通工具模块里都没有 —— 改用框架提供的模块级单例：
+
+```typescript
+import { useUbeanApp, useUbeanRouter } from 'ubean/client';
+
+// 客户端任意位置调用，无需组件：
+const router = useUbeanRouter(); // 等价于 useUbeanApp().router
+router.push('/about');
+
+// 完整实例：{ app, router, head, page, preloadLayouts }
+const { head, page } = useUbeanApp();
+```
+
+单例由框架生成的客户端入口注册，应用启动后即可用——但**在应用创建之前的模块顶层调用会取不到**。
+
+**服务端会抛错。** SSR 每请求新建一个实例，模块级变量会被并发请求覆盖。SSR 组件内请改用 inject：
+
+```typescript
+import { inject } from 'vue';
+import { UBEAN_APP_KEY } from 'ubean/client';
+
+const { router } = inject(UBEAN_APP_KEY)!;
+```
+
+`createUbeanClientApp` 与 `createUbeanSSRApp` 都 provide 了 `UBEAN_APP_KEY`，所以 `inject` 在客户端与服务端都可用 —— 组件内优先用它（或 `useRouter()`）。`getUbeanAppInstance()` 不抛错而是返回 `null`，给只需要判断“有没有实例”的同构代码用。
 
 ## `<Link>` 组件（全局）
 

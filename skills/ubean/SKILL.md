@@ -744,6 +744,19 @@ function go() {
 
 > `useRouter()` returns the Vue Router instance. ubean deliberately exports **no** `useRoute()` / `navigateTo()` / `redirectTo()` / `useRouteParams()` / `useRouteQuery()` wrappers — read the current route from `router.currentRoute.value` (wrap in `computed()` for reactivity) or import `useRoute()` from `vue-router`. `<Link>` props: `to`, `locale`, `replace`, `href`, `prefetch`, `activeClass`, `exactActiveClass`, `noActiveClass`; the default slot scopes `isActive` / `isExactActive`. External URLs render an `<a target="_blank" rel="noopener noreferrer">`.
 
+#### Reaching the router outside `setup()`
+
+`useRouter()` requires a component context. From a navigation guard, a plugin, or a utility module, use the module-level singleton instead:
+
+```ts
+import { useUbeanApp, useUbeanRouter } from 'ubean/client';
+
+const router = useUbeanRouter(); // == useUbeanApp().router
+const { head, page } = useUbeanApp();
+```
+
+On the server `useUbeanApp()` **throws** (SSR creates one instance per request, so a module-level variable would be clobbered by concurrent requests). Inside an SSR component use `inject(UBEAN_APP_KEY)` — both factories provide it, so it works on client and server alike. `getUbeanAppInstance()` returns `null` instead of throwing, for isomorphic checks.
+
 ### Islands & Component Boundaries
 
 `v-client.*` goes on the **component element** (not a plain `<div>`); the modifier picks the hydration strategy.

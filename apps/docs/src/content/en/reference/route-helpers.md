@@ -137,6 +137,34 @@ router.afterEach((to, from) => {
 
 > Production auth/analytics guards should live in `defineApp({ router })` to avoid duplicate registration and to ensure they fire during SSR.
 
+### Reaching the Router Outside `setup()`
+
+`useRouter()` needs a component context. Guards, plugins, and plain utility modules have none — import the framework's module-level singleton instead:
+
+```typescript
+import { useUbeanApp, useUbeanRouter } from 'ubean/client';
+
+// Called from anywhere on the client, no component needed:
+const router = useUbeanRouter(); // same as useUbeanApp().router
+router.push('/about');
+
+// Full instance: { app, router, head, page, preloadLayouts }
+const { head, page } = useUbeanApp();
+```
+
+The singleton is registered by the framework's generated client entry, so it is available as soon as the app starts — but not at module top level that runs before app creation.
+
+**On the server it throws.** SSR builds one instance per request, so a module-level variable would be overwritten by concurrent requests. Inside an SSR component, inject the instance instead:
+
+```typescript
+import { inject } from 'vue';
+import { UBEAN_APP_KEY } from 'ubean/client';
+
+const { router } = inject(UBEAN_APP_KEY)!;
+```
+
+Both `createUbeanClientApp` and `createUbeanSSRApp` provide `UBEAN_APP_KEY`, so `inject` works on client and server alike — prefer it (or `useRouter()`) inside components. `getUbeanAppInstance()` returns `null` rather than throwing, for isomorphic code that only needs to test whether an instance exists.
+
 ## `<Link>` Component (Global)
 
 `<Link>` is globally registered — no import needed. It performs client-side navigation and supports active-class styling.

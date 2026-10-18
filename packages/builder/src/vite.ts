@@ -514,6 +514,10 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
       // 拿到「openapi.d.ts 不存在 + 一片 TS2307」而毫无线索。这里在让位时把缺失喊出来。
       const announceMissingOpenApiTypes = async () => {
         if (!ubeanConfig) return;
+        // `ssg` / `spa` 没有后端接口，`/_openapi.json` 这份声明与 CLI 一样**刻意不产出**
+        // （CLI 的判据见 `packages/cli/src/dev.ts` 的 `hasBackend`）—— 此时「缺失」不是故障，
+        // 用户代码也不会 import 它。不加这个判据会在纯静态项目里每次启动都误报一次（实测 vean-ui 文档站）。
+        if (ubeanConfig.mode === 'ssg' || ubeanConfig.mode === 'spa') return;
         const filePath = join(ubeanConfig.rootDir, '.ubean', 'openapi.d.ts');
         try {
           const app = await ensureDevApp(server);

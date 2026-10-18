@@ -2,12 +2,12 @@
 name: ubean
 display_name: ubean Framework
 description: Full-stack Vue meta-framework built on Vite, Hono and Vue. File-based routing, SSR, islands architecture, i18n, DevTools, OpenAPI and multi-platform presets.
-version: 0.6.1-beta.3
+version: 0.6.4
 author: SoybeanJS
 license: MIT
 category: Web Framework
 repository: https://github.com/soybeanjs/ubean
-homepage: https://ubean.soybeanjs.cn
+homepage: https://ubean.soybeanjs.dev
 keywords:
   - vue
   - vite
@@ -64,7 +64,7 @@ pnpm dev
 
 - **Name**: ubean
 - **Description**: Full-stack Vue meta-framework built on Vite, Hono and Vue
-- **Version**: 0.6.1-beta.3
+- **Version**: 0.6.4
 - **Category**: Web Framework
 - **Public package**: `ubean` (workspace `packages/ubean`)
 
@@ -1106,7 +1106,13 @@ Preset membership: `UBEAN_CLIENT_PRESET` (`ubean/client`) covers `definePage`, `
 
 ## Version History
 
-- **v0.6.1-beta.3** (current):
+- **v0.6.4** (current):
+  - **Build-time env contract**: `env.schema` + `envField` with the `ubean:env/client` (inlined at build time) and `ubean:env/server` (runtime `process.env`) virtual modules; `client` + `secret` combinations raise at config resolution
+  - **Project dependency check**: `ubean prepare` and the Vite plugin detect missing built-in module packages and install them (or warn, naming the actually-missing package) — `prepare --no-install` opts out
+  - **Breaking — DevTools hosting**: the panel moved onto a devframe hub (`/__devframes/**`, with `/_devtools` 302-ing there); `/__devtools*` is kept only as a legacy alias (ADR-0014)
+  - **Config diagnostics**: unknown config keys now warn, and `build.preset` is narrowed — a top-level `preset` is rejected rather than silently ignored
+  - Route registration puts literal API paths before dynamic ones; CSS of every chunk is injected into production asset tags, and dev stylesheets load on the first page request
+- **v0.6.1-beta.3**:
   - Vite plugin-first lifecycle (ADR-0012): bare `vite dev|build|preview` is the full toolchain; the old `experimental.viteBuilder` switch is gone
   - 24-package monorepo + `ubean` aggregator with subpath entries (`ubean/server` / `ubean/build` / `ubean/client` / `ubean/i18n` / `ubean/ssr` / `ubean/vite` / `ubean/scaffold`)
   - Islands via Vue directives `v-client.load|idle|visible|media|only` (P9-29; legacy `client:*` still supported)

@@ -78,7 +78,7 @@ The main skill entry point uses the Claude Skills format with YAML frontmatter:
 name: ubean
 display_name: ubean Framework
 description: Full-stack Vue meta-framework built on Vite, Hono and Vue. File-based routing, SSR, islands architecture, i18n, DevTools, OpenAPI and multi-platform presets.
-version: 0.6.1-beta.3
+version: 0.6.4
 category: Web Framework
 keywords: [vue, vite, hono, full-stack, ssr]
 ---

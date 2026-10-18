@@ -19,6 +19,7 @@ export const GET = defineHandler(async c => c.json({ ok: true }));
 ## 目录
 
 - [ubean](#ubean)
+  - [文档](#文档)
   - [包定位](#包定位)
   - [安装](#安装)
   - [快速开始](#快速开始)
@@ -27,6 +28,12 @@ export const GET = defineHandler(async c => c.json({ ok: true }));
   - [体积陷阱](#体积陷阱)
   - [类型安全](#类型安全)
   - [架构说明](#架构说明)
+
+## 文档
+
+完整文档：**<https://ubean.soybeanjs.dev/zh>** · [快速开始](https://ubean.soybeanjs.dev/zh/guide/quickstart/) · [API 参考](https://ubean.soybeanjs.dev/zh/reference/api/ubean/)
+
+本 README 只覆盖包表面（子路径入口与导入语境）。路由、loader、actions、islands、i18n、集成等指南在文档站。
 
 ## 包定位
 
@@ -164,4 +171,4 @@ export const GET = defineHandler(async c => c.json({ message: 'hello' }));
 - **扩展不进内核。** AI、auth、integrations 与 DevTools 是独立包，通过 `ubean.config.ts` 字段启用，从而把原生依赖与远程 SDK 挡在内核图之外。
 - **Vite 拥有生命周期。** 插件注册 client 与 ubean 两个环境以及 build app，因此 `vite dev|build|preview` 本身就是完整工具链。
 - **机器可读契约。** `ubean/scaffold` 暴露带版本的 catalog，外部工具（studio、IDE 插件）无需导入构建内部即可驱动文件生成。
-- **接着读什么。** [根 README](../../README.md) 负责功能总览、平台预设与框架对比；[文档站](../../apps/docs) 提供指南与 API 参考；[架构决策](../../docs/adr) 记录了 Vite 插件优先的生命周期、平台产物契约与 DevTools 托管方案。
+- **接着读什么。** 文档站 <https://ubean.soybeanjs.dev/zh> 提供指南、集成与 API 参考；[根 README](../../README.zh_CN.md) 负责功能总览、平台预设与框架对比；[架构决策](../../docs/adr) 记录了 Vite 插件优先的生命周期、平台产物契约与 DevTools 托管方案。

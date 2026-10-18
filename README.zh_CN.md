@@ -9,16 +9,36 @@
 </p>
 
 <p align="center">
-  <a href="README.md">English</a>
+  <a href="https://ubean.soybeanjs.dev"><b>在线文档</b></a>
+  ·
+  <a href="https://ubean.soybeanjs.dev/zh">中文文档</a>
+  ·
+  <a href="README.md">English README</a>
+</p>
+
+<p align="center">
+  <a href="https://ubean.soybeanjs.dev"><img src="https://img.shields.io/badge/docs-ubean.soybeanjs.dev-42b883?style=flat-square" alt="docs" /></a>
+  <a href="https://www.npmjs.com/package/ubean"><img src="https://img.shields.io/npm/v/ubean?style=flat-square" alt="npm version" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/ubean?style=flat-square" alt="license" /></a>
 </p>
 
 ---
 
 [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/soybeanjs/ubean)
 
-> **当前状态：v0.6.1-beta.3（预览版）。** ubean 是一个可用、仍在活跃开发中的元框架，但尚未标记为生产稳定：版本间公开 API 仍可能变更，部分子系统（数据库层、队列 worker、cron 调度器）尚未在真实负载下验证。详见下方[状态](#当前状态)小节中关于当前状态、适用场景与已知限制的说明。
+> **当前状态：v0.6.4（预览版）。** ubean 是一个可用、仍在活跃开发中的元框架，但尚未标记为生产稳定：版本间公开 API 仍可能变更，部分子系统（数据库层、队列 worker、cron 调度器）尚未在真实负载下验证。详见下方[状态](#当前状态)小节中关于当前状态、适用场景与已知限制的说明。
 
 ---
+
+## 文档
+
+完整文档：**[https://ubean.soybeanjs.dev/zh](https://ubean.soybeanjs.dev/zh)**（英文：**[https://ubean.soybeanjs.dev](https://ubean.soybeanjs.dev)**）
+
+- **从这里开始** —— [简介](https://ubean.soybeanjs.dev/zh/guide/introduction/) · [快速开始](https://ubean.soybeanjs.dev/zh/guide/quickstart/) · [应用模式](https://ubean.soybeanjs.dev/zh/guide/app-modes/) · [Vite 插件迁移](https://ubean.soybeanjs.dev/zh/guide/vite-plugin-migration/)
+- **写应用** —— [路由模式](https://ubean.soybeanjs.dev/zh/guide/routing-modes/) · [页面与路由](https://ubean.soybeanjs.dev/zh/guide/pages-routing/overview/) · [数据加载](https://ubean.soybeanjs.dev/zh/guide/pages-routing/loaders/) · [Actions](https://ubean.soybeanjs.dev/zh/guide/pages-routing/actions/) · [i18n](https://ubean.soybeanjs.dev/zh/guide/i18n/) · [Islands](https://ubean.soybeanjs.dev/zh/guide/islands/) · [内容与搜索](https://ubean.soybeanjs.dev/zh/guide/content/)
+- **集成** —— [Auth](https://ubean.soybeanjs.dev/zh/integrations/auth/) · [数据库](https://ubean.soybeanjs.dev/zh/integrations/database/) · [图标](https://ubean.soybeanjs.dev/zh/integrations/icons/) · [UI](https://ubean.soybeanjs.dev/zh/integrations/ui/) · [Pinia](https://ubean.soybeanjs.dev/zh/integrations/pinia/) · [Electron](https://ubean.soybeanjs.dev/zh/integrations/electron/)
+- **参考** —— [路由辅助](https://ubean.soybeanjs.dev/zh/reference/route-helpers/) · [响应辅助](https://ubean.soybeanjs.dev/zh/reference/response-helpers/) · [缓存](https://ubean.soybeanjs.dev/zh/reference/cache/) · [数据库](https://ubean.soybeanjs.dev/zh/reference/database/) · [环境变量](https://ubean.soybeanjs.dev/zh/reference/env/) · [i18n](https://ubean.soybeanjs.dev/zh/reference/i18n/) · [API 参考](https://ubean.soybeanjs.dev/zh/reference/api/ubean/)
+- **内部实现** —— [架构总览](https://ubean.soybeanjs.dev/zh/architecture/overview/) · [架构](https://ubean.soybeanjs.dev/zh/architecture/architecture/) · [路由](https://ubean.soybeanjs.dev/zh/architecture/routing/) · [运行时](https://ubean.soybeanjs.dev/zh/architecture/runtime/) · [框架对比](https://ubean.soybeanjs.dev/zh/architecture/framework-comparison/) · [生态](https://ubean.soybeanjs.dev/zh/ecosystem/ecosystem/) · [工程实践](https://ubean.soybeanjs.dev/zh/contributing/engineering/)
 
 ## ubean 是什么？
 
@@ -198,7 +218,9 @@ my-app/
 
 ## 快速开始
 
-> **说明：** ubean 目前是 v0.6.1-beta.3 预览版，可以用于实际项目，但需预期版本之间偶尔会有破坏性变更。详见[状态](#当前状态)。
+> **说明：** ubean 目前是 v0.6.4。可以用于实际项目，但需预期版本之间偶尔会有破坏性变更。详见[状态](#当前状态)。
+>
+> 完整流程见文档站：[快速开始](https://ubean.soybeanjs.dev/zh/guide/quickstart/)。
 
 ### 脚手架新项目
 
@@ -274,6 +296,8 @@ export default defineConfig({
 
 运行 `ubean prepare` 会**自动检测并安装**缺失的内置模块包，使用项目自身的包管理器（pnpm / yarn / bun / npm）。使用 `ubean prepare --no-install` 可跳过自动安装（如 CI 环境）。如果运行 `ubean dev` 或 `ubean build` 时某模块已启用但未安装，会输出明确的 warning，告知该模块被跳过 —— 而不是让人困惑为什么 `ui: true` 没有生效。
 
+各模块的配置项与用法见文档站的[集成](https://ubean.soybeanjs.dev/zh/integrations/ui/)分组。
+
 ## 架构方向
 
 ubean 的核心实现遵循六大边界：
@@ -292,7 +316,7 @@ ubean 的核心实现遵循六大边界：
 
 ## 当前状态
 
-ubean 处于 **v0.6.1-beta.3**，是一个活跃的预览版。最初定位的 v0.1 版本线早已被超越——当前里程碑反映的是一个完整得多的框架。
+ubean 处于 **v0.6.4**，是一个活跃的预览版。最初定位的 v0.1 版本线早已被超越——当前里程碑反映的是一个完整得多的框架。
 
 ### 当前能力
 
@@ -340,8 +364,9 @@ pnpm lint
 
 ## 规划与贡献
 
-- [文档索引](docs/README.md) 包含架构参考、历史设计记录与待办提案。
-- 使用指南与 API 参考位于 [skills/ubean/SKILL.md](skills/ubean/SKILL.md) 以及文档站的 [apps/docs/src/content](apps/docs/src/content)。
+- **文档站** —— [ubean.soybeanjs.dev](https://ubean.soybeanjs.dev)（源码：[apps/docs/src/content](apps/docs/src/content)）—— 指南、集成、参考与架构说明。
+- [文档索引](docs/README.md) 收录仓库级工程记录：ADR、词汇表、性能基线与对外契约。
+- [skills/ubean/SKILL.md](skills/ubean/SKILL.md) 是面向 AI agent 的 CLI + API 摘要。
 - [AGENTS.md](AGENTS.md) 是 AI 助手和贡献者的权威快速参考 —— 包列表、核心 API、约定与常见陷阱。
 - 每项功能应随实现提交对应的单元测试、真实 fixture，以及适用的 `dev`、`build`、`preview` 或浏览器端到端验证。
 - 对公开 API、preset 能力或生成类型的变更，需要同步更新规划、测试和文档。

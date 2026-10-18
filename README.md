@@ -9,16 +9,34 @@
 </p>
 
 <p align="center">
-  <a href="README.zh_CN.md">中文文档</a>
+  <a href="https://ubean.soybeanjs.dev"><b>Documentation</b></a>
+  ·
+  <a href="README.zh_CN.md">中文 README</a>
+</p>
+
+<p align="center">
+  <a href="https://ubean.soybeanjs.dev"><img src="https://img.shields.io/badge/docs-ubean.soybeanjs.dev-42b883?style=flat-square" alt="docs" /></a>
+  <a href="https://www.npmjs.com/package/ubean"><img src="https://img.shields.io/npm/v/ubean?style=flat-square" alt="npm version" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/ubean?style=flat-square" alt="license" /></a>
 </p>
 
 ---
 
 [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/soybeanjs/ubean)
 
-> **Current status: v0.6.1-beta.3 (preview).** ubean is a usable, actively developed meta-framework. It is not yet marked production-stable: public APIs can still change between releases, and several subsystems (database layer, queue workers, cron scheduler) have not been load-tested against real-world traffic. See [Status](#status) for the current state, suitable scenarios, and known limitations.
+> **Current status: v0.6.4 (preview).** ubean is a usable, actively developed meta-framework. It is not yet marked production-stable: public APIs can still change between releases, and several subsystems (database layer, queue workers, cron scheduler) have not been load-tested against real-world traffic. See [Status](#status) for the current state, suitable scenarios, and known limitations.
 
 ---
+
+## Documentation
+
+Full documentation: **[https://ubean.soybeanjs.dev](https://ubean.soybeanjs.dev)** — Chinese: **[https://ubean.soybeanjs.dev/zh](https://ubean.soybeanjs.dev/zh)**
+
+- **Start here** — [Introduction](https://ubean.soybeanjs.dev/guide/introduction/) · [Quick start](https://ubean.soybeanjs.dev/guide/quickstart/) · [App modes](https://ubean.soybeanjs.dev/guide/app-modes/) · [Vite plugin migration](https://ubean.soybeanjs.dev/guide/vite-plugin-migration/)
+- **Build an app** — [Routing modes](https://ubean.soybeanjs.dev/guide/routing-modes/) · [Pages & routing](https://ubean.soybeanjs.dev/guide/pages-routing/overview/) · [Data loaders](https://ubean.soybeanjs.dev/guide/pages-routing/loaders/) · [Actions](https://ubean.soybeanjs.dev/guide/pages-routing/actions/) · [i18n](https://ubean.soybeanjs.dev/guide/i18n/) · [Islands](https://ubean.soybeanjs.dev/guide/islands/) · [Content & search](https://ubean.soybeanjs.dev/guide/content/)
+- **Integrations** — [Auth](https://ubean.soybeanjs.dev/integrations/auth/) · [Database](https://ubean.soybeanjs.dev/integrations/database/) · [Icons](https://ubean.soybeanjs.dev/integrations/icons/) · [UI](https://ubean.soybeanjs.dev/integrations/ui/) · [Pinia](https://ubean.soybeanjs.dev/integrations/pinia/) · [Electron](https://ubean.soybeanjs.dev/integrations/electron/)
+- **Reference** — [Route helpers](https://ubean.soybeanjs.dev/reference/route-helpers/) · [Response helpers](https://ubean.soybeanjs.dev/reference/response-helpers/) · [Cache](https://ubean.soybeanjs.dev/reference/cache/) · [Database](https://ubean.soybeanjs.dev/reference/database/) · [Env](https://ubean.soybeanjs.dev/reference/env/) · [i18n](https://ubean.soybeanjs.dev/reference/i18n/) · [API reference](https://ubean.soybeanjs.dev/reference/api/ubean/)
+- **Internals** — [Architecture overview](https://ubean.soybeanjs.dev/architecture/overview/) · [Architecture](https://ubean.soybeanjs.dev/architecture/architecture/) · [Routing](https://ubean.soybeanjs.dev/architecture/routing/) · [Runtime](https://ubean.soybeanjs.dev/architecture/runtime/) · [Framework comparison](https://ubean.soybeanjs.dev/architecture/framework-comparison/) · [Ecosystem](https://ubean.soybeanjs.dev/ecosystem/ecosystem/) · [Engineering](https://ubean.soybeanjs.dev/contributing/engineering/)
 
 ## What is ubean?
 
@@ -198,7 +216,9 @@ my-app/
 
 ## Quick Start
 
-> **Note:** ubean is currently a v0.6.1-beta.3 preview. It can be used for real projects, but expect occasional breaking changes between releases. See [Status](#status) for details.
+> **Note:** ubean is currently at v0.6.4. It can be used for real projects, but expect occasional breaking changes between releases. See [Status](#status) for details.
+>
+> Full walkthrough: [Quick start on the docs site](https://ubean.soybeanjs.dev/guide/quickstart/).
 
 ### Scaffold a New Project
 
@@ -274,6 +294,8 @@ export default defineConfig({
 
 Running `ubean prepare` will **auto-detect and install** any missing built-in module packages using your project's package manager (pnpm / yarn / bun / npm). Use `ubean prepare --no-install` to skip auto-install (e.g. in CI). If a module is enabled but not installed when running `ubean dev` or `ubean build`, a clear warning is logged so you know the module was silently skipped rather than puzzling over why `ui: true` has no effect.
 
+Each module's setup and options are documented in the site's [Integrations](https://ubean.soybeanjs.dev/integrations/ui/) section.
+
 ## Architecture Direction
 
 ubean's core implementation follows six boundaries:
@@ -292,7 +314,7 @@ ubean's core implementation follows six boundaries:
 
 ## Status
 
-ubean is at **v0.6.1-beta.3**, an active preview. The originally targeted release line (v0.1) has long since been superseded — the current milestone reflects a much more complete framework.
+ubean is at **v0.6.4**, an active preview. The originally targeted release line (v0.1) has long since been superseded — the current milestone reflects a much more complete framework.
 
 ### Current State
 
@@ -340,8 +362,9 @@ pnpm lint
 
 ## Planning and Contributions
 
-- The [documentation index](docs/README.md) contains the architecture reference, historical design records, and pending proposals.
-- Usage guides and API references live in [skills/ubean/SKILL.md](skills/ubean/SKILL.md) and the docs site under [apps/docs/src/content](apps/docs/src/content).
+- The **docs site** — [ubean.soybeanjs.dev](https://ubean.soybeanjs.dev) (source: [apps/docs/src/content](apps/docs/src/content)) — holds the guides, integrations, reference, and architecture write-ups.
+- The [documentation index](docs/README.md) contains the repo-level engineering records: ADRs, glossary, performance baselines, and contracts.
+- [skills/ubean/SKILL.md](skills/ubean/SKILL.md) is the agent-oriented CLI + API summary.
 - [AGENTS.md](AGENTS.md) is the canonical quick reference for AI assistants and contributors — package list, core APIs, conventions, and common pitfalls.
 - Each feature should include unit tests, a real fixture, and the applicable `dev`, `build`, `preview`, or browser end-to-end verification.
 - Changes to public APIs, preset capabilities, or generated types must update the plan, tests, and documentation together.

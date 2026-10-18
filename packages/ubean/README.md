@@ -19,6 +19,7 @@ export const GET = defineHandler(async c => c.json({ ok: true }));
 ## Table of Contents
 
 - [ubean](#ubean)
+  - [Documentation](#documentation)
   - [Package Positioning](#package-positioning)
   - [Install](#install)
   - [Quick Start](#quick-start)
@@ -27,6 +28,12 @@ export const GET = defineHandler(async c => c.json({ ok: true }));
   - [The Size Trap](#the-size-trap)
   - [Type Safety](#type-safety)
   - [Architecture Notes](#architecture-notes)
+
+## Documentation
+
+Full docs: **<https://ubean.soybeanjs.dev>** · [Quick start](https://ubean.soybeanjs.dev/guide/quickstart/) · [API reference](https://ubean.soybeanjs.dev/reference/api/ubean/)
+
+This README only covers the package surface (subpath entries and import contexts). Guiding docs — routing, loaders, actions, islands, i18n, integrations — live on the docs site.
 
 ## Package Positioning
 
@@ -164,4 +171,4 @@ Rule of thumb: in anything that ships to the browser, import from `ubean/client`
 - **Extensions stay out of the core.** AI, auth, integrations and DevTools are separate packages enabled through `ubean.config.ts` fields, keeping native dependencies and remote SDKs out of the core graph.
 - **Vite owns the lifecycle.** The plugin registers the client and ubean environments plus the build app, so `vite dev|build|preview` alone is the complete toolchain.
 - **Machine-readable contracts.** `ubean/scaffold` exposes a versioned catalog so external tools (studio, IDE plugins) can drive file generation without importing build internals.
-- **Where to read next.** The [root README](../../README.md) owns the feature tour, platform presets and framework comparison; the [documentation site](../../apps/docs) holds the guides and API reference; the [architecture decisions](../../docs/adr) record the plugin-first lifecycle, platform artifact contract and DevTools hosting.
+- **Where to read next.** The docs site at <https://ubean.soybeanjs.dev> holds the guides, integrations and API reference; the [root README](../../README.md) owns the feature tour, platform presets and framework comparison; the [architecture decisions](../../docs/adr) record the plugin-first lifecycle, platform artifact contract and DevTools hosting.

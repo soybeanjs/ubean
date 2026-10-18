@@ -1,5 +1,35 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.4...main) (2026-10-18) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **client**: expose the app instance outside component setup &nbsp;-&nbsp; by @soybeanjs [<samp>(c6c72)</samp>](https://github.com/soybeanjs/ubean/commit/c6c722f4)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**:
+  - pass config-driven minify, sourcemap and public dir to the build &nbsp;-&nbsp; by @soybeanjs [<samp>(31d26)</samp>](https://github.com/soybeanjs/ubean/commit/31d26fab)
+  - honor server.proxy and server.headers in dev request routing &nbsp;-&nbsp; by @soybeanjs [<samp>(f35d5)</samp>](https://github.com/soybeanjs/ubean/commit/f35d56e5)
+  - skip missing openapi.d.ts warning for ssg/spa modes &nbsp;-&nbsp; by @soybeanjs [<samp>(4607a)</samp>](https://github.com/soybeanjs/ubean/commit/4607a0ff)
+- **cli**:
+  - fall back to ubean config for strictPort and open &nbsp;-&nbsp; by @soybeanjs [<samp>(309b1)</samp>](https://github.com/soybeanjs/ubean/commit/309b1b64)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- record the config-to-vite passthrough fixes &nbsp;-&nbsp; by @soybeanjs [<samp>(7d2fc)</samp>](https://github.com/soybeanjs/ubean/commit/7d2fc185)
+- document reaching the router outside component setup &nbsp;-&nbsp; by @soybeanjs [<samp>(19ab6)</samp>](https://github.com/soybeanjs/ubean/commit/19ab605d)
+- **readme**: link the documentation site and sync to v0.6.4 &nbsp;-&nbsp; by @soybeanjs [<samp>(34570)</samp>](https://github.com/soybeanjs/ubean/commit/34570e48)
+- **skills**: bump the agent skill to v0.6.4 &nbsp;-&nbsp; by @soybeanjs [<samp>(eeed8)</samp>](https://github.com/soybeanjs/ubean/commit/eeed8a23)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(17f20)</samp>](https://github.com/soybeanjs/ubean/commit/17f20dec)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.3...main) (2026-10-16) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

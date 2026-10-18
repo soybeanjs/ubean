@@ -72,7 +72,7 @@
     "@ubean/server": "workspace:*",
     "@ubean/shared": "workspace:*",
     "hono": "4.13.13",
-    "hono-openapi": "^1.3.5"
+    "hono-openapi": "^1.5.0"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

@@ -19,6 +19,7 @@ import type { Logger } from 'vite';
  */
 import { applyServerConfig, createUbeanApp } from '@ubean/app';
 import type { UbeanApp } from '@ubean/app';
+import { localePathsOf } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { getVueLocaleParam } from '@ubean/i18n';
 import type { PageRenderer } from '@ubean/pages';
@@ -311,6 +312,7 @@ export function resolveLocaleVueParam(config: UbeanResolvedConfig): string {
   return getVueLocaleParam({
     defaultLocale: i18n.defaultLocale,
     locales: i18n.locales.map(l => l.code),
-    strategy: i18n.strategy
+    strategy: i18n.strategy,
+    paths: localePathsOf(i18n)
   });
 }

@@ -10,7 +10,9 @@ import {
   switchLocalePath,
   bindI18nRuntime,
   setLocale,
-  getLocale
+  getLocale,
+  getAvailableLocales,
+  extractLocaleFromPath
 } from '../src/i18n';
 
 afterEach(() => {
@@ -123,6 +125,83 @@ describe('createUbeanI18n', () => {
     expect(router.currentRoute.value.params.locale).toBe('zh');
   });
 
+  it('app.use(i18n) 可挂载', () => {
+    const i18n = createUbeanI18n({ locale: 'en', messages: { en: {} } });
+    const app = createApp({ render: () => h('div') });
+    app.use(i18n);
+    expect(app._context.provides).toBeTruthy();
+  });
+});
+
+describe('paths override (code stays BCP-47, URL uses a short segment)', () => {
+  const config = {
+    defaultLocale: 'en',
+    locales: ['en', 'zh-CN'],
+    strategy: 'prefix_except_default' as const,
+    fallbackLocale: 'en',
+    cookieName: 'ubean_locale',
+    baseUrl: '',
+    paths: { 'zh-CN': 'zh' }
+  };
+
+  it('localizePath / switchLocalePath write the segment, not the code', () => {
+    configureI18nRuntime({ config });
+    expect(localizePath('/about', 'zh-CN')).toBe('/zh/about');
+    expect(switchLocalePath('zh-CN', '/about')).toBe('/zh/about');
+    expect(switchLocalePath('en', '/zh/about')).toBe('/about');
+  });
+
+  it('extractLocaleFromPath returns the code for a segment URL', () => {
+    configureI18nRuntime({ config });
+    expect(extractLocaleFromPath('/zh/about')).toEqual({ locale: 'zh-CN', pathWithoutLocale: '/about' });
+  });
+
+  it('getAvailableLocales falls back to configured codes with their segments', () => {
+    // Empty `locales` clears any catalog metadata hydrated by an earlier case.
+    configureI18nRuntime({ config, locales: [] });
+    expect(getAvailableLocales()).toEqual([
+      { code: 'en', dir: 'ltr', isDefault: true },
+      { code: 'zh-CN', dir: 'ltr', path: 'zh' }
+    ]);
+  });
+
+  it('getAvailableLocales prefers hydrated catalog metadata', () => {
+    configureI18nRuntime({
+      config,
+      locales: [
+        { code: 'en', name: 'English', dir: 'ltr', isDefault: true },
+        { code: 'zh-CN', name: '简体中文', dir: 'ltr' }
+      ]
+    });
+    const available = getAvailableLocales();
+    expect(available).toEqual([
+      { code: 'en', name: 'English', dir: 'ltr', isDefault: true },
+      // `path` comes from the runtime config when the catalog does not carry it.
+      { code: 'zh-CN', name: '简体中文', dir: 'ltr', path: 'zh' }
+    ]);
+  });
+
+  it('keeps a hydrated `path` when the catalog provides one', () => {
+    configureI18nRuntime({
+      config: { ...config, paths: { 'zh-CN': 'zh-CN' } },
+      locales: [{ code: 'zh-CN', path: 'zh', dir: 'ltr' }]
+    });
+    expect(getAvailableLocales()).toEqual([{ code: 'zh-CN', path: 'zh', dir: 'ltr' }]);
+  });
+
+  it('marks the configured default locale when no metadata was hydrated', () => {
+    configureI18nRuntime({
+      config: { ...config, defaultLocale: 'zh-CN' },
+      locales: []
+    });
+    expect(getAvailableLocales()).toEqual([
+      { code: 'en', dir: 'ltr' },
+      { code: 'zh-CN', dir: 'ltr', path: 'zh', isDefault: true }
+    ]);
+  });
+});
+
+describe('legacy placeholder', () => {
   it('app.use(i18n) 可挂载', () => {
     const i18n = createUbeanI18n({ locale: 'en', messages: { en: {} } });
     const app = createApp({ render: () => h('div') });

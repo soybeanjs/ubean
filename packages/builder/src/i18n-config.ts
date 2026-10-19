@@ -1,4 +1,5 @@
 import type { ResolvedI18nConfig } from '@ubean/config';
+import { localePathsOf } from '@ubean/config';
 import { getVueLocaleParam } from '@ubean/i18n';
 
 export function serializeI18nConfig(config: ResolvedI18nConfig): string {
@@ -10,7 +11,8 @@ export function localeVueParamFromI18n(config: ResolvedI18nConfig): string | und
   const param = getVueLocaleParam({
     defaultLocale: config.defaultLocale,
     locales: config.locales.map(l => l.code),
-    strategy: config.strategy
+    strategy: config.strategy,
+    paths: localePathsOf(config)
   });
   return param || undefined;
 }

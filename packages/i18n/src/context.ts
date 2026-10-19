@@ -49,7 +49,10 @@ type LocaleLoader = (code: string) => Promise<unknown>;
 interface I18nEngineState {
   storage: AsyncLocalStorage<I18nRequestScope>;
   catalogs: Map<string, LocaleMessages>;
-  catalogMeta: Map<string, { name?: string; dir: 'ltr' | 'rtl'; language?: string; isDefault?: boolean }>;
+  catalogMeta: Map<
+    string,
+    { name?: string; path?: string; dir: 'ltr' | 'rtl'; language?: string; isDefault?: boolean }
+  >;
   fallbackLocaleCode: string;
   loadLocale?: LocaleLoader;
   compiled: Map<string, { key: string; ctx: I18nCoreContext }>;
@@ -104,12 +107,13 @@ export function mergeLocaleMessages(code: string, messages: LocaleMessages): Loc
 
 export function setLocaleMeta(
   code: string,
-  meta: { name?: string; dir?: 'ltr' | 'rtl'; language?: string; isDefault?: boolean }
+  meta: { name?: string; path?: string; dir?: 'ltr' | 'rtl'; language?: string; isDefault?: boolean }
 ): void {
   const catalogMeta = getState().catalogMeta;
   const prev = catalogMeta.get(code);
   catalogMeta.set(code, {
     name: meta.name ?? prev?.name,
+    path: meta.path ?? prev?.path,
     dir: meta.dir ?? prev?.dir ?? 'ltr',
     language: meta.language ?? prev?.language,
     isDefault: meta.isDefault ?? prev?.isDefault
@@ -127,6 +131,7 @@ export function listLocaleCodes(): string[] {
 
 export function getRegisteredLocalesMeta(): Array<{
   code: string;
+  path?: string;
   name?: string;
   dir: 'ltr' | 'rtl';
   language?: string;
@@ -137,6 +142,7 @@ export function getRegisteredLocalesMeta(): Array<{
     const meta = catalogMeta.get(code);
     return {
       code,
+      ...(meta?.path ? { path: meta.path } : {}),
       name: meta?.name,
       dir: meta?.dir || 'ltr',
       language: meta?.language,

@@ -28,7 +28,7 @@ export {
 export { resolveEnvConfig, envConfigDefaults } from './env';
 export type { ResolvedEnvConfig } from './env';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
-export { resolveI18nConfig, localeCodesOf } from './i18n';
+export { resolveI18nConfig, localeCodesOf, localePathsOf } from './i18n';
 
 // 项目依赖清单（`ensurePackages` 式的主动提醒）：按配置算出「用户项目里该装什么」，
 // 供 CLI `prepare` 与 Vite 插件的 `config` 钩子共用（裸 `vite dev` 也覆盖）。

@@ -6,6 +6,7 @@ import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolvePartyTownConfig } from '@ubean/client';
+import { localePathsOf } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { getVueLocaleParam } from '@ubean/i18n';
 import { ubeanMdxPlugin } from '@ubean/markdown';
@@ -95,7 +96,8 @@ function localeVueParamFromConfig(config: UbeanResolvedConfig): string | undefin
   const param = getVueLocaleParam({
     defaultLocale: config.i18n.defaultLocale,
     locales: codes,
-    strategy: config.i18n.strategy
+    strategy: config.i18n.strategy,
+    paths: localePathsOf(config.i18n)
   });
   return param || undefined;
 }

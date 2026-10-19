@@ -21,7 +21,10 @@ export interface PageAssetTags {
 }
 
 export interface LocaleMetaInfo {
+  /** Locale identity (BCP-47 when configured that way). */
   code: string;
+  /** URL segment when it differs from `code`. */
+  path?: string;
   name?: string;
   dir: 'ltr' | 'rtl';
   isDefault?: boolean;
@@ -37,6 +40,8 @@ export interface PageRenderContext {
     defaultLocale: string;
     locales: string[];
     strategy: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
+    /** Locale code → URL segment, for the entries whose `path` differs from `code`. */
+    paths?: Record<string, string>;
   };
   cookieName?: string;
   baseUrl?: string;

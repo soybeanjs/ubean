@@ -48,6 +48,8 @@ export interface RegisterOptions {
     strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
     defaultLocale?: string;
     locales?: string[];
+    /** Locale code → URL segment override (see `LocaleRoutingConfig.paths`). */
+    paths?: Record<string, string>;
     cookieName?: string;
     baseUrl?: string;
   };
@@ -488,7 +490,8 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     return compileLocalePaths(honoPath === '/' ? '/' : honoPath, {
       defaultLocale: i18nConfig.defaultLocale || 'en',
       locales: i18nConfig.locales,
-      strategy: i18nConfig.strategy || 'prefix_except_default'
+      strategy: i18nConfig.strategy || 'prefix_except_default',
+      paths: i18nConfig.paths
     }).hono;
   }
 
@@ -645,7 +648,8 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       renderContext.routing = {
         defaultLocale: i18nConfig.defaultLocale || 'en',
         locales: i18nConfig.locales || [],
-        strategy: i18nConfig.strategy || 'prefix_except_default'
+        strategy: i18nConfig.strategy || 'prefix_except_default',
+        ...(i18nConfig.paths ? { paths: i18nConfig.paths } : {})
       };
       if (i18nConfig.cookieName) renderContext.cookieName = i18nConfig.cookieName;
       if (i18nConfig.baseUrl) renderContext.baseUrl = i18nConfig.baseUrl;

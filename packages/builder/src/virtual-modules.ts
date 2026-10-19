@@ -228,12 +228,16 @@ if (import.meta.env.SSR) {
 }
 
 async function collectMessages(code) {
-  const localeData = { messages: {}, options: { isDefault: false, name: undefined, dir: 'ltr', language: undefined } };
+  const localeData = {
+    messages: {},
+    options: { isDefault: false, name: undefined, path: undefined, dir: 'ltr', language: undefined }
+  };
   const configLoc = i18nConfig && i18nConfig.locales
     ? i18nConfig.locales.find(l => (typeof l === 'string' ? l : l.code) === code)
     : undefined;
   if (configLoc && typeof configLoc === 'object') {
     localeData.options.name = configLoc.name;
+    localeData.options.path = configLoc.path;
     localeData.options.dir = configLoc.dir || 'ltr';
     localeData.options.language = configLoc.language;
     localeData.options.isDefault = configLoc.code === (i18nConfig && i18nConfig.defaultLocale);

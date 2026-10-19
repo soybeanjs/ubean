@@ -148,7 +148,9 @@ export interface UbeanAppOptions {
     enabled?: boolean;
     strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
     defaultLocale?: string;
-    locales?: string[] | Array<{ code: string }>;
+    locales?: string[] | Array<{ code: string; path?: string }>;
+    /** Locale code → URL segment override (see `LocaleRoutingConfig.paths`). */
+    paths?: Record<string, string>;
     detectBrowserLanguage?: false | { cookieName?: string; redirectOn?: 'root' | 'all'; alwaysRedirect?: boolean };
     fallbackLocale?: string;
     baseUrl?: string;
@@ -393,6 +395,7 @@ export class UbeanApp {
             defaultLocale: i18nCfg.defaultLocale || 'en',
             locales,
             strategy: i18nCfg.strategy || 'prefix_except_default',
+            paths: i18nCfg.paths,
             detectBrowserLanguage: i18nCfg.detectBrowserLanguage,
             loadMessages: (locale, fallback) => ensureLocaleMessages(locale, fallback)
           })
@@ -510,7 +513,8 @@ export class UbeanApp {
               this.options.i18nConfig.detectBrowserLanguage === false
                 ? undefined
                 : this.options.i18nConfig.detectBrowserLanguage?.cookieName || 'ubean_locale',
-            baseUrl: this.options.i18nConfig.baseUrl
+            baseUrl: this.options.i18nConfig.baseUrl,
+            paths: this.options.i18nConfig.paths
           }
         : undefined,
       notFoundPage: this.options.notFoundPage,

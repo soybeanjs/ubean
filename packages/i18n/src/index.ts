@@ -13,7 +13,10 @@ export {
   localizePath,
   switchLocalePath,
   getVueLocaleParam,
-  toVueRouterLocalePath
+  toVueRouterLocalePath,
+  localeSegment,
+  localeFromSegment,
+  localeSegments
 } from './paths';
 
 export {

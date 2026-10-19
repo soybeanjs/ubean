@@ -24,8 +24,8 @@ function ogLocale(languageOrCode: string): string {
   return languageOrCode.replace(/-/g, '_');
 }
 
-function pagePathWithoutLocale(path: string, locales: string[]): string {
-  return extractLocaleFromPath(path, locales).pathWithoutLocale;
+function pagePathWithoutLocale(path: string, routing: LocaleRoutingConfig): string {
+  return extractLocaleFromPath(path, routing.locales, routing.paths).pathWithoutLocale;
 }
 
 /**
@@ -36,7 +36,7 @@ export function buildLocaleHead(input: LocaleHeadInput): LocaleHeadTags {
   const current = input.locales.find(l => l.code === input.locale);
   const lang = current?.language || input.locale;
   const dir = current?.dir || 'ltr';
-  const clean = pagePathWithoutLocale(input.path, input.routing.locales);
+  const clean = pagePathWithoutLocale(input.path, input.routing);
   const codes = input.routing.locales;
 
   const link: LocaleHeadTags['link'] = [];

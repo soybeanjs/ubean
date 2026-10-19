@@ -21,7 +21,8 @@ function routingFrom(options: I18nMiddlewareOptions): LocaleRoutingConfig {
   return {
     defaultLocale: options.defaultLocale,
     locales: options.locales,
-    strategy: options.strategy
+    strategy: options.strategy,
+    paths: options.paths
   };
 }
 
@@ -73,10 +74,10 @@ export function createI18nMiddleware(options: I18nMiddlewareOptions): Middleware
       return;
     }
 
-    const extracted = extractLocaleFromPath(path, locales);
+    const extracted = extractLocaleFromPath(path, locales, options.paths);
     let detectedLocale = defaultLocale;
 
-    if (extracted.locale && locales.includes(extracted.locale)) {
+    if (extracted.locale) {
       if (strategy === 'prefix_except_default' && extracted.locale === defaultLocale) {
         writeCookie(c, defaultLocale);
         return c.redirect(extracted.pathWithoutLocale + url.search, 302);

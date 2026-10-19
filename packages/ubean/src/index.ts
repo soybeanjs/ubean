@@ -126,6 +126,7 @@ export {
   localizePath,
   switchLocalePath,
   extractLocaleFromPath,
+  getAvailableLocales,
   useSwitchLocalePath,
   useLocalePath,
   useLocaleRoute,

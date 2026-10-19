@@ -600,7 +600,15 @@ export type PresetName = BuiltinPresetName | (string & {});
 export type I18nRoutingStrategy = 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
 
 export interface I18nLocaleObject {
+  /** Locale identity — BCP-47 (`zh-CN`). Drives cookies, messages, `<html lang>`,
+   *  hrefLang and the value handed to component libraries. */
   code: string;
+  /**
+   * URL segment for this locale, when it should differ from `code`.
+   * `{ code: 'zh-CN', path: 'zh' }` serves `/zh/about` while every other
+   * surface keeps speaking `zh-CN`. Defaults to `code`.
+   */
+  path?: string;
   language?: string;
   name?: string;
   dir?: 'ltr' | 'rtl';
@@ -637,6 +645,11 @@ export interface ResolvedI18nConfig {
   defaultLocale: string;
   locales: I18nLocaleObject[];
   strategy: I18nRoutingStrategy;
+  /**
+   * Locale code → URL segment, for the locales that override it.
+   * Absent when every locale's URL segment equals its `code`.
+   */
+  paths?: Record<string, string>;
   baseUrl: string;
   detectBrowserLanguage: false | I18nDetectBrowserLanguage;
   vueI18n: I18nVueI18nOptions;

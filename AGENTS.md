@@ -166,6 +166,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 ### 3.4 i18n
 
 - **i18n**：`ubean.config.ts` 的 `i18n`；Vue 端 `vue-i18n` 11（`legacy: false`），handler 端 `@intlify/core` + ALS；语言路由 Hono 与 vue-router 共用 `compileLocalePaths`
+- locale **身份**是 `code`（BCP-47，`zh-CN`），**URL 段**可用 `path` 另配（`{ code: 'zh-CN', path: 'zh' }` → `/zh/about`，cookie / `<html lang>` / `hreflang` 仍是 `zh-CN`）；`/zh-CN/about` 不可达；两个 locale 映射同段在配置加载期抛错。全部换算收敛在 `@ubean/i18n` 的 `localeSegment` / `localeFromSegment` / `localeSegments`，**不要手拼** `/${locale}/`
 - 路由策略：`prefix` / `prefix_except_default` / `prefix_and_default` / `no_prefix`；中间件由 `createUbeanApp` 自动挂载，cookie **写入**
 - 检测顺序：URL path → cookie（`ubean_locale`）→ Accept-Language → defaultLocale；默认 `redirectOn: 'root'`
 - 切换语言走框架 `setLocale`（load + cookie + 导航）；客户端 `useI18n` 直接从 `vue-i18n` 导入（自动导入直源 vue-i18n），`setLocale` 等 ubean 封装从 `ubean/client` 导入
@@ -673,6 +674,7 @@ const json = serializeVercelConfig(config);
 | `useI18n()`（解构 `t` / `d` / `n`）                                | vue-i18n Composition API，直接从 `vue-i18n` 导入（自动导入直源；ubean 不再包装 `useI18n`/`t`） |
 | `setLocale(code)`                                                  | 框架切换：loadLocale + cookie + `router.replace(switchLocalePath)`                             |
 | `useLocalePath` / `useSwitchLocalePath` / `useLocaleHead`          | 路径与 SEO head composable                                                                     |
+| `getAvailableLocales()`                                            | 语言切换器用的 locale 元数据（`code`/`path`/`name`/`dir`/`isDefault`）；普通函数，读 globalThis 单例 |
 | `t()` / `d()` / `n()`（handler）                                   | `ubean/i18n`，读请求 ALS                                                                       |
 | `compileLocalePaths` / `createI18nMiddleware` / `getRequestLocale` | 约束前缀路径编译 + 自动检测中间件                                                              |
 

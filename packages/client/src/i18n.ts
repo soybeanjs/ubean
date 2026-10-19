@@ -12,6 +12,7 @@ import {
 } from '@ubean/i18n/browser';
 import type { LocaleRoutingConfig } from '@ubean/i18n/browser';
 import { LOCALE_DATA_ID } from '@ubean/pages';
+import type { LocaleMetaInfo } from '@ubean/pages';
 
 export type LocaleMessages = Record<string, unknown>;
 
@@ -22,6 +23,11 @@ export interface I18nRuntimeConfig {
   fallbackLocale: string;
   cookieName: string;
   baseUrl: string;
+  /**
+   * Locale code → URL segment override. `code` stays the identity (cookies,
+   * messages, `<html lang>`); only the URL uses the shorter segment.
+   */
+  paths?: Record<string, string>;
   vueI18n?: Record<string, unknown>;
 }
 
@@ -38,14 +44,8 @@ interface HydratedLocalePayload {
   routing?: LocaleRoutingConfig;
   cookieName?: string;
   baseUrl?: string;
-  locales?: Array<{ code: string; language?: string; name?: string; dir?: 'ltr' | 'rtl'; isDefault?: boolean }>;
-  availableLocales?: Array<{
-    code: string;
-    language?: string;
-    name?: string;
-    dir?: 'ltr' | 'rtl';
-    isDefault?: boolean;
-  }>;
+  locales?: LocaleMetaInfo[];
+  availableLocales?: LocaleMetaInfo[];
 }
 
 interface I18nRuntimeState {
@@ -114,7 +114,8 @@ function applyHydratedPayload(hydrated: HydratedLocalePayload): void {
       strategy: hydrated.routing.strategy,
       fallbackLocale: hydrated.fallbackLocale || hydrated.routing.defaultLocale,
       cookieName: hydrated.cookieName || 'ubean_locale',
-      baseUrl: hydrated.baseUrl || ''
+      baseUrl: hydrated.baseUrl || '',
+      ...(hydrated.routing.paths ? { paths: hydrated.routing.paths } : {})
     });
   } else if (hydrated.routing && state.config && !state.config.locales.length) {
     state.config.locales = localeCodesFrom(hydrated.routing.locales);
@@ -127,7 +128,8 @@ function routingFrom(config: I18nRuntimeConfig): LocaleRoutingConfig {
   return {
     defaultLocale: config.defaultLocale,
     locales: config.locales,
-    strategy: config.strategy
+    strategy: config.strategy,
+    paths: config.paths
   };
 }
 
@@ -269,8 +271,38 @@ export function switchLocalePath(locale: string, path?: string): string {
 }
 
 export function extractLocaleFromPath(path: string): { locale: string | null; pathWithoutLocale: string } {
-  const codes = getRuntimeConfigState()?.locales || [];
-  return extractLocaleFromPathCore(path, codes);
+  const cfg = getRuntimeConfigState();
+  return extractLocaleFromPathCore(path, cfg?.locales || [], cfg?.paths);
+}
+
+/**
+ * Locales this app can switch to, with the metadata a locale picker needs.
+ *
+ * Plain function, not a `useXxx` composable: it reads the globalThis runtime
+ * singleton, so it works in router guards, event handlers and SSR alike.
+ * Falls back to the configured codes when no catalog metadata was hydrated.
+ *
+ * `path` is the URL segment when it differs from `code` — link with
+ * `localizePath(target)` / `switchLocalePath(code)` rather than concatenating
+ * `/${code}/...`, which breaks for `{ code: 'zh-CN', path: 'zh' }`.
+ */
+export function getAvailableLocales(): LocaleMetaInfo[] {
+  const metas = getRuntimeState().metas;
+  if (metas?.length) {
+    const configured = getRuntimeConfigState();
+    return metas.map(meta => ({
+      ...meta,
+      dir: meta.dir ?? 'ltr',
+      ...(configured?.paths?.[meta.code] && !meta.path ? { path: configured.paths[meta.code] } : {})
+    }));
+  }
+  const cfg = getRuntimeConfigState();
+  return (cfg?.locales ?? []).map(code => ({
+    code,
+    dir: 'ltr',
+    ...(cfg?.paths?.[code] ? { path: cfg.paths[code] } : {}),
+    ...(code === cfg?.defaultLocale ? { isDefault: true } : {})
+  }));
 }
 
 // `useI18n` / `t` 不再由 ubean 包装导出 —— 请直接使用 `vue-i18n` 的
@@ -301,13 +333,7 @@ export function useLocaleHead(): ComputedRef<ReturnType<typeof buildLocaleHead>>
     return buildLocaleHead({
       path: route.path,
       locale: String(i18n.locale.value),
-      locales: (getRuntimeState().metas || []).map(l => ({
-        code: l.code,
-        language: l.language,
-        name: l.name,
-        dir: l.dir,
-        isDefault: l.isDefault
-      })),
+      locales: getAvailableLocales(),
       routing,
       baseUrl: cfg?.baseUrl
     });

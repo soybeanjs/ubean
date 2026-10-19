@@ -97,6 +97,7 @@ if (_i18nConfig && _i18nConfig.enabled !== false) {
       fallbackLocale: _i18nConfig.fallbackLocale || _i18nConfig.defaultLocale,
       cookieName: (_i18nConfig.detectBrowserLanguage && _i18nConfig.detectBrowserLanguage.cookieName) || 'ubean_locale',
       baseUrl: _i18nConfig.baseUrl || '',
+      paths: _i18nConfig.paths,
       vueI18n: _i18nConfig.vueI18n
     },
     loadLocale: _loadLocale,

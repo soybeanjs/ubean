@@ -313,7 +313,8 @@ export async function renderStaticPage(input) {
     renderContext.routing = {
       defaultLocale: _i18nConfig.defaultLocale || 'en',
       locales: _localeCodes,
-      strategy: _i18nConfig.strategy || 'prefix_except_default'
+      strategy: _i18nConfig.strategy || 'prefix_except_default',
+      ...(_i18nConfig.paths ? { paths: _i18nConfig.paths } : {})
     };
     const cookieName =
       _i18nConfig.detectBrowserLanguage && _i18nConfig.detectBrowserLanguage.cookieName;

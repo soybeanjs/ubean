@@ -182,6 +182,7 @@ export function expandRoutesForLocales(routes: string[], i18n: StaticSsgRenderer
   if (strategy === 'no_prefix') return dedupeRoutes(routes);
 
   const defaultLocale = i18n.defaultLocale || localeCodes[0] || '';
+  const seg = (code: string) => segmentOf(code, i18n.paths);
   const expanded: string[] = [];
 
   for (const route of routes) {
@@ -190,7 +191,7 @@ export function expandRoutesForLocales(routes: string[], i18n: StaticSsgRenderer
       continue;
     }
     // 已带 locale 前缀的 URL（crawlLinks 发现）保持原样
-    const { locale } = extractLocaleFromPath(route, localeCodes);
+    const { locale } = extractLocaleFromPath(route, localeCodes, i18n.paths);
     if (locale) {
       expanded.push(route);
       continue;
@@ -199,18 +200,18 @@ export function expandRoutesForLocales(routes: string[], i18n: StaticSsgRenderer
     const suffix = route === '/' || route === '' ? '' : route;
     switch (strategy) {
       case 'prefix':
-        for (const code of localeCodes) expanded.push(`/${code}${suffix}`);
+        for (const code of localeCodes) expanded.push(`/${seg(code)}${suffix}`);
         break;
       case 'prefix_and_default':
         expanded.push(route || '/');
-        for (const code of localeCodes) expanded.push(`/${code}${suffix}`);
+        for (const code of localeCodes) expanded.push(`/${seg(code)}${suffix}`);
         break;
       case 'prefix_except_default':
       default:
         expanded.push(route || '/');
         for (const code of localeCodes) {
           if (code === defaultLocale) continue;
-          expanded.push(`/${code}${suffix}`);
+          expanded.push(`/${seg(code)}${suffix}`);
         }
         break;
     }
@@ -227,7 +228,14 @@ export interface StaticSsgRendererI18nInit {
   enabled?: boolean;
   strategy?: 'prefix' | 'prefix_except_default' | 'prefix_and_default' | 'no_prefix';
   defaultLocale?: string;
-  locales?: Array<string | { code: string }>;
+  locales?: Array<string | { code: string; path?: string }>;
+  /** Locale code → URL segment override. See `LocaleRoutingConfig.paths`. */
+  paths?: Record<string, string>;
+}
+
+/** URL segment for a locale code (`paths` override, else the code). */
+function segmentOf(code: string, paths?: Record<string, string>): string {
+  return paths?.[code] ?? code;
 }
 
 export interface StaticSsgRendererInit {
@@ -300,7 +308,8 @@ export async function createStaticSsgRenderer(
         enabled: i18nEnabled,
         strategy,
         defaultLocale,
-        locales: localeCodes
+        locales: localeCodes,
+        paths: init.i18n?.paths
       }),
     fetcher: async (url: string) => {
       const u = new URL(url, 'http://ubean.local');
@@ -321,7 +330,11 @@ export async function createStaticSsgRenderer(
       let pathToMatch = pathname;
       let locale = defaultLocale;
       if (usePrefix) {
-        const { locale: extracted, pathWithoutLocale } = extractLocaleFromPath(pathname, localeCodes);
+        const { locale: extracted, pathWithoutLocale } = extractLocaleFromPath(
+          pathname,
+          localeCodes,
+          init.i18n?.paths
+        );
         if (extracted) {
           locale = extracted;
           pathToMatch = pathWithoutLocale;

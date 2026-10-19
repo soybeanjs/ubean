@@ -1,8 +1,8 @@
 ---
 title: UI 组件库
 description: 通过 @ubean/integrations/ui 集成的 @vean/ui UI 组件库。
-translatedFrom: e8e2dd8287b6
-sections: ["82094b02","e3b0c442","cae21a09","87339f35","c10c8730","90185c55","37f210b4","8c2eb6c6","f23f092c","bc0032f2","63bfd61a","f188bd51","fc378b7d","b5ca49fb","4ae887be","7c5d50ca","9adcf45a","6247a8b4","0d381085","2d3bc74b","3e8cd364","bc5287aa","930d3aef","f4825344","659a188b","033b24d2","c19b2854","f50ae296","38a8b234","0d19ab46","e01bf520","c1288afd","f7f6bce1"]
+translatedFrom: 457ef8e5e553
+sections: ["82094b02","e3b0c442","cae21a09","4e595cdb","c10c8730","90185c55","37f210b4","8c2eb6c6","f23f092c","4a84cd8b","bc0032f2","63bfd61a","f188bd51","fc378b7d","b5ca49fb","ccc07c0a","7c5d50ca","9adcf45a","6247a8b4","ca50d842","2d3bc74b","3e8cd364","bc5287aa","930d3aef","f4825344","659a188b","033b24d2","c19b2854","f50ae296","de5b5ca3","38a8b234","0d19ab46","e01bf520","c1288afd","f7f6bce1"]
 ---
 
 # UI 组件库（@vean/ui）
@@ -13,6 +13,7 @@ sections: ["82094b02","e3b0c442","cae21a09","87339f35","c10c8730","90185c55","37
 
 - 一行启用：在 `ubean.config.ts` 中写 `ui: true`
 - `UiResolver` 自动注册 —— `S*` 组件（`SButton`、`SInput`、`SConfigProvider`…）首次使用时自动导入，无需手写 `import`
+- **首帧主题脚本内置** —— `@vean/theme` 的 `createThemeInitScript` 作为 `<head>` 第一个脚本注入，既不会闪错主题，项目也不用自己调 `useHead()`
 - 两种样式模式：
   - **预构建 CSS**（默认）：`@vean/ui/styles.css` 自动注入客户端入口 —— 零 CSS 配置
   - **UnoCSS 模式**（`css: false`）：使用 `@vean/unocss` preset 实现原子化样式与主题
@@ -89,6 +90,38 @@ export default defineConfig({
 });
 ```
 
+### 首帧主题
+
+`ui: true` 同时接管首帧主题脚本。`@vean/theme` 的 `createThemeInitScript()` 作为 `<head>` 第一个脚本执行，暗色访客不会先看到一片白。不需要任何配置，也不用调用任何 API。
+
+这意味着 **`ui` 与 `colorMode` 互斥** —— `ui` 开启时 `colorMode` 被强制关闭：
+
+```typescript
+export default defineConfig({
+  ui: true
+  // colorMode 自动关闭：它只写 `.dark-mode`，
+  // 而 @vean/theme / @vean/unocss 写 `.dark`。
+  // 两份脚本并存必有一份静默失效。
+});
+```
+
+同时显式写 `colorMode` 时仍然是 `ui` 胜出，但启动会打一条警告。如果需要 ubean 自己的脚本回来，要么去掉 `ui`，要么退出内置脚本：
+
+```typescript
+export default defineConfig({
+  ui: { theme: { initScript: false } },
+  colorMode: true
+});
+```
+
+`darkSelector` 必须与你的 `SConfigProvider` theme props 及 `@vean/unocss` 配置一致 —— 脚本让它切什么它就切什么，不一致只会静默失效：
+
+```typescript
+export default defineConfig({
+  ui: { theme: { darkSelector: 'media' } } // 跟随 prefers-color-scheme
+});
+```
+
 ### 关闭模块
 
 显式关闭该模块（等同于不写这个字段）：
@@ -158,7 +191,9 @@ import { SButton, useToast } from '@vean/ui';
 
 4. **CSS 注入**（当 `css !== false` 时）：`ubeanUiPlugin` 调用 `registerCssImport('@vean/ui/styles.css')`。`virtual:ubean-client-entry` 虚拟模块会在客户端入口前面加上 `import '@vean/ui/styles.css';`，因此预构建样式表会自动随客户端 bundle 一起发布。
 
-5. **dev `optimizeDeps`**：`ubeanUiPlugin` 把 `@vean/ui` 加入 Vite 的 `optimizeDeps.include`，确保组件库被预打包，从而 dev 首屏加载更快。
+5. **首帧主题脚本**（当 `theme.initScript !== false` 时）：`ubeanUiPlugin` 调 `@vean/theme/ssr` 的 `createThemeInitScript()`，把结果交给 `registerHeadScript()`。所有 HTML 出口 —— dev 的 `transformIndexHtml`、fullstack 服务端入口、SSG 静态入口、SPA 的 `index.html` —— 都把注册的脚本插到 **`<head>` 的第一个位置**。放在首位不是为了好看：解析器插入的脚本若排在阻塞样式表之后会被延迟，而主题 class 必须在首帧前就位。
+
+6. **dev `optimizeDeps`**：`ubeanUiPlugin` 把 `@vean/ui` 加入 Vite 的 `optimizeDeps.include`，确保组件库被预打包，从而 dev 首屏加载更快。
 
 > 注册表模式让 `@ubean/vite` 与具体组件库解耦 —— 未来其他内置 UI 集成可以复用同一套机制。
 
@@ -190,6 +225,34 @@ export interface UiOptions {
    * - `false`：UnoCSS 模式 —— 由你自己配置 `@vean/unocss`
    */
   css?: boolean;
+  /**
+   * 首帧主题脚本（`@vean/theme` 的 `createThemeInitScript`）选项。
+   * 默认注入；传 `false` 退出。
+   */
+  theme?: UiThemeOptions | false;
+}
+
+export interface UiThemeOptions {
+  /** 是否注入主题初始化脚本（默认 true） */
+  initScript?: boolean;
+  /**
+   * 暗色模式的表达方式，默认 `'class'`（即 `.dark`）。
+   *
+   * - `'class'`：切换 `.dark` 类（`@vean/unocss` preset 的默认值）
+   * - `'media'`：跟随 `prefers-color-scheme`
+   * - `'.xxx'` / `'[data-theme="dark"]'`：自定义选择器
+   */
+  darkSelector?: 'class' | 'media' | string;
+  /** 主题信封的 localStorage key，默认 `__VEAN_THEME` */
+  storageKey?: string;
+  /** 首帧脚本打补丁的 `<style>` 元素 id，默认 `vean-theme` */
+  styleId?: string;
+  /**
+   * 脚本是否同时写 `documentElement.style.colorScheme`
+   * （默认 true）。关掉会让滚动条 / 表单控件 / autofill
+   * 在暗色下仍是亮色。
+   */
+  setColorScheme?: boolean;
 }
 ```
 
@@ -290,6 +353,12 @@ export default defineConfig({
 - 确认 `@vean/unocss` 已安装并加入 `uno.config.ts` 的 presets
 - 若该 preset 提供 `generated: { reset: true, global: true, ui: true }` 选项，请将其开启
 - 检查 `uno.config.ts` 的 `content` / `include` 匹配范围是否覆盖你的 `.vue` 文件
+
+### 首屏主题闪烁
+
+- `ui` 会自动注入脚本；如果自己用 `theme: { initScript: false }` 退出了，必须自己把 `createThemeInitScript()` 作为 `<head>` **第一个**脚本注入
+- 确认 `colorMode` 没同时开启 —— 两份脚本写不同的 class，只有后一份能生效
+- 如果暗色留不住，检查 `theme.darkSelector` 和 CSS 实际用的选择器是否一致（默认 `.dark`）
 
 ### `S*` 组件报类型错误
 

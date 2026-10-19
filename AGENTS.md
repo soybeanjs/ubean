@@ -847,14 +847,23 @@ import type { UiOptions } from '@ubean/integrations/ui';
 - `ubean.config.ts` 中 `ui: true` 或 `ui: { ... }` 启用
 - **组件自动导入**：自动注册 `UiResolver` 到 `unplugin-vue-components`，`S*` 组件（SButton、SInput 等）无需手动 import
 - **CSS 自动注入**：`css: true`（默认）自动将 `import '@vean/ui/styles.css'` 注入客户端入口
-- **UnoCSS 模式**：`css: false` 时不注入预构建样式，用户需自行配置 `@vean/unocss` preset + UnoCSS Vite 插件
+- **首帧主题脚本内置**：`theme.initScript`（默认 `true`）调 `@vean/theme/ssr` 的 `createThemeInitScript()` 注册到 `registerHeadScript()`，dev / fullstack / ssg / spa 四条 HTML 出口统一插在 `<head>` 首位；**此时 `colorMode` 被强制关闭**（vean 写 `.dark`、ubean 写 `.dark-mode`，两份并存必有一份静默失效）。`ui: { theme: { initScript: false } }` 可退回手动注入
+- **UnoCSS 模式**：`css: false` 时不注入预构建样式，用户需自行配置 `@vean/unocss` preset + UnoCSS Vite 插件；`theme.darkSelector` 必须与 `@vean/unocss` 的 `darkSelector` 及 `SConfigProvider` 的 theme props 同值（默认 `'class'` → `.dark`）
 
 **最简启用**：
 
 ```typescript
 // ubean.config.ts
 export default defineConfig({
-  ui: true // 自动注入 styles.css + UiResolver
+  ui: true // 自动注入 styles.css + UiResolver + 首帧主题脚本（colorMode 自动关闭）
+});
+```
+
+**自定义首帧主题**：
+
+```typescript
+export default defineConfig({
+  ui: { theme: { darkSelector: 'media' } } // 跟随 prefers-color-scheme
 });
 ```
 

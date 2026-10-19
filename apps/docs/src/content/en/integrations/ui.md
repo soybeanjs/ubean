@@ -11,6 +11,7 @@ description: UI components from @vean/ui, integrated via @ubean/integrations/ui.
 
 - One-line enable: `ui: true` in `ubean.config.ts`
 - `UiResolver` auto-registration — `S*` components (`SButton`, `SInput`, `SConfigProvider`, ...) are auto-imported on first use, no manual `import` needed
+- **First-paint theme script built in** — `@vean/theme`'s `createThemeInitScript` is injected as the first `<head>` script, so there is no flash of the wrong theme and no `useHead()` call in your project
 - Two styling modes:
   - **Prebuilt CSS** (default): `@vean/ui/styles.css` is auto-injected into the client entry — zero CSS setup
   - **UnoCSS mode** (`css: false`): use `@vean/unocss` preset for utility-first styling and theming
@@ -87,6 +88,38 @@ export default defineConfig({
 });
 ```
 
+### First-Paint Theme
+
+`ui: true` also takes over the first-paint theme script. `@vean/theme`'s `createThemeInitScript()` runs as the first script in `<head>`, so a dark-mode visitor never sees a white flash. Nothing to configure, nothing to call.
+
+This means **`ui` and `colorMode` are mutually exclusive** — `colorMode` is forced off when `ui` is on:
+
+```typescript
+export default defineConfig({
+  ui: true
+  // colorMode is disabled automatically: it only writes `.dark-mode`,
+  // while @vean/theme / @vean/unocss write `.dark`. Two scripts would
+  // mean one silently loses.
+});
+```
+
+Setting `colorMode` explicitly alongside `ui` still lets `ui` win, but logs one warning at startup. If you need ubean's own script back, either drop `ui` or opt out of the built-in one:
+
+```typescript
+export default defineConfig({
+  ui: { theme: { initScript: false } },
+  colorMode: true
+});
+```
+
+`darkSelector` must match your `SConfigProvider` theme props and `@vean/unocss` config — the script toggles whatever it is told, and a mismatch fails silently:
+
+```typescript
+export default defineConfig({
+  ui: { theme: { darkSelector: 'media' } } // follow prefers-color-scheme
+});
+```
+
 ### Disabling
 
 To disable the module explicitly (same as omitting it):
@@ -156,7 +189,9 @@ See the [`@vean/ui` docs](https://www.npmjs.com/package/@vean/ui) for the full l
 
 4. **CSS injection** (when `css !== false`): `ubeanUiPlugin` calls `registerCssImport('@vean/ui/styles.css')`. The `virtual:ubean-client-entry` virtual module prepends `import '@vean/ui/styles.css';` to the client entry, so the prebuilt stylesheet ships with the client bundle automatically.
 
-5. **dev `optimizeDeps`**: `ubeanUiPlugin` adds `@vean/ui` to Vite's `optimizeDeps.include`, ensuring the component library is pre-bundled for fast first page load in dev.
+5. **First-paint theme script** (when `theme.initScript !== false`): `ubeanUiPlugin` calls `createThemeInitScript()` from `@vean/theme/ssr` and hands the result to `registerHeadScript()`. Every HTML surface — dev `transformIndexHtml`, the fullstack server entry, the SSG static entry, and the SPA `index.html` — injects the registered scripts at the **first position inside `<head>`**. Placing them first is not cosmetic: a parser-inserted script that lands after a blocking stylesheet is deferred, and the theme class must be set before the first paint.
+
+6. **dev `optimizeDeps`**: `ubeanUiPlugin` adds `@vean/ui` to Vite's `optimizeDeps.include`, ensuring the component library is pre-bundled for fast first page load in dev.
 
 > The registry pattern keeps `@ubean/vite` decoupled from any specific component library — future built-in UI integrations can reuse the same mechanism.
 
@@ -188,6 +223,34 @@ export interface UiOptions {
    * - `false`: UnoCSS mode — configure `@vean/unocss` yourself
    */
   css?: boolean;
+  /**
+   * Options for the first-paint theme script (`@vean/theme`'s
+   * `createThemeInitScript`). Injected by default; `false` opts out.
+   */
+  theme?: UiThemeOptions | false;
+}
+
+export interface UiThemeOptions {
+  /** Inject the theme init script (default: true). */
+  initScript?: boolean;
+  /**
+   * How dark mode is expressed (default: `'class'`, i.e. `.dark`).
+   *
+   * - `'class'`: toggle a `.dark` class (`@vean/unocss`'s default)
+   * - `'media'`: follow `prefers-color-scheme`
+   * - `'.xxx'` / `'[data-theme="dark"]'`: custom selector
+   */
+  darkSelector?: 'class' | 'media' | string;
+  /** localStorage key of the theme envelope (default: `__VEAN_THEME`). */
+  storageKey?: string;
+  /** id of the `<style>` element the script patches (default: `vean-theme`). */
+  styleId?: string;
+  /**
+   * Whether the script also sets `documentElement.style.colorScheme`
+   * (default: true). Turning this off leaves scrollbars, form controls and
+   * autofill light while the page is dark.
+   */
+  setColorScheme?: boolean;
 }
 ```
 
@@ -288,6 +351,12 @@ For UnoCSS mode, ensure `@vean/unocss`'s generated styles are included in both c
 - Verify `@vean/unocss` is installed and added to `uno.config.ts` presets
 - Enable the preset's `generated: { reset: true, global: true, ui: true }` option if available
 - Check `uno.config.ts` `content` / `include` patterns cover your `.vue` files
+
+### Theme flashes on load
+
+- `ui` injects the script automatically; if you opted out with `theme: { initScript: false }`, you must inject `createThemeInitScript()` yourself as the **first** script in `<head>`
+- Verify `colorMode` is not also enabled — two scripts writing different classes means only the last one wins
+- If dark mode does not stick, check that `theme.darkSelector` matches the selector your CSS actually uses (`.dark` by default)
 
 ### Type errors for `S*` components
 

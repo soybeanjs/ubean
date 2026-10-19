@@ -1,5 +1,32 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.5...main) (2026-10-19) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **i18n**: allow a short URL segment per locale while keeping BCP-47 codes &nbsp;-&nbsp; by @soybeanjs [<samp>(d3e69)</samp>](https://github.com/soybeanjs/ubean/commit/d3e69ab0)
+- **integrations**: auto-inject @vean/theme first-paint script when ui is enabled &nbsp;-&nbsp; by @soybeanjs [<samp>(acfac)</samp>](https://github.com/soybeanjs/ubean/commit/acfac0db)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **pages**: declare language on LocaleMetaInfo &nbsp;-&nbsp; by @soybeanjs [<samp>(e96b3)</samp>](https://github.com/soybeanjs/ubean/commit/e96b3c9a)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **integrations**: document the built-in first-paint theme script &nbsp;-&nbsp; by @soybeanjs [<samp>(989f7)</samp>](https://github.com/soybeanjs/ubean/commit/989f7061)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**:
+  - update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(6ad8f)</samp>](https://github.com/soybeanjs/ubean/commit/6ad8ff20)
+  - update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(23e12)</samp>](https://github.com/soybeanjs/ubean/commit/23e12e20)
+- **package**:
+  - update upkg script to use soy ncu &nbsp;-&nbsp; by @soybeanjs [<samp>(78376)</samp>](https://github.com/soybeanjs/ubean/commit/783769bd)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.4...main) (2026-10-18) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

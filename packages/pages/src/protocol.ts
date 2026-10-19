@@ -25,6 +25,12 @@ export interface LocaleMetaInfo {
   code: string;
   /** URL segment when it differs from `code`. */
   path?: string;
+  /**
+   * BCP-47 language tag used for `<html lang>`, `hreflang` and `og:locale`.
+   * Falls back to `code` when absent. Distinct from `code`: `code` is the
+   * identity (composer key, cookie value), `path` is the URL segment.
+   */
+  language?: string;
   name?: string;
   dir: 'ltr' | 'rtl';
   isDefault?: boolean;

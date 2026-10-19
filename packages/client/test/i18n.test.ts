@@ -169,16 +169,27 @@ describe('paths override (code stays BCP-47, URL uses a short segment)', () => {
     configureI18nRuntime({
       config,
       locales: [
-        { code: 'en', name: 'English', dir: 'ltr', isDefault: true },
-        { code: 'zh-CN', name: '简体中文', dir: 'ltr' }
+        { code: 'en', language: 'en', name: 'English', dir: 'ltr', isDefault: true },
+        { code: 'zh-CN', language: 'zh-CN', name: '简体中文', dir: 'ltr' }
       ]
     });
     const available = getAvailableLocales();
     expect(available).toEqual([
-      { code: 'en', name: 'English', dir: 'ltr', isDefault: true },
+      { code: 'en', language: 'en', name: 'English', dir: 'ltr', isDefault: true },
       // `path` comes from the runtime config when the catalog does not carry it.
-      { code: 'zh-CN', name: '简体中文', dir: 'ltr', path: 'zh' }
+      { code: 'zh-CN', language: 'zh-CN', name: '简体中文', dir: 'ltr', path: 'zh' }
     ]);
+  });
+
+  it('carries `language` so hreflang and og:locale survive a short URL segment', () => {
+    // `code` is the identity, `path` is the URL segment, `language` is what
+    // `<html lang>`, `hreflang` and `og:locale` must say. Dropping `language`
+    // here silently degrades all three to the code.
+    configureI18nRuntime({
+      config,
+      locales: [{ code: 'zh-CN', language: 'zh-Hans-CN', name: '简体中文', dir: 'ltr' }]
+    });
+    expect(getAvailableLocales()[0]).toMatchObject({ code: 'zh-CN', language: 'zh-Hans-CN', path: 'zh' });
   });
 
   it('keeps a hydrated `path` when the catalog provides one', () => {

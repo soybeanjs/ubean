@@ -34,7 +34,7 @@
     "test:watch": "pnpm -r test:watch",
     "typecheck": "pnpm build && pnpm typecheck-only",
     "typecheck-only": "pnpm -r --parallel typecheck",
-    "upkg": "ncu -u -w"
+    "upkg": "soy ncu"
   },
   "devDependencies": {
     "@soybeanjs/cli": "^1.8.4",

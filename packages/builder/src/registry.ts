@@ -25,6 +25,7 @@ const REGISTRY_KEY = '__ubean_module_registry__';
 interface GlobalRegistry {
   componentResolvers: ComponentResolver[];
   cssImports: string[];
+  headScripts: string[];
 }
 
 function getRegistry(): GlobalRegistry {
@@ -32,7 +33,8 @@ function getRegistry(): GlobalRegistry {
   if (!g[REGISTRY_KEY]) {
     g[REGISTRY_KEY] = {
       componentResolvers: [],
-      cssImports: []
+      cssImports: [],
+      headScripts: []
     };
   }
   return g[REGISTRY_KEY];
@@ -75,6 +77,31 @@ export function getCssImports(): string[] {
 }
 
 /**
+ * Register an inline `<script>` to be injected as the first element of `<head>`.
+ * e.g. `@ubean/integrations/ui` registers `@vean/theme`'s first-paint script so a
+ * project using `ui: true` needs no manual `useHead()` injection.
+ *
+ * The script must be self-contained and must run **before** any blocking
+ * stylesheet: the three injection points (`transformIndexHtml`, the fullstack
+ * server entry and the ssg static entry) all prepend it right after `<head>`.
+ */
+export function registerHeadScript(script: string): void {
+  if (!script) return;
+  const reg = getRegistry();
+  if (!reg.headScripts.includes(script)) {
+    reg.headScripts.push(script);
+  }
+}
+
+/**
+ * Get all registered head scripts, joined in registration order.
+ * Called by the dev HTML transform and the build-time server/ssg entries.
+ */
+export function getHeadScripts(): string {
+  return getRegistry().headScripts.join('\n');
+}
+
+/**
  * Reset the registry (for testing).
  * @internal
  */
@@ -82,4 +109,5 @@ export function resetModuleRegistry(): void {
   const reg = getRegistry();
   reg.componentResolvers.length = 0;
   reg.cssImports.length = 0;
+  reg.headScripts.length = 0;
 }

@@ -9,5 +9,6 @@ export {
   createVuePagesVirtualModule,
   createVueAppEntryVirtualModule,
   createClientEntryVirtualModule,
-  createServerEntryVirtualModule
+  createServerEntryVirtualModule,
+  composeHeadScripts
 } from './vue-virtual-modules';

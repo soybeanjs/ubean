@@ -27,7 +27,8 @@ import {
   createVuePagesVirtualModule,
   createVueAppEntryVirtualModule,
   createClientEntryVirtualModule,
-  createServerEntryVirtualModule
+  createServerEntryVirtualModule,
+  composeHeadScripts
 } from './vue-virtual-modules';
 
 export interface UbeanViteOptions {
@@ -272,12 +273,16 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
         return html;
       }
       let result = html;
-      // P9-21: Inject color mode no-FOUC script as the first element in <head>
-      // so the correct class/attribute is set before the browser paints.
-      const colorModeConfig = ubeanConfig.colorMode;
-      if (colorModeConfig !== false) {
-        const script = getColorModeScript(resolveColorModeConfig(colorModeConfig));
-        result = result.replace('<head>', `<head>\n    ${script}`);
+      // 首帧无闪烁脚本：`ui` 模块（vean 主题引擎）注册的脚本优先，回退到内置 color-mode。
+      // 两者互斥 —— 配置层在 `ui` 接管时把 `colorMode` 置 false（`resolveColorModeOwnership`），
+      // 所以 `composeHeadScripts` 通常只拼接一个来源。必须是 `<head>` 的**第一个**元素：
+      // 解析器插入的脚本排在阻塞样式表之后时会被 HTML 规范延后执行。
+      // P9-21 / ui-theme: inject no-FOUC script as the first element in <head>.
+      const rawColorModeScript =
+        ubeanConfig.colorMode !== false ? getColorModeScript(resolveColorModeConfig(ubeanConfig.colorMode)) : '';
+      const headScript = composeHeadScripts(rawColorModeScript);
+      if (headScript) {
+        result = result.replace('<head>', `<head>\n    ${headScript}`);
       }
       // P9-22: Inject Partytown config script when enabled.
       // Partytown must be configured before third-party scripts that use

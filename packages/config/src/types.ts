@@ -85,6 +85,30 @@ export interface UiModuleConfig {
    * 设为 false 时使用 UnoCSS 模式（用户自行配置 @vean/unocss）。
    */
   css?: boolean;
+  /**
+   * 首帧主题脚本（`@vean/theme` 的 `createThemeInitScript`）。
+   *
+   * 默认注入，且此时 ubean 内置的 `colorMode` 会被强制关闭 —— vean 主题引擎
+   * 完全接管首帧淡入淡出，两者不会往 `<head>` 里各插一份互相抵消的脚本。
+   *
+   * 传 `false` 或 `{ initScript: false }` 退回手动 `useHead()` 注入。
+   * `darkSelector` 必须与 `SConfigProvider` 的 `theme` props 及 `@vean/unocss`
+   * preset 的 `darkSelector` 保持一致 —— 脚本切错的 class 不报错，只是不生效。
+   */
+  theme?:
+    | false
+    | {
+        /** 是否注入首帧脚本，默认 true */
+        initScript?: boolean;
+        /** 暗色表达方式，默认 `'class'`（即 `.dark`）；也可 `'media'` 或自定义选择器 */
+        darkSelector?: 'class' | 'media' | string;
+        /** 主题信封的 localStorage key，默认 `__VEAN_THEME` */
+        storageKey?: string;
+        /** 首帧脚本打补丁的 `<style>` 元素 id，默认 `vean-theme` */
+        styleId?: string;
+        /** 是否同时写 `documentElement.style.colorScheme`，默认 true */
+        setColorScheme?: boolean;
+      };
 }
 
 /**

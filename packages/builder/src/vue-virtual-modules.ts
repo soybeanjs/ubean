@@ -1,6 +1,6 @@
 import type { ScannedPageRoute, ScannedLayout, ScannedAppEntry, ScannedServerEntry } from '@ubean/scan';
 import { generatePagesModuleSource } from '@ubean/vue/vite';
-import { getCssImports } from './registry';
+import { getCssImports, getHeadScripts } from './registry';
 import { defineVirtualModule } from './virtual-registry';
 
 /**
@@ -348,6 +348,22 @@ export async function createSSRApp(initialPage) {
 export const rootId = 'app';
 `.trim()}\n`;
   });
+}
+
+/**
+ * 合并首帧 `<head>` 脚本的两个来源，去重后返回。
+ *
+ * 通常只有一个源生效：`ui` 接管时配置层强制把 `colorMode` 置 false，所以两边不会同时非空。
+ * 两个源合成一个字符串后，三条注入路径（dev `transformIndexHtml`、fullstack 服务端入口、
+ * ssg 静态入口）只需要一个 `colorModeScript` 字段，不必各自改签名。
+ *
+ * @param colorModeScript - 已渲染的 ubean color-mode 脚本（`getColorModeScript()` 产物）
+ */
+export function composeHeadScripts(colorModeScript: string): string {
+  const headScripts = getHeadScripts();
+  if (!headScripts) return colorModeScript;
+  if (!colorModeScript) return headScripts;
+  return `${headScripts}\n${colorModeScript}`;
 }
 
 export function createClientEntryVirtualModule() {

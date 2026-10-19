@@ -155,6 +155,7 @@ const EXPECTED_EXPORTS: Record<string, string[]> = {
     'initCachedViewsFromRoutes',
     'insertSsrContent',
     'insertStateContent',
+    'integrationOwnsFirstPaintScript',
     'invalidateAll',
     'invalidateCache',
     'invalidateData',

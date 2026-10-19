@@ -1,5 +1,4 @@
 import { defineApp } from 'ubean/client';
-import { createThemeInitScript } from '@vean/theme/ssr';
 import { progress } from '@vean/ui';
 import 'uno.css';
 import { docsFontLinks } from './shared/fonts';
@@ -13,8 +12,10 @@ export default defineApp({
     meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1.0' }],
     // The theme engine can swap `--font-*` at runtime, so every family it can
     // select has to be loaded up front — see `shared/fonts.ts`.
-    link: docsFontLinks,
-    script: [{ innerHTML: createThemeInitScript() }]
+    link: docsFontLinks
+    // 首帧主题脚本由 `ui` 模块自动注入（`@vean/theme` 的 `createThemeInitScript`），
+    // 这里再手动加一份会在 `<head>` 里出现两次 —— 同一段脚本执行两遍，
+    // 且后一份可能落在阻塞样式表之后（迟于首帧）。
   },
   router: {
     setup(router) {

@@ -7,6 +7,7 @@ import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/scan';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
+import { composeHeadScripts } from './vue-virtual-modules';
 import { buildAssetTagsSetup, buildRendererSetup, buildStaticSsgEntry } from './ssg-entry';
 import {
   createRoutingVirtualModule,
@@ -280,11 +281,16 @@ export async function generateVirtualModulesToDisk(
       : null
   );
 
-  // Pre-render the no-FOUC color-mode script at build time so the SSG/prerender
+  // Pre-render the no-FOUC first-paint script at build time so the SSG/prerender
   // path (which bypasses Vite's `transformIndexHtml`) can inject it into every
   // HTML response. Dev mode is handled by `transformIndexHtml` in the vite plugin.
-  const colorModeScript =
-    config.colorMode !== false ? getColorModeScript(resolveColorModeConfig(config.colorMode)) : '';
+  //
+  // The script comes from one of two mutually exclusive sources: `@vean/theme`
+  // (registered by `ui`, the config layer then forces `colorMode: false`) or the
+  // built-in color mode. `composeHeadScripts` joins whichever is present.
+  const colorModeScript = composeHeadScripts(
+    config.colorMode !== false ? getColorModeScript(resolveColorModeConfig(config.colorMode)) : ''
+  );
 
   const rendererImport = ssrEnabled ? `import { createVueRenderer } from 'ubean/ssr';` : '';
   const prodLocaleVueParam = localeVueParamFromI18n(config.i18n) || '';

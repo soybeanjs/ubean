@@ -100,13 +100,15 @@ export async function writeClientIndexHtml(virtualDir: string): Promise<string> 
 export async function writeSpaIndexHtml(options: {
   outDirs: BuildOutDirs;
   tags: { css: string; body: string; favicon: string | null };
+  /** 首帧 `<head>` 脚本（ui 的 vean 主题脚本或内置 color-mode），必须是 `<head>` 第一个元素。 */
+  headScript?: string;
 }): Promise<string> {
-  const { outDirs, tags } = options;
+  const { outDirs, tags, headScript } = options;
   const target = join(outDirs.public, 'index.html');
   const favicon = tags.favicon ?? '/favicon.svg';
   const html = `<!DOCTYPE html>
 <html>
-<head>
+<head>${headScript ? `\n  ${headScript}` : ''}
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="${favicon}" type="image/svg+xml" />

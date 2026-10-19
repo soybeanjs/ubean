@@ -29,6 +29,7 @@ import { cp } from 'node:fs/promises';
 import { createBuilder, perEnvironmentPlugin } from 'vite';
 import type { Plugin as VitePlugin } from 'vite';
 import { resolveModules } from '@ubean/config';
+import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import { getLogger } from '@ubean/shared/logger';
 import { findUserViteConfig } from '@ubean/shared/node';
@@ -48,6 +49,7 @@ import { ubeanPlugin } from '../vite';
 import { ubeanVite } from '../vue';
 import { ubeanAssetManifestPlugin, computeAssetTags } from './asset-manifest';
 import type { ClientManifestEntry } from './asset-manifest';
+import { composeHeadScripts } from '../vue-virtual-modules';
 import { createBuildEnvironments } from './build-configs';
 import {
   cleanBuildOutput,
@@ -151,18 +153,7 @@ export async function prepareBuild(
     ssrEnabled: ctx.ssrEnabled
   });
 
-  logger.info('Generating virtual modules...');
   const virtualRegistry = createVirtualRegistry();
-  await generateVirtualModulesToDisk(
-    cwd,
-    config,
-    scanResult,
-    outDirs.virtual,
-    preset,
-    virtualRegistry,
-    contentSnapshot
-  );
-  if (hasPages) await writeClientIndexHtml(outDirs.virtual);
 
   const userViteConfig = findUserViteConfig(cwd);
   // 资产标签虚拟模块**只留一个提供者**：有用户 `vite.config` 时由其中的核心插件提供（它会走
@@ -193,6 +184,22 @@ export async function prepareBuild(
   const { plugins } = await resolveModules({ cwd, config, builtinPlugins });
   // islands SSR 空壳只作用于 ubean 环境（env 级 plugins 不在配置面里，用 perEnvironmentPlugin 限定）
   if (hasServer) plugins.push(perEnvironmentPlugin('ubean', () => createIslandsSsrStubPlugin()));
+
+  // **必须在 `resolveModules()` 之后**：内建模块的注册（`ui` 的 `registerHeadScript`、各模块的
+  // `registerCssImport`）发生在模块工厂里，而这里要把它写进服务端 / ssg 入口模板。
+  // 曾经先跑这一步再 `resolveModules()`，结果生产产物里的首帧脚本与 CSS 导入**全为空** ——
+  // dev 正常（`transformIndexHtml` 在请求时读注册表），只有构建产物丢，最难查的那种。
+  logger.info('Generating virtual modules...');
+  await generateVirtualModulesToDisk(
+    cwd,
+    config,
+    scanResult,
+    outDirs.virtual,
+    preset,
+    virtualRegistry,
+    contentSnapshot
+  );
+  if (hasPages) await writeClientIndexHtml(outDirs.virtual);
 
   return { ...ctx, plugins, presetBuildConfig: getPresetBuildConfig(preset), manifestRef };
 }
@@ -241,7 +248,13 @@ export async function runEnvBuilds(
     const tags = computeAssetTags(clientManifest);
     await writeSpaIndexHtml({
       outDirs,
-      tags: { css: tags.css, body: tags.body, favicon: prepared.config.favicon }
+      tags: { css: tags.css, body: tags.body, favicon: prepared.config.favicon },
+      // spa 没有服务端入口，首帧脚本只能写进这个静态入口。与 fullstack / ssg 同源（`composeHeadScripts`）。
+      headScript: composeHeadScripts(
+        prepared.config.colorMode !== false
+          ? getColorModeScript(resolveColorModeConfig(prepared.config.colorMode))
+          : ''
+      )
     });
   }
 

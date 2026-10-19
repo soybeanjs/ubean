@@ -50,8 +50,9 @@ export default defineConfig({
   // `ui: true` registers `@vean/ui/resolver` for S* component auto-import.
   ui: { css: false },
 
-  // Theme state is owned by @vean/theme (createThemeInitScript in app.ts);
-  // disabling the built-in colorMode avoids a second, conflicting source.
+  // Theme state is owned by @vean/theme: `ui` injects `createThemeInitScript` into
+  // `<head>` automatically, and disable the built-in colorMode so there is only
+  // one source of truth for the first paint.
   colorMode: false,
 
   // Full-text content search (@ubean/content). Each locale is its own collection

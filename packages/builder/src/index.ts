@@ -25,6 +25,8 @@ export {
   getComponentResolvers,
   registerCssImport,
   getCssImports,
+  registerHeadScript,
+  getHeadScripts,
   resetModuleRegistry
 } from './registry';
 

@@ -9,3 +9,4 @@ export * from './env';
 export * from './path';
 export * from './glob';
 export * from './string';
+export * from './first-paint';

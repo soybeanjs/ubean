@@ -22,6 +22,39 @@
  * export default defineConfig({ ui: { css: false } });
  * ```
  */
+/**
+ * `@vean/theme` 首帧脚本的选项。
+ *
+ * 必须与 `SConfigProvider` 的 `theme` props / `@vean/unocss` 的 `darkSelector`
+ * 保持一致 —— 脚本切错的 class 不会报错，只会静默不生效。
+ */
+export interface UiThemeOptions {
+  /**
+   * 注入 `@vean/theme` 的 `createThemeInitScript` 作为 `<head>` 第一个脚本，
+   * 免去项目手动 `useHead()` 注入。默认 true。
+   *
+   * 默认开启时 ubean 内置的 `colorMode` 会被强制关闭（两套首帧脚本互斥）。
+   */
+  initScript?: boolean;
+  /**
+   * 暗色模式的表达方式，默认 `'class'`（即 `.dark`）。
+   *
+   * - `'class'`：切换 `.dark` 类（`@vean/unocss` preset 的默认值）
+   * - `'media'`：跟随 `prefers-color-scheme`
+   * - `'.xxx'` / `'[data-theme="dark"]'`：自定义选择器
+   */
+  darkSelector?: 'class' | 'media' | string;
+  /** 主题信封的 localStorage key，默认 `__VEAN_THEME`。 */
+  storageKey?: string;
+  /** 首帧脚本打补丁的 `<style>` 元素 id，默认 `vean-theme`。 */
+  styleId?: string;
+  /**
+   * 脚本是否同时写 `documentElement.style.colorScheme`，默认 true。
+   * 关掉会让滚动条 / 表单控件 / autofill 在暗色下仍是亮色。
+   */
+  setColorScheme?: boolean;
+}
+
 export interface UiOptions {
   /** 是否启用，默认 true */
   enabled?: boolean;
@@ -32,4 +65,11 @@ export interface UiOptions {
    * - `false`：不注入样式，用户需自行配置 UnoCSS + `@vean/unocss` preset
    */
   css?: boolean;
+  /**
+   * 首帧主题脚本（`@vean/theme/createThemeInitScript`）的注入选项。
+   *
+   * 默认注入，且此时 ubean 的 `colorMode` 自动关闭 —— vean 的主题引擎完全接管
+   * 首帧淡入淡出。传 `{ initScript: false }` 可退回手动注入。
+   */
+  theme?: UiThemeOptions | false;
 }

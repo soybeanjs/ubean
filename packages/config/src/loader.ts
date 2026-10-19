@@ -3,6 +3,8 @@ import { defu } from 'defu';
 import { loadConfig } from 'c12';
 import { createJiti } from 'jiti';
 import { resolve, join } from 'pathe';
+import { getLogger } from '@ubean/shared/logger';
+import { integrationOwnsFirstPaintScript } from '@ubean/shared';
 import { resolveI18nConfig } from './i18n';
 import { resolveEnvConfig } from './env';
 import { resolveRoutingConfig } from './routing';
@@ -338,10 +340,39 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   // 重新解析 env(同 logging:用户写 `env: undefined` 时 defu 会留下 undefined,
   // 而消费侧(env 插件 / codegen)期望一个空对象)
   resolved.env = resolveEnvConfig(config.env);
+  // ui 接管首帧主题脚本时，关闭内置 colorMode。两边都往 `<head>` 首位插脚本时
+  // 产物里就有两份互相抵消的实现（ubean 写 `.dark-mode`，vean 写 `.dark`）。
+  resolveColorModeOwnership(resolved, config);
   // 解析 favicon(自动检测 public 目录或使用用户配置的路径)
   const publicDir = join(resolved.rootDir, resolved.dir.public);
   resolved.favicon = resolveFavicon(config.favicon, publicDir);
   return resolved;
+}
+
+/**
+ * 把 `colorMode` 的归属定下来：`ui` 接管时它让位。
+ *
+ * 判据来自 `@ubean/shared` 的 `integrationOwnsFirstPaintScript()`，与
+ * `@ubean/integrations/ui` 的 `ubeanUiPlugin()` 共用同一份实现 —— 两处不一致就会
+ * 同时注入两份首帧脚本（ubean 写 `.dark-mode`、vean 写 `.dark`，UnoCSS 只认后者），
+ * 静默失效比报错更难排查。
+ *
+ * 显式写了 `colorMode` 仍然让 `ui` 胜出，但警告一次并给出关掉的办法。
+ * 导出供测试（`ui` × `colorMode` 的四种组合都要锁住）。
+ */
+export function resolveColorModeOwnership(resolved: ResolvedConfig, userConfig: UbeanConfig): void {
+  if (!integrationOwnsFirstPaintScript(resolved)) return;
+  if (userConfig.colorMode === false) return;
+
+  if (userConfig.colorMode !== undefined) {
+    getLogger('config').warn(
+      '`colorMode` is ignored because `ui` owns the first-paint theme script ' +
+        '(@vean/theme). Remove `colorMode` from ubean.config.ts, or opt out of the ' +
+        'built-in script with `ui: { theme: { initScript: false } }` to keep using it.'
+    );
+  }
+
+  resolved.colorMode = false;
 }
 
 /**

@@ -137,6 +137,14 @@ describe('buildRendererSetup()', () => {
     expect(code).toContain('":locale(zh)?"');
     expect(code).toContain('toVueRouterLocalePath');
   });
+
+  it('透传 definePage 的 meta 到 SSR 路由（与客户端 buildRouteMeta 同形）', () => {
+    const code = buildRendererSetup({ ssrEnabled: true, mode: 'fullstack', localeVueParam: '' });
+
+    // 少了这一层，靠 route.meta 取参数的页面（如内嵌页的 iframeUrl）在 SSR 首屏
+    // 只能渲染空态，水合后才有值 —— dev 走 buildDevSsrRoutes，产物走这里，两处必须同步
+    expect(code).toContain('pageMeta?.meta');
+  });
 });
 
 describe('buildAssetTagsSetup()', () => {

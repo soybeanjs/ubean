@@ -156,6 +156,24 @@ describe('buildDevSsrRoutes', () => {
     expect(routes[0].meta.cache).toBe(true);
   });
 
+  it('definePage 的 meta 透传到 SSR 路由（与客户端 buildRouteMeta 同形）', () => {
+    const EMBED = page({
+      name: 'Embed',
+      route: '/embed',
+      pageMeta: { name: 'Embed', path: '/embed', meta: { title: '嵌入页', iframeUrl: 'https://example.com/' } }
+    });
+
+    const routes = buildDevSsrRoutes({ pages: [EMBED], layouts: LAYOUTS, loadComponent: load });
+
+    // 少这一层透传，靠 meta 取参数的页面在 SSR 首屏只能渲染空态，水合后才有值
+    expect(routes[0].meta).toMatchObject({
+      pageName: 'Embed',
+      layout: 'default',
+      title: '嵌入页',
+      iframeUrl: 'https://example.com/'
+    });
+  });
+
   it('routable: false 的页面不进 SSR 路由表（与客户端同形）', () => {
     const DIR = page({ name: 'Dir', route: '/dir', routable: false, isMeta: true });
     const ALIAS_TO_Dir = page({ name: 'DirAlias', route: '/dir-alias', isReuse: true, reuseTarget: 'Dir' });

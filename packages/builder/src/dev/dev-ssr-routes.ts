@@ -34,6 +34,12 @@ export interface DevSsrRoute {
     layout: string | string[] | false | null;
     pageName: string;
     cache?: true;
+    /**
+     * 其余键是 `definePage({ meta })` 的透传（`iframeUrl` / `title` / `i18nKey` …）。
+     * 不声明的话，用到这些 meta 的页面（例如按 `meta.iframeUrl` 取地址的内嵌页）
+     * 在 SSR 首屏渲染成空态，水合后客户端才有值 —— 首屏与水合结果不一致。
+     */
+    [key: string]: unknown;
   };
 }
 
@@ -86,7 +92,10 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
     meta: {
       layout: page.layout === false ? false : page.layout || defaultLayout,
       pageName: page.name,
-      cache: page.cache === true ? true : undefined
+      cache: page.cache === true ? true : undefined,
+      // 与客户端 `buildRouteMeta` 同优先级：框架字段在前，用户 `definePage({ meta })`
+      // 在后（可覆盖同名键，但不能顶掉 `pageName` / `layout` 这类结构字段之外的东西）。
+      ...(page.pageMeta?.meta as Record<string, unknown> | undefined)
     }
   });
 

@@ -71,7 +71,10 @@ const _pageToRoute = p => {
     meta: {
       layout: p.layout === false ? false : p.layout || _defaultLayout,
       pageName: p.name,
-      cache: p.cache === true ? true : undefined
+      cache: p.cache === true ? true : undefined,
+      /* 同客户端 buildRouteMeta：透传 definePage({ meta })。否则靠 meta（如 iframeUrl）
+         取参数的页面在 SSR 首屏渲染空态，水合后才有值。 */
+      ...(p.pageMeta?.meta || undefined)
     }
   };
 };

@@ -604,7 +604,10 @@ describe('prerender() - integration', () => {
     });
   });
 
-  it('respects concurrency limit', async () => {
+  // 这条用例的墙钟由 `concurrency: 3` × 10 页 × 30ms 睡眠决定，本机 ~0.3s；windows-latest
+  // 的 Node 22 格上报过 `Test timed out in 5000ms`（CI run 39401592189）—— 同 VS Code 那些
+  // spawn 类用例一个形态：预算是死的，runner 快慢是活的。超时是唯一失败模式，断言照常兜住。
+  it('respects concurrency limit', { timeout: 30_000 }, async () => {
     await withTmp('ubean-prerender-conc-', async (tmp, out) => {
       const pages = [makePage('/'), ...Array.from({ length: 9 }, (_, i) => makePage(`/page-${i}`))];
       let maxConcurrent = 0;

@@ -125,8 +125,12 @@ describe('generateAutoImports components.d.ts format', () => {
    * （由 `@ubean/islands` 的 `resolveId` 合成），于是 TS 报 `Cannot find module …`。声明必须
    * 写在**非模块**文件里：`export {}` 会让 `declare module '*X.vue'` 退化成「模块增强」，
    * 声明随即失效（实测如此，所以这条断言同时守着「没有 `export {}`」）。
+   *
+   * 超时预算 30s：本机 ~0.2s，windows-latest / Node 22 上报过 `Test timed out in 5000ms`
+   * （CI run 39401592189）—— 临时目录 + 磁盘读写 + 文件扫描，Windows runner 的 fs 比
+   * ubuntu 慢一个量级。超时是唯一失败模式，断言照常兜住。
    */
-  it('为配对/单边组件生成可用的 ambient 声明', async () => {
+  it('为配对/单边组件生成可用的 ambient 声明', { timeout: 30_000 }, async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'ubean-codegen-virtual-'));
     const componentsDir = join(cwd, 'src/components');
     await mkdir(componentsDir, { recursive: true });

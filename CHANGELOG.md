@@ -1,5 +1,45 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.6...main) (2026-10-20) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **vue**:
+  - support meta-only pages via .meta.ts and routable: false &nbsp;-&nbsp; by @soybeanjs [<samp>(0728a)</samp>](https://github.com/soybeanjs/ubean/commit/0728ab62)
+  - locate unevaluable definePage fields by file and line &nbsp;-&nbsp; by @soybeanjs [<samp>(c3cff)</samp>](https://github.com/soybeanjs/ubean/commit/c3cfff2c)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **vue**:
+  - keep repeatable route modifiers out of names and param types &nbsp;-&nbsp; by @soybeanjs [<samp>(b35f7)</samp>](https://github.com/soybeanjs/ubean/commit/b35f7e1a)
+  - normalize path separators in definePage warn location &nbsp;-&nbsp; by @soybeanjs [<samp>(25bf5)</samp>](https://github.com/soybeanjs/ubean/commit/25bf5d21)
+
+### &nbsp;&nbsp;&nbsp;💅 Refactors
+
+- **vue**: parse definePage with AST instead of string scanning &nbsp;-&nbsp; by @soybeanjs [<samp>(005d3)</samp>](https://github.com/soybeanjs/ubean/commit/005d3aa7)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- record the flat route table and layout chain decision &nbsp;-&nbsp; by @soybeanjs [<samp>(d1c85)</samp>](https://github.com/soybeanjs/ubean/commit/d1c854b4)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(fc50f)</samp>](https://github.com/soybeanjs/ubean/commit/fc50fc0a)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **vue**: prove repeatable params type as arrays, not strings &nbsp;-&nbsp; by @soybeanjs [<samp>(868bf)</samp>](https://github.com/soybeanjs/ubean/commit/868bf0ed)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **projects**:
+  - format code &nbsp;-&nbsp; by @soybeanjs [<samp>(3515b)</samp>](https://github.com/soybeanjs/ubean/commit/3515b9fc)
+  - format code &nbsp;-&nbsp; by @soybeanjs [<samp>(ae75f)</samp>](https://github.com/soybeanjs/ubean/commit/ae75fc2f)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.5...main) (2026-10-19) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

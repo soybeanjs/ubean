@@ -75,6 +75,8 @@ function locationPrefix(
     // 只有真的更短才换,否则保留原值。
     if (rel && !rel.startsWith('..') && rel.length < file.length) file = rel;
   }
+  // Windows 的 `relative()` 产出反斜杠,日志里统一成正斜杠,保证跨平台可读且可断言。
+  if (file) file = file.replace(/\\/g, '/');
 
   const linesBefore = block ? lineAt(code, block.start) - 1 : 0;
   const line = linesBefore + lineAt(block?.content ?? code, callStart);

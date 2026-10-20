@@ -1,5 +1,4 @@
 import { readFile } from 'node:fs/promises';
-import { basename } from 'node:path';
 import { extractCallObject } from '@ubean/vue/vite';
 import type { DefineMetaResult } from './types';
 
@@ -15,7 +14,8 @@ export function extractDefineMetaFromCode(code: string, fileName?: string): Defi
   // 不再自建 `extractScriptContent`:块选择（`<script setup>` 优先）由
   // `@ubean/vue` 的同一份 AST 基础设施负责，API 路由文件通常是纯 TS，
   // 没有 `<script>` 块时整份代码就是一个块。
-  const parsed = extractCallObject(code, 'defineHandlerMeta', fileName);
+  // `fileName` 同时用作解析模式选择与 warn 定位（没有它，报错时不知道是哪个路由文件）。
+  const parsed = extractCallObject(code, 'defineHandlerMeta', fileName, fileName ? { fileName } : undefined);
   if (!parsed) return null;
 
   const result: DefineMetaResult = {};
@@ -38,5 +38,7 @@ export function extractDefineMetaFromCode(code: string, fileName?: string): Defi
 
 export async function extractDefineMeta(filePath: string): Promise<DefineMetaResult | null> {
   const code = await readFile(filePath, 'utf-8');
-  return extractDefineMetaFromCode(code, basename(filePath));
+  // 传**完整路径**而不是 basename：解析模式只看最后一个扩展名（不受影响），
+  // 但 warn 里能报出是哪个路由文件。
+  return extractDefineMetaFromCode(code, filePath);
 }

@@ -85,11 +85,52 @@ describe('definePage 提取 — TypeScript 语法', () => {
     expect(meta?.meta).toEqual({});
   });
 
-  it('不可求值的值会 warn 出具体字段名', () => {
+  it('不可求值的值会 warn 出具体字段名与中文原因', () => {
     const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     extractDefinePageFromCode(`definePage({ name: makeName(), cache: true });`);
     expect(spy).toHaveBeenCalledWith(expect.stringContaining('`name`'));
-    expect(spy).toHaveBeenCalledWith(expect.stringContaining('function call'));
+    expect(spy).toHaveBeenCalledWith(expect.stringContaining('函数调用'));
+  });
+
+  it('warn 带文件路径与**文件内**行号（不是块内行号）', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // `definePage` 在第 7 行；`<script setup>` 块从第 5 行开始。
+    const sfc = `<template>
+  <div />
+</template>
+
+<script setup lang="ts">
+const x = 1;
+definePage({ name: makeName() });
+</script>
+`;
+    extractDefinePageFromCode(sfc, 'index.vue', {
+      fileName: '/proj/src/pages/users/index.vue',
+      cwd: '/proj'
+    });
+    const message = spy.mock.calls[0][0] as string;
+    expect(message).toContain('src/pages/users/index.vue:7:');
+  });
+
+  it('warn 带行号但不带路径时降级为 `第 N 行`', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    extractDefinePageFromCode(`\ndefinePage({ name: f() });`, 'a.ts', {});
+    expect(spy.mock.calls[0][0]).toContain('第 2 行:');
+  });
+
+  it('不传 context 时不出现定位前缀（与旧行为一致）', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    // 用一个前面用例没报过的字段：warn 按整条文案去重，重复文案不会再触发。
+    extractDefinePageFromCode(`definePage({ ssr: f() });`);
+    const message = spy.mock.calls[0][0] as string;
+    expect(message).toContain('[ubean/vue] definePage():');
+  });
+
+  it('spread 没有键名时报「有一个字段」而不是空的 `字段 ```', () => {
+    const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    extractDefinePageFromCode(`definePage({ ...base, name: 'N' });`, 'a.ts');
+    const message = spy.mock.calls[0][0] as string;
+    expect(message).toContain('有一个字段 无法在构建期静态求值(展开语法)');
   });
 });
 
@@ -102,7 +143,9 @@ describe('definePage 提取 — 引用与 spread', () => {
   });
 
   it('spread 不吞掉后面的字段', () => {
-    const meta = extractDefinePageFromCode(`const base = { name: 'B' };\ndefinePage({ ...base, path: '/b', cache: true });`);
+    const meta = extractDefinePageFromCode(
+      `const base = { name: 'B' };\ndefinePage({ ...base, path: '/b', cache: true });`
+    );
     expect(meta?.path).toBe('/b');
     expect(meta?.cache).toBe(true);
   });

@@ -233,29 +233,33 @@ export function findMacroCall(ast: AstFile, name: string): AstNode | null {
 /**
  * AST 节点类型 → 面向用户的原因描述。
  *
- * warn 文本会出现在用户的终端里,`CallExpression` 这种 AST 词汇不解释问题;
- * 说人话的版本才能让人知道「哦,我该把它写成字面量」。
+ * warn 文本直接出现在用户终端里,`CallExpression` / `SpreadElement` 这类 AST
+ * 词汇不解释问题,而且会混进中文句子里。这里说人话 —— 读的人才知道「哦,我该把它
+ * 写成字面量」。认不出的节点保留原始类型名,便于按 AST 词汇搜到本文件。
  */
 function describeNodeType(type: string): string {
   switch (type) {
     case 'CallExpression':
-      return 'function call';
+    case 'NewExpression':
+      return '函数调用';
     case 'Identifier':
     case 'MemberExpression':
-      return 'variable reference (only literals can be read at build time)';
+      return '变量引用(构建期只能读字面量)';
     case 'ArrowFunctionExpression':
     case 'FunctionExpression':
-      return 'function value';
+      return '函数值';
     case 'TemplateLiteral':
-      return 'template literal with expressions';
+      return '含插值的模板字符串';
     case 'SpreadElement':
-      return 'spread element';
+      return '展开语法';
     case 'ConditionalExpression':
     case 'LogicalExpression':
     case 'BinaryExpression':
-      return 'runtime expression';
+    case 'UnaryExpression':
+    case 'UpdateExpression':
+      return '运行时表达式';
     default:
-      return type;
+      return `不支持的语法: ${type}`;
   }
 }
 
@@ -353,12 +357,15 @@ export interface ExtractMacroResult {
   parsed: Record<string, unknown>;
   /** 携带无法静态求值的字段(键名 + 原因),供调用方 warn。 */
   dropped: Array<{ key: string; reason: string }>;
+  /** 调用在脚本块内的起始偏移(`call.start`),供调用方换算行号。 */
+  start: number;
 }
 
 export function extractMacroArgument(call: AstNode): ExtractMacroResult | null {
   const args = (call.arguments as AstNode[] | undefined) ?? [];
   const first = args[0];
-  if (!first) return { parsed: {}, dropped: [] };
+  const start = typeof call.start === 'number' ? call.start : 0;
+  if (!first) return { parsed: {}, dropped: [], start };
   if (first.type !== 'ObjectExpression') return null;
 
   const parsed: Record<string, unknown> = {};
@@ -366,12 +373,12 @@ export function extractMacroArgument(call: AstNode): ExtractMacroResult | null {
 
   for (const prop of (first.properties as AstNode[] | undefined) ?? []) {
     if (prop.type !== 'ObjectProperty') {
-      dropped.push({ key: '*', reason: prop.type });
+      dropped.push({ key: '*', reason: describeNodeType(prop.type) });
       continue;
     }
     const key = propertyKey(prop);
     if (!key) {
-      dropped.push({ key: '*', reason: 'computed / unsupported object key' });
+      dropped.push({ key: '*', reason: '计算属性名' });
       continue;
     }
     const value = literalToValue(prop.value as AstNode);
@@ -382,5 +389,5 @@ export function extractMacroArgument(call: AstNode): ExtractMacroResult | null {
     }
   }
 
-  return { parsed, dropped };
+  return { parsed, dropped, start };
 }

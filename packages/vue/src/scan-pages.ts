@@ -311,7 +311,7 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         }
       } else {
         pageMeta = await readFile(fullPath, 'utf-8')
-          .then(code => extractDefinePageFromCode(code, basename(fullPath)))
+          .then(code => extractDefinePageFromCode(code, basename(fullPath), { fileName: fullPath, cwd: options.cwd }))
           .catch(() => null);
       }
 

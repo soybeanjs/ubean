@@ -1,7 +1,9 @@
 import { readFile } from 'node:fs/promises';
+import { relative } from 'node:path';
 import { basename } from 'node:path';
-import type { PageHead, PageMeta } from './types';
 import { extractMacroArgument, extractScriptBlocks, findMacroCall, parseScriptAst, pickDefinePageBlock } from './ast';
+import type { ScriptBlock } from './ast';
+import type { PageHead, PageMeta } from './types';
 
 /**
  * `definePage(...)` 宏参数提取器(构建期)。
@@ -29,8 +31,66 @@ function inferFileName(code: string, fileName?: string): string {
   return /<script[\s>]|<template[\s>]/.test(code) ? 'page.vue' : 'page.ts';
 }
 
+/**
+ * 告警定位信息。没有它,用户看到「字段无法静态求值」时不知道是 34 个
+ * `definePage` 里的哪一个 —— 页面一多就只能靠猜。
+ */
+export interface ExtractContext {
+  /** 文件路径。绝对路径会相对 `cwd` 显示(终端里更短);不传则省略路径段。 */
+  fileName?: string;
+  /** `relative()` 的基准目录,通常传项目根。 */
+  cwd?: string;
+  /** 脚本块在**原文件**中的起始偏移,把块内行号换算回文件行号。 */
+  blockOffset?: number;
+}
+
+/** `1:1` 行号 —— 偏移落在源码外时返回 1,不抛错。 */
+function lineAt(content: string, offset: number): number {
+  let line = 1;
+  const end = Math.min(offset, content.length);
+  for (let i = 0; i < end; i++) {
+    if (content.charCodeAt(i) === 10) line++;
+  }
+  return line;
+}
+
+/**
+ * 组装 warn 定位前缀:`文件路径:行号: `。
+ *
+ * 行号是**文件内**行号,不是块内行号 —— SFC 的 `<script setup>` 通常在
+ * 第 5 行往后,只报块内行号会把人带到模板里。换算 = 块起始位置之前的行数 +
+ * 块内行号 - 1。信息不全时按可用部分降级(至少给出其中一项)。
+ */
+function locationPrefix(
+  code: string,
+  context: ExtractContext | undefined,
+  block: ScriptBlock | null,
+  callStart: number
+): string {
+  if (!context) return '';
+
+  let file = context.fileName;
+  if (file && context.cwd) {
+    const rel = relative(context.cwd, file);
+    // `relative()` 在跨盘符(Windows)或路径不在 cwd 下时给出 `..` 链或绝对路径;
+    // 只有真的更短才换,否则保留原值。
+    if (rel && !rel.startsWith('..') && rel.length < file.length) file = rel;
+  }
+
+  const linesBefore = block ? lineAt(code, block.start) - 1 : 0;
+  const line = linesBefore + lineAt(block?.content ?? code, callStart);
+
+  if (file) return `${file}:${line}: `;
+  return `第 ${line} 行: `;
+}
+
 /** 提取 `funcName({...})` 的参数对象(块选择:优先 `<script setup>`)。 */
-function extractFromSource(code: string, funcName: string, fileName?: string): Record<string, unknown> | null {
+function extractFromSource(
+  code: string,
+  funcName: string,
+  fileName?: string,
+  context?: ExtractContext
+): Record<string, unknown> | null {
   const blocks = extractScriptBlocks(code, inferFileName(code, fileName));
   if (!blocks || blocks.length === 0) return null;
 
@@ -46,9 +106,11 @@ function extractFromSource(code: string, funcName: string, fileName?: string): R
   const extracted = extractMacroArgument(call);
   if (!extracted) return null;
 
+  const prefix = locationPrefix(code, context, block, extracted.start);
   for (const { key, reason } of extracted.dropped) {
+    const field = key === '*' ? '有一个字段' : `字段 \`${key}\``;
     warn(
-      `${funcName}(): 字段 \`${key}\` 无法在构建期静态求值(${reason}),已忽略。` +
+      `${prefix}${funcName}(): ${field} 无法在构建期静态求值(${reason}),已忽略。` +
         `只支持字面量对象 / 数组 / 字符串 / 数字 / 布尔;需要在构建期读到的字段请写成字面量。`
     );
   }
@@ -60,9 +122,17 @@ function extractFromSource(code: string, funcName: string, fileName?: string): R
  * 通用宏调用提取:在代码中查找 `funcName({...})` 形式的调用并解析其
  * 对象字面量参数。供本包的 `definePage` 提取与 `@ubean/scan` 的
  * `defineHandlerMeta` 提取共用(单一解析器实现)。
+ *
+ * 第四参数 `context` 只影响 warn 里的定位信息,不影响解析结果 —— 不传时
+ * 行为与之前完全一致。
  */
-export function extractCallObject(code: string, funcName: string, fileName?: string): Record<string, unknown> | null {
-  return extractFromSource(code, funcName, fileName);
+export function extractCallObject(
+  code: string,
+  funcName: string,
+  fileName?: string,
+  context?: ExtractContext
+): Record<string, unknown> | null {
+  return extractFromSource(code, funcName, fileName, context);
 }
 
 /**
@@ -94,9 +164,10 @@ export { normalizePageHead };
  *
  * @param code 源码(SFC 或纯脚本)
  * @param fileName 可选文件名(用于选择 TS / TSX / SFC 解析模式);不传时按源码内容推断
+ * @param context 可选告警定位信息(文件路径 / `cwd`);只影响 warn 前缀
  */
-export function extractDefinePageFromCode(code: string, fileName?: string): PageMeta | null {
-  const parsed = extractFromSource(code, 'definePage', fileName);
+export function extractDefinePageFromCode(code: string, fileName?: string, context?: ExtractContext): PageMeta | null {
+  const parsed = extractFromSource(code, 'definePage', fileName, context);
   if (!parsed) return null;
 
   const result: PageMeta = {};

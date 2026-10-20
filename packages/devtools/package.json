@@ -35,7 +35,7 @@
     "@codemirror/language": "6.13.1",
     "@codemirror/state": "6.7.6",
     "@codemirror/theme-one-dark": "6.1.3",
-    "@codemirror/view": "6.43.14",
+    "@codemirror/view": "6.43.15",
     "@devframes/hub": "^1.2.6",
     "@devframes/hub-ui": "^1.2.6",
     "@devframes/vite": "^1.2.6",
@@ -67,7 +67,7 @@
     }
   },
   "optionalDependencies": {
-    "@ai-sdk/openai-compatible": "3.0.71",
-    "ai": "7.0.143"
+    "@ai-sdk/openai-compatible": "3.0.74",
+    "ai": "7.0.146"
   }
 }

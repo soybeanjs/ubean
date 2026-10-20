@@ -84,16 +84,17 @@ const TSCONFIG = {
     // 刻意**不开** skipLibCheck：本用例要复现真实用户项目里的报错
     types: []
   },
-  include: ['typed-router.d.ts']
+  include: ['typed-router.d.ts', 'usage.ts']
 };
 
 const FIXTURE_DTS_PATH = 'typed-router.d.ts';
 
 /** 在仓库内的夹具目录里跑真实 tsc，返回 `error TS…` 行。 */
-function compileDts(name: string, dts: string): string[] {
+function compileDts(name: string, dts: string, usage?: string): string[] {
   const dir = join(FIXTURE_ROOT, name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, FIXTURE_DTS_PATH), dts, 'utf8');
+  if (usage) writeFileSync(join(dir, 'usage.ts'), usage, 'utf8');
   writeFileSync(join(dir, 'tsconfig.json'), JSON.stringify(TSCONFIG), 'utf8');
   try {
     execFileSync(process.execPath, [TSC_ENTRY, '-p', join(dir, 'tsconfig.json')], {
@@ -126,8 +127,51 @@ const PAGES = [
     fullPath: '/src/pages/docs/[[slug]].vue',
     isReuse: false,
     isMarkdown: false
+  },
+  {
+    name: 'ArticlesSlugs',
+    route: '/articles/:slugs+',
+    fullPath: '/src/pages/articles/[slugs]+.vue',
+    isReuse: false,
+    isMarkdown: false
+  },
+  {
+    name: 'ArticlesSlugsOptional',
+    route: '/articles/:slugs*',
+    fullPath: '/src/pages/articles/[[slugs]]+.vue',
+    isReuse: false,
+    isMarkdown: false
   }
 ];
+
+/**
+ * 消费 `RouteParams` / `RouteParamsRaw` 的探针文件。
+ *
+ * 关键：断言的**方向**。若 repeatable 参数被错标成 `ParamValue`(=`string`),
+ * `string` 不可赋给 `string[]` → 报错;反过来写成 `string[]` 去接,错的
+ * `string` 反而能过,断言就白做了。所以左边是目标类型、右边是推导结果。
+ *
+ * `RouteParams` 读的是 `params`(解析后,对应 `ParamValue*<false>`),
+ * `RouteParamsRaw` 读 `paramsRaw`(`<true>`)。两边都卡 —— 只变异一边的话
+ * 另一半可以完全写错而测试仍绿(本用例的红证真的踩过这个坑)。
+ */
+const USAGE_PROBE = `
+import type { RouteParams, RouteParamsRaw } from 'vue-router';
+
+declare const oneMore: RouteParams<'ArticlesSlugs'>;
+const asArray: string[] = oneMore.slugs;
+
+declare const oneMoreRaw: RouteParamsRaw<'ArticlesSlugs'>;
+const rawArray: [string | number, ...(string | number)[]] = oneMoreRaw.slugs;
+
+declare const zeroMore: RouteParams<'ArticlesSlugsOptional'>;
+const maybeArray: string[] | undefined = zeroMore.slugs;
+
+declare const docs: RouteParams<'DocsSlug'>;
+const slug: string = docs.slug!;
+
+export { asArray, rawArray, maybeArray, slug };
+`;
 
 /** 复刻 bug：把顶层 import 搬进 `declare module 'vue-router/auto-routes'` 块内部。 */
 function relocateImportIntoBlock(dts: string): string {
@@ -222,6 +266,56 @@ describe('typed-router.d.ts · TS2667 守卫（模块增强内不得有 import�
       expect(fromVirtualPages.join('\n'), 'virtual-pages dts failed to resolve vue-router').not.toContain('TS2307');
       expect(fromGenerator.join('\n')).not.toContain('TS2667');
       expect(fromVirtualPages.join('\n')).not.toContain('TS2667');
+    },
+    TSC_TIMEOUT_MS
+  );
+
+  it('两个写入器都给 repeatable 参数渲染元组/数组类型', () => {
+    for (const [label, dts] of [
+      ['generator', generateFromGenerator()],
+      ['virtual-pages', generateFromVirtualPages()]
+    ] as const) {
+      // `:slugs+` 是「一或多个」,`*`(`[x]*` / `[[x]]+` 归一结果)是「零或多个」。
+      expect(dts, label).toContain('slugs: ParamValueOneOrMore<true>');
+      expect(dts, label).toContain('slugs: ParamValueOneOrMore<false>');
+      expect(dts, label).toContain('slugs?: ParamValueZeroOrMore<true>');
+      expect(dts, label).toContain('slugs?: ParamValueZeroOrMore<false>');
+      // 类型名必须在顶层 import 里 —— 少写一个就是 TS2304(找不到名字)。
+      expect(dts, label).toContain('ParamValueOneOrMore, ParamValueZeroOrMore');
+    }
+  });
+
+  it(
+    'repeatable 参数在真实 tsc 下确实推导为数组(不是 string)',
+    () => {
+      // 只断言字面量名字不够 —— 名字写对了但位置写错(比如塞进 Params 而非
+      // ParamsRaw)照样能让上面那条绿。这里让 tsc 真的去赋值。
+      for (const [label, dts] of [
+        ['repeatable-generator', generateFromGenerator()],
+        ['repeatable-virtual-pages', generateFromVirtualPages()]
+      ] as const) {
+        const errors = compileDts(label, dts, USAGE_PROBE).join('\n');
+        expect(errors, `${label}: probe did not type-check`).not.toContain('error TS');
+      }
+    },
+    TSC_TIMEOUT_MS
+  );
+
+  it(
+    '探针不是空洞的：把解析后的 repeatable 类型换回 ParamValue 必须报错',
+    () => {
+      // 与上面 TS2667 的变异对照同一个思路 —— 没有这条，探针可能因为夹具没链上
+      // 而永远绿。变异**解析后**(`<false>`)那一份：`RouteParams` 读的就是它。
+      // 只变异 `<true>` 那一份不会报错(`RouteParams` 不读 `paramsRaw`),本用例
+      // 第一次写红证时就是这么假绿过去的。
+      const mutated = generateFromGenerator().replace(
+        'slugs: ParamValueOneOrMore<false>',
+        'slugs: ParamValue<false>'
+      );
+      expect(mutated, 'mutation did not apply → control would be vacuous').toContain('slugs: ParamValue<false>');
+
+      const errors = compileDts('repeatable-mutated', mutated, USAGE_PROBE).join('\n');
+      expect(errors, 'probe accepted a scalar where an array is required').toContain('error TS');
     },
     TSC_TIMEOUT_MS
   );

@@ -238,6 +238,24 @@ definePage({
 
 Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin layout. Layouts support nested chains (e.g. `admin/dashboard` → `admin` → `default`).
 
+#### Layout chains, not nested routes
+
+ubean's route table is **flat**: `src/pages/admin/users.vue` is a single record at `/admin/users`, and `src/pages/admin.vue` (if present) is a separate record at `/admin` — they are not parent and child. Visual nesting is expressed entirely by the layout chain:
+
+```vue
+<script setup lang="ts">
+// outer → inner: default wraps admin, admin wraps dashboard
+definePage({ layout: ['default', 'admin', 'dashboard'] });
+</script>
+```
+
+Two consequences follow directly:
+
+- **Do not write `<RouterView />` in a page to render a "child route"** — there is no child route. When you need multiple components under one path, use [parallel routes](#parallel-routes-slotname) and `<SlotView name="..." />`.
+- **A parent's `meta` is not inherited by child pages.** To share config across a set of paths, use `routeRules` in `ubean.config.ts` with glob matching (which is also the more explicit spelling).
+
+Inside an array, `'default'` is a **literal layout name** (pointing at `layouts/default.vue`); a bare string `'default'` is the "use the default layout" directive. For why this is designed this way and what it costs, see [ADR-0015](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0015-flat-route-table-and-layout-chain.md).
+
 ## Page Metadata (definePage)
 
 `definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout` (`string | string[] | false`), `reuse`, `routable`, `meta`, `requiresAuth`, `cache`, `head`, `ssr` (`boolean | 'streaming' | 'data-only'`), `transition`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.

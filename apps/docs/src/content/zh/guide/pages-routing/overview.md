@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: 981f966e9f72
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","e12725a4","d8baa841","f1f065b8","466a5369","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","3dec5865","5127205a","fc18f99b","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: ad42f05f2511
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","e12725a4","d8baa841","f1f065b8","466a5369","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","3dec5865","5127205a","fc18f99b","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -224,6 +224,24 @@ definePage({
 ```
 
 后台布局请创建 `src/layouts/admin.vue`（或 `src/layouts/admin/index.vue`）。布局支持嵌套链（例如 `admin/dashboard` → `admin` → `default`）。
+
+#### 布局链，不是嵌套路由
+
+ubean 的路由表是**扁平**的：`src/pages/admin/users.vue` 是 `/admin/users` 这一条独立记录，`src/pages/admin.vue`（若存在）是 `/admin` 另一条，两者没有父子关系。视觉上的嵌套完全由布局链表达：
+
+```vue
+<script setup lang="ts">
+// 外 → 内：default 包裹 admin，admin 包裹 dashboard
+definePage({ layout: ['default', 'admin', 'dashboard'] });
+</script>
+```
+
+两个直接后果：
+
+- **不要在页面里写 `<RouterView />` 去渲染「子路由」** —— 不存在子路由。需要同一路径下多个组件时用[并行路由](#并行路由slotname)的 `<SlotView name="..." />`。
+- **父级 `meta` 不会被子页面继承。** 想跨一组路径共享配置，用 `ubean.config.ts` 的 `routeRules` 按 glob 匹配（这也是更明确的写法）。
+
+数组里的 `'default'` 是**字面布局名**（指向 `layouts/default.vue`）；单独写字符串 `'default'` 才是「用默认布局」的指令。为什么这样设计、代价是什么，见 [ADR-0015](https://github.com/soybeanjs/ubean/blob/main/docs/adr/0015-flat-route-table-and-layout-chain.md)。
 
 ## 页面元数据（definePage）
 

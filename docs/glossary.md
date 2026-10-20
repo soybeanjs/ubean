@@ -116,7 +116,9 @@
 - **作用域化重载（scoped reload）**：服务端文件变更时只失效该文件及其 importer 的求值结果，其余模块保留单例与状态；仅 scan 目录增删才全量失效并重扫路由表。取代现状「任何服务端变更 → 全量 rescan + 重建 app + full-reload」。
 - **资产-导航歧义（asset-navigation ambiguity）**：dev 下 catch-all 或未匹配的请求既可能是页面导航（→ 框架）、也可能是静态资产（→ Vite）。判据为显式路由优先，其余按 `Sec-Fetch-Dest` / 扩展名 / `?import` query / `Accept` 启发式分流。
 - **构建期快照（build-time snapshot）**：`.ubean/virtual/*` 落盘文件的定位——供 preset 包装与调试读取，**不再**被 virtual id → 磁盘文件的 alias 映射依赖（虚拟模块由无状态插件提供）。
+- **扁平路由表（flat route table）**：扫描产物 `ScannedPage[]` 的形态——每条记录自带完整路径，彼此独立，不构成前缀树。布局用 `meta.layout` 上的**名字链**（外 → 内）表达，由 `UbeanLayoutView` 链式渲染，而不是真实的父子 `RouteRecordRaw`。与 vue-router unplugin 的 `PrefixTree` 是同一问题的两种解法，取舍见 [ADR-0015](adr/0015-flat-route-table-and-layout-chain.md)。
+  _Avoid_: 嵌套路由（在 ubean 里不存在——`<RouterView>` 不用于父子嵌套；同路径多组件用并行路由的 `<SlotView>`）
 
 ---
 
-_术语按 ADR 沉淀整理：内容分类 ← ADR-0007；产品规划与拦截/并行路由 ← ADR-0010；SSG 渲染路径 ← ADR-0011；`routeRules.ssr`/`ppr` ← P9-03/P9-04；reuse 路由与 matcher ← `definePage`/Task 7 约定；studio 开口 ← RM-S01/RM-S02；i18n ← ADR-0009；Vite 插件化 ← ADR-0012；devframe 宿主 ← ADR-0014；真理源与校验 ← ADR-0005/ADR-0006 及第二轮 grilling。决策与论证归各 ADR。_
+_术语按 ADR 沉淀整理：内容分类 ← ADR-0007；产品规划与拦截/并行路由 ← ADR-0010；SSG 渲染路径 ← ADR-0011；`routeRules.ssr`/`ppr` ← P9-03/P9-04；reuse 路由与 matcher ← `definePage`/Task 7 约定；studio 开口 ← RM-S01/RM-S02；i18n ← ADR-0009；Vite 插件化 ← ADR-0012；devframe 宿主 ← ADR-0014；扁平路由表与 layout 链 ← ADR-0015；真理源与校验 ← ADR-0005/ADR-0006 及第二轮 grilling。决策与论证归各 ADR。_

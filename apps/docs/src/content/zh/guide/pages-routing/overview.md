@@ -388,14 +388,13 @@ definePage({ reuse: 'About', cache: false });
 和 `.reuse.*` 一样是纯元数据文件，只含 `definePage(...)`、没有组件：
 
 ```ts
-// src/pages/plugin/index.meta.ts
+// src/pages/plugin/index.meta.ts —— 文件名已经说明“不产生路由”
 definePage({
-  routable: false,
   meta: { menuType: 'directory', title: '插件' }
 });
 ```
 
-- `routable: false` **必需**。不写会直接抛错 —— 元数据文件没有组件，静默降级只会生成一条渲染空白页的坏路由。
+- `.meta.*` 的**文件名本身就等于 `routable: false`** —— 扫描期会自动归一化为 `false`，字段可以省略。显式写 `routable: true` 会直接抛错：元数据文件没有组件，静默降级只会生成一条渲染空白页的坏路由。
 - `.meta.*` 不能声明 `reuse`（reuse 需要一个真实 URL）。
 - `.meta.vue` **不是**该约定 —— 它是真实组件，按普通页面处理。
 

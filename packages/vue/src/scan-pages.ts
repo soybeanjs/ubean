@@ -323,27 +323,28 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         delete pageMeta.head;
       }
 
-      const routable = pageMeta?.routable !== false;
+      // `.meta.ts` / `.meta.js` 的文件名本身就等于 `routable: false`（这种文件没有组件
+      // 实现），所以省略即默认不路由，不需要用户再抄一遍布尔值。
+      const routable = isMeta ? false : pageMeta?.routable !== false;
 
-      // 元数据页（`.meta.ts` / `.meta.js`）没有组件实现：不写 `routable: false` 就是一个
-      // 只能在路由表里产生一条指向不存在组件的 loader 的错误配置，启动就会解析失败。
-      // 这里选择扫描期直接报错（而不是默默跳过），因为静默降级会得到一个“开发正常、
-      // 导航 404”的隐形故障。
-      if (isMeta && routable) {
+      // 唯一还需要报错的情况是**显式写反**：`.meta.*` 没有组件，`routable: true` 必然
+      // 产出指向不存在组件的 loader，启动即解析失败。扫描期直接报错（而不是默默纠正），
+      // 因为静默降级会得到一个“开发正常、导航 404”的隐形故障。
+      if (isMeta && pageMeta?.routable === true) {
         throw new Error(
-          `[ubean] 元数据页缺失 \`routable: false\`："${relativePath}"。\n` +
+          `[ubean] 元数据页不能声明 \`routable: true\`："${relativePath}"。\n` +
             `\`.meta.ts\` / \`.meta.js\` 是只有 \`definePage\`、没有组件实现的文件，` +
-            `必须声明 \`routable: false\` 才能告知框架“本页不参与路由注册”。\n` +
+            `永远不参与路由注册（等价于 \`routable: false\`），省略该字段即可。\n` +
             `若你本意是做一个普通页面，请改写成 \`.vue\` / \`.tsx\` 文件。`
         );
       }
 
       // 元数据页不能声明 `reuse`：reuse 的意义是「复用组件开一条新 URL」，而元数据页
-      // 本身就不产生路由。加上 `routable: false` 后两者直接矛盾，在扫描期就报错。
+      // 本身就不产生路由（`isMeta` 即 `routable: false`），两者直接矛盾。
       if (isMeta && pageMeta?.reuse !== undefined) {
         throw new Error(
           `[ubean] 元数据页不能声明 \`reuse\`："${relativePath}"。\n` +
-            `\`.meta.*\` 只用于“不产生路由的条目”（\`routable: false\`）；` +
+            `\`.meta.*\` 只用于“不产生路由的条目”（文件本身即 \`routable: false\`）；` +
             `\`reuse\` 的意义是“复用组件开一条新路由”，两者相互矛盾。` +
             `需要独立 URL 的复用页请改用 \`.reuse.ts\`。`
         );

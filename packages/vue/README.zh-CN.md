@@ -221,11 +221,11 @@ definePage({ reuse: 'About' });
 `.meta.ts` / `.meta.js` 是**纯元数据文件** —— 和 `.reuse.*` 一样只含 `definePage(...)`、没有组件。它们用于“属于页面清单、但**不能变成路由**”的条目：菜单目录、外链入口、iframe 容器，或任何宿主自己的概念。
 
 ```ts
-// src/pages/plugin/index.meta.ts
-definePage({ routable: false, meta: { menuType: 'directory', title: '插件' } });
+// src/pages/plugin/index.meta.ts —— 文件名已经说明了，无需写 routable
+definePage({ meta: { menuType: 'directory', title: '插件' } });
 ```
 
-- `.meta.*` **必须**写 `routable: false` —— 不写会直接报错（元数据文件没有组件，否则会生成一条坏路由）。
+- `.meta.*` 的**文件名本身就等于 `routable: false`** —— 扫描期会自动归一化为 `false`，该字段可以省略。显式写 `routable: true` 会直接报错（元数据文件没有组件，否则会生成一条坏路由）。
 - `.meta.*` 不能声明 `reuse`（reuse 需要一个真实 URL）。
 - `.meta.vue` **不是**该约定 —— 它是真实组件，按普通页面处理。
 

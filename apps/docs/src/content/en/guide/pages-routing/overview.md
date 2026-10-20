@@ -401,14 +401,13 @@ Some things belong in the **page inventory** but must **not become routes**: men
 Like `.reuse.*`, these are pure metadata files — only `definePage(...)`, no component:
 
 ```ts
-// src/pages/plugin/index.meta.ts
+// src/pages/plugin/index.meta.ts — the filename already means "no route"
 definePage({
-  routable: false,
   meta: { menuType: 'directory', title: 'Plugins' }
 });
 ```
 
-- `routable: false` is **required**. Omitting it throws — a metadata file has no component, and silently degrading would produce a route rendering a blank page.
+- The `.meta.*` filename **is** `routable: false` — it is normalized to `false` at scan time, so the field can be omitted. Declaring `routable: true` throws: a metadata file has no component, and honoring it would produce a route rendering a blank page.
 - `.meta.*` cannot declare `reuse` (a reuse route needs a real URL).
 - `.meta.vue` is **not** the convention — it is a real component and is treated as a regular page.
 

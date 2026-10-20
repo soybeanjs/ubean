@@ -213,11 +213,11 @@ definePage({ reuse: 'About' });
 `.meta.ts` / `.meta.js` are **pure metadata files** — like `.reuse.*`, they contain only `definePage(...)` and no component. They exist for entries that belong in the **page inventory** but must **not become routes**: menu directories, external-link entries, iframe containers, or any host-specific concept.
 
 ```ts
-// src/pages/plugin/index.meta.ts
-definePage({ routable: false, meta: { menuType: 'directory', title: 'Plugins' } });
+// src/pages/plugin/index.meta.ts — the filename already says it: no `routable` needed
+definePage({ meta: { menuType: 'directory', title: 'Plugins' } });
 ```
 
-- `routable: false` is **required** on `.meta.*` files — omitting it throws at scan time (a metadata file with no component would otherwise produce a broken route).
+- The `.meta.*` filename **is** `routable: false` — the field is normalized to `false` at scan time and may be omitted. Declaring `routable: true` on a `.meta.*` file throws at scan time (a metadata file with no component would produce a broken route).
 - `.meta.*` files cannot declare `reuse` (a reuse route needs a real URL).
 - `.meta.vue` is **NOT** the convention — it is a real component and is treated as a regular page.
 

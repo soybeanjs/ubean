@@ -10,9 +10,9 @@
  *    （如 soybean-admin 的菜单目录 / 外链入口）声明「不是路由」的唯一出口 ——
  *    框架不认识 catalog / iframe / link 这些业务词。
  *
- * 两者必须同时成立：`.meta.*` 不写 `routable: false` 会直接报错（而不是静默
- * 降级成一条坏路由），`routable: false` 的普通页面仍要保留组件 loader（
- * `.reuse.ts` 靠它借组件）。
+ * 两者必须同时成立：`.meta.*` 的**文件名本身即 `routable: false`**（省略字段即可，
+ * 显式写 `true` 会在扫描期报错，而不是静默降级成一条坏路由），`routable: false`
+ * 的普通页面仍要保留组件 loader（`.reuse.ts` 靠它借组件）。
  */
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -54,7 +54,7 @@ describe('scanPages — .meta.ts 元数据页', () => {
   it('识别 isMeta，名称按去掉 .meta 后缀的 basename 派生', async () => {
     writeFile(
       'plugin/index.meta.ts',
-      `export default definePage({ routable: false, meta: { menuType: 'directory' } });`
+      `export default definePage({ meta: { menuType: 'directory' } });`
     );
 
     const result = await scan();
@@ -65,12 +65,27 @@ describe('scanPages — .meta.ts 元数据页', () => {
     // 名称派生与普通 `users/index.vue` → `UsersIndex` 一致（index 不作为特殊段）。
     expect(entry?.name).toBe('PluginIndex');
     expect(entry?.route).toBe('/plugin');
+    // 文件名即语义：`.meta.*` 省略 `routable` 时被归一化为 false。
+    expect(entry?.routable).toBe(false);
   });
 
-  it('`isMeta` 页的 routable 默认为 false 之外仍要求显式声明：缺 routable: false 直接报错', async () => {
+  it('`.meta.*` 省略 routable 即默认 false，不需要用户再抄一遍布尔值', async () => {
     writeFile('plugin/index.meta.ts', `definePage({ meta: { menuType: 'directory' } });`);
 
-    await expect(scan()).rejects.toThrow(/routable: false/);
+    const result = await scan();
+    const entry = result.pages.find(p => p.isMeta);
+
+    expect(entry?.routable).toBe(false);
+    // 显式 `routable: false` 仍然有效（向后兼容，不构成 BREAKING）。
+    writeFile('legacy.meta.ts', `definePage({ routable: false });`);
+    const legacy = (await scan()).pages.find(p => p.name === 'Legacy');
+    expect(legacy?.routable).toBe(false);
+  });
+
+  it('`.meta.*` 显式声明 `routable: true` 直接报错（没有组件实现，必然产出坏路由）', async () => {
+    writeFile('plugin/index.meta.ts', `definePage({ routable: true, meta: { menuType: 'directory' } });`);
+
+    await expect(scan()).rejects.toThrow(/routable: true/);
   });
 
   it('.meta.js 同样被识别', async () => {

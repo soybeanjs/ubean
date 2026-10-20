@@ -1,5 +1,6 @@
 import type { Plugin as VitePlugin } from 'vite';
 import type { EnvConfig, RouteRule } from '@ubean/shared';
+import type { ResolvedPagesConfig } from './pages';
 
 export type { RouteRule } from '@ubean/shared';
 
@@ -1111,6 +1112,31 @@ export interface UbeanConfig {
   };
 
   /**
+   * 页面文件扩展名（`src/pages/` 下参与路由扫描的后缀，不带点）。
+   *
+   * Vite 插件的注入也由这个数组派生 —— 不需要在 `vite.config.ts` 里手动注册
+   * `@vitejs/plugin-vue-jsx`：
+   *
+   * - 含 `vue` → 注册 `@vitejs/plugin-vue`
+   * - 含 `tsx` / `jsx` → 注册 `@vitejs/plugin-vue-jsx`
+   *
+   * 默认 `['vue', 'tsx', 'jsx']`（全开）。markdown 页面（`.md` / `.mdx`）不受此字段
+   * 影响，仍由 `markdown.enabled` / `markdown.mdx` 控制、且自动追加到扫描后缀。
+   *
+   * @example
+   * ```ts
+   * // 只支持 .vue（不给 JSX 页面付构建成本）
+   * export default defineConfig({ pages: { extensions: ['vue'] } });
+   *
+   * // .vue + .tsx
+   * export default defineConfig({ pages: { extensions: ['vue', 'tsx'] } });
+   * ```
+   */
+  pages?: {
+    extensions?: string[];
+  };
+
+  /**
    * 网站图标（favicon）配置。
    *
    * - `true` 或未设置（默认）:自动从 `public/` 目录依次查找
@@ -1189,6 +1215,7 @@ export interface ResolvedConfig extends Required<
   preview: Required<NonNullable<UbeanConfig['preview']>>;
   build: Required<NonNullable<UbeanConfig['build']>>;
   markdown: Required<NonNullable<UbeanConfig['markdown']>>;
+  pages: ResolvedPagesConfig;
   autoImports: boolean | AutoImportOptions;
   components: boolean | ComponentsOptions;
   i18n: ResolvedI18nConfig;

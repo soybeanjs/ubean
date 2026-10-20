@@ -7,6 +7,7 @@ import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/scan';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
+import { pageGlobExtensions } from './page-glob';
 import { buildAssetTagsSetup, buildRendererSetup, buildStaticSsgEntry } from './ssg-entry';
 import {
   createRoutingVirtualModule,
@@ -113,6 +114,11 @@ export async function generateVirtualModulesToDisk(
   const viteSrcDir = toVitePath(relative(cwd, srcDirAbs));
   const viteSrcPrefix = viteSrcDir ? `/${viteSrcDir}` : '';
 
+  // 页面 glob 的扩展名集合必须与扫描器一致：不一致会让关掉 JSX 后
+  // `src/pages/*.tsx` 仍被 `import.meta.glob` 拉进构建并 PARSE_ERROR。
+  const mdPageExts = config.markdown?.enabled === false ? [] : config.markdown?.mdx === true ? ['md', 'mdx'] : ['md'];
+  const pagesExts = pageGlobExtensions(config.pages?.extensions, mdPageExts);
+
   registry.register(
     createRoutingVirtualModule(
       scanResult.apiRoutes.map(r => ({
@@ -170,7 +176,8 @@ export async function generateVirtualModulesToDisk(
       scanResult.apiRoutes,
       scanResult.middlewares,
       hasPages ? scanResult.pages : [],
-      viteSrcPrefix || '/'
+      viteSrcPrefix || '/',
+      pagesExts
     )
   );
 
@@ -218,7 +225,7 @@ export async function generateVirtualModulesToDisk(
   // unresolved into the SSR bundle when ubean is noExternal.
   await writeFile(join(virtualDir, 'islands-registry.ts'), 'export const islands = {};\n', 'utf-8');
 
-  const pagesGlob = JSON.stringify(`${viteSrcPrefix}/pages/**/*.{vue,ts,tsx,js,jsx,md,mdx}`);
+  const pagesGlob = JSON.stringify(`${viteSrcPrefix}/pages/**/*.{${pagesExts}}`);
   const routesGlob = JSON.stringify(`${viteSrcPrefix}/routes/**/*.{ts,js,mjs}`);
   const middlewareGlob = JSON.stringify(`${viteSrcPrefix}/middleware/**/*.{ts,js,mjs}`);
   const layoutsGlob = JSON.stringify(`${viteSrcPrefix}/layouts/**/*.{vue,ts}`);

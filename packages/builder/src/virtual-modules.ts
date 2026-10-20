@@ -78,7 +78,12 @@ export function createAppVirtualModule(
   apiRoutes: ScannedApiRoute[],
   middlewares: ScannedMiddleware[],
   pages: ScannedPageRoute[],
-  srcDir: string
+  srcDir: string,
+  /**
+   * 页面 glob 扩展名(逗号分隔,无点),来自 `pageGlobExtensions()`。
+   * 不传时用全开集合,仅兼容旧调用方式。
+   */
+  pageExtensions?: string
 ) {
   return defineVirtualModule('ubean:app-config', () => {
     const routesJson = apiRoutes.map(r =>
@@ -112,7 +117,7 @@ export function createAppVirtualModule(
     const prefix = viteSrcDir === '/' || viteSrcDir === '' ? '' : viteSrcDir;
     const routesGlob = JSON.stringify(`${prefix}/routes/**/*.{ts,js,mjs}`);
     const middlewareGlob = JSON.stringify(`${prefix}/middleware/**/*.{ts,js,mjs}`);
-    const pagesGlob = JSON.stringify(`${prefix}/pages/**/*.{vue,ts,tsx,js,jsx}`);
+    const pagesGlob = JSON.stringify(`${prefix}/pages/**/*.{${pageExtensions ?? 'vue,ts,tsx,js,jsx'}}`);
 
     return `
 const routeModules = import.meta.glob([${routesGlob}], { eager: false });

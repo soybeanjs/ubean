@@ -7,6 +7,7 @@ import { createJiti } from 'jiti';
 import { resolve, join } from 'pathe';
 import { resolveI18nConfig } from './i18n';
 import { resolveEnvConfig } from './env';
+import { resolvePagesConfig, pagesConfigDefaults } from './pages';
 import { resolveRoutingConfig } from './routing';
 import type {
   UbeanConfig,
@@ -254,6 +255,7 @@ const configDefaults: ResolvedConfig = {
   logging: resolveLoggingConfig(undefined, 'fullstack'),
   env: { schema: {} },
   prerender: resolvePrerenderConfig(),
+  pages: pagesConfigDefaults,
   scanOptions: { ignore: ['**/*.test.*', '**/*.spec.*', '**/_*', '**/*.d.ts'] },
   favicon: null,
   colorMode: false,
@@ -315,6 +317,10 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   const resolved = defu(config as Partial<ResolvedConfig>, configDefaults) as ResolvedConfig;
   resolved.rootDir = resolve(cwd);
   resolved.srcDir = resolve(cwd, resolved.srcDir);
+  // 重新解析 pages(必须基于用户原始值,不走 defu 合并):
+  // `defu` 对数组做拼接而不是覆盖 —— `{ pages: { extensions: ['vue'] } }` 会被
+  // 合并成 `['vue','vue','tsx','jsx']`,关掉 JSX 的意图完全失效(且不会报错)。
+  resolved.pages = resolvePagesConfig(config.pages);
   // 重新解析 routing(确保用户提供的 routing 字段被正确合并默认值)
   resolved.routing = resolveRoutingConfig(config.routing);
   // 重新解析 prerender(defu 浅合并会让派生字段 enabled 失真,

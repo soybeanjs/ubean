@@ -91,6 +91,7 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
         pagesDir: dirs.pages,
         layoutsDir: dirs.layouts,
         ignore: options.ignore,
+        extensions: options.pageExtensions,
         markdown,
         head
       }),

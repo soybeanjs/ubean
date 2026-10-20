@@ -17,6 +17,7 @@ import { getDevScanCoordinator } from './dev/dev-scan';
 import type { DevScanCoordinator } from './dev/dev-scan';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { transformMacros } from './macros';
+import { pageGlobExtensions } from './page-glob';
 // 别名：`buildEnvironmentsForConfig()` 内部有同名解构局部变量（eslint no-shadow）
 import { getPresetBuildConfig as getPresetBuildConfigSync } from './production';
 import {
@@ -353,7 +354,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
               cwd: ubeanConfig!.rootDir,
               srcDir: ubeanConfig!.srcDir,
               dirs: ubeanConfig!.dir,
-              ignore: ubeanConfig!.scanOptions?.ignore
+              ignore: ubeanConfig!.scanOptions?.ignore,
+              pageExtensions: ubeanConfig!.pages?.extensions
             });
             // 内容快照决定内容集合页面是否进入预渲染队列（与 CLI 路径一致）
             const { snapshot: contentSnapshot } = await loadContentForBuild(ubeanConfig!.rootDir, ubeanConfig!.content);
@@ -470,6 +472,7 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
         srcDir: ubeanConfig!.srcDir,
         dirs: ubeanConfig!.dir,
         ignore: ubeanConfig!.scanOptions?.ignore,
+        pageExtensions: ubeanConfig!.pages?.extensions,
         source,
         scan: () => scanProjectOnce(),
         // 仅当没有其他订阅者（无 CLI 的 `vite dev`）时也保证重载 —— 协调器只认第一个 init，
@@ -591,7 +594,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
       cwd: ubeanConfig!.rootDir,
       srcDir: ubeanConfig!.srcDir,
       dirs: ubeanConfig!.dir,
-      ignore: ubeanConfig!.scanOptions?.ignore
+      ignore: ubeanConfig!.scanOptions?.ignore,
+      pageExtensions: ubeanConfig!.pages?.extensions
     });
   }
 
@@ -704,7 +708,16 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
     virtualRegistry.register(createMetaVirtualModule());
 
     virtualRegistry.register(
-      createAppVirtualModule(result.apiRoutes, result.middlewares, result.pages, viteSrcPrefix || '/')
+      createAppVirtualModule(
+        result.apiRoutes,
+        result.middlewares,
+        result.pages,
+        viteSrcPrefix || '/',
+        pageGlobExtensions(
+          ubeanConfig.pages?.extensions,
+          ubeanConfig.markdown?.enabled === false ? [] : ubeanConfig.markdown?.mdx === true ? ['md', 'mdx'] : ['md']
+        )
+      )
     );
 
     virtualRegistry.register(

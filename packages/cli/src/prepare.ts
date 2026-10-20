@@ -113,7 +113,8 @@ export const prepareCommand: CommandDef = {
       cwd,
       srcDir: config.srcDir,
       dirs: config.dir,
-      ignore: config.scanOptions?.ignore
+      ignore: config.scanOptions?.ignore,
+      pageExtensions: config.pages?.extensions
     });
 
     logger.info(

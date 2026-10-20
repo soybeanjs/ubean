@@ -11,6 +11,28 @@ ubean uses a file-based routing system. Pages are Vue components in `src/pages/`
 
 Pages are Vue components located in `src/pages/`. The file structure determines the route path.
 
+### Page File Extensions
+
+By default `.vue`, `.tsx`, and `.jsx` are scanned (plus `.md` / `.mdx` when markdown is enabled).
+A single `pages.extensions` array decides three things: which suffixes are scanned, which compiler gets injected, and the page glob range.
+
+```ts
+// ubean.config.ts
+export default defineConfig({
+  pages: { extensions: ['vue'] } // .vue only (default is ['vue', 'tsx', 'jsx'])
+});
+```
+
+| `extensions` contains | Compiler injected |
+| --- | --- |
+| `vue` | `@vitejs/plugin-vue` |
+| `tsx` / `jsx` | `@vitejs/plugin-vue-jsx` (loaded only when needed) |
+
+You do **not** need to register `@vitejs/plugin-vue-jsx` in `vite.config.ts` or set `esbuild.jsx`.
+Dropping JSX saves the load cost of the babel chain (`@babel/core` + `@vue/babel-plugin-jsx`).
+
+`.reuse.ts` / `.meta.ts` metadata pages are always scanned and ignore `extensions`. Layouts currently only accept `.vue` / `.ts`.
+
 ### Basic Pages
 
 ```

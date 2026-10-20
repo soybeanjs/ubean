@@ -121,6 +121,14 @@ export interface ScanOptions {
   };
   ignore?: string[];
   /**
+   * 页面文件扩展名(不带点,委托给 `@ubean/vue` 扫描器)。
+   *
+   * 不传时用 `@ubean/vue` 的默认值 `['vue','tsx','jsx']`。框架层由
+   * `ubean.config.ts` 的 `pages.extensions` 透传 —— 该数组同时决定 Vite 注入
+   * 哪个编译器(缺 tsx 编译能力时扫描结果一构建就 `PARSE_ERROR`)。
+   */
+  pageExtensions?: string[];
+  /**
    * 页面 markdown 支持(委托给 `@ubean/vue` 扫描器)。
    * 框架模式默认开启(`true` = `.md` + `.mdx`);传 `'md'` / `'mdx'` 精细控制。
    */

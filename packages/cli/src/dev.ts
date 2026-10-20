@@ -266,7 +266,8 @@ async function initialScan(cwd: string, config: any, logging: ResolvedLoggingCon
     cwd,
     srcDir: config.srcDir,
     dirs: config.dir,
-    ignore: config.scanOptions?.ignore
+    ignore: config.scanOptions?.ignore,
+    pageExtensions: config.pages?.extensions
   });
 
   if (logging.scan) {

@@ -6,7 +6,7 @@ import Components from 'unplugin-vue-components/vite';
 import Markdown from 'unplugin-vue-markdown/vite';
 import AutoImport from 'unplugin-auto-import/vite';
 import { getColorModeScript, resolveColorModeConfig, getPartyTownScript, resolvePartyTownConfig } from '@ubean/client';
-import { localePathsOf } from '@ubean/config';
+import { localePathsOf, resolvePageCompilers } from '@ubean/config';
 import type { ResolvedConfig as UbeanResolvedConfig } from '@ubean/config';
 import { getVueLocaleParam } from '@ubean/i18n';
 import { ubeanMdxPlugin } from '@ubean/markdown';
@@ -51,6 +51,29 @@ export interface UbeanViteOptions {
 }
 
 export const VUE_PLUGIN_INCLUDE = [/\.vue$/, /\.md$/];
+
+/**
+ * 懒加载 `@vitejs/plugin-vue-jsx`。
+ *
+ * 用 `createRequire` 而不是静态 import：只有真的写了 JSX 页面时才付 babel 链路的加载
+ * 成本（`@babel/core` + `@babel/plugin-transform-typescript` + `@vue/babel-plugin-jsx`）。
+ * 同时用 ESM interop 兼容默认导出与具名导出两种形状（不同版本各写过一种）。
+ */
+function createVueJsxPlugin(): Plugin {
+  const require = createRequire(import.meta.url);
+  let mod: any;
+  try {
+    mod = require('@vitejs/plugin-vue-jsx');
+  } catch {
+    throw new Error(
+      '[ubean] `pages.extensions` 含 `tsx`/`jsx`，需要 `@vitejs/plugin-vue-jsx`，但未解析到该包。\n' +
+        '  pnpm add -D @vitejs/plugin-vue-jsx\n' +
+        "  或从 `ubean.config.ts` 去掉 JSX 扩展名（`pages: { extensions: ['vue'] }`）。"
+    );
+  }
+  const factory = mod?.default?.default ?? mod?.default ?? mod;
+  return factory() as Plugin;
+}
 
 const VIRTUAL_PAGES = 'virtual:ubean-pages';
 const VIRTUAL_APP = 'virtual:ubean-app';
@@ -136,7 +159,8 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
       cwd: ubeanConfig.rootDir,
       srcDir: ubeanConfig.srcDir,
       dirs: ubeanConfig.dir,
-      ignore: ubeanConfig.scanOptions?.ignore
+      ignore: ubeanConfig.scanOptions?.ignore,
+      pageExtensions: ubeanConfig.pages?.extensions
     });
   }
 
@@ -324,6 +348,7 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
         srcDir: ubeanConfig.srcDir,
         dirs: ubeanConfig.dir,
         ignore: ubeanConfig.scanOptions?.ignore,
+        pageExtensions: ubeanConfig.pages?.extensions,
         source,
         scan: scanProjectOnce,
         reload: () => server.ws.send({ type: 'full-reload' }),
@@ -351,10 +376,16 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
 
   const plugins: Plugin[] = [corePlugin];
 
-  // RM-V14：.vue / .md 的编译由本插件拥有（默认开启），使 `ubeanPlugin()` 自足。
-  // 自定义元素前缀 `ubean-` 必须在这里保留 —— 内置组件（`<ubean-island>` 等）不能被
-  // Vue 编译器当作未知组件处理。
-  if (options.vue !== false) {
+  // 页面扩展名决定注入哪些编译器(`pages.extensions`):
+  // - 含 `vue` → `@vitejs/plugin-vue`
+  // - 含 `tsx` / `jsx` → `@vitejs/plugin-vue-jsx`
+  //
+  // 两者必须与扫描范围一致。以前扫描层默认就收 `tsx`/`jsx` 但没人编译它们，于是
+  // `src/pages/x.tsx` 会先被算进路由，再在构建期抛 `[PARSE_ERROR] Unexpected JSX
+  // expression`（扫描说 4 个页面、构建直接死）。懒加载：用户的页面全为 `.vue` 时
+  // 不载入 babel 链路（`@vitejs/plugin-vue-jsx` 拉 `@babel/core` + `@vue/babel-plugin-jsx`）。
+  const pageCompilers = resolvePageCompilers(ubeanConfig.pages?.extensions ?? []);
+  if (options.vue !== false && pageCompilers.vue) {
     plugins.unshift(
       vue({
         include: VUE_PLUGIN_INCLUDE,
@@ -365,6 +396,10 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
         }
       }) as unknown as Plugin
     );
+  }
+
+  if (pageCompilers.jsx) {
+    plugins.push(createVueJsxPlugin());
   }
 
   if (ubeanConfig.i18n?.enabled !== false) {

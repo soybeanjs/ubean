@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: ad42f05f2511
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","e12725a4","d8baa841","f1f065b8","466a5369","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","3dec5865","5127205a","fc18f99b","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: 9bf1774fd9b3
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","48ec3dc0","e12725a4","d8baa841","f1f065b8","466a5369","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","3dec5865","5127205a","fc18f99b","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -12,6 +12,28 @@ ubean 采用基于文件的路由系统。页面是 `src/pages/` 下的 Vue 组�
 ## 页面组件
 
 页面是位于 `src/pages/` 的 Vue 组件，文件结构决定路由路径。
+
+### 页面文件扩展名
+
+默认扫描 `.vue`、`.tsx`、`.jsx`（markdown 开启时再追加 `.md` / `.mdx`）。
+`pages.extensions` 一份数组同时决定三件事：扫描哪些后缀、注入哪个编译器、页面 glob 的范围。
+
+```ts
+// ubean.config.ts
+export default defineConfig({
+  pages: { extensions: ['vue'] } // 只支持 .vue（默认 ['vue', 'tsx', 'jsx']）
+});
+```
+
+| `extensions` 含 | 注入的编译器 |
+| --- | --- |
+| `vue` | `@vitejs/plugin-vue` |
+| `tsx` / `jsx` | `@vitejs/plugin-vue-jsx`（只在需要时加载） |
+
+**不需要**在 `vite.config.ts` 手动注册 `@vitejs/plugin-vue-jsx`，也不用配 `esbuild.jsx`。
+关掉 JSX 可省下 babel 链路（`@babel/core` + `@vue/babel-plugin-jsx`）的加载成本。
+
+`.reuse.ts` / `.meta.ts` 元数据页恒参与扫描，不受 `extensions` 影响。布局目前只认 `.vue` / `.ts`。
 
 ### 基本页面
 

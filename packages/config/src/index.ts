@@ -28,6 +28,8 @@ export {
 export { resolveEnvConfig, envConfigDefaults } from './env';
 export type { ResolvedEnvConfig } from './env';
 export { resolveRoutingConfig, routingConfigDefaults } from './routing';
+export { resolvePagesConfig, resolvePageCompilers, pagesConfigDefaults, PAGE_EXTENSIONS } from './pages';
+export type { ResolvedPagesConfig, PageExtension } from './pages';
 export { resolveI18nConfig, localeCodesOf, localePathsOf } from './i18n';
 
 // 项目依赖清单（`ensurePackages` 式的主动提醒）：按配置算出「用户项目里该装什么」，

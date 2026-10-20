@@ -34,11 +34,7 @@ function makePage(route: string, name: string): ScannedPageRoute {
 type Strategy = 'prefix_except_default' | 'prefix' | 'prefix_and_default' | 'no_prefix';
 
 /** 中文用 `zh` 段，葡语用 `pt`，两份 code 都保持完整 BCP-47。 */
-const LOCALES = [
-  { code: 'en' },
-  { code: 'zh-CN', path: 'zh' },
-  { code: 'pt-BR', path: 'pt' }
-];
+const LOCALES = [{ code: 'en' }, { code: 'zh-CN', path: 'zh' }, { code: 'pt-BR', path: 'pt' }];
 const PATHS = { 'zh-CN': 'zh', 'pt-BR': 'pt' };
 
 async function createApp(strategy: Strategy): Promise<UbeanApp> {
@@ -100,9 +96,7 @@ describe('i18n.locales[].path — request handling', () => {
 
   it('honours a cookie holding the code when negotiating the root path', async () => {
     const app = await createApp('prefix_except_default');
-    const res = await app.hono.fetch(
-      new Request(`${ORIGIN}/`, { headers: { cookie: 'ubean_locale=zh-CN' } })
-    );
+    const res = await app.hono.fetch(new Request(`${ORIGIN}/`, { headers: { cookie: 'ubean_locale=zh-CN' } }));
     expect(res.status).toBe(302);
     // Redirect target is the segment, cookie value is the code.
     expect(res.headers.get('location')).toBe('/zh');

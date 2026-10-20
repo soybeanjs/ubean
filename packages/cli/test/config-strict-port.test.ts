@@ -12,9 +12,9 @@
  */
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { Server } from 'node:http';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
@@ -53,10 +53,9 @@ async function occupyPort(): Promise<{ port: number; release: () => Promise<void
   return {
     port,
     release: () =>
-      Promise.all([
-        new Promise<void>(r => v6.close(() => r())),
-        new Promise<void>(r => probe.close(() => r()))
-      ]).then(() => undefined)
+      Promise.all([new Promise<void>(r => v6.close(() => r())), new Promise<void>(r => probe.close(() => r()))]).then(
+        () => undefined
+      )
   };
 }
 
@@ -115,7 +114,10 @@ describe('配置文件里的 server 语义（strictPort）真的生效', () => {
     cleanup.push(release);
 
     const restore = withInjectedConfig(fixtureDir, src =>
-      src.replace('export default defineConfig({', `export default defineConfig({\n  dev: { port: ${port}, strictPort: true },`)
+      src.replace(
+        'export default defineConfig({',
+        `export default defineConfig({\n  dev: { port: ${port}, strictPort: true },`
+      )
     );
     cleanup.push(async () => restore());
 

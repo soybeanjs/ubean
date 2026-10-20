@@ -12,13 +12,7 @@ html {
 }
 body {
   --uno: color-base;
-  font-family:
-    'DM Sans',
-    ui-sans-serif,
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
+  font-family: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 code,
 pre,

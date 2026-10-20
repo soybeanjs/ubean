@@ -215,14 +215,14 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 ### 应用入口
 
-| API                                                        | 说明                                                                                  |
-| ---------------------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `defineApp(options): ResolvedAppConfig`                    | 基于选项的应用配置（**不是**工厂函数）                                                |
-| `applyAppConfig(app, config, mode)`                        | 应用配置到 Vue 实例                                                                   |
-| `createUbeanApp(options)`（`@ubean/app` / `ubean/server`） | 创建 ubean **Hono** 应用（`UbeanApp`）。`createUbeanApp` 全仓专指 Hono 工厂           |
-| `createUbeanClientApp(options)`（`@ubean/client`）         | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。主入口 `ubean` 不导出此函数 |
-| `useUbeanApp()` / `useUbeanRouter()`（`ubean/client`）     | 取当前应用实例 / router。**不需要组件上下文** —— 给路由守卫、插件、工具模块用（`useRouter()` 只能在 `setup()` 里调）；服务端调用会抛错，SSR 请用 `inject(UBEAN_APP_KEY)` |
-| `UBEAN_APP_KEY` / `getUbeanAppInstance()`（`ubean/client`） | `app.provide` 注入键（客户端/服务端都 provide，SSR 唯一安全取法）；`getUbeanAppInstance()` 不抛错、服务端恒为 `null` |
+| API                                                         | 说明                                                                                                                                                                     |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `defineApp(options): ResolvedAppConfig`                     | 基于选项的应用配置（**不是**工厂函数）                                                                                                                                   |
+| `applyAppConfig(app, config, mode)`                         | 应用配置到 Vue 实例                                                                                                                                                      |
+| `createUbeanApp(options)`（`@ubean/app` / `ubean/server`）  | 创建 ubean **Hono** 应用（`UbeanApp`）。`createUbeanApp` 全仓专指 Hono 工厂                                                                                              |
+| `createUbeanClientApp(options)`（`@ubean/client`）          | 创建 **Vue** 客户端应用（`{ app, router, head, page }`）。主入口 `ubean` 不导出此函数                                                                                    |
+| `useUbeanApp()` / `useUbeanRouter()`（`ubean/client`）      | 取当前应用实例 / router。**不需要组件上下文** —— 给路由守卫、插件、工具模块用（`useRouter()` 只能在 `setup()` 里调）；服务端调用会抛错，SSR 请用 `inject(UBEAN_APP_KEY)` |
+| `UBEAN_APP_KEY` / `getUbeanAppInstance()`（`ubean/client`） | `app.provide` 注入键（客户端/服务端都 provide，SSR 唯一安全取法）；`getUbeanAppInstance()` 不抛错、服务端恒为 `null`                                                     |
 
 `DefineAppOptions` 字段：`plugins`、`globalComponents`、`provides`、`head`、`rootId`、`rootAttrs`、`appRoot`、`router`、`onAppCreated`、`onClientReady`、`errorComponent`、`loadingComponent`、`viewTransitions`、`serializeState`、`hydrateState`
 
@@ -669,14 +669,14 @@ const json = serializeVercelConfig(config);
 
 ### i18n
 
-| API                                                                | 说明                                                                                           |
-| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
-| `useI18n()`（解构 `t` / `d` / `n`）                                | vue-i18n Composition API，直接从 `vue-i18n` 导入（自动导入直源；ubean 不再包装 `useI18n`/`t`） |
-| `setLocale(code)`                                                  | 框架切换：loadLocale + cookie + `router.replace(switchLocalePath)`                             |
-| `useLocalePath` / `useSwitchLocalePath` / `useLocaleHead`          | 路径与 SEO head composable                                                                     |
+| API                                                                | 说明                                                                                                 |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `useI18n()`（解构 `t` / `d` / `n`）                                | vue-i18n Composition API，直接从 `vue-i18n` 导入（自动导入直源；ubean 不再包装 `useI18n`/`t`）       |
+| `setLocale(code)`                                                  | 框架切换：loadLocale + cookie + `router.replace(switchLocalePath)`                                   |
+| `useLocalePath` / `useSwitchLocalePath` / `useLocaleHead`          | 路径与 SEO head composable                                                                           |
 | `getAvailableLocales()`                                            | 语言切换器用的 locale 元数据（`code`/`path`/`name`/`dir`/`isDefault`）；普通函数，读 globalThis 单例 |
-| `t()` / `d()` / `n()`（handler）                                   | `ubean/i18n`，读请求 ALS                                                                       |
-| `compileLocalePaths` / `createI18nMiddleware` / `getRequestLocale` | 约束前缀路径编译 + 自动检测中间件                                                              |
+| `t()` / `d()` / `n()`（handler）                                   | `ubean/i18n`，读请求 ALS                                                                             |
+| `compileLocalePaths` / `createI18nMiddleware` / `getRequestLocale` | 约束前缀路径编译 + 自动检测中间件                                                                    |
 
 ## 5. 扩展包 API
 

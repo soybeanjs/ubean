@@ -1,6 +1,6 @@
 import { ref, onMounted, onUnmounted, getCurrentInstance } from 'vue';
-import { connectDevframe } from '@devframes/hub/client';
 import { toast } from '@vean/ui';
+import { connectDevframe } from '@devframes/hub/client';
 import type { DevframeRpcClient } from 'devframe/client';
 
 // --- Local type definitions (client self-contained; mirrors server types) ---

@@ -175,7 +175,8 @@ export { asArray, rawArray, maybeArray, slug };
 
 /** 复刻 bug：把顶层 import 搬进 `declare module 'vue-router/auto-routes'` 块内部。 */
 function relocateImportIntoBlock(dts: string): string {
-  const importLine = "import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne, ParamValueOneOrMore, ParamValueZeroOrMore } from 'vue-router';";
+  const importLine =
+    "import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne, ParamValueOneOrMore, ParamValueZeroOrMore } from 'vue-router';";
   const augmentHead = "declare module 'vue-router/auto-routes' {";
   expect(dts, 'generated dts is missing the top-level import').toContain(importLine);
 
@@ -308,10 +309,7 @@ describe('typed-router.d.ts · TS2667 守卫（模块增强内不得有 import�
       // 而永远绿。变异**解析后**(`<false>`)那一份：`RouteParams` 读的就是它。
       // 只变异 `<true>` 那一份不会报错(`RouteParams` 不读 `paramsRaw`),本用例
       // 第一次写红证时就是这么假绿过去的。
-      const mutated = generateFromGenerator().replace(
-        'slugs: ParamValueOneOrMore<false>',
-        'slugs: ParamValue<false>'
-      );
+      const mutated = generateFromGenerator().replace('slugs: ParamValueOneOrMore<false>', 'slugs: ParamValue<false>');
       expect(mutated, 'mutation did not apply → control would be vacuous').toContain('slugs: ParamValue<false>');
 
       const errors = compileDts('repeatable-mutated', mutated, USAGE_PROBE).join('\n');

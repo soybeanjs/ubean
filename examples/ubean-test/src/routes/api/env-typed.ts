@@ -1,6 +1,6 @@
+import { defineHandler } from 'ubean/server';
 import { EXAMPLE_API_PREFIX, EXAMPLE_APP_TITLE } from 'ubean:env/client';
 import { EXAMPLE_PORT, EXAMPLE_REDIS_URL, EXAMPLE_SECRET } from 'ubean:env/server';
-import { defineHandler } from 'ubean/server';
 
 /**
  * `ubean:env/*` 端到端夹具（contract: docs/contracts/env-v1.md）。

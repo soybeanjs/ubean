@@ -47,9 +47,9 @@ import { Head as UnheadHeadComponent } from '@unhead/vue/components';
 import { localizePath, initClientI18n, createUbeanI18n, bindI18nRuntime, getI18nRuntimeConfig } from './i18n';
 // Framework router factory (the lean kernel ships no factory — see ./router.ts)
 import { createUbeanRouter } from './router';
-import type { RouterConfig } from './define-app';
 // 应用实例的运行时访问入口（模块级单例 + UBEAN_APP_KEY）—— 见 ./app-instance.ts
 import { UBEAN_APP_KEY, setUbeanAppInstance } from './app-instance';
+import type { RouterConfig } from './define-app';
 
 // Re-export the lean surface for framework consumers of this subpath.
 // `usePage`(路由感知版)见下方;`useRouter` 不再透传,请直接从 `vue-router` 导入。

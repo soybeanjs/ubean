@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs';
+import { integrationOwnsFirstPaintScript } from '@ubean/shared';
+import { getLogger } from '@ubean/shared/logger';
 import { defu } from 'defu';
 import { loadConfig } from 'c12';
 import { createJiti } from 'jiti';
 import { resolve, join } from 'pathe';
-import { getLogger } from '@ubean/shared/logger';
-import { integrationOwnsFirstPaintScript } from '@ubean/shared';
 import { resolveI18nConfig } from './i18n';
 import { resolveEnvConfig } from './env';
 import { resolveRoutingConfig } from './routing';

@@ -94,7 +94,12 @@ function dimensionsOf(def: EnvFieldDef): { context: EnvContext; access: EnvAcces
  * 与生成的 server 模块）的职责。这里只负责把维度与类型摊平，缺值时留 `undefined` 让下游决定。
  */
 export function resolveEnvModules(input: ResolveEnvModulesInput): EnvModules {
-  const { schema, importMetaEnv = {}, dotEnv = {}, serverEnv = process.env as Record<string, string | undefined> } = input;
+  const {
+    schema,
+    importMetaEnv = {},
+    dotEnv = {},
+    serverEnv = process.env as Record<string, string | undefined>
+  } = input;
 
   const client: EnvFieldSpec[] = [];
   const server: EnvFieldSpec[] = [];

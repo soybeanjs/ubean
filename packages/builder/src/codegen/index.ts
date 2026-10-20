@@ -1,6 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises';
-import type { ScanResult } from '@ubean/scan';
 import type { ResolvedEnvConfig } from '@ubean/config';
+import type { ScanResult } from '@ubean/scan';
 import { join } from 'pathe';
 import { generateEnvTypes, ENV_TYPES_FILE_NAME } from '../env/codegen';
 import { resolveEnvModules } from '../env/types';

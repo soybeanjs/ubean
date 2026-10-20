@@ -124,9 +124,9 @@ export function ubeanEnvPlugin(options: UbeanEnvPluginOptions): Plugin {
         if (this.environment?.name === CLIENT_ENVIRONMENT) {
           throw new Error(
             `[ubean:env] \`${ENV_SERVER_ID}\` cannot be imported from client code.\n` +
-              'Server env (including `access: \'secret\'` fields) is never sent to the browser.\n' +
-              "Move the read into server-only code (`src/routes/**`, `src/services/**`, `src/db/**`),\n" +
-              'or declare the field with `context: \'client\', access: \'public\'` if it is safe to inline.'
+              "Server env (including `access: 'secret'` fields) is never sent to the browser.\n" +
+              'Move the read into server-only code (`src/routes/**`, `src/services/**`, `src/db/**`),\n' +
+              "or declare the field with `context: 'client', access: 'public'` if it is safe to inline."
           );
         }
 

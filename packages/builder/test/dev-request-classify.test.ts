@@ -1,3 +1,4 @@
+import type { ViteDevServer } from 'vite';
 /**
  * dev 请求判据（RM-V10）。
  *
@@ -8,8 +9,12 @@
  * 端到端的表现（真 Vite server + 真中间件顺序）在 `dev-request-router.integration.test.ts`。
  */
 import { describe, expect, it } from 'vitest';
-import type { ViteDevServer } from 'vite';
-import { collectDevCssLinks, injectStylesheetLinks, isFrameworkHtmlPage, isViteResourceRequest } from '@ubean/build/vite';
+import {
+  collectDevCssLinks,
+  injectStylesheetLinks,
+  isFrameworkHtmlPage,
+  isViteResourceRequest
+} from '@ubean/build/vite';
 
 /** Node 的请求头形状（大小写不敏感由 Node 保证，这里直接用规范的小写键）。 */
 type Headers = Record<string, string | string[] | undefined>;
@@ -149,7 +154,11 @@ describe('collectDevCssLinks', () => {
       })
     );
     expect(links.sort()).toEqual(
-      ['/@id/__x00__/__uno.css?direct', '/src/layouts/default.vue?direct&vue&type=style&index=0&lang.css', '/src/style.css?direct'].sort()
+      [
+        '/@id/__x00__/__uno.css?direct',
+        '/src/layouts/default.vue?direct&vue&type=style&index=0&lang.css',
+        '/src/style.css?direct'
+      ].sort()
     );
   });
 

@@ -1,5 +1,5 @@
-import type { ScannedPage, ScannedLayout } from './types';
 import { PARAM_TYPE_IMPORT, extractRouteParams, renderParamsType } from './route-params';
+import type { ScannedPage, ScannedLayout } from './types';
 
 /**
  * 实体路由文件生成器(页面路由实体文件模式的唯一所有者,原

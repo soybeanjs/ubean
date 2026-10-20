@@ -22,9 +22,9 @@ export { integrationOwnsFirstPaintScript } from '@ubean/shared';
 
 import type { Plugin } from 'vite';
 import { registerComponentResolver, registerCssImport, registerHeadScript } from '@ubean/build';
+import { integrationOwnsFirstPaintScript } from '@ubean/shared';
 import { createThemeInitScript } from '@vean/theme/ssr';
 import UiResolver from '@vean/ui/resolver';
-import { integrationOwnsFirstPaintScript } from '@ubean/shared';
 import type { UiOptions, UiThemeOptions } from './types';
 
 /** @vean/ui 预构建样式路径 */

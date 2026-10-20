@@ -28,8 +28,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { cp } from 'node:fs/promises';
 import { createBuilder, perEnvironmentPlugin } from 'vite';
 import type { Plugin as VitePlugin } from 'vite';
-import { resolveModules } from '@ubean/config';
 import { getColorModeScript, resolveColorModeConfig } from '@ubean/client';
+import { resolveModules } from '@ubean/config';
 import { ubeanIslandsPlugin } from '@ubean/islands/vite';
 import { getLogger } from '@ubean/shared/logger';
 import { findUserViteConfig } from '@ubean/shared/node';
@@ -47,9 +47,9 @@ import { ssrSingletonProdSsr } from '../ssr-singleton';
 import { createVirtualRegistry } from '../virtual-registry';
 import { ubeanPlugin } from '../vite';
 import { ubeanVite } from '../vue';
+import { composeHeadScripts } from '../vue-virtual-modules';
 import { ubeanAssetManifestPlugin, computeAssetTags } from './asset-manifest';
 import type { ClientManifestEntry } from './asset-manifest';
-import { composeHeadScripts } from '../vue-virtual-modules';
 import { createBuildEnvironments } from './build-configs';
 import {
   cleanBuildOutput,
@@ -251,9 +251,7 @@ export async function runEnvBuilds(
       tags: { css: tags.css, body: tags.body, favicon: prepared.config.favicon },
       // spa 没有服务端入口，首帧脚本只能写进这个静态入口。与 fullstack / ssg 同源（`composeHeadScripts`）。
       headScript: composeHeadScripts(
-        prepared.config.colorMode !== false
-          ? getColorModeScript(resolveColorModeConfig(prepared.config.colorMode))
-          : ''
+        prepared.config.colorMode !== false ? getColorModeScript(resolveColorModeConfig(prepared.config.colorMode)) : ''
       )
     });
   }

@@ -330,11 +330,7 @@ export async function createStaticSsgRenderer(
       let pathToMatch = pathname;
       let locale = defaultLocale;
       if (usePrefix) {
-        const { locale: extracted, pathWithoutLocale } = extractLocaleFromPath(
-          pathname,
-          localeCodes,
-          init.i18n?.paths
-        );
+        const { locale: extracted, pathWithoutLocale } = extractLocaleFromPath(pathname, localeCodes, init.i18n?.paths);
         if (extracted) {
           locale = extracted;
           pathToMatch = pathWithoutLocale;

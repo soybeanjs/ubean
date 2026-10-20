@@ -1,7 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig, transformerDirectives, transformerVariantGroup } from 'unocss';
-import { presetSoybean } from '@soybeanjs/unocss-preset';
 import { presetUi } from '@vean/unocss';
+import { presetSoybean } from '@soybeanjs/unocss-preset';
 import { dirname, resolve } from 'pathe';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));

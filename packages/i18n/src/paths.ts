@@ -9,11 +9,7 @@ export function localeSegment(code: string, paths?: Record<string, string>): str
  * Reverse of `localeSegment`: the locale code owning a URL segment.
  * Returns `null` for a segment no configured locale claims.
  */
-export function localeFromSegment(
-  segment: string,
-  locales: string[],
-  paths?: Record<string, string>
-): string | null {
+export function localeFromSegment(segment: string, locales: string[], paths?: Record<string, string>): string | null {
   for (const code of locales) {
     if (localeSegment(code, paths) === segment) return code;
   }

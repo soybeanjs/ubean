@@ -14,8 +14,6 @@ import type { Component } from 'vue';
 import { renderToString } from '@vue/server-renderer';
 import type { PageObject } from '@ubean/pages';
 import { createUbeanClientApp, createUbeanSSRApp } from '../src/app';
-import { createClientHead } from '../src/index';
-import { createServerHead } from '../src/server';
 import {
   UBEAN_APP_KEY,
   useUbeanApp,
@@ -23,6 +21,8 @@ import {
   getUbeanAppInstance,
   setUbeanAppInstance
 } from '../src/app-instance';
+import { createClientHead } from '../src/index';
+import { createServerHead } from '../src/server';
 
 const routes = [{ path: '/', name: 'index', component: { render: () => h('div', 'home') } }];
 
@@ -48,14 +48,11 @@ describe('UBEAN_APP_KEY / 应用实例访问', () => {
   });
 
   it('createUbeanSSRApp 只 provide，不注册模块级单例', () => {
-    createUbeanSSRApp(
-      { component: 'index', props: {}, params: {}, url: '/' } as PageObject,
-      {
-        routes,
-        resolveLayoutComponent,
-        head: createServerHead()
-      }
-    );
+    createUbeanSSRApp({ component: 'index', props: {}, params: {}, url: '/' } as PageObject, {
+      routes,
+      resolveLayoutComponent,
+      head: createServerHead()
+    });
 
     // 服务端并发下模块级单例不安全 → 必须保持为 null，调用者会被明确告知改用 inject。
     expect(getUbeanAppInstance()).toBeNull();
@@ -87,15 +84,12 @@ describe('UBEAN_APP_KEY / 应用实例访问', () => {
     });
     clientApp.app.mount(document.createElement('div'));
 
-    const ssrApp = createUbeanSSRApp(
-      { component: 'index', props: {}, params: {}, url: '/' } as PageObject,
-      {
-        routes,
-        resolveLayoutComponent,
-        head: createServerHead(),
-        appRoot: Probe
-      }
-    );
+    const ssrApp = createUbeanSSRApp({ component: 'index', props: {}, params: {}, url: '/' } as PageObject, {
+      routes,
+      resolveLayoutComponent,
+      head: createServerHead(),
+      appRoot: Probe
+    });
     await renderToString(ssrApp.app);
 
     expect(seen).toHaveLength(2);
@@ -111,15 +105,16 @@ describe('UBEAN_APP_KEY / 应用实例访问', () => {
       name: 'SsrAppKeyProbe',
       setup() {
         const instance = inject(UBEAN_APP_KEY, null);
-        return () =>
-          h('span', { id: 'probe' }, instance ? instance.router.resolve('/').href : 'no-instance');
+        return () => h('span', { id: 'probe' }, instance ? instance.router.resolve('/').href : 'no-instance');
       }
     });
 
-    const { app, router } = createUbeanSSRApp(
-      { component: 'index', props: {}, params: {}, url: '/' } as PageObject,
-      { routes, resolveLayoutComponent, head: createServerHead(), appRoot: Probe }
-    );
+    const { app, router } = createUbeanSSRApp({ component: 'index', props: {}, params: {}, url: '/' } as PageObject, {
+      routes,
+      resolveLayoutComponent,
+      head: createServerHead(),
+      appRoot: Probe
+    });
     await router.isReady();
 
     const html = await renderToString(app);

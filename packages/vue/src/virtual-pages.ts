@@ -1,5 +1,5 @@
-import type { ScannedPage, ScanPagesResult } from './types';
 import { PARAM_TYPE_IMPORT, extractRouteParams, renderParamsType } from './route-params';
+import type { ScannedPage, ScanPagesResult } from './types';
 
 /**
  * 页面虚拟模块生成器(页面路由所有权归属 `@ubean/vue`)。

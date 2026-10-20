@@ -1,25 +1,10 @@
-/**
- * `dir.public` 与 `build.minify` / `build.sourcemap` 的接线守卫。
- *
- * 这三个字段在 2026-10 的 `docs/config-to-vite-passthrough.md` 调查里被记为**死字段**：
- * 配了不生效，且没有任何测试会发现 ——
- * - `dir.public`：`build-app.ts` 硬编码 `join(cwd, 'public')`，改配置照旧读 `public/`；
- * - `build.minify` / `build.sourcemap`：`vite.ts` 硬编码 `minify: true, sourcemap: false`，
- *   唯一读取点是 CLI 的 `--minify` / `--sourcemap` flag（citty 带 `default`，所以配置文件
- *   永远没机会生效）。
- *
- * 这里断言的是**配置对象 → 构建上下文**的映射（纯函数，不跑构建），因为真正跑一次
- * 带 sourcemap 的完整构建代价太大；`runEnvBuilds` 里 `dir.public` 的用法由
- * `production-build.test.ts` 的产物断言覆盖。
- */
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { createBuildContext, runEnvBuilds } from '../src/vite/build-app';
 import { loadUbeanConfig } from '@ubean/config';
 import { registerBuiltinPresets, resolvePresetByName } from '@ubean/preset';
+import { createBuildContext, runEnvBuilds } from '../src/vite/build-app';
 
 /** 只喂 `createBuildContext` 需要的四个字段，其余用解析后的默认配置补齐。 */
 async function contextFor(overrides: {
@@ -114,7 +99,14 @@ describe('dir.public 的可解析性', () => {
         cwd: root,
         config,
         preset: resolvePresetByName(config.build.preset),
-        scanResult: { pages: [{ path: '/', file: 'src/pages/index.vue' }], apiRoutes: [], middlewares: [], layouts: [], crons: [], pluginFiles: [] } as never
+        scanResult: {
+          pages: [{ path: '/', file: 'src/pages/index.vue' }],
+          apiRoutes: [],
+          middlewares: [],
+          layouts: [],
+          crons: [],
+          pluginFiles: []
+        } as never
       });
 
       // builder 桩：不真的编译，只让 runEnvBuilds 走完拷贝与写清单的步骤
@@ -123,12 +115,15 @@ describe('dir.public 的可解析性', () => {
         environments: { client: {}, ubean: {} }
       };
 
-      await runEnvBuilds(stubBuilder as never, {
-        ...ctx,
-        plugins: [],
-        presetBuildConfig: { entryType: 'node' } as never,
-        manifestRef: { current: null }
-      } as never);
+      await runEnvBuilds(
+        stubBuilder as never,
+        {
+          ...ctx,
+          plugins: [],
+          presetBuildConfig: { entryType: 'node' } as never,
+          manifestRef: { current: null }
+        } as never
+      );
 
       const outPublic = join(root, 'dist', 'public');
       expect(existsSync(join(outPublic, 'from-custom.txt')), 'dir.public 指向的目录应被拷贝').toBe(true);

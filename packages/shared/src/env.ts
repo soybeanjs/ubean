@@ -77,7 +77,7 @@ function assertEnvFieldCombo(options: { context: EnvContext; access: EnvAccess }
   if (options.context === 'client' && options.access === 'secret') {
     throw new Error(
       "Invalid env field: context 'client' cannot be combined with access 'secret'. " +
-        'Secrets are never sent to the client; use `{ context: \'server\', access: \'secret\' }`.'
+        "Secrets are never sent to the client; use `{ context: 'server', access: 'secret' }`."
     );
   }
 }
@@ -304,9 +304,7 @@ export function normalizeEnvSchema(schema: EnvSchema | EnvConfig): NormalizedEnv
     const explicit = isEnvFieldMeta(def) ? { context: def.context, access: def.access } : null;
     const dimensions = explicit ?? fallback;
     if (dimensions.context === 'client' && dimensions.access === 'secret') {
-      throw new Error(
-        `Invalid env field "${key}": context 'client' cannot be combined with access 'secret'.`
-      );
+      throw new Error(`Invalid env field "${key}": context 'client' cannot be combined with access 'secret'.`);
     }
     fields.push({ key, context: dimensions.context, access: dimensions.access, def });
   };

@@ -44,11 +44,7 @@ describe('resolveI18nConfig()', () => {
 describe('i18n.locales[].path (BCP-47 code, short URL segment)', () => {
   it('exposes overrides as `paths`, keyed by code', () => {
     const resolved = resolveI18nConfig({
-      locales: [
-        { code: 'en' },
-        { code: 'zh-CN', path: 'zh' },
-        { code: 'pt-BR', path: 'pt' }
-      ]
+      locales: [{ code: 'en' }, { code: 'zh-CN', path: 'zh' }, { code: 'pt-BR', path: 'pt' }]
     });
     expect(resolved.paths).toEqual({ 'zh-CN': 'zh', 'pt-BR': 'pt' });
     expect(localePathsOf(resolved)).toEqual({ 'zh-CN': 'zh', 'pt-BR': 'pt' });

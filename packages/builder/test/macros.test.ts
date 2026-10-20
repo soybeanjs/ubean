@@ -52,6 +52,34 @@ describe('stripMacros()', () => {
     expect(stripMacros(code)).toBe(code);
   });
 
+  it('不碰提到宏的字符串字面量（旧实现会切成空串）', () => {
+    const code = `const doc = "definePage({ name: 'A' })";\nconsole.log(doc);`;
+    expect(stripMacros(code)).toBe(code);
+  });
+
+  it('不碰提到宏的注释（旧实现会切掉注释尾巴）', () => {
+    const code = `// 用法：definePage({ name: 'A' })\nexport const x = 1;`;
+    expect(stripMacros(code)).toBe(code);
+  });
+
+  it('保留正则字面量里的括号（旧实现括号计数会错位）', () => {
+    const code = `const re = /\\(/g;\ndefinePage({ name: 'B' });\nconsole.log(re);`;
+    const result = stripMacros(code);
+    expect(result).toContain('/\\(/g');
+    expect(result).not.toContain('definePage');
+  });
+
+  it('`export default definePage(...)` 整条删除（不留下悬空的 export default）', () => {
+    const code = `export default definePage({ reuse: 'About' });\nexport const y = 1;`;
+    const result = stripMacros(code);
+    expect(result).toBe('\nexport const y = 1;');
+  });
+
+  it('语法错误时原样返回（交给 plugin-vue / rolldown 报真正的错）', () => {
+    const code = `definePage({ name: `;
+    expect(stripMacros(code)).toBe(code);
+  });
+
   it('不误剥离开头的 definePageLike 函数（单词边界）', () => {
     const code = `definePageLike({ name: 'A' });\nconst c = 5;`;
     // \b 边界：definePageLike 中的 definePage 后跟 Like，不匹配

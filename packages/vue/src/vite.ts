@@ -259,5 +259,18 @@ export { filePathToRoute, stripRouteGroups, parseMatchers } from './route-path';
 export type { ParsedRoutePath } from './route-path';
 export { generateRouteName, generateLayoutName } from './route-name';
 export { extractCallObject, extractDefinePage, extractDefinePageFromCode, normalizePageHead } from './extract-page';
+// 构建期 AST 基础设施(宏参数提取 / 源码区间定位)。
+// `@ubean/build` 的 `stripMacros` 复用它做区间删除,不再维护第二份括号扫描器。
+export {
+  extractScriptBlocks,
+  pickDefinePageBlock,
+  parseScriptAst,
+  findMacroCall,
+  statementCall,
+  extractMacroArgument,
+  literalToValue,
+  walkAst
+} from './ast';
+export type { AstNode, AstFile, ScriptBlock, LiteralResult, ExtractMacroResult } from './ast';
 
 export default ubeanVueVite;

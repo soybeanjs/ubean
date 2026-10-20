@@ -1,4 +1,5 @@
 import { readFile } from 'node:fs/promises';
+import { basename } from 'node:path';
 import { extractCallObject } from '@ubean/vue/vite';
 import type { DefineMetaResult } from './types';
 
@@ -10,32 +11,11 @@ import type { DefineMetaResult } from './types';
 
 export { extractDefinePage, extractDefinePageFromCode } from '@ubean/vue/vite';
 
-function extractScriptContent(code: string): string | null {
-  if (!code.includes('<script')) {
-    return code;
-  }
-
-  let scriptContent = '';
-  const scriptRegex = /<script([^>]*)>([\s\S]*?)<\/script>/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = scriptRegex.exec(code)) !== null) {
-    const attrs = match[1] || '';
-    const content = match[2] || '';
-    if (attrs.includes('setup')) {
-      return content;
-    }
-    scriptContent += `${content}\n`;
-  }
-
-  return scriptContent || null;
-}
-
-export function extractDefineMetaFromCode(code: string): DefineMetaResult | null {
-  const scriptContent = extractScriptContent(code);
-  if (!scriptContent) return null;
-
-  const parsed = extractCallObject(scriptContent, 'defineHandlerMeta');
+export function extractDefineMetaFromCode(code: string, fileName?: string): DefineMetaResult | null {
+  // 不再自建 `extractScriptContent`:块选择（`<script setup>` 优先）由
+  // `@ubean/vue` 的同一份 AST 基础设施负责，API 路由文件通常是纯 TS，
+  // 没有 `<script>` 块时整份代码就是一个块。
+  const parsed = extractCallObject(code, 'defineHandlerMeta', fileName);
   if (!parsed) return null;
 
   const result: DefineMetaResult = {};
@@ -58,5 +38,5 @@ export function extractDefineMetaFromCode(code: string): DefineMetaResult | null
 
 export async function extractDefineMeta(filePath: string): Promise<DefineMetaResult | null> {
   const code = await readFile(filePath, 'utf-8');
-  return extractDefineMetaFromCode(code);
+  return extractDefineMetaFromCode(code, basename(filePath));
 }

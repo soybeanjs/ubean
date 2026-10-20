@@ -1,303 +1,59 @@
 import { readFile } from 'node:fs/promises';
-import type { RouteMeta } from 'vue-router';
+import { basename } from 'node:path';
 import type { PageHead, PageMeta } from './types';
+import { extractMacroArgument, extractScriptBlocks, findMacroCall, parseScriptAst, pickDefinePageBlock } from './ast';
 
 /**
- * `definePage(...)` 宏参数提取器(构建期,零 AST 依赖的括号平衡扫描)。
+ * `definePage(...)` 宏参数提取器(构建期)。
  *
  * 所有权:`@ubean/vue`;`@ubean/scan` re-export `extractDefinePage*` 保持
  * 向后兼容,其服务端 `defineHandlerMeta` 提取复用下方导出的通用
  * `extractCallObject`。
+ *
+ * 解析走 AST(`./ast.ts`,基于 `vue/compiler-sfc`)—— 此前是手写的括号平衡
+ * 扫描 + 对象字面量解析器,遇到注释 / spread / 非字面量值会**静默丢字段**。
+ * 现在不支持的字段只丢它自己,并通过 `console.warn` 说明原因。
  */
 
-function extractScriptContent(code: string): string | null {
-  if (!code.includes('<script')) {
-    return code;
-  }
-
-  let scriptContent = '';
-  const scriptRegex = /<script([^>]*)>([\s\S]*?)<\/script>/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = scriptRegex.exec(code)) !== null) {
-    const attrs = match[1] || '';
-    const content = match[2] || '';
-    if (attrs.includes('setup')) {
-      return content;
-    }
-    scriptContent += `${content}\n`;
-  }
-
-  return scriptContent || null;
+/** 轻量告警(去重)—— 本包零 `@ubean/*` 硬依赖,不用 @ubean/logger。 */
+const _warned = new Set<string>();
+function warn(message: string): void {
+  if (_warned.has(message)) return;
+  _warned.add(message);
+  console.warn(`[ubean/vue] ${message}`);
 }
 
-function findBalancedCall(code: string, funcName: string): string | null {
-  const callPattern = new RegExp(`\\b${funcName}\\s*\\(`, 'g');
-  let match: RegExpExecArray | null;
-
-  while ((match = callPattern.exec(code)) !== null) {
-    // Skip matches inside line comments — e.g. docs mentioning
-    // `definePage({...})` in a `// ...` comment above the real call.
-    const lineStart = code.lastIndexOf('\n', match.index) + 1;
-    const beforeOnLine = code.slice(lineStart, match.index);
-    if (beforeOnLine.includes('//')) {
-      continue;
-    }
-
-    const startIdx = match.index + match[0].length;
-    let depth = 1;
-    let i = startIdx;
-    let inString: string | null = null;
-    let escaped = false;
-
-    while (i < code.length && depth > 0) {
-      const ch = code[i];
-
-      if (escaped) {
-        escaped = false;
-        i++;
-        continue;
-      }
-
-      if (ch === '\\') {
-        escaped = true;
-        i++;
-        continue;
-      }
-
-      if (inString) {
-        if (ch === inString) {
-          inString = null;
-        }
-        i++;
-        continue;
-      }
-
-      if (ch === '"' || ch === "'" || ch === '`') {
-        inString = ch;
-        i++;
-        continue;
-      }
-
-      if (ch === '(' || ch === '{' || ch === '[') {
-        depth++;
-      } else if (ch === ')' || ch === '}' || ch === ']') {
-        depth--;
-        if (depth === 0 && ch === ')') {
-          return code.slice(startIdx, i);
-        }
-      }
-
-      i++;
-    }
-  }
-
-  return null;
+/** 判断源码是不是 SFC(用于在未显式传文件名时推断解析模式)。 */
+function inferFileName(code: string, fileName?: string): string {
+  if (fileName) return fileName;
+  return /<script[\s>]|<template[\s>]/.test(code) ? 'page.vue' : 'page.ts';
 }
 
-function skipWhitespace(code: string, pos: number): number {
-  while (pos < code.length && /\s/.test(code[pos])) pos++;
-  return pos;
-}
+/** 提取 `funcName({...})` 的参数对象(块选择:优先 `<script setup>`)。 */
+function extractFromSource(code: string, funcName: string, fileName?: string): Record<string, unknown> | null {
+  const blocks = extractScriptBlocks(code, inferFileName(code, fileName));
+  if (!blocks || blocks.length === 0) return null;
 
-function parseStringValue(code: string, pos: number): { value: string; pos: number } | null {
-  const quote = code[pos];
-  if (quote !== '"' && quote !== "'" && quote !== '`') return null;
+  const block = pickDefinePageBlock(blocks);
+  if (!block) return null;
 
-  pos++;
-  let value = '';
-  let escaped = false;
+  const ast = parseScriptAst(block.content, block.lang === 'vue' ? 'page.ts' : `page.${block.lang}`);
+  if (!ast) return null;
 
-  while (pos < code.length) {
-    const ch = code[pos];
-    if (escaped) {
-      value += ch;
-      escaped = false;
-      pos++;
-      continue;
-    }
-    if (ch === '\\') {
-      escaped = true;
-      pos++;
-      continue;
-    }
-    if (ch === quote) {
-      if (quote === '`') {
-        value += ch;
-        pos++;
-        if (pos >= code.length || code[pos] !== '`') {
-          pos--;
-          break;
-        }
-      } else {
-        pos++;
-        break;
-      }
-    }
-    value += ch;
-    pos++;
+  const call = findMacroCall(ast, funcName);
+  if (!call) return null;
+
+  const extracted = extractMacroArgument(call);
+  if (!extracted) return null;
+
+  for (const { key, reason } of extracted.dropped) {
+    warn(
+      `${funcName}(): 字段 \`${key}\` 无法在构建期静态求值(${reason}),已忽略。` +
+        `只支持字面量对象 / 数组 / 字符串 / 数字 / 布尔;需要在构建期读到的字段请写成字面量。`
+    );
   }
 
-  return { value, pos };
-}
-
-function parseIdentifier(code: string, pos: number): { name: string; pos: number } | null {
-  const start = pos;
-  while (pos < code.length && /[\w$]/.test(code[pos])) pos++;
-  if (pos === start) return null;
-  return { name: code.slice(start, pos), pos };
-}
-
-function parseValue(code: string, pos: number): { value: unknown; pos: number } | null {
-  pos = skipWhitespace(code, pos);
-  if (pos >= code.length) return null;
-
-  const ch = code[pos];
-
-  if (ch === '"' || ch === "'" || ch === '`') {
-    const str = parseStringValue(code, pos);
-    if (str) return { value: str.value, pos: str.pos };
-    return null;
-  }
-
-  if (ch === '{') {
-    return parseObjectValue(code, pos);
-  }
-
-  if (ch === '[') {
-    return parseArrayValue(code, pos);
-  }
-
-  if (ch === 't' && code.slice(pos, pos + 4) === 'true') {
-    return { value: true, pos: pos + 4 };
-  }
-  if (ch === 'f' && code.slice(pos, pos + 5) === 'false') {
-    return { value: false, pos: pos + 5 };
-  }
-  if (ch === 'n' && code.slice(pos, pos + 4) === 'null') {
-    return { value: null, pos: pos + 4 };
-  }
-
-  const numMatch = code.slice(pos).match(/^-?\d+\.?\d*(?:[eE][+-]?\d+)?/);
-  if (numMatch) {
-    return { value: Number(numMatch[0]), pos: pos + numMatch[0].length };
-  }
-
-  const ident = parseIdentifier(code, pos);
-  if (ident) {
-    return { value: ident.name, pos: ident.pos };
-  }
-
-  return null;
-}
-
-function parseObjectValue(code: string, pos: number): { value: Record<string, unknown>; pos: number } | null {
-  if (code[pos] !== '{') return null;
-  pos++;
-
-  const result: Record<string, unknown> = {};
-  pos = skipWhitespace(code, pos);
-
-  if (code[pos] === '}') {
-    return { value: result, pos: pos + 1 };
-  }
-
-  while (pos < code.length) {
-    pos = skipWhitespace(code, pos);
-
-    let key: string | null = null;
-    if (code[pos] === '"' || code[pos] === "'") {
-      const keyStr = parseStringValue(code, pos);
-      if (keyStr) {
-        key = keyStr.value;
-        pos = keyStr.pos;
-      }
-    } else {
-      const ident = parseIdentifier(code, pos);
-      if (ident) {
-        key = ident.name;
-        pos = ident.pos;
-      }
-    }
-
-    if (!key) break;
-
-    pos = skipWhitespace(code, pos);
-    if (code[pos] !== ':') break;
-    pos++;
-
-    pos = skipWhitespace(code, pos);
-    const val = parseValue(code, pos);
-    if (val) {
-      result[key] = val.value;
-      pos = val.pos;
-    }
-
-    pos = skipWhitespace(code, pos);
-    if (code[pos] === ',') {
-      pos++;
-      continue;
-    }
-    if (code[pos] === '}') {
-      pos++;
-      break;
-    }
-    break;
-  }
-
-  return { value: result, pos };
-}
-
-function parseArrayValue(code: string, pos: number): { value: unknown[]; pos: number } | null {
-  if (code[pos] !== '[') return null;
-  pos++;
-
-  const result: unknown[] = [];
-  pos = skipWhitespace(code, pos);
-
-  if (code[pos] === ']') {
-    return { value: result, pos: pos + 1 };
-  }
-
-  while (pos < code.length) {
-    pos = skipWhitespace(code, pos);
-    const val = parseValue(code, pos);
-    if (val) {
-      result.push(val.value);
-      pos = val.pos;
-    }
-
-    pos = skipWhitespace(code, pos);
-    if (code[pos] === ',') {
-      pos++;
-      continue;
-    }
-    if (code[pos] === ']') {
-      pos++;
-      break;
-    }
-    break;
-  }
-
-  return { value: result, pos };
-}
-
-function parseObjectLiteral(code: string): Record<string, unknown> {
-  const start = skipWhitespace(code, 0);
-  if (code[start] !== '{') return {};
-
-  const parsed = parseObjectValue(code, start);
-  if (parsed) {
-    return parsed.value;
-  }
-
-  const result: Record<string, unknown> = {};
-  const simpleRegex = /(\w+)\s*:\s*(['"`])((?:(?!\2)[^\\]|\\.)*)\2/g;
-  let m: RegExpExecArray | null;
-  while ((m = simpleRegex.exec(code)) !== null) {
-    result[m[1]] = m[3];
-  }
-  return result;
+  return extracted.parsed;
 }
 
 /**
@@ -305,16 +61,8 @@ function parseObjectLiteral(code: string): Record<string, unknown> {
  * 对象字面量参数。供本包的 `definePage` 提取与 `@ubean/scan` 的
  * `defineHandlerMeta` 提取共用(单一解析器实现)。
  */
-export function extractCallObject(code: string, funcName: string): Record<string, unknown> | null {
-  const argStr = findBalancedCall(code, funcName);
-  if (!argStr) return null;
-
-  const trimmed = argStr.trim();
-  if (!trimmed.startsWith('{')) {
-    return null;
-  }
-
-  return parseObjectLiteral(trimmed);
+export function extractCallObject(code: string, funcName: string, fileName?: string): Record<string, unknown> | null {
+  return extractFromSource(code, funcName, fileName);
 }
 
 /**
@@ -341,11 +89,14 @@ function normalizePageHead(raw: unknown): PageHead | undefined {
 
 export { normalizePageHead };
 
-export function extractDefinePageFromCode(code: string): PageMeta | null {
-  const scriptContent = extractScriptContent(code);
-  if (!scriptContent) return null;
-
-  const parsed = extractCallObject(scriptContent, 'definePage');
+/**
+ * 从源码提取 `definePage` 元数据。
+ *
+ * @param code 源码(SFC 或纯脚本)
+ * @param fileName 可选文件名(用于选择 TS / TSX / SFC 解析模式);不传时按源码内容推断
+ */
+export function extractDefinePageFromCode(code: string, fileName?: string): PageMeta | null {
+  const parsed = extractFromSource(code, 'definePage', fileName);
   if (!parsed) return null;
 
   const result: PageMeta = {};
@@ -365,7 +116,7 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
   if (typeof parsed.reuse === 'string') result.reuse = parsed.reuse;
   // 布尔值原样保留（省略即视为 `true`，消费端用 `!== false` 判定）。
   if (parsed.routable === false || parsed.routable === true) result.routable = parsed.routable;
-  if (parsed.meta && typeof parsed.meta === 'object') result.meta = parsed.meta as RouteMeta;
+  if (parsed.meta && typeof parsed.meta === 'object') result.meta = parsed.meta as PageMeta['meta'];
   if (typeof parsed.requiresAuth === 'boolean') result.requiresAuth = parsed.requiresAuth;
   if (typeof parsed.cache === 'boolean') result.cache = parsed.cache;
   if (typeof parsed.transition === 'string') result.transition = parsed.transition;
@@ -381,5 +132,5 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
 
 export async function extractDefinePage(filePath: string): Promise<PageMeta | null> {
   const code = await readFile(filePath, 'utf-8');
-  return extractDefinePageFromCode(code);
+  return extractDefinePageFromCode(code, basename(filePath));
 }

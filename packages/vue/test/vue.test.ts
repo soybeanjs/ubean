@@ -490,7 +490,18 @@ describe('@ubean/vue 依赖纯净度', () => {
     expect(
       realImports.every(
         s =>
-          s.startsWith('node:') || s === 'vite' || s === 'tinyglobby' || s === 'pathe' || s === 'scule' || s === 'ufo'
+          s.startsWith('node:') ||
+          s === 'vite' ||
+          s === 'tinyglobby' ||
+          s === 'pathe' ||
+          s === 'scule' ||
+          s === 'ufo' ||
+          // `definePage` 的宏参数提取与源码区间定位走 AST(`ast.ts`),
+          // 解析器取自 `vue/compiler-sfc` —— 它是 `vue` 自己的子路径导出,
+          // 不是新增依赖,且只出现在 `/vite`(构建期)产物里,不进客户端。
+          // 不用 `vite` 的 `parseAst`:vite 5/6/7 转发给 rollup 的 acorn 实现,
+          // 遇到 `as const` / `satisfies` 直接抛错(见 ast.ts 顶部说明)。
+          s === 'vue/compiler-sfc'
       )
     ).toBe(true);
   });

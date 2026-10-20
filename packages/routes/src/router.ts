@@ -1,5 +1,9 @@
 import { compileLocalePaths } from '@ubean/i18n';
-import { validateParams as _validateParams } from '@ubean/scan';
+// matcher 系列所有权在 `@ubean/vue` 主入口(vue + vue-router only)。**不要**改回
+// `@ubean/scan` —— 那个 barrel 会带进 `@ubean/vue/vite`(`vue/compiler-sfc`),
+// 于是服务端运行时图里出现构建期解析器:Node 上只是体积浪费,worker 上
+// 构建**直接失败**(`Rolldown failed to resolve import "velocityjs"`)。
+import { validateParams as _validateParams } from '@ubean/vue';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 import { isServerAction, matchAnyGlob } from '@ubean/shared';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/shared';

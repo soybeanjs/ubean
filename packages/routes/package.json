@@ -29,6 +29,7 @@
     "@soybeanjs/fetch": "^0.1.2",
     "@ubean/i18n": "workspace:*",
     "@ubean/shared": "workspace:*",
+    "@ubean/vue": "workspace:*",
     "hono": "4.13.13",
     "hono-openapi": "^1.5.0",
     "rou3": "^1.0.0"

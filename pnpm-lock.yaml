@@ -1150,6 +1150,9 @@ importers:
       '@ubean/shared':
         specifier: workspace:*
         version: link:../shared
+      '@ubean/vue':
+        specifier: workspace:*
+        version: link:../vue
       hono:
         specifier: 4.13.13
         version: 4.13.13

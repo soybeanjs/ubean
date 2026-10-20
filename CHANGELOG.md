@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.7...main) (2026-10-20) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **builder**: let pages.extensions control scanned suffixes and compilers &nbsp;-&nbsp; by @soybeanjs [<samp>(9fae7)</samp>](https://github.com/soybeanjs/ubean/commit/9fae7fb9)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **projects**: sync build exports snapshot and give fs-bound tests a real timeout &nbsp;-&nbsp; by @soybeanjs [<samp>(dc34d)</samp>](https://github.com/soybeanjs/ubean/commit/dc34deb8)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.6...main) (2026-10-20) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

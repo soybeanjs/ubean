@@ -60,6 +60,40 @@ describe('generateRouteName()', () => {
   it('下划线段 → PascalCase', () => {
     expect(generateRouteName('/user_settings')).toBe('UserSettings');
   });
+
+  // ── repeatable 参数(`[x]+` / `[x]*`):修饰符不得进入名字 ──
+
+  it('repeatable [slugs]+ → Slugs(修饰符不进入名字)', () => {
+    expect(generateRouteName('/articles/[slugs]+')).toBe('ArticlesSlugs');
+  });
+
+  it('zero-or-more [slugs]* → SlugsOptional(* 与 [[x]]+ 同义)', () => {
+    // `*` 在 vue-router 里是「零或多个」,与 `[[]]+` 解析成同一个路径 `:slugs*`,
+    // 名字也必须一致,否则同一路由两个拼写会拿到两个名字。
+    expect(generateRouteName('/articles/[slugs]*')).toBe('ArticlesSlugsOptional');
+  });
+
+  it('可选 repeatable [[slugs]]+ → SlugsOptional', () => {
+    expect(generateRouteName('/articles/[[slugs]]+')).toBe('ArticlesSlugsOptional');
+  });
+
+  it('动态参数与静态段在同一段内混合(下划线展开)', () => {
+    // `product_[skuId]_[seo].vue` → `/product_:skuId_:seo`
+    expect(generateRouteName('/product_[skuId]_[seo]')).toBe('ProductSkuIdSeo');
+  });
+
+  it('生成的名字始终是合法标识符', () => {
+    const samples = [
+      '/articles/[slugs]+',
+      '/articles/[[slugs]]+',
+      '/articles/[slugs]*',
+      '/product_[skuId]_[seo]',
+      '/(admin)/files/[...path]'
+    ];
+    for (const sample of samples) {
+      expect(generateRouteName(sample)).toMatch(/^[A-Za-z_$][\w$]*$/);
+    }
+  });
 });
 
 describe('generateLayoutName()', () => {

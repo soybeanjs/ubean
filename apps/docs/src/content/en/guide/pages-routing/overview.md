@@ -54,6 +54,25 @@ Use `[...path]` for catch-all routes:
 src/pages/[...path].vue → /anything/here
 ```
 
+### Optional and Repeatable Parameters
+
+Wrap the segment in double brackets for an optional parameter, and append `+`
+(one or more) or `*` (zero or more) after the brackets for a repeatable one:
+
+```
+src/pages/users/[[id]].vue          → /users/:id?
+src/pages/articles/[slugs]+.vue     → /articles/:slugs+      params.slugs is string[]
+src/pages/articles/[[slugs]]+.vue   → /articles/:slugs*      optional repeatable
+```
+
+The repeatable modifier is a **segment-level** marker, so it goes outside the
+brackets (`[slugs]+`), matching where it sits in a vue-router path (`:slugs+`).
+Writing it inside (`[slugs+]`) makes it part of the parameter name.
+
+> `*` (zero or more) and `[[x]]+` describe the same path (`:x*`) and therefore
+the same route name. `+` does not change the name — it only says how many
+segments the parameter participates in.
+
 ### Special Pages (404 / Loading)
 
 ubean auto-detects special pages at the **root** of `src/pages/`. These are not registered as regular routes — they serve framework-level roles instead:

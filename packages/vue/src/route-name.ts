@@ -6,6 +6,15 @@ import { pascalCase } from 'scule';
  * `generateApiRouteId` 保留在 `@ubean/scan`。
  */
 
+/**
+ * 动态参数段:`[x]`、`[[x]]`、`[...x]`,可带 `=matcher` 与 repeatable 修饰符
+ * (`+` / `*`)。
+ *
+ * 修饰符必须被单独捕获 —— 旧实现用 `slice(1, -1)` 按固定长度切,遇到 `[slugs]+`
+ * 会切出 `slugs]`,生成 `ArticlesSlugs]` 这种非法标识符(`Page_ArticlesSlugs]`)。
+ */
+const DYNAMIC_SEGMENT_REGEX = /^\[(\.{3})?\[?([\w-]+)(?:=[\w-]+)?\]\]?([?*+]?)$/;
+
 export function generateRouteName(routePath: string): string {
   if (routePath === '/' || routePath === '') {
     return 'Index';
@@ -20,25 +29,24 @@ export function generateRouteName(routePath: string): string {
       continue;
     }
 
-    if (segment.startsWith('[...')) {
-      const param = segment.slice(4, -1);
-      nameSegments.push(`All${formatParamName(param)}`);
+    const dynamic = DYNAMIC_SEGMENT_REGEX.exec(segment);
+    if (dynamic) {
+      const [, dots, param, modifier] = dynamic;
+      const base = pascalCase(param!);
+      // catch-all 带 `All` 前缀;可选(`[[x]]` 或 `*`)带 `Optional` 后缀。
+      // repeatable 的 `+` 不改变名字 —— 它只描述段数,不改变路由身份。
+      const prefix = dots ? 'All' : '';
+      const suffix = segment.startsWith('[[') || modifier === '*' ? 'Optional' : '';
+      nameSegments.push(`${prefix}${base}${suffix}`);
       continue;
     }
 
-    if (segment.startsWith('[[')) {
-      const param = segment.slice(2, -2);
-      nameSegments.push(`${formatParamName(param)}Optional`);
-      continue;
-    }
-
-    if (segment.startsWith('[')) {
-      const param = segment.slice(1, -1);
-      nameSegments.push(formatParamName(param));
-      continue;
-    }
-
-    nameSegments.push(pascalCase(segment));
+    // 同一段内静态与动态混合(`product_[skuId]_[seo]`)时,先剔除方括号再分段
+    // pascalCase,否则 `[...]` 会原样进入名字。
+    const cleaned = segment.replace(/\[\[?(\.{3})?([\w-]+)(?:=[\w-]+)?\]\]?[?*+]?/g, (_, dots, param) => {
+      return `_${dots ? 'All' : ''}${param}_`;
+    });
+    nameSegments.push(pascalCase(cleaned));
   }
 
   const name = nameSegments.join('');
@@ -52,9 +60,4 @@ export function generateLayoutName(layoutPath: string): string {
   }
   const segments = base.split('/').filter(Boolean);
   return segments.map(s => pascalCase(s)).join('');
-}
-
-function formatParamName(param: string): string {
-  const cleaned = param.replace(/^\.{3}/, '').replace(/\?$/, '');
-  return pascalCase(cleaned);
 }

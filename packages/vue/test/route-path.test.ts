@@ -1,7 +1,8 @@
 /**
  * @ubean/vue 路由路径算法单元测试
  *
- * 覆盖 route-path.ts 主路径：stripRouteGroups / parseMatchers / filePathToRoute。
+ * 覆盖 route-path.ts 主路径：stripRouteGroups / parseMatchers / filePathToRoute,
+ * 含 repeatable 参数(`[x]+` / `[x]*` / `[[x]]+`)的修饰符保留与可选性映射。
  * (随页面路由所有权迁移自 @ubean/scan 的 path/route-path 测试)
  */
 import { describe, it, expect } from 'vitest';
@@ -104,5 +105,25 @@ describe('filePathToRoute()', () => {
 
   it('参数名中的特殊字符被替换为下划线', () => {
     expect(filePathToRoute('users/[user-id].vue').route).toBe('/users/:user-id');
+  });
+
+  // ── repeatable 参数(`[x]+` / `[x]*`):同一段位可重复占用 ──
+
+  it('repeatable [slugs]+ → :slugs+', () => {
+    expect(filePathToRoute('articles/[slugs]+.vue').route).toBe('/articles/:slugs+');
+  });
+
+  it('可选 repeatable [[slugs]]+ → :slugs*', () => {
+    // vue-router 里「零或多个」的写法是 `*`,不是 `?+`(`?` 与 `+` 互斥)。
+    expect(filePathToRoute('articles/[[slugs]]+.vue').route).toBe('/articles/:slugs*');
+  });
+
+  it('zero-or-more [slugs]* → :slugs*', () => {
+    expect(filePathToRoute('articles/[slugs]*.vue').route).toBe('/articles/:slugs*');
+  });
+
+  it('repeatable 参数名里的 `+`/`*` 不进入参数名', () => {
+    expect(filePathToRoute('a/[x]+.ts').route).toBe('/a/:x+');
+    expect(filePathToRoute('a/[x]*.ts').route).toBe('/a/:x*');
   });
 });

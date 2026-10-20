@@ -1,4 +1,5 @@
 import type { ScannedPage, ScannedLayout } from './types';
+import { PARAM_TYPE_IMPORT, extractRouteParams, renderParamsType } from './route-params';
 
 /**
  * 实体路由文件生成器(页面路由实体文件模式的唯一所有者,原
@@ -401,7 +402,7 @@ ${views}
     // 会触发 TS2667(Imports are not permitted in module augmentations)——实测该错误此前被
     // 各 example 的 `skipLibCheck: true` 掩盖,不吃 skipLibCheck 的项目一启动 typecheck 就红。
     return `${header}
-import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne } from 'vue-router';
+${PARAM_TYPE_IMPORT}
 
 declare module '@ubean/scan' {
   /**
@@ -547,61 +548,6 @@ const JS_STRING_ESCAPES: Record<string, string> = {
 
 function jsStringLiteral(value: string): string {
   return `'${value.replace(/[\\'\n\r\u2028\u2029]/g, ch => JS_STRING_ESCAPES[ch])}'`;
-}
-
-/**
- * 从 vue-router 风格路径中提取参数信息。
- *
- * 支持的语法:
- * - `:name`     — 必需参数(如 `/users/:id`)
- * - `:name?`    — 可选参数(如 `/users/:id?`)
- * - `:name*`    — 重复参数(零或多个,如 `/files/:path*`)— 当前当作可选处理
- * - `:name+`    — 重复参数(一个或多个,如 `/files/:path+`)— 当前当作必需处理
- * - `:name(...)` — 带自定义正则的参数(如 `:id(\\d+)`)— 提取 `name`,忽略正则
- *
- * 不识别 `:pathMatch(.*)*`(catch-all),由 vue-router 内部处理,在
- * `RouteRecordInfo` 中视为无参数(`Record<never, never>`)。
- *
- * @returns 参数数组,顺序与 path 中出现顺序一致
- */
-function extractRouteParams(path: string): Array<{ name: string; optional: boolean }> {
-  const params: Array<{ name: string; optional: boolean }> = [];
-  // 匹配 `:name` 后跟可选的 `(...)` 正则,以及 `?`/`*`/`+` 修饰符
-  const paramRegex = /:([A-Za-z_][A-Za-z0-9_]*)(?:\([^)]*\))?([?*+]?)/g;
-  let match: RegExpExecArray | null;
-  while ((match = paramRegex.exec(path)) !== null) {
-    const name = match[1];
-    const modifier = match[2];
-    // `?` 和 `*` 表示可选(零个或零/多个),`+` 表示必需(一个或多个),无修饰符表示必需
-    const optional = modifier === '?' || modifier === '*';
-    // 去重:vue-router 不允许同名参数出现两次
-    if (!params.some(p => p.name === name)) {
-      params.push({ name, optional });
-    }
-  }
-  return params;
-}
-
-/**
- * 渲染参数类型字面量,用于 `RouteRecordInfo` 的 `ParamsRaw` / `Params` 类型参数位置。
- *
- * @param params   `extractRouteParams` 返回的参数数组
- * @param isRaw    `true` 渲染原始输入类型(`ParamValue<true>` / `ParamValueZeroOrOne<true>`),
- *                 `false` 渲染解析后类型(`ParamValue<false>` / `ParamValueZeroOrOne<false>`)
- * @returns 类型字面量字符串,如 `{ id: ParamValue<true> }` 或 `Record<never, never>`
- */
-function renderParamsType(params: Array<{ name: string; optional: boolean }>, isRaw: boolean): string {
-  if (params.length === 0) {
-    return 'Record<never, never>';
-  }
-  const entries = params.map(p => {
-    const optionalMarker = p.optional ? '?' : '';
-    const type = p.optional
-      ? `ParamValueZeroOrOne<${isRaw ? 'true' : 'false'}>`
-      : `ParamValue<${isRaw ? 'true' : 'false'}>`;
-    return `    ${p.name}${optionalMarker}: ${type}`;
-  });
-  return `{\n${entries.join(',\n')}\n  }`;
 }
 
 function joinPosix(...parts: string[]): string {

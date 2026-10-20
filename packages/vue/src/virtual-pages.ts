@@ -1,4 +1,5 @@
 import type { ScannedPage, ScanPagesResult } from './types';
+import { PARAM_TYPE_IMPORT, extractRouteParams, renderParamsType } from './route-params';
 
 /**
  * 页面虚拟模块生成器(页面路由所有权归属 `@ubean/vue`)。
@@ -315,42 +316,6 @@ ${layouts.map(l => `  ${JSON.stringify(l.name)}: { name: ${JSON.stringify(l.name
 /* typed-router.d.ts                                                           */
 /* -------------------------------------------------------------------------- */
 
-/**
- * 从 vue-router 风格路径中提取参数信息。
- *
- * 支持:`:name`、`:name?`、`:name*`、`:name+`、`:name(...)`。
- * 不识别 `:pathMatch(.*)*`(catch-all),视为无参数。
- */
-function extractRouteParams(path: string): Array<{ name: string; optional: boolean }> {
-  const params: Array<{ name: string; optional: boolean }> = [];
-  const paramRegex = /:([A-Za-z_][A-Za-z0-9_]*)(?:\([^)]*\))?([?*+]?)/g;
-  let match: RegExpExecArray | null;
-  while ((match = paramRegex.exec(path)) !== null) {
-    const name = match[1];
-    const modifier = match[2];
-    const optional = modifier === '?' || modifier === '*';
-    if (!params.some(p => p.name === name)) {
-      params.push({ name, optional });
-    }
-  }
-  return params;
-}
-
-/** 渲染参数类型字面量(`ParamValue<true/false>` / `ParamValueZeroOrOne<...>`)。 */
-function renderParamsType(params: Array<{ name: string; optional: boolean }>, isRaw: boolean): string {
-  if (params.length === 0) {
-    return 'Record<never, never>';
-  }
-  const entries = params.map(p => {
-    const optionalMarker = p.optional ? '?' : '';
-    const type = p.optional
-      ? `ParamValueZeroOrOne<${isRaw ? 'true' : 'false'}>`
-      : `ParamValue<${isRaw ? 'true' : 'false'}>`;
-    return `    ${p.name}${optionalMarker}: ${type}`;
-  });
-  return `{\n${entries.join(',\n')}\n  }`;
-}
-
 function renderRouteRecordInfo(page: ScannedPage): string {
   const params = extractRouteParams(page.route);
   const paramsRaw = renderParamsType(params, true);
@@ -441,7 +406,7 @@ export function generateTypedRouter(input: PagesModuleInput, _moduleId = 'virtua
 
 // import type 必须在顶层:declare module 块内部的 import 触发 TS2667
 // (Imports are not permitted in module augmentations)。
-import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne } from 'vue-router';
+${PARAM_TYPE_IMPORT}
 
 // 本文件为 module(顶层 export)—— declare module 块按「模块增强」语义合并。
 // 虚拟模块 'virtual:ubean-vue-routes' 的环境声明在伴生文件 ubean-vue-routes.d.ts。

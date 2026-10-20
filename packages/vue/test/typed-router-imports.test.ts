@@ -131,7 +131,7 @@ const PAGES = [
 
 /** 复刻 bug：把顶层 import 搬进 `declare module 'vue-router/auto-routes'` 块内部。 */
 function relocateImportIntoBlock(dts: string): string {
-  const importLine = "import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne } from 'vue-router';";
+  const importLine = "import type { RouteRecordInfo, ParamValue, ParamValueZeroOrOne, ParamValueOneOrMore, ParamValueZeroOrMore } from 'vue-router';";
   const augmentHead = "declare module 'vue-router/auto-routes' {";
   expect(dts, 'generated dts is missing the top-level import').toContain(importLine);
 

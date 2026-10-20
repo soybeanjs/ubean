@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: 628f7ea7b50f
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","e12725a4","d8baa841","f1f065b8","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","3dec5865","5127205a","fc18f99b","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: 981f966e9f72
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","e12725a4","d8baa841","f1f065b8","466a5369","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","3dec5865","5127205a","fc18f99b","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -55,6 +55,24 @@ console.log(router.currentRoute.value.hash);
 ```
 src/pages/[...path].vue → /anything/here
 ```
+
+### 可选参数与 repeatable 参数
+
+段外包一层双括号表示可选；参数名后再跟 `+`（一或多个）或 `*`（零或多个）表示
+repeatable（同一段位可重复占用多次）：
+
+```
+src/pages/users/[[id]].vue          → /users/:id?
+src/pages/articles/[slugs]+.vue     → /articles/:slugs+      params.slugs 是 string[]
+src/pages/articles/[[slugs]]+.vue   → /articles/:slugs*      可选 + 重复
+```
+
+repeatable 修饰符是**段级**标记，所以写在方括号**外面**（`[slugs]+`），与它在
+vue-router 路径里的位置一致（`:slugs+`）。写在里面（`[slugs+]`）会被当作参数名
+的一部分。
+
+> `*`（零或多个）与 `[[x]]+` 描述同一个路径（`:x*`），因此得到同一个路由名；
+> `+` 不改变名字 —— 它只说明这个参数占几个段。
 
 ### 特殊页面（404 / Loading）
 

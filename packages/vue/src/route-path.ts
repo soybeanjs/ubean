@@ -15,9 +15,9 @@ const METHOD_SUFFIX_REGEX = /\.(connect|delete|get|head|options|patch|post|put|t
 const ENV_SUFFIX_REGEX = /\.(dev|prod|prerender)$/i;
 const MIXED_SUFFIX_REGEX = /\.(connect|delete|get|head|options|patch|post|put|trace)\.(dev|prod|prerender)$/i;
 
-const DYNAMIC_PARAM_REGEX = /\[([^\]]+)\]/g;
-const CATCH_ALL_REGEX = /\[\.{3}([^\]]+)\]/g;
-const OPTIONAL_PARAM_REGEX = /\[\[([^\]]+)\]\]/g;
+const DYNAMIC_PARAM_REGEX = /\[([^\]]+)\]([?*+]?)/g;
+const CATCH_ALL_REGEX = /\[\.{3}([^\]]+)\]([?*+]?)/g;
+const OPTIONAL_PARAM_REGEX = /\[\[([^\]]+)\]\]([?*+]?)/g;
 const ROUTE_GROUP_REGEX = /\(([^(/\\]+)\)[/\\]/g;
 const ROUTE_GROUP_TRAILING_REGEX = /\(([^(/\\]+)\)$/;
 
@@ -30,6 +30,22 @@ const ROUTE_GROUP_TRAILING_REGEX = /\(([^(/\\]+)\)$/;
  *   $3 = 可选的 `=matcherName`
  */
 const DYNAMIC_PARAM_WITH_MATCHER_REGEX = /\[(\.{3})?([A-Za-z_][\w-]*)(?:=([A-Za-z_][\w-]*))?\]/g;
+
+/**
+ * 剥离参数名尾部的 repeatable 修饰符(`+` 一或多个 / `*` 零或多个)。
+ *
+ * 修饰符是**段级**语义,必须写在本段方括号之后(`[slugs]+`)—— 与 vue-router
+ * `:slugs+` 的位置一致。写在方括号内(`[slugs+]`)会被当参数名的一部分,与
+ * `[user-id]` 这类带连字符的名字冲突。
+ *
+ * @example
+ * splitRepeatModifier('slugs+') → { name: 'slugs', modifier: '+' }
+ * splitRepeatModifier('slugs')  → { name: 'slugs' }
+ */
+function splitRepeatModifier(param: string): { name: string; modifier?: string } {
+  const match = /^([\w-]+)([+*])$/.exec(param);
+  return match ? { name: match[1], modifier: match[2] } : { name: param };
+}
 
 const INDEX_FILE_REGEX = /\/index$/;
 
@@ -113,11 +129,23 @@ export function filePathToRoute(filePath: string, prefix = '/'): ParsedRoutePath
 
   route = stripRouteGroups(route);
 
+  // catch-all 本身已是「零或多个段」;`[...x]*` / `[...x]+` 的修饰符直接吞掉,
+  // 不让它漏到 `**:x` 后面(否则下游 `**:x` → `:x(.*)*` 的转换会留下悬空 `+`)。
   route = route.replace(CATCH_ALL_REGEX, (_, p) => `**:${p.replace(/[^\w-]/g, '_')}`);
 
-  route = route.replace(OPTIONAL_PARAM_REGEX, (_, p) => `:${p.replace(/[^\w-]/g, '_')}?`);
+  // 可选 + repeatable(`[[x]]+` / `[[x]]*`)表达「零或多个」,vue-router 里就是 `*`。
+  // 不能拼成 `?+` —— `?`(零或一)与 `+`(一或多)互斥,拼出来的不是合法参数语法。
+  route = route.replace(OPTIONAL_PARAM_REGEX, (_, p, modifier) => {
+    const { name } = splitRepeatModifier(p);
+    const safeName = name.replace(/[^\w-]/g, '_');
+    return modifier ? `:${safeName}*` : `:${safeName}?`;
+  });
 
-  route = route.replace(DYNAMIC_PARAM_REGEX, (_, p) => `:${p.replace(/[^\w-]/g, '_')}`);
+  route = route.replace(DYNAMIC_PARAM_REGEX, (_, p, modifier) => {
+    const { name, modifier: innerModifier } = splitRepeatModifier(p);
+    const safeName = name.replace(/[^\w-]/g, '_');
+    return `:${safeName}${modifier ?? innerModifier ?? ''}`;
+  });
 
   route = withLeadingSlash(withoutTrailingSlash(withBase(route, prefix)));
 

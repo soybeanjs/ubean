@@ -487,9 +487,12 @@ describe('@ubean/vue 依赖纯净度', () => {
     // 打包器真实导入统一双引号;生成器模板里的 d.ts/示例文本用单引号 —— 以此区分
     const realImports = [...code.matchAll(/^[ \t]*import\s[^'"]*?from\s*"([^"]+)"/gm)].map(m => m[1]);
     expect(realImports.filter(s => s.startsWith('@unhead/') || s === 'vue' || s === 'vue-router')).toEqual([]);
+    // 相对路径是打包器自己拆出的内部 chunk(如共用的 `./route-params-*.js`),
+    // 不是外部依赖,不参与白名单校验。
     expect(
       realImports.every(
         s =>
+          s.startsWith('.') ||
           s.startsWith('node:') ||
           s === 'vite' ||
           s === 'tinyglobby' ||

@@ -1,5 +1,5 @@
-import type { ResolvedI18nConfig } from '@ubean/config';
 import { localePathsOf } from '@ubean/config';
+import type { ResolvedI18nConfig } from '@ubean/config';
 import { getVueLocaleParam } from '@ubean/i18n';
 
 export function serializeI18nConfig(config: ResolvedI18nConfig): string {

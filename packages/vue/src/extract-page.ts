@@ -1,6 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { relative } from 'node:path';
-import { basename } from 'node:path';
+import { relative, basename } from 'node:path';
 import { extractMacroArgument, extractScriptBlocks, findMacroCall, parseScriptAst, pickDefinePageBlock } from './ast';
 import type { ScriptBlock } from './ast';
 import type { PageHead, PageMeta } from './types';

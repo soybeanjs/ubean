@@ -1,5 +1,5 @@
-import type { AstNode, ScriptBlock } from '@ubean/vue/vite';
 import { extractScriptBlocks, parseScriptAst, statementCall } from '@ubean/vue/vite';
+import type { AstNode, ScriptBlock } from '@ubean/vue/vite';
 
 /**
  * 宏剥除(`definePage` 等编译期宏从产物中移除)。

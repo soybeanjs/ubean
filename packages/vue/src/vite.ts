@@ -30,7 +30,8 @@ export interface UbeanVueViteOptions {
   layoutsDir?: string | string[];
   /**
    * 页面文件扩展名。默认 `['vue', 'tsx', 'jsx']`;markdown 开启后自动追加
-   * 对应的 `.md` / `.mdx`。`.reuse.ts` 元数据文件为独立约定,始终参与扫描。
+   * 对应的 `.md` / `.mdx`。`.reuse.ts` 与 `.meta.ts` 元数据文件为独立约定,
+   * 始终参与扫描(无需写进 `extensions`)。
    */
   extensions?: string[];
   /** 额外 glob ignore。 */

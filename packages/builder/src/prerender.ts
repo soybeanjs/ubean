@@ -133,9 +133,11 @@ export function collectPrerenderRoutes(
     ...(options.contentRoutes ?? [])
   ];
 
-  // 候选池:文件系统扫描出的非动态页面
+  // 候选池:文件系统扫描出的非动态页面（`routable: false` 的条目不是路由，
+  // 预渲染它们会生成一个不存在的 URL 的 HTML 产物）。
   const allPageRoutes: string[] = [];
   for (const page of pages) {
+    if (page.routable === false) continue;
     const path = normalizePagePath(page.path);
     if (!isDynamicPath(path)) {
       allPageRoutes.push(path);

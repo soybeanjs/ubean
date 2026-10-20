@@ -122,9 +122,13 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
   }
 
   const sortedPages = sortPagesByReuseDependency(pages);
+  const routablePages = sortedPages.filter(p => p.routable !== false);
 
   // Generate page loader variables for all pages (including slot pages).
+  // `.meta.ts` / `.meta.js` 元数据页没有组件实现（模块没有 default export），
+  // 一旦为它生成 `import(...)` 就会在运行时解析成空组件，因此直接跳过。
   for (const p of sortedPages) {
+    if (p.isMeta) continue;
     const varName = varNameFor(p.name);
     if (p.isReuse && p.reuseTarget && pageByName.has(p.reuseTarget)) {
       // Reuse route: reference the target page's component loader instead
@@ -143,7 +147,10 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
       `const Page_NotFound = () => import(${JSON.stringify(input.notFoundPage.fullPath)}).then(m => m.default || m);`
     );
   }
-  const namedPages = input.notFoundPage ? [...sortedPages, input.notFoundPage] : sortedPages;
+  // `routable: false` 的组件页仍留在命名页面上——reuse 路由靠 `_pageLoaders`
+  // 拿到目标组件；这里只排除无组件实现的 `.meta.*` 元数据页。
+  const loadedPages = sortedPages.filter(p => !p.isMeta);
+  const namedPages = input.notFoundPage ? [...loadedPages, input.notFoundPage] : loadedPages;
 
   // Group parallel routes by route path so they can be registered as
   // Vue Router named views (`components: { default, slotName }`).
@@ -152,7 +159,7 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
   // ——扫描器现在直接拒绝标记段，因此这里不再有「单独注册 `__intercept_*` 路由」的分支。
   const routeGroups = new Map<string, { default?: ScannedPage; slots: Map<string, ScannedPage> }>();
 
-  for (const p of sortedPages) {
+  for (const p of routablePages) {
     const routerPath = toVueRouterPath(p.route);
     let group = routeGroups.get(routerPath);
     if (!group) {
@@ -293,7 +300,7 @@ export function hasErrorPage() {
 }
 
 export const pages = {
-${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)}, isReuse: ${p.isReuse}, reuseTarget: ${JSON.stringify(p.reuseTarget)} }`).join(',\n')}
+${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)}, isReuse: ${p.isReuse}, isMeta: ${p.isMeta === true}, routable: ${p.routable !== false}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)} }`).join(',\n')}
 };
 
 export const layouts = {
@@ -354,7 +361,11 @@ function renderRouteRecordInfo(page: ScannedPage): string {
 /** 虚拟模块导出面声明(`declare module` 内部内容,环境声明产物使用)。 */
 function renderVirtualModuleBody(input: PagesModuleInput, moduleId: string): string {
   const pages = input.pages;
-  const nameUnion = pages.length > 0 ? pages.map(p => JSON.stringify(p.name)).join(' | ') : 'never';
+  // `PageName` / `RouteNamedMap` 只描述**可路由**页面 —— `routable: false` 的条目
+  // 永远不可能作为路由名出现，放进 union 会让 `router.push({ name })` 类型通过、
+  // 运行时挂掉。它们仍可通过 `resolvePageComponent()` 解析（组件实现仍然存在）。
+  const routablePages = pages.filter(p => p.routable !== false);
+  const nameUnion = routablePages.length > 0 ? routablePages.map(p => JSON.stringify(p.name)).join(' | ') : 'never';
   const notFound = input.notFoundPage ? ` | ${JSON.stringify(input.notFoundPage.name)}` : '';
 
   return `declare module '${moduleId}' {
@@ -363,6 +374,22 @@ function renderVirtualModuleBody(input: PagesModuleInput, moduleId: string): str
   export const pageNames: PageName[];
   export const layoutNames: string[];
   export const defaultLayout: string | null;
+  /**
+   * 扫描到的全部页面条目（包含 routable: false 的非路由页）。
+   * pageMeta 是原始 definePage() 结果 —— 宿主据此读取菜单目录、外链等应用层语义。
+   */
+  export const pages: Record<string, {
+    name: string;
+    route: string;
+    path: string;
+    layout?: string | string[] | false;
+    isReuse: boolean;
+    isMeta: boolean;
+    /** 是否参与路由注册；false 的条目只在扫描清单里。 */
+    routable: boolean;
+    reuseTarget?: string;
+    pageMeta: import('@ubean/vue').PageMeta | null;
+  }>;
   export const loadingComponent: import('vue').Component | null;
   export const errorComponent: import('vue').Component | null;
   export function resolvePageComponent(name: string): Promise<import('vue').Component>;
@@ -401,7 +428,8 @@ ${renderVirtualModuleBody(input, moduleId)}
  * 虚拟模块自身的环境声明见 `generateVirtualModuleDts`。
  */
 export function generateTypedRouter(input: PagesModuleInput, _moduleId = 'virtual:ubean-vue-routes'): string {
-  const pages = input.pages;
+  // 同 `renderVirtualModuleBody`：`RouteNamedMap` 只能包含可路由页。
+  const pages = input.pages.filter(p => p.routable !== false);
 
   const routeNamedMapEntries =
     pages.length > 0

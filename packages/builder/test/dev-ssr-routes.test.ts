@@ -155,4 +155,25 @@ describe('buildDevSsrRoutes', () => {
     });
     expect(routes[0].meta.cache).toBe(true);
   });
+
+  it('routable: false 的页面不进 SSR 路由表（与客户端同形）', () => {
+    const DIR = page({ name: 'Dir', route: '/dir', routable: false, isMeta: true });
+    const ALIAS_TO_Dir = page({ name: 'DirAlias', route: '/dir-alias', isReuse: true, reuseTarget: 'Dir' });
+
+    const server = buildDevSsrRoutes({ pages: [HOME, DIR], layouts: LAYOUTS, loadComponent: load });
+    expect(server.map(r => r.name)).toEqual(['Home']);
+
+    // 客户端侧同样不产生 /dir 路由 —— 两侧必须一致，否则 SSR 首屏渲染的页面
+    // 客户端水合时找不到匹配。
+    const client = clientRouteEntries(generatePagesModuleSource({ pages: [HOME, DIR], layouts: LAYOUTS } as never));
+    expect(client.map(r => r.name)).toEqual(['Home']);
+
+    // 但 reuse 路由仍然只借用它的组件（即使目标本身不可路由）
+    const withAlias = buildDevSsrRoutes({
+      pages: [DIR, ALIAS_TO_Dir],
+      layouts: LAYOUTS,
+      loadComponent: load
+    });
+    expect(withAlias.map(r => r.name)).toEqual(['DirAlias']);
+  });
 });

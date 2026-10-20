@@ -24,6 +24,16 @@ export interface GeneratorScanInput {
 }
 
 /**
+ * 是否是非路由页（`definePage({ routable: false })`）。
+ *
+ * 这类页不出现在 `routes` / `RouteKey` / `RouteNamedMap` 里，但仍可有组件实现
+ * （可被 `.reuse.ts` 借用）；无组件实现的 `.meta.*` 元数据页也不得进 `views`。
+ */
+function isNonRoutable(page: ScannedPage): boolean {
+  return page.routable === false;
+}
+
+/**
  * Options for the physical route file generator.
  *
  * The generator produces 3 files under `outDir`:
@@ -167,7 +177,10 @@ export class RouteFileGenerator {
 
   renderRoutesFile(scan: GeneratorScanInput): string {
     const header = this.opts.headerComment;
-    const items = scan.pages.map(p => this.renderRouteRecord(p)).join(',\n');
+    const items = scan.pages
+      .filter(p => !isNonRoutable(p))
+      .map(p => this.renderRouteRecord(p))
+      .join(',\n');
 
     return `${header}
 
@@ -255,7 +268,7 @@ ${items}
     const header = this.opts.headerComment;
     const layouts = scan.layouts.map(l => this.renderLayoutImport(l)).join(',\n');
     const views = scan.pages
-      .filter(p => !p.isReuse)
+      .filter(p => !p.isReuse && !p.isMeta)
       .map(p => this.renderViewImport(p))
       .join(',\n');
 
@@ -266,12 +279,13 @@ ${items}
     //   - RouteReuseKey:  routes declared via `.reuse.ts` / `.reuse.js` metadata files
     //   - BuiltinRouteKey: framework-provided routes (root / not_found / ...)
     //   - RouteKey:       union of the above (= all page route names)
-    const filePages = scan.pages.filter(p => !p.isReuse);
+    const filePages = scan.pages.filter(p => !p.isReuse && !p.isMeta);
     const reusePages = scan.pages.filter(p => p.isReuse);
 
     const fileKeyType = filePages.length > 0 ? `'${filePages.map(p => p.name).join("' | '")}'` : 'never';
     const reuseKeyType = reusePages.length > 0 ? `'${reusePages.map(p => p.name).join("' | '")}'` : 'never';
-    const allKeyType = scan.pages.length > 0 ? `'${scan.pages.map(p => p.name).join("' | '")}'` : 'never';
+    const routableNames = scan.pages.filter(p => !isNonRoutable(p)).map(p => p.name);
+    const allKeyType = routableNames.length > 0 ? `'${routableNames.join("' | '")}'` : 'never';
 
     return `${header}
 
@@ -363,7 +377,10 @@ ${views}
 
     const pathMapEntries =
       scan.pages.length > 0
-        ? scan.pages.map(p => `    "${p.name}": "${p.route}";`).join('\n')
+        ? scan.pages
+            .filter(p => !isNonRoutable(p))
+            .map(p => `    "${p.name}": "${p.route}";`)
+            .join('\n')
         : '    // (no pages scanned)';
 
     const reuseRoutes = scan.pages.filter(p => p.isReuse);
@@ -373,9 +390,10 @@ ${views}
 
     // RouteNamedMap:每条路由 → RouteRecordInfo<Name, Path, ParamsRaw, Params>
     // 让 vue-router 的 useRoute<Name>(name) 能推断 route.params 的类型。
+    const routablePages = scan.pages.filter(p => !isNonRoutable(p));
     const routeNamedMapEntries =
-      scan.pages.length > 0
-        ? scan.pages.map(p => `    "${p.name}": ${this.renderRouteRecordInfo(p)};`).join('\n')
+      routablePages.length > 0
+        ? routablePages.map(p => `    "${p.name}": ${this.renderRouteRecordInfo(p)};`).join('\n')
         : '    // (no pages scanned)';
 
     // `RouteRecordInfo` / `ParamValue*` 必须在**顶层**导入:文件本身已是 module(尾部有

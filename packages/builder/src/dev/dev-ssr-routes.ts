@@ -63,11 +63,15 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
   const { pages, layouts, loadComponent, localeVueParam, notFoundPage } = options;
   const defaultLayout = layouts.find(l => l.isDefault)?.name ?? null;
 
+  // `routable: false` 的页面不进 SSR 路由表 —— 客户端 `virtual:ubean-pages` 也没有它们，
+  // 两侧必须同形。（它们仍在 `pages` 里供宿主消费菜单目录等应用层语义。）
+  const routablePages = pages.filter(p => p.routable !== false);
+
   const withLocale = (path: string) => (localeVueParam ? toVueRouterLocalePath(path, localeVueParam) : path);
 
   // reuse 路由只带 `definePage` 元数据，加载它拿不到 Vue 组件 —— 必须加载目标页面的模块。
   const pageByName = new Map<string, ScannedPageRoute>();
-  for (const page of pages) pageByName.set(page.name, page);
+  for (const page of routablePages) pageByName.set(page.name, page);
 
   const componentFor = (page: ScannedPageRoute) => {
     const target = page.isReuse && page.reuseTarget ? pageByName.get(page.reuseTarget) : undefined;
@@ -90,7 +94,7 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
   // （`components: { default, <slot> }`）。若在这里各注册成一条路由，同路径的两条记录会互相
   // 覆盖 —— 实测 dev SSR 首屏渲染的是插槽页，而客户端水合后渲染默认视图（首屏与客户端不一致）。
   const grouped = new Map<string, { default?: ScannedPageRoute; slots: ScannedPageRoute[] }>();
-  for (const page of pages) {
+  for (const page of routablePages) {
     const group = grouped.get(page.route) ?? { slots: [] };
     if (page.slot) group.slots.push(page);
     else if (!group.default) group.default = page;

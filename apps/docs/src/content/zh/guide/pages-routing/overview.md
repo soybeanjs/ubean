@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: e6110a17280b
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","e12725a4","d8baa841","f1f065b8","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","a0949bfb","bda09480","88c74f35","6411a83a","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: 628f7ea7b50f
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","e12725a4","d8baa841","f1f065b8","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","3dec5865","5127205a","fc18f99b","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -209,7 +209,7 @@ definePage({
 
 ## 页面元数据（definePage）
 
-`definePage` 是用于配置页面选项的编译时宏。其顶层字段包括 `name`、`path`、`layout`（`string | string[] | false`）、`reuse`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（`boolean | 'streaming' | 'data-only'`）、`transition`。**没有顶层 `title`** —— 请用 `head.title` 或 `meta: { title }`。**没有** Nuxt 风格的客户端 `middleware/*.global` 文件约定：请在 `defineApp({ router: { setup } })` 中注册 vue-router 守卫。
+`definePage` 是用于配置页面选项的编译时宏。其顶层字段包括 `name`、`path`、`layout`（`string | string[] | false`）、`reuse`、`routable`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（`boolean | 'streaming' | 'data-only'`）、`transition`。**没有顶层 `title`** —— 请用 `head.title` 或 `meta: { title }`。**没有** Nuxt 风格的客户端 `middleware/*.global` 文件约定：请在 `defineApp({ router: { setup } })` 中注册 vue-router 守卫。
 
 ```vue
 <script setup lang="ts">
@@ -320,6 +320,62 @@ definePage({ reuse: 'About', cache: false });
 | `undefined`（未声明） | 继承目标页面 |
 | `true` | 显式启用缓存（即使目标页面未缓存） |
 | `false` | 显式关闭缓存（即使目标页面已缓存） |
+
+## 元数据页与非路由条目
+
+有些东西需要出现在**页面清单**里，却**不能变成路由**：菜单分组、外链入口、iframe 容器、或者宿主自己的任何概念。用 `routable: false` 声明。
+
+### `.meta.ts` / `.meta.js` 元数据页
+
+和 `.reuse.*` 一样是纯元数据文件，只含 `definePage(...)`、没有组件：
+
+```ts
+// src/pages/plugin/index.meta.ts
+definePage({
+  routable: false,
+  meta: { menuType: 'directory', title: '插件' }
+});
+```
+
+- `routable: false` **必需**。不写会直接抛错 —— 元数据文件没有组件，静默降级只会生成一条渲染空白页的坏路由。
+- `.meta.*` 不能声明 `reuse`（reuse 需要一个真实 URL）。
+- `.meta.vue` **不是**该约定 —— 它是真实组件，按普通页面处理。
+
+### `routable: false` 的组件页
+
+组件页也能用这个标记，组件留在磁盘上但不注册路由：
+
+```vue
+<!-- src/pages/hidden.vue -->
+<script setup lang="ts">
+definePage({ routable: false, meta: { menuType: 'link', href: 'https://example.com' } });
+</script>
+<template><div /></template>
+```
+
+### 保留什么、删掉什么
+
+| 删掉 | 保留 |
+| ---- | ---- |
+| 客户端路由记录（`routes`） | **组件 loader**（`_pageLoaders`）—— `.reuse.*` 路由仍然借它拿组件 |
+| `PageName` / `RouteNamedMap` 中的条目 | `pages` 清单条目（带 `routable` / `isMeta` / `pageMeta`） |
+| 服务端路由注册（Hono / SSR / SSG）与预渲染候选 | `definePage` 元数据，供宿主自己构菜单 |
+
+`.meta.*` 条目连 loader 都没有（模块没有 default export）。
+
+### 读取清单构建菜单
+
+`pages` 导出包含全部扫描条目与原始 `pageMeta`：
+
+```ts
+import { pages } from 'virtual:ubean-pages';
+
+const inventory = Object.values(pages)
+  .filter(p => p.pageMeta?.meta?.menuType === 'directory')
+  .map(p => ({ title: p.pageMeta?.meta?.title, children: [] }));
+```
+
+框架不认识「目录」「外链」「iframe」这些业务词，只认 `routable` 这一个布尔值。语义全部由应用的 `meta` 承载。
 
 ## 导航
 

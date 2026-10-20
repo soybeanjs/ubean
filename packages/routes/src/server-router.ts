@@ -23,6 +23,10 @@ export interface CompiledPage {
   filePath: string;
   layout?: string | string[] | false;
   reuseTarget?: string;
+  /** 是否参与路由注册（`false` = 只进页面清单，不建路由）。 */
+  routable?: boolean;
+  /** 非路由页的原始 `definePage()` 结果，供宿主读取应用层语义。 */
+  pageMeta?: unknown;
 }
 
 export interface CompiledLayout {
@@ -70,7 +74,9 @@ export class UbeanRouter {
       path: page.route,
       filePath: page.fullPath,
       layout: page.layout,
-      reuseTarget: page.reuseTarget
+      reuseTarget: page.reuseTarget,
+      routable: page.routable,
+      pageMeta: page.pageMeta
     });
   }
 
@@ -111,7 +117,7 @@ export class UbeanRouter {
   }
 
   getPageRouteNames(): string[] {
-    return [...this.pages.keys()];
+    return [...this.pages.values()].filter(p => p.routable !== false).map(p => p.name);
   }
 }
 

@@ -363,6 +363,8 @@ export function extractDefinePageFromCode(code: string): PageMeta | null {
     if (layouts.length > 0) result.layout = layouts;
   }
   if (typeof parsed.reuse === 'string') result.reuse = parsed.reuse;
+  // 布尔值原样保留（省略即视为 `true`，消费端用 `!== false` 判定）。
+  if (parsed.routable === false || parsed.routable === true) result.routable = parsed.routable;
   if (parsed.meta && typeof parsed.meta === 'object') result.meta = parsed.meta as RouteMeta;
   if (typeof parsed.requiresAuth === 'boolean') result.requiresAuth = parsed.requiresAuth;
   if (typeof parsed.cache === 'boolean') result.cache = parsed.cache;

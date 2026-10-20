@@ -30,6 +30,7 @@ app.mount('#app');
     - [约定](#约定)
     - [definePage 宏](#definepage-宏)
     - [reuse 路由](#reuse-路由)
+    - [元数据页（`routable: false`）](#元数据页routable-false)
     - [特殊页](#特殊页)
     - [并行路由](#并行路由)
     - [动态参数 matcher](#动态参数-matcher)
@@ -174,7 +175,7 @@ src/pages/
 
 ### definePage 宏
 
-在 `<script setup>` 顶层（或 `.tsx`/`.jsx`/`.reuse.ts` 顶层）声明页面元信息：
+在 `<script setup>` 顶层（或 `.tsx`/`.jsx`/`.reuse.ts`/`.meta.ts` 顶层）声明页面元信息：
 
 ```vue
 <script setup lang="ts">
@@ -187,6 +188,7 @@ definePage({
   transition: 'fade', // 页面级过渡名
   layout: 'admin', // 布局标记：名、数组（外→内）或 false
   requiresAuth: true, // 鉴权标记 → route.meta.requiresAuth
+  routable: false, // 留在页面清单里，但不注册路由
   head: { title: 'Profile' }, // 页面 head（需插件 `head: true`）
   meta: { custom: 'any' } // 任意 RouteMeta 扩展
 });
@@ -213,6 +215,38 @@ definePage({ reuse: 'About' });
 - `.reuse.vue` **不属于**该约定 —— 带 `.vue` 扩展名的是真实组件，按普通页面处理（路由 `/xxx.reuse`）。
 - 未显式声明 `cache` 的 reuse 路由**继承**目标页的缓存设置；声明 `cache: false` 可关闭。
 - 目标必须是常规（非 reuse）页面。
+
+### 元数据页（`routable: false`）
+
+`.meta.ts` / `.meta.js` 是**纯元数据文件** —— 和 `.reuse.*` 一样只含 `definePage(...)`、没有组件。它们用于“属于页面清单、但**不能变成路由**”的条目：菜单目录、外链入口、iframe 容器，或任何宿主自己的概念。
+
+```ts
+// src/pages/plugin/index.meta.ts
+definePage({ routable: false, meta: { menuType: 'directory', title: '插件' } });
+```
+
+- `.meta.*` **必须**写 `routable: false` —— 不写会直接报错（元数据文件没有组件，否则会生成一条坏路由）。
+- `.meta.*` 不能声明 `reuse`（reuse 需要一个真实 URL）。
+- `.meta.vue` **不是**该约定 —— 它是真实组件，按普通页面处理。
+
+`routable: false` 是通用标记，不绑定 `.meta.*`。任何页面（组件页或元数据页）都可以写：
+
+```vue
+<!-- src/pages/hidden.vue —— 组件留在磁盘上，但不注册路由 -->
+<script setup lang="ts">
+definePage({ routable: false });
+</script>
+```
+
+`routable: false` 删掉什么、保留什么：
+
+| 删掉                                           | 保留                                                              |
+| ---------------------------------------------- | ----------------------------------------------------------------- |
+| 客户端路由记录（`routes`）                     | **组件 loader**（`_pageLoaders`）—— `.reuse.*` 路由仍然借它拿组件 |
+| `PageName` / `RouteNamedMap` 中的条目          | `pages` 清单条目（带 `routable` / `isMeta` / `pageMeta`）         |
+| 服务端路由注册（Hono / SSR / SSG）与预渲染候选 | `definePage` 元数据，供宿主自己构菜单                             |
+
+`.meta.*` 条目连 loader 都没有（它的模块没有 default export）。`pages` 导出带 `routable` / `isMeta` / 原始 `pageMeta`，应用可以据此读自己的菜单语义 —— 例如把 `meta.menuType === 'directory'` 当嵌套菜单分组、`meta.href` 当外链。
 
 ### 特殊页
 

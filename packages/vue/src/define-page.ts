@@ -59,6 +59,26 @@ export interface DefineClientPageOptions {
    */
   reuse?: string;
   /**
+   * 是否参与路由注册,默认 `true`。
+   *
+   * 设为 `false` 时,本页只出现在扫描结果的页面清单里,**不生成路由记录**,
+   * 也不进 `RouteNamedMap`。用于声明「不是路由的页面」:菜单目录、外链入口、
+   * 只需要在构建期被读到元数据的条目。
+   *
+   * 配合 `.meta.ts` / `.meta.js` 元数据文件使用(这种文件没有组件实现,
+   * 必须写 `routable: false`)。框架不认识「目录 / 外链」这些业务词,
+   * 只认这个布尔值 —— 怎么解释是应用层的事。
+   *
+   * ```ts
+   * // src/pages/plugin/index.meta.ts
+   * definePage({
+   *   routable: false,
+   *   meta: { menuType: 'directory', title: '插件', icon: 'mdi:puzzle' }
+   * });
+   * ```
+   */
+  routable?: boolean;
+  /**
    * 页面级静态 head(SEO title/meta 等)。仅当 `/vite` 插件 `head: true`
    * (默认 false)时写入 `route.meta.head`;SPA 端配合
    * `setupPageHeadGuard()` 应用,SSR 链路经服务端扫描结果消费。

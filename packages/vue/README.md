@@ -28,6 +28,7 @@ app.mount('#app');
   - [Conventions](#conventions)
   - [`definePage` Macro](#definepage-macro)
   - [Reuse Routes](#reuse-routes)
+  - [Meta-Only Pages (`routable: false`)](#meta-only-pages-routable-false)
   - [Special Pages](#special-pages)
   - [Parallel Routes](#parallel-routes)
   - [Dynamic Param Matchers](#dynamic-param-matchers)
@@ -166,7 +167,7 @@ Multiple `pagesDir` / `layoutsDir` are supported (first-seen-wins dedup, so fold
 
 ### `definePage` Macro
 
-Declare page metadata at the top of `<script setup>` (or top-level in `.tsx`/`.jsx`/`.reuse.ts`):
+Declare page metadata at the top of `<script setup>` (or top-level in `.tsx`/`.jsx`/`.reuse.ts`/`.meta.ts`):
 
 ```vue
 <script setup lang="ts">
@@ -179,6 +180,7 @@ definePage({
   transition: 'fade', // page-level transition name
   layout: 'admin', // layout marker: name, array (outer→inner), or false
   requiresAuth: true, // auth marker → route.meta.requiresAuth
+  routable: false, // keep in the page inventory, but register no route
   head: { title: 'Profile' }, // page head (requires plugin `head: true`)
   meta: { custom: 'any' } // arbitrary RouteMeta extensions
 });
@@ -205,6 +207,38 @@ definePage({ reuse: 'About' });
 - `.reuse.vue` is **NOT** part of the convention — a `.vue` file is a real component and is treated as a regular page (route `/xxx.reuse`).
 - Reuse routes that don't declare `cache` explicitly **inherit** the target's cache setting; declare `cache: false` to opt out.
 - The target must be a regular (non-reuse) page.
+
+### Meta-Only Pages (`routable: false`)
+
+`.meta.ts` / `.meta.js` are **pure metadata files** — like `.reuse.*`, they contain only `definePage(...)` and no component. They exist for entries that belong in the **page inventory** but must **not become routes**: menu directories, external-link entries, iframe containers, or any host-specific concept.
+
+```ts
+// src/pages/plugin/index.meta.ts
+definePage({ routable: false, meta: { menuType: 'directory', title: 'Plugins' } });
+```
+
+- `routable: false` is **required** on `.meta.*` files — omitting it throws at scan time (a metadata file with no component would otherwise produce a broken route).
+- `.meta.*` files cannot declare `reuse` (a reuse route needs a real URL).
+- `.meta.vue` is **NOT** the convention — it is a real component and is treated as a regular page.
+
+`routable: false` is a general flag, not tied to `.meta.*`. Any page — component or metadata — may set it:
+
+```vue
+<!-- src/pages/hidden.vue — component stays on disk, but no route is registered -->
+<script setup lang="ts">
+definePage({ routable: false });
+</script>
+```
+
+What `routable: false` removes vs. keeps:
+
+| Removed                                                          | Kept                                                                      |
+| ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| client route record (`routes`)                                   | **component loader** (`_pageLoaders`) — `.reuse.*` routes still borrow it |
+| `PageName` / `RouteNamedMap` entries                             | entry in `pages` (with `routable` / `isMeta` / `pageMeta`)                |
+| server route registration (Hono, SSR, SSG), prerender candidates | `definePage` metadata, for hosts that build menus from the inventory      |
+
+`.meta.*` entries get **no loader at all** (their module has no default export). The `pages` export carries `routable`, `isMeta` and the raw `pageMeta`, so an application can read its own menu semantics — e.g. treat `meta.menuType === 'directory'` as a nested menu group and `meta.href` as an external link.
 
 ### Special Pages
 

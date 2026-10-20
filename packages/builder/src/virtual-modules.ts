@@ -46,7 +46,7 @@ export function createPagesVirtualModule(pages: CompiledPage[], layouts: Compile
     const pagesEntries = pages
       .map(
         p =>
-          `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(toPortableFilePath(p.filePath, cwd))}, layout: ${JSON.stringify(p.layout)}, reuseTarget: ${JSON.stringify(p.reuseTarget)} }`
+          `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(toPortableFilePath(p.filePath, cwd))}, layout: ${JSON.stringify(p.layout)}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, routable: ${p.routable !== false}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)} }`
       )
       .join(',\n');
 
@@ -57,10 +57,14 @@ export function createPagesVirtualModule(pages: CompiledPage[], layouts: Compile
       )
       .join(',\n');
 
-    const pageNames = pages.map(p => JSON.stringify(p.name)).join(' | ') || 'string';
+    const pageNames =
+      pages
+        .filter(p => p.routable !== false)
+        .map(p => JSON.stringify(p.name))
+        .join(' | ') || 'string';
     const layoutNames = layouts.map(l => JSON.stringify(l.name)).join(' | ') || 'string';
 
-    return `export const pages = {\n${pagesEntries}\n};\nexport const layouts = {\n${layoutEntries}\n};\nexport type RouteName = ${pageNames};\nexport type LayoutName = ${layoutNames};\nexport default { pages, layouts };`;
+    return `export const pages = {\n${pagesEntries}\n};\nexport const pageEntries = pages;\nexport const layouts = {\n${layoutEntries}\n};\nexport type RouteName = ${pageNames};\nexport type LayoutName = ${layoutNames};\nexport default { pages, layouts, pageEntries };`;
   });
 }
 
@@ -98,6 +102,8 @@ export function createAppVirtualModule(
         name: p.name,
         route: p.route,
         isReuse: p.isReuse,
+        isMeta: p.isMeta,
+        routable: p.routable,
         layout: p.layout
       })
     );

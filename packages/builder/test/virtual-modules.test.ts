@@ -92,6 +92,33 @@ describe('createPagesVirtualModule()', () => {
     expect(code).toContain('export type LayoutName = string');
   });
 
+  it('routable: false 的条目仍在 pages 里，但被排除出 RouteName union', async () => {
+    const pages: CompiledPage[] = [
+      { name: 'About', path: '/about', filePath: '/project/src/pages/about.vue' },
+      {
+        name: 'PluginIndex',
+        path: '/plugin',
+        filePath: '/project/src/pages/plugin/index.meta.ts',
+        routable: false,
+        pageMeta: { routable: false, meta: { menuType: 'directory' } }
+      }
+    ];
+    const code = await createPagesVirtualModule(pages, [], CWD).load();
+
+    // 清单里两个都在（宿主靠它构菜单）
+    expect(code).toContain('"About":');
+    expect(code).toContain('"PluginIndex":');
+    expect(code).toContain('routable: false');
+    expect(code).toContain('"menuType":"directory"');
+
+    // 类型 union 只含可路由页
+    expect(code).toContain('export type RouteName = "About"');
+    expect(code).not.toContain('export type RouteName = "About" | "PluginIndex"');
+
+    // pageEntries 是全量清单的别名（运行时同一份数据，类型面上不限定 key）
+    expect(code).toContain('export const pageEntries = pages;');
+  });
+
   it('id 为 ubean:pages', () => {
     expect(createPagesVirtualModule([], [], CWD).id).toBe('ubean:pages');
   });

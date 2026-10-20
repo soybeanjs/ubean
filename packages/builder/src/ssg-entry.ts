@@ -78,6 +78,8 @@ const _pageToRoute = p => {
 
 const _routeGroups = new Map();
 for (const _p of _pages) {
+  // routable: false 的页面不建路由（与客户端 virtual:ubean-pages 同形）。
+  if (_p.routable === false) continue;
   const _key = _p.route;
   const _group = _routeGroups.get(_key) || { slots: [] };
   if (_p.slot) _group.slots.push(_p);

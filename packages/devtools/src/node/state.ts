@@ -27,6 +27,8 @@ export interface ScanResultLike {
     relativePath: string;
     fullPath: string;
     isReuse: boolean;
+    isMeta?: boolean;
+    routable?: boolean;
     layout?: string | false;
   }>;
   middlewares: Array<{ global: boolean; relativePath: string; fullPath: string }>;
@@ -98,7 +100,7 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
 
   const pagesList = scan
     ? scan.pages
-        .filter(p => !p.isReuse)
+        .filter(p => !p.isReuse && !p.isMeta && p.routable !== false)
         .map(p => ({
           path: p.route,
           name: p.name,

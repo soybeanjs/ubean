@@ -142,6 +142,8 @@ export async function generatePageTypes(result: ScanResult, options: PageTypesOp
     '    filePath: string;',
     '    layout?: string;',
     '    reuseTarget?: string;',
+    '    /** 是否参与路由注册（false = 只进页面清单）。 */',
+    '    routable?: boolean;',
     '  }',
     '',
     '  export interface LayoutInfo {',
@@ -152,7 +154,8 @@ export async function generatePageTypes(result: ScanResult, options: PageTypesOp
     ''
   ];
 
-  const pageNames = pages.map(p => JSON.stringify(p.name));
+  // `RouteName` 只描述可路由页面 —— 非路由页（`routable: false`）永远不会有路由。
+  const pageNames = pages.filter(p => p.routable !== false).map(p => JSON.stringify(p.name));
   if (pageNames.length > 0) {
     lines.push('  export type RouteName =');
     lines.push(pageNames.map(n => `    | ${n}`).join('\n'));
@@ -179,7 +182,11 @@ export async function generatePageTypes(result: ScanResult, options: PageTypesOp
   // the declaration concise and avoids leaking absolute paths / verbose
   // literal object types into the generated file. Consumers still get full
   // type safety: `pages['SomePage'].filePath` is typed as `string`.
+  // `pages` 在运行时含全部条目，但类型上只覆盖可路由页 —— 拿一个非路由名去
+  // `router.push({ name })` 应该在编译期就报错。宿主构建菜单时需要读到菜单目录 /
+  // 外链等非路由条目，用 `pageEntries`（不限定 key）。
   lines.push('  export const pages: Record<RouteName, PageInfo>;');
+  lines.push('  export const pageEntries: Record<string, PageInfo>;');
   lines.push('  export const layouts: Record<LayoutName, LayoutInfo>;');
 
   lines.push('}');

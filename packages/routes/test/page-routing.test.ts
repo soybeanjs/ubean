@@ -17,8 +17,9 @@
  * and multi-segment URLs fell through to the JSON 404 fallback.
  */
 import { describe, it, expect } from 'vitest';
+import type { ScannedPageRoute } from '@ubean/scan';
 import { Hono } from 'hono';
-import { sortPagesForRegistration, convertUbeanRoutePath } from '../src/index';
+import { sortPagesForRegistration, convertUbeanRoutePath, UbeanRouter } from '../src/index';
 
 interface Page {
   route: string;
@@ -136,5 +137,48 @@ describe('convertUbeanRoutePath (vue-router regex params)', () => {
     const res = await app.request('/blog/a/b');
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ slug: 'a/b' });
+  });
+});
+
+describe('UbeanRouter — routable: false', () => {
+  const makePage = (overrides: Partial<ScannedPageRoute>): ScannedPageRoute =>
+    ({
+      fullPath: '/app/src/pages/x.vue',
+      relativePath: 'x.vue',
+      dirname: '/app/src/pages',
+      basename: 'x.vue',
+      name: 'X',
+      route: '/x',
+      path: '/x',
+      isReuse: false,
+      isMarkdown: false,
+      ...overrides
+    }) as ScannedPageRoute;
+
+  it('非路由页进页面清单，但不出现在 getPageRouteNames()', () => {
+    const router = new UbeanRouter();
+    router.addPage(makePage({ name: 'About', route: '/about' }));
+    router.addPage(makePage({ name: 'Dir', route: '/dir', routable: false, isMeta: true }));
+
+    // 页面清单是全量的（宿主据此构菜单）
+    expect(router.getPages().map(p => p.name)).toEqual(['About', 'Dir']);
+    // 但路由名只含可路由页
+    expect(router.getPageRouteNames()).toEqual(['About']);
+  });
+
+  it('addPage 透传 routable 与 pageMeta', () => {
+    const router = new UbeanRouter();
+    router.addPage(
+      makePage({
+        name: 'Dir',
+        routable: false,
+        isMeta: true,
+        pageMeta: { routable: false, meta: { menuType: 'directory' } }
+      })
+    );
+
+    const entry = router.getPage('Dir');
+    expect(entry?.routable).toBe(false);
+    expect(entry?.pageMeta).toEqual({ routable: false, meta: { menuType: 'directory' } });
   });
 });

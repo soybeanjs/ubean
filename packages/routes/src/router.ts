@@ -743,7 +743,12 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   // Register specific routes before catch-all routes. Hono's RegExpRouter
   // matches in registration order, so a catch-all ('*') registered before
   // '/' would swallow the homepage. See `sortPagesForRegistration`.
-  const sortedPages = sortPagesForRegistration(pages);
+  //
+  // `routable: false` 的页面跳过注册 —— 它们只是扫描清单里的条目（菜单目录、外链
+  // 入口等）。若照旧注册，这些 URL 会返回 HTML，而客户端没有对应路由，SSR 与水合
+  // 直接对不上。
+  const routablePages = pages.filter(p => p.routable !== false);
+  const sortedPages = sortPagesForRegistration(routablePages);
 
   for (const page of sortedPages) {
     // Reuse routes are no longer skipped — they need their own Hono route

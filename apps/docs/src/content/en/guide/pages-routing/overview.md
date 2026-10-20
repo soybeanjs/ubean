@@ -221,7 +221,7 @@ Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin 
 
 ## Page Metadata (definePage)
 
-`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout` (`string | string[] | false`), `reuse`, `meta`, `requiresAuth`, `cache`, `head`, `ssr` (`boolean | 'streaming' | 'data-only'`), `transition`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
+`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout` (`string | string[] | false`), `reuse`, `routable`, `meta`, `requiresAuth`, `cache`, `head`, `ssr` (`boolean | 'streaming' | 'data-only'`), `transition`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
 
 ```vue
 <script setup lang="ts">
@@ -332,6 +332,62 @@ definePage({ reuse: 'About', cache: false });
 | `undefined` (not declared) | Inherit from target page |
 | `true` | Explicitly enable cache (even if target is not cached) |
 | `false` | Explicitly disable cache (even if target is cached) |
+
+## Meta-Only Pages and Non-Routable Entries
+
+Some things belong in the **page inventory** but must **not become routes**: menu groups, external-link entries, iframe containers, or anything host-specific. Declare that with `routable: false`.
+
+### `.meta.ts` / `.meta.js` metadata pages
+
+Like `.reuse.*`, these are pure metadata files — only `definePage(...)`, no component:
+
+```ts
+// src/pages/plugin/index.meta.ts
+definePage({
+  routable: false,
+  meta: { menuType: 'directory', title: 'Plugins' }
+});
+```
+
+- `routable: false` is **required**. Omitting it throws — a metadata file has no component, and silently degrading would produce a route rendering a blank page.
+- `.meta.*` cannot declare `reuse` (a reuse route needs a real URL).
+- `.meta.vue` is **not** the convention — it is a real component and is treated as a regular page.
+
+### Non-routable component pages
+
+Component pages can use the flag too — the component stays on disk but no route is registered:
+
+```vue
+<!-- src/pages/hidden.vue -->
+<script setup lang="ts">
+definePage({ routable: false, meta: { menuType: 'link', href: 'https://example.com' } });
+</script>
+<template><div /></template>
+```
+
+### What is dropped, what is kept
+
+| Dropped | Kept |
+| ------- | ---- |
+| client route record (`routes`) | **component loader** (`_pageLoaders`) — `.reuse.*` routes still borrow it |
+| `PageName` / `RouteNamedMap` entries | entry in `pages` (with `routable` / `isMeta` / `pageMeta`) |
+| server route registration (Hono / SSR / SSG) and prerender candidates | `definePage` metadata, for hosts that build menus from the inventory |
+
+`.meta.*` entries get **no loader at all** (their module has no default export).
+
+### Building a menu from the inventory
+
+The `pages` export carries every scanned entry plus the raw `pageMeta`:
+
+```ts
+import { pages } from 'virtual:ubean-pages';
+
+const inventory = Object.values(pages)
+  .filter(p => p.pageMeta?.meta?.menuType === 'directory')
+  .map(p => ({ title: p.pageMeta?.meta?.title, children: [] }));
+```
+
+ubean does not know about "directory", "external link" or "iframe" — it only knows the `routable` boolean. All semantics live in your own `meta`.
 
 ## Navigation
 

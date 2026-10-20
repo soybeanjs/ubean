@@ -7,7 +7,6 @@ import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/scan';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
-import { composeHeadScripts } from './vue-virtual-modules';
 import { buildAssetTagsSetup, buildRendererSetup, buildStaticSsgEntry } from './ssg-entry';
 import {
   createRoutingVirtualModule,
@@ -23,6 +22,7 @@ import {
   createServerEntryVirtualModule,
   createClientEntryVirtualModule
 } from './vue';
+import { composeHeadScripts } from './vue-virtual-modules';
 
 export interface BuildOptions {
   cwd: string;
@@ -81,6 +81,8 @@ export function serializePagesForEntry(pages: ScanResult['pages']): string {
       layout: p.layout,
       cache: p.cache,
       isReuse: p.isReuse,
+      isMeta: p.isMeta,
+      routable: p.routable,
       isMarkdown: p.isMarkdown,
       reuseTarget: p.reuseTarget,
       pageMeta: p.pageMeta,

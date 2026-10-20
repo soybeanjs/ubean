@@ -41,6 +41,18 @@ export interface PageMeta {
   layout?: string | string[] | false;
   /** Reuse route target page name(元数据文件 `.reuse.ts` / `.reuse.js`)。 */
   reuse?: string;
+  /**
+   * 是否参与路由注册,默认 `true`。
+   *
+   * `false` 时该页面只进扫描结果的「页面清单」,**不生成 `routes` 记录**,
+   * 也不出现在 `typed-router.d.ts` 的 `RouteNamedMap` 里。可以配合
+   * `.meta.ts` / `.meta.js` 使用 —— 这种文件没有组件实现,本就需要用它宣告
+   * `routable: false` 才不会被当成组件页导入。
+   *
+   * 用途:声明「不是路由的页面」—— 菜单目录、外链入口等只需要扫描期元数据、
+   * 不需要 URL 的条目。**框架不认识目录/外链这些词**,只认识这个布尔值。
+   */
+  routable?: boolean;
   /** 任意扩展 meta,浅合并进 `route.meta`。 */
   meta?: RouteMeta;
   /** 鉴权标记,写入 `route.meta.requiresAuth`,由用户导航守卫消费。 */
@@ -73,8 +85,17 @@ export interface ScannedPage {
   layout?: string | string[] | false;
   cache?: boolean;
   isReuse: boolean;
+  /** 是否为 `.meta.ts` / `.meta.js` 元数据页(只有 `definePage`,没有组件实现)。 */
+  isMeta?: boolean;
   isMarkdown: boolean;
   reuseTarget?: string;
+  /**
+   * 是否参与路由注册(默认 `true`,省略即视为 `true`)。`false` 的页面不进 `routes` /
+   * `RouteNamedMap`,只留在扫描结果的页面清单里供宿主消费(菜单、目录、外链入口等)。
+   *
+   * 可选而非必填 —— 本接口是对外公开契约,新增「省略即 `true`」的可选字段不构成 BREAKING。
+   */
+  routable?: boolean;
   pageMeta?: PageMeta;
   frontmatter?: Record<string, unknown>;
   /** Parallel route slot name(`@slotName/` 目录约定)。 */

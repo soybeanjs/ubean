@@ -42,10 +42,7 @@ function tsTypeOfLiteral(value: unknown): string {
   return 'string';
 }
 
-function renderModuleTypes(moduleId: string, fields: EnvFieldSpec[]): string {
-  if (fields.length === 0) {
-    return `declare module '${moduleId}' {\n  // env.schema is empty\n}\n`;
-  }
+function renderModuleTypes(moduleId: string, fields: EnvFieldSpec[], extraLines: string[] = []): string {
   const lines = fields.map(f => {
     // 可选字段写成 `string | undefined`，不能写成 `key?: T` —— 环境模块的成员是
     // `export const`，而 `export const X?: T` 不是合法语法（在 `.d.ts` 的
@@ -53,7 +50,12 @@ function renderModuleTypes(moduleId: string, fields: EnvFieldSpec[]): string {
     // 所以 `| undefined` 也正是运行期真实形状。
     return `  export const ${f.key}: ${f.type}${f.optional ? ' | undefined' : ''};`;
   });
-  return `declare module '${moduleId}' {\n${lines.join('\n')}\n}\n`;
+
+  const body = [...lines, ...(lines.length > 0 && extraLines.length > 0 ? [''] : []), ...extraLines];
+  if (body.length === 0) {
+    return `declare module '${moduleId}' {\n  // env.schema is empty\n}\n`;
+  }
+  return `declare module '${moduleId}' {\n${body.join('\n')}\n}\n`;
 }
 
 /**
@@ -86,6 +88,19 @@ function renderImportMetaEnv(importMetaEnv: Record<string, unknown>): string {
 }
 
 /**
+ * `renderEnvServerModule()` 生成的源码除了字段还会 `export function getSecret(key)`
+ * （`packages/builder/src/env/types.ts`），但早先这里只声明字段 —— 用户按
+ * `docs/contracts/env-v1.md` 的指引去 import 它，`tsc` 直接报 TS2305。
+ *
+ * 源码里还有一个 `__env`，它是生成代码的内部聚合对象，刻意**不**声明：声明了就等于
+ * 把它纳入公开 API，而它有更好的具名导出可用。
+ */
+const ENV_SERVER_EXTRA_EXPORTS = [
+  '  /** 读取未在 `env.schema` 里声明的变量（动态 / per-request 场景）。 */',
+  '  export function getSecret(key: string): string | undefined;'
+];
+
+/**
  * 生成 `.ubean/env.d.ts`。
  *
  * 顶层**不能**出现 `export {}`：`ImportMetaEnv` 的声明必须留在全局作用域，一旦文件变成
@@ -105,7 +120,7 @@ interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
 
-${renderModuleTypes('ubean:env/client', modules.client)}${renderModuleTypes('ubean:env/server', modules.server)}`;
+${renderModuleTypes('ubean:env/client', modules.client)}${renderModuleTypes('ubean:env/server', modules.server, ENV_SERVER_EXTRA_EXPORTS)}`;
 
   await mkdir(outDir, { recursive: true });
   const outPath = join(outDir, fileName);

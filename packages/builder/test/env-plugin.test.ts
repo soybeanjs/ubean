@@ -315,6 +315,43 @@ describe('真实构建：ubean:env/* 的分流与护栏', () => {
     expect(diagnostics.map(d => `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`)).toEqual([]);
   });
 
+  it('`getSecret()` 在生成声明里真的有类型（回归：只声明字段，import 即 TS2305）', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'ubean-env-secret-'));
+    roots.push(outDir);
+
+    const outPath = await generateEnvTypes({
+      outDir,
+      modules: {
+        client: [],
+        server: [{ key: 'PORT', type: 'number', optional: false }]
+      }
+    });
+
+    expect(readFileSync(outPath, 'utf8')).toContain('export function getSecret(key: string): string | undefined;');
+
+    // 真跑 tsc 而不是 substring 断言：`declare module` 块的解析与导出可见性只有
+    // 编译器知道，`source.includes()` 在声明块语法写错时照样能通过。
+    const ts = await import('typescript');
+    const consumer = join(outDir, 'consumer.ts');
+    writeFileSync(
+      consumer,
+      "import { getSecret, PORT } from 'ubean:env/server';\n" +
+        "const a: string | undefined = getSecret('UNKNOWN_KEY');\n" +
+        'const b: number = PORT;\n' +
+        'export { a, b };\n'
+    );
+
+    const program = ts.createProgram([consumer, outPath], {
+      noEmit: true,
+      skipLibCheck: true,
+      module: ts.ModuleKind.ESNext,
+      moduleResolution: ts.ModuleResolutionKind.Bundler,
+      target: ts.ScriptTarget.ESNext
+    });
+    const diagnostics = ts.getPreEmitDiagnostics(program);
+    expect(diagnostics.map(d => `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`)).toEqual([]);
+  });
+
   it('密钥不泄露：JWT_SECRET 的字面值不出现在客户端产物里', async () => {
     const { root, writeEntry } = await createFixture();
     writeEntry('main.ts', "import { APP_TITLE } from 'ubean:env/client';\ndocument.title = APP_TITLE;\n");

@@ -128,7 +128,12 @@ export const prepareCommand: CommandDef = {
       buildDir: typesDir,
       dirs: config.dir,
       autoImports: config.autoImports,
-      components: config.components
+      components: config.components,
+      // 必须传 `env`：漏了它，`.ubean/env.d.ts` 两个 `declare module` 块会写成
+      // 「env.schema is empty」，`ubean:env/*` 的每个具名导入都报 TS2305。
+      // 只有 Vite 插件那条路径（`packages/builder/src/vite.ts` 的 runProjectCodegen）
+      // 传了它，所以这个坑只出现在 `ubean prepare` 上。
+      env: config.env
     });
 
     for (const file of codegenResult.generated) {

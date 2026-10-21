@@ -160,7 +160,8 @@ export const buildCommand: CommandDef = {
         buildDir: '.ubean',
         dirs: config.dir,
         autoImports: config.autoImports,
-        components: config.components
+        components: config.components,
+        env: config.env
       });
 
       const resolvedPreset = preset as { name: string; hooks?: Record<string, (ctx: any) => void | Promise<void>> };

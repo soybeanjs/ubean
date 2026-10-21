@@ -160,7 +160,8 @@ export const devCommand: CommandDef = {
           buildDir: '.ubean',
           dirs: config.dir,
           autoImports: config.autoImports,
-          components: config.components
+          components: config.components,
+          env: config.env
         });
       } catch (err) {
         logger.error(`Rescan failed: ${err instanceof Error ? err.message : String(err)}`);
@@ -282,7 +283,8 @@ async function initialScan(cwd: string, config: any, logging: ResolvedLoggingCon
     buildDir: '.ubean',
     dirs: config.dir,
     autoImports: config.autoImports,
-    components: config.components
+    components: config.components,
+    env: config.env
   });
 
   return result;

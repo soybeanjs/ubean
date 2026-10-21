@@ -1,5 +1,32 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.8...main) (2026-10-22) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
+
+- **shared**: drop grouped `server:` / `public:` env schemas &nbsp;-&nbsp; by @soybeanjs [<samp>(3fc4e)</samp>](https://github.com/soybeanjs/ubean/commit/3fc4e91b)
+- **vue**: replace isReuse/isMeta booleans with a pageKind discriminator &nbsp;-&nbsp; by @soybeanjs [<samp>(592c5)</samp>](https://github.com/soybeanjs/ubean/commit/592c5f78)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **shared**: support `description` on envField, emitted as JSDoc &nbsp;-&nbsp; by @soybeanjs [<samp>(840f0)</samp>](https://github.com/soybeanjs/ubean/commit/840f0a99)
+- **vue**: default routable to false for .meta.* pages &nbsp;-&nbsp; by @soybeanjs [<samp>(8945b)</samp>](https://github.com/soybeanjs/ubean/commit/8945b2c2)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **build**: declare getSecret() and pass env to CLI codegen &nbsp;-&nbsp; by @soybeanjs [<samp>(1aaaf)</samp>](https://github.com/soybeanjs/ubean/commit/1aaafb15)
+- **builder**: pass definePage meta through to SSR route records &nbsp;-&nbsp; by @soybeanjs [<samp>(3fc9f)</samp>](https://github.com/soybeanjs/ubean/commit/3fc9f7ea)
+- **cli**: pass Vite's env snapshot to `ubean dev` codegen &nbsp;-&nbsp; by @soybeanjs [<samp>(388fd)</samp>](https://github.com/soybeanjs/ubean/commit/388fd2e8)
+- **shared**: actually call `~standard.validate()` for env schemas &nbsp;-&nbsp; by @soybeanjs [<samp>(a9d20)</samp>](https://github.com/soybeanjs/ubean/commit/a9d2018e)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **projects**: restamp zh pages-routing translation after routable change &nbsp;-&nbsp; by @soybeanjs [<samp>(ab1d4)</samp>](https://github.com/soybeanjs/ubean/commit/ab1d4bd2)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.7...main) (2026-10-20) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

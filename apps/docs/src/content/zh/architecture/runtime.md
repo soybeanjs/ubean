@@ -1,8 +1,8 @@
 ---
 title: Runtime
 description: ubean 运行时：defineApp、应用配置、开发服务器、预设与 CLI 命令体系。
-translatedFrom: 4f9beb5a866d
-sections: ["a7dbe8df","e3b0c442","d80fee02","e8ecb75b","c06bd2aa","e9476b5e","84836587","1b0bc415","4c784f8f","7838b612","85929b83","86902525","8c26e7cd","651fa7f7","841b47df","73490ae9","253c09a8","32087f60","babe75e1","b7f0e0c5","03654165","e6ab77fe","a7a049b5","63c4471a","195c7c3b","95dea120","ecf808be","6c5e49ac","03052a6f","18bd8fde","c6ee5474","2c1db8bf","cc2de56b","428a76d7","8aa70b39","a69eb07e","8e9b3eb8","e2720cd6","629cb0af","c80df236","a5b58348","0fd81457","27fd6cbd","b5b31db9","57f86813","82e1dc14","cdd86f19","7cafb2b0","0591401f","72665bac","e94bbfc4","70123441","ca87b816","fb74d912","ab966604","105f2d32","f95e57d0","fcdf98dd","c4fc64d8","4f132b44","20a64dcf","060aa51b","800880e0","f122143f","01501917","8aef359d","04571071","1f0ba46b","541135cc","a5e19fd2","fa13eefa","985da994","0f55ff12","ee101a64","3760dc25","3949c66f","8d4418c6","c200fb33","10f0ff0d","9ad68b28","2dcfbf23","3d4899bc","46f034a8","f6d3d11c","51605e83","6f1378d6","c7818966","bb296a78","5d84f2d3","c61dc0f7","4db472e3","9c2ed404","f6416b2f","8b62375b","a39723e2","3887ebe4","cf6be2a9","e837e83f","64df3b5f","e86c7ce7","e9da32ad","362761ae","595f082c","f72d2382","73c9a15b","64d6e1a3","14d24260","fa92f992","913c29de","e7d5bc78","cab67f39","8ba184c0","146fea8e","5cc0ed4e","81eedc89","82bd5850","8d9a0af7","d9f08935","a9319456"]
+translatedFrom: 1ee1a2bf332f
+sections: ["a7dbe8df","e3b0c442","d80fee02","e8ecb75b","c06bd2aa","e9476b5e","84836587","1b0bc415","4c784f8f","7838b612","85929b83","86902525","8c26e7cd","651fa7f7","841b47df","73490ae9","253c09a8","f7184df7","babe75e1","b7f0e0c5","03654165","e6ab77fe","a7a049b5","63c4471a","195c7c3b","95dea120","ecf808be","6c5e49ac","03052a6f","18bd8fde","c6ee5474","2c1db8bf","cc2de56b","428a76d7","8aa70b39","a69eb07e","8e9b3eb8","e2720cd6","629cb0af","c80df236","a5b58348","0fd81457","27fd6cbd","b5b31db9","57f86813","82e1dc14","cdd86f19","7cafb2b0","0591401f","72665bac","e94bbfc4","70123441","ca87b816","fb74d912","ab966604","105f2d32","f95e57d0","fcdf98dd","c4fc64d8","4f132b44","20a64dcf","060aa51b","800880e0","f122143f","01501917","8aef359d","04571071","1f0ba46b","541135cc","a5e19fd2","fa13eefa","985da994","0f55ff12","ee101a64","3760dc25","3949c66f","8d4418c6","c200fb33","10f0ff0d","9ad68b28","2dcfbf23","3d4899bc","46f034a8","f6d3d11c","51605e83","6f1378d6","c7818966","bb296a78","5d84f2d3","c61dc0f7","4db472e3","9c2ed404","f6416b2f","8b62375b","a39723e2","3887ebe4","cf6be2a9","e837e83f","64df3b5f","e86c7ce7","e9da32ad","362761ae","595f082c","f72d2382","73c9a15b","64d6e1a3","14d24260","fa92f992","913c29de","e7d5bc78","cab67f39","8ba184c0","146fea8e","5cc0ed4e","81eedc89","82bd5850","8d9a0af7","d9f08935","a9319456"]
 ---
 
 # 运行时与开发体验 (defineApp)
@@ -498,33 +498,28 @@ const scheduler = startCronScheduler({
 
 ## 4.10 环境变量系统
 
-`defineEnv()` 来自 `@ubean/shared`（由 `ubean` 主入口 re-export）,使用构造器式 schema 校验环境变量,返回 `{ env, validate }`:
+`defineEnv()` 来自 `@ubean/shared`（由 `ubean` 主入口 re-export）,校验环境变量并返回 `{ env, validate }`。每个字段用 `envField.*()` 自带 `context` / `access` 维度:
 
 ```typescript
 // env.ts
-import { defineEnv } from 'ubean';
+import { defineEnv, envField } from 'ubean';
 
 export const { env, validate } = defineEnv({
-  // 服务端密钥
-  server: {
-    DATABASE_URL: { type: String, required: true },
-    API_SECRET: { type: String, required: true },
-    PORT: { type: Number, default: 9527 },
-    DEBUG: { type: Boolean, default: false }
-  },
-  // 公共变量 (通过 import.meta.env 暴露到客户端)
-  public: {
-    APP_NAME: { type: String, default: 'My App' },
-    API_URL: { type: String, default: '/api' }
+  schema: {
+    // 服务端密钥:只在服务端读取,永不进客户端产物
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret' }),
+    API_SECRET: envField.string({ context: 'server', access: 'secret' }),
+    // 服务端公开:服务端读,但不敏感
+    PORT: envField.number({ context: 'server', access: 'public', default: 9527 })
   },
   // 'warn' (默认) 只记录校验错误; 'throw' 在启动时抛错
   mode: 'throw'
 });
 ```
 
-- schema 条目通过构造器（`String` / `Number` / `Boolean`）声明类型,外加可选的 `default` / `required`——不存在链式 builder API（`string().secret()` 等）
-- `env` 代理是全类型化的（`InferEnvOutput<S>` 从每个构造器推导 `string` / `number` / `boolean`）,`env.DATABASE_URL` 即 `string`
-- 仅 `UBEAN_PUBLIC_`、`VITE_` 或 `PUBLIC_` 前缀的变量会通过 `import.meta.env` 暴露给客户端
+- 维度写在字段上（`context`: `client` | `server`,`access`: `public` | `secret`）。分组糖（`server:` / `public:`）已删除——同一字段挪位置不会静默换语义;`client` + `secret` 在声明时直接抛错。构造函数形态（`{ type: String }`）仍可解析但没有维度可读,按 `server + secret` 处理
+- `env` 代理是全类型化的（`InferEnvOutput<S>` 从 `envField` 类型推导）,`env.DATABASE_URL` 即 `string`
+- 需要 zod / valibot 级校验时,`defineEnv()` 也接受 Standard Schema 与 `safeParse` 形态（与校验器同进程;校验必须同步）。`ubean.config.ts` 的 `env.schema` 反过来**拒绝**这类 schema——生成的 env 模块只装得下平数据
 - 用 `validate(source)` 校验自定义来源（测试 fixture、请求级 env）;返回 `{ success, errors }`
 - `ubean env` CLI（`init` / `list` / `add` / `remove`）管理 `.env` 文件——完整 API 见 <Link to="/reference/env">Env 参考</Link>
 

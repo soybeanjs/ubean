@@ -505,33 +505,28 @@ const scheduler = startCronScheduler({
 
 ## 4.10 Environment Variables System
 
-`defineEnv()` comes from `@ubean/shared` (re-exported by the `ubean` main entry) and validates environment variables against a constructor-based schema. It returns `{ env, validate }`:
+`defineEnv()` comes from `@ubean/shared` (re-exported by the `ubean` main entry) and validates environment variables. It returns `{ env, validate }`. Every field carries its own `context` / `access` dimensions via `envField.*()`:
 
 ```typescript
 // env.ts
-import { defineEnv } from 'ubean';
+import { defineEnv, envField } from 'ubean';
 
 export const { env, validate } = defineEnv({
-  // server-side secrets
-  server: {
-    DATABASE_URL: { type: String, required: true },
-    API_SECRET: { type: String, required: true },
-    PORT: { type: Number, default: 9527 },
-    DEBUG: { type: Boolean, default: false }
-  },
-  // public variables (exposed to the client via import.meta.env)
-  public: {
-    APP_NAME: { type: String, default: 'My App' },
-    API_URL: { type: String, default: '/api' }
+  schema: {
+    // server-side secrets: read on the server only, never bundled to the client
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret' }),
+    API_SECRET: envField.string({ context: 'server', access: 'secret' }),
+    // server-side public: readable on the server, not sensitive
+    PORT: envField.number({ context: 'server', access: 'public', default: 9527 })
   },
   // 'warn' (default) logs validation errors; 'throw' fails at startup
   mode: 'throw'
 });
 ```
 
-- Schema entries declare the type via the constructor (`String` / `Number` / `Boolean`) plus optional `default` / `required` — there is no chained builder API (`string().secret()` etc. does not exist)
-- The `env` proxy is fully typed (`InferEnvOutput<S>` derives `string` / `number` / `boolean` from each constructor), so `env.DATABASE_URL` is `string`
-- Only variables prefixed with `UBEAN_PUBLIC_`, `VITE_`, or `PUBLIC_` reach the client via `import.meta.env`
+- Dimensions live on the field (`context`: `client` | `server`, `access`: `public` | `secret`). Grouped `server:` / `public:` schemas are gone — an entry never silently changes meaning when it moves, and `client` + `secret` throws at declaration time. The constructor shape (`{ type: String }`) still parses but has no dimension to read from, so it is treated as `server + secret`
+- The `env` proxy is fully typed (`InferEnvOutput<S>` derives from each `envField` type), so `env.DATABASE_URL` is `string`
+- For zod / valibot-grade validation, `defineEnv()` also accepts Standard Schema and `safeParse` shapes (it shares a process with the validator; validation must be synchronous). `env.schema` in `ubean.config.ts` rejects those — the generated env modules only carry plain data
 - Use `validate(source)` to check a custom source (test fixture, request-scoped env); the result is `{ success, errors }`
 - The `ubean env` CLI (`init` / `list` / `add` / `remove`) manages `.env` files — see the <Link to="/reference/env">Env reference</Link> for the full API
 

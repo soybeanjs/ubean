@@ -990,23 +990,28 @@ The `@ubean/server` main entry still re-exports everything (barrel convenience),
 
 ### Environment Variables
 
-`defineEnv({ server, public, mode })` declares a Standard-Schema-validated env schema; `mode` is `'warn'` (default) or `'throw'`. Entries are `{ type: String | Number | Boolean, default?, required? }`.
+`defineEnv({ schema, mode })` declares an env schema; `mode` is `'warn'` (default) or `'throw'`. Every field carries its own dimensions via `envField.*({ context, access, default?, optional? })`.
 
 ```typescript
 // src/env.ts
-import { defineEnv } from 'ubean';
+import { defineEnv, envField } from 'ubean';
 
-export const env = defineEnv({
-  server: { PORT: { type: Number, default: 3000 }, DATABASE_URL: { type: String, required: true } },
-  public: { API_BASE: { type: String, default: '/api' } },
+export const { env } = defineEnv({
+  schema: {
+    PORT: envField.number({ context: 'server', access: 'public', default: 3000 }),
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret' }),
+    API_BASE: envField.string({ context: 'client', access: 'public', default: '/api' })
+  },
   mode: 'throw'
 });
 ```
 
-- Server values are read as `env.PORT`; only variables prefixed `UBEAN_PUBLIC_` / `VITE_` / `PUBLIC_` are exposed to the client via `import.meta.env`.
-- Only schemas with a **synchronous** `safeParse` work — a Standard-Schema-only (`~standard`) schema that parses async fails with an explicit error, so use the built-in `validate()` instead.
-- `env.validate(source)` returns `{ success, errors: [{ key, message, value }] }`; `InferEnvOutput<S>` infers the shape.
-- CLI: `ubean env init | list [--public] | add KEY VALUE [--public] [--force] | remove KEY`.
+- `context`: `client` (inlined into the client bundle at build time) | `server`. `access`: `public` | `secret`. `client` + `secret` throws at declaration time.
+- Grouped `server:` / `public:` schemas are **removed** — passing them throws. Dimensions live on the field. The constructor shape (`{ type: String }`) still parses, but with no dimension it is treated as `server + secret`.
+- `envField.string` / `.number` / `.boolean` / `.enum` (enum requires `values`). Values are read as `env.PORT`; `InferEnvOutput<S>` infers the shape.
+- `defineEnv()` also accepts Standard Schema (`~standard`) and `safeParse` shapes **synchronously** — async schemas fail explicitly. `env.schema` in `ubean.config.ts` instead **rejects** runtime schemas (generated modules only carry plain data).
+- `env.validate(source)` returns `{ success, errors: [{ key, message, value }] }`.
+- CLI: `ubean env init | list [--public] | add KEY VALUE [--public] [--force] | remove KEY`. The CLI's `UBEAN_PUBLIC_` / `VITE_` / `PUBLIC_` prefixes are a `.env` naming convention, independent of `context` / `access`.
 
 ### Response Helpers
 

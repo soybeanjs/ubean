@@ -269,16 +269,19 @@ env: {
 
 - `ubean:env/client` —— 构建期内联成字面量（来源顺序：`import.meta.env[key]` → `.env` 原始内容 → `default`）。**不要求 `VITE_` 前缀**（插件直接读 `.env`）。
 - `ubean:env/server` —— 运行期读 `process.env`，static 语义（模块求值时读一次）；缺值回落 `default`。**客户端代码 import 它会让构建直接失败**（抄 SvelteKit `$env/static/private`，比 Astro 的「类型上没有」更强）。
-- `client` + `secret` 是同义反复的非法组合，在配置解析期抛错。
+- `client` + `secret` 是同义反复的非法组合，在**声明字段时**就抛错（`envField.*()` / `assertEnvFieldCombo`）。
+- **分组糖（`env:` 下的 `server:` / `public:`）与构造函数形态（`{ type: String }`）已删除**：维度只能写在字段上。传 `server:` / `public:` 在配置解析期报错（`resolveEnvConfig()` + `normalizeEnvSchema()` 各拦一道）—— 别静默摊平成空 schema，那会让字段全部消失而 `mode` 还在。构造函数形态仍可解析（无维度可读），按 `server + secret` 处理。
+- `env.schema` **拒绝**运行期 schema（`~standard` / `safeParse`）：生成的模块是源码，`JSON.stringify` 会丢掉函数，校验器被静默丢弃。需要 zod / valibot 级校验请用服务端代码里的 `defineEnv()` —— 它与 schema 同进程，真会调 `~standard.validate()`（**必须同步**：生成的 server 模块在模块顶层同步执行，`loadUbeanConfigSync()` 又把配置编译成 CJS，两边都没有 await 的位置）。
 - 插件在 `configResolved` 把 `.env` 合并进 `process.env`（只填空缺）—— `vite dev` 自己**不**做这件事，不合并的话 `.env` 里的服务端变量在运行期全是 `undefined`。
 - `.ubean/env.d.ts` 由 codegen 生成：两个虚拟模块的类型 + `ImportMetaEnv`（`VITE_*` + Vite 内建）。**不要手写 `ImportMetaEnv`** —— 手写清单没有东西能提醒它过期（`VITE_API_PROXY_KEYS` 曾是实例）。该文件**不**进 `CODEGEN_FILES`，列在 `CODEGEN_NON_CONTRACT_FILES`。
 
 运行期读取仍用下面这组：
 
-| API                                      | 说明                                        |
-| ---------------------------------------- | ------------------------------------------- |
-| `defineEnv(schema)`                      | 类型安全环境变量定义 + Standard Schema 验证 |
-| `setRuntimeEnv(env)` / `useRuntimeEnv()` | 运行时环境变量                              |
+| API                                      | 说明                                                                                          |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `defineEnv(config)`                      | `{ schema, mode }`；字段用 `envField.*({ context, access })` 声明维度，也接受 Standard Schema |
+| `envField.string/number/boolean/enum`    | 四类型 builder，`enum` 要求 `values`；`client` + `secret` 声明即抛                            |
+| `setRuntimeEnv(env)` / `useRuntimeEnv()` | 运行时环境变量                                                                                |
 
 ### 数据库
 

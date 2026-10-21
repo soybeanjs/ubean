@@ -73,18 +73,16 @@ isNodeRuntime(); // Cloudflare Workers 上为 false
 
 ## 环境变量
 
-`defineEnv(config)` 校验基于构造函数的 schema，返回 `{ env, validate }`。`server` 键永不暴露给客户端；`public` 键通过 `import.meta.env` 暴露。
+`defineEnv(config)` 校验 schema 并返回 `{ env, validate }`。每个字段用 `envField.*()` 自带 `context`（`client` | `server`）与 `access`（`public` | `secret`）—— 与 `ubean.config.ts` 的 `env.schema` 完全同形。
 
 ```ts
-import { defineEnv } from '@ubean/shared';
+import { defineEnv, envField } from '@ubean/shared';
 
 export const { env, validate } = defineEnv({
-  server: {
-    DATABASE_URL: { type: String, required: true },
-    PORT: { type: Number, default: 9527 }
-  },
-  public: {
-    APP_NAME: { type: String, default: 'ubean-app' }
+  schema: {
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
+    PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
+    APP_NAME: envField.string({ context: 'client', access: 'public', default: 'ubean-app' })
   },
   mode: 'warn' // 'warn' 记录日志；'throw' 在校验失败时抛出
 });
@@ -92,6 +90,10 @@ export const { env, validate } = defineEnv({
 env.PORT; // number
 validate(); // { success, errors, data }
 ```
+
+分组糖（`server:` / `public:`）已删除：维度写在字段上，同一个字段挪位置不会静默换语义。`client` + `secret` 在声明时直接抛错。构造函数形态（`{ type: String }`）仍可在 `schema` 下解析，但它没有维度可读，按 `server + secret` 处理（最保守的取舍）。
+
+需要 zod / valibot 级校验时，`defineEnv()` 也接受 Standard Schema 与 `safeParse` 形态——它与校验器同进程，而生成的 env 模块装不下函数。校验必须同步。
 
 | API                                              | 说明                                                                                  |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- |

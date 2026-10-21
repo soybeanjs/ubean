@@ -23,6 +23,20 @@ export type { ResolvedEnvConfig };
 export function resolveEnvConfig(config?: EnvConfig): ResolvedEnvConfig {
   if (!config) return { ...envConfigDefaults };
 
-  const flat = { ...config.public, ...config.server, ...config.schema };
+  // 分组糖已删除。这里必须**显式报错**，不能静默忽略：只取 `config.schema` 的话，
+  // 写 `{ server: {...} }` 的配置会被摊平成空 schema —— 字段全部消失，而 `mode` 还在，
+  // 看起来一切正常（`normalizeEnvSchema()` 根本收不到那几个键）。
+  const grouped = config as unknown as Record<string, unknown>;
+  for (const key of ['server', 'public'] as const) {
+    if (key in grouped && grouped[key] !== undefined) {
+      throw new Error(
+        `Invalid env config: grouped \`${key}:\` schemas were removed.\n` +
+          'Declare every field under `schema:` with explicit dimensions, e.g. ' +
+          "`PORT: envField.number({ context: 'server', access: 'public' })`."
+      );
+    }
+  }
+
+  const flat = { ...config.schema };
   return { schema: flat, mode: config.mode };
 }

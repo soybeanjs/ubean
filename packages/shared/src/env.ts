@@ -25,7 +25,7 @@ export type EnvContext = 'client' | 'server';
 export type EnvAccess = 'public' | 'secret';
 
 export interface EnvFieldMeta<T = unknown> {
-  /** 判别标记：把 `envField.*()` 的产物与 legacy 三形态区分开。 */
+  /** 判别标记：把 `envField.*()` 的产物与构造函数形态区分开。 */
   readonly __ubeanEnvField: true;
   readonly type: 'string' | 'number' | 'boolean' | 'enum';
   readonly context: EnvContext;
@@ -39,10 +39,9 @@ export interface EnvFieldMeta<T = unknown> {
 }
 
 /**
- * 一个 schema 字段：新形态（`envField.*()`）或 legacy 形态。
+ * 一个 schema 字段：`envField.*()` 产物、运行期 schema，或构造函数形态（`{ type: String }`）。
  *
- * legacy 形态保留是为了不破坏既有 `defineEnv({ server, public })` 调用 —— 现有仓库
- * 与示例都在用，`0.6.x` 内不能变语义。
+ * 构造函数形态没有维度信息，按 `server + secret` 处理（见 `DEFAULT_FIELD_DIMENSIONS`）。
  */
 export type EnvFieldDef =
   | StandardSchemaV1
@@ -139,8 +138,8 @@ export type InferEnvOutput<S extends EnvSchema> = {
 };
 
 /**
- * 规范化后的字段：把 legacy 的 `server:` / `public:` 分组糖与显式 `context`/`access`
- * 统一成同一形状。codegen 与虚拟模块都只消费这个形状。
+ * 规范化后的字段：每个都带着确定的 `context` / `access`。codegen 与虚拟模块都只
+ * 消费这个形状。
  */
 export interface NormalizedEnvField {
   key: string;
@@ -150,35 +149,24 @@ export interface NormalizedEnvField {
 }
 
 /**
- * legacy 分组 → 维度映射。
- *
- * `server:` 组历史语义是「只在服务端读」→ `server + secret`。
- * `public:` 组历史语义是「不敏感、客户端也能拿」→ `client + public`（`client` 侧在服务端
- * 同样可读，所以 examples 里在 API handler 中读 `env.API_BASE_URL` 的行为不变）。
+ * 构造函数形态（无维度信息）的默认维度：按「最保守」处理 —— 当服务端 secret，
+ * 绝不进客户端产物。要跳侧可见就显式用 `envField.*()`。
  */
-const LEGACY_GROUP_DIMENSIONS = {
-  server: { context: 'server', access: 'secret' },
-  public: { context: 'client', access: 'public' }
-} as const;
+const DEFAULT_FIELD_DIMENSIONS = { context: 'server', access: 'secret' } as const satisfies {
+  context: EnvContext;
+  access: EnvAccess;
+};
 
 export interface EnvConfig<S extends EnvSchema = EnvSchema> {
   /**
-   * 扁平 schema —— 每个字段自带 `context` / `access`（`envField.*()` 声明）。
-   * 这是新写法，也是 `ubean.config.ts` 的 `env.schema` 直通入口。
+   * 扁平 schema —— 每个字段自带 `context` / `access`（用 `envField.*()` 声明）。
+   * `ubean.config.ts` 的 `env.schema` 与 `defineEnv({ schema })` 都是这个形状。
+   *
+   * 分组糖（`server:` / `public:`）已删除：维度**必须**写在字段上。旧写法靠组名
+   * 隐式决定 `context`/`access`，同一个字段换个位置就换了语义，且 `client+secret`
+   * 这类非法组合只能靠组合规则兜。
    */
   schema?: S;
-  /**
-   * @deprecated 用 `schema` + `envField.*()` 代替。
-   *
-   * 分组糖：组内字段默认 `context: 'server', access: 'secret'`。
-   */
-  server?: S;
-  /**
-   * @deprecated 用 `schema` + `envField.*()` 代替。
-   *
-   * 分组糖：组内字段默认 `context: 'client', access: 'public'`。
-   */
-  public?: S;
   /** Validation mode - 'warn' logs errors, 'throw' throws on validation failure */
   mode?: 'warn' | 'throw';
 }
@@ -232,7 +220,7 @@ function parseStandardSchemaValue(
   rawValue: string | undefined,
   key: string
 ): { ok: boolean; value?: unknown; error?: string } {
-  // 与 `envField` / legacy 形态对齐：空字符串视为「没配」而不是一个合法值。
+  // 与 `envField` / 构造函数形态对齐：空字符串视为「没配」而不是一个合法值。
   // 于是 `.env` 里写 `KEY=` 时 `z.string().default('x')` 也能拿到 `x`。
   const input = rawValue === '' ? undefined : rawValue;
 
@@ -322,7 +310,7 @@ function parseSchemaValue(
 /**
  * 解析 `envField.*()` 声明的字段。
  *
- * 三种类型各自的行为与 legacy 形态保持一致（缺失 → `default` → `optional` 放行 → 报错），
+ * 三种类型的行为与构造函数形态一致（缺失 → `default` → `optional` 放行 → 报错），
  * 多出来的是 `enum` 的成员校验：值不在 `values` 里直接失败，不做静默回落 ——
  * 枚举变量的拼写错误在启动期暴露比在运行期暴露便宜得多。
  */
@@ -357,52 +345,56 @@ function parseEnvFieldValue(
 }
 
 /**
- * 把用户 schema（含 legacy 分组糖）摊平成 `NormalizedEnvField[]`。
+ * 把用户 schema 摊平成 `NormalizedEnvField[]`。
  *
- * 字段自带的 `context`/`access` 优先于分组默认值 —— 这样用户可以在 legacy 的
- * `server:` 组里单独把一个字段标成 `public`，不必整体重写。
+ * 字段自带 `context`/`access`（`envField.*()`）时用它；构造函数形态（`{ type: String }`）
+ * 没有维度信息，按「最保守」处理 —— 当 `server + secret`，绝不进客户端产物。要跳侧可见
+ * 就显式用 `envField.*()`。
+ *
+ * 分组糖（`server:` / `public:`）已删除：维度必须写在字段上。旧写法靠组名隐式决定
+ * `context`/`access`，同一字段换个位置就换了语义，而混用（分组里再放 envField）只能靠
+ * 优先级规则解释。现在传入分组语法会直接抛错。
  */
 export function normalizeEnvSchema(schema: EnvSchema | EnvConfig): NormalizedEnvField[] {
   const fields: NormalizedEnvField[] = [];
 
-  const push = (key: string, def: EnvFieldDef, fallback: { context: EnvContext; access: EnvAccess }) => {
-    const explicit = isEnvFieldMeta(def) ? { context: def.context, access: def.access } : null;
-    const dimensions = explicit ?? fallback;
-    if (dimensions.context === 'client' && dimensions.access === 'secret') {
-      throw new Error(`Invalid env field "${key}": context 'client' cannot be combined with access 'secret'.`);
+  const config = schema as EnvConfig;
+  for (const groupKey of ['server', 'public'] as const) {
+    if (groupKey in (schema as Record<string, unknown>)) {
+      throw new Error(
+        `Invalid env config: grouped \`${groupKey}:\` schemas were removed.\n` +
+          'Declare every field under `schema:` with explicit dimensions, e.g. ' +
+          `\`${groupKey.toUpperCase()}_KEY: envField.string({ context: '${groupKey}', access: 'public' })\`.`
+      );
     }
-    fields.push({ key, context: dimensions.context, access: dimensions.access, def });
-  };
-
-  const record = schema as Record<string, unknown>;
-
-  // 扁平 schema（`{ schema: {...} }` 或裸 schema）：`mode` 是配置键不是字段，显式跳过。
-  if (!('server' in record) && !('public' in record)) {
-    const flat = ('schema' in record ? record.schema : record) as EnvSchema;
-    if (!flat || typeof flat !== 'object') return fields;
-    for (const [key, def] of Object.entries(flat)) {
-      if (!isEnvFieldMeta(def)) {
-        // 扁平形式下的 legacy 三形态缺维度信息：按「最保守」处理 —— 当服务端 secret，
-        // 绝不进客户端产物。要跨侧可见就显式用 `envField.*()` 声明维度。
-        push(key, def, LEGACY_GROUP_DIMENSIONS.server);
-        continue;
-      }
-      push(key, def, { context: def.context, access: def.access });
-    }
-    return fields;
   }
 
-  const grouped = schema as EnvConfig;
-  for (const [key, def] of Object.entries(grouped.server ?? {})) push(key, def, LEGACY_GROUP_DIMENSIONS.server);
-  for (const [key, def] of Object.entries(grouped.public ?? {})) push(key, def, LEGACY_GROUP_DIMENSIONS.public);
+  // `mode` 是配置键不是字段。
+  const raw = (config.schema ?? schema) as EnvSchema;
+  if (!raw || typeof raw !== 'object') return fields;
+
+  for (const [key, def] of Object.entries(raw)) {
+    if (def === undefined || def === null) continue;
+
+    if (!isEnvFieldMeta(def)) {
+      fields.push({ key, ...DEFAULT_FIELD_DIMENSIONS, def });
+      continue;
+    }
+
+    if (def.context === 'client' && def.access === 'secret') {
+      throw new Error(`Invalid env field "${key}": context 'client' cannot be combined with access 'secret'.`);
+    }
+    fields.push({ key, context: def.context, access: def.access, def });
+  }
+
   return fields;
 }
 
 /**
  * 服务端运行时校验：按规范化字段读 `source`（默认 `process.env`），产出强类型对象。
  *
- * 与 `defineEnv()` 的区别：这里只处理「已经归好维度」的字段，不碰 legacy 分组糖 ——
- * 虚拟模块 `ubean:env/server` 的运行时校验走它。
+ * 与 `defineEnv()` 的区别：这里只做「已归好维度」的字段到运行时值的解析 —— 虚拟模块
+ * `ubean:env/server` 的运行时校验走它。
  */
 export function resolveEnvSchema(
   schema: EnvSchema | EnvConfig,
@@ -462,9 +454,8 @@ function validateSchemaSync<S extends EnvSchema>(
 export function defineEnv<S extends EnvSchema>(config: EnvConfig<S>): DefineEnvResult<S> {
   const serverSource = readProcessEnv();
 
-  // legacy 分组糖与扁平 schema 在这里合并成同一份扁平表 —— 输出对象一律是「扁平键」形状，
-  // 与旧行为一致（旧代码 `{ server: { PORT }, public: { API } }` 读 `env.PORT` / `env.API`）。
-  const mergedSchema = { ...config.public, ...config.server, ...config.schema } as S;
+  // 分组糖已删除，只剩扁平 schema —— 输出对象本来就是扁平键形状（`env.PORT`）。
+  const mergedSchema = (config.schema ?? {}) as S;
 
   const initial = validateSchemaSync(mergedSchema, serverSource as Record<string, string | undefined>);
 

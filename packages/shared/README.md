@@ -73,18 +73,16 @@ isNodeRuntime(); // false on Cloudflare Workers
 
 ## Environment Variables
 
-`defineEnv(config)` validates a constructor-based schema and returns `{ env, validate }`. `server` keys are never exposed to the client; `public` keys are exposed via `import.meta.env`.
+`defineEnv(config)` validates a schema and returns `{ env, validate }`. Every field declares its own `context` (`client` | `server`) and `access` (`public` | `secret`) via `envField.*()` — the same shape `ubean.config.ts` accepts under `env.schema`.
 
 ```ts
-import { defineEnv } from '@ubean/shared';
+import { defineEnv, envField } from '@ubean/shared';
 
 export const { env, validate } = defineEnv({
-  server: {
-    DATABASE_URL: { type: String, required: true },
-    PORT: { type: Number, default: 9527 }
-  },
-  public: {
-    APP_NAME: { type: String, default: 'ubean-app' }
+  schema: {
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
+    PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
+    APP_NAME: envField.string({ context: 'client', access: 'public', default: 'ubean-app' })
   },
   mode: 'warn' // 'warn' logs; 'throw' rethrows on validation failure
 });
@@ -92,6 +90,10 @@ export const { env, validate } = defineEnv({
 env.PORT; // number
 validate(); // { success, errors, data }
 ```
+
+Grouped `server:` / `public:` schemas are gone: dimensions live on the field, so nothing silently changes meaning when an entry moves between groups. `client` + `secret` throws at declaration time. The constructor shape (`{ type: String }`) still parses under `schema`, but it has no dimension to read from, so it is treated as `server + secret` (the conservative choice).
+
+For zod / valibot-grade validation, `defineEnv()` also accepts Standard Schema and `safeParse` shapes — it shares a process with the validator, unlike the generated env modules. Validation must be synchronous.
 
 | API                                              | Description                                                                           |
 | ------------------------------------------------ | ------------------------------------------------------------------------------------- |

@@ -10,9 +10,9 @@
 
 Before this contract, `defineEnv()` (`packages/shared/src/env.ts`) read **only**
 `process.env`. That works on the server and breaks on the client: there is no
-`process` in a browser, so `public`-group fields silently fell back to their
-`default` and never saw the real value from `.env`. Every app worked around it
-by keeping a second, hand-written module reading `import.meta.env.VITE_*` — two
+`process` in a browser, so fields meant for the client silently fell back to
+their `default` and never saw the real value from `.env`. Every app worked around
+it by keeping a second, hand-written module reading `import.meta.env.VITE_*` — two
 mechanisms, two places to declare the same variable, and a hand-maintained
 `ImportMetaEnv` that drifts (this repo's consumer hit exactly that: `VITE_API_PROXY_KEYS`
 was read but never declared, so nothing could notice it going stale).
@@ -69,19 +69,33 @@ export default defineConfig({
 
 `envField.string` / `.number` / `.boolean` / `.enum` cover the four types.
 
-### Deprecated: the `server` / `public` groups
+### Removed: the `server` / `public` groups
+
+Grouped schemas and the constructor shape (`{ type: String }`) are gone. Dimensions
+live on the field, so an entry never silently changes meaning when it moves
+groups — and `client` + `secret` is rejected at declaration time instead of
+being inferred from where the entry sat.
 
 ```ts
-// still works in 0.6.x, do not use in new code
+// removed — throws `grouped \`server:\` schemas were removed`
 env: {
-  server: { JWT_SECRET: { type: String, default: 'dev' } },  // → server + secret
-  public: { API_PREFIX: { type: String, default: '/api' } }  // → client + public
+  server: { JWT_SECRET: { type: String, default: 'dev' } },
+  public: { API_PREFIX: { type: String, default: '/api' } }
+}
+
+// current shape
+env: {
+  schema: {
+    JWT_SECRET: envField.string({ context: 'server', access: 'secret', default: 'dev' }),
+    API_PREFIX: envField.string({ context: 'client', access: 'public', default: '/api' })
+  }
 }
 ```
 
-Group semantics are fixed by `LEGACY_GROUP_DIMENSIONS`: `server` → `server + secret`,
-`public` → `client + public`. The flat `schema` entry wins when a key appears in
-both. Removal is a v2 concern.
+The constructor shape still parses under `schema` but has no dimension to read
+from, so it is treated as `server + secret` (the conservative choice: never
+reaches the client bundle). Declare `envField.*()` to make a field readable on
+the `client` side.
 
 ## Reading fields
 
@@ -198,7 +212,7 @@ syntax error) — neither side has a place to await. An async schema
 (`z.string().refine(async …)`) therefore fails with an explicit
 `async Standard Schema validation is not supported` error.
 
-An empty string counts as "not set", matching `envField` and the legacy shapes:
+An empty string counts as "not set", matching `envField`:
 `KEY=` in `.env` makes `z.string().default('x')` resolve to `'x'`.
 
 Breaking changes bump `contractVersion`.

@@ -1,15 +1,15 @@
-import { defineEnv, useRuntimeEnv } from 'ubean';
+import { defineEnv, envField, useRuntimeEnv } from 'ubean';
 import { defineHandler } from 'ubean/server';
 
+// 分组糖（`server:` / `public:`）已删除：维度写在字段上。HTTP 响应里的 `server` / `public`
+// 分组是**输出分组**，与 schema 写法无关。
 const envResult = defineEnv({
-  server: {
-    DATABASE_URL: { type: String, default: 'sqlite://memory' },
-    SECRET_KEY: { type: String, default: 'test-secret-key' },
-    PORT: { type: Number, default: 9527 }
-  },
-  public: {
-    API_BASE_URL: { type: String, default: '/api' },
-    ENABLE_FEATURES: { type: Boolean, default: true }
+  schema: {
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret', default: 'sqlite://memory' }),
+    SECRET_KEY: envField.string({ context: 'server', access: 'secret', default: 'test-secret-key' }),
+    PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
+    API_BASE_URL: envField.string({ context: 'client', access: 'public', default: '/api' }),
+    ENABLE_FEATURES: envField.boolean({ context: 'client', access: 'public', default: true })
   },
   mode: 'warn'
 });

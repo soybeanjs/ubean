@@ -52,7 +52,7 @@ function runPrepare(configSource: string): Promise<{ code: number | null; output
 
 describe('`ubean prepare` 生成 `.ubean/env.d.ts`', () => {
   /**
-   * 用 legacy 三形态（`{ type: String, default }`）而不是 `envField.*()`：临时目录里没有
+   * 用构造函数形态（`{ type: String, default }`）而不是 `envField.*()`：临时目录里没有
    * `node_modules`，配置无法 `import { envField } from 'ubean'`。`resolveEnvModules()`
    * 对两种形态都要处理，legacy 形态足以覆盖这条调用链。
    */
@@ -79,7 +79,7 @@ describe('`ubean prepare` 生成 `.ubean/env.d.ts`', () => {
     // 生成源码里 export 了 getSecret()，声明必须跟上，否则 import 它直接 TS2305。
     expect(contents).toContain('export function getSecret(key: string): string | undefined;');
     // 反过来锁住回归本身：声明了字段的 server 块不该退化成「空」占位注释。
-    // （client 块为空是**对的** —— legacy 三形态没有维度信息，按最保守处理为
+    // （client 块为空是**对的** —— 构造函数形态没有维度信息，按最保守处理为
     // `server + secret`，所以 client 侧确实没有字段。）
     expect(contents).not.toContain("declare module 'ubean:env/server' {\n  // env.schema is empty");
   }, 120_000);

@@ -1,8 +1,8 @@
 ---
 title: 环境变量
 description: "用 defineEnv 定义类型安全的环境变量：校验、公开暴露与 CLI 命令。"
-translatedFrom: 8f0140bd51ec
-sections: ["215750ed","e3b0c442","1cba358b","29113507","b6b028a9","1b64faf3","3dd94df6","f0883c07","2218ebb2","9b363ac2","3034f10d","a1e167f1","72b5aff5","d24effbc","5f815c0c"]
+translatedFrom: c2c600c79ac1
+sections: ["215750ed","e3b0c442","1cba358b","daf35096","0cda17da","887acb77","aad04242","a4fb6757","3c53e3d6","4a1e5efa","1524b4ee","3034f10d","8583952a","3ffa46ef","0a089a70","b739fdf4"]
 ---
 
 # 环境变量
@@ -13,64 +13,69 @@ ubean 提供 `defineEnv()` 用于类型安全的环境变量校验。schema 定�
 
 ```typescript
 // env.ts
-import { defineEnv } from 'ubean';
+import { defineEnv, envField } from 'ubean';
 
 export const { env } = defineEnv({
-  server: {
-    DATABASE_URL: {
-      type: String,
-      required: true
-    },
-    PORT: {
-      type: Number,
-      default: 9527
-    },
-    DEBUG: {
-      type: Boolean,
-      default: false
-    }
+  schema: {
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret' }),
+    PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
+    DEBUG: envField.boolean({ context: 'server', access: 'secret', default: false })
   }
 });
 ```
 
-`defineEnv()` 接收单个配置对象，含三个顶层字段：
+`defineEnv()` 接收单个配置对象，含两个顶层字段：
 
-| 字段    | 类型                 | 说明                                                       |
-| -------- | -------------------- | ----------------------------------------------------------------- |
-| server   | EnvSchema            | 仅服务端可见的变量（永不暴露给客户端）               |
-| public   | EnvSchema            | 公开变量（经 `import.meta.env` 暴露给客户端）    |
-| mode     | `'warn' \| 'throw'`  | 校验失败时的行为（默认 `'warn'` —— 仅记录日志，不抛错） |
+| 字段    | 类型                | 说明                                                       |
+| ------- | ------------------- | ---------------------------------------------------------- |
+| schema  | EnvSchema           | 字段表，每个字段自带 `context` / `access` 维度              |
+| mode    | `'warn' \| 'throw'` | 校验失败时的行为（默认 `'warn'` —— 仅记录日志，不抛错）     |
+
+### 维度
+
+每个字段声明值在哪一侧可用、是否敏感。合法组合只有三种：
+
+| `context` | `access` | 可读侧          | 声明在                  |
+| --------- | -------- | --------------- | ----------------------- |
+| `client`  | `public` | 客户端 + 服务端 | `ubean:env/client`      |
+| `server`  | `public` | 仅服务端        | `ubean:env/server`      |
+| `server`  | `secret` | 仅服务端        | `ubean:env/server`      |
+
+`client` + `secret` 在声明时直接抛错 —— 配置期失败，最早的可失败点。
+
+分组糖（`server:` / `public:`）已**删除**。维度写在字段上，同一个字段挪位置不会静默换语义。构造函数形态（`{ type: String }`）仍可在 `schema` 下解析，但没有维度可读，按 `server + secret` 处理 —— 要在客户端可读就显式声明 `envField.*()`。
 
 ### Schema 条目
 
-每个条目通过**构造函数**（`String`、`Number`、`Boolean`）声明变量类型，另可带可选的 `default` 与 `required`：
+`envField.*()` 覆盖四种类型：
 
-| 选项     | 类型                          | 说明                         |
-| ---------- | ----------------------------- | ----------------------------------- |
-| `type`     | `String \| Number \| Boolean` | 变量类型（构造函数）         |
-| `default`  | string \| number \| boolean   | 未设置时的默认值              |
-| `required` | boolean                       | 缺失则校验失败          |
+| 构造器                 | 输出类型             |
+| ---------------------- | -------------------- |
+| `envField.string(...)` | `string`             |
+| `envField.number(...)` | `number`             |
+| `envField.boolean(...)`| `boolean`            |
+| `envField.enum(...)`   | 声明的 `values` 联合 |
 
-只有暴露同步 `safeParse` 的 schema 才能作为条目值。仅实现 Standard Schema 的对象（有 `~standard` 但没有 `safeParse`）目前会以明确的错误校验失败——异步 schema 请改用 `validate()`。
+都接受 `context`、`access` 与可选的 `default` / `optional`；`envField.enum` 额外要求 `values`。
 
-### 示例
+空字符串视为「没配」—— `.env` 里写 `KEY=` 时 `default` 生效。
+
+### zod / valibot 校验
+
+`defineEnv()` 也接受 Standard Schema（`~standard`）与 `safeParse` 形态，因为它与校验器同进程：
 
 ```typescript
-// env.ts
 import { defineEnv } from 'ubean';
+import { z } from 'zod';
 
 export const { env } = defineEnv({
-  server: {
-    DATABASE_URL: { type: String, required: true },
-    API_KEY: { type: String, required: true }
-  },
-  public: {
-    APP_NAME: { type: String, default: 'ubean-app' },
-    API_URL: { type: String, default: '/api' }
-  },
-  mode: 'throw'
+  schema: { JWT_SECRET: z.string().min(32) }
 });
 ```
+
+校验必须**同步** —— 异步 schema 会以明确的错误失败。
+
+`ubean.config.ts` 的 `env.schema` **不是**这样：那些字段最终写进生成的源码模块，只装得下平数据。在那里传运行期 schema 会在配置期抛错。
 
 ## 使用环境变量
 
@@ -92,14 +97,15 @@ export const GET = defineHandler(c => {
 
 ### 客户端
 
-只有以 `UBEAN_PUBLIC_`、`VITE_` 或 `PUBLIC_` 为前缀的变量才会经 `import.meta.env` 暴露给客户端：
+把字段声明为 `context: 'client', access: 'public'`，它的值会在构建期内联进客户端产物：
 
-```vue
-<script setup lang="ts">
-const appName = import.meta.env.UBEAN_PUBLIC_APP_NAME;
-const apiUrl = import.meta.env.VITE_API_URL;
-</script>
+```typescript
+import { APP_NAME } from 'ubean:env/client';
 ```
+
+`import.meta.env.VITE_*` 对偏好的代码保持可用。Vite 自己的 `import.meta.env` 仍需 `VITE_` 前缀；`ubean:env/client` 不需要，因为构建插件直接读 `.env`。
+
+客户端代码 import `ubean:env/server` 会**构建失败**，而不是替换成空对象 —— 静默降级会把「缺少密钥」变成后面某一行上的 `undefined`，那时根因已经消失。
 
 ## CLI 命令
 
@@ -122,7 +128,7 @@ ubean env add API_URL "/api" --force   # 覆盖已有值
 ubean env remove DATABASE_URL
 ```
 
-公开变量通过 `UBEAN_PUBLIC_`、`VITE_` 或 `PUBLIC_` 前缀自动识别。
+CLI 把 `UBEAN_PUBLIC_`、`VITE_`、`PUBLIC_` 前缀当作「公开」。这是 `.env` 文件的命名约定，服务于 CLI 的 `list --public` / `add --public` 两个开关 —— 与 `env.schema` 里的 `context` / `access` **相互独立**。真正决定值能否进客户端产物的是后者。
 
 ## 校验
 
@@ -132,8 +138,8 @@ ubean env remove DATABASE_URL
 
 ```typescript
 export const { env } = defineEnv({
-  server: {
-    DATABASE_URL: { type: String, required: true }
+  schema: {
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret' })
   },
   mode: 'throw' // DATABASE_URL 缺失时启动即抛错
 });
@@ -145,7 +151,7 @@ export const { env } = defineEnv({
 
 ```typescript
 const { validate } = defineEnv({
-  server: { DATABASE_URL: { type: String, required: true } }
+  schema: { DATABASE_URL: envField.string({ context: 'server', access: 'secret' }) }
 });
 
 const result = validate(source); // source: Record<string, string | undefined>
@@ -156,12 +162,12 @@ if (!result.success) {
 
 ## TypeScript 支持
 
-`env` 代理是全类型化的：`InferEnvOutput<S>` 会依据每个条目的构造函数推导出 `string` / `number` / `boolean`，因此 `env.DATABASE_URL` 直接就是 `string` 类型，无需额外的声明文件。
+`env` 代理是全类型化的：`InferEnvOutput<S>` 会从每个字段推导出 `string` / `number` / `boolean`（或 enum 联合），因此 `env.DATABASE_URL` 直接就是 `string` 类型，无需额外的声明文件。`ubean:env/*` 虚拟模块的类型生成在 `.ubean/env.d.ts` —— 不要手写。
 
 ## 最佳实践
 
 1. **绝不提交密钥**：密钥放在 `.env.local`（已被 gitignore）；改为提交 `.env.example`
-2. **使用 `UBEAN_PUBLIC_` 前缀**：只向客户端暴露必要的变量
+2. **敏感值一律标 `access: 'secret'`**：`client` + `secret` 会被拒绝，配置加载器和类型系统各拦一层
 3. **启动时校验**：生产部署建议用 `mode: 'throw'`
 4. **提供默认值**：为可选变量设置 `default`
-5. **记录变量**：在 `defineEnv` schema 中加注释
+5. **记录变量**：在 schema 中加注释，保留每个变量的意图

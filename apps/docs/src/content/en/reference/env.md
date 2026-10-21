@@ -11,70 +11,75 @@ ubean provides `defineEnv()` for type-safe environment variable validation. The 
 
 ```typescript
 // env.ts
-import { defineEnv } from 'ubean';
+import { defineEnv, envField } from 'ubean';
 
 export const { env } = defineEnv({
-  server: {
-    DATABASE_URL: {
-      type: String,
-      required: true
-    },
-    PORT: {
-      type: Number,
-      default: 9527
-    },
-    DEBUG: {
-      type: Boolean,
-      default: false
-    }
+  schema: {
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret' }),
+    PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
+    DEBUG: envField.boolean({ context: 'server', access: 'secret', default: false })
   }
 });
 ```
 
-`defineEnv()` accepts a single config object with three top-level fields:
+`defineEnv()` accepts a single config object with two top-level fields:
 
-| Field    | Type                 | Description                                                       |
-| -------- | -------------------- | ----------------------------------------------------------------- |
-| server   | EnvSchema            | Server-only variables (never exposed to the client)               |
-| public   | EnvSchema            | Public variables (exposed to the client via `import.meta.env`)    |
-| mode     | `'warn' \| 'throw'`  | Behavior when validation fails (default: `'warn'` — logs, no throw) |
+| Field    | Type                | Description                                                       |
+| -------- | ------------------- | ----------------------------------------------------------------- |
+| schema   | EnvSchema           | Fields, each declaring its own `context` / `access` dimensions     |
+| mode     | `'warn' \| 'throw'` | Behavior when validation fails (default: `'warn'` — logs, no throw) |
+
+### Dimensions
+
+Every field declares where its value lives and whether it is sensitive. Legal combinations:
+
+| `context` | `access` | Readable from | Declared in              |
+| --------- | -------- | ------------- | ------------------------ |
+| `client`  | `public` | client + server | `ubean:env/client`     |
+| `server`  | `public` | server only     | `ubean:env/server`     |
+| `server`  | `secret` | server only     | `ubean:env/server`     |
+
+`client` + `secret` throws at declaration time — configuration time, the earliest possible failure.
+
+Grouped `server:` / `public:` schemas have been **removed**. Dimensions live on the field, so an entry never silently changes meaning when it moves between groups. The constructor shape (`{ type: String }`) still parses under `schema`, but with no dimension to read from it is treated as `server + secret` — declare `envField.*()` to make a field readable on the client.
 
 ### Schema entries
 
-Each entry declares the variable type via the **constructor** (`String`, `Number`, `Boolean`), plus optional `default` and `required`:
+`envField.*()` covers four types:
 
-| Option     | Type                          | Description                         |
-| ---------- | ----------------------------- | ----------------------------------- |
-| `type`     | `String \| Number \| Boolean` | Variable type (constructor)         |
-| `default`  | string \| number \| boolean   | Default value if unset              |
-| `required` | boolean                       | Fail validation if missing          |
+| Builder                | Output type                    |
+| ---------------------- | ------------------------------ |
+| `envField.string(...)` | `string`                       |
+| `envField.number(...)` | `number`                       |
+| `envField.boolean(...)`| `boolean`                      |
+| `envField.enum(...)`   | union of the declared `values` |
 
-Only schemas exposing a sync `safeParse` work as entry values. Standard-Schema-only objects (`~standard` without `safeParse`) currently fail validation with an explicit error — use `validate()` for async schema validation.
+Each accepts `context`, `access`, and optional `default` / `optional`; `envField.enum` additionally requires `values`.
 
-### Example
+An empty string counts as "not set" — `KEY=` in `.env` makes `default` apply.
+
+### zod / valibot validation
+
+`defineEnv()` also accepts Standard Schema (`~standard`) and `safeParse` shapes, because it shares a process with the validator:
 
 ```typescript
-// env.ts
 import { defineEnv } from 'ubean';
+import { z } from 'zod';
 
 export const { env } = defineEnv({
-  server: {
-    DATABASE_URL: { type: String, required: true },
-    API_KEY: { type: String, required: true }
-  },
-  public: {
-    APP_NAME: { type: String, default: 'ubean-app' },
-    API_URL: { type: String, default: '/api' }
-  },
-  mode: 'throw'
+  schema: { JWT_SECRET: z.string().min(32) }
 });
 ```
 
-## Using Environment Variables
+Validation must be **synchronous** — an async schema fails with an explicit error.
 
-### Server-Side
+The same does **not** apply to `env.schema` in `ubean.config.ts`: those fields end up in generated source modules, which only carry plain data. Passing a runtime schema there throws at configuration time.
 
-Access validated values through the `env` proxy returned by `defineEnv()`:
+## Using environment variables
+
+### Server
+
+Read validated values through the `env` proxy:
 
 ```typescript
 // src/routes/api/hello.ts
@@ -86,20 +91,21 @@ export const GET = defineHandler(c => {
 });
 ```
 
-Raw `process.env` access also works in server code.
+Server code can also read `process.env` directly.
 
-### Client-Side
+### Client
 
-Only variables prefixed with `UBEAN_PUBLIC_`, `VITE_`, or `PUBLIC_` are exposed to the client via `import.meta.env`:
+Declare a field with `context: 'client', access: 'public'` to inline its value into the client bundle at build time:
 
-```vue
-<script setup lang="ts">
-const appName = import.meta.env.UBEAN_PUBLIC_APP_NAME;
-const apiUrl = import.meta.env.VITE_API_URL;
-</script>
+```typescript
+import { APP_NAME } from 'ubean:env/client';
 ```
 
-## CLI Commands
+`import.meta.env.VITE_*` keeps working unchanged for code that prefers it. Vite's own `import.meta.env` still requires the `VITE_` prefix; `ubean:env/client` does not, because the build plugin reads `.env` directly.
+
+Importing `ubean:env/server` from client code **fails the build** instead of substituting an empty object — silent degradation turns a missing secret into `undefined` at some later line, and the root cause is gone by then.
+
+## CLI commands
 
 `ubean env` manages variables in `.env` files (plain key/value lines):
 
@@ -107,43 +113,43 @@ const apiUrl = import.meta.env.VITE_API_URL;
 # Create .env and .env.example from a template
 ubean env init
 
-# List variables (--public to show only public ones)
+# List variables (--public shows only public ones)
 ubean env list
 ubean env list --public
 
-# Add or update a variable (--public prefixes with UBEAN_PUBLIC_)
+# Add or update (--public prefixes with UBEAN_PUBLIC_)
 ubean env add DATABASE_URL "postgres://localhost:5432/ubean"
 ubean env add API_URL "/api" --public
-ubean env add API_URL "/api" --force   # overwrite existing
+ubean env add API_URL "/api" --force   # overwrite an existing value
 
-# Remove a variable
+# Remove
 ubean env remove DATABASE_URL
 ```
 
-Public variables are auto-detected by the `UBEAN_PUBLIC_`, `VITE_`, or `PUBLIC_` prefixes.
+The CLI treats `UBEAN_PUBLIC_`, `VITE_`, and `PUBLIC_` prefixes as "public". This is a `.env` file naming convention used by the CLI's `list --public` / `add --public` flags — it is **independent** of `context` / `access` in `env.schema`, which is what actually decides whether a value reaches the client bundle.
 
 ## Validation
 
 ### Validation mode
 
-Set `mode: 'throw'` to fail fast at startup when a required variable is missing or mis-typed; the default `'warn'` logs errors instead:
+Set `mode: 'throw'` to fail fast at startup whenever a required variable is missing or mis-typed; the default `'warn'` only logs:
 
 ```typescript
 export const { env } = defineEnv({
-  server: {
-    DATABASE_URL: { type: String, required: true }
+  schema: {
+    DATABASE_URL: envField.string({ context: 'server', access: 'secret' })
   },
-  mode: 'throw' // throw at startup if DATABASE_URL is missing
+  mode: 'throw' // throws at startup when DATABASE_URL is missing
 });
 ```
 
 ### Manual validation
 
-Call `.validate()` on the result to check a custom source (e.g. a test fixture or a request-specific env):
+Call `.validate()` on the returned object to check a custom source (test fixtures, request-scoped env):
 
 ```typescript
 const { validate } = defineEnv({
-  server: { DATABASE_URL: { type: String, required: true } }
+  schema: { DATABASE_URL: envField.string({ context: 'server', access: 'secret' }) }
 });
 
 const result = validate(source); // source: Record<string, string | undefined>
@@ -152,14 +158,14 @@ if (!result.success) {
 }
 ```
 
-## TypeScript Support
+## TypeScript support
 
-The `env` proxy is fully typed: `InferEnvOutput<S>` derives `string` / `number` / `boolean` from each entry's constructor, so `env.DATABASE_URL` is typed as `string` without extra declaration files.
+The `env` proxy is fully typed: `InferEnvOutput<S>` derives `string` / `number` / `boolean` (or the enum union) from each field, so `env.DATABASE_URL` is `string` with no extra declaration file. The `ubean:env/*` virtual modules get their types generated into `.ubean/env.d.ts` — do not hand-write them.
 
-## Best Practices
+## Best practices
 
-1. **Never commit secrets**: Use `.env.local` for secrets (gitignored); commit `.env.example` instead
-2. **Use `UBEAN_PUBLIC_` prefix**: Only expose necessary variables to the client
-3. **Validate at startup**: Prefer `mode: 'throw'` for production deployments
-4. **Provide defaults**: Use `default` for optional variables
-5. **Document variables**: Add comments to the `defineEnv` schema
+1. **Never commit secrets** — keep them in `.env.local` (gitignored) and commit `.env.example` instead
+2. **Declare `access: 'secret'` for anything sensitive** — `client` + `secret` is rejected, so the compiler and the config loader both catch the mistake
+3. **Validate at startup** — use `mode: 'throw'` in production
+4. **Provide defaults** for optional variables
+5. **Comment your schema** so the intent of each variable survives

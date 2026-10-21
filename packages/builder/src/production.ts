@@ -200,30 +200,27 @@ export async function generateVirtualModulesToDisk(
     await writeFile(join(virtualDir, filename), header + content, 'utf-8');
   }
 
-  await writeModule('ubean:routes', 'routes.mjs');
-  await writeModule('ubean:app-config', 'app-config.mjs');
-  await writeModule('ubean:locales', 'locales.mjs');
-
+  /**
+   * 只写**有磁盘消费者**的虚拟模块。
+   *
+   * 这里曾经把 12 个虚拟模块全写了一遍，其中 10 个没有任何读取方 —— 构建 / dev 都从注册表取
+   * 虚拟 id（`ubeanVite` 的 `resolveId`/`load`、dev 的 `loadModule`），磁盘副本纯装饰。代价不是
+   * 空间而是**类型检查**：scaffold 模板的 `include` 是 `.ubean` 全目录，这些文件会被 `vue-tsc` 扫进去，
+   * 而它们只带 `// @ts-nocheck` 头部（`server-entry.ts` 连头部都是空串）—— 实测 soybean-admin-v3
+   * 的 30 个类型错误**全部**来自生成产物，`src/` 一个都没有。
+   *
+   * 剩下的三个各自有真实读取方：
+   * - `client-entry.mjs`：`createBuildEnvironments()` 的 `clientInput` 回退路径（无 `src/entry.client.ts` 时）；
+   * - `server-entry.mjs`：`ubean` 环境的 `build.rollupOptions.input`，真正的构建入口；
+   * - `index.html`：`writeClientIndexHtml()` 在 `prepareBuild` 里单独写，见 `build-app.ts`。
+   */
   if (hasPages) {
-    await writeModule('ubean:pages', 'pages.ts');
-    await writeModule('ubean:meta', 'meta.mjs');
-    await writeModule('virtual:ubean-pages', 'vue-pages.ts', '');
-    await writeModule('virtual:ubean-app', 'vue-app.ts', '');
     await writeModule('virtual:ubean-client-entry', 'client-entry.mjs', '');
   }
 
-  if (hasServer) {
-    await writeModule('virtual:ubean-server', 'server-entry.ts', '');
-  }
-
-  // Islands registry stub for SSR build.
-  // The real registry is populated by ubeanIslandsPlugin during the client
-  // build (via transform/scan of SFCs with client:* directives). During SSR,
-  // islands are rendered server-side — no client hydration — so an empty
-  // stub suffices. This prevents the `virtual:ubean-islands-registry` import
-  // (inside ubean/client, pulled in via virtual:ubean-app) from leaking
-  // unresolved into the SSR bundle when ubean is noExternal.
-  await writeFile(join(virtualDir, 'islands-registry.ts'), 'export const islands = {};\n', 'utf-8');
+  // Islands 注册表的空壳由 `createIslandsSsrStubPlugin()` 在**内存里**提供
+  // （`resolveId`/`load` 返回 `'export const islands = {};'`）—— 这里曾经也往磁盘写一份
+  // `islands-registry.ts`，没有任何读取方，见上方 writeModule 的注释。
 
   const pagesGlob = JSON.stringify(`${viteSrcPrefix}/pages/**/*.{${pagesExts}}`);
   const routesGlob = JSON.stringify(`${viteSrcPrefix}/routes/**/*.{ts,js,mjs}`);

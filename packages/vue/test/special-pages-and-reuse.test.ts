@@ -112,22 +112,22 @@ describe('scanPages — 特殊页检测', () => {
 });
 
 describe('scanPages — reuse 路由', () => {
-  it('about.reuse.ts → isReuse=true, reuseTarget=About', async () => {
+  it('about.reuse.ts → pageKind=reuse, reuseTarget=About', async () => {
     writeFile('about.vue', '<template>About</template>');
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    const reusePage = result.pages.find(p => p.isReuse);
+    const reusePage = result.pages.find(p => p.pageKind === 'reuse');
     expect(reusePage).toBeDefined();
-    expect(reusePage?.isReuse).toBe(true);
+    expect(reusePage?.pageKind).toBe('reuse');
     expect(reusePage?.reuseTarget).toBe('About');
   });
 
-  it('reuse 页不出现在常规路由名集合中（isReuse 区分）', async () => {
+  it('reuse 页不出现在常规路由名集合中（pageKind 区分）', async () => {
     writeFile('about.vue', '<template>About</template>');
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    const reusePages = result.pages.filter(p => p.isReuse);
-    const regularPages = result.pages.filter(p => !p.isReuse);
+    const reusePages = result.pages.filter(p => p.pageKind === 'reuse');
+    const regularPages = result.pages.filter(p => p.pageKind !== 'reuse');
     expect(reusePages).toHaveLength(1);
     expect(regularPages).toHaveLength(1);
     expect(regularPages[0].name).toBe('About');
@@ -137,7 +137,7 @@ describe('scanPages — reuse 路由', () => {
     // 只有 reuse 文件，没有 target
     writeFile('ghost.reuse.ts', `definePage({ reuse: 'NonExistent' });`);
     const result = await scan();
-    const reusePage = result.pages.find(p => p.isReuse);
+    const reusePage = result.pages.find(p => p.pageKind === 'reuse');
     expect(reusePage).toBeDefined();
     expect(reusePage?.reuseTarget).toBe('NonExistent');
   });
@@ -146,7 +146,7 @@ describe('scanPages — reuse 路由', () => {
     writeFile('about.vue', `<script setup>definePage({ cache: true });</script>`);
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    const reusePage = result.pages.find(p => p.isReuse);
+    const reusePage = result.pages.find(p => p.pageKind === 'reuse');
     expect(reusePage?.cache).toBe(true);
   });
 
@@ -154,7 +154,7 @@ describe('scanPages — reuse 路由', () => {
     writeFile('about.vue', `<script setup>definePage({ cache: true });</script>`);
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About', cache: false });`);
     const result = await scan();
-    const reusePage = result.pages.find(p => p.isReuse);
+    const reusePage = result.pages.find(p => p.pageKind === 'reuse');
     expect(reusePage?.cache).toBe(false);
   });
 
@@ -162,7 +162,7 @@ describe('scanPages — reuse 路由', () => {
     writeFile('about.vue', '<template>About</template>');
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About', cache: true });`);
     const result = await scan();
-    const reusePage = result.pages.find(p => p.isReuse);
+    const reusePage = result.pages.find(p => p.pageKind === 'reuse');
     expect(reusePage?.cache).toBe(true);
   });
 
@@ -170,7 +170,7 @@ describe('scanPages — reuse 路由', () => {
     writeFile('about.vue', '<template>About</template>');
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    const reusePage = result.pages.find(p => p.isReuse);
+    const reusePage = result.pages.find(p => p.pageKind === 'reuse');
     expect(reusePage?.cache).toBeUndefined();
   });
 
@@ -179,7 +179,7 @@ describe('scanPages — reuse 路由', () => {
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     writeFile('about3.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    const reusePages = result.pages.filter(p => p.isReuse);
+    const reusePages = result.pages.filter(p => p.pageKind === 'reuse');
     expect(reusePages).toHaveLength(2);
     expect(reusePages.every(p => p.reuseTarget === 'About')).toBe(true);
   });
@@ -188,7 +188,7 @@ describe('scanPages — reuse 路由', () => {
     writeFile('about.vue', '<template>About</template>');
     writeFile('about2.reuse.js', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    const reusePage = result.pages.find(p => p.isReuse);
+    const reusePage = result.pages.find(p => p.pageKind === 'reuse');
     expect(reusePage).toBeDefined();
     expect(reusePage?.reuseTarget).toBe('About');
     expect(reusePage?.route).toBe('/about2');
@@ -199,7 +199,7 @@ describe('scanPages — reuse 路由', () => {
     writeFile('about.vue', '<template>About</template>');
     writeFile('copy.reuse.vue', '<template>Copy of About</template>');
     const result = await scan();
-    expect(result.pages.filter(p => p.isReuse)).toHaveLength(0);
+    expect(result.pages.filter(p => p.pageKind === 'reuse')).toHaveLength(0);
     const copy = result.pages.find(p => p.path === '/copy.reuse');
     expect(copy).toBeDefined();
     expect(copy?.reuseTarget).toBeUndefined();
@@ -213,8 +213,8 @@ describe('scanPages — 特殊页与 reuse 混合', () => {
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
     expect(result.notFoundPage).toBeDefined();
-    const regular = result.pages.filter(p => !p.isReuse);
-    const reuse = result.pages.filter(p => p.isReuse);
+    const regular = result.pages.filter(p => p.pageKind !== 'reuse');
+    const reuse = result.pages.filter(p => p.pageKind === 'reuse');
     expect(regular).toHaveLength(1);
     expect(reuse).toHaveLength(1);
     expect(regular[0].name).toBe('About');

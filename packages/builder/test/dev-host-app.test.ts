@@ -20,7 +20,7 @@ function page(partial: Partial<ScannedPageRoute> & { name: string }): ScannedPag
 }
 
 const ABOUT = page({ name: 'About' });
-const ALIAS = page({ name: 'AboutAlias', route: '/about-alias', isReuse: true, reuseTarget: 'About' });
+const ALIAS = page({ name: 'AboutAlias', route: '/about-alias', pageKind: 'reuse', reuseTarget: 'About' });
 const NOT_FOUND = page({ name: 'NotFound', route: '/:pathMatch(.*)*' });
 
 const LAYOUTS: ScannedLayout[] = [

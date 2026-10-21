@@ -150,7 +150,7 @@ describe('UbeanRouter — routable: false', () => {
       name: 'X',
       route: '/x',
       path: '/x',
-      isReuse: false,
+      pageKind: 'component',
       isMarkdown: false,
       ...overrides
     }) as ScannedPageRoute;
@@ -158,7 +158,7 @@ describe('UbeanRouter — routable: false', () => {
   it('非路由页进页面清单，但不出现在 getPageRouteNames()', () => {
     const router = new UbeanRouter();
     router.addPage(makePage({ name: 'About', route: '/about' }));
-    router.addPage(makePage({ name: 'Dir', route: '/dir', routable: false, isMeta: true }));
+    router.addPage(makePage({ name: 'Dir', route: '/dir', routable: false, pageKind: 'meta' }));
 
     // 页面清单是全量的（宿主据此构菜单）
     expect(router.getPages().map(p => p.name)).toEqual(['About', 'Dir']);
@@ -172,7 +172,7 @@ describe('UbeanRouter — routable: false', () => {
       makePage({
         name: 'Dir',
         routable: false,
-        isMeta: true,
+        pageKind: 'meta',
         pageMeta: { routable: false, meta: { menuType: 'directory' } }
       })
     );

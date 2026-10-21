@@ -74,6 +74,18 @@ export interface PageMeta {
   ssr?: boolean | 'streaming' | 'data-only';
 }
 
+/**
+ * 页面条目在扫描结果中的种类 —— 「组件从哪来」的唯一判别器。
+ *
+ * - `'component'` — 文件自带组件实现(`.vue` / `.tsx` / `.md` …),可被 reuse 借用。
+ * - `'reuse'` — 借目标页组件开一条新 URL(`definePage({ reuse })`)。
+ * - `'meta'` — 纯元数据文件,不产生路由(`.meta.ts` / `.meta.js`),等价 `routable: false`。
+ *
+ * 此前这一事实被 `isReuse` / `isMeta` 两个布尔各编码一半,调用方必须写
+ * `!isReuse && !isMeta` 才能表达「有自己组件」。两个布尔已删除。
+ */
+export type PageKind = 'component' | 'reuse' | 'meta';
+
 /** 扫描得到的单个页面(字段与旧 `ScannedPageRoute` 完全兼容)。 */
 export interface ScannedPage {
   fullPath: string;
@@ -85,16 +97,16 @@ export interface ScannedPage {
   path: string;
   layout?: string | string[] | false;
   cache?: boolean;
-  isReuse: boolean;
-  /** 是否为 `.meta.ts` / `.meta.js` 元数据页(只有 `definePage`,没有组件实现)。 */
-  isMeta?: boolean;
+  /** 页面种类判别器(权威字段,唯一)。 */
+  pageKind: PageKind;
   isMarkdown: boolean;
   reuseTarget?: string;
   /**
    * 是否参与路由注册(默认 `true`,省略即视为 `true`)。`false` 的页面不进 `routes` /
    * `RouteNamedMap`,只留在扫描结果的页面清单里供宿主消费(菜单、目录、外链入口等)。
    *
-   * `.meta.*` 元数据页在扫描期被归一化为 `false`(文件名即语义,无需用户声明)。
+   * `.meta.*` 元数据页在扫描期被归一化为 `false`(文件名即语义,无需用户声明);
+   * `reuse` 页恒为 `true`(借了组件、有真实 URL)。
    *
    * 可选而非必填 —— 本接口是对外公开契约,新增「省略即 `true`」的可选字段不构成 BREAKING。
    */

@@ -4,14 +4,23 @@ import { glob } from 'tinyglobby';
 import { extractDefinePageFromCode } from './extract-page';
 import { generateRouteName } from './route-name';
 import { filePathToRoute } from './route-path';
-import type { ScanPagesOptions, ScanPagesResult, ScannedPage, ScannedLayout, PageMeta, PageHead } from './types';
+import type {
+  ScanPagesOptions,
+  ScanPagesResult,
+  ScannedPage,
+  ScannedLayout,
+  PageMeta,
+  PageHead,
+  PageKind
+} from './types';
 
 /**
  * 页面/布局扫描器(页面路由所有权归属 `@ubean/vue`)。
  *
  * 能力(从 `@ubean/scan` 沉淀并增强):
  * - 多 `pagesDir` / `layoutsDir`(先到先得去重,可分层叠加目录)
- * - reuse 路由(`.reuse.ts` / `.reuse.js`,纯元数据文件单独注入 `definePage`)+ cache 继承
+ * - 页面种类判别器 `pageKind`（`component` / `reuse` / `meta`）
+ * - reuse 路由（`.reuse.ts` / `.reuse.js`，纯元数据文件单独注入 `definePage`）+ cache 继承
  * - markdown 页面(opt-in,`@ubean/markdown` 按需加载解析 frontmatter)
  * - 页面级 head(opt-in,`definePage({ head })` / frontmatter `head`)
  * - 特殊页:`404` / `loading` / `error`(仅页面目录根级)
@@ -38,13 +47,18 @@ function warn(message: string): void {
  * 仅当 `markdown` 开启且项目存在 `.md` / `.mdx` 页面时按需加载;
  * 未安装时降级为无 frontmatter 的普通页面并告警一次。
  */
-type FrontmatterParser = (source: string) => { data: Record<string, unknown>; content: string };
+type FrontmatterParser = (source: string) => {
+  data: Record<string, unknown>;
+  content: string;
+};
 let _frontmatterParser: FrontmatterParser | null | undefined;
 
 async function getFrontmatterParser(): Promise<FrontmatterParser | null> {
   if (_frontmatterParser !== undefined) return _frontmatterParser;
   try {
-    const mod = (await import('@ubean/markdown')) as { parseFrontmatter?: FrontmatterParser };
+    const mod = (await import('@ubean/markdown')) as {
+      parseFrontmatter?: FrontmatterParser;
+    };
     if (typeof mod.parseFrontmatter === 'function') {
       _frontmatterParser = mod.parseFrontmatter;
     } else {
@@ -222,13 +236,21 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       if (base.startsWith('_')) continue;
 
       const isMarkdown = ext === '.md' || ext === '.mdx';
-      // 精确匹配 `.reuse.ts` / `.reuse.js` 元数据文件后缀。不用
-      // `base.endsWith('.reuse')` —— 那会把 `xxx.reuse.vue`(真实组件)
-      // 误判为 reuse 元数据页。
-      const isReuse = !isMarkdown && /\.reuse\.(ts|js)$/.test(relativePath);
-      // 同理精确匹配 `.meta.ts` / `.meta.js` 元数据页：只含 `definePage`、无组件。
-      const isMeta = !isMarkdown && /\.meta\.(ts|js)$/.test(relativePath);
-      const pageBase = isReuse ? base.slice(0, -'.reuse'.length) : isMeta ? base.slice(0, -'.meta'.length) : base;
+      // `.meta.ts` / `.meta.js` / `.reuse.ts` / `.reuse.js` 都是纯元数据文件（只含
+      // `definePage`、没有组件实现），不适用 `pages.extensions` 页面扩展名约定，因此始终
+      // 参与扫描。带 `.vue` 扩展名的是真实组件，按普通页面处理（`.reuse.vue` / `.meta.vue`
+      // 不在约定内）。
+      // 真正决定「有没有组件」的是 `definePage` 内容（见下方 `pageKind` 推导），后缀只用来
+      // 从 basename 里剔掉标记段。
+      const isReuseFile = !isMarkdown && /\.reuse\.(ts|js)$/.test(relativePath);
+      const isMetaFile = !isMarkdown && /\.meta\.(ts|js)$/.test(relativePath);
+      /** 是否为纯元数据文件（无组件实现）。 */
+      const isMetaOnlyFile = isReuseFile || isMetaFile;
+      const pageBase = isReuseFile
+        ? base.slice(0, -'.reuse'.length)
+        : isMetaFile
+          ? base.slice(0, -'.meta'.length)
+          : base;
       const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
       const rawFileBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
 
@@ -244,8 +266,8 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       // Only root-level files are treated as special; nested files like
       // `users/404.vue` remain regular routes at `/users/404`.
       if (
-        !isReuse &&
-        !isMeta &&
+        !isReuseFile &&
+        !isMetaFile &&
         dirPart === '' &&
         (pageBase === '404' || pageBase === 'loading' || pageBase === 'error')
       ) {
@@ -262,8 +284,7 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
           path: specialRoute,
           layout: undefined,
           cache: undefined,
-          isReuse: false,
-          isMeta: false,
+          pageKind: 'component',
           routable: true,
           isMarkdown,
           reuseTarget: undefined,
@@ -311,7 +332,12 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         }
       } else {
         pageMeta = await readFile(fullPath, 'utf-8')
-          .then(code => extractDefinePageFromCode(code, basename(fullPath), { fileName: fullPath, cwd: options.cwd }))
+          .then(code =>
+            extractDefinePageFromCode(code, basename(fullPath), {
+              fileName: fullPath,
+              cwd: options.cwd
+            })
+          )
           .catch(() => null);
       }
 
@@ -323,30 +349,27 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         delete pageMeta.head;
       }
 
-      // `.meta.ts` / `.meta.js` 的文件名本身就等于 `routable: false`（这种文件没有组件
-      // 实现），所以省略即默认不路由，不需要用户再抄一遍布尔值。
-      const routable = isMeta ? false : pageMeta?.routable !== false;
+      // 组件从哪来 —— `component`（本文件自带）/ `reuse`（借目标页开新 URL）/ `meta`（没有）。
+      //
+      // 判据是 `definePage` 内容优先，后缀兜底：写了 `reuse` 就是 reuse；没写但文件是纯元数据
+      // 就是 meta。于是 `.meta.ts` 写 `reuse` 等价于旧 `.reuse.ts` —— 两种后缀语义归一，
+      // `.reuse.*` 仅作为历史写法继续可用。
+      const pageKind: PageKind = pageMeta?.reuse !== undefined ? 'reuse' : isMetaOnlyFile ? 'meta' : 'component';
 
-      // 唯一还需要报错的情况是**显式写反**：`.meta.*` 没有组件，`routable: true` 必然
+      // `routable` 由 `pageKind` 推导：reuse 恒可路由（借了组件、有真实 URL）；meta 恒不可路由
+      // （文件名即语义）；component 看 `definePage({ routable })`，省略即 `true`。
+      const routable = pageKind === 'reuse' ? true : pageKind === 'meta' ? false : pageMeta?.routable !== false;
+
+      // 唯一还需要报错的情况是**显式写反**：元数据文件没有组件，`routable: true` 必然
       // 产出指向不存在组件的 loader，启动即解析失败。扫描期直接报错（而不是默默纠正），
       // 因为静默降级会得到一个“开发正常、导航 404”的隐形故障。
-      if (isMeta && pageMeta?.routable === true) {
+      if (pageKind === 'meta' && pageMeta?.routable === true) {
         throw new Error(
           `[ubean] 元数据页不能声明 \`routable: true\`："${relativePath}"。\n` +
             `\`.meta.ts\` / \`.meta.js\` 是只有 \`definePage\`、没有组件实现的文件，` +
             `永远不参与路由注册（等价于 \`routable: false\`），省略该字段即可。\n` +
-            `若你本意是做一个普通页面，请改写成 \`.vue\` / \`.tsx\` 文件。`
-        );
-      }
-
-      // 元数据页不能声明 `reuse`：reuse 的意义是「复用组件开一条新 URL」，而元数据页
-      // 本身就不产生路由（`isMeta` 即 `routable: false`），两者直接矛盾。
-      if (isMeta && pageMeta?.reuse !== undefined) {
-        throw new Error(
-          `[ubean] 元数据页不能声明 \`reuse\`："${relativePath}"。\n` +
-            `\`.meta.*\` 只用于“不产生路由的条目”（文件本身即 \`routable: false\`）；` +
-            `\`reuse\` 的意义是“复用组件开一条新路由”，两者相互矛盾。` +
-            `需要独立 URL 的复用页请改用 \`.reuse.ts\`。`
+            `若你本意是做一个普通页面，请改写成 \`.vue\` / \`.tsx\` 文件；` +
+            `若想复用其他页面的组件开新 URL，请声明 \`reuse: '<页面名>'\`。`
         );
       }
 
@@ -360,8 +383,7 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         path: pageMeta?.path || route,
         layout: pageMeta?.layout,
         cache: pageMeta?.cache,
-        isReuse,
-        isMeta,
+        pageKind,
         routable,
         isMarkdown,
         reuseTarget: pageMeta?.reuse,
@@ -406,10 +428,10 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
   // Reuse routes reference a target page by name. The target must be a
   // regular page with a component implementation — chaining reuse routes is
   // not supported, and `.meta.*` pages have no component to lend out.
-  const regularPageNames = new Set(pages.filter(p => !p.isReuse && !p.isMeta).map(p => p.name));
+  const regularPageNames = new Set(pages.filter(p => p.pageKind === 'component').map(p => p.name));
 
   for (const page of pages) {
-    if (page.isReuse && page.reuseTarget && !regularPageNames.has(page.reuseTarget)) {
+    if (page.pageKind === 'reuse' && page.reuseTarget && !regularPageNames.has(page.reuseTarget)) {
       warn(
         `Reuse page "${page.name}" references target "${page.reuseTarget}" which does not exist. ` +
           `Available page targets: ${[...regularPageNames].join(', ') || '(none)'}`
@@ -423,12 +445,12 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
   // a reuse route, set `cache: false` in its `definePage`.
   const targetCacheMap = new Map<string, boolean | undefined>();
   for (const p of pages) {
-    if (!p.isReuse) {
+    if (p.pageKind !== 'reuse') {
       targetCacheMap.set(p.name, p.cache);
     }
   }
   for (const page of pages) {
-    if (page.isReuse && page.reuseTarget && page.cache === undefined) {
+    if (page.pageKind === 'reuse' && page.reuseTarget && page.cache === undefined) {
       const targetCache = targetCacheMap.get(page.reuseTarget);
       if (targetCache === true) {
         page.cache = true;

@@ -221,7 +221,7 @@ function makeSsrApp(c: SsrCase): { app: UbeanApp; loaderCalls: number[] } {
     name: 'P',
     route: '/p',
     path: '/p',
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false,
     ...(c.pageSsr === undefined ? {} : { pageMeta: { ssr: c.pageSsr } })
   };

@@ -1,3 +1,4 @@
+import { resolvePageKind } from './page-kind';
 import { PARAM_TYPE_IMPORT, extractRouteParams, renderParamsType } from './route-params';
 import type { ScannedPage, ScannedLayout } from './types';
 
@@ -209,7 +210,7 @@ ${items}
     // For reuse routes, use the `reuseTarget`'s name so `views[component]`
     // resolves to the target's component loader (the .reuse.ts file only
     // contains metadata, not a Vue component).
-    const componentKey = page.isReuse && page.reuseTarget ? page.reuseTarget : page.name;
+    const componentKey = resolvePageKind(page) === 'reuse' && page.reuseTarget ? page.reuseTarget : page.name;
     parts.push(`    component: ${jsStringLiteral(componentKey)}`);
 
     if (page.layout !== undefined) {
@@ -225,7 +226,7 @@ ${items}
       parts.push(`    layout: ${layoutVal}`);
     }
 
-    if (page.isReuse) {
+    if (resolvePageKind(page) === 'reuse') {
       parts.push(`    reuse: true`);
     }
 
@@ -269,7 +270,7 @@ ${items}
     const header = this.opts.headerComment;
     const layouts = scan.layouts.map(l => this.renderLayoutImport(l)).join(',\n');
     const views = scan.pages
-      .filter(p => !p.isReuse && !p.isMeta)
+      .filter(p => resolvePageKind(p) === 'component')
       .map(p => this.renderViewImport(p))
       .join(',\n');
 
@@ -280,8 +281,8 @@ ${items}
     //   - RouteReuseKey:  routes declared via `.reuse.ts` / `.reuse.js` metadata files
     //   - BuiltinRouteKey: framework-provided routes (root / not_found / ...)
     //   - RouteKey:       union of the above (= all page route names)
-    const filePages = scan.pages.filter(p => !p.isReuse && !p.isMeta);
-    const reusePages = scan.pages.filter(p => p.isReuse);
+    const filePages = scan.pages.filter(p => resolvePageKind(p) === 'component');
+    const reusePages = scan.pages.filter(p => resolvePageKind(p) === 'reuse');
 
     const fileKeyType = filePages.length > 0 ? `'${filePages.map(p => p.name).join("' | '")}'` : 'never';
     const reuseKeyType = reusePages.length > 0 ? `'${reusePages.map(p => p.name).join("' | '")}'` : 'never';
@@ -384,7 +385,7 @@ ${views}
             .join('\n')
         : '    // (no pages scanned)';
 
-    const reuseRoutes = scan.pages.filter(p => p.isReuse);
+    const reuseRoutes = scan.pages.filter(p => resolvePageKind(p) === 'reuse');
     const reuseKeys = reuseRoutes.length > 0 ? reuseRoutes.map(p => `"${p.name}"`).join(' | ') : 'never';
 
     const layoutKeyList = scan.layouts.length > 0 ? scan.layouts.map(l => `"${l.name}"`).join(' | ') : 'never';

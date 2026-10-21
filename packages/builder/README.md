@@ -383,7 +383,7 @@ const manifest = await buildWithEnvironments({
 | `createIslandsSsrStubPlugin()`                                                                          | Non-functional islands registry for SSR                                                      |
 
 **`serializePagesForEntry()` is a whitelist, and the whitelist is load-bearing.** It previously
-serialized only `relativePath` / `name` / `route` / `layout` / `reuseTarget` / `isReuse` / `pageMeta`,
+serialized only `relativePath` / `name` / `route` / `layout` / `reuseTarget` / `pageKind` / `pageMeta`,
 so `matchers` and `slot` **disappeared from production builds** — dev used the live scanned objects
 and behaved correctly, while a `[id=numeric]` route returned 404 in dev and 200 in production. Add a
 field to `ScannedPage` and you must add it here too; `packages/builder/test/page-metadata.test.ts`

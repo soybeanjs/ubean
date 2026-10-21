@@ -1,5 +1,6 @@
 import type { CompiledRoute, CompiledPage, CompiledLayout, CompiledMiddleware } from '@ubean/routes';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLocale } from '@ubean/scan';
+import { resolvePageKind } from '@ubean/vue';
 import { relative, isAbsolute } from 'pathe';
 import { defineVirtualModule } from './virtual-registry';
 
@@ -106,8 +107,7 @@ export function createAppVirtualModule(
         relativePath: p.relativePath,
         name: p.name,
         route: p.route,
-        isReuse: p.isReuse,
-        isMeta: p.isMeta,
+        pageKind: resolvePageKind(p),
         routable: p.routable,
         layout: p.layout
       })

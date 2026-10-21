@@ -41,7 +41,7 @@ function page(partial: Partial<ScannedPage> & { name: string; route: string }): 
     dirname: 'pages',
     basename: partial.name,
     path: partial.route,
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false,
     ...partial
   };
@@ -92,7 +92,7 @@ describe('generateRouteFiles', () => {
 
   it('reuse 路由 component 指向目标页 key,且不进 views 映射', async () => {
     const about = page({ name: 'About', route: '/about' });
-    const about2 = page({ name: 'About2', route: '/about2', isReuse: true, reuseTarget: 'About' });
+    const about2 = page({ name: 'About2', route: '/about2', pageKind: 'reuse', reuseTarget: 'About' });
 
     await generateRouteFiles({ pages: [about, about2], layouts: [] }, { cwd: tmpDir, srcDir, outDir });
 

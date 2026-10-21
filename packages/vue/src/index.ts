@@ -149,5 +149,16 @@ export type { MatcherFunction, MatcherGuardOptions } from './matchers';
 export { setupPageHeadGuard, createPageHead, pushPageHead } from './head';
 export type { PageHeadClient } from './head';
 
+// page-entry kind discriminator (authoritative) + derived-alias resolver
+export { resolvePageKind } from './page-kind';
+
 // shared page-routing types (also re-exported by the @ubean/scan aggregator)
-export type { PageHead, PageMeta, ScannedPage, ScannedLayout, ScanPagesOptions, ScanPagesResult } from './types';
+export type {
+  PageHead,
+  PageKind,
+  PageMeta,
+  ScannedPage,
+  ScannedLayout,
+  ScanPagesOptions,
+  ScanPagesResult
+} from './types';

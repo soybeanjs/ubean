@@ -147,7 +147,7 @@ describe('prerender() — extractDataPayload integration', () => {
       basename: `${path === '/' ? 'index' : path.slice(1)}.vue`,
       name: path === '/' ? 'index' : path.slice(1).replace(/[^a-zA-Z0-9]/g, '-'),
       route: path,
-      isReuse: false,
+      pageKind: 'component',
       isMarkdown: false
     };
   }

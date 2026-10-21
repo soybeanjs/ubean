@@ -51,7 +51,7 @@ function makePage(path: string, name = ''): ScannedPageRoute {
     basename: `${basename}.vue`,
     name: name || basename.replace(/[^a-zA-Z0-9]/g, '-'),
     route: path,
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false
   } as ScannedPageRoute;
 }

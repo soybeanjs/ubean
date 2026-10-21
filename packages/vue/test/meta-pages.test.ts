@@ -4,7 +4,7 @@
  * 这个文件存在的理由是**两个互相咬合的约定**：
  *
  * 1. `.meta.*` 是只有 `definePage`、没有组件实现的文件。扫描器必须认出它
- *    （`isMeta`），否则会把它当成普通页面 —— 生成的 loader 指向一个没有
+ *    （`pageKind === 'meta'`），否则会把它当成普通页面 —— 生成的 loader 指向一个没有
  *    default export 的模块，运行时解析出空组件。
  * 2. `routable: false` 让页面留在「扫描清单」里但不产生路由记录。这是宿主
  *    （如 soybean-admin 的菜单目录 / 外链入口）声明「不是路由」的唯一出口 ——
@@ -51,14 +51,11 @@ async function scan() {
 }
 
 describe('scanPages — .meta.ts 元数据页', () => {
-  it('识别 isMeta，名称按去掉 .meta 后缀的 basename 派生', async () => {
-    writeFile(
-      'plugin/index.meta.ts',
-      `export default definePage({ meta: { menuType: 'directory' } });`
-    );
+  it('识别 pageKind=meta，名称按去掉 .meta 后缀的 basename 派生', async () => {
+    writeFile('plugin/index.meta.ts', `export default definePage({ meta: { menuType: 'directory' } });`);
 
     const result = await scan();
-    const entry = result.pages.find(p => p.isMeta);
+    const entry = result.pages.find(p => p.pageKind === 'meta');
 
     expect(entry).toBeDefined();
     expect(entry?.relativePath).toBe('plugin/index.meta.ts');
@@ -73,7 +70,7 @@ describe('scanPages — .meta.ts 元数据页', () => {
     writeFile('plugin/index.meta.ts', `definePage({ meta: { menuType: 'directory' } });`);
 
     const result = await scan();
-    const entry = result.pages.find(p => p.isMeta);
+    const entry = result.pages.find(p => p.pageKind === 'meta');
 
     expect(entry?.routable).toBe(false);
     // 显式 `routable: false` 仍然有效（向后兼容，不构成 BREAKING）。
@@ -92,7 +89,7 @@ describe('scanPages — .meta.ts 元数据页', () => {
     writeFile('legacy.meta.js', `definePage({ routable: false });`);
 
     const result = await scan();
-    expect(result.pages.find(p => p.name === 'Legacy')?.isMeta).toBe(true);
+    expect(result.pages.find(p => p.name === 'Legacy')?.pageKind).toBe('meta');
   });
 
   it('`.meta.vue` 不在约定内 —— 按普通组件页处理', async () => {
@@ -101,15 +98,23 @@ describe('scanPages — .meta.ts 元数据页', () => {
     const result = await scan();
     const entry = result.pages[0];
 
-    expect(entry.isMeta).toBe(false);
+    expect(entry.pageKind).not.toBe('meta');
     expect(entry.routable).toBe(true);
     expect(entry.relativePath).toBe('widget.meta.vue');
   });
 
-  it('元数据页声明 reuse 会报错（元数据页不产生路由，reuse 需要一个新 URL）', async () => {
-    writeFile('alias.meta.ts', `definePage({ routable: false, reuse: 'About' });`);
+  it('`.meta.ts` 声明 reuse 合法 —— pageKind 由 definePage 内容决定，两种后缀归一', async () => {
+    writeFile('about.vue', `<template><div /></template>`);
+    writeFile('alias.meta.ts', `definePage({ path: '/alias', reuse: 'About' });`);
 
-    await expect(scan()).rejects.toThrow(/不能声明 `reuse`/);
+    const result = await scan();
+    const alias = result.pages.find(p => p.name === 'Alias');
+
+    // 写了 reuse → 就是 reuse 页（有组件来源、有真实 URL），不再是 meta
+    expect(alias?.pageKind).toBe('reuse');
+    expect(alias?.reuseTarget).toBe('About');
+    // reuse 页恒可路由，不需要也不允许靠 routable 开关
+    expect(alias?.routable).toBe(true);
   });
 
   it('元数据页不能作为 reuse 的目标', async () => {
@@ -122,10 +127,10 @@ describe('scanPages — .meta.ts 元数据页', () => {
     const result = await scan();
     spy.mockRestore();
 
-    const alias = result.pages.find(p => p.isReuse);
+    const alias = result.pages.find(p => p.pageKind === 'reuse');
     expect(alias).toBeDefined();
     // reuse 仍被解析（cache 继承找不到 target 就不继承），但不会指向元数据页
-    expect(result.pages.find(p => p.name === 'DirIndex')?.isMeta).toBe(true);
+    expect(result.pages.find(p => p.name === 'DirIndex')?.pageKind).toBe('meta');
   });
 });
 
@@ -143,7 +148,7 @@ definePage({ routable: false, meta: { menuType: 'link', href: 'https://example.c
     const result = await scan();
     const hidden = result.pages.find(p => p.name === 'Hidden');
 
-    expect(hidden?.isMeta).toBe(false);
+    expect(hidden?.pageKind).not.toBe('meta');
     expect(hidden?.routable).toBe(false);
     expect(hidden?.fullPath).toContain('hidden.vue');
   });
@@ -166,8 +171,7 @@ describe('generatePagesModuleSource — 非路由页', () => {
       name: 'X',
       route: '/x',
       path: '/x',
-      isReuse: false,
-      isMeta: false,
+      pageKind: 'component',
       routable: true,
       isMarkdown: false,
       ...overrides
@@ -202,9 +206,17 @@ describe('generatePagesModuleSource — 非路由页', () => {
     expect(source).toContain('export const pageNames = ["Hidden"]');
   });
 
-  it('isMeta 页既不产生路由也不产生 loader（模块没有 default export）', () => {
+  it('pageKind=meta 的页既不产生路由也不产生 loader（模块没有 default export）', () => {
     const source = generatePagesModuleSource({
-      pages: [page({ name: 'Dir', route: '/dir', isMeta: true, routable: false, relativePath: 'dir/index.meta.ts' })],
+      pages: [
+        page({
+          name: 'Dir',
+          route: '/dir',
+          pageKind: 'meta',
+          routable: false,
+          relativePath: 'dir/index.meta.ts'
+        })
+      ],
       layouts
     });
 
@@ -213,22 +225,25 @@ describe('generatePagesModuleSource — 非路由页', () => {
     expect(routesBlock.slice(0, routesBlock.indexOf('const _layoutLoaders'))).not.toContain('/dir');
   });
 
-  it('pages 导出带 routable / isMeta / pageMeta，供宿主读应用层语义', () => {
+  it('pages 导出带 routable / pageKind / pageMeta，供宿主读应用层语义', () => {
     const source = generatePagesModuleSource({
       pages: [
         page({
           name: 'Dir',
           route: '/dir',
-          isMeta: true,
+          pageKind: 'meta',
           routable: false,
-          pageMeta: { routable: false, meta: { menuType: 'directory', title: '插件' } }
+          pageMeta: {
+            routable: false,
+            meta: { menuType: 'directory', title: '插件' }
+          }
         })
       ],
       layouts
     });
 
     expect(source).toContain('routable: false');
-    expect(source).toContain('isMeta: true');
+    expect(source).toContain('pageKind: "meta"');
     expect(source).toContain('"menuType":"directory"');
   });
 });
@@ -245,8 +260,7 @@ describe('generateTypedRouter — 非路由页不进 RouteNamedMap', () => {
           name: 'About',
           route: '/about',
           path: '/about',
-          isReuse: false,
-          isMeta: false,
+          pageKind: 'component',
           routable: true,
           isMarkdown: false
         },
@@ -258,8 +272,7 @@ describe('generateTypedRouter — 非路由页不进 RouteNamedMap', () => {
           name: 'Hidden',
           route: '/hidden',
           path: '/hidden',
-          isReuse: false,
-          isMeta: true,
+          pageKind: 'meta',
           routable: false,
           isMarkdown: false
         }

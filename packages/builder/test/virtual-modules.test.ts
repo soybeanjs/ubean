@@ -144,7 +144,7 @@ describe('createAppVirtualModule()', () => {
     ];
     const middlewares: ScannedMiddleware[] = [{ relativePath: 'middleware/global.ts', order: 0, global: true }];
     const pages: ScannedPageRoute[] = [
-      { relativePath: 'pages/about.vue', name: 'About', route: '/about', isReuse: false, layout: 'default' }
+      { relativePath: 'pages/about.vue', name: 'About', route: '/about', pageKind: 'component', layout: 'default' }
     ];
     const mod = createAppVirtualModule(apiRoutes, middlewares, pages, 'src');
     const code = await mod.load();

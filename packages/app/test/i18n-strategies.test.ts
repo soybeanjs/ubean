@@ -35,7 +35,7 @@ function makePage(route: string, name: string): ScannedPageRoute {
     name,
     route,
     path: route,
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false
   };
 }

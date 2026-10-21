@@ -33,7 +33,7 @@ function page(route: string, name = route): ScannedPageRoute {
     name,
     route,
     path: route,
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false
   } as ScannedPageRoute;
 }

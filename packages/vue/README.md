@@ -218,7 +218,7 @@ definePage({ meta: { menuType: 'directory', title: 'Plugins' } });
 ```
 
 - The `.meta.*` filename **is** `routable: false` — the field is normalized to `false` at scan time and may be omitted. Declaring `routable: true` on a `.meta.*` file throws at scan time (a metadata file with no component would produce a broken route).
-- `.meta.*` files cannot declare `reuse` (a reuse route needs a real URL).
+- `.meta.*` files may declare `reuse` — with `reuse` the entry is a reuse page (borrows the target component for a new URL); the `.meta` and `.reuse` suffixes are semantically equivalent.
 - `.meta.vue` is **NOT** the convention — it is a real component and is treated as a regular page.
 
 `routable: false` is a general flag, not tied to `.meta.*`. Any page — component or metadata — may set it:
@@ -235,10 +235,10 @@ What `routable: false` removes vs. keeps:
 | Removed                                                          | Kept                                                                      |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | client route record (`routes`)                                   | **component loader** (`_pageLoaders`) — `.reuse.*` routes still borrow it |
-| `PageName` / `RouteNamedMap` entries                             | entry in `pages` (with `routable` / `isMeta` / `pageMeta`)                |
+| `PageName` / `RouteNamedMap` entries                             | entry in `pages` (with `routable` / `pageKind` / `pageMeta`)                |
 | server route registration (Hono, SSR, SSG), prerender candidates | `definePage` metadata, for hosts that build menus from the inventory      |
 
-`.meta.*` entries get **no loader at all** (their module has no default export). The `pages` export carries `routable`, `isMeta` and the raw `pageMeta`, so an application can read its own menu semantics — e.g. treat `meta.menuType === 'directory'` as a nested menu group and `meta.href` as an external link.
+`.meta.*` entries get **no loader at all** (their module has no default export). The `pages` export carries `routable`, `pageKind` and the raw `pageMeta`, so an application can read its own menu semantics — e.g. treat `meta.menuType === 'directory'` as a nested menu group and `meta.href` as an external link.
 
 ### Special Pages
 

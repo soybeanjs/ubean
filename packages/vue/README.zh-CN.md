@@ -226,7 +226,7 @@ definePage({ meta: { menuType: 'directory', title: '插件' } });
 ```
 
 - `.meta.*` 的**文件名本身就等于 `routable: false`** —— 扫描期会自动归一化为 `false`，该字段可以省略。显式写 `routable: true` 会直接报错（元数据文件没有组件，否则会生成一条坏路由）。
-- `.meta.*` 不能声明 `reuse`（reuse 需要一个真实 URL）。
+- `.meta.*` 可以声明 `reuse` —— 写了 `reuse` 就按 reuse 页处理（借目标组件开新 URL），后缀 `.meta` / `.reuse` 语义等价。
 - `.meta.vue` **不是**该约定 —— 它是真实组件，按普通页面处理。
 
 `routable: false` 是通用标记，不绑定 `.meta.*`。任何页面（组件页或元数据页）都可以写：
@@ -243,10 +243,10 @@ definePage({ routable: false });
 | 删掉                                           | 保留                                                              |
 | ---------------------------------------------- | ----------------------------------------------------------------- |
 | 客户端路由记录（`routes`）                     | **组件 loader**（`_pageLoaders`）—— `.reuse.*` 路由仍然借它拿组件 |
-| `PageName` / `RouteNamedMap` 中的条目          | `pages` 清单条目（带 `routable` / `isMeta` / `pageMeta`）         |
+| `PageName` / `RouteNamedMap` 中的条目          | `pages` 清单条目（带 `routable` / `pageKind` / `pageMeta`）         |
 | 服务端路由注册（Hono / SSR / SSG）与预渲染候选 | `definePage` 元数据，供宿主自己构菜单                             |
 
-`.meta.*` 条目连 loader 都没有（它的模块没有 default export）。`pages` 导出带 `routable` / `isMeta` / 原始 `pageMeta`，应用可以据此读自己的菜单语义 —— 例如把 `meta.menuType === 'directory'` 当嵌套菜单分组、`meta.href` 当外链。
+`.meta.*` 条目连 loader 都没有（它的模块没有 default export）。`pages` 导出带 `routable` / `pageKind` / 原始 `pageMeta`，应用可以据此读自己的菜单语义 —— 例如把 `meta.menuType === 'directory'` 当嵌套菜单分组、`meta.href` 当外链。
 
 ### 特殊页
 

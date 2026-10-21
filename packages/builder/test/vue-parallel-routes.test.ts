@@ -22,7 +22,7 @@ function makePage(overrides: Partial<ScannedPageRoute> = {}): ScannedPageRoute {
     relativePath: 'test.vue',
     dirname: '.',
     basename: 'test.vue',
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false,
     ...overrides
   };

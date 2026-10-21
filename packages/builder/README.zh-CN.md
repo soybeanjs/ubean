@@ -373,7 +373,7 @@ const manifest = await buildWithEnvironments({
 | `createIslandsSsrStubPlugin()`                                                                          | SSR 期的 islands 注册表空壳                                                                   |
 
 **`serializePagesForEntry()` 是一份白名单，而这份白名单承载语义。** 它此前只序列化
-`relativePath` / `name` / `route` / `layout` / `reuseTarget` / `isReuse` / `pageMeta`，于是 `matchers` 与 `slot`
+`relativePath` / `name` / `route` / `layout` / `reuseTarget` / `pageKind` / `pageMeta`，于是 `matchers` 与 `slot`
 **在生产构建里消失** —— dev 用扫描得到的活对象因此一切正常，而带 `[id=numeric]` 的路由在 dev 返回 404、
 在生产返回 200。给 `ScannedPage` 加字段就必须同步加到这里；`packages/builder/test/page-metadata.test.ts`
 逐字段锁住这份名单。

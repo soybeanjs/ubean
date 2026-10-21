@@ -145,14 +145,14 @@ function makeScanResult(): ScanResultLike {
         name: 'Home',
         relativePath: 'pages/index.vue',
         fullPath: '/project/src/pages/index.vue',
-        isReuse: false
+        pageKind: 'component'
       },
       {
         route: '/about',
         name: 'About',
         relativePath: 'pages/about.vue',
         fullPath: '/project/src/pages/about.vue',
-        isReuse: false,
+        pageKind: 'component',
         layout: 'default'
       },
       {
@@ -160,7 +160,7 @@ function makeScanResult(): ScanResultLike {
         name: 'ReuseTemplate',
         relativePath: 'pages/reuse-template.reuse.ts',
         fullPath: '/project/src/pages/reuse-template.reuse.ts',
-        isReuse: true
+        pageKind: 'reuse'
       }
     ],
     middlewares: [

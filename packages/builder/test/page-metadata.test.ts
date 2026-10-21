@@ -2,7 +2,7 @@
  * 页面元数据进产物（`serializePagesForEntry`）。
  *
  * 这个文件存在的理由是**一次「dev 正常、产物坏掉」的缺陷**：服务端入口的页面表是白名单序列化，
- * 而白名单只列了 `relativePath/name/route/layout/reuseTarget/isReuse/pageMeta` —— `matchers` /
+ * 而白名单只列了 `relativePath/name/route/layout/reuseTarget/pageKind/pageMeta` —— `matchers` /
  * `slot` 被**静默丢掉**。dev 下路由表用的是扫描得到的活对象（`enhanceDevApp` /
  * `buildDevSsrRoutes` 直接拿 `scanResult.pages`），所以本地一切正常；构建产物里 `[id=numeric]`
  * 的路由因此不校验参数：dev 返回 404，生产返回 200。
@@ -25,7 +25,7 @@ function page(overrides: Partial<Pages[number]> = {}): Pages[number] {
     name: 'OrderDetail',
     route: '/order/:id',
     path: '/order/:id',
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false,
     ...overrides
   } as Pages[number];
@@ -45,7 +45,7 @@ describe('serializePagesForEntry', () => {
       page({
         layout: ['default', 'admin'],
         cache: true,
-        isReuse: true,
+        pageKind: 'reuse',
         reuseTarget: 'target.vue',
         pageMeta: { name: 'x', path: '/x', head: { title: 'X' } }
       })
@@ -55,7 +55,7 @@ describe('serializePagesForEntry', () => {
     expect(first.route).toBe('/order/:id');
     expect(first.layout).toEqual(['default', 'admin']);
     expect(first.cache).toBe(true);
-    expect(first.isReuse).toBe(true);
+    expect(first.pageKind).toBe('reuse');
     expect(first.reuseTarget).toBe('target.vue');
     expect(first.pageMeta).toMatchObject({ name: 'x', path: '/x' });
   });

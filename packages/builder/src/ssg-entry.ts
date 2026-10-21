@@ -55,7 +55,7 @@ const _localeVueParam = ${JSON.stringify(localeVueParam)};
 const _pageToRoute = p => {
   // For reuse routes, load the target page's module (the .reuse.ts file
   // only contains definePage metadata, not a Vue component).
-  const _targetPage = p.isReuse && p.reuseTarget ? _pages.find(tp => tp.name === p.reuseTarget) : undefined;
+  const _targetPage = p.pageKind === 'reuse' && p.reuseTarget ? _pages.find(tp => tp.name === p.reuseTarget) : undefined;
   const _loaderKey = _targetPage?.relativePath || p.relativePath;
   return {
     path: _localeVueParam
@@ -294,7 +294,7 @@ export async function renderStaticPage(input) {
 
   // loader 检测 warn（模块加载有缓存，此处与渲染共用同一实例）
   const _targetPage =
-    page.isReuse && page.reuseTarget ? _pages.find(tp => tp.name === page.reuseTarget) : undefined;
+    page.pageKind === 'reuse' && page.reuseTarget ? _pages.find(tp => tp.name === page.reuseTarget) : undefined;
   const _loaderKey = (_targetPage && _targetPage.relativePath) || page.relativePath;
   const _modLoader = pageLoaders[_loaderKey];
   if (_modLoader && !_loaderWarned.has(page.name)) {

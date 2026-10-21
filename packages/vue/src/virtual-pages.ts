@@ -1,3 +1,4 @@
+import { resolvePageKind } from './page-kind';
 import { PARAM_TYPE_IMPORT, extractRouteParams, renderParamsType } from './route-params';
 import type { ScannedPage, ScanPagesResult } from './types';
 
@@ -45,7 +46,7 @@ function sortPagesByReuseDependency(pages: ScannedPage[]): ScannedPage[] {
     if (visited.has(page.name)) return;
     visited.add(page.name);
 
-    if (page.isReuse && page.reuseTarget && byName.has(page.reuseTarget)) {
+    if (resolvePageKind(page) === 'reuse' && page.reuseTarget && byName.has(page.reuseTarget)) {
       visit(byName.get(page.reuseTarget)!);
     }
 
@@ -74,7 +75,7 @@ function buildRouteMeta(page: ScannedPage, extra: Record<string, unknown> = {}):
     layout: page.layout,
     cache: page.cache === true ? true : undefined,
     // reuse 路由回链目标页名(运行时可据此识别 reuse / 调试路由表)
-    reuseTarget: page.isReuse ? page.reuseTarget : undefined,
+    reuseTarget: resolvePageKind(page) === 'reuse' ? page.reuseTarget : undefined,
     transition: page.pageMeta?.transition,
     requiresAuth: page.pageMeta?.requiresAuth === true ? true : undefined,
     ssr: page.pageMeta?.ssr,
@@ -129,9 +130,9 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
   // `.meta.ts` / `.meta.js` 元数据页没有组件实现（模块没有 default export），
   // 一旦为它生成 `import(...)` 就会在运行时解析成空组件，因此直接跳过。
   for (const p of sortedPages) {
-    if (p.isMeta) continue;
+    if (resolvePageKind(p) === 'meta') continue;
     const varName = varNameFor(p.name);
-    if (p.isReuse && p.reuseTarget && pageByName.has(p.reuseTarget)) {
+    if (resolvePageKind(p) === 'reuse' && p.reuseTarget && pageByName.has(p.reuseTarget)) {
       // Reuse route: reference the target page's component loader instead
       // of importing the `.reuse.ts` file (which holds only route metadata).
       pageLoaders.push(`const ${varName} = ${varNameFor(p.reuseTarget)};`);
@@ -150,7 +151,7 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
   }
   // `routable: false` 的组件页仍留在命名页面上——reuse 路由靠 `_pageLoaders`
   // 拿到目标组件；这里只排除无组件实现的 `.meta.*` 元数据页。
-  const loadedPages = sortedPages.filter(p => !p.isMeta);
+  const loadedPages = sortedPages.filter(p => resolvePageKind(p) !== 'meta');
   const namedPages = input.notFoundPage ? [...loadedPages, input.notFoundPage] : loadedPages;
 
   // Group parallel routes by route path so they can be registered as
@@ -301,7 +302,7 @@ export function hasErrorPage() {
 }
 
 export const pages = {
-${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)}, isReuse: ${p.isReuse}, isMeta: ${p.isMeta === true}, routable: ${p.routable !== false}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)} }`).join(',\n')}
+${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)}, pageKind: ${JSON.stringify(resolvePageKind(p))}, routable: ${p.routable !== false}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)} }`).join(',\n')}
 };
 
 export const layouts = {
@@ -348,8 +349,8 @@ function renderVirtualModuleBody(input: PagesModuleInput, moduleId: string): str
     route: string;
     path: string;
     layout?: string | string[] | false;
-    isReuse: boolean;
-    isMeta: boolean;
+    /** 页面种类：自带组件 / 借目标组件 / 无组件元数据条目。 */
+    pageKind: 'component' | 'reuse' | 'meta';
     /** 是否参与路由注册；false 的条目只在扫描清单里。 */
     routable: boolean;
     reuseTarget?: string;

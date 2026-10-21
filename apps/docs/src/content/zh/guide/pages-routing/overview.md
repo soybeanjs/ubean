@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: 3f11d956e24e
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","48ec3dc0","e12725a4","d8baa841","f1f065b8","466a5369","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","50df22a7","5127205a","fc18f99b","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: f7d1f4d084cb
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","48ec3dc0","e12725a4","d8baa841","f1f065b8","466a5369","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -395,7 +395,7 @@ definePage({
 ```
 
 - `.meta.*` 的**文件名本身就等于 `routable: false`** —— 扫描期会自动归一化为 `false`，字段可以省略。显式写 `routable: true` 会直接抛错：元数据文件没有组件，静默降级只会生成一条渲染空白页的坏路由。
-- `.meta.*` 不能声明 `reuse`（reuse 需要一个真实 URL）。
+- `.meta.*` 可以声明 `reuse` —— 写了 `reuse` 就按 reuse 页处理（借目标组件开新 URL），后缀 `.meta` / `.reuse` 语义等价。
 - `.meta.vue` **不是**该约定 —— 它是真实组件，按普通页面处理。
 
 ### `routable: false` 的组件页
@@ -415,7 +415,7 @@ definePage({ routable: false, meta: { menuType: 'link', href: 'https://example.c
 | 删掉 | 保留 |
 | ---- | ---- |
 | 客户端路由记录（`routes`） | **组件 loader**（`_pageLoaders`）—— `.reuse.*` 路由仍然借它拿组件 |
-| `PageName` / `RouteNamedMap` 中的条目 | `pages` 清单条目（带 `routable` / `isMeta` / `pageMeta`） |
+| `PageName` / `RouteNamedMap` 中的条目 | `pages` 清单条目（带 `routable` / `pageKind` / `pageMeta`） |
 | 服务端路由注册（Hono / SSR / SSG）与预渲染候选 | `definePage` 元数据，供宿主自己构菜单 |
 
 `.meta.*` 条目连 loader 都没有（模块没有 default export）。

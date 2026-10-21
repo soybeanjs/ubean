@@ -12,6 +12,7 @@
  */
 import type { PageRenderer } from '@ubean/pages';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
+import { resolvePageKind } from '@ubean/vue';
 import { buildDevSsrRoutes } from './dev-ssr-routes';
 
 /** `@ubean/app` 的 `UbeanApp` 在本模块用到的最小面。 */
@@ -86,7 +87,7 @@ export function enhanceDevApp(options: EnhanceDevAppOptions): DevHostAppLike {
 
   const pageLoaders: Record<string, () => Promise<unknown>> = {};
   for (const page of app.options.pages || []) {
-    const target = page.isReuse && page.reuseTarget ? pageByName.get(page.reuseTarget) : undefined;
+    const target = resolvePageKind(page) === 'reuse' && page.reuseTarget ? pageByName.get(page.reuseTarget) : undefined;
     const fullPath = target?.fullPath || page.fullPath;
     pageLoaders[page.relativePath] = () => loadModule(fullPath);
   }

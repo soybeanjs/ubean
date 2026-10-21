@@ -11,7 +11,7 @@ function page(path: string): ScannedPageRoute {
     name: path,
     route: path,
     path,
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false
   } as ScannedPageRoute;
 }

@@ -408,7 +408,7 @@ definePage({
 ```
 
 - The `.meta.*` filename **is** `routable: false` — it is normalized to `false` at scan time, so the field can be omitted. Declaring `routable: true` throws: a metadata file has no component, and honoring it would produce a route rendering a blank page.
-- `.meta.*` cannot declare `reuse` (a reuse route needs a real URL).
+- `.meta.*` may declare `reuse` — with `reuse` it is treated as a reuse page (borrows the target component for a new URL); the `.meta` and `.reuse` suffixes are semantically equivalent.
 - `.meta.vue` is **not** the convention — it is a real component and is treated as a regular page.
 
 ### Non-routable component pages
@@ -428,7 +428,7 @@ definePage({ routable: false, meta: { menuType: 'link', href: 'https://example.c
 | Dropped | Kept |
 | ------- | ---- |
 | client route record (`routes`) | **component loader** (`_pageLoaders`) — `.reuse.*` routes still borrow it |
-| `PageName` / `RouteNamedMap` entries | entry in `pages` (with `routable` / `isMeta` / `pageMeta`) |
+| `PageName` / `RouteNamedMap` entries | entry in `pages` (with `routable` / `pageKind` / `pageMeta`) |
 | server route registration (Hono / SSR / SSG) and prerender candidates | `definePage` metadata, for hosts that build menus from the inventory |
 
 `.meta.*` entries get **no loader at all** (their module has no default export).

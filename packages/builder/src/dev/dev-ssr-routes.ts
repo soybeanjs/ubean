@@ -16,6 +16,7 @@
  */
 import { toVueRouterLocalePath } from '@ubean/i18n';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
+import { resolvePageKind } from '@ubean/vue';
 
 /** 扫描器方言 `**:slug`（catch-all）→ vue-router 的 `:slug(.*)*`。 */
 export function toVueRouterPagePath(route: string): string {
@@ -80,7 +81,7 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
   for (const page of routablePages) pageByName.set(page.name, page);
 
   const componentFor = (page: ScannedPageRoute) => {
-    const target = page.isReuse && page.reuseTarget ? pageByName.get(page.reuseTarget) : undefined;
+    const target = resolvePageKind(page) === 'reuse' && page.reuseTarget ? pageByName.get(page.reuseTarget) : undefined;
     const fullPath = target?.fullPath || page.fullPath;
     return async () => (await loadComponent(fullPath)) as { default?: unknown } | unknown;
   };

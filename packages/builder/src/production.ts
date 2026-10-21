@@ -5,6 +5,7 @@ import type { ResolvedConfig } from '@ubean/config';
 import { resolveProductionCacheStore, isEphemeralCachePreset } from '@ubean/preset';
 import type { Preset } from '@ubean/preset';
 import type { ScanResult } from '@ubean/scan';
+import { resolvePageKind } from '@ubean/vue';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
 import { pageGlobExtensions } from './page-glob';
@@ -61,7 +62,7 @@ function toVitePath(p: string): string {
 /**
  * 把扫描到的页面序列化进服务端入口（`const _pages = [...]`）。
  *
- * **白名单必须覆盖语义字段**：此前只序列化了 `relativePath/name/route/layout/reuseTarget/isReuse/
+ * **白名单必须覆盖语义字段**：此前只序列化了 `relativePath/name/route/layout/reuseTarget/pageKind/
  * pageMeta`，于是 `matchers` / `slot` **在生产构建里丢失** ——
  * dev 用扫描得到的活对象（`enhanceDevApp` / `buildDevSsrRoutes` 直接拿 `scanResult.pages`），所以本地
  * 一切正常，只有构建产物坏掉：带着 `[id=numeric]` 的路由在 dev 返回 404、在生产返回 200（实测）。
@@ -81,8 +82,7 @@ export function serializePagesForEntry(pages: ScanResult['pages']): string {
       path: p.path,
       layout: p.layout,
       cache: p.cache,
-      isReuse: p.isReuse,
-      isMeta: p.isMeta,
+      pageKind: resolvePageKind(p),
       routable: p.routable,
       isMarkdown: p.isMarkdown,
       reuseTarget: p.reuseTarget,

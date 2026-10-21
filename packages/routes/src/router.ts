@@ -6,7 +6,7 @@ import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } fr
 // `@ubean/scan` —— 那个 barrel 会带进 `@ubean/vue/vite`(`vue/compiler-sfc`),
 // 于是服务端运行时图里出现构建期解析器:Node 上只是体积浪费,worker 上
 // 构建**直接失败**(`Rolldown failed to resolve import "velocityjs"`)。
-import { validateParams as _validateParams } from '@ubean/vue';
+import { resolvePageKind, validateParams as _validateParams } from '@ubean/vue';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { isBotUserAgent } from './bot-detection';
 import { extractRouteMeta, isHandlerChain } from './handler';
@@ -785,7 +785,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     // For reuse routes, the loader key points to the target page's
     // `relativePath` so `pageLoaders[loaderKey]` finds the target's module.
     const loaderKey =
-      page.isReuse && page.reuseTarget
+      resolvePageKind(page) === 'reuse' && page.reuseTarget
         ? (pageByName.get(page.reuseTarget)?.relativePath ?? page.relativePath)
         : page.relativePath;
 

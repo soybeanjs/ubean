@@ -593,14 +593,21 @@ const s = '括号)内部';
   it('generatePagesModuleSource 产出纯 JS 虚拟模块(路由表 + pageNames + 特殊页)', async () => {
     const scan: import('../src/virtual-pages').PagesModuleInput = {
       pages: [
-        { fullPath: '/x/pages/index.vue', route: '/', path: '/', name: 'Home', isReuse: false, isMarkdown: false },
+        {
+          fullPath: '/x/pages/index.vue',
+          route: '/',
+          path: '/',
+          name: 'Home',
+          pageKind: 'component',
+          isMarkdown: false
+        },
         {
           fullPath: '/x/pages/about.vue',
           route: '/about',
           path: '/about',
           name: 'About',
           cache: true,
-          isReuse: false,
+          pageKind: 'component',
           isMarkdown: false,
           pageMeta: { transition: 'fade' }
         }
@@ -611,7 +618,7 @@ const s = '括号)内部';
         route: '/404',
         path: '/404',
         name: 'NotFound',
-        isReuse: false,
+        pageKind: 'component',
         isMarkdown: false
       },
       loadingPage: {
@@ -619,7 +626,7 @@ const s = '括号)内部';
         route: '/loading',
         path: '/loading',
         name: 'Loading',
-        isReuse: false,
+        pageKind: 'component',
         isMarkdown: false
       },
       errorPage: {
@@ -627,7 +634,7 @@ const s = '括号)内部';
         route: '/error',
         path: '/error',
         name: 'Error',
-        isReuse: false,
+        pageKind: 'component',
         isMarkdown: false
       }
     };
@@ -657,13 +664,13 @@ const s = '括号)内部';
 
   it('generateVirtualModuleDts 产出环境模块声明(script,pageNames union)', () => {
     const input = {
-      pages: [{ fullPath: '/a.vue', route: '/', path: '/', name: 'Home', isReuse: false, isMarkdown: false }],
+      pages: [{ fullPath: '/a.vue', route: '/', path: '/', name: 'Home', pageKind: 'component', isMarkdown: false }],
       notFoundPage: {
         fullPath: '/404.vue',
         route: '/404',
         path: '/404',
         name: 'NotFound',
-        isReuse: false,
+        pageKind: 'component',
         isMarkdown: false
       }
     };

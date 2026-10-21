@@ -26,8 +26,7 @@ export interface ScanResultLike {
     name: string;
     relativePath: string;
     fullPath: string;
-    isReuse: boolean;
-    isMeta?: boolean;
+    pageKind?: 'component' | 'reuse' | 'meta';
     routable?: boolean;
     layout?: string | false;
   }>;
@@ -100,7 +99,8 @@ export function buildDevToolsInfo(opts: BuildInfoOptions): DevToolsInfo {
 
   const pagesList = scan
     ? scan.pages
-        .filter(p => !p.isReuse && !p.isMeta && p.routable !== false)
+        .filter(p => (p.pageKind ?? 'component') === 'component')
+        .filter(p => p.routable !== false)
         .map(p => ({
           path: p.route,
           name: p.name,

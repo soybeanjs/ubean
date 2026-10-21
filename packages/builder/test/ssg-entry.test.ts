@@ -14,7 +14,7 @@ const baseInput = {
   pagesGlob: `'/src/pages/**/*.vue'`,
   layoutsGlob: `'/src/layouts/**/*.vue'`,
   srcPrefix: `'/src'`,
-  pagesJson: `[{ "relativePath": "index.vue", "name": "index", "route": "/", "layout": undefined, "isReuse": false }]`,
+  pagesJson: `[{ "relativePath": "index.vue", "name": "index", "route": "/", "layout": undefined, "pageKind": "component" }]`,
   layoutsJson: `[{ "name": "default", "relativePath": "default.vue", "isDefault": true }]`,
   notFoundPageJson: `{ "relativePath": "404.vue", "name": "NotFound", "route": "/404" }`,
   localeVueParam: '',

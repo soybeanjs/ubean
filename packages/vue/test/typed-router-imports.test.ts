@@ -119,27 +119,39 @@ function compileDts(name: string, dts: string, usage?: string): string[] {
 
 /** 路由表刻意混合有参 / 无参路由，覆盖 `ParamValue` 与 `Record<never, never>` 两条分支。 */
 const PAGES = [
-  { name: 'Dashboard', route: '/dashboard', fullPath: '/src/pages/dashboard.vue', isReuse: false, isMarkdown: false },
-  { name: 'UsersId', route: '/users/:id', fullPath: '/src/pages/users/[id].vue', isReuse: false, isMarkdown: false },
+  {
+    name: 'Dashboard',
+    route: '/dashboard',
+    fullPath: '/src/pages/dashboard.vue',
+    pageKind: 'component',
+    isMarkdown: false
+  },
+  {
+    name: 'UsersId',
+    route: '/users/:id',
+    fullPath: '/src/pages/users/[id].vue',
+    pageKind: 'component',
+    isMarkdown: false
+  },
   {
     name: 'DocsSlug',
     route: '/docs/:slug?',
     fullPath: '/src/pages/docs/[[slug]].vue',
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false
   },
   {
     name: 'ArticlesSlugs',
     route: '/articles/:slugs+',
     fullPath: '/src/pages/articles/[slugs]+.vue',
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false
   },
   {
     name: 'ArticlesSlugsOptional',
     route: '/articles/:slugs*',
     fullPath: '/src/pages/articles/[[slugs]]+.vue',
-    isReuse: false,
+    pageKind: 'component',
     isMarkdown: false
   }
 ];

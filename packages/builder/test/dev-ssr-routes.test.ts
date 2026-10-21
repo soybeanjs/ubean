@@ -22,7 +22,7 @@ function page(partial: Partial<ScannedPageRoute> & { name: string; route: string
 const HOME = page({ name: 'Home', route: '/' });
 const ABOUT = page({ name: 'About', route: '/about', layout: 'marketing' });
 const BLOG = page({ name: 'BlogAll', route: '/blog/**:slug' });
-const ALIAS = page({ name: 'AboutAlias', route: '/about-alias', isReuse: true, reuseTarget: 'About' });
+const ALIAS = page({ name: 'AboutAlias', route: '/about-alias', pageKind: 'reuse', reuseTarget: 'About' });
 const SLUG = page({ name: 'SlugPage', route: '/[...slug]' as string });
 const NOT_FOUND = page({ name: 'NotFound', route: '/:pathMatch(.*)*' });
 
@@ -175,8 +175,8 @@ describe('buildDevSsrRoutes', () => {
   });
 
   it('routable: false 的页面不进 SSR 路由表（与客户端同形）', () => {
-    const DIR = page({ name: 'Dir', route: '/dir', routable: false, isMeta: true });
-    const ALIAS_TO_Dir = page({ name: 'DirAlias', route: '/dir-alias', isReuse: true, reuseTarget: 'Dir' });
+    const DIR = page({ name: 'Dir', route: '/dir', routable: false, pageKind: 'meta' });
+    const ALIAS_TO_Dir = page({ name: 'DirAlias', route: '/dir-alias', pageKind: 'reuse', reuseTarget: 'Dir' });
 
     const server = buildDevSsrRoutes({ pages: [HOME, DIR], layouts: LAYOUTS, loadComponent: load });
     expect(server.map(r => r.name)).toEqual(['Home']);

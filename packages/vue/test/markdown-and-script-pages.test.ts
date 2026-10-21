@@ -34,7 +34,13 @@ function writeFile(relPath: string, content: string): void {
 }
 
 function scan(markdown?: boolean | 'mdx' | 'md') {
-  return scanPages({ cwd: tmpDir, srcDir: 'src', pagesDir: 'pages', layoutsDir: 'layouts', markdown });
+  return scanPages({
+    cwd: tmpDir,
+    srcDir: 'src',
+    pagesDir: 'pages',
+    layoutsDir: 'layouts',
+    markdown
+  });
 }
 
 describe('markdown 选项形态', () => {
@@ -109,7 +115,7 @@ describe('.reuse.ts / .reuse.js 独立约定', () => {
     writeFile('about.vue', `<template>About</template>`);
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    const reuse = result.pages.find(p => p.isReuse);
+    const reuse = result.pages.find(p => p.pageKind === 'reuse');
     expect(reuse).toBeDefined();
     expect(reuse?.reuseTarget).toBe('About');
   });
@@ -118,21 +124,21 @@ describe('.reuse.ts / .reuse.js 独立约定', () => {
     writeFile('about.vue', `<template>About</template>`);
     writeFile('about2.reuse.js', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    expect(result.pages.filter(p => p.isReuse)).toHaveLength(1);
+    expect(result.pages.filter(p => p.pageKind === 'reuse')).toHaveLength(1);
   });
 
   it('markdown 关闭时 .reuse.ts 仍被扫描', async () => {
     writeFile('about.vue', `<template>About</template>`);
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan(false);
-    expect(result.pages.filter(p => p.isReuse)).toHaveLength(1);
+    expect(result.pages.filter(p => p.pageKind === 'reuse')).toHaveLength(1);
   });
 
   it('.reuse.vue 不参与 reuse 约定(普通页面)', async () => {
     writeFile('about.vue', `<template>About</template>`);
     writeFile('copy.reuse.vue', `<template>Copy</template>`);
     const result = await scan();
-    expect(result.pages.filter(p => p.isReuse)).toHaveLength(0);
+    expect(result.pages.filter(p => p.pageKind === 'reuse')).toHaveLength(0);
     expect(result.pages.find(p => p.path === '/copy.reuse')).toBeDefined();
   });
 });

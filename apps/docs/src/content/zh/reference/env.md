@@ -1,8 +1,8 @@
 ---
 title: 环境变量
 description: "用 defineEnv 定义类型安全的环境变量：校验、公开暴露与 CLI 命令。"
-translatedFrom: c2c600c79ac1
-sections: ["215750ed","e3b0c442","1cba358b","daf35096","0cda17da","887acb77","aad04242","a4fb6757","3c53e3d6","4a1e5efa","1524b4ee","3034f10d","8583952a","3ffa46ef","0a089a70","b739fdf4"]
+translatedFrom: 435d9d6523cb
+sections: ["215750ed","e3b0c442","1cba358b","daf35096","0cda17da","5f546e7a","aad04242","a4fb6757","3c53e3d6","4a1e5efa","1524b4ee","3034f10d","8583952a","3ffa46ef","0a089a70","b739fdf4"]
 ---
 
 # 环境变量
@@ -56,7 +56,26 @@ export const { env } = defineEnv({
 | `envField.boolean(...)`| `boolean`            |
 | `envField.enum(...)`   | 声明的 `values` 联合 |
 
-都接受 `context`、`access` 与可选的 `default` / `optional`；`envField.enum` 额外要求 `values`。
+都接受 `context`、`access` 与可选的 `default` / `optional` / `description`；`envField.enum` 额外要求 `values`。
+
+`description` 会作为 JSDoc 注释写在 `.ubean/env.d.ts` 的声明上方，hover 一个 import 就能看到这个变量是什么：
+
+```typescript
+export const schema = {
+  PORT: envField.number({
+    context: 'server',
+    access: 'public',
+    default: 9527,
+    description: 'HTTP 监听端口'
+  })
+};
+```
+
+```typescript
+// .ubean/env.d.ts —— 生成产物
+/** HTTP 监听端口 */
+export const PORT: number;
+```
 
 空字符串视为「没配」—— `.env` 里写 `KEY=` 时 `default` 生效。
 

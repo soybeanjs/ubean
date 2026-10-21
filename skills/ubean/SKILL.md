@@ -1008,7 +1008,7 @@ export const { env } = defineEnv({
 
 - `context`: `client` (inlined into the client bundle at build time) | `server`. `access`: `public` | `secret`. `client` + `secret` throws at declaration time.
 - Grouped `server:` / `public:` schemas are **removed** — passing them throws. Dimensions live on the field. The constructor shape (`{ type: String }`) still parses, but with no dimension it is treated as `server + secret`.
-- `envField.string` / `.number` / `.boolean` / `.enum` (enum requires `values`). Values are read as `env.PORT`; `InferEnvOutput<S>` infers the shape.
+- `envField.string` / `.number` / `.boolean` / `.enum` (enum requires `values`). All take an optional `description`, emitted as JSDoc in `.ubean/env.d.ts`. Values are read as `env.PORT`; `InferEnvOutput<S>` infers the shape.
 - `defineEnv()` also accepts Standard Schema (`~standard`) and `safeParse` shapes **synchronously** — async schemas fail explicitly. `env.schema` in `ubean.config.ts` instead **rejects** runtime schemas (generated modules only carry plain data).
 - `env.validate(source)` returns `{ success, errors: [{ key, message, value }] }`.
 - CLI: `ubean env init | list [--public] | add KEY VALUE [--public] [--force] | remove KEY`. The CLI's `UBEAN_PUBLIC_` / `VITE_` / `PUBLIC_` prefixes are a `.env` naming convention, independent of `context` / `access`.

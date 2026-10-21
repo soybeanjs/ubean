@@ -83,4 +83,39 @@ describe('`ubean prepare` 生成 `.ubean/env.d.ts`', () => {
     // `server + secret`，所以 client 侧确实没有字段。）
     expect(contents).not.toContain("declare module 'ubean:env/server' {\n  // env.schema is empty");
   }, 120_000);
+
+  /**
+   * `envField.*({ description })` 的说明必须出现在生成声明里 —— 它唯一的去向就是这个
+   * 文件，漏了就彻底消失（`.env.example` 的注释不会跟着类型走）。
+   *
+   * 这里用 `envField.*()` 的**产物形状**（`__ubeanEnvField` 标记 + 维度 + description）
+   * 而不是 `import { envField }`：临时目录没有 `node_modules`，配置无法解析 `ubean`。
+   * 形状与 `envField.string()` 的返回值逐字段一致，覆盖的是同一条 codegen 链路。
+   */
+  it('`description` 以 JSDoc 写进生成声明', async () => {
+    const { code, output } = await runPrepare(
+      'export default {\n' +
+        '  env: {\n' +
+        '    schema: {\n' +
+        '      APP_TITLE: {\n' +
+        '        __ubeanEnvField: true,\n' +
+        "        type: 'string',\n" +
+        "        context: 'client',\n" +
+        "        access: 'public',\n" +
+        "        default: 'fixture',\n" +
+        "        description: '页面标题'\n" +
+        '      },\n' +
+        "      PORT: { __ubeanEnvField: true, type: 'number', context: 'server', access: 'public' }\n" +
+        '    }\n' +
+        '  }\n' +
+        '};\n'
+    );
+
+    expect(code, `prepare 应正常退出，实际输出:\n${output}`).toBe(0);
+
+    const contents = readFileSync(join(projectDir, '.ubean/env.d.ts'), 'utf8');
+    expect(contents).toContain('  /** 页面标题 */\n  export const APP_TITLE: string;');
+    // 没写 description 的字段不该生成空注释块
+    expect(contents).not.toContain('/** */');
+  }, 120_000);
 });

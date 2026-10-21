@@ -82,7 +82,12 @@ export const { env, validate } = defineEnv({
   schema: {
     DATABASE_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
     PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
-    APP_NAME: envField.string({ context: 'client', access: 'public', default: 'ubean-app' })
+    APP_NAME: envField.string({
+      context: 'client',
+      access: 'public',
+      default: 'ubean-app',
+      description: 'Shown in the header'
+    })
   },
   mode: 'warn' // 'warn' logs; 'throw' rethrows on validation failure
 });
@@ -91,7 +96,7 @@ env.PORT; // number
 validate(); // { success, errors, data }
 ```
 
-Grouped `server:` / `public:` schemas are gone: dimensions live on the field, so nothing silently changes meaning when an entry moves between groups. `client` + `secret` throws at declaration time. The constructor shape (`{ type: String }`) still parses under `schema`, but it has no dimension to read from, so it is treated as `server + secret` (the conservative choice).
+Every builder also accepts `description`, emitted as JSDoc in the generated `.ubean/env.d.ts`. Grouped `server:` / `public:` schemas are gone: dimensions live on the field, so nothing silently changes meaning when an entry moves between groups. `client` + `secret` throws at declaration time. The constructor shape (`{ type: String }`) still parses under `schema`, but it has no dimension to read from, so it is treated as `server + secret` (the conservative choice).
 
 For zod / valibot-grade validation, `defineEnv()` also accepts Standard Schema and `safeParse` shapes — it shares a process with the validator, unlike the generated env modules. Validation must be synchronous.
 

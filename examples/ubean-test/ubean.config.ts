@@ -52,11 +52,38 @@ export default defineConfig({
   env: {
     mode: 'throw',
     schema: {
-      EXAMPLE_APP_TITLE: envField.string({ context: 'client', access: 'public', default: 'ubean-test' }),
-      EXAMPLE_API_PREFIX: envField.string({ context: 'client', access: 'public', default: '/api' }),
-      EXAMPLE_PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
-      EXAMPLE_SECRET: envField.string({ context: 'server', access: 'secret', default: 'example-secret' }),
-      EXAMPLE_REDIS_URL: envField.string({ context: 'server', access: 'secret', optional: true })
+      EXAMPLE_APP_TITLE: envField.string({
+        context: 'client',
+        access: 'public',
+        default: 'ubean-test',
+        // 每个字段都带 `description`：它会被渲染进 `.ubean/env.d.ts` 的 JSDoc，
+        // 也是这条端到端夹具的一部分（见 test/env.test.ts 的声明断言）。
+        description: '应用标题，构建期内联进客户端产物'
+      }),
+      EXAMPLE_API_PREFIX: envField.string({
+        context: 'client',
+        access: 'public',
+        default: '/api',
+        description: '客户端请求的 API 前缀'
+      }),
+      EXAMPLE_PORT: envField.number({
+        context: 'server',
+        access: 'public',
+        default: 9527,
+        description: 'HTTP 监听端口'
+      }),
+      EXAMPLE_SECRET: envField.string({
+        context: 'server',
+        access: 'secret',
+        default: 'example-secret',
+        description: '服务端密钥，永不进客户端产物'
+      }),
+      EXAMPLE_REDIS_URL: envField.string({
+        context: 'server',
+        access: 'secret',
+        optional: true,
+        description: '可选。连接串形如 redis://host:port'
+      })
     }
   },
   prerender: {

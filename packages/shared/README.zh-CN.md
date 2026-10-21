@@ -82,7 +82,12 @@ export const { env, validate } = defineEnv({
   schema: {
     DATABASE_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
     PORT: envField.number({ context: 'server', access: 'public', default: 9527 }),
-    APP_NAME: envField.string({ context: 'client', access: 'public', default: 'ubean-app' })
+    APP_NAME: envField.string({
+      context: 'client',
+      access: 'public',
+      default: 'ubean-app',
+      description: '页头展示的名称'
+    })
   },
   mode: 'warn' // 'warn' 记录日志；'throw' 在校验失败时抛出
 });
@@ -91,7 +96,7 @@ env.PORT; // number
 validate(); // { success, errors, data }
 ```
 
-分组糖（`server:` / `public:`）已删除：维度写在字段上，同一个字段挪位置不会静默换语义。`client` + `secret` 在声明时直接抛错。构造函数形态（`{ type: String }`）仍可在 `schema` 下解析，但它没有维度可读，按 `server + secret` 处理（最保守的取舍）。
+每个 builder 还接受 `description`，它会以 JSDoc 形式写进生成的 `.ubean/env.d.ts`。分组糖（`server:` / `public:`）已删除：维度写在字段上，同一个字段挪位置不会静默换语义。`client` + `secret` 在声明时直接抛错。构造函数形态（`{ type: String }`）仍可在 `schema` 下解析，但它没有维度可读，按 `server + secret` 处理（最保守的取舍）。
 
 需要 zod / valibot 级校验时，`defineEnv()` 也接受 Standard Schema 与 `safeParse` 形态——它与校验器同进程，而生成的 env 模块装不下函数。校验必须同步。
 

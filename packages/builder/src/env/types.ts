@@ -32,6 +32,8 @@ export interface EnvFieldSpec {
   /** TypeScript 字面量类型，直接写进 `.ubean/env.d.ts`。 */
   type: string;
   optional: boolean;
+  /** 字段说明（`envField.*({ description })`），写进 `.ubean/env.d.ts` 的 JSDoc。 */
+  description?: string;
   /**
    * 已解析的值：
    * - `context: 'client'` → 构建期内联用的字面量（来自 `import.meta.env` / `.env`，已含 default 回退）
@@ -157,6 +159,8 @@ export function resolveEnvModules(input: ResolveEnvModulesInput): EnvModules {
       optional,
       sourceKey: key
     };
+    // `description` 只在 `envField.*()` 上有（构造函数形态没有对应字段）。
+    if (meta?.description) spec.description = meta.description;
 
     if (context === 'client') {
       // `import.meta.env`（Vite 注入）优先，回落 `.env` 原始值 —— 后者覆盖没写 `VITE_` 前缀、

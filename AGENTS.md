@@ -277,11 +277,11 @@ env: {
 
 运行期读取仍用下面这组：
 
-| API                                      | 说明                                                                                          |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------- |
-| `defineEnv(config)`                      | `{ schema, mode }`；字段用 `envField.*({ context, access })` 声明维度，也接受 Standard Schema |
-| `envField.string/number/boolean/enum`    | 四类型 builder，`enum` 要求 `values`；`client` + `secret` 声明即抛                            |
-| `setRuntimeEnv(env)` / `useRuntimeEnv()` | 运行时环境变量                                                                                |
+| API                                      | 说明                                                                                                   |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `defineEnv(config)`                      | `{ schema, mode }`；字段用 `envField.*({ context, access })` 声明维度，也接受 Standard Schema          |
+| `envField.string/number/boolean/enum`    | 四类型 builder，`enum` 要求 `values`；`description` 写进生成声明的 JSDoc；`client` + `secret` 声明即抛 |
+| `setRuntimeEnv(env)` / `useRuntimeEnv()` | 运行时环境变量                                                                                         |
 
 ### 数据库
 

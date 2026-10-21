@@ -140,6 +140,32 @@ describe('resolveEnvModules 维度规范化', () => {
     expect(modules.server.find(f => f.key === 'OPT_IN')?.optional).toBe(true);
   });
 
+  it('`description` 从 envField 元数据透传到字段规格', () => {
+    const modules = resolveEnvModules({
+      schema: {
+        APP_TITLE: meta({
+          type: 'string',
+          context: 'client',
+          access: 'public',
+          description: '页面标题'
+        } as never)
+      },
+      importMetaEnv: {}
+    });
+
+    expect(modules.client[0]?.description).toBe('页面标题');
+  });
+
+  it('没写 `description` 时字段规格里不带该属性（不是空串）', () => {
+    const modules = resolveEnvModules({
+      schema: { PORT: meta({ type: 'number', context: 'server', access: 'public' }) },
+      serverEnv: {}
+    });
+
+    expect(modules.server[0]?.description).toBeUndefined();
+    expect('description' in (modules.server[0] ?? {})).toBe(false);
+  });
+
   it('enum 字段的 TypeScript 类型是字面量联合', () => {
     const modules = resolveEnvModules({
       schema: {
@@ -313,6 +339,63 @@ describe('真实构建：ubean:env/* 的分流与护栏', () => {
     // @ts-expect-error 访问内部诊断容器 —— 公开 API 不暴露 parseDiagnostics
     const diagnostics = source.parseDiagnostics ?? [];
     expect(diagnostics.map(d => `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`)).toEqual([]);
+  });
+
+  it('`description` 渲染成 JSDoc 注释（编辑器 hover 可见）', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'ubean-env-desc-'));
+    roots.push(outDir);
+
+    const outPath = await generateEnvTypes({
+      outDir,
+      modules: {
+        client: [{ key: 'APP_TITLE', type: 'string', optional: false, description: '页面标题' }],
+        server: [
+          { key: 'PORT', type: 'number', optional: false, description: 'HTTP 监听端口' },
+          { key: 'NO_DESC', type: 'string', optional: false }
+        ]
+      }
+    });
+
+    const contents = readFileSync(outPath, 'utf8');
+    expect(contents).toContain('  /** 页面标题 */\n  export const APP_TITLE: string;');
+    expect(contents).toContain('  /** HTTP 监听端口 */\n  export const PORT: number;');
+    // 没写 description 的字段不生成空注释块
+    expect(contents).not.toContain('/** */');
+
+    // 注释的存在不能破坏可解析性
+    const ts = await import('typescript');
+    const source = ts.createSourceFile('env.d.ts', contents, ts.ScriptTarget.ESNext, true);
+    // @ts-expect-error 访问内部诊断容器 —— 公开 API 不暴露 parseDiagnostics
+    const diagnostics = source.parseDiagnostics ?? [];
+    expect(diagnostics.map(d => `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`)).toEqual([]);
+  });
+
+  it('`description` 里的 `*/` 与换行不会破坏生成的声明', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'ubean-env-desc-escape-'));
+    roots.push(outDir);
+
+    const outPath = await generateEnvTypes({
+      outDir,
+      modules: {
+        client: [],
+        server: [
+          // `*/` 会提前闭合 JSDoc；换行不逐行加前缀会把后续内容踢出注释。
+          { key: 'TRICKY', type: 'string', optional: false, description: 'a */ b\nc' }
+        ]
+      }
+    });
+
+    const contents = readFileSync(outPath, 'utf8');
+    expect(contents).toContain('*\\/ b');
+    expect(contents).toContain('   * c');
+
+    // 真正的判据：tsc 能解析 —— 转义写错时这里会拿到 TS1005/TS1127。
+    const ts = await import('typescript');
+    const source = ts.createSourceFile('env.d.ts', contents, ts.ScriptTarget.ESNext, true);
+    // @ts-expect-error 访问内部诊断容器 —— 公开 API 不暴露 parseDiagnostics
+    const diagnostics = source.parseDiagnostics ?? [];
+    expect(diagnostics.map(d => `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`)).toEqual([]);
+    expect(contents).toContain('export const TRICKY: string;');
   });
 
   it('`getSecret()` 在生成声明里真的有类型（回归：只声明字段，import 即 TS2305）', async () => {

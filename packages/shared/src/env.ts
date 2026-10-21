@@ -34,6 +34,11 @@ export interface EnvFieldMeta<T = unknown> {
   readonly values?: readonly string[];
   readonly optional?: boolean;
   readonly default?: T;
+  /**
+   * 字段说明。写进 `.ubean/env.d.ts` 的 JSDoc，编辑器里 hover 具名导入时直接可见 ——
+   * 这是唯一能跟着变量走到消费端的地方（`.env.example` 里的注释不会）。
+   */
+  readonly description?: string;
   /** 纯类型标记(运行时不写),让 `InferEnvOutput` 能推出字面量联合。 */
   readonly _output?: T;
 }
@@ -53,6 +58,13 @@ interface EnvFieldBase {
   context: EnvContext;
   access: EnvAccess;
   optional?: boolean;
+  /**
+   * 字段说明，会作为 JSDoc 出现在生成的 `.ubean/env.d.ts` 里。
+   *
+   * 与 `.env.example` 的注释分工：那边是给运维看「这个值填什么」，这里是给写代码的人
+   * 看「这个变量是什么」—— 且会跟着类型走到每一处 import。
+   */
+  description?: string;
 }
 
 export interface EnvStringFieldOptions extends EnvFieldBase {

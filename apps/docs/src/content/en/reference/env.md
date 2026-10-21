@@ -54,7 +54,26 @@ Grouped `server:` / `public:` schemas have been **removed**. Dimensions live on 
 | `envField.boolean(...)`| `boolean`                      |
 | `envField.enum(...)`   | union of the declared `values` |
 
-Each accepts `context`, `access`, and optional `default` / `optional`; `envField.enum` additionally requires `values`.
+Each accepts `context`, `access`, and optional `default` / `optional` / `description`; `envField.enum` additionally requires `values`.
+
+`description` is emitted as a JSDoc comment above the declaration in `.ubean/env.d.ts`, so hovering an import shows what the variable is:
+
+```typescript
+export const schema = {
+  PORT: envField.number({
+    context: 'server',
+    access: 'public',
+    default: 9527,
+    description: 'HTTP listen port'
+  })
+};
+```
+
+```typescript
+// .ubean/env.d.ts — generated
+/** HTTP listen port */
+export const PORT: number;
+```
 
 An empty string counts as "not set" — `KEY=` in `.env` makes `default` apply.
 

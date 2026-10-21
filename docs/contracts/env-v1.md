@@ -61,13 +61,26 @@ export default defineConfig({
       JWT_SECRET: envField.string({ context: 'server', access: 'secret' }),
 
       // optional: absent is not an error
-      REDIS_URL: envField.string({ context: 'server', access: 'secret', optional: true })
+      REDIS_URL: envField.string({ context: 'server', access: 'secret', optional: true }),
+
+      // `description` lands in `.ubean/env.d.ts` as JSDoc
+      STRIPE_KEY: envField.string({
+        context: 'server',
+        access: 'secret',
+        description: 'Stripe secret key (sk_live_ / sk_test_)'
+      })
     }
   }
 });
 ```
 
 `envField.string` / `.number` / `.boolean` / `.enum` cover the four types.
+
+Every builder also accepts `description`. It is emitted as a JSDoc comment above the
+generated declaration in `.ubean/env.d.ts`, so the intent of a variable is visible
+on hover at every `import { … } from 'ubean:env/client'` — the `.env.example`
+comment does not travel with the type. Line breaks are preserved and `*/` is
+escaped, so a description cannot break the generated file.
 
 ### Removed: the `server` / `public` groups
 

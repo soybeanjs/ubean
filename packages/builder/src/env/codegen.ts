@@ -42,13 +42,28 @@ function tsTypeOfLiteral(value: unknown): string {
   return 'string';
 }
 
+/**
+ * 把 `envField.*({ description })` 渲染成 JSDoc 行。
+ *
+ * 转义行内注释终止符：说明文字里出现它就提前闭合注释，后面的声明会变成语法错误 ——
+ * 而报错位置指向生成的 `.d.ts`（用户不该去改的文件），完全看不出根因。
+ * 多行说明逐行加 ` * ` 前缀，否则第二行会跑到注释外面。
+ */
+function renderJsDoc(description: string): string[] {
+  const safe = description.replaceAll('*/', '*\\/');
+  const lines = safe.split(/\r?\n/).map(line => line.trimEnd());
+  if (lines.length === 1) return [`  /** ${lines[0]} */`];
+  return ['  /**', ...lines.map(line => `   * ${line}`.trimEnd()), '   */'];
+}
+
 function renderModuleTypes(moduleId: string, fields: EnvFieldSpec[], extraLines: string[] = []): string {
-  const lines = fields.map(f => {
+  const lines = fields.flatMap(f => {
     // 可选字段写成 `string | undefined`，不能写成 `key?: T` —— 环境模块的成员是
     // `export const`，而 `export const X?: T` 不是合法语法（在 `.d.ts` 的
     // `declare module` 块里也不行，tsc 直接 TS1005）。值缺失时导出的是 `undefined`，
     // 所以 `| undefined` 也正是运行期真实形状。
-    return `  export const ${f.key}: ${f.type}${f.optional ? ' | undefined' : ''};`;
+    const decl = `  export const ${f.key}: ${f.type}${f.optional ? ' | undefined' : ''};`;
+    return f.description ? [...renderJsDoc(f.description), decl] : [decl];
   });
 
   const body = [...lines, ...(lines.length > 0 && extraLines.length > 0 ? [''] : []), ...extraLines];

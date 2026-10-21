@@ -113,6 +113,23 @@ export function createBuildEnvironments(input: BuildEnvironmentsInput) {
   return {
     client: {
       consumer: 'client' as const,
+      /**
+       * 客户端环境的顶层 `input` 用**虚拟模块 id**，而不是 `build.rollupOptions.input` 里的绝对路径。
+       *
+       * 原因：Vite 的依赖扫描（`computeEntries`）优先读顶层 `input`，并走
+       * `pluginContainer.resolveId()` —— 虚拟模块能被插件解析；而 `rollupOptions.input` 是
+       * 磁盘路径，在没有 `src/entry.client.ts` 的项目里指向 `.ubean/virtual/client-entry.mjs`，
+       * 那是**构建产物**：dev 从不写它。
+       *
+       * 后果（实测 soybean-admin-v3，v0.6.9）：扫描抛
+       * `failed to resolve rolldownOptions.input value: "…/.ubean/virtual/client-entry.mjs"`，
+       * 依赖预构建整段跳过 —— dev server 能起、页面能渲染，但依赖不预构建（首屏请求瀑布 + 慢），
+       * 且报错直接吐给用户。
+       *
+       * 用虚拟 id 还顺带让扫描真的爬进客户端入口（拿到 `vue` / `vue-router` / UI 库等依赖）。
+       * 构建期取值不变：解析后仍是同一个虚拟模块。
+       */
+      input: 'virtual:ubean-client-entry',
       optimizeDeps: { exclude: clientOptimizeDepsExclude() },
       build: {
         outDir: outDirs.public,

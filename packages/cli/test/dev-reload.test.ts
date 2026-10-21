@@ -44,13 +44,19 @@ async function startServer(options: {
   args: string[];
   env?: Record<string, string>;
   readyPath?: string;
+  /** 额外 CLI 参数（插在 `--port` 之前），如 `--verbose`。 */
+  extraArgs?: string[];
 }): Promise<Running> {
   const port = await findFreePort();
-  const child = spawn(options.command, [...options.args, '--port', String(port), '--strictPort'], {
-    cwd: fixtureDir,
-    env: { ...process.env, ...options.env, UBEAN_DEBUG_WATCH: '1' },
-    stdio: ['ignore', 'pipe', 'pipe']
-  });
+  const child = spawn(
+    options.command,
+    [...options.args, ...(options.extraArgs ?? []), '--port', String(port), '--strictPort'],
+    {
+      cwd: fixtureDir,
+      env: { ...process.env, ...options.env, UBEAN_DEBUG_WATCH: '1' },
+      stdio: ['ignore', 'pipe', 'pipe']
+    }
+  );
   let output = '';
   const collect = (chunk: unknown) => (output += String(chunk));
   child.stderr?.on('data', collect);
@@ -154,6 +160,46 @@ describe('ubean dev 热重载', () => {
     // env.schema 的字段（走 `env: config.env`）也在同一份产物里 —— 两者一起缺就说明整个
     // codegen 调用没带上 Vite 侧上下文。
     expect(contents).toContain('export const EXAMPLE_APP_TITLE: string;');
+  }, 240_000);
+
+  /**
+   * 依赖预构建不能整段跳过（实测 soybean-admin-v3，v0.6.9）。
+   *
+   * 客户端环境的 `build.rollupOptions.input` 指向 `.ubean/virtual/client-entry.mjs` —— 那是
+   * **构建产物**，dev 从不写它。Vite 的依赖扫描优先读顶层 `input`（能过 `resolveId`），退到
+   * `rollupOptions.input` 时只能按磁盘路径解析，于是抛
+   * `failed to resolve rolldownOptions.input value: "…/.ubean/virtual/client-entry.mjs"`。
+   *
+   * 危害不是「报错难看」：扫描失败会让**整个**依赖预构建被跳过（首屏请求瀑布 + 慢），而
+   * dev server 照常起、页面照常渲染，所以只有盯着启动日志才看得到。
+   *
+   * `--verbose` 打开 diagnostics 闸门 —— 默认日志里这条错误不会出现。
+   */
+  it('启动日志里没有依赖扫描失败（`--verbose` 下断言）', async () => {
+    if (!existsSync(cliEntry)) {
+      throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 CLI 集成测试`);
+    }
+    // **必须删掉两处缓存**，否则用例永远绿：
+    // - `.ubean/virtual/` 是构建产物，本套件其他用例（或之前的 `ubean build`）会留在磁盘上，
+    //   于是 `rollupOptions.input` 的绝对路径能解析成功，缺陷被掩盖；
+    // - `node_modules/.vite/deps/_metadata.json` 命中时 Vite 直接复用旧预构建结果，
+    //   **整段扫描不会跑**。用户遇到这个报错的前提正是「新项目 / 清过缓存」。
+    rmSync(join(fixtureDir, '.ubean/virtual'), { recursive: true, force: true });
+    rmSync(join(fixtureDir, 'node_modules/.vite'), { recursive: true, force: true });
+
+    running = await startServer({
+      command: process.execPath,
+      args: [cliEntry, 'dev'],
+      extraArgs: ['--verbose']
+    });
+
+    // 预构建在 `listen()` 之后异步跑，等一会儿再断言（失败日志出现在这个窗口内）
+    await new Promise(r => setTimeout(r, 4000));
+    const output = running.output();
+    expect(output, `启动日志里出现依赖扫描失败：\n${output.slice(-3000)}`).not.toContain(
+      'Failed to run dependency scan'
+    );
+    expect(output).not.toContain('client-entry.mjs');
   }, 240_000);
 
   // 历史事故 #7（RM-V13）：dev-scan 协调器的注册表曾放在模块级 `WeakMap`，而真实项目的

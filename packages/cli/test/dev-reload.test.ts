@@ -119,6 +119,43 @@ afterEach(async () => {
 });
 
 describe('ubean dev 热重载', () => {
+  /**
+   * 启动 codegen 的时机：必须晚于 Vite server 建好。
+   *
+   * 历史上 CLI 在扫描完就生成，而那时 `import.meta.env` 快照还不存在 —— 写出的
+   * `.ubean/env.d.ts` 把 `ImportMetaEnv` 退化成索引签名，比 `vite dev`（插件的
+   * `runProjectCodegen` 传了 `importMetaEnv`）弱一档，用户看不出区别但 `import.meta.env.X`
+   * 全变成 `any`。
+   *
+   * 这里只跑**一个** server（CLI 路径），因为断言对象是「CLI 写出的那份产物」。
+   */
+  it('`.ubean/env.d.ts` 带 Vite 解析出的 ImportMetaEnv（与 vite dev 同档）', async () => {
+    if (!existsSync(cliEntry)) {
+      throw new Error(`${cliEntry} 不存在：请先构建（pnpm build）再跑 CLI 集成测试`);
+    }
+    const envDts = join(fixtureDir, '.ubean', 'env.d.ts');
+    // 先删掉：`.ubean/` 会被同套件里其他用例写过，只断言「存在」会被别人的产物蒙对。
+    rmSync(envDts, { force: true });
+
+    running = await startServer({ command: process.execPath, args: [cliEntry, 'dev'] });
+
+    for (let i = 0; i < 40 && !existsSync(envDts); i++) {
+      await new Promise(r => setTimeout(r, 500));
+    }
+    expect(existsSync(envDts), `CLI 未生成 ${envDts}`).toBe(true);
+
+    const contents = readFileSync(envDts, 'utf8');
+    // 退化形态是 `readonly [key: string]: string | boolean | undefined;`
+    expect(contents, 'ImportMetaEnv 退化成了索引签名：启动 codegen 跑在 Vite 建好之前').not.toContain(
+      '[key: string]: string | boolean | undefined'
+    );
+    expect(contents).toContain('readonly MODE: string;');
+    expect(contents).toContain('readonly DEV: boolean;');
+    // env.schema 的字段（走 `env: config.env`）也在同一份产物里 —— 两者一起缺就说明整个
+    // codegen 调用没带上 Vite 侧上下文。
+    expect(contents).toContain('export const EXAMPLE_APP_TITLE: string;');
+  }, 240_000);
+
   // 历史事故 #7（RM-V13）：dev-scan 协调器的注册表曾放在模块级 `WeakMap`，而真实项目的
   // `vite.config.ts` 由 Vite 自己打包加载 → 插件实例与 CLI import 的那份是**两个模块实例**，
   // CLI 注册的回调静默落进另一个注册表：服务端改动完全不生效且无任何报错。

@@ -133,9 +133,36 @@ export const devCommand: CommandDef = {
       logger.warn('Some capability requirements are not met. Dev server may not function correctly.');
     }
 
-    // 初始扫描：DevTools 启动时就要有数据（不必等第一次文件变更），codegen 也用它。
+    // 初始扫描：DevTools 启动时就要有数据（不必等第一次文件变更）。
     // app 本身不在这里建（RM-V14：由 `ubeanDevRequestPlugin` 自举），CLI 只保留数据与类型。
     let currentScanResult = await initialScan(cwd, config, logging);
+
+    /**
+     * Vite 解析好的 `import.meta.env` 快照（`ResolvedConfig.env`）。
+     *
+     * 只能在 Vite server 建好之后取 —— 这也是 codegen 必须挪到那之后的原因，见 `runCodegen()`。
+     */
+    let devImportMetaEnv: Record<string, unknown> = {};
+
+    /**
+     * 生成项目类型声明。
+     *
+     * **必须带 `importMetaEnv`**：`generateTypes()` 用它生成 `ImportMetaEnv`（`VITE_*` +
+     * Vite 内建），不给就退化成 `[key: string]: string | boolean | undefined` 索引签名 ——
+     * 于是 `ubean dev` 写出的 `.ubean/env.d.ts` 比 `vite dev`（插件的 `runProjectCodegen`）弱一档。
+     */
+    async function runCodegen(result: ScanResult) {
+      await generateTypes(result, {
+        cwd,
+        srcDir: config.srcDir,
+        buildDir: '.ubean',
+        dirs: config.dir,
+        autoImports: config.autoImports,
+        components: config.components,
+        env: config.env,
+        importMetaEnv: devImportMetaEnv
+      });
+    }
 
     /**
      * 扫描后的命令级事务（RM-V13：扫描由 dev-scan 协调器驱动）。
@@ -154,15 +181,7 @@ export const devCommand: CommandDef = {
       devServer?.refreshDevtools();
 
       try {
-        await generateTypes(result, {
-          cwd,
-          srcDir: config.srcDir,
-          buildDir: '.ubean',
-          dirs: config.dir,
-          autoImports: config.autoImports,
-          components: config.components,
-          env: config.env
-        });
+        await runCodegen(result);
       } catch (err) {
         logger.error(`Rescan failed: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -241,6 +260,22 @@ export const devCommand: CommandDef = {
       await exitCli(1);
     }
 
+    // 启动 codegen 只能在 server 建好之后跑，两个原因都指向「Vite 那时才知道」：
+    // 1. `import.meta.env` 快照（`ResolvedConfig.env`）此前不存在；
+    // 2. `ubeanEnvPlugin` 在 `configResolved` 里把 `.env` 合进 `process.env`，而
+    //    `resolveEnvModules()` 用 `process.env` 判定 server 字段的 optional —— 早跑的话
+    //    `.env` 提供的值会被当成缺失，声明里多出一个 `| undefined`。
+    const server = devServer;
+    if (!server) return;
+    devImportMetaEnv = server.viteServer.config.env as unknown as Record<string, unknown>;
+    try {
+      await runCodegen(currentScanResult);
+      if (logging.scan) logger.info('Generated type definitions');
+    } catch (err) {
+      // 类型声明是 DX 产物，不该让 dev server 起不来
+      logger.warn(`Failed to generate type definitions: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
     // RM-V13/V14：文件监听、去抖、扫描与重载顺序全在 `@ubean/build` 的 dev-scan 协调器
     // （复用 Vite 自己的 server.watcher）；app 由 `ubeanDevRequestPlugin` 自举并在扫描后重建。
     // 本进程只订阅扫描做命令级事务（类型生成 + DevTools 上报）。
@@ -256,10 +291,14 @@ export const devCommand: CommandDef = {
 };
 
 /**
- * 初始扫描 + 类型生成。
+ * 初始扫描。
  *
- * RM-V14 起 CLI 不在这里建 app（由 `ubeanDevRequestPlugin` 自举），只负责扫描与 codegen；
- * 扫描结果交给 DevTools 作启动数据，并在每次文件变更后由 `onScan` 刷新。
+ * RM-V14 起 CLI 不在这里建 app（由 `ubeanDevRequestPlugin` 自举），只负责扫描；扫描结果交给
+ * DevTools 作启动数据，并在每次文件变更后由 `onScan` 刷新。
+ *
+ * **codegen 刻意不在这里**：此时 Vite server 还不存在，拿不到 `import.meta.env` 快照，
+ * `.env` 也还没被合进 `process.env` —— 在这里生成会写出比 `vite dev` 弱一档的
+ * `.ubean/env.d.ts`。真正的生成在 server 建好之后（见 `runCodegen()`）。
  */
 async function initialScan(cwd: string, config: any, logging: ResolvedLoggingConfig): Promise<ScanResult> {
   if (logging.scan) logger.info('Scanning project files...');
@@ -275,17 +314,7 @@ async function initialScan(cwd: string, config: any, logging: ResolvedLoggingCon
     logger.info(
       `Found ${result.apiRoutes.length} API routes, ${result.pages.length} pages, ${result.layouts.length} layouts, ${result.middlewares.length} middlewares, ${result.plugins.length} plugins`
     );
-    logger.info('Generating type definitions...');
   }
-  await generateTypes(result, {
-    cwd,
-    srcDir: config.srcDir,
-    buildDir: '.ubean',
-    dirs: config.dir,
-    autoImports: config.autoImports,
-    components: config.components,
-    env: config.env
-  });
 
   return result;
 }

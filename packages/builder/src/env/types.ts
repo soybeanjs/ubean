@@ -66,6 +66,24 @@ export interface EnvModules {
   server: EnvFieldSpec[];
 }
 
+/**
+ * 判断一个 schema 条目是不是**运行期**校验器（Standard Schema / `safeParse`）。
+ *
+ * 这类值不能进 `env.schema` —— 见 `resolveEnvModules()` 里的抛错说明。
+ */
+function isRuntimeSchema(def: EnvFieldDef): boolean {
+  if (typeof def !== 'object' || def === null) return false;
+  const standard = (def as { '~standard'?: unknown })['~standard'];
+  if (
+    typeof standard === 'object' &&
+    standard !== null &&
+    typeof (standard as { validate?: unknown }).validate === 'function'
+  ) {
+    return true;
+  }
+  return typeof (def as { safeParse?: unknown }).safeParse === 'function';
+}
+
 function typeOfField(def: EnvFieldDef): string {
   if (isEnvFieldMeta(def)) {
     if (def.type === 'enum') return (def.values ?? []).map(v => JSON.stringify(v)).join(' | ') || 'string';
@@ -105,6 +123,22 @@ export function resolveEnvModules(input: ResolveEnvModulesInput): EnvModules {
   const server: EnvFieldSpec[] = [];
 
   for (const [key, def] of Object.entries(schema)) {
+    // ── 运行期 schema（zod / valibot / 任意 `~standard` 或 `safeParse`）──
+    //
+    // 生成的 `ubean:env/server` 是**源码**，只装得下 `{ key, type, optional, default }`
+    // 这种平数据（`JSON.stringify` 后不能携带函数）。把 schema 对象传过去会静默丢掉校验
+    // —— 用户在 `env.schema` 里写 `z.string().min(32)`，得到的是「没有任何校验」，
+    // 比直接报错难排查得多。
+    //
+    // 需要这类校验请用 `defineEnv()`：它与 schema 对象在同一进程，拿得到活的引用。
+    if (isRuntimeSchema(def)) {
+      throw new Error(
+        `Invalid env field "${key}": a runtime schema (Standard Schema / safeParse) cannot be used in \`env.schema\` in ubean.config.ts.\n` +
+          'Generated env modules are source files and only carry plain metadata, so the validator would be silently dropped.\n' +
+          'Use `envField.*({ context, access })` here, or move the field into `defineEnv({ schema })` in server code if you need schema validation.'
+      );
+    }
+
     const { context, access } = dimensionsOf(def);
     if (context === 'client' && access === 'secret') {
       throw new Error(

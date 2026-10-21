@@ -128,6 +128,7 @@ repository `.env`, which is what CI needs.
 | Situation | Result |
 | --- | --- |
 | `client` + `secret` in the schema | throws at configuration time |
+| runtime schema (`~standard` / `safeParse`) in `env.schema` | throws at configuration time — generated modules are plain data and would silently drop the validator |
 | client code imports `ubean:env/server` | **build fails** with the importer in the stack |
 | required `server` field missing, `mode: 'throw'` | throws at module import |
 | required `server` field missing, `mode: 'warn'` | `console.warn`, value is `undefined` |
@@ -169,5 +170,35 @@ skipped by `// @ts-expect-error`, a build failure is not.
   `process.env` only; use `process.loadEnvFile()` or real environment variables.
 - **No `secret` rotation, no per-environment overrides beyond Vite's**
   `.env.[mode]` handling.
+- **`env.schema` rejects runtime schemas.** The generated env modules are
+  *source files* and can only carry plain metadata (`{ key, type, optional,
+  default }`); `JSON.stringify` drops functions, so a validator would be
+  silently discarded. Writing `z.string().min(32)` under `env.schema` throws at
+  configuration time instead of pretending to validate.
+
+### If you want zod / valibot-grade validation
+
+`defineEnv()` — same module, `packages/shared/src/env.ts`, called from **server
+code** — accepts Standard Schema and `safeParse` shapes, because it shares a
+process with the schema object:
+
+```ts
+import { defineEnv } from 'ubean';
+import { z } from 'zod';
+
+export const { env } = defineEnv({
+  schema: { JWT_SECRET: z.string().min(32) }
+});
+```
+
+One constraint: **`~standard.validate()` must be synchronous.** The code emitted
+by `renderEnvServerModule()` runs at module top level, and
+`loadUbeanConfigSync()` compiles the config to CJS (where top-level `await` is a
+syntax error) — neither side has a place to await. An async schema
+(`z.string().refine(async …)`) therefore fails with an explicit
+`async Standard Schema validation is not supported` error.
+
+An empty string counts as "not set", matching `envField` and the legacy shapes:
+`KEY=` in `.env` makes `z.string().default('x')` resolve to `'x'`.
 
 Breaking changes bump `contractVersion`.

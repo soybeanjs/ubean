@@ -149,6 +149,23 @@ describe('resolveEnvModules 维度规范化', () => {
     });
     expect(modules.client[0]?.type).toBe('"local" | "dev" | "prod"');
   });
+
+  /**
+   * 生成的 env 模块是**源码**，只装得下 `{ key, type, optional, default }` 这种平数据
+   * （`JSON.stringify` 后不能携带函数）。早先把 zod / valibot schema 当 legacy 形态处理，
+   * `type` 直接退化成 `unknown`、校验器被默默丢掉 —— 用户在 `env.schema` 里写
+   * `z.string().min(32)` 得到的是「没有任何校验」。现在改成配置期报错。
+   */
+  it('运行期 schema（`~standard` / `safeParse`）放进 `env.schema` 就报错，不静默丢校验', () => {
+    const standardSchema = {
+      '~standard': { version: 1 as const, vendor: 'test', validate: (v: unknown) => ({ value: v }) }
+    };
+
+    expect(() => resolveEnvModules({ schema: { A: standardSchema } })).toThrow(/runtime schema/);
+    expect(() => resolveEnvModules({ schema: { A: { safeParse: () => ({ success: true }) } } })).toThrow(
+      /runtime schema/
+    );
+  });
 });
 
 /* -------------------------------------------------------------------------- */

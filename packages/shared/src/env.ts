@@ -198,6 +198,71 @@ export interface EnvValidationError {
   value: unknown;
 }
 
+/**
+ * 判断一个值是否符合 Standard Schema 接口（zod / valibot / arktype 等）。
+ *
+ * 只看 `~standard.validate` 是不是函数，不看 `vendor` / `version` —— 各家实现这几个字段
+ * 的值不一致（valibot 是 `vendor: 'valibot'`），但**调用面**统一。
+ */
+function isStandardSchema(value: unknown): value is StandardSchemaV1 {
+  if (typeof value !== 'object' || value === null) return false;
+  const standard = (value as { '~standard'?: unknown })['~standard'];
+  return (
+    typeof standard === 'object' &&
+    standard !== null &&
+    typeof (standard as { validate?: unknown }).validate === 'function'
+  );
+}
+
+/**
+ * 用 Standard Schema 校验一个环境变量。
+ *
+ * **`~standard.validate()` 必须同步返回。** 大多数 schema 都是同步的（zod 的 `.min()`
+ * 一类、valibot 的 `v.pipe()`），但 zod 的 `.refine(async …)` 会返回 Promise：那种 schema
+ * 在环境变量上无法支持 —— 生成的 server 模块在模块顶层同步执行，而
+ * `loadUbeanConfigSync()` 又把配置编译成 CJS（顶层 await 在那里是语法错误），
+ * 两边都没有 await 的位置。
+ *
+ * 早先这里写的是「看到 `~standard` 就判失败」并提示「请用 validate()」—— 可它从未
+ * 调用过 `validate()`，于是**任何**标准 schema 都必定校验失败，而且报错指向一个同样会
+ * 失败的方向。现在真的调用它了。
+ */
+function parseStandardSchemaValue(
+  schema: StandardSchemaV1,
+  rawValue: string | undefined,
+  key: string
+): { ok: boolean; value?: unknown; error?: string } {
+  // 与 `envField` / legacy 形态对齐：空字符串视为「没配」而不是一个合法值。
+  // 于是 `.env` 里写 `KEY=` 时 `z.string().default('x')` 也能拿到 `x`。
+  const input = rawValue === '' ? undefined : rawValue;
+
+  let result: StandardSchemaV1.Result<unknown> | Promise<StandardSchemaV1.Result<unknown>>;
+  try {
+    result = schema['~standard'].validate(input) as
+      | StandardSchemaV1.Result<unknown>
+      | Promise<StandardSchemaV1.Result<unknown>>;
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+
+  if (typeof (result as Promise<unknown>)?.then === 'function') {
+    return {
+      ok: false,
+      error: `Env ${key}: async Standard Schema validation is not supported (env validation must be synchronous)`
+    };
+  }
+
+  const settled = result as StandardSchemaV1.Result<unknown>;
+  // spec 里 `SuccessResult.issues` 是 `issues?: undefined`（可选），所以 `if (issues)` 的
+  // 否定分支并不能让 TS 窄化到 SuccessResult —— 得显式断言。运行时判据以「有非空 issues」
+  // 为准：falsy `issues` 就是成功。
+  if (settled.issues && settled.issues.length > 0) {
+    return { ok: false, error: settled.issues[0]?.message ?? `Env ${key} is invalid` };
+  }
+
+  return { ok: true, value: (settled as StandardSchemaV1.SuccessResult<unknown>).value };
+}
+
 function parseSchemaValue(
   schema: any,
   rawValue: string | undefined,
@@ -209,8 +274,8 @@ function parseSchemaValue(
     return parseEnvFieldValue(schema, rawValue, key);
   }
 
-  if ('~standard' in schema && typeof schema['~standard'] === 'object' && schema['~standard']) {
-    return { ok: false, error: 'Standard schema validation requires async validate, use validate() instead' };
+  if (isStandardSchema(schema)) {
+    return parseStandardSchemaValue(schema, rawValue, key);
   }
 
   if (typeof schema.safeParse === 'function') {

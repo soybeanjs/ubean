@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import type { Options as UnpluginComponentsOptions } from 'unplugin-vue-components/types';
 import type { Options as UnpluginAutoImportOptions } from 'unplugin-auto-import/types';
 import type { AutoImportOptions, ComponentsOptions } from '@ubean/config';
@@ -547,7 +547,7 @@ export async function generateAutoImports(
     }
   }
 
-  const componentsDts = generateComponentsDts(components, componentsDtsPath);
+  const componentsDts = generateComponentsDts(components, componentsDtsPath, await readComponentsDtsEntries(componentsDtsPath));
   await writeFile(componentsDtsPath, componentsDts, 'utf-8');
 
   const virtualComponentsDtsPath = join(outDir, 'virtual-components.d.ts');
@@ -644,6 +644,41 @@ function generateVirtualComponentsDts(virtual: VirtualComponentInfo[], dtsPath: 
 }
 
 /**
+ * 读回 `components.d.ts` 里已有的条目（名字 → 声明）。
+ *
+ * 这个文件有**两个写入者**：本函数（每次重扫整体重写）与 unplugin-vue-components（dev 下
+ * 按需重写，只扫它编译过的 SFC）。两边都只列自己知道的东西，所以必须**合并**而不是覆盖。
+ *
+ * 后果（实测 soybean-admin-v3）：`<SConfigProvider>` 只在 `src/app.vue` 里用，而 app.vue 只在
+ * 渲染某个页面时才被加载 —— 于是 `SConfigProvider` / `SButton` 先被 unplugin 写进 d.ts，
+ * 随后任意文件改动触发重扫，本函数把它们整个覆盖掉（我们只扫 `src/components` 与内置 4 个，
+ * 既不认识模块注册的 resolver 也不认识 `RouterLink`/`RouterView`）。用户看到的就是
+ * 「组件自动导入时有时无」。
+ *
+ * 为什么不去遍历模块注册的 resolver 拿候选名：`@vean/ui` 主入口不导出可枚举的组件清单
+ * （161 个导出里只有一部分是组件），resolver 本身只能按名字查表。没有候选列表就只能合并。
+ *
+ * 不解析 AST：这是两个写入器共有的扁平接口，行格式稳定（`    Name: typeof import('…')['…']`）。
+ */
+async function readComponentsDtsEntries(dtsPath: string): Promise<Map<string, string>> {
+  const entries = new Map<string, string>();
+  let raw: string;
+  try {
+    raw = await readFile(dtsPath, 'utf-8');
+  } catch {
+    return entries;
+  }
+  for (const line of raw.split('\n')) {
+    // 只认自包含条目：unplugin 会丢掉周围的 import 语句，`typeof X` 那种形态读完就废了
+    const match = /^ {4}(?:"((?:[^"\\]|\\.)*)"|([A-Za-z_$][\w$]*)): (typeof import\('.*'\)\[[^\]]+\])$/.exec(line);
+    if (!match) continue;
+    const name = match[1] !== undefined ? JSON.parse(`"${match[1]}"`) : match[2];
+    entries.set(name, match[3]);
+  }
+  return entries;
+}
+
+/**
  * Generate the `.ubean/components.d.ts` in a format compatible with
  * unplugin-vue-components (both writers own the same file).
  *
@@ -653,11 +688,23 @@ function generateVirtualComponentsDts(virtual: VirtualComponentInfo[], dtsPath: 
  * `import`/`const` declaration lines. Entries must therefore be
  * self-contained inline `typeof import('...')` declarations so they stay
  * valid after unplugin merges them.
+ *
+ * 反向也必须成立：`previous`（上一份文件里的条目）**优先保留**。unplugin 在 dev 下按需
+ * 收集（只扫它编译过的 SFC），我们只扫 `src/components` + 内置 4 个 —— 覆盖式重写会把
+ * 它写进去的第三方组件（`SButton`/`SConfigProvider`/`RouterLink`…）全抹掉。
  */
-function generateComponentsDts(components: ComponentInfo[], dtsPath: string): string {
+function generateComponentsDts(
+  components: ComponentInfo[],
+  dtsPath: string,
+  previous: Map<string, string> = new Map()
+): string {
   const dtsDir = fileDirname(toPosixPath(normalize(dtsPath)));
 
   const entries = new Map<string, string>();
+
+  // 先放上一份的条目，再由本次扫描结果覆盖同名项（后者更新鲜）。
+  // 残留风险：组件改名后旧条目会留下 —— 与 unplugin 自己的合并行为一致，且下次它重写时会清。
+  for (const [name, declaration] of previous) entries.set(name, declaration);
 
   // Keep in sync with UBEAN_BUILTIN_COMPONENTS in ../vue-plugin.ts
   const BUILTIN_COMPONENTS = ['Link', 'Head', 'PageView', 'ClientOnly'];

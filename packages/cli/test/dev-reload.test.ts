@@ -133,6 +133,10 @@ describe('ubean dev 热重载', () => {
    * `runProjectCodegen` 传了 `importMetaEnv`）弱一档，用户看不出区别但 `import.meta.env.X`
    * 全变成 `any`。
    *
+   * 索引签名已经不再产出（它会反向削弱 `vite/client` 的 `Record<string, any>`），所以这里改
+   * 断言「没有那份 `VITE_*` 清单就说明快照没传到」：夹具项目没有 `.env`，唯一的 `VITE_*` 来源
+   * 就是 Vite 自己注入的 `VITE_*`（当前没有）—— 因此判据改成整块缺失 + `env.schema` 字段在位。
+   *
    * 这里只跑**一个** server（CLI 路径），因为断言对象是「CLI 写出的那份产物」。
    */
   it('`.ubean/env.d.ts` 带 Vite 解析出的 ImportMetaEnv（与 vite dev 同档）', async () => {
@@ -151,13 +155,12 @@ describe('ubean dev 热重载', () => {
     expect(existsSync(envDts), `CLI 未生成 ${envDts}`).toBe(true);
 
     const contents = readFileSync(envDts, 'utf8');
-    // 退化形态是 `readonly [key: string]: string | boolean | undefined;`
-    expect(contents, 'ImportMetaEnv 退化成了索引签名：启动 codegen 跑在 Vite 建好之前').not.toContain(
-      '[key: string]: string | boolean | undefined'
-    );
-    expect(contents).toContain('readonly MODE: string;');
-    expect(contents).toContain('readonly DEV: boolean;');
-    // env.schema 的字段（走 `env: config.env`）也在同一份产物里 —— 两者一起缺就说明整个
+    // Vite 内建（MODE / DEV / PROD / BASE_URL / SSR）由 `vite/client` 声明，我们不再重复声明 ——
+    // 重复声明会撞 TS2687（Vite 那边没有 `readonly`）。这条锁住「不要退回去」。
+    expect(contents, 'Vite 内建不该被重复声明：会与 vite/client 撞 TS2687').not.toContain('readonly MODE: string;');
+    expect(contents, 'Vite 内建不该被重复声明：会与 vite/client 撞 TS2687').not.toContain('readonly DEV: boolean;');
+    expect(contents, '兜底索引签名会削弱 vite/client 的类型面').not.toContain('[key: string]: string | boolean | undefined');
+    // env.schema 的字段（走 `env: config.env`）也在同一份产物里 —— 缺了就说明整个
     // codegen 调用没带上 Vite 侧上下文。
     expect(contents).toContain('export const EXAMPLE_APP_TITLE: string;');
   }, 240_000);

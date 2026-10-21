@@ -39,9 +39,11 @@ to it means bumping `contractVersion` and versioning `env.d.ts` too, while
 
 - `declare module 'ubean:env/client'` / `'ubean:env/server'` — typed access to the
   two virtual modules (see the `env` contract below)
-- a generated `ImportMetaEnv` covering resolved `VITE_*` keys plus Vite's builtins
-  (`MODE` / `DEV` / `PROD` / `BASE_URL` / `SSR`), so hand-written `ImportMetaEnv`
-  blocks can be deleted instead of drifting out of sync with `.env`
+- a generated `ImportMetaEnv` covering the resolved `VITE_*` keys, so hand-written
+  `ImportMetaEnv` blocks can be deleted instead of drifting out of sync with `.env`.
+  Vite's builtins (`MODE` / `DEV` / `PROD` / `BASE_URL` / `SSR`) are not re-declared —
+  `vite/client` owns them, and a second `readonly` declaration trips `TS2687`. With no
+  `VITE_*` key resolved, the block is omitted entirely.
 
 ## Optional / not written by `generateTypes()`
 

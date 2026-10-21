@@ -171,9 +171,19 @@ then.
 ## Relationship to `import.meta.env`
 
 `ImportMetaEnv` is **generated** into `.ubean/env.d.ts` from the resolved env
-snapshot — `VITE_*` keys plus Vite's builtins. Do not hand-write it; a
-hand-written interface has nothing that can tell you it went stale. Vite's native
+snapshot, covering the `VITE_*` keys. Do not hand-write it; a hand-written
+interface has nothing that can tell you it went stale. Vite's native
 `import.meta.env.VITE_*` keeps working unchanged for code that prefers it.
+
+Vite's builtins (`MODE` / `DEV` / `PROD` / `BASE_URL` / `SSR`) are deliberately
+**not** re-declared: `vite/client` already declares them without `readonly`, so a
+second `readonly` declaration reports `TS2687: All declarations of 'MODE' must
+have identical modifiers`. That error is hidden by the default
+`skipLibCheck: true`, which is why it only shows up in projects that turn
+`skipLibCheck` off. When no `VITE_*` key resolves, the whole `ImportMetaEnv` block
+is omitted rather than emitted as a fallback index signature — `vite/client`
+already provides `Record<string, any>`, and narrowing it to
+`string | boolean | undefined` would weaken the type surface.
 
 ## Comparison with other frameworks
 

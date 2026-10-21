@@ -53,7 +53,10 @@ describe('generateTypes codegen.manifest.json', () => {
     const contents = await readFile(result.envTypesPath, 'utf8');
     // 客户端可见的 key 进 ImportMetaEnv，服务端变量不进。
     expect(contents).toContain('readonly VITE_APP_TITLE: string;');
-    expect(contents).toContain('readonly MODE: string;');
+    // Vite 内建（MODE / DEV / PROD / BASE_URL / SSR）**不**进：`vite/client` 已声明它们，
+    // 且那边没有 `readonly` —— 重复声明会撞 TS2687。
+    expect(contents).not.toContain('readonly MODE: string;');
+    expect(contents).not.toContain('readonly DEV: boolean;');
     expect(contents).toContain("declare module 'ubean:env/client'");
     expect(contents).toContain("declare module 'ubean:env/server'");
     // `ImportMetaEnv` 必须在全局作用域 —— 顶层一旦出现 `export {}` 类型增强就失效。

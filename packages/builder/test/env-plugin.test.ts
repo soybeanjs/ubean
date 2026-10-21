@@ -370,6 +370,52 @@ describe('真实构建：ubean:env/* 的分流与护栏', () => {
     expect(diagnostics.map(d => `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`)).toEqual([]);
   });
 
+  it('不重复声明 Vite 内建，避免与 `vite/client` 撞 TS2687', async () => {
+    // 回归：`vite/client`（`dist/vite/types/importMeta.d.ts`）声明了 `BASE_URL` / `MODE` /
+    // `DEV` / `PROD` / `SSR` 且**没有** `readonly`。我们再声明一份 `readonly MODE: string` 就报
+    // TS2687: All declarations of 'MODE' must have identical modifiers —— 默认的
+    // `skipLibCheck: true` 会吞掉它，所以只有关掉 skipLibCheck 的真实项目才会红。
+    const outDir = mkdtempSync(join(tmpdir(), 'ubean-env-builtins-'));
+    roots.push(outDir);
+
+    const outPath = await generateEnvTypes({
+      outDir,
+      modules: { client: [], server: [] },
+      importMetaEnv: { MODE: 'test', DEV: true, PROD: false, BASE_URL: '/', SSR: false, VITE_X: 'y' }
+    });
+
+    const contents = readFileSync(outPath, 'utf8');
+    // 用户自己的 VITE_* 仍要声明（那是这份文件存在的理由之一）
+    expect(contents).toContain('readonly VITE_X: string;');
+    for (const key of ['MODE', 'DEV', 'PROD', 'BASE_URL', 'SSR']) {
+      expect(contents, `Vite 内建 ${key} 被重复声明了`).not.toContain(`readonly ${key}:`);
+    }
+    // 兜底索引签名同样不产出：`vite/client` 自带 `Record<string, any>`，我们的那份
+    // 把 `import.meta.env.X` 从 `any` 收窄成 `string | boolean | undefined`，是反向削弱。
+    expect(contents).not.toContain('[key: string]: string | boolean | undefined');
+  });
+
+  it('没有任何 `VITE_*` 时不产出 ImportMetaEnv 块（而不是产出空接口）', async () => {
+    const outDir = mkdtempSync(join(tmpdir(), 'ubean-env-noimportmeta-'));
+    roots.push(outDir);
+
+    const outPath = await generateEnvTypes({
+      outDir,
+      modules: { client: [], server: [] },
+      importMetaEnv: { MODE: 'test', DEV: true, PROD: false, BASE_URL: '/', SSR: false }
+    });
+
+    const contents = readFileSync(outPath, 'utf8');
+    expect(contents).not.toContain('interface ImportMetaEnv');
+    // 文件本身仍然合法且带着两个 env 模块声明（`env.schema` 为空时的形态）
+    expect(contents).toContain("declare module 'ubean:env/client'");
+    const ts = await import('typescript');
+    const source = ts.createSourceFile('env.d.ts', contents, ts.ScriptTarget.ESNext, true);
+    // @ts-expect-error 访问内部诊断容器 —— 公开 API 不暴露 parseDiagnostics
+    const diagnostics = source.parseDiagnostics ?? [];
+    expect(diagnostics.map(d => `${d.code}:${ts.flattenDiagnosticMessageText(d.messageText, ' ')}`)).toEqual([]);
+  });
+
   it('`description` 里的 `*/` 与换行不会破坏生成的声明', async () => {
     const outDir = mkdtempSync(join(tmpdir(), 'ubean-env-desc-escape-'));
     roots.push(outDir);

@@ -6,7 +6,7 @@ import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } fr
 // `@ubean/scan` —— 那个 barrel 会带进 `@ubean/vue/vite`(`vue/compiler-sfc`),
 // 于是服务端运行时图里出现构建期解析器:Node 上只是体积浪费,worker 上
 // 构建**直接失败**(`Rolldown failed to resolve import "velocityjs"`)。
-import { resolvePageKind, validateParams as _validateParams } from '@ubean/vue';
+import { NOT_FOUND_ROUTE_NAME, resolvePageKind, validateParams as _validateParams } from '@ubean/vue';
 import type { Context, Next, MiddlewareHandler } from 'hono';
 import { isBotUserAgent } from './bot-detection';
 import { extractRouteMeta, isHandlerChain } from './handler';
@@ -138,6 +138,11 @@ export function convertUbeanRoutePath(path: string): string {
  * order puts `[...slug].vue` before `index.vue` (`[` < `i`), which is
  * wrong for Hono — this sort corrects it.
  *
+ * 两级档位：普通 catch-all（用户 `[...slug].vue`）在具体路径之后，**内置全局捕获路由**
+ * （`isGlobalCatchAll`，即 `pages/404.vue`）再在其后。两级都必需 —— 同档位内按注册顺序
+ * 匹配，内置 404 排在用户捕获页之前会把它整个吞掉（vue-router 侧同规则，见
+ * `@ubean/vue` 的 `sortPagesForRouting`，两侧必须一致否则 SSR/客户端水合不一致）。
+ *
  * Detects both catch-all spellings: the scan-default `/**:slug` form and
  * the vue-router regex form `:slug(.*)*` / `:slug(.*)` used by custom
  * `definePage({ path })` values.
@@ -146,14 +151,14 @@ export function convertUbeanRoutePath(path: string): string {
  */
 const CATCH_ALL_ROUTE_REGEX = /\/\*\*:|\(\.\*\)/;
 
-export function sortPagesForRegistration<T extends { route: string }>(pages: readonly T[]): T[] {
-  return [...pages].sort((a, b) => {
-    const aCatchall = CATCH_ALL_ROUTE_REGEX.test(a.route);
-    const bCatchall = CATCH_ALL_ROUTE_REGEX.test(b.route);
-    if (aCatchall && !bCatchall) return 1;
-    if (!aCatchall && bCatchall) return -1;
-    return 0;
-  });
+export function sortPagesForRegistration<T extends { route: string; isGlobalCatchAll?: boolean }>(
+  pages: readonly T[]
+): T[] {
+  const rank = (p: T): number => {
+    if (p.isGlobalCatchAll) return 2;
+    return CATCH_ALL_ROUTE_REGEX.test(p.route) ? 1 : 0;
+  };
+  return [...pages].sort((a, b) => rank(a) - rank(b));
 }
 
 /**
@@ -541,6 +546,17 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       method: c.req.method
     });
 
+    // 内置全局捕获页（`pages/404.vue`）现在是普通路由，会吃到**任何**未匹配的 URL ——
+    // 包括 `/api/*` 与 `/_*`。这两类路径必须给 JSON 404：前者是 API（HTML 404 会让
+    // `res.json()` 直接抛解析错误），后者是框架保留命名空间（未匹配说明拼错了）。
+    // 旧实现在 `app.get('*')` 兜底里做这件事，捕获得早一步后就落到了这里。
+    if (page.isGlobalCatchAll) {
+      const path = c.req.path;
+      if (path.startsWith('/api/') || path.startsWith('/_')) {
+        return c.json({ error: 'Not Found', path, method: c.req.method }, 404);
+      }
+    }
+
     // `definePage({ redirect })`: 本路由不渲染组件,GET 直接 302。
     //
     // 必须在客户端路由表里也是重定向记录 —— 否则服务端渲染原页、客户端
@@ -758,7 +774,11 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       'app',
       renderContext as Parameters<typeof renderPage>[4]
     );
+    // 全局捕获路由就是 404 页：URL 未匹配任何页面。带上 404 状态码，
+    // 否则搜索引擎与监控会把不存在的页面当成 200 收录（捕获页自己也有真实路由，
+    // 因此不能用 `options.notFoundPage` 兜底那层来判断）。
     return c.html(injectColorMode(html), {
+      status: page.isGlobalCatchAll ? 404 : 200,
       headers: htmlHeaders,
       ...(method === 'POST' && actionErrors ? { status: 422 } : {})
     });
@@ -834,6 +854,9 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   // Hono 的 `*` 兜底**不会**自动让位于更具体的路径：它按注册顺序参与匹配，因此内置
   // `_` 前缀路由（`/_openapi.json`、`/_scalar` 等）必须在调用本函数之前注册，否则会被
   // 这个兜底抢先匹配成 404（实测；`/_health` 因注册更早而未受影响）。
+  //
+  // 本兜底只给**浏览器导航**用。用户的 `[...slug].vue` 作为普通页面已在上面的循环里
+  // 注册成真正的路由（跑 loader / actions / 返回 200）；这里是「连捕获页都没有」时的最后一层。
   if (options.notFoundPage) {
     const notFoundPage = options.notFoundPage;
     const pageAssetTagsOpt = options.pageAssetTags;
@@ -851,7 +874,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       // For SPA page requests, return the page data as JSON
       if (isPagesRequest(c)) {
         return pageJsonResponse({
-          component: 'NotFound',
+          component: NOT_FOUND_ROUTE_NAME,
           props: {},
           params: {},
           url: path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),

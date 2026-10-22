@@ -49,6 +49,8 @@ export interface RouteRecord {
   meta?: Record<string, unknown>;
   cache?: boolean;
   requiresAuth?: boolean;
+  /** definePage({ redirect }) 的目标；存在时该路由不渲染组件。 */
+  redirect?: string;
 }
 
 export const layouts: Record<LayoutKey, RawRouteComponent> = {

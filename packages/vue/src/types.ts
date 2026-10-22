@@ -132,6 +132,21 @@ export interface ScannedPage {
    * 客户端路由表 / dev SSR / 生产 entry 都注册为重定向记录,服务端返回 302。
    */
   redirect?: string;
+  /**
+   * 是否为框架内置路由(名字取自 {@link RESERVED_ROUTE_NAMES})。
+   *
+   * 与 `isGlobalCatchAll` 的区别:Root 也是内置路由,但不是捕获路由。
+   * 宿主生成菜单/目录时应过滤掉这些条目(它们不是应用页面)。
+   */
+  isBuiltin?: boolean;
+  /**
+   * 是否承载全局捕获路由(`/:pathMatch(.*)*`)。
+   *
+   * `pages/404.vue` / `pages/not-found.vue` 声明形态扫描出的那一条为 `true`;
+   * 用户的 `pages/[...slug].vue` 为 `false`。注册顺序靠它排序 —— 捕获路由
+   * 之间 vue-router 按注册顺序匹配,内置 404 必须排在用户捕获页之后。
+   */
+  isGlobalCatchAll?: boolean;
 }
 
 /** 扫描得到的布局(`layouts/` 下 `xx.vue` 或 `xx/index.vue`)。 */

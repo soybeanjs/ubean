@@ -152,6 +152,18 @@ export type { PageHeadClient } from './head';
 // page-entry kind discriminator (authoritative) + derived-alias resolver
 export { resolvePageKind } from './page-kind';
 
+// built-in global routes (Root / NotFound) — 名字契约与注册顺序的唯一来源
+// (零依赖:服务端运行时图 `@ubean/routes` 也从这里取值,不要改回 `@ubean/scan`)
+export {
+  ROOT_ROUTE_NAME,
+  NOT_FOUND_ROUTE_NAME,
+  NOT_FOUND_ROUTE_PATH,
+  RESERVED_ROUTE_NAMES,
+  isReservedRouteName,
+  isGlobalCatchAllPage,
+  sortPagesForRouting
+} from './global-routes';
+
 // shared page-routing types (also re-exported by the @ubean/scan aggregator)
 export type {
   PageHead,

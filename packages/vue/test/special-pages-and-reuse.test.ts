@@ -44,42 +44,95 @@ function writeFile(relPath: string, content: string): void {
   writeFileSync(full, content);
 }
 
-describe('scanPages — 特殊页检测', () => {
-  it('404.vue → notFoundPage 设置', async () => {
+describe('scanPages — 内置全局路由', () => {
+  it('404.vue → pages 里的内置全局捕获条目（名字 NotFound）', async () => {
     writeFile('404.vue', '<template><div>Not Found</div></template>');
     const result = await scan();
-    expect(result.notFoundPage).toBeDefined();
+    const page = result.pages.find(p => p.name === 'NotFound');
+    expect(page).toBeDefined();
+    expect(page?.route).toBe('/:pathMatch(.*)*');
+    expect(page?.isBuiltin).toBe(true);
+    expect(page?.isGlobalCatchAll).toBe(true);
+    expect(page?.routable).toBe(true);
+    // 公开契约字段保留（别名指向同一条目）
+    expect(result.notFoundPage).toBe(page);
+  });
+
+  it('404/index.vue → 同样识别为内置全局捕获路由', async () => {
+    writeFile('404/index.vue', '<template>Not Found</template>');
+    const result = await scan();
     expect(result.notFoundPage?.name).toBe('NotFound');
-    // 404 不出现在常规 pages 列表
-    expect(result.pages.find(p => p.name === 'NotFound')).toBeUndefined();
+    expect(result.notFoundPage?.isGlobalCatchAll).toBe(true);
   });
 
-  it('loading.vue → loadingPage 设置', async () => {
-    writeFile('loading.vue', '<template><div>Loading...</div></template>');
+  it('not-found.vue → NotFound 的别名声明形态', async () => {
+    writeFile('not-found.vue', '<template>Not Found</template>');
     const result = await scan();
-    expect(result.loadingPage).toBeDefined();
+    expect(result.notFoundPage?.name).toBe('NotFound');
+    expect(result.notFoundPage?.route).toBe('/:pathMatch(.*)*');
+  });
+
+  it('404.vue + not-found.vue 同时存在 → 只注册一条，不重复', async () => {
+    writeFile('404.vue', '<template>Not Found A</template>');
+    writeFile('not-found.vue', '<template>Not Found B</template>');
+    const result = await scan();
+    expect(result.pages.filter(p => p.name === 'NotFound')).toHaveLength(1);
+  });
+
+  it('pages/index.vue → Root 内置路由（名字 Index，路径 /）', async () => {
+    writeFile('index.vue', '<template>Home</template>');
+    const result = await scan();
+    const page = result.pages.find(p => p.route === '/');
+    expect(page?.name).toBe('Index');
+    expect(page?.isBuiltin).toBe(true);
+    expect(page?.isGlobalCatchAll).toBeUndefined();
+    expect(page?.routable).toBe(true);
+  });
+
+  it('pages/root.vue 与 pages/root/index.vue 也是 Root 的声明形态', async () => {
+    writeFile('root.vue', '<template>Home</template>');
+    const a = await scan();
+    expect(a.pages.find(p => p.route === '/')?.name).toBe('Index');
+    expect(a.pages.find(p => p.route === '/')?.isBuiltin).toBe(true);
+
+    rmSync(join(pagesDir, 'root.vue'));
+    writeFile('root/index.vue', '<template>Home</template>');
+    const b = await scan();
+    expect(b.pages.find(p => p.route === '/')?.name).toBe('Index');
+  });
+
+  it('显式 definePage({ name: "NotFound" }) 撞保留名 → 警告并跳过注册', async () => {
+    writeFile('404.vue', '<template>Not Found</template>');
+    writeFile('ghost.vue', `<script setup>definePage({ name: 'NotFound' });</script><template>ghost</template>`);
+    const result = await scan();
+    const ghost = result.pages.find(p => p.relativePath === 'ghost.vue');
+    expect(ghost?.routable).toBe(false);
+    // 条目仍在清单里（宿主菜单/目录仍能消费）
+    expect(result.pages.filter(p => p.name === 'NotFound')).toHaveLength(2);
+  });
+
+  it('loading.vue / error.vue → 组件槽位，留在 pages 但不参与路由', async () => {
+    writeFile('loading.vue', '<template>Loading...</template>');
+    writeFile('error.vue', '<template>Error</template>');
+    const result = await scan();
     expect(result.loadingPage?.name).toBe('Loading');
-    expect(result.pages.find(p => p.name === 'Loading')).toBeUndefined();
-  });
-
-  it('error.vue → errorPage 设置', async () => {
-    writeFile('error.vue', '<template><div>Error</div></template>');
-    const result = await scan();
-    expect(result.errorPage).toBeDefined();
+    expect(result.loadingPage?.routable).toBe(false);
     expect(result.errorPage?.name).toBe('Error');
-    expect(result.pages.find(p => p.name === 'Error')).toBeUndefined();
+    expect(result.errorPage?.routable).toBe(false);
+    expect(result.pages.find(p => p.name === 'Loading')?.routable).toBe(false);
+    expect(result.pages.find(p => p.name === 'Error')?.routable).toBe(false);
   });
 
-  it('404.tsx 也被识别为特殊页(默认扩展含 tsx)', async () => {
+  it('404.tsx 也被识别为内置全局捕获路由(默认扩展含 tsx)', async () => {
     writeFile('404.tsx', `export default { name: 'NotFound' }`);
     const result = await scan();
-    expect(result.notFoundPage).toBeDefined();
+    expect(result.notFoundPage?.isGlobalCatchAll).toBe(true);
   });
 
-  it('404.md 也被识别为特殊页', async () => {
+  it('404.md 也被识别为内置全局捕获路由', async () => {
     writeFile('404.md', `# Not Found`);
     const result = await scan();
-    expect(result.notFoundPage).toBeDefined();
+    expect(result.notFoundPage?.isGlobalCatchAll).toBe(true);
   });
 
   it('同时存在 404/loading/error → 三者均设置', async () => {
@@ -92,7 +145,7 @@ describe('scanPages — 特殊页检测', () => {
     expect(result.errorPage).toBeDefined();
   });
 
-  it('嵌套 users/404.vue → 常规路由，非特殊页', async () => {
+  it('嵌套 users/404.vue → 常规路由，非内置路由', async () => {
     mkdirSync(join(pagesDir, 'users'), { recursive: true });
     writeFileSync(join(pagesDir, 'users', '404.vue'), '<template>users 404</template>');
     const result = await scan();
@@ -100,9 +153,10 @@ describe('scanPages — 特殊页检测', () => {
     // users/404.vue 作为常规路由存在
     const page = result.pages.find(p => p.route === '/users/404');
     expect(page).toBeDefined();
+    expect(page?.isBuiltin).toBeUndefined();
   });
 
-  it('无特殊页 → notFoundPage/loadingPage/errorPage 均 undefined', async () => {
+  it('无内置页 → notFoundPage/loadingPage/errorPage 均 undefined', async () => {
     writeFile('about.vue', '<template>About</template>');
     const result = await scan();
     expect(result.notFoundPage).toBeUndefined();
@@ -206,18 +260,18 @@ describe('scanPages — reuse 路由', () => {
   });
 });
 
-describe('scanPages — 特殊页与 reuse 混合', () => {
-  it('特殊页 + reuse + 常规页共存', async () => {
+describe('scanPages — 内置路由与 reuse 混合', () => {
+  it('内置路由 + reuse + 常规页共存', async () => {
     writeFile('404.vue', '<template>404</template>');
     writeFile('about.vue', '<template>About</template>');
     writeFile('about2.reuse.ts', `definePage({ reuse: 'About' });`);
     const result = await scan();
-    expect(result.notFoundPage).toBeDefined();
+    expect(result.notFoundPage?.isGlobalCatchAll).toBe(true);
     const regular = result.pages.filter(p => p.pageKind !== 'reuse');
     const reuse = result.pages.filter(p => p.pageKind === 'reuse');
-    expect(regular).toHaveLength(1);
+    // 常规 = About + 内置 NotFound
+    expect(regular.map(p => p.name).sort()).toEqual(['About', 'NotFound']);
     expect(reuse).toHaveLength(1);
-    expect(regular[0].name).toBe('About');
     expect(reuse[0].reuseTarget).toBe('About');
   });
 });

@@ -283,9 +283,8 @@ ${items}
     const layoutType = scan.layouts.length > 0 ? `'${scan.layouts.map(l => l.name).join("' | '")}'` : 'string';
 
     // Categorize route keys following the elegant-router model:
-    //   - RouteFileKey:   routes with a real .vue/.md file (excludes reuse & builtin)
+    //   - RouteFileKey:   routes with a real .vue/.md file (excludes reuse)
     //   - RouteReuseKey:  routes declared via `.reuse.ts` / `.reuse.js` metadata files
-    //   - BuiltinRouteKey: framework-provided routes (root / not_found / ...)
     //   - RouteKey:       union of the above (= all page route names)
     const filePages = scan.pages.filter(p => resolvePageKind(p) === 'component');
     const reusePages = scan.pages.filter(p => resolvePageKind(p) === 'reuse');
@@ -294,6 +293,11 @@ ${items}
     const reuseKeyType = reusePages.length > 0 ? `'${reusePages.map(p => p.name).join("' | '")}'` : 'never';
     const routableNames = scan.pages.filter(p => !isNonRoutable(p)).map(p => p.name);
     const allKeyType = routableNames.length > 0 ? `'${routableNames.join("' | '")}'` : 'never';
+    // 内置全局路由（Root `Index` / 捕获路由 `NotFound`）由框架提供，不来自用户文件。
+    // 单列一个类型而不是从 `RouteKey` 里剔掉：`RouteKey` 会包含它们（它们是真实路由），
+    // 而宿主想「只遍历自己的页面」时需要一个现成的差集。
+    const builtinNames = scan.pages.filter(p => p.isBuiltin).map(p => p.name);
+    const builtinKeyType = builtinNames.length > 0 ? `'${builtinNames.join("' | '")}'` : 'never';
 
     return `${header}
 
@@ -301,7 +305,7 @@ export type LayoutKey = ${layoutType};
 
 /**
  * Route keys that have a corresponding source file (\`.vue\` / \`.md\`).
- * Excludes reuse routes and builtin routes.
+ * Excludes reuse routes.
  *
  * The \`views\` map is keyed by this type — \`views[RouteFileKey]\` resolves
  * to the actual component loader.
@@ -315,16 +319,17 @@ export type RouteFileKey = ${fileKeyType};
 export type RouteReuseKey = ${reuseKeyType};
 
 /**
- * Builtin route keys (framework-provided, e.g. \`root\` / \`not_found\`).
- * Currently unused — reserved for future builtin pages.
- */
-export type BuiltinRouteKey = never;
-
-/**
- * All page route names. Union of {@link RouteFileKey}, {@link RouteReuseKey}
- * and {@link BuiltinRouteKey}.
+ * All page route names. Union of {@link RouteFileKey} and {@link RouteReuseKey},
+ * including framework built-in routes ({@link BuiltinRouteKey}).
  */
 export type RouteKey = ${allKeyType};
+
+/**
+ * Framework built-in route names (Root \`Index\` / global catch-all \`NotFound\`).
+ * Declared by \`pages/index.vue\` / \`pages/404.vue\` (and their alias forms) —
+ * not by application pages. Filter these out when building menus from {@link RouteKey}.
+ */
+export type BuiltinRouteKey = ${builtinKeyType};
 
 export type Lazy<T> = () => Promise<T>;
 export type RawRouteComponent = import('vue').Component | Lazy<import('vue').Component>;
@@ -396,6 +401,9 @@ ${views}
     const reuseRoutes = scan.pages.filter(p => resolvePageKind(p) === 'reuse');
     const reuseKeys = reuseRoutes.length > 0 ? reuseRoutes.map(p => `"${p.name}"`).join(' | ') : 'never';
 
+    const builtinRoutes = scan.pages.filter(p => p.isBuiltin);
+    const builtinKeys = builtinRoutes.length > 0 ? builtinRoutes.map(p => `"${p.name}"`).join(' | ') : 'never';
+
     const layoutKeyList = scan.layouts.length > 0 ? scan.layouts.map(l => `"${l.name}"`).join(' | ') : 'never';
 
     // RouteNamedMap:每条路由 → RouteRecordInfo<Name, Path, ParamsRaw, Params>
@@ -442,18 +450,18 @@ ${pathMapEntries}
   export type ReuseRouteKey = ${reuseKeys};
 
   /**
-   * Builtin route keys (framework-provided, e.g. \`root\` / \`not_found\`).
-   * Currently unused — reserved for future builtin pages.
+   * Framework built-in route keys (Root \`Index\` / global catch-all \`NotFound\`).
    */
-  export type BuiltinRouteKey = never;
+  export type BuiltinRouteKey = ${builtinKeys};
 
   /**
    * Route keys that have a corresponding source file (\`.vue\` / \`.md\`).
-   * Excludes reuse routes and builtin routes.
+   * Excludes reuse routes. **Includes built-in routes** — \`pages/404.vue\` 有真实组件，
+   * \`views\` 里必须有它（否则 \`views[RouteFileKey]\` 索引不到捕获页的 loader）。
    *
    * Use this to index the \`views\` map for component lookup.
    */
-  export type RouteFileKey = Exclude<RouteKey, ReuseRouteKey | BuiltinRouteKey>;
+  export type RouteFileKey = Exclude<RouteKey, ReuseRouteKey>;
 }
 
 declare module 'vue-router/auto-routes' {

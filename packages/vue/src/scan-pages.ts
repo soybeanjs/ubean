@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises';
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
 import { extractDefinePageFromCode } from './extract-page';
+import { NOT_FOUND_ROUTE_NAME, NOT_FOUND_ROUTE_PATH, ROOT_ROUTE_NAME, isReservedRouteName } from './global-routes';
 import { generateRouteName } from './route-name';
 import { filePathToRoute } from './route-path';
 import type {
@@ -23,7 +24,9 @@ import type {
  * - reuse 路由（`.reuse.ts` / `.reuse.js`，纯元数据文件单独注入 `definePage`）+ cache 继承
  * - markdown 页面(opt-in,`@ubean/markdown` 按需加载解析 frontmatter)
  * - 页面级 head(opt-in,`definePage({ head })` / frontmatter `head`)
- * - 特殊页:`404` / `loading` / `error`(仅页面目录根级)
+ * - 特殊页:`404` / `loading` / `error` / `root`(根级或 `<name>/index.*` 形态)
+ * - 内置全局路由(Root / NotFound)与普通页同池:`pages` 里带 `isBuiltin` 标记,
+ *   路由名 `Index` / `NotFound` 为框架保留名(撞名者扫描期告警并跳过注册)
  * - 并行路由 `@slot/`
  * - `[param=matcher]` 语法 → matchers 映射
  *
@@ -259,43 +262,72 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       const { cleanedBase, slot } = extractSlotFromPath(rawFileBase);
       const fileBase = cleanedBase;
 
-      // Special preset pages at the root of a pages directory:
-      // - `404.vue`     → Vue Router catch-all + Hono fallback
-      // - `loading.vue` → <Suspense> fallback component
-      // - `error.vue`   → ErrorBoundary component
-      // Only root-level files are treated as special; nested files like
-      // `users/404.vue` remain regular routes at `/users/404`.
-      if (
-        !isReuseFile &&
-        !isMetaFile &&
-        dirPart === '' &&
-        (pageBase === '404' || pageBase === 'loading' || pageBase === 'error')
-      ) {
+      // 特殊页判据用**折叠后的逻辑路径**（`404/index.vue` → `404`，与 layouts 的处理一致）。
+      // `pages/index.vue`（dirPart 为空）不在其中 —— 它是 Root 路由的常规声明形态。
+      const specialBase = pageBase === 'index' ? dirPart : dirPart ? `${dirPart}/${pageBase}` : pageBase;
+
+      // 内置全局路由（`pages/404.vue` 等）的声明形态：
+      // - `404.vue` / `not-found.vue` / `404/index.vue` / `not-found/index.vue`
+      //     → 全局捕获路由（名字固定 `NotFound`，路径 `/:pathMatch(.*)*`）
+      // - `loading.vue` / `error.vue`（含 `*/index.*`）→ Suspense / ErrorBoundary 槽位
+      //
+      // 嵌套目录不参与：`users/404.vue` 仍是常规路由 `/users/404`。
+      const specialKind: 'notFound' | 'loading' | 'error' | null =
+        specialBase === '404' || specialBase === 'not-found'
+          ? 'notFound'
+          : specialBase === 'loading'
+            ? 'loading'
+            : specialBase === 'error'
+              ? 'error'
+              : null;
+
+      // Root（`/`）的三个声明形态：根级 `index.vue`、`root.vue`、`root/index.vue`。
+      // 它**不是**特殊页 —— 走下面普通页的同一条路径（`definePage({ head, layout, cache,
+      // name })` 全部照常生效），只在收尾把路径归一到 `/`、名字归一到 `Index`。
+      const isRootDecl = dirPart === '' && pageBase === 'index' ? true : specialBase === 'root';
+
+      if (!isMetaOnlyFile && specialKind) {
+        // 一个槽位只能有一个声明者：`404.vue` 与 `not-found.vue` 同时存在时先到先得
+        // （`files.sort()` 下 `404.vue` 在前）。静默丢弃会让用户对「哪个生效」无从得知。
+        if (specialKind === 'notFound' && notFoundPage) {
+          warn(
+            `检测到多个全局捕获路由声明（已有 "${notFoundPage.relativePath}"，又发现 "${relativePath}"）—— ` +
+              `只有第一个生效，"${relativePath}" 已跳过。`
+          );
+          continue;
+        }
         const { route: specialRoute, cleaned: specialCleaned } = filePathToRoute(fileBase);
-        // 404 的运行时约定名为 'NotFound'(catch-all 路由与守卫跳转目标)。
-        const specialName = pageBase === '404' ? 'NotFound' : generateRouteName(specialCleaned || specialRoute);
+        const isNotFound = specialKind === 'notFound';
         const specialPage: ScannedPage = {
           fullPath,
           relativePath,
           dirname: dirname(relativePath),
           basename: basename(relativePath),
-          name: specialName,
-          route: specialRoute,
-          path: specialRoute,
+          // 路由名是框架契约(`Index` / `NotFound` 被路由守卫、类型生成与宿主消费),
+          // 不能从文件名派生:`404` 派不出合法标识符,`root` 会派成 `Root`。
+          name: isNotFound ? NOT_FOUND_ROUTE_NAME : generateRouteName(specialCleaned || specialRoute),
+          // 捕获路由的 URL 形态是 vue-router 的内部约定，不是页面文件派生的路径。
+          route: isNotFound ? NOT_FOUND_ROUTE_PATH : specialRoute,
+          path: isNotFound ? NOT_FOUND_ROUTE_PATH : specialRoute,
           layout: undefined,
           cache: undefined,
           pageKind: 'component',
-          routable: true,
+          // loading / error 是组件槽位而非路由:`routable: false` 让它们留在页面清单里
+          // 但不进路由表(否则凭空多出 `/loading`、`/error` 两条 URL)。
+          routable: !(specialKind === 'loading' || specialKind === 'error'),
           isMarkdown,
           reuseTarget: undefined,
           pageMeta: undefined,
-          frontmatter: undefined
+          frontmatter: undefined,
+          isBuiltin: isNotFound,
+          isGlobalCatchAll: isNotFound
         };
-        if (pageBase === '404') {
-          notFoundPage ??= specialPage;
-        } else if (pageBase === 'loading') {
+        pages.push(specialPage);
+        if (isNotFound) {
+          notFoundPage = specialPage;
+        } else if (specialKind === 'loading') {
           loadingPage ??= specialPage;
-        } else {
+        } else if (specialKind === 'error') {
           errorPage ??= specialPage;
         }
         continue;
@@ -378,9 +410,11 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         relativePath,
         dirname: dirname(relativePath),
         basename: basename(relativePath),
-        name: pageMeta?.name || name,
-        route: pageMeta?.path || route,
-        path: pageMeta?.path || route,
+        // Root 声明：路径归一到 `/`（`root.vue` / `root/index.vue` 会派生 `/root`），
+        // 名字回退到保留名 `Index`（`definePage({ name })` 仍可覆盖，与普通页一致）。
+        name: isRootDecl ? pageMeta?.name || ROOT_ROUTE_NAME : pageMeta?.name || name,
+        route: isRootDecl ? '/' : pageMeta?.path || route,
+        path: isRootDecl ? '/' : pageMeta?.path || route,
         layout: pageMeta?.layout,
         cache: pageMeta?.cache,
         pageKind,
@@ -391,7 +425,8 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         frontmatter,
         slot,
         matchers,
-        redirect: pageMeta?.redirect
+        redirect: pageMeta?.redirect,
+        isBuiltin: isRootDecl || undefined
       });
     }
   }
@@ -424,6 +459,21 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         isDefault
       });
     }
+  }
+
+  // 保留路由名:框架内置的全局路由(`Index` / `NotFound`)占用这两个名字。
+  // 普通页派生或 `definePage({ name })` 显式撞名时,跳过注册并告警 —— 静默产出两条同名
+  // 路由会让 vue-router 覆盖其中一条(表现为「某页打不开」,且两侧覆盖顺序可能不同)。
+  // 放在循环后而不是循环内:结果与文件遍历顺序无关,`.reuse.ts` 的撞名也能一并拦下。
+  for (const page of pages) {
+    if (page.isBuiltin || !isReservedRouteName(page.name)) continue;
+    warn(
+      `页面 "${page.relativePath}" 使用了框架保留的路由名 "${page.name}",已跳过路由注册。\n` +
+        `"${page.name}" 是内置全局路由的名字(${page.name === ROOT_ROUTE_NAME ? '`/` Root 路由' : '`/:pathMatch(.*)*` 全局捕获路由'}),` +
+        `由 \`pages/${page.name === ROOT_ROUTE_NAME ? 'index.vue` / `pages/root.vue' : '404.vue` / `pages/not-found.vue'}\` 声明。\n` +
+        `请用 \`definePage({ name: '其他名字' })\` 改掉,或把该页改名为对应的内置形态。`
+    );
+    page.routable = false;
   }
 
   // Reuse routes reference a target page by name. The target must be a

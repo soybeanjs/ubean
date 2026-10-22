@@ -1,3 +1,4 @@
+import { NOT_FOUND_ROUTE_PATH, sortPagesForRouting } from './global-routes';
 import { resolvePageKind } from './page-kind';
 import { PARAM_TYPE_IMPORT, extractRouteParams, renderParamsType } from './route-params';
 import type { ScannedPage, ScanPagesResult } from './types';
@@ -123,9 +124,22 @@ function withLocaleParam(routerPath: string, vueParam?: string): string {
   return `/${vueParam}${routerPath}`;
 }
 
+/**
+ * 内置 404 条目归一化。
+ *
+ * 新形态下内置 404 就在 `pages` 里（带 `isGlobalCatchAll` 标记），但 `notFoundPage`
+ * 是公开契约字段（扫描结果的别名），调用方可能只传它 —— 两者合并成一份清单，
+ * 避免「同一份路由表在两个入参里各算一次」的旧分支。
+ */
+function withBuiltinPages(input: PagesModuleInput): ScannedPage[] {
+  if (input.pages.some(p => p.isGlobalCatchAll)) return input.pages;
+  return input.notFoundPage ? [...input.pages, input.notFoundPage] : input.pages;
+}
+
 /** Generate the virtual module source(plain JS — no TS syntax, SSR-safe)。 */
 export function generatePagesModuleSource(input: PagesModuleInput, locale?: LocaleRouteCompileOptions): string {
-  const { pages, layouts } = input;
+  const { layouts } = input;
+  const pages = withBuiltinPages(input);
   const pageLoaders: string[] = [];
   const layoutLoaders: string[] = [];
   const routeEntries: string[] = [];
@@ -140,7 +154,9 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
   }
 
   const sortedPages = sortPagesByReuseDependency(pages);
-  const routablePages = sortedPages.filter(p => p.routable !== false);
+  // 全局捕获路由（`isGlobalCatchAll`）排到最后 —— vue-router 的 catch-all 按**注册顺序**
+  // 匹配，内置 404 排在用户 `[...slug].vue` 之前会把它整个吞掉（实测）。
+  const routablePages = sortPagesForRouting(sortedPages.filter(p => p.routable !== false));
 
   // Generate page loader variables for all pages (including slot pages).
   // `.meta.ts` / `.meta.js` 元数据页没有组件实现（模块没有 default export），
@@ -157,18 +173,11 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
     }
   }
 
-  // 404 page participates in the named-page surface (`pageNames` /
-  // `_pageLoaders`) so `resolvePageComponent('NotFound')` works and stays
-  // consistent with the `PageName` union in typed-router.d.ts.
-  if (input.notFoundPage) {
-    pageLoaders.push(
-      `const Page_NotFound = () => import(${JSON.stringify(input.notFoundPage.fullPath)}).then(m => m.default || m);`
-    );
-  }
   // `routable: false` 的组件页仍留在命名页面上——reuse 路由靠 `_pageLoaders`
   // 拿到目标组件；这里只排除无组件实现的 `.meta.*` 元数据页。
-  const loadedPages = sortedPages.filter(p => resolvePageKind(p) !== 'meta');
-  const namedPages = input.notFoundPage ? [...loadedPages, input.notFoundPage] : loadedPages;
+  // 内置页（Root / NotFound）已在 `pages` 里，不再单独追加 —— 以前 NotFound 靠
+  // `input.notFoundPage` 额外 push 一次，会与 `pages` 里的同一条目重复。
+  const namedPages = sortedPages.filter(p => resolvePageKind(p) !== 'meta');
 
   // Group parallel routes by route path so they can be registered as
   // Vue Router named views (`components: { default, slotName }`).
@@ -178,7 +187,8 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
   const routeGroups = new Map<string, { default?: ScannedPage; slots: Map<string, ScannedPage> }>();
 
   for (const p of routablePages) {
-    const routerPath = toVueRouterPath(p.route);
+    // 全局捕获路由的 URL 形态是 vue-router 的内部约定，不是页面文件派生的路径。
+    const routerPath = p.isGlobalCatchAll ? NOT_FOUND_ROUTE_PATH : toVueRouterPath(p.route);
     let group = routeGroups.get(routerPath);
     if (!group) {
       group = { slots: new Map() };
@@ -229,16 +239,8 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
     }
   }
 
-  // 404 catch-all route: register `/:pathMatch(.*)*` so unmatched URLs
-  // render the 404 component. Works for both SPA navigation and SSR.
-  let hasNotFound = false;
-  if (input.notFoundPage) {
-    hasNotFound = true;
-    const notFoundPath = withLocaleParam('/:pathMatch(.*)*', locale?.vueParam);
-    routeEntries.push(
-      `  { path: ${JSON.stringify(notFoundPath)}, name: "NotFound", component: Page_NotFound, meta: { pageName: "NotFound" } }`
-    );
-  }
+  // `hasNotFoundPage()` 读的是扫描结果里的标记（404 现在就是 `pages` 里的普通条目）。
+  const hasNotFound = pages.some(p => p.isGlobalCatchAll === true);
 
   // Loading / error components (Suspense fallback / ErrorBoundary).
   let loadingLoaderName = 'null';
@@ -350,17 +352,15 @@ function renderRouteRecordInfo(page: ScannedPage): string {
 
 /** 虚拟模块导出面声明(`declare module` 内部内容,环境声明产物使用)。 */
 function renderVirtualModuleBody(input: PagesModuleInput, moduleId: string): string {
-  const pages = input.pages;
   // `PageName` / `RouteNamedMap` 只描述**可路由**页面 —— `routable: false` 的条目
   // 永远不可能作为路由名出现，放进 union 会让 `router.push({ name })` 类型通过、
   // 运行时挂掉。它们仍可通过 `resolvePageComponent()` 解析（组件实现仍然存在）。
-  const routablePages = pages.filter(p => p.routable !== false);
+  const routablePages = withBuiltinPages(input).filter(p => p.routable !== false);
   const nameUnion = routablePages.length > 0 ? routablePages.map(p => JSON.stringify(p.name)).join(' | ') : 'never';
-  const notFound = input.notFoundPage ? ` | ${JSON.stringify(input.notFoundPage.name)}` : '';
 
   return `declare module '${moduleId}' {
   export const routes: import('vue-router').RouteRecordRaw[];
-  export type PageName = ${nameUnion}${notFound};
+  export type PageName = ${nameUnion};
   export const pageNames: PageName[];
   export const layoutNames: string[];
   export const defaultLayout: string | null;
@@ -377,6 +377,8 @@ function renderVirtualModuleBody(input: PagesModuleInput, moduleId: string): str
     pageKind: 'component' | 'reuse' | 'meta';
     /** 是否参与路由注册；false 的条目只在扫描清单里。 */
     routable: boolean;
+    /** 是否为框架内置路由（Root / NotFound）。宿主生成菜单时应过滤。 */
+    isBuiltin?: boolean;
     reuseTarget?: string;
     pageMeta: import('@ubean/vue').PageMeta | null;
   }>;

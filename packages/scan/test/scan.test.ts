@@ -36,16 +36,17 @@ async function scan() {
 }
 
 describe('scanProject — 聚合扫描', () => {
-  it('页面扫描委托 @ubean/vue:pages/layouts/notFoundPage 透传', async () => {
+  it('页面扫描委托 @ubean/vue：内置 404 就是 `pages` 里的条目，notFoundPage 是它的别名', async () => {
     writeFile('pages/index.vue', '<template>Home</template>');
     writeFile('pages/about.vue', '<template>About</template>');
     writeFile('pages/404.vue', '<template>404</template>');
     writeFile('layouts/default.vue', '<template><slot /></template>');
     const result = await scan();
-    expect(result.pages.map(p => p.route).sort()).toEqual(['/', '/about']);
+    expect(result.pages.map(p => p.route).sort()).toEqual(['/', '/:pathMatch(.*)*', '/about']);
     expect(result.layouts).toHaveLength(1);
     expect(result.layouts[0].name).toBe('default');
     expect(result.notFoundPage?.name).toBe('NotFound');
+    expect(result.notFoundPage).toBe(result.pages.find(p => p.isGlobalCatchAll));
   });
 
   it('API 路由扫描:方法后缀 + defineHandler 导出检测', async () => {

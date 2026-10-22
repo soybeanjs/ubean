@@ -575,8 +575,8 @@ const s = '括号)内部';
 
     const scan = await scanClientPages(root, {});
 
-    // _ignored / components/ 被排除;顺序为确定性文件字母序(index.vue 排在 about 后)
-    expect(scan.pages.map(p => p.path)).toEqual(['/about', '/', '/legacy', '/users/:id']);
+    // `_ignored / components/ 被排除;内置 404 与普通页同池(404.vue 排在最前)
+    expect(scan.pages.map(p => p.path)).toEqual(['/:pathMatch(.*)*', '/about', '/', '/legacy', '/users/:id']);
 
     // `definePage({ redirect })` 必须进扫描结果 —— 漏了它客户端路由表 / dev SSR 表 /
     // 产物白名单都会静默拿不到目标（旧配置字段 `routing.rootRedirect` 的替代）。
@@ -591,10 +591,14 @@ const s = '括号)内部';
     expect(about.pageMeta?.transition).toBe('fade');
     expect(about.pageMeta?.meta?.custom).toBe(1); // meta 自由字段透传
 
-    // 扫描结果保留文件派生路径;catch-all '/:pathMatch(.*)*' 由虚拟模块生成
-    expect(scan.notFoundPage?.route).toBe('/404');
-    expect(scan.notFoundPage?.name).toBe('NotFound');
-
+    // 404 现在与普通页同池（`pages` 里带 `isBuiltin` / `isGlobalCatchAll` 标记），
+    // route 直接是 vue-router 的捕获形态。
+    const notFound = scan.pages.find(p => p.isGlobalCatchAll)!;
+    expect(notFound.route).toBe('/:pathMatch(.*)*');
+    expect(notFound.name).toBe('NotFound');
+    expect(notFound.isBuiltin).toBe(true);
+    expect(scan.notFoundPage).toBe(notFound);
+    expect(scan.pages.map(p => p.path)).toEqual(['/:pathMatch(.*)*', '/about', '/', '/legacy', '/users/:id']);
     await rm(root, { recursive: true, force: true });
   });
 
@@ -623,11 +627,13 @@ const s = '括号)内部';
       layouts: [],
       notFoundPage: {
         fullPath: '/x/pages/404.vue',
-        route: '/404',
-        path: '/404',
+        route: '/:pathMatch(.*)*',
+        path: '/:pathMatch(.*)*',
         name: 'NotFound',
         pageKind: 'component',
-        isMarkdown: false
+        isMarkdown: false,
+        isBuiltin: true,
+        isGlobalCatchAll: true
       },
       loadingPage: {
         fullPath: '/x/pages/loading.vue',
@@ -706,16 +712,22 @@ const s = '括号)内部';
   });
 
   it('generateVirtualModuleDts 产出环境模块声明(script,pageNames union)', () => {
+    // 404 与普通页同池：`pages` 里带 `isBuiltin` / `isGlobalCatchAll` 标记，
+    // `PageName` 并集直接从 `pages` 推导（不再需要单独的 notFoundPage 入参）。
     const input = {
-      pages: [{ fullPath: '/a.vue', route: '/', path: '/', name: 'Home', pageKind: 'component', isMarkdown: false }],
-      notFoundPage: {
-        fullPath: '/404.vue',
-        route: '/404',
-        path: '/404',
-        name: 'NotFound',
-        pageKind: 'component',
-        isMarkdown: false
-      }
+      pages: [
+        { fullPath: '/a.vue', route: '/', path: '/', name: 'Home', pageKind: 'component', isMarkdown: false },
+        {
+          fullPath: '/404.vue',
+          route: '/:pathMatch(.*)*',
+          path: '/:pathMatch(.*)*',
+          name: 'NotFound',
+          pageKind: 'component',
+          isMarkdown: false,
+          isBuiltin: true,
+          isGlobalCatchAll: true
+        }
+      ]
     };
     const dts = generateVirtualModuleDts(input);
     // script 文件:不得含顶层 export,否则 declare module 变为模块增强

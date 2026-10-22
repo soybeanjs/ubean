@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.1...main) (2026-10-22) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **builder**: generate the vue-i18n locale union from scanned locales &nbsp;-&nbsp; by @soybeanjs [<samp>(ff368)</samp>](https://github.com/soybeanjs/ubean/commit/ff368247)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **projects**: format code &nbsp;-&nbsp; by @soybeanjs [<samp>(360af)</samp>](https://github.com/soybeanjs/ubean/commit/360af8c0)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.0...main) (2026-10-22) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

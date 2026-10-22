@@ -1,8 +1,8 @@
 ---
 title: 路由助手
 description: "路由辅助 API：useRouter、Link 组件与导航工具。"
-translatedFrom: 6cc07c109531
-sections: ["b796b6bc","e3b0c442","76a55e45","f163b508","b658cb7e","bb15e274","1da939ea","0f9ab036","2ccdf592","7733dc06","67b22670","37e8f1d0","f9d15bfe","57880fc8","8fe845b1","e90debf5","ac2790bc","29d22aa9","58e47c48"]
+translatedFrom: eac768b27e55
+sections: ["b796b6bc","e3b0c442","76a55e45","f163b508","b658cb7e","bb15e274","1da939ea","0f9ab036","2ccdf592","7733dc06","67b22670","37e8f1d0","f9d15bfe","57880fc8","8fe845b1","6662265f","3cd2ecf7","ac2790bc","29d22aa9","58e47c48"]
 ---
 
 # 路由助手
@@ -249,9 +249,31 @@ definePage({
 | `head`          | `object`              | 页面级 head 标签（@unhead/vue）     |
 | `ssr`           | `boolean \| 'streaming' \| 'data-only'` | 页面级渲染覆盖 |
 | `transition`    | `string`              | 页面过渡名（空字符串表示禁用） |
+| `redirect`      | `string`              | 跳转到另一条路径（必须是以 `/` 开头的字面量） |
 
 > **没有顶层 `title`** 字段——请用 `meta: { title }` 或 `head: { title }`。
 > **没有顶层 `middleware`** 字段——路由级中间件通过 `meta: { middleware: [...] }` 声明。
+
+### 重定向（`redirect`）
+
+`redirect` 把一条路由变成跳转，页面本身不渲染组件。`src/pages/index.vue` 就是根路由，所以「`/` 跳到 `/home`」直接写在页面里：
+
+```ts
+// pages/index.vue
+definePage({ redirect: '/home' });
+```
+
+服务端遇到这条路由返回 **302**（不是 301——目标可能变，301 会被浏览器和 CDN 长期缓存），客户端由 vue-router 完成同样的跳转。
+
+三条约束：
+
+- **只接受字符串字面量**。`redirect: () => '/home'` 这类函数无法在构建期求值，会被忽略并打印一条告警（与 `layout` / `cache` 等字段同样的规则）。
+- **必须是以 `/` 开头的站内路径**。外部 URL 不被支持——vue-router 会把 `https://example.com` 当成路径。需要外链跳转时在页面里自己处理（`router.replace` 之外的方式，如 `window.location`）。
+- **不要写语言前缀**。目标是「路径本身」，前缀由框架按当前请求语言补：配置了 `prefix_except_default` 且当前是中文时，`redirect: '/home'` 会跳到 `/zh/home`；默认语言则停在 `/home`。写成 `/:locale/home` 只会得到一个字面路径。
+
+静态站点（`mode: 'ssg'`）没有重定向的执行点，因此预渲染会**跳过**这类页面并打印一条告警；需要在静态托管上做跳转，请在托管平台侧配置（如 `_redirects` / `redirects` 文件）。
+
+> 旧的路由配置 `routing.rootRedirect` 已删除。`routing` 下写已删除或拼错的字段会得到一条告警，而不是被静默忽略。
 
 ### 页面缓存（`cache: true`）
 

@@ -247,9 +247,31 @@ definePage({
 | `head`          | `object`              | Per-page head tags (@unhead/vue)     |
 | `ssr`           | `boolean \| 'streaming' \| 'data-only'` | Per-page rendering override |
 | `transition`    | `string`              | Page transition name (empty string disables) |
+| `redirect`      | `string`              | Redirect to another path (must be a literal starting with `/`) |
 
 > There is **no top-level `title`** field — use `meta: { title }` or `head: { title }`.
 > There is **no top-level `middleware`** field — route-level middleware is declared via `meta: { middleware: [...] }`.
+
+### Redirects (`redirect`)
+
+`redirect` turns a route into a jump; the page itself renders no component. `src/pages/index.vue` *is* the root route, so "`/` goes to `/home`" lives in the page:
+
+```ts
+// pages/index.vue
+definePage({ redirect: '/home' });
+```
+
+The server answers **302** (not 301 — targets change, and 301 gets cached by browsers and CDNs), and vue-router performs the same jump on the client.
+
+Three constraints:
+
+- **String literals only.** A function such as `redirect: () => '/home'` cannot be evaluated at build time; it is dropped with a warning (the same rule as `layout` / `cache`).
+- **Same-origin paths starting with `/`.** External URLs are not supported — vue-router treats `https://example.com` as a path. For an off-site jump, handle it in the page yourself (e.g. `window.location`, outside `router.replace`).
+- **Do not write a locale prefix.** The target is the path itself; the prefix is added from the request locale: with `prefix_except_default` and a Chinese request, `redirect: '/home'` goes to `/zh/home`, while the default locale stays on `/home`. Writing `/:locale/home` only yields a literal path.
+
+Static sites (`mode: 'ssg'`) have no redirect execution point, so prerendering **skips** these pages with a warning; configure the jump on the hosting side instead (a `_redirects` / `redirects` file).
+
+> The old `routing.rootRedirect` config field is gone. Writing a removed or misspelled field under `routing` now produces a warning instead of being silently ignored.
 
 ### Page Caching (`cache: true`)
 

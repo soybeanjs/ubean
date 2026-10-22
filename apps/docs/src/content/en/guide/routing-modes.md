@@ -27,11 +27,8 @@ export default defineConfig({
   routing: {
     mode: 'file', // 'virtual' | 'file' | 'both' (default 'virtual')
     outputDir: 'src/router/_generated', // Physical file output directory (relative to rootDir; produces routes.ts / imports.ts)
-    defaultLayout: 'default', // Default layout name (default 'default'; set to false to disable)
     routeLazy: true, // Lazy-load route components (default true)
     layoutLazy: true, // Lazy-load layout components (default true)
-    watchFile: true, // Watch file changes in dev mode (default true)
-    fileUpdateDuration: 100, // File-change debounce duration (default 100ms)
     onGenerated(files) {
       console.log('[ubean] Route files generated:', files);
     }
@@ -49,19 +46,12 @@ See the `RoutingConfig` type in [`@ubean/config`](https://github.com/soybeanjs/u
 |---|---|---|---|
 | `mode` | `'virtual' \| 'file' \| 'both'` | `'virtual'` | Route data generation mode |
 | `outputDir` | `string` | `'src/router/_generated'` | Physical file output directory (relative to `rootDir`; produces `routes.ts`/`imports.ts`) |
-| `generateBuiltinRoutes` | `boolean` | `true` | Generate built-in routes (404, root redirect) |
-| `rootRedirect` | `string` | — | Root path redirect target (e.g. `/home`) |
-| `notFoundRouteComponent` | `string` | `'404.vue'` | 404 page component path |
-| `defaultLayout` | `string \| false` | `'default'` | Default layout name |
 | `routeLazy` | `boolean` | `true` | Lazy-load route components |
 | `layoutLazy` | `boolean` | `true` | Lazy-load layout components (parallel to `routeLazy`) |
-| `getRouteName` | `(filePath) => string` | built-in | Custom route name generator |
-| `getRoutePath` | `(filePath) => string` | built-in | Custom route path generator |
-| `getRouteLayout` | `(filePath) => string \| false \| undefined` | built-in | Custom layout resolver |
 | `getRouteMeta` | `(filePath, frontmatter) => Record` | built-in | Custom route meta resolver |
 | `onGenerated` | `(files: string[]) => void` | — | Generation-complete callback (only `file`/`both`) |
-| `watchFile` | `boolean` | `true` | Watch changes in dev (only `file`/`both`) |
-| `fileUpdateDuration` | `number` | `100` | Debounce duration (ms) |
+
+> **Redirects live in the page, not in config.** `src/pages/index.vue` *is* the root route, so "`/` redirects to `/home`" is `definePage({ redirect: '/home' })` — there is no `rootRedirect` config field. The 404 page is likewise decided by whether `src/pages/404.vue` exists (see [Pages & Routing](/guide/pages-routing)); it has no config option either. Writing a removed field under `routing` produces a warning instead of being silently ignored.
 
 > **Page scanning source**: page-file scanning is based directly on `dir.pages` (supports `string | string[]` multi-directory), no longer via separate `pageInclude`/`pageExclude` glob filters. To exclude specific files, use `scanOptions.ignore` (applies to all scan types: pages/routes/layouts/middleware, etc.).
 

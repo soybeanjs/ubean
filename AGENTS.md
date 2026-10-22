@@ -203,7 +203,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 | `defineHandler(...handlers)`                                       | 包装 API 路由处理器，返回 `UbeanHandlerChain`                                                                  |
 | `defineHandlerMeta(meta)`                                          | 路由元数据（`requiresAuth`/`cache`/`rateLimit`），返回带 `.__meta` 的 pass-through 中间件                      |
 | `defineMiddleware(handler)`                                        | 包装中间件                                                                                                     |
-| `definePage(meta)`                                                 | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`requiresAuth`/`cache`/`head`/`ssr`）               |
+| `definePage(meta)`                                                 | 编译时宏，页面 meta（`name`/`path`/`layout`/`reuse`/`meta`/`requiresAuth`/`cache`/`head`/`ssr`/`redirect`）    |
 | `defineMeta(meta)`                                                 | 定义路由 meta                                                                                                  |
 | `validator` / `describeRoute` / `resolver`                         | 来自 `hono-openapi`（ubean 重新导出），请求验证 + OpenAPI                                                      |
 | `defineMatcher(name, fn)`                                          | 注册动态路由 matcher（Task 7），`fn: (value: string) => boolean \| null \| undefined`，返回 falsy 跳过路由     |

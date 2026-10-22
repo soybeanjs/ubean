@@ -1,8 +1,8 @@
 ---
 title: 路由模式
 description: 路由生成模式 —— virtual、file 与 both，以及各自的适用场景。
-translatedFrom: 44e5070e2bc6
-sections: ["4d5b53ca","e3b0c442","67e54e37","14bcb681","9db4f19e","6475bde7","5bd23172","552612bd","8ebbbf8a","daf19d9e","f0219c2c","b513fb15","304af99c","f4bbbca8","16cc49ec","0211962a","eee24468","9cccf9ea"]
+translatedFrom: 72fc1fa10ccd
+sections: ["4d5b53ca","e3b0c442","67e54e37","14bcb681","7c224e24","fecf85a4","5bd23172","552612bd","8ebbbf8a","daf19d9e","f0219c2c","b513fb15","304af99c","f4bbbca8","16cc49ec","0211962a","eee24468","9cccf9ea"]
 ---
 
 # 路由生成模式
@@ -29,11 +29,8 @@ export default defineConfig({
   routing: {
     mode: 'file', // 'virtual' | 'file' | 'both'（默认 'virtual'）
     outputDir: 'src/router/_generated', // 物理文件输出目录（相对 rootDir；产出 routes.ts / imports.ts）
-    defaultLayout: 'default', // 默认布局名（默认 'default'；设为 false 可禁用）
     routeLazy: true, // 懒加载路由组件（默认 true）
     layoutLazy: true, // 懒加载布局组件（默认 true）
-    watchFile: true, // 开发态监听文件变化（默认 true）
-    fileUpdateDuration: 100, // 文件变更防抖时长（默认 100ms）
     onGenerated(files) {
       console.log('[ubean] 路由文件已生成：', files);
     }
@@ -51,19 +48,12 @@ export default defineConfig({
 |---|---|---|---|
 | `mode` | `'virtual' \| 'file' \| 'both'` | `'virtual'` | 路由数据生成模式 |
 | `outputDir` | `string` | `'src/router/_generated'` | 物理文件输出目录（相对 `rootDir`；产出 `routes.ts`/`imports.ts`） |
-| `generateBuiltinRoutes` | `boolean` | `true` | 生成内置路由（404、根路径重定向） |
-| `rootRedirect` | `string` | — | 根路径重定向目标（例如 `/home`） |
-| `notFoundRouteComponent` | `string` | `'404.vue'` | 404 页面组件路径 |
-| `defaultLayout` | `string \| false` | `'default'` | 默认布局名 |
 | `routeLazy` | `boolean` | `true` | 懒加载路由组件 |
 | `layoutLazy` | `boolean` | `true` | 懒加载布局组件（与 `routeLazy` 平行） |
-| `getRouteName` | `(filePath) => string` | 内置 | 自定义路由名生成器 |
-| `getRoutePath` | `(filePath) => string` | 内置 | 自定义路由路径生成器 |
-| `getRouteLayout` | `(filePath) => string \| false \| undefined` | 内置 | 自定义布局解析器 |
 | `getRouteMeta` | `(filePath, frontmatter) => Record` | 内置 | 自定义路由 meta 解析器 |
 | `onGenerated` | `(files: string[]) => void` | — | 生成完成回调（仅 `file`/`both`） |
-| `watchFile` | `boolean` | `true` | 开发态监听变化（仅 `file`/`both`） |
-| `fileUpdateDuration` | `number` | `100` | 防抖时长（ms） |
+
+> **重定向写在页面里，不写在配置里。** `src/pages/index.vue` 就是根路由，所以「`/` 跳到 `/home`」是 `definePage({ redirect: '/home' })`，不再有 `rootRedirect` 配置字段。404 页面同样由 `src/pages/404.vue` 的存在与否决定（见[页面路由](/guide/pages-routing)），也没有对应的配置项。`routing` 里写已删除的字段会收到一条告警，而不是静默忽略。
 
 > **页面扫描来源**：页面文件扫描直接基于 `dir.pages`（支持 `string | string[]` 多目录），不再通过单独的 `pageInclude`/`pageExclude` glob 过滤。要排除特定文件，请使用 `scanOptions.ignore`（对所有扫描类型生效：页面/路由/布局/中间件等）。
 

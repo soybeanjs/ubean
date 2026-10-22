@@ -172,7 +172,9 @@ definePage({
 </template>
 ```
 
-> `definePage` is a compile-time macro. Its top-level fields are `name`, `path`, `layout` (`string` | `string[]` | `false`), `reuse`, `meta`, `requiresAuth`, `cache`, `transition`, `head`, `ssr`. There is no top-level `title` field (use `meta: { title }`) and no top-level `middleware` field — pass route-level middleware through `meta: { middleware }`.
+> `definePage` is a compile-time macro. Its top-level fields are `name`, `path`, `layout` (`string` | `string[]` | `false`), `reuse`, `meta`, `requiresAuth`, `cache`, `transition`, `head`, `ssr`, `redirect`. There is no top-level `title` field (use `meta: { title }`) and no top-level `middleware` field — pass route-level middleware through `meta: { middleware }`.
+>
+> `redirect` replaces the removed `routing.rootRedirect` config field: `src/pages/index.vue` _is_ the root route, so `definePage({ redirect: '/home' })` handles "`/` goes to `/home`". It takes a **string literal only** (a function cannot be evaluated at build time and is dropped with a warning), must be a same-origin path starting with `/`, and must **not** carry a locale prefix — the framework adds it from the request locale. The server answers 302 (not 301). Static SSG has no redirect execution point, so such pages are skipped during prerendering with a warning; configure the jump on the hosting side instead.
 
 #### Special Pages and App Root
 
@@ -324,7 +326,7 @@ export default defineConfig({
   electron: false, // @ubean/integrations/electron (enabling auto-disables SSR unless explicitly set)
   pinia: false, // @ubean/integrations/pinia
   ui: false, // @ubean/integrations/ui (@vean/ui: UiResolver + styles.css auto-injection)
-  routing: { mode: 'virtual' }, // virtual (default) | file | both
+  routing: { mode: 'virtual' }, // virtual (default) | file | both. Root redirects live in the page (`definePage({ redirect })`) — no `rootRedirect` field
   i18n: {
     defaultLocale: 'en',
     locales: ['en', 'zh'],

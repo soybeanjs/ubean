@@ -1,4 +1,4 @@
-import { compileLocalePaths } from '@ubean/i18n';
+import { compileLocalePaths, localeRedirectTarget } from '@ubean/i18n';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 import { isServerAction, matchAnyGlob } from '@ubean/shared';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/shared';
@@ -499,6 +499,22 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     }).hono;
   }
 
+  /**
+   * `definePage({ redirect })` 的目标,按当前请求的语言补前缀。
+   *
+   * `c.get('locale')` 是 locale **代码**(`zh-CN`),不是 URL 段(`zh`)——
+   * 与 `getHonoLocalePaths` 一样交给 `@ubean/i18n` 换算,不在这里手拼。
+   */
+  function resolvePageRedirect(target: string, c: Context<UbeanEnv>): string {
+    if (!i18nConfig?.locales?.length || i18nConfig.strategy === 'no_prefix') return target;
+    return localeRedirectTarget(target, (c.get('locale') as string) || '', {
+      defaultLocale: i18nConfig.defaultLocale || 'en',
+      locales: i18nConfig.locales,
+      strategy: i18nConfig.strategy || 'prefix_except_default',
+      paths: i18nConfig.paths
+    });
+  }
+
   const hasDefaultLayout = layouts.some(l => l.isDefault);
   const { isPagesRequest, pageJsonResponse, renderPage, renderPageToStream } = pagesMod;
   const pageLoaders = options.pageLoaders;
@@ -524,6 +540,17 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       path: c.req.path,
       method: c.req.method
     });
+
+    // `definePage({ redirect })`: 本路由不渲染组件,GET 直接 302。
+    //
+    // 必须在客户端路由表里也是重定向记录 —— 否则服务端渲染原页、客户端
+    // 跳到目标,水合直接对不上。两侧由同一份扫描元数据驱动(见 virtual-pages.ts)。
+    //
+    // 302 而非 301:目标可能随配置/内容变化,永久重定向会被浏览器与 CDN 缓存住。
+    // `data-only` / CSR 页面同理 —— 重定向与 SSR 开关无关。
+    if (method === 'GET' && page.redirect) {
+      return c.redirect(resolvePageRedirect(page.redirect, c), 302);
+    }
 
     let loader: (() => Promise<any>) | undefined;
     let mod: any;

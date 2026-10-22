@@ -80,6 +80,25 @@ export function toVueRouterLocalePath(pagePath: string, localeParam: string): st
 }
 
 /**
+ * Redirect target for a `definePage({ redirect })` route, in the language of
+ * the request that reached it.
+ *
+ * 作者写的是**不带语言前缀**的目标(`/home`),前缀在这里补 —— vue-router 的
+ * 字符串重定向是静态路径,不插值参数,所以两侧都不能写成 `/:locale(zh)?/home`。
+ *
+ * - 客户端: `requestedLocale` 来自 vue-router 已解析的 `to.params.locale`,
+ *   于是 `/zh/` → `/zh/home`、`/` → `/home`(默认语言不带前缀)。
+ * - 服务端: 传入 `c.get('locale')` 得到的 locale **代码**。
+ *
+ * 默认语言与 `prefix` 策略下带前缀的语言由 `localizePath` 自己判断前缀与否,
+ * 调用方不需要再分情况。`requestedLocale` 为空时原样返回目标。
+ */
+export function localeRedirectTarget(target: string, requestedLocale: string, cfg: LocaleRoutingConfig): string {
+  if (!requestedLocale || !cfg.locales.length) return target;
+  return localizePath(target, requestedLocale, cfg);
+}
+
+/**
  * Split a URL path into its locale code and the rest.
  *
  * The returned `locale` is the **code**, not the segment — with

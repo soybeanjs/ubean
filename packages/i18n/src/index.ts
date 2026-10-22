@@ -16,7 +16,8 @@ export {
   toVueRouterLocalePath,
   localeSegment,
   localeFromSegment,
-  localeSegments
+  localeSegments,
+  localeRedirectTarget
 } from './paths';
 
 export {

@@ -92,7 +92,12 @@ export function serializePagesForEntry(pages: ScanResult['pages']): string {
       slot: p.slot,
       // `definePage({ redirect })`：重定向页面在产物里也是重定向记录，
       // 与 dev 的活对象同形 —— 漏了它只在产物里失效（matchers/slot 曾因此静默丢失）。
-      redirect: p.redirect
+      redirect: p.redirect,
+      // 内置全局路由标记。**必须序列化** —— 产物入口靠 `isGlobalCatchAll` 把内置 404
+      // 排到用户 `[...slug].vue` 之后（vue-router 的 catch-all 按注册顺序匹配），
+      // 靠 `isBuiltin` 让宿主过滤菜单。漏掉只会在产物里失效，dev 完全正常。
+      isBuiltin: p.isBuiltin,
+      isGlobalCatchAll: p.isGlobalCatchAll
     }))
   );
 }
@@ -153,7 +158,9 @@ export async function generateVirtualModulesToDisk(
           routable: p.routable,
           pageKind: p.pageKind,
           pageMeta: p.pageMeta,
-          redirect: p.redirect
+          redirect: p.redirect,
+          isBuiltin: p.isBuiltin,
+          isGlobalCatchAll: p.isGlobalCatchAll
         })),
         scanResult.layouts.map(l => ({
           name: l.name,

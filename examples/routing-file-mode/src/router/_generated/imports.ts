@@ -5,7 +5,7 @@ export type LayoutKey = 'default';
 
 /**
  * Route keys that have a corresponding source file (`.vue` / `.md`).
- * Excludes reuse routes and builtin routes.
+ * Excludes reuse routes.
  *
  * The `views` map is keyed by this type — `views[RouteFileKey]` resolves
  * to the actual component loader.
@@ -19,16 +19,17 @@ export type RouteFileKey = 'About' | 'Index' | 'UsersId';
 export type RouteReuseKey = never;
 
 /**
- * Builtin route keys (framework-provided, e.g. `root` / `not_found`).
- * Currently unused — reserved for future builtin pages.
- */
-export type BuiltinRouteKey = never;
-
-/**
- * All page route names. Union of {@link RouteFileKey}, {@link RouteReuseKey}
- * and {@link BuiltinRouteKey}.
+ * All page route names. Union of {@link RouteFileKey} and {@link RouteReuseKey},
+ * including framework built-in routes ({@link BuiltinRouteKey}).
  */
 export type RouteKey = 'About' | 'Index' | 'UsersId';
+
+/**
+ * Framework built-in route names (Root `Index` / global catch-all `NotFound`).
+ * Declared by `pages/index.vue` / `pages/404.vue` (and their alias forms) —
+ * not by application pages. Filter these out when building menus from {@link RouteKey}.
+ */
+export type BuiltinRouteKey = 'Index';
 
 export type Lazy<T> = () => Promise<T>;
 export type RawRouteComponent = import('vue').Component | Lazy<import('vue').Component>;

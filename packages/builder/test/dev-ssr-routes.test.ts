@@ -24,7 +24,7 @@ const ABOUT = page({ name: 'About', route: '/about', layout: 'marketing' });
 const BLOG = page({ name: 'BlogAll', route: '/blog/**:slug' });
 const ALIAS = page({ name: 'AboutAlias', route: '/about-alias', pageKind: 'reuse', reuseTarget: 'About' });
 const SLUG = page({ name: 'SlugPage', route: '/[...slug]' as string });
-const NOT_FOUND = page({ name: 'NotFound', route: '/:pathMatch(.*)*' });
+const NOT_FOUND = page({ name: 'NotFound', route: '/:pathMatch(.*)*', isBuiltin: true, isGlobalCatchAll: true });
 
 const LAYOUTS: ScannedLayout[] = [
   { name: 'default', relativePath: 'layouts/default.vue', fullPath: '/abs/src/layouts/default.vue', isDefault: true },
@@ -44,7 +44,7 @@ function clientRouteEntries(source: string): Array<{ path: string; name: string 
 
 function clientSource(notFoundPage?: ScannedPageRoute, vueParam?: string) {
   return generatePagesModuleSource(
-    { pages: [HOME, ABOUT, BLOG, ALIAS, SLUG], layouts: LAYOUTS, notFoundPage } as never,
+    { pages: [HOME, ABOUT, BLOG, ALIAS, SLUG, ...(notFoundPage ? [notFoundPage] : [])], layouts: LAYOUTS } as never,
     { vueParam }
   );
 }
@@ -65,10 +65,9 @@ describe('buildDevSsrRoutes', () => {
     const source = clientSource(NOT_FOUND);
     const client = clientRouteEntries(source);
     const server = buildDevSsrRoutes({
-      pages: [HOME, ABOUT, BLOG, ALIAS, SLUG],
+      pages: [HOME, ABOUT, BLOG, ALIAS, SLUG, NOT_FOUND],
       layouts: LAYOUTS,
-      loadComponent: load,
-      notFoundPage: NOT_FOUND
+      loadComponent: load
     });
 
     expect(server.map(r => ({ path: r.path, name: r.name }))).toEqual(client);
@@ -79,10 +78,9 @@ describe('buildDevSsrRoutes', () => {
     const source = clientSource(NOT_FOUND, vueParam);
     const client = clientRouteEntries(source);
     const server = buildDevSsrRoutes({
-      pages: [HOME, ABOUT, BLOG, ALIAS, SLUG],
+      pages: [HOME, ABOUT, BLOG, ALIAS, SLUG, NOT_FOUND],
       layouts: LAYOUTS,
       loadComponent: load,
-      notFoundPage: NOT_FOUND,
       localeVueParam: vueParam
     });
 
@@ -98,8 +96,8 @@ describe('buildDevSsrRoutes', () => {
     const pages = [REDIRECT, HOME];
 
     // 无语言前缀：两侧都是静态字符串
-    const clientNoLocale = generatePagesModuleSource({ pages, layouts: LAYOUTS, notFoundPage: NOT_FOUND } as never);
-    const serverNoLocale = buildDevSsrRoutes({ pages, layouts: LAYOUTS, loadComponent: load, notFoundPage: NOT_FOUND });
+    const clientNoLocale = generatePagesModuleSource({ pages: [...pages, NOT_FOUND], layouts: LAYOUTS } as never);
+    const serverNoLocale = buildDevSsrRoutes({ pages: [...pages, NOT_FOUND], layouts: LAYOUTS, loadComponent: load });
     const noLocaleRoute = serverNoLocale.find(r => r.name === 'RedirectHome')!;
     expect(noLocaleRoute.redirect).toBe('/home');
     expect(noLocaleRoute.component).toBeUndefined();
@@ -107,14 +105,13 @@ describe('buildDevSsrRoutes', () => {
 
     // 有语言前缀：两侧都是函数（字符串重定向不插值 `:locale` 参数）
     const vueParam = ':locale(zh)?';
-    const clientLocale = generatePagesModuleSource({ pages, layouts: LAYOUTS, notFoundPage: NOT_FOUND } as never, {
+    const clientLocale = generatePagesModuleSource({ pages: [...pages, NOT_FOUND], layouts: LAYOUTS } as never, {
       vueParam
     });
     const serverLocale = buildDevSsrRoutes({
-      pages,
+      pages: [...pages, NOT_FOUND],
       layouts: LAYOUTS,
       loadComponent: load,
-      notFoundPage: NOT_FOUND,
       localeVueParam: vueParam
     });
     const localeRoute = serverLocale.find(r => r.name === 'RedirectHome')!;
@@ -127,15 +124,14 @@ describe('buildDevSsrRoutes', () => {
     expect(clientLocale).toContain('to.params.locale');
   });
 
-  it('R8 回归：无 notFoundPage 时不注册 catch-all，注册时名字与路径都对', () => {
+  it('R8 回归：无 404 页时不注册 catch-all，有则名字与路径都对', () => {
     const without = buildDevSsrRoutes({ pages: [HOME], layouts: LAYOUTS, loadComponent: load });
     expect(without.some(r => r.name === 'NotFound')).toBe(false);
 
     const with404 = buildDevSsrRoutes({
-      pages: [HOME],
+      pages: [HOME, NOT_FOUND],
       layouts: LAYOUTS,
-      loadComponent: load,
-      notFoundPage: NOT_FOUND
+      loadComponent: load
     });
     const catchAll = with404.at(-1);
     expect(catchAll?.name).toBe('NotFound');
@@ -145,10 +141,9 @@ describe('buildDevSsrRoutes', () => {
 
   it('catch-all 由 components 懒加载真正的 404 组件', async () => {
     const routes = buildDevSsrRoutes({
-      pages: [HOME],
+      pages: [HOME, NOT_FOUND],
       layouts: LAYOUTS,
-      loadComponent: load,
-      notFoundPage: NOT_FOUND
+      loadComponent: load
     });
     const mod = (await routes.at(-1)!.component()) as { default: { __file: string } };
     expect(mod.default.__file).toBe(NOT_FOUND.fullPath);

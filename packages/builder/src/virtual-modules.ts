@@ -14,6 +14,8 @@ export interface PagesModulePage extends CompiledPage {
   pageKind?: 'component' | 'reuse' | 'meta';
   pageMeta?: unknown;
   redirect?: string;
+  isBuiltin?: boolean;
+  isGlobalCatchAll?: boolean;
 }
 
 function toVitePath(p: string): string {
@@ -59,7 +61,7 @@ export function createPagesVirtualModule(pages: PagesModulePage[], layouts: Comp
     const pagesEntries = pages
       .map(
         p =>
-          `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(toPortableFilePath(p.filePath, cwd))}, layout: ${JSON.stringify(p.layout)}, pageKind: ${JSON.stringify(resolvePageKind(p))}, routable: ${p.routable !== false}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)}, redirect: ${JSON.stringify(p.redirect ?? null)} }`
+          `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(toPortableFilePath(p.filePath, cwd))}, layout: ${JSON.stringify(p.layout)}, pageKind: ${JSON.stringify(resolvePageKind(p))}, routable: ${p.routable !== false}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)}, redirect: ${JSON.stringify(p.redirect ?? null)}, isBuiltin: ${p.isBuiltin === true}, isGlobalCatchAll: ${p.isGlobalCatchAll === true} }`
       )
       .join(',\n');
 

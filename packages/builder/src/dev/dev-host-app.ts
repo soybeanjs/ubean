@@ -126,8 +126,7 @@ export function enhanceDevApp(options: EnhanceDevAppOptions): DevHostAppLike {
     pages: app.options.pages || [],
     layouts,
     localeVueParam,
-    loadComponent: loadModule,
-    notFoundPage: app.options.notFoundPage
+    loadComponent: loadModule
   });
 
   // 惰性加载用户的 defineApp 配置：每次 enhance 都重新取，HMR 改 `app.ts` / `app.server.ts`

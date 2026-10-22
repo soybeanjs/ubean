@@ -21,7 +21,7 @@ function page(partial: Partial<ScannedPageRoute> & { name: string }): ScannedPag
 
 const ABOUT = page({ name: 'About' });
 const ALIAS = page({ name: 'AboutAlias', route: '/about-alias', pageKind: 'reuse', reuseTarget: 'About' });
-const NOT_FOUND = page({ name: 'NotFound', route: '/:pathMatch(.*)*' });
+const NOT_FOUND = page({ name: 'NotFound', route: '/:pathMatch(.*)*', isBuiltin: true, isGlobalCatchAll: true });
 
 const LAYOUTS: ScannedLayout[] = [
   { name: 'default', relativePath: 'layouts/default.vue', fullPath: '/abs/src/layouts/default.vue', isDefault: true }
@@ -33,8 +33,8 @@ function fakeApp(overrides: Partial<DevHostAppLike['options']> = {}) {
     options: {
       layouts: undefined,
       routes: [{ relativePath: 'routes/api/hello.ts', fullPath: '/abs/src/routes/api/hello.ts' }],
-      // 与扫描器一致：`notFoundPage` 从 `pages` 中剔除，单独传给路由表
-      pages: [ABOUT, ALIAS],
+      // 与扫描器一致：内置 404 就是 `pages` 里的一个条目（带 `isGlobalCatchAll`）。
+      pages: [ABOUT, ALIAS, NOT_FOUND],
       middleware: [{ relativePath: 'middleware/auth.ts', fullPath: '/abs/src/middleware/auth.ts' }],
       crons: [],
       notFoundPage: NOT_FOUND,
@@ -67,7 +67,11 @@ describe('enhanceDevApp', () => {
 
     expect(app.options.layouts).toBe(LAYOUTS);
     expect(Object.keys(app.options.routeLoaders!)).toEqual(['routes/api/hello.ts']);
-    expect(Object.keys(app.options.pageLoaders!).sort()).toEqual(['pages/About.vue', 'pages/AboutAlias.vue']);
+    expect(Object.keys(app.options.pageLoaders!).sort()).toEqual([
+      'pages/About.vue',
+      'pages/AboutAlias.vue',
+      'pages/NotFound.vue'
+    ]);
     expect(Object.keys(app.options.middlewareLoaders!)).toEqual(['middleware/auth.ts']);
 
     await app.options.pageLoaders!['pages/About.vue']();

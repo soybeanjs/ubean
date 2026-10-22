@@ -16,7 +16,7 @@
  */
 import { toVueRouterLocalePath } from '@ubean/i18n';
 import type { ScannedLayout, ScannedPageRoute } from '@ubean/scan';
-import { resolvePageKind } from '@ubean/vue';
+import { NOT_FOUND_ROUTE_PATH, resolvePageKind, sortPagesForRouting } from '@ubean/vue';
 
 /** 扫描器方言 `**:slug`（catch-all）→ vue-router 的 `:slug(.*)*`。 */
 export function toVueRouterPagePath(route: string): string {
@@ -80,25 +80,25 @@ export interface DevSsrRoutesOptions {
   loadComponent: (fullPath: string) => Promise<unknown>;
   /** 与客户端 `virtual:ubean-pages` 相同的 locale param（如 `:locale(zh)?`）。 */
   localeVueParam?: string;
-  /** `pages/404.vue` 经扫描得到的条目；缺省则不注册 catch-all。 */
-  notFoundPage?: ScannedPageRoute;
 }
 
 /**
  * 构建 SSR 路由表。
  *
  * 顺序与形状刻意对齐客户端：页面按扫描顺序、reuse 路由复用目标页面的组件、
- * 最后是 404 catch-all。catch-all 用 `/:locale?/:pathMatch(.*)*` —— SSR 渲染的是
- * **请求 URL 本身**（不像 SSG 渲染静态产物、可以用 `/404`），必须与客户端同形才能
- * 让两侧 `useRoute()` 解析出同一份 matched 结构。
+ * 全局捕获路由（`pages/404.vue` / `pages/not-found.vue`）排最后。catch-all 用
+ * `/:locale?/:pathMatch(.*)*` —— SSR 渲染的是**请求 URL 本身**（不像 SSG 渲染静态产物、
+ * 可以用 `/404`），必须与客户端同形才能让两侧 `useRoute()` 解析出同一份 matched 结构。
  */
 export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
-  const { pages, layouts, loadComponent, localeVueParam, notFoundPage } = options;
+  const { pages, layouts, loadComponent, localeVueParam } = options;
   const defaultLayout = layouts.find(l => l.isDefault)?.name ?? null;
 
   // `routable: false` 的页面不进 SSR 路由表 —— 客户端 `virtual:ubean-pages` 也没有它们，
   // 两侧必须同形。（它们仍在 `pages` 里供宿主消费菜单目录等应用层语义。）
-  const routablePages = pages.filter(p => p.routable !== false);
+  // 捕获路由排最后：vue-router 的 catch-all 按**注册顺序**匹配，内置 404 排在
+  // 用户 `[...slug].vue` 之前会把它整个吞掉。
+  const routablePages = sortPagesForRouting(pages.filter(p => p.routable !== false));
 
   const withLocale = (path: string) => (localeVueParam ? toVueRouterLocalePath(path, localeVueParam) : path);
 
@@ -113,7 +113,7 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
   };
 
   const routeFor = (page: ScannedPageRoute): DevSsrRoute => ({
-    path: withLocale(toVueRouterPagePath(page.route)),
+    path: withLocale(page.isGlobalCatchAll ? NOT_FOUND_ROUTE_PATH : toVueRouterPagePath(page.route)),
     name: page.name,
     ...(page.redirect
       ? { redirect: redirectTarget(page.redirect, localeVueParam) }
@@ -153,18 +153,6 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
       route.components = components;
     }
     routes.push(route);
-  }
-
-  if (notFoundPage) {
-    routes.push({
-      path: withLocale('/:pathMatch(.*)*'),
-      name: 'NotFound',
-      component: async () => (await loadComponent(notFoundPage.fullPath)) as { default?: unknown } | unknown,
-      meta: {
-        layout: notFoundPage.layout === false ? false : notFoundPage.layout || defaultLayout,
-        pageName: 'NotFound'
-      }
-    });
   }
 
   return routes;

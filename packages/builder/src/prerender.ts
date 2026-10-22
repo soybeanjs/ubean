@@ -146,10 +146,14 @@ export function collectPrerenderRoutes(
 
   // 候选池:文件系统扫描出的非动态页面（`routable: false` 的条目不是路由，
   // 预渲染它们会生成一个不存在的 URL 的 HTML 产物）。
+  // 预渲染候选池跳过内置全局捕获路由：它的 route 是 vue-router 内部形态
+  // `/:pathMatch(.*)*`，而 SSG 用哨兵路由（`STATIC_NOT_FOUND_ROUTE` → `404.html`）单独入队。
+  // 不跳的话动态路径检测会把它当成动态路由、静默不进候选池（当前无害，但意图靠巧合）。
   const redirectPaths = new Set<string>();
   const allPageRoutes: string[] = [];
   for (const page of pages) {
     if (page.routable === false) continue;
+    if (page.isGlobalCatchAll) continue;
     if (isRedirectPage(page)) {
       redirectPaths.add(normalizePagePath(page.path));
       continue;

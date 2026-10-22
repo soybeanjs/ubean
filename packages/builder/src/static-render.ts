@@ -293,7 +293,9 @@ export async function createStaticSsgRenderer(
   }
   const renderStaticPage = mod.renderStaticPage as RenderStaticPageFn;
 
-  const compiled = init.pages.map(compilePageRoute);
+  // 内置全局捕获路由（`pages/404.vue`）不走 URL 匹配 —— SSG 用 `/404` 静态路径渲染产物。
+  // 排除后用户 `[...slug].vue` 仍然正常匹配（它是普通页面）。
+  const compiled = init.pages.filter(p => !p.isGlobalCatchAll).map(compilePageRoute);
 
   const i18nEnabled = init.i18n != null && init.i18n.enabled !== false;
   const localeCodes = i18nEnabled ? (init.i18n?.locales || []).map(l => (typeof l === 'string' ? l : l.code)) : [];

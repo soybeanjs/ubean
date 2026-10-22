@@ -700,7 +700,9 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
           routable: p.routable,
           pageKind: p.pageKind,
           pageMeta: p.pageMeta,
-          redirect: p.redirect
+          redirect: p.redirect,
+          isBuiltin: p.isBuiltin,
+          isGlobalCatchAll: p.isGlobalCatchAll
         })),
         result.layouts.map(l => ({
           name: l.name,

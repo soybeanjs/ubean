@@ -95,6 +95,10 @@ const _routeGroups = new Map();
 for (const _p of _pages) {
   // routable: false 的页面不建路由（与客户端 virtual:ubean-pages 同形）。
   if (_p.routable === false) continue;
+  // 内置全局捕获路由不在这里注册 —— 它的 URL 形态是 vue-router 的 repeatable 参数（客户端），
+  // 而 SSG 靠下面的静态 /404 路由渲染产物（静态段优先于 repeatable 参数，
+  // 不会被用户的 [...slug].vue 抢走）。两条都注册会得到重复的 'NotFound' 路由名。
+  if (_p.isGlobalCatchAll) continue;
   const _key = _p.route;
   const _group = _routeGroups.get(_key) || { slots: [] };
   if (_p.slot) _group.slots.push(_p);

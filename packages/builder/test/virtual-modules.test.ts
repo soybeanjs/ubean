@@ -110,6 +110,7 @@ describe('createPagesVirtualModule()', () => {
         path: '/plugin',
         filePath: '/project/src/pages/plugin/index.meta.ts',
         routable: false,
+        pageKind: 'meta',
         pageMeta: { routable: false, meta: { menuType: 'directory' } }
       }
     ];
@@ -120,6 +121,9 @@ describe('createPagesVirtualModule()', () => {
     expect(code).toContain('"PluginIndex":');
     expect(code).toContain('routable: false');
     expect(code).toContain('"menuType":"directory"');
+    // `pageKind` 必须由输入透传，而不是恒为 'component' —— 宿主靠它区分目录页。
+    expect(code).toContain('pageKind: "meta"');
+    expect(code).toContain('redirect: null');
 
     // 类型 union 已从这里移走（见上面那条「按 JS 解析」用例）—— 类型面在 `.ubean/pages.d.ts`。
     expect(code).not.toContain('export type');

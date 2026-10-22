@@ -4,6 +4,18 @@ import { resolvePageKind } from '@ubean/vue';
 import { relative, isAbsolute } from 'pathe';
 import { defineVirtualModule } from './virtual-registry';
 
+/**
+ * `ubean:pages` 的输入页 —— 比 `CompiledPage` 多出宿主构菜单所需的扫描元数据。
+ *
+ * 这些字段在扫描结果里**本来就有**（`ScannedPage`），但 `vite.ts` 只透传了 5 个字段，
+ * 于是运行时模块拿到 `pageMeta: null` / `routable: true`，宿主无法区分目录页与真实页面。
+ */
+export interface PagesModulePage extends CompiledPage {
+  pageKind?: 'component' | 'reuse' | 'meta';
+  pageMeta?: unknown;
+  redirect?: string;
+}
+
 function toVitePath(p: string): string {
   return p.replace(/\\/g, '/');
 }
@@ -42,12 +54,12 @@ export function createRoutingVirtualModule(routes: CompiledRoute[], middlewares:
   });
 }
 
-export function createPagesVirtualModule(pages: CompiledPage[], layouts: CompiledLayout[], cwd: string) {
+export function createPagesVirtualModule(pages: PagesModulePage[], layouts: CompiledLayout[], cwd: string) {
   return defineVirtualModule('ubean:pages', () => {
     const pagesEntries = pages
       .map(
         p =>
-          `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(toPortableFilePath(p.filePath, cwd))}, layout: ${JSON.stringify(p.layout)}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, routable: ${p.routable !== false}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)} }`
+          `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, path: ${JSON.stringify(p.path)}, filePath: ${JSON.stringify(toPortableFilePath(p.filePath, cwd))}, layout: ${JSON.stringify(p.layout)}, pageKind: ${JSON.stringify(resolvePageKind(p))}, routable: ${p.routable !== false}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)}, redirect: ${JSON.stringify(p.redirect ?? null)} }`
       )
       .join(',\n');
 

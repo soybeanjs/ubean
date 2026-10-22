@@ -148,7 +148,12 @@ export async function generateVirtualModulesToDisk(
           path: p.route,
           filePath: p.fullPath,
           layout: p.layout,
-          reuseTarget: p.reuseTarget
+          reuseTarget: p.reuseTarget,
+          // 与 `vite.ts` 的 dev 路径同形 —— 字段少一个就只在产物里失效。
+          routable: p.routable,
+          pageKind: p.pageKind,
+          pageMeta: p.pageMeta,
+          redirect: p.redirect
         })),
         scanResult.layouts.map(l => ({
           name: l.name,

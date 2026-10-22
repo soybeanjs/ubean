@@ -694,7 +694,13 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
           path: p.route,
           filePath: p.fullPath,
           layout: p.layout,
-          reuseTarget: p.reuseTarget
+          reuseTarget: p.reuseTarget,
+          // 宿主（如 soybean-admin）靠这几个字段构菜单：目录页没有组件，只有 pageMeta。
+          // 不透传的话运行时模块里全是 `pageMeta: null` / `routable: true`。
+          routable: p.routable,
+          pageKind: p.pageKind,
+          pageMeta: p.pageMeta,
+          redirect: p.redirect
         })),
         result.layouts.map(l => ({
           name: l.name,

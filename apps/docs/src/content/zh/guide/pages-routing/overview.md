@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: f7d1f4d084cb
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","48ec3dc0","e12725a4","d8baa841","f1f065b8","466a5369","f5e9af0b","bbf81e0b","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: f4a3b4a5e03a
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","48ec3dc0","e12725a4","d8baa841","f1f065b8","466a5369","954960af","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","e39e0c27","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -96,21 +96,22 @@ vue-router 路径里的位置一致（`:slugs+`）。写在里面（`[slugs+]`�
 > `*`（零或多个）与 `[[x]]+` 描述同一个路径（`:x*`），因此得到同一个路由名；
 > `+` 不改变名字 —— 它只说明这个参数占几个段。
 
-### 特殊页面（404 / Loading）
+### 内置路由（Root / 404 / Loading）
 
-ubean 会自动检测 `src/pages/` **根目录**下的特殊页面。它们不作为常规路由注册，而是承担框架级职责：
+ubean 会自动检测 `src/pages/` **根目录**下的内置路由。它们**会作为条目进 `pages` 数组**并带 `isBuiltin` 标记（捕获路由另带 `isGlobalCatchAll`），承担框架级职责：
 
 | 文件 | 职责 | 效果 |
 | --- | --- | --- |
-| `pages/404.vue`（或 `.ts` / `.md`） | 未找到页面 | 注册 Vue Router 的 catch-all `/:pathMatch(.*)*` **以及** Hono 的 `GET *` 兜底处理器。未匹配的浏览器导航返回 HTTP 404 并渲染该组件。API（`/api/*`）与内部（`/_*`）路径仍返回默认的 JSON 404。 |
-| `pages/loading.vue`（或 `.ts` / `.md`） | 加载提示 | 作为 `<Suspense>` 的 fallback 组件，在 SPA 导航期间懒加载页面组件时显示。SSR 会跳过它（服务端同步解析异步组件）。 |
-| `pages/error.vue`（或 `.ts` / `.md`） | 错误边界 | 作为 `ErrorBoundary` 组件（Vue `errorCaptured`）。当页面的渲染 / setup / 异步解析抛出错误时渲染，接收 `error` prop，路由切换时自动重置。仅客户端生效。 |
+| `pages/index.vue` / `pages/root.vue` | Root 路由 | 名 `Index`、路径 `/`。是普通页，`definePage({ head, layout, cache, name })` 全部生效。 |
+| `pages/404.vue`（或 `not-found.vue`） | 未找到页面 | 全局捕获路由 `/:pathMatch(.*)*`，名 `NotFound`。未匹配的浏览器导航返回 HTTP 404 并渲染该组件。API（`/api/*`）与内部（`/_*`）路径仍返回默认的 JSON 404。 |
+| `pages/loading.vue`（或 `.ts` / `.md`） | 加载提示 | 作为 `<Suspense>` 的 fallback 组件，在 SPA 导航期间懒加载页面组件时显示。SSR 会跳过它（服务端同步解析异步组件）。`routable: false`。 |
+| `pages/error.vue`（或 `.ts` / `.md`） | 错误边界 | 作为 `ErrorBoundary` 组件（Vue `errorCaptured`）。当页面的渲染 / setup / 异步解析抛出错误时渲染，接收 `error` prop，路由切换时自动重置。仅客户端生效。`routable: false`。 |
 
-只有根目录下的文件才被视为特殊页面。像 `pages/users/404.vue` 这样的嵌套文件仍是常规路由 `/users/404`。
+只有根目录下的文件才被视为内置路由。像 `pages/users/404.vue` 这样的嵌套文件仍是常规路由 `/users/404`。`Index` / `NotFound` 是保留名：普通页 `definePage({ name })` 撞名会收到告警并置 `routable: false`。用户 `[...slug].vue` 与 `404.vue` 并存时前者优先（内置捕获路由最后注册）。
 
 #### 应用根组件（`src/app.vue` / `src/App.vue`）
 
-与 `pages/` 下的特殊页面不同，ubean 还会自动检测位于 `src/app.vue`（小写，优先 —— 对齐 `app.ts` 这个 defineApp 入口）或 `src/App.vue`（大写，经典 Vue 约定）的**应用根组件**。两者同时存在时，小写的 `app.vue` 胜出。它是位于框架根组件之上的一层包装：布局链 + 页面通过它的**默认 slot** 注入 —— 组件内用 `<slot />` 声明渲染位置。全局上下文 Provider（`SConfigProvider` 等）、位于布局之上的应用级错误边界、全局过渡容器都应放在这里。完整契约见 <Link to="/architecture/runtime#应用根组件-appvue-approot">运行时 —— 应用根组件</Link>。
+与 `pages/` 下的内置路由不同，ubean 还会自动检测位于 `src/app.vue`（小写，优先 —— 对齐 `app.ts` 这个 defineApp 入口）或 `src/App.vue`（大写，经典 Vue 约定）的**应用根组件**。两者同时存在时，小写的 `app.vue` 胜出。它是位于框架根组件之上的一层包装：布局链 + 页面通过它的**默认 slot** 注入 —— 组件内用 `<slot />` 声明渲染位置。全局上下文 Provider（`SConfigProvider` 等）、位于布局之上的应用级错误边界、全局过渡容器都应放在这里。完整契约见 <Link to="/architecture/runtime#应用根组件-appvue-approot">运行时 —— 应用根组件</Link>。
 
 #### 通过 `defineApp` 覆盖
 

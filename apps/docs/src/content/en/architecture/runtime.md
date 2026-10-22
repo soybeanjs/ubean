@@ -1157,17 +1157,20 @@ throw createError({ statusCode: 400, statusMessage: 'Bad Request', data: { field
 
 #### Error Pages
 
-ubean automatically detects three special page types under the `pages/` root directory; they take effect without manual configuration:
+ubean automatically detects built-in routes under the `pages/` root directory; they take effect without manual configuration. These files **enter the `pages` array** carrying an `isBuiltin` flag (the catch-all also carries `isGlobalCatchAll`) — filter on it when building menus from the page inventory:
 
 | File | Role | Effect |
 | --- | --- | --- |
-| `pages/404.vue` | Not-found page | Vue Router catch-all `/:pathMatch(.*)*` + Hono `GET *` fallback handler; unmatched browser navigations return HTTP 404 and render this component |
-| `pages/loading.vue` | Loading placeholder | `<Suspense>` fallback component, shown during SPA navigation while lazy-loaded page components load |
-| `pages/error.vue` | Render-error fallback | ErrorBoundary component shown when a page component's render/async resolution/setup throws; receives the `error` prop; auto-resets on route change |
+| `pages/index.vue` / `pages/root.vue` | Root route | Named `Index`, path `/`. A normal page otherwise — `definePage({ head, layout, cache, name })` all apply |
+| `pages/404.vue` (or `not-found.vue`) | Not-found page | Global catch-all `/:pathMatch(.*)*` named `NotFound`; unmatched browser navigations return HTTP 404 and render this component. API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404 |
+| `pages/loading.vue` | Loading placeholder | `<Suspense>` fallback component, shown during SPA navigation while lazy-loaded page components load; `routable: false` |
+| `pages/error.vue` | Render-error fallback | ErrorBoundary component shown when a page component's render/async resolution/setup throws; receives the `error` prop; auto-resets on route change; `routable: false` |
 
-- Only root-level files are treated as special pages; `users/404.vue` is still a regular route `/users/404`
+- Only root-level files qualify; `users/404.vue` is still a regular route `/users/404`
+- `Index` / `NotFound` are reserved names: a normal page with `definePage({ name: 'Index' \| 'NotFound' })` gets a warning and `routable: false` (the entry stays in `pages`)
+- When a user `[...slug].vue` exists alongside `404.vue`, the user catch-all wins — the built-in one registers last (vue-router matches catch-alls in registration order)
 - `loading.vue` and `error.vue` only take effect on the client (SSR resolves synchronously, so no fallback is needed; errors during SSR are handled by the server-side error handler)
-- All three can be explicitly overridden via `defineApp({ loadingComponent / errorComponent })`, which takes precedence over file auto-detection
+- Both component pages can be explicitly overridden via `defineApp({ loadingComponent / errorComponent })`, which takes precedence over file auto-detection
 
 #### Dev-Mode Error Display
 

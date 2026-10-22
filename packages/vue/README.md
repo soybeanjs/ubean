@@ -29,7 +29,7 @@ app.mount('#app');
   - [`definePage` Macro](#definepage-macro)
   - [Reuse Routes](#reuse-routes)
   - [Meta-Only Pages (`routable: false`)](#meta-only-pages-routable-false)
-  - [Special Pages](#special-pages)
+  - [Built-in Routes](#built-in-routes)
   - [Parallel Routes](#parallel-routes)
   - [Dynamic Param Matchers](#dynamic-param-matchers)
   - [Markdown Pages (opt-in)](#markdown-pages-opt-in)
@@ -69,7 +69,7 @@ app.mount('#app');
 - `definePage` client macro (compile-time extracted, runtime no-op)
 - Dynamic route matchers (`[param=matcher]` syntax + registry + guard)
 - Page-level head (`setupPageHeadGuard` / lazy `createPageHead`)
-- File-routing Vite plugin (`/vite` subpath): multi-dir scan, reuse routes, special pages, parallel routes (`@slotName/`), markdown & head opt-in
+- File-routing Vite plugin (`/vite` subpath): multi-dir scan, reuse routes, built-in routes, parallel routes (`@slotName/`), markdown & head opt-in
 - Physical route file generator (`/generator` subpath): `routes.ts` + `imports.ts` + `typed-router.d.ts` (file mode)
 
 **NOT included** (framework runtime `@ubean/client` concerns):
@@ -155,7 +155,8 @@ src/pages/
 ├── docs/[[page]].vue         →  /docs/:page?             DocsPageOptional
 ├── (marketing)/about.vue     →  /about                   About (group stripped)
 ├── settings.tsx              →  /settings                Settings (JSX page)
-├── 404.vue                   →  catch-all + NotFound     (special page)
+├── 404.vue                   →  catch-all + NotFound     (built-in)
+├── root.vue                  →  /                        Index (built-in)
 └── guide.md                  →  /guide                   Guide (markdown, opt-in)
 ```
 
@@ -240,17 +241,20 @@ What `routable: false` removes vs. keeps:
 
 `.meta.*` entries get **no loader at all** (their module has no default export). The `pages` export carries `routable`, `pageKind` and the raw `pageMeta`, so an application can read its own menu semantics — e.g. treat `meta.menuType === 'directory'` as a nested menu group and `meta.href` as an external link.
 
-### Special Pages
+### Built-in Routes
 
-Root-level files in a pages directory are wired to framework slots:
+Root-level files in a pages directory declare framework routes. They **enter the `pages` array** carrying an `isBuiltin` flag (the catch-all also carries `isGlobalCatchAll`) — filter on it when you build menus from the page inventory.
 
-| File                          | Role                                                             |
-| ----------------------------- | ---------------------------------------------------------------- |
-| `404.vue` (or `.tsx` / `.md`) | Vue Router catch-all `/:pathMatch(.*)*` named `NotFound`         |
-| `loading.vue`                 | `<Suspense>` fallback while async pages load (via `LOADING_KEY`) |
-| `error.vue`                   | `<ErrorBoundary>` error component (via `ERROR_KEY`)              |
+| File                                          | Role                                                                 |
+| --------------------------------------------- | -------------------------------------------------------------------- |
+| `index.vue` / `root.vue` / `root/index.vue`   | Root route, named `Index`, path `/` — a normal page otherwise        |
+| `404.vue` / `not-found.vue` (and `index.*`)   | Catch-all `/:pathMatch(.*)*` named `NotFound`; responds HTTP 404     |
+| `loading.vue`                                 | `<Suspense>` fallback while async pages load (via `LOADING_KEY`), `routable: false` |
+| `error.vue`                                   | `<ErrorBoundary>` error component (via `ERROR_KEY`), `routable: false` |
 
-Only root-level files are special — `users/404.vue` remains a regular route at `/users/404`.
+Only root-level files qualify — `users/404.vue` remains a regular route at `/users/404`. `Index` and `NotFound` are reserved names: a normal page that resolves to either gets a warning and `routable: false`. When a user `[...slug].vue` exists alongside `404.vue`, the user catch-all wins (the built-in one registers last).
+
+`imports.ts` / `typed-router.d.ts` export `BuiltinRouteKey` for exactly these names.
 
 ### Parallel Routes
 

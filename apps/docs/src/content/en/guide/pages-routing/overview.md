@@ -95,21 +95,22 @@ Writing it inside (`[slugs+]`) makes it part of the parameter name.
 the same route name. `+` does not change the name — it only says how many
 segments the parameter participates in.
 
-### Special Pages (404 / Loading)
+### Built-in Routes (Root / 404 / Loading)
 
-ubean auto-detects special pages at the **root** of `src/pages/`. These are not registered as regular routes — they serve framework-level roles instead:
+ubean auto-detects built-in routes at the **root** of `src/pages/`. They **enter the `pages` array** carrying an `isBuiltin` flag (the catch-all also carries `isGlobalCatchAll`) and serve framework-level roles:
 
 | File | Role | Effect |
 | --- | --- | --- |
-| `pages/404.vue` (or `.ts` / `.md`) | Not Found page | Registers a Vue Router catch-all `/:pathMatch(.*)*` **and** a Hono `GET *` fallback handler. Unmatched browser navigation returns HTTP 404 and renders this component. API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404. |
-| `pages/loading.vue` (or `.ts` / `.md`) | Loading indicator | Used as the `<Suspense>` fallback component, shown while a lazy-loaded page component is being resolved during SPA navigation. SSR skips this (server resolves async synchronously). |
-| `pages/error.vue` (or `.ts` / `.md`) | Error boundary | Used as the `ErrorBoundary` component (Vue `errorCaptured`). Renders when a page's render / setup / async resolution throws. Receives an `error` prop. Auto-resets on route change. Client-only. |
+| `pages/index.vue` / `pages/root.vue` | Root route | Named `Index`, path `/`. A normal page otherwise — `definePage({ head, layout, cache, name })` all apply. |
+| `pages/404.vue` (or `not-found.vue`) | Not Found page | Global catch-all `/:pathMatch(.*)*` named `NotFound`. Unmatched browser navigation returns HTTP 404 and renders this component. API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404. |
+| `pages/loading.vue` (or `.ts` / `.md`) | Loading indicator | Used as the `<Suspense>` fallback component, shown while a lazy-loaded page component is being resolved during SPA navigation. SSR skips this (server resolves async synchronously). `routable: false`. |
+| `pages/error.vue` (or `.ts` / `.md`) | Error boundary | Used as the `ErrorBoundary` component (Vue `errorCaptured`). Renders when a page's render / setup / async resolution throws. Receives an `error` prop. Auto-resets on route change. Client-only. `routable: false`. |
 
-Only root-level files are treated as special. A nested file like `pages/users/404.vue` remains a regular route at `/users/404`.
+Only root-level files qualify. A nested file like `pages/users/404.vue` remains a regular route at `/users/404`. `Index` / `NotFound` are reserved names: a normal page colliding via `definePage({ name })` gets a warning and `routable: false`. When a user `[...slug].vue` exists alongside `404.vue`, the user catch-all wins (the built-in one registers last).
 
 #### Application Root Component (`src/app.vue` / `src/App.vue`)
 
-Separate from the `pages/` specials, ubean also auto-detects an **application root component** at `src/app.vue` (lowercase, preferred — aligns with the `app.ts` defineApp entry) or `src/App.vue` (capitalized, classic Vue). When both exist, lowercase `app.vue` wins. It's a wrapper above the framework root component: the layout chain + page are injected through its **default slot** — render it with `<slot />`. This is where global context providers (`SConfigProvider` etc.), app-wide error boundaries above layouts, or global transition containers belong. See <Link to="/architecture/runtime#application-root-component-appvue-approot">Runtime — Application Root Component</Link> for the full contract.
+Separate from the `pages/` built-ins, ubean also auto-detects an **application root component** at `src/app.vue` (lowercase, preferred — aligns with the `app.ts` defineApp entry) or `src/App.vue` (capitalized, classic Vue). When both exist, lowercase `app.vue` wins. It's a wrapper above the framework root component: the layout chain + page are injected through its **default slot** — render it with `<slot />`. This is where global context providers (`SConfigProvider` etc.), app-wide error boundaries above layouts, or global transition containers belong. See <Link to="/architecture/runtime#application-root-component-appvue-approot">Runtime — Application Root Component</Link> for the full contract.
 
 #### Overriding via `defineApp`
 

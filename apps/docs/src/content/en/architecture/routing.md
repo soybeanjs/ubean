@@ -322,7 +322,7 @@ Page actions, form enhancements, and client navigation share a single protocol: 
 
 ## Pages Routing Design
 
-> The page routing conventions, `definePage` macro, layouts, reuse routes, route groups, loaders/actions, special pages (404/loading/error), navigation guards, and route rules are documented in the user-facing guide: **<Link to="/guide/pages-routing/overview">Pages and Routing</Link>** and **<Link to="/guide/pages-routing/loaders">Data Loaders</Link>** / **<Link to="/guide/pages-routing/actions">Actions</Link>**. This architecture doc retains only the API routing internals above.
+> The page routing conventions, `definePage` macro, layouts, reuse routes, route groups, loaders/actions, built-in routes (root/404/loading/error), navigation guards, and route rules are documented in the user-facing guide: **<Link to="/guide/pages-routing/overview">Pages and Routing</Link>** and **<Link to="/guide/pages-routing/loaders">Data Loaders</Link>** / **<Link to="/guide/pages-routing/actions">Actions</Link>**. This architecture doc retains only the API routing internals above.
 
 ## Next Steps
 

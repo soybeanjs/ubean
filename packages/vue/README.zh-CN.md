@@ -31,7 +31,7 @@ app.mount('#app');
     - [definePage 宏](#definepage-宏)
     - [reuse 路由](#reuse-路由)
     - [元数据页（`routable: false`）](#元数据页routable-false)
-    - [特殊页](#特殊页)
+    - [内置路由](#内置路由)
     - [并行路由](#并行路由)
     - [动态参数 matcher](#动态参数-matcher)
     - [Markdown 页面（opt-in）](#markdown-页面opt-in)
@@ -77,7 +77,7 @@ app.mount('#app');
 - `definePage` 客户端宏（构建期提取，运行时 no-op）
 - 动态路由 matcher（`[param=matcher]` 语法 + 注册表 + 守卫）
 - 页面级 head（`setupPageHeadGuard` / 懒加载 `createPageHead`）
-- 文件路由 Vite 插件（`/vite` 子路径）：多目录扫描、reuse 路由、特殊页、并行路由（`@slotName/`）、markdown 与 head 按需开启
+- 文件路由 Vite 插件（`/vite` 子路径）：多目录扫描、reuse 路由、内置路由、并行路由（`@slotName/`）、markdown 与 head 按需开启
 - 实体路由文件生成器（`/generator` 子路径）：`routes.ts` + `imports.ts` + `typed-router.d.ts`（file 模式）
 
 **不包含**（框架运行时 `@ubean/client` 的职责）：
@@ -163,7 +163,8 @@ src/pages/
 ├── docs/[[page]].vue         →  /docs/:page?             DocsPageOptional
 ├── (marketing)/about.vue     →  /about                   About（组名剥离）
 ├── settings.tsx              →  /settings                Settings（JSX 页面）
-├── 404.vue                   →  catch-all + NotFound     （特殊页）
+├── 404.vue                   →  catch-all + NotFound     （内置路由）
+├── root.vue                  →  /                        Index（内置路由）
 └── guide.md                  →  /guide                   Guide（markdown，opt-in）
 ```
 
@@ -248,17 +249,20 @@ definePage({ routable: false });
 
 `.meta.*` 条目连 loader 都没有（它的模块没有 default export）。`pages` 导出带 `routable` / `pageKind` / 原始 `pageMeta`，应用可以据此读自己的菜单语义 —— 例如把 `meta.menuType === 'directory'` 当嵌套菜单分组、`meta.href` 当外链。
 
-### 特殊页
+### 内置路由
 
-页面目录根级文件接入框架插槽：
+页面目录根级文件用于声明框架路由。它们**会进入 `pages` 数组**并带 `isBuiltin` 标记（捕获路由另带 `isGlobalCatchAll`）—— 宿主据此从页面清单生成菜单时记得过滤。
 
-| 文件                           | 角色                                                       |
-| ------------------------------ | ---------------------------------------------------------- |
-| `404.vue`（或 `.tsx` / `.md`） | Vue Router catch-all `/:pathMatch(.*)*`，名为 `NotFound`   |
-| `loading.vue`                  | 异步页面加载时的 `<Suspense>` fallback（经 `LOADING_KEY`） |
-| `error.vue`                    | `<ErrorBoundary>` 的错误组件（经 `ERROR_KEY`）             |
+| 文件                                        | 角色                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------ |
+| `index.vue` / `root.vue` / `root/index.vue` | Root 路由，名 `Index`、路径 `/` —— 其余行为与普通页相同                  |
+| `404.vue` / `not-found.vue`（含 `index.*`） | 捕获路由 `/:pathMatch(.*)*`，名 `NotFound`；响应 HTTP 404                |
+| `loading.vue`                               | 异步页面加载时的 `<Suspense>` fallback（经 `LOADING_KEY`），`routable: false` |
+| `error.vue`                                 | `<ErrorBoundary>` 的错误组件（经 `ERROR_KEY`），`routable: false`        |
 
-仅根级文件是特殊页 —— `users/404.vue` 仍是 `/users/404` 的常规路由。
+仅根级文件生效 —— `users/404.vue` 仍是 `/users/404` 的常规路由。`Index` 与 `NotFound` 是保留名：普通页派生到这两个名字时会告警并置 `routable: false`。用户 `[...slug].vue` 与 `404.vue` 并存时前者优先（内置捕获路由最后注册）。
+
+`imports.ts` / `typed-router.d.ts` 会为这两个名字导出 `BuiltinRouteKey`。
 
 ### 并行路由
 
@@ -377,7 +381,7 @@ const result = await generateRouteFiles(
 | `pageNames` / `layoutNames`                                   | 名称数组（存在 404 时包含 `NotFound`）                                                |
 | `defaultLayout`                                               | 默认布局名或 `null`                                                                   |
 | `resolvePageComponent(name)` / `resolveLayoutComponent(name)` | 组件解析器（reuse 路由解析目标页）                                                    |
-| `loadingComponent` / `errorComponent`                         | 特殊页组件或 `null`                                                                   |
+| `loadingComponent` / `errorComponent`                         | 内置路由组件或 `null`                                                                   |
 | `resolveLoadingComponent()` / `resolveErrorComponent()`       | 懒加载解析器                                                                          |
 | `hasNotFoundPage()` / `hasErrorPage()`                        | 存在性检查                                                                            |
 

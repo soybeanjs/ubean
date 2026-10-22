@@ -8,7 +8,7 @@ import { resolve, join } from 'pathe';
 import { resolveI18nConfig } from './i18n';
 import { resolveEnvConfig } from './env';
 import { resolvePagesConfig, pagesConfigDefaults } from './pages';
-import { resolveRoutingConfig } from './routing';
+import { resolveRoutingConfig, warnUnknownRoutingKeys } from './routing';
 import type {
   UbeanConfig,
   ResolvedConfig,
@@ -322,6 +322,9 @@ function resolveUbeanConfig(config: UbeanConfig, cwd: string): ResolvedConfig {
   // 合并成 `['vue','vue','tsx','jsx']`,关掉 JSX 的意图完全失效(且不会报错)。
   resolved.pages = resolvePagesConfig(config.pages);
   // 重新解析 routing(确保用户提供的 routing 字段被正确合并默认值)
+  // 先告警已删除/拼错的 routing 字段:顶层白名单只覆盖 `routing` 这一个 key,
+  // 里面写了已删字段(如 rootRedirect)会静默消失 —— 比顶层拼错更难发现。
+  warnUnknownRoutingKeys(config.routing as Record<string, unknown> | undefined);
   resolved.routing = resolveRoutingConfig(config.routing);
   // 重新解析 prerender(defu 浅合并会让派生字段 enabled 失真,
   // 必须基于合并后的 all/include 重算)

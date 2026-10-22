@@ -248,33 +248,6 @@ export interface RoutingConfig {
   outputDir?: string;
 
   /**
-   * 是否生成内置路由(如 404、首页重定向),默认 `true`。
-   *
-   * 页面文件扫描直接基于 `dir.pages`(支持多目录),不再通过独立的
-   * `pageInclude`/`pageExclude` glob 过滤。如需排除特定文件,使用
-   * `scanOptions.ignore`(适用于所有扫描类型:pages/routes/layouts 等)。
-   */
-  generateBuiltinRoutes?: boolean;
-
-  /**
-   * 根路径重定向目标,例如 `/home` 会将 `/` 重定向到 `/home`。
-   * 默认 `undefined`(不重定向)。
-   */
-  rootRedirect?: string;
-
-  /**
-   * 404 页面组件文件路径(相对于 `pages/` 目录),默认 `404.vue`。
-   * 若文件不存在,使用内置 404 组件。
-   */
-  notFoundRouteComponent?: string;
-
-  /**
-   * 默认布局名称,默认 `default`。
-   * 设为 `false` 表示不使用默认布局。
-   */
-  defaultLayout?: string | false;
-
-  /**
    * 是否惰性加载路由组件,默认 `true`。
    * 设为 `false` 时所有路由组件同步 import(不推荐,影响首屏性能)。
    */
@@ -285,33 +258,6 @@ export interface RoutingConfig {
    * 与 `routeLazy` 平行,无嵌套形式。
    */
   layoutLazy?: boolean;
-
-  /**
-   * 自定义路由名称生成器。
-   * 默认实现:`filePathToRoute` + `stripRouteGroups` + 首字母大写驼峰。
-   *
-   * @param filePath 相对于 `pages/` 目录的文件路径
-   * @returns 路由名称(如 `user-detail`)
-   */
-  getRouteName?: (filePath: string) => string;
-
-  /**
-   * 自定义路由路径生成器。
-   * 默认实现:`filePathToRoute`(支持 `[id]`、`[...slug]`、`(group)` 语法)。
-   *
-   * @param filePath 相对于 `pages/` 目录的文件路径
-   * @returns 路由路径(如 `/user/:id`)
-   */
-  getRoutePath?: (filePath: string) => string;
-
-  /**
-   * 自定义布局解析器。
-   * 默认实现:从 `definePage({ layout })` 宏或 frontmatter 中读取。
-   *
-   * @param filePath 相对于 `pages/` 目录的文件路径
-   * @returns 布局名称,`false` 表示不使用布局,`undefined` 表示使用默认布局
-   */
-  getRouteLayout?: (filePath: string) => string | false | undefined;
 
   /**
    * 自定义路由 meta 解析器。
@@ -329,27 +275,13 @@ export interface RoutingConfig {
    * @param files 生成的文件路径数组(绝对路径)
    */
   onGenerated?: (files: string[]) => void;
-
-  /**
-   * 是否在 dev 模式下监听文件变更并重新生成路由,默认 `true`。
-   * 仅在 `mode` 为 `file` 或 `both` 时生效。
-   */
-  watchFile?: boolean;
-
-  /** 文件变更后重新生成的 debounce 时长(毫秒),默认 `100`。 */
-  fileUpdateDuration?: number;
 }
 
 /**
  * 解析后的 `RoutingConfig`,所有字段均已填充默认值。
  */
-export interface ResolvedRoutingConfig extends Required<
-  Omit<RoutingConfig, 'getRouteName' | 'getRoutePath' | 'getRouteLayout' | 'getRouteMeta' | 'onGenerated'>
-> {
+export interface ResolvedRoutingConfig extends Required<Omit<RoutingConfig, 'getRouteMeta' | 'onGenerated'>> {
   // 函数字段保持可选(默认值由 `@ubean/scan` 的扫描器实现提供)
-  getRouteName?: RoutingConfig['getRouteName'];
-  getRoutePath?: RoutingConfig['getRoutePath'];
-  getRouteLayout?: RoutingConfig['getRouteLayout'];
   getRouteMeta?: RoutingConfig['getRouteMeta'];
   onGenerated?: RoutingConfig['onGenerated'];
 }

@@ -75,7 +75,7 @@ import {
   ensureUbeanConfig, // cache first, otherwise load
   getConfig, // cache or throw
   tryGetConfig, // cache or null
-  resolveRoutingConfig, // { mode, outputDir, defaultLayout, routeLazy, … }
+  resolveRoutingConfig, // { mode, outputDir, routeLazy, layoutLazy }
   resolveI18nConfig, // i18n defaults + locale list
   resolveSsrConfig, // boolean | { all, exclude, streaming } → resolved
   resolvePrerenderConfig, // include/exclude + DEFAULT_PRERENDER_EXCLUDE
@@ -85,14 +85,14 @@ import {
 } from '@ubean/config';
 ```
 
-| Resolver                               | Notes                                                                                                                                                                                                                                              |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resolveRoutingConfig(userConfig?)`    | Merges onto `routingConfigDefaults` (`mode: 'virtual'`, `outputDir: 'src/router/_generated'`, `defaultLayout: 'default'`, `routeLazy: true`, `layoutLazy: true`, `watchFile: true`, `fileUpdateDuration: 100`). Function fields bypass the spread. |
-| `resolveI18nConfig(config?)`           | Accepts `I18nConfig \| false`; `localeCodesOf(resolved)` returns the code list.                                                                                                                                                                    |
-| `resolveSsrConfig(config?)`            | Normalises `boolean \| SsrOptions`; `all` defaults to `true`.                                                                                                                                                                                      |
-| `resolvePrerenderConfig(config?)`      | `DEFAULT_PRERENDER_EXCLUDE` = `['/api/**', '/_**', '/robots.txt', '/sitemap.xml', '/favicon.ico', '/favicon.svg', '/manifest.webmanifest']`.                                                                                                       |
-| `resolveLoggingConfig(config?, mode?)` | Applies the mode-dependent default gate (`request: 'auto'` is forced off for `ssg` / `spa`).                                                                                                                                                       |
-| `resolveFavicon(favicon, publicDir)`   | `boolean \| string \| undefined` → path or `null`.                                                                                                                                                                                                 |
+| Resolver                               | Notes                                                                                                                                                                                                                                                                                            |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `resolveRoutingConfig(userConfig?)`    | Merges onto `routingConfigDefaults` (`mode: 'virtual'`, `outputDir: 'src/router/_generated'`, `routeLazy: true`, `layoutLazy: true`). Function fields (`getRouteMeta` / `onGenerated`) bypass the spread. `warnUnknownRoutingKeys(userConfig)` warns about removed or misspelled `routing` keys. |
+| `resolveI18nConfig(config?)`           | Accepts `I18nConfig \| false`; `localeCodesOf(resolved)` returns the code list.                                                                                                                                                                                                                  |
+| `resolveSsrConfig(config?)`            | Normalises `boolean \| SsrOptions`; `all` defaults to `true`.                                                                                                                                                                                                                                    |
+| `resolvePrerenderConfig(config?)`      | `DEFAULT_PRERENDER_EXCLUDE` = `['/api/**', '/_**', '/robots.txt', '/sitemap.xml', '/favicon.ico', '/favicon.svg', '/manifest.webmanifest']`.                                                                                                                                                     |
+| `resolveLoggingConfig(config?, mode?)` | Applies the mode-dependent default gate (`request: 'auto'` is forced off for `ssg` / `spa`).                                                                                                                                                                                                     |
+| `resolveFavicon(favicon, publicDir)`   | `boolean \| string \| undefined` → path or `null`.                                                                                                                                                                                                                                               |
 
 ## Builtin Module System
 

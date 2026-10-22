@@ -27,7 +27,7 @@ export {
 } from './loader';
 export { resolveEnvConfig, envConfigDefaults } from './env';
 export type { ResolvedEnvConfig } from './env';
-export { resolveRoutingConfig, routingConfigDefaults } from './routing';
+export { resolveRoutingConfig, routingConfigDefaults, warnUnknownRoutingKeys } from './routing';
 export { resolvePagesConfig, resolvePageCompilers, pagesConfigDefaults, PAGE_EXTENSIONS } from './pages';
 export type { ResolvedPagesConfig, PageExtension } from './pages';
 export { resolveI18nConfig, localeCodesOf, localePathsOf } from './i18n';

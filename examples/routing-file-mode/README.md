@@ -154,16 +154,14 @@ import { routes } from '~router/routes';
 
 常用字段:
 
-| 字段                 | 类型                            | 默认值                    | 说明                                                             |
-| -------------------- | ------------------------------- | ------------------------- | ---------------------------------------------------------------- |
-| `mode`               | `'virtual' \| 'file' \| 'both'` | `'virtual'`               | 路由数据生成模式                                                 |
-| `outputDir`          | `string`                        | `'src/router/_generated'` | 实体文件输出目录(相对于 `rootDir`,产出 `routes.ts`/`imports.ts`) |
-| `defaultLayout`      | `string \| false`               | `'default'`               | 默认布局名称,设为 `false` 表示不使用默认布局                     |
-| `routeLazy`          | `boolean`                       | `true`                    | 路由组件懒加载                                                   |
-| `layoutLazy`         | `boolean`                       | `true`                    | 布局组件懒加载                                                   |
-| `watchFile`          | `boolean`                       | `true`                    | dev 模式下监听文件变更                                           |
-| `fileUpdateDuration` | `number`                        | `100`                     | 文件变更 debounce 时长(ms)                                       |
-| `onGenerated`        | `(files: string[]) => void`     | —                         | 生成完成回调(仅 `file`/`both`)                                   |
+| 字段           | 类型                                                 | 默认值                    | 说明                                                             |
+| -------------- | ---------------------------------------------------- | ------------------------- | ---------------------------------------------------------------- |
+| `mode`         | `'virtual' \| 'file' \| 'both'`                      | `'virtual'`               | 路由数据生成模式                                                 |
+| `outputDir`    | `string`                                             | `'src/router/_generated'` | 实体文件输出目录(相对于 `rootDir`,产出 `routes.ts`/`imports.ts`) |
+| `routeLazy`    | `boolean`                                            | `true`                    | 路由组件懒加载                                                   |
+| `layoutLazy`   | `boolean`                                            | `true`                    | 布局组件懒加载                                                   |
+| `getRouteMeta` | `(filePath, frontmatter) => Record<string, unknown>` | —                         | 自定义路由 meta 解析器                                           |
+| `onGenerated`  | `(files: string[]) => void`                          | —                         | 生成完成回调(仅 `file`/`both`)                                   |
 
 > 📌 `typed-router.d.ts` 不在 `outputDir` 中,固定生成到 `.ubean/typed-router.d.ts`(与 `auto-imports.d.ts`、`components.d.ts` 同目录,均已 gitignored)。
 

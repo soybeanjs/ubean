@@ -9,7 +9,7 @@ import { join } from 'node:path';
  *
  * 这些函数是配置加载链的核心纯函数，被 CLI / builder / dev-server / prerender 等包复用。
  */
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   resolveSsrConfig,
   resolvePrerenderConfig,
@@ -17,7 +17,7 @@ import {
   resolveFavicon,
   DEFAULT_PRERENDER_EXCLUDE
 } from '../src/loader';
-import { resolveRoutingConfig, routingConfigDefaults } from '../src/routing';
+import { resolveRoutingConfig, routingConfigDefaults, warnUnknownRoutingKeys } from '../src/routing';
 
 describe('resolveSsrConfig()', () => {
   it('true → enabled, all=true, exclude=[], streaming=false', () => {
@@ -92,31 +92,44 @@ describe('resolveRoutingConfig()', () => {
     expect(result.mode).toBe('file');
     expect(result.outputDir).toBe('custom/dir');
     // 未覆盖的保留默认值
-    expect(result.generateBuiltinRoutes).toBe(true);
-    expect(result.defaultLayout).toBe('default');
+    expect(result.routeLazy).toBe(true);
+    expect(result.layoutLazy).toBe(true);
   });
 
   it('函数字段不被 spread 覆盖', () => {
-    const getRouteName = () => 'custom';
-    const result = resolveRoutingConfig({ getRouteName });
-    expect(result.getRouteName).toBe(getRouteName);
+    const getRouteMeta = () => ({ custom: true });
+    const result = resolveRoutingConfig({ getRouteMeta });
+    expect(result.getRouteMeta).toBe(getRouteMeta);
   });
 
   it('未提供函数字段时不挂载', () => {
     const result = resolveRoutingConfig({});
-    expect(result.getRouteName).toBeUndefined();
+    expect(result.getRouteMeta).toBeUndefined();
     expect(result.onGenerated).toBeUndefined();
   });
 
-  it('routingConfigDefaults 含全部必需字段', () => {
+  it('routingConfigDefaults 只保留活字段', () => {
     expect(routingConfigDefaults).toHaveProperty('mode', 'virtual');
     expect(routingConfigDefaults).toHaveProperty('outputDir');
-    expect(routingConfigDefaults).toHaveProperty('generateBuiltinRoutes', true);
-    expect(routingConfigDefaults).toHaveProperty('defaultLayout', 'default');
     expect(routingConfigDefaults).toHaveProperty('routeLazy', true);
     expect(routingConfigDefaults).toHaveProperty('layoutLazy', true);
-    expect(routingConfigDefaults).toHaveProperty('watchFile', true);
-    expect(routingConfigDefaults).toHaveProperty('fileUpdateDuration', 100);
+    // 死字段已删除 —— 它们曾经「配了没反应」（根重定向改用 `definePage({ redirect })`）
+    expect(Object.keys(routingConfigDefaults).toSorted()).toEqual(['layoutLazy', 'mode', 'outputDir', 'routeLazy']);
+  });
+
+  it('已删除的 routing 字段会告警', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      warnUnknownRoutingKeys({ rootRedirect: '/home', mode: 'virtual' });
+      expect(warn).toHaveBeenCalledOnce();
+      expect(warn.mock.calls[0][0]).toContain('rootRedirect');
+      // 活字段不告警
+      warn.mockClear();
+      warnUnknownRoutingKeys({ mode: 'virtual', getRouteMeta: () => ({}) });
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
 

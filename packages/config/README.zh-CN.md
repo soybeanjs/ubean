@@ -75,7 +75,7 @@ import {
   ensureUbeanConfig, // cache first, otherwise load
   getConfig, // cache or throw
   tryGetConfig, // cache or null
-  resolveRoutingConfig, // { mode, outputDir, defaultLayout, routeLazy, … }
+  resolveRoutingConfig, // { mode, outputDir, routeLazy, layoutLazy }
   resolveI18nConfig, // i18n defaults + locale list
   resolveSsrConfig, // boolean | { all, exclude, streaming } → resolved
   resolvePrerenderConfig, // include/exclude + DEFAULT_PRERENDER_EXCLUDE
@@ -85,14 +85,14 @@ import {
 } from '@ubean/config';
 ```
 
-| 解析器                                 | 说明                                                                                                                                                                                                                                |
-| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resolveRoutingConfig(userConfig?)`    | 合并到 `routingConfigDefaults`（`mode: 'virtual'`、`outputDir: 'src/router/_generated'`、`defaultLayout: 'default'`、`routeLazy: true`、`layoutLazy: true`、`watchFile: true`、`fileUpdateDuration: 100`）。函数字段不参与 spread。 |
-| `resolveI18nConfig(config?)`           | 接受 `I18nConfig \| false`；`localeCodesOf(resolved)` 返回语言码列表。                                                                                                                                                              |
-| `resolveSsrConfig(config?)`            | 归一化 `boolean \| SsrOptions`；`all` 默认 `true`。                                                                                                                                                                                 |
-| `resolvePrerenderConfig(config?)`      | `DEFAULT_PRERENDER_EXCLUDE` = `['/api/**', '/_**', '/robots.txt', '/sitemap.xml', '/favicon.ico', '/favicon.svg', '/manifest.webmanifest']`。                                                                                       |
-| `resolveLoggingConfig(config?, mode?)` | 应用按模式决定的默认闸门（`ssg` / `spa` 下 `request: 'auto'` 强制关闭）。                                                                                                                                                           |
-| `resolveFavicon(favicon, publicDir)`   | `boolean \| string \| undefined` → 路径或 `null`。                                                                                                                                                                                  |
+| 解析器                                 | 说明                                                                                                                                                                                                                                                                  |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveRoutingConfig(userConfig?)`    | 合并到 `routingConfigDefaults`（`mode: 'virtual'`、`outputDir: 'src/router/_generated'`、`routeLazy: true`、`layoutLazy: true`）。函数字段（`getRouteMeta` / `onGenerated`）不参与 spread。`warnUnknownRoutingKeys(userConfig)` 对已删除或拼错的 `routing` 字段告警。 |
+| `resolveI18nConfig(config?)`           | 接受 `I18nConfig \| false`；`localeCodesOf(resolved)` 返回语言码列表。                                                                                                                                                                                                |
+| `resolveSsrConfig(config?)`            | 归一化 `boolean \| SsrOptions`；`all` 默认 `true`。                                                                                                                                                                                                                   |
+| `resolvePrerenderConfig(config?)`      | `DEFAULT_PRERENDER_EXCLUDE` = `['/api/**', '/_**', '/robots.txt', '/sitemap.xml', '/favicon.ico', '/favicon.svg', '/manifest.webmanifest']`。                                                                                                                         |
+| `resolveLoggingConfig(config?, mode?)` | 应用按模式决定的默认闸门（`ssg` / `spa` 下 `request: 'auto'` 强制关闭）。                                                                                                                                                                                             |
+| `resolveFavicon(favicon, publicDir)`   | `boolean \| string \| undefined` → 路径或 `null`。                                                                                                                                                                                                                    |
 
 ## 内建模块系统
 

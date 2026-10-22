@@ -33,11 +33,8 @@ declare module 'ubean' {
     routing?: {
       mode?: 'virtual' | 'file' | 'both';
       outputDir?: string;
-      dtsDir?: string;
       routeLazy?: boolean;
       layoutLazy?: boolean;
-      watchFile?: boolean;
-      fileUpdateDuration?: number;
       onGenerated?: (files: string[]) => void;
     };
   }

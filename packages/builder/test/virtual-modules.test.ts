@@ -85,7 +85,9 @@ describe('createPagesVirtualModule()', () => {
 
   it('运行时代码必须能被按 JS 解析 —— `export type` 会让 dev SSR 图报 Unexpected token', async () => {
     const pages: CompiledPage[] = [{ name: 'About', path: '/about', filePath: '/project/src/pages/about.vue' }];
-    const layouts: CompiledLayout[] = [{ name: 'default', filePath: '/project/src/layouts/default.vue', isDefault: true }];
+    const layouts: CompiledLayout[] = [
+      { name: 'default', filePath: '/project/src/layouts/default.vue', isDefault: true }
+    ];
     const code = await createPagesVirtualModule(pages, layouts, CWD).load();
 
     // 精确复现事故现场：Vite 的 ssrTransform 不认 `.ts` 后缀，一律按 JS 解析

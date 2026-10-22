@@ -547,7 +547,11 @@ export async function generateAutoImports(
     }
   }
 
-  const componentsDts = generateComponentsDts(components, componentsDtsPath, await readComponentsDtsEntries(componentsDtsPath));
+  const componentsDts = generateComponentsDts(
+    components,
+    componentsDtsPath,
+    await readComponentsDtsEntries(componentsDtsPath)
+  );
   await writeFile(componentsDtsPath, componentsDts, 'utf-8');
 
   const virtualComponentsDtsPath = join(outDir, 'virtual-components.d.ts');

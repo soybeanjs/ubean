@@ -243,7 +243,7 @@ definePage({ routable: false });
 | 删掉                                           | 保留                                                              |
 | ---------------------------------------------- | ----------------------------------------------------------------- |
 | 客户端路由记录（`routes`）                     | **组件 loader**（`_pageLoaders`）—— `.reuse.*` 路由仍然借它拿组件 |
-| `PageName` / `RouteNamedMap` 中的条目          | `pages` 清单条目（带 `routable` / `pageKind` / `pageMeta`）         |
+| `PageName` / `RouteNamedMap` 中的条目          | `pages` 清单条目（带 `routable` / `pageKind` / `pageMeta`）       |
 | 服务端路由注册（Hono / SSR / SSG）与预渲染候选 | `definePage` 元数据，供宿主自己构菜单                             |
 
 `.meta.*` 条目连 loader 都没有（它的模块没有 default export）。`pages` 导出带 `routable` / `pageKind` / 原始 `pageMeta`，应用可以据此读自己的菜单语义 —— 例如把 `meta.menuType === 'directory'` 当嵌套菜单分组、`meta.href` 当外链。

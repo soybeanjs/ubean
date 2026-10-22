@@ -87,10 +87,9 @@ describe('generateI18nTypes · GeneratedTypeConfig locale union', () => {
     const enPath = join(dir, 'en.json');
     await writeFile(enPath, JSON.stringify({ hello: 'Hello' }), 'utf8');
 
-    const path = await generateI18nTypes(
-      emptyScan([locale('en', enPath, true), locale('zh', join(dir, 'zh.json'))]),
-      { outDir: join(dir, '.ubean') }
-    );
+    const path = await generateI18nTypes(emptyScan([locale('en', enPath, true), locale('zh', join(dir, 'zh.json'))]), {
+      outDir: join(dir, '.ubean')
+    });
 
     const dts = await readFile(path!, 'utf8');
     expect(dts).toContain("declare module '@intlify/core-base'");

@@ -87,7 +87,7 @@ describe('generateAutoImports components.d.ts format', () => {
     const unpluginVersion = [
       '/* eslint-disable */',
       '// @ts-nocheck',
-      'import { GlobalComponents } from \'vue\'',
+      "import { GlobalComponents } from 'vue'",
       '',
       'export {}',
       '',

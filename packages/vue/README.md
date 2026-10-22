@@ -235,7 +235,7 @@ What `routable: false` removes vs. keeps:
 | Removed                                                          | Kept                                                                      |
 | ---------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | client route record (`routes`)                                   | **component loader** (`_pageLoaders`) — `.reuse.*` routes still borrow it |
-| `PageName` / `RouteNamedMap` entries                             | entry in `pages` (with `routable` / `pageKind` / `pageMeta`)                |
+| `PageName` / `RouteNamedMap` entries                             | entry in `pages` (with `routable` / `pageKind` / `pageMeta`)              |
 | server route registration (Hono, SSR, SSG), prerender candidates | `definePage` metadata, for hosts that build menus from the inventory      |
 
 `.meta.*` entries get **no loader at all** (their module has no default export). The `pages` export carries `routable`, `pageKind` and the raw `pageMeta`, so an application can read its own menu semantics — e.g. treat `meta.menuType === 'directory'` as a nested menu group and `meta.href` as an external link.

@@ -89,7 +89,10 @@ export function serializePagesForEntry(pages: ScanResult['pages']): string {
       pageMeta: p.pageMeta,
       // 下面两个是「文件路由语法」的语义产物，服务端路由与客户端守卫都依赖它们
       matchers: p.matchers,
-      slot: p.slot
+      slot: p.slot,
+      // `definePage({ redirect })`：重定向页面在产物里也是重定向记录，
+      // 与 dev 的活对象同形 —— 漏了它只在产物里失效（matchers/slot 曾因此静默丢失）。
+      redirect: p.redirect
     }))
   );
 }

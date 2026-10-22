@@ -35,6 +35,22 @@ describe('definePage 提取 — 注释', () => {
     expect(meta).toEqual({ name: 'A', cache: true });
   });
 
+  it('`redirect` 字符串字面量被提取', () => {
+    const meta = extractDefinePageFromCode(`definePage({ redirect: '/home' });`);
+    expect(meta?.redirect).toBe('/home');
+  });
+
+  it('`redirect` 非字符串（函数形式）被丢掉并告警，其余字段保留', () => {
+    const meta = extractDefinePageFromCode(`definePage({ redirect: to => '/home', name: 'Home' });`, 'index.ts');
+    expect(meta?.redirect).toBeUndefined();
+    expect(meta?.name).toBe('Home');
+    expect(console.warn).toHaveBeenCalled();
+  });
+
+  it('空字符串 `redirect` 不算重定向（不产生无目标的跳转）', () => {
+    expect(extractDefinePageFromCode(`definePage({ redirect: '' });`)?.redirect).toBeUndefined();
+  });
+
   it('块注释里的 definePage 调用不被当成真调用', () => {
     const code = `/* definePage({ name: 'GHOST' }) */\ndefinePage({ name: 'Real' });`;
     expect(extractDefinePageFromCode(code)?.name).toBe('Real');

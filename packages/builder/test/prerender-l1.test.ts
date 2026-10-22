@@ -127,6 +127,18 @@ describe('collectPrerenderRoutes()', () => {
     expect(routes).toContain('/pricing');
   });
 
+  it('`definePage({ redirect })` 的页面不进候选池，即使显式 include 也排除', () => {
+    // 静态产物里没有重定向的执行点：渲出来是源页面的 HTML（错）或空体的 302（写盘就是空文件）。
+    const home = makePage('/');
+    const redirectHome = { ...home, name: 'Home', redirect: '/home' } as ScannedPageRoute;
+    const pages = [redirectHome, makePage('/home'), makePage('/about')];
+
+    expect(collectPrerenderRoutes(pages, { all: true }).routes).not.toContain('/');
+    // 显式 include 会绕过候选池，必须同样被过滤
+    expect(collectPrerenderRoutes(pages, { include: ['/'] }).routes).not.toContain('/');
+    expect(collectPrerenderRoutes(pages, { include: ['/about'] }).routes).toContain('/about');
+  });
+
   it('all: true ignores include field', () => {
     const { routes } = collectPrerenderRoutes([makePage('/'), makePage('/about'), makePage('/blog')], {
       all: true,

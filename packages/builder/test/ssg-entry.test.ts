@@ -108,6 +108,19 @@ describe('buildRendererSetup()', () => {
     expect(code).not.toContain('interceptTarget');
   });
 
+  it('`definePage({ redirect })` 生成 redirect 记录且不挂 component', () => {
+    const code = buildRendererSetup({ ssrEnabled: true, mode: 'fullstack', localeVueParam: '' });
+    // 生成期模板：`p.redirect` 必须原样落到产物源码（不能插值）
+    expect(code).toContain('...(p.redirect');
+    expect(code).toContain('redirect: _localeVueParam');
+    expect(code).toContain("p.redirect === '/' ? '' : p.redirect");
+  });
+
+  it('并行路由里带 redirect 的默认页不进命名视图', () => {
+    const code = buildRendererSetup({ ssrEnabled: true, mode: 'fullstack', localeVueParam: '' });
+    expect(code).toContain('_group.default && !_group.default.redirect');
+  });
+
   it('omits the NotFound route by default (fullstack entry)', () => {
     const code = buildRendererSetup({ ssrEnabled: true, mode: 'fullstack', localeVueParam: '' });
     expect(code).not.toContain("'/404'");

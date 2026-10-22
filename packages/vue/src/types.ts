@@ -35,6 +35,16 @@ export interface PageMeta {
   name?: string;
   path?: string;
   /**
+   * Redirect target — this route renders no component, it navigates to the target.
+   *
+   * 取代旧的路由配置 `routing.rootRedirect`:`src/pages/index.vue` 即根路由,
+   * 在其中 `definePage({ redirect: '/home' })` 即可。
+   *
+   * 构建期只提取字符串字面量;函数形式(按参数拼 URL)无法静态求值,会被忽略并告警。
+   * 字符串是**静态路径**,不要手写 `:locale` 前缀 —— 框架按 locale 策略补。
+   */
+  redirect?: string;
+  /**
    * Layout name, array of layout names (outer → inner, applied left-to-right),
    * or `false` to disable layout.
    */
@@ -117,6 +127,11 @@ export interface ScannedPage {
   slot?: string;
   /** 路由参数 → matcher 名称映射(`[param=matcher]` 语法)。 */
   matchers?: Record<string, string>;
+  /**
+   * 重定向目标(`definePage({ redirect })`)。非空时该页面不渲染组件,
+   * 客户端路由表 / dev SSR / 生产 entry 都注册为重定向记录,服务端返回 302。
+   */
+  redirect?: string;
 }
 
 /** 扫描得到的布局(`layouts/` 下 `xx.vue` 或 `xx/index.vue`)。 */

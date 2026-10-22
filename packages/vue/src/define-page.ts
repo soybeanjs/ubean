@@ -42,6 +42,29 @@ export interface DefineClientPageOptions {
   /** 覆盖文件派生的路由路径(需以 `/` 开头,支持 `:param` 动态段)。 */
   path?: string;
   /**
+   * 重定向目标 —— 本路由不渲染组件,访问时跳到目标路径。
+   *
+   * 典型用法是根路由:`src/pages/index.vue` 就是 `/`,在其中声明
+   * `definePage({ redirect: '/home' })` 即可,不需要任何路由配置字段。
+   *
+   * ```vue
+   * <!-- src/pages/index.vue -->
+   * <script setup lang="ts">
+   * definePage({ redirect: '/home' });
+   * </script>
+   * ```
+   *
+   * **构建期只支持字符串字面量**(与 `definePage` 其他字段一致)。函数形式的
+   * 目标(例如按参数拼接 URL)无法静态求值,会被提取器忽略并告警。
+   *
+   * 带语言前缀的站点**不要写 `/:locale(zh)?/home` 这种字符串** —— 字符串重定向
+   * 是静态路径,vue-router 不会插值参数。请写不带前缀的路径(`/home`),框架会在
+   * 生成路由表时按当前 locale 策略补前缀。
+   *
+   * 外链(`https://…`)不受支持:vue-router 会把它当路径。需要外链请用导航守卫。
+   */
+  redirect?: string;
+  /**
    * 布局标记:布局名、外→内嵌套布局名数组,或 `false` 禁用。
    * 精简内核只把该值写入 `route.meta.layout`,渲染由宿主的布局层
    * (`LayoutChainRenderer` / 框架运行时)消费。

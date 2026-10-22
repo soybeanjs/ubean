@@ -25,6 +25,22 @@ function toVueRouterPath(route: string): string {
 }
 
 /**
+ * vue-router `redirect` 表达式 —— 目标按当前路由的 locale 参数补前缀。
+ *
+ * 字符串重定向是**静态路径**,vue-router 不插值参数,所以带语言前缀的站点
+ * 不能把目标写成 `/:locale(zh)?/home`(实测会当成字面路径并报无匹配)。
+ * 函数形式里拼一次即可。`to.params.locale` 的运行时值就是 URL 段本身
+ * (`path` 覆盖过也是段),所以不需要再查 locale 表;默认语言在
+ * `prefix_except_default` / `prefix_and_default` 下没有 param,自然不带前缀。
+ */
+function redirectExpression(target: string, localeVueParam: string | undefined): string {
+  if (!localeVueParam) return JSON.stringify(target);
+  // 目标为 `/` 时不要拼出 `/zh/` —— 服务端 `localizePath` 给的是 `/zh`。
+  const suffix = target === '/' ? '' : target;
+  return `to => (to.params.locale ? '/' + to.params.locale + ${JSON.stringify(suffix)} : ${JSON.stringify(target)})`;
+}
+
+/**
  * Sort pages so that reuse routes come after their targets.
  *
  * A reuse route generates `const Page_Reuse = Page_Target;` in the virtual
@@ -197,6 +213,14 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
       routeEntries.push(
         `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(primaryPage.name)}, components: { ${componentParts.join(', ')} }, meta: ${buildRouteMeta(primaryPage, { parallelSlots: slotPages.map(s => s.slot) })} }`
       );
+    } else if (defaultPage!.redirect) {
+      // `definePage({ redirect })`: 不渲染组件,访问时跳转。
+      // `redirect` 与 `component` 可以共存(vue-router 实测 redirect 优先),
+      // 但冗余的 component 会让「这页到底渲不渲染」变得看运气,所以不写。
+      const vuePath = withLocaleParam(routerPath, locale?.vueParam);
+      routeEntries.push(
+        `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(defaultPage!.name)}, redirect: ${redirectExpression(defaultPage!.redirect, locale?.vueParam)}, meta: ${buildRouteMeta(defaultPage!)} }`
+      );
     } else {
       const vuePath = withLocaleParam(routerPath, locale?.vueParam);
       routeEntries.push(
@@ -302,7 +326,7 @@ export function hasErrorPage() {
 }
 
 export const pages = {
-${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)}, pageKind: ${JSON.stringify(resolvePageKind(p))}, routable: ${p.routable !== false}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)} }`).join(',\n')}
+${pages.map(p => `  ${JSON.stringify(p.name)}: { name: ${JSON.stringify(p.name)}, route: ${JSON.stringify(p.route)}, path: ${JSON.stringify(p.path)}, layout: ${JSON.stringify(p.layout)}, pageKind: ${JSON.stringify(resolvePageKind(p))}, routable: ${p.routable !== false}, reuseTarget: ${JSON.stringify(p.reuseTarget)}, pageMeta: ${JSON.stringify(p.pageMeta ?? null)}, redirect: ${JSON.stringify(p.redirect ?? null)} }`).join(',\n')}
 };
 
 export const layouts = {

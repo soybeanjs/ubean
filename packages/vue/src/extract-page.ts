@@ -174,6 +174,9 @@ export function extractDefinePageFromCode(code: string, fileName?: string, conte
   const result: PageMeta = {};
   if (typeof parsed.name === 'string') result.name = parsed.name;
   if (typeof parsed.path === 'string') result.path = parsed.path;
+  // 重定向目标必须是非空字符串。非字符串(函数形式)会被 AST 提取器丢成
+  // `dropped` 并告警,这里只需处理解析成功的情况。
+  if (typeof parsed.redirect === 'string' && parsed.redirect.length > 0) result.redirect = parsed.redirect;
   if (parsed.layout === false) {
     result.layout = false;
   } else if (typeof parsed.layout === 'string' && parsed.layout !== 'default') {

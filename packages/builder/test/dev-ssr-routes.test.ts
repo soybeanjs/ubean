@@ -93,6 +93,40 @@ describe('buildDevSsrRoutes', () => {
     expect(server.find(r => r.name === 'About')!.path).toBe('/:locale(zh)?/about');
   });
 
+  it('`definePage({ redirect })`：路由不带 component，客户端与 dev 两侧同形', () => {
+    const REDIRECT = page({ name: 'RedirectHome', route: '/', redirect: '/home' });
+    const pages = [REDIRECT, HOME];
+
+    // 无语言前缀：两侧都是静态字符串
+    const clientNoLocale = generatePagesModuleSource({ pages, layouts: LAYOUTS, notFoundPage: NOT_FOUND } as never);
+    const serverNoLocale = buildDevSsrRoutes({ pages, layouts: LAYOUTS, loadComponent: load, notFoundPage: NOT_FOUND });
+    const noLocaleRoute = serverNoLocale.find(r => r.name === 'RedirectHome')!;
+    expect(noLocaleRoute.redirect).toBe('/home');
+    expect(noLocaleRoute.component).toBeUndefined();
+    expect(clientNoLocale).toContain('redirect: "/home"');
+
+    // 有语言前缀：两侧都是函数（字符串重定向不插值 `:locale` 参数）
+    const vueParam = ':locale(zh)?';
+    const clientLocale = generatePagesModuleSource({ pages, layouts: LAYOUTS, notFoundPage: NOT_FOUND } as never, {
+      vueParam
+    });
+    const serverLocale = buildDevSsrRoutes({
+      pages,
+      layouts: LAYOUTS,
+      loadComponent: load,
+      notFoundPage: NOT_FOUND,
+      localeVueParam: vueParam
+    });
+    const localeRoute = serverLocale.find(r => r.name === 'RedirectHome')!;
+    expect(typeof localeRoute.redirect).toBe('function');
+    expect(localeRoute.component).toBeUndefined();
+    // 两侧函数同形：`to.params.locale` 存在时补前缀，否则用裸目标
+    const redirectFn = localeRoute.redirect as (to: { params: Record<string, string> }) => string;
+    expect(redirectFn({ params: {} })).toBe('/home');
+    expect(redirectFn({ params: { locale: 'zh' } })).toBe('/zh/home');
+    expect(clientLocale).toContain('to.params.locale');
+  });
+
   it('R8 回归：无 notFoundPage 时不注册 catch-all，注册时名字与路径都对', () => {
     const without = buildDevSsrRoutes({ pages: [HOME], layouts: LAYOUTS, loadComponent: load });
     expect(without.some(r => r.name === 'NotFound')).toBe(false);

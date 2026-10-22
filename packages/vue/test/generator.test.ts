@@ -105,6 +105,16 @@ describe('generateRouteFiles', () => {
     expect(imports).toContain(`export type RouteReuseKey = 'About2'`);
   });
 
+  it('definePage({ redirect }) 写进 RouteRecord', async () => {
+    const home = page({ name: 'Home', route: '/', redirect: '/home' });
+    const realHome = page({ name: 'HomeReal', route: '/home' });
+
+    await generateRouteFiles({ pages: [home, realHome], layouts: [] }, { cwd: tmpDir, srcDir, outDir });
+
+    const routes = readFileSync(join(outDir, 'routes.ts'), 'utf-8');
+    expect(routes).toContain(`redirect: '/home'`);
+  });
+
   it('matchers 注入 route meta;getRouteMeta 提供的额外 meta 不覆盖 definePage meta', async () => {
     const p = page({
       name: 'UsersId',

@@ -57,11 +57,23 @@ const _pageToRoute = p => {
   // only contains definePage metadata, not a Vue component).
   const _targetPage = p.pageKind === 'reuse' && p.reuseTarget ? _pages.find(tp => tp.name === p.reuseTarget) : undefined;
   const _loaderKey = _targetPage?.relativePath || p.relativePath;
+  const _routePath = p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*');
   return {
-    path: _localeVueParam
-      ? toVueRouterLocalePath(p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'), _localeVueParam)
-      : p.route.replace(/\\*\\*:(\\w[\\w-]*)/g, ':$1(.*)*'),
+    path: _localeVueParam ? toVueRouterLocalePath(_routePath, _localeVueParam) : _routePath,
     name: p.name,
+    // \`definePage({ redirect })\`: 不渲染组件，访问时跳转（与服务端 302 同语义）。
+    // 字符串重定向不插值参数，带语言前缀时用函数形式拼 —— 与客户端 / dev 同形。
+    // 注意这里是**生成期模板**：\`p.redirect\` 必须原样落到产物里（运行期才按页取值）。
+    ...(p.redirect
+      ? {
+          redirect: _localeVueParam
+            ? to =>
+                to.params.locale
+                  ? '/' + to.params.locale + (p.redirect === '/' ? '' : p.redirect)
+                  : p.redirect
+            : p.redirect
+        }
+      : {}),
     component: async () => {
       const loader = pageLoaders[_loaderKey];
       if (!loader) throw new Error('Page loader not found: ' + _loaderKey);
@@ -100,7 +112,7 @@ for (const _group of _routeGroups.values()) {
     // 注意组件加载器在 _record 上（_primary 是扫描得到的页面条目，没有 component 字段 ——
     // 写成 _primary.component 会得到 undefined，vue-router 报 Invalid route component）。
     const _components = {};
-    if (_group.default) _components.default = _record.component;
+    if (_group.default && !_group.default.redirect) _components.default = _record.component;
     for (const _slotPage of _group.slots) _components[_slotPage.slot] = _pageToRoute(_slotPage).component;
     delete _record.component;
     _record.components = _components;

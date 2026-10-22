@@ -565,6 +565,10 @@ const s = '括号)内部';
       `<script setup lang="ts">\nimport { definePage } from '@ubean/vue';\ndefinePage({ cache: true, transition: 'fade', meta: { custom: 1 } });\n</script>`
     );
     await wf(`${pagesDir}/users/[id].vue`, `<template><div /></template>`);
+    await wf(
+      `${pagesDir}/legacy.vue`,
+      `<script setup>definePage({ redirect: '/about' });</script>\n<template><div /></template>`
+    );
     await wf(`${pagesDir}/404.vue`, `<template><div>404</div></template>`);
     await wf(`${pagesDir}/_ignored.vue`, `<template><div /></template>`);
     await wf(`${pagesDir}/components/nested.vue`, `<template><div /></template>`);
@@ -572,7 +576,11 @@ const s = '括号)内部';
     const scan = await scanClientPages(root, {});
 
     // _ignored / components/ 被排除;顺序为确定性文件字母序(index.vue 排在 about 后)
-    expect(scan.pages.map(p => p.path)).toEqual(['/about', '/', '/users/:id']);
+    expect(scan.pages.map(p => p.path)).toEqual(['/about', '/', '/legacy', '/users/:id']);
+
+    // `definePage({ redirect })` 必须进扫描结果 —— 漏了它客户端路由表 / dev SSR 表 /
+    // 产物白名单都会静默拿不到目标（旧配置字段 `routing.rootRedirect` 的替代）。
+    expect(scan.pages.find(p => p.path === '/legacy')?.redirect).toBe('/about');
 
     const home = scan.pages.find(p => p.path === '/')!;
     expect(home.name).toBe('Home'); // definePage name 覆盖文件派生 'Index'
@@ -660,6 +668,41 @@ const s = '括号)内部';
     expect(code).toContain('export const pageNames');
     expect(code).toContain('export const loadingComponent');
     expect(code).toContain('export const errorComponent');
+  });
+
+  it('definePage({ redirect }) 的路由不挂 component,而是 vue-router redirect', () => {
+    const input: import('../src/virtual-pages').PagesModuleInput = {
+      pages: [
+        {
+          fullPath: '/x/pages/index.vue',
+          route: '/',
+          path: '/',
+          name: 'Home',
+          pageKind: 'component',
+          isMarkdown: false,
+          redirect: '/home'
+        },
+        {
+          fullPath: '/x/pages/home.vue',
+          route: '/home',
+          path: '/home',
+          name: 'HomeReal',
+          pageKind: 'component',
+          isMarkdown: false
+        }
+      ],
+      layouts: []
+    };
+
+    const code = generatePagesModuleSource(input);
+    // 无语言前缀：字符串重定向（静态路径）
+    expect(code).toContain('redirect: "/home"');
+    expect(code).not.toContain('component: Page_Home,');
+
+    // 有语言前缀：必须是函数形式 —— 字符串重定向不会插值 `:locale` 参数
+    const withLocale = generatePagesModuleSource(input, { vueParam: ':locale(zh)?' });
+    expect(withLocale).toContain('redirect: to => (to.params.locale ?');
+    expect(withLocale).toContain('to.params.locale + "/home"');
   });
 
   it('generateVirtualModuleDts 产出环境模块声明(script,pageNames union)', () => {

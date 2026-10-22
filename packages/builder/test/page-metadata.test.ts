@@ -60,6 +60,12 @@ describe('serializePagesForEntry', () => {
     expect(first.pageMeta).toMatchObject({ name: 'x', path: '/x' });
   });
 
+  it('`definePage({ redirect })` 也进产物（漏了就只在产物里失效）', () => {
+    const json = serializePagesForEntry([page({ redirect: '/home' })]);
+    const first = (JSON.parse(json) as Array<Record<string, unknown>>)[0];
+    expect(first.redirect).toBe('/home');
+  });
+
   it('不把构建机的文件系统路径带进产物（fullPath / dirname / basename）', () => {
     const json = serializePagesForEntry([page()]);
     expect(json).not.toContain('/app/src/pages');

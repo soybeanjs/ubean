@@ -390,7 +390,8 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         pageMeta: pageMeta || undefined,
         frontmatter,
         slot,
-        matchers
+        matchers,
+        redirect: pageMeta?.redirect
       });
     }
   }

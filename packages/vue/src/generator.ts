@@ -243,6 +243,12 @@ ${items}
       parts.push(`    requiresAuth: true`);
     }
 
+    // `definePage({ redirect })`：访问时跳转。vue-router 下 `redirect` 优先于 `component`，
+    // 所以保留 component 键不影响行为，file 模式的产物却能如实反映这条路由是跳转。
+    if (page.redirect) {
+      parts.push(`    redirect: ${jsStringLiteral(page.redirect)}`);
+    }
+
     return `  {\n${parts.join(',\n')}\n  }`;
   }
 
@@ -339,6 +345,8 @@ export interface RouteRecord {
   meta?: Record<string, unknown>;
   cache?: boolean;
   requiresAuth?: boolean;
+  /** definePage({ redirect }) 的目标；存在时该路由不渲染组件。 */
+  redirect?: string;
 }
 
 export const layouts: Record<LayoutKey, RawRouteComponent> = {

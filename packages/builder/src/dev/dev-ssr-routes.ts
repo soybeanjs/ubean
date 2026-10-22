@@ -23,6 +23,25 @@ export function toVueRouterPagePath(route: string): string {
   return route.replace(/\*\*:(\w[\w-]*)/g, ':$1(.*)*');
 }
 
+/**
+ * `definePage({ redirect })` 的 vue-router 目标。
+ *
+ * 字符串重定向是**静态路径**，vue-router 不插值参数，所以带语言前缀时必须用
+ * 函数形式拼一次（客户端 `generatePagesModuleSource` 生成的是同一个形状）。
+ * `to.params.locale` 的运行期值就是 URL 段本身，不需要再查 locale 表；默认语言在
+ * `prefix_except_default` / `prefix_and_default` 下没有 param，自然不带前缀。
+ */
+function redirectTarget(target: string, localeVueParam?: string): string | ((to: DevSsrRedirectLocation) => string) {
+  if (!localeVueParam) return target;
+  // 目标为 `/` 时不要拼出 `/zh/` —— 服务端 `localizePath` 给的是 `/zh`。
+  const suffix = target === '/' ? '' : target;
+  return to => (to.params.locale ? `/${to.params.locale}${suffix}` : target);
+}
+
+interface DevSsrRedirectLocation {
+  params: Record<string, string | string[]>;
+}
+
 /** vue-router 路由记录的运行期形状（只声明 dev 侧真正用到的字段）。 */
 export interface DevSsrRoute {
   path: string;
@@ -30,6 +49,13 @@ export interface DevSsrRoute {
   /** 普通路由用 `component`；并行路由（`@slot/`）用 `components` 命名视图，二者互斥。 */
   component?: () => Promise<unknown>;
   components?: Record<string, () => Promise<unknown>>;
+  /**
+   * `definePage({ redirect })` 的目标 —— 本路由不渲染组件，访问时跳转。
+   *
+   * 与客户端 `virtual:ubean-pages` 同形：字符串是静态路径，带语言前缀时用
+   * 函数形式按 `to.params.locale` 补前缀（字符串重定向不插值参数）。
+   */
+  redirect?: string | ((to: DevSsrRedirectLocation) => string);
   meta: {
     /** 单层布局名、多层嵌套数组（P9-17）或 `false`（禁用）。 */
     layout: string | string[] | false | null;
@@ -89,7 +115,9 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
   const routeFor = (page: ScannedPageRoute): DevSsrRoute => ({
     path: withLocale(toVueRouterPagePath(page.route)),
     name: page.name,
-    component: componentFor(page),
+    ...(page.redirect
+      ? { redirect: redirectTarget(page.redirect, localeVueParam) }
+      : { component: componentFor(page) }),
     meta: {
       layout: page.layout === false ? false : page.layout || defaultLayout,
       pageName: page.name,
@@ -118,7 +146,8 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
     const route = routeFor(primary);
     if (group.slots.length > 0) {
       const components: Record<string, () => Promise<unknown>> = {};
-      if (group.default) components.default = componentFor(group.default);
+      // redirect 页没有组件实现，不进命名视图。
+      if (group.default && !group.default.redirect) components.default = componentFor(group.default);
       for (const slotPage of group.slots) components[slotPage.slot!] = componentFor(slotPage);
       delete route.component;
       route.components = components;

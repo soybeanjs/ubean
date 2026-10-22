@@ -58,6 +58,17 @@ function isDynamicPath(path: string): boolean {
   return /\[.*?\]/.test(path) || path.includes(':');
 }
 
+/**
+ * `definePage({ redirect })` 的页面是否在预渲染时应跳过。
+ *
+ * 静态产物里没有重定向的执行点：SSG 直接渲染路径会渲出源页面的 HTML，
+ * fullstack 管道下 fetcher 拿到的是空体的 302（写盘就是空文件）。两者都是错的，
+ * 所以两边共用这一个判据（调用方负责出 warn，本模块只负责跳过）。
+ */
+export function isRedirectPage(page: ScannedPageRoute): boolean {
+  return page.routable !== false && Boolean(page.redirect);
+}
+
 function normalizePagePath(filePath: string): string {
   let path = filePath.replace(/\.(vue|ts|js|tsx|jsx|md|mdx)$/, '');
 
@@ -135,9 +146,14 @@ export function collectPrerenderRoutes(
 
   // 候选池:文件系统扫描出的非动态页面（`routable: false` 的条目不是路由，
   // 预渲染它们会生成一个不存在的 URL 的 HTML 产物）。
+  const redirectPaths = new Set<string>();
   const allPageRoutes: string[] = [];
   for (const page of pages) {
     if (page.routable === false) continue;
+    if (isRedirectPage(page)) {
+      redirectPaths.add(normalizePagePath(page.path));
+      continue;
+    }
     const path = normalizePagePath(page.path);
     if (!isDynamicPath(path)) {
       allPageRoutes.push(path);
@@ -163,6 +179,9 @@ export function collectPrerenderRoutes(
       }
     }
   }
+
+  // 显式 `include` 里的具体路径会绕过上面的候选池,所以重定向页面要再过滤一次。
+  for (const path of redirectPaths) matched.delete(path);
 
   // 应用 exclude
   const skipped: string[] = [];
@@ -416,6 +435,14 @@ export async function prerender(options: PrerendererOptions): Promise<PrerenderR
     // i18n 多语言展开：collectPrerenderRoutes 之后、入队之前应用
     ...(options.expandRoutes ? options.expandRoutes(initialRoutes) : initialRoutes)
   ];
+  // `definePage({ redirect })` 的源路由已在 collectPrerenderRoutes 中排除（静态产物
+  // 没有重定向执行点，渲出来是错的）。这里只报一次，避免用户对「为什么没有产物」无从得知。
+  const redirectPages = options.pages.filter(isRedirectPage).map(p => normalizePagePath(p.path));
+  if (redirectPages.length > 0) {
+    _logger.warn(
+      `Skipping prerender for ${redirectPages.length} redirect page(s) (${redirectPages.join(', ')}) — static output has no redirect execution point`
+    );
+  }
   // 静态 SSG 模式：404 哨兵路由入队（routeToFilePath 映射为 404.html）
   if (options.notFoundRoute) {
     queue.unshift(STATIC_NOT_FOUND_ROUTE);

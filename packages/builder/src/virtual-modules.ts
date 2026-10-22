@@ -58,14 +58,11 @@ export function createPagesVirtualModule(pages: CompiledPage[], layouts: Compile
       )
       .join(',\n');
 
-    const pageNames =
-      pages
-        .filter(p => p.routable !== false)
-        .map(p => JSON.stringify(p.name))
-        .join(' | ') || 'string';
-    const layoutNames = layouts.map(l => JSON.stringify(l.name)).join(' | ') || 'string';
-
-    return `export const pages = {\n${pagesEntries}\n};\nexport const pageEntries = pages;\nexport const layouts = {\n${layoutEntries}\n};\nexport type RouteName = ${pageNames};\nexport type LayoutName = ${layoutNames};\nexport default { pages, layouts, pageEntries };`;
+    // 这里**不能**生成 `export type RouteName = ...` —— 虚拟模块在 dev 的 SSR 图里由
+    // Vite 的 ssrTransform 解析，而它不看 `.ts` 后缀、一律按 JS 解析（实测），`export type`
+    // 直接 `Unexpected token`，整个页面 500。类型面由 `.ubean/pages.d.ts` 的
+    // `declare module 'ubean:pages'` 提供，运行时模块只导出值。
+    return `export const pages = {\n${pagesEntries}\n};\nexport const pageEntries = pages;\nexport const layouts = {\n${layoutEntries}\n};\nexport default { pages, layouts, pageEntries };`;
   });
 }
 

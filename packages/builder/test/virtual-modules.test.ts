@@ -59,7 +59,7 @@ describe('createRoutingVirtualModule()', () => {
 });
 
 describe('createPagesVirtualModule()', () => {
-  it('生成 pages + layouts + RouteName/LayoutName 类型', async () => {
+  it('生成 pages + layouts（类型面由 pages.d.ts 提供，运行时模块不含 export type）', async () => {
     const pages: CompiledPage[] = [
       {
         name: 'About',
@@ -78,21 +78,31 @@ describe('createPagesVirtualModule()', () => {
     expect(code).toContain('export const pages = {');
     expect(code).toContain('"About"');
     expect(code).toContain('export const layouts = {');
-    expect(code).toContain('export type RouteName = "About"');
-    expect(code).toContain('export type LayoutName = "default"');
     // 路径 portable
     expect(code).toContain('src/pages/about.vue');
     expect(code).not.toContain(CWD);
   });
 
-  it('空 pages/layouts → RouteName/LayoutName 回退为 string', async () => {
-    const mod = createPagesVirtualModule([], [], CWD);
-    const code = await mod.load();
-    expect(code).toContain('export type RouteName = string');
-    expect(code).toContain('export type LayoutName = string');
+  it('运行时代码必须能被按 JS 解析 —— `export type` 会让 dev SSR 图报 Unexpected token', async () => {
+    const pages: CompiledPage[] = [{ name: 'About', path: '/about', filePath: '/project/src/pages/about.vue' }];
+    const layouts: CompiledLayout[] = [{ name: 'default', filePath: '/project/src/layouts/default.vue', isDefault: true }];
+    const code = await createPagesVirtualModule(pages, layouts, CWD).load();
+
+    // 精确复现事故现场：Vite 的 ssrTransform 不认 `.ts` 后缀，一律按 JS 解析
+    // （`packages/builder/src/vite.ts` 的 resolveId 只加 `\0` 前缀，不加扩展名），
+    // 于是 `export type` 报 `Unexpected token`。这里用同一个解析器锁住。
+    const { parseSync } = await import('oxc-parser');
+    const { errors } = parseSync('ubean:pages.js', code, {});
+    expect(errors.map(e => e.message)).toEqual([]);
   });
 
-  it('routable: false 的条目仍在 pages 里，但被排除出 RouteName union', async () => {
+  it('空 pages/layouts → 仍是可解析的 JS', async () => {
+    const code = await createPagesVirtualModule([], [], CWD).load();
+    const { parseSync } = await import('oxc-parser');
+    expect(parseSync('ubean:pages.js', code, {}).errors).toEqual([]);
+  });
+
+  it('routable: false 的条目仍在 pages 清单里', async () => {
     const pages: CompiledPage[] = [
       { name: 'About', path: '/about', filePath: '/project/src/pages/about.vue' },
       {
@@ -111,11 +121,10 @@ describe('createPagesVirtualModule()', () => {
     expect(code).toContain('routable: false');
     expect(code).toContain('"menuType":"directory"');
 
-    // 类型 union 只含可路由页
-    expect(code).toContain('export type RouteName = "About"');
-    expect(code).not.toContain('export type RouteName = "About" | "PluginIndex"');
+    // 类型 union 已从这里移走（见上面那条「按 JS 解析」用例）—— 类型面在 `.ubean/pages.d.ts`。
+    expect(code).not.toContain('export type');
 
-    // pageEntries 是全量清单的别名（运行时同一份数据，类型面上不限定 key）
+    // pageEntries 是全量清单的别名（类型面上不限定 key）
     expect(code).toContain('export const pageEntries = pages;');
   });
 

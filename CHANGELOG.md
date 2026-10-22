@@ -1,5 +1,39 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.6.9...main) (2026-10-22) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
+
+- **config**: drop the nine dead `routing` fields &nbsp;-&nbsp; by @soybeanjs [<samp>(b1931)</samp>](https://github.com/soybeanjs/ubean/commit/b1931c06)
+- **vue**: add `definePage({ redirect })` &nbsp;-&nbsp; by @soybeanjs [<samp>(a2a26)</samp>](https://github.com/soybeanjs/ubean/commit/a2a26320)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **routes**: answer `definePage({ redirect })` with a 302 &nbsp;-&nbsp; by @soybeanjs [<samp>(ecc18)</samp>](https://github.com/soybeanjs/ubean/commit/ecc18704)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **build**:
+  - stop the client env's input from breaking dev dep scan &nbsp;-&nbsp; by @soybeanjs [<samp>(752b1)</samp>](https://github.com/soybeanjs/ubean/commit/752b1cdc)
+  - stop codegen from wiping unplugin-written component types &nbsp;-&nbsp; by @soybeanjs [<samp>(ec932)</samp>](https://github.com/soybeanjs/ubean/commit/ec932098)
+  - stop re-declaring Vite's builtin `import.meta.env` keys &nbsp;-&nbsp; by @soybeanjs [<samp>(ef7e3)</samp>](https://github.com/soybeanjs/ubean/commit/ef7e34ed)
+
+### &nbsp;&nbsp;&nbsp;🔥 Performance
+
+- **build**: stop dumping unread virtual modules to disk &nbsp;-&nbsp; by @soybeanjs [<samp>(d84eb)</samp>](https://github.com/soybeanjs/ubean/commit/d84eb2ea)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **projects**: document `definePage({ redirect })` and the trimmed routing config &nbsp;-&nbsp; by @soybeanjs [<samp>(76eda)</samp>](https://github.com/soybeanjs/ubean/commit/76edad13)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **examples**: regenerate routing-file-mode imports for the new `redirect` field &nbsp;-&nbsp; by @soybeanjs [<samp>(59e1c)</samp>](https://github.com/soybeanjs/ubean/commit/59e1c204)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.6.8...main) (2026-10-22) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes

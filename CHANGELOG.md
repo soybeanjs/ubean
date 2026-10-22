@@ -1,5 +1,24 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.2...main) (2026-10-23) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
+
+- **builder**: carry the built-in route flags through every page pipeline &nbsp;-&nbsp; by @soybeanjs [<samp>(6c657)</samp>](https://github.com/soybeanjs/ubean/commit/6c65777b)
+- **vue**: turn Root and NotFound into built-in pages &nbsp;-&nbsp; by @soybeanjs [<samp>(22939)</samp>](https://github.com/soybeanjs/ubean/commit/22939f03)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **routes**: keep the 404 status and the JSON fallback on the built-in catch-all &nbsp;-&nbsp; by @soybeanjs [<samp>(af474)</samp>](https://github.com/soybeanjs/ubean/commit/af474197)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **projects**: rewrite the special-page docs as built-in routes &nbsp;-&nbsp; by @soybeanjs [<samp>(816e4)</samp>](https://github.com/soybeanjs/ubean/commit/816e42c7)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.1...main) (2026-10-22) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

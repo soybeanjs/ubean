@@ -71,3 +71,49 @@ describe('generateI18nTypes', () => {
     expect(path).toBeNull();
   });
 });
+
+describe('generateI18nTypes · GeneratedTypeConfig locale union', () => {
+  const locale = (code: string, fullPath: string, isDefault = false): ScannedLocale => ({
+    fullPath,
+    relativePath: fullPath.split('/').pop()!,
+    dirname: '.',
+    basename: fullPath.split('/').pop()!,
+    code,
+    isDefault
+  });
+
+  it('emits the locale union alongside DefineLocaleMessage', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ubean-i18n-union-'));
+    const enPath = join(dir, 'en.json');
+    await writeFile(enPath, JSON.stringify({ hello: 'Hello' }), 'utf8');
+
+    const path = await generateI18nTypes(
+      emptyScan([locale('en', enPath, true), locale('zh', join(dir, 'zh.json'))]),
+      { outDir: join(dir, '.ubean') }
+    );
+
+    const dts = await readFile(path!, 'utf8');
+    expect(dts).toContain("declare module '@intlify/core-base'");
+    expect(dts).toContain('export interface GeneratedTypeConfig');
+    expect(dts).toContain('locale: "en" | "zh";');
+    // `export {}` is what makes the `declare module` blocks augmentations
+    // instead of script-scoped declarations that silently do nothing.
+    expect(dts).toMatch(/^\/\* eslint-disable \*\/\nexport \{\};/m);
+  });
+
+  it('emits the union even when no message JSON is usable', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ubean-i18n-union-only-'));
+    const path = await generateI18nTypes(emptyScan([locale('en', join(dir, 'en.ts'), true)]), {
+      outDir: join(dir, '.ubean')
+    });
+
+    const dts = await readFile(path!, 'utf8');
+    expect(dts).toContain('locale: "en";');
+    expect(dts).not.toContain("declare module 'vue-i18n'");
+  });
+
+  it('returns null when there are no locales at all', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'ubean-i18n-no-locales-'));
+    expect(await generateI18nTypes(emptyScan([]), { outDir: dir })).toBeNull();
+  });
+});

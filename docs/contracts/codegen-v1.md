@@ -17,7 +17,7 @@
 | --- | --- | --- | --- |
 | `routes.d.ts` | `ubean:routes` | yes | `ApiRouteMap`, `ApiRoutePath`, `ApiMethod` |
 | `pages.d.ts` | `ubean:pages` | yes | `RouteName`, `LayoutName` |
-| `i18n.d.ts` | `vue-i18n` | no (only if locale JSON exists) | `DefineLocaleMessage` |
+| `i18n.d.ts` | `vue-i18n`, `@intlify/core-base` | no (only if locale files exist) | `DefineLocaleMessage` (needs a non-namespaced locale JSON), `GeneratedTypeConfig` (needs any locale file; narrows vue-i18n `Locale` to the scanned union) |
 | `auto-imports.d.ts` | — (global composables) | yes | unimport declarations |
 | `components.d.ts` | — (global components) | yes | component auto-import |
 | `virtual-components.d.ts` | — (global virtual components) | no | ambient types for paired / one-sided `.server.vue` / `.client.vue` virtuals; must be its own file because `components.d.ts` is rewritten by unplugin-vue-components and that rewrite drops neighbouring `declare module` blocks |

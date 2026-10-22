@@ -59,7 +59,12 @@ export interface CodegenFileContract {
 export const CODEGEN_FILES: readonly CodegenFileContract[] = [
   { name: 'routes.d.ts', module: 'ubean:routes', required: true, types: ['ApiRouteMap', 'ApiRoutePath', 'ApiMethod'] },
   { name: 'pages.d.ts', module: 'ubean:pages', required: true, types: ['RouteName', 'LayoutName'] },
-  { name: 'i18n.d.ts', module: 'vue-i18n', required: false, types: ['DefineLocaleMessage'] },
+  {
+    name: 'i18n.d.ts',
+    module: 'vue-i18n',
+    required: false,
+    types: ['DefineLocaleMessage', 'GeneratedTypeConfig']
+  },
   { name: 'auto-imports.d.ts', module: null, required: true, types: [] },
   { name: 'components.d.ts', module: null, required: true, types: [] },
   // 虚拟组件（配对 / 单边 `.server.vue` / `.client.vue` 的基名）的 ambient 声明。
@@ -124,7 +129,7 @@ export async function generateTypes(result: ScanResult, options: CodegenOptions)
   const pageTypesPath = await generatePageTypes(result, { outDir });
   generated.push(pageTypesPath);
 
-  const i18nTypesPath = await generateI18nTypes(result, { outDir });
+  const i18nTypesPath = await generateI18nTypes(result, { outDir, defaultLocale: result.defaultLocale });
   if (i18nTypesPath) generated.push(i18nTypesPath);
 
   // schema 为空也生成：文件里还有 `ImportMetaEnv` 一半，而那一半与 schema 无关。

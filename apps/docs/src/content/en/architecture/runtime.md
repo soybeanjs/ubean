@@ -1162,7 +1162,7 @@ ubean automatically detects built-in routes under the `pages/` root directory; t
 | File | Role | Effect |
 | --- | --- | --- |
 | `pages/index.vue` / `pages/root.vue` | Root route | Named `Index`, path `/`. A normal page otherwise — `definePage({ head, layout, cache, name })` all apply |
-| `pages/404.vue` (or `not-found.vue`) | Not-found page | Global catch-all `/:pathMatch(.*)*` named `NotFound`; unmatched browser navigations return HTTP 404 and render this component. API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404 |
+| `pages/404.vue` (or `not-found.vue`) | Not-found page | Global catch-all `/:pathMatch(.*)*` named `NotFound`; unmatched browser navigations render this component, and the status code follows SSR capability — an SSR page returns 404, a CSR shell (`ssr: false`, an `ssr.exclude` match, or no renderer) returns 200. API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404 |
 | `pages/loading.vue` | Loading placeholder | `<Suspense>` fallback component, shown during SPA navigation while lazy-loaded page components load; `routable: false` |
 | `pages/error.vue` | Render-error fallback | ErrorBoundary component shown when a page component's render/async resolution/setup throws; receives the `error` prop; auto-resets on route change; `routable: false` |
 

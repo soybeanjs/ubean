@@ -197,7 +197,7 @@ export default defineServer({
 - `PageAssetTags`（`head` / `bodyAttrs` / `htmlAttrs` / `favicon`）让构建期把按页面的资源标签注入渲染出的 HTML。
 - `streaming: true` 会流式输出 shell 与应用 HTML；`botFallback`（默认 `true`）检测爬虫并把它们切回缓冲渲染，确保动态 `<head>` 元数据出现在初始响应中。
 - `ssrExclude` 接受 glob 模式；命中的页面跳过 SSR，返回 CSR shell。
-- `notFoundPage` 是 `pages/404` 的扫描结果，注册为 Hono catch-all，使未匹配的浏览器导航渲染应用的 404 组件。
+- `notFoundPage` 是 `pages/404` 的扫描结果，注册为 Hono catch-all，使未匹配的浏览器导航渲染应用的 404 组件；状态码跟 SSR 能力走 —— 渲染了它返回 404，只发 CSR shell 返回 200。
 
 ## 类型安全
 

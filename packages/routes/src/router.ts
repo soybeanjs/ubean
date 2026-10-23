@@ -1,4 +1,4 @@
-import { compileLocalePaths, localeRedirectTarget } from '@ubean/i18n';
+import { compileLocalePaths, localeRedirectTarget, localeSegment } from '@ubean/i18n';
 import type { ScannedApiRoute, ScannedMiddleware, ScannedPageRoute, ScannedLayout } from '@ubean/scan';
 import { isServerAction, matchAnyGlob } from '@ubean/shared';
 import type { UbeanEnv, RouteMeta, UbeanMiddleware, RouteRule, ServerAction } from '@ubean/shared';
@@ -523,6 +523,22 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
   const hasDefaultLayout = layouts.some(l => l.isDefault);
   const { isPagesRequest, pageJsonResponse, renderPage, renderPageToStream } = pagesMod;
   const pageLoaders = options.pageLoaders;
+
+  /**
+   * 捕获页在**未带语言段**的那条路由上注册（`/:pathMatch(.*)*`），所以 Hono 给的
+   * `pathMatch` 把语言段也算进去了（`/zh/nope-xyz` → `zh/nope-xyz`），而 vue-router
+   * 的 catch-all 落在带语言段的父路由下，客户端算出来的是 `nope-xyz` —— 两侧不一致。
+   * 这里把语言段剥掉再写进 page data。
+   */
+  function stripLocaleSegment(params: Record<string, string>): Record<string, string> {
+    const match = params.pathMatch;
+    if (match === undefined || !i18nConfig?.locales?.length || i18nConfig.strategy === 'no_prefix') return params;
+    const first = match.split('/')[0];
+    if (!first) return params;
+    const isLocaleSegment = i18nConfig.locales.some(code => localeSegment(code, i18nConfig.paths) === first);
+    if (!isLocaleSegment) return params;
+    return { ...params, pathMatch: match.slice(first.length + 1) };
+  }
   const pageRenderer = options.pageRenderer as Parameters<typeof renderPage>[2] | null | undefined;
   const pageAssetTags = options.pageAssetTags as Parameters<typeof renderPage>[1] | undefined;
   const ssrExclude = options.ssrExclude ?? [];
@@ -640,11 +656,15 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     const routeRule = c.get('routeRule') as RouteRule | undefined;
     const isrRule = normalizeIsrRule(routeRule?.isr);
     const pprEnabled = routeRule?.ppr === true;
+    // 服务端无法知道客户端的路由表（它是构建期烧进产物的），所以“未匹配”这件事
+    // 只有渲染器在场时才成立：显式 `ssr: false` / `ssr.exclude` / 无 renderer 时
+    // 服务端只发 CSR 外壳，对 404 的判断是猜的。
+    const serverRenders = pageRenderer != null && !matchAnyGlob(c.req.path, ssrExclude);
     const selected = resolveSelectSsr({
       pageSsr: page.pageMeta?.ssr as boolean | 'streaming' | 'data-only' | undefined,
       routeRuleSsr: routeRule?.ssr,
       ppr: pprEnabled,
-      excludedByGlob: matchAnyGlob(page.route, ssrExclude),
+      excludedByGlob: !serverRenders,
       streaming
     });
     const routeStreaming = selected.mode === 'streaming';
@@ -669,7 +689,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     const pageObj = {
       component: pageComponent,
       props,
-      params: c.req.param(),
+      params: stripLocaleSegment(c.req.param()),
       url: c.req.path + (c.req.url.includes('?') ? new URL(c.req.url).search : ''),
       layout: (page.layout === false
         ? false
@@ -778,7 +798,10 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     // 否则搜索引擎与监控会把不存在的页面当成 200 收录（捕获页自己也有真实路由，
     // 因此不能用 `options.notFoundPage` 兜底那层来判断）。
     return c.html(injectColorMode(html), {
-      status: page.isGlobalCatchAll ? 404 : 200,
+      // 服务端渲染了 404 页 = URL 确实未匹配任何页面 → 404。
+      // CSR 外壳时服务端没有渲染，无法断言“不存在” → 200（对齐 Nuxt `ssr: false`
+      // 的 `200.html`：客户端路由表是构建期产物，服务端不可能知道它有哪些路由）。
+      status: page.isGlobalCatchAll && selected.mode !== 'csr' ? 404 : 200,
       headers: htmlHeaders,
       ...(method === 'POST' && actionErrors ? { status: 422 } : {})
     });
@@ -911,14 +934,27 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
         head: notFoundPage.pageMeta?.head
       };
 
-      // SSR exclude: if the 404 route matches an exclude pattern, use CSR
-      const excluded = matchAnyGlob('/*', _ssrExclude);
-      const renderer = excluded ? null : (pageRendererOpt ?? null);
+      // 与主页面处理器同一套判定：`X-SSR-Mode` 必须反映**实际**用了什么，
+      // 之前这里硬编码 404 + 不发 header，于是 `ssr: false` 的项目在 dev 下
+      // 看到 `x-ssr-mode: ssr` 配 `data-ubean-ssr="false"` 的自相矛盾响应。
+      const routeRule = c.get('routeRule') as RouteRule | undefined;
+      const selected = resolveSelectSsr({
+        routeRuleSsr: routeRule?.ssr,
+        ppr: routeRule?.ppr === true,
+        excludedByGlob: matchAnyGlob(c.req.path, _ssrExclude) || !pageRendererOpt,
+        streaming
+      });
+      const renderer = selected.useRenderer ? (pageRendererOpt ?? null) : null;
+      const htmlHeaders: Record<string, string> = { 'X-SSR-Mode': ssrModeHeader(selected.mode) };
+      if (routeRule?.ppr === true) htmlHeaders['X-PPR'] = 'streaming';
+      // 渲染了 404 页 = URL 确实未匹配 → 404；CSR 外壳 = 服务端没渲染，
+      // 无法断言“不存在” → 200（见 `handlePageRequest` 的同一判定）。
+      const status = selected.mode === 'csr' ? 200 : 404;
 
       // 流式 SSR(与主页面处理器一致);P9-24: 爬虫 UA 降级为缓冲渲染。
       const userAgent = c.req.header('user-agent');
       const isBot = botFallback && isBotUserAgent(userAgent);
-      if (streaming && renderer && !isBot) {
+      if (selected.mode === 'streaming' && renderer && !isBot) {
         const stream = renderPageToStream(
           pageObj as Parameters<typeof renderPageToStream>[0],
           pageAssetTagsOpt ?? {},
@@ -927,8 +963,8 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
           renderContext as Parameters<typeof renderPageToStream>[4]
         );
         return c.body(stream, {
-          headers: { 'Content-Type': 'text/html; charset=utf-8' },
-          status: 404
+          headers: { 'Content-Type': 'text/html; charset=utf-8', ...htmlHeaders },
+          status
         });
       }
 
@@ -939,7 +975,7 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
         'app',
         renderContext as Parameters<typeof renderPage>[4]
       );
-      return c.html(injectColorMode(html), 404);
+      return c.html(injectColorMode(html), { status, headers: htmlHeaders });
     });
   }
 }

@@ -102,7 +102,7 @@ ubean auto-detects built-in routes at the **root** of `src/pages/`. They **enter
 | File | Role | Effect |
 | --- | --- | --- |
 | `pages/index.vue` / `pages/root.vue` | Root route | Named `Index`, path `/`. A normal page otherwise — `definePage({ head, layout, cache, name })` all apply. |
-| `pages/404.vue` (or `not-found.vue`) | Not Found page | Global catch-all `/:pathMatch(.*)*` named `NotFound`. Unmatched browser navigation returns HTTP 404 and renders this component. API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404. |
+| `pages/404.vue` (or `not-found.vue`) | Not Found page | Global catch-all `/:pathMatch(.*)*` named `NotFound`. Unmatched browser navigation renders this component, and the status code **follows SSR capability**: an SSR page returns HTTP 404; a CSR shell (explicit `ssr: false`, an `ssr.exclude` match, or no renderer) returns HTTP 200 — the client route table is a build-time artifact, so the server cannot know which routes it holds (same reasoning as Nuxt's `200.html` for `ssr: false`). API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404. |
 | `pages/loading.vue` (or `.ts` / `.md`) | Loading indicator | Used as the `<Suspense>` fallback component, shown while a lazy-loaded page component is being resolved during SPA navigation. SSR skips this (server resolves async synchronously). `routable: false`. |
 | `pages/error.vue` (or `.ts` / `.md`) | Error boundary | Used as the `ErrorBoundary` component (Vue `errorCaptured`). Renders when a page's render / setup / async resolution throws. Receives an `error` prop. Auto-resets on route change. Client-only. `routable: false`. |
 

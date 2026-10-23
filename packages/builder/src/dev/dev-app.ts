@@ -262,6 +262,7 @@ export async function bootstrapDevApp(options: BootstrapDevAppOptions): Promise<
       createRenderer: options.createRenderer,
       localeVueParam: resolveLocaleVueParam(options.config),
       backend: options.config.mode === 'backend',
+      ssrEnabled: options.config.ssr.enabled,
       startCronScheduler: options.startCronScheduler,
       onCronError: error =>
         (options.logger ?? fallbackLogger).error(`[ubean] Failed to load cron files: ${String(error)}`)

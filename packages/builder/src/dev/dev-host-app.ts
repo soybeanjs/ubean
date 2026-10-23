@@ -57,6 +57,12 @@ export interface EnhanceDevAppOptions {
   localeVueParam?: string;
   /** `backend` 模式无页面与 SSR，跳过 pageRenderer 创建。 */
   backend?: boolean;
+  /**
+   * SSR 是否启用（`config.ssr.enabled`）。`false` 时不创建渲染器，页面请求落到
+   * CSR 外壳 —— 与生产构建一致（`ssrEnabled` 在 `production.ts` / `build-app.ts`）。
+   * 默认 `true`，与生产侧的 `(mode === 'fullstack' && config.ssr.enabled)` 同义。
+   */
+  ssrEnabled?: boolean;
   /** crons 加载完后的启动钩子（CLI 传 `@ubean/server/cron` 的 `startCronScheduler`）。 */
   startCronScheduler?: () => unknown;
   /** 诊断用日志（默认 `console.error`，与原先行为一致）。 */
@@ -70,7 +76,16 @@ export interface EnhanceDevAppOptions {
  * HMR 后需要重新指向新的扫描结果与 Vite 模块图。
  */
 export function enhanceDevApp(options: EnhanceDevAppOptions): DevHostAppLike {
-  const { app, layouts = [], loadModule, localeVueParam, backend, startCronScheduler, onCronError } = options;
+  const {
+    app,
+    layouts = [],
+    loadModule,
+    localeVueParam,
+    backend,
+    ssrEnabled = true,
+    startCronScheduler,
+    onCronError
+  } = options;
 
   app.options.layouts = layouts;
 
@@ -112,7 +127,9 @@ export function enhanceDevApp(options: EnhanceDevAppOptions): DevHostAppLike {
       });
   }
 
-  if (backend) {
+  // `backend` 无页面；`ssrEnabled: false` 有页面但不渲染 —— 两者都跳过渲染器创建。
+  // CSR 下 `pageRenderer` 留空，`renderPage` 会退回 `buildClientOnlyShell`。
+  if (backend || !ssrEnabled) {
     app.resetInit();
     return app;
   }

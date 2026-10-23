@@ -127,6 +127,17 @@ describe('enhanceDevApp', () => {
     expect(app.options.pageRenderer).toBeUndefined();
   });
 
+  it('ssrEnabled: false 时不创建渲染器（页面落到 CSR 外壳，与生产一致）', () => {
+    const { app } = fakeApp();
+    const { loadModule } = fakeLoader();
+    const createRenderer = vi.fn(rendererStub);
+
+    enhanceDevApp({ app, layouts: LAYOUTS, loadModule, ssrEnabled: false, createRenderer: createRenderer as never });
+
+    expect(createRenderer).not.toHaveBeenCalled();
+    expect(app.options.pageRenderer).toBeUndefined();
+  });
+
   it('crons：先加载全部 cron 文件，再启动调度器', async () => {
     const { app } = fakeApp({ crons: [{ fullPath: '/abs/src/crons/a.ts' }, { fullPath: '/abs/src/crons/b.ts' }] });
     const { loadModule, requested } = fakeLoader();

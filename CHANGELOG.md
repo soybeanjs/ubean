@@ -1,5 +1,16 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.3...main) (2026-10-23) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: honor ssr.enabled in the dev host app &nbsp;-&nbsp; by @soybeanjs [<samp>(c52b0)</samp>](https://github.com/soybeanjs/ubean/commit/c52b0703)
+- **routes**: make the 404 catch-all status follow SSR capability &nbsp;-&nbsp; by @soybeanjs [<samp>(e1240)</samp>](https://github.com/soybeanjs/ubean/commit/e1240832)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.2...main) (2026-10-23) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes

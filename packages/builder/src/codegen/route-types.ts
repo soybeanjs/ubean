@@ -194,9 +194,9 @@ export async function generatePageTypes(result: ScanResult, options: PageTypesOp
   // type safety: `pages['SomePage'].filePath` is typed as `string`.
   // `pages` 在运行时含全部条目，但类型上只覆盖可路由页 —— 拿一个非路由名去
   // `router.push({ name })` 应该在编译期就报错。宿主构建菜单时需要读到菜单目录 /
-  // 外链等非路由条目，用 `pageEntries`（不限定 key）。
+  // 外链等非路由条目，用 `allPages`（不限定 key）。
   lines.push('  export const pages: Record<RouteName, PageInfo>;');
-  lines.push('  export const pageEntries: Record<string, PageInfo>;');
+  lines.push('  export const allPages: Record<string, PageInfo>;');
   lines.push('  export const layouts: Record<LayoutName, LayoutInfo>;');
 
   lines.push('}');

@@ -76,7 +76,7 @@ export function createPagesVirtualModule(pages: PagesModulePage[], layouts: Comp
     // Vite 的 ssrTransform 解析，而它不看 `.ts` 后缀、一律按 JS 解析（实测），`export type`
     // 直接 `Unexpected token`，整个页面 500。类型面由 `.ubean/pages.d.ts` 的
     // `declare module 'ubean:pages'` 提供，运行时模块只导出值。
-    return `export const pages = {\n${pagesEntries}\n};\nexport const pageEntries = pages;\nexport const layouts = {\n${layoutEntries}\n};\nexport default { pages, layouts, pageEntries };`;
+    return `export const pages = {\n${pagesEntries}\n};\nexport const allPages = pages;\nexport const layouts = {\n${layoutEntries}\n};\nexport default { pages, layouts, allPages };`;
   });
 }
 

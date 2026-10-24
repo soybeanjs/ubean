@@ -130,8 +130,8 @@ describe('createPagesVirtualModule()', () => {
     // 类型 union 已从这里移走（见上面那条「按 JS 解析」用例）—— 类型面在 `.ubean/pages.d.ts`。
     expect(code).not.toContain('export type');
 
-    // pageEntries 是全量清单的别名（类型面上不限定 key）
-    expect(code).toContain('export const pageEntries = pages;');
+    // allPages 是全量清单的别名（类型面上不限定 key）
+    expect(code).toContain('export const allPages = pages;');
   });
 
   it('id 为 ubean:pages', () => {

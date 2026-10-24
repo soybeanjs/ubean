@@ -1,5 +1,20 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.5...main) (2026-10-24) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **client**: add a pinia.setup hook for registering pinia plugins &nbsp;-&nbsp; by @soybeanjs [<samp>(a74cd)</samp>](https://github.com/soybeanjs/ubean/commit/a74cd1b2)
+- **integrations**: auto-register pinia when the pinia config is on &nbsp;-&nbsp; by @soybeanjs [<samp>(994e5)</samp>](https://github.com/soybeanjs/ubean/commit/994e563f)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: write openapi.d.ts atomically &nbsp;-&nbsp; by @soybeanjs [<samp>(01869)</samp>](https://github.com/soybeanjs/ubean/commit/018699b7)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.4...main) (2026-10-24) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

@@ -12,7 +12,8 @@ export const routes: RouteRecord[] = [
   {
     name: 'Root',
     path: '/',
-    component: 'Root'
+    component: 'Root',
+    redirect: '/about'
   },
   {
     name: 'UsersId',

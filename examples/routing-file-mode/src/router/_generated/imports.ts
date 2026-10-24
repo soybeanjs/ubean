@@ -31,6 +31,13 @@ export type RouteKey = 'About' | 'Root' | 'UsersId';
  */
 export type BuiltinRouteKey = 'Root';
 
+/**
+ * Non-route page keys (`definePage({ routable: false })`): menu directories,
+ * external links, iframe containers. They live in the page inventory but never
+ * become routes — iterate these when building a menu.
+ */
+export type NonRouteKey = never;
+
 export type Lazy<T> = () => Promise<T>;
 export type RawRouteComponent = import('vue').Component | Lazy<import('vue').Component>;
 

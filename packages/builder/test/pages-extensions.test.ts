@@ -14,7 +14,7 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { loadUbeanConfig } from '@ubean/config';
 import type { ResolvedConfig } from '@ubean/config';
-import { pageGlobExtensions } from '../src/page-glob';
+import { layoutGlobExtensions, pageGlobExtensions } from '../src/page-glob';
 import { ubeanVite } from '../src/vue-plugin';
 
 const FIXTURE = resolve(import.meta.dirname, 'fixtures/build-project');
@@ -102,5 +102,63 @@ describe('pageGlobExtensions 与扫描范围对齐', () => {
   it('全开时与修复前硬编码的集合一致（不回归旧行为）', () => {
     const glob = pageGlobExtensions(['vue', 'tsx', 'jsx'], ['md', 'mdx']).split(',').sort();
     expect(glob).toEqual(['js', 'jsx', 'md', 'mdx', 'ts', 'tsx', 'vue'].sort());
+  });
+});
+
+describe('layoutGlobExtensions 与扫描器对齐', () => {
+  it('默认是 vue / tsx / jsx（不含 ts / js / markdown）', () => {
+    const glob = layoutGlobExtensions(undefined).split(',').sort();
+    expect(glob).toEqual(['jsx', 'tsx', 'vue']);
+    expect(glob).not.toContain('ts');
+    expect(glob).not.toContain('js');
+    expect(glob).not.toContain('md');
+  });
+
+  it("关掉 JSX 后 tsx/jsx 一起消失", () => {
+    const glob = layoutGlobExtensions(['vue']).split(',');
+    expect(glob).toEqual(['vue']);
+  });
+
+  it('显式写 ts 时布局也收 ts', () => {
+    expect(layoutGlobExtensions(['vue', 'ts']).split(',')).toContain('ts');
+  });
+
+  it('与 `@ubean/vue` 的 scanPages 真实扫描结果逐扩展名一致', async () => {
+    // 只比字符串会漏掉「两侧判据不同」——这里用同一份 extensions 跑真实扫描，
+    // 逐个断言：glob 认的后缀扫描器都认，扫描器认的 glob 都认。
+    const { scanClientPages } = await import('@ubean/vue/vite');
+    const { mkdtempSync, mkdirSync, writeFileSync, rmSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+
+    const candidates = ['vue', 'tsx', 'jsx', 'ts', 'js', 'md'];
+    for (const extensions of [undefined, ['vue'], ['vue', 'tsx'], ['vue', 'jsx'], ['vue', 'ts']]) {
+      const tmp = mkdtempSync(join(tmpdir(), 'ubean-layout-glob-'));
+      try {
+        mkdirSync(join(tmp, 'src', 'pages'), { recursive: true });
+        for (const ext of candidates) {
+          const full = join(tmp, 'src', 'layouts', `probe-${ext}.${ext}`);
+          mkdirSync(join(full, '..'), { recursive: true });
+          writeFileSync(full, '<template><slot /></template>');
+        }
+
+        const scanned = new Set(
+          (
+            await scanClientPages(tmp, {
+              pagesDir: 'src/pages',
+              layoutsDir: 'src/layouts',
+              extensions
+            })
+          ).layouts.map(l => l.relativePath.split('.').pop()!)
+        );
+        const globbed = new Set(layoutGlobExtensions(extensions).split(','));
+
+        for (const ext of candidates) {
+          expect([extensions, ext, globbed.has(ext)]).toEqual([extensions, ext, scanned.has(ext)]);
+        }
+      } finally {
+        rmSync(tmp, { recursive: true, force: true });
+      }
+    }
   });
 });

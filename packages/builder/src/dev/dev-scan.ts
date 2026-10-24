@@ -60,7 +60,7 @@ export type DevScanSubscriber = (result: ScanResult, changed: string[]) => void 
 /** 触发扫描的目录名（相对 `srcDir`）。并集来自 core 与 vue 两个插件此前的清单。 */
 export const DEV_SCAN_DIRS = ['routes', 'middleware', 'pages', 'layouts', 'plugins', 'app', 'api', 'locales'] as const;
 
-const SCAN_FILE_EXTENSIONS = /\.(ts|js|mjs|cjs|mts|cts|vue|json|md|mdx)$/;
+const SCAN_FILE_EXTENSIONS = /\.(ts|js|mjs|cjs|mts|cts|vue|tsx|jsx|json|md|mdx)$/;
 
 /**
  * `srcDir` **根部**的入口文件名（`app.ts` / `app.vue` / `App.vue` / `server.ts` /

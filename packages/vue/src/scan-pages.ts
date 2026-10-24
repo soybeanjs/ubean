@@ -178,6 +178,14 @@ function toPosixPath(p: string): string {
 
 const DEFAULT_IGNORE = ['**/*.test.*', '**/*.spec.*', '**/*.d.ts'];
 
+/**
+ * 扩展名列表 → glob。单扩展名时**不能**用 brace:`**\/*.{vue}` 在 tinyglobby 里
+ * 匹配不到任何文件(实测),`pages.extensions: ['vue']` 会因此扫出空站点。
+ */
+function extGlob(exts: string[]): string {
+  return exts.length === 1 ? `**/*.${exts[0]}` : `**/*.{${exts.join(',')}}`;
+}
+
 /** 解析 markdown 配置 → 参与扫描的 markdown 扩展名列表(空 = 关闭)。 */
 function resolveMarkdownExts(markdown: ScanPagesOptions['markdown']): string[] {
   if (markdown === true) return ['md', 'mdx'];
@@ -207,8 +215,10 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
   // `.reuse.ts` / `.reuse.js` 与 `.meta.ts` / `.meta.js` 都是纯元数据文件（只含
   // `definePage`），单独注入 definePage、无组件实现，独立于页面扩展名约定始终参与扫描。
   // 带 `.vue` 扩展名的是真实组件，按普通页面处理（`.reuse.vue` / `.meta.vue` 不在约定内）。
-  const pagesPattern = [`**/*.{${extensions.join(',')}}`, '**/*.reuse.{ts,js}', '**/*.meta.{ts,js}'];
-  const layoutsPattern = '**/*.{vue,ts}';
+  const pagesPattern = [extGlob(extensions), '**/*.reuse.{ts,js}', '**/*.meta.{ts,js}'];
+  // 布局扩展名与页面完全同源(`pages.extensions`)。用 `baseExts` 而非 `extensions`:
+  // markdown 后缀只属于页面,布局不是 markdown。
+  const layoutsPattern = extGlob(baseExts);
 
   const pages: ScannedPage[] = [];
   const layouts: ScannedLayout[] = [];
@@ -447,7 +457,10 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       const base = basename(relativePath, extname(relativePath));
       const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
       const layoutBase = base === 'index' ? dirPart : dirPart ? `${dirPart}/${base}` : base;
-      const isDefault = base === 'default' || (base === 'index' && !dirPart);
+      // 根 `index.*` 是默认布局;`default.*` 与 `default/index.*` 同为默认布局的
+      // 文件/目录两种形态 —— 只认文件名形态时,`default/index.vue` 单独存在会让
+      // `layouts.find(l => l.isDefault)` 落空,默认布局静默失效(文档已承诺该形态)。
+      const isDefault = base === 'default' || (base === 'index' && (!dirPart || dirPart === 'default'));
       const name = layoutBase || 'default';
       layouts.push({
         fullPath,

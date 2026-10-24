@@ -28,3 +28,29 @@ export function pageGlobExtensions(extensions: string[] | undefined, markdownExt
 
   return [...all].join(',');
 }
+
+/**
+ * 布局 glob 的扩展名集合。
+ *
+ * 必须与扫描器的 `layoutsPattern`（`@ubean/vue` 的 `scan-pages.ts`）同源，否则会出现
+ * 「扫描到但 `import.meta.glob` 加载不到」（或反向）—— 与 `pageGlobExtensions` 同一个陷阱。
+ *
+ * 与页面的差异：不含 markdown 后缀（布局不是 markdown 页面），也不含元数据页的 `js`。
+ * `@ubean/vue` 不能依赖 `@ubean/config`（依赖白名单只有 vue + vue-router），
+ * 因此这里是第二份实现 —— 对齐由 `test/pages-extensions.test.ts` 的真实扫描锁住。
+ */
+export function layoutGlobExtensions(extensions: string[] | undefined): string {
+  const base = extensions && extensions.length > 0 ? extensions : ['vue', 'tsx', 'jsx'];
+  return [...new Set(base)].join(',');
+}
+
+/**
+ * 逗号串 → glob 的扩展名段（拼在 `**\/*.` 后面）。
+ *
+ * 单扩展名时**不能**用 brace：`**\/*.{vue}` 在 tinyglobby / Vite 的 glob 里匹配不到
+ * 任何文件（实测），`pages.extensions: ['vue']` 会因此得到空布局表。
+ */
+export function globExtSegment(extsCsv: string): string {
+  const list = extsCsv.split(',');
+  return list.length === 1 ? list[0] : `{${extsCsv}}`;
+}

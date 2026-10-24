@@ -8,7 +8,7 @@ import type { ScanResult } from '@ubean/scan';
 import { resolvePageKind } from '@ubean/vue';
 import { join, resolve, relative } from 'pathe';
 import { localeVueParamFromI18n, serializeI18nConfig } from './i18n-config';
-import { pageGlobExtensions } from './page-glob';
+import { globExtSegment, layoutGlobExtensions, pageGlobExtensions } from './page-glob';
 import { buildAssetTagsSetup, buildRendererSetup, buildStaticSsgEntry } from './ssg-entry';
 import {
   createRoutingVirtualModule,
@@ -240,7 +240,9 @@ export async function generateVirtualModulesToDisk(
   const pagesGlob = JSON.stringify(`${viteSrcPrefix}/pages/**/*.{${pagesExts}}`);
   const routesGlob = JSON.stringify(`${viteSrcPrefix}/routes/**/*.{ts,js,mjs}`);
   const middlewareGlob = JSON.stringify(`${viteSrcPrefix}/middleware/**/*.{ts,js,mjs}`);
-  const layoutsGlob = JSON.stringify(`${viteSrcPrefix}/layouts/**/*.{vue,ts}`);
+  const layoutsGlob = JSON.stringify(
+    `${viteSrcPrefix}/layouts/**/*.${globExtSegment(layoutGlobExtensions(config.pages?.extensions))}`
+  );
   const cronsDirs = (Array.isArray(config.dir.crons) ? config.dir.crons : [config.dir.crons || 'crons']).map(d =>
     d.replace(/\\/g, '/')
   );

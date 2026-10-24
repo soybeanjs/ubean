@@ -261,6 +261,8 @@ definePage({
 
 Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin layout. Layouts support nested chains (e.g. `admin/dashboard` → `admin` → `default`).
 
+Layout file extensions follow `pages.extensions` (default `vue` / `tsx` / `jsx`). The two equivalent forms of the default layout are `src/layouts/default.vue` and `src/layouts/default/index.vue`.
+
 #### Layout chains, not nested routes
 
 ubean's route table is **flat**: `src/pages/admin/users.vue` is a single record at `/admin/users`, and `src/pages/admin.vue` (if present) is a separate record at `/admin` — they are not parent and child. Visual nesting is expressed entirely by the layout chain:

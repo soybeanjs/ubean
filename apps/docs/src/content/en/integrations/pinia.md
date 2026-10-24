@@ -49,9 +49,29 @@ Nothing goes in `src/app.ts`. The framework does three things in the generated c
 
 SSR, CSR, SSG and plain SPA all run the same generated code with no branching: without SSR the serialization hook is simply never called and everything else is unchanged.
 
+### Registering Pinia plugins
+
+`pinia.use()` has to run on the instance and before `app.use(pinia)` — use `defineApp({ pinia: { setup } })`:
+
+```typescript
+// src/app.ts
+import { defineApp } from 'ubean';
+import { piniaPluginPersistedState } from 'pinia-plugin-persistedstate';
+
+export default defineApp({
+  pinia: {
+    setup(pinia) {
+      pinia.use(piniaPluginPersistedState);
+    }
+  }
+});
+```
+
+`setup(pinia)` runs after the instance is created and before `app.use(pinia)`, once per app instance (one per SSR request). `setup` hooks from several config files accumulate (shared first, client/server after).
+
 ### Registering Pinia yourself (optional)
 
-To control instance creation (e.g. to inject plugins via `pinia.use()`), keep writing it in `defineApp`:
+To own instance creation entirely (e.g. to hand in an instance configured elsewhere), keep writing it in `defineApp`:
 
 ```typescript
 // src/app.ts
@@ -64,7 +84,9 @@ pinia.use(myPlugin);
 export default defineApp({ plugins: [pinia] });
 ```
 
-The automatic install is appended after all user plugins and guarded by `$pinia` — it skips when you already installed one, so you never get a second instance. `pinia: true` and a hand-written `createPinia()` coexist; it is not either/or.
+The automatic install is appended after all user plugins and guarded by `$pinia` — it skips when you already installed one, so you never get a second instance. `pinia: true` and a hand-written `createPinia()` coexist; it is not either/or, and `pinia.setup` then targets your instance.
+
+> If all you need is `pinia.use()`, the `pinia.setup` hook above is less work — no `createPinia()` of your own.
 
 ### Disabling
 
@@ -197,7 +219,7 @@ For page loaders, prefer the loader/action data protocol over Pinia for request-
 
 2. **Dev optimizeDeps**: `ubeanPiniaPlugin` adds `pinia` to Vite's `optimizeDeps.include`, ensuring Pinia is pre-bundled for fast first page load in dev. This avoids the dependency scanning delay on the first request.
 
-3. **Auto-registration**: the generated `virtual:ubean-app` module appends an install plugin (guarded by `$pinia`) to the value returned by `resolveAppConfig()`, and fills `base.serializeState` / `base.hydrateState` with defaults. User `defineApp` config merges after base, so hooks you write yourself still override the defaults.
+3. **Auto-registration**: the generated `virtual:ubean-app` module appends an install plugin (guarded by `$pinia`) to the value returned by `resolveAppConfig()`, and fills `base.serializeState` / `base.hydrateState` with defaults. User `defineApp` config merges after base, so hooks you write yourself still override the defaults. The install plugin creates the instance, runs every `pinia.setup` hook on it, then calls `app.use()` — or reuses the instance you already installed and only runs the hooks.
 
 4. **SSR serialization**: `serializeState` is called after `renderToString(app)` completes. The function reads `app.config.globalProperties.$pinia.state.value` and returns `{ pinia: ... }`. The renderer serializes this to JSON and injects it into the HTML as `<script id="__UBEAN_STATE__" type="application/json">`.
 
@@ -254,6 +276,16 @@ SSR serialization helper. Already wired to `serializeState` when `pinia: true`, 
 
 Client hydration helper. Already wired to `hydrateState` when `pinia: true`, so you rarely reference it by hand. Assigns `state.pinia` to `pinia.state.value`. No-op when `state` is `null` or has no `pinia` field. Warns to the console when `$pinia` is not detected on the app (configuration error: `hydrateState` configured but `createPinia()` not registered).
 
+### `PiniaConfig` (the `defineApp` side)
+
+```typescript
+export interface PiniaConfig {
+  setup?: (pinia: PiniaLike) => void;
+}
+```
+
+`setup` runs on the auto-created instance before `app.use()`, for `pinia.use()` plugin registration. Only takes effect when `pinia` is enabled in `ubean.config.ts`.
+
 ### `UbeanPiniaOptions`
 
 ```typescript
@@ -286,7 +318,7 @@ export interface PiniaSerializedState {
 
 ## Best Practices
 
-1. **`pinia: true` is enough**: pre-bundling, instance registration, SSR serialization and hydration are all wired by it. Hand-writing `defineApp({ plugins: [createPinia()] })` is only needed to inject `pinia.use()` plugins — the guard skips the automatic install, so you never get two.
+1. **`pinia: true` is enough**: pre-bundling, instance registration, SSR serialization and hydration are all wired by it. Register plugins through `pinia.setup`; no `createPinia()` of your own.
 
 2. **One Pinia instance per app**: the automatic install does this once per app instance. When you take over manually, still call `createPinia()` only once. State hydration assumes a single `$pinia` on the app.
 
@@ -304,6 +336,7 @@ export interface PiniaSerializedState {
 
 - Verify `ubean.config.ts` has `pinia: true` (or the object form), not `false` / `enabled: false`
 - If you took over the instance manually, check that `createPinia()` is in `defineApp({ plugins: [...] })` (not registered later via `onAppCreated`)
+- If you register plugins via `pinia.setup`, keep `pinia.use()` inside setup rather than `onAppCreated` — the latter runs after `app.use(pinia)`
 - Inspect the rendered HTML for `<script id="__UBEAN_STATE__" type="application/json">` — it should contain the serialized state
 - Verify `hydrateState` runs before `app.mount()` (it does in the default client entry)
 

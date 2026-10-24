@@ -40,6 +40,38 @@ export interface AppPluginConfig {
  * });
  * ```
  */
+/**
+ * Pinia 实例的最小结构 —— 让 `@ubean/client` 不必硬依赖 `pinia`。
+ * 实际传入的就是 `createPinia()` 的返回值。
+ */
+export interface PiniaLike {
+  use: (plugin: unknown) => unknown;
+  state: { value: Record<string, unknown> };
+}
+
+/**
+ * Pinia 钩子配置。`pinia: true` 时框架自动创建并安装实例,这里可以在安装前
+ * 对它做点什么(最常见的是 `pinia.use(myPlugin)`)。
+ *
+ * `setup(pinia)` 在实例创建后、`app.use(pinia)` 之前调用,每个应用实例
+ * (每个 SSR 请求一个)各调一次。若你自己在 `plugins` 里装了 `createPinia()`,
+ * setup 会作用在你那个实例上,不会再建第二个。
+ *
+ * @example
+ * ```ts
+ * export default defineApp({
+ *   pinia: {
+ *     setup(pinia) {
+ *       pinia.use(piniaPluginPersistedState);
+ *     }
+ *   }
+ * });
+ * ```
+ */
+export interface PiniaConfig {
+  setup?: (pinia: PiniaLike) => void;
+}
+
 export interface RouterConfig {
   /**
    * 在 router 创建后、初始导航前调用。
@@ -94,6 +126,11 @@ export interface DefineAppOptions {
    * 在 Client 和 SSR 都会执行。
    */
   router?: RouterConfig;
+  /**
+   * Pinia 钩子配置,用于在自动创建的实例上注册插件。
+   * 仅在 `ubean.config.ts` 开启了 `pinia` 时生效。
+   */
+  pinia?: PiniaConfig;
   onAppCreated?: (app: App) => void | Promise<void>;
   onClientReady?: (app: App) => void | Promise<void>;
   errorComponent?: Component;
@@ -157,6 +194,7 @@ export interface ResolvedAppConfig {
    */
   appRoot?: Component;
   router?: RouterConfig;
+  pinia?: PiniaConfig;
   onAppCreated?: (app: App) => void | Promise<void>;
   onClientReady?: (app: App) => void | Promise<void>;
   errorComponent?: Component;
@@ -190,6 +228,7 @@ export function defineApp(options: DefineAppOptions): ResolvedAppConfig {
     rootAttrs: options.rootAttrs || {},
     appRoot: options.appRoot,
     router: options.router,
+    pinia: options.pinia,
     onAppCreated: options.onAppCreated,
     onClientReady: options.onClientReady,
     errorComponent: options.errorComponent,
@@ -274,6 +313,20 @@ export function mergeAppConfig(
       // scrollBehavior 为函数不可合并,后者覆盖。
       const scrollBehavior = cfg.router.scrollBehavior !== undefined ? cfg.router.scrollBehavior : prev?.scrollBehavior;
       result.router = { setup, ...(scrollBehavior !== undefined ? { scrollBehavior } : {}) };
+    }
+    if (cfg.pinia) {
+      const prev = result.pinia;
+      // setup 累加:多个配置的插件注册都执行(shared 先,client/server 后)。
+      result.pinia = {
+        setup: cfg.pinia.setup
+          ? prev?.setup
+            ? (pinia: PiniaLike) => {
+                prev.setup!(pinia);
+                cfg.pinia!.setup!(pinia);
+              }
+            : cfg.pinia.setup
+          : prev?.setup
+      };
     }
   }
   return result;

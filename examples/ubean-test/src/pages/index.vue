@@ -15,6 +15,7 @@ useHead({
     <section class="hero">
       <h1>🧪 ubean-test</h1>
       <p class="ssr-count">{{ counter.count }}</p>
+      <p class="setup-ran">{{ counter.setupRan }}</p>
       <Icon icon="lucide:search" />
       <p class="subtitle">ubean 框架功能验证测试项目</p>
     </section>

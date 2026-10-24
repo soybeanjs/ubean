@@ -1,8 +1,8 @@
 ---
 title: Pinia
 description: 通过内置的 @ubean/integrations/pinia 集成使用 Pinia 状态管理。
-translatedFrom: c85bcc4d01c8
-sections: ["589f8092","e3b0c442","29736812","a84862c7","bb8ea5f1","37f210b4","6edc688a","423d064d","ef9460ba","1cbe6fed","63bfd61a","5e26f4d5","ddf45265","a3ab4229","6d704cab","3fc4b054","9a639767","4779b1ac","203e42e7","ba104a08","7245cda3","90c315c9","ecbf31d9","bde2c461","659a188b","d44a1664","bda692ea","2ad18bba","30678943","0d19ab46","2ee66e7d","a291b330","fbf1c818"]
+translatedFrom: 44721026a061
+sections: ["589f8092","e3b0c442","29736812","a84862c7","bb8ea5f1","37f210b4","6edc688a","40ead5a9","a2c4609b","ef9460ba","1cbe6fed","63bfd61a","5e26f4d5","ddf45265","a3ab4229","1ef988e5","3fc4b054","9a639767","4779b1ac","203e42e7","ba104a08","7245cda3","24ba1ba1","90c315c9","ecbf31d9","3c5fe1c8","659a188b","635e0395","bda692ea","2ad18bba","30678943","0d19ab46","2ee66e7d","a291b330","fbf1c818"]
 ---
 
 # Pinia 状态管理（@ubean/integrations/pinia）
@@ -51,9 +51,29 @@ export default defineConfig({
 
 SSR、CSR、SSG、纯 SPA 四种模式走的是同一段生成代码，没有分支：没有 SSR 时序列化钩子自然不被调用，其余照常。
 
+### 注册 Pinia 插件
+
+`pinia.use()` 要跑在实例上、且在 `app.use(pinia)` 之前 —— 用 `defineApp({ pinia: { setup } })`：
+
+```typescript
+// src/app.ts
+import { defineApp } from 'ubean';
+import { piniaPluginPersistedState } from 'pinia-plugin-persistedstate';
+
+export default defineApp({
+  pinia: {
+    setup(pinia) {
+      pinia.use(piniaPluginPersistedState);
+    }
+  }
+});
+```
+
+`setup(pinia)` 在实例创建后、`app.use(pinia)` 之前调用，每个应用实例（每个 SSR 请求一个）各一次。多个配置文件里的 `setup` 会累加执行（shared 先，client/server 后）。
+
 ### 自己注册 Pinia（可选）
 
-想手动控制实例创建（例如注入插件、`pinia.use()`）时，照旧在 `defineApp` 里写：
+想完全接管实例创建（例如从别处拿一个已经配好的实例）时，照旧在 `defineApp` 里写：
 
 ```typescript
 // src/app.ts
@@ -66,7 +86,9 @@ pinia.use(myPlugin);
 export default defineApp({ plugins: [pinia] });
 ```
 
-自动安装排在所有用户插件之后，并带 `$pinia` 守卫 —— 检测到你已经装过就跳过，不会出现第二个实例。因此 `pinia: true` 与手写 `createPinia()` 可以共存，不必二选一。
+> 只为了 `pinia.use()` 的话，用上面的 `pinia.setup` 更省事 —— 不必自己 `createPinia()`。
+
+自动安装排在所有用户插件之后，并带 `$pinia` 守卫 —— 检测到你已经装过就跳过，不会出现第二个实例。因此 `pinia: true` 与手写 `createPinia()` 可以共存，不必二选一；此时 `pinia.setup` 作用在你那个实例上。
 
 ### 关闭模块
 
@@ -197,7 +219,7 @@ const { increment } = store;
 
 2. **dev optimizeDeps**：`ubeanPiniaPlugin` 把 `pinia` 加入 Vite 的 `optimizeDeps.include`，确保 Pinia 被预打包，从而在 dev 首屏加载更快。这避免了首次请求时的依赖扫描延迟。
 
-3. **自动注册**：生成的 `virtual:ubean-app` 模块在 `resolveAppConfig()` 的返回值上追加一个安装插件（带 `$pinia` 守卫），并给 `base.serializeState` / `base.hydrateState` 填上默认实现。用户 `defineApp` 的配置排在 base 之后合并，因此用户自己写的同名钩子仍然覆盖默认值。
+3. **自动注册**：生成的 `virtual:ubean-app` 模块在 `resolveAppConfig()` 的返回值上追加一个安装插件（带 `$pinia` 守卫），并给 `base.serializeState` / `base.hydrateState` 填上默认实现。用户 `defineApp` 的配置排在 base 之后合并，因此用户自己写的同名钩子仍然覆盖默认值。安装插件先建实例、跑完所有 `pinia.setup` 钩子，再 `app.use()`；你已经装过实例时只跑钩子、不重建。
 
 4. **SSR 序列化**：`serializeState` 在 `renderToString(app)` 完成后被调用。该函数读取 `app.config.globalProperties.$pinia.state.value`，返回 `{ pinia: ... }`。渲染器把它序列化为 JSON，并以 `<script id="__UBEAN_STATE__" type="application/json">` 注入 HTML。
 
@@ -254,6 +276,16 @@ SSR 序列化辅助函数。`pinia: true` 时已自动接到 `serializeState`，
 
 客户端水合辅助函数。`pinia: true` 时已自动接到 `hydrateState`，通常无需手动引用。把 `state.pinia` 赋值给 `pinia.state.value`。`state` 为 `null` 或没有 `pinia` 字段时是空操作。在应用上检测不到 `$pinia` 时会向控制台告警（配置错误：配了 `hydrateState` 却没注册 `createPinia()`）。
 
+### `PiniaConfig`（`defineApp` 侧）
+
+```typescript
+export interface PiniaConfig {
+  setup?: (pinia: PiniaLike) => void;
+}
+```
+
+`setup` 在自动创建的实例上、`app.use()` 之前调用，用于 `pinia.use()` 注册插件。仅在 `ubean.config.ts` 开启了 `pinia` 时生效。
+
 ### `UbeanPiniaOptions`
 
 ```typescript
@@ -286,7 +318,7 @@ export interface PiniaSerializedState {
 
 ## 最佳实践
 
-1. **`pinia: true` 就够了**：预打包、实例注册、SSR 序列化与水合都由它一并接好。手写 `defineApp({ plugins: [createPinia()] })` 只在需要注入 `pinia.use()` 插件时才必要 —— 守卫会跳过自动安装，不会装出两份。
+1. **`pinia: true` 就够了**：预打包、实例注册、SSR 序列化与水合都由它一并接好。要注册插件用 `pinia.setup`，不必自己 `createPinia()`。
 
 2. **每个应用一个 Pinia 实例**：自动安装每个应用实例只装一次。手动接管时也只调用一次 `createPinia()`。状态水合假定应用上只有一个 `$pinia`。
 
@@ -304,6 +336,7 @@ export interface PiniaSerializedState {
 
 - 确认 `ubean.config.ts` 里是 `pinia: true`（或对象形态），不是 `false` / `enabled: false`
 - 若手动接管了实例，确认 `createPinia()` 写在 `defineApp({ plugins: [...] })` 里（而不是事后通过 `onAppCreated` 注册）
+- 若用 `pinia.setup` 注册插件，确认 `pinia.use()` 写在 setup 里而不是 `onAppCreated` 里 —— 后者在 `app.use(pinia)` 之后才跑
 - 查看渲染出的 HTML 中是否含 `<script id="__UBEAN_STATE__" type="application/json">` —— 它应包含序列化后的状态
 - 确认 `hydrateState` 在 `app.mount()` 之前执行（默认客户端入口已保证）
 

@@ -11,7 +11,9 @@
  *    `defineApp({ serializeState })` still wins;
  * 3. on, the install is guarded by `$pinia` so a user who already wrote
  *    `plugins: [createPinia()]` does not get a second instance, and it runs
- *    before `hydrateState` (otherwise hydration finds no instance).
+ *    before `hydrateState` (otherwise hydration finds no instance);
+ * 4. on, `defineApp({ pinia: { setup } })` runs on the instance before
+ *    `app.use()` — that is where `pinia.use(plugin)` belongs.
  */
 import { describe, it, expect } from 'vitest';
 import { createVueAppEntryVirtualModule } from '../src/vue-virtual-modules';
@@ -71,7 +73,27 @@ describe('createVueAppEntryVirtualModule — pinia auto-registration', () => {
 
   it('on: install is guarded by $pinia (no second instance when the user already has one)', async () => {
     const code = await load(true);
-    expect(code).toContain('if (!app.config.globalProperties.$pinia) app.use(createPinia());');
+    expect(code).toContain('const existing = app.config.globalProperties.$pinia;');
+    expect(code).toContain('if (!existing) app.use(instance);');
+  });
+
+  it('on: setup hooks run on the instance before app.use()', async () => {
+    const code = await load(true);
+    expect(code).toContain('const setups = config.pinia && config.pinia.setup ? [config.pinia.setup] : [];');
+    const setupRun = code.indexOf('for (const setup of setups) setup(instance);');
+    const use = code.indexOf('if (!existing) app.use(instance);');
+    expect(setupRun).toBeGreaterThan(-1);
+    expect(use).toBeGreaterThan(setupRun);
+  });
+
+  it('on: setup targets the user instance when one is already installed', async () => {
+    const code = await load(true);
+    expect(code).toContain('const instance = existing || createPinia();');
+  });
+
+  it('on: setup hooks accumulate across configs (shared first)', async () => {
+    const code = await load(true);
+    expect(code).toContain('prev.setup(pinia); cfg.pinia.setup(pinia);');
   });
 
   it('on: install runs through applyAppConfig, which precedes hydrateState', async () => {

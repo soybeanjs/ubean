@@ -96,8 +96,11 @@ export function createVueAppEntryVirtualModule(
     //
     // 条目形状是 `{ plugin }` 而非裸插件：`applyAppConfig` 对每项解构
     // `{ plugin, mode }`（`ResolvedAppConfig.plugins` 是 `AppPluginConfig[]`）。
+    //
+    // `config.pinia.setup` 在实例创建后、`app.use()` 之前跑，用于 `pinia.use()`
+    // 注册插件。用户自己装了实例时 setup 作用在他那个实例上，不再建第二个。
     const piniaHelper = pinia
-      ? `function _withPinia(config) {\n  config.plugins = [...(config.plugins || []), { plugin: { install(app) { if (!app.config.globalProperties.$pinia) app.use(createPinia()); } } }];\n  return config;\n}\n\n`
+      ? `function _withPinia(config) {\n  const setups = config.pinia && config.pinia.setup ? [config.pinia.setup] : [];\n  config.plugins = [...(config.plugins || []), { plugin: { install(app) {\n    const existing = app.config.globalProperties.$pinia;\n    const instance = existing || createPinia();\n    for (const setup of setups) setup(instance);\n    if (!existing) app.use(instance);\n  } } }];\n  return config;\n}\n\n`
       : '';
     const piniaWrap = (config: string) => (pinia ? `_withPinia(${config})` : config);
 
@@ -212,6 +215,17 @@ function _mergeAppConfig(base, ...configs) {
     if (cfg.viewTransitions !== undefined) result.viewTransitions = cfg.viewTransitions;
     if (cfg.serializeState) result.serializeState = cfg.serializeState;
     if (cfg.hydrateState) result.hydrateState = cfg.hydrateState;
+    if (cfg.pinia) {
+      const prev = result.pinia;
+      // setup 累加:多个配置的插件注册都执行(shared 先,client/server 后)。
+      result.pinia = {
+        setup: cfg.pinia.setup
+          ? prev && prev.setup
+            ? (pinia) => { prev.setup(pinia); cfg.pinia.setup(pinia); }
+            : cfg.pinia.setup
+          : prev && prev.setup
+      };
+    }
   }
   // router.setup:累加语义 — shared 和 client/server 各自定义的 setup 都会执行
   // (顺序:shared 先,client/server 后)。这样 shared 可放通用守卫(如埋点),

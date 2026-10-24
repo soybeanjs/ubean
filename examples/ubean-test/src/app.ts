@@ -11,9 +11,16 @@ import { registerMatchers } from './matchers';
 //
 // Pinia is auto-registered by the framework when `pinia: true` is set in
 // ubean.config.ts (plugin + SSR state hooks). No createPinia() here on purpose —
-// this file exercises the auto-registration path.
+// this file exercises the auto-registration path. The `pinia.setup` hook below
+// is where a real app would call `pinia.use(plugin)`.
 
 export default defineApp({
+  pinia: {
+    setup(pinia) {
+      // 记录 setup 确实跑在实例上：store 里能读到这个字段。
+      pinia.use(() => ({ setupRan: true }));
+    }
+  },
   head: {
     title: 'ubean测试',
     meta: [

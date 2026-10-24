@@ -814,6 +814,7 @@ import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integration
 - `ubean.config.ts` 中 `pinia: true` 或 `pinia: { ... }` 启用
 - **dev 预构建优化**：自动将 `pinia` 加入 Vite 的 `optimizeDeps.include`,避免首次请求扫描延迟
 - **自动注册**：`pinia` 开启时 `virtual:ubean-app` 生成物自动 `app.use(createPinia())` 并接上 `serializeState`/`hydrateState`,**不需要**在 `app.ts` 手写任何东西。安装排在用户插件之后且带 `$pinia` 守卫,用户自己 `createPinia()` 时自动让位,不会装两份。SSR/CSR/SSG/SPA 共用同一段生成代码,无分支
+- **`pinia.setup` 钩子**：`defineApp({ pinia: { setup(pinia) { pinia.use(plugin) } } })` 在实例创建后、`app.use()` 前调用,用于注册 Pinia 插件;多个配置累加(shared 先)。用户自己装了实例时作用在他那个实例上
 - **SSR 状态水合**：序列化进 HTML 的 `__UBEAN_STATE__` script 标签,客户端在 `applyAppConfig` 后、`mount` 前水合
 - **零侵入**：Pinia 本身仍从 `pinia` 包导入(`createPinia`/`defineStore`/`storeToRefs` 等),`@ubean/integrations` 仅提供集成胶水
 - `UbeanPiniaOptions`：`enabled`(默认 true)、`optimizeDeps`(默认 true)
@@ -829,18 +830,22 @@ export default defineConfig({
 });
 ```
 
-**需要注入 pinia 插件时自己注册**（守卫会自动让位,不必关开关）：
+**注册 pinia 插件**（`pinia.use()` 必须在 `app.use(pinia)` 之前）：
 
 ```typescript
 // src/app.ts
-import { createPinia } from 'pinia';
 import { defineApp } from 'ubean';
 
-const pinia = createPinia();
-pinia.use(myPlugin);
-
-export default defineApp({ plugins: [pinia] });
+export default defineApp({
+  pinia: {
+    setup(pinia) {
+      pinia.use(myPlugin);
+    }
+  }
+});
 ```
+
+需要完全接管实例创建时仍可 `plugins: [createPinia()]`（守卫会自动让位,不必关开关）。
 
 > Pinia 本身请直接从 `pinia` 导入(`import { createPinia, defineStore } from 'pinia'`),`@ubean/integrations/pinia` 仅负责构建集成和 SSR 水合辅助。
 

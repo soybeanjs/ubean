@@ -42,7 +42,7 @@
     "@ubean/markdown": "workspace:*",
     "@unhead/vue": "^3.4.3",
     "@vue/server-renderer": "^3.5.44",
-    "happy-dom": "^21.0.3",
+    "happy-dom": "^21.0.4",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",

@@ -23,7 +23,7 @@
   },
   "dependencies": {
     "@ubean/shared": "workspace:*",
-    "c12": "^4.0.0-rc.2",
+    "c12": "^4.0.0-rc.3",
     "defu": "6.1.7",
     "hookable": "^6.1.2",
     "jiti": "^2.7.0",

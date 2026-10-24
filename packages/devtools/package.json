@@ -67,7 +67,7 @@
     }
   },
   "optionalDependencies": {
-    "@ai-sdk/openai-compatible": "3.0.74",
-    "ai": "7.0.146"
+    "@ai-sdk/openai-compatible": "3.0.77",
+    "ai": "7.0.152"
   }
 }

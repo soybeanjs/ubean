@@ -1,5 +1,23 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.4...main) (2026-10-24) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: skip hydration when the CSR shell has no markup &nbsp;-&nbsp; by @soybeanjs [<samp>(c6bef)</samp>](https://github.com/soybeanjs/ubean/commit/c6befa67)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(1c5e1)</samp>](https://github.com/soybeanjs/ubean/commit/1c5e1ccc)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **projects**: format code &nbsp;-&nbsp; by @soybeanjs [<samp>(328be)</samp>](https://github.com/soybeanjs/ubean/commit/328be8ab)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.3...main) (2026-10-23) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

@@ -1,5 +1,26 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.6...main) (2026-10-24) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
+
+- **vue**: fold index segment into route names and rename root route &nbsp;-&nbsp; by @soybeanjs and **Qoder** [<samp>(57b41)</samp>](https://github.com/soybeanjs/ubean/commit/57b41bda)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **vue**:
+  - support directory-form default layouts and align layout extensions with pages &nbsp;-&nbsp; by @soybeanjs [<samp>(d9fc4)</samp>](https://github.com/soybeanjs/ubean/commit/d9fc4346)
+  - dedupe same-path page and layout declarations &nbsp;-&nbsp; by @soybeanjs [<samp>(0c01a)</samp>](https://github.com/soybeanjs/ubean/commit/0c01acd6)
+
+### &nbsp;&nbsp;&nbsp;🎨 Styles
+
+- **vue**: move inline vitest type imports to top-level declarations &nbsp;-&nbsp; by @soybeanjs and **Qoder** [<samp>(8a87d)</samp>](https://github.com/soybeanjs/ubean/commit/8a87dbe8)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+[Qoder](mailto:noreply@qoder.com)
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.5...main) (2026-10-24) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

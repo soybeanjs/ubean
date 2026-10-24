@@ -1,5 +1,31 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.7...main) (2026-10-25) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes
+
+- **builder**: rename pageEntries to allPages &nbsp;-&nbsp; by @soybeanjs [<samp>(b95f2)</samp>](https://github.com/soybeanjs/ubean/commit/b95f23a4)
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **vue**: add NonRouteKey type for non-routable page keys &nbsp;-&nbsp; by @soybeanjs [<samp>(654f7)</samp>](https://github.com/soybeanjs/ubean/commit/654f7d51)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **examples**: restore redirect on routing-file-mode index page &nbsp;-&nbsp; by @soybeanjs [<samp>(1eb79)</samp>](https://github.com/soybeanjs/ubean/commit/1eb797e7)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(ac993)</samp>](https://github.com/soybeanjs/ubean/commit/ac99331f)
+
+### &nbsp;&nbsp;&nbsp;🏀 Examples
+
+- **routes**: update generated &nbsp;-&nbsp; by @soybeanjs [<samp>(5270d)</samp>](https://github.com/soybeanjs/ubean/commit/5270d657)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.6...main) (2026-10-24) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes

@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { Icon } from '@iconify/vue';
+import { useCounterStore } from '../stores/counter';
+
+const counter = useCounterStore();
 
 useHead({
   title: 'ubean-test 功能测试首页',
@@ -11,6 +14,7 @@ useHead({
   <div class="home">
     <section class="hero">
       <h1>🧪 ubean-test</h1>
+      <p class="ssr-count">{{ counter.count }}</p>
       <Icon icon="lucide:search" />
       <p class="subtitle">ubean 框架功能验证测试项目</p>
     </section>

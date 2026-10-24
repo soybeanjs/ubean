@@ -13,17 +13,12 @@
  * export default defineConfig({ pinia: true });
  * ```
  *
- * 然后在 `src/app.ts` 中配置 SSR 水合:
- * ```ts
- * import { createPinia } from 'pinia';
- * import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
+ * 仅此一行即可。`pinia: true` 时框架在生成的客户端/SSR 入口里自动
+ * `app.use(createPinia())` 并接上 `serializeState`/`hydrateState` 两个
+ * SSR 状态钩子,无需在 `src/app.ts` 手写任何东西。
  *
- * export default defineApp({
- *   plugins: [createPinia()],
- *   serializeState: serializePiniaState,
- *   hydrateState: hydratePiniaState
- * });
- * ```
+ * 用户自己 `defineApp({ plugins: [createPinia()] })` 也照旧有效:自动安装
+ * 排在用户插件之后,并带 `$pinia` 守卫,不会装出第二个实例。
  */
 
 export type { UbeanPiniaOptions, PiniaSerializedState } from './types';

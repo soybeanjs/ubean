@@ -1,8 +1,8 @@
 ---
 title: Pinia
 description: 通过内置的 @ubean/integrations/pinia 集成使用 Pinia 状态管理。
-translatedFrom: 736a2e06cafa
-sections: ["589f8092","e3b0c442","29736812","54d9a1e4","bb8ea5f1","37f210b4","e5df4d24","b114995a","1cbe6fed","63bfd61a","5e26f4d5","ddf45265","a3ab4229","f9616990","3fc4b054","9a639767","4779b1ac","203e42e7","6087b529","d17ff600","90c315c9","dd04f506","6f1c1ad9","659a188b","095a13b4","41c93cd1","2ad18bba","30678943","0d19ab46","2ee66e7d","a291b330","fbf1c818"]
+translatedFrom: c85bcc4d01c8
+sections: ["589f8092","e3b0c442","29736812","a84862c7","bb8ea5f1","37f210b4","6edc688a","423d064d","ef9460ba","1cbe6fed","63bfd61a","5e26f4d5","ddf45265","a3ab4229","6d704cab","3fc4b054","9a639767","4779b1ac","203e42e7","ba104a08","7245cda3","90c315c9","ecbf31d9","bde2c461","659a188b","d44a1664","bda692ea","2ad18bba","30678943","0d19ab46","2ee66e7d","a291b330","fbf1c818"]
 ---
 
 # Pinia 状态管理（@ubean/integrations/pinia）
@@ -11,9 +11,9 @@ sections: ["589f8092","e3b0c442","29736812","54d9a1e4","bb8ea5f1","37f210b4","e5
 
 ## 特性
 
-- 一行启用：在 `ubean.config.ts` 中写 `pinia: true`
+- 一行启用：在 `ubean.config.ts` 中写 `pinia: true`，插件注册与 SSR 状态钩子全部自动接好
 - 开发态对 `pinia` 做 `optimizeDeps` 预打包 —— dev 首屏加载更快
-- 通过 `defineApp({ serializeState, hydrateState })` 钩子实现 SSR 状态水合
+- SSR 状态水合开箱即用，无需手写 `defineApp` 配置
 - 零侵入：Pinia 的 API（`createPinia`、`defineStore`、`storeToRefs`…）直接从 `pinia` 导入
 - 通过 `UbeanPiniaOptions` 获得类型安全配置
 - 安全降级：取不到 `$pinia` 时序列化返回 `{}`；state 为 `null` 或没有 `pinia` 字段时，水合是空操作
@@ -32,7 +32,7 @@ pnpm add @ubean/integrations/pinia pinia
 
 ### 最小配置
 
-最简配置只启用开发态的预打包优化：
+一行就够：
 
 ```typescript
 // ubean.config.ts
@@ -43,29 +43,34 @@ export default defineConfig({
 });
 ```
 
-然后在 `src/app.ts` 中注册 Pinia 与 SSR 水合钩子：
+`src/app.ts` 不需要写任何东西。框架在生成的客户端与 SSR 入口里自动完成三件事：
+
+1. `app.use(createPinia())` —— 每个应用实例（每个 SSR 请求一个）装一个全新实例
+2. 接上 `serializeState: serializePiniaState`，服务端状态被序列化进 HTML 的 `__UBEAN_STATE__` script 标签
+3. 接上 `hydrateState: hydratePiniaState`，客户端在 `app.mount()` 之前完成水合（因此 store 里已经是 SSR 状态）
+
+SSR、CSR、SSG、纯 SPA 四种模式走的是同一段生成代码，没有分支：没有 SSR 时序列化钩子自然不被调用，其余照常。
+
+### 自己注册 Pinia（可选）
+
+想手动控制实例创建（例如注入插件、`pinia.use()`）时，照旧在 `defineApp` 里写：
 
 ```typescript
 // src/app.ts
 import { createPinia } from 'pinia';
-import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
 import { defineApp } from 'ubean';
 
-export default defineApp({
-  plugins: [createPinia()],
-  serializeState: serializePiniaState,
-  hydrateState: hydratePiniaState
-});
+const pinia = createPinia();
+pinia.use(myPlugin);
+
+export default defineApp({ plugins: [pinia] });
 ```
 
-这样做可以获得：
-- dev 阶段 `pinia` 已预打包，首屏加载更快
-- 服务端状态被序列化进 HTML 的 `__UBEAN_STATE__` script 标签
-- 客户端在 `app.mount()` 之前完成水合（因此 store 里已经是 SSR 状态）
+自动安装排在所有用户插件之后，并带 `$pinia` 守卫 —— 检测到你已经装过就跳过，不会出现第二个实例。因此 `pinia: true` 与手写 `createPinia()` 可以共存，不必二选一。
 
 ### 关闭模块
 
-显式关闭该模块（等同于不写这个字段）：
+显式关闭该模块（等同于不写这个字段）：预打包与自动注册一起关掉。想保留预打包、只接管实例创建，按上一节写 `createPinia()` 即可 —— 守卫会自动让位，不需要关任何开关。
 
 ```typescript
 export default defineConfig({
@@ -75,6 +80,11 @@ export default defineConfig({
 // 或
 export default defineConfig({
   pinia: { disabled: true }
+});
+
+// 或
+export default defineConfig({
+  pinia: { enabled: false }
 });
 ```
 
@@ -187,9 +197,11 @@ const { increment } = store;
 
 2. **dev optimizeDeps**：`ubeanPiniaPlugin` 把 `pinia` 加入 Vite 的 `optimizeDeps.include`，确保 Pinia 被预打包，从而在 dev 首屏加载更快。这避免了首次请求时的依赖扫描延迟。
 
-3. **SSR 序列化**：当 `serializePiniaState` 被配置为 `defineApp({ serializeState })` 时，ubean 的 SSR 渲染器会在 `renderToString(app)` 完成后调用它。该函数读取 `app.config.globalProperties.$pinia.state.value`，返回 `{ pinia: ... }`。渲染器把它序列化为 JSON，并以 `<script id="__UBEAN_STATE__" type="application/json">` 注入 HTML。
+3. **自动注册**：生成的 `virtual:ubean-app` 模块在 `resolveAppConfig()` 的返回值上追加一个安装插件（带 `$pinia` 守卫），并给 `base.serializeState` / `base.hydrateState` 填上默认实现。用户 `defineApp` 的配置排在 base 之后合并，因此用户自己写的同名钩子仍然覆盖默认值。
 
-4. **客户端水合**：当 `hydratePiniaState` 被配置为 `defineApp({ hydrateState })` 时，ubean 客户端入口会在 `applyAppConfig(app, config, 'client')`（该调用把 `createPinia()` 注册为插件）之后、**`app.mount()` 之前**调用它。该函数从反序列化后的 state 中读取 `pinia` 字段，并赋值给 `pinia.state.value`。
+4. **SSR 序列化**：`serializeState` 在 `renderToString(app)` 完成后被调用。该函数读取 `app.config.globalProperties.$pinia.state.value`，返回 `{ pinia: ... }`。渲染器把它序列化为 JSON，并以 `<script id="__UBEAN_STATE__" type="application/json">` 注入 HTML。
+
+5. **客户端水合**：`hydrateState` 在 `applyAppConfig(app, config, 'client')`（该调用按顺序安装插件，包括自动注册的 `createPinia()`）之后、**`app.mount()` 之前**被调用。该函数从反序列化后的 state 中读取 `pinia` 字段，并赋值给 `pinia.state.value`。
 
 > 水合必须发生在 `mount` 之前 —— 否则 store 已经用默认状态初始化完毕，水合就成了空操作。ubean 的客户端入口保证了这一顺序。
 
@@ -236,11 +248,11 @@ import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integration
 
 ### `serializePiniaState(app: VueApp): PiniaSerializedState`
 
-SSR 序列化辅助函数。读取 `app.config.globalProperties.$pinia.state.value`，返回 `{ pinia: <深拷贝后的状态> }`。检测不到 `$pinia` 时（例如未注册 `createPinia()`）返回 `{}` —— 不会抛错。
+SSR 序列化辅助函数。`pinia: true` 时已自动接到 `serializeState`，通常无需手动引用。读取 `app.config.globalProperties.$pinia.state.value`，返回 `{ pinia: <深拷贝后的状态> }`。检测不到 `$pinia` 时（例如未注册 `createPinia()`）返回 `{}` —— 不会抛错。
 
 ### `hydratePiniaState(app: VueApp, state: Record<string, unknown> | null): void`
 
-客户端水合辅助函数。把 `state.pinia` 赋值给 `pinia.state.value`。`state` 为 `null` 或没有 `pinia` 字段时是空操作。在应用上检测不到 `$pinia` 时会向控制台告警（这是配置错误：配置了 `hydrateState` 却没注册 `createPinia()`）。
+客户端水合辅助函数。`pinia: true` 时已自动接到 `hydrateState`，通常无需手动引用。把 `state.pinia` 赋值给 `pinia.state.value`。`state` 为 `null` 或没有 `pinia` 字段时是空操作。在应用上检测不到 `$pinia` 时会向控制台告警（配置错误：配了 `hydrateState` 却没注册 `createPinia()`）。
 
 ### `UbeanPiniaOptions`
 
@@ -270,13 +282,13 @@ export interface PiniaSerializedState {
 }
 ```
 
-> 通过 `ubean.config.ts` 配置时，框架读取的是 `pinia: true | UbeanPiniaOptions`。模块系统会把选项直接传给 `ubeanPiniaPlugin`。
+> 通过 `ubean.config.ts` 配置时，框架读取的是 `pinia: true | UbeanPiniaOptions`。模块系统会把选项直接传给 `ubeanPiniaPlugin`，同时用同一个值决定是否自动注册。
 
 ## 最佳实践
 
-1. **`pinia: true` 必须与 app.ts 里的钩子配套**：`pinia: true` 只开启 dev 预打包。SSR 状态水合需要在 `defineApp` 中配置 `serializePiniaState` / `hydratePiniaState`。否则 SSR 渲染出的 store 会在客户端水合时被重置为默认值。
+1. **`pinia: true` 就够了**：预打包、实例注册、SSR 序列化与水合都由它一并接好。手写 `defineApp({ plugins: [createPinia()] })` 只在需要注入 `pinia.use()` 插件时才必要 —— 守卫会跳过自动安装，不会装出两份。
 
-2. **每个应用一个 Pinia 实例**：在 `defineApp({ plugins: [createPinia()] })` 中只调用一次 `createPinia()`。状态水合假定应用上只有一个 `$pinia`。
+2. **每个应用一个 Pinia 实例**：自动安装每个应用实例只装一次。手动接管时也只调用一次 `createPinia()`。状态水合假定应用上只有一个 `$pinia`。
 
 3. **服务端 Pinia 状态保持在单请求作用域内**：每个 SSR 请求都会创建全新的 Vue 应用（进而全新的 Pinia）。请让 Pinia 实例只属于该请求 —— 挂在模块作用域的实例会在请求之间泄漏状态。
 
@@ -290,25 +302,17 @@ export interface PiniaSerializedState {
 
 ### 水合之后 store 被重置为默认值
 
-- 确认 `serializePiniaState` 与 `hydratePiniaState` 都已在 `defineApp` 中配置
-- 检查 `createPinia()` 是否写在 `defineApp({ plugins: [...] })` 里（而不是事后通过 `onAppCreated` 注册）
+- 确认 `ubean.config.ts` 里是 `pinia: true`（或对象形态），不是 `false` / `enabled: false`
+- 若手动接管了实例，确认 `createPinia()` 写在 `defineApp({ plugins: [...] })` 里（而不是事后通过 `onAppCreated` 注册）
 - 查看渲染出的 HTML 中是否含 `<script id="__UBEAN_STATE__" type="application/json">` —— 它应包含序列化后的状态
 - 确认 `hydrateState` 在 `app.mount()` 之前执行（默认客户端入口已保证）
 
 ### 告警：“hydrateState was called but no $pinia was detected on the app”
 
-这说明 `hydratePiniaState` 被调用了，但 `createPinia()` 没有作为插件注册。修复方式：
+这说明 `hydratePiniaState` 被调用了，但应用上没有 `$pinia`。两种成因：
 
-```typescript
-// src/app.ts
-import { createPinia } from 'pinia';
-import { hydratePiniaState } from '@ubean/integrations';
-
-export default defineApp({
-  plugins: [createPinia()], // <-- 这一行必需
-  hydrateState: hydratePiniaState
-});
-```
+- 自己配了 `hydrateState: hydratePiniaState` 却没注册 `createPinia()` —— 补上 `plugins: [createPinia()]`，或干脆删掉钩子交给自动注册
+- `pinia` 配置被关掉了（`false` / `enabled: false`），但 `app.ts` 里还留着 `hydrateState` 钩子 —— 打开配置，或一并删掉钩子
 
 ### dev 阶段 Pinia 没有被预打包
 

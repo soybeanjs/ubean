@@ -182,7 +182,7 @@ export async function generateVirtualModulesToDisk(
         localeVueParamFromI18n(config.i18n)
       )
     );
-    registry.register(createVueAppEntryVirtualModule(scanResult.appEntry));
+    registry.register(createVueAppEntryVirtualModule(scanResult.appEntry, { pinia: config.pinia }));
     registry.register(createClientEntryVirtualModule());
   }
 

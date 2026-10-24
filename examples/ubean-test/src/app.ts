@@ -8,6 +8,10 @@ import { registerMatchers } from './matchers';
 // Island components (IslandCounter, IslandClock, etc.) are auto-registered
 // by `ubeanIslandsPlugin` and auto-hydrated by the framework after mount.
 // No manual hydrateIslands() call needed.
+//
+// Pinia is auto-registered by the framework when `pinia: true` is set in
+// ubean.config.ts (plugin + SSR state hooks). No createPinia() here on purpose —
+// this file exercises the auto-registration path.
 
 export default defineApp({
   head: {

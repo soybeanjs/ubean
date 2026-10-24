@@ -33,6 +33,10 @@
     "./pinia": {
       "types": "./dist/pinia/index.d.ts",
       "import": "./dist/pinia/index.js"
+    },
+    "./pinia/runtime": {
+      "types": "./dist/pinia/runtime.d.ts",
+      "import": "./dist/pinia/runtime.js"
     }
   },
   "scripts": {

@@ -16,7 +16,8 @@ export default defineConfig({
       'src/fonts/index.ts',
       'src/electron/index.ts',
       'src/ui/index.ts',
-      'src/pinia/index.ts'
+      'src/pinia/index.ts',
+      'src/pinia/runtime.ts'
     ],
     deps: {
       neverBundle: ['vue', /^@ubean\//, /^node:/]

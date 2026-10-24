@@ -187,7 +187,7 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
         localeVueParamFromConfig(ubeanConfig)
       )
     );
-    virtualRegistry.register(createVueAppEntryVirtualModule(result.appEntry));
+    virtualRegistry.register(createVueAppEntryVirtualModule(result.appEntry, { pinia: ubeanConfig.pinia }));
     virtualRegistry.register(createServerEntryVirtualModule(result.serverEntry));
     virtualRegistry.register(createClientEntryVirtualModule());
   }

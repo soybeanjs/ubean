@@ -245,7 +245,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 > `router` 字段接收 `RouterConfig`(`{ setup(router) }`),在 router 实例创建后、`app.use(router)` 之前调用 `setup`,用于注册 vue-router 的导航守卫(`beforeEach`/`beforeResolve`/`afterEach`)。Client 和 SSR 都会执行;`app.ts` + `app.server.ts`/`app.client.ts` 中各自定义的 `setup` 会**累加执行**(shared 先,client/server 后)。
 
-> `serializeState(app)` 在 SSR `renderToString` 完成后调用,返回的对象被序列化到 HTML 的 `__UBEAN_STATE__` script 标签;`hydrateState(app, state)` 在客户端 `applyAppConfig`(注册插件)之后、`app.mount()` 之前调用,用于将 SSR state 注入到客户端实例(如 Pinia 的 `pinia.state.value`)。两者均为可选,配合 `@ubean/integrations/pinia` 等状态管理扩展使用。
+> `serializeState(app)` 在 SSR `renderToString` 完成后调用,返回的对象被序列化到 HTML 的 `__UBEAN_STATE__` script 标签;`hydrateState(app, state)` 在客户端 `applyAppConfig`(注册插件)之后、`app.mount()` 之前调用,用于将 SSR state 注入到客户端实例(如 Pinia 的 `pinia.state.value`)。两者均为可选;开启 `pinia` 配置时框架会自动填上这两个钩子(见第 5 节),用户自己写的同名钩子仍然覆盖。
 
 ### 配置
 
@@ -813,34 +813,33 @@ import type { UbeanPiniaOptions, PiniaSerializedState } from '@ubean/integration
 - **底层实现**：[Pinia](https://pinia.vuejs.org/)（ubean 仅提供薄封装层,负责 dev 预构建优化和 SSR 状态水合辅助函数）
 - `ubean.config.ts` 中 `pinia: true` 或 `pinia: { ... }` 启用
 - **dev 预构建优化**：自动将 `pinia` 加入 Vite 的 `optimizeDeps.include`,避免首次请求扫描延迟
-- **SSR 状态水合**：通过 `defineApp({ serializeState, hydrateState })` 钩子集成,在 HTML 中注入 `__UBEAN_STATE__` script 标签
+- **自动注册**：`pinia` 开启时 `virtual:ubean-app` 生成物自动 `app.use(createPinia())` 并接上 `serializeState`/`hydrateState`,**不需要**在 `app.ts` 手写任何东西。安装排在用户插件之后且带 `$pinia` 守卫,用户自己 `createPinia()` 时自动让位,不会装两份。SSR/CSR/SSG/SPA 共用同一段生成代码,无分支
+- **SSR 状态水合**：序列化进 HTML 的 `__UBEAN_STATE__` script 标签,客户端在 `applyAppConfig` 后、`mount` 前水合
 - **零侵入**：Pinia 本身仍从 `pinia` 包导入(`createPinia`/`defineStore`/`storeToRefs` 等),`@ubean/integrations` 仅提供集成胶水
 - `UbeanPiniaOptions`：`enabled`(默认 true)、`optimizeDeps`(默认 true)
 - `serializePiniaState(app)`：从 Vue app 的 `$pinia.state.value` 提取状态
 - `hydratePiniaState(app, state)`：将 SSR state 注入客户端 pinia 实例(在 `applyAppConfig` 后、`mount` 前调用)
 
-**最简启用**：
+**最简启用**（一行,预构建 + 自动注册 + SSR 水合全部就位）：
 
 ```typescript
 // ubean.config.ts
 export default defineConfig({
-  pinia: true // dev 预构建优化
+  pinia: true
 });
 ```
 
-**SSR 状态水合配置**：
+**需要注入 pinia 插件时自己注册**（守卫会自动让位,不必关开关）：
 
 ```typescript
-import { defineApp } from 'ubean';
-import { serializePiniaState, hydratePiniaState } from '@ubean/integrations';
 // src/app.ts
 import { createPinia } from 'pinia';
+import { defineApp } from 'ubean';
 
-export default defineApp({
-  plugins: [createPinia()],
-  serializeState: serializePiniaState,
-  hydrateState: hydratePiniaState
-});
+const pinia = createPinia();
+pinia.use(myPlugin);
+
+export default defineApp({ plugins: [pinia] });
 ```
 
 > Pinia 本身请直接从 `pinia` 导入(`import { createPinia, defineStore } from 'pinia'`),`@ubean/integrations/pinia` 仅负责构建集成和 SSR 水合辅助。

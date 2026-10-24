@@ -12,6 +12,7 @@ async function getPrerender() {
 const prerender = await getPrerender();
 
 export default defineConfig({
+  pinia: true,
   // ISR（P9-03）：`/isr-demo` 的响应缓存 1 秒 + stale-while-revalidate。
   // ttl 取 1s 是为了能在走查里观察到 MISS → HIT → STALE 三段（见 dev-topology 的用例）。
   routeRules: {

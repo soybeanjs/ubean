@@ -427,6 +427,9 @@ importers:
       '@ubean/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
+      pinia:
+        specifier: ^3.0.4
+        version: 3.0.4(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2)(vue@3.5.44(typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2))
       ubean:
         specifier: workspace:*
         version: link:../../packages/ubean

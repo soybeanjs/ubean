@@ -124,7 +124,7 @@ async function requestThrough(
   });
   Object.defineProperty(res, 'statusMessage', {
     get: () => '',
-    set: () => undefined
+    set: () => {}
   });
 
   const req = {

@@ -253,12 +253,12 @@ definePage({ routable: false });
 
 页面目录根级文件用于声明框架路由。它们**会进入 `pages` 数组**并带 `isBuiltin` 标记（捕获路由另带 `isGlobalCatchAll`）—— 宿主据此从页面清单生成菜单时记得过滤。
 
-| 文件                                        | 角色                                                                     |
-| ------------------------------------------- | ------------------------------------------------------------------------ |
-| `index.vue` / `root.vue` / `root/index.vue` | Root 路由，名 `Index`、路径 `/` —— 其余行为与普通页相同                  |
-| `404.vue` / `not-found.vue`（含 `index.*`） | 捕获路由 `/:pathMatch(.*)*`，名 `NotFound`；响应 HTTP 404                |
+| 文件                                        | 角色                                                                          |
+| ------------------------------------------- | ----------------------------------------------------------------------------- |
+| `index.vue` / `root.vue` / `root/index.vue` | Root 路由，名 `Index`、路径 `/` —— 其余行为与普通页相同                       |
+| `404.vue` / `not-found.vue`（含 `index.*`） | 捕获路由 `/:pathMatch(.*)*`，名 `NotFound`；响应 HTTP 404                     |
 | `loading.vue`                               | 异步页面加载时的 `<Suspense>` fallback（经 `LOADING_KEY`），`routable: false` |
-| `error.vue`                                 | `<ErrorBoundary>` 的错误组件（经 `ERROR_KEY`），`routable: false`        |
+| `error.vue`                                 | `<ErrorBoundary>` 的错误组件（经 `ERROR_KEY`），`routable: false`             |
 
 仅根级文件生效 —— `users/404.vue` 仍是 `/users/404` 的常规路由。`Index` 与 `NotFound` 是保留名：普通页派生到这两个名字时会告警并置 `routable: false`。用户 `[...slug].vue` 与 `404.vue` 并存时前者优先（内置捕获路由最后注册）。
 
@@ -381,7 +381,7 @@ const result = await generateRouteFiles(
 | `pageNames` / `layoutNames`                                   | 名称数组（存在 404 时包含 `NotFound`）                                                |
 | `defaultLayout`                                               | 默认布局名或 `null`                                                                   |
 | `resolvePageComponent(name)` / `resolveLayoutComponent(name)` | 组件解析器（reuse 路由解析目标页）                                                    |
-| `loadingComponent` / `errorComponent`                         | 内置路由组件或 `null`                                                                   |
+| `loadingComponent` / `errorComponent`                         | 内置路由组件或 `null`                                                                 |
 | `resolveLoadingComponent()` / `resolveErrorComponent()`       | 懒加载解析器                                                                          |
 | `hasNotFoundPage()` / `hasErrorPage()`                        | 存在性检查                                                                            |
 

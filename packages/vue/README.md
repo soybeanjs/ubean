@@ -245,12 +245,12 @@ What `routable: false` removes vs. keeps:
 
 Root-level files in a pages directory declare framework routes. They **enter the `pages` array** carrying an `isBuiltin` flag (the catch-all also carries `isGlobalCatchAll`) — filter on it when you build menus from the page inventory.
 
-| File                                          | Role                                                                 |
-| --------------------------------------------- | -------------------------------------------------------------------- |
-| `index.vue` / `root.vue` / `root/index.vue`   | Root route, named `Index`, path `/` — a normal page otherwise        |
-| `404.vue` / `not-found.vue` (and `index.*`)   | Catch-all `/:pathMatch(.*)*` named `NotFound`; responds HTTP 404     |
-| `loading.vue`                                 | `<Suspense>` fallback while async pages load (via `LOADING_KEY`), `routable: false` |
-| `error.vue`                                   | `<ErrorBoundary>` error component (via `ERROR_KEY`), `routable: false` |
+| File                                        | Role                                                                                |
+| ------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `index.vue` / `root.vue` / `root/index.vue` | Root route, named `Index`, path `/` — a normal page otherwise                       |
+| `404.vue` / `not-found.vue` (and `index.*`) | Catch-all `/:pathMatch(.*)*` named `NotFound`; responds HTTP 404                    |
+| `loading.vue`                               | `<Suspense>` fallback while async pages load (via `LOADING_KEY`), `routable: false` |
+| `error.vue`                                 | `<ErrorBoundary>` error component (via `ERROR_KEY`), `routable: false`              |
 
 Only root-level files qualify — `users/404.vue` remains a regular route at `/users/404`. `Index` and `NotFound` are reserved names: a normal page that resolves to either gets a warning and `routable: false`. When a user `[...slug].vue` exists alongside `404.vue`, the user catch-all wins (the built-in one registers last).
 

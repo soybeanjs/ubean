@@ -56,10 +56,7 @@ async function makeApp(options: { renderer?: { render: () => Promise<string> } |
       ? {
           i18nConfig: {
             defaultLocale: 'en',
-            locales: [
-              { code: 'en' },
-              { code: 'zh-CN', path: 'zh' }
-            ],
+            locales: [{ code: 'en' }, { code: 'zh-CN', path: 'zh' }],
             paths: { 'zh-CN': 'zh' },
             strategy: 'prefix_except_default'
           }
@@ -185,9 +182,7 @@ describe('内置 404 捕获页 · params 不带语言段', () => {
   it('客户端数据请求（X-UbeanPages）的 params 同样剥离', async () => {
     const app = await makeApp({ i18n: true });
 
-    const res = await app.hono.fetch(
-      new Request(`${ORIGIN}/zh/nope-xyz`, { headers: { 'X-UbeanPages': 'true' } })
-    );
+    const res = await app.hono.fetch(new Request(`${ORIGIN}/zh/nope-xyz`, { headers: { 'X-UbeanPages': 'true' } }));
     const body = (await res.json()) as { params: Record<string, string> };
 
     expect(body.params.pathMatch).toBe('nope-xyz');

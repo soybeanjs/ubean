@@ -211,6 +211,21 @@ export function resolveAppConfig(mode) {
   return merged;
 }
 
+/**
+ * 容器里是否真有服务端渲染的标记。
+ *
+ * ssr: false 时服务端仍会下发 __UBEAN_PAGE_DATA__（客户端要靠它拿路由/参数），
+ * 但 #app 是空的 —— 只按 initialPage 判断会走 createSSRApp 水合空容器，
+ * Vue 报 "Attempting to hydrate existing markup but container is empty"。
+ * CSR 外壳自带 data-ubean-ssr="false"，直接用它做判据。
+ */
+function _hasSsrMarkup(rootId) {
+  if (typeof document === 'undefined') return false;
+  const el = document.getElementById(rootId || 'app');
+  if (!el || el.getAttribute('data-ubean-ssr') === 'false') return false;
+  return el.childNodes.length > 0;
+}
+
 export async function createApp() {
   const config = resolveAppConfig('client');
   const head = createClientHead();
@@ -245,7 +260,7 @@ export async function createApp() {
     head,
     viewTransitions: config.viewTransitions,
     initialPage: initialPage || undefined,
-    hydrate: !!initialPage,
+    hydrate: !!initialPage && _hasSsrMarkup(config.rootId),
     router: config.router,
     loadingComponent,
     errorComponent,

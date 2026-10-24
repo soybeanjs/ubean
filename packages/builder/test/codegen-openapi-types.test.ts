@@ -1,3 +1,4 @@
+import { existsSync, statSync } from 'node:fs';
 import { mkdtemp, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { describe, expect, it, vi } from 'vitest';
@@ -53,5 +54,37 @@ describe('generateOpenApiTypesFromServer', () => {
     await expect(generateOpenApiTypesFromServer('http://localhost:9527', { outDir })).rejects.toThrow(
       /@valibot\/to-json-schema/
     );
+  });
+});
+
+describe('generateOpenApiTypes — 原子写', () => {
+  it('产物路径上不会出现半截文件：写临时文件后 rename，且不留 .tmp', async () => {
+    // 产物要够大，writeFile 才会跨过多个 tick —— 小文件在旧实现下也读不到空档。
+    const paths = Object.fromEntries(
+      Array.from({ length: 3000 }, (_, i) => [
+        `/api/items/${i}`,
+        { get: { responses: { 200: { description: 'ok', content: { 'application/json': { schema: { type: 'object' } } } } } } }
+      ])
+    );
+    const schema = { openapi: '3.0.0', info: { title: 'Test', version: '1.0.0' }, paths };
+    const outDir = await mkdtemp(join(tmpdir(), 'ubean-openapi-atomic-'));
+    const filePath = join(outDir, 'openapi.d.ts');
+
+    const { generateOpenApiTypes } = await import('../src/codegen/openapi-types');
+    const pending = generateOpenApiTypes(schema, { outDir });
+
+    // 生成期间轮询：产物路径要么不存在，要么已经写满 —— 绝不能是 0 字节。
+    // （旧的 writeFile 是「打开即截断」，Windows 上写满能跨过几百毫秒，读者会读到空文件。）
+    let sawEmpty = false;
+    const poll = setInterval(() => {
+      if (existsSync(filePath) && statSync(filePath).size === 0) sawEmpty = true;
+    }, 1);
+    await pending;
+    clearInterval(poll);
+
+    expect(sawEmpty).toBe(false);
+    expect(existsSync(filePath)).toBe(true);
+    expect(existsSync(`${filePath}.tmp`)).toBe(false);
+    expect(await readFile(filePath, 'utf8')).toContain('export interface paths');
   });
 });

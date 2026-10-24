@@ -7,7 +7,7 @@
  * 底层使用 `openapi-typescript` 编译 schema 为 TypeScript 类型声明。
  */
 
-import { writeFile, mkdir } from 'node:fs/promises';
+import { writeFile, mkdir, rename, rm } from 'node:fs/promises';
 import openapiTS, { astToString } from 'openapi-typescript';
 import { join } from 'pathe';
 
@@ -40,7 +40,18 @@ export async function generateOpenApiTypes(schema: unknown, options: GenerateOpe
 
   const content = `${header + typesContent}\n`;
   const filePath = join(outDir, fileName);
-  await writeFile(filePath, content, 'utf-8');
+
+  // 先写临时文件再 rename：`writeFile` 是「打开即截断」，文件在写满之前是 0 字节。
+  // 这份产物有几百 KB，Windows 上写满能跨过几百毫秒 —— 期间任何读者（dev 里轮询的
+  // 用例、跑着的 tsserver）都会读到空文件。rename 之后「存在」就等于「写完」。
+  const tmpPath = `${filePath}.tmp`;
+  await writeFile(tmpPath, content, 'utf-8');
+  try {
+    await rename(tmpPath, filePath);
+  } catch (error) {
+    await rm(tmpPath, { force: true });
+    throw error;
+  }
 
   return filePath;
 }

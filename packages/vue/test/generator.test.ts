@@ -105,6 +105,24 @@ describe('generateRouteFiles', () => {
     expect(imports).toContain(`export type RouteReuseKey = 'About2'`);
   });
 
+  it('routable: false 的条目只进 NonRouteKey,不进 RouteKey', async () => {
+    const home = page({ name: 'Home', route: '/' });
+    const dir = page({ name: 'PluginDir', route: '/plugin', routable: false, pageKind: 'meta' });
+    const link = page({ name: 'DocsLink', route: '/docs-link', routable: false });
+
+    await generateRouteFiles({ pages: [home, dir, link], layouts: [] }, { cwd: tmpDir, srcDir, outDir });
+
+    const imports = readFileSync(join(outDir, 'imports.ts'), 'utf-8');
+    expect(imports).toContain(`export type RouteKey = 'Home'`);
+    expect(imports).toContain(`export type NonRouteKey = 'PluginDir' | 'DocsLink'`);
+
+    const dts = readFileSync(join(outDir, 'typed-router.d.ts'), 'utf-8');
+    expect(dts).toContain(`export type NonRouteKey = "PluginDir" | "DocsLink"`);
+    // 非路由页不进 RoutePathMap / RouteNamedMap
+    expect(dts).not.toContain(`"PluginDir": "/plugin";`);
+    expect(dts).not.toContain(`"PluginDir": RouteRecordInfo`);
+  });
+
   it('definePage({ redirect }) 写进 RouteRecord', async () => {
     const home = page({ name: 'Home', route: '/', redirect: '/home' });
     const realHome = page({ name: 'HomeReal', route: '/home' });

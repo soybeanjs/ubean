@@ -298,6 +298,10 @@ ${items}
     // 而宿主想「只遍历自己的页面」时需要一个现成的差集。
     const builtinNames = scan.pages.filter(p => p.isBuiltin).map(p => p.name);
     const builtinKeyType = builtinNames.length > 0 ? `'${builtinNames.join("' | '")}'` : 'never';
+    // 非路由页（`routable: false`）的 key：菜单目录、外链、iframe 容器等。
+    // 它们在清单里但永远不是路由，宿主构菜单时按这个类型遍历。
+    const nonRouteNames = scan.pages.filter(p => isNonRoutable(p)).map(p => p.name);
+    const nonRouteKeyType = nonRouteNames.length > 0 ? `'${nonRouteNames.join("' | '")}'` : 'never';
 
     return `${header}
 
@@ -330,6 +334,13 @@ export type RouteKey = ${allKeyType};
  * not by application pages. Filter these out when building menus from {@link RouteKey}.
  */
 export type BuiltinRouteKey = ${builtinKeyType};
+
+/**
+ * Non-route page keys (\`definePage({ routable: false })\`): menu directories,
+ * external links, iframe containers. They live in the page inventory but never
+ * become routes — iterate these when building a menu.
+ */
+export type NonRouteKey = ${nonRouteKeyType};
 
 export type Lazy<T> = () => Promise<T>;
 export type RawRouteComponent = import('vue').Component | Lazy<import('vue').Component>;
@@ -404,6 +415,12 @@ ${views}
     const builtinRoutes = scan.pages.filter(p => p.isBuiltin);
     const builtinKeys = builtinRoutes.length > 0 ? builtinRoutes.map(p => `"${p.name}"`).join(' | ') : 'never';
 
+    const nonRouteKeys =
+      scan.pages
+        .filter(p => isNonRoutable(p))
+        .map(p => `"${p.name}"`)
+        .join(' | ') || 'never';
+
     const layoutKeyList = scan.layouts.length > 0 ? scan.layouts.map(l => `"${l.name}"`).join(' | ') : 'never';
 
     // RouteNamedMap:每条路由 → RouteRecordInfo<Name, Path, ParamsRaw, Params>
@@ -455,6 +472,13 @@ ${pathMapEntries}
   export type BuiltinRouteKey = ${builtinKeys};
 
   /**
+   * Non-route page keys (\`definePage({ routable: false })\`): menu directories,
+   * external links, iframe containers. They live in the page inventory but never
+   * become routes — iterate these when building a menu.
+   */
+  export type NonRouteKey = ${nonRouteKeys};
+
+  /**
    * Route keys that have a corresponding source file (\`.vue\` / \`.md\`).
    * Excludes reuse routes. **Includes built-in routes** — \`pages/404.vue\` 有真实组件，
    * \`views\` 里必须有它（否则 \`views[RouteFileKey]\` 索引不到捕获页的 loader）。
@@ -486,7 +510,7 @@ declare module 'vue-router' {
   }
 }
 
-export type { RouteLayoutKey, RoutePathMap, RouteKey, RoutePath, ReuseRouteKey, BuiltinRouteKey, RouteFileKey } from '@ubean/scan';
+export type { RouteLayoutKey, RoutePathMap, RouteKey, RoutePath, ReuseRouteKey, BuiltinRouteKey, NonRouteKey, RouteFileKey } from '@ubean/scan';
 `;
   }
 

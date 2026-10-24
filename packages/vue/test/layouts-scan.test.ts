@@ -12,8 +12,8 @@
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { scanPages } from '../src/scan-pages';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
+import { clearScanWarnings, scanPages } from '../src/scan-pages';
 import type { ScanPagesResult, ScannedLayout } from '../src/types';
 
 let tmpDir: string;
@@ -80,15 +80,15 @@ describe('scanPages — 布局命名约定', () => {
     expect(byName(result, 'default')?.isDefault).toBe(true);
   });
 
-  it('`default.vue` 与 `default/index.vue` 共存 → 两条同名，文件形态优先保留 isDefault', async () => {
+  it('`default.vue` 与 `default/index.vue` 共存 → 文件形态胜出且仍是默认布局', async () => {
     writeLayout('default.vue');
     writeLayout('default/index.vue');
     const result = await scan();
 
-    // 同名冲突不静默吞掉任何一条：`isDefault` 至少有一条为 true，
-    // 否则 `find(l => l.isDefault)` 落空。谁胜出由文件遍历顺序决定（既有行为）。
-    expect(result.layouts.filter(l => l.name === 'default')).toHaveLength(2);
-    expect(result.layouts.some(l => l.isDefault)).toBe(true);
+    // 两条同名会让虚拟模块生成重复的 `const Layout_default`（编译期直接失败），
+    // 所以扫描期只留 `files.sort()` 的第一条；两者都是默认布局，留谁都对。
+    expect(result.layouts.filter(l => l.name === 'default')).toHaveLength(1);
+    expect(result.layouts.find(l => l.isDefault)?.relativePath).toBe('default.vue');
   });
 
   it('嵌套目录 `admin/dashboard.vue` → name `admin/dashboard`', async () => {
@@ -140,5 +140,48 @@ describe('scanPages — 布局扩展名', () => {
     const result = await scan();
 
     expect(byName(result, 'admin')).toMatchObject({ name: 'admin', isDefault: false });
+  });
+});
+
+describe('scanPages — 布局同名冲突', () => {
+  let warnSpy: MockInstance;
+
+  beforeEach(() => {
+    clearScanWarnings();
+    warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    warnSpy.mockRestore();
+  });
+
+  // 同名两条会在虚拟模块里生成重复的 `const Layout_X`，整份路由表编译失败，
+  // 因此扫描期就必须只留一条（`files.sort()` 先到先得）。
+  it('`default.vue` + `default/index.vue` 只保留一条并告警', async () => {
+    writeLayout('default.vue');
+    writeLayout('default/index.vue');
+    const result = await scan();
+
+    expect(result.layouts).toHaveLength(1);
+    expect(byName(result, 'default')).toMatchObject({ relativePath: 'default.vue', isDefault: true });
+    expect(warnSpy.mock.calls.flat().join('\n')).toContain('default/index.vue');
+  });
+
+  it('`admin.vue` + `admin/index.tsx` 只保留一条并告警', async () => {
+    writeLayout('admin.tsx', 'export default { render: () => null };');
+    writeLayout('admin/index.vue');
+    const result = await scan(['vue', 'tsx']);
+
+    expect(result.layouts.map(l => l.name)).toEqual(['admin']);
+    expect(warnSpy.mock.calls.flat().join('\n')).toContain('同名布局');
+  });
+
+  it('名字不同的近邻不算冲突（`a/b.vue` → `a/b`，`b.vue` → `b`）', async () => {
+    writeLayout('a/b.vue');
+    writeLayout('b.vue');
+    const result = await scan();
+
+    expect(result.layouts.map(l => l.name)).toEqual(['a/b', 'b']);
+    expect(warnSpy.mock.calls.flat().join('\n')).not.toContain('同名布局');
   });
 });

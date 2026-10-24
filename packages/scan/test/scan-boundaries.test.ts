@@ -293,18 +293,21 @@ describe('TS-31 · 多目录叠加与去重', () => {
     expect(result.pages.filter(p => p.route === '/nested/deep')).toHaveLength(1);
   });
 
-  it('不同目录里的同名文件产生同一路由的两条记录（去重键是 fullPath，不是 route）', async () => {
+  it('不同目录里的同名文件争同一路由时先到先得，只留一条', async () => {
     write('pages/about.vue');
     write('views/about.vue', '<template><p>override</p></template>');
 
     const result = await scan({ dirs: { pages: ['pages', 'views'] } });
     const aboutPages = result.pages.filter(p => p.route === '/about');
 
-    // 这是当前的真实语义：两个真实文件都进结果。路由冲突由下游（生成器/路由表）处理，
-    // 扫描层只保证同一个文件不被重复收录。
-    expect(aboutPages).toHaveLength(2);
-    expect(aboutPages.map(p => p.relativePath)).toEqual(['about.vue', 'about.vue']);
-    expect(new Set(aboutPages.map(p => p.fullPath)).size).toBe(2);
+    // 两条同名页会让虚拟模块生成重复的 `const Page_About`（编译期失败），所以扫描层
+    // 现在就只留一条：`dirs.pages` 的顺序即优先级（先出现的目录胜出）。
+    expect(aboutPages).toHaveLength(1);
+    expect(aboutPages[0].fullPath).toContain('pages/about.vue');
+
+    // 另一个真实文件不再被收录 —— 与「同一文件不重复收录」是同一套去重。
+    const allPaths = new Set(result.pages.map(p => p.fullPath));
+    expect(allPaths.size).toBe(result.pages.length);
   });
 
   it('多个 pagesDir 叠加时，各自独有的页面都在结果里', async () => {

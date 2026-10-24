@@ -45,6 +45,14 @@ function warn(message: string): void {
 }
 
 /**
+ * 清空告警去重表。同名冲突类告警的消息只含相对路径，同一进程里重复扫招同一目录时
+ * 会被去重掉 —— 测试需要看见每次都报，就在这里手动清。
+ */
+export function clearScanWarnings(): void {
+  _warned.clear();
+}
+
+/**
  * Optional peer dependency loader for `@ubean/markdown`。
  *
  * 仅当 `markdown` 开启且项目存在 `.md` / `.mdx` 页面时按需加载;
@@ -441,6 +449,42 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
     }
   }
 
+  // 同一路径上重复声明时，`files.sort()` 顺序先到先得，其他条告警并移出清单。
+  //
+  // 必须只留一条：两条同名页会让虚拟模块生成重复的 `const Page_X`，同名 reuse 页更会
+  // 生成 `const Page_X = Page_X` 自引用（模块顶层 TDZ）。撞名的三种真实形态：
+  // `a.vue` + `a.tsx`（同扩展名连写）、`a.vue` + `a/index.vue`（路径相同但名不同，
+  // 后者会在路由表里变成无路由孤儿）、`a.vue` + `a.reuse.ts`（目标就是自己）。
+  //
+  // 键含 `slot`：并行路由的多个视图共享同一个 URL，不算重复。
+  const declaredOnRoute = new Map<string, ScannedPage[]>();
+  for (const page of pages) {
+    const routeKey = `${page.route}\u0000${page.slot ?? ''}`;
+    const group = declaredOnRoute.get(routeKey);
+    if (group) group.push(page);
+    else declaredOnRoute.set(routeKey, [page]);
+  }
+
+  const droppedPages = new Set<ScannedPage>();
+  for (const group of declaredOnRoute.values()) {
+    if (group.length === 1) continue;
+    // 留带组件的那条：`a.vue` 与同名 `a.reuse.ts` 撞上时，reuse 页借的组件就是它自己
+    // （`const Page_A = Page_A` 顶层 TDZ），只有让 `a.vue` 胜出才渲得出东西。
+    const winner = group.find(p => p.pageKind === 'component') ?? group[0];
+    for (const page of group) {
+      if (page === winner) continue;
+      droppedPages.add(page);
+      warn(
+        `页面 "${page.relativePath}" 与 "${winner.relativePath}" 解析到同一路径` +
+          `（${page.route}${page.slot ? ` 的 "${page.slot}" 插槽` : ''}），只有 "${winner.relativePath}" 生效，` +
+          `"${page.relativePath}" 已跳过。\n` +
+          `请改名，或用 \`definePage({ name, path })\` 区分。`
+      );
+    }
+  }
+
+  const uniquePages = pages.filter(page => !droppedPages.has(page));
+
   for (const dir of layoutsDirs) {
     const files = await glob(layoutsPattern, {
       cwd: dir,
@@ -462,6 +506,18 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       // `layouts.find(l => l.isDefault)` 落空,默认布局静默失效(文档已承诺该形态)。
       const isDefault = base === 'default' || (base === 'index' && (!dirPart || dirPart === 'default'));
       const name = layoutBase || 'default';
+
+      // 布局名是 `definePage({ layout })` 与 `meta.layout` 引用的键，同名两条会让虚拟模块
+      // 生成重复的 `const Layout_X`（`layoutVarNameFor` 不去重）——整份路由表编译失败。
+      // 与页面同样先到先得，但这里**只告警不抛错**：dev 已经能启动到出模块那一步了。
+      if (layouts.some(l => l.name === name)) {
+        warn(
+          `布局 "${relativePath}" 与已发现的同名布局 "${name}" 冲突，只有前者生效，` +
+            `"${relativePath}" 已跳过。请改名，或删掉其中一种写法。`
+        );
+        continue;
+      }
+
       layouts.push({
         fullPath,
         relativePath,
@@ -478,7 +534,7 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
   // 普通页派生或 `definePage({ name })` 显式撞名时,跳过注册并告警 —— 静默产出两条同名
   // 路由会让 vue-router 覆盖其中一条(表现为「某页打不开」,且两侧覆盖顺序可能不同)。
   // 放在循环后而不是循环内:结果与文件遍历顺序无关,`.reuse.ts` 的撞名也能一并拦下。
-  for (const page of pages) {
+  for (const page of uniquePages) {
     if (page.isBuiltin || !isReservedRouteName(page.name)) continue;
     warn(
       `页面 "${page.relativePath}" 使用了框架保留的路由名 "${page.name}",已跳过路由注册。\n` +
@@ -492,9 +548,9 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
   // Reuse routes reference a target page by name. The target must be a
   // regular page with a component implementation — chaining reuse routes is
   // not supported, and `.meta.*` pages have no component to lend out.
-  const regularPageNames = new Set(pages.filter(p => p.pageKind === 'component').map(p => p.name));
+  const regularPageNames = new Set(uniquePages.filter(p => p.pageKind === 'component').map(p => p.name));
 
-  for (const page of pages) {
+  for (const page of uniquePages) {
     if (page.pageKind === 'reuse' && page.reuseTarget && !regularPageNames.has(page.reuseTarget)) {
       warn(
         `Reuse page "${page.name}" references target "${page.reuseTarget}" which does not exist. ` +
@@ -508,12 +564,12 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
   // inherit the target page's cache setting. To explicitly disable cache on
   // a reuse route, set `cache: false` in its `definePage`.
   const targetCacheMap = new Map<string, boolean | undefined>();
-  for (const p of pages) {
+  for (const p of uniquePages) {
     if (p.pageKind !== 'reuse') {
       targetCacheMap.set(p.name, p.cache);
     }
   }
-  for (const page of pages) {
+  for (const page of uniquePages) {
     if (page.pageKind === 'reuse' && page.reuseTarget && page.cache === undefined) {
       const targetCache = targetCacheMap.get(page.reuseTarget);
       if (targetCache === true) {
@@ -529,5 +585,5 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
     }
   }
 
-  return { pages, layouts, notFoundPage, loadingPage, errorPage };
+  return { pages: uniquePages, layouts, notFoundPage, loadingPage, errorPage };
 }

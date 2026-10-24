@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: a4f70b753139
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","48ec3dc0","e12725a4","d8baa841","f1f065b8","466a5369","79fb3b12","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","00b8735e","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: 47696d89be05
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","79fb3b12","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","00b8735e","9f0caf65","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -33,7 +33,7 @@ export default defineConfig({
 **不需要**在 `vite.config.ts` 手动注册 `@vitejs/plugin-vue-jsx`，也不用配 `esbuild.jsx`。
 关掉 JSX 可省下 babel 链路（`@babel/core` + `@vue/babel-plugin-jsx`）的加载成本。
 
-`.reuse.ts` / `.meta.ts` 元数据页恒参与扫描，不受 `extensions` 影响。布局目前只认 `.vue` / `.ts`。
+`.reuse.ts` / `.meta.ts` 元数据页恒参与扫描，不受 `extensions` 影响。
 
 ### 基本页面
 
@@ -249,6 +249,16 @@ definePage({
 后台布局请创建 `src/layouts/admin.vue`（或 `src/layouts/admin/index.vue`）。布局支持嵌套链（例如 `admin/dashboard` → `admin` → `default`）。
 
 布局文件后缀跟随 `pages.extensions`（默认 `vue` / `tsx` / `jsx`）。默认布局的两种等价写法是 `src/layouts/default.vue` 与 `src/layouts/default/index.vue`。
+
+#### 同一路径只能有一个声明者
+
+`a.vue` 与 `a/index.vue` 是**两种写法之一**，不是两页。两条同名页会让路由表生成重复的组件声明，因此扫描期按文件名序先到先得，后来者告警并跳过：
+
+- `pages/a.vue` + `pages/a/index.vue` → 写进 `/a` 的只有 `a.vue`
+- `pages/a.vue` + `pages/a.tsx` → 同上，只留一个
+- `layouts/default.vue` + `layouts/default/index.vue` → 只留一条布局
+
+确实要两个页面时，用 `definePage({ path: '/other' })` 给不同路径，或改名。并行路由的插槽页（`@dialog/...`）不受此限，它们本就共享同一个 URL。
 
 #### 布局链，不是嵌套路由
 

@@ -31,7 +31,7 @@ export default defineConfig({
 You do **not** need to register `@vitejs/plugin-vue-jsx` in `vite.config.ts` or set `esbuild.jsx`.
 Dropping JSX saves the load cost of the babel chain (`@babel/core` + `@vue/babel-plugin-jsx`).
 
-`.reuse.ts` / `.meta.ts` metadata pages are always scanned and ignore `extensions`. Layouts currently only accept `.vue` / `.ts`.
+`.reuse.ts` / `.meta.ts` metadata pages are always scanned and ignore `extensions`.
 
 ### Basic Pages
 
@@ -262,6 +262,16 @@ definePage({
 Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin layout. Layouts support nested chains (e.g. `admin/dashboard` → `admin` → `default`).
 
 Layout file extensions follow `pages.extensions` (default `vue` / `tsx` / `jsx`). The two equivalent forms of the default layout are `src/layouts/default.vue` and `src/layouts/default/index.vue`.
+
+#### One declaration per path
+
+`a.vue` and `a/index.vue` are two spellings of the *same* page, not two pages. Two pages with the same path emit duplicate component declarations in the route table, so the scanner keeps the first in file-name order, warns, and skips the rest:
+
+- `pages/a.vue` + `pages/a/index.vue` → only `a.vue` is written to `/a`
+- `pages/a.vue` + `pages/a.tsx` → same, only one survives
+- `layouts/default.vue` + `layouts/default/index.vue` → only one layout survives
+
+When you really want two pages, give them different paths via `definePage({ path: '/other' })`, or rename one. Parallel-route slot pages (`@dialog/...`) are exempt — they share a URL by design.
 
 #### Layout chains, not nested routes
 

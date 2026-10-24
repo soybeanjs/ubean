@@ -60,8 +60,11 @@ function sortPagesByReuseDependency(pages: ScannedPage[]): ScannedPage[] {
   }
 
   function visit(page: ScannedPage) {
-    if (visited.has(page.name)) return;
-    visited.add(page.name);
+    // 按 `fullPath` 去重，不按 name：并行路由的插槽页与默认页共享同一个派生名
+    // （`photo/[id].vue` 与 `@dialog/photo/[id].vue` 都是 `PhotoId`），按 name 去重会把
+    // 插槽页整个丢掉，`components` 里就只剩一个视图、默认视图还会凭空消失。
+    if (visited.has(page.fullPath)) return;
+    visited.add(page.fullPath);
 
     if (resolvePageKind(page) === 'reuse' && page.reuseTarget && byName.has(page.reuseTarget)) {
       visit(byName.get(page.reuseTarget)!);
@@ -153,6 +156,22 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
     pageByName.set(p.name, p);
   }
 
+  // 组件 loader 的变量名必须唯一。派生名重复的合法情形是并行路由的两个视图
+  // （它们本就共享同一个 URL 与派生名），直接拼 `Page_X` 会得到重复的 `const`。
+  const loaderNameByPath = new Map<string, string>();
+  const usedLoaderNames = new Set<string>();
+  function loaderNameFor(page: ScannedPage): string {
+    const cached = loaderNameByPath.get(page.fullPath);
+    if (cached) return cached;
+    const base = varNameFor(page.name);
+    let candidate = base;
+    let n = 2;
+    while (usedLoaderNames.has(candidate)) candidate = `${base}_${n++}`;
+    usedLoaderNames.add(candidate);
+    loaderNameByPath.set(page.fullPath, candidate);
+    return candidate;
+  }
+
   const sortedPages = sortPagesByReuseDependency(pages);
   // 全局捕获路由（`isGlobalCatchAll`）排到最后 —— vue-router 的 catch-all 按**注册顺序**
   // 匹配，内置 404 排在用户 `[...slug].vue` 之前会把它整个吞掉（实测）。
@@ -163,11 +182,12 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
   // 一旦为它生成 `import(...)` 就会在运行时解析成空组件，因此直接跳过。
   for (const p of sortedPages) {
     if (resolvePageKind(p) === 'meta') continue;
-    const varName = varNameFor(p.name);
-    if (resolvePageKind(p) === 'reuse' && p.reuseTarget && pageByName.has(p.reuseTarget)) {
+    const varName = loaderNameFor(p);
+    const target = p.reuseTarget ? pageByName.get(p.reuseTarget) : undefined;
+    if (resolvePageKind(p) === 'reuse' && target) {
       // Reuse route: reference the target page's component loader instead
       // of importing the `.reuse.ts` file (which holds only route metadata).
-      pageLoaders.push(`const ${varName} = ${varNameFor(p.reuseTarget)};`);
+      pageLoaders.push(`const ${varName} = ${loaderNameFor(target)};`);
     } else {
       pageLoaders.push(`const ${varName} = () => import(${JSON.stringify(p.fullPath)}).then(m => m.default || m);`);
     }
@@ -214,10 +234,10 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
       // Parallel route: use `components` (named views) instead of `component`.
       const componentParts: string[] = [];
       if (defaultPage) {
-        componentParts.push(`default: ${varNameFor(defaultPage.name)}`);
+        componentParts.push(`default: ${loaderNameFor(defaultPage)}`);
       }
       for (const sp of slotPages) {
-        componentParts.push(`${JSON.stringify(sp.slot)}: ${varNameFor(sp.name)}`);
+        componentParts.push(`${JSON.stringify(sp.slot)}: ${loaderNameFor(sp)}`);
       }
       const vuePath = withLocaleParam(routerPath, locale?.vueParam);
       routeEntries.push(
@@ -234,7 +254,7 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
     } else {
       const vuePath = withLocaleParam(routerPath, locale?.vueParam);
       routeEntries.push(
-        `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(defaultPage!.name)}, component: ${varNameFor(defaultPage!.name)}, meta: ${buildRouteMeta(defaultPage!)} }`
+        `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(defaultPage!.name)}, component: ${loaderNameFor(defaultPage!)}, meta: ${buildRouteMeta(defaultPage!)} }`
       );
     }
   }
@@ -284,7 +304,7 @@ ${layoutLoaderMap}
 };
 
 const _pageLoaders = {
-${namedPages.map(p => `  ${JSON.stringify(p.name)}: ${varNameFor(p.name)}`).join(',\n')}
+${namedPages.map(p => `  ${JSON.stringify(p.name)}: ${loaderNameFor(p)}`).join(',\n')}
 };
 
 export const pageNames = [${namedPages.map(p => JSON.stringify(p.name)).join(', ')}];

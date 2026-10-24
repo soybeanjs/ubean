@@ -10,9 +10,9 @@ export const routes: RouteRecord[] = [
     component: 'About'
   },
   {
-    name: 'Index',
+    name: 'Root',
     path: '/',
-    component: 'Index'
+    component: 'Root'
   },
   {
     name: 'UsersId',

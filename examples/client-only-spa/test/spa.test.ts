@@ -121,7 +121,7 @@ describe('virtual:ubean-vue-routes(vite 插件生成)', () => {
     expect(about.meta.transition).toBe('fade');
 
     const home = routes.find(r => r.path === '/') as { name: string };
-    expect(home.name).toBe('Home'); // definePage name 覆盖 'Index'
+    expect(home.name).toBe('Home'); // definePage name 覆盖 'Root'
   });
 
   it('动态参数 + matcher 语法:[id=numeric] → /users/:id + meta.matchers', () => {

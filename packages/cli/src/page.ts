@@ -143,13 +143,13 @@ function extractNameFromPath(filePath: string, _type: ScaffoldType): string {
     if (cleaned) segments.push(toPascalCase(cleaned));
   }
 
+  // 文件段 `index` 是「这个目录本身」的占位写法，不参与命名：`a/index.vue` → `A`。
+  // 只有根级 `index.vue`（前面没有目录段）落到 `Root`。
   if (nameWithoutExt !== 'index') {
     segments.push(toPascalCase(sanitizeNameSegment(nameWithoutExt)));
-  } else if (segments.length === 0) {
-    return 'Index';
   }
 
-  return segments.join('') || 'Index';
+  return segments.join('') || 'Root';
 }
 
 function getTemplateContent(

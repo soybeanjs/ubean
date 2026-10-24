@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: 47696d89be05
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","79fb3b12","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","00b8735e","9f0caf65","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: 52fa18f829a3
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","b535ee0d","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","00b8735e","025c2ab3","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -102,12 +102,12 @@ ubean 会自动检测 `src/pages/` **根目录**下的内置路由。它们**会
 
 | 文件 | 职责 | 效果 |
 | --- | --- | --- |
-| `pages/index.vue` / `pages/root.vue` | Root 路由 | 名 `Index`、路径 `/`。是普通页，`definePage({ head, layout, cache, name })` 全部生效。 |
+| `pages/index.vue` / `pages/root.vue` | Root 路由 | 名 `Root`、路径 `/`。是普通页，`definePage({ head, layout, cache, name })` 全部生效。 |
 | `pages/404.vue`（或 `not-found.vue`） | 未找到页面 | 全局捕获路由 `/:pathMatch(.*)*`，名 `NotFound`。未匹配的浏览器导航渲染该组件，状态码**跟 SSR 能力走**：服务端渲染了它（SSR 页）返回 HTTP 404；只发 CSR 外壳（显式 `ssr: false` / `ssr.exclude` 命中 / 无渲染器）返回 HTTP 200 —— 客户端路由表是构建期产物，服务端不可能知道它有哪些路由（对齐 Nuxt `ssr: false` 的 `200.html`）。API（`/api/*`）与内部（`/_*`）路径仍返回默认的 JSON 404。 |
 | `pages/loading.vue`（或 `.ts` / `.md`） | 加载提示 | 作为 `<Suspense>` 的 fallback 组件，在 SPA 导航期间懒加载页面组件时显示。SSR 会跳过它（服务端同步解析异步组件）。`routable: false`。 |
 | `pages/error.vue`（或 `.ts` / `.md`） | 错误边界 | 作为 `ErrorBoundary` 组件（Vue `errorCaptured`）。当页面的渲染 / setup / 异步解析抛出错误时渲染，接收 `error` prop，路由切换时自动重置。仅客户端生效。`routable: false`。 |
 
-只有根目录下的文件才被视为内置路由。像 `pages/users/404.vue` 这样的嵌套文件仍是常规路由 `/users/404`。`Index` / `NotFound` 是保留名：普通页 `definePage({ name })` 撞名会收到告警并置 `routable: false`。用户 `[...slug].vue` 与 `404.vue` 并存时前者优先（内置捕获路由最后注册）。
+只有根目录下的文件才被视为内置路由。像 `pages/users/404.vue` 这样的嵌套文件仍是常规路由 `/users/404`。`Root` / `NotFound` 是保留名：普通页 `definePage({ name })` 撞名会收到告警并置 `routable: false`。用户 `[...slug].vue` 与 `404.vue` 并存时前者优先（内置捕获路由最后注册）。
 
 #### 应用根组件（`src/app.vue` / `src/App.vue`）
 
@@ -252,7 +252,7 @@ definePage({
 
 #### 同一路径只能有一个声明者
 
-`a.vue` 与 `a/index.vue` 是**两种写法之一**，不是两页。两条同名页会让路由表生成重复的组件声明，因此扫描期按文件名序先到先得，后来者告警并跳过：
+`a.vue` 与 `a/index.vue` 是**同一页的两种写法**：路径都是 `/a`，路由名都是 `A`（`index` 段不参与命名，也不进 URL）。既然完全等价，两条同时存在就是重复声明 —— 扫描期按文件名序先到先得，后来者告警并跳过：
 
 - `pages/a.vue` + `pages/a/index.vue` → 写进 `/a` 的只有 `a.vue`
 - `pages/a.vue` + `pages/a.tsx` → 同上，只留一个

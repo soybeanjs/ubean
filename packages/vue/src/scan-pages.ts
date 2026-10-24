@@ -280,9 +280,11 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       const { cleanedBase, slot } = extractSlotFromPath(rawFileBase);
       const fileBase = cleanedBase;
 
-      // 特殊页判据用**折叠后的逻辑路径**（`404/index.vue` → `404`，与 layouts 的处理一致）。
-      // `pages/index.vue`（dirPart 为空）不在其中 —— 它是 Root 路由的常规声明形态。
-      const specialBase = pageBase === 'index' ? dirPart : dirPart ? `${dirPart}/${pageBase}` : pageBase;
+      // 特殊页判据用逻辑路径（`404/index.vue` 连写才能命中）。
+      // `index` 在这里**不折叠**：根级 `index.vue` 是 Root 的常规声明形态，而
+      // `users/index.vue` 折成 `users` 会与「特殊页只在根级」的规则打架；它的 `Index`
+      // 名字后缀在 `generateRouteName` 里折叠。
+      const specialBase = dirPart ? `${dirPart}/${pageBase}` : pageBase;
 
       // 内置全局路由（`pages/404.vue` 等）的声明形态：
       // - `404.vue` / `not-found.vue` / `404/index.vue` / `not-found/index.vue`
@@ -291,18 +293,22 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       //
       // 嵌套目录不参与：`users/404.vue` 仍是常规路由 `/users/404`。
       const specialKind: 'notFound' | 'loading' | 'error' | null =
-        specialBase === '404' || specialBase === 'not-found'
+        specialBase === '404' ||
+        specialBase === 'not-found' ||
+        specialBase === '404/index' ||
+        specialBase === 'not-found/index'
           ? 'notFound'
-          : specialBase === 'loading'
+          : specialBase === 'loading' || specialBase === 'loading/index'
             ? 'loading'
-            : specialBase === 'error'
+            : specialBase === 'error' || specialBase === 'error/index'
               ? 'error'
               : null;
 
       // Root（`/`）的三个声明形态：根级 `index.vue`、`root.vue`、`root/index.vue`。
       // 它**不是**特殊页 —— 走下面普通页的同一条路径（`definePage({ head, layout, cache,
-      // name })` 全部照常生效），只在收尾把路径归一到 `/`、名字归一到 `Index`。
-      const isRootDecl = dirPart === '' && pageBase === 'index' ? true : specialBase === 'root';
+      // name })` 全部照常生效），只在收尾把路径归一到 `/`、名字归一到 `Root`。
+      const isRootDecl =
+        (dirPart === '' && pageBase === 'index') || specialBase === 'root' || specialBase === 'root/index';
 
       if (!isMetaOnlyFile && specialKind) {
         // 一个槽位只能有一个声明者：`404.vue` 与 `not-found.vue` 同时存在时先到先得
@@ -429,7 +435,7 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         dirname: dirname(relativePath),
         basename: basename(relativePath),
         // Root 声明：路径归一到 `/`（`root.vue` / `root/index.vue` 会派生 `/root`），
-        // 名字回退到保留名 `Index`（`definePage({ name })` 仍可覆盖，与普通页一致）。
+        // 名字回退到保留名 `Root`（`definePage({ name })` 仍可覆盖，与普通页一致）。
         name: isRootDecl ? pageMeta?.name || ROOT_ROUTE_NAME : pageMeta?.name || name,
         route: isRootDecl ? '/' : pageMeta?.path || route,
         path: isRootDecl ? '/' : pageMeta?.path || route,

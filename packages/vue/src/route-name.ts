@@ -1,5 +1,7 @@
 import { pascalCase } from 'scule';
 
+import { ROOT_ROUTE_NAME } from './global-routes';
+
 /**
  * 路由名生成器(页面路由所有权归属 `@ubean/vue`)。
  * `@ubean/scan` 聚合层 re-export 保持向后兼容;服务端专用的
@@ -15,12 +17,23 @@ import { pascalCase } from 'scule';
  */
 const DYNAMIC_SEGMENT_REGEX = /^\[(\.{3})?\[?([\w-]+)(?:=[\w-]+)?\]\]?([?*+]?)$/;
 
+/**
+ * `index` 文件段折叠:`a/index.vue` 与 `a.vue` 是同一路由,名字也必须相同(`A`),
+ * 否则换一种写法就得把 `reuse` 引用和 typed-router 的类型全改一遍。
+ * URL 里本来也没有 `index` 段 —— 名字跟着 URL 走。
+ */
+const INDEX_SEGMENT_REGEX = /(^|\/)index$/;
+
 export function generateRouteName(routePath: string): string {
-  if (routePath === '/' || routePath === '') {
-    return 'Index';
+  if (routePath === '/' || routePath === '' || routePath === 'index') {
+    return ROOT_ROUTE_NAME;
   }
 
-  const segments = routePath.replace(/^\//, '').replace(/\/$/, '').split('/');
+  const segments = routePath
+    .replace(/^\//, '')
+    .replace(/\/$/, '')
+    .replace(INDEX_SEGMENT_REGEX, '')
+    .split('/');
 
   const nameSegments: string[] = [];
 
@@ -50,7 +63,7 @@ export function generateRouteName(routePath: string): string {
   }
 
   const name = nameSegments.join('');
-  return name || 'Index';
+  return name || ROOT_ROUTE_NAME;
 }
 
 export function generateLayoutName(layoutPath: string): string {

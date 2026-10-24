@@ -54,7 +54,7 @@ afterEach(() => {
 describe('TS-20 · 入库生成物可复现性守卫', () => {
   it('file-mode 示例的 routes.ts / imports.ts 可被重新生成且逐字节一致', async () => {
     const scan = await scanProject({ cwd: FILE_MODE_EXAMPLE, srcDir: 'src' });
-    expect(scan.pages.map(p => p.name).sort()).toEqual(['About', 'Index', 'UsersId']);
+    expect(scan.pages.map(p => p.name).sort()).toEqual(['About', 'Root', 'UsersId']);
     expect(scan.layouts.map(l => l.name)).toEqual(['default']);
 
     tmpDir = mkdtempSync(join(tmpdir(), 'ubean-artifact-regen-'));
@@ -107,7 +107,7 @@ describe('TS-20 · typed-router.d.ts 契约', () => {
 
     // 形状契约：每个页面一条类型化条目（含动态参数的 ParamValue 收窄）
     expect(dts).toContain(`"About": RouteRecordInfo<"About", "/about", Record<never, never>, Record<never, never>>`);
-    expect(dts).toContain(`"Index": RouteRecordInfo<"Index", "/", Record<never, never>, Record<never, never>>`);
+    expect(dts).toContain(`"Root": RouteRecordInfo<"Root", "/", Record<never, never>, Record<never, never>>`);
     expect(dts).toContain(`"UsersId": RouteRecordInfo<"UsersId", "/users/:id", {`);
     expect(dts).toContain('id: ParamValue<true>');
     expect(dts).toContain('id: ParamValue<false>');

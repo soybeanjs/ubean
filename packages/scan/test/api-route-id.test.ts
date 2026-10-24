@@ -19,7 +19,8 @@ describe('generateApiRouteId()', () => {
   });
 
   it('根路径', () => {
-    expect(generateApiRouteId('GET', '/')).toBe('getIndex');
+    // 与页面路由同一个名字来源：根路由名是 `Root`（`index` 不再当名字段）。
+    expect(generateApiRouteId('GET', '/')).toBe('getRoot');
   });
 
   it('catch-all 路径', () => {

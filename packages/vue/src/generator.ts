@@ -293,7 +293,7 @@ ${items}
     const reuseKeyType = reusePages.length > 0 ? `'${reusePages.map(p => p.name).join("' | '")}'` : 'never';
     const routableNames = scan.pages.filter(p => !isNonRoutable(p)).map(p => p.name);
     const allKeyType = routableNames.length > 0 ? `'${routableNames.join("' | '")}'` : 'never';
-    // 内置全局路由（Root `Index` / 捕获路由 `NotFound`）由框架提供，不来自用户文件。
+    // 内置全局路由（Root `Root` / 捕获路由 `NotFound`）由框架提供，不来自用户文件。
     // 单列一个类型而不是从 `RouteKey` 里剔掉：`RouteKey` 会包含它们（它们是真实路由），
     // 而宿主想「只遍历自己的页面」时需要一个现成的差集。
     const builtinNames = scan.pages.filter(p => p.isBuiltin).map(p => p.name);

@@ -31,11 +31,11 @@ describe('sortPagesForRegistration', () => {
     // File-system order: [...slug].vue before index.vue ('[' < 'i')
     const pages: Page[] = [
       { route: '/**:slug', name: 'CatchAll' },
-      { route: '/', name: 'Index' },
-      { route: '/zh', name: 'ZhIndex' }
+      { route: '/', name: 'Root' },
+      { route: '/zh', name: 'ZhRoot' }
     ];
     const sorted = sortPagesForRegistration(pages);
-    expect(sorted.map(p => p.name)).toEqual(['Index', 'ZhIndex', 'CatchAll']);
+    expect(sorted.map(p => p.name)).toEqual(['Root', 'ZhRoot', 'CatchAll']);
   });
 
   it('preserves relative order of non-catch-all pages', () => {
@@ -81,21 +81,21 @@ describe('sortPagesForRegistration', () => {
   it('does not mutate the input array', () => {
     const pages: Page[] = [
       { route: '/**:slug', name: 'CatchAll' },
-      { route: '/', name: 'Index' }
+      { route: '/', name: 'Root' }
     ];
     sortPagesForRegistration(pages);
     // Input order preserved
-    expect(pages.map(p => p.name)).toEqual(['CatchAll', 'Index']);
+    expect(pages.map(p => p.name)).toEqual(['CatchAll', 'Root']);
   });
 
   it('ensures homepage "/" is registered before catch-all "*"', () => {
     // The exact scenario from apps/docs: [...slug].vue + index.vue
     const pages: Page[] = [
       { route: '/**:slug', name: 'SlugCatchAll' },
-      { route: '/', name: 'Index' }
+      { route: '/', name: 'Root' }
     ];
     const sorted = sortPagesForRegistration(pages);
-    // Index must come first so Hono matches '/' before '*'
+    // Root must come first so Hono matches '/' before '*'
     expect(sorted[0].route).toBe('/');
     expect(sorted[1].route).toBe('/**:slug');
   });
@@ -103,11 +103,11 @@ describe('sortPagesForRegistration', () => {
   it('sorts vue-router regex catch-alls (`:slug(.*)*`) after specific routes', () => {
     const pages: Page[] = [
       { route: '/blog/:slug(.*)*', name: 'BlogCatchAll' },
-      { route: '/', name: 'Index' },
+      { route: '/', name: 'Root' },
       { route: '/blog/latest', name: 'BlogLatest' }
     ];
     const sorted = sortPagesForRegistration(pages);
-    expect(sorted.map(p => p.name)).toEqual(['Index', 'BlogLatest', 'BlogCatchAll']);
+    expect(sorted.map(p => p.name)).toEqual(['Root', 'BlogLatest', 'BlogCatchAll']);
   });
 });
 

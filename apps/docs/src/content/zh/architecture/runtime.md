@@ -1,8 +1,8 @@
 ---
 title: Runtime
 description: ubean 运行时：defineApp、应用配置、开发服务器、预设与 CLI 命令体系。
-translatedFrom: 1492934eb839
-sections: ["a7dbe8df","e3b0c442","d80fee02","e8ecb75b","c06bd2aa","e9476b5e","84836587","1b0bc415","4c784f8f","7838b612","85929b83","86902525","8c26e7cd","651fa7f7","841b47df","73490ae9","253c09a8","f7184df7","babe75e1","b7f0e0c5","03654165","e6ab77fe","a7a049b5","63c4471a","195c7c3b","95dea120","ecf808be","6c5e49ac","03052a6f","18bd8fde","c6ee5474","2c1db8bf","cc2de56b","428a76d7","8aa70b39","a69eb07e","8e9b3eb8","e2720cd6","629cb0af","c80df236","a5b58348","4e3c0346","27fd6cbd","b5b31db9","57f86813","82e1dc14","cdd86f19","7cafb2b0","0591401f","72665bac","e94bbfc4","70123441","ca87b816","fb74d912","ab966604","105f2d32","f95e57d0","fcdf98dd","c4fc64d8","4f132b44","20a64dcf","060aa51b","800880e0","f122143f","01501917","8aef359d","04571071","1f0ba46b","541135cc","a5e19fd2","fa13eefa","985da994","0f55ff12","ee101a64","3760dc25","3949c66f","8d4418c6","c200fb33","10f0ff0d","9ad68b28","2dcfbf23","3d4899bc","46f034a8","f6d3d11c","51605e83","6f1378d6","c7818966","bb296a78","5d84f2d3","c61dc0f7","4db472e3","9c2ed404","f6416b2f","8b62375b","a39723e2","3887ebe4","cf6be2a9","e837e83f","64df3b5f","e86c7ce7","e9da32ad","362761ae","595f082c","f72d2382","73c9a15b","64d6e1a3","14d24260","fa92f992","913c29de","e7d5bc78","cab67f39","8ba184c0","146fea8e","5cc0ed4e","81eedc89","82bd5850","8d9a0af7","d9f08935","a9319456"]
+translatedFrom: 7f3c18f9f845
+sections: ["a7dbe8df","e3b0c442","d80fee02","e8ecb75b","c06bd2aa","e9476b5e","84836587","1b0bc415","4c784f8f","7838b612","85929b83","86902525","8c26e7cd","651fa7f7","841b47df","73490ae9","253c09a8","f7184df7","babe75e1","b7f0e0c5","03654165","e6ab77fe","a7a049b5","63c4471a","195c7c3b","95dea120","ecf808be","6c5e49ac","03052a6f","18bd8fde","c6ee5474","2c1db8bf","cc2de56b","428a76d7","8aa70b39","a69eb07e","8e9b3eb8","e2720cd6","629cb0af","c80df236","a5b58348","121da0da","27fd6cbd","b5b31db9","57f86813","82e1dc14","cdd86f19","7cafb2b0","0591401f","72665bac","e94bbfc4","70123441","ca87b816","fb74d912","ab966604","105f2d32","f95e57d0","fcdf98dd","c4fc64d8","4f132b44","20a64dcf","060aa51b","800880e0","f122143f","01501917","8aef359d","04571071","1f0ba46b","541135cc","a5e19fd2","fa13eefa","985da994","0f55ff12","ee101a64","3760dc25","3949c66f","8d4418c6","c200fb33","10f0ff0d","9ad68b28","2dcfbf23","3d4899bc","46f034a8","f6d3d11c","51605e83","6f1378d6","c7818966","bb296a78","5d84f2d3","c61dc0f7","4db472e3","9c2ed404","f6416b2f","8b62375b","a39723e2","3887ebe4","cf6be2a9","e837e83f","64df3b5f","e86c7ce7","e9da32ad","362761ae","595f082c","f72d2382","73c9a15b","64d6e1a3","14d24260","fa92f992","913c29de","e7d5bc78","cab67f39","8ba184c0","146fea8e","5cc0ed4e","81eedc89","82bd5850","8d9a0af7","d9f08935","a9319456"]
 ---
 
 # 运行时与开发体验 (defineApp)
@@ -1156,13 +1156,13 @@ ubean 在 `pages/` 根目录下自动检测内置路由,无需手动配置即可
 
 | 文件 | 角色 | 作用 |
 | --- | --- | --- |
-| `pages/index.vue` / `pages/root.vue` | Root 路由 | 名 `Index`、路径 `/`。是普通页,`definePage({ head, layout, cache, name })` 全部生效 |
+| `pages/index.vue` / `pages/root.vue` | Root 路由 | 名 `Root`、路径 `/`。是普通页,`definePage({ head, layout, cache, name })` 全部生效 |
 | `pages/404.vue`（或 `not-found.vue`） | 未找到页面 | 全局捕获路由 `/:pathMatch(.*)*`,名 `NotFound`;未匹配的浏览器导航渲染该组件,状态码跟 SSR 能力走 —— 服务端渲染了它返回 404,只发 CSR 外壳（`ssr: false` / `ssr.exclude` 命中 / 无 renderer）返回 200。API（`/api/*`）与内部（`/_*`）路径仍返回默认 JSON 404 |
 | `pages/loading.vue` | 加载占位 | `<Suspense>` fallback 组件,在 SPA 导航懒加载页面组件期间显示;`routable: false` |
 | `pages/error.vue` | 渲染错误兜底 | 错误边界(ErrorBoundary)组件,当页面组件渲染/异步解析/setup 抛出错误时显示,接收 `error` prop;路由切换时自动重置;`routable: false` |
 
 - 仅根目录文件被视为内置路由;`users/404.vue` 仍为常规路由 `/users/404`
-- `Index` / `NotFound` 是保留名:普通页 `definePage({ name: 'Index' \| 'NotFound' })` 会收到告警并置 `routable: false`（条目仍在 `pages` 里）
+- `Root` / `NotFound` 是保留名:普通页 `definePage({ name: 'Root' \| 'NotFound' })` 会收到告警并置 `routable: false`（条目仍在 `pages` 里）
 - 用户 `[...slug].vue` 与 `404.vue` 并存时前者优先 —— 内置捕获路由最后注册（vue-router 的 catch-all 按注册顺序匹配）
 - `loading.vue` 和 `error.vue` 仅在客户端生效(SSR 同步解析,无需 fallback;错误在 SSR 阶段由服务端错误处理器处理)
 - 两类组件页面均可通过 `defineApp({ loadingComponent / errorComponent })` 显式覆盖,优先级高于文件自动检测

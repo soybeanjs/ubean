@@ -583,7 +583,7 @@ const s = '括号)内部';
     expect(scan.pages.find(p => p.path === '/legacy')?.redirect).toBe('/about');
 
     const home = scan.pages.find(p => p.path === '/')!;
-    expect(home.name).toBe('Home'); // definePage name 覆盖文件派生 'Index'
+    expect(home.name).toBe('Home'); // definePage name 覆盖文件派生 'Root'
 
     const about = scan.pages.find(p => p.path === '/about')!;
     expect(about.name).toBe('About');

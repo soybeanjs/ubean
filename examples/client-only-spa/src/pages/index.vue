@@ -5,7 +5,7 @@ import { ref } from 'vue';
 import { definePage } from '@ubean/vue';
 import { Icon } from '@iconify/vue';
 
-// 文件即路由:pages/index.vue → '/',name 覆盖文件派生的 'Index' 为 'Home'
+// 文件即路由:pages/index.vue → '/',name 覆盖文件派生的 'Root' 为 'Home'
 definePage({ name: 'Home' });
 
 const mountedAt = ref(new Date().toLocaleTimeString());

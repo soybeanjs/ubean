@@ -9,12 +9,18 @@ import { describe, it, expect } from 'vitest';
 import { generateRouteName, generateLayoutName } from '../src/route-name';
 
 describe('generateRouteName()', () => {
-  it('根路径 / → Index', () => {
-    expect(generateRouteName('/')).toBe('Index');
+  it('根路径 / → Root', () => {
+    expect(generateRouteName('/')).toBe('Root');
   });
 
-  it('空字符串 → Index', () => {
-    expect(generateRouteName('')).toBe('Index');
+  it('空字符串 → Root', () => {
+    expect(generateRouteName('')).toBe('Root');
+  });
+
+  it('`index` 段折叠 —— 与目录形态同名的文件形态派生同一个名字', () => {
+    expect(generateRouteName('/a/index')).toBe('A');
+    expect(generateRouteName('/users/index')).toBe('Users');
+    expect(generateRouteName('/index')).toBe('Root');
   });
 
   it('静态路径 → PascalCase 拼接', () => {

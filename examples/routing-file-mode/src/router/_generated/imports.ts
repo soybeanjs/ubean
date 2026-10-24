@@ -10,7 +10,7 @@ export type LayoutKey = 'default';
  * The `views` map is keyed by this type — `views[RouteFileKey]` resolves
  * to the actual component loader.
  */
-export type RouteFileKey = 'About' | 'Index' | 'UsersId';
+export type RouteFileKey = 'About' | 'Root' | 'UsersId';
 
 /**
  * Route keys declared via `.reuse.ts` / `.reuse.js` metadata files.
@@ -22,14 +22,14 @@ export type RouteReuseKey = never;
  * All page route names. Union of {@link RouteFileKey} and {@link RouteReuseKey},
  * including framework built-in routes ({@link BuiltinRouteKey}).
  */
-export type RouteKey = 'About' | 'Index' | 'UsersId';
+export type RouteKey = 'About' | 'Root' | 'UsersId';
 
 /**
  * Framework built-in route names (Root `Index` / global catch-all `NotFound`).
  * Declared by `pages/index.vue` / `pages/404.vue` (and their alias forms) —
  * not by application pages. Filter these out when building menus from {@link RouteKey}.
  */
-export type BuiltinRouteKey = 'Index';
+export type BuiltinRouteKey = 'Root';
 
 export type Lazy<T> = () => Promise<T>;
 export type RawRouteComponent = import('vue').Component | Lazy<import('vue').Component>;
@@ -60,6 +60,6 @@ export const layouts: Record<LayoutKey, RawRouteComponent> = {
 
 export const views: Record<RouteFileKey, RawRouteComponent> = {
   About: () => import('@/pages/about.vue'),
-  Index: () => import('@/pages/index.vue'),
+  Root: () => import('@/pages/index.vue'),
   UsersId: () => import('@/pages/users/[id].vue')
 };

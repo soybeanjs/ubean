@@ -42,7 +42,7 @@ function page(route: string, name: string, extra: Partial<ScannedPageRoute> = {}
 /** `pages/404.vue` 的扫描结果：真实路由 + `isGlobalCatchAll` 标记。 */
 const NOT_FOUND = page('/:pathMatch(.*)*', 'NotFound', { isBuiltin: true, isGlobalCatchAll: true });
 
-const PAGES = [page('/', 'Index'), page('/about', 'About'), NOT_FOUND];
+const PAGES = [page('/', 'Root'), page('/about', 'About'), NOT_FOUND];
 
 const send = (app: UbeanApp, path: string): Promise<Response> =>
   app.hono.fetch(new Request(ORIGIN + path, { headers: { accept: 'text/html' } }));

@@ -79,11 +79,11 @@ describe('scanPages — 内置全局路由', () => {
     expect(result.pages.filter(p => p.name === 'NotFound')).toHaveLength(1);
   });
 
-  it('pages/index.vue → Root 内置路由（名字 Index，路径 /）', async () => {
+  it('pages/index.vue → Root 内置路由（名字 Root，路径 /）', async () => {
     writeFile('index.vue', '<template>Home</template>');
     const result = await scan();
     const page = result.pages.find(p => p.route === '/');
-    expect(page?.name).toBe('Index');
+    expect(page?.name).toBe('Root');
     expect(page?.isBuiltin).toBe(true);
     expect(page?.isGlobalCatchAll).toBeUndefined();
     expect(page?.routable).toBe(true);
@@ -92,13 +92,13 @@ describe('scanPages — 内置全局路由', () => {
   it('pages/root.vue 与 pages/root/index.vue 也是 Root 的声明形态', async () => {
     writeFile('root.vue', '<template>Home</template>');
     const a = await scan();
-    expect(a.pages.find(p => p.route === '/')?.name).toBe('Index');
+    expect(a.pages.find(p => p.route === '/')?.name).toBe('Root');
     expect(a.pages.find(p => p.route === '/')?.isBuiltin).toBe(true);
 
     rmSync(join(pagesDir, 'root.vue'));
     writeFile('root/index.vue', '<template>Home</template>');
     const b = await scan();
-    expect(b.pages.find(p => p.route === '/')?.name).toBe('Index');
+    expect(b.pages.find(p => p.route === '/')?.name).toBe('Root');
   });
 
   it('显式 definePage({ name: "NotFound" }) 撞保留名 → 警告并跳过注册', async () => {

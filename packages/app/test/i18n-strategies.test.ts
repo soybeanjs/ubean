@@ -53,7 +53,7 @@ interface Probe {
 async function probe(strategy: Strategy, path: string, headers: Record<string, string> = {}): Promise<Probe> {
   const app = new UbeanApp({
     i18nConfig: { defaultLocale: 'en', locales: ['en', 'zh'], strategy },
-    pages: [makePage('/', 'Index'), makePage('/about', 'About')],
+    pages: [makePage('/', 'Root'), makePage('/about', 'About')],
     pageLoaders: {
       'Index.vue': async () => ({ loader: async () => ({ page: 'index' }) }),
       'About.vue': async () => ({ loader: async () => ({ page: 'about' }) })
@@ -83,7 +83,7 @@ async function probe(strategy: Strategy, path: string, headers: Record<string, s
 async function registeredPagePaths(strategy: Strategy): Promise<string[]> {
   const app = new UbeanApp({
     i18nConfig: { defaultLocale: 'en', locales: ['en', 'zh'], strategy },
-    pages: [makePage('/', 'Index'), makePage('/about', 'About')],
+    pages: [makePage('/', 'Root'), makePage('/about', 'About')],
     pageRenderer: { render: async () => SSR_MARKER }
   });
   await app.init();

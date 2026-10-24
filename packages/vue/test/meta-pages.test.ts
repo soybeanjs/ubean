@@ -59,8 +59,8 @@ describe('scanPages — .meta.ts 元数据页', () => {
 
     expect(entry).toBeDefined();
     expect(entry?.relativePath).toBe('plugin/index.meta.ts');
-    // 名称派生与普通 `users/index.vue` → `UsersIndex` 一致（index 不作为特殊段）。
-    expect(entry?.name).toBe('PluginIndex');
+    // 名称与路径一致：`index` 段折叠，`plugin/index.*` 与 `plugin.*` 都叫 `Plugin`。
+    expect(entry?.name).toBe('Plugin');
     expect(entry?.route).toBe('/plugin');
     // 文件名即语义：`.meta.*` 省略 `routable` 时被归一化为 false。
     expect(entry?.routable).toBe(false);
@@ -130,7 +130,7 @@ describe('scanPages — .meta.ts 元数据页', () => {
     const alias = result.pages.find(p => p.pageKind === 'reuse');
     expect(alias).toBeDefined();
     // reuse 仍被解析（cache 继承找不到 target 就不继承），但不会指向元数据页
-    expect(result.pages.find(p => p.name === 'DirIndex')?.pageKind).toBe('meta');
+    expect(result.pages.find(p => p.name === 'Dir')?.pageKind).toBe('meta');
   });
 });
 

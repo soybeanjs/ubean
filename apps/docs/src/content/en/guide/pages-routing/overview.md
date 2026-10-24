@@ -101,12 +101,12 @@ ubean auto-detects built-in routes at the **root** of `src/pages/`. They **enter
 
 | File | Role | Effect |
 | --- | --- | --- |
-| `pages/index.vue` / `pages/root.vue` | Root route | Named `Index`, path `/`. A normal page otherwise — `definePage({ head, layout, cache, name })` all apply. |
+| `pages/index.vue` / `pages/root.vue` | Root route | Named `Root`, path `/`. A normal page otherwise — `definePage({ head, layout, cache, name })` all apply. |
 | `pages/404.vue` (or `not-found.vue`) | Not Found page | Global catch-all `/:pathMatch(.*)*` named `NotFound`. Unmatched browser navigation renders this component, and the status code **follows SSR capability**: an SSR page returns HTTP 404; a CSR shell (explicit `ssr: false`, an `ssr.exclude` match, or no renderer) returns HTTP 200 — the client route table is a build-time artifact, so the server cannot know which routes it holds (same reasoning as Nuxt's `200.html` for `ssr: false`). API (`/api/*`) and internal (`/_*`) paths still get the default JSON 404. |
 | `pages/loading.vue` (or `.ts` / `.md`) | Loading indicator | Used as the `<Suspense>` fallback component, shown while a lazy-loaded page component is being resolved during SPA navigation. SSR skips this (server resolves async synchronously). `routable: false`. |
 | `pages/error.vue` (or `.ts` / `.md`) | Error boundary | Used as the `ErrorBoundary` component (Vue `errorCaptured`). Renders when a page's render / setup / async resolution throws. Receives an `error` prop. Auto-resets on route change. Client-only. `routable: false`. |
 
-Only root-level files qualify. A nested file like `pages/users/404.vue` remains a regular route at `/users/404`. `Index` / `NotFound` are reserved names: a normal page colliding via `definePage({ name })` gets a warning and `routable: false`. When a user `[...slug].vue` exists alongside `404.vue`, the user catch-all wins (the built-in one registers last).
+Only root-level files qualify. A nested file like `pages/users/404.vue` remains a regular route at `/users/404`. `Root` / `NotFound` are reserved names: a normal page colliding via `definePage({ name })` gets a warning and `routable: false`. When a user `[...slug].vue` exists alongside `404.vue`, the user catch-all wins (the built-in one registers last).
 
 #### Application Root Component (`src/app.vue` / `src/App.vue`)
 
@@ -265,7 +265,7 @@ Layout file extensions follow `pages.extensions` (default `vue` / `tsx` / `jsx`)
 
 #### One declaration per path
 
-`a.vue` and `a/index.vue` are two spellings of the *same* page, not two pages. Two pages with the same path emit duplicate component declarations in the route table, so the scanner keeps the first in file-name order, warns, and skips the rest:
+`a.vue` and `a/index.vue` are two spellings of the **same** page: both resolve to `/a` and to route name `A` (the `index` segment takes part in neither). Two pages with the same path emit duplicate component declarations in the route table, so the scanner keeps the first in file-name order, warns, and skips the rest:
 
 - `pages/a.vue` + `pages/a/index.vue` → only `a.vue` is written to `/a`
 - `pages/a.vue` + `pages/a.tsx` → same, only one survives

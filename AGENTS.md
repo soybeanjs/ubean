@@ -135,13 +135,13 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **reuse 路由**：`xxx.reuse.ts` / `xxx.reuse.vue`；未显式声明 `cache` 时自动继承 target 的 `cache` 值，可显式 `cache: false` 关闭
 - **动态路由**：`[id].vue` → `/user/:id`
 - **动态路由 matchers（Task 7, P1）**：`[id=matcherName].vue` 语法，使用名为 `matcherName` 的 matcher 校验参数；matcher 通过 `defineMatcher(name, fn)` 注册到进程单例，返回 falsy 视为不匹配（路由跳过，走下一候选或 404）。支持 `[id=numeric].vue`（页面）、`[...slug=any].vue`（catch-all）、`[[page=numeric]].vue`（optional）、`[id=numeric].get.ts`（API 路由）。服务端由 Hono 中间件校验（matcher 拒绝返回 404）；客户端需在 `defineApp({ router: { setup } })` 中调用 `router.beforeEach(createMatcherGuard())` 启用校验（纯 SSR 应用可省略）
-- **内置路由**（`src/pages/` 根目录下自动检测，进 `pages` 数组并带 `isBuiltin` 标记；路由名 `Index` / `NotFound` 是框架保留名）：
-  - `index.vue` / `root.vue` / `root/index.vue`（或 `.tsx` / `.md`）→ Root 路由，名 `Index`、路径 `/`。**是普通页**（`definePage({ head, layout, cache, name })` 全部生效），只是路径被归一到 `/`
+- **内置路由**（`src/pages/` 根目录下自动检测，进 `pages` 数组并带 `isBuiltin` 标记；路由名 `Root` / `NotFound` 是框架保留名）：
+  - `index.vue` / `root.vue` / `root/index.vue`（或 `.tsx` / `.md`）→ Root 路由，名 `Root`、路径 `/`。**是普通页**（`definePage({ head, layout, cache, name })` 全部生效），只是路径被归一到 `/`
   - `404.vue` / `not-found.vue`（或各自的 `index.*` 目录形态）→ 全局捕获路由，名 `NotFound`、路径 `/:pathMatch(.*)*`；未匹配的浏览器导航渲染该组件，状态码**跟 SSR 能力走**：服务端渲染了它（SSR 页）返回 404，只发 CSR 外壳（显式 `ssr: false` / `ssr.exclude` 命中 / 无 renderer）返回 200 —— 客户端路由表是构建期产物，服务端不可能知道它有哪些路由（对齐 Nuxt `ssr: false` 的 `200.html`）；API/`_` 前缀路径仍走默认 JSON 404。与用户 `[...slug].vue` 并存时后者优先（捕获页排最后注册）
   - `loading.vue`（或 `.ts`/`.md`）→ `<Suspense>` fallback 组件，在 SPA 导航懒加载页面组件期间显示；仅客户端生效（SSR 同步解析无需 loading）；`routable: false`
   - `error.vue`（或 `.ts`/`.md`）→ 错误边界（ErrorBoundary）组件，当页面组件渲染/异步解析/setup 抛出错误时显示，接收 `error` prop；路由切换时自动重置；仅客户端生效；`routable: false`
   - 仅根目录文件被视为内置路由；`users/404.vue` 仍为常规路由 `/users/404`
-  - 普通页若 `definePage({ name: 'Index' | 'NotFound' })` 撞保留名 → 告警并 `routable: false`（条目仍在 `pages` 里供菜单消费）
+  - 普通页若 `definePage({ name: 'Root' | 'NotFound' })` 撞保留名 → 告警并 `routable: false`（条目仍在 `pages` 里供菜单消费）
   - `BuiltinRouteKey` 类型从 `imports.ts` / `typed-router.d.ts` 导出，宿主生成菜单时按 `isBuiltin` 过滤
 - **应用根组件**（`src/app.vue`（小写，优先）/ `src/App.vue`（大写回退）自动检测，不作为常规路由注册）：应用级包装组件，包裹布局链 + 页面（经默认 slot 注入，组件内 `<slot />` 声明位置）。优先级：`defineApp({ appRoot })` > `src/app.vue` > `src/App.vue`。对应经典 Vue 入口组件 / Nuxt `app.vue` 定位；详见第 4 节 `appRoot` 说明
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序。开发态加载后启动 `startCronScheduler`；生产 eager glob 打进 server-entry。Node/bun/deno 启动进程内调度器；serverless/edge **不**装（用平台 cron）。

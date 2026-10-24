@@ -40,7 +40,7 @@ const PATHS = { 'zh-CN': 'zh', 'pt-BR': 'pt' };
 async function createApp(strategy: Strategy): Promise<UbeanApp> {
   const app = new UbeanApp({
     i18nConfig: { defaultLocale: 'en', locales: LOCALES, paths: PATHS, strategy },
-    pages: [makePage('/', 'Index'), makePage('/about', 'About')],
+    pages: [makePage('/', 'Root'), makePage('/about', 'About')],
     pageRenderer: { render: async () => SSR_MARKER }
   });
   await app.init();

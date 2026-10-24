@@ -16,8 +16,13 @@
  * `@ubean/routes` 的服务端运行时图都能安全引用它。
  */
 
-/** Root 路由的固定名（`/`）。 */
-export const ROOT_ROUTE_NAME = 'Index';
+/**
+ * Root 路由的固定名（`/`）。
+ *
+ * 叫 `Root` 而不是 `Index`：`index` 只是文件形态，URL 里没有这个段，而三种声明形态
+ * 之一的 `root.vue` / `root/index.vue` 本来就叫 root。
+ */
+export const ROOT_ROUTE_NAME = 'Root';
 
 /** 全局捕获路由的固定名（`/:pathMatch(.*)*`）。 */
 export const NOT_FOUND_ROUTE_NAME = 'NotFound';

@@ -12,7 +12,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, it, expect, vi, type MockInstance } from 'vitest';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
+import type { MockInstance } from 'vitest';
 import { clearScanWarnings, scanPages } from '../src/scan-pages';
 import { generatePagesModuleSource } from '../src/virtual-pages';
 import type { ScanPagesResult } from '../src/types';

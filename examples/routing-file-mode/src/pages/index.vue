@@ -1,4 +1,8 @@
 <script setup lang="ts">
+definePage({
+  redirect: '/about'
+});
+
 useHead({
   title: 'routing-file-mode - 首页'
 });

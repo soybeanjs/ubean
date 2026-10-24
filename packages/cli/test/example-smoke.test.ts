@@ -246,8 +246,9 @@ describe('示例冒烟：routing-file-mode（路由数据以实体文件生成�
 
     const home = await get(running!, '/');
     expect(home.status).toBe(200);
-    expect(home.body).toContain('class="home"');
-    expect(home.body).toContain('routing-file-mode - 首页');
+    // `index.vue` 声明了 `definePage({ redirect: '/about' })`，`/` 直接落到关于页
+    expect(home.body).toContain('class="about"');
+    expect(home.body).toContain('关于 - routing-file-mode');
 
     const about = await get(running!, '/about');
     expect(about.status).toBe(200);

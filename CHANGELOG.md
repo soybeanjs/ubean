@@ -1,5 +1,19 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.8...main) (2026-10-26) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **vue**: limit layout scanning to two levels &nbsp;-&nbsp; by @soybeanjs [<samp>(7f5a8)</samp>](https://github.com/soybeanjs/ubean/commit/7f5a844d)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **pages-routing**: document two-level layout scanning &nbsp;-&nbsp; by @soybeanjs [<samp>(31290)</samp>](https://github.com/soybeanjs/ubean/commit/31290f3c)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.7...main) (2026-10-25) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚨 Breaking Changes

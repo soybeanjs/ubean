@@ -126,7 +126,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **API 路由**：`src/routes/` 目录，void 风格命名导出（`export const GET/POST/PUT/PATCH/DELETE/OPTIONS/HEAD`），单个文件可导出多个方法，**不使用** `.get.ts`/`.post.ts` 后缀
 - 所有 API 路由必须用 `defineHandler` 包装
 - **页面路由**：`src/pages/` 目录，`.vue` / `.md` 文件
-- **layouts**：`src/layouts/`（`xx.vue` 或 `xx/index.vue`）
+- **layouts**：`src/layouts/`，**只扫两层**：`xx.vue` / `xx.tsx` / `xx.jsx`，或 `xx/index.{vue,tsx,jsx}`；`_` 前缀与更深层目录不收
 - **middleware**：`src/middleware/`，`global`/`global.*` → `/*`，其他按目录前缀挂载
 - **路由组**：`(group-name)/` 不贡献 URL 段
 - **注册顺序**：字面量路径先于 `:param` 注册（Hono 默认路由在静态/动态兄弟并存时回退到 first-match-wins 的 `TrieRouter`），故 `/api/user/list` 不会被 `/api/user/:id` 截获，catch-all 排最后。`(r)/` 路由组只是可读性选择，不再是正确性前提；契约入口 `sortApiRoutesForRegistration` / `apiPathSpecificity`

@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: 52fa18f829a3
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","b535ee0d","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","00b8735e","025c2ab3","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: 05e71de32fdb
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","b535ee0d","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","ba7c7b47","025c2ab3","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -246,7 +246,9 @@ definePage({
 </script>
 ```
 
-后台布局请创建 `src/layouts/admin.vue`（或 `src/layouts/admin/index.vue`）。布局支持嵌套链（例如 `admin/dashboard` → `admin` → `default`）。
+后台布局请创建 `src/layouts/admin.vue`（或 `src/layouts/admin/index.vue`）。布局支持嵌套链，例如 `layout: ['default', 'admin', 'dashboard']`（外 → 内）。
+
+布局**只扫两层**：`src/layouts/xx.{vue,tsx,jsx}` 与 `src/layouts/xx/index.{vue,tsx,jsx}`，布局名就是 `xx`。更深层目录（`layouts/admin/dashboard.vue`）和目录下的非 `index` 文件（`layouts/components/foo.vue`）都不参与扫描 —— 布局名是 `definePage({ layout })` 引用的标识符，目录层级不表达包裹关系（包裹靠数组链）。`_` 开头的文件与目录同样跳过。
 
 布局文件后缀跟随 `pages.extensions`（默认 `vue` / `tsx` / `jsx`）。默认布局的两种等价写法是 `src/layouts/default.vue` 与 `src/layouts/default/index.vue`。
 

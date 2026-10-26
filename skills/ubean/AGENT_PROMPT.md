@@ -37,7 +37,7 @@ ubean is a full-stack Vue meta-framework built on Vite, Hono and Vue. The public
 4. **Routing**
    - API routes: `routes/**` with void-style named exports (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`OPTIONS`/`HEAD`) in a single file
    - Page routes: `pages/**/*.vue` (+ `.reuse.ts`, `.md`)
-   - Layouts: `layouts/` (`xx.vue` or `xx/index.vue`), nested layout chain
+   - Layouts: `layouts/` — **two levels only** (`xx.vue` or `xx/index.vue`; `_`-prefixed and deeper paths are not scanned), nested layout chain
    - Route groups: `(group)/` directories don't contribute URL segments
    - `definePage` compile-time macro for meta/layout/name/path override
    - Middleware: `middleware/` with numeric prefix ordering; `global`/`global.*` → `/*`, others by directory prefix

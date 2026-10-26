@@ -259,7 +259,9 @@ definePage({
 </script>
 ```
 
-Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin layout. Layouts support nested chains (e.g. `admin/dashboard` → `admin` → `default`).
+Create `src/layouts/admin.vue` (or `src/layouts/admin/index.vue`) for the admin layout. Layouts support nested chains, e.g. `layout: ['default', 'admin', 'dashboard']` (outer → inner).
+
+Layouts are scanned **two levels deep only**: `src/layouts/xx.{vue,tsx,jsx}` and `src/layouts/xx/index.{vue,tsx,jsx}`, with layout name `xx`. Deeper directories (`layouts/admin/dashboard.vue`) and non-`index` files inside a directory (`layouts/components/foo.vue`) are not scanned — a layout name is an identifier referenced by `definePage({ layout })`, and directory nesting does not express wrapping (the array chain does). Files and directories starting with `_` are skipped as well.
 
 Layout file extensions follow `pages.extensions` (default `vue` / `tsx` / `jsx`). The two equivalent forms of the default layout are `src/layouts/default.vue` and `src/layouts/default/index.vue`.
 

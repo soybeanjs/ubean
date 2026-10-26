@@ -464,7 +464,7 @@ Use these keys in `dependsOn` for built-in modules:
 
 - API routes: `routes/**` with void-style named exports (`GET`/`POST`/`PUT`/`PATCH`/`DELETE`/`OPTIONS`/`HEAD`)
 - Page routes: `pages/**/*.vue` (+ `.reuse.ts`, `.md`)
-- Layouts: `layouts/` (`xx.vue` or `xx/index.vue`), supports nested layout chain (`layout: ['default', 'admin']` = outer → inner)
+- Layouts: `layouts/` — **two levels only**: `xx.vue` / `xx.tsx` / `xx.jsx`, or `xx/index.{vue,tsx,jsx}`; `_`-prefixed and deeper paths are not scanned. Supports nested layout chain (`layout: ['default', 'admin']` = outer → inner)
 - Route groups: `(group)/` directories don't contribute URL segments
 - Registration order: literal API paths are registered before `:param` ones (Hono's default router falls back to the first-match-wins `TrieRouter` whenever a literal and a `:param` sibling coexist), so `/api/user/list` never lands on `/api/user/:id`. A `(r)/` route group is therefore a readability choice, not a correctness requirement
 - `definePage` compile-time macro for meta/layout/name/path override

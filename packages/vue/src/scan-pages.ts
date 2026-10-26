@@ -191,7 +191,12 @@ const DEFAULT_IGNORE = ['**/*.test.*', '**/*.spec.*', '**/*.d.ts'];
  * 匹配不到任何文件(实测),`pages.extensions: ['vue']` 会因此扫出空站点。
  */
 function extGlob(exts: string[]): string {
-  return exts.length === 1 ? `**/*.${exts[0]}` : `**/*.{${exts.join(',')}}`;
+  return `**/*.${braceExts(exts)}`;
+}
+
+/** 扩展名列表 → glob 花括号段。单扩展名**不能**用 brace(实测 tinyglobby 匹配不到)。 */
+function braceExts(exts: string[]): string {
+  return exts.length === 1 ? exts[0] : `{${exts.join(',')}}`;
 }
 
 /** 解析 markdown 配置 → 参与扫描的 markdown 扩展名列表(空 = 关闭)。 */
@@ -226,7 +231,12 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
   const pagesPattern = [extGlob(extensions), '**/*.reuse.{ts,js}', '**/*.meta.{ts,js}'];
   // 布局扩展名与页面完全同源(`pages.extensions`)。用 `baseExts` 而非 `extensions`:
   // markdown 后缀只属于页面,布局不是 markdown。
-  const layoutsPattern = extGlob(baseExts);
+  //
+  // 布局**只扫两层**:`layouts/xx.*` 与 `layouts/xx/index.*`。布局名是 `definePage({ layout })`
+  // 引用的标识符,目录层级不表达包裹关系(包裹靠 `layout: ['a','b']` 数组链,见 ADR-0015),
+  // 递归扫描只会让 `layouts/admin/dashboard.vue` 静默产出无人引用的名字,
+  // 并把 `layouts/components/foo.vue` 这类共享子组件误收成布局。
+  const layoutsPattern = [`*.${braceExts(baseExts)}`, `*/index.${braceExts(baseExts)}`];
 
   const pages: ScannedPage[] = [];
   const layouts: ScannedLayout[] = [];
@@ -506,7 +516,8 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
       const relativePath = toPosixPath(relative(dir, fullPath));
       const base = basename(relativePath, extname(relativePath));
       const dirPart = dirname(relativePath) === '.' ? '' : dirname(relativePath);
-      const layoutBase = base === 'index' ? dirPart : dirPart ? `${dirPart}/${base}` : base;
+      // 两层扫描下 `dirPart` 只可能是 `''` 或单段目录名(`xx/index.*`)。
+      const layoutBase = base === 'index' ? dirPart : base;
       // 根 `index.*` 是默认布局;`default.*` 与 `default/index.*` 同为默认布局的
       // 文件/目录两种形态 —— 只认文件名形态时,`default/index.vue` 单独存在会让
       // `layouts.find(l => l.isDefault)` 落空,默认布局静默失效(文档已承诺该形态)。

@@ -34,6 +34,7 @@ export function pageGlobExtensions(extensions: string[] | undefined, markdownExt
  *
  * 必须与扫描器的 `layoutsPattern`（`@ubean/vue` 的 `scan-pages.ts`）同源，否则会出现
  * 「扫描到但 `import.meta.glob` 加载不到」（或反向）—— 与 `pageGlobExtensions` 同一个陷阱。
+ * 层数也要同源（**两层**：`xx.*` 与 `xx/index.*`），见 `layoutGlobPattern`。
  *
  * 与页面的差异：不含 markdown 后缀（布局不是 markdown 页面），也不含元数据页的 `js`。
  * `@ubean/vue` 不能依赖 `@ubean/config`（依赖白名单只有 vue + vue-router），
@@ -42,6 +43,18 @@ export function pageGlobExtensions(extensions: string[] | undefined, markdownExt
 export function layoutGlobExtensions(extensions: string[] | undefined): string {
   const base = extensions && extensions.length > 0 ? extensions : ['vue', 'tsx', 'jsx'];
   return [...new Set(base)].join(',');
+}
+
+/**
+ * 布局 glob 模式（任意 `src` 前缀）——`import.meta.glob` 的完整参数。
+ *
+ * 与 `@ubean/vue` 扫描器同源：**只两层**（`layouts/xx.*` 与 `layouts/xx/index.*`）。
+ * 递归 glob 会把 `layouts/admin/dashboard.vue` 这类产物打进 `layoutLoaders`，
+ * 而扫描器已不再为它们注册名字 —— 白带 chunk。
+ */
+export function layoutGlobPattern(prefix: string, extensions: string[] | undefined): string[] {
+  const exts = globExtSegment(layoutGlobExtensions(extensions));
+  return [`${prefix}/layouts/*.${exts}`, `${prefix}/layouts/*/index.${exts}`];
 }
 
 /**

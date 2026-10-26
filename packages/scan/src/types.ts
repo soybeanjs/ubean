@@ -179,6 +179,7 @@ export const GLOB_SCAN_PATTERN = '**/*.{js,mjs,cjs,ts,mts,cts,tsx,jsx}';
 export const GLOB_VUE_PATTERN = '**/*.{vue,ts,md,mdx}';
 /**
  * 布局扫描的**默认**匹配集合。实际集合由 `pages.extensions` 派生(不含 markdown 后缀),
+ * 且**只扫两层**(`layouts/xx.*` 与 `layouts/xx/index.*`)——
  * 见 `@ubean/vue` 的 `scan-pages.ts` 与 `@ubean/build` 的 `layoutGlobExtensions()`。
  */
 export const GLOB_LAYOUT_PATTERN = '**/*.{vue,tsx,jsx}';

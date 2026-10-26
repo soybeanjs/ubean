@@ -92,11 +92,37 @@ describe('scanPages — 布局命名约定', () => {
     expect(result.layouts.find(l => l.isDefault)?.relativePath).toBe('default.vue');
   });
 
-  it('嵌套目录 `admin/dashboard.vue` → name `admin/dashboard`', async () => {
+  it('两层以外的文件不收：`admin/dashboard.vue`（深度 2，非 index）', async () => {
     writeLayout('admin/dashboard.vue');
     const result = await scan();
 
-    expect(byName(result, 'admin/dashboard')).toBeDefined();
+    expect(byName(result, 'admin/dashboard')).toBeUndefined();
+    expect(result.layouts).toHaveLength(0);
+  });
+
+  it('`admin/index.vue` 与 `admin.vue` 是同一个名字（两种写法）', async () => {
+    writeLayout('admin/index.vue');
+    const result = await scan();
+
+    expect(byName(result, 'admin')).toMatchObject({ name: 'admin', relativePath: 'admin/index.vue' });
+  });
+
+  it('`layouts/components/foo.vue` 不是布局（非 index）', async () => {
+    writeLayout('components/foo.vue');
+    writeLayout('default.vue');
+    const result = await scan();
+
+    expect(result.layouts.map(l => l.name)).toEqual(['default']);
+  });
+
+  it('`_` 前缀的文件与目录都不收', async () => {
+    writeLayout('_hidden.vue');
+    writeLayout('_partials/nav.vue');
+    writeLayout('_partials/index.vue');
+    writeLayout('default.vue');
+    const result = await scan();
+
+    expect(result.layouts.map(l => l.name)).toEqual(['default']);
   });
 });
 
@@ -177,12 +203,12 @@ describe('scanPages — 布局同名冲突', () => {
     expect(warnSpy.mock.calls.flat().join('\n')).toContain('同名布局');
   });
 
-  it('名字不同的近邻不算冲突（`a/b.vue` → `a/b`，`b.vue` → `b`）', async () => {
-    writeLayout('a/b.vue');
+  it('名字不同的近邻不算冲突（`a/index.vue` → `a`，`b.vue` → `b`）', async () => {
+    writeLayout('a/index.vue');
     writeLayout('b.vue');
     const result = await scan();
 
-    expect(result.layouts.map(l => l.name)).toEqual(['a/b', 'b']);
+    expect(result.layouts.map(l => l.name)).toEqual(['a', 'b']);
     expect(warnSpy.mock.calls.flat().join('\n')).not.toContain('同名布局');
   });
 });

@@ -30,12 +30,12 @@
     "@ubean/i18n": "workspace:*",
     "@ubean/shared": "workspace:*",
     "@ubean/vue": "workspace:*",
-    "hono": "4.13.13",
+    "hono": "4.13.14",
     "hono-openapi": "^1.5.0",
     "rou3": "^1.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@ubean/pages": "workspace:*",
     "@ubean/scan": "workspace:*",
     "typescript": "catalog:",

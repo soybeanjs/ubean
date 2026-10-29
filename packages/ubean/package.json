@@ -71,11 +71,11 @@
     "@ubean/seo": "workspace:*",
     "@ubean/server": "workspace:*",
     "@ubean/shared": "workspace:*",
-    "hono": "4.13.13",
+    "hono": "4.13.14",
     "hono-openapi": "^1.5.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",

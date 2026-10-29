@@ -11,7 +11,7 @@ catalog:
   typescript: npm:typescript-native-bridge@latest
   vue-i18n: 11.4.16
   '@intlify/core': 11.4.16
-  '@intlify/unplugin-vue-i18n': 11.2.7
+  '@intlify/unplugin-vue-i18n': 11.2.8
 overrides:
   vite: 'catalog:'
   typescript: 'catalog:'

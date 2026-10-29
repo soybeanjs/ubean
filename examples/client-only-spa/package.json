@@ -17,7 +17,7 @@
     "vue-router": "^5.4.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "@ubean/markdown": "workspace:*",
     "@unhead/vue": "^3.4.3",
     "@vitejs/plugin-vue": "^6.0.10",

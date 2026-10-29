@@ -35,12 +35,12 @@
   },
   "dependencies": {
     "@ubean/shared": "workspace:*",
-    "better-auth": "^1.7.12",
+    "better-auth": "^1.7.14",
     "defu": "6.1.7"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
-    "hono": "4.13.13",
+    "@types/node": "^26.6.6",
+    "hono": "4.13.14",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",

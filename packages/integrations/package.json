@@ -47,6 +47,7 @@
   },
   "dependencies": {
     "@ubean/build": "workspace:*",
+    "@ubean/shared": "workspace:*",
     "defu": "6.1.7",
     "ohash": "^2.0.12",
     "vite-plugin-electron": "^1.1.2",

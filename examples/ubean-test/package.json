@@ -26,7 +26,7 @@
     "pinia": "^4.1.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "typescript": "catalog:",
     "vitest": "5.0.5",
     "vue-tsc": "^3.3.13"

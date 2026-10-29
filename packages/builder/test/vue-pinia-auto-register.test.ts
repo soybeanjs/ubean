@@ -61,7 +61,9 @@ describe('createVueAppEntryVirtualModule — pinia auto-registration', () => {
     // The guard must be appended to the merged config, not to base.plugins —
     // otherwise it would run before a user's own createPinia() and install a
     // second instance.
-    expect(code).toMatch(/function _withPinia\(config\) \{[\s\S]*config\.plugins = \[\.\.\.\(config\.plugins \|\| \[\]\)/);
+    expect(code).toMatch(
+      /function _withPinia\(config\) \{[\s\S]*config\.plugins = \[\.\.\.\(config\.plugins \|\| \[\]\)/
+    );
     // Entries are `{ plugin }` wrappers — applyAppConfig destructures `{ plugin, mode }`.
     expect(code).toContain('{ plugin: { install(app) {');
     expect(code).toContain('return _withPinia(merged);');

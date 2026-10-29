@@ -1,3 +1,5 @@
+import { ref, markRaw, onMounted, onUnmounted, getCurrentInstance } from 'vue';
+import type { Ref } from 'vue';
 /**
  * P9-22: Third-party script optimization (Partytown integration).
  *
@@ -25,8 +27,7 @@
  * });
  * ```
  */
-import { ref, markRaw, onMounted, onUnmounted, getCurrentInstance } from 'vue';
-import type { Ref } from 'vue';
+import { isClient } from '@ubean/shared';
 
 // --- Partytown config ---
 
@@ -294,7 +295,7 @@ export function useScript(src: string, options: UseScriptOptions = {}): UseScrip
   }
 
   // Auto-load based on trigger
-  if (typeof window !== 'undefined') {
+  if (isClient()) {
     if (trigger === 'load') {
       // Load immediately on mount
       if (getCurrentInstance()) {

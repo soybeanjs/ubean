@@ -1,3 +1,4 @@
+import { isServer } from '@ubean/shared';
 import { safeJsonStringify } from './protocol';
 
 export type DataKey = string | symbol;
@@ -264,7 +265,7 @@ export interface DataResult<T> {
  * 与 `defer.ts` 保持一致的环境检测方式。
  */
 function isSSR(): boolean {
-  return typeof window === 'undefined';
+  return isServer();
 }
 
 /**

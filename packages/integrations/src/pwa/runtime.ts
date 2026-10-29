@@ -1,4 +1,5 @@
 import { ref, onMounted, computed } from 'vue';
+import { isServer } from '@ubean/shared';
 import type { UsePwaOptions, PwaState } from './types';
 
 let swRegistration: ServiceWorkerRegistration | null = null;
@@ -80,7 +81,7 @@ export function usePwa(options: UsePwaOptions & { swUrl?: string } = {}) {
   }));
 
   async function doRegister() {
-    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    if (isServer() || !('serviceWorker' in navigator)) return;
 
     try {
       const reg = await registerSWFn(swUrl, {

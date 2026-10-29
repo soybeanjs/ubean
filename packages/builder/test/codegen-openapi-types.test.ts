@@ -63,7 +63,11 @@ describe('generateOpenApiTypes — 原子写', () => {
     const paths = Object.fromEntries(
       Array.from({ length: 3000 }, (_, i) => [
         `/api/items/${i}`,
-        { get: { responses: { 200: { description: 'ok', content: { 'application/json': { schema: { type: 'object' } } } } } } }
+        {
+          get: {
+            responses: { 200: { description: 'ok', content: { 'application/json': { schema: { type: 'object' } } } } }
+          }
+        }
       ])
     );
     const schema = { openapi: '3.0.0', info: { title: 'Test', version: '1.0.0' }, paths };

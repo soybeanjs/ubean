@@ -1,4 +1,5 @@
 import { ref, computed, onMounted } from 'vue';
+import { isClient, isServer } from '@ubean/shared';
 // Import from './client' (browser-safe), NOT './core' — core statically imports
 // `node:async_hooks` which would pollute the browser bundle of this entry.
 import { createAuthClient } from './client';
@@ -15,7 +16,7 @@ export function useAuth(basePath: string = '/api/auth'): UseAuthReturn {
   const isAuthenticated = computed(() => !!session.value?.user);
 
   async function fetchSession() {
-    if (typeof window === 'undefined') return;
+    if (isServer()) return;
     isLoading.value = true;
     isPending.value = true;
     error.value = null;
@@ -38,7 +39,7 @@ export function useAuth(basePath: string = '/api/auth'): UseAuthReturn {
         const result = await client.signIn.email({ email, password, callbackURL });
         if (result.data) {
           session.value = result.data;
-          if (callbackURL && typeof window !== 'undefined') {
+          if (callbackURL && isClient()) {
             window.location.href = callbackURL;
           }
         }
@@ -70,7 +71,7 @@ export function useAuth(basePath: string = '/api/auth'): UseAuthReturn {
         const result = await client.signUp.email({ email, password, name, callbackURL });
         if (result.data) {
           session.value = result.data;
-          if (callbackURL && typeof window !== 'undefined') {
+          if (callbackURL && isClient()) {
             window.location.href = callbackURL;
           }
         }
@@ -100,7 +101,7 @@ export function useAuth(basePath: string = '/api/auth'): UseAuthReturn {
   onMounted(() => {
     fetchSession();
 
-    if (typeof window !== 'undefined') {
+    if (isClient()) {
       window.addEventListener('focus', fetchSession);
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') fetchSession();
@@ -145,7 +146,7 @@ export function useSession(basePath: string = '/api/auth') {
 
   onMounted(refetch);
 
-  if (typeof window !== 'undefined') {
+  if (isClient()) {
     window.addEventListener('focus', refetch);
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') refetch();
@@ -170,7 +171,7 @@ export function getSessionFromHeaders(headers: Headers, basePath: string = '/api
 
 export function protectRoute(redirectTo: string = '/login') {
   const auth = useAuth();
-  if (typeof window !== 'undefined' && !auth.isPending.value && !auth.isAuthenticated.value) {
+  if (isClient() && !auth.isPending.value && !auth.isAuthenticated.value) {
     const redirectUrl = `${redirectTo}?redirect=${encodeURIComponent(window.location.pathname)}`;
     window.location.href = redirectUrl;
   }

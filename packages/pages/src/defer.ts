@@ -1,5 +1,6 @@
 import { getCurrentInstance, onMounted, ref, shallowRef } from 'vue';
 import type { Ref, ShallowRef } from 'vue';
+import { isServer } from '@ubean/shared';
 import { safeJsonStringify } from './protocol';
 
 /**
@@ -189,7 +190,7 @@ export function useDeferredData<T>(key: string, deferred: DeferredValue<T>): Use
   const pending = ref(true);
   const error = shallowRef<Error | null>(null);
 
-  if (typeof window === 'undefined') {
+  if (isServer()) {
     // SSR: 注册 promise,不阻塞渲染（首帧渲染的是 pending 分支）
     __registerDeferred(key, deferred.factory());
   } else {

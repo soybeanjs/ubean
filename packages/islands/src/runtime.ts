@@ -1,5 +1,6 @@
 import { createApp, h, defineComponent, createCommentVNode, Suspense, ref, onMounted, watch } from 'vue';
 import type { Component, App as VueApp, VNode } from 'vue';
+import { isServer } from '@ubean/shared';
 
 interface DomElement {
   getAttribute(name: string): string | null;
@@ -605,8 +606,8 @@ export function defineServerIsland(
   const rerenderOnPropsChange = options?.rerenderOnPropsChange === true && !!__serverComponentPath;
 
   // SSR 端: 注册组件到全局注册表,供中间件按路径查找并重新渲染。
-  // 客户端构建中 Component 是 stub,不应注册 (typeof window !== 'undefined' 守卫)。
-  if (rerenderOnPropsChange && typeof window === 'undefined' && __serverComponentPath) {
+  // 客户端构建中 Component 是 stub,不应注册 (isServer() 守卫)。
+  if (rerenderOnPropsChange && isServer() && __serverComponentPath) {
     registerServerComponent(__serverComponentPath, Component);
   }
 

@@ -13,6 +13,7 @@ import {
 import type { LocaleRoutingConfig } from '@ubean/i18n/browser';
 import { LOCALE_DATA_ID } from '@ubean/pages';
 import type { LocaleMetaInfo } from '@ubean/pages';
+import { isClient } from '@ubean/shared';
 
 export type LocaleMessages = Record<string, unknown>;
 
@@ -223,12 +224,12 @@ export async function setLocale(code: string): Promise<void> {
 
   const cfg = state.config;
   let navPromise = Promise.resolve();
-  if (cfg && cfg.strategy !== 'no_prefix' && typeof window !== 'undefined') {
+  if (cfg && cfg.strategy !== 'no_prefix' && isClient()) {
     const router = state.router;
     const currentPath = (
       router?.currentRoute.value.path ||
       router?.currentRoute.value.fullPath?.split('?')[0] ||
-      (typeof window !== 'undefined' ? window.location.pathname : '/')
+      (isClient() ? window.location.pathname : '/')
     ).split('?')[0];
     const target = switchLocalePathCore(code, currentPath, routingFrom(cfg));
     if (target !== currentPath && router) {
@@ -266,7 +267,7 @@ export function localizePath(path: string, locale?: string): string {
 export function switchLocalePath(locale: string, path?: string): string {
   const cfg = getRuntimeConfigState();
   if (!cfg) return path || '/';
-  const current = path ?? (typeof window !== 'undefined' ? window.location.pathname : '/');
+  const current = path ?? (isClient() ? window.location.pathname : '/');
   return switchLocalePathCore(locale, current, routingFrom(cfg));
 }
 

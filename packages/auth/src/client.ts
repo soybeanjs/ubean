@@ -6,6 +6,7 @@
  * `./core` remains the server-side entry (ALS request context, better-auth
  * handler, middleware).
  */
+import { isClient, isServer } from '@ubean/shared';
 import type { Session, User } from 'better-auth';
 import type { AuthClient, AuthError, AuthSession } from './types';
 
@@ -38,7 +39,7 @@ export function createAuthClient(basePath: string = '/api/auth'): AuthClient {
             '/sign-in/email',
             buildFetchOptions({ email, password, rememberMe })
           );
-          if (callbackURL && typeof window !== 'undefined') {
+          if (callbackURL && isClient()) {
             window.location.href = callbackURL;
           }
           return { data };
@@ -47,7 +48,7 @@ export function createAuthClient(basePath: string = '/api/auth'): AuthClient {
         }
       },
       social: (provider: string, opts?: { callbackURL?: string }) => {
-        if (typeof window === 'undefined') return Promise.resolve();
+        if (isServer()) return Promise.resolve();
         const redirect = opts?.callbackURL || window.location.href;
         window.location.href = `${basePath}/sign-in/social/${provider}?callbackURL=${encodeURIComponent(redirect)}`;
         return Promise.resolve();
@@ -57,7 +58,7 @@ export function createAuthClient(basePath: string = '/api/auth'): AuthClient {
       email: async ({ email, password, name, callbackURL }) => {
         try {
           const data = await authFetch<AuthSession>('/sign-up/email', buildFetchOptions({ email, password, name }));
-          if (callbackURL && typeof window !== 'undefined') {
+          if (callbackURL && isClient()) {
             window.location.href = callbackURL;
           }
           return { data };

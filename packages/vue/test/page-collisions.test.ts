@@ -15,8 +15,8 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import type { MockInstance } from 'vitest';
 import { clearScanWarnings, scanPages } from '../src/scan-pages';
-import { generatePagesModuleSource } from '../src/virtual-pages';
 import type { ScanPagesResult } from '../src/types';
+import { generatePagesModuleSource } from '../src/virtual-pages';
 
 let tmpDir: string;
 let warnSpy: MockInstance;

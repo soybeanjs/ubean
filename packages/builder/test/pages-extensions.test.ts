@@ -114,7 +114,7 @@ describe('layoutGlobExtensions 与扫描器对齐', () => {
     expect(glob).not.toContain('md');
   });
 
-  it("关掉 JSX 后 tsx/jsx 一起消失", () => {
+  it('关掉 JSX 后 tsx/jsx 一起消失', () => {
     const glob = layoutGlobExtensions(['vue']).split(',');
     expect(glob).toEqual(['vue']);
   });

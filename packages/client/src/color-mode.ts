@@ -1,3 +1,5 @@
+import { ref, computed, watch, onScopeDispose } from 'vue';
+import type { Ref, ComputedRef } from 'vue';
 /**
  * P9-21: Color mode (dark/light) support.
  *
@@ -20,8 +22,7 @@
  * colorMode.toggle();   // cycle through modes
  * ```
  */
-import { ref, computed, watch, onScopeDispose } from 'vue';
-import type { Ref, ComputedRef } from 'vue';
+import { isClient, isServer } from '@ubean/shared';
 
 export interface ColorModeConfig {
   /** Default preference: 'system' | 'light' | 'dark' | string (default: 'system'). */
@@ -203,7 +204,7 @@ function applyModeToDom(mode: string): void {
  * Returns the mode string or `null` if unknown.
  */
 function detectSystemMode(): string | null {
-  if (typeof window === 'undefined' || !window.matchMedia) return null;
+  if (isServer() || !window.matchMedia) return null;
   const media = window.matchMedia('(prefers-color-scheme: dark)');
   if (media.matches) return 'dark';
   // `media.media` is the query string; if it's not the dark query,
@@ -216,7 +217,7 @@ function detectSystemMode(): string | null {
  * Persist the user's preference to localStorage and cookie.
  */
 function persistPreference(preference: string): void {
-  if (typeof window === 'undefined') return;
+  if (isServer()) return;
 
   try {
     localStorage.setItem(_config.storageKey, preference);
@@ -241,7 +242,7 @@ function initColorMode(): void {
   // Read preference from localStorage (the no-FOUC script already used it,
   // but we need the reactive ref to start with the correct value)
   let preference = _config.preference;
-  if (typeof window !== 'undefined') {
+  if (isClient()) {
     try {
       const stored = localStorage.getItem(_config.storageKey);
       if (stored) preference = stored;
@@ -344,7 +345,7 @@ export function useColorMode(): ColorMode {
     valueRef.value = mode;
   };
 
-  if (typeof window !== 'undefined' && window.matchMedia) {
+  if (isClient() && window.matchMedia) {
     mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     mediaQuery.addEventListener('change', handleMediaChange);
   }

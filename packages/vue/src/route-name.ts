@@ -1,5 +1,4 @@
 import { pascalCase } from 'scule';
-
 import { ROOT_ROUTE_NAME } from './global-routes';
 
 /**
@@ -29,11 +28,7 @@ export function generateRouteName(routePath: string): string {
     return ROOT_ROUTE_NAME;
   }
 
-  const segments = routePath
-    .replace(/^\//, '')
-    .replace(/\/$/, '')
-    .replace(INDEX_SEGMENT_REGEX, '')
-    .split('/');
+  const segments = routePath.replace(/^\//, '').replace(/\/$/, '').replace(INDEX_SEGMENT_REGEX, '').split('/');
 
   const nameSegments: string[] = [];
 

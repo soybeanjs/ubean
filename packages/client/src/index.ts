@@ -161,6 +161,9 @@ export type {
 } from '@ubean/islands/runtime';
 export { useData, useAsyncData, invalidateData, useFetch, setDefaultFetch } from '@ubean/pages';
 export type { DataResult, UseAsyncDataOptions, UseFetchOptions } from '@ubean/pages';
+// 运行环境判据（SSR/客户端分支）。定义在 `@ubean/shared`，这里转出是因为客户端代码
+// 应优先从 `ubean/client` 导入，而不是聚合入口 `ubean`。
+export { isClient, isServer } from '@ubean/shared';
 // 流式延迟数据：页面里用 `defer()` + `useDeferredData()` 标记非关键数据。必须从这里导出 ——
 // 页面/组件属于客户端图，`example-imports.test.ts` 禁止它们从聚合入口 `ubean` 导入（会拖进整条
 // 聚合链），而此前 `defer` 只有聚合入口一条路（文档示例写的也是聚合入口）。

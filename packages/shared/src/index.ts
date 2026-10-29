@@ -10,3 +10,4 @@ export * from './path';
 export * from './glob';
 export * from './string';
 export * from './first-paint';
+export * from './platform';

@@ -38,9 +38,7 @@ const EMPTY_APP_ENTRY: ScannedAppEntry = {
  * `pinia: true` 与 `pinia: { ... }` 都算开启；只有显式 `false`、`enabled: false`
  * 或 `disabled: true` 才关掉（`disabled` 是内建模块的通用关闭键）。
  */
-function isPiniaAutoRegisterEnabled(
-  pinia: boolean | { enabled?: boolean; disabled?: boolean } | undefined
-): boolean {
+function isPiniaAutoRegisterEnabled(pinia: boolean | { enabled?: boolean; disabled?: boolean } | undefined): boolean {
   if (pinia === true) return true;
   if (!pinia || typeof pinia !== 'object') return false;
   return pinia.enabled !== false && pinia.disabled !== true;

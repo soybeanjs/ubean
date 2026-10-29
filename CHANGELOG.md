@@ -1,5 +1,23 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.9...main) (2026-10-29) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **shared**: add isClient and isServer utility functions for environment detection &nbsp;-&nbsp; by @soybeanjs [<samp>(fe246)</samp>](https://github.com/soybeanjs/ubean/commit/fe246825)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(a7709)</samp>](https://github.com/soybeanjs/ubean/commit/a77093b4)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **ubean**: cover isClient and isServer in export surface snapshot &nbsp;-&nbsp; by @soybeanjs [<samp>(85ae8)</samp>](https://github.com/soybeanjs/ubean/commit/85ae8287)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.8...main) (2026-10-26) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

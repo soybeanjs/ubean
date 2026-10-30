@@ -1,5 +1,5 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import type { Plugin } from 'vite';
+import type { Plugin, ViteDevServer } from 'vite';
 import { defu } from 'defu';
 import { join, resolve, basename, dirname } from 'pathe';
 import {
@@ -234,7 +234,15 @@ export function ubeanIconPlugin(userOptions: UbeanIconOptions = {}): Plugin {
     }
   }
 
-  function generateVirtualModule(): string {
+  /**
+   * 上次交给浏览器的虚拟模块「重载键」。dev 下的重载判据（见 `configureServer`）：
+   * 键没变就说明集合与 loader 都没变，这次改动归 Vite 的 HMR。
+   *
+   * 键里**不含** `getScannedIcons()` 的列表：它只是导出的快照，变它不需要刷新页面。
+   */
+  let lastReloadKey: string | undefined;
+
+  function buildVirtualModule(): { key: string; source: string } {
     const collectionsToRegister: Array<{ prefix: string; data: IconifyCollection }> = [];
 
     for (const [prefix, collection] of Object.entries(options.collections)) {
@@ -293,7 +301,15 @@ export function ubeanIconPlugin(userOptions: UbeanIconOptions = {}): Plugin {
       }
     }
 
-    return `
+    const iconOptionsJson = JSON.stringify({
+      fallbackToApi: options.fallbackToApi,
+      iconApiEndpoint: options.iconApiEndpoint,
+      ssr: options.ssr,
+      iconifyApiEnabled: options.iconifyApiEnabled,
+      customCollectionPrefixes: Object.values(resolvedCustoms).map(c => c.prefix)
+    });
+
+    const source = `
 import { registerCollection, registerCollectionLoader } from '@ubean/icon/runtime';
 
 const collections = ${collectionsJson};
@@ -302,18 +318,56 @@ for (const [prefix, data] of Object.entries(collections)) {
 }
 ${loaderCode}
 
-export const iconOptions = ${JSON.stringify({
-      fallbackToApi: options.fallbackToApi,
-      iconApiEndpoint: options.iconApiEndpoint,
-      ssr: options.ssr,
-      iconifyApiEnabled: options.iconifyApiEnabled,
-      customCollectionPrefixes: Object.values(resolvedCustoms).map(c => c.prefix)
-    })};
+export const iconOptions = ${iconOptionsJson};
 
 export function getScannedIcons() {
   return ${JSON.stringify([...scannedIcons])};
 }
 `;
+
+    return { key: `${collectionsJson}\n${loaderCode}\n${iconOptionsJson}`, source };
+  }
+
+  function generateVirtualModule(): string {
+    const { key, source } = buildVirtualModule();
+    lastReloadKey = key;
+    return source;
+  }
+
+  /**
+   * 图标集合真变了才整页刷新，且只在浏览器确实用到了图标虚拟模块时。
+   *
+   * 此前任何 `.vue`/`.ts` 改动都无条件 `full-reload`，而 watcher 回调比 Vite 的
+   * `handleHMRUpdate` 更早跑 —— 于是每次保存都先把页面刷掉，刚送到的 HMR 更新根本
+   * 到不了浏览器（表现为「保存就整页刷新，没有热更新」）。
+   *
+   * 两个门槛：
+   * 1. 集合 / loader / 选项没变（典型：只改了模板或逻辑）→ 不刷新，交给 HMR；
+   * 2. 虚拟模块不在模块图里（项目根本没 import 图标运行时）→ 没人依赖它，刷新无意义。
+   */
+  function reloadIfIconModuleChanged(server: ViteDevServer): void {
+    const { key } = buildVirtualModule();
+    if (key === lastReloadKey) return;
+    lastReloadKey = key;
+
+    const module = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_MODULE_ID);
+    if (!module) return;
+
+    server.moduleGraph.invalidateModule(module);
+    server.ws.send({ type: 'full-reload' });
+  }
+
+  /**
+   * 改动落盘后重扫该文件，让「这次改动里新出现的图标」进入 `scannedIcons`。
+   * `transform` 要等 Vite 重编译才跑，而重载判定在 watcher 回调里就要做。
+   */
+  function rescanFile(file: string): void {
+    if (!/\.(vue|tsx?|jsx?)$/.test(file)) return;
+    try {
+      scanSourceForIcons(readFileSync(file, 'utf-8'), file);
+    } catch {
+      // 文件被删或暂时不可读：新增/删除由 add / unlink 事件负责
+    }
   }
 
   return {
@@ -334,6 +388,8 @@ export function getScannedIcons() {
         }
       }
       refreshCustomCollections();
+      // 基线：启动时的图标集合，后续改动与之对比才决定要不要刷新
+      lastReloadKey = buildVirtualModule().key;
     },
 
     resolveId(id) {
@@ -365,37 +421,27 @@ export function getScannedIcons() {
 
       server.watcher.on('change', (file: string) => {
         const isInCustomDir = customDirs.some(dir => file.startsWith(dir)) || /\.(vue|tsx?|jsx?)$/.test(file);
-        if (isInCustomDir) {
-          if (file.endsWith('.svg')) {
-            refreshCustomCollections();
-          }
-          const module = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_MODULE_ID);
-          if (module) {
-            server.moduleGraph.invalidateModule(module);
-          }
-          server.ws.send({ type: 'full-reload' });
+        if (!isInCustomDir) return;
+
+        if (file.endsWith('.svg')) {
+          refreshCustomCollections();
+        } else {
+          rescanFile(file);
         }
+        reloadIfIconModuleChanged(server);
       });
 
       server.watcher.on('add', (file: string) => {
         if (file.endsWith('.svg') && customDirs.some(dir => file.startsWith(dir))) {
           refreshCustomCollections();
-          const module = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_MODULE_ID);
-          if (module) {
-            server.moduleGraph.invalidateModule(module);
-          }
-          server.ws.send({ type: 'full-reload' });
+          reloadIfIconModuleChanged(server);
         }
       });
 
       server.watcher.on('unlink', (file: string) => {
         if (file.endsWith('.svg') && customDirs.some(dir => file.startsWith(dir))) {
           refreshCustomCollections();
-          const module = server.moduleGraph.getModuleById(RESOLVED_VIRTUAL_MODULE_ID);
-          if (module) {
-            server.moduleGraph.invalidateModule(module);
-          }
-          server.ws.send({ type: 'full-reload' });
+          reloadIfIconModuleChanged(server);
         }
       });
 

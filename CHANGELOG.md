@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.10...main) (2026-10-30) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **icon**: only full-reload when the icon virtual module changes &nbsp;-&nbsp; by @soybeanjs [<samp>(17a18)</samp>](https://github.com/soybeanjs/ubean/commit/17a1872e)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.9...main) (2026-10-29) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

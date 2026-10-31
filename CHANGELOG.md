@@ -1,5 +1,27 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.11...main) (2026-10-31) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **client**: add LocaleMessageKey flattened key union &nbsp;-&nbsp; by @soybeanjs [<samp>(7d6bb)</samp>](https://github.com/soybeanjs/ubean/commit/7d6bbdf4)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **i18n**: document LocaleMessageKey and fix t() key typing &nbsp;-&nbsp; by @soybeanjs [<samp>(beb9b)</samp>](https://github.com/soybeanjs/ubean/commit/beb9b90b)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(81185)</samp>](https://github.com/soybeanjs/ubean/commit/81185b51)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **ubean-test**: cover typed locale message keys &nbsp;-&nbsp; by @soybeanjs [<samp>(7e452)</samp>](https://github.com/soybeanjs/ubean/commit/7e452965)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.10...main) (2026-10-30) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

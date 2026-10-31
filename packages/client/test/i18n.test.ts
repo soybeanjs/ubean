@@ -210,6 +210,36 @@ describe('paths override (code stays BCP-47, URL uses a short segment)', () => {
       { code: 'zh-CN', dir: 'ltr', path: 'zh', isDefault: true }
     ]);
   });
+
+  it('hydrated payload cannot shrink the configured list', () => {
+    // 回归：服务端每请求只加载 `locale + fallback`，早期 payload 的
+    // `availableLocales` 因此只有一项；客户端此前直接**覆盖**构建期注入的完整
+    // 列表，于是 soybean-admin-v3 配了 zh-CN + en，`getAvailableLocales()` 只剩
+    // zh-CN（语言切换器一项）。
+    vi.stubGlobal('document', {
+      getElementById: () => ({
+        textContent: JSON.stringify({
+          locale: 'zh-CN',
+          availableLocales: [{ code: 'zh-CN', path: 'zh', name: '简体中文', dir: 'ltr', isDefault: true }],
+          routing: { defaultLocale: 'zh-CN', locales: ['zh-CN', 'en'], strategy: 'prefix_except_default' }
+        })
+      })
+    });
+
+    configureI18nRuntime({
+      config: { ...config, defaultLocale: 'zh-CN' },
+      locales: [
+        { code: 'zh-CN', language: 'zh-CN', name: '简体中文', dir: 'ltr', path: 'zh', isDefault: true },
+        { code: 'en', language: 'en-US', name: 'English', dir: 'ltr' }
+      ]
+    });
+
+    createUbeanI18n();
+
+    expect(getAvailableLocales().map(l => l.code)).toEqual(['zh-CN', 'en']);
+    // 只覆盖 payload 真正带了的字段：en 的 name / language 不能被冲掉
+    expect(getAvailableLocales()[1]).toMatchObject({ code: 'en', name: 'English', language: 'en-US' });
+  });
 });
 
 describe('legacy placeholder', () => {

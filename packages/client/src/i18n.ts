@@ -143,6 +143,32 @@ function localeCodesFrom(input: unknown): string[] {
   return codes;
 }
 
+/** Drop `undefined` fields so a thin payload cannot erase richer configured metadata. */
+function definedProps<T extends object>(value: T): Partial<T> {
+  return Object.fromEntries(Object.entries(value).filter(([, v]) => v !== undefined)) as Partial<T>;
+}
+
+/**
+ * Union the configured locale list with the hydrated one, configured order first.
+ *
+ * The payload only carries the locales the server happened to load (`locale` +
+ * `fallback`), so **replacing** the configured list with it shrinks the language
+ * switcher to one entry. Codes unknown to the config are appended rather than
+ * dropped, and a hydrated entry only overrides fields it actually carries.
+ */
+function mergeLocaleMetas(
+  configured: NonNullable<HydratedLocalePayload['locales']>,
+  hydrated: NonNullable<HydratedLocalePayload['locales']>
+): NonNullable<HydratedLocalePayload['locales']> {
+  const merged = [...configured];
+  for (const meta of hydrated) {
+    const index = merged.findIndex(m => m.code === meta.code);
+    if (index === -1) merged.push(meta);
+    else merged[index] = { ...merged[index], ...definedProps(meta) };
+  }
+  return merged;
+}
+
 function applyHydratedPayload(hydrated: HydratedLocalePayload): void {
   const state = getRuntimeState();
   if (hydrated.routing && !state.config) {
@@ -159,7 +185,9 @@ function applyHydratedPayload(hydrated: HydratedLocalePayload): void {
     state.config.locales = localeCodesFrom(hydrated.routing.locales);
   }
   const metas = hydrated.locales || hydrated.availableLocales;
-  if (metas) state.metas = metas;
+  if (metas?.length) {
+    state.metas = state.metas?.length ? mergeLocaleMetas(state.metas, metas) : metas;
+  }
 }
 
 function routingFrom(config: I18nRuntimeConfig): LocaleRoutingConfig {

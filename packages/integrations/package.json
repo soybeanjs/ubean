@@ -50,11 +50,11 @@
     "@ubean/shared": "workspace:*",
     "defu": "6.1.7",
     "ohash": "^2.0.12",
-    "vite-plugin-electron": "^1.1.2",
+    "vite-plugin-electron": "^1.2.0",
     "vite-plugin-pwa": "^2.0.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",

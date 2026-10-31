@@ -43,7 +43,7 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
-    "env-runner": "0.3.10",
+    "env-runner": "0.3.11",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

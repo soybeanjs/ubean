@@ -27,6 +27,6 @@
     "vite": "catalog:",
     "vite-plus": "catalog:",
     "vitest": "5.0.5",
-    "vue-tsc": "^3.3.13"
+    "vue-tsc": "^3.3.14"
   }
 }

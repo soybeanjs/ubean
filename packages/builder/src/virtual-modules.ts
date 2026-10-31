@@ -236,6 +236,21 @@ function codesFromConfig() {
   return i18nConfig.locales.map(l => typeof l === 'string' ? l : l.code);
 }
 
+/** 一条 locale 配置（字符串或对象）→ \`setLocaleMeta()\` 的元信息。 */
+function configLocaleMeta(loc) {
+  const cfg = typeof loc === 'string' ? { code: loc } : loc;
+  // 默认语言以 \`i18n.defaultLocale\` 为准；\`defaultCode\` 是扫描结果里的
+  // “第一个 locale 文件”，仅当配置缺省时才用它（两者并不总是同一个）。
+  const defaultLocaleCode = (i18nConfig && i18nConfig.defaultLocale) || defaultCode;
+  return {
+    name: cfg.name,
+    path: cfg.path,
+    dir: cfg.dir || 'ltr',
+    language: cfg.language,
+    isDefault: cfg.code === defaultLocaleCode
+  };
+}
+
 export const localeCodes = codesFromConfig();
 const defaultCode = ${defaultCode};
 
@@ -247,6 +262,12 @@ if (import.meta.env.SSR) {
   } else if (defaultCode) {
     i18nRuntime.setFallbackLocale(defaultCode);
   }
+  // 所有配置里的 locale 在模块求值时一次性登记元信息，**不能**等文案被加载才登记：
+  // 中间件每请求只加载 \`locale + fallback\`，否则 SSR 首屏的 \`availableLocales\` 只有
+  // 一个（语言切换器只剩一项）。\`loadLocale()\` 之后的重复登记是幂等的。
+  for (const loc of (i18nConfig && i18nConfig.locales) || []) {
+    i18nRuntime.setLocaleMeta(typeof loc === 'string' ? loc : loc.code, configLocaleMeta(loc));
+  }
 }
 
 async function collectMessages(code) {
@@ -257,13 +278,7 @@ async function collectMessages(code) {
   const configLoc = i18nConfig && i18nConfig.locales
     ? i18nConfig.locales.find(l => (typeof l === 'string' ? l : l.code) === code)
     : undefined;
-  if (configLoc && typeof configLoc === 'object') {
-    localeData.options.name = configLoc.name;
-    localeData.options.path = configLoc.path;
-    localeData.options.dir = configLoc.dir || 'ltr';
-    localeData.options.language = configLoc.language;
-    localeData.options.isDefault = configLoc.code === (i18nConfig && i18nConfig.defaultLocale);
-  }
+  if (configLoc) Object.assign(localeData.options, configLocaleMeta(configLoc));
 
   for (const [path, loader] of Object.entries(localeModules)) {
     const parsed = parseLocalePath(path);

@@ -207,4 +207,29 @@ describe('createLocalesVirtualModule()', () => {
     const code = await mod.load();
     expect(code).toContain('const defaultCode = null');
   });
+
+  it('SSR 求值时登记所有配置 locale 的元信息（不只加载过的那个）', async () => {
+    // 回归：中间件每请求只加载 `locale + fallback`，若元信息靠 `loadLocale()` 顺带
+    // 登记，SSR 首屏的 `availableLocales` 就只剩一个，语言切换器跟着只剩一项
+    // （soybean-admin-v3 实测：配置 zh-CN + en，payload 里只有 zh-CN）。
+    const mod = createLocalesVirtualModule(
+      [],
+      'en',
+      'src',
+      JSON.stringify({
+        defaultLocale: 'zh-CN',
+        locales: [
+          { code: 'zh-CN', name: '简体中文', path: 'zh', language: 'zh-CN' },
+          { code: 'en', name: 'English', language: 'en-US' }
+        ]
+      })
+    );
+    const code = await mod.load();
+
+    expect(code).toContain('function configLocaleMeta(loc)');
+    expect(code).toContain('i18nRuntime.setLocaleMeta(');
+    expect(code).toContain('for (const loc of (i18nConfig && i18nConfig.locales) || [])');
+    // 默认语言以 `i18n.defaultLocale` 为准，不是扫描出的第一个 locale 文件
+    expect(code).toContain('(i18nConfig && i18nConfig.defaultLocale) || defaultCode');
+  });
 });

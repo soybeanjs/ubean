@@ -1,6 +1,6 @@
 {
   "name": "@ubean/auth",
-  "version": "0.7.12",
+  "version": "0.7.13",
   "description": "Better Auth integration for ubean framework",
   "files": [
     "dist"

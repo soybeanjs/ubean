@@ -1,5 +1,16 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.12...main) (2026-10-31) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: register locale metadata for every configured locale &nbsp;-&nbsp; by @soybeanjs [<samp>(711d2)</samp>](https://github.com/soybeanjs/ubean/commit/711d2a77)
+- **client**: merge hydrated locale metadata instead of replacing &nbsp;-&nbsp; by @soybeanjs [<samp>(a5306)</samp>](https://github.com/soybeanjs/ubean/commit/a53061e2)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.11...main) (2026-10-31) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

@@ -38,6 +38,7 @@
     "typecheck": "tsc --noEmit --skipLibCheck"
   },
   "dependencies": {
+    "@intlify/core-base": "catalog:",
     "@ubean/i18n": "workspace:*",
     "@ubean/islands": "workspace:*",
     "@ubean/pages": "workspace:*",

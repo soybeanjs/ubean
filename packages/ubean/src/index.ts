@@ -155,7 +155,8 @@ export type {
   IslandRecord,
   HydrateIslandsOptions,
   ViewTransitionOptions,
-  I18nRuntimeConfig
+  I18nRuntimeConfig,
+  LocaleMessageKey
 } from '@ubean/client';
 
 // ============== Islands 客户端运行时(浏览器安全)==============

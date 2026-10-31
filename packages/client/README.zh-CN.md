@@ -295,6 +295,7 @@ await setLocale('zh-CN'); // load messages + cookie + router.replace(switchLocal
 - `useLocalePath` / `useSwitchLocalePath` / `useLocaleRoute` / `useLocaleHead` 是路径与 SEO head 组合式函数；`localizePath` / `switchLocalePath` / `extractLocaleFromPath` 是纯函数。
 - 应用工厂提供 `LOCALIZE_PATH_KEY`，内核的 `<Link>` 正是通过它本地化内部路径 —— 纯 `@ubean/vue` SPA 若不自备该 hook 就按原样渲染路径。
 - `useI18n` 本身**不在此 re-export**，请直接从 `vue-i18n` 导入。
+- `LocaleMessageKey` 是从 `.ubean/i18n.d.ts` 增强的 `DefineLocaleMessage` 推导出的扁平 key 并集（`app.title` 这种）；需要把 key 当值用（`satisfies LocaleMessageKey`、自己的 helper）时用它。vue-i18n 的 `t()` 本身接受任意字符串，它内部的 `ResourceKeys` 只提供补全。推导用的是 `@intlify/core-base` 的 `JsonPaths` + `RemoveIndexSignature`（type-only 依赖），因此不会与 vue-i18n 自身的解析规则漂移。
 
 ## 数据层
 

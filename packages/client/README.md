@@ -293,6 +293,7 @@ await setLocale('zh-CN'); // load messages + cookie + router.replace(switchLocal
 - `useLocalePath` / `useSwitchLocalePath` / `useLocaleRoute` / `useLocaleHead` are the path and SEO-head composables; `localizePath` / `switchLocalePath` / `extractLocaleFromPath` are the pure functions.
 - The app factory provides `LOCALIZE_PATH_KEY`, which is how the kernel's `<Link>` localizes internal paths — a lean `@ubean/vue` SPA renders paths verbatim unless it provides one itself.
 - `useI18n` itself is **not** re-exported here; import it from `vue-i18n` directly.
+- `LocaleMessageKey` is the flattened (`app.title`) key union derived from the `DefineLocaleMessage` that `.ubean/i18n.d.ts` augments — use it where a key is a value (`satisfies LocaleMessageKey`, your own helpers). vue-i18n's `t()` accepts any string by itself; its internal `ResourceKeys` only feeds completion. The derivation uses `JsonPaths` + `RemoveIndexSignature` from `@intlify/core-base` (type-only dependency), so it cannot drift from vue-i18n's own resolution.
 
 ## Data Layer
 

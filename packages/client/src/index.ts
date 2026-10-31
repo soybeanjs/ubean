@@ -189,7 +189,7 @@ export {
   useLocaleHead
 } from './i18n';
 // `I18n` 等 vue-i18n 类型不再透传 —— 请直接从 `vue-i18n` 导入。
-export type { I18nRuntimeConfig, LocaleLoader, LocaleMessages } from './i18n';
+export type { I18nRuntimeConfig, LocaleLoader, LocaleMessageKey, LocaleMessages } from './i18n';
 export {
   useColorMode,
   configureColorMode,

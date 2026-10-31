@@ -167,6 +167,9 @@ catalogs:
     '@intlify/core':
       specifier: 11.4.16
       version: 11.4.16
+    '@intlify/core-base':
+      specifier: 11.4.16
+      version: 11.4.16
     '@intlify/unplugin-vue-i18n':
       specifier: 11.2.8
       version: 11.2.8
@@ -727,6 +730,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@intlify/core-base':
+        specifier: 'catalog:'
+        version: 11.4.16
       '@ubean/i18n':
         specifier: workspace:*
         version: link:../i18n

@@ -3,7 +3,7 @@ import type { App, ComputedRef } from 'vue';
 import { useRoute } from 'vue-router';
 import type { useRouter } from 'vue-router';
 import { createI18n, useI18n as useVueI18n } from 'vue-i18n';
-import type { Composer, I18n } from 'vue-i18n';
+import type { Composer, DefineLocaleMessage, I18n } from 'vue-i18n';
 import {
   localizePath as localizePathCore,
   switchLocalePath as switchLocalePathCore,
@@ -14,8 +14,45 @@ import type { LocaleRoutingConfig } from '@ubean/i18n/browser';
 import { LOCALE_DATA_ID } from '@ubean/pages';
 import type { LocaleMetaInfo } from '@ubean/pages';
 import { isClient } from '@ubean/shared';
+import type { IsEmptyObject, JsonPaths, RemoveIndexSignature } from '@intlify/core-base';
 
 export type LocaleMessages = Record<string, unknown>;
+
+type AugmentedLocaleMessage = RemoveIndexSignature<DefineLocaleMessage>;
+
+/**
+ * Flattened (`a.b.c`) union of every leaf key declared by the generated
+ * `.ubean/i18n.d.ts` — the keys `useI18n().t()` is called with.
+ *
+ * Derived, not emitted: it follows `DefineLocaleMessage` wherever it comes from
+ * (the default-locale JSON codegen, a hand-written `declare module` merge, or
+ * both), so there is exactly one description of the message tree.
+ *
+ * The two helpers come from `@intlify/core-base` — the same pair intlify uses to
+ * derive `ComposerTranslation`'s `ResourceKeys` — so the flattening rules (leaf
+ * paths only, arrays count as leaves, empty objects contribute nothing) cannot
+ * drift from vue-i18n's own resolution.
+ *
+ * `RemoveIndexSignature` is mandatory, not cosmetic: `DefineLocaleMessage` extends
+ * `LocaleMessage<VueMessageType>` (= `Record<string, …>`), so a naive `JsonPaths`
+ * would walk the index signature and collapse to plain `string` — a type that
+ * accepts every typo.
+ *
+ * `vue-i18n`'s own `t()` does **not** enforce keys — `Composer['t']` is
+ * `<Key extends string>(key: Key | ResourceKeys | number)`, and the bare `Key`
+ * accepts any string (its internal `ResourceKeys` only feeds completion). Use
+ * this type where a key is a value:
+ *
+ * ```ts
+ * const key = 'common.hello' satisfies LocaleMessageKey; // ok
+ * t('common.hellp');                                   // still compiles
+ * ```
+ *
+ * Falls back to `string` when no `.ubean/i18n.d.ts` is in the program, so an app
+ * without locale files is not stuck with `never`.
+ */
+export type LocaleMessageKey =
+  IsEmptyObject<AugmentedLocaleMessage> extends true ? string : JsonPaths<AugmentedLocaleMessage>;
 
 export interface I18nRuntimeConfig {
   defaultLocale: string;

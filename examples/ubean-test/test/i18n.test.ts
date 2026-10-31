@@ -76,6 +76,18 @@ describe('i18n', () => {
       expect(res.text).toContain('/zh/i18n');
     });
 
+    it('LocaleMessageKey 类型化 key 在 SSR 中真的翻译出译文', async () => {
+      // 页面里 `typedKeys` 被 `satisfies LocaleMessageKey[]` 约束（类型层由 vue-tsc 把关），
+      // 这里断言它们运行时也能查到文案 —— 两半合起来才算 key 可用。
+      const res = await getJson('/i18n');
+      expect(res.status).toBe(200);
+      expect(res.text).toContain('Typed keys');
+      expect(res.text).toContain('Hello, typed!');
+      expect(res.text).toContain('Welcome to ubean');
+      // 拼错的 key 不应出现（页面上只有 typedKeys 里的 4 个 key）
+      expect(res.text).not.toContain('common.hellp');
+    });
+
     it('plural', async () => {
       const res = await getJson('/api/i18n-test?action=plural');
       expect(res.status).toBe(200);

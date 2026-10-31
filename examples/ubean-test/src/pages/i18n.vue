@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useSwitchLocalePath, useLocalePath, setLocale, getI18nRuntimeConfig } from 'ubean/client';
+import type { LocaleMessageKey } from 'ubean/client';
 
 useHead({
   title: 'i18n Test - ubean',
@@ -20,6 +21,26 @@ async function switchTo(loc: string) {
 const testDate = new Date();
 const testNumber = 1234567.89;
 const testItems = ['apple', 'banana', 'cherry'];
+
+/**
+ * 类型化 key：`LocaleMessageKey` 由 `.ubean/i18n.d.ts` 的 `DefineLocaleMessage` 推导
+ * （`@intlify/core-base` 的 `JsonPaths`），拼错的 key 在这里编译不过。
+ */
+const typedKeys = [
+  'common.hello',
+  'common.welcome',
+  'navigation.about',
+  'messages.success'
+] satisfies LocaleMessageKey[];
+
+/** `t()` 自己接受任意字符串，把 key 收在这个签名上才有约束。 */
+function tk(key: LocaleMessageKey, named?: Record<string, unknown>) {
+  return named ? t(key, named) : t(key);
+}
+
+// @ts-expect-error 拼错的 key 被 LocaleMessageKey 拒绝（此行若不报错，说明类型退化成 string）
+const rejectedKey: LocaleMessageKey = 'common.hellp';
+void rejectedKey;
 </script>
 
 <template>
@@ -92,6 +113,16 @@ const testItems = ['apple', 'banana', 'cherry'];
         <div>
           <span class="text-gray-500">messages.success:</span>
           {{ t('messages.success') }}
+        </div>
+      </div>
+    </section>
+
+    <section class="mb-8 p-4 border rounded-lg">
+      <h2 class="text-xl font-semibold mb-3">Typed keys (LocaleMessageKey)</h2>
+      <div class="space-y-1 text-sm">
+        <div v-for="key in typedKeys" :key="key">
+          <span class="text-gray-500">{{ key }}:</span>
+          {{ tk(key, { name: 'typed' }) }}
         </div>
       </div>
     </section>

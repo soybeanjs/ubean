@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: 05e71de32fdb
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","b535ee0d","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","ba7c7b47","025c2ab3","3debcb8d","a75f4bdd","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: bf9aca8672f7
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","b535ee0d","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","ba7c7b47","025c2ab3","3debcb8d","6a0b404f","5cd004e5","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -282,7 +282,7 @@ definePage({ layout: ['default', 'admin', 'dashboard'] });
 
 ## 页面元数据（definePage）
 
-`definePage` 是用于配置页面选项的编译时宏。其顶层字段包括 `name`、`path`、`layout`（`string | string[] | false`）、`reuse`、`routable`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（`boolean | 'streaming' | 'data-only'`）、`transition`。**没有顶层 `title`** —— 请用 `head.title` 或 `meta: { title }`。**没有** Nuxt 风格的客户端 `middleware/*.global` 文件约定：请在 `defineApp({ router: { setup } })` 中注册 vue-router 守卫。
+`definePage` 是用于配置页面选项的编译时宏。其顶层字段包括 `name`、`path`、`layout`（`string | string[] | false`）、`reuse`、`routable`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（`boolean | 'streaming' | 'data-only'`）、`transition`、`props`。**没有顶层 `title`** —— 请用 `head.title` 或 `meta: { title }`。**没有** Nuxt 风格的客户端 `middleware/*.global` 文件约定：请在 `defineApp({ router: { setup } })` 中注册 vue-router 守卫。
 
 ```vue
 <script setup lang="ts">
@@ -303,6 +303,24 @@ definePage({
 });
 </script>
 ```
+
+### 路由 props（`definePage({ props })`）
+
+`props` 直接对应 vue-router 的 [`props` 路由选项](https://router.vuejs.org/guide/essentials/passing-props)，把参数作为组件 props 传入而不是读 `useRoute()`：
+
+```vue
+<!-- src/pages/users/[id].vue -->
+<script setup lang="ts">
+definePage({ props: true }); // route.params → 组件 props
+const props = defineProps<{ id: string }>();
+</script>
+```
+
+- `props: true` —— 把 `route.params` 作为 props 传入
+- `props: { ... }` —— 传入静态 props 对象
+- 函数形式（`props: route => ({ ... })`）**构建期无法求值**，会被丢弃并告警；需要动态 props 请在页面组件里读 `useRoute()`
+- 与页面 `loader` 的返回值（经 `usePage().props` 暴露）**可以共存**；同名时 vue-router 注入的值优先
+- 并行路由下 vue-router 按**视图名**索引 props 对象（`props: { default: {...} }`），写成扁平对象会被静默忽略
 
 ## 页面缓存（KeepAlive）
 

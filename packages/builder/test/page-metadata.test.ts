@@ -66,6 +66,13 @@ describe('serializePagesForEntry', () => {
     expect(first.redirect).toBe('/home');
   });
 
+  it('`definePage({ props })` 也进产物（漏了就只有产物里丢了 vue-router props）', () => {
+    const json = serializePagesForEntry([page({ props: true }), page({ name: 'Static', props: { a: 1 } })]);
+    const parsed = JSON.parse(json) as Array<Record<string, unknown>>;
+    expect(parsed[0].props).toBe(true);
+    expect(parsed[1].props).toEqual({ a: 1 });
+  });
+
   it('不把构建机的文件系统路径带进产物（fullPath / dirname / basename）', () => {
     const json = serializePagesForEntry([page()]);
     expect(json).not.toContain('/app/src/pages');

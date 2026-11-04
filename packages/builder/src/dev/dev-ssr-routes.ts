@@ -56,6 +56,11 @@ export interface DevSsrRoute {
    * 函数形式按 `to.params.locale` 补前缀（字符串重定向不插值参数）。
    */
   redirect?: string | ((to: DevSsrRedirectLocation) => string);
+  /**
+   * `definePage({ props })` 的 vue-router props 选项（`true` | 静态对象）。
+   * 与客户端 `virtual:ubean-pages` 同形。
+   */
+  props?: boolean | Record<string, unknown>;
   meta: {
     /** 单层布局名、多层嵌套数组（P9-17）或 `false`（禁用）。 */
     layout: string | string[] | false | null;
@@ -118,6 +123,7 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
     ...(page.redirect
       ? { redirect: redirectTarget(page.redirect, localeVueParam) }
       : { component: componentFor(page) }),
+    ...(page.props !== undefined ? { props: page.props } : {}),
     meta: {
       layout: page.layout === false ? false : page.layout || defaultLayout,
       pageName: page.name,

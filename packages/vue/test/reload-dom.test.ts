@@ -231,3 +231,48 @@ describe('reload × KeepAlive × Transition 回归(happy-dom)', () => {
     app.unmount();
   });
 });
+
+/**
+ * `definePage({ props })` 的端到端通路。
+ *
+ * vue-router 把 routeProps 放进 `<RouterView>` 默认 slot 的 `Component.props`；
+ * `PageView` 把它展开成组件 props。但缓存页会被 `getNamedPageWrapper` 再包一层
+ * —— 那个 wrapper 不声明 props，routeProps 落到它的 **attrs** 上，不转发就被静默吞掉。
+ */
+describe('PageView × vue-router props 注入', () => {
+  it('`props: true` 把 route.params 传给页面组件（含缓存页的命名 wrapper）', async () => {
+    const seen: Array<Record<string, unknown>> = [];
+    const UserPage = defineComponent({
+      name: 'UserPage',
+      props: { id: { type: String, default: '' } },
+      setup(props) {
+        seen.push({ id: props.id });
+        return () => h('div', { class: 'user' }, `user:${props.id}`);
+      }
+    });
+
+    const routes = [
+      {
+        path: '/user/:id',
+        name: 'User',
+        component: UserPage,
+        props: true,
+        meta: { pageName: 'User', cache: true }
+      }
+    ];
+
+    const router = createRouter({ history: createMemoryHistory(), routes: routes as never });
+    const app = createApp({ render: () => h('div', [h(PageView)]) });
+    app.use(router);
+    app.use(ubeanVue, { routes: routes as never });
+    await router.push('/user/42');
+    await nextTick();
+    const el = document.createElement('div');
+    document.body.appendChild(el);
+    app.mount(el);
+
+    expect(el.textContent).toContain('user:42');
+    expect(seen.at(-1)).toEqual({ id: '42' });
+    app.unmount();
+  });
+});

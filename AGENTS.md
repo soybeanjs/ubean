@@ -146,7 +146,7 @@ ubean 采用 **monorepo + 聚合器** 架构：
 - **应用根组件**（`src/app.vue`（小写，优先）/ `src/App.vue`（大写回退）自动检测，不作为常规路由注册）：应用级包装组件，包裹布局链 + 页面（经默认 slot 注入，组件内 `<slot />` 声明位置）。优先级：`defineApp({ appRoot })` > `src/app.vue` > `src/App.vue`。对应经典 Vue 入口组件 / Nuxt `app.vue` 定位；详见第 4 节 `appRoot` 说明
 - **crons**：`src/crons/`，`defineScheduled()`，数字前缀排序。开发态加载后启动 `startCronScheduler`；生产 eager glob 打进 server-entry。Node/bun/deno 启动进程内调度器；serverless/edge **不**装（用平台 cron）。
 - **Server Actions（表单 action）**：页面模块可 `export const actions = { name: defineAction(...) }`，POST 表单通过 `?/<actionName>` URL 分发（SvelteKit 风格，渐进增强）；详见第 4 节 Server Actions
-- `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`、`transition`（页面过渡名，空串禁用本页过渡；**没有** 顶层 `title`/`middleware` 字段，路由级中间件用 `meta: { middleware }` 透传）。客户端导航守卫用 `defineApp({ router: { setup } })`，不要发明第二套 `middleware/*.global` 文件约定
+- `definePage` 宏字段：`name`、`path`、`layout`、`reuse`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`、`transition`、`props`（vue-router `props` 路由选项：`true` = route.params、静态对象 = 固定 props；函数形式构建期不可求值，丢弃并告警）（页面过渡名，空串禁用本页过渡；**没有** 顶层 `title`/`middleware` 字段，路由级中间件用 `meta: { middleware }` 透传）。客户端导航守卫用 `defineApp({ router: { setup } })`，不要发明第二套 `middleware/*.global` 文件约定
   - `layout` 支持 `string`（单层）、`string[]`（多层嵌套，P9-17）或 `false`（禁用）；数组按外→内顺序嵌套：`['default', 'admin', 'dashboard']` → `default` 包裹 `admin` 包裹 `dashboard` 包裹页面；数组中的 `'default'` 是字面布局名（引用 `layouts/default.vue`），而单独字符串 `'default'` 表示使用默认布局
   - `cache: true` 启用页面 KeepAlive 缓存，框架自动用路由名作为组件 `name`（通过 `getNamedPageWrapper` 包装），`<script setup>` SFC 无需手动 `defineOptions({ name })`
   - 运行时控制：`useCacheViews()` / `enablePageCache(name)` / `disablePageCache(name)` / `excludePageCache(name)` / `invalidatePageCache(name)`

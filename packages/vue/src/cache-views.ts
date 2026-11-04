@@ -314,8 +314,11 @@ export function getNamedPageWrapper(routeName: string, original: Component): Com
   }
   const wrapper = defineComponent({
     name: routeName,
-    setup() {
-      return () => h(original as any);
+    setup(_props, { attrs }) {
+      // 转发 attrs：vue-router 的 `props: true` / 静态对象与 `PageView` 传入的
+      // routeProps 都落在 wrapper 的 attrs 上（wrapper 不声明 props），
+      // 不透传的话 `definePage({ props })` 会被 wrapper 静默吞掉。
+      return () => h(original as any, attrs);
     }
   });
   _wrapperRegistry.set(routeName, { wrapper, original });

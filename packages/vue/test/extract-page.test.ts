@@ -47,6 +47,22 @@ describe('definePage 提取 — 注释', () => {
     expect(console.warn).toHaveBeenCalled();
   });
 
+  it('`props: true` 与对象字面量被提取', () => {
+    expect(extractDefinePageFromCode(`definePage({ props: true })`)?.props).toBe(true);
+    expect(extractDefinePageFromCode(`definePage({ props: { a: 1, b: 'x' } })`)?.props).toEqual({ a: 1, b: 'x' });
+  });
+
+  it('`props` 函数形式被丢掉并告警，其余字段保留', () => {
+    const meta = extractDefinePageFromCode(`definePage({ props: r => ({ id: r.params.id }), name: 'U' })`, 'u.ts');
+    expect(meta?.props).toBeUndefined();
+    expect(meta?.name).toBe('U');
+    expect(console.warn).toHaveBeenCalled();
+  });
+
+  it('`props: false` 不写入结果（vue-router 默认值）', () => {
+    expect(extractDefinePageFromCode(`definePage({ props: false })`)?.props).toBeUndefined();
+  });
+
   it('空字符串 `redirect` 不算重定向（不产生无目标的跳转）', () => {
     expect(extractDefinePageFromCode(`definePage({ redirect: '' });`)?.redirect).toBeUndefined();
   });

@@ -124,6 +124,22 @@ describe('buildDevSsrRoutes', () => {
     expect(clientLocale).toContain('to.params.locale');
   });
 
+  it('`definePage({ props })`：客户端与 dev 两侧都写进路由记录的 props 键', () => {
+    const USER = page({ name: 'User', route: '/user/:id', props: true });
+    const STATIC = page({ name: 'Static', route: '/static', props: { a: 1, b: 'x' } });
+    const pages = [HOME, USER, STATIC];
+
+    const server = buildDevSsrRoutes({ pages, layouts: LAYOUTS, loadComponent: load });
+    expect(server.find(r => r.name === 'User')!.props).toBe(true);
+    expect(server.find(r => r.name === 'Static')!.props).toEqual({ a: 1, b: 'x' });
+    // 未声明 props 的页面不写这个键（保持 vue-router 默认）
+    expect(server.find(r => r.name === 'Home')!.props).toBeUndefined();
+
+    const client = generatePagesModuleSource({ pages, layouts: LAYOUTS } as never);
+    expect(client).toContain('props: true');
+    expect(client).toContain('props: {"a":1,"b":"x"}');
+  });
+
   it('R8 回归：无 404 页时不注册 catch-all，有则名字与路径都对', () => {
     const without = buildDevSsrRoutes({ pages: [HOME], layouts: LAYOUTS, loadComponent: load });
     expect(without.some(r => r.name === 'NotFound')).toBe(false);

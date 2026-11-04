@@ -88,6 +88,11 @@ function layoutVarNameFor(name: string): string {
   return `Layout_${name.replace(/[^a-zA-Z0-9]/g, '_')}`;
 }
 
+/** vue-router `props` 路由选项的源码表达式。`true` 原样,对象 JSON 序列化。 */
+function propsExpression(props: boolean | Record<string, unknown>): string {
+  return props === true ? 'true' : JSON.stringify(props);
+}
+
 /** 组装单条路由的 meta(JSON 序列化;undefined 字段自动省略)。 */
 function buildRouteMeta(page: ScannedPage, extra: Record<string, unknown> = {}): string {
   const meta: Record<string, unknown> = {
@@ -240,8 +245,9 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
         componentParts.push(`${JSON.stringify(sp.slot)}: ${loaderNameFor(sp)}`);
       }
       const vuePath = withLocaleParam(routerPath, locale?.vueParam);
+      const props = primaryPage.props !== undefined ? `, props: ${propsExpression(primaryPage.props)}` : '';
       routeEntries.push(
-        `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(primaryPage.name)}, components: { ${componentParts.join(', ')} }, meta: ${buildRouteMeta(primaryPage, { parallelSlots: slotPages.map(s => s.slot) })} }`
+        `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(primaryPage.name)}, components: { ${componentParts.join(', ')} }${props}, meta: ${buildRouteMeta(primaryPage, { parallelSlots: slotPages.map(s => s.slot) })} }`
       );
     } else if (defaultPage!.redirect) {
       // `definePage({ redirect })`: 不渲染组件,访问时跳转。
@@ -253,8 +259,9 @@ export function generatePagesModuleSource(input: PagesModuleInput, locale?: Loca
       );
     } else {
       const vuePath = withLocaleParam(routerPath, locale?.vueParam);
+      const props = defaultPage!.props !== undefined ? `, props: ${propsExpression(defaultPage!.props)}` : '';
       routeEntries.push(
-        `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(defaultPage!.name)}, component: ${loaderNameFor(defaultPage!)}, meta: ${buildRouteMeta(defaultPage!)} }`
+        `  { path: ${JSON.stringify(vuePath)}, name: ${JSON.stringify(defaultPage!.name)}, component: ${loaderNameFor(defaultPage!)}${props}, meta: ${buildRouteMeta(defaultPage!)} }`
       );
     }
   }

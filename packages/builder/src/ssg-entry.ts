@@ -87,7 +87,10 @@ const _pageToRoute = p => {
       /* 同客户端 buildRouteMeta：透传 definePage({ meta })。否则靠 meta（如 iframeUrl）
          取参数的页面在 SSR 首屏渲染空态，水合后才有值。 */
       ...(p.pageMeta?.meta || undefined)
-    }
+    },
+    // \`definePage({ props })\`：vue-router 的 props 路由选项（\`true\` | 静态对象）。
+    // 必须与客户端 / dev 同形，否则首屏与服务端渲染的组件 props 不一致。
+    ...(p.props === undefined ? {} : { props: p.props })
   };
 };
 

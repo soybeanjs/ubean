@@ -295,7 +295,7 @@ Inside an array, `'default'` is a **literal layout name** (pointing at `layouts/
 
 ## Page Metadata (definePage)
 
-`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout` (`string | string[] | false`), `reuse`, `routable`, `meta`, `requiresAuth`, `cache`, `head`, `ssr` (`boolean | 'streaming' | 'data-only'`), `transition`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
+`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout` (`string | string[] | false`), `reuse`, `routable`, `meta`, `requiresAuth`, `cache`, `head`, `ssr` (`boolean | 'streaming' | 'data-only'`), `transition`, `props`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
 
 ```vue
 <script setup lang="ts">
@@ -316,6 +316,24 @@ definePage({
 });
 </script>
 ```
+
+### Route props (`definePage({ props })`)
+
+`props` maps directly to vue-router's [`props` route option](https://router.vuejs.org/guide/essentials/passing-props), passing parameters as component props instead of reading `useRoute()`:
+
+```vue
+<!-- src/pages/users/[id].vue -->
+<script setup lang="ts">
+definePage({ props: true }); // route.params → component props
+const props = defineProps<{ id: string }>();
+</script>
+```
+
+- `props: true` — pass `route.params` as props
+- `props: { ... }` — pass a static props object
+- A function form (`props: route => ({ ... })`) **cannot be evaluated at build time**: it is dropped with a warning. Read `useRoute()` inside the page component for dynamic props
+- It **coexists** with the page `loader`'s return value (exposed via `usePage().props`); on a name collision the vue-router-injected value wins
+- With parallel routes vue-router indexes the props object **by view name** (`props: { default: {...} }`); a flat object is silently ignored
 
 ## Page Caching (KeepAlive)
 

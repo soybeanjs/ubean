@@ -93,6 +93,8 @@ export function serializePagesForEntry(pages: ScanResult['pages']): string {
       // `definePage({ redirect })`：重定向页面在产物里也是重定向记录，
       // 与 dev 的活对象同形 —— 漏了它只在产物里失效（matchers/slot 曾因此静默丢失）。
       redirect: p.redirect,
+      // `definePage({ props })`：vue-router props 路由选项（`true` | 静态对象）。
+      props: p.props,
       // 内置全局路由标记。**必须序列化** —— 产物入口靠 `isGlobalCatchAll` 把内置 404
       // 排到用户 `[...slug].vue` 之后（vue-router 的 catch-all 按注册顺序匹配），
       // 靠 `isBuiltin` 让宿主过滤菜单。漏掉只会在产物里失效，dev 完全正常。

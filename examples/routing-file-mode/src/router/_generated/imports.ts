@@ -59,6 +59,8 @@ export interface RouteRecord {
   requiresAuth?: boolean;
   /** definePage({ redirect }) 的目标；存在时该路由不渲染组件。 */
   redirect?: string;
+  /** definePage({ props })：vue-router props 路由选项（true | 静态对象）。 */
+  props?: boolean | Record<string, unknown>;
 }
 
 export const layouts: Record<LayoutKey, RawRouteComponent> = {

@@ -113,6 +113,25 @@ export interface DefineClientPageOptions {
   ssr?: boolean | 'streaming' | 'data-only';
   /** 任意扩展 meta,浅合并进 `route.meta`(类型上扩展 vue-router RouteMeta)。 */
   meta?: RouteMeta;
+  /**
+   * vue-router 的 `props` 路由选项 —— 原样写进路由记录,由 vue-router 注入页面组件。
+   *
+   * - `true`:把 `route.params` 作为 props 传给组件(等价于组件内 `useRoute().params`,
+   *   但显式声明依赖,便于测试与解耦)。
+   * - 对象:静态 props,原样透传。
+   *
+   * **构建期只支持布尔与对象字面量**(与 `redirect` 一致)。函数形式
+   * (`route => ({...})`)无法静态求值,会被提取器忽略并告警。
+   *
+   * 注意与 loader 返回值的区别:loader 结果进 `PageObject.props`,页面组件通过
+   * `usePage().props` 读取;本字段走 vue-router,直接成为组件 prop。二者可共存,
+   * 同名时 vue-router 的值覆盖 loader 值。
+   *
+   * **并行路由**(`@slotName/` 目录)下 vue-router 会把对象按视图名索引
+   * (`props: { default: {...}, sidebar: {...} }`),写扁平对象会静默失效;
+   * `props: true` 不受影响(逐视图都传 `route.params`)。
+   */
+  props?: boolean | Record<string, unknown>;
 }
 
 /**

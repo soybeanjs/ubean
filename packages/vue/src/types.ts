@@ -82,6 +82,11 @@ export interface PageMeta {
    * `false` = CSR without loader; `'data-only'` = loader + CSR shell; `true` = SSR.
    */
   ssr?: boolean | 'streaming' | 'data-only';
+  /**
+   * vue-router 的 `props` 路由选项(`true` = `route.params`;对象 = 静态 props)。
+   * 构建期只提取布尔与对象字面量,函数形式被忽略并告警。
+   */
+  props?: boolean | Record<string, unknown>;
 }
 
 /**
@@ -132,6 +137,11 @@ export interface ScannedPage {
    * 客户端路由表 / dev SSR / 生产 entry 都注册为重定向记录,服务端返回 302。
    */
   redirect?: string;
+  /**
+   * vue-router 的 `props` 路由选项(`definePage({ props })`)。
+   * `true` → 把 `route.params` 作为 props 传给页面组件;对象 → 静态 props。
+   */
+  props?: boolean | Record<string, unknown>;
   /**
    * 是否为框架内置路由(名字取自 {@link RESERVED_ROUTE_NAMES})。
    *

@@ -7,7 +7,14 @@
  * `requiresAuth` 悄悄不生效。换成 AST 后每个用例都必须拿到完整字段。
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { extractCallObject, extractDefinePageFromCode } from '../src/extract-page';
+import { extractCallObject, extractDefinePageFromCode, clearExtractWarnings } from '../src/extract-page';
+
+// 告警去重表的 key 是整条文案（含定位前缀），会跨用例累积。不清就会让用例之间
+// 产生顺序依赖：同一 describe 里两条用例报同一条文案时，后一条被静默吞掉。
+// 这里每条用例前清一次，用例顺序不再影响结果（`--sequence.shuffle` 可验证）。
+beforeEach(() => {
+  clearExtractWarnings();
+});
 
 describe('definePage 提取 — 注释', () => {
   beforeEach(() => {
@@ -160,7 +167,6 @@ definePage({ name: makeName() });
 
   it('不传 context 时不出现定位前缀（与旧行为一致）', () => {
     const spy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    // 用一个前面用例没报过的字段：warn 按整条文案去重，重复文案不会再触发。
     extractDefinePageFromCode(`definePage({ ssr: f() });`);
     const message = spy.mock.calls[0][0] as string;
     expect(message).toContain('[ubean/vue] definePage():');

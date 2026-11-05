@@ -24,6 +24,19 @@ function warn(message: string): void {
   console.warn(`[ubean/vue] ${message}`);
 }
 
+/**
+ * 清空告警去重表。
+ *
+ * 去重的 key 是**整条文案**（含定位前缀）。同一文件里两条不同用例触发同一条文案时
+ * （例如都没有 `context`、都报 spread），后一条会被静默吞掉 —— 测试因此依赖用例
+ * 声明顺序：shuffle 一开就随机红。测试需要看见每次都报，就在这里手动清。
+ *
+ * 与 `scan-pages.ts` 的 `clearScanWarnings()` 同一职责。
+ */
+export function clearExtractWarnings(): void {
+  _warned.clear();
+}
+
 /** 判断源码是不是 SFC(用于在未显式传文件名时推断解析模式)。 */
 function inferFileName(code: string, fileName?: string): string {
   if (fileName) return fileName;

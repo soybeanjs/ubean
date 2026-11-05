@@ -63,6 +63,14 @@ describe('definePage 提取 — 注释', () => {
     expect(extractDefinePageFromCode(`definePage({ props: false })`)?.props).toBeUndefined();
   });
 
+  it('`alias` 字符串与字符串数组被提取，空项/空数组丢弃', () => {
+    expect(extractDefinePageFromCode(`definePage({ alias: '/u/:id' })`)?.alias).toBe('/u/:id');
+    expect(extractDefinePageFromCode(`definePage({ alias: ['/u/:id', '/me'] })`)?.alias).toEqual(['/u/:id', '/me']);
+    expect(extractDefinePageFromCode(`definePage({ alias: '' })`)?.alias).toBeUndefined();
+    expect(extractDefinePageFromCode(`definePage({ alias: [] })`)?.alias).toBeUndefined();
+    expect(extractDefinePageFromCode(`definePage({ alias: ['/u/:id', ''] })`)?.alias).toEqual(['/u/:id']);
+  });
+
   it('空字符串 `redirect` 不算重定向（不产生无目标的跳转）', () => {
     expect(extractDefinePageFromCode(`definePage({ redirect: '' });`)?.redirect).toBeUndefined();
   });

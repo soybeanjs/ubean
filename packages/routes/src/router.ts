@@ -833,6 +833,20 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     const matchingMiddleware = getMatchingMiddleware(honoPath);
     const pageMeta = { requiresAuth: page.pageMeta?.requiresAuth ?? true } as RouteMeta;
 
+    // `definePage({ alias })`：别名在客户端路由表里是真实记录（vue-router 自建），
+    // 服务端必须同样注册，否则直链/刷新落到 404 —— 只有软导航能用的别名是假功能。
+    // 别名与主路径共享同名参数（vue-router 硬约束），因此 matcher / 目录中间件 /
+    // handler 全部复用，两条路径走完全相同的请求管道。
+    //
+    // 注意：这里只列**待注册路径**，`matchingMiddleware` 仍按主路径算（它的前缀
+    // 归属跟随页面自身，与别名无关）。
+    const mountPaths = [honoPath];
+    for (const aliasPath of page.alias ? (Array.isArray(page.alias) ? page.alias : [page.alias]) : []) {
+      if (!aliasPath || aliasPath === page.route) continue;
+      const converted = convertUbeanRoutePath(aliasPath);
+      if (!mountPaths.includes(converted)) mountPaths.push(converted);
+    }
+
     // Task 7 (P1): 动态路由 matchers —— 在 localeMetaMiddleware 之后、页面 handler 之前
     // 插入参数校验中间件。若 `page.matchers` 存在且任一 matcher 返回 falsy,
     // 立即返回 404(不调用 `next()`,跳过该路由,让 Hono 继续匹配下一候选路由
@@ -862,13 +876,15 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
     const pageHandler = (method: 'GET' | 'POST') => async (c: Context<UbeanEnv>) =>
       handlePageRequest(c, page, method, loaderKey);
 
-    for (const { path: mountPath } of getHonoLocalePaths(honoPath)) {
-      const localeMetaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
-        c.set('route', { meta: pageMeta, path: c.req.path, method: c.req.method });
-        await next();
-      };
-      app.on(['GET'], mountPath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('GET'));
-      app.on(['POST'], mountPath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('POST'));
+    for (const pathToMount of mountPaths) {
+      for (const { path: mountPath } of getHonoLocalePaths(pathToMount)) {
+        const localeMetaMiddleware = async (c: Context<UbeanEnv>, next: Next) => {
+          c.set('route', { meta: pageMeta, path: c.req.path, method: c.req.method });
+          await next();
+        };
+        app.on(['GET'], mountPath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('GET'));
+        app.on(['POST'], mountPath, localeMetaMiddleware, matcherMiddleware, ...matchingMiddleware, pageHandler('POST'));
+      }
     }
   }
 

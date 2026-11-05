@@ -316,6 +316,8 @@ describe('示例冒烟：ssg-catchall（SSG catch-all 的 chunk 必须可被静�
 
     // 显式 include 的路径必须各自有 HTML
     expect(existsSync(join(root, 'public', 'ui', 'components', 'button', 'index.html'))).toBe(true);
+    // `definePage({ alias })` 在 ssg 白名单模式下要显式列进 include，列出后必须真的落盘
+    expect(existsSync(join(root, 'public', 'play', 'index.html')), 'alias 的预渲染 HTML').toBe(true);
   });
 
   it('catch-all 的按名 chunk 确实存在于产物（本示例存在的理由）', () => {
@@ -327,6 +329,7 @@ describe('示例冒烟：ssg-catchall（SSG catch-all 的 chunk 必须可被静�
 
   it('预渲染页、catch-all 页与搜索索引都可服务', async () => {
     expect(running, '构建失败时 preview 未启动').not.toBeNull();
+    const root = outDir(NAME);
 
     expect((await get(running!, '/')).status).toBe(200);
 
@@ -345,6 +348,11 @@ describe('示例冒烟：ssg-catchall（SSG catch-all 的 chunk 必须可被静�
     const playground = await get(running!, '/playground');
     expect(playground.status).toBe(200);
     expect(playground.body).toContain('class="page-path"');
+
+    // `definePage({ alias })`：SSG 直渲染路径下别名也要能命中并产出 HTML（真实静态文件）
+    const alias = await get(running!, '/play');
+    expect(alias.status).toBe(200);
+    expect(alias.body).toContain('class="page-path"');
 
     // i18n 前缀策略（prefix_except_default）：非默认语言带前缀
     expect((await get(running!, '/zh/')).status).toBe(200);

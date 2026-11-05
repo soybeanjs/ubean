@@ -140,6 +140,33 @@ describe('buildDevSsrRoutes', () => {
     expect(client).toContain('props: {"a":1,"b":"x"}');
   });
 
+  it('`definePage({ alias })`：dev 表与客户端路由表都带上 alias，i18n 下别名也套语言参数', () => {
+    const USER = page({ name: 'User', route: '/user/:id', alias: ['/u/:id', '/profile/:id'] });
+    const pages = [HOME, USER];
+
+    const server = buildDevSsrRoutes({ pages, layouts: LAYOUTS, loadComponent: load });
+    expect(server.find(r => r.name === 'User')!.alias).toEqual(['/u/:id', '/profile/:id']);
+    // 未声明 alias 的页面不写这个键（保持 vue-router 默认）
+    expect(server.find(r => r.name === 'Home')!.alias).toBeUndefined();
+
+    const client = generatePagesModuleSource({ pages, layouts: LAYOUTS } as never);
+    expect(client).toContain('alias: ["/u/:id","/profile/:id"]');
+
+    // 带语言前缀时别名同样要带 `:locale`，否则 `/zh/u/1` 不可达
+    const vueParam = ':locale(zh)?';
+    const serverLocale = buildDevSsrRoutes({
+      pages,
+      layouts: LAYOUTS,
+      loadComponent: load,
+      localeVueParam: vueParam
+    });
+    const clientLocale = generatePagesModuleSource({ pages, layouts: LAYOUTS } as never, { vueParam });
+    expect(clientLocale).toContain('alias: ["/:locale(zh)?/u/:id","/:locale(zh)?/profile/:id"]');
+    expect(serverLocale.find(r => r.name === 'User')!.path).toBe('/:locale(zh)?/user/:id');
+    // dev SSR 表与客户端路由表必须同形：别名也要带 `:locale`
+    expect(serverLocale.find(r => r.name === 'User')!.alias).toEqual(['/:locale(zh)?/u/:id', '/:locale(zh)?/profile/:id']);
+  });
+
   it('R8 回归：无 404 页时不注册 catch-all，有则名字与路径都对', () => {
     const without = buildDevSsrRoutes({ pages: [HOME], layouts: LAYOUTS, loadComponent: load });
     expect(without.some(r => r.name === 'NotFound')).toBe(false);

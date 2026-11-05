@@ -3,6 +3,11 @@ import { useRoute } from 'vue-router';
 
 defineOptions({ name: 'PlaygroundPage' });
 
+// `definePage({ alias })` 在 SSG 直接渲染路径下的验证点：别名会被
+// `compilePageRouteWithAliases` 匹配（fetcher 能渲染它），也会进预渲染候选池。
+// 注意 ssg 示例的 `prerender.include` 是白名单，所以 `include` 里也要列出别名。
+definePage({ alias: '/play' });
+
 const route = useRoute();
 </script>
 

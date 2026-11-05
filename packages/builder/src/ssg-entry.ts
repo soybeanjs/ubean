@@ -88,6 +88,9 @@ const _pageToRoute = p => {
          取参数的页面在 SSR 首屏渲染空态，水合后才有值。 */
       ...(p.pageMeta?.meta || undefined)
     },
+    // \`definePage({ alias })\`：别名与主路径在路由表里同形（vue-router 会自建别名记录），
+    // 必须带上，否则 dev/产物两侧记录形状不一致。
+    ...(p.alias === undefined ? {} : { alias: p.alias }),
     // \`definePage({ props })\`：vue-router 的 props 路由选项（\`true\` | 静态对象）。
     // 必须与客户端 / dev 同形，否则首屏与服务端渲染的组件 props 不一致。
     ...(p.props === undefined ? {} : { props: p.props })

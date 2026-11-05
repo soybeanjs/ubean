@@ -57,6 +57,11 @@ export interface DevSsrRoute {
    */
   redirect?: string | ((to: DevSsrRedirectLocation) => string);
   /**
+   * `definePage({ alias })` 的 vue-router alias 选项（字符串 | 字符串数组）。
+   * 与客户端 `virtual:ubean-pages` 同形。
+   */
+  alias?: string | string[];
+  /**
    * `definePage({ props })` 的 vue-router props 选项（`true` | 静态对象）。
    * 与客户端 `virtual:ubean-pages` 同形。
    */
@@ -107,6 +112,13 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
 
   const withLocale = (path: string) => (localeVueParam ? toVueRouterLocalePath(path, localeVueParam) : path);
 
+  // 别名与主路径同规则：i18n 下也要带语言参数，否则 `/zh/u/1` 在 SSR 首屏不可达
+  // （客户端路由表已经套了，两侧不一致会让首屏落到 404）。
+  const aliasesWithLocale = (alias: string | string[]): string | string[] => {
+    if (!localeVueParam) return alias;
+    return Array.isArray(alias) ? alias.map(withLocale) : withLocale(alias);
+  };
+
   // reuse 路由只带 `definePage` 元数据，加载它拿不到 Vue 组件 —— 必须加载目标页面的模块。
   const pageByName = new Map<string, ScannedPageRoute>();
   for (const page of routablePages) pageByName.set(page.name, page);
@@ -123,6 +135,7 @@ export function buildDevSsrRoutes(options: DevSsrRoutesOptions): DevSsrRoute[] {
     ...(page.redirect
       ? { redirect: redirectTarget(page.redirect, localeVueParam) }
       : { component: componentFor(page) }),
+    ...(page.alias === undefined ? {} : { alias: aliasesWithLocale(page.alias) }),
     ...(page.props !== undefined ? { props: page.props } : {}),
     meta: {
       layout: page.layout === false ? false : page.layout || defaultLayout,

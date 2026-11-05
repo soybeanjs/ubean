@@ -1,8 +1,8 @@
 ---
 title: 页面与路由
 description: "基于文件的页面与路由：约定、路由规则、渲染模式与导航。"
-translatedFrom: bf9aca8672f7
-sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","b535ee0d","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","ba7c7b47","025c2ab3","3debcb8d","6a0b404f","5cd004e5","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
+translatedFrom: 8cc9f741e345
+sections: ["98950a19","e3b0c442","2c3bc418","4777f077","294debd6","e12725a4","d8baa841","f1f065b8","466a5369","b535ee0d","f586c0e0","115a7fc0","362bbfff","16972500","854694e2","33cb1b62","5226190f","ba7c7b47","025c2ab3","3debcb8d","fb3cd604","5cd004e5","c17a5e8d","bda09480","88c74f35","6411a83a","5ac24e8f","5d6286ef","5127205a","39dda1fb","f4f3c9e0","44ffd1d0","06f847ef","054fac25","c90bb9b9","77fde049","e19e3a65","6c9e9725","2103e5b3","aabf13a0","756e7b80","47c04be1","71a97be6","8a399dd5","32735693","55315720"]
 ---
 
 # 页面与路由概览
@@ -282,7 +282,7 @@ definePage({ layout: ['default', 'admin', 'dashboard'] });
 
 ## 页面元数据（definePage）
 
-`definePage` 是用于配置页面选项的编译时宏。其顶层字段包括 `name`、`path`、`layout`（`string | string[] | false`）、`reuse`、`routable`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（`boolean | 'streaming' | 'data-only'`）、`transition`、`props`。**没有顶层 `title`** —— 请用 `head.title` 或 `meta: { title }`。**没有** Nuxt 风格的客户端 `middleware/*.global` 文件约定：请在 `defineApp({ router: { setup } })` 中注册 vue-router 守卫。
+`definePage` 是用于配置页面选项的编译时宏。其顶层字段包括 `name`、`path`、`layout`（`string | string[] | false`）、`reuse`、`routable`、`meta`、`requiresAuth`、`cache`、`head`、`ssr`（`boolean | 'streaming' | 'data-only'`）、`transition`、`props`、`alias`。**没有顶层 `title`** —— 请用 `head.title` 或 `meta: { title }`。**没有** Nuxt 风格的客户端 `middleware/*.global` 文件约定：请在 `defineApp({ router: { setup } })` 中注册 vue-router 守卫。
 
 ```vue
 <script setup lang="ts">
@@ -321,6 +321,23 @@ const props = defineProps<{ id: string }>();
 - 函数形式（`props: route => ({ ... })`）**构建期无法求值**，会被丢弃并告警；需要动态 props 请在页面组件里读 `useRoute()`
 - 与页面 `loader` 的返回值（经 `usePage().props` 暴露）**可以共存**；同名时 vue-router 注入的值优先
 - 并行路由下 vue-router 按**视图名**索引 props 对象（`props: { default: {...} }`），写成扁平对象会被静默忽略
+
+### 路由别名（`definePage({ alias })`）
+
+`alias` 直接对应 vue-router 的 [`alias` 路由选项](https://router.vuejs.org/guide/essentials/redirect-and-alias#Alias)：本页也可通过这些额外路径访问。
+
+```vue
+<!-- src/pages/user/[id].vue -->
+<script setup lang="ts">
+definePage({ alias: ['/u/:id', '/profile/:id'] });
+</script>
+```
+
+- 接受字符串或字符串数组
+- **别名必须与 `path` 共享同名参数** —— vue-router 的 `checkSameParams` 在参数不匹配时直接抛错，所以 `path: '/user/:id'` 配 `/u/:id`，不能配 `/u/:slug`
+- 别名是**真实路径，不是客户端糖**：服务端会为每条别名注册一条 Hono 路由，SSG 匹配也会编译它们，因此直链与硬刷新都可访问。开启 i18n 时语言前缀同样套到别名上（`/zh/u/42`）
+- Vue Router 为每条别名建一条独立路由记录，但**不复制 `name`** —— `route.name` 与 `route.matched[].name` 仍是主记录的名字，别名也不进生成的 `RouteNamedMap`
+- 别名不能做重定向：`redirect` 与 `alias` 是两个独立选项，同时写时 `redirect` 生效
 
 ## 页面缓存（KeepAlive）
 

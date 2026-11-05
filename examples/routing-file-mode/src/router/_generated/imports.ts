@@ -61,6 +61,8 @@ export interface RouteRecord {
   redirect?: string;
   /** definePage({ props })：vue-router props 路由选项（true | 静态对象）。 */
   props?: boolean | Record<string, unknown>;
+  /** definePage({ alias })：vue-router alias 路由选项（字符串 | 字符串数组）。 */
+  alias?: string | string[];
 }
 
 export const layouts: Record<LayoutKey, RawRouteComponent> = {

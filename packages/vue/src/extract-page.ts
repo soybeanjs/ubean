@@ -177,6 +177,12 @@ export function extractDefinePageFromCode(code: string, fileName?: string, conte
   // 重定向目标必须是非空字符串。非字符串(函数形式)会被 AST 提取器丢成
   // `dropped` 并告警,这里只需处理解析成功的情况。
   if (typeof parsed.redirect === 'string' && parsed.redirect.length > 0) result.redirect = parsed.redirect;
+  // vue-router 的 `alias`：字符串或字符串数组，只收非空字符串项。
+  if (typeof parsed.alias === 'string' && parsed.alias.length > 0) result.alias = parsed.alias;
+  else if (Array.isArray(parsed.alias)) {
+    const aliases = parsed.alias.filter((a): a is string => typeof a === 'string' && a.length > 0);
+    if (aliases.length > 0) result.alias = aliases;
+  }
   // vue-router 的 `props` 选项。函数形式(动态 props)在 AST 层就进 `dropped` 并告警;
   // `false` 是 vue-router 的默认值,不写入结果。
   if (parsed.props === true) result.props = true;

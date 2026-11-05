@@ -87,6 +87,14 @@ export interface PageMeta {
    * 构建期只提取布尔与对象字面量,函数形式被忽略并告警。
    */
   props?: boolean | Record<string, unknown>;
+  /**
+   * vue-router 的 `alias` 路由选项(`definePage({ alias })`)：本页可额外通过这些
+   * 路径访问。字符串或字符串数组。
+   *
+   * **必须与 `path` 共享同名参数** —— vue-router 的 `checkSameParams` 在参数不
+   * 匹配时直接抛错。
+   */
+  alias?: string | string[];
 }
 
 /**
@@ -137,6 +145,13 @@ export interface ScannedPage {
    * 客户端路由表 / dev SSR / 生产 entry 都注册为重定向记录,服务端返回 302。
    */
   redirect?: string;
+  /**
+   * vue-router 的 `alias` 路由选项：本页可额外通过这些路径访问（别名）。
+   *
+   * 字符串或字符串数组，与 `path` 共享同名参数（vue-router 硬约束）。
+   * 客户端、dev SSR、生产 entry 与 SSG 匹配四处都要认，否则别名只在软导航生效。
+   */
+  alias?: string | string[];
   /**
    * vue-router 的 `props` 路由选项(`definePage({ props })`)。
    * `true` → 把 `route.params` 作为 props 传给页面组件;对象 → 静态 props。

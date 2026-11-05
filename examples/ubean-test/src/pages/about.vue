@@ -1,5 +1,7 @@
 <script setup lang="ts">
 definePage({
+  // vue-router 的 `alias` 路由选项：别名在服务端 / SSG 也是真实路径（不是只对软导航生效）。
+  alias: ['/about-legacy'],
   head: {
     title: '关于 - ubean-test',
     meta: [{ name: 'description', content: 'ubean 框架功能测试项目介绍页' }]

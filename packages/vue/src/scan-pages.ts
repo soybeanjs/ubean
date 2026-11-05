@@ -460,6 +460,7 @@ export async function scanPages(options: ScanPagesOptions): Promise<ScanPagesRes
         slot,
         matchers,
         redirect: pageMeta?.redirect,
+        alias: pageMeta?.alias,
         props: pageMeta?.props,
         isBuiltin: isRootDecl || undefined
       });

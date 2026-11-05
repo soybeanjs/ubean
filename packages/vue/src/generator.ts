@@ -254,6 +254,11 @@ ${items}
       parts.push(`    props: ${page.props === true ? 'true' : JSON.stringify(page.props)}`);
     }
 
+    // `definePage({ alias })`：vue-router 的 alias 路由选项（字符串 | 字符串数组）。
+    if (page.alias !== undefined) {
+      parts.push(`    alias: ${JSON.stringify(page.alias)}`);
+    }
+
     return `  {\n${parts.join(',\n')}\n  }`;
   }
 
@@ -370,6 +375,8 @@ export interface RouteRecord {
   redirect?: string;
   /** definePage({ props })：vue-router props 路由选项（true | 静态对象）。 */
   props?: boolean | Record<string, unknown>;
+  /** definePage({ alias })：vue-router alias 路由选项（字符串 | 字符串数组）。 */
+  alias?: string | string[];
 }
 
 export const layouts: Record<LayoutKey, RawRouteComponent> = {

@@ -30,6 +30,8 @@ export default defineConfig({
       '/aria',
       '/aria/components/popper',
       '/playground',
+      // alias：预渲染白名单模式下别名要显式列出（否则只是能渲染、不产 HTML）
+      '/play',
       '/search'
     ],
     crawlLinks: true

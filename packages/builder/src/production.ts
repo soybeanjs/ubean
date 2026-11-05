@@ -93,6 +93,9 @@ export function serializePagesForEntry(pages: ScanResult['pages']): string {
       // `definePage({ redirect })`：重定向页面在产物里也是重定向记录，
       // 与 dev 的活对象同形 —— 漏了它只在产物里失效（matchers/slot 曾因此静默丢失）。
       redirect: p.redirect,
+      // `definePage({ alias })`：别名路径在客户端路由表里就是真实路由记录，
+      // dev 的活对象也要带上，否则软导航到别名时服务端解析不到同一条记录。
+      alias: p.alias,
       // `definePage({ props })`：vue-router props 路由选项（`true` | 静态对象）。
       props: p.props,
       // 内置全局路由标记。**必须序列化** —— 产物入口靠 `isGlobalCatchAll` 把内置 404

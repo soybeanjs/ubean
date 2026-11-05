@@ -58,6 +58,26 @@ function normalizeUrlPath(path: string): string {
 }
 
 /**
+ * 一个页面**可访问的全部路径**：主路径在前，`definePage({ alias })` 的别名按声明
+ * 顺序在后。
+ *
+ * vue-router 自己会为 alias 生成别名路由记录，但服务端（Hono 路由注册）与 SSG
+ * （路径匹配）各有一套独立的路径解析，两处都必须把别名当成真实路径处理，否则别名
+ * 只在客户端软导航生效 —— 直链与刷新落到 404，正是 ADR-0010 补记里说的「半接线」。
+ */
+export function routePathsWithAliases(route: string, alias?: string | string[] | null): string[] {
+  const extra = normalizePageAliases(alias).filter(a => a !== route);
+  return extra.length > 0 ? [route, ...extra] : [route];
+}
+
+/** 归一化 `definePage({ alias })`：丢掉空项与非字符串，保持声明顺序。 */
+export function normalizePageAliases(alias?: string | string[] | null): string[] {
+  if (!alias) return [];
+  const list = typeof alias === 'string' ? [alias] : alias;
+  return list.filter((a): a is string => typeof a === 'string' && a.length > 0);
+}
+
+/**
  * 编译页面路由模式为正则。
  *
  * 输入 `page.route` 两种形态：
@@ -107,6 +127,19 @@ export function compilePageRoute(page: ScannedPageRoute): CompiledPageRoute {
   source += '/?$';
 
   return { page, regex: new RegExp(source), paramNames, isCatchAll, staticSegments };
+}
+
+/**
+ * 把一个页面的主路径 + 别名都编译成匹配模式（主路径在前）。
+ *
+ * 别名在客户端路由表里是真实路由记录（vue-router 自建），SSG 也必须能匹配到，
+ * 否则直链/预渲染落到 404。同一页面命中多条时，`matchRoutePattern` 的特异性排序
+ * 先看静态段数，因此别名不会把主路径挤掉；同分时先注册的主路径优先。
+ */
+export function compilePageRouteWithAliases(page: ScannedPageRoute): CompiledPageRoute[] {
+  // 浅拷一份换掉 `route`：`compilePageRoute` 保持单参签名，否则 `pages.map(compilePageRoute)`
+  // 会把数组下标当第二个参数传进去。
+  return routePathsWithAliases(page.route, page.alias).map(route => compilePageRoute({ ...page, route }));
 }
 
 export interface StaticRouteMatch {
@@ -295,7 +328,7 @@ export async function createStaticSsgRenderer(
 
   // 内置全局捕获路由（`pages/404.vue`）不走 URL 匹配 —— SSG 用 `/404` 静态路径渲染产物。
   // 排除后用户 `[...slug].vue` 仍然正常匹配（它是普通页面）。
-  const compiled = init.pages.filter(p => !p.isGlobalCatchAll).map(compilePageRoute);
+  const compiled = init.pages.filter(p => !p.isGlobalCatchAll).flatMap(compilePageRouteWithAliases);
 
   const i18nEnabled = init.i18n != null && init.i18n.enabled !== false;
   const localeCodes = i18nEnabled ? (init.i18n?.locales || []).map(l => (typeof l === 'string' ? l : l.code)) : [];

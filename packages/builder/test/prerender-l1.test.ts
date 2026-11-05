@@ -102,6 +102,17 @@ describe('collectPrerenderRoutes()', () => {
     expect(routes).toEqual(['/about']);
   });
 
+  it('all: true 把 definePage({ alias }) 的静态别名也当成候选路由', () => {
+    const user = { ...makePage('/about'), alias: ['/about-legacy', '/v1/about'] };
+    const dynamic = { ...makePage('/user/[id]'), alias: ['/u/[id]'] };
+    const { routes } = collectPrerenderRoutes([user, dynamic], { all: true });
+    expect(routes).toContain('/about');
+    expect(routes).toContain('/about-legacy');
+    expect(routes).toContain('/v1/about');
+    // 带参数的别名与带参数的主路径一样不进候选池
+    expect(routes.some(r => r.includes('['))).toBe(false);
+  });
+
   it('include supports glob patterns', () => {
     const { routes } = collectPrerenderRoutes(
       [makePage('/'), makePage('/blog/a'), makePage('/blog/b'), makePage('/about')],

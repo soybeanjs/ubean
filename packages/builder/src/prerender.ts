@@ -6,7 +6,7 @@ import type { ScannedPageRoute } from '@ubean/scan';
 import { matchGlob } from '@ubean/shared';
 import type { RouteRule } from '@ubean/shared';
 import { join, dirname, isAbsolute } from 'pathe';
-import { STATIC_NOT_FOUND_ROUTE } from './static-render';
+import { STATIC_NOT_FOUND_ROUTE, normalizePageAliases } from './static-render';
 
 const LINK_REGEX = /<a[^>]+href=["']([^"']+)["'][^>]*>/gi;
 
@@ -161,6 +161,13 @@ export function collectPrerenderRoutes(
     const path = normalizePagePath(page.path);
     if (!isDynamicPath(path)) {
       allPageRoutes.push(path);
+    }
+    // `definePage({ alias })`：别名是真实 URL（服务端路由与 SSG 匹配都认它），静态
+    // 预渲染也要产出它们的 HTML，否则静态托管上别名直链 404。与主路径同规则：
+    // 带参数的别名不进候选池（`prerender.include` 里给具象值仍可显式加）。
+    for (const aliasPath of normalizePageAliases(page.alias)) {
+      const normalized = normalizePagePath(aliasPath);
+      if (!isDynamicPath(normalized)) allPageRoutes.push(normalized);
     }
   }
 

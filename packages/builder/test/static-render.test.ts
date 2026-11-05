@@ -19,6 +19,7 @@ import { prerender, routeToFilePath } from '../src/prerender';
 import {
   STATIC_NOT_FOUND_ROUTE,
   compilePageRoute,
+  compilePageRouteWithAliases,
   matchRoutePattern,
   createStaticSsgRenderer,
   expandRoutesForLocales
@@ -37,6 +38,19 @@ function page(route: string, name = route): ScannedPageRoute {
     isMarkdown: false
   } as ScannedPageRoute;
 }
+
+describe('compilePageRouteWithAliases()', () => {
+  it('主路径在前，别名按声明顺序在后', () => {
+    const compiled = compilePageRouteWithAliases({ ...page('/user/:id'), alias: ['/u/:id', '/me'] });
+    expect(compiled.map(c => c.page.route)).toEqual(['/user/:id', '/u/:id', '/me']);
+    expect(compiled.every(c => c.page.name === '/user/:id')).toBe(true);
+  });
+
+  it('没有别名时只编译主路径', () => {
+    expect(compilePageRouteWithAliases(page('/about'))).toHaveLength(1);
+    expect(compilePageRouteWithAliases({ ...page('/about'), alias: [] })).toHaveLength(1);
+  });
+});
 
 /* -------------------------------------------------------------------------- */
 /* compilePageRoute / matchRoutePattern                                        */
@@ -151,6 +165,21 @@ describe('matchRoutePattern()', () => {
   it('accepts pre-compiled routes', () => {
     const compiled = pages.map(compilePageRoute);
     expect(matchRoutePattern(compiled, '/about')?.page.name).toBe('/about');
+  });
+
+  it('别名路径可匹配（SSG 直链/预渲染不会落到 404）', () => {
+    const user = { ...page('/user/:id'), alias: ['/u/:id'] };
+    const compiled = [page('/about'), user].flatMap(compilePageRouteWithAliases);
+    expect(matchRoutePattern(compiled, '/u/42')?.page.name).toBe('/user/:id');
+    expect(matchRoutePattern(compiled, '/user/42')?.page.name).toBe('/user/:id');
+    expect(matchRoutePattern(compiled, '/u/42')?.params).toEqual({ id: '42' });
+  });
+
+  it('别名比别页的 catch-all 更具体时优先命中', () => {
+    const alias = { ...page('/user/:id'), alias: ['/u/:id'] };
+    const compiled = [page('/docs/**:path'), alias].flatMap(compilePageRouteWithAliases);
+    expect(matchRoutePattern(compiled, '/u/42')?.page.name).toBe('/user/:id');
+    expect(matchRoutePattern(compiled, '/docs/a/b')?.page.name).toBe('/docs/**:path');
   });
 });
 

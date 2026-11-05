@@ -152,6 +152,8 @@ export async function generatePageTypes(result: ScanResult, options: PageTypesOp
     '    redirect?: string | null;',
     '    /** `definePage({ props })`：vue-router props 路由选项。 */',
     '    props?: boolean | Record<string, unknown> | null;',
+    '    /** `definePage({ alias })`：vue-router alias 路由选项。 */',
+    '    alias?: string | string[] | null;',
     '    /** 是否为框架内置路由（Root / NotFound）。宿主生成菜单时应过滤。 */',
     '    isBuiltin?: boolean;',
     '    /** 是否为全局捕获路由（`pages/404.vue`）。 */',

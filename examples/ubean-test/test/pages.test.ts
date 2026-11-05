@@ -75,6 +75,32 @@ describe('Pages & Layouts', () => {
     });
   });
 
+  describe('Route aliases (definePage({ alias }))', () => {
+    it('alias path is served by the same page pipeline (not 404)', async () => {
+      const res = await api('/about-legacy');
+      expect(res.status).toBe(200);
+      expect(res.headers.get('Content-Type')).toContain('text/html');
+      // 同一页面组件，不是 404 页
+      expect(res.text).toContain('关于 ubean-test');
+    });
+
+    it('alias renders the same page component as the main path', async () => {
+      const [main, alias] = await Promise.all([api('/about'), api('/about-legacy')]);
+      expect(alias.status).toBe(main.status);
+      // 只有 page data 里的 `url` 不同（别名访问就是别名 URL）；组件与内容一致。
+      expect(alias.text).toContain('关于 ubean-test');
+      expect(alias.text).toContain('"component":"About"');
+    });
+
+    it('i18n prefix_except_default：别名同样带语言前缀', async () => {
+      // 客户端路由表与 dev SSR 表都会把 `:locale` 套到别名上；服务端 Hono 注册走
+      // `getHonoLocalePaths(alias)`。三处任一处漏掉，`/zh/about-legacy` 就不可达。
+      const zh = await api('/zh/about-legacy');
+      expect(zh.status).toBe(200);
+      expect(zh.text).toContain('关于 ubean-test');
+    });
+  });
+
   describe('Route groups in pages', () => {
     it('(marketing)/marketing-page renders at /marketing-page', async () => {
       const res = await api('/marketing-page');

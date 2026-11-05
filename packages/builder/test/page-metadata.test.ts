@@ -73,6 +73,14 @@ describe('serializePagesForEntry', () => {
     expect(parsed[1].props).toEqual({ a: 1 });
   });
 
+  it('`definePage({ alias })` 也进产物（漏了就只在产物里失效）', () => {
+    const json = serializePagesForEntry([page({ alias: ['/u/:id', '/profile/:id'] }), page({ name: 'Plain' })]);
+    const parsed = JSON.parse(json) as Array<Record<string, unknown>>;
+    expect(parsed[0].alias).toEqual(['/u/:id', '/profile/:id']);
+    // 未声明的页面不写这个键，与客户端 / dev 同形
+    expect('alias' in parsed[1]).toBe(false);
+  });
+
   it('不把构建机的文件系统路径带进产物（fullPath / dirname / basename）', () => {
     const json = serializePagesForEntry([page()]);
     expect(json).not.toContain('/app/src/pages');

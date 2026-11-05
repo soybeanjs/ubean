@@ -65,6 +65,22 @@ export interface DefineClientPageOptions {
    */
   redirect?: string;
   /**
+   * vue-router 的 `alias` 路由选项：本页可额外通过这些路径访问。
+   *
+   * ```vue
+   * <script setup lang="ts">
+   * definePage({ alias: ['/u/:id', '/user/:id'] });
+   * </script>
+   * ```
+   *
+   * 字符串或字符串数组。**别名必须与 `path` 共享同名参数** —— vue-router 的
+   * `checkSameParams` 在参数不匹配时直接抛错，不要写不同形状的路径。
+   *
+   * 别名在**服务端路由与 SSG 匹配里也是真实路径**（直链 / 刷新可访问），不是只对
+   * 客户端软导航生效的装饰。
+   */
+  alias?: string | string[];
+  /**
    * 布局标记:布局名、外→内嵌套布局名数组,或 `false` 禁用。
    * 精简内核只把该值写入 `route.meta.layout`,渲染由宿主的布局层
    * (`LayoutChainRenderer` / 框架运行时)消费。

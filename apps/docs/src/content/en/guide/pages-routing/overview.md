@@ -295,7 +295,7 @@ Inside an array, `'default'` is a **literal layout name** (pointing at `layouts/
 
 ## Page Metadata (definePage)
 
-`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout` (`string | string[] | false`), `reuse`, `routable`, `meta`, `requiresAuth`, `cache`, `head`, `ssr` (`boolean | 'streaming' | 'data-only'`), `transition`, `props`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
+`definePage` is a compile-time macro for configuring page options. Its top-level fields are `name`, `path`, `layout` (`string | string[] | false`), `reuse`, `routable`, `meta`, `requiresAuth`, `cache`, `head`, `ssr` (`boolean | 'streaming' | 'data-only'`), `transition`, `props`, `alias`. There is **no top-level `title`** — use `head.title` or `meta: { title }`. There is **no** Nuxt-style client `middleware/*.global` file convention: register vue-router guards in `defineApp({ router: { setup } })`.
 
 ```vue
 <script setup lang="ts">
@@ -334,6 +334,23 @@ const props = defineProps<{ id: string }>();
 - A function form (`props: route => ({ ... })`) **cannot be evaluated at build time**: it is dropped with a warning. Read `useRoute()` inside the page component for dynamic props
 - It **coexists** with the page `loader`'s return value (exposed via `usePage().props`); on a name collision the vue-router-injected value wins
 - With parallel routes vue-router indexes the props object **by view name** (`props: { default: {...} }`); a flat object is silently ignored
+
+### Route aliases (`definePage({ alias })`)
+
+`alias` maps directly to vue-router's [`alias` route option](https://router.vuejs.org/guide/essentials/redirect-and-alias#Alias): the page is reachable at those extra paths too.
+
+```vue
+<!-- src/pages/user/[id].vue -->
+<script setup lang="ts">
+definePage({ alias: ['/u/:id', '/profile/:id'] });
+</script>
+```
+
+- Accepts a string or an array of strings
+- **Aliases must share the same params as `path`** — vue-router's `checkSameParams` throws on a mismatch, so `path: '/user/:id'` pairs with `/u/:id`, not `/u/:slug`
+- Aliases are **real paths, not client-side sugar**: the server registers a Hono route for each one and the SSG matcher compiles them, so direct links and hard refreshes work. With i18n the language prefix is applied to aliases as well (`/zh/u/42`)
+- Vue Router builds a separate route record per alias, but does **not** copy `name` — `route.name` and `route.matched[].name` stay the main record's name, and the alias does not appear in the generated `RouteNamedMap`
+- Aliases cannot redirect: `redirect` and `alias` are independent options, and `redirect` wins
 
 ## Page Caching (KeepAlive)
 

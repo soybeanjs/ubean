@@ -40,11 +40,11 @@
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
-    "hono": "4.13.14",
+    "hono": "4.13.16",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:",
-    "vue": "^3.5.44"
+    "vue": "^3.5.45"
   },
   "peerDependencies": {
     "@ai-sdk/openai-compatible": "^1.0.0 || ^2.0.0 || ^3.0.0",

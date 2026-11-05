@@ -41,14 +41,14 @@
     "@soybeanjs/eslint-config-vue": "^0.1.1",
     "@soybeanjs/oxc-config": "^0.2.7",
     "@types/node": "^26.6.6",
-    "@vitest/browser": "^5.0.5",
-    "@vitest/browser-playwright": "^5.0.5",
-    "@vitest/coverage-v8": "5.0.5",
+    "@vitest/browser": "^5.1.0",
+    "@vitest/browser-playwright": "^5.1.0",
+    "@vitest/coverage-v8": "5.1.0",
     "eslint": "^10.14.0",
-    "knip": "^6.44.0",
+    "knip": "^6.44.1",
     "miniflare": "^4.20260730.0",
     "vite-plus": "catalog:",
-    "vitest": "5.0.5"
+    "vitest": "5.1.0"
   },
   "packageManager": "pnpm@12.16.1"
 }

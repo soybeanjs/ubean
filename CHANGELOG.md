@@ -1,5 +1,30 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.13...main) (2026-11-05) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **vue**:
+  - support vue-router props option in definePage &nbsp;-&nbsp; by @soybeanjs [<samp>(627d2)</samp>](https://github.com/soybeanjs/ubean/commit/627d25a6)
+  - support vue-router alias option in definePage &nbsp;-&nbsp; by @soybeanjs [<samp>(00c9e)</samp>](https://github.com/soybeanjs/ubean/commit/00c9e1df)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **builder**: apply locale param to definePage alias in the renderer setup &nbsp;-&nbsp; by @soybeanjs [<samp>(a3cb8)</samp>](https://github.com/soybeanjs/ubean/commit/a3cb8373)
+- **vue**: reset warn dedupe between extract-page tests &nbsp;-&nbsp; by @soybeanjs [<samp>(793b8)</samp>](https://github.com/soybeanjs/ubean/commit/793b8460)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(c96b7)</samp>](https://github.com/soybeanjs/ubean/commit/c96b7a69)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **cli**: drop unused root binding in ssg-catchall smoke &nbsp;-&nbsp; by @soybeanjs [<samp>(81792)</samp>](https://github.com/soybeanjs/ubean/commit/81792cf0)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.12...main) (2026-10-31) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

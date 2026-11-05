@@ -329,7 +329,6 @@ describe('示例冒烟：ssg-catchall（SSG catch-all 的 chunk 必须可被静�
 
   it('预渲染页、catch-all 页与搜索索引都可服务', async () => {
     expect(running, '构建失败时 preview 未启动').not.toBeNull();
-    const root = outDir(NAME);
 
     expect((await get(running!, '/')).status).toBe(200);
 

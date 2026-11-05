@@ -88,9 +88,15 @@ const _pageToRoute = p => {
          取参数的页面在 SSR 首屏渲染空态，水合后才有值。 */
       ...(p.pageMeta?.meta || undefined)
     },
-    // \`definePage({ alias })\`：别名与主路径在路由表里同形（vue-router 会自建别名记录），
-    // 必须带上，否则 dev/产物两侧记录形状不一致。
-    ...(p.alias === undefined ? {} : { alias: p.alias }),
+    // \`definePage({ alias })\`：别名与主路径同规则 —— i18n 下也要带语言参数，
+    // 否则 \`/zh/about-legacy\` 匹配不到任何路由（首屏渲染空壳）。与 dev / 客户端同形。
+    ...(p.alias === undefined
+      ? {}
+      : {
+          alias: _localeVueParam
+            ? (Array.isArray(p.alias) ? p.alias : [p.alias]).map(a => toVueRouterLocalePath(a, _localeVueParam))
+            : p.alias
+        }),
     // \`definePage({ props })\`：vue-router 的 props 路由选项（\`true\` | 静态对象）。
     // 必须与客户端 / dev 同形，否则首屏与服务端渲染的组件 props 不一致。
     ...(p.props === undefined ? {} : { props: p.props })

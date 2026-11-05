@@ -158,6 +158,25 @@ describe('buildRendererSetup()', () => {
     // 只能渲染空态，水合后才有值 —— dev 走 buildDevSsrRoutes，产物走这里，两处必须同步
     expect(code).toContain('pageMeta?.meta');
   });
+
+  it('definePage({ alias })：i18n 下别名也要套语言参数（与 path / dev / 客户端同形）', () => {
+    const code = buildRendererSetup({
+      ssrEnabled: true,
+      mode: 'fullstack',
+      localeVueParam: ':locale(zh)?'
+    });
+
+    // 只带 `alias: p.alias` 会让 `/zh/about-legacy` 匹配不到任何路由 —— 首屏渲染空壳、
+    // 客户端水合后才补上（实测生产轨的 pages.test.ts 就是因此红的）。
+    expect(code).toContain('toVueRouterLocalePath(a, _localeVueParam)');
+  });
+
+  it('definePage({ alias })：别名透传由 `_localeVueParam` 守卫（无 i18n 时原样）', () => {
+    const code = buildRendererSetup({ ssrEnabled: true, mode: 'fullstack', localeVueParam: '' });
+    // 生成期是同一个模板：运行时靠 `_localeVueParam` 为空串短路，别名原样进路由记录
+    expect(code).toContain('_localeVueParam ?');
+    expect(code).toContain(': p.alias');
+  });
 });
 
 describe('buildAssetTagsSetup()', () => {

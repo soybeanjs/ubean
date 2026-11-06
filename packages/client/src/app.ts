@@ -77,6 +77,11 @@ export interface UbeanAppOptions {
   routes: RouteRecordRaw[];
   resolveLayoutComponent: (name: string | false | null | undefined) => Promise<Component | null>;
   defaultLayout?: string | null;
+  /**
+   * `virtual:ubean-pages` 的全部布局名。传入后 `preloadLayouts()` 会在首帧前
+   * 解析并缓存全部布局,跨布局导航不再需要动态 import + 异步写入。
+   */
+  layoutNames?: string[];
   initialPage?: PageObject;
   head?: VueHeadClient;
   viewTransitions?: boolean | ViewTransitionOptions;
@@ -126,10 +131,11 @@ export interface UbeanAppInstance {
   head: VueHeadClient;
   page: PageObject;
   /**
-   * 解析当前路由的布局链并写入 `UbeanLayoutView`。布局组件是异步加载的,
+   * 解析布局并写入 `UbeanLayoutView`。布局组件是异步加载的,
    * 而 `renderToString` / 水合首帧不会等待组件内部的异步加载 —— 在首次渲染前
    * await 该函数(SSR: `router.isReady()` 后;客户端水合: mount 前),
    * 布局才会出现在初始输出中。
+   * 构造时传入 `layoutNames` 会先把全部布局填入缓存,再写入当前路由的布局链。
    */
   preloadLayouts: () => Promise<void>;
 }
@@ -161,6 +167,7 @@ function createLayoutWrapper(
 ) {
   const layoutCache = new Map<string, Component | null>();
   const layoutComps = shallowRef<Array<Component | null>>([]);
+  let latestLoad = 0;
 
   async function loadLayout(name: string): Promise<Component | null> {
     if (layoutCache.has(name)) return layoutCache.get(name)!;
@@ -170,14 +177,19 @@ function createLayoutWrapper(
     return raw;
   }
 
+  async function preloadLayoutComponents(names: string[]): Promise<void> {
+    await Promise.all(names.map(n => loadLayout(n)));
+  }
+
   /**
    * Load the layout chain for a route into `layoutComps` (outer → inner).
    * `route.meta.layout` is read synchronously, so calling this from a
-   * `watchEffect` still tracks the route dependency. The write happens after
-   * an `await`, so the first render only includes layouts when this was
-   * awaited beforehand (see `preloadLayouts` on the app instance).
+   * `watchEffect` still tracks the route dependency. Cached chains are written
+   * synchronously: an `await` before the write would let Vue render the new
+   * page with the previous layout (or a bare `PageView`) for one frame.
    */
   async function loadLayoutsForRoute(route: { meta: { layout?: string | string[] | false } }): Promise<void> {
+    const token = ++latestLoad;
     const layoutField = route.meta.layout as string | string[] | false | undefined;
     const resolved = layoutField === undefined ? (defaultLayout ?? undefined) : layoutField;
     const names = normalizeLayoutNames(resolved, defaultLayout);
@@ -185,7 +197,12 @@ function createLayoutWrapper(
       layoutComps.value = [];
       return;
     }
+    if (names.every(n => layoutCache.has(n))) {
+      layoutComps.value = names.map(n => layoutCache.get(n)!);
+      return;
+    }
     const comps = await Promise.all(names.map(n => loadLayout(n)));
+    if (token !== latestLoad) return;
     layoutComps.value = comps;
   }
 
@@ -210,7 +227,7 @@ function createLayoutWrapper(
     }
   });
 
-  return { LayoutView, loadLayoutsForRoute };
+  return { LayoutView, loadLayoutsForRoute, preloadLayoutComponents };
 }
 
 /**
@@ -302,10 +319,15 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
     scrollBehavior: options.router?.scrollBehavior
   });
 
-  const { LayoutView: ClientLayoutWrapper, loadLayoutsForRoute: loadClientLayouts } = createLayoutWrapper(
-    options.resolveLayoutComponent,
-    options.defaultLayout || null
-  );
+  const {
+    LayoutView: ClientLayoutWrapper,
+    loadLayoutsForRoute: loadClientLayouts,
+    preloadLayoutComponents
+  } = createLayoutWrapper(options.resolveLayoutComponent, options.defaultLayout || null);
+
+  // 导航确认前写入目标路由的布局链,否则路由更新后的异步写入会让新页面
+  // 先以旧布局(或裸 PageView)渲染一帧。
+  router.beforeResolve(to => loadClientLayouts(to));
 
   // Seed the keep-alive include list from routes that declared
   // `definePage({ cache: true })`. Runtime toggling via
@@ -341,7 +363,12 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
     router,
     head,
     page,
-    preloadLayouts: () => loadClientLayouts(router.currentRoute.value)
+    preloadLayouts: async () => {
+      if (options.layoutNames?.length) {
+        await preloadLayoutComponents(options.layoutNames);
+      }
+      await loadClientLayouts(router.currentRoute.value);
+    }
   };
 
   // 两端都 provide：组件内 `inject(UBEAN_APP_KEY)` 因此客户端/服务端通吃，

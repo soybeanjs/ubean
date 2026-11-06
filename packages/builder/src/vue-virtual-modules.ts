@@ -317,6 +317,7 @@ export async function createApp() {
     routes,
     resolveLayoutComponent,
     defaultLayout,
+    layoutNames,
     head,
     viewTransitions: config.viewTransitions,
     initialPage: initialPage || undefined,
@@ -372,20 +373,18 @@ export async function createApp() {
     });
   };
 
-  // When hydrating SSR content, must wait for router to be ready before mounting,
-  // otherwise RouterView has no matched route and causes hydration mismatch.
-  if (initialPage) {
-    instance.router
-      .isReady()
-      .then(async function () {
-        // SSR HTML 已包含布局链;客户端水合首帧必须同样就绪(布局是异步
-        // 解析的),否则首帧渲染裸 PageView 导致 hydration mismatch。
-        await instance.preloadLayouts();
-      })
-      .then(mountApp);
-  } else {
-    mountApp();
-  }
+  // 首帧前必须等路由就绪且布局链已写入(SSR 水合与纯 CSR 都需要):
+  // 布局是异步解析的,提前 mount 会先渲染裸 PageView,之后才补上布局。
+  instance.router
+    .isReady()
+    .then(async function () {
+      await instance.preloadLayouts();
+    })
+    .catch(function (error) {
+      // 布局模块加载失败不应阻塞挂载；降级为无布局首帧。
+      console.error('[ubean] preload layouts failed:', error);
+    })
+    .then(mountApp);
 
   return instance;
 }

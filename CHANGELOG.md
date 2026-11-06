@@ -1,5 +1,15 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.14...main) (2026-11-06) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **client**: await layout preload before navigation resolves &nbsp;-&nbsp; by @soybeanjs [<samp>(6c301)</samp>](https://github.com/soybeanjs/ubean/commit/6c301be2)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.13...main) (2026-11-05) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🚀 Features

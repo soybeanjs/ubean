@@ -247,9 +247,13 @@ export type { CsrfOptions } from './csrf';
 export {
   createSecurityHeadersMiddleware,
   defineSecurityHeaders,
+  ensureCspConnectSources,
   extendCspScriptSrc,
+  ICONIFY_API_ORIGIN,
+  REQUIRED_CSP_CONNECT_SOURCES,
   serializeCsp,
-  mergeSecurityHeadersOptions
+  mergeSecurityHeadersOptions,
+  withRequiredCspConnectSources
 } from './security-headers';
 export type { ContentSecurityPolicyDirectives, SecurityHeadersOptions } from './security-headers';
 

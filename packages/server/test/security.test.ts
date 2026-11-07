@@ -13,6 +13,12 @@ import {
   serializeCsp,
   mergeSecurityHeadersOptions
 } from '../src/index';
+import {
+  ICONIFY_API_ORIGIN,
+  REQUIRED_CSP_CONNECT_SOURCES,
+  ensureCspConnectSources,
+  withRequiredCspConnectSources
+} from '../src/security-headers';
 
 /* -------------------------------------------------------------------------- */
 /* 工具：创建测试 app 并发请求                                                  */
@@ -521,6 +527,97 @@ describe('P9-13: Security Headers Middleware', () => {
     it('is an alias for createSecurityHeadersMiddleware', () => {
       const mw = defineSecurityHeaders({});
       expect(typeof mw).toBe('function');
+    });
+  });
+
+  /**
+   * 内置 Icon 走 Iconify API 回退；默认 CSP 必须放行该端点，且应用配置不能把它覆盖掉。
+   * 断言落在最终响应头上：配置合并、单指令替换、extraHeaders 注入都从这里过。
+   */
+  describe('CSP connect-src: Iconify API 来源不可覆盖', () => {
+    it('默认 CSP 放行 Iconify API', async () => {
+      const app = createTestApp(createSecurityHeadersMiddleware());
+      const csp = (await app.request('http://example.com/')).headers.get('Content-Security-Policy')!;
+      expect(csp).toContain(`connect-src 'self' ${ICONIFY_API_ORIGIN}`);
+      expect(REQUIRED_CSP_CONNECT_SOURCES).toEqual([ICONIFY_API_ORIGIN]);
+    });
+
+    it('覆盖 connect-src 后仍保留该来源，且不重复', async () => {
+      const app = createTestApp(
+        createSecurityHeadersMiddleware({
+          contentSecurityPolicy: {
+            'default-src': ["'self'"],
+            'connect-src': ["'self'", 'https://example.com']
+          }
+        })
+      );
+      const csp = (await app.request('http://example.com/')).headers.get('Content-Security-Policy')!;
+      expect(csp).toContain(`connect-src 'self' https://example.com ${ICONIFY_API_ORIGIN}`);
+      expect(csp.split(ICONIFY_API_ORIGIN).length - 1).toBe(1);
+    });
+
+    it('显式清空 connect-src 时继承 default-src 来源，不收紧同源连接', async () => {
+      const app = createTestApp(
+        createSecurityHeadersMiddleware({
+          contentSecurityPolicy: { 'default-src': ["'self'"], 'connect-src': [] }
+        })
+      );
+      const csp = (await app.request('http://example.com/')).headers.get('Content-Security-Policy')!;
+      expect(csp).toContain(`connect-src 'self' ${ICONIFY_API_ORIGIN}`);
+    });
+
+    it('extraHeaders 注入同名 CSP header 也绕不过强制', async () => {
+      const app = createTestApp(
+        createSecurityHeadersMiddleware({
+          extraHeaders: { 'Content-Security-Policy': "default-src 'self'; connect-src 'self'; object-src 'none'" }
+        })
+      );
+      const csp = (await app.request('http://example.com/')).headers.get('Content-Security-Policy')!;
+      expect(csp).toContain(`connect-src 'self' ${ICONIFY_API_ORIGIN}`);
+      expect(csp).toContain("object-src 'none'");
+    });
+
+    it('extraHeaders 用小写 header 名注入也绕不过强制', async () => {
+      const app = createTestApp(
+        createSecurityHeadersMiddleware({
+          extraHeaders: { 'content-security-policy': "connect-src 'self'" }
+        })
+      );
+      const csp = (await app.request('http://example.com/')).headers.get('Content-Security-Policy')!;
+      expect(csp).toContain(ICONIFY_API_ORIGIN);
+    });
+
+    it('report-only 头同样保留', async () => {
+      const app = createTestApp(
+        createSecurityHeadersMiddleware({
+          contentSecurityPolicyReportOnly: true,
+          contentSecurityPolicy: { 'default-src': ["'self'"], 'connect-src': ["'self'"] }
+        })
+      );
+      const csp = (await app.request('http://example.com/')).headers.get('Content-Security-Policy-Report-Only')!;
+      expect(csp).toContain(`connect-src 'self' ${ICONIFY_API_ORIGIN}`);
+    });
+
+    it('CSP 对 connect 不设限时不凭空新增 connect-src', async () => {
+      const app = createTestApp(
+        createSecurityHeadersMiddleware({ contentSecurityPolicy: { 'script-src': ["'self'"] } })
+      );
+      const csp = (await app.request('http://example.com/')).headers.get('Content-Security-Policy')!;
+      expect(csp).toBe("script-src 'self'");
+    });
+
+    it('withRequiredCspConnectSources 为纯函数：来源已齐时返回原对象', () => {
+      const source = { 'connect-src': ["'self'", ICONIFY_API_ORIGIN] };
+      expect(withRequiredCspConnectSources(source)).toBe(source);
+      const updated = withRequiredCspConnectSources({ 'connect-src': ["'self'"] });
+      expect(updated['connect-src']).toEqual(["'self'", ICONIFY_API_ORIGIN]);
+      expect(source['connect-src']).toEqual(["'self'", ICONIFY_API_ORIGIN]);
+    });
+
+    it('ensureCspConnectSources 保留裸指令', () => {
+      expect(ensureCspConnectSources("default-src 'self'; upgrade-insecure-requests")).toBe(
+        `default-src 'self'; upgrade-insecure-requests; connect-src 'self' ${ICONIFY_API_ORIGIN}`
+      );
     });
   });
 

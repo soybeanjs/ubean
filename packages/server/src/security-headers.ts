@@ -68,8 +68,19 @@ export interface SecurityHeadersOptions {
 }
 
 /**
- * 将 CSP 指令对象序列化为 header 值
+ * 内置 Icon 组件（@iconify/vue）在线回退的 API 端点。
+ *
+ * 组件是框架自带的，用户没写任何 CSP 配置时也必须能取到图标；因此这条来源属于框架
+ * 自身的 CSP 契约，应用配置不能把它从 `connect-src` 里覆盖掉。
  */
+export const ICONIFY_API_ORIGIN = 'https://api.iconify.design';
+
+/** CSP 生效时必须始终保留的 `connect-src` 来源（不可被应用配置覆盖）。 */
+export const REQUIRED_CSP_CONNECT_SOURCES: readonly string[] = [ICONIFY_API_ORIGIN];
+
+const CSP_HEADER_NAMES = ['Content-Security-Policy', 'Content-Security-Policy-Report-Only'] as const;
+
+/** 将 CSP 指令对象序列化为 header 值 */
 export function serializeCsp(directives: ContentSecurityPolicyDirectives): string {
   const parts: string[] = [];
   for (const [key, value] of Object.entries(directives)) {
@@ -85,6 +96,22 @@ export function serializeCsp(directives: ContentSecurityPolicyDirectives): strin
   return parts.join('; ');
 }
 
+/** 追加来源并去重（保留原顺序），不改动入参。 */
+const mergeSources = (base: string[], origins: readonly string[]): string[] => [
+  ...base,
+  ...origins.filter(origin => !base.includes(origin))
+];
+
+function extendCspDirective(
+  directives: ContentSecurityPolicyDirectives,
+  name: string,
+  origins: readonly string[]
+): ContentSecurityPolicyDirectives {
+  const current = directives[name];
+  const base = Array.isArray(current) ? current : [];
+  return { ...directives, [name]: mergeSources(base, origins) };
+}
+
 /**
  * 在 CSP 指令上追加 `script-src` 来源（去重、保留原顺序），返回新对象（不改动入参）。
  *
@@ -95,11 +122,52 @@ export function extendCspScriptSrc(
   directives: ContentSecurityPolicyDirectives,
   origins: string[]
 ): ContentSecurityPolicyDirectives {
-  const merged = [...(directives['script-src'] ?? [])];
-  for (const origin of origins) {
-    if (!merged.includes(origin)) merged.push(origin);
-  }
-  return { ...directives, 'script-src': merged };
+  return extendCspDirective(directives, 'script-src', origins);
+}
+
+/**
+ * 把框架必需的来源并入 `connect-src`（去重、不改动入参）。
+ *
+ * 没有显式 `connect-src` 时以 `default-src` 的来源为基底：浏览器在缺 `connect-src` 时会
+ * 回退到 `default-src`，照抄它才不会把原本允许的同源连接收紧掉。两条都没有时 CSP 对连接
+ * 不设限，Iconify API 本就可达，不必凭空新增一条反而收紧策略的指令。
+ */
+export function withRequiredCspConnectSources(
+  directives: ContentSecurityPolicyDirectives
+): ContentSecurityPolicyDirectives {
+  const connectSrc = directives['connect-src'];
+  const defaultSrc = directives['default-src'];
+  const base =
+    Array.isArray(connectSrc) && connectSrc.length > 0
+      ? connectSrc
+      : Array.isArray(defaultSrc) && defaultSrc.length > 0
+        ? defaultSrc
+        : undefined;
+  if (!base) return directives;
+
+  const merged = mergeSources(base, REQUIRED_CSP_CONNECT_SOURCES);
+  if (Array.isArray(connectSrc) && merged.length === connectSrc.length) return directives;
+  return { ...directives, 'connect-src': merged };
+}
+
+/** 解析 CSP header 值为指令对象（裸指令记成 `true`，与 `serializeCsp` 对称）。 */
+function parseCsp(csp: string): ContentSecurityPolicyDirectives {
+  return csp.split(';').reduce<ContentSecurityPolicyDirectives>((directives, part) => {
+    const [name, ...values] = part.trim().split(/\s+/);
+    if (!name) return directives;
+    return { ...directives, [name]: values.length > 0 ? values : true };
+  }, {});
+}
+
+/**
+ * 在一条已序列化的 CSP header 值上强制保留必需来源。
+ *
+ * 这是 CSP 的最终出口：无论 header 来自框架默认、应用覆盖还是 `extraHeaders` 注入，
+ * 只要响应真的带 CSP，就绕不过这一步。
+ */
+export function ensureCspConnectSources(csp: string): string {
+  if (!csp.trim()) return csp;
+  return serializeCsp(withRequiredCspConnectSources(parseCsp(csp)));
 }
 
 /**
@@ -157,7 +225,7 @@ const DEFAULT_CSP: ContentSecurityPolicyDirectives = {
   'style-src': ["'self'", "'unsafe-inline'"],
   'img-src': ["'self'", 'data:', 'blob:'],
   'font-src': ["'self'", 'data:'],
-  'connect-src': ["'self'"],
+  'connect-src': ["'self'", ...REQUIRED_CSP_CONNECT_SOURCES],
   'object-src': ["'none'"],
   'base-uri': ["'self'"],
   'form-action': ["'self'"],
@@ -259,6 +327,15 @@ export function createSecurityHeadersMiddleware(options: SecurityHeadersOptions 
   }
 
   Object.assign(headers, extraHeaders);
+
+  // 内置 Icon 走 Iconify API 回退，这条来源属于框架自身的 CSP 契约：深合并覆盖 connect-src、
+  // 整条指令替换、extraHeaders 注入同名 header 都不能把它抹掉。只在最终 header 值上强制，
+  // 所有覆盖路径才都绕不过去；CSP 被显式关闭且应用没自行注入时，这里没有任何头可改。
+  for (const [name, value] of Object.entries(headers)) {
+    if (CSP_HEADER_NAMES.some(cspName => cspName.toLowerCase() === name.toLowerCase())) {
+      headers[name] = ensureCspConnectSources(value);
+    }
+  }
 
   return async function securityHeadersMiddleware(c: Context<UbeanEnv>, next: Next) {
     // 跳过排除路径

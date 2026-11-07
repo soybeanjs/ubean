@@ -283,6 +283,8 @@ app.use('*', createSessionMiddleware({ secret: process.env.SESSION_SECRET! }));
 
 中间件在启动时安装一次；`useSession` 则在 handler 内部调用。安全头：`createSecurityHeadersMiddleware(options?)`（CSP / HSTS / X-Frame-Options / X-Content-Type-Options / Referrer-Policy / Permissions-Policy / Cross-Origin-*），构造 CSP 用 `serializeCsp(directives)` / `extendCspScriptSrc(directives, origins)`，分层默认值用 `mergeSecurityHeadersOptions(base, override)`。CSRF：`createCsrfMiddleware(options?)`（默认 double-submit cookie，另支持 origin 校验与 both 模式）与 `generateCsrfToken(length = 32)`。Sessions：`createSessionMiddleware(options?)`，`useSession<T>(c)` 返回 `Session<T> | null`，`createStorageSessionStore(storage?, prefix = 'session:')` 用于存储后端 session。每项能力也都有声明式形态：`defineSecurityHeaders` / `defineCsrf` / `defineSessionStore`。
 
+默认 `connect-src` 已包含内置 Icon 组件的 API 回退端点 `https://api.iconify.design`。中间件输出的每一份 CSP 头都会强制保留该来源，因此覆盖 `security.headers.contentSecurityPolicy.connect-src`、或通过 `extraHeaders` 注入同名 header 都只能追加来源，不能把它移除。`ICONIFY_API_ORIGIN` / `REQUIRED_CSP_CONNECT_SOURCES` 暴露该契约，`withRequiredCspConnectSources(directives)` / `ensureCspConnectSources(csp)` 分别作用于指令对象与序列化后的 header 值。`contentSecurityPolicy: false` 仍可整体关闭 CSP。
+
 ## 中间件
 
 ```ts

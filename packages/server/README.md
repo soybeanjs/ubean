@@ -281,6 +281,8 @@ app.use('*', createSessionMiddleware({ secret: process.env.SESSION_SECRET! }));
 
 The middleware is installed once at startup; `useSession` is then called inside handlers. Security headers: `createSecurityHeadersMiddleware(options?)` (CSP / HSTS / X-Frame-Options / X-Content-Type-Options / Referrer-Policy / Permissions-Policy / Cross-Origin-*), with `serializeCsp(directives)` / `extendCspScriptSrc(directives, origins)` for CSP construction and `mergeSecurityHeadersOptions(base, override)` for layered defaults. CSRF: `createCsrfMiddleware(options?)` (double-submit cookie by default, plus origin-check and both modes) and `generateCsrfToken(length = 32)`. Sessions: `createSessionMiddleware(options?)`, `useSession<T>(c)` returning `Session<T> | null`, and `createStorageSessionStore(storage?, prefix = 'session:')` for storage-backed sessions. Each capability also has a declarative form: `defineSecurityHeaders` / `defineCsrf` / `defineSessionStore`.
 
+The default `connect-src` includes `https://api.iconify.design` (the built-in Icon component's API fallback). That source is enforced on every CSP header this middleware emits, so overriding `security.headers.contentSecurityPolicy.connect-src` — or injecting a same-named header via `extraHeaders` — can add sources but cannot remove it. `ICONIFY_API_ORIGIN` / `REQUIRED_CSP_CONNECT_SOURCES` expose the contract, and `withRequiredCspConnectSources(directives)` / `ensureCspConnectSources(csp)` apply it to a directives object or a serialized header. `contentSecurityPolicy: false` still disables CSP entirely.
+
 ## Middleware
 
 ```ts

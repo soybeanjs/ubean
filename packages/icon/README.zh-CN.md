@@ -239,7 +239,7 @@ listLoadedCollections();
 
 框架在 dev 下提供 `/_iconify`：本地 SVG / 集合命中时直接返回，只有未命中才落到 Iconify API。因此本地已安装的集合可离线工作，而未安装的图标在 `iconifyApiEnabled` 开启时仍能解析 —— 若 `fallbackToApi: false`，未命中会变成解析错误。
 
-注意与 CSP 的配合：封禁 `https://api.iconify.design` 的 Content-Security-Policy 会打断 API 回退路径，请在 `connect-src` 放行该端点（[`examples/ubean-test/ubean.config.ts`](../../examples/ubean-test/ubean.config.ts) 就是这样做的），或关掉 `iconifyApiEnabled`。
+注意与 CSP 的配合：框架默认 CSP 已在 `connect-src` 放行 `https://api.iconify.design`，且框架输出的每一份 CSP 都会保留该来源 —— 覆盖 `security.headers.contentSecurityPolicy.connect-src` 只能追加来源，不能把它移除，因此无需手动配置就能保住 API 回退路径。若确实不想走 API 回退，请关掉 `iconifyApiEnabled`（或用 `contentSecurityPolicy: false` 整体关闭 CSP）。
 
 ## 类型安全
 

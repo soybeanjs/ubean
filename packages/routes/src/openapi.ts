@@ -63,7 +63,7 @@ export function registerOpenAPIRoutes(
     // `withDefaultFonts: false`：Scalar 默认会从 `fonts.scalar.com` 取一整套 Web 字体，而这类
     // 第三方字体请求会被应用的 CSP（`font-src 'self' data:`）全数拦掉 —— 关掉它既少一堆控制台
     // 报错，也让这页不依赖第三方字体。Scalar 的托管搜索索引（`api.scalar.com`）仍会被 CSP 拦住
-    // （默认不向第三方开放 `connect-src`）；需要该功能时由用户在 CSP 里自行放行。
+    // （默认 `connect-src` 只额外放行框架内置 Icon 的 Iconify 端点）；需要该功能时由用户自行放行。
     const scalarHTML = `<!doctype html>
 <html>
 <head>

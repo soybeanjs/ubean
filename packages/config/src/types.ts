@@ -988,6 +988,10 @@ export interface UbeanConfig {
   /**
    * Default security middleware. `false` disables CSRF and security headers.
    * Omit to keep framework defaults (CSRF origin check + baseline headers).
+   *
+   * `headers.contentSecurityPolicy.connect-src` always keeps `https://api.iconify.design`
+   * (the built-in Icon component's API fallback) while a CSP is emitted; overriding that
+   * directive can add sources but cannot remove the framework-required one.
    */
   security?:
     | false

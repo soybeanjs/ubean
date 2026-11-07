@@ -33,7 +33,9 @@ import {
   createSecurityHeadersMiddleware,
   extendCspScriptSrc,
   mergeSecurityHeadersOptions,
-  serializeCsp
+  REQUIRED_CSP_CONNECT_SOURCES,
+  serializeCsp,
+  withRequiredCspConnectSources
 } from '@ubean/server/security';
 import type { CsrfOptions, SecurityHeadersOptions } from '@ubean/server/security';
 import { errorToResponse, isNodeRuntime, isUbeanError, UbeanError } from '@ubean/shared';
@@ -214,7 +216,9 @@ const DEFAULT_SECURITY_HEADERS: SecurityHeadersOptions = {
     'style-src': ["'self'", "'unsafe-inline'"],
     'img-src': ["'self'", 'data:', 'blob:', 'https:'],
     'font-src': ["'self'", 'data:'],
-    'connect-src': ["'self'", 'ws:', 'wss:'],
+    // 内置 Icon 的 Iconify API 端点属于框架 CSP 契约（见 withRequiredCspConnectSources），
+    // 应用覆盖这条指令时也无法移除。
+    'connect-src': ["'self'", 'ws:', 'wss:', ...REQUIRED_CSP_CONNECT_SOURCES],
     'object-src': ["'none'"],
     'base-uri': ["'self'"],
     'form-action': ["'self'"],
@@ -282,10 +286,12 @@ export class UbeanApp {
   readonly options: UbeanAppOptions;
   private _ready = false;
   /**
-   * Scalar 文档页（`/_scalar`）专用的 CSP：生效 CSP + `{@link SCALAR_SCRIPT_ORIGIN}`。
+   * Scalar 文档页（`/_scalar`）专用的 CSP：生效 CSP + `{@link SCALAR_SCRIPT_ORIGIN}`
+   * + 框架必需的 `connect-src` 来源（内置 Icon 的 Iconify 端点）。
    *
    * 该页面从 CDN 取脚本，而 CSP 是全局的一份 —— 只在这一条响应上追加它需要的来源，不放宽应用
-   * 其余部分的策略。CSP 被关闭时为 `undefined`（不重加头）。构造期算好，`init()` 注册路由时用。
+   * 其余部分的策略。它自己覆盖全局 CSP 头，因此必需来源也要在这一份上补齐（中间件管不到）。
+   * CSP 被关闭时为 `undefined`（不重加头）。构造期算好，`init()` 注册路由时用。
    */
   private _scalarCsp: string | undefined;
 
@@ -344,7 +350,11 @@ export class UbeanApp {
       // 就挡住了，表现为 DevTools 的 API Docs 面板整页空白）。这里算出该页专用的一份。
       const effectiveCsp = mergedSecurity.contentSecurityPolicy;
       if (effectiveCsp && typeof effectiveCsp === 'object') {
-        this._scalarCsp = serializeCsp(extendCspScriptSrc(effectiveCsp, [SCALAR_SCRIPT_ORIGIN]));
+        // 该页用自己的 CSP 覆盖全局头（c.header），因而必须在这里就带上必需来源，
+        // 否则它比中间件晚生效，会把框架契约绕过去。
+        this._scalarCsp = serializeCsp(
+          withRequiredCspConnectSources(extendCspScriptSrc(effectiveCsp, [SCALAR_SCRIPT_ORIGIN]))
+        );
       }
     }
 

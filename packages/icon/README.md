@@ -239,7 +239,7 @@ listLoadedCollections();
 
 The framework serves `/_iconify` in dev: a local SVG/collection hit is answered directly, and only a miss falls through to the Iconify API. That means a locally installed collection works offline, while an uninstalled icon still resolves when `iconifyApiEnabled` is on — with `fallbackToApi: false` a miss becomes a resolution error instead.
 
-Pair `_iconify` with the CSP note: a Content-Security-Policy that blocks `https://api.iconify.design` will break the API fallback path, so allow the endpoint in `connect-src` (as [`examples/ubean-test/ubean.config.ts`](../../examples/ubean-test/ubean.config.ts) does) or turn `iconifyApiEnabled` off.
+Pair `_iconify` with the CSP note: the framework's default CSP already allows `https://api.iconify.design` in `connect-src`, and every CSP emitted by the framework keeps that source — overriding `security.headers.contentSecurityPolicy.connect-src` can add sources but cannot remove this one, so the API fallback keeps working without any manual config. To opt out of the API fallback itself, set `iconifyApiEnabled: false` (or disable CSP entirely with `contentSecurityPolicy: false`).
 
 ## Type Safety
 

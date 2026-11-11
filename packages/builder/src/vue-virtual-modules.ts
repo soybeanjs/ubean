@@ -232,17 +232,21 @@ function _mergeAppConfig(base, ...configs) {
   for (const cfg of [base, ...configs]) {
     if (cfg?.router?.setup) setups.push(cfg.router.setup);
   }
-  // scrollBehavior 为函数不可合并,后者覆盖(shared 之后定义的 client/server 生效)。
+  // scrollBehavior / scrollRestoration 为不可合并的函数/对象,后者覆盖
+  // (shared 之后定义的 client/server 生效)。
   let scrollBehavior;
+  let scrollRestoration;
   for (const cfg of [base, ...configs]) {
     if (cfg?.router?.scrollBehavior !== undefined) scrollBehavior = cfg.router.scrollBehavior;
+    if (cfg?.router?.scrollRestoration !== undefined) scrollRestoration = cfg.router.scrollRestoration;
   }
   const router = {};
   if (setups.length > 0) {
     router.setup = setups.length === 1 ? setups[0] : (r) => { for (const s of setups) s(r); };
   }
   if (scrollBehavior !== undefined) router.scrollBehavior = scrollBehavior;
-  if (setups.length > 0 || scrollBehavior !== undefined) result.router = router;
+  if (scrollRestoration !== undefined) router.scrollRestoration = scrollRestoration;
+  if (setups.length > 0 || scrollBehavior !== undefined || scrollRestoration !== undefined) result.router = router;
   return result;
 }
 

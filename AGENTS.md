@@ -245,6 +245,8 @@ ubean 采用 **monorepo + 聚合器** 架构：
 
 > `router` 字段接收 `RouterConfig`(`{ setup(router) }`),在 router 实例创建后、`app.use(router)` 之前调用 `setup`,用于注册 vue-router 的导航守卫(`beforeEach`/`beforeResolve`/`afterEach`)。Client 和 SSR 都会执行;`app.ts` + `app.server.ts`/`app.client.ts` 中各自定义的 `setup` 会**累加执行**(shared 先,client/server 后)。
 
+> **滚动恢复**：vue-router 5.5 起 `scrollBehavior` 已 deprecated。框架改为在客户端自动安装 `vue-router/experimental` 的 `ScrollRestoration` 插件（`app.use(router)` 之前），并由 `PageView` 的页面包装层自动 `useScrollRestoration()` —— 页面/布局都无需写代码，客户端 router 也不再注入默认 `scrollBehavior`。调整用 `defineApp({ router: { scrollRestoration: { key, capture, restore } } })`，`false` 关闭；`router.scrollBehavior` 保留为 legacy 覆盖。
+
 > `serializeState(app)` 在 SSR `renderToString` 完成后调用,返回的对象被序列化到 HTML 的 `__UBEAN_STATE__` script 标签;`hydrateState(app, state)` 在客户端 `applyAppConfig`(注册插件)之后、`app.mount()` 之前调用,用于将 SSR state 注入到客户端实例(如 Pinia 的 `pinia.state.value`)。两者均为可选;开启 `pinia` 配置时框架会自动填上这两个钩子(见第 5 节),用户自己写的同名钩子仍然覆盖。
 
 ### 配置

@@ -1,8 +1,8 @@
 ---
 title: 路由助手
 description: "路由辅助 API：useRouter、Link 组件与导航工具。"
-translatedFrom: eac768b27e55
-sections: ["b796b6bc","e3b0c442","76a55e45","f163b508","b658cb7e","bb15e274","1da939ea","0f9ab036","2ccdf592","7733dc06","67b22670","37e8f1d0","f9d15bfe","57880fc8","8fe845b1","6662265f","3cd2ecf7","ac2790bc","29d22aa9","58e47c48"]
+translatedFrom: 2a667b03565a
+sections: ["b796b6bc","e3b0c442","76a55e45","f163b508","b658cb7e","bb15e274","1da939ea","0f9ab036","2ccdf592","7733dc06","67b22670","fd30f3cd","37e8f1d0","f9d15bfe","57880fc8","8fe845b1","6662265f","3cd2ecf7","ac2790bc","29d22aa9","58e47c48"]
 ---
 
 # 路由助手
@@ -166,6 +166,40 @@ const { router } = inject(UBEAN_APP_KEY)!;
 ```
 
 `createUbeanClientApp` 与 `createUbeanSSRApp` 都 provide 了 `UBEAN_APP_KEY`，所以 `inject` 在客户端与服务端都可用 —— 组件内优先用它（或 `useRouter()`）。`getUbeanAppInstance()` 不抛错而是返回 `null`，给只需要判断“有没有实例”的同构代码用。
+
+## 滚动位置恢复
+
+vue-router 5.5 起 `scrollBehavior` 已 deprecated，改为 `ScrollRestoration` 插件 + `useScrollRestoration()`。框架两者都替你装好了：
+
+- 客户端创建应用时自动在 `app.use(router)` **之前** 装上插件
+- 页面包装层自动调 `useScrollRestoration()`，页面与布局**都不用写代码**
+
+默认行为：恢复上次保存的窗口位置；有 `#hash` 时滚到锚点；否则回顶部。要改就配 `defineApp({ router: { scrollRestoration } })`：
+
+```typescript
+export default defineApp({
+  router: {
+    // 不同查询串单独存位置（默认只按 path + hash 区分）
+    scrollRestoration: { key: to => to.fullPath }
+  }
+});
+```
+
+传 `false` 关闭整套恢复。额外滚动容器用 `capture` / `restore` 自己处理：
+
+```typescript
+scrollRestoration: {
+  capture: () => ({ default: { top: window.scrollY }, sidebar: { top: sidebarEl.value?.scrollTop } }),
+  restore: entry => {
+    window.scrollTo({ top: entry?.default?.top ?? 0 });
+    if (sidebarEl.value) sidebarEl.value.scrollTop = entry?.sidebar?.top ?? 0;
+  }
+}
+```
+
+内容异步就绪时（列表、动画）用 `useScrollRestoration({ manual: true })` 拿 `scroll()` 自己调，框架默认的自动恢复会让位。
+
+> 已有的 `router.scrollBehavior` 仍生效（legacy 覆盖）；两者同时开启时由你负责避免争抢。
 
 ## `<Link>` 组件（全局）
 

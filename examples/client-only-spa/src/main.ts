@@ -6,6 +6,7 @@ import {
   createMatcherGuard,
   createPageHead,
   setupPageHeadGuard,
+  installScrollRestoration,
   LOADING_KEY,
   ERROR_KEY
 } from '@ubean/vue';
@@ -25,6 +26,9 @@ import App from './App.vue';
  *    PageView 的 <Suspense>/<ErrorBoundary>(框架运行时默认提供,精简内核自行 provide)。
  * 5. 页面级 head(opt-in):@unhead/vue 为 optional peer,createPageHead
  *    懒加载;守卫在每次导航后 push route.meta.head。
+ * 6. 滚动恢复:vue-router 5.5 起 `scrollBehavior` 已 deprecated,
+ *    改用 ScrollRestoration 插件 —— 必须在 app.use(router) **之前** 安装;
+ *    页面包装层会自动调 useScrollRestoration(),页面无需自己写。
  *
  * 无应用工厂、无 i18n、无自动引入 —— 全部显式导入。
  */
@@ -34,18 +38,14 @@ defineMatcher('numeric', value => /^\d+$/.test(value));
 
 const router = createRouter({
   history: createWebHistory(),
-  routes,
-  scrollBehavior(_to, _from, savedPosition) {
-    if (savedPosition) return savedPosition;
-    if (_to.hash) return { el: _to.hash, behavior: 'smooth' };
-    return { top: 0 };
-  }
+  routes
 });
 
 // matcher 守卫:meta.matchers 校验失败 → NotFound(/users/abc 会被拦截)
 router.beforeEach(createMatcherGuard());
 
 const app = createApp(App);
+installScrollRestoration(app, router);
 app.use(router);
 app.use(ubeanVue, { routes });
 

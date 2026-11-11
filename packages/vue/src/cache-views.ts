@@ -1,5 +1,6 @@
 import { ref, computed, defineComponent, h } from 'vue';
 import type { Component, ComputedRef, Ref } from 'vue';
+import { isScrollRestorationEnabled, useScrollRestoration } from './scroll-restoration';
 
 /**
  * Page cache (keep-alive) store — a module-level singleton.
@@ -315,6 +316,13 @@ export function getNamedPageWrapper(routeName: string, original: Component): Com
   const wrapper = defineComponent({
     name: routeName,
     setup(_props, { attrs }) {
+      // Scroll restoration lives here because the wrapper is the component
+      // rendered inside <RouterView> — the position must be restored once the
+      // new route is displayed, and only there is that timing observable.
+      // Noop unless the framework installed the ScrollRestoration plugin.
+      if (isScrollRestorationEnabled()) {
+        useScrollRestoration();
+      }
       // 转发 attrs：vue-router 的 `props: true` / 静态对象与 `PageView` 传入的
       // routeProps 都落在 wrapper 的 attrs 上（wrapper 不声明 props），
       // 不透传的话 `definePage({ props })` 会被 wrapper 静默吞掉。

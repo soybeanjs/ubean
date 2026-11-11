@@ -74,4 +74,11 @@ describe('createVueAppEntryVirtualModule — appRoot', () => {
     const code = mod.load();
     expect(code).toContain('if (cfg.appRoot) result.appRoot = cfg.appRoot;');
   });
+
+  it('router.scrollRestoration merges last-wins (twin of the TS merge)', () => {
+    const mod = createVueAppEntryVirtualModule(makeEntry(true));
+    const code = mod.load();
+    expect(code).toContain('if (cfg?.router?.scrollRestoration !== undefined) scrollRestoration = cfg.router.scrollRestoration;');
+    expect(code).toContain('if (scrollRestoration !== undefined) router.scrollRestoration = scrollRestoration;');
+  });
 });

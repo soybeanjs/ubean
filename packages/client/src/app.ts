@@ -47,6 +47,7 @@ import { Head as UnheadHeadComponent } from '@unhead/vue/components';
 import { localizePath, initClientI18n, createUbeanI18n, bindI18nRuntime, getI18nRuntimeConfig } from './i18n';
 // Framework router factory (the lean kernel ships no factory — see ./router.ts)
 import { createUbeanRouter } from './router';
+import { installScrollRestoration } from '@ubean/vue';
 // 应用实例的运行时访问入口（模块级单例 + UBEAN_APP_KEY）—— 见 ./app-instance.ts
 import { UBEAN_APP_KEY, setUbeanAppInstance } from './app-instance';
 import type { RouterConfig } from './define-app';
@@ -87,7 +88,7 @@ export interface UbeanAppOptions {
   viewTransitions?: boolean | ViewTransitionOptions;
   hydrate?: boolean;
   /**
-   * router 配置(setup 守卫 + scrollBehavior 等初始化选项)。
+   * router 配置(setup 守卫 + 滚动恢复等初始化选项)。
    * Client 和 SSR 都会执行;setup 注册守卫必须同步完成。
    * 来自 `defineApp({ router })`,由 `virtual:ubean-app` / `virtual:ubean-server`
    * 在调用本工厂前通过 `resolveAppConfig()` 合并注入。
@@ -316,7 +317,8 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
     routes: options.routes,
     ssr: false,
     setup: options.router?.setup,
-    scrollBehavior: options.router?.scrollBehavior
+    scrollBehavior: options.router?.scrollBehavior,
+    scrollRestoration: options.router?.scrollRestoration !== false
   });
 
   const {
@@ -348,6 +350,10 @@ export function createUbeanClientApp(options: UbeanAppOptions): UbeanAppInstance
   const i18n = options.i18n ?? createUbeanI18n();
   app.use(i18n);
   app.use(head);
+  // Must be installed before the router (vue-router requirement). The SSR
+  // factory skips it — there is no DOM there and useScrollRestoration is a
+  // noop, so only the client wires it.
+  installScrollRestoration(app, router, options.router?.scrollRestoration);
   app.use(router);
   bindI18nRuntime(i18n, router);
   app.provide('ubean:i18n-runtime-config', getI18nRuntimeConfig());

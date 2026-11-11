@@ -1,5 +1,6 @@
 import type { App, Component, Plugin } from 'vue';
 import type { Router, RouterOptions } from 'vue-router';
+import type { ScrollRestorationOptions } from '@ubean/vue';
 import type { PageHead } from '@ubean/shared';
 import type { ViewTransitionOptions } from '@ubean/vue';
 
@@ -82,10 +83,26 @@ export interface RouterConfig {
    */
   setup?: (router: Router) => void;
   /**
-   * vue-router `scrollBehavior`,覆盖 `createUbeanRouter` 的默认滚动策略。
-   * 未配置时使用框架默认:回到顶部;带 hash 且目标元素存在时平滑滚动。
+   * vue-router `scrollBehavior`,覆盖框架默认滚动策略。
+   *
+   * **vue-router 5.5 起已 deprecated**，新代码用 `scrollRestoration`；两者可同时
+   * 存在（插件装了就由组件级 `useScrollRestoration()` 接手，`scrollBehavior`
+   * 仍会被 router 调用，可做兜底）。
+   *
+   * 默认行为:返回顶部;带 hash 时仅当目标元素已存在才平滑滚动。
    */
   scrollBehavior?: RouterOptions['scrollBehavior'];
+  /**
+   * 滚动位置恢复选项（`vue-router/experimental` 的 `ScrollRestoration`）。
+   *
+   * 框架默认已启用（`key` = `path + hash`、窗口位置、空位置回顶部），这里只需
+   * 覆盖默认值：自定义 `key` 让不同查询串/页面共享或分开保存位置，或用
+   * `capture` / `restore` 处理额外滚动容器。页面与布局**不需要**自己调
+   * `useScrollRestoration()` —— 框架在页面包装层已经调用。
+   *
+   * `false` 关闭整套恢复。
+   */
+  scrollRestoration?: ScrollRestorationOptions | false;
 }
 
 export interface DefineAppOptions {
@@ -174,6 +191,10 @@ export interface DefineAppOptions {
    *   hydrateState: (app, state) => {
    *     if (state?.pinia) {
    *       app.config.globalProperties.$pinia.state.value = state.pinia;
+   *     },
+   *     scrollRestoration: {
+   *       // 可选：覆盖默认 key / capture / restore
+   *       key: to => to.fullPath
    *     }
    *   }
    * });
@@ -310,9 +331,15 @@ export function mergeAppConfig(
             }
           : cfg.router.setup
         : prev?.setup;
-      // scrollBehavior 为函数不可合并,后者覆盖。
+      // scrollBehavior / scrollRestoration 为不可合并的函数/对象,后者覆盖。
       const scrollBehavior = cfg.router.scrollBehavior !== undefined ? cfg.router.scrollBehavior : prev?.scrollBehavior;
-      result.router = { setup, ...(scrollBehavior !== undefined ? { scrollBehavior } : {}) };
+      const scrollRestoration =
+        cfg.router.scrollRestoration !== undefined ? cfg.router.scrollRestoration : prev?.scrollRestoration;
+      result.router = {
+        setup,
+        ...(scrollBehavior !== undefined ? { scrollBehavior } : {}),
+        ...(scrollRestoration !== undefined ? { scrollRestoration } : {})
+      };
     }
     if (cfg.pinia) {
       const prev = result.pinia;

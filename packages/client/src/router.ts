@@ -27,14 +27,17 @@ export interface CreateUbeanRouterOptions {
    */
   setup?: (router: Router) => void;
   /**
-   * vue-router `scrollBehavior`,覆盖默认滚动策略。
+   * vue-router `scrollBehavior`（5.5 起 deprecated），覆盖默认滚动策略。
    *
    * 默认行为:返回顶部;带 hash 时仅当目标元素已存在才平滑滚动。
-   * 客户端延迟生成的锚点(如 SSR 后由客户端渲染的标题 id)在首次导航时
-   * 可能尚不存在,直接返回 `{ el }` 会触发 VUE_ROUTER_R0042,因此默认
-   * 先探测元素存在性。
+   * 启用 `scrollRestoration` 时**不再**默认传入（否则两套机制会争抢滚动位置）。
    */
   scrollBehavior?: RouterOptions['scrollBehavior'];
+  /**
+   * 已安装 `ScrollRestoration` 插件（见 `installScrollRestoration`）。
+   * 为 `true` 时 router 不再带默认 `scrollBehavior`。
+   */
+  scrollRestoration?: boolean;
 }
 
 export function createUbeanRouter(options: CreateUbeanRouterOptions): Router {
@@ -42,10 +45,14 @@ export function createUbeanRouter(options: CreateUbeanRouterOptions): Router {
 
   const history: RouterHistory = options.ssr ? createMemoryHistory(base) : createWebHistory(base);
 
+  // 两套滚动机制不能同时生效：装了 ScrollRestoration 就交给它，
+  // 只有用户显式给了 scrollBehavior 才保留（此时由用户自己负责不冲突）。
+  const scrollBehavior = options.scrollBehavior ?? (options.scrollRestoration ? undefined : defaultScrollBehavior);
+
   const router = createRouter({
     history,
     routes: options.routes,
-    scrollBehavior: options.scrollBehavior ?? defaultScrollBehavior
+    ...(scrollBehavior ? { scrollBehavior } : {})
   });
 
   // 注册导航守卫 — 必须在初始导航前完成,否则守卫拦截不到首次路由。

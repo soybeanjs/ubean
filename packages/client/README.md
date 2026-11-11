@@ -247,11 +247,12 @@ const router = createUbeanRouter({
   setup(router) {
     router.beforeEach(to => (to.meta.requiresAuth ? '/login' : true));
   },
-  scrollBehavior: (to, from, saved) => saved ?? { top: 0 } // optional override
+  // Optional: tune scroll restoration (see below)
+  scrollRestoration: { key: to => to.fullPath }
 });
 ```
 
-The default `scrollBehavior` returns to the top and scrolls smoothly to a hash target **only when the element already exists** (a client-rendered anchor may not exist yet on the first navigation); otherwise it skips scrolling to avoid vue-router's `VUE_ROUTER_R0042` warning.
+`scrollBehavior` is deprecated since vue-router 5.5. The framework installs vue-router's `ScrollRestoration` plugin and calls `useScrollRestoration()` in the page wrapper, so pages and layouts need no code. The defaults: restore the saved window position, scroll to the hash target when there is one, otherwise go to the top. Use `router.scrollRestoration` to change the `key` / `capture` / `restore` functions, or `false` to turn restoration off. `router.scrollBehavior` still works as a legacy override.
 
 ## Head and SEO
 

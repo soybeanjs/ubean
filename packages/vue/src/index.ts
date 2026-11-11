@@ -82,6 +82,16 @@ export type { UbeanVueOptions, UbeanVuePageData, LayoutChainContext } from './co
 export type { ClientOnlyProps, ClientOnlySlots } from './components';
 export { ubeanVue as default } from './components';
 
+// scroll restoration (vue-router 5.5+ replacement for `scrollBehavior`)
+export {
+  installScrollRestoration,
+  isScrollRestorationEnabled,
+  useScrollRestoration,
+  SCROLL_RESTORATION_CAPTURE_DEFAULT,
+  SCROLL_RESTORATION_RESTORE_DEFAULT
+} from './scroll-restoration';
+export type { ScrollRestorationOptions, ScrollRestorationPluginOptions } from './scroll-restoration';
+
 // page cache (keep-alive)
 export {
   useCacheViews,

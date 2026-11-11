@@ -165,6 +165,40 @@ const { router } = inject(UBEAN_APP_KEY)!;
 
 Both `createUbeanClientApp` and `createUbeanSSRApp` provide `UBEAN_APP_KEY`, so `inject` works on client and server alike — prefer it (or `useRouter()`) inside components. `getUbeanAppInstance()` returns `null` rather than throwing, for isomorphic code that only needs to test whether an instance exists.
 
+## Scroll Restoration
+
+`scrollBehavior` is deprecated since vue-router 5.5; the replacement is the `ScrollRestoration` plugin plus `useScrollRestoration()`. The framework wires both for you:
+
+- the plugin is installed on the client **before** `app.use(router)`
+- the page wrapper calls `useScrollRestoration()`, so pages and layouts need no code
+
+Defaults: restore the saved window position, scroll to a `#hash` target when there is one, otherwise go to the top. To change it, use `defineApp({ router: { scrollRestoration } })`:
+
+```typescript
+export default defineApp({
+  router: {
+    // Separate positions per query string (the default keys on path + hash only)
+    scrollRestoration: { key: to => to.fullPath }
+  }
+});
+```
+
+Pass `false` to turn restoration off. For extra scroll containers supply your own `capture` / `restore`:
+
+```typescript
+scrollRestoration: {
+  capture: () => ({ default: { top: window.scrollY }, sidebar: { top: sidebarEl.value?.scrollTop } }),
+  restore: entry => {
+    window.scrollTo({ top: entry?.default?.top ?? 0 });
+    if (sidebarEl.value) sidebarEl.value.scrollTop = entry?.sidebar?.top ?? 0;
+  }
+}
+```
+
+When content arrives asynchronously (lists, animations) call `useScrollRestoration({ manual: true })` and drive `scroll()` yourself; the framework's automatic restore yields to it.
+
+> An existing `router.scrollBehavior` still works as a legacy override. Keeping both on means you own the conflicts.
+
 ## `<Link>` Component (Global)
 
 `<Link>` is globally registered — no import needed. It performs client-side navigation and supports active-class styling.

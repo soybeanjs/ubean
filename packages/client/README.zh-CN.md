@@ -249,11 +249,12 @@ const router = createUbeanRouter({
   setup(router) {
     router.beforeEach(to => (to.meta.requiresAuth ? '/login' : true));
   },
-  scrollBehavior: (to, from, saved) => saved ?? { top: 0 } // 可选覆盖
+  // 可选：调整滚动恢复（见下）
+  scrollRestoration: { key: to => to.fullPath }
 });
 ```
 
-默认 `scrollBehavior` 回到顶部；仅当带 hash 的**目标元素已存在**时平滑滚动（首次导航时客户端渲染的锚点可能尚不存在），否则跳过滚动以避免 vue-router 的 `VUE_ROUTER_R0042` 告警。
+`scrollBehavior` 自 vue-router 5.5 起已 deprecated。框架会安装 vue-router 的 `ScrollRestoration` 插件，并在页面包装层调用 `useScrollRestoration()`，页面与布局都不用写代码。默认行为：恢复保存的窗口位置；有 hash 时滚到锚点；否则回顶部。用 `router.scrollRestoration` 改 `key` / `capture` / `restore`，传 `false` 关闭；`router.scrollBehavior` 仍可作为 legacy 覆盖。
 
 ## Head 与 SEO
 

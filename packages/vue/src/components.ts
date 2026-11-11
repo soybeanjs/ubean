@@ -320,7 +320,10 @@ export const PageView = defineComponent({
           // `<script setup>` SFCs don't auto-set `name`.
           const rawComp = Component.type as ConcreteComponent;
           const pageName = $route.meta?.pageName as string | undefined;
-          const comp = pageName ? getNamedPageWrapper(pageName, rawComp) : rawComp;
+          // Always wrap on the client: the wrapper is the component that lives
+          // inside <RouterView>, which is where scroll restoration must be
+          // registered (see getNamedPageWrapper).
+          const comp = getNamedPageWrapper(pageName ?? String($route.name ?? $route.path), rawComp);
           const componentProps = Component.props || {};
 
           // Transition priority: prop(false) > prop(string) > route.meta > global

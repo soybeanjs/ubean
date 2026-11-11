@@ -20,6 +20,45 @@ export default defineConfig({
     // PPR（P9-04）：强制流式 SSR + 纳入预渲染发现（等价 `ssr: 'streaming'`，并隐含 prerender）
     '/ppr-demo': { ppr: true }
   },
+  /**
+   * `routing.onPages` 端到端夹具。
+   *
+   * `pages/docs/*.meta.ts` 只在 `meta.iframeUrl` 里写目标地址（`.meta.ts` 是纯元数据页，
+   * 没有组件）；钩子把每条改写为 reuse 路由 —— 组件借 `IframeUrl`，URL 作为静态 props。
+   * dev / build / prepare / SSG 四条扫描路径共用同一个钩子，`/docs/a`、`/docs/b` 因此是真实 URL。
+   *
+   * 覆盖：`examples/ubean-test/test/on-pages.test.ts`。
+   */
+  routing: {
+    onPages(pages) {
+      const iframe = pages.find(p => p.name === 'IframeUrl');
+      if (!iframe) return;
+
+      // 原地改写：同一 `fullPath` 的条目若出现在数组里两次，虚拟模块按 fullPath 去重，
+      // 只有第一条能留下 —— 追加一条同源副本会被静默丢掉（这正是 props 丢失的原因）。
+      return pages.map(p => {
+        const url = p.pageMeta?.meta?.iframeUrl;
+        if (typeof url !== 'string' || p === iframe) return p;
+        return {
+          ...p,
+          // 纯元数据页默认 `routable: false` 且没有组件，改写成借用 IframeUrl 的 reuse 路由。
+          pageKind: 'reuse' as const,
+          routable: true,
+          reuseTarget: iframe.name,
+          props: { url, title: p.pageMeta?.meta?.title as string }
+        };
+      });
+    }
+  },
+  /**
+   * `iframe/[url].vue` 把外部地址嵌进页面，CSP 里 `default-src 'self'` 会拦住它们。
+   * 只补 `frame-src`（嵌套对象浅合并，其余默认指令保持不变）。
+   */
+  security: {
+    headers: {
+      contentSecurityPolicy: { 'frame-src': ["'self'", 'https://example.com', 'https://vuejs.org'] }
+    }
+  },
   i18n: {
     defaultLocale: 'en',
     locales: [

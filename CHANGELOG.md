@@ -1,5 +1,33 @@
 # Changelog
 
+## [main](https://github.com/soybeanjs/ubean/compare/v0.7.15...main) (2026-11-11) · 🧪 Pre-release
+
+### &nbsp;&nbsp;&nbsp;🚀 Features
+
+- **client**: replace deprecated scrollBehavior with ScrollRestoration &nbsp;-&nbsp; by @soybeanjs [<samp>(7c56a)</samp>](https://github.com/soybeanjs/ubean/commit/7c56a180)
+- **config**: add routing.onPages hook over scanned pages &nbsp;-&nbsp; by @soybeanjs [<samp>(6f48b)</samp>](https://github.com/soybeanjs/ubean/commit/6f48b35c)
+- **server**: enforce iconify api origin in default CSP connect-src &nbsp;-&nbsp; by @soybeanjs [<samp>(7adf7)</samp>](https://github.com/soybeanjs/ubean/commit/7adf715c)
+
+### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes
+
+- **routes**: pass declared page props on server render &nbsp;-&nbsp; by @soybeanjs [<samp>(d2b75)</samp>](https://github.com/soybeanjs/ubean/commit/d2b75b6b)
+
+### &nbsp;&nbsp;&nbsp;📖 Documentation
+
+- **site**: restamp routing-modes zh translation &nbsp;-&nbsp; by @soybeanjs [<samp>(8192f)</samp>](https://github.com/soybeanjs/ubean/commit/8192ff6f)
+
+### &nbsp;&nbsp;&nbsp;🏡 Chore
+
+- **deps**: update deps &nbsp;-&nbsp; by @soybeanjs [<samp>(117bc)</samp>](https://github.com/soybeanjs/ubean/commit/117bc0d6)
+
+### &nbsp;&nbsp;&nbsp;✅ Tests
+
+- **examples**: cover routing.onPages with meta-driven iframe pages &nbsp;-&nbsp; by @soybeanjs [<samp>(ff568)</samp>](https://github.com/soybeanjs/ubean/commit/ff568b5c)
+
+### &nbsp;&nbsp;&nbsp;❤️ Contributors
+
+[![soybeanjs](https://github.com/soybeanjs.png?size=48)](https://github.com/soybeanjs)&nbsp;&nbsp;
+
 ## [main](https://github.com/soybeanjs/ubean/compare/v0.7.14...main) (2026-11-06) · 🧪 Pre-release
 
 ### &nbsp;&nbsp;&nbsp;🐞 Bug Fixes

@@ -52,10 +52,53 @@ export default defineConfig({
 | `layoutLazy` | `boolean` | `true` | 懒加载布局组件（与 `routeLazy` 平行） |
 | `getRouteMeta` | `(filePath, frontmatter) => Record` | 内置 | 自定义路由 meta 解析器 |
 | `onGenerated` | `(files: string[]) => void` | — | 生成完成回调（仅 `file`/`both`） |
+| `onPages` | `(pages) => pages \| void` | — | 页面清单钩子：增删改页面条目 |
 
 > **重定向写在页面里，不写在配置里。** `src/pages/index.vue` 就是根路由，所以「`/` 跳到 `/home`」是 `definePage({ redirect: '/home' })`，不再有 `rootRedirect` 配置字段。404 页面同样由 `src/pages/404.vue` 的存在与否决定（见[页面路由](/guide/pages-routing)），也没有对应的配置项。`routing` 里写已删除的字段会收到一条告警，而不是静默忽略。
 
 > **页面扫描来源**：页面文件扫描直接基于 `dir.pages`（支持 `string | string[]` 多目录），不再通过单独的 `pageInclude`/`pageExclude` glob 过滤。要排除特定文件，请使用 `scanOptions.ignore`（对所有扫描类型生效：页面/路由/布局/中间件等）。
+
+### `onPages` 钩子
+
+`onPages` 在扫描出口拿到完整页面清单，可以造页面、改字段、或按条件剔除页面。返回值当作新清单（不返回 = 原地修改）。路由表、产物入口、SSG、开发态都由同一份产物驱动，改一次全部生效。
+
+典型用途：一个通用组件被多条路径复用，各路径的固定参数写在源页面的 `meta` 里，钩子把 `meta` 翻译成静态 `props`：
+
+```ts
+// ubean.config.ts
+export default defineConfig({
+  routing: {
+    onPages(pages) {
+      const iframe = pages.find(p => p.name === 'IframeUrl');
+      if (!iframe) return;
+      // 原地改写，不要追加副本 —— 见下方“同名条目”
+      return pages.map(p => {
+        const url = p.pageMeta?.meta?.iframeUrl;
+        if (typeof url !== 'string' || p === iframe) return p;
+        return {
+          ...p,
+          pageKind: 'reuse' as const,
+          routable: true,
+          reuseTarget: iframe.name,
+          props: { url, title: p.pageMeta?.meta?.title as string }
+        };
+      });
+    }
+  }
+});
+```
+
+配合的源页面只写 meta（`pages/docs/a.meta.ts`）：
+
+```ts
+definePage({ reuse: 'IframeUrl', meta: { title: 'Doc A', iframeUrl: 'https://example.com/' } });
+```
+
+**同名条目**：路由表按 `fullPath` 去重。照原条目再追加一条同 `fullPath` 的副本，后者会被静默丢弃 —— 改写原条目（`map`）而不是拼进 `return [...]`。
+
+**静态 `props` 会走完整个渲染链**：服务端渲染器拿 `pageObj.props`，loader 结果覆盖同名静态 prop。所以 `props` 里放的是首屏就要生效的值（内嵌 URL、详情页 id），不要指望 loader 之后再补。
+
+钩子能改页面上的任意字段（含由文件派生的 `route`/`name`）。内置槽位（`notFoundPage` / `loadingPage` / `errorPage`）在钩子之后按新清单重算，删掉 `pages/404.vue` 不会留下悬空别名。
 
 ## 模式详解
 

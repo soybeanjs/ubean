@@ -30,7 +30,7 @@ export function resolveRoutingConfig(userConfig?: RoutingConfig): ResolvedRoutin
   }
 
   // 函数字段不参与 spread 合并(避免被默认值覆盖)
-  const { getRouteMeta, onGenerated, ...restUserConfig } = userConfig;
+  const { getRouteMeta, onGenerated, onPages, ...restUserConfig } = userConfig;
 
   const merged: ResolvedRoutingConfig = {
     ...routingConfigDefaults,
@@ -40,12 +40,13 @@ export function resolveRoutingConfig(userConfig?: RoutingConfig): ResolvedRoutin
   // 重新挂载函数字段(仅在用户提供了的情况下)
   if (getRouteMeta !== undefined) merged.getRouteMeta = getRouteMeta;
   if (onGenerated !== undefined) merged.onGenerated = onGenerated;
+  if (onPages !== undefined) merged.onPages = onPages;
 
   return merged;
 }
 
 /** `RoutingConfig` 的已知字段(用于未知字段告警)。 */
-const ROUTING_KEYS = new Set<string>([...Object.keys(routingConfigDefaults), 'getRouteMeta', 'onGenerated']);
+const ROUTING_KEYS = new Set<string>([...Object.keys(routingConfigDefaults), 'getRouteMeta', 'onGenerated', 'onPages']);
 
 /**
  * 告警 `routing` 里已删除或拼错的字段。

@@ -50,10 +50,53 @@ See the `RoutingConfig` type in [`@ubean/config`](https://github.com/soybeanjs/u
 | `layoutLazy` | `boolean` | `true` | Lazy-load layout components (parallel to `routeLazy`) |
 | `getRouteMeta` | `(filePath, frontmatter) => Record` | built-in | Custom route meta resolver |
 | `onGenerated` | `(files: string[]) => void` | — | Generation-complete callback (only `file`/`both`) |
+| `onPages` | `(pages) => pages \| void` | — | Page-list hook: add, edit or drop page entries |
 
 > **Redirects live in the page, not in config.** `src/pages/index.vue` *is* the root route, so "`/` redirects to `/home`" is `definePage({ redirect: '/home' })` — there is no `rootRedirect` config field. The 404 page is likewise decided by whether `src/pages/404.vue` exists (see [Pages & Routing](/guide/pages-routing)); it has no config option either. Writing a removed field under `routing` produces a warning instead of being silently ignored.
 
 > **Page scanning source**: page-file scanning is based directly on `dir.pages` (supports `string | string[]` multi-directory), no longer via separate `pageInclude`/`pageExclude` glob filters. To exclude specific files, use `scanOptions.ignore` (applies to all scan types: pages/routes/layouts/middleware, etc.).
+
+### The `onPages` Hook
+
+`onPages` gets the complete page list at the end of scanning and may create pages, rewrite fields, or drop pages by condition. The returned array becomes the new list (return nothing = mutate in place). The route table, production entry, SSG and dev all consume that single output, so one edit reaches every path.
+
+Typical use: one generic component is reused by many paths, and each path's fixed argument lives in the source page's `meta`; the hook translates `meta` into static `props`:
+
+```ts
+// ubean.config.ts
+export default defineConfig({
+  routing: {
+    onPages(pages) {
+      const iframe = pages.find(p => p.name === 'IframeUrl');
+      if (!iframe) return;
+      // Rewrite in place, do not append a copy — see "Same-page duplicates"
+      return pages.map(p => {
+        const url = p.pageMeta?.meta?.iframeUrl;
+        if (typeof url !== 'string' || p === iframe) return p;
+        return {
+          ...p,
+          pageKind: 'reuse' as const,
+          routable: true,
+          reuseTarget: iframe.name,
+          props: { url, title: p.pageMeta?.meta?.title as string }
+        };
+      });
+    }
+  }
+});
+```
+
+The matching source page carries only meta (`pages/docs/a.meta.ts`):
+
+```ts
+definePage({ reuse: 'IframeUrl', meta: { title: 'Doc A', iframeUrl: 'https://example.com/' } });
+```
+
+**Same-page duplicates**: the route table de-duplicates by `fullPath`. Appending a second entry with the same `fullPath` as an existing one makes it get dropped silently — rewrite the original (`map`) instead of spreading into `return [...]`.
+
+**Static `props` travel the whole render chain**: the server renderer reads `pageObj.props`, and loader results override same-named static props. So `props` must hold values needed on the first paint (embedded URLs, detail ids), not values a loader is expected to fill later.
+
+The hook may rewrite any field on a page, including file-derived `route`/`name`. Built-in slots (`notFoundPage` / `loadingPage` / `errorPage`) are recomputed from the new list afterwards, so dropping `pages/404.vue` leaves no dangling alias.
 
 ## Mode Details
 

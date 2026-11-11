@@ -355,7 +355,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
               srcDir: ubeanConfig!.srcDir,
               dirs: ubeanConfig!.dir,
               ignore: ubeanConfig!.scanOptions?.ignore,
-              pageExtensions: ubeanConfig!.pages?.extensions
+              pageExtensions: ubeanConfig!.pages?.extensions,
+              onPages: ubeanConfig!.routing?.onPages
             });
             // 内容快照决定内容集合页面是否进入预渲染队列（与 CLI 路径一致）
             const { snapshot: contentSnapshot } = await loadContentForBuild(ubeanConfig!.rootDir, ubeanConfig!.content);
@@ -595,7 +596,8 @@ export function ubeanPlugin(options?: UbeanPluginOptions): Plugin {
       srcDir: ubeanConfig!.srcDir,
       dirs: ubeanConfig!.dir,
       ignore: ubeanConfig!.scanOptions?.ignore,
-      pageExtensions: ubeanConfig!.pages?.extensions
+      pageExtensions: ubeanConfig!.pages?.extensions,
+      onPages: ubeanConfig!.routing?.onPages
     });
   }
 

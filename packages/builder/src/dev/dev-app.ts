@@ -114,7 +114,8 @@ export async function createDevApp(options: CreateDevAppOptions): Promise<DevApp
       srcDir: config.srcDir,
       dirs: config.dir,
       ignore: config.scanOptions?.ignore,
-      pageExtensions: config.pages?.extensions
+      pageExtensions: config.pages?.extensions,
+      onPages: config.routing?.onPages
     }));
 
   const app = createUbeanApp({

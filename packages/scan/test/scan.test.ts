@@ -111,3 +111,43 @@ describe('scanProject — 聚合扫描', () => {
     expect(result.appEntry.root).toBeUndefined();
   });
 });
+
+describe('scanProject — onPages 钩子', () => {
+  it('返回值替换页面清单,可凭空造出带 props 的复用页', async () => {
+    writeFile('pages/iframe/[url].vue', '<template><iframe /></template>');
+    const result = await scanProject({
+      cwd: tmpDir,
+      srcDir: 'src',
+      onPages: pages => {
+        const target = pages.find(p => p.name === 'IframeUrl')!;
+        return [
+          ...pages,
+          { ...target, relativePath: 'docs/a.reuse.ts', name: 'DocsA', route: '/docs/a', path: '/docs/a', pageKind: 'reuse', reuseTarget: target.name, props: { url: 'https://example.com' } }
+        ];
+      }
+    });
+    const reuse = result.pages.find(p => p.name === 'DocsA');
+    expect(reuse?.props).toEqual({ url: 'https://example.com' });
+    expect(reuse?.reuseTarget).toBe('IframeUrl');
+  });
+
+  it('原地修改(不返回)也生效', async () => {
+    writeFile('pages/about.vue', '<template>About</template>');
+    const result = await scanProject({
+      cwd: tmpDir,
+      srcDir: 'src',
+      onPages: pages => {
+        pages[0].cache = true;
+      }
+    });
+    expect(result.pages[0].cache).toBe(true);
+  });
+
+  it('钩子删掉 404 条目后 notFoundPage 不再悬空', async () => {
+    writeFile('pages/404.vue', '<template>404</template>');
+    writeFile('pages/index.vue', '<template>Home</template>');
+    const result = await scanProject({ cwd: tmpDir, srcDir: 'src', onPages: pages => pages.filter(p => !p.isGlobalCatchAll) });
+    expect(result.pages.some(p => p.isGlobalCatchAll)).toBe(false);
+    expect(result.notFoundPage).toBeUndefined();
+  });
+});

@@ -138,6 +138,14 @@ export interface ScanOptions {
    * 框架模式(SSR)默认开启(`true`),保证 `pageObj.head` 链路可用。
    */
   head?: boolean;
+  /**
+   * 页面清单钩子 —— 扫描出口调用,可增删改页面条目。
+   *
+   * 返回值当作新清单(`undefined` = 原地修改)。内置槽位(`notFoundPage` /
+   * `loadingPage` / `errorPage`)在钩子之后按新清单重算,删掉条目不会留悬空别名。
+   * 框架层由 `ubean.config.ts` 的 `routing.onPages` 透传。
+   */
+  onPages?: (pages: import('@ubean/vue').ScannedPage[]) => import('@ubean/vue').ScannedPage[] | void;
 }
 
 export interface ScanResult {

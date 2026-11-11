@@ -275,15 +275,52 @@ export interface RoutingConfig {
    * @param files 生成的文件路径数组(绝对路径)
    */
   onGenerated?: (files: string[]) => void;
+
+  /**
+   * 页面扫描产物钩子 —— 在扫描出口调用,可以增删改页面条目(路由表、产物入口、
+   * SSG 与开发态一次改动全部生效)。
+   *
+   * 返回值会被当作新的页面清单;返回 `undefined` 表示原地修改。
+   * 数量与内置槽位(`notFoundPage` / `loadingPage` / `errorPage`)在钩子之后按
+   * 新清单重算 —— 删掉 `404.vue` 条目不会有残留别名指向它。
+   *
+   * 只改元数据时优先用 `getRouteMeta`;本钩子用于需要凭空造页面(给既有组件
+   * 挂固定 `props`)、或按条件剔除页面的场景。
+   *
+   * @example 用 meta 里的 url 生成带静态 props 的复用页
+   * ```ts
+   * routing: {
+   *   onPages(pages) {
+   *     const iframe = pages.find(p => p.name === 'IframeUrl');
+   *     if (!iframe) return;
+   *     return [
+   *       ...pages,
+   *       ...pages
+   *         .filter(p => typeof p.pageMeta?.meta?.iframeUrl === 'string')
+   *         .map(p => ({
+   *           ...p,
+   *           name: `${p.name}Iframe`,
+   *           pageKind: 'reuse' as const,
+   *           reuseTarget: iframe.name,
+   *           props: { url: p.pageMeta!.meta!.iframeUrl as string }
+   *         }))
+   *     ];
+   *   }
+   * }
+   * ```
+   */
+  onPages?: (pages: import('@ubean/vue').ScannedPage[]) => import('@ubean/vue').ScannedPage[] | void;
 }
 
 /**
  * 解析后的 `RoutingConfig`,所有字段均已填充默认值。
  */
-export interface ResolvedRoutingConfig extends Required<Omit<RoutingConfig, 'getRouteMeta' | 'onGenerated'>> {
+export interface ResolvedRoutingConfig
+  extends Required<Omit<RoutingConfig, 'getRouteMeta' | 'onGenerated' | 'onPages'>> {
   // 函数字段保持可选(默认值由 `@ubean/scan` 的扫描器实现提供)
   getRouteMeta?: RoutingConfig['getRouteMeta'];
   onGenerated?: RoutingConfig['onGenerated'];
+  onPages?: RoutingConfig['onPages'];
 }
 
 /* -------------------------------------------------------------------------- */

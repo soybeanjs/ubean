@@ -1,6 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { getLogger } from '@ubean/shared/logger';
 import { filePathToRoute, scanPages } from '@ubean/vue/vite';
+import type { ScannedPage } from '@ubean/vue';
 import { join, relative, dirname, basename, extname, isAbsolute } from 'pathe';
 import { glob } from 'tinyglobby';
 import { detectHttpExports } from './detect-exports';
@@ -103,7 +104,16 @@ export async function scanProject(options: ScanOptions): Promise<ScanResult> {
       scanServerEntry(srcDir)
     ]);
 
-  const { pages, layouts, notFoundPage, loadingPage, errorPage } = pagesResult;
+  const { pages: scannedPages, layouts } = pagesResult;
+
+  // 钩子可能凭空造页或删页 —— 之后所有消费方(路由表/产物/SSG)只看新清单。
+  const pages = options.onPages ? (options.onPages(scannedPages) ?? scannedPages) : scannedPages;
+  // 槽位按新清单重算:条目被钩子移除后,别名不应再指向它。
+  const refind = (page: ScannedPage | undefined) =>
+    page ? pages.find(candidate => candidate.relativePath === page.relativePath) : undefined;
+  const notFoundPage = refind(pagesResult.notFoundPage);
+  const loadingPage = refind(pagesResult.loadingPage);
+  const errorPage = refind(pagesResult.errorPage);
 
   const defaultLocale = locales.find(l => l.isDefault)?.code || locales[0]?.code;
 

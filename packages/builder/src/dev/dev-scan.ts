@@ -81,6 +81,8 @@ export interface DevScanCoordinatorOptions {
   srcDir: string;
   dirs?: UbeanResolvedConfig['dir'];
   ignore?: string[];
+  /** 页面清单钩子，透传给默认扫描（调用方自带 `scan` 时由调用方负责）。 */
+  onPages?: UbeanResolvedConfig['routing']['onPages'];
   source: DevScanSource;
   /** 扫描实现；默认 `scanProject`（调用方一般不需要覆盖）。 */
   scan?: () => Promise<ScanResult>;
@@ -201,7 +203,15 @@ export function createDevScanCoordinator(options: DevScanCoordinatorOptions): De
 
   async function runScan(changed: string[]): Promise<ScanResult> {
     const scan =
-      options.scan ?? (() => scanProject({ cwd: rootDir, srcDir, dirs: options.dirs, ignore: options.ignore }));
+      options.scan ??
+      (() =>
+        scanProject({
+          cwd: rootDir,
+          srcDir,
+          dirs: options.dirs,
+          ignore: options.ignore,
+          onPages: options.onPages
+        }));
     const result = await scan();
     registerExtraFiles(result);
     // 判定必须在更新基线之前：否则本次扫描会把自己当成基线，永远判「没变」。

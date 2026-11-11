@@ -160,7 +160,8 @@ export function ubeanVite(options: UbeanViteOptions): Plugin[] {
       srcDir: ubeanConfig.srcDir,
       dirs: ubeanConfig.dir,
       ignore: ubeanConfig.scanOptions?.ignore,
-      pageExtensions: ubeanConfig.pages?.extensions
+      pageExtensions: ubeanConfig.pages?.extensions,
+      onPages: ubeanConfig.routing?.onPages
     });
   }
 

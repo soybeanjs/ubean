@@ -102,10 +102,17 @@ describe('resolveRoutingConfig()', () => {
     expect(result.getRouteMeta).toBe(getRouteMeta);
   });
 
+  it('onPages 函数字段同样不被 spread 覆盖', () => {
+    const onPages = (pages: unknown[]) => pages;
+    const result = resolveRoutingConfig({ onPages } as never);
+    expect(result.onPages).toBe(onPages);
+  });
+
   it('未提供函数字段时不挂载', () => {
     const result = resolveRoutingConfig({});
     expect(result.getRouteMeta).toBeUndefined();
     expect(result.onGenerated).toBeUndefined();
+    expect(result.onPages).toBeUndefined();
   });
 
   it('routingConfigDefaults 只保留活字段', () => {

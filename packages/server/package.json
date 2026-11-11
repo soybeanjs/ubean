@@ -79,13 +79,13 @@
   },
   "dependencies": {
     "@ubean/shared": "workspace:*",
-    "hono": "4.13.16",
+    "hono": "4.13.18",
     "hookable": "^6.1.2",
     "pathe": "^2.0.3"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
-    "nodemailer": "^10.3.1",
+    "nodemailer": "^10.5.0",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

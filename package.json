@@ -45,10 +45,10 @@
     "@vitest/browser-playwright": "^5.1.0",
     "@vitest/coverage-v8": "5.1.0",
     "eslint": "^10.14.0",
-    "knip": "^6.44.1",
+    "knip": "^6.45.1",
     "miniflare": "^4.20260730.0",
     "vite-plus": "catalog:",
     "vitest": "5.1.0"
   },
-  "packageManager": "pnpm@12.16.1"
+  "packageManager": "pnpm@12.18.0"
 }

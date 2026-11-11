@@ -82,7 +82,7 @@
   "devDependencies": {
     "@types/node": "^26.6.6",
     "@vue/compiler-sfc": "^3.5.45",
-    "hono": "4.13.16",
+    "hono": "4.13.18",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vite-plus": "catalog:"

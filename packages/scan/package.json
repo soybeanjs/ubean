@@ -41,7 +41,7 @@
     "typescript": "catalog:",
     "vite-plus": "catalog:",
     "vue": "^3.5.45",
-    "vue-router": "^5.4.0"
+    "vue-router": "^5.5.0"
   },
   "peerDependencies": {
     "vue-router": "^4.0.0"

@@ -1,8 +1,8 @@
 ---
 title: 路由模式
 description: 路由生成模式 —— virtual、file 与 both，以及各自的适用场景。
-translatedFrom: 72fc1fa10ccd
-sections: ["4d5b53ca","e3b0c442","67e54e37","14bcb681","7c224e24","fecf85a4","5bd23172","552612bd","8ebbbf8a","daf19d9e","f0219c2c","b513fb15","304af99c","f4bbbca8","16cc49ec","0211962a","eee24468","9cccf9ea"]
+translatedFrom: 7663d33adc39
+sections: ["4d5b53ca","e3b0c442","67e54e37","14bcb681","7c224e24","f1118f01","c2ed030b","5bd23172","552612bd","8ebbbf8a","daf19d9e","f0219c2c","b513fb15","304af99c","f4bbbca8","16cc49ec","0211962a","eee24468","9cccf9ea"]
 ---
 
 # 路由生成模式

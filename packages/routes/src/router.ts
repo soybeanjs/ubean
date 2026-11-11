@@ -679,7 +679,13 @@ export async function registerPageRoutes(app: RouteRegistrar, options: RegisterO
       }
     }
 
-    const props: Record<string, unknown> = { ...loaderResult } as Record<string, unknown>;
+    // `definePage({ props })`：vue-router 在客户端会把静态对象（或 `true` 时的 params）
+    // 作为 props 传给页面组件。服务端渲染走的是 `pageObj.props`，必须播同一份，
+    // 否则首屏没有 props、水合后才有值（`props: true` 的详情页会先渲空态）。
+    // loader 结果在后：数据总是覆盖同名静态 prop。
+    const declaredProps =
+      page.props === true ? stripLocaleSegment(c.req.param()) : ((page.props as Record<string, unknown>) ?? {});
+    const props: Record<string, unknown> = { ...declaredProps, ...(loaderResult as Record<string, unknown>) };
     if (actionResult !== undefined && actionResult && typeof actionResult === 'object') {
       Object.assign(props, actionResult as Record<string, unknown>);
     }
